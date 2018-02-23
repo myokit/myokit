@@ -2,15 +2,15 @@
 
 Myokit is an [open-source](LICENSE) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
 
-For details and **downloads**, see [http://myokit.org]
+For details and **downloads**, see [myokit.org](http://myokit.org)
 
-For the latests documentation, see [http://docs.myokit.org]
+For the latests documentation, see [docs.myokit.org](http://docs.myokit.org)
 
 ## Quick-start guide
 
-To install Myokit, follow the guides at [http://myokit.org/download].
+To install Myokit, follow the [guidelines on the download pages][http://myokit.org/download].
 
-_Please note: The github repository contains the development version of Myokit, official releases are found on [http://myokit.org]_
+_Please note: The github repository contains the development version of Myokit, [official releases are found here](http://myokit.org)._
 
 After installation, to quickly test if Myokit works, open a terminal or command window, navigate to the myokit directory and type
 
@@ -29,7 +29,7 @@ If you're a Gnome or KDE user, you may wish to install a Myokit icon to your men
     
     ./install/gnome-kde
 
-Windows users can install icons using the Myokit installer, available on [http://myokit.org/windows]
+Windows users can install icons using the [Myokit installer for Windows](http://myokit.org/windows).
 
 ## Using Myokit as a library
 If you want to be able to access Myokit from outside the Myokit directory (so that `import myokit` will work in any Python program), run:
