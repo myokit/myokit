@@ -8,7 +8,7 @@ For the latests documentation, see [docs.myokit.org](http://docs.myokit.org)
 
 ## Quick-start guide
 
-To install Myokit, follow the [guidelines on the download pages][http://myokit.org/download].
+To install Myokit, follow the [guidelines on the download pages](http://myokit.org/download).
 
 _Please note: The github repository contains the development version of Myokit, [official releases are found here](http://myokit.org)._
 
