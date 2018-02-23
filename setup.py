@@ -11,7 +11,7 @@ from myokit import VERSION as version
 
 
 # Load text for description and license
-with open('README') as f:
+with open('README.md') as f:
     readme = f.read()
 with open('LICENSE') as f:
     license = f.read()
