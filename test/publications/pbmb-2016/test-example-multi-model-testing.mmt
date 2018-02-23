@@ -1,0 +1,93 @@
+
+
+
+
+[[script]]
+import myokit
+import myokit.lib.multi
+import matplotlib.pyplot as pl
+
+#
+# NOT FOR DISTRIBUTION
+# This is an updated TEST version of the example, it may leave out slow parts
+# of the example, or contain developer comments
+#
+
+#
+# In this example, we perform the same experiment with several annotated
+# models, using labels to access the variables we need.
+#
+# This example has been tested with Myokit XXX
+#
+
+# This directory contains all the models we'll use
+model_dir = './multi-model-testing'
+
+# This will be used to store the results
+data = myokit.DataLog()
+
+#
+# Using the library module myokit.lib.multi, we can iterate over all models in
+# a directory
+#
+for model, protocol in myokit.lib.multi.iterdir(model_dir):
+    print('Loaded ' + model.name())
+    
+    # Find the membrane potential and the l-type calcium current
+    vm = model.label('membrane_potential')
+    ical = model.label('L_type_calcium_current')
+
+    # Obtain the duration of a stimulus pulse from the embedded protocol
+    duration = protocol.head().duration()
+    # ...and use it to create a new protocol with cycle length 1000ms
+    protocol = myokit.pacing.blocktrain(1000, duration)
+    
+    # Create a simulation with APD tracking enabled
+    s = myokit.Simulation(model, protocol, apd_var=vm)
+    
+    # Pre-pace the model for 50 beats
+    #print('  Pre-pacing...')
+    #s.pre(50 * 1000)
+    
+    # Update the model with the new state
+    #model.set_state(s.state())
+    
+    # Measure the baseline APD at V=-70mV
+    print('  Measuring baseline apd...')
+    x, apds = s.run(600, log=myokit.LOG_NONE, apd_threshold=-70)
+    
+    # The returned object `apds` contains more info that we need, extract only
+    # the duration of the first AP
+    apd_baseline = apds['duration'][0]
+    
+    # Update the model, reducing ICaL to 50%
+    ical.set_rhs(myokit.Multiply(ical.rhs(), myokit.Number(0.5)))
+    
+    # Create a new simulation and measure the new apd
+    print('  Measuring modified apd...')
+    s = myokit.Simulation(model, protocol, apd_var=vm)
+    x, apds = s.run(600, log=myokit.LOG_NONE, apd_threshold=-70)
+    apd_modified = apds['duration'][0]
+    
+    # Store the difference between the APDs
+    data[model.name()] = [apd_modified - apd_baseline]
+
+# Store output
+#print('Storing output')
+#data.save_csv('example-multi-model-testing.csv')
+#print('Done')
+
+# Create a bar graph of the results
+pl.figure()
+pl.xlim(-100, 20)
+pl.ylim(-1, 2)
+pl.grid(True)
+labels = [x for x in reversed(sorted(data.keys()))]
+positions = range(2)
+values = [data[model][0] for model in labels]
+pl.barh(positions, values, align='center')
+pl.yticks(positions, labels)
+pl.xlabel('APD increase with reduced ICaL [ms]')
+pl.subplots_adjust(left=0.30, right=0.95, top=0.95)
+pl.show()
+

@@ -1,0 +1,67 @@
+{#
+    myokit/layout.html
+    ~~~~~~~~~~~~~~~~~
+
+    Sphinx layout template for the myokit theme, based on the agogo template
+    written by Andi Albrecht.
+#}
+{% extends "basic/layout.html" %}
+
+{% block header %}
+    <div class="header-wrapper">
+      <div class="header">
+        {#
+        <h1><a href="{{ pathto(master_doc) }}">Myokit &nbsp;::&nbsp; API and User Guide</a></h1>
+        #}
+        <h1><a href="http://myokit.org">Myokit &nbsp;::&nbsp; API and User Guide</a></h1>
+      </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="sidebar">
+          {%- block sidebartoc %}
+          {{ toctree(includehidden=True) }}
+          {%- endblock %}
+          {%- block sidebarsearch %}
+          <h3 style="margin-top: 1.5em;">{{ _('Search') }}</h3>
+          <form class="search" action="{{ pathto('search') }}" method="get">
+            <input type="text" name="q" />
+            <input type="submit" value="{{ _('Go') }}" />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+          </form>
+          {%- endblock %}
+        </div>
+        <div class="document">
+          {%- block document %}
+            {{ super() }}
+          {%- endblock %}
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          {%- if show_source and has_source and sourcename %}
+            <a href="{{ pathto('_sources/' + sourcename, true)|e }}"
+               rel="nofollow">{{ _('Show Source') }}</a>
+          {%- endif %}
+        </div>
+
+        <div class="right">
+          {{ super() }}
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+{% endblock %}
+
+{% block relbar1 %}{% endblock %}
+{% block relbar2 %}{% endblock %}

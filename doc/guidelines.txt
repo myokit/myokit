@@ -1,0 +1,14 @@
+Style guide:
+ - Don't bother with :param: and :type: indications. If a parameter needs
+   explaining write a short paragraph about it. If it's obvious then don't
+   waste the space.
+ - Same goes for :returns: This has the benefit of reducing the time spent
+   writing obvious documentation, hopefully increasing the time spent
+   writing helpful documentation. It'll also make complicated functions and
+   methods stand out more.
+ - Header 1: * below + above
+ - Header 2: = below
+ - Don't follow a header with another header
+ - Be careful not to place "module" statements above the page's first
+   header! (These add a <span> which stops the <hx> from being the
+   :first-child, which means you get extra padding at the top of the page)

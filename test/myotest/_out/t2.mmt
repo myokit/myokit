@@ -1,0 +1,146 @@
+[[model]]
+author: Michael Clerx
+desc: """
+    Implementation of the Luo-Rudy model I for the ventricular myocyte.
+    Based on an updated formulation downloaded from http://rudylab.wustl.edu
+    
+    Original copyright notice:
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Copyright (C) 2006 by Leonid Livshitz and Yoram Rudy
+    Email rudy@wustl.edu
+    
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+    
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the
+    Free Software Foundation, Inc.,
+    59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+    """
+name: Luo-Rudy model (1991)
+# Initial values
+membrane.V = -84.5286
+ina.m      = 0.0017
+ina.h      = 0.9832
+ina.j      = 0.995484
+ica.d      = 3e-6
+ica.f      = 1
+ik.x       = 0.0057
+ica.Ca_i   = 0.0002
+
+[cell]
+Ca_o = 1.8 [mM]
+K_i = 145 [mM]
+K_o = 5.4 [mM]
+Na_i = 10 [mM]
+Na_o = 140 [mM]
+RTF = R * T / F
+    F = 96.5 [C/mol] : Faraday constant
+    R = 8.314 [g*m^2/s^2/K (1000)] : Gas constant
+    T = 273 + 37 [K] : Absolute temperature
+
+[engine]
+pace = 0 bind pace
+time = 0 bind time
+
+[ib]
+Ib = gb * (membrane.V + 59.87) : Background current
+gb = 0.03921
+
+[ica]
+use membrane.V as V
+dot(Ca_i) = -0.0001 * ICa + 0.07 * (0.0001 - Ca_i)
+    desc: Intracellular Calcium concentration
+E = 7.7 - 13.0287 * log(Ca_i / cell.Ca_o)
+    in [mV]
+    desc: Nernst potential
+ICa = gCa * d * f * (V - E)
+dot(d) = alpha * (1 - d) - beta * d
+    alpha = 0.095 * exp(-0.01 * (V - 5)) / (1 + exp(-0.072 * (V - 5)))
+    beta = 0.07 * exp(-0.017 * (V + 44)) / (1 + exp(0.05 * (V + 44)))
+dot(f) = alpha * (1 - f) - beta * f
+    alpha = 0.012 * exp(-0.008 * (V + 28)) / (1 + exp(0.15 * (V + 28)))
+    beta = 0.0065 * exp(-0.02 * (V + 30)) / (1 + exp(-0.2 * (V + 30)))
+gCa = 0.09
+
+[ik]
+use membrane.V as V
+E = cell.RTF * log((cell.K_o + PNa_K * cell.Na_o) / (cell.K_i + PNa_K * cell.Na_i))
+    in [mV]
+IK = gK * xi * x * (V - E) : Time-dependent Potassium current
+PNa_K = 0.01833 : Permability ratio of Na to K
+gK = 0.282 * sqrt(cell.K_o / 5.4)
+    in [mS/uF]
+dot(x) = alpha * (1 - x) - beta * x
+    alpha = 0.0005 * exp(0.083 * (V + 50)) / (1 + exp(0.057 * (V + 50)))
+    beta = 0.0013 * exp(-0.06 * (V + 20)) / (1 + exp(-0.04 * (V + 20)))
+xi = if(V < -100, 1, if(V == -77, 2.837 * 0.04 / exp(0.04 * (V + 35)), 2.837 * (exp(0.04 * (V + 77)) - 1) / ((V + 77) * exp(0.04 * (V + 35)))))
+
+[ik1]
+use membrane.V as V
+E = cell.RTF * log(cell.K_o / cell.K_i)
+IK1 = gK1 * (V - E)
+gK1 = 0.6047 * sqrt(cell.K_o / 5.4) * alpha / (alpha + beta)
+    alpha = 1.02 / (1 + exp(0.2385 * (V - E - 59.215)))
+    beta = (0.49124 * exp(0.08032 * (V - E + 5.476)) + exp(0.06175 * (V - E - 594.31))) / (1 + exp(-0.5143 * (V - E + 4.753)))
+
+[ikp]
+use membrane.V as V
+IKp = gKp * (V + 87.8789) / (1 + exp((7.488 - V) / 5.98))
+    desc: Plateau Potassium current
+gKp = 0.0183
+
+[ina]
+use membrane.V as V
+ENa = cell.RTF * log(cell.Na_o / cell.Na_i)
+    in [mV]
+    desc: Nernst potential of Na
+INa = gNa * m ^ 3 * h * j * (V - ENa) : Fast sodium current
+    in [uA/cm^2]
+a = 1 - 1 / (1 + exp(-(V + 40) / 0.24)) : Used instead of if statement.
+gNa = 16
+dot(h) = alpha * (1 - h) - beta * h
+    desc: """
+        (Fast) Inactivation parameter of the fast sodium channel, based on
+        Ebihara-Johnson (E-J) model of cardiac cells (chicken embryo)
+        """
+    alpha = a * 0.135 * exp((80 + V) / -6.8)
+    beta = a * (3.56 * exp(0.079 * V) + 310000 * exp(0.35 * V)) + (1 - a) / (0.13 * (1 + exp((V + 10.66) / -11.1)))
+dot(j) = alpha * (1 - j) - beta * j
+    desc: """
+        Slow inactivation gate. Inspired by Beeler-Reuter and Haas. Steady-state
+        value (j_inf) is set to value from h gate (h_inf). Time constant obtained
+        from Beeler-Reuter model.
+        """
+    alpha = a * (-127140 * exp(0.2444 * V) - 3.474e-5 * exp(-0.04391 * V)) * (V + 37.78) / (1 + exp(0.311 * (V + 79.23)))
+    beta = a * (0.1212 * exp(-0.01052 * V) / (1 + exp(-0.1378 * (V + 40.14)))) + (1 - a) * (0.3 * exp(-2.535e-7 * V) / (1 + exp(-0.1 * (V + 32))))
+dot(m) = alpha * (1 - m) - beta * m
+    desc: """
+        Activation parameter of the fast sodium channel, based on Ebihara-Johnson
+        (E-J) model of cardiac cells (chicken embryo)
+        """
+    alpha = if(V == -47.13, -3.2, 0.32 * (V + 47.13) / (1 - exp(-0.1 * (V + 47.13))))
+    beta = 0.08 * exp(-V / 11)
+
+[membrane]
+dot(V) = -(i_ion + i_stim + i_diff) label membrane_potential
+    in [mV]
+    desc: The membrane potential
+i_diff = 0 bind diffusion_current
+    in [uA/cm^2]
+i_ion = ina.INa + ik.IK + ib.Ib + ikp.IKp + ik1.IK1 + ica.ICa
+i_stim = engine.pace * stim_amplitude
+    stim_amplitude = -80 [uA/cm^2]
+        desc: """
+            Stimulus amplitude.
+            The online matlab implementation features this 80 uA/cm^2, 0.5 millisecond
+            pulse. The cellml version uses a 2 millisecond 25.5 uA/cm^2 pulse.
+            """
+

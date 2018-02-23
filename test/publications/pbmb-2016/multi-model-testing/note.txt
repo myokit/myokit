@@ -1,0 +1,1 @@
+Originally there were 12 models, I removed 10 to make this test run faster.

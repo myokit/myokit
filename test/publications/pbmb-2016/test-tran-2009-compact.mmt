@@ -1,0 +1,126 @@
+[[model]]
+name: Tran-2009
+# Initial values
+membrane.V = -84.3801107371
+ica.d      = 0.00302126301779861
+ica.f      = 0.999967936476325
+ik.x       = 0.0417603108167287
+
+# Membrane potential
+[membrane]
+dot(V) = -(i_ion + i_stim)
+    in [mV]
+i_stim = engine.pace * stim_amplitude
+    stim_amplitude = -73 [uA/cm^2]
+i_ion = ica.i_si + ik.i_K + ik1.i_K1 + ikp.i_Kp + ib.i_b
+
+# Slow inward calcium current
+[ica]
+use membrane.V as V
+E = 80 [mV]
+g = 0.09 [mS/cm^2]
+i_si = g * d * f * (V - E)
+    in [uA/cm^2]
+dot(d) = (alpha * (1 - d) - beta * d)
+    alpha = 0.095 * exp(-0.01 * (V - 5)) / (1 + exp(-0.072 * (V - 5)))
+    beta  = 0.07 * exp(-0.017 * (V + 44)) / (1 + exp(0.05 * (V + 44)))
+dot(f) = (alpha * (1 - f) - beta * f)
+    alpha = 0.012 * exp(-0.008 * (V + 28)) / (1 + exp(0.15 * (V + 28)))
+    beta  = 0.0065 * exp(-0.02 * (V + 30)) / (1 + exp(-0.2 * (V + 30)))
+
+# Time dependent potassium current
+[ik]
+use membrane.V as V
+i_K = g_K * x * xi * (V - E_K)
+    in [uA/cm^2]
+E_K = -77 [mV]
+g_K = 0.282 * sqrt(parameters.Ko / 5.4)
+    in [mS/cm^2]
+xi = if(V > -100, xibar, 1)
+xibar = 2.837 * (exp(0.04 * (V + 77)) - 1) / ((V + 77) * exp(0.04 * (V + 35)))
+dot(x) = (alpha * (1 - x) - beta * x) / gamma
+    alpha = 0.0005 * exp(0.083 * (V + 50)) / (1 + exp(0.057 * (V + 50)))
+    beta  = 0.0013 * exp(-0.06 * (V + 20)) / (1 + exp(-0.04 * (V + 20)))
+gamma = 1
+
+# Time-independent potassium current
+[ik1]
+use membrane.V as V
+E = parameters.RTF * log(parameters.Ko / Ki)
+g = 0.6047 * sqrt(parameters.Ko / 5.4)
+    in [mS/cm^2]
+Ki = 145 [mM]
+i_K1 = g * (alpha / (alpha + beta)) * (V - E)
+    in [uA/cm^2]
+    alpha = 1.02 / (1 + exp(0.2385 * (V - E - 59.215)))
+    beta = numer / denom
+        numer = (0.49124 * exp(0.08032 * (V - E + 5.476)) + exp(0.06175 * (V - E - 594.31)))
+        denom = (1 + exp(-0.5143 * (V - E + 4.753)))        
+
+# Plateau potassium current
+[ikp]
+use membrane.V as V
+i_Kp = g * Kp * (V - ik1.E)
+g = 0.0183 [mS/cm^2]
+Kp = 1 / (1 + exp((7.488 - V) / 5.98))
+
+# Background current
+[ib]
+i_b = g * (membrane.V - E)
+    in [uA/cm^2]
+E = -59.87 [mV]
+g = 0.03921 [mS/cm^2]
+
+# External values
+[engine]
+time = 0 bind time
+pace = 0 bind pace
+    
+[parameters]
+Ko = 5.4 [mM]
+RTF = 26.712 [mJ/C]
+
+[[protocol]]
+# Level  Start    Length   Period   Multiplier
+1.0      200      2        1000     0
+
+[[script]]
+import matplotlib.pyplot as pl
+import myokit
+
+
+#
+# NOT FOR DISTRIBUTION
+# This is an updated TEST version of the example, it may leave out slow parts
+# of the example, or contain developer comments
+#
+
+
+#
+# This file contains the Tran model shown in the paper.
+#
+# This example has been tested with Myokit XXX
+#
+
+# Get model and protocol, create simulation
+m = get_model()
+p = get_protocol()
+s = myokit.Simulation(m, p)
+
+# Run normal simulation
+bcl = 1000
+d1 = s.run(3 * bcl)
+
+# Run modified simulation
+s.reset()
+s.set_constant('ik.gamma', 2.5)
+s.set_constant('ica.g', 0.15)
+d2 = s.run(3 * bcl)
+
+# Display the results
+pl.figure()
+pl.plot(d1['engine.time'], d1['membrane.V'])
+pl.plot(d2['engine.time'], d2['membrane.V'])
+pl.title('Membrane potential')
+pl.show()
+
