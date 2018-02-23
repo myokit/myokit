@@ -1,13 +1,14 @@
 <?
 # simulation.c
 #
-# A pype template for a single cell CVODE-based simulation.
+# A pype template for a single cell CVODES-based simulation.
 #
 # Required variables
 # -----------------------------------------------------------------------------
-# module_name A module name
-# model       A myokit model
-# potential   A variable from the model used to track threshold crossings
+# module_name   A module name
+# model         A myokit model
+# potential     A variable from the model used to track threshold crossings
+# sensitivities A list of parameters w.r.t which to compute sensitivities
 # -----------------------------------------------------------------------------
 #
 # This file is part of Myokit
@@ -77,13 +78,17 @@ equations = model.solvable_order()
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include <cvode/cvode.h>
+#include <cvodes/cvodes.h>
+#include <cvodes/cvodes_dense.h>
 #include <nvector/nvector_serial.h>
-#include <cvode/cvode_dense.h>
 #include <sundials/sundials_types.h>
 #include "pacing.h"
 
+// Number of model states
 #define N_STATE <?= model.count_states() ?>
+
+// Number of parameters for sensitivity calculations
+#define N_SENS <?= len(sensitivities) ?>
 
 // Pacing
 ESys epacing;               // Event-based pacing system
@@ -99,7 +104,7 @@ FSys fpacing;               // Fixed-form pacing system
  *         2 : Errir
  */
 static int
-check_cvode_flag(void *flagvalue, char *funcname, int opt)
+check_cvodes_flag(void *flagvalue, char *funcname, int opt)
 {
     if (opt == 0 && flagvalue == NULL) {
         // Check if sundials function returned null pointer
@@ -124,7 +129,7 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
                     break;
                 case -4:
                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -4 CV_CONV_FAILURE: Convergence test failures occurred too many times during one internal time step or minimum step size was reached.");
-                    break;                
+                    break;
                 case -5:
                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -5 CV_LINIT_FAIL: The linear solver's initialization function failed.");
                     break;
@@ -173,6 +178,19 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
                 case -27:
                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -27 CV_TOO_CLOSE: The output and initial times are too close to each other.");
                     break;
+                /*
+                CV SRHSFUNC FAIL
+                The sensitivity right-hand side function failed in an unrecoverable manner.
+                CV FIRST SRHSFUNC ERR The sensitivity right-hand side function failed at the first call.
+                CV REPTD SRHSFUNC ERR Convergence tests occurred too many times due to repeated recoverable
+                errors in the sensitivity right-hand side function. This flag will also be
+                returned if the sensitivity right-hand side function had repeated recoverable
+                errors during the estimation of an initial step size.
+                CV UNREC SRHSFUNC ERR The sensitivity right-hand function had a recoverable error, but no recovery
+                was possible. This failure mode is rare, as it can occur only if the sensitivity
+                right-hand side function fails recoverably after an error test failed while at
+                order one.
+                */
                 default: {
                      // Note: Brackets are required here, default: should be followed by
                      // a _statement_ and char str[200]; is technically not a statement...
@@ -216,7 +234,7 @@ static void
 updateConstants(void)
 {
 <?
-for label, eqs in equations.items():
+for label, eqs in equations.iteritems():
     for eq in eqs.equations(const=True):
         if not eq.rhs.is_literal():
             print(tab + w.eq(eq) + ';')
@@ -238,7 +256,7 @@ rhs(realtype t, N_Vector y, N_Vector ydot, void *f_data)
         }
     }
 <?
-for label, eqs in equations.items():
+for label, eqs in equations.iteritems():
     if eqs.has_equations(const=False):
         print(tab + '// ' + label)
         for eq in eqs.equations(const=False):
@@ -260,7 +278,7 @@ static int
 update_bindings(realtype t, N_Vector y, N_Vector ydot, void *f_data)
 {
 <?
-for var, internal in bound_variables.items():
+for var, internal in bound_variables.iteritems():
     print(tab + v(var) + ' = ' + internal + ';')
 ?>
     return 0;
@@ -404,6 +422,9 @@ N_Vector y_last;     // Used to store previous value of y for error handling
 // Root finding
 int* rootsfound;     // Used to store found roots
 
+// Sensitivities
+PyObject* sensitivity_log;  // A pointer to TODO TODO TODO SENSITIVITIES
+
 // Logging
 PyObject** logs;            // An array of pointers to a PyObject
 realtype** vars;            // An array of pointers to realtype
@@ -438,7 +459,7 @@ sim_clean()
             y_log = NULL;
         }
         CVodeFree(&cvode_mem); cvode_mem = NULL;
-        
+
         // Free pacing system space
         ESys_Destroy(epacing); epacing = NULL;
 
@@ -475,7 +496,7 @@ sim_init(PyObject *self, PyObject *args)
     PyObject *key;
     PyObject* ret;
     PyObject *value;
-    
+
     #ifndef SUNDIALS_DOUBLE_PRECISION
     PyErr_SetString(PyExc_Exception, "Sundials must be compiled with double precision.");
     // No memory freeing is needed here, return directly
@@ -487,7 +508,7 @@ sim_init(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "Simulation already initialized.");
         return 0;
     }
-    
+
     // Set all pointers used in sim_clean to null
     list_update_str = NULL;
     vars = NULL;
@@ -501,7 +522,7 @@ sim_init(PyObject *self, PyObject *args)
     log_times = NULL;
 
     // Check input arguments
-    if (!PyArg_ParseTuple(args, "ddOOOOOOdOOdO",
+    if (!PyArg_ParseTuple(args, "ddOOOOOOdOOdOO",
             &tmin,
             &tmax,
             &state_in,
@@ -514,12 +535,13 @@ sim_init(PyObject *self, PyObject *args)
             &log_times,
             &root_list,
             &root_threshold,
+            &sensitivity_log,
             &benchtime)) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         // Nothing allocated yet, no pyobjects _created_, return directly
         return 0;
     }
-    
+
     // Now officialy running :)
     running = 1;
 
@@ -578,14 +600,14 @@ sim_init(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         return sim_clean();
     }
-    
+
     // Create state vector copy for error handling
     y_last = N_VNew_Serial(N_STATE);
     if (check_cvode_flag((void*)y_last, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create last-state vector.");
         return sim_clean();
     }
-    
+
     // Create state vector for logging
     if (log_interval > 0 || log_times != Py_None) {
         // Logging at fixed points: Keep y_log as a separate N_Vector
@@ -629,7 +651,7 @@ sim_init(PyObject *self, PyObject *args)
             NV_Ith_S(y_log, i) = NV_Ith_S(y, i);
         }
     }
-    
+
     // Root finding list of integers (only contains 1 int...)
     rootsfound = (int*)malloc(sizeof(int)*1);
 
@@ -638,7 +660,7 @@ sim_init(PyObject *self, PyObject *args)
 
     // Reset step count
     engine_steps = 0;
-    
+
     // Zero step tracking
     zero_step_count = 0;
 
@@ -647,7 +669,7 @@ sim_init(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "'state_out' must be a list.");
         return sim_clean();
     }
-    
+
     // Check for loss-of-precision issue in periodic logging
     if (log_interval > 0) {
         if (tmax + log_interval == tmax) {
@@ -663,7 +685,7 @@ sim_init(PyObject *self, PyObject *args)
     logs = (PyObject**)malloc(sizeof(PyObject*)*n_vars);
     vars = (realtype**)malloc(sizeof(realtype*)*n_vars);
     i = 0;
-    
+
     // Check states
 <?
 for var in model.states():
@@ -681,7 +703,7 @@ for var in model.states():
     // Check bound variables
     j = i;
 <?
-for var, internal in bound_variables.items():
+for var, internal in bound_variables.iteritems():
     print(tab + 'i += log_add(log_dict, logs, vars, i, "' + var.qname() + '", &' + v(var)  + ');')
 ?>
     log_bound = (i > j);
@@ -694,13 +716,13 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     print(tab + 'i += log_add(log_dict, logs, vars, i, "' + var.qname() + '", &' + v(var)  + ');')
 ?>
     log_inter = (i > j);
-    
+
     // Check if log contained extra variables
     if (i != n_vars) {
         PyErr_SetString(PyExc_Exception, "Unknown variables found in logging dictionary.");
         return sim_clean();
     }
-    
+
     // Set up event-based pacing
     if (eprotocol != Py_None) {
         epacing = ESys_Create(&flag_epacing);
@@ -714,7 +736,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     } else {
         tnext = tmax;
     }
-    
+
     // Set up fixed-form pacing
     if (eprotocol == Py_None && fprotocol != Py_None) {
         // Check 'protocol' is tuple (times, values)
@@ -734,7 +756,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
             PyTuple_GetItem(fprotocol, 1));
         if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
     }
-    
+
     // Set simulation starting time
     engine_time = tmin;
 
@@ -767,7 +789,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         // Tell sim_step to set engine_starttime
         engine_starttime = -1;
     }
-    
+
     // Set string for updating lists/arrays using Python interface.
     list_update_str = PyString_FromString("append");
 
@@ -802,11 +824,11 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         }
     } else {
         // Dynamic logging
-        
+
         // Log the first entry, but only if not appending to an existing log.
         // This prevents points from appearing twice when a simulation with
         // dynamic logging is stopped and started.
-        
+
         // Check if the log is empty
         log_first_point = 1;
         pos = 0;
@@ -815,7 +837,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
             // Both key and value are borrowed references, no need to decref
             log_first_point = (PyObject_Size(value) <= 0);
         }
-        
+
         // If so, log the first point!
         if (log_first_point) {
             rhs(engine_time, y, dy_log, 0);
@@ -846,6 +868,52 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         if (check_cvode_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
     }
 
+    // Parameter sensitivity checking enabled?
+    if (N_SENS) {
+        // See page 88 of the CVODES 3.1 documentation
+
+        // TODO: Continue here
+
+        /* Set sensitivity initial conditions */
+        yS = N_VCloneVectorArray(NS, y);
+        if (check_flag((void *)yS, "N_VCloneVectorArray", 0)) return(1);
+        for (is=0;is<NS;is++) N_VConst(ZERO, yS[is]);
+
+        /* Call CVodeSensInit1 to activate forward sensitivity computations
+           and allocate internal memory for COVEDS related to sensitivity
+           calculations. Computes the right-hand sides of the sensitivity
+           ODE, one at a time */
+        flag = CVodeSensInit1(cvode_mem, NS, sensi_meth, fS, yS);
+        if(check_flag(&flag, "CVodeSensInit", 1)) return(1);
+
+        /* Call CVodeSensEEtolerances to estimate tolerances for sensitivity
+           variables based on the rolerances supplied for states variables and
+           the scaling factor pbar */
+        flag = CVodeSensEEtolerances(cvode_mem);
+        if(check_flag(&flag, "CVodeSensEEtolerances", 1)) return(1);
+
+        /* Set sensitivity analysis optional inputs */
+        /* Call CVodeSetSensErrCon to specify the error control strategy for
+           sensitivity variables */
+        flag = CVodeSetSensErrCon(cvode_mem, err_con);
+        if (check_flag(&flag, "CVodeSetSensErrCon", 1)) return(1);
+
+        /* Call CVodeSetSensParams to specify problem parameter information for
+           sensitivity calculations */
+        flag = CVodeSetSensParams(cvode_mem, NULL, pbar, NULL);
+        if (check_flag(&flag, "CVodeSetSensParams", 1)) return(1);
+
+        printf("Sensitivity: YES ");
+        if(sensi_meth == CV_SIMULTANEOUS)
+          printf("( SIMULTANEOUS +");
+        else
+          if(sensi_meth == CV_STAGGERED) printf("( STAGGERED +");
+          else                           printf("( STAGGERED1 +");
+        if(err_con) printf(" FULL ERROR CONTROL )");
+        else        printf(" PARTIAL ERROR CONTROL )");
+
+    }
+
     // Done!
     Py_RETURN_NONE;
 }
@@ -863,7 +931,7 @@ sim_step(PyObject *self, PyObject *args)
     int flag_root;          // Root finding flag
     int flag_reinit = 0;    // Set if CVODE needs to be reset during a simulation step
     PyObject *flt, *ret;
-    
+
     // Benchmarking? Then make sure start time is set.
     // This is handled here instead of in sim_init so it only includes time
     // taken performing steps, not time initialising memory etc.
@@ -877,22 +945,22 @@ sim_step(PyObject *self, PyObject *args)
         engine_starttime = PyFloat_AsDouble(flt);
         Py_DECREF(flt); flt = NULL;
     }
-    
+
     // Go!
     while(1) {
-    
+
         // Back-up current y (no allocation, this is fast)
         for(i=0; i<N_STATE; i++) {
             NV_Ith_S(y_last, i) = NV_Ith_S(y, i);
         }
-        
+
         // Store engine time before step
         engine_time_last = engine_time;
-        
+
         // Advance to next time step
         // This sets y to y(t) and time to time(t) <= tnext
         flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
-        
+
         // Check for errors
         if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
             // Something went wrong... Set outputs and return
@@ -906,7 +974,7 @@ sim_step(PyObject *self, PyObject *args)
             PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
             return sim_clean();
         }
-        
+
         // Check if progress is being made
         if(engine_time == engine_time_last) {
             if(++zero_step_count >= max_zero_step_count) {
@@ -919,25 +987,25 @@ sim_step(PyObject *self, PyObject *args)
             // Only count consecutive zero steps!
             zero_step_count = 0;
         }
-        
+
         // Update step count
         engine_steps++;
-        
+
         // If we got to this point without errors...
         if (flag_cvode == CV_SUCCESS || CV_ROOT_RETURN) {
-        
+
             // Next stop time reached?
             if (engine_time > tnext) {
-            
+
                 // Go back to engine_time=tnext
                 flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
                 if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
                 engine_time = tnext;
                 // Require reinit (after logging)
                 flag_reinit = 1;
-            
+
             } else if (flag_cvode == CV_ROOT_RETURN) {
-            
+
                 // Store found roots
                 flag_root = CVodeGetRootInfo(cvode_mem, rootsfound);
                 if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
@@ -953,12 +1021,12 @@ sim_step(PyObject *self, PyObject *args)
                 }
                 ret = NULL;
             }
-            
+
             // Logging
             if (log_interval <= 0 && log_times == Py_None) {
-                
+
                 // Dynamic logging: Log every visited point
-            
+
                 // Ensure the logged values are correct for the new time t
                 if (log_deriv || log_inter) {
                     // If logging derivatives or intermediaries, calculate the
@@ -969,7 +1037,7 @@ sim_step(PyObject *self, PyObject *args)
                     // full rhs, just update bound variables
                     update_bindings(engine_time, y, dy_log, 0);
                 }
-                
+
                 // Benchmarking? Then set engine_realtime
                 if (benchtime != Py_None) {
                     flt = PyObject_CallFunction(benchtime, "");
@@ -983,7 +1051,7 @@ sim_step(PyObject *self, PyObject *args)
                     // Update any variables bound to realtime
                     update_realtime_bindings(engine_time, y, dy_log, 0);
                 }
-                
+
                 // Write to log
                 for(i=0; i<n_vars; i++) {
                     flt = PyFloat_FromDouble(*vars[i]);
@@ -995,18 +1063,18 @@ sim_step(PyObject *self, PyObject *args)
                         return sim_clean();
                     }
                     ret = NULL;
-                }                
-            
+                }
+
             } else if (engine_time > tlog) {
-            
+
                 // Periodic logging or point-list logging
-            
+
                 // Note 1: For periodic logging, the condition should be
                 // `time > tlog` so that we log half-open intervals (i.e. the
                 // final point should never be included).
                 // Note 2: For point-list logging, the final point _should_ be
                 // included if the user requests it.
-            
+
                 // Benchmarking? Then set engine_realtime
                 if (benchtime != Py_None) {
                     flt = PyObject_CallFunction(benchtime, "");
@@ -1020,7 +1088,7 @@ sim_step(PyObject *self, PyObject *args)
                     // Update any variables bound to realtime
                     update_realtime_bindings(engine_time, y, dy_log, 0);
                 }
-                
+
                 // Log points
                 while (engine_time > tlog) {
                     // Get interpolated y(tlog)
@@ -1041,9 +1109,9 @@ sim_step(PyObject *self, PyObject *args)
                         }
                     }
                     ret = flt = NULL;
-                    
+
                     // Get next logging point
-                    if (log_interval > 0) {                    
+                    if (log_interval > 0) {
                         // Periodic logging
                         ilog++;
                         tlog = tmin + (double)ilog * log_interval;
@@ -1070,7 +1138,7 @@ sim_step(PyObject *self, PyObject *args)
                     }
                 }
             }
-            
+
             // Event-based pacing
             if (epacing != NULL) {
                 // Advance pacing mechanism to next event or tmax
@@ -1082,7 +1150,7 @@ sim_step(PyObject *self, PyObject *args)
                 tnext = ESys_GetNextTime(epacing, NULL);
                 engine_pace = ESys_GetLevel(epacing, NULL);
             }
-            
+
             // Reinitialize if needed
             if (flag_reinit) {
                 flag_reinit = 0;
@@ -1091,7 +1159,7 @@ sim_step(PyObject *self, PyObject *args)
                 if (check_cvode_flag(&flag_cvode, "CVodeReInit", 1)) return sim_clean();
             }
         }
-        
+
         // Check if we're finished
         if (engine_time >= tmax) break;
 
@@ -1107,7 +1175,7 @@ sim_step(PyObject *self, PyObject *args)
         PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y, i)));
         // PyList_SetItem steals a reference: no need to decref the double!
     }
-    
+
     // Set state of inputs
     PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
     PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
@@ -1136,13 +1204,13 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     char errstr[200];
     PyObject *state;
     PyObject *deriv;
-    PyObject *flt; 
+    PyObject *flt;
     N_Vector y;
     N_Vector dy;
-    
+
     // Start
     success = 0;
-    
+
     // Check input arguments
     if (!PyArg_ParseTuple(args, "OOdd", &state, &deriv, &time_in, &pace_in)) {
         PyErr_SetString(PyExc_Exception, "Expecting sequence arguments 'y' and 'dy' followed by floats 'time' and 'pace'.");
@@ -1238,7 +1306,7 @@ sim_set_constant(PyObject *self, PyObject *args)
     double value;
     char* name;
     char errstr[200];
-    
+
     // Check input arguments
     if (!PyArg_ParseTuple(args, "sd", &name, &value)) {
         PyErr_SetString(PyExc_Exception, "Expected input arguments: name (str), value (Float).");

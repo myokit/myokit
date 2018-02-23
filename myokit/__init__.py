@@ -273,24 +273,42 @@ del(_config)
 #
 
 # Exceptions
-from ._err import ( # noqa
+from ._err import (
     MyokitError,
-    IntegrityError, InvalidBindingError, InvalidLabelError,
-    DuplicateName, InvalidNameError, IllegalAliasError,
-    UnresolvedReferenceError, IllegalReferenceError,
-    UnusedVariableError, CyclicalDependencyError,
-    MissingRhsError, MissingTimeVariableError,
-    NonLiteralValueError, NumericalError,
-    IncompatibleUnitError, InvalidMetaDataNameError,
-    DuplicateFunctionName, DuplicateFunctionArgument,
+    IntegrityError,
+    InvalidBindingError,
+    InvalidLabelError,
+    DuplicateName,
+    InvalidNameError,
+    IllegalAliasError,
+    UnresolvedReferenceError,
+    IllegalReferenceError,
+    UnusedVariableError,
+    CyclicalDependencyError,
+    MissingRhsError,
+    MissingTimeVariableError,
+    NonLiteralValueError,
+    NumericalError,
+    IncompatibleUnitError,
+    InvalidMetaDataNameError,
+    DuplicateFunctionName,
+    DuplicateFunctionArgument,
     InvalidFunction,
-    ParseError, SectionNotFoundError,
-    ProtocolParseError, ProtocolEventError,
+    ParseError,
+    SectionNotFoundError,
+    ProtocolParseError,
+    ProtocolEventError,
     SimultaneousProtocolEventError,
-    SimulationError, FindNanError, SimulationCancelledError,
-    InvalidDataLogError, DataLogReadError, DataBlockReadError,
-    GenerationError, CompilationError,
-    ImportError, ExportError,
+    SimulationError,
+    FindNanError,
+    SimulationCancelledError,
+    InvalidDataLogError,
+    DataLogReadError,
+    DataBlockReadError,
+    GenerationError,
+    CompilationError,
+    ImportError,
+    ExportError,
     IncompatibleModelError,
 )
 
@@ -398,6 +416,7 @@ from ._sim import ( # noqa
     CModule, CppModule,
 )
 from ._sim.cvode import Simulation          # noqa
+from ._sim.cvodes import Simulation2        # noqa
 from ._sim.cable import Simulation1d        # noqa
 from ._sim.rhs import RhsBenchmarker        # noqa
 from ._sim.icsim import ICSimulation        # noqa
