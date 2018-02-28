@@ -22,8 +22,8 @@ before_install:
 
 # Install Python dependencies
 install:
-  - pip install .
-  - pip install matplotlib numpy scipy sympy
+  - pip install -e .
+  - pip install numpy scipy sympy matplotlib flake8
 
 # Show Python version
 before_script:
