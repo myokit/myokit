@@ -9,5 +9,8 @@
 #
 import sys
 import myotest
-result = myotest.run_all()
+exclude = [
+    'simulation_opencl.py',
+]
+result = myotest.run_all(exclude)
 sys.exit(0 if result else 1)

@@ -86,19 +86,27 @@ def run(*tests):
     return issues == 0
 
 
-def run_all():
+def run_all(exclude=None):
     """
     Runs all tests.
+
+    A list of filenames to exclude can be given in ``exclude``.
     """
+    exclude = set(exclude) if exclude else set()
+
     print('Scanning for tests')
     suite = unittest.TestSuite()
     glob = '*.py'
     for fn in fnmatch.filter(os.listdir(DIR_TEST), glob):
+        if fn in exclude:
+            continue
+
         name = fn[:-3]
         mod = __import__(name, globals(), locals(), ['suite'])
         if 'suite' in dir(mod):
             print('Adding ' + name)
             suite.addTests(mod.suite())
+
     print('Running all tests')
     result = unittest.TextTestRunner().run(suite)
     issues = len(result.failures) + len(result.errors)
