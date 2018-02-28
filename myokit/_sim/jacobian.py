@@ -9,7 +9,7 @@
 import os
 import myokit
 import numpy as np
-
+import platform
 
 # Location of C source file
 SOURCE_FILE = 'jacobian.cpp'
@@ -45,15 +45,20 @@ class JacobianTracer(myokit.CppModule):
 
     def __init__(self, model):
         super(JacobianTracer, self).__init__()
+
         # Require a valid model
         model.validate()
+
         # Clone model
         self._model = model.clone()
+
         # Create ordered list of input labels used in the model
         self._inputs = [label for label, var in self._model.bindings()]
+
         # Extension module id
         JacobianTracer._index += 1
         module_name = 'myokit_JacobianTracer_' + str(JacobianTracer._index)
+
         # Template arguments
         args = {
             'module_name': module_name,
@@ -61,15 +66,20 @@ class JacobianTracer(myokit.CppModule):
             'inputs': self._inputs,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+
         # Debug
         if myokit.DEBUG:
-            print(
-                self._code(fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
+            print(self._code(fname, args,
+                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
             import sys
             sys.exit(1)
+
+        # Define libraries
+        libs = []
+        if platform.system() != 'Windows':
+            libs.append('m')
+
         # Compile extension
-        libs = ['m']
         libd = []
         incd = [myokit.DIR_CFUNC]
         self._ext = self._compile(module_name, fname, args, libs, libd, incd)

@@ -8,6 +8,7 @@
 #
 import os
 import myokit
+import platform
 
 # Location of source file
 SOURCE_FILE = 'cable.c'
@@ -78,45 +79,58 @@ class Simulation1d(myokit.CModule):
 
     def __init__(self, model, protocol=None, ncells=50):
         super(Simulation1d, self).__init__()
+
         # Require a valid model
         model.validate()
+
         # Clone model, store
         model = model.clone()
         self._model = model
+
         # Set protocol
         self.set_protocol(protocol)
+
         # Set number of cells
         ncells = int(ncells)
         if ncells < 1:
             raise ValueError('The number of cells must be at least 1.')
         self._ncells = ncells
+
         # Set number of cells paced
         self.set_paced_cells()
+
         # Set conductance
         self.set_conductance()
+
         # Set step size
         self.set_step_size()
+
         # Set remaining properties
         self._time = 0
         self._nstate = self._model.count_states()
+
         # Get membrane potential variable
         self._vm = model.label('membrane_potential')
         if self._vm is None:
             raise Exception(
                 'This simulation requires the membrane potential'
                 ' variable to be labelled as "membrane_potential".')
+
         # Check for binding to diffusion_current
         if model.binding('diffusion_current') is None:
             raise Exception(
                 'This simulation requires a variable to be bound to'
                 ' "diffusion_current" to pass current from one cell to the'
                 ' next')
+
         # Set state and default state
         self._state = self._model.state() * ncells
         self._default_state = list(self._state)
+
         # Unique simulation id
         Simulation1d._index += 1
         module_name = 'myokit_sim1d_' + str(Simulation1d._index)
+
         # Arguments
         args = {
             'module_name': module_name,
@@ -125,17 +139,23 @@ class Simulation1d(myokit.CModule):
             'ncells': self._ncells,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+
         # Debug
         if myokit.DEBUG:
-            print(
-                self._code(fname, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS))
+            print(self._code(fname, args,
+                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
             import sys
             sys.exit(1)
+
+        # Define libraries
+        libs = []
+        if platform.system() != 'Windows':
+            libs.append('m')
+
         # Create simulation
         libd = None
         incd = [myokit.DIR_CFUNC]
-        self._sim = self._compile(module_name, fname, args, ['m'], libd, incd)
+        self._sim = self._compile(module_name, fname, args, libs, libd, incd)
 
     def pre(self, duration, progress=None, msg='Pre-pacing Simulation1d'):
         """

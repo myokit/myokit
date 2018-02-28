@@ -9,6 +9,7 @@
 import os
 import myokit
 import numpy as np
+import platform
 from collections import OrderedDict
 
 
@@ -230,12 +231,20 @@ class SimulationOpenCL(myokit.CModule):
             'precision': self._precision,
             'dims': len(self._dims),
         }
+
+        # Debug
         if myokit.DEBUG:
-            print(
-                self._code(fname, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            return
+            print(self._code(fname, args,
+                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
+            import sys
+            sys.exit(1)
+
+        # Define libraries
         libs = ['OpenCL']
+        if platform.system() != 'Windows':
+            libs.append('m')
+
+        # Create extension
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)

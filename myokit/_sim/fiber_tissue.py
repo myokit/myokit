@@ -330,6 +330,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Unique simulation id
         FiberTissueSimulation._index += 1
         mname = 'myokit_sim_fiber_tissue_' + str(FiberTissueSimulation._index)
+
         # Arguments
         args = {
             'module_name': mname,
@@ -343,12 +344,15 @@ class FiberTissueSimulation(myokit.CModule):
             'native_math': self._native_math,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
-        # Create simulation module
+
+        # Debug
         if myokit.DEBUG:
             print(
                 self._code(fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS)
             )
             return
+
+        # Create extension
         libs = ['OpenCL']
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)

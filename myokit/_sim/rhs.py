@@ -9,6 +9,7 @@
 import os
 import timeit
 import myokit
+import platform
 
 # Location of C source file
 SOURCE_FILE = 'rhs.c'
@@ -34,15 +35,20 @@ class RhsBenchmarker(myokit.CModule):
 
     def __init__(self, model, variables=None, exclude_selected=False):
         super(RhsBenchmarker, self).__init__()
+
         # Require a valid model
         model.validate()
+
         # Clone model
         self._model = model.clone()
+
         # Check given variables
         self._check_variables(variables)
+
         # Extension module id
         RhsBenchmarker._index += 1
         module_name = 'myokit_RhsBenchmarker_' + str(RhsBenchmarker._index)
+
         # Distutils arguments
         args = {
             'module_name': module_name,
@@ -51,15 +57,21 @@ class RhsBenchmarker(myokit.CModule):
             'exclude_selected': exclude_selected,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+
         # Debug
         if myokit.DEBUG:
-            print(
-                self._code(fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
+            print(self._code(fname, args,
+                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
             import sys
             sys.exit(1)
+
+        # Define libraries
+        libs = []
+        if platform.system() != 'Windows':
+            libs.append('m')
+
         # Create extension
-        self._ext = self._compile(module_name, fname, args, ['m'])
+        self._ext = self._compile(module_name, fname, args, libs)
 
     def bench_full(self, log, repeats=40000, fastest=False):
         """

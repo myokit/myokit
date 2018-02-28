@@ -11,7 +11,7 @@ from __future__ import division
 import os
 import myokit
 import numpy as np
-
+import platform
 
 # Location of C template
 SOURCE_FILE = 'icsim.cpp'
@@ -80,43 +80,57 @@ class ICSimulation(myokit.CppModule):
 
     def __init__(self, model, protocol=None):
         super(ICSimulation, self).__init__()
+
         # Require a valid model
         if not model.is_valid():
             model.validate()
         model = model.clone()
         self._model = model
+
         # Set protocol
         self.set_protocol(protocol)
+
         # Get state and default state from model
         self._state = self._model.state()
         self._default_state = list(self._state)
+
         # Create initial list of derivatives
         n = len(self._state)
         self._deriv = [0.0] * n**2
         for i in xrange(n):
             self._deriv[i * (n + 1)] = 1.0
+
         # Starting time
         self._time = 0
+
         # Default time step
         self._dt = 0
         self.set_step_size()
+
         # Unique simulation id
         ICSimulation._index += 1
         module_name = 'myokit_ICSimulation_' + str(ICSimulation._index)
+
         # Arguments
         args = {
             'module_name': module_name,
             'model': self._model,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+
         # Debug
         if myokit.DEBUG:
             print(self._code(
                 fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
             import sys
             sys.exit(1)
+
+        # Define libraries
+        libs = []
+        if platform.system() != 'Windows':
+            libs.append('m')
+
         # Create simulation
-        libs = ['m']
         libd = []
         incd = [myokit.DIR_CFUNC]
         self._sim = self._compile(module_name, fname, args, libs, libd, incd)

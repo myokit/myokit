@@ -10,7 +10,6 @@ import os
 import myokit
 import platform
 
-
 # Location of C template
 SOURCE_FILE = 'cvode.c'
 
@@ -74,13 +73,16 @@ class Simulation(myokit.CModule):
 
     def __init__(self, model, protocol=None, apd_var=None):
         super(Simulation, self).__init__()
+
         # Require a valid model
         if not model.is_valid():
             model.validate()
         model = model.clone()
         self._model = model
+
         # Set protocol (will also set predetermined protocol to None)
         self.set_protocol(protocol)
+
         # Check potential and threshold values
         if apd_var is None:
             self._apd_var = None
@@ -91,16 +93,21 @@ class Simulation(myokit.CModule):
             if not self._apd_var.is_state():
                 raise ValueError(
                     'The potential variable must be a state variable.')
+
         # Get state and default state from model
         self._state = self._model.state()
         self._default_state = list(self._state)
+
         # Last state reached before error
         self._error_state = None
+
         # Starting time
         self._time = 0
+
         # Unique simulation id
         Simulation._index += 1
         module_name = 'myokit_sim_' + str(Simulation._index)
+
         # Arguments
         args = {
             'module_name': module_name,
@@ -110,20 +117,20 @@ class Simulation(myokit.CModule):
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         # Debug
         if myokit.DEBUG:
-            print(
-                self._code(
-                    fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
+            print(self._code(fname, args,
+                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
             import sys
             sys.exit(1)
-        # Create simulation
+
+        # Define libraries
         libs = [
-            'm',        
             'sundials_cvode',
             'sundials_nvecserial',
         ]
-        """Remove dependency on m in Windows: not required."""
-        if platform.system() == 'Windows':
-        	libs.pop(0)
+        if platform.system() != 'Windows':
+            libs.append('m')
+
+        # Create extension
         libd = list(myokit.SUNDIALS_LIB)
         incd = list(myokit.SUNDIALS_INC)
         incd.append(myokit.DIR_CFUNC)

@@ -10,6 +10,7 @@
 import os
 import myokit
 import numpy as np
+import platform
 
 
 # Location of C template
@@ -173,8 +174,12 @@ class PSimulation(myokit.CppModule):
             import sys
             sys.exit(1)
 
+        # Define libraries
+        libs = []
+        if platform.system() != 'Windows':
+            libs.append('m')
+
         # Create simulation
-        libs = ['m']
         libd = []
         incd = [myokit.DIR_CFUNC]
         self._sim = self._compile(module_name, fname, args, libs, libd, incd)
