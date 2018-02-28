@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/MichaelClerx/myokit.svg?branch=master)](https://travis-ci.org/MichaelClerx/myokit)
+
 # Myokit
 
 Myokit is an [open-source](LICENSE) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
