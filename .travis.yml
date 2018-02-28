@@ -1,0 +1,41 @@
+#
+# Configuration for travis-ci testing
+# This tests ubuntu by default, but can also be made to test on osx
+#
+sudo: false
+
+# Test on Ubuntu 14
+dist: trusty
+
+language: python
+
+python:
+  - "2.7"
+#  - "3.4"
+#  - "3.5"
+#  - "3.6"
+
+# Install C dependencies
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libsundials-serial-dev
+
+# Install Python dependencies
+install:
+  - pip install .
+  - pip install matplotlib numpy scipy sympy
+
+# Show Python version
+before_script:
+- python --version
+
+# Run tests
+script:
+  - python -m flake8
+  - python test/run
+
+# Send notifications
+notifications:
+  email:
+    recipients:
+    - michael.clerx@cs.ox.ac.uk
