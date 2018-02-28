@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 #
-# Tests the main simulation classes
+# Tests the OpenCL simulation classes
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -19,12 +19,10 @@ def suite():
     Returns a test suite with all tests in this module
     """
     suite = unittest.TestSuite()
-    # Simulation
     suite.addTest(SimulationOpenCL1d('set_state'))
     suite.addTest(SimulationOpenCL1d('sim'))
     suite.addTest(SimulationOpenCL2d('sim'))
     suite.addTest(FiberTissueSimulation('run_simple'))
-    # Done!
     return suite
 
 

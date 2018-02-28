@@ -11,6 +11,7 @@ import sys
 import myotest
 exclude = [
     'simulation_opencl.py',
+    'simulation_opencl_log_interval.py',
 ]
 result = myotest.run_all(exclude)
 sys.exit(0 if result else 1)

@@ -23,18 +23,14 @@ def suite():
     Returns a test suite with all tests in this module
     """
     suite = unittest.TestSuite()
-    # Simulation
     suite.addTest(Simulation('dynamic'))
     suite.addTest(Simulation('periodic'))
     suite.addTest(Simulation('point_list'))
     suite.addTest(Simulation('point_list_2'))
     suite.addTest(Simulation('interpolation_and_pacing'))
-    suite.addTest(SimulationOpenCL('periodic'))
     suite.addTest(Simulation1d('periodic'))
-    suite.addTest(FiberTissueSimulation('periodic'))
     suite.addTest(ICSimulation('periodic'))
     suite.addTest(PSimulation('periodic'))
-    # Done!
     return suite
 
 
