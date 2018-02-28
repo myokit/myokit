@@ -458,7 +458,7 @@ class DataLog(OrderedDict):
             # Ensure zlib is available
             import zlib
             del(zlib)
-        except:
+        except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
         # Get size of single and double types on this machine
@@ -837,7 +837,7 @@ class DataLog(OrderedDict):
             # Make sure zlib is available
             import zlib
             del(zlib)
-        except:
+        except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
         # Data type

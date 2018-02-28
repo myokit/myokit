@@ -479,7 +479,7 @@ def load_state_bin(filename):
     try:
         import zlib
         del(zlib)
-    except:
+    except ImportError:
         raise Exception(
             'This method requires the ``zlib`` module to be installed.')
 
@@ -1121,7 +1121,7 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
     try:
         import zlib
         del(zlib)
-    except:
+    except ImportError:
         raise Exception(
             'This method requires the ``zlib`` module to be installed.')
 

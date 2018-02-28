@@ -423,7 +423,7 @@ class DataBlock1d(object):
         try:
             import zlib
             del(zlib)
-        except:
+        except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
         # Get size of single and double types on this machine
@@ -587,7 +587,7 @@ class DataBlock1d(object):
         try:
             import zlib
             del(zlib)
-        except:
+        except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
         # Data type
@@ -1111,7 +1111,7 @@ class DataBlock2d(object):
         try:
             import zlib
             del(zlib)
-        except:
+        except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
         # Get size of single and double types on this machine
@@ -1285,7 +1285,7 @@ class DataBlock2d(object):
             # Check zlib is available
             import zlib
             del(zlib)
-        except:
+        except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
         # Data type
