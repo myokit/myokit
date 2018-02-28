@@ -277,6 +277,7 @@ ESys_Reset(ESys sys)
     Event next;     // Need to be declared here for C89 Visual C
     Event head;
     int i;
+    ESys_Flag flag;
     
     if(sys == 0) return ESys_INVALID_SYSTEM;
     if(sys->n_events < 0) return ESys_UNPOPULATED_SYSTEM;
@@ -291,7 +292,6 @@ ESys_Reset(ESys sys)
     }
 
     // Set up the event queue
-    ESys_Flag flag;
     head = sys->events;
     next = head + 1;
     for(i=1; i<sys->n_events; i++) {
@@ -459,6 +459,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
 ESys_Flag
 ESys_AdvanceTime(ESys sys, double new_time, double max_time)
 {
+    ESys_Flag flag;     // Need to be declared here for C89 Visual C
     if(sys == 0) return ESys_INVALID_SYSTEM;
     if(sys->n_events < 0) return ESys_UNPOPULATED_SYSTEM;
     if(sys->time > new_time) return ESys_NEGATIVE_TIME_INCREMENT;
@@ -468,7 +469,6 @@ ESys_AdvanceTime(ESys sys, double new_time, double max_time)
     if (new_time > max_time) max_time = new_time;
     
     // Advance
-    ESys_Flag flag;
     while (sys->tnext <= sys->time && sys->tnext < max_time) {
         // Active event finished
         if (sys->fire != 0 && sys->tnext >= sys->tdown) {

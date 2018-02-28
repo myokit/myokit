@@ -8,6 +8,7 @@
 #
 import os
 import myokit
+import platform
 
 
 # Location of C template
@@ -116,10 +117,13 @@ class Simulation(myokit.CModule):
             sys.exit(1)
         # Create simulation
         libs = [
-            'm',
+            'm',        
             'sundials_cvode',
             'sundials_nvecserial',
         ]
+        """Remove dependency on m in Windows: not required."""
+        if platform.system() == 'Windows':
+        	libs.pop(0)
         libd = list(myokit.SUNDIALS_LIB)
         incd = list(myokit.SUNDIALS_INC)
         incd.append(myokit.DIR_CFUNC)
