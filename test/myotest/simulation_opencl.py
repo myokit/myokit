@@ -12,7 +12,6 @@ import myokit
 import myotest
 import os
 import unittest
-import numpy as np
 
 
 def suite():
