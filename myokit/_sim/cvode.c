@@ -79,11 +79,19 @@ equations = model.solvable_order()
 #include <string.h>
 #include <cvode/cvode.h>
 #include <nvector/nvector_serial.h>
-#include <cvode/cvode_dense.h>
+#define MYOKIT_SUNDIALS_VERSION <?= myokit.SUNDIALS_VERSION ?>
+#if MYOKIT_SUNDIALS_VERSION >= 30000
+  #include <sunmatrix/sunmatrix_dense.h>
+  #include <sundials/sundials_linearsolver.h>
+#else
+  #include <cvode/cvode_dense.h>
+#endif
 #include <sundials/sundials_types.h>
 #include "pacing.h"
 
 #define N_STATE <?= model.count_states() ?>
+
+
 
 // Pacing
 ESys epacing;               // Event-based pacing system
@@ -476,6 +484,11 @@ sim_init(PyObject *self, PyObject *args)
     PyObject *key;
     PyObject* ret;
     PyObject *value;
+    #if MYOKIT_SUNDIALS_VERSION >= 30000
+      SUNMatrix sundials_dense_matrix;
+      SUNLinearSolver sundials_linear_solver;
+      ESys_Flag flag;
+    #endif
 
     #ifndef SUNDIALS_DOUBLE_PRECISION
     PyErr_SetString(PyExc_Exception, "Sundials must be compiled with double precision.");
@@ -745,8 +758,23 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
     flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
     if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+    #if MYOKIT_SUNDIALS_VERSION >= 30000
+
+    sundials_dense_matrix = SUNDenseMatrix(N_STATE,N_STATE);
+    if(check_cvode_flag((void *)sundials_dense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+    /* Create dense SUNLinearSolver object for use by CVode */
+    sundials_linear_solver = SUNDenseLinearSolver(y, sundials_dense_matrix);
+    if(check_cvode_flag((void *)sundials_linear_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+    /* Call CVDlsSetLinearSolver to attach the matrix and linear solver to CVode */
+    flag = CVDlsSetLinearSolver(cvode_mem, sundials_linear_solver, sundials_dense_matrix);
+    if(check_cvode_flag(&flag, "CVDlsSetLinearSolver", 1)) return sim_clean();
+
+    #else
+
     flag_cvode = CVDense(cvode_mem, N_STATE);
     if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+
+    #endif
 
     // Set tolerances
     flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
