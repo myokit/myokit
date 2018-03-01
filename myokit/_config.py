@@ -100,6 +100,7 @@ def _create(path):
             '/usr/local/include',
             '/opt/local/include',
         ]))
+    config.set('sundials','version',myokit.SUNDIALS_VERSION)
     # Locations of OpenCL libraries
     config.add_section('opencl')
     config.set(
@@ -210,6 +211,8 @@ def _load():
     if config.has_option('sundials', 'inc'):
         for x in config.get('sundials', 'inc').split(';'):
             myokit.SUNDIALS_INC.append(x.strip())
+    if config.has_option('sundials', 'version'):
+        myokit.SUNDIALS_VERSION = int(config.get('sundials','version'))
     # OpenCL libraries and header files
     if config.has_option('opencl', 'lib'):
         for x in config.get('opencl', 'lib').split(';'):

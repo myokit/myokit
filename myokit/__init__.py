@@ -157,6 +157,8 @@ FORCE_PYSIDE = False
 SUNDIALS_LIB = []
 # Location of the Sundials (CVODE) header files (.h)
 SUNDIALS_INC = []
+# Sundials major version number. Defaults to 26000.
+SUNDIALS_VERSION = 26000
 # Location of the OpenCL shared library objects (.dll or .so)
 OPENCL_LIB = []
 # Location of the OpenCL header files (.h)
