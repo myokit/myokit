@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Runs the unit tests / developer tests for myokit
+# Runs the main unit tests Myokit, but skips OpenCL dependent tests.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford

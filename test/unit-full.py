@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 #
-# Runs the unit tests / developer tests for myokit
+# Runs all unit tests for Myokit.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford

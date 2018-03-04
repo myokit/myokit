@@ -19,7 +19,8 @@ path = os.path.dirname(path)
 
 # Now go into web
 path_html = os.path.join(path, 'web', 'html')
-path_examples = os.path.join(path_html, 'static','download','data','examples')
+path_examples = os.path.join(
+    path_html, 'static', 'download', 'data', 'examples')
 
 # Run
 args = list(sys.argv)
