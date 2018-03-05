@@ -2,12 +2,6 @@
 
 Contributions to Myokit are very welcome! To streamline our work, please have a look at the guidelines below!
 
-
-
-
-
-## Workflow
-
 We use [GIT](https://en.wikipedia.org/wiki/Git) and [GitHub](https://en.wikipedia.org/wiki/GitHub) to coordinate our work. When making any kind of update, try to follow the procedure below.
 
 ### A. Setting up your system
