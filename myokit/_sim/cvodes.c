@@ -73,6 +73,7 @@ bound_variables = model.prepare_bindings({
 
 # Get equations
 equations = model.solvable_order()
+
 ?>
 #include <Python.h>
 #include <stdio.h>
@@ -82,13 +83,14 @@ equations = model.solvable_order()
 #include <cvodes/cvodes_dense.h>
 #include <nvector/nvector_serial.h>
 #include <sundials/sundials_types.h>
+//#include </usr/include/sundials/sundials_math.h>
 #include "pacing.h"
 
 // Number of model states
 #define N_STATE <?= model.count_states() ?>
 
 // Number of parameters for sensitivity calculations
-#define N_SENS <?= len(sensitivities) ?>
+#define N_SENS <?= len(sensitivities) if sensitivities else 0 ?>
 
 // Pacing
 ESys epacing;               // Event-based pacing system
@@ -423,6 +425,7 @@ N_Vector y_last;     // Used to store previous value of y for error handling
 int* rootsfound;     // Used to store found roots
 
 // Sensitivities
+N_Vector* yS;        // Array of N_Vectors, containing sensitivities
 PyObject* sensitivity_log;  // A pointer to TODO TODO TODO SENSITIVITIES
 
 // Logging
@@ -457,6 +460,10 @@ sim_clean()
         if (log_interval > 0 || log_times != Py_None) {
             N_VDestroy_Serial(y_log);
             y_log = NULL;
+        }
+        if (N_SENS) {
+            N_VDestroyVectorArray_Serial(yS, N_SENS);
+            yS = NULL;
         }
         CVodeFree(&cvode_mem); cvode_mem = NULL;
 
@@ -515,6 +522,7 @@ sim_init(PyObject *self, PyObject *args)
     logs = NULL;
     rootsfound = NULL;
     y = NULL;
+    yS = NULL;
     dy_log = NULL;
     y_log = NULL;
     cvode_mem = NULL;
@@ -596,14 +604,14 @@ sim_init(PyObject *self, PyObject *args)
 
     // Create state vector
     y = N_VNew_Serial(N_STATE);
-    if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
+    if (check_cvodes_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         return sim_clean();
     }
 
     // Create state vector copy for error handling
     y_last = N_VNew_Serial(N_STATE);
-    if (check_cvode_flag((void*)y_last, "N_VNew_Serial", 0)) {
+    if (check_cvodes_flag((void*)y_last, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create last-state vector.");
         return sim_clean();
     }
@@ -612,7 +620,7 @@ sim_init(PyObject *self, PyObject *args)
     if (log_interval > 0 || log_times != Py_None) {
         // Logging at fixed points: Keep y_log as a separate N_Vector
         y_log = N_VNew_Serial(N_STATE);
-        if (check_cvode_flag((void*)y_log, "N_VNew_Serial", 0)) {
+        if (check_cvodes_flag((void*)y_log, "N_VNew_Serial", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to create logging state vector.");
             return sim_clean();
         }
@@ -621,7 +629,7 @@ sim_init(PyObject *self, PyObject *args)
         y_log = y;
     }
     dy_log = N_VNew_Serial(N_STATE);
-    if (check_cvode_flag((void*)dy_log, "N_VNew_Serial", 0)) {
+    if (check_cvodes_flag((void*)dy_log, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create logging state derivatives vector.");
         return sim_clean();
     }
@@ -762,25 +770,25 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
 
     // Create solver
     cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
-    if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+    if (check_cvodes_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
     flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
-    if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+    if (check_cvodes_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
     flag_cvode = CVDense(cvode_mem, N_STATE);
-    if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+    if (check_cvodes_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
 
     // Set tolerances
     flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
-    if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
+    if (check_cvodes_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
 
     // Set a maximum step size (or 0.0 for none)
     if (dt_max < 0) dt_max = 0.0;
     flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
-    if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
+    if (check_cvodes_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
 
     // Set a minimum step size (or 0.0 for none)
     if (dt_min < 0) dt_min = 0.0;
     flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
-    if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
+    if (check_cvodes_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
     // Benchmarking? Then set engine_realtime to 0.0
     if (benchtime != Py_None) {
@@ -865,7 +873,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         rootfinding_threshold = root_threshold;
         // Initialize root function with 1 component
         flag_cvode = CVodeRootInit(cvode_mem, 1, root_finding);
-        if (check_cvode_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
+        if (check_cvodes_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
     }
 
     // Parameter sensitivity checking enabled?
@@ -874,32 +882,37 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
 
         // TODO: Continue here
 
-        /* Set sensitivity initial conditions */
-        yS = N_VCloneVectorArray(NS, y);
-        if (check_flag((void *)yS, "N_VCloneVectorArray", 0)) return(1);
-        for (is=0;is<NS;is++) N_VConst(ZERO, yS[is]);
+        // Create matrix of sensitivities
+        yS = N_VCloneVectorArray(N_SENS, y);
+        if (check_cvodes_flag((void *)yS, "N_VCloneVectorArray", 0)) {
+            PyErr_SetString(PyExc_Exception, "Failed to create sensitivity matrix.");
+            return sim_clean();
+        }
 
-        /* Call CVodeSensInit1 to activate forward sensitivity computations
-           and allocate internal memory for COVEDS related to sensitivity
-           calculations. Computes the right-hand sides of the sensitivity
-           ODE, one at a time */
-        flag = CVodeSensInit1(cvode_mem, NS, sensi_meth, fS, yS);
+        // Set initial sensitivities to zero
+        for (i=0; i<N_SENS; i++) N_VConst(RCONST(0.0), yS[i]);
+
+        // Activate forward sensitivity computations, allocate internal memory
+        flag = CVodeSensInit1(cvode_mem, N_SENS, sensi_meth, fS, yS);
         if(check_flag(&flag, "CVodeSensInit", 1)) return(1);
 
         /* Call CVodeSensEEtolerances to estimate tolerances for sensitivity
            variables based on the rolerances supplied for states variables and
            the scaling factor pbar */
+        /*
         flag = CVodeSensEEtolerances(cvode_mem);
         if(check_flag(&flag, "CVodeSensEEtolerances", 1)) return(1);
 
         /* Set sensitivity analysis optional inputs */
         /* Call CVodeSetSensErrCon to specify the error control strategy for
            sensitivity variables */
+        /*
         flag = CVodeSetSensErrCon(cvode_mem, err_con);
         if (check_flag(&flag, "CVodeSetSensErrCon", 1)) return(1);
 
         /* Call CVodeSetSensParams to specify problem parameter information for
            sensitivity calculations */
+        /*
         flag = CVodeSetSensParams(cvode_mem, NULL, pbar, NULL);
         if (check_flag(&flag, "CVodeSetSensParams", 1)) return(1);
 
@@ -911,7 +924,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
           else                           printf("( STAGGERED1 +");
         if(err_con) printf(" FULL ERROR CONTROL )");
         else        printf(" PARTIAL ERROR CONTROL )");
-
+        */
     }
 
     // Done!
@@ -962,7 +975,7 @@ sim_step(PyObject *self, PyObject *args)
         flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
 
         // Check for errors
-        if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+        if (check_cvodes_flag(&flag_cvode, "CVode", 1)) {
             // Something went wrong... Set outputs and return
             for(i=0; i<N_STATE; i++) {
                 PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
@@ -999,7 +1012,7 @@ sim_step(PyObject *self, PyObject *args)
 
                 // Go back to engine_time=tnext
                 flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
-                if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                if (check_cvodes_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
                 engine_time = tnext;
                 // Require reinit (after logging)
                 flag_reinit = 1;
@@ -1008,7 +1021,7 @@ sim_step(PyObject *self, PyObject *args)
 
                 // Store found roots
                 flag_root = CVodeGetRootInfo(cvode_mem, rootsfound);
-                if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
+                if (check_cvodes_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
                 flt = PyTuple_New(2);
                 PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); // Steals reference, so this is ok
                 PyTuple_SetItem(flt, 1, PyInt_FromLong(rootsfound[0]));
@@ -1093,7 +1106,7 @@ sim_step(PyObject *self, PyObject *args)
                 while (engine_time > tlog) {
                     // Get interpolated y(tlog)
                     flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                    if (check_cvodes_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
                     // Calculate intermediate variables & derivatives
                     rhs(tlog, y_log, dy_log, 0);
                     // Write to log
@@ -1156,7 +1169,7 @@ sim_step(PyObject *self, PyObject *args)
                 flag_reinit = 0;
                 // Re-init
                 flag_cvode = CVodeReInit(cvode_mem, engine_time, y);
-                if (check_cvode_flag(&flag_cvode, "CVodeReInit", 1)) return sim_clean();
+                if (check_cvodes_flag(&flag_cvode, "CVodeReInit", 1)) return sim_clean();
             }
         }
 
@@ -1236,12 +1249,12 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
 
     // Create state vectors
     y = N_VNew_Serial(N_STATE);
-    if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
+    if (check_cvodes_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         goto error;
     }
     dy = N_VNew_Serial(N_STATE);
-    if (check_cvode_flag((void*)dy, "N_VNew_Serial", 0)) {
+    if (check_cvodes_flag((void*)dy, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state derivatives vector.");
         goto error;
     }
