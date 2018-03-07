@@ -422,8 +422,8 @@ class AbfFile(object):
         single time series.
 
         The log will contain an entry "time" that contains the time vector.
-        Channels will be stored using "0.ad", "1.ad" etc for the recorded
-        (analog-to-digital) channels and "0.da", "1.da" et for the output
+        Channels will be stored using "0.ad", "1.ad" etc. for the recorded
+        (analog-to-digital) channels and "0.da", "1.da" etc. for the output
         (digital-to-analog) channels.
         """
         import myokit
