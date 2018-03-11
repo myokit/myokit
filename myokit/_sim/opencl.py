@@ -11,7 +11,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import myokit
-import ConfigParser
+from configparser import ConfigParser
 
 
 # Settings file

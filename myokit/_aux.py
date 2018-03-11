@@ -984,7 +984,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
                     'get_model': get_model,
                     'get_protocol': get_protocol,
                 }
-                exec self.script in environment
+                exec(self.script, environment)
             except Exception:
                 self.exc_info = sys.exc_info()
             finally:
@@ -997,7 +997,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     r = Runner(model, protocol, script, stdout, stderr, progress)
     r.run()
     if r.exc_info is not None:
-        raise r.exc_info[0], r.exc_info[1], r.exc_info[2]
+        raise(r.exc_info[0], r.exc_info[1], r.exc_info[2])
 
     # Free some space
     del(r)

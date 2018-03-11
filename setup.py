@@ -60,6 +60,9 @@ setup(
     install_requires=[
         'numpy',
         'scipy',
+        'matplotlib>=1.5',
+        'configparser',
+        'future'
         # PyQT or PySide?
         # (PySide is pip installable, Travis can get PyQt from apt)
     ],
