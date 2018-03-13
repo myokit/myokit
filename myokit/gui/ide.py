@@ -1598,7 +1598,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_analysis.addSeparator()
         # Analysis > Show component dependency graph
         self._tool_component_dependency_graph = QtWidgets.QAction(
-            'Show component  dependency graph', self)
+            'Show component dependency graph', self)
         self._tool_component_dependency_graph.setStatusTip(
             'Display a graph of the dependencies between components.')
         self._tool_component_dependency_graph.triggered.connect(
