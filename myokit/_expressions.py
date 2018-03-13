@@ -687,12 +687,16 @@ class Name(LhsExpression):
     def __init__(self, value):
         super(Name, self).__init__()
         if not isinstance(value, myokit.Variable):
-            if type(value) not in [str, unicode]:
+            if type(value) not in ("".__class__, u"".__class__):
                 raise ValueError(
                     'myokit.Name objects must have a value that is a'
                     ' myokit.Variable (or, when debugging, a string).')
         self._value = value
-        self._references = set([self])
+        self._references = set((self))
+
+    def __hash__(self):
+        return id(self)
+
 
     def bracket(self, op=None):
         if op is not None:
@@ -800,7 +804,7 @@ class Derivative(LhsExpression):
     Represents a reference to the time-derivative of a variable.
     """
     _rbp = FUNCTION_CALL
-    _nargs = [1]    # Allows parsing as a function
+    _nargs = [1]    # Allows parsing as a function    
 
     def __init__(self, op):
         super(Derivative, self).__init__((op,))
@@ -808,7 +812,11 @@ class Derivative(LhsExpression):
             raise IntegrityError(
                 'The dot() operator can only be used on named variables.')
         self._op = op
-        self._references = set([self])
+        self.__hash__ = LhsExpression.__hash__
+        self._references = set((self))
+
+    def __hash__(self):
+        return id(self)
 
     def bracket(self, op):
         if op != self._op:

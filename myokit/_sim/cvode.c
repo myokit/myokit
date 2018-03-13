@@ -52,7 +52,7 @@ bound_variables = model.prepare_bindings({
     'time'        : 't',
     'pace'        : 'engine_pace',
     'realtime'    : 'engine_realtime',
-    'evaluations' : 'engine_evaluations',
+    'evaluations' : 'engine_evaluations'
     })
 #
 # About the bindings:
