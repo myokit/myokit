@@ -1056,12 +1056,14 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         style.setForeground(QtGui.QColor(255, 0, 255))
         pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
         self._rules.append((pattern, style))
-        # True/False
+        # True/False/None
         style = QtGui.QTextCharFormat()
         style.setForeground(QtGui.QColor(255, 0, 255))
         pattern = QtCore.QRegExp(r'\bTrue\b')
         self._rules.append((pattern, style))
         pattern = QtCore.QRegExp(r'\bFalse\b')
+        self._rules.append((pattern, style))
+        pattern = QtCore.QRegExp(r'\bNone\b')
         self._rules.append((pattern, style))
         # Built-in essential functions
         style = QtGui.QTextCharFormat()
