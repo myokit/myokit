@@ -12,7 +12,12 @@ from __future__ import print_function, unicode_literals
 import re
 import xml.dom
 import textwrap
-from html.parser import HTMLParser
+try:
+    # Python2
+    import HTMLParser
+except ImportError:
+    # Python 3
+    from html.parser import HTMLParser
 
 
 def dom_child(node, selector=None):

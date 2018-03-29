@@ -23,7 +23,10 @@ and then a myokit.Simulation which you can .run() to obtain simulated results.
 # functions and classes described below. No submodules of myokit will be
 # loaded!
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 #
 # GUI and graphical modules should not be auto-included because they define a
 # matplotlib backend to use. If the user requires a different backend, this
@@ -32,8 +35,11 @@ and then a myokit.Simulation which you can .run() to obtain simulated results.
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+<<<<<<< HEAD
 
 #
+=======
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Check python version
 #
 import sys
@@ -44,6 +50,7 @@ if sys.hexversion < 0x02070000:
     print(sys.version)
     print()
     sys.exit(1)
+<<<<<<< HEAD
 elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
     print('-- ERROR --')
     print('Python 3.0 to 3.3 are not supported.')
@@ -96,6 +103,20 @@ del(sys, logging)
 #
 # Licensing
 #
+=======
+
+# Constants
+
+# Version information
+VERSION_INT = 1, 26, 4
+VERSION = '.'.join([str(x) for x in VERSION_INT])
+if not sys.hexversion > 0x03000000:
+    del(x)
+del(sys)
+RELEASE = ''
+
+# Licensing
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 
 # Full license text
 LICENSE = """
@@ -151,6 +172,7 @@ This file is part of Myokit
 """.strip()
 
 # Single-line copyright notice
+<<<<<<< HEAD
 COPYRIGHT = '(C) 2011-2018, Maastricht University, University of Oxford'
 
 
@@ -159,6 +181,11 @@ COPYRIGHT = '(C) 2011-2018, Maastricht University, University of Oxford'
 #
 
 # Myokit root
+=======
+COPYRIGHT = '(C) 2011-2017, Maastricht University, University of Oxford'
+
+# Myokit paths
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 import os, inspect  # noqa
 try:
     frame = inspect.currentframe()
@@ -168,14 +195,19 @@ finally:
     # https://docs.python.org/2/library/inspect.html#the-interpreter-stack
     del(frame)
 
+<<<<<<< HEAD
 # Binary data files
 DIR_DATA = os.path.join(DIR_MYOKIT, '_bin')
 
 # C header files
+=======
+DIR_DATA = os.path.join(DIR_MYOKIT, '_bin')
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 DIR_CFUNC = os.path.join(DIR_MYOKIT, '_sim')
 
 # Location of myokit user info
 DIR_USER = os.path.join(os.path.expanduser('~'), '.myokit')
+
 if os.path.exists(DIR_USER):
     if not os.path.isdir(DIR_USER):
         raise Exception(
@@ -183,6 +215,7 @@ if os.path.exists(DIR_USER):
 else:
     os.makedirs(DIR_USER)
 
+<<<<<<< HEAD
 # Example mmt file
 EXAMPLE = os.path.join(DIR_DATA, 'example.mmt')
 
@@ -191,14 +224,26 @@ del(os, inspect)
 
 
 #
+=======
+# Location of example mmt file
+EXAMPLE = os.path.join(DIR_DATA, 'example.mmt')
+
+# Prevent standard libraries being represented as part of Myokit
+del(os, inspect)
+
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Debugging mode: Simulation code will be shown, not executed
 #
 DEBUG = False
 
+<<<<<<< HEAD
 
 #
 # Data logging flags (bitmasks)
 #
+=======
+# Data logging flags (bitmasks)
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 LOG_NONE = 0
 LOG_STATE = 1
 LOG_BOUND = 2
@@ -206,18 +251,25 @@ LOG_INTER = 4
 LOG_DERIV = 8
 LOG_ALL = LOG_STATE + LOG_INTER + LOG_BOUND + LOG_DERIV
 
+<<<<<<< HEAD
 #
+=======
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Floating point precision
 #
 SINGLE_PRECISION = 32
 DOUBLE_PRECISION = 64
 
+<<<<<<< HEAD
 #
+=======
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Unit checking modes
 #
 UNIT_TOLERANT = 1
 UNIT_STRICT = 2
 
+<<<<<<< HEAD
 #
 # Maximum precision float output format strings
 #
@@ -225,29 +277,45 @@ SFDOUBLE = '{:< 1.17e}'  # Exponent can have 3 digits for very small numbers
 SFSINGLE = '{:< 1.9e}'
 
 #
+=======
+# Maximum precision float output
+SFDOUBLE = '{:< 1.17e}'
+SFSINGLE = '{:< 1.9e}'
+
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Date and time formats to use throughout Myokit
 #
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 TIME_FORMAT = '%H:%M:%S'
 
+<<<<<<< HEAD
 #
+=======
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Add line numbers to debug output of simulations
 #
 DEBUG_LINE_NUMBERS = True
 
+<<<<<<< HEAD
 
 #
 # GUI: Favor PySide or PyQt
 #
+=======
+# Favor PySide or PyQt
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 FORCE_PYQT5 = False
 FORCE_PYQT4 = False
 FORCE_PYSIDE = False
 
+<<<<<<< HEAD
 
 #
 # Library paths and settings
 #
 
+=======
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Location of the Sundials (CVODE) shared library objects (.dll or .so)
 SUNDIALS_LIB = []
 
@@ -263,17 +331,38 @@ OPENCL_LIB = []
 # Location of the OpenCL header files (.h)
 OPENCL_INC = []
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Load settings
 from . import _config   # noqa
 del(_config)
 
 
+<<<<<<< HEAD
 #
 # Imports
 #
 
 # Exceptions
 from ._err import ( # noqa
+=======
+# Myokit version
+def version(raw=False):
+    """
+    Returns the current Myokit version.
+    """
+    if raw:
+        return VERSION
+    else:
+        return '\n Myokit version ' + VERSION + ' ' * (15 - len(VERSION)) \
+               + '|/\\\n_______________________________|  |______'
+
+
+# Exceptions
+from ._err import (
+>>>>>>> Tidied __init__, started adding future imports everywhere.
     MyokitError,
     IntegrityError, InvalidBindingError, InvalidLabelError,
     DuplicateName, InvalidNameError, IllegalAliasError,
@@ -292,7 +381,12 @@ from ._err import ( # noqa
     GenerationError, CompilationError,
     ImportError, ExportError,
     IncompatibleModelError,
+<<<<<<< HEAD
 )
+=======
+) # noqa
+
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 
 # Check if all errors imported
 # Dynamically importing them doesn't seem to be possible, and forgetting to
@@ -309,6 +403,7 @@ for ex in inspect.getmembers(_err):
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 
+<<<<<<< HEAD
 # Model api
 from ._model_api import ( # noqa
     ModelPart, Model, Component, Variable, check_name,
@@ -317,10 +412,23 @@ from ._model_api import ( # noqa
 
 # Expressions and units
 from ._expressions import ( # noqa
+=======
+
+# Model structure
+from ._core import (
+    ModelPart, Model, Component, Variable, check_name,
+    Equation, EquationList, UserFunction,
+) # noqa
+
+
+# Expressions and units
+from ._expr import (
+>>>>>>> Tidied __init__, started adding future imports everywhere.
     Expression, LhsExpression, Derivative, Name, Number,
     PrefixExpression, PrefixPlus, PrefixMinus,
     InfixExpression, Plus, Minus, Multiply, Divide,
     Quotient, Remainder, Power,
+<<<<<<< HEAD
     Function,
     Sqrt, Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
     Condition, PrefixCondition, InfixCondition, If, Piecewise,
@@ -336,6 +444,26 @@ from ._protocol import ( # noqa
 
 # Parser functions
 from ._parser import ( # noqa
+=======
+    Function, Sqrt, Sin, Cos, Tan, ASin, ACos, ATan, Exp, Log, Log10, Floor,
+    Ceil, Abs,
+    If, Condition, PrefixCondition, Not, And, Or, InfixCondition,
+    Equal, NotEqual, More, Less, MoreEqual, LessEqual,
+    Piecewise, OrderedPiecewise, Polynomial, Spline,
+    UnsupportedFunction,
+    Unit, Quantity,
+) # noqa
+
+
+# Pacing protocol
+from ._protocol import (
+    Protocol, ProtocolEvent, PacingSystem,
+) # noqa
+
+
+# Parser functions
+from ._parser import (
+>>>>>>> Tidied __init__, started adding future imports everywhere.
     KEYWORDS,
     parse, split, format_parse_error,
     parse_model, parse_protocol, parse_state,
@@ -343,10 +471,18 @@ from ._parser import ( # noqa
     parse_number_string as parse_number,
     parse_expression_string as parse_expression,
     strip_expression_units,
+<<<<<<< HEAD
 )
 
 # Auxillary functions
 from ._aux import ( # noqa
+=======
+) # noqa
+
+
+# Auxillary functions
+from ._aux import (
+>>>>>>> Tidied __init__, started adding future imports everywhere.
     # Global date and time formats
     date, time,
 
@@ -368,7 +504,11 @@ from ._aux import ( # noqa
     natural_sort_key,
 
     # Dyanmic generation of Python/Numpy expressions
+<<<<<<< HEAD
     python_writer, numpy_writer,
+=======
+    pywriter, numpywriter,
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 
     # Model comparison
     ModelComparison,
@@ -376,11 +516,18 @@ from ._aux import ( # noqa
     # Benchmarking
     Benchmarker,
 
+<<<<<<< HEAD
+=======
+    # Logging
+    TextLogger,
+
+>>>>>>> Tidied __init__, started adding future imports everywhere.
     # Misc
     lvsd, format_path, strfloat, format_float_dict,
 
     # Snapshot creation for replicability
     pack_snapshot,
+<<<<<<< HEAD
 )
 
 # Data logging
@@ -412,11 +559,43 @@ from ._sim.opencl import ( # noqa
 )
 from ._sim.openclsim import SimulationOpenCL    # noqa
 from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
+=======
+) # noqa
+
+
+# Data logging
+from ._datalog import (
+    DataLog, LoggedVariableInfo, dimco, split_key, prepare_log
+) # noqa
+from ._datablock import (
+    DataBlock1d, DataBlock2d, ColorMap,
+) # noqa
+
+
+# Simulations
+from ._sim import (
+    ProgressReporter, ProgressPrinter,
+    CModule, CppModule,
+) # noqa
+from ._sim.cvode import Simulation              # noqa
+from ._sim.cable import Simulation1d            # noqa
+from ._sim.opencl import OpenCL                 # noqa
+from ._sim.opencl import OpenCLInfo, OpenCLPlatformInfo, OpenCLDeviceInfo  # noqa
+from ._sim.openclsim import SimulationOpenCL    # noqa
+# from ._sim.openmp import SimulationOpenMP
+from ._sim.fiber_tissue import FiberTissueSimulation    # noqa
+from ._sim.rhs import RhsBenchmarker            # noqa
+from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
+from ._sim.icsim import ICSimulation            # noqa
+from ._sim.psim import PSimulation              # noqa
+
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 
 # Import whole modules
 # This allows these modules to be used after myokit was imported, without
 # importing the modules specifically (like os and os.path).
 # All modules imported here must report so in their docs
+<<<<<<< HEAD
 from . import ( # noqa
     mxml,
     pacing,
@@ -425,12 +604,23 @@ from . import ( # noqa
 
 
 #
+=======
+from . import (
+    mxml,
+    pacing,
+    units,  # Also loads all common unit names
+) # noqa
+
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Globally shared progress reporter
 #
 _Simulation_progress = None
 
 
+<<<<<<< HEAD
 #
+=======
+>>>>>>> Tidied __init__, started adding future imports everywhere.
 # Default mmt file parts
 #
 def default_protocol():
@@ -446,6 +636,7 @@ def default_script():
     """
     Provides a default script to use when no embedded script is available.
     """
+<<<<<<< HEAD
     return '\n'.join((
         "[[script]]",
         "import matplotlib.pyplot as plt",
@@ -470,3 +661,27 @@ def default_script():
         "plt.show()",
     ))
 
+=======
+    return """[[script]]
+import matplotlib.pyplot as pl
+import myokit
+
+# Get model and protocol, create simulation
+m = get_model()
+p = get_protocol()
+s = myokit.Simulation(m, p)
+
+# Run simulation
+d = s.run(1000)
+
+# Get the first state variable's name
+first_state = m.states().next()
+var = first_state.qname()
+
+# Display the results
+pl.figure()
+pl.plot(d.time(), d[var])
+pl.title(var)
+pl.show()
+"""
+>>>>>>> Tidied __init__, started adding future imports everywhere.
