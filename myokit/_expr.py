@@ -2871,7 +2871,7 @@ class Unit(object):
             preferred representation format.
 
         """
-        if not isinstance(name, str):
+        if not (isinstance(name, unicode) or isinstance(name, str)):
             raise TypeError('Given name must be a string.')
         if not isinstance(unit, Unit):
             raise TypeError('Given unit must be myokit.Unit')

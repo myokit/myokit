@@ -8,6 +8,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import os
 import re
 import sys
@@ -17,12 +20,14 @@ import shutil
 import fnmatch
 import zipfile
 import tempfile
+
 try:
     # Python 2
     from cStringIO import StringIO
 except ImportError:
     # Python3
     from io import StringIO
+
 import myokit
 
 # Globally shared numpy expression writer
@@ -486,7 +491,7 @@ def load_state_bin(filename):
         del(zlib)
     except ImportError:
         raise Exception(
-            'This method requires the ``zlib`` module to be installed.')
+            'This method requires the `zlib` module to be installed.')
 
     # Open file
     with zipfile.ZipFile(filename, 'r') as f:
@@ -779,7 +784,7 @@ def numpywriter():
     """
     global _numpywriter_
     if _numpywriter_ is None:
-        from formats.python import NumpyExpressionWriter
+        from .formats.python import NumpyExpressionWriter
         _numpywriter_ = NumpyExpressionWriter()
 
         def name(x):
@@ -805,7 +810,7 @@ def pack_snapshot(path, overwrite=True):
         del(zlib)
     except ImportError:
         raise Exception(
-            'This method requires the ``zlib`` module to be installed.')
+            'This method requires the `zlib` module to be installed.')
     zmod = zipfile.ZIP_DEFLATED
 
     # Check given path
@@ -1128,7 +1133,7 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
         del(zlib)
     except ImportError:
         raise Exception(
-            'This method requires the ``zlib`` module to be installed.')
+            'This method requires the `zlib` module to be installed.')
 
     # Data type
     code = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
@@ -1317,7 +1322,7 @@ class TextLogger(object):
             ------------------------------------------------------------
         """
         self.log('-' * self._line_width)
-        self.log(' ' * ((self._line_width - len(text)) / 2) + text)
+        self.log(' ' * ((self._line_width - len(text)) // 2) + text)
         self.log('-' * self._line_width)
 
     def log_warnings(self):

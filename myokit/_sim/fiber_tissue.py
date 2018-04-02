@@ -6,11 +6,14 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import os
 import myokit
 
 # OpenCLSim keywords
-from openclsim import KEYWORDS
+from .openclsim import KEYWORDS
 
 # Location of C and OpenCL sources
 SOURCE_FILE = 'fiber_tissue.c'
@@ -125,11 +128,14 @@ class FiberTissueSimulation(myokit.CModule):
             g_fiber=(9, 6), g_tissue=(9, 6), g_fiber_tissue=9,
             dt=0.005, double_precision=False):
         super(FiberTissueSimulation, self).__init__()
+
         # List of globally logged inputs
         self._global = ['time', 'pace']
+
         # Require valid models
         fiber_model.validate()
         tissue_model.validate()
+
         # Require independent components
         if fiber_model.has_interdependent_components():
             cycles = fiber_model.component_cycles()
