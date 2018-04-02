@@ -12,9 +12,13 @@
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
+import gc
+import os
 import sys
+import fnmatch
 import argparse
 import unittest
+import traceback
 import subprocess
 
 
@@ -103,6 +107,72 @@ def check_docs():
         sys.exit(ret)
 
 
+def run_mmt_files(path, filename=None):
+    """
+    Run all the mmt files in a given directory `path`.
+
+    If `filename` is given, only the file with that name from `path` is run.
+    """
+    import myokit
+
+    # Run without screen
+    #import matplotlib
+    #matplotlib.use('Agg')
+
+    # Get absolute path
+    path = os.path.abspath(path)
+
+    # Change to dir
+    os.chdir(path)
+
+    # Run all
+    glob = '*.mmt'
+    found = False
+    for fn in fnmatch.filter(os.listdir(path), glob):
+        # Real file?
+        if filename is not None:
+            if fn != filename:
+                continue
+            else:
+                found = True
+
+        # Load and run
+        try:
+            print('Loading ' + fn)
+            m, p, x = myokit.load(os.path.join(path, fn))
+            try:
+                print('Running...')
+                myokit.run(m, p, x)
+            except Exception:
+                print(traceback.format_exc())
+            del(m, p, x)
+        except Exception:
+            print('Unable to load.')
+            print(traceback.format_exc())
+        try:
+            pl.close('all')
+        except Exception:
+            pass
+
+        # Tidy up
+        gc.collect()
+        print('-' * 70)
+
+    if filename is not None and not found:
+        print('Unable to find file: ' + str(filename))
+    else:
+        print('Done!')
+
+
+def run_publication_tests():
+    # Get publications directory
+    path_pub = os.path.join('tests', 'publications')
+
+    # PBMB 2016. Myokit: A simple interface to cardiac cellular
+    # electrophysiology
+    run_mmt_files(os.path.join(path_pub, 'pbmb-2016'))
+
+
 if __name__ == '__main__':
     # Set up argument parsing
     parser = argparse.ArgumentParser(
@@ -135,6 +205,11 @@ if __name__ == '__main__':
         action='store_true',
         help='Run all unit tests without starting a subprocess.',
     )
+    parser.add_argument(
+        '--publications',
+        action='store_true',
+        help='Run mmt files for publications',
+    )
     args = parser.parse_args()
 
     # Run tests
@@ -156,6 +231,9 @@ if __name__ == '__main__':
     if args.nosub:
         has_run = True
         run_unit_tests()
+    if args.publications:
+        has_run = True
+        run_publication_tests()
     if not has_run:
         parser.print_help()
 

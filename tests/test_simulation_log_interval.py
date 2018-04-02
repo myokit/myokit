@@ -342,16 +342,6 @@ class Simulation(PeriodicTest):
             self.assertNotEqual(e['membrane.V'][0], e['membrane.V'][1])
 
 
-class SimulationOpenCL(PeriodicTest):
-    """
-    Tests myokit.SimulationOpenCL for consistent log entry timing.
-    """
-    def test_periodic(self):
-        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.SimulationOpenCL(m, p, ncells=1)
-        self.periodic(s)
-
-
 class Simulation1d(PeriodicTest):
     """
     Tests myokit.Simulation1d for consistent log entry timing.
