@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Tests the OpenCL simulation classes
 #
@@ -8,29 +8,23 @@
 #  See: http://myokit.org
 #
 from __future__ import print_function
-import myokit
-import myotest
 import os
 import unittest
 
+import myokit
 
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(SimulationOpenCL1d('set_state'))
-    suite.addTest(SimulationOpenCL1d('sim'))
-    suite.addTest(SimulationOpenCL2d('sim'))
-    suite.addTest(FiberTissueSimulation('run_simple'))
-    return suite
+from shared import OpenCL_FOUND, DIR_DATA
 
 
 class SimulationOpenCL1d(unittest.TestCase):
     """
     Tests the OpenCL simulation in 1d mode.
     """
-    def set_state(self):
+    def test_set_state(self):
+        if not OpenCL_FOUND:
+            print('OpenCL support not found, skipping test.')
+            return
+
         m, p, x = myokit.load('example')
         n = 10
         s = myokit.SimulationOpenCL(m, p, n)
@@ -38,6 +32,7 @@ class SimulationOpenCL1d(unittest.TestCase):
         ss = [s.state(x) for x in xrange(n)]
         for si in ss:
             self.assertEqual(sm, si)
+
         # Test setting a single, global state
         sx = [0.0] * 8
         self.assertNotEqual(sm, sx)
@@ -56,7 +51,11 @@ class SimulationOpenCL1d(unittest.TestCase):
             else:
                 self.assertEqual(s.state(i), sm)
 
-    def sim(self):
+    def test_sim(self):
+        if not OpenCL_FOUND:
+            print('OpenCL support not found, skipping test.')
+            return
+
         m, p, x = myokit.load('example')
         s = myokit.SimulationOpenCL(m, p, 20)
         s.run(1, log=['engine.time', 'membrane.V'])
@@ -66,7 +65,11 @@ class SimulationOpenCL2d(unittest.TestCase):
     """
     Tests the OpenCL simulation in 2d mode.
     """
-    def sim(self):
+    def test_sim(self):
+        if not OpenCL_FOUND:
+            print('OpenCL support not found, skipping test.')
+            return
+
         m, p, x = myokit.load('example')
         n = (8, 8)
         s = myokit.SimulationOpenCL(m, p, n)
@@ -78,10 +81,14 @@ class FiberTissueSimulation(unittest.TestCase):
     """
     Tests the fiber-tissue simulation.
     """
-    def run_simple(self):
+    def test_simple(self):
+        if not OpenCL_FOUND:
+            print('OpenCL support not found, skipping test.')
+            return
+
         # Load models
-        mf = os.path.join(myotest.DIR_DATA, 'dn-1985-normalised.mmt')
-        mt = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        mf = os.path.join(DIR_DATA, 'dn-1985-normalised.mmt')
+        mt = os.path.join(DIR_DATA, 'lr-1991.mmt')
         mf = myokit.load_model(mf)
         mt = myokit.load_model(mt)
         # Run times
@@ -121,3 +128,6 @@ class FiberTissueSimulation(unittest.TestCase):
         with myokit.PyCapture():
             logf, logt = s.run(run, logf=logf, logt=logt, log_interval=0.01)
 
+
+if __name__ == '__main__':
+    unittest.main()

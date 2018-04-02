@@ -1,6 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
-# Tests the fitting module from the library
+# Tests the classes in myokit.lib.fit
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -10,29 +10,12 @@
 import os
 import unittest
 import numpy as np
+
 import myokit
 import myokit.lib.fit as fit
 import myokit.lib.markov as markov
-import myotest
 
-
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    # Quadratic polynomial through a series of points
-    suite.addTest(QuadFitTest('test_quadfit'))
-    # Parallel and sequential evaluation of user functions
-    suite.addTest(EvaluatorTest('test_evaluators'))
-    suite.addTest(EvaluatorTest('test_parallel_evaluator'))
-    # Short fitting method tests
-    #suite.addTest(FittingTest('test_cmaes'))
-    suite.addTest(FittingTest('test_pso'))
-    suite.addTest(FittingTest('test_snes'))
-    suite.addTest(FittingTest('test_xnes'))
-    # Done!
-    return suite
+from shared import DIR_DATA
 
 
 class EvaluatorTest(unittest.TestCase):
@@ -158,7 +141,7 @@ class FittingTest(unittest.TestCase):
     def __init__(self, name):
         super(FittingTest, self).__init__(name)
         # Load model, simulation etc. only once
-        fname = os.path.join(myotest.DIR_DATA, 'clancy-1999-fitting.mmt')
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
         model = myokit.load_model(fname)
 
         # Extract the Markov model of INa
@@ -206,22 +189,22 @@ class FittingTest(unittest.TestCase):
         # Give a hint
         self._hint = [0.03, 0.05]
 
-    def test_cmaes(self):
-        """
-        Tests if a CMA-ES routine runs without errors.
-        """
-        # NOT RUN AT THE MOMENT
-        # CMA-ES changes matplotlib behaviour (not super important here),
-        # produces a bunch or warnings, and takes too long
-        try:
-            import cma
-            del(cma)
-        except ImportError:
-            raise ImportError('Unable to load cma module for cma-es test.')
-        with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
-            x, f = fit.cmaes(
-                self._score, self._boundaries, hint=self._hint, parallel=False,
-                target=0.5)
+    #def test_cmaes(self):
+    #    """
+    #    Tests if a CMA-ES routine runs without errors.
+    #    """
+    #    # NOT RUN AT THE MOMENT
+    #    # CMA-ES changes matplotlib behaviour (not super important here),
+    #    # produces a bunch or warnings, and takes too long
+    #    try:
+    #        import cma
+    #        del(cma)
+    #    except ImportError:
+    #        raise ImportError('Unable to load cma module for cma-es test.')
+    #    with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
+    #        x, f = fit.cmaes(
+    #           self._score, self._boundaries, hint=self._hint, parallel=False,
+    #            target=0.5)
 
     def test_pso(self):
         """
@@ -249,3 +232,7 @@ class FittingTest(unittest.TestCase):
             x, f = fit.xnes(
                 self._score, self._boundaries, hint=self._hint, parallel=False,
                 max_iter=50)
+
+
+if __name__ == '__main__':
+    unittest.main()

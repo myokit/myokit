@@ -11,10 +11,10 @@
 # See: https://github.com/pints-team/pints
 #
 import os
-#import sys
-#import fnmatch
 import shutil
 import tempfile
+
+import myokit
 
 
 # The test directory
@@ -22,6 +22,9 @@ DIR_TEST = os.path.abspath(os.path.dirname(__file__))
 
 # The data directory
 DIR_DATA = os.path.join(DIR_TEST, 'data')
+
+# OpenCL support
+OpenCL_FOUND = myokit.OpenCL.supported()
 
 
 class TemporaryDirectory(object):
@@ -38,7 +41,7 @@ class TemporaryDirectory(object):
         self._dir = tempfile.mkdtemp()
         return self
 
-    def path(self, path):
+    def path(self, path=None):
         """
         Returns an absolute path to a file or directory name inside this
         temporary directory, that can be used to write to.
@@ -56,6 +59,9 @@ class TemporaryDirectory(object):
             raise RuntimeError(
                 'TemporaryDirectory.path() can only be called from inside the'
                 ' context.')
+
+        if path is None:
+            return self._dir
 
         path = os.path.realpath(os.path.join(self._dir, path))
         if path[0:len(self._dir)] != self._dir:

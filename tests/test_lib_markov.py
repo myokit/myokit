@@ -1,6 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
-# Tests the Markov Model class
+# Tests the LinearModel class
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -10,28 +10,20 @@
 import os
 import unittest
 import numpy as np
+
 import myokit
 import myokit.lib.markov as markov
-import myotest
+
+from shared import DIR_DATA
 
 
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(MarkovTest('create_manual'))
-    suite.addTest(MarkovTest('create_automatic'))
-    return suite
-
-
-class MarkovTest(unittest.TestCase):
-    def create_manual(self):
+class LinearModelTest(unittest.TestCase):
+    def test_manual_creation(self):
         """
-        Tests manual creation of a Markov model
+        Tests manual creation of a LinearModel
         """
         # Load model
-        fname = os.path.join(myotest.DIR_DATA, 'clancy-1999-fitting.mmt')
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
         model = myokit.load_model(fname)
         # Select a number of states and parameters
         states = [
@@ -62,9 +54,9 @@ class MarkovTest(unittest.TestCase):
             s.set_membrane_potential(v)
             x, i = s.solve(times)
 
-    def create_automatic(self):
+    def test_automatic_creation(self):
         # Load model
-        fname = os.path.join(myotest.DIR_DATA, 'clancy-1999-fitting.mmt')
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
         model = myokit.load_model(fname)
         # Create a markov model
         m = markov.LinearModel.from_component(model.get('ina'))
@@ -78,3 +70,7 @@ class MarkovTest(unittest.TestCase):
         for v in voltages:
             s.set_membrane_potential(v)
             x, i = s.solve(times)
+
+
+if __name__ == '__main__':
+    unittest.main()

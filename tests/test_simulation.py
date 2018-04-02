@@ -1,6 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
-# Tests the main simulation classes
+# Tests the main simulation classes.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -8,30 +8,13 @@
 #  See: http://myokit.org
 #
 from __future__ import print_function
-import myokit
-import myotest
 import os
 import unittest
 import numpy as np
 
+import myokit
 
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(SimulationTest('pre'))
-    suite.addTest(SimulationTest('run_simple'))
-    suite.addTest(SimulationTest('no_protocol'))
-    suite.addTest(SimulationTest('run_parts'))
-    suite.addTest(RuntimeSimulationTest('short_runtimes'))
-    suite.addTest(RhsBenchmarker('run_simple'))
-    suite.addTest(Simulation1d('set_state'))
-    suite.addTest(ICSimulation('run_simple'))
-    suite.addTest(PSimulation('run_simple'))
-    suite.addTest(JacobianTracer('run_simple'))
-    suite.addTest(JacobianCalculator('run_simple'))
-    return suite
+from shared import DIR_DATA
 
 
 class SimulationTest(unittest.TestCase):
@@ -43,19 +26,19 @@ class SimulationTest(unittest.TestCase):
         """
         Test simulation creation.
         """
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         self.model = m
         self.protocol = p
         self.sim = myokit.Simulation(self.model, self.protocol)
 
-    def pre(self):
+    def test_pre(self):
         """
         Test pre-pacing.
         """
         self.sim.reset()
         self.sim.pre(200)
 
-    def run_simple(self):
+    def test_simple(self):
         """
         Test simple run.
         """
@@ -68,7 +51,7 @@ class SimulationTest(unittest.TestCase):
         for k, v in d.iteritems():
             self.assertEqual(n, len(v))
 
-    def no_protocol(self):
+    def test_no_protocol(self):
         """
         Test running without a protocol.
         """
@@ -79,7 +62,7 @@ class SimulationTest(unittest.TestCase):
         # Check if pace was set to zero (see prop 651 / technical docs).
         self.assertTrue(np.all(d['engine.pace'] == 0.0))
 
-    def run_parts(self):
+    def test_in_parts(self):
         """
         Test running the simulation in parts.
         """
@@ -103,9 +86,9 @@ class RuntimeSimulationTest(unittest.TestCase):
     """
     Tests the obtaining of runtimes from the CVode simulation.
     """
-    def short_runtimes(self):
+    def test_short_runtimes(self):
         m, p, x = myokit.load(
-            os.path.join(myotest.DIR_DATA, 'lr-1991-runtimes.mmt'))
+            os.path.join(DIR_DATA, 'lr-1991-runtimes.mmt'))
         myokit.run(m, p, x)
 
 
@@ -113,8 +96,8 @@ class Simulation1d(unittest.TestCase):
     """
     Tests the non-parallel 1d simulation.
     """
-    def set_state(self):
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+    def test_set_state(self):
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         n = 4
         s = myokit.Simulation1d(m, p, n)
         sm = m.state()
@@ -144,7 +127,7 @@ class RhsBenchmarker(unittest.TestCase):
     """
     Tests the RhsBenchmarker class
     """
-    def run_simple(self):
+    def test_simple(self):
         # Create test model
         m = myokit.Model('test')
         c = m.add_component('c')
@@ -175,9 +158,9 @@ class ICSimulation(unittest.TestCase):
     """
     Tests the ICSimulation.
     """
-    def run_simple(self):
+    def test_simple(self):
         # Load model
-        m = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m, p, x = myokit.load(m)
         # Run a simulation
         s = myokit.ICSimulation(m, p)
@@ -193,9 +176,9 @@ class PSimulation(unittest.TestCase):
     """
     Tests the PSimulation.
     """
-    def run_simple(self):
+    def test_simple(self):
         # Load model
-        m = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m, p, x = myokit.load(m)
         # Run a tiny simulation
         s = myokit.PSimulation(
@@ -208,9 +191,9 @@ class JacobianTracer(unittest.TestCase):
     """
     Tests the JacobianTracer.
     """
-    def run_simple(self):
+    def test_simple(self):
         # Load model
-        m = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m, p, x = myokit.load(m)
         v = m.binding('diffusion_current')
         if v is not None:
@@ -231,10 +214,14 @@ class JacobianCalculator(unittest.TestCase):
     """
     Tests the JacobianCalculator.
     """
-    def run_simple(self):
+    def test_simple(self):
         # Load model
-        m = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m, p, x = myokit.load(m)
         # Run a simple simulation
         c = myokit.JacobianCalculator(m)
         x, f, j, e = c.newton_root(damping=0.01, max_iter=50)
+
+
+if __name__ == '__main__':
+    unittest.main()

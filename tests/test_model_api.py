@@ -8,8 +8,8 @@
 #  See: http://myokit.org
 #
 import unittest
-import myokit
 
+import myokit
 from myokit import (
     Model, Component, Variable, Derivative, Equation, Name, Number,
     Plus, Minus, Multiply, PrefixMinus,
