@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Tests the parser
 #
@@ -9,34 +9,11 @@
 #
 import os
 import unittest
+
 import myokit
 import myokit.units
-import myotest
 
-
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    # Tokenizer
-    suite.addTest(TokenizerTest('test_tokenizer'))
-    # Phased testing
-    suite.addTest(PhasedParseTest('test_parse_expression'))
-    suite.addTest(PhasedParseTest('test_parse_state'))
-    suite.addTest(PhasedParseTest('test_parse_variable'))
-    suite.addTest(PhasedParseTest('test_parse_component'))
-    suite.addTest(PhasedParseTest('test_parse'))
-    suite.addTest(PhasedParseTest('test_split'))
-    # Full testing
-    suite.addTest(ModelParseTest('test_model_creation'))
-    suite.addTest(ModelParseTest('test_piecewise'))
-    suite.addTest(ModelParseTest('test_initial_values'))
-    suite.addTest(ModelParseTest('test_aliases'))
-    suite.addTest(ModelParseTest('test_clone_code_parse'))
-    suite.addTest(ModelParseTest('test_advanced_units'))
-    # Done!
-    return suite
+from shared import DIR_DATA
 
 
 class TokenizerTest(unittest.TestCase):
@@ -221,7 +198,7 @@ class PhasedParseTest(unittest.TestCase):
 
 class ModelParseTest(unittest.TestCase):
     def test_model_creation(self):
-        m = myokit.load_model(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Test components
         self.assertEqual(len(m), 9)
         self.assertIn('engine', m)
@@ -286,7 +263,7 @@ class ModelParseTest(unittest.TestCase):
         Tests a model with a piecewise statement
         """
         m = myokit.load_model(
-            os.path.join(myotest.DIR_DATA, 'conditional.mmt'))
+            os.path.join(DIR_DATA, 'conditional.mmt'))
         # Test evaluation
         x = m.get('test.x')
         y = m.get('test.y')
@@ -424,7 +401,7 @@ class ModelParseTest(unittest.TestCase):
             'conditional.mmt',
         ]
         for model in models:
-            m1 = myokit.load_model(os.path.join(myotest.DIR_DATA, model))
+            m1 = myokit.load_model(os.path.join(DIR_DATA, model))
             c1 = m1.code()
             m2 = myokit.parse(c1)[0]
             c2 = m2.code()
@@ -438,5 +415,9 @@ class ModelParseTest(unittest.TestCase):
         Tests the new unit syntax where literals have units.
         """
         model = 'br-1977-units.mmt'
-        m = myokit.load_model(os.path.join(myotest.DIR_DATA, model))
+        m = myokit.load_model(os.path.join(DIR_DATA, model))
         m.validate()
+
+
+if __name__ == '__main__':
+    unittest.main()

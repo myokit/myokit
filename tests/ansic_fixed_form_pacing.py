@@ -1,5 +1,5 @@
 #
-# Wrapper around test code for ansi-c fixed-form pacing.
+# Class for testing the fixed-form pacing system.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -7,17 +7,19 @@
 #  See: http://myokit.org
 #
 import os
+
 import myokit
-import myotest
+
+from shared import DIR_TEST
 
 
 # Location of C template
-SOURCE_FILE = '_ansic_fixed_form_pacing.c'
+SOURCE_FILE = 'ansic_fixed_form_pacing.c'
 
 
 class AnsicFixedFormPacing(myokit.CModule):
     """
-    Wrapper around test code for ansi-c fixed-form pacing.
+    Class for testing the fixed-form pacing system.
     """
     _index = 0
 
@@ -28,7 +30,7 @@ class AnsicFixedFormPacing(myokit.CModule):
         module_name = 'myokit_ansic_fpacing_' \
             + str(AnsicFixedFormPacing._index)
         # Arguments
-        fname = os.path.join(myotest.DIR_TEST, SOURCE_FILE)
+        fname = os.path.join(DIR_TEST, SOURCE_FILE)
         # Debug
         if myokit.DEBUG:
             print(
@@ -40,7 +42,7 @@ class AnsicFixedFormPacing(myokit.CModule):
         args = {'module_name': module_name}
         libs = []
         libd = []
-        incd = [myotest.DIR_TEST, myokit.DIR_CFUNC]
+        incd = [DIR_TEST, myokit.DIR_CFUNC]
         self._sys = self._compile(module_name, fname, args, libs, libd, incd)
         # Initialize
         self._sys.init(times, values)

@@ -8,23 +8,12 @@
 #  See: http://myokit.org
 #
 import unittest
-import myokit
-import myotest
 import numpy as np
 
+import myokit
 
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(PacingTest('event_creation'))
-    suite.addTest(PacingTest('protocol_creation'))
-    suite.addTest(PacingTest('characteristic_time'))
-    suite.addTest(PacingTest('pacing_system'))
-    suite.addTest(PacingTest('event_based_pacing_ansic'))
-    suite.addTest(PacingTest('fixed_form_pacing_ansic'))
-    return suite
+from ansic_event_based_pacing import AnsicEventBasedPacing
+from ansic_fixed_form_pacing import AnsicFixedFormPacing
 
 
 class PacingTest(unittest.TestCase):
@@ -32,7 +21,7 @@ class PacingTest(unittest.TestCase):
     Contains tests for the Protocol class, ProtocolEvent, PacingSystem and
     the C implementation of pacing.
     """
-    def event_creation(self):
+    def test_event_creation(self):
         """
         Tests the basics of creating events.
         """
@@ -56,7 +45,7 @@ class PacingTest(unittest.TestCase):
         self.assertRaises(myokit.ProtocolEventError, create, 0, 2, 1)
         self.assertRaises(myokit.ProtocolEventError, create, 0, 2, 1, 1)
 
-    def protocol_creation(self):
+    def test_protocol_creation(self):
         """
         Tests the basics of creating a protocol
         """
@@ -102,7 +91,7 @@ class PacingTest(unittest.TestCase):
         sim(p, 10, 0.5, clash=10)
         sim(p, 100, 0.5, clash=100)
 
-    def characteristic_time(self):
+    def test_characteristic_time(self):
         """
         Tests characteristic_time determination.
         """
@@ -142,7 +131,7 @@ class PacingTest(unittest.TestCase):
         p.schedule(1, 300, 300)
         self.assertEqual(p.characteristic_time(), 600)
 
-    def pacing_system(self):
+    def test_pacing_system(self):
         """
         Tests if the pacing systems works correctly.
         """
@@ -232,14 +221,14 @@ class PacingTest(unittest.TestCase):
             m = e.message
             self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
 
-    def event_based_pacing_ansic(self):
+    def test_event_based_pacing_ansic(self):
         """
         Tests the Ansi-C event-based pacing system.
         """
         # Test basics
         p = myokit.Protocol()
         p.schedule(2, 0, 1, 10, 0)
-        s = myotest.AnsicEventBasedPacing(p)
+        s = AnsicEventBasedPacing(p)
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.next_time(), 1)
         self.assertEqual(s.pace(), 2)
@@ -271,36 +260,36 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(s.pace(), 2)
         p = myokit.Protocol()
         p.schedule(2, 1, 1, 10, 0)
-        s = myotest.AnsicEventBasedPacing(p)
+        s = AnsicEventBasedPacing(p)
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.next_time(), 1)
         self.assertEqual(s.pace(), 0)
         p = myokit.Protocol()
-        s = myotest.AnsicEventBasedPacing(p)
+        s = AnsicEventBasedPacing(p)
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.next_time(), float('inf'))
         self.assertEqual(s.pace(), 0)
         # Test basic use + log creation methods
         p = myokit.Protocol()
         p.schedule(1, 10, 1, 1000, 0)
-        d = myotest.AnsicEventBasedPacing.create_log_for_interval(p, 0, 3000)
+        d = AnsicEventBasedPacing.create_log_for_interval(p, 0, 3000)
         self.assertEqual(d.time(), [0, 10, 11, 1010, 1011, 2010, 2011, 3000])
-        d = myotest.AnsicEventBasedPacing.create_log_for_interval(
+        d = AnsicEventBasedPacing.create_log_for_interval(
             p, 0, 2000, for_drawing=True)
         self.assertEqual(d.time(), [
             0, 10, 10, 11, 11, 1010, 1010, 1011, 1011, 2000])
         p = myokit.Protocol()
         p.schedule(1, 0, 1, 1000, 0)
-        d = myotest.AnsicEventBasedPacing.create_log_for_interval(p, 0, 3000)
+        d = AnsicEventBasedPacing.create_log_for_interval(p, 0, 3000)
         self.assertEqual(d.time(), [0, 1, 1000, 1001, 2000, 2001, 3000])
-        d = myotest.AnsicEventBasedPacing.create_log_for_interval(
+        d = AnsicEventBasedPacing.create_log_for_interval(
             p, 0, 2000, for_drawing=True)
         self.assertEqual(d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000])
         # Test raising of errors on rescheduled events
         p = myokit.Protocol()
         p.schedule(1, 0, 1, 1000)
         p.schedule(1, 3000, 1)
-        s = myotest.AnsicEventBasedPacing(p)
+        s = AnsicEventBasedPacing(p)
         t = s.next_time()
         self.assertEqual(t, 1)
         s.advance(t)
@@ -321,7 +310,7 @@ class PacingTest(unittest.TestCase):
         s = myokit.Simulation(m, p)
         self.assertRaises(myokit.SimultaneousProtocolEventError, s.run, 40)
 
-    def fixed_form_pacing_ansic(self):
+    def test_fixed_form_pacing_ansic(self):
         """
         Tests the Ansi-C fixed-form pacing system.
         """
@@ -345,7 +334,7 @@ class PacingTest(unittest.TestCase):
             t2 = np.concatenate((t2, t3, t4))
             del(t3, t4)
             # Get the pacing value at the points, measure how long it takes
-            pacing = myotest.AnsicFixedFormPacing(list(t), list(v))
+            pacing = AnsicFixedFormPacing(list(t), list(v))
             b = myokit.Benchmarker()
             v2 = [pacing.pace(x) for x in t2]
             print(b.time())
@@ -359,21 +348,21 @@ class PacingTest(unittest.TestCase):
         # Test input checking
         times = 1
         values = [1, 2]
-        self.assertRaises(Exception, myotest.AnsicFixedFormPacing)
-        self.assertRaises(Exception, myotest.AnsicFixedFormPacing, 1)
-        self.assertRaises(Exception, myotest.AnsicFixedFormPacing, 1, 2)
-        self.assertRaises(Exception, myotest.AnsicFixedFormPacing, [1], [2])
+        self.assertRaises(Exception, AnsicFixedFormPacing)
+        self.assertRaises(Exception, AnsicFixedFormPacing, 1)
+        self.assertRaises(Exception, AnsicFixedFormPacing, 1, 2)
+        self.assertRaises(Exception, AnsicFixedFormPacing, [1], [2])
         self.assertRaises(
-            Exception, myotest.AnsicFixedFormPacing, [1, 2], [2])
+            Exception, AnsicFixedFormPacing, [1, 2], [2])
         self.assertRaises(
-            Exception, myotest.AnsicFixedFormPacing, [2, 1], [2, 2])
-        myotest.AnsicFixedFormPacing([1, 2], [1, 2])
+            Exception, AnsicFixedFormPacing, [2, 1], [2, 2])
+        AnsicFixedFormPacing([1, 2], [1, 2])
 
         # Test with small lists
         values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         times = [0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 5, 7]
         values = range(len(times))
-        pacing = myotest.AnsicFixedFormPacing(times, values)
+        pacing = AnsicFixedFormPacing(times, values)
 
         def test(value, index):
             self.assertEquals(pacing.pace(value), index)
@@ -391,3 +380,7 @@ class PacingTest(unittest.TestCase):
         test(1.75, 4.75)
         test(6, 10.5)
         test(5.5, 10.25)
+
+
+if __name__ == '__main__':
+    unittest.main()
