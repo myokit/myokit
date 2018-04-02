@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Tests meta data functions
 #
@@ -11,18 +11,9 @@ import unittest
 import myokit
 
 
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(MetaTest('basic'))
-    suite.addTest(MetaTest('parser'))
-    return suite
-
-
 class MetaTest(unittest.TestCase):
-    def basic(self):
+
+    def test_basic(self):
         """
         Tests the basic meta-data functionality
         """
@@ -55,7 +46,7 @@ class MetaTest(unittest.TestCase):
         del(m.meta['bert'])
         self.assertRaises(KeyError, lambda: m.meta['bert'])
 
-    def parser(self):
+    def test_parser(self):
         """
         Tests basic meta-data parsing
         """
@@ -103,3 +94,7 @@ class MetaTest(unittest.TestCase):
         test('vic:bob:eranu', 'uvavu')
         # Test invalid keys
         self.assertRaises(myokit.ParseError, test, 'vic.bob', 'uvavu')
+
+
+if __name__ == '__main__':
+    unittest.main()

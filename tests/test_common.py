@@ -1,6 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
-# Tests the Markov Model class
+# Tests the classes in `myokit.lib.common`.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -10,31 +10,20 @@
 import os
 import unittest
 import numpy as np
+
 import myokit
 import myokit.lib.common as common
-import myotest
 
-
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(CommonTest('activation'))
-    suite.addTest(CommonTest('inactivation'))
-    suite.addTest(CommonTest('recovery'))
-    suite.addTest(CommonTest('restitution'))
-    suite.addTest(CommonTest('strength_duration'))
-    return suite
+from shared import DIR_DATA
 
 
 class CommonTest(unittest.TestCase):
-    def activation(self):
+    def test_activation(self):
         """
         Tests the activation experiment class.
         """
         # Load model
-        m = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)
         # Create experiment
         c = m.get('ina')
@@ -55,12 +44,12 @@ class CommonTest(unittest.TestCase):
         a.peaks(normalize=False)
         a.fit_boltzmann()
 
-    def inactivation(self):
+    def test_inactivation(self):
         """
         Tests the inactivation experiment class.
         """
         # Load model
-        m = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)
         # Create experiment
         c = m.get('ina')
@@ -75,12 +64,12 @@ class CommonTest(unittest.TestCase):
         a.peaks(normalize=False)
         a.fit_boltzmann()
 
-    def recovery(self):
+    def test_recovery(self):
         """
         Tests the recovery experiment class.
         """
         # Load model
-        m = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)
         # Create experiment
         c = m.get('ina')
@@ -102,12 +91,12 @@ class CommonTest(unittest.TestCase):
         x = d['ina.g']  # This is a monotonically increasing function
         self.assertTrue(np.all(x[1:] > x[:-1]))
 
-    def restitution(self):
+    def test_restitution(self):
         """
         Tests the restitution experiment class.
         """
         # Load model
-        m = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)
         # Create experiment
         r = common.Restitution(m)
@@ -115,12 +104,12 @@ class CommonTest(unittest.TestCase):
         r.set_times(300, 800, 200)
         r.run()
 
-    def strength_duration(self):
+    def test_strength_duration(self):
         """
         Tests the strength-duration experiment class.
         """
         # Load model
-        m = os.path.join(myotest.DIR_DATA, 'lr-1991.mmt')
+        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)
         # Create experiment
         s = common.StrengthDuration(m, 'membrane.i_stim')
@@ -128,3 +117,7 @@ class CommonTest(unittest.TestCase):
         s.set_currents(-200, -10)
         s.set_times(0.5, 1.0, 0.2)
         s.run()
+
+
+if __name__ == '__main__':
+    unittest.main()
