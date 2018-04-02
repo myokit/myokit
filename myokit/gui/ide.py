@@ -7,25 +7,30 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-# Future stuff
-from __future__ import division
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 # Standard library imports
 import gc
 import os
 import traceback
 import ConfigParser
+
 # Myokit
 import myokit
 import myokit.formats
 import myokit.lib.deps
+
 # Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
+
 # GUI components
 import myokit.gui
-import source
-import explorer
-import progress
-import vargrapher
+from . import source
+from . import explorer
+from . import progress
+from . import vargrapher
+
 # Matplotlib imports
 # Matplotlib.pyplot must be imported _after_ myokit.gui has set the backend
 import matplotlib

@@ -8,18 +8,23 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-# Future stuff
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 # Standard library imports
+
 # Myokit
 import myokit
+
 # Qt imports
 from myokit.gui import QtGui, QtWidgets
+
 # Numpy
 import numpy as np
+
 # GUI components
 import myokit.gui
+
 # Matplotlib (must be imported _after_ gui has had chance to set backend)
 import matplotlib
 import matplotlib.figure

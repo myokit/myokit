@@ -20,8 +20,9 @@
 # signals to allow undo/redo and listeners. In the cases where this is not
 # desired, the silent_ methods can be used.
 #
-from __future__ import print_function
-from __future__ import division
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import math
 import os.path
 import traceback
@@ -30,6 +31,7 @@ import collections
 import xml.dom.minidom as minidom
 import xml.etree.cElementTree as et
 import ConfigParser as configparser
+
 import myokit.gui
 from myokit.gui import Qt, QtCore, QtGui, QtWidgets
 

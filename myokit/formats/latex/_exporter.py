@@ -14,6 +14,7 @@ import os
 import myokit
 from ._ewriter import LatexExpressionWriter
 
+
 class PdfExporter(myokit.formats.Exporter):
     """
     This :class:`Exporter <myokit.formats.Exporter>` exports model equations to

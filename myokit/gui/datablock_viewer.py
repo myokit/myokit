@@ -6,12 +6,15 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-from __future__ import division
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import os
 import numpy as np
 import traceback
 import collections
 import ConfigParser
+
 import myokit
 import myokit.gui
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
