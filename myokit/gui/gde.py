@@ -889,7 +889,7 @@ class GdeDocument(Document):
                 # Write data
                 with open(path, 'w') as f:
                     f.write(header)
-                    for i in xrange(sam):
+                    for i in range(sam):
                         f.write(
                             fmt.format(x.next()) + ','
                             + fmt.format(y.next()) + '\n')
@@ -2183,7 +2183,7 @@ class GraphDataExtractor(myokit.gui.MyokitApplication):
         self._menu_file.addSeparator()
         # File > Recent files
         self._recent_file_tools = []
-        for i in xrange(N_RECENT_FILES):
+        for i in range(N_RECENT_FILES):
             tool = QtWidgets.QAction(self, visible=False)
             tool.triggered.connect(self.action_open_recent)
             self._recent_file_tools.append(tool)
@@ -2456,7 +2456,7 @@ class GraphDataExtractor(myokit.gui.MyokitApplication):
             t.setText(str(k + 1) + '. ' + os.path.basename(filename))
             t.setData(filename)
             t.setVisible(True)
-        for i in xrange(len(self._recent_files), N_RECENT_FILES):
+        for i in range(len(self._recent_files), N_RECENT_FILES):
             self._recent_file_tools[i].setVisible(False)
 
     def update_window_title(self):
@@ -3638,7 +3638,7 @@ class DataSetItem(SceneItem):
         path = QtGui.QPainterPath()
         x, y = iter(x2), iter(y2)
         path.moveTo(*scene.norm2scene(x.next(), y.next()))
-        for i in xrange(1, sam):
+        for i in range(1, sam):
             path.lineTo(*scene.norm2scene(x.next(), y.next()))
         self._path = path
         # Redraw

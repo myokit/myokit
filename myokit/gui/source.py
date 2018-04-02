@@ -1215,7 +1215,7 @@ _PYFUNC = [
     'getattr()',
     'map()',
     'repr()',
-    'xrange()',
+    'range()',
     'cmp()',
     'globals()',
     'max()',

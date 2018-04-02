@@ -166,7 +166,7 @@ class JacobianTracer(myokit.CppModule):
         ns2 = ns * ns
         # Pass every state into the generator, store the output
         partials = []
-        for i in xrange(n):
+        for i in range(n):
             state = [x.next() for x in istates]
             bound = [x.next() for x in iinputs]
             deriv = [0] * ns

@@ -46,10 +46,10 @@ def create_state_dependency_matrix(model, direct=False, knockout=[]):
     # Create two copies of dependency matrix, apply knockouts
     p = []
     q = []
-    for i in xrange(0, n):
+    for i in range(0, n):
         pp = []
         qq = []
-        for j in xrange(0, n):
+        for j in range(0, n):
             v = m[i][j] if s[i] not in knockout else 0
             pp.append(v)
             qq.append(v)
@@ -60,19 +60,19 @@ def create_state_dependency_matrix(model, direct=False, knockout=[]):
     # At the end of each iteration, q is copied into p
     # At the end of this operation, p = q = the distances
     # Repeat this trick n-1 times...
-    for index in xrange(1, n):
-        for i in xrange(0, n):
-            for j in xrange(0, n):
+    for index in range(1, n):
+        for i in range(0, n):
+            for j in range(0, n):
                 # ... for every item
                 if p[i][j] == index:
                     # ... where the value is the current index 1,2,3...
-                    for k in xrange(0, n):
+                    for k in range(0, n):
                         # ... update the entries
                         # ... unless a previous value was set
                         if q[i][k] == 0 and p[j][k] > 0:
                             q[i][k] = p[i][j] + p[j][k]
-        for i in xrange(0, n):
-            for j in xrange(0, n):
+        for i in range(0, n):
+            for j in range(0, n):
                 p[i][j] = q[i][j]
     return p
 
@@ -133,11 +133,11 @@ def plot_state_dependency_matrix(
             verticalalignment='center')
     # Set tick labels
     names = [i.qname() for i in model.states()]
-    a.set_xticks([i + 0.5 for i in xrange(0, n)])
+    a.set_xticks([i + 0.5 for i in range(0, n)])
     a.set_xticklabels(names)
     from matplotlib.transforms import Affine2D
     r = Affine2D.identity()
-    a.set_yticks([i + 0.5 for i in xrange(0, n)])
+    a.set_yticks([i + 0.5 for i in range(0, n)])
     rnames = list(names)
     rnames.reverse()
     a.set_yticklabels(rnames)
@@ -239,7 +239,7 @@ class DiGraph(object):
             # Delete nodes
             self.nodes = collections.OrderedDict()
             # Create nodes
-            for i in xrange(n):
+            for i in range(n):
                 self.add_node(i)
         # Add edges
         nodes = self.nodes.values()
@@ -335,7 +335,7 @@ class DiGraph(object):
                 'Graph is not acyclical: no node without successors found.')
         P[first] = 1
         # Assign remaining orders
-        for i in xrange(2, n + 1):
+        for i in range(2, n + 1):
             kmin = None
             nmin = None
             for node in graph:
@@ -389,13 +389,13 @@ class DiGraph(object):
         """
         m = self.path_matrix()
         n = len(m)
-        for i in xrange(n):
+        for i in range(n):
             if m[i][i]:
                 raise Exception('Graph is not acyclical.')
-        for j in xrange(n):
-            for i in xrange(n):
+        for j in range(n):
+            for i in range(n):
                 if m[i][j]:
-                    for k in xrange(n):
+                    for k in range(n):
                         if m[j][k]:
                             m[i][k] = 0
         graph = DiGraph(self)
@@ -411,7 +411,7 @@ class DiGraph(object):
         m = [0] * n
         for i, node in enumerate(nodes):
             row = [0] * n
-            for j in xrange(0, n):
+            for j in range(0, n):
                 if node.has_edge_to(nodes[j]):
                     row[j] = 1
             m[i] = row
@@ -432,12 +432,12 @@ class DiGraph(object):
         """
         p = self.matrix()
         n = len(p)
-        for i in xrange(0, n):
-            for j in xrange(0, n):
+        for i in range(0, n):
+            for j in range(0, n):
                 if i == j:
                     continue
                 if p[j][i]:
-                    for k in xrange(0, n):
+                    for k in range(0, n):
                         if p[j][k] == 0:
                             p[j][k] = p[i][k]
             return p
@@ -486,7 +486,7 @@ class DiGraph(object):
                     node.x = j * fx
         # Iteratively update x coordinates using median rule
         max_runs = 100
-        for n_runs in xrange(max_runs):
+        for n_runs in range(max_runs):
             change = False
             for i, layer in enumerate(layers):
                 # Set nodes to median of neighbours
@@ -525,7 +525,7 @@ class DiGraph(object):
                             x1 = 0.0 if j == 1 else layer[j - 2].x
                             # Get next x
                             x2 = None
-                            for k in xrange(j + 1, n):
+                            for k in range(j + 1, n):
                                 if abs(layer[k].x - node.x) >= too_close:
                                     x2 = layer[k].x
                                     break

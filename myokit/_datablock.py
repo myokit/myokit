@@ -191,7 +191,7 @@ class DataBlock1d(object):
         # Find first activation time
         have_crossing = False
         t = []
-        for i in xrange(ilo, ihi):
+        for i in range(ilo, ihi):
             v = v_series[i]
             # Get indice of first threshold crossing with positive flank
             # Don't include crossings at log indice 0
@@ -929,7 +929,7 @@ class DataBlock2d(object):
                 'Eigenvalues can only be determined for square data blocks.')
         data = self._2d[name]
         dominants = []
-        for t in xrange(self._nt):
+        for t in range(self._nt):
             e = np.linalg.eigvals(data[t])
             dominants.append(e[np.argmax(np.absolute(e))])
         return np.array(dominants)
@@ -948,7 +948,7 @@ class DataBlock2d(object):
                 'Eigenvalues can only be determined for square data blocks.')
         data = self._2d[name]
         eigenvalues = []
-        for t in xrange(self._nt):
+        for t in range(self._nt):
             eigenvalues.append(np.linalg.eigvals(data[t]))
         return np.array(eigenvalues)
 
@@ -1093,7 +1093,7 @@ class DataBlock2d(object):
                 'Eigenvalues can only be determined for square data blocks.')
         data = self._2d[name]
         largest = []
-        for t in xrange(self._nt):
+        for t in range(self._nt):
             e = np.linalg.eigvals(data[t])
             largest.append(e[np.argmax(np.real(e))])
         return np.array(largest)

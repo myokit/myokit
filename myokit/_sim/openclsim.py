@@ -525,7 +525,7 @@ class SimulationOpenCL(myokit.CModule):
         states = []
         bound = []
         max_states = 3
-        for k in xrange(ifirst, ifirst - max_states - 1, -1):
+        for k in range(ifirst, ifirst - max_states - 1, -1):
             if k < 0:
                 break
             s, b = state(k, icell)

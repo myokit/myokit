@@ -236,13 +236,13 @@ class DataLog(OrderedDict):
             f.write(eol)
             # Write data
             if pad is None:
-                for i in xrange(0, n):
+                for i in range(0, n):
                     line = []
                     for d in data:
                         line.append(myokit.strfloat(d.next()))
                     f.write(delim.join(line) + eol)
             else:
-                for i in xrange(0, n):
+                for i in range(0, n):
                     line = []
                     for d in data:
                         try:

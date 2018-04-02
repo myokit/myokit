@@ -1858,7 +1858,7 @@ def format_parse_error(ex, source=None):
         if (kind == str or kind == unicode) and os.path.isfile(source):
             # Re-open file, find line
             f = open(source, 'r')
-            for i in xrange(0, ex.line):
+            for i in range(0, ex.line):
                 line = f.next()
             line = line.rstrip()
         else:

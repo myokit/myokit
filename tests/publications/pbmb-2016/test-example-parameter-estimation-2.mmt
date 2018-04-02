@@ -14,15 +14,15 @@ Wild-type channel from Clancy 1999:
     Colleen E. Clancy and Yoram Rudy
     1999, Nature
 
-[2] http://www.cwru.edu/med/CBRTC/LRdOnline/markovina1999.htm 
+[2] http://www.cwru.edu/med/CBRTC/LRdOnline/markovina1999.htm
 
 Note: The equations given in "Box 1" of the Nature publication appear to be
       incorrect. The first equation is missing a "-", and alpha3 contains a
       term 3.7933e-9, which is 3.7933e-10 in the version published online.
-       
-Max conductance : 18.5 [mS/cm^2] 
 
-Based on data from the following sources: 
+Max conductance : 18.5 [mS/cm^2]
+
+Based on data from the following sources:
 
 [3] Multiple-mechanisms of Na+ channel-linked long-QT syndrome.
     Dumaine, et al.
@@ -34,16 +34,16 @@ Based on data from the following sources:
 [5] Molecular mechanism for an inherited cardiac arrhythmia.
     Bennett, Yazawa, Makita, George
     1995, Nature
-     
+
 The midpoints of activation and inactivation correspond to those given in [4].
 """
 # Initial conditions
 ina.C3 = 0.99
 ina.C2 = 0.01
-ina.C1 = 0  
-ina.O  = 0  
-ina.IF = 0  
-ina.IS = 0 
+ina.C1 = 0
+ina.O  = 0
+ina.IF = 0
+ina.IS = 0
 
 #
 # Simulation engine variables
@@ -61,12 +61,12 @@ V = -140
 
 #
 # Wild-type model from Clancy & Rudy 1999
-# The equations were rewritten to have independent parameters. 
+# The equations were rewritten to have independent parameters.
 #
 [ina]
 desc:"""
 Wild-type channel from Clancy 1999
-The equations were rewritten to have independent parameters. 
+The equations were rewritten to have independent parameters.
 """
 use membrane.V
 p1 = 0.1027 / 3.802
@@ -168,7 +168,7 @@ log['time'] *= 1e3
 def show(log):
     n = len(log) - 1
     pl.figure()
-    for i in xrange(n):
+    for i in range(n):
         pl.plot(log['time'], log['sweep', i])
     #pl.show()
 
@@ -186,20 +186,20 @@ log = log.trim(15.635, 65, adjust=True)
 tails = log.trim_left(20, adjust=True)
 tails = tails.npview()
 means = []
-for i in xrange(n):
+for i in range(n):
     means.append(np.mean(tails['sweep', i]))
 means = np.array(means)
-for i in xrange(n):
+for i in range(n):
     log['sweep', i] = log['sweep', i] - means[i]
 #show(log)
-    
+
 # Use the same time for every sweep
-for i in xrange(n):
+for i in range(n):
     sweep = log['sweep', i]
     log['sweep', i] = sweep[i:i-n]
 time = log['time']
 log['time'] = time[:-n]
-    
+
 # Trim the capacitance artefact
 log = log.trim_left(0.5)
 show(log)
@@ -270,7 +270,7 @@ linear = markov.MarkovModel(
 
 # Get reference traces
 references = []
-for i in xrange(n):
+for i in range(n):
     references.append(log['sweep', i])
 
 # Get the times to evaluate at
@@ -400,7 +400,7 @@ for v in solution:
 pl.figure()
 for c in references:
     pl.plot(times, c)
-    
+
 # Plot fitted traces
 for v in voltages:
     linear.set_membrane_potential(v)

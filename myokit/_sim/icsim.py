@@ -99,7 +99,7 @@ class ICSimulation(myokit.CppModule):
         # Create initial list of derivatives
         n = len(self._state)
         self._deriv = [0.0] * n**2
-        for i in xrange(n):
+        for i in range(n):
             self._deriv[i * (n + 1)] = 1.0
 
         # Starting time
@@ -196,7 +196,7 @@ class ICSimulation(myokit.CppModule):
         # Reset derivatives
         n = len(self._state)
         self._deriv = [0.0] * n**2
-        for i in xrange(n):
+        for i in range(n):
             self._deriv[i * (n + 1)] = 1.0
 
     def run(self, duration, log=None, log_interval=5, progress=None,

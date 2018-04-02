@@ -1009,7 +1009,7 @@ class DataLog(OrderedDict):
 
             # Write data
             data = [iter(x) for x in data]
-            for i in xrange(0, n):
+            for i in range(0, n):
                 line = []
                 for d in data:
                     line.append(fmat(d.next()))
@@ -1080,7 +1080,7 @@ class DataLog(OrderedDict):
                 k += 1
         # Create logs
         logs = []
-        for i in xrange(0, nlogs - 1):
+        for i in range(0, nlogs - 1):
             log = DataLog()
             log._time = self._time
             # Get indices
@@ -1123,7 +1123,7 @@ class DataLog(OrderedDict):
                 for k, log in enumerate(logs):
                     tlist = log[self._time]
                     tdiff = k * period
-                    for i in xrange(len(tlist)):
+                    for i in range(len(tlist)):
                         tlist[i] -= tdiff
         return logs
 
@@ -1785,10 +1785,10 @@ def dimco(*dims):
     """
     def inner(dims, index, prefix):
         if index == n:
-            for i in xrange(0,dims[index]):
+            for i in range(0,dims[index]):
                 yield prefix + (i,)
         else:
-            for i in xrange(0,dims[index]):
+            for i in range(0,dims[index]):
                 prefix2 = prefix + (i, )
                 for y in inner(dims, index + 1, prefix2):
                     yield y
@@ -1796,10 +1796,10 @@ def dimco(*dims):
     """
     def inner(dims, index, postfix):
         if index == 0:
-            for i in xrange(0, dims[index]):
+            for i in range(0, dims[index]):
                 yield (i,) + postfix
         else:
-            for i in xrange(0, dims[index]):
+            for i in range(0, dims[index]):
                 postfix2 = (i, ) + postfix
                 for y in inner(dims, index - 1, postfix2):
                     yield y

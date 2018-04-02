@@ -131,7 +131,7 @@ class AtfFile(object):
             val = []    # Values
             raw = []    # Fallback
             key_value_pairs = True
-            for i in xrange(nh):
+            for i in range(nh):
                 line = f.readline().strip()
                 line_index += 1
                 if line[0] != '"' or line[-1] != '"':
@@ -183,7 +183,7 @@ class AtfFile(object):
                 a, b = 0, 0
                 if line[a] != '"':
                     raise Exception('Unable to parse columns headers.')
-                for i in xrange(nf):
+                for i in range(nf):
                     b = line.index('"', a + 1)
                     keys.append(line[a + 1:b])
                     a = line.index('"', b + 1)
@@ -305,6 +305,6 @@ def save_atf(log, filename, fields=None):
         # Write field names
         f.write(delim.join(['"' + k + '"' for k in keys]) + eol)
         # Write data
-        for i in xrange(nd):
+        for i in range(nd):
             f.write(
                 delim.join([myokit.strfloat(d.next()) for d in data]) + eol)

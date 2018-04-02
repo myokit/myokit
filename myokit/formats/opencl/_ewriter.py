@@ -131,7 +131,7 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
     def _ex_piecewise(self, e):
         s = []
         n = len(e._i)
-        for i in xrange(0, n):
+        for i in range(0, n):
             s.append('(')
             s.append(self.ex(e._i[i]))
             s.append(' ? ')

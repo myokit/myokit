@@ -532,7 +532,7 @@ def lvsd(s1, s2):
         return lvsd(s2, s1)
     if not s1:
         return len(s2)
-    previous_row = xrange(len(s2) + 1)
+    previous_row = range(len(s2) + 1)
     for i, c1 in enumerate(s1):
         current_row = [i + 1]
         for j, c2 in enumerate(s2):

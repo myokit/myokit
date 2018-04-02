@@ -293,8 +293,8 @@ class LinearModel(object):
         n = len(self._states)
         A = []      # Ode matrix
         T = set()   # List of transitions
-        for i in xrange(n):
-            A.append([myokit.Number(0) for j in xrange(n)])
+        for i in range(n):
+            A.append([myokit.Number(0) for j in range(n)])
         for row, e in enumerate(expressions):
             # Scan terms
             for term in _list_terms(e):
@@ -319,7 +319,7 @@ class LinearModel(object):
                 if row != col:
                     T.add((col, row))   # A is mirrored
         # Create a parametrisable matrix for the current
-        B = [myokit.Number(0) for i in xrange(n)]
+        B = [myokit.Number(0) for i in range(n)]
         if self._current is not None:
             for term in _list_terms(current_expression):
                 state = None
@@ -341,8 +341,8 @@ class LinearModel(object):
         T = list(T)
         T.sort()
         R = []
-        for i in xrange(len(A)):
-            for j in xrange(len(A)):
+        for i in range(len(A)):
+            for j in range(len(A)):
                 if (i, j) in T:
                     R.append((i, j, A[j][i]))   # A is mirrored
         del(T)

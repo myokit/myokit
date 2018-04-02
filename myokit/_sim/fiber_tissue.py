@@ -190,8 +190,8 @@ class FiberTissueSimulation(myokit.CModule):
                 'The width of the stimulus pulse must be non-negative.')
         nx_paced = min(nx_paced, self._ncellsf[0])
         self._paced_cells = []
-        for y in xrange(self._ncellsf[1]):
-            for x in xrange(min(self._ncellsf[0], nx_paced)):
+        for y in range(self._ncellsf[1]):
+            for x in range(min(self._ncellsf[0], nx_paced)):
                 self._paced_cells.append(x + y * self._ncellsf[0])
 
         # Check conductivities
@@ -574,7 +574,7 @@ class FiberTissueSimulation(myokit.CModule):
         states = []
         bound = []
         max_states = 3
-        for k in xrange(ifirst, ifirst - max_states - 1, -1):
+        for k in range(ifirst, ifirst - max_states - 1, -1):
             if k < 0:
                 break
             s, b = state(k, icell)

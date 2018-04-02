@@ -114,7 +114,7 @@ class WcpFile(object):
         # Get channel specific fields
         channel_headers = []
         self._channel_names = []
-        for i in xrange(self._nc):
+        for i in range(self._nc):
             j = str(i)
             c = {}
             for k, t in HEADER_CHANNEL_FIELDS.iteritems():
@@ -139,7 +139,7 @@ class WcpFile(object):
         # Read data records
         records = []
         offset = header_size
-        for i in xrange(self._nr):
+        for i in range(self._nr):
             # Read analysis block
             f.seek(offset)
             # Status of signal (Accepted or rejected, as string)
@@ -169,7 +169,7 @@ class WcpFile(object):
             )
             # Separate channels and apply scaling
             record = []
-            for j in xrange(self._nc):
+            for j in range(self._nc):
                 h = channel_headers[j]
                 s = float(vmax[j]) / float(adcmax) / float(h['yg'])
                 d = np.array(data[:, h['yo']].astype('f4') * s)

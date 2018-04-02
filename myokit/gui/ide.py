@@ -1313,7 +1313,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._menu_file.addSeparator()
         # File > Recent files
         self._recent_file_tools = []
-        for i in xrange(N_RECENT_FILES):
+        for i in range(N_RECENT_FILES):
             tool = QtWidgets.QAction(self, visible=False)
             tool.triggered.connect(self.action_open_recent)
             self._recent_file_tools.append(tool)
@@ -2146,7 +2146,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             t.setStatusTip('Open ' + os.path.abspath(filename))
             t.setData(filename)
             t.setVisible(True)
-        for i in xrange(len(self._recent_files), N_RECENT_FILES):
+        for i in range(len(self._recent_files), N_RECENT_FILES):
             self._recent_file_tools[i].setVisible(False)
 
     def update_window_title(self):

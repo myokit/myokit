@@ -178,7 +178,7 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
     def _ex_piecewise(self, e):
         pairs = []
         n = len(e) // 2
-        for i in xrange(0, n):
+        for i in range(0, n):
             pairs.append((self.ex(e._e[i]), self.ex(e._i[i])))
         pairs.append((self.ex(e._e[n]), True))
         return sp.Piecewise(*pairs)

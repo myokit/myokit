@@ -102,12 +102,12 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
         s = []
         n = len(e._i)
         if self.cFunc is None:
-            for i in xrange(0, n):
+            for i in range(0, n):
                 s.append('(%s ? %s : ' % (self.ex(e._i[i]), self.ex(e._e[i])))
             s.append(self.ex(e._e[n]))
             s.append(')' * n)
         else:
-            for i in xrange(0, n):
+            for i in range(0, n):
                 s.append(
                     '%s(%s, %s, ' % (
                         self.cFunc, self.ex(e._i[i]), self.ex(e._e[i])))

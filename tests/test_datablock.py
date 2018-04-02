@@ -108,7 +108,7 @@ class DataBlock1dTest(unittest.TestCase):
         w = 8   # Points in space
         t = np.arange(n)
         log['time'] = t
-        for i in xrange(w):
+        for i in range(w):
             log['x', i] = i * t
             log['y', i] = i * t * 10
 
@@ -225,8 +225,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertEqual(b.len0d(), 0)
         self.assertEqual(b.len2d(), 1)
         x = b.get2d('x')
-        for xx in xrange(2):
-            for yy in xrange(3):
+        for xx in range(2):
+            for yy in range(3):
                 self.assertTrue(np.all(x[:, yy, xx] == log['x', xx, yy]))
 
         # Make bigger log, try again
@@ -250,8 +250,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertFalse(b.get0d('pace') is log['pace'])
         x = b.get2d('x')
         y = b.get2d('y')
-        for xx in xrange(2):
-            for yy in xrange(3):
+        for xx in range(2):
+            for yy in range(3):
                 self.assertTrue(np.all(x[:, yy, xx] == log['x', xx, yy]))
                 self.assertTrue(np.all(y[:, yy, xx] == log['y', xx, yy]))
 

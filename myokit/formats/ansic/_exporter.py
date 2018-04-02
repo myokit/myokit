@@ -157,7 +157,7 @@ class AnsiCCableExporter(myokit.formats.TemplatedRunnableExporter):
         f = pl.figure()
         x = f.gca(projection='3d')
         z = np.ones(len(d['time']))
-        for i in xrange(0, n):
+        for i in range(0, n):
             x.plot(d['time'], z*i, d.get(str(i)+'_V'))
         pl.show()
 

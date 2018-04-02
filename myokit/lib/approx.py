@@ -100,7 +100,7 @@ class Polynomial(FittedFunction):
 
         def f(x):
             v = c[-1]
-            for i in xrange(n - 2, -1, -1):
+            for i in range(n - 2, -1, -1):
                 v = v * x + c[i]
             return v
         self._func = f
@@ -194,7 +194,7 @@ class PiecewisePolynomial(FittedFunction):
             def f(x):
                 cond = [0] * n
                 cond[0] = x < k[0]
-                for i in xrange(0, n - 2):
+                for i in range(0, n - 2):
                     cond[i + 1] = (x >= k[i]) * (x < k[i + 1])
                 cond[-1] = x >= k[-1]
                 return np.piecewise(x, cond, self._p)
@@ -225,7 +225,7 @@ class PiecewisePolynomial(FittedFunction):
         if n == 0:
             return Polynomial(c[0]).myokit_form(lhs)
         args = [lhs.clone()]
-        for i in xrange(0, n):
+        for i in range(0, n):
             args.append(p[i].myokit_form(lhs))
             args.append(myokit.Number(self._k[i]))
         args.append(p[n].myokit_form(lhs))
@@ -365,14 +365,14 @@ def fit_lagrange_polynomial(f, i, n=None, x=None):
 
     # Calculate lagrange polynomial coefficients and return
     c = np.zeros(n + 1)
-    for k in xrange(0, n + 1):
+    for k in range(0, n + 1):
         p = np.array(list(x[0:k]) + list(x[k + 1:n + 1]))
         q = np.zeros(n + 1)
         q[-1] = 1
         q[-2] -= p[0]
         r = f(x[k]) / (x[k] - p[0])
-        for i in xrange(1, n):
-            for j in xrange(i, 0, -1):
+        for i in range(1, n):
+            for j in range(i, 0, -1):
                 q[-j - 2] -= p[i] * q[-j - 1]
             q[-2] -= p[i]
             r /= x[k] - p[i]
@@ -438,12 +438,12 @@ def fit_remez_polynomial(f, i, n, stop_tol=1e-6, max_iter=100):
 
     # Iterate
     e_last = None
-    for k in xrange(0, max_iter):
+    for k in range(0, max_iter):
         # Build linear system and solve to find coefficients
-        for i in xrange(0, n + 2):
+        for i in range(0, n + 2):
             A[i, 0] = -1 if i % 2 else 1
             A[i, 2] = x[i]
-            for j in xrange(1, n):
+            for j in range(1, n):
                 A[i, 2 + j] = A[i, 1 + j] * x[i]
         B = f(x)
         C = solve(A, B)
@@ -473,7 +473,7 @@ def fit_remez_polynomial(f, i, n, stop_tol=1e-6, max_iter=100):
         # Find roots of error function in intervals between points
         def E(t):
             return g(t) - f(t)
-        for i in xrange(0, n + 1):
+        for i in range(0, n + 1):
             z[i] = brentq(E, x[i], x[i + 1])
 
         # Find points of maximum deviation between these roots, use as new x
@@ -481,7 +481,7 @@ def fit_remez_polynomial(f, i, n, stop_tol=1e-6, max_iter=100):
             return -(g(t) - f(t)) * (g(t) - f(t))
         x[0] = fmin(E, x[0], a, z[0])
         x[n + 1] = fmin(E, x[n + 1], z[n], b)
-        for i in xrange(1, n + 1):
+        for i in range(1, n + 1):
             x[i] = fmin(E, x[i], z[i - 1], z[i])
 
     # Return result
@@ -515,13 +515,13 @@ def solve_cubic_spline(f, p):
     A[0, 1] = h[0]
     A[-1, -1] = 2 * h[-1]
     A[-1, -2] = h[-1]
-    for i in xrange(1, n - 1):
+    for i in range(1, n - 1):
         A[i, i - 1:i + 2] = h[i - 1], 2 * (h[i - 1] + h[i]), h[i]
     F = f(p)
     B = np.zeros(n)
     B[0] = 3 / h[0] * (F[1] - F[0]) - 3 * f1a
     B[-1] = -3 / h[-1] * (F[-1] - F[-2]) + 3 * f1b
-    for i in xrange(1, n - 1):
+    for i in range(1, n - 1):
         B[i] = 3 / h[i] * (F[i + 1] - F[i]) - 3 / h[i - 1] * (F[i] - F[i - 1])
     Z = np.linalg.solve(A, B)
     # Now, create matrix with the polynomial coeffs of the splines
@@ -529,11 +529,11 @@ def solve_cubic_spline(f, p):
     C = np.zeros((n - 1, 4))
     C[0:, 0] = F[0:-1]
     C[0:, 2] = Z[0:-1]
-    for i in xrange(n - 2, -1, -1):
+    for i in range(n - 2, -1, -1):
         C[i, 1] = (F[i + 1] - F[i]) / h[i] - (h[i] / 3) * (2 * Z[i] + Z[i + 1])
         C[i, 3] = (Z[i + 1] - Z[i]) / (3 * h[i])
     # Rework the coefficients so that "x" can be used instead of "(x-p)"
-    for i in xrange(0, n - 1):
+    for i in range(0, n - 1):
         p1 = p[i]
         p2 = p1 * p1
         C[i, 0] -= C[i, 1] * p1 - C[i, 2] * p2 + C[i, 3] * p2 * p1
@@ -585,7 +585,7 @@ def fit_cubic_spline(
     H = np.max(F) - np.min(F)
     # Attempt fit
     k = np.linspace(lo, up, 1 + min_pieces)    # Because #knots = #pieces + 1
-    for i in xrange(min_pieces, 1 + max_pieces):
+    for i in range(min_pieces, 1 + max_pieces):
         g = solve_cubic_spline(f, k)
         # Get max deviation, position of max deviation
         a = np.abs(F - g(X))
@@ -848,7 +848,7 @@ class PolynomialFitter(Fitter):
             # Attempt fits of increasing order
             fit = g = deviation = None
             try:
-                for n in xrange(2, 1 + self._max_order):
+                for n in range(2, 1 + self._max_order):
                     c, g, e = fit_remez_polynomial(f, rng, n)
                     deviation = e / H
                     if deviation < self._reltol:

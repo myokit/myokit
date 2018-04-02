@@ -224,7 +224,7 @@ def parse_mathml_rhs(
                 else:
                     raise MathMLError('Operator needs at least two operands')
             ex = kind(ops[0], ops[1])
-            for i in xrange(2, n):
+            for i in range(2, n):
                 ex = kind(ex, ops[i])
             return ex
         # Start parsing

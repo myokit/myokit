@@ -526,7 +526,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._menu_file.addSeparator()
         # File > Recent files
         self._recent_file_tools = []
-        for i in xrange(N_RECENT_FILES):
+        for i in range(N_RECENT_FILES):
             tool = QtWidgets.QAction(self, visible=False)
             tool.triggered.connect(self.action_recent_file)
             self._recent_file_tools.append(tool)
@@ -868,7 +868,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             t.setText(str(k + 1) + '. ' + os.path.basename(fname))
             t.setData(fname)
             t.setVisible(True)
-        for i in xrange(len(self._recent_files), N_RECENT_FILES):
+        for i in range(len(self._recent_files), N_RECENT_FILES):
             self._recent_file_tools[i].setVisible(False)
 
     def update_window_title(self):
@@ -1117,7 +1117,7 @@ class GraphArea(QtWidgets.QWidget):
         path = QtGui.QPainterPath()
         x, y = xx.next(), yy.next()
         path.moveTo(x, y)
-        for i in xrange(1, len(self._time)):
+        for i in range(1, len(self._time)):
             x, y = xx.next(), yy.next()
             path.lineTo(x, y)
         self._temp_index = index

@@ -559,7 +559,7 @@ class ProtocolEvent(object):
         ]
         x = [str(x) for x in x]
         s = [8, 8, 8, 8, 0]
-        for i in xrange(0, 5):
+        for i in range(0, 5):
             n = s[i] - len(x[i]) + z
             z = 0
             if n > 0:

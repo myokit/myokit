@@ -101,14 +101,14 @@ class Simulation1d(unittest.TestCase):
         n = 4
         s = myokit.Simulation1d(m, p, n)
         sm = m.state()
-        ss = [s.state(x) for x in xrange(n)]
+        ss = [s.state(x) for x in range(n)]
         for si in ss:
             self.assertEqual(sm, si)
         # Test setting a single, global state
         sx = [0] * 8
         self.assertNotEqual(sm, sx)
         s.set_state(sx)
-        for i in xrange(n):
+        for i in range(n):
             self.assertEqual(sx, s.state(i))
         self.assertEqual(sx * n, s.state())
         s.set_state(sm)
@@ -116,7 +116,7 @@ class Simulation1d(unittest.TestCase):
         # Test setting a single state
         j = 1
         s.set_state(sx, j)
-        for i in xrange(n):
+        for i in range(n):
             if i == j:
                 self.assertEqual(s.state(i), sx)
             else:

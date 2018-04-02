@@ -31,7 +31,7 @@ else:
     x = (np.tile(np.arange(ncell), (ntime, 1))).transpose()
     y = np.tile(time, (ncell, 1))
     z = np.zeros((ncell, ntime))
-    for k in xrange(ncell):
+    for k in range(ncell):
         z[k][:] = log.get(vname, k)
     import matplotlib.pyplot as pl
     f = pl.figure()

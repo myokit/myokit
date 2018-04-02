@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d import axes3d
 f = pl.figure()
 x = f.gca(projection='3d')
 z = np.ones(len(d['engine.time']))
-for i in xrange(0, n):
+for i in range(0, n):
     x.plot(d['engine.time'], z*i, d['membrane.V', i])
 pl.tight_layout()
 pl.show()

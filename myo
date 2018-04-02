@@ -485,7 +485,7 @@ def opencl_select():
     if n == 2:
         q = '1 or 2'
     elif n < 6:
-        q = ','.join([str(x) for x in xrange(1, n)]) + ' or ' + str(n)
+        q = ','.join([str(x) for x in range(1, n)]) + ' or ' + str(n)
     else:
         q = 'one of 1,2,3,...,' + str(n)
     print('Please select an OpenCL device by typing ' + q)

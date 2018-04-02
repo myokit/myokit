@@ -485,7 +485,7 @@ class VarOwner(ModelPart, VarProvider):
             return self.add_variable(name)
         except myokit.DuplicateName:
             n_tries = 256
-            for i in xrange(n_tries):
+            for i in range(n_tries):
                 try:
                     return self.add_variable(name + '_' + str(1 + i))
                 except DuplicateName:
@@ -783,7 +783,7 @@ class Model(ObjectWithMeta, VarProvider):
             return self.add_component(name)
         except myokit.DuplicateName:
             n_tries = 256
-            for i in xrange(n_tries):
+            for i in range(n_tries):
                 try:
                     return self.add_component(name + '_' + str(1 + i))
                 except DuplicateName:

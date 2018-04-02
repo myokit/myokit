@@ -435,9 +435,9 @@ class AbfFile(object):
             time = []
             ad_channels = []
             da_channels = []
-            for i in xrange(self.data_channels()):
+            for i in range(self.data_channels()):
                 ad_channels.append([])
-            for i in xrange(self.protocol_channels()):
+            for i in range(self.protocol_channels()):
                 da_channels.append([])
             for sweep in self:
                 for channel in sweep:

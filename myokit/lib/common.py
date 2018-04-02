@@ -964,7 +964,7 @@ class StrengthDuration(object):
                 continue
             # Zero must lie in between. Start bisection search
             a = 0.5 * a1 + 0.5 * a2
-            for j in xrange(0, self._precision):
+            for j in range(0, self._precision):
                 s.reset()
                 s.set_constant(self._avar, a)
                 try:

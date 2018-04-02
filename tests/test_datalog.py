@@ -162,7 +162,7 @@ class DataLogTest(unittest.TestCase):
         # Create an irregular time array
         from random import random
         t = []
-        for i in xrange(0, 100):
+        for i in range(0, 100):
             t.append(5 * random())
         t.sort()
         t = np.array(t)
@@ -1198,7 +1198,7 @@ class DataLogTest(unittest.TestCase):
                 list(s2[var2])
             )
 
-        for i in xrange(2):
+        for i in range(2):
             # First without, then with numpy
             t1, t2, v1, v2 = split(-5)
             self.assertEqual(t1, [])
