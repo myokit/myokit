@@ -134,10 +134,10 @@ class LoadSaveTest(unittest.TestCase):
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
         # Test example loading
         x = myokit.load_script('example')
-        self.assertIsInstance(x, str)
+        self.assertTrue(isinstance(x, unicode) or isinstance(x, str))
         # Test file loading
         x = myokit.load_script(ipath)
-        self.assertIsInstance(x, str)
+        self.assertTrue(isinstance(x, unicode) or isinstance(x, str))
         with TemporaryDirectory() as d:
             opath = d.path('test.mmt')
             myokit.save_script(opath, x)
@@ -149,7 +149,7 @@ class LoadSaveTest(unittest.TestCase):
             self.assertTrue('[[script]]' in text)
             # Test reloading
             xx = myokit.load_script(opath)
-            self.assertIsInstance(xx, str)
+            self.assertTrue(isinstance(xx, unicode) or isinstance(xx, str))
             self.assertEqual(x, xx)
 
     def test_save(self):
@@ -161,7 +161,7 @@ class LoadSaveTest(unittest.TestCase):
         m, p, x = myokit.load('example')
         self.assertIsInstance(m, myokit.Model)
         self.assertIsInstance(p, myokit.Protocol)
-        self.assertIsInstance(x, str)
+        self.assertTrue(isinstance(x, unicode) or isinstance(x, str))
 
         # Save all three and reload
         with TemporaryDirectory() as d:

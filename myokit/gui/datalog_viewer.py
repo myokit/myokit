@@ -6,26 +6,31 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-# Future stuff
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 # Standard library imports
 import gc
 import os
 import traceback
 import ConfigParser as configparser
+
 # Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
+
 # Myokit
 import myokit
 import myokit.gui
+
 # Myokit components
 from myokit.formats.axon import AbfFile
 from myokit.formats.wcp import WcpFile
+
 # Matplotlib (must be imported _after_ gui has had chance to set backend)
 import matplotlib
 import matplotlib.figure
 from myokit.gui import matplotlib_backend as backend
+
 # Numpy
 import numpy as np
 

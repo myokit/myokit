@@ -6,8 +6,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import myokit
 from myokit.gui import Qt, QtCore, QtWidgets
 

@@ -6,7 +6,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-from __future__ import division
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import os
 import sys
 import array
@@ -418,6 +420,7 @@ class DataBlock1d(object):
         simulation to use in the ProgressReporter can be passed in as `msg`.
         """
         filename = os.path.expanduser(filename)
+
         # Load compression modules
         import zipfile
         try:
@@ -426,11 +429,13 @@ class DataBlock1d(object):
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
+
         # Get size of single and double types on this machine
         dsize = {
             'd': len(array.array('d', [1]).tostring()),
             'f': len(array.array('f', [1]).tostring()),
         }
+
         # Read data from file
         try:
             f = None
@@ -440,6 +445,7 @@ class DataBlock1d(object):
                 raise myokit.DataBlockReadError(
                     'Invalid DataBlock1d file format: Not enough files in'
                     ' zip.')
+
             # Get ZipInfo objects
             names = [x.filename for x in info]
             try:
@@ -452,6 +458,7 @@ class DataBlock1d(object):
             except ValueError:
                 raise myokit.DataBlockReadError(
                     'Invalid DataBlock1d file format: data not found.')
+
             # Read head and body into memory (let's assume it fits...)
             head = f.read(info[head])
             body = f.read(info[body])
@@ -465,11 +472,13 @@ class DataBlock1d(object):
         finally:
             if f:
                 f.close()
+
         # Parse head
         head = head.splitlines()
         try:
             if progress:
                 progress.enter(msg)
+
                 # Avoid divide by zero
                 fraction = float(len(head) - 3)
                 if fraction > 0:
@@ -493,11 +502,13 @@ class DataBlock1d(object):
             for name in head:
                 names_1d.append(name[1:-1])
             del(head)
+
             # Parse body
             start, end = 0, 0
             n0 = dsize[dtype] * nt
             n1 = n0 * nx
             nb = len(body)
+
             # Read time
             end += n0
             if end > nb:
@@ -513,8 +524,10 @@ class DataBlock1d(object):
                 iprogress += 1
                 if not progress.update(iprogress * fraction):
                     return
+
             # Create data block
             block = DataBlock1d(nx, data, copy=False)
+
             # Read 0d data
             for name in names_0d:
                 start = end
@@ -533,6 +546,7 @@ class DataBlock1d(object):
                     iprogress += 1
                     if not progress.update(iprogress * fraction):
                         return
+
             # Read 1d data
             for name in names_1d:
                 start = end
@@ -590,12 +604,14 @@ class DataBlock1d(object):
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
+
         # Data type
         dtype = 'd'     # Only supporting doubles right now
+
         # Create header
         head_str = []
-        head_str.append(str(self._nt))
-        head_str.append(str(self._nx))
+        head_str.append(bytes(self._nt))
+        head_str.append(bytes(self._nx))
         head_str.append('"' + dtype + '"')
         for name in self._0d:
             head_str.append('"' + name + '"')
@@ -603,6 +619,7 @@ class DataBlock1d(object):
         for name in self._1d:
             head_str.append('"' + name + '"')
         head_str = '\n'.join(head_str)
+
         # Create body
         n = self._nt * self._nx
         body_str = []
@@ -614,7 +631,8 @@ class DataBlock1d(object):
         if sys.byteorder == 'big':
             for ar in body_str:
                 ar.byteswap()
-        body_str = ''.join([ar.tostring() for ar in body_str])
+        body_str = b''.join([ar.tostring() for ar in body_str])
+
         # Write
         head = zipfile.ZipInfo('header_block1d.txt')
         head.compress_type = zipfile.ZIP_DEFLATED
@@ -1279,6 +1297,7 @@ class DataBlock2d(object):
         """
         # Check filename
         filename = os.path.expanduser(filename)
+
         # Load compression modules
         import zipfile
         try:
@@ -1288,13 +1307,15 @@ class DataBlock2d(object):
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
+
         # Data type
         dtype = 'd'     # Only supporting doubles right now
+
         # Create header
         head_str = []
-        head_str.append(str(self._nt))
-        head_str.append(str(self._ny))
-        head_str.append(str(self._nx))
+        head_str.append(bytes(self._nt))
+        head_str.append(bytes(self._ny))
+        head_str.append(bytes(self._nx))
         head_str.append('"' + dtype + '"')
         for name in self._0d:
             head_str.append('"' + name + '"')
@@ -1302,6 +1323,7 @@ class DataBlock2d(object):
         for name in self._2d:
             head_str.append('"' + name + '"')
         head_str = '\n'.join(head_str)
+
         # Create body
         n = self._nt * self._ny * self._nx
         body_str = []
@@ -1313,7 +1335,8 @@ class DataBlock2d(object):
         if sys.byteorder == 'big':
             for ar in body_str:
                 ar.byteswap()
-        body_str = ''.join([ar.tostring() for ar in body_str])
+        body_str = b''.join([ar.tostring() for ar in body_str])
+
         # Write
         head = zipfile.ZipInfo('header_block2d.txt')
         head.compress_type = zipfile.ZIP_DEFLATED

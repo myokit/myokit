@@ -7,6 +7,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 # Library imports
 import os
 import imp
@@ -93,6 +96,12 @@ class CModule(object):
             src_file = os.path.join(d_cache, src_file)
             self._export(tpl, tpl_vars, src_file)
 
+            # Convert strings to bytes for Python2
+            flags = None if flags is None else [bytes(x) for x in flags]
+            libd = None if libd is None else [bytes(x) for x in libd]
+            incd = None if incd is None else [bytes(x) for x in incd]
+            libs = None if libs is None else [bytes(x) for x in libs]
+
             # Add runtime_library_dirs (to prevent LD_LIBRARY_PATH) errors on
             # unconventional linux sundials installations, but not on windows
             # as this can lead to a weird error in setuptools
@@ -100,8 +109,8 @@ class CModule(object):
 
             # Create extension
             ext = Extension(
-                name,
-                sources=[src_file],
+                bytes(name),
+                sources=[bytes(src_file)],
                 libraries=libs,
                 library_dirs=libd,
                 runtime_library_dirs=runtime,
@@ -117,8 +126,10 @@ class CModule(object):
                         description='Temporary module',
                         ext_modules=[ext],
                         script_args=[
-                            'build', '--build-base=' + d_build,
-                            'install', '--install-lib=' + d_modul,
+                            b'build',
+                            bytes('--build-base=' + d_build),
+                            b'install',
+                            bytes('--install-lib=' + d_modul),
                         ])
                 except (Exception, SystemExit) as e:
                     s.disable()

@@ -6,6 +6,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import myokit
 import myokit.formats
 try:
@@ -15,29 +18,18 @@ try:
     from sympy.core.mul import Mul
     from sympy.core.mod import Mod
     from sympy.core.power import Pow
-    from sympy.functions.elementary.trigonometric import sin
-    from sympy.functions.elementary.trigonometric import cos
-    from sympy.functions.elementary.trigonometric import tan
-    from sympy.functions.elementary.trigonometric import asin
-    from sympy.functions.elementary.trigonometric import acos
-    from sympy.functions.elementary.trigonometric import atan
-    from sympy.functions.elementary.exponential import exp
-    from sympy.functions.elementary.exponential import log
-    from sympy.functions.elementary.integers import floor
-    from sympy.functions.elementary.integers import ceiling
+    from sympy.functions.elementary.trigonometric import (
+        sin, cos, tan, asin, acos, atan)
+    from sympy.functions.elementary.exponential import exp, log
+    from sympy.functions.elementary.integers import floor, ceiling
     from sympy.functions.elementary.complexes import Abs
     from sympy.logic.boolalg import Not
-    from sympy.core.relational import Equality
-    from sympy.core.relational import Unequality
-    from sympy.core.relational import StrictGreaterThan
-    from sympy.core.relational import StrictLessThan
-    from sympy.core.relational import GreaterThan
-    from sympy.core.relational import LessThan
-    from sympy.logic.boolalg import And
-    from sympy.logic.boolalg import Or
+    from sympy.core.relational import (
+        Equality, Unequality, StrictGreaterThan, StrictLessThan,
+        GreaterThan, LessThan)
+    from sympy.logic.boolalg import And, Or
     from sympy.functions.elementary.piecewise import Piecewise
-    from sympy.logic.boolalg import BooleanTrue
-    from sympy.logic.boolalg import BooleanFalse
+    from sympy.logic.boolalg import BooleanTrue, BooleanFalse
 except ImportError:
     pass
 

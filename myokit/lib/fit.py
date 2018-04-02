@@ -22,8 +22,9 @@
 # The remaining algorithsm and optimisation routines are original
 # implementations, and try to credit the algorithm's authors were possible.
 #
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import gc
 import os
 import sys

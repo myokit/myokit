@@ -6,6 +6,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import os
 import re
 import sys
@@ -452,6 +455,7 @@ class DataLog(OrderedDict):
         """
         # Check filename
         filename = os.path.expanduser(filename)
+
         # Load compression modules
         import zipfile
         try:
@@ -461,11 +465,13 @@ class DataLog(OrderedDict):
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
+
         # Get size of single and double types on this machine
         dsize = {
             'd': len(array.array('d', [1]).tostring()),
             'f': len(array.array('f', [1]).tostring()),
         }
+
         # Read data
         try:
             f = None
@@ -496,8 +502,10 @@ class DataLog(OrderedDict):
         finally:
             if f:
                 f.close()
+
         # Create empty log
         log = DataLog()
+
         # Parse header
         if old_format:
             # Parse header in old format
@@ -506,8 +514,10 @@ class DataLog(OrderedDict):
                 # Empty file
                 return log
             head = iter(head)
+
             # Skip first line
             head.next()
+
             # Get field information, data type and size is given redundantly
             fields = []
             for line in head:
@@ -529,6 +539,7 @@ class DataLog(OrderedDict):
             fields = [x for x in head]
             if len(fields) != n:
                 raise DataLogReadError('Invalid number of fields specified.')
+
         # Get size of each entry on disk
         if data_size < 0:
             raise DataLogReadError(
@@ -537,6 +548,7 @@ class DataLog(OrderedDict):
             data_size *= dsize[data_type]
         except KeyError:
             raise DataLogReadError('Invalid data type: "' + data_type + '".')
+
         # Parse read data
         fraction = 1.0 / len(fields)
         start, end = 0, 0
@@ -547,6 +559,7 @@ class DataLog(OrderedDict):
             for k, field in enumerate(fields):
                 if progress and not progress.update(k * fraction):
                     return
+
                 # Get new data position
                 start = end
                 end += data_size
@@ -554,6 +567,7 @@ class DataLog(OrderedDict):
                     raise myokit.DataLogReadError(
                         'Header indicates larger data size than found in body.'
                     )
+
                 # Read data
                 ar = array.array(data_type)
                 ar.fromstring(body[start:end])
@@ -829,8 +843,10 @@ class DataLog(OrderedDict):
         precision format, which saves space.
         """
         self.validate()
+
         # Check filename
         filename = os.path.expanduser(filename)
+
         # Load compression modules
         import zipfile
         try:
@@ -839,18 +855,23 @@ class DataLog(OrderedDict):
             del(zlib)
         except ImportError:
             raise Exception(
-                'This method requires the ``zlib`` module to be installed.')
+                'This method requires the `zlib` module to be installed.')
+
         # Data type
         dtype = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
+
         # Create data strings
         head_str = []
         body_str = []
+
         # Number of fields, length of data arrays, data type, time, fields
-        head_str.append(str(len(self)))
-        head_str.append(str(len(self.itervalues().next())))
+        head_str.append(bytes(len(self)))
+        head_str.append(bytes(len(self.itervalues().next())))
         head_str.append(dtype)
+
         # Note: the time field might not be present in the log!
         head_str.append(self._time if self._time else '')
+
         # Write field names and data
         for k, v in self.iteritems():
             head_str.append(k)
@@ -859,8 +880,10 @@ class DataLog(OrderedDict):
             if sys.byteorder == 'big':
                 ar.byteswap()
             body_str.append(ar.tostring())
-        head_str = '\n'.join(head_str)
-        body_str = ''.join(body_str)
+
+        head_str = b'\n'.join(head_str)
+        body_str = b''.join(body_str)
+
         # Write
         head = zipfile.ZipInfo('structure.txt')
         head.compress_type = zipfile.ZIP_DEFLATED
@@ -920,8 +943,10 @@ class DataLog(OrderedDict):
         to manually specify the correct separator and delimiter.
         """
         self.validate()
+
         # Check filename
         filename = os.path.expanduser(filename)
+
         # Set precision
         if precision is None:
             fmat = lambda x: str(x)
@@ -931,6 +956,7 @@ class DataLog(OrderedDict):
             fmat = lambda x: myokit.SFSINGLE.format(x)
         else:
             raise ValueError('Precision level not supported.')
+
         # Write file
         # EOL: CSV files have DOS line endings by convention. On windows,
         # writing '\n' to a file opened in mode 'w' will actually write '\r\n'
@@ -964,12 +990,15 @@ class DataLog(OrderedDict):
                     for key, dat in sorted(self.iteritems()):
                         keys.append(key)
                         data.append(dat)
+
             # Number of entries
             m = len(keys)
             if m == 0:
                 return
+
             # Get length of entries
             n = self.length()
+
             # Write header
             if header:
                 line = []
@@ -977,6 +1006,7 @@ class DataLog(OrderedDict):
                     # Escape quotes within strings
                     line.append(quote + key.replace(quote, escape) + quote)
                 f.write(delimiter.join(line) + eol)
+
             # Write data
             data = [iter(x) for x in data]
             for i in xrange(0, n):

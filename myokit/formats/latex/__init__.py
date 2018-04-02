@@ -6,9 +6,11 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-# Exporters
-from _exporter import PdfExporter, PosterExporter
-from _ewriter import LatexExpressionWriter
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
+from ._exporter import PdfExporter, PosterExporter
+from ._ewriter import LatexExpressionWriter
 
 _exporters = {
     'latex-article': PdfExporter,
