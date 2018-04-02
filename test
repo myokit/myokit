@@ -84,8 +84,8 @@ def check_docs():
     print('Checking if docs can be built.')
     p = subprocess.Popen([
         'sphinx-build',
-        'docs/source',
-        'docs/build/html',
+        'doc',
+        'doc/_build/html',
         '-W',
     ])
     try:
@@ -101,8 +101,6 @@ def check_docs():
     if ret != 0:
         print('FAILED')
         sys.exit(ret)
-
-
 
 
 if __name__ == '__main__':

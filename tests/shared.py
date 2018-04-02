@@ -8,9 +8,9 @@
 #  See: http://myokit.org
 #
 import os
-import sys
-import fnmatch
-import unittest
+#import sys
+#import fnmatch
+#import unittest
 
 
 # The test directory

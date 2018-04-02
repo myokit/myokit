@@ -1,6 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
-# Tests the model construction API.
+# Tests the expression classes.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -12,21 +12,10 @@ import myokit
 
 
 #TODO Add tests for all operators
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(NumberTest('basics'))
-    suite.addTest(ExpressionTest('equal'))
-    suite.addTest(ExpressionTest('ifif'))
-    suite.addTest(ExpressionTest('opiecewise'))
-    suite.addTest(ExpressionTest('polynomial'))
-    return suite
 
 
 class NumberTest(unittest.TestCase):
-    def basics(self):
+    def test_basics(self):
         """
         Test the basics of the Number class.
         """
@@ -68,9 +57,9 @@ class NumberTest(unittest.TestCase):
 
 
 class ExpressionTest(unittest.TestCase):
-    def equal(self):
+    def test_equal(self):
         """
-        Test of __eq__ operators
+        Tests __eq__ operators
         """
         a1 = myokit.Number(4)
         a2 = myokit.Number(5)
@@ -101,9 +90,9 @@ class ExpressionTest(unittest.TestCase):
         e2 = myokit.Sqrt(a2)
         self.assertNotEqual(e1, e2)
 
-    def ifif(self):
+    def test_if(self):
         """
-        Test of If class
+        Tests If
         """
         true = myokit.Number(1)
         false = myokit.Number(0)
@@ -134,9 +123,9 @@ class ExpressionTest(unittest.TestCase):
         self.assertIsInstance(x, myokit.Piecewise)
         self.assertEqual(x.eval(), 2)
 
-    def opiecewise(self):
+    def test_opiecewise(self):
         """
-        Test of OrderedPiecewise class
+        Tests OrderedPiecewise
         """
         x = myokit.Name('x')
         p = myokit.OrderedPiecewise(
@@ -174,9 +163,9 @@ class ExpressionTest(unittest.TestCase):
         r = p.if_tree()
         test(r, x)
 
-    def polynomial(self):
+    def test_polynomial(self):
         """
-        Test of Polynomial class
+        Tests Polynomial.
         """
         x = myokit.Name('x')
         c = [
@@ -201,3 +190,7 @@ class ExpressionTest(unittest.TestCase):
         for i in [-1, 0, 0.5, 1, 2]:
             s = {x: i}
             self.assertEqual(p.eval(subst=s), q.eval(subst=s))
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Tests the unit-checking tool.
 #
@@ -7,67 +7,24 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+#from __future__ import absolute_import, division
+#from __future__ import print_function, unicode_literals
 import unittest
+
 import myokit
-from myokit import parse_unit as pu
-from myokit import parse_expression as pe
-from myokit import IncompatibleUnitError as E
-from myokit import UNIT_STRICT as S, UNIT_TOLERANT as T
-from myokit import Name, Derivative
-
-
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(MyokitUnitTest('create'))
-    suite.addTest(MyokitUnitTest('convert'))
-    suite.addTest(MyokitUnitTest('output'))
-    suite.addTest(ExpressionUnitTest('number'))
-    suite.addTest(ExpressionUnitTest('name'))
-    suite.addTest(ExpressionUnitTest('derivative'))
-    suite.addTest(ExpressionUnitTest('prefix_plus'))
-    suite.addTest(ExpressionUnitTest('prefix_minus'))
-    suite.addTest(ExpressionUnitTest('plus'))
-    suite.addTest(ExpressionUnitTest('minus'))
-    suite.addTest(ExpressionUnitTest('multiply'))
-    suite.addTest(ExpressionUnitTest('divide'))
-    suite.addTest(ExpressionUnitTest('quotient'))
-    suite.addTest(ExpressionUnitTest('remainder'))
-    suite.addTest(ExpressionUnitTest('power'))
-    suite.addTest(ExpressionUnitTest('sqrt'))
-    suite.addTest(ExpressionUnitTest('sin'))
-    suite.addTest(ExpressionUnitTest('cos'))
-    suite.addTest(ExpressionUnitTest('tan'))
-    suite.addTest(ExpressionUnitTest('asin'))
-    suite.addTest(ExpressionUnitTest('acos'))
-    suite.addTest(ExpressionUnitTest('atan'))
-    suite.addTest(ExpressionUnitTest('exp'))
-    suite.addTest(ExpressionUnitTest('log'))
-    suite.addTest(ExpressionUnitTest('log10'))
-    suite.addTest(ExpressionUnitTest('floor'))
-    suite.addTest(ExpressionUnitTest('ceil'))
-    suite.addTest(ExpressionUnitTest('abs'))
-    suite.addTest(ExpressionUnitTest('test_not'))
-    suite.addTest(ExpressionUnitTest('equal'))
-    suite.addTest(ExpressionUnitTest('not_equal'))
-    suite.addTest(ExpressionUnitTest('more'))
-    suite.addTest(ExpressionUnitTest('less'))
-    suite.addTest(ExpressionUnitTest('more_equal'))
-    suite.addTest(ExpressionUnitTest('less_equal'))
-    suite.addTest(ExpressionUnitTest('test_and'))
-    suite.addTest(ExpressionUnitTest('test_or'))
-    suite.addTest(ExpressionUnitTest('test_if'))
-    suite.addTest(ExpressionUnitTest('piecewise'))
-    suite.addTest(ExpressionUnitTest('opiecewise'))
-    suite.addTest(ExpressionUnitTest('test_example'))
-    suite.addTest(QuantityTest('test_basic'))
-    return suite
+from myokit import (
+    parse_unit as pu,
+    parse_expression as pe,
+    IncompatibleUnitError as E,
+    UNIT_STRICT as S,
+    UNIT_TOLERANT as T,
+    Name, Derivative,
+)
 
 
 class MyokitUnitTest(unittest.TestCase):
-    def create(self):
+
+    def test_create(self):
         """
         Test basic unit creation.
         """
@@ -75,7 +32,7 @@ class MyokitUnitTest(unittest.TestCase):
         myokit.Unit.parse_simple('g')
         myokit.Unit.parse_simple('kg')
 
-    def convert(self):
+    def test_convert(self):
         """
         Test unit conversion.
         """
@@ -84,7 +41,7 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertEqual(myokit.Unit.convert(2, mV, V), 0.002)
         self.assertEqual(myokit.Unit.convert(2, V, mV), 2000)
 
-    def output(self):
+    def test_output(self):
         """
         Test unit representation.
         """
@@ -121,7 +78,7 @@ class ExpressionUnitTest(unittest.TestCase):
         self.v.set_unit(self._v_unit)
         self.v.set_rhs(self._v_rhs)
 
-    def number(self):
+    def test_number(self):
         x = myokit.Number(12, pu('kmol^2*s'))
         self.assertEqual(x.unit(), x.eval_unit())
         self.assertEqual(x.unit(), pu('kmol^2*s'))
@@ -130,14 +87,14 @@ class ExpressionUnitTest(unittest.TestCase):
         self.assertEqual(x.unit(), x.eval_unit())
         self.assertEqual(x.unit(), None)
 
-    def name(self):
+    def test_name(self):
         self.v.set_rhs('3 [m/s]')
         self.assertEqual(self.v.rhs().eval_unit(), pu('m/s'))
         self.assertEqual(self.v.unit(), pu('mV'))
         # Reset
         self.reset()
 
-    def derivative(self):
+    def test_derivative(self):
         t = self.m.time()
         t.set_unit(None)
         d = Derivative(Name(self.v))
@@ -146,7 +103,7 @@ class ExpressionUnitTest(unittest.TestCase):
         self.assertEqual(d.eval_unit(), pu('mV/ms'))
         self.assertEqual(d.eval_unit(), pu('V/s'))
 
-    def prefix_plus(self):
+    def test_prefix_plus(self):
         self.v.set_rhs('+5 [mV]')
         self.assertEqual(self.v.rhs().eval_unit(), pu('mV'))
         self.v.set_rhs('+5')
@@ -156,7 +113,7 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def prefix_minus(self):
+    def test_prefix_minus(self):
         self.v.set_rhs('-2 [kg]')
         self.assertEqual(self.v.rhs().eval_unit(), pu('kg'))
         self.v.set_rhs('-2')
@@ -164,7 +121,7 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def plus(self):
+    def test_plus(self):
         self.v.set_rhs('3 [kg] + 2 [m]')
         self.assertRaises(E, self.v.rhs().eval_unit, S)
         self.assertRaises(E, self.v.rhs().eval_unit, T)
@@ -194,7 +151,7 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def minus(self):
+    def test_minus(self):
         self.v.set_rhs('3 [kg] - 2 [m]')
         self.assertRaises(E, self.v.rhs().eval_unit, S)
         self.assertRaises(E, self.v.rhs().eval_unit, T)
@@ -224,7 +181,7 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def multiply(self):
+    def test_multiply(self):
         self.v.set_rhs('3 [kg] * 2 [m]')
         self.assertEqual(self.v.rhs().eval_unit(S), pu('kg*m'))
         self.assertEqual(self.v.rhs().eval_unit(T), pu('kg*m'))
@@ -243,7 +200,7 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def divide(self, op='/'):
+    def test_divide(self, op='/'):
         self.v.set_rhs('3 [kg] ' + op + ' 2 [m]')
         self.assertEqual(self.v.rhs().eval_unit(S), pu('kg/m'))
         self.assertEqual(self.v.rhs().eval_unit(T), pu('kg/m'))
@@ -272,10 +229,10 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def quotient(self):
-        self.divide('//')
+    def test_quotient(self):
+        self.test_divide('//')
 
-    def remainder(self):
+    def test_remainder(self):
         self.v.set_rhs('3 [kg] % 2 [m]')
         self.assertEqual(self.v.rhs().eval_unit(S), pu('kg'))
         self.assertEqual(self.v.rhs().eval_unit(T), pu('kg'))
@@ -294,7 +251,7 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def power(self):
+    def test_power(self):
         self.v.set_rhs('3 [kg] ^ 2')
         self.assertEqual(self.v.rhs().eval_unit(S), pu('kg^2'))
         self.assertEqual(self.v.rhs().eval_unit(T), pu('kg^2'))
@@ -314,7 +271,7 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def sqrt(self):
+    def test_sqrt(self):
         self.v.set_rhs('sqrt(3 [kg^2])')
         self.assertEqual(self.v.rhs().eval_unit(S), pu('kg'))
         self.assertEqual(self.v.rhs().eval_unit(T), pu('kg'))
@@ -327,7 +284,7 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def sin(self, op='sin'):
+    def test_sin(self, op='sin'):
         self.v.set_rhs(op + '(3)')
         self.assertEqual(self.v.rhs().eval_unit(S), None)
         self.assertEqual(self.v.rhs().eval_unit(T), None)
@@ -340,27 +297,27 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def cos(self):
-        self.sin('cos')
+    def test_cos(self):
+        self.test_sin('cos')
 
-    def tan(self):
-        self.sin('tan')
+    def test_tan(self):
+        self.test_sin('tan')
 
-    def asin(self):
-        self.sin('asin')
+    def test_asin(self):
+        self.test_sin('asin')
 
-    def acos(self):
-        self.sin('acos')
+    def test_acos(self):
+        self.test_sin('acos')
 
-    def atan(self):
-        self.sin('atan')
+    def test_atan(self):
+        self.test_sin('atan')
 
-    def exp(self):
-        self.sin('exp')
+    def test_exp(self):
+        self.test_sin('exp')
 
-    def log(self):
+    def test_log(self):
         # 1 operand version
-        self.sin('log')
+        self.test_sin('log')
         # 2 operand version
         self.v.set_rhs('log(3, 2)')
         self.assertEqual(self.v.rhs().eval_unit(S), None)
@@ -392,10 +349,10 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def log10(self):
-        self.sin('log10')
+    def test_log10(self):
+        self.test_sin('log10')
 
-    def floor(self, op='floor'):
+    def test_floor(self, op='floor'):
         e = pe(op + '(18 [1])')
         self.assertEqual(e.eval_unit(S), pu('1'))
         self.assertEqual(e.eval_unit(T), pu('1'))
@@ -406,11 +363,11 @@ class ExpressionUnitTest(unittest.TestCase):
         self.assertEqual(e.eval_unit(S), pu('kg*m^-2'))
         self.assertEqual(e.eval_unit(T), pu('kg*m^-2'))
 
-    def ceil(self):
-        self.floor('ceil')
+    def test_ceil(self):
+        self.test_floor('ceil')
 
-    def abs(self):
-        self.floor('abs')
+    def test_abs(self):
+        self.test_floor('abs')
 
     def test_not(self):
         self.v.set_rhs('not 3')
@@ -425,7 +382,7 @@ class ExpressionUnitTest(unittest.TestCase):
         # Reset
         self.reset()
 
-    def equal(self, op='=='):
+    def test_equal(self, op='=='):
         e = pe('14 ' + op + ' 12')
         self.assertEqual(e.eval_unit(S), None)
         self.assertEqual(e.eval_unit(T), None)
@@ -445,20 +402,20 @@ class ExpressionUnitTest(unittest.TestCase):
         self.assertRaises(E, e.eval_unit, S)
         self.assertRaises(E, e.eval_unit, T)
 
-    def not_equal(self):
-        self.equal('!=')
+    def test_not_equal(self):
+        self.test_equal('!=')
 
-    def more(self):
-        self.equal('>')
+    def test_more(self):
+        self.test_equal('>')
 
-    def less(self):
-        self.equal('<')
+    def test_less(self):
+        self.test_equal('<')
 
-    def more_equal(self):
-        self.equal('>=')
+    def test_more_equal(self):
+        self.test_equal('>=')
 
-    def less_equal(self):
-        self.equal('<=')
+    def test_less_equal(self):
+        self.test_equal('<=')
 
     def test_and(self, op='and'):
         e = pe('2 ' + op + ' 3')
@@ -509,7 +466,7 @@ class ExpressionUnitTest(unittest.TestCase):
         self.assertRaises(E, e.eval_unit, S)
         self.assertRaises(E, e.eval_unit, T)
 
-    def piecewise(self):
+    def test_piecewise(self):
         # Repeat if-tests
         self.test_if('piecewise')
         # Multi-branch tests
@@ -544,7 +501,7 @@ class ExpressionUnitTest(unittest.TestCase):
         self.assertRaises(E, e.eval_unit, S)
         self.assertRaises(E, e.eval_unit, T)
 
-    def opiecewise(self):
+    def test_opiecewise(self):
         v = self.v
         v.set_unit(None)
         # No units
@@ -754,3 +711,7 @@ class QuantityTest(unittest.TestCase):
         b = a.cast('mV')
         self.assertEqual(a, Q('10 [uA]'))
         self.assertEqual(b, Q('10 [mV]'))
+
+
+if __name__ == '__main__':
+    unittest.main()
