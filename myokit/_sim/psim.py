@@ -212,7 +212,7 @@ class PSimulation(myokit.CppModule):
                 + str(shape) + '.')
         # Create datablock
         block = myokit.DataBlock2d(m, n, time)
-        for k, v in log.iteritems():
+        for k, v in log.items():
             if k != tvar:
                 block.set0d(k, v)
         block.set2d('derivatives', derivatives)

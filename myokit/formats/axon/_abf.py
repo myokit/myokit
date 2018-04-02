@@ -363,7 +363,7 @@ class AbfFile(object):
         def show_dict(name, d, tab=''):
             m = max(0, 38 - len(tab) - int(0.1 + len(name) / 2))
             out.append(tab + '-' * m + '  ' + name + '  ' + '-' * m)
-            for n, v in d.iteritems():
+            for n, v in d.items():
                 n = str(n)
                 if type(v) == OrderedDict:
                     show_dict(n, v, tab + '  ')
@@ -435,9 +435,9 @@ class AbfFile(object):
             time = []
             ad_channels = []
             da_channels = []
-            for i in xrange(self.data_channels()):
+            for i in range(self.data_channels()):
                 ad_channels.append([])
-            for i in xrange(self.protocol_channels()):
+            for i in range(self.protocol_channels()):
                 da_channels.append([])
             for sweep in self:
                 for channel in sweep:
@@ -862,7 +862,7 @@ class AbfFile(object):
                 return index in h['epochInfoPerDAC']
 
             def einfo(index):
-                for e in h['epochInfoPerDAC'][index].itervalues():
+                for e in h['epochInfoPerDAC'][index].values():
                     yield {
                         'type': e['nEpochType'],
                         'init_duration': e['lEpochInitDuration'],

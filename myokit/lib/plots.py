@@ -93,7 +93,7 @@ def simulation_times(
         bucket_x = np.zeros(nbuckets)
         bucket_y = np.zeros(nbuckets)
         hi = zero
-        for k in xrange(nbuckets):
+        for k in range(nbuckets):
             lo = hi
             hi = zero + (k + 1) * bucket_w
             bucket_x[k] = lo
@@ -131,7 +131,7 @@ def simulation_times(
     except KeyError:
         raise ValueError(
             'Selected mode not found. Avaiable modes are: '
-            + ', '.join(['"' + x + '"' for x in modes.iterkeys()]))
+            + ', '.join(['"' + x + '"' for x in modes.keys()]))
     return fn(axes, time, realtime, evaluations)
 
 

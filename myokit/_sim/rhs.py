@@ -99,7 +99,7 @@ class RhsBenchmarker(myokit.CModule):
         self._check_log(log)
         # Get first and last+1 position to check
         start = 0
-        stop = len(log[self._model.states().next().qname()])
+        stop = len(log[next(self._model.states()).qname()])
         # Check repeats
         repeats = int(repeats)
         # Create benchmarking function
@@ -138,7 +138,7 @@ class RhsBenchmarker(myokit.CModule):
         self._check_log(log)
         # Get first and last+1 position to check
         start = 0
-        stop = len(log[self._model.states().next().qname()])
+        stop = len(log[next(self._model.states()).qname()])
         # Check repeats
         repeats = int(repeats)
         # Create benchmarking function
@@ -161,7 +161,7 @@ class RhsBenchmarker(myokit.CModule):
         import numpy as np
         times = np.array(times, copy=False)
         # Remove outliers twice
-        for i in xrange(0, 2):
+        for i in range(0, 2):
             avg = np.mean(times)
             std = np.std(times)
             s3 = std * 3

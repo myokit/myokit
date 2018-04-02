@@ -291,7 +291,7 @@ def cmaes(
     if not verbose:
         options.set('verbose', -9)
     # Start one or multiple runs
-    for i in xrange(1 + ipop):
+    for i in range(1 + ipop):
         # Set population size, increase for ipop restarts
         options.set('popsize', n)
         if verbose:
@@ -591,7 +591,7 @@ def map_grid(f, bounds, n, parallel=False, args=None):
     x = []
     n = iter(npoints)
     for xmin, xmax in bounds:
-        x.append(np.linspace(xmin, xmax, n.next()))
+        x.append(np.linspace(xmin, xmax, next(n)))
     # Create a grid from these points
     x = np.array(np.meshgrid(*x, indexing='ij'))
     # Re-organise the grid to be a series of nd-dimensional points
@@ -789,7 +789,7 @@ multiprocessing.html#all-platforms>`_ for details).
         Cleans up any dead workers & return the number of workers tidied up.
         """
         cleaned = 0
-        for k in xrange(len(self._workers) - 1, -1, -1):
+        for k in range(len(self._workers) - 1, -1, -1):
             w = self._workers[k]
             if w.exitcode is not None:
                 w.join()
@@ -803,7 +803,7 @@ multiprocessing.html#all-platforms>`_ for details).
         """
         Populates (but usually repopulates) the worker pool.
         """
-        for k in xrange(self._nworkers - len(self._workers)):
+        for k in range(self._nworkers - len(self._workers)):
             w = _Worker(
                 self._function,
                 self._args,
@@ -1241,7 +1241,7 @@ def pso(
     # Initialize particles
     brange = upper - lower
     nhints = len(hints)
-    for i in xrange(n):
+    for i in range(n):
         if i < nhints:
             xs.append(hints[i])
         else:
@@ -1274,7 +1274,7 @@ def pso(
     else:
         evaluator = SequentialEvaluator(function, args=args)
     # Start searching
-    for iteration in xrange(1, 1 + max_iter):
+    for iteration in range(1, 1 + max_iter):
         # Check target criterion
         if fg <= target:
             if verbose:
@@ -1288,7 +1288,7 @@ def pso(
         else:
             fs = evaluator.evaluate(xs)
         # Update particles
-        for i in xrange(n):
+        for i in range(n):
             # Update best local position and score
             if fs[i] < fl[i]:
                 fl[i] = fs[i]
@@ -1472,8 +1472,8 @@ def quadfit(x, y):
     # obtain the constants for the polynomial.
     R = np.zeros((m, m))
     k = 0
-    for i in xrange(1 + n):
-        for j in xrange(i, 1 + n):
+    for i in range(1 + n):
+        for j in range(i, 1 + n):
             R[:, k] = T[:, i] * T[:, j]
             k += 1
     p = np.linalg.solve(R, Y)
@@ -1486,7 +1486,7 @@ def quadfit(x, y):
     # by n, such that y = A + B' * X + x' * D * x
     D = np.zeros((n, n))
     k = 1 + n
-    for i in xrange(n):
+    for i in range(n):
         D[i, i:n] = p[k:k + n - i].transpose()
         k += n - i
     # Now, C = D' + D
@@ -1760,9 +1760,9 @@ def snes(
     if callback is not None:
         callback(np.array(hint, copy=True), fbest)
     # Start running
-    for iteration in xrange(1, 1 + max_iter):
+    for iteration in range(1, 1 + max_iter):
         # Create new samples
-        ss = np.array([np.random.normal(0, 1, d) for i in xrange(n)])
+        ss = np.array([np.random.normal(0, 1, d) for i in range(n)])
         xs = mu + sigmas * ss
         # Evaluate at the samples
         fxs = evaluator.evaluate(xs)
@@ -1969,7 +1969,7 @@ def voronoi_regions(x, y, f, xlim, ylim):
     center = vor.points.mean(axis=0)
     radius2 = 2 * np.sqrt((xmax - xmin)**2 + (ymax - ymin)**2)
     # Create a list containing the set of vertices defining each region
-    regions = [set() for i in xrange(n)]
+    regions = [set() for i in range(n)]
     for (p1, p2), (v1, v2) in izip(vor.ridge_points, vor.ridge_vertices):
         # Ensure only v1 can every be -1
         if v1 > v2:
@@ -2171,7 +2171,7 @@ class _Worker(multiprocessing.Process):
         sys.stdout = open(os.devnull, 'w')
         sys.stderr = open(os.devnull, 'w')
         try:
-            for k in xrange(self._max_tasks):
+            for k in range(self._max_tasks):
                 i, x = self._tasks.get()
                 f = self._function(x, *self._args)
                 self._results.put((i, f))
@@ -2376,10 +2376,10 @@ def xnes(
     if callback is not None:
         callback(np.array(hint, copy=True), fbest)
     # Start running
-    for iteration in xrange(1, 1 + max_iter):
+    for iteration in range(1, 1 + max_iter):
         # Create new samples
-        zs = np.array([np.random.normal(0, 1, d) for i in xrange(n)])
-        xs = np.array([mu + np.dot(A, zs[i]) for i in xrange(n)])
+        zs = np.array([np.random.normal(0, 1, d) for i in range(n)])
+        xs = np.array([mu + np.dot(A, zs[i]) for i in range(n)])
         # Evaluate at the samples
         fxs = evaluator.evaluate(xs)
         # Order the normalized samples according to the scores

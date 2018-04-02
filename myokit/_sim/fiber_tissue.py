@@ -190,8 +190,8 @@ class FiberTissueSimulation(myokit.CModule):
                 'The width of the stimulus pulse must be non-negative.')
         nx_paced = min(nx_paced, self._ncellsf[0])
         self._paced_cells = []
-        for y in xrange(self._ncellsf[1]):
-            for x in xrange(min(self._ncellsf[0], nx_paced)):
+        for y in range(self._ncellsf[1]):
+            for x in range(min(self._ncellsf[0], nx_paced)):
                 self._paced_cells.append(x + y * self._ncellsf[0])
 
         # Check conductivities
@@ -457,7 +457,7 @@ class FiberTissueSimulation(myokit.CModule):
         def find_error_position(log):
             ifirst = None   # Log list index
             kfirst = None   # Log key
-            for key, ar in log.iteritems():
+            for key, ar in log.items():
                 if ifirst is None:
                     if not np.isfinite(ar[-1]):
                         # First NaN found
@@ -574,7 +574,7 @@ class FiberTissueSimulation(myokit.CModule):
         states = []
         bound = []
         max_states = 3
-        for k in xrange(ifirst, ifirst - max_states - 1, -1):
+        for k in range(ifirst, ifirst - max_states - 1, -1):
             if k < 0:
                 break
             s, b = state(k, icell)
@@ -738,7 +738,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Create list of intermediary fiber variables that need to be logged
         inter_logf = []
         vars_checked = set()
-        for var in logf.iterkeys():
+        for var in logf.keys():
             var = myokit.split_key(var)[1]
             if var in vars_checked:
                 continue
@@ -750,7 +750,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Create list of intermediary tissue variables that need to be logged
         inter_logt = []
         vars_checked = set()
-        for var in logt.iterkeys():
+        for var in logt.keys():
             var = myokit.split_key(var)[1]
             if var in vars_checked:
                 continue

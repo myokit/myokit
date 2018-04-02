@@ -355,7 +355,7 @@ class TinyHtmlNode(object):
         if self._attributes:
             buf.extend([
                 ' ' + k + '="' + v.replace('"', '') + '"' for k, v in
-                self._attributes.iteritems()])
+                self._attributes.items()])
         if self._math:
             buf.extend(('>', self._math, '</', self._name, '>'))
         elif self._pos_kids:

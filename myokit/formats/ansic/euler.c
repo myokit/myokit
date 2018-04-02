@@ -53,7 +53,7 @@ comp_in, comp_out = model.map_component_io(
 # Time and pace will be passed in to every function, so any variable bound to
 # time or pace can be removed.
 def clear_io_list(comp_list):
-    for comp, clist in comp_list.iteritems():
+    for comp, clist in comp_list.items():
         for var in bound_variables:
             lhs = var.lhs()
             while lhs in clist:
@@ -131,7 +131,7 @@ for var in model.states():
 
 /* Define constants, calculated constants */
 <?
-for group in equations.itervalues():
+for group in equations.values():
     for eq in group.equations(const=True):
         if isinstance(eq.rhs, myokit.Number):
             print('#define ' + v(eq.lhs) + ' ' + w.ex(eq.rhs))
@@ -141,7 +141,7 @@ for group in equations.itervalues():
 
 /* Components */
 <?
-for comp, ilist in comp_in.iteritems():
+for comp, ilist in comp_in.items():
     olist = comp_out[comp]
     if len(olist) == 0:
         continue
@@ -232,7 +232,7 @@ for var in model.states():
         iterate(time, dt, state);
         time = dt * steps;
         if (steps % 100 == 0) {
-            printf("%4.3f     %14.6le\n", time, <?= v(model.states().next()) ?>);
+            printf("%4.3f     %14.6le\n", time, <?= v(next(model.states())) ?>);
         }
         steps += 1;
     }

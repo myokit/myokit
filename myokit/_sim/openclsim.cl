@@ -47,7 +47,7 @@ comp_in, comp_out = model.map_component_io(
 # Bound variables will be passed in to every function as needed, so they can be
 # removed from the lists
 def clear_io_list(comp_list):
-    for comp, clist in comp_list.iteritems():
+    for comp, clist in comp_list.items():
         for var in bound_variables:
             lhs = var.lhs()
             while lhs in clist:
@@ -61,7 +61,7 @@ clear_io_list(comp_out)
 
 # Components that use one of the bound variables should get it as an input
 # variable.
-for comp, clist in comp_in.iteritems():
+for comp, clist in comp_in.items():
     for bound in bound_variables:
         lhs = bound.lhs()
         if lhs in clist:
@@ -156,7 +156,7 @@ else:
 
 print('')
 print('/* Constants */')
-for group in equations.itervalues():
+for group in equations.values():
     for eq in group.equations(const=True):
         if isinstance(eq.rhs, myokit.Number):
             if eq.lhs.var() not in fields:
@@ -164,7 +164,7 @@ for group in equations.itervalues():
 
 print('')
 print('/* Calculated constants */')
-for group in equations.itervalues():
+for group in equations.values():
     for eq in group.equations(const=True):
         if not isinstance(eq.rhs, myokit.Number):
             if eq.lhs.var() not in fields:
@@ -192,7 +192,7 @@ for k, var in enumerate(fields):
 #print('*/')
 
 print('')
-for comp, ilist in comp_in.iteritems():
+for comp, ilist in comp_in.items():
     # Comment
     print('/*')
     print('Component: ' + comp.name())
@@ -536,7 +536,7 @@ for var in model.states():
     print('#undef ' + var.uname())
 print('')
 print('/* Remove constant definitions */')
-for group in equations.itervalues():
+for group in equations.values():
     for eq in group.equations(const=True):
         print('#undef ' + v(eq.lhs))
 ?>

@@ -200,10 +200,10 @@ class DataLog(OrderedDict):
         log = DataLog()
         log._time = self._time
         if numpy:
-            for k, v in self.iteritems():
+            for k, v in self.items():
                 log[str(k)] = np.array(v, copy=True, dtype=float)
         else:
-            for k, v in self.iteritems():
+            for k, v in self.items():
                 log[str(k)] = list(v)
         return log
 
@@ -231,7 +231,7 @@ class DataLog(OrderedDict):
         log = DataLog()
         log._time = self._time
         # Add data
-        for k, v1 in self.iteritems():
+        for k, v1 in self.items():
             v2 = other[k]
             if isinstance(v1, np.ndarray) or isinstance(v2, np.ndarray):
                 # Concatenation copies data
@@ -297,7 +297,7 @@ class DataLog(OrderedDict):
         out._time = self._time
         out[self._time] = logs[0][self._time]
         for i, log in enumerate(logs):
-            for k, v in log.iteritems():
+            for k, v in log.items():
                 if k != self._time:
                     out[k, i] = v
         return out
@@ -310,7 +310,7 @@ class DataLog(OrderedDict):
         Returns True if one of the variables in this DataLog has a ``NaN`` as
         its final logged value.
         """
-        for k, d in self.iteritems():
+        for k, d in self.items():
             if len(d) > 0 and np.isnan(d[-1]):
                 return True
         return False
@@ -364,7 +364,7 @@ class DataLog(OrderedDict):
         log2 = DataLog()
         log1._time = self._time
         log2._time = self._time
-        for k, v in self.iteritems():
+        for k, v in self.items():
             if isinstance(v, np.ndarray):
                 log1[k] = np.array(v[:i], copy=True, dtype=float)
                 log2[k] = np.array(v[i:], copy=True, dtype=float)
@@ -381,7 +381,7 @@ class DataLog(OrderedDict):
         """
         log = DataLog()
         log._time = self._time
-        for k, v in self.iteritems():
+        for k, v in self.items():
             if isinstance(v, np.ndarray):
                 log[k] = np.array(v[a:b], copy=True, dtype=float)
             else:
@@ -395,7 +395,7 @@ class DataLog(OrderedDict):
         """
         log = DataLog()
         log._time = self._time
-        for k, v in self.iteritems():
+        for k, v in self.items():
             if isinstance(v, np.ndarray):
                 log[k] = np.array(v[i:], copy=True, dtype=float)
             else:
@@ -409,7 +409,7 @@ class DataLog(OrderedDict):
         """
         log = DataLog()
         log._time = self._time
-        for k, v in self.iteritems():
+        for k, v in self.items():
             if isinstance(v, np.ndarray):
                 log[k] = np.array(v[:i], copy=True, dtype=float)
             else:
@@ -425,7 +425,7 @@ class DataLog(OrderedDict):
         ``['0.membrane.V', '1.membrane.V', '2.membrane,V', ...]``, or
         ``['0.0.membrane.V', '0.1.membrane.V', '1.0.membrane,V', ...]``.
         """
-        keys = [x for x in self.iterkeys() if x.endswith('.' + str(query))]
+        keys = [x for x in self.keys() if x.endswith('.' + str(query))]
         keys.sort()
         return keys
 
@@ -436,7 +436,7 @@ class DataLog(OrderedDict):
         """
         if len(self) == 0:
             return 0
-        return len(self.itervalues().next())
+        return len(next(iter(self.values())))
 
     @staticmethod
     def load(filename, progress=None, msg='Loading DataLog'):
@@ -516,7 +516,7 @@ class DataLog(OrderedDict):
             head = iter(head)
 
             # Skip first line
-            head.next()
+            next(head)
 
             # Get field information, data type and size is given redundantly
             fields = []
@@ -529,10 +529,10 @@ class DataLog(OrderedDict):
             # Parse header in new format:
             # Number of fields, length of data arrays, data type, time, fields
             head = iter(head.splitlines())
-            n = int(head.next())
-            data_size = int(head.next())
-            data_type = head.next()
-            time = head.next()
+            n = int(next(head))
+            data_size = int(next(head))
+            data_type = next(head)
+            time = next(head)
             if time:
                 # Note, this field doesn't have to be present in the log!
                 log._time = time
@@ -636,7 +636,7 @@ class DataLog(OrderedDict):
             # Get enumerated iterator over characters
             line = enumerate(line)
             try:
-                i, c = line.next()
+                i, c = next(line)
             except StopIteration:
                 # Empty line
                 return log
@@ -649,7 +649,7 @@ class DataLog(OrderedDict):
                 # Skip whitespace
                 try:
                     while c in whitespace:
-                        i, c = line.next()
+                        i, c = next(line)
                 except StopIteration:
                     break
                 if c == quote:
@@ -657,13 +657,13 @@ class DataLog(OrderedDict):
                     run2 = True
                     while run2:
                         try:
-                            i, c = line.next()
+                            i, c = next(line)
                         except StopIteration:
                             e(1, i, 'Unexpected end-of-line inside quoted'
                                 ' string.')
                         if c == quote:
                             try:
-                                i, c = line.next()
+                                i, c = next(line)
                                 if c == quote:
                                     text.append(quote)
                                 elif c == delim or c in whitespace:
@@ -680,14 +680,14 @@ class DataLog(OrderedDict):
                     while run1 and c != delim:
                         try:
                             text.append(c)
-                            i, c = line.next()
+                            i, c = next(line)
                         except StopIteration:
                             run1 = False
                 # Append new field to list
                 keys.append(''.join(text))
                 # Read next character
                 try:
-                    i, c = line.next()
+                    i, c = next(line)
                 except StopIteration:
                     run1 = False
             if c == delim:
@@ -741,7 +741,7 @@ class DataLog(OrderedDict):
         """
         log = DataLog()
         log._time = self._time
-        for k, v in self.iteritems():
+        for k, v in self.items():
             log[k] = np.asarray(v)
         return log
 
@@ -820,7 +820,7 @@ class DataLog(OrderedDict):
         out._time = self._time
         out[self._time] = rtime
         time_part = time[imin:imax]
-        for key, data in self.iteritems():
+        for key, data in self.items():
             if key != self._time:
                 s = Spline(time_part, data[imin:imax], k=1, s=0)
                 out[key] = s(rtime)
@@ -866,14 +866,14 @@ class DataLog(OrderedDict):
 
         # Number of fields, length of data arrays, data type, time, fields
         head_str.append(bytes(len(self)))
-        head_str.append(bytes(len(self.itervalues().next())))
+        head_str.append(bytes(len(next(iter(self.values())))))
         head_str.append(dtype)
 
         # Note: the time field might not be present in the log!
         head_str.append(self._time if self._time else '')
 
         # Write field names and data
-        for k, v in self.iteritems():
+        for k, v in self.items():
             head_str.append(k)
             # Create array, ensure it's litte-endian
             ar = array.array(dtype, v)
@@ -968,7 +968,7 @@ class DataLog(OrderedDict):
         with open(filename, 'wb') as f:
             # Convert dict structure to ordered sequences
             if order:
-                if set(order) != set(self.iterkeys()):
+                if set(order) != set(self.keys()):
                     raise ValueError(
                         'The given `order` sequence must contain all the same'
                         ' keys present in the log.')
@@ -982,12 +982,12 @@ class DataLog(OrderedDict):
                     dat = self[self._time]
                     keys.append(self._time)
                     data.append(dat)
-                    for key, dat in sorted(self.iteritems()):
+                    for key, dat in sorted(self.items()):
                         if key != self._time:
                             keys.append(key)
                             data.append(dat)
                 else:
-                    for key, dat in sorted(self.iteritems()):
+                    for key, dat in sorted(self.items()):
                         keys.append(key)
                         data.append(dat)
 
@@ -1009,10 +1009,10 @@ class DataLog(OrderedDict):
 
             # Write data
             data = [iter(x) for x in data]
-            for i in xrange(0, n):
+            for i in range(0, n):
                 line = []
                 for d in data:
-                    line.append(fmat(d.next()))
+                    line.append(fmat(next(d)))
                 f.write(delimiter.join(line) + eol)
 
     def set_time_key(self, key):
@@ -1080,7 +1080,7 @@ class DataLog(OrderedDict):
                 k += 1
         # Create logs
         logs = []
-        for i in xrange(0, nlogs - 1):
+        for i in range(0, nlogs - 1):
             log = DataLog()
             log._time = self._time
             # Get indices
@@ -1090,7 +1090,7 @@ class DataLog(OrderedDict):
             if closed_intervals and time[imax] == tstarts[i + 1]:
                 imax += 1
             # Select sections of log and append
-            for k, v in self.iteritems():
+            for k, v in self.items():
                 d = self[k][imin:imax]
                 # Numpy? Then copy data
                 if isinstance(d, np.ndarray):
@@ -1106,7 +1106,7 @@ class DataLog(OrderedDict):
         if not closed_intervals and time[-1] >= tmin + nlogs * period:
             imax -= 1
         # Select sections of log and append
-        for k, v in self.iteritems():
+        for k, v in self.items():
             d = self[k][imin:imax]
             # Numpy? Then copy data
             if isinstance(d, np.ndarray):
@@ -1123,7 +1123,7 @@ class DataLog(OrderedDict):
                 for k, log in enumerate(logs):
                     tlist = log[self._time]
                     tdiff = k * period
-                    for i in xrange(len(tlist)):
+                    for i in range(len(tlist)):
                         tlist[i] -= tdiff
         return logs
 
@@ -1207,7 +1207,7 @@ class DataLog(OrderedDict):
                 raise myokit.InvalidDataLogError(
                     'Time must be non-decreasing.')
         if len(self) > 0:
-            n = set([len(v) for v in self.itervalues()])
+            n = set([len(v) for v in self.values()])
             if len(n) > 1:
                 raise myokit.InvalidDataLogError(
                     'All entries in a data log must have the same length.')
@@ -1281,7 +1281,7 @@ class DataLog(OrderedDict):
                 id_set[k].add(i)
         # Create variable info objects
         infos = {}
-        for name, id_list in id_lists.iteritems():
+        for name, id_list in id_lists.items():
             id_set = id_sets[name]
             # Check if the data is regular.
             n = len(id_list)
@@ -1685,7 +1685,7 @@ def prepare_log(
                         ' cell-specific variable <' + str(kname) + '>.')
         # Check dict values can be appended to
         m = 'append'
-        for v in log.itervalues():
+        for v in log.values():
             if not (hasattr(v, m) and callable(getattr(v, m))):
                 raise Exception(
                     'Logging dict must map qnames to objects'
@@ -1785,10 +1785,10 @@ def dimco(*dims):
     """
     def inner(dims, index, prefix):
         if index == n:
-            for i in xrange(0,dims[index]):
+            for i in range(0,dims[index]):
                 yield prefix + (i,)
         else:
-            for i in xrange(0,dims[index]):
+            for i in range(0,dims[index]):
                 prefix2 = prefix + (i, )
                 for y in inner(dims, index + 1, prefix2):
                     yield y
@@ -1796,10 +1796,10 @@ def dimco(*dims):
     """
     def inner(dims, index, postfix):
         if index == 0:
-            for i in xrange(0, dims[index]):
+            for i in range(0, dims[index]):
                 yield (i,) + postfix
         else:
-            for i in xrange(0, dims[index]):
+            for i in range(0, dims[index]):
                 postfix2 = (i, ) + postfix
                 for y in inner(dims, index - 1, postfix2):
                     yield y

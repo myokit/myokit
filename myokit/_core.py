@@ -86,7 +86,7 @@ class ObjectWithMeta(object):
         """
         Clones this object's metadata into ``clone``.
         """
-        for k, v in self.meta.iteritems():
+        for k, v in self.meta.items():
             clone.meta[str(k)] = str(v)
 
     def _code_meta(self, b, tabs=0, ignore=None):
@@ -97,7 +97,7 @@ class ObjectWithMeta(object):
         """
         if not ignore:
             ignore = []
-        for k, v in sorted(self.meta.iteritems()):
+        for k, v in sorted(self.meta.items()):
             if k in ignore:
                 continue
             v = str(v)
@@ -485,7 +485,7 @@ class VarOwner(ModelPart, VarProvider):
             return self.add_variable(name)
         except myokit.DuplicateName:
             n_tries = 256
-            for i in xrange(n_tries):
+            for i in range(n_tries):
                 try:
                     return self.add_variable(name + '_' + str(1 + i))
                 except DuplicateName:
@@ -530,14 +530,14 @@ class VarOwner(ModelPart, VarProvider):
         if deep:
             if sort:
                 def viter(owner):
-                    for n, v in sorted(owner._variables.iteritems()):
+                    for n, v in sorted(owner._variables.items()):
                         yield v
                         for w in v._create_variable_stream(True, True):
                             yield w
                 return viter(self)
             else:
                 def viter(owner):
-                    for v in owner._variables.itervalues():
+                    for v in owner._variables.values():
                         yield v
                         for w in v._create_variable_stream(True, False):
                             yield w
@@ -545,11 +545,11 @@ class VarOwner(ModelPart, VarProvider):
         else:
             if sort:
                 def viter(owner):
-                    for n, v in sorted(owner._variables.iteritems()):
+                    for n, v in sorted(owner._variables.items()):
                         yield v
                 return viter(self)
             else:
-                return self._variables.itervalues()
+                return self._variables.values()
 
     def get(self, name, class_filter=None):
         """
@@ -783,7 +783,7 @@ class Model(ObjectWithMeta, VarProvider):
             return self.add_component(name)
         except myokit.DuplicateName:
             n_tries = 256
-            for i in xrange(n_tries):
+            for i in range(n_tries):
                 try:
                     return self.add_component(name + '_' + str(1 + i))
                 except DuplicateName:
@@ -853,7 +853,7 @@ class Model(ObjectWithMeta, VarProvider):
         this model.
         """
         # New dict allows removing labels using this iterator
-        return dict(self._bindings).iteritems()
+        return dict(self._bindings).items()
 
     def check_units(self, mode=myokit.UNIT_TOLERANT):
         """
@@ -940,7 +940,7 @@ class Model(ObjectWithMeta, VarProvider):
         # Copy meta data
         self._clone_metadata(clone)
         # Clone component/variable structure
-        for c in self._components.itervalues():
+        for c in self._components.values():
             c._clone1(clone)
         # Clone state
         for k, v in enumerate(self._state):
@@ -953,7 +953,7 @@ class Model(ObjectWithMeta, VarProvider):
             lhsmap[myokit.Derivative(myokit.Name(v))] = myokit.Derivative(
                 myokit.Name(clone.get(v.qname())))
         # Clone component/variable contents (equations, references)
-        for k, c in self._components.iteritems():
+        for k, c in self._components.items():
             c._clone2(clone[k], lhsmap)
         # Copy unique names
         clone.reserve_unique_names(*iter(self._reserved_unames))
@@ -993,7 +993,7 @@ class Model(ObjectWithMeta, VarProvider):
             n = max([len(name) for name in names])
             names = iter(names)
             for eq in self.inits():
-                name = names.next()
+                name = next(names)
                 b.write(
                     pre + name + ' ' * (n - len(name)) + ' = ' + eq.rhs.code()
                     + '\n')
@@ -1010,9 +1010,9 @@ class Model(ObjectWithMeta, VarProvider):
             def i(s):
                 for k, v in s:
                     yield v
-            return i(sorted(self._components.iteritems()))
+            return i(sorted(self._components.items()))
         else:
-            return self._components.itervalues()
+            return self._components.values()
 
     def component_cycles(self):
         """
@@ -1202,7 +1202,7 @@ class Model(ObjectWithMeta, VarProvider):
             # Check if values in ``inputs`` are all numbers
             temp = inputs
             inputs = {}
-            for label, number in temp.iteritems():
+            for label, number in temp.items():
                 if label in self._bindings:
                     inputs[label] = float(number)
             del(temp)
@@ -1218,7 +1218,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Evaluate all variables in solvable order
         values = {}
-        for group in order.itervalues():
+        for group in order.values():
             for eq in group:
                 values[eq.lhs] = eq.rhs.eval(
                     values, precision=precision, ignore_errors=ignore_errors)
@@ -1234,7 +1234,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Reset original values of variables set to external inputs
         if inputs is not None:
-            for var, rhs in org_inputs.iteritems():
+            for var, rhs in org_inputs.items():
                 var.set_rhs(rhs)
 
         # Return calculated state
@@ -1338,7 +1338,7 @@ class Model(ObjectWithMeta, VarProvider):
             add_dep(lhs)
 
         # Filter out dependencies on arguments
-        for dps in shallow.itervalues():
+        for dps in shallow.values():
             for arg in arguments:
                 if arg in dps:
                     dps.remove(arg)
@@ -1347,7 +1347,7 @@ class Model(ObjectWithMeta, VarProvider):
         eq_list = []
         while len(shallow):
             done = []
-            for lhs, dps in shallow.iteritems():
+            for lhs, dps in shallow.items():
                 if len(dps) == 0:
                     eq_list.append(Equation(lhs, equations[lhs]))
                     done.append(lhs)
@@ -1355,7 +1355,7 @@ class Model(ObjectWithMeta, VarProvider):
                 raise Exception('Failed to solve system of equations.')
             for lhs in done:
                 del(shallow[lhs])
-                for dps in shallow.itervalues():
+                for dps in shallow.values():
                     if lhs in dps:
                         dps.remove(lhs)
 
@@ -1535,7 +1535,7 @@ class Model(ObjectWithMeta, VarProvider):
         Returns an iterator over all (label : variable) mappings in this model.
         """
         # New dict allows removing labels using this iterator
-        return dict(self._labels).iteritems()
+        return dict(self._labels).items()
 
     def __len__(self):
         return len(self._components)
@@ -1582,14 +1582,14 @@ class Model(ObjectWithMeta, VarProvider):
         for comp in self.components():
             deps[comp] = set()
         # Gather dependencies per component
-        for lhs, dps in shallow.iteritems():
+        for lhs, dps in shallow.items():
             c1 = lhs.var().parent(Component)
             for dep in dps:
                 c2 = dep.var().parent(Component)
                 if c2 != c1:
                     deps[c1].add(c2)
         # Convert sets to lists
-        for comp, dps in deps.iteritems():
+        for comp, dps in deps.items():
             deps[comp] = list(dps)
         # Return
         return deps
@@ -1653,7 +1653,7 @@ class Model(ObjectWithMeta, VarProvider):
                 do[var.parent(Component)].add(var.lhs())
 
         # Add inputs and outputs
-        for user, deps in shallow.iteritems():
+        for user, deps in shallow.items():
             c_user = user.var().parent(Component)
             for usee in deps:
                 c_usee = usee.var().parent(Component)
@@ -1779,7 +1779,7 @@ class Model(ObjectWithMeta, VarProvider):
         # Collapse nesting
         if collapse:
             nested = []
-            for x, y in deep.iteritems():
+            for x, y in deep.items():
                 var = x.var()
                 if var.is_nested():
                     nested.append(x)
@@ -1789,7 +1789,7 @@ class Model(ObjectWithMeta, VarProvider):
                     for rhs in y:
                         var.add(rhs)
             for x in nested:
-                for y in deep.itervalues():
+                for y in deep.values():
                     if x in y:
                         y.remove(x)
             for x in nested:
@@ -1797,7 +1797,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Filter encompassed variables
         if filter_encompassed:
-            for x, xdeps in deep.iteritems():
+            for x, xdeps in deep.items():
                 tofilter = []
                 for y in xdeps:
                     if y.is_state_value():
@@ -1868,7 +1868,7 @@ class Model(ObjectWithMeta, VarProvider):
         # Collapse nested variables
         if collapse:
             nested = []
-            for x, y in out.iteritems():
+            for x, y in out.items():
                 var = x.var()
                 if var.is_nested():
                     nested.append(x)
@@ -1878,7 +1878,7 @@ class Model(ObjectWithMeta, VarProvider):
                     for rhs in y:
                         var.add(rhs)
             for x in nested:
-                for y in out.itervalues():
+                for y in out.values():
                     if x in y:
                         y.remove(x)
             for x in nested:
@@ -2006,7 +2006,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         unused = []
         variables = {}
-        for label, var in self._bindings.iteritems():
+        for label, var in self._bindings.items():
             try:
                 variables[var] = labels[label]
             except KeyError:
@@ -2288,14 +2288,14 @@ class Model(ObjectWithMeta, VarProvider):
         cdeps = self.map_component_dependencies()
         while True:
             new = []
-            for comp, deps in cdeps.iteritems():
+            for comp, deps in cdeps.items():
                 if comp not in solvable_comps and len(deps) == 0:
                     solvable_comps.append(comp)
                     new.append(comp)
             if len(new) == 0:
                 break
             for comp in new:
-                for deps in cdeps.itervalues():
+                for deps in cdeps.values():
                     if comp in deps:
                         deps.remove(comp)
 
@@ -2327,7 +2327,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         def expand(par):
             expd = []
-            for var, eq in nested.iteritems():
+            for var, eq in nested.items():
                 if var._parent == par:
                     expand(var)
                     eq_list.append(eq)
@@ -2349,11 +2349,11 @@ class Model(ObjectWithMeta, VarProvider):
                 done.append(lhs)
 
         # Now handle each component, as far as we get
-        for comp, eqs in todo.iteritems():
+        for comp, eqs in todo.items():
             eq_list = out[comp.name()]
             while True:
                 done = []
-                for lhs, eq in eqs.iteritems():
+                for lhs, eq in eqs.items():
                     if len(deps[lhs]) == 0:
                         addeq(lhs, eq, done)
                 if len(done) == 0:
@@ -2362,15 +2362,15 @@ class Model(ObjectWithMeta, VarProvider):
                     # Remove from todo list, remove all deps on done lhs's
                     del eqs[lhs]
                     del deps[lhs]
-                    for dps in deps.itervalues():
+                    for dps in deps.values():
                         if lhs in dps:
                             dps.remove(lhs)
 
         # Get remaining equations
         todd = todo
         todo = {}
-        for comp, eqs in todd.iteritems():
-            for lhs, eq in eqs.iteritems():
+        for comp, eqs in todd.items():
+            for lhs, eq in eqs.items():
                 todo[lhs] = eq
         del(todd)   # Bye todd!
 
@@ -2378,7 +2378,7 @@ class Model(ObjectWithMeta, VarProvider):
         out['*remaining*'] = eq_list = EquationList()
         while True:
             done = []
-            for lhs, eq in todo.iteritems():
+            for lhs, eq in todo.items():
                 if len(deps[lhs]) == 0:
                     addeq(lhs, eq, done)
             if len(done) == 0:
@@ -2386,7 +2386,7 @@ class Model(ObjectWithMeta, VarProvider):
             for lhs in done:
                 del todo[lhs]
                 del deps[lhs]
-                for dps in deps.itervalues():
+                for dps in deps.values():
                     if lhs in dps:
                         dps.remove(lhs)
         if len(todo):
@@ -2461,7 +2461,7 @@ class Model(ObjectWithMeta, VarProvider):
         eqs = EquationList()
         while deps:
             todo = set()
-            for lhs, dps in deps.iteritems():
+            for lhs, dps in deps.items():
                 if not dps:
                     todo.add(lhs)
             if not todo:
@@ -2469,7 +2469,7 @@ class Model(ObjectWithMeta, VarProvider):
             for lhs in todo:
                 del(deps[lhs])
                 eqs.append(Equation(lhs, lhs.rhs()))
-            for lhs, dps in deps.iteritems():
+            for lhs, dps in deps.items():
                 deps[lhs] -= todo
         return eqs
 
@@ -2617,7 +2617,7 @@ class Model(ObjectWithMeta, VarProvider):
             # Deep validation
             c.validate(fix_crudely)
         # Test component mapping
-        for n, c in self._components.iteritems():
+        for n, c in self._components.items():
             if n != c.qname():
                 self._valid = False
                 raise myokit.IntegrityError(
@@ -2682,8 +2682,8 @@ class Model(ObjectWithMeta, VarProvider):
         # Follow all state variables (unless already visited), all bound
         # variables and all used variables.
         used = [x for x in self._state]
-        used += [x for x in self._bindings.itervalues()]
-        used += [x for x in self._labels.itervalues()]
+        used += [x for x in self._bindings.values()]
+        used += [x for x in self._labels.values()]
 
         # Check for cycles
         trail = []
@@ -2847,7 +2847,7 @@ class Component(VarOwner):
         """
         model = component.model()
         # Clone alias map
-        for k, v in self._alias_map.iteritems():
+        for k, v in self._alias_map.items():
             component.add_alias(k, model.get(v.qname()))
         # Clone equations
         for v in self.variables():
@@ -2909,7 +2909,7 @@ class Component(VarOwner):
         Returns an alias for the :class:`Variable` variable. Raises a
         ``KeyError`` if no such alias is found.
         """
-        for alias, var in self._alias_map.iteritems():
+        for alias, var in self._alias_map.items():
             if var == variable:
                 return alias
         raise KeyError('No alias found for <' + variable.qname() + '>.')
@@ -2923,7 +2923,7 @@ class Component(VarOwner):
         # Append meta properties
         self._code_meta(b, t)
         # Append aliases
-        for alias, var in self._alias_map.iteritems():
+        for alias, var in self._alias_map.items():
             b.write(pre + 'use ' + var.qname() + ' as ' + alias + '\n')
         # Append values
         for v in self.variables(sort=True):
@@ -2948,7 +2948,7 @@ class Component(VarOwner):
         Returns ``True`` if this :class:`Component` has an alias for the given
         :class:`Variable`.
         """
-        return variable in self._alias_map.itervalues()
+        return variable in self._alias_map.values()
 
     def remove_alias(self, name):
         """
@@ -2961,7 +2961,7 @@ class Component(VarOwner):
         Removes any alias for the given variable from this :class:`Component`.
         """
         todo = []
-        for name, avar in self._alias_map.iteritems():
+        for name, avar in self._alias_map.items():
             if avar == var:
                 todo.append(name)
         for name in todo:

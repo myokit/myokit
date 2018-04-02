@@ -413,7 +413,7 @@ def parse_model_from_stream(stream, syntax_only=False):
     if syntax_only:
         return True
     # All initial variables must have been used
-    for qname, e in info.initial_values.iteritems():
+    for qname, e in info.initial_values.items():
         raise ParseError(
             'Unused initial value', 0, 0,
             'An unused initial value was found for "' + str(qname) + '".')
@@ -422,9 +422,9 @@ def parse_model_from_stream(stream, syntax_only=False):
     # Order encountered tokens
     m = model._tokens
     model._tokens = {}
-    for line in sorted(m.iterkeys()):
+    for line in sorted(m.keys()):
         model._tokens[line] = {}
-        for char in sorted(m[line].iterkeys()):
+        for char in sorted(m[line].keys()):
             model._tokens[line][char] = m[line][char]
     # Resolve alias map
     resolve_alias_map_names(info)
@@ -771,8 +771,8 @@ def resolve_alias_map_names(info):
      - No two aliasses are tied to the same variable (within a single
       component)
     """
-    for comp, amap in info.alias_map.iteritems():
-        for name, (t_use, t_comp, t_var) in amap.iteritems():
+    for comp, amap in info.alias_map.items():
+        for name, (t_use, t_comp, t_var) in amap.items():
             var_name = t_comp[1] + '.' + t_var[1]
             (var, sug, msg) = info.model.suggest_variable(var_name)
             if var is None:
@@ -1262,12 +1262,12 @@ class Tokenizer:
         Advances to the next token.
         """
         self._next = self._peek
-        for c in self._catchers.itervalues():
+        for c in self._catchers.values():
             c.append(self._next[1])
         try:
             self._peek = self._tokenizer.next()
             while self._peek[0] == WHITESPACE:
-                for c in self._catchers.itervalues():
+                for c in self._catchers.values():
                     c.append(self._peek[1])
                 self._peek = self._tokenizer.next()
         except StopIteration:
@@ -1858,7 +1858,7 @@ def format_parse_error(ex, source=None):
         if (kind == str or kind == unicode) and os.path.isfile(source):
             # Re-open file, find line
             f = open(source, 'r')
-            for i in xrange(0, ex.line):
+            for i in range(0, ex.line):
                 line = f.next()
             line = line.rstrip()
         else:

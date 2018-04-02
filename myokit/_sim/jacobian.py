@@ -155,7 +155,7 @@ class JacobianTracer(myokit.CppModule):
                 'The given log must contain an entry for <' + time + '>.')
         nstates = self._model.count_states()
         block = myokit.DataBlock2d(nstates, nstates, time)
-        for k, v in log.iteritems():
+        for k, v in log.items():
             if k != tvar:
                 block.set0d(k, v)
         # Create iterators over lists of state and input values
@@ -166,9 +166,9 @@ class JacobianTracer(myokit.CppModule):
         ns2 = ns * ns
         # Pass every state into the generator, store the output
         partials = []
-        for i in xrange(n):
-            state = [x.next() for x in istates]
-            bound = [x.next() for x in iinputs]
+        for i in range(n):
+            state = [next(x) for x in istates]
+            bound = [next(x) for x in iinputs]
             deriv = [0] * ns
             partial = [0] * ns2
             self._ext.calculate(state, bound, deriv, partial)

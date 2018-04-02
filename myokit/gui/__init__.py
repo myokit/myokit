@@ -237,7 +237,7 @@ ICONS = {
     'edit-find': 'find.png',
     'media-playback-start': 'run.png',
 }
-for k, v in ICONS.iteritems():
+for k, v in ICONS.items():
     ICONS[k] = os.path.join(ICON_PATH, v)
 
 # Toolbar style suitable for platform

@@ -21,7 +21,7 @@ for var in model.states():
     i += 1
     print(v(var) + ' = y(' + str(i) + ');')
 
-for label, eq_list in equations.iteritems():
+for label, eq_list in equations.items():
     print('%')
     print('% ' + label)
     print('%')

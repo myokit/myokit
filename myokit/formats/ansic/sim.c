@@ -94,7 +94,7 @@ static void
 updateConstants(void)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     if eqs.has_equations(const=True):
         print(tab + '/* ' + label + ' */')
         for eq in eqs.equations(const=True):
@@ -106,7 +106,7 @@ for label, eqs in equations.iteritems():
 static int rhs(realtype t, N_Vector y, N_Vector ydot, void *f_data)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     if eqs.has_equations(const=False):
         print(tab + '/* ' + label + ' */')
         for eq in eqs.equations(const=False):

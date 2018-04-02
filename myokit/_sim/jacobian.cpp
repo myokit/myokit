@@ -85,7 +85,7 @@ for k, label in enumerate(inputs):
 print('')
 
 print('// Aliases of constants and calculated constants')
-for group in equations.itervalues():
+for group in equations.values():
     for eq in group.equations(const=True):
         if isinstance(eq.rhs, myokit.Number):
             print('#define ' + v(eq.lhs) + ' ' + w.ex(eq.rhs))
@@ -112,7 +112,7 @@ static int
 rhs(Diff* state, Diff* deriv, Real* inputs)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     if eqs.has_equations(const=False, bound=False):
         print(tab + '// ' + label)
         for eq in eqs.equations(const=False, bound=False):
@@ -139,7 +139,7 @@ PyObject* clean()
     free(state); state = NULL;
     free(deriv); deriv = NULL;
     free(input); input = NULL;
-    
+
     return 0;
 }
 
@@ -153,7 +153,7 @@ extern "C" {
     calculate(PyObject* self, PyObject* args)
     {
         int i, j;
-    
+
         // Check input arguments
         if (!PyArg_ParseTuple(args, "OOOO",
                 &arg_state,
@@ -165,7 +165,7 @@ extern "C" {
             // Nothing allocated yet, no pyobjects _created_, return directly
             return 0;
         }
-        
+
         // Check given state vector
         if (!PyList_Check(arg_state)) { return e("Not a list: arg_state."); }
         if (PyList_Size(arg_state) != N_STATE) { return e("Incorrect length: arg_state."); }
@@ -174,7 +174,7 @@ extern "C" {
                 return e("Must contain floats: arg_state.");
             }
         }
-        
+
         // Check given input vector
         if (!PyList_Check(arg_input)) { return e("Not a list: arg_input."); }
         if (PyList_Size(arg_input) != N_INPUT) { return e("Incorrect length: arg_input."); }
@@ -187,14 +187,14 @@ extern "C" {
         // Check given derivatives vector
         if (!PyList_Check(arg_deriv)) { return e("Not a list: arg_deriv."); }
         if (PyList_Size(arg_deriv) != N_STATE) { return e("Incorrect length: arg_deriv."); }
-        
+
         // Check given partial derivatives vector
         if (!PyList_Check(arg_partial)) { return e("Not a list: arg_partial."); }
         if (PyList_Size(arg_partial) != N_STATE2) { return e("Incorrect length: arg_partial."); }
-        
+
         // From this point on, memory will be allocated
         // Returning after this point should happen with clean()
-        
+
         // Create state vector, derivatives vector & input vector
         state = (Diff*)malloc(sizeof(Diff) * N_STATE);
         deriv = (Diff*)malloc(sizeof(Diff) * N_STATE);
@@ -205,10 +205,10 @@ extern "C" {
         for(i=0; i<N_INPUT; i++) {
             input[i] = PyFloat_AsDouble(PyList_GetItem(arg_input, i));
         }
-        
+
         // Run!
         rhs(state, deriv, input);
-        
+
         // Copy results into output objects
         for(i=0; i<N_STATE; i++) {
             PyList_SetItem(arg_deriv, i, PyFloat_FromDouble(deriv[i].value()));
@@ -216,7 +216,7 @@ extern "C" {
                 PyList_SetItem(arg_partial, i*N_STATE+j, PyFloat_FromDouble(deriv[i][j]));
             }
         }
-    
+
         // Finished succesfully, clean up and return
         clean();
         Py_RETURN_NONE;
@@ -243,7 +243,7 @@ for var in model.states():
     print('#undef ' + v(var))
 for label in inputs:
     print('#undef ' + v(model.binding(label)))
-for group in equations.itervalues():
+for group in equations.values():
     for eq in group.equations(const=True):
         print('#undef ' + v(eq.lhs))
 ?>

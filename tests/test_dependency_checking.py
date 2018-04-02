@@ -137,7 +137,7 @@ class BasicReferenceTest(DepTest):
         r = myokit.Plus(myokit.Number(5), dy)
         r = r.references()
         self.assertEqual(len(r), 1)
-        r = iter(r).next()
+        r = next(iter(r))
         self.assertEqual(r, dy)
         # Test in parsed model
         d = self.d
@@ -1246,7 +1246,7 @@ class SolvableOrderTest(DepTest):
 
         # Start
         # Run multiple times because ordering is slightly random.
-        for i in xrange(0, 5):
+        for i in range(0, 5):
             # Load model, get order
             self.m = myokit.load_model(
                 os.path.join(DIR_DATA, 'lr-1991-dep.mmt'))
@@ -1389,7 +1389,7 @@ class SolvableOrderTest(DepTest):
 
         # Start
         # Run multiple times because ordering is slightly random.
-        for i in xrange(0, 1):
+        for i in range(0, 1):
             # Load model, get order
             self.m = myokit.load_model(
                 os.path.join(DIR_DATA, 'lr-1991.mmt'))

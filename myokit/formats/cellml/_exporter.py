@@ -220,7 +220,7 @@ class CellMLExporter(myokit.formats.Exporter):
                 add_unit(e.unit())
 
         # Add si units to unit map
-        for unit, name in si_units.iteritems():
+        for unit, name in si_units.items():
             unit_map[unit] = name
 
         # Add components
@@ -267,7 +267,7 @@ class CellMLExporter(myokit.formats.Exporter):
 
         # Add variables
         evars = {}
-        for parent, eparent in ecomps.iteritems():
+        for parent, eparent in ecomps.items():
             for var in parent.variables():
                 evar = et.SubElement(eparent, 'variable')
                 evars[var] = evar
@@ -288,7 +288,7 @@ class CellMLExporter(myokit.formats.Exporter):
         # Add variable interfaces, connections
         deps = model.map_shallow_dependencies(
             omit_states=False, omit_constants=False)
-        for var, evar in evars.iteritems():
+        for var, evar in evars.items():
             # Scan all variables, iterate over the vars they depend on
             par = var.parent()
             lhs = var.lhs()

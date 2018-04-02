@@ -288,7 +288,7 @@ class ChannelMLImporter(formats.Importer):
             '&ge;': '>=',
         }
         s = s.replace('&amp;', '&')
-        for k, v in entities.iteritems():
+        for k, v in entities.items():
             s = s.replace(k, v)
         # Attempt to handle single a?b:c construct
         if '?' in s:

@@ -413,7 +413,7 @@ class Simulation(myokit.CModule):
             dr = []
             if root_list:
                 roots = iter(root_list)
-                time, direction = roots.next()
+                time, direction = next(roots)
                 tlast = time if direction > 0 else None
                 for time, direction in roots:
                     if direction > 0:

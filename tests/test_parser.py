@@ -21,15 +21,15 @@ class TokenizerTest(unittest.TestCase):
         import myokit._parser as p
         from myokit._parser import Tokenizer
         s = Tokenizer('5')
-        self.assertEqual(s.next(), (p.INTEGER, '5', 1, 0))
+        self.assertEqual(next(s), (p.INTEGER, '5', 1, 0))
         s = Tokenizer('3.0')
-        self.assertEqual(s.next(), (p.FLOAT, '3.0', 1, 0))
+        self.assertEqual(next(s), (p.FLOAT, '3.0', 1, 0))
         s = Tokenizer('3.')
-        self.assertEqual(s.next(), (p.FLOAT, '3.', 1, 0))
+        self.assertEqual(next(s), (p.FLOAT, '3.', 1, 0))
         s = Tokenizer('3.E0')
-        self.assertEqual(s.next(), (p.FLOAT, '3.E0', 1, 0))
+        self.assertEqual(next(s), (p.FLOAT, '3.E0', 1, 0))
         s = Tokenizer('.30')
-        self.assertEqual(s.next(), (p.FLOAT, '.30', 1, 0))
+        self.assertEqual(next(s), (p.FLOAT, '.30', 1, 0))
 
 
 class PhasedParseTest(unittest.TestCase):
@@ -242,7 +242,7 @@ class ModelParseTest(unittest.TestCase):
         m.set_state(s)
         for k, eq in enumerate(m.inits()):
             self.assertEqual(eq.rhs.eval(), values[k])
-        s = '\n'.join([str(a) + '=' + str(b) for a, b in s.iteritems()])
+        s = '\n'.join([str(a) + '=' + str(b) for a, b in s.items()])
         m.set_state(s)
         for k, eq in enumerate(m.inits()):
             self.assertEqual(eq.rhs.eval(), values[k])

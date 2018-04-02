@@ -12,7 +12,7 @@
 %
 function c = constants()
 <?
-for label, eq_list in equations.iteritems():
+for label, eq_list in equations.items():
     print('')
     print('% ' + label)
     for eq in eq_list.equations(const=True):

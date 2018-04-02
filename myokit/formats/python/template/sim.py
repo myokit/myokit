@@ -261,21 +261,21 @@ class ProtocolEvent(object):
 def pacing_protocol():
     pacing = Protocol()
 <?
-next = protocol.head()
-while next:
+nxt = protocol.head()
+while nxt:
     x = [
-        next.level(),
-        next.start(),
-        next.duration(),
-        next.period(),
-        next.multiplier(),
+        nxt.level(),
+        nxt.start(),
+        nxt.duration(),
+        nxt.period(),
+        nxt.multiplier(),
         ]
     x = ', '.join([str(x) for x in x])
     print(tab + 'pacing.add(ProtocolEvent(' + x + '))')
-    next = next.next()
+    nxt = nxt.next()
 print(tab + 'return pacing')
 
-vm = v(model.states().next())
+vm = v(next(iter(model.states())))
 ?>
 #
 # Solver

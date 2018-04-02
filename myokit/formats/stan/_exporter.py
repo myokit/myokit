@@ -81,7 +81,7 @@ class StanExporter(myokit.formats.TemplatedRunnableExporter):
 
         # Check model output variable
         if output is None:
-            output = model.states().next()
+            output = next(model.states())
         else:
             output = model.get(str(output))
 

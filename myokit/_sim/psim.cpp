@@ -94,7 +94,7 @@ for k, var in enumerate(parameters):
 print('')
 
 print('// Constants & calculated constants (may depend on parameters!)')
-for group in equations.itervalues():
+for group in equations.values():
     for eq in group.equations(const=True):
         if eq.lhs.var() not in parameters:
             if isinstance(eq.rhs, myokit.Number):
@@ -126,7 +126,7 @@ static int
 calculate_constants(Diff* state, Diff* state_ddt, Diff* param)
 {
 <?
-for group in equations.itervalues():
+for group in equations.values():
     for eq in group.equations(const=True):
         if eq.lhs.var() not in parameters:
             if not isinstance(eq.rhs, myokit.Number):
@@ -139,7 +139,7 @@ static int
 rhs(Diff* state, Diff* state_ddt, Diff* param)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     if eqs.has_equations(const=False):
         print(tab + '// ' + label)
         for eq in eqs.equations(const=False):
@@ -218,7 +218,7 @@ PyObject* list = NULL;              // A new list, created to hold derivatives
 
 // Python callable methods
 extern "C" {
-    
+
     /*
      * Cleans up after a simulation
      */
@@ -235,7 +235,7 @@ extern "C" {
             free(param); param = NULL;
             free(vars); vars = NULL;
             free(logs); logs = NULL;
-            
+
             // Free pacing system space
             ESys_Destroy(pacing); pacing = NULL;
 
@@ -253,7 +253,7 @@ extern "C" {
     py_sim_clean(PyObject *self, PyObject *args)
     {
         sim_clean();
-        
+
         Py_RETURN_NONE;
     }
 
@@ -264,13 +264,13 @@ extern "C" {
     sim_init(PyObject* self, PyObject* args)
     {
         int i, j;
-        
+
         // Check if already running
         if (running != 0) {
             PyErr_SetString(PyExc_Exception, "Simulation already initialized.");
             return 0;
         }
-    
+
         // Check input arguments
         if (!PyArg_ParseTuple(args, "dddOOOOOOOOd",
                 &tmin,
@@ -290,14 +290,14 @@ extern "C" {
             // Nothing allocated yet, no pyobjects _created_, return directly
             return 0;
         }
-        
+
         // Check tmin, tmax
         if (tmax < tmin) return e("Error: tmax < tmin!");
-        
+
         // Check default step size
         if (default_dt <= 0) return e("Error: step size must be > 0");
         dt_min = default_dt * 1e-2;
-        
+
         // Check initial state vector state_in
         if (!PyList_Check(state_in)) { return e("Not a list: state_in."); }
         if (PyList_Size(state_in) != NS) { return e("Incorrect length: state_in."); }
@@ -315,7 +315,7 @@ extern "C" {
                 return e("Must contain floats: state_ddp_in.");
             }
         }
-        
+
         // Check parameter values vector param_in
         if (!PyList_Check(param_in)) { return e("Not a list: param_in."); }
         if (PyList_Size(param_in) != NP) { return e("Incorrect length: param_in."); }
@@ -324,7 +324,7 @@ extern "C" {
                 return e("Must contain floats: param_in.");
             }
         }
-        
+
         // Check final state vector state_out
         if (!PyList_Check(state_out)) { return e("Not a list: state_out."); }
         if (PyList_Size(state_out) != NS) { return e("Incorrect length: state_out."); }
@@ -332,10 +332,10 @@ extern "C" {
         // Check final derivatives vector state_ddp_out
         if (!PyList_Check(state_ddp_out)) { return e("Not a list: state_ddp_out."); }
         if (PyList_Size(state_ddp_out) != NSP) { return e("Incorrect length: state_ddp_out."); }
-        
+
         // Check if the log is a dict
         if (!PyDict_Check(log_dict)) { return e("Not a dict: log_dict."); }
-        
+
         // Check list for logging derivatives in
         if (!PyList_Check(log_varab_ddp)) { return e("Not a list: log_varab_ddp."); }
         if (PyList_Size(log_varab_ddp) != 0) { return e("Not empty: log_varab_ddp."); }
@@ -345,10 +345,10 @@ extern "C" {
         // From this point on, memory will be allocated. Any further errors
         // should call sim_clean() before returning
         //
-        
+
         // From this point on, we're running!
         running = 1;
-        
+
         // Initialize state vector
         state = (Diff*)malloc(sizeof(Diff) * NS);
         for(i=0; i<NS; i++) {
@@ -357,17 +357,17 @@ extern "C" {
                 state[i][j] = PyFloat_AsDouble(PyList_GetItem(state_ddp_in, i*NP+j));
             }
         }
-        
+
         // Initialize state-time-derivatives vector
         state_ddt = (Diff*)malloc(sizeof(Diff) * NS);
-        
+
         // Initialize parameter vector
         param = (Diff*)malloc(sizeof(Diff) * NP);
         for(i=0; i<NP; i++) {
             param[i] = Diff(PyFloat_AsDouble(PyList_GetItem(param_in, i)), i);
             param[i][i] = 1.0;
         }
-        
+
         // Set up pacing
         ESys_Flag flag_pacing;
         pacing = ESys_Create(&flag_pacing);
@@ -376,18 +376,18 @@ extern "C" {
         if (flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
         flag_pacing = ESys_AdvanceTime(pacing, tmin, tmax);
         if (flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
-        
+
         // Initialize inputs
         engine_time = tmin;
         engine_pace = ESys_GetLevel(pacing, NULL);
-        
+
         // Calculate constants
         calculate_constants(state, state_ddt, param);
-        
+
         // Evaluate derivatives at this point. This will be used for logging
         // and to take the first step.
         rhs(state, state_ddt, param);
-        
+
         //
         // Running & logging:
         //  - We start at time t, with a known state y and inputs i
@@ -404,11 +404,11 @@ extern "C" {
         //  - t is updated to t + tstep
         //  - If needed, everything is logged for this new t
         //
-        
+
         // Next event & logging times
         tpace = ESys_GetNextTime(pacing, NULL);
         tlog = tmin;
-        
+
         // Set up logging
         n_vars = PyDict_Size(log_dict);
         logs = (PyObject**)malloc(sizeof(PyObject*)*n_vars);
@@ -422,10 +422,10 @@ for var in model.variables(deep=True, const=False):
             PyErr_SetString(PyExc_Exception, "Unknown variables found in logging dictionary.");
             return sim_clean();
         }
-        
+
         // Always store initial position
         list_update_str = PyString_FromString("append");
-            
+
         // Log variables
         for(i=0; i<n_vars; i++) {
             flt = PyFloat_FromDouble(vars[i]->value()); // Append doesn't steal
@@ -438,7 +438,7 @@ for var in model.variables(deep=True, const=False):
             }
         }
         ret = NULL;
-        
+
         // Log variable-parameter-derivatives
         list = PyList_New(NVP);
         if (list == NULL) return sim_clean();
@@ -455,7 +455,7 @@ for i, var in enumerate(variables):
         }
         Py_DECREF(list);
         list = NULL;
-        
+
         // Set periodic log point 1 log_interval ahead
         ilog = 1;
         tlog = tmin + log_interval;
@@ -463,7 +463,7 @@ for i, var in enumerate(variables):
         // Done!
         Py_RETURN_NONE;
     }
-    
+
     /*
      * Takes the next steps in a simulation run
      */
@@ -474,15 +474,15 @@ for i, var in enumerate(variables):
         int i, j;
         int steps_taken = 0;    // Steps taken during this call
         double d;
-        
+
         while(1) {
-        
+
             // Calculate next step size
             dt = default_dt;
             d = tpace - engine_time; if (d > dt_min && d < dt) dt = d;
             d = tmax - engine_time; if (d > dt_min && d < dt) dt = d;
             d = tlog - engine_time; if (d > dt_min && d < dt) dt = d;
-            
+
             // Advance to next time step
             for(i=0; i<NS; i++) {
                 state[i] += state_ddt[i] * dt;
@@ -493,7 +493,7 @@ for i, var in enumerate(variables):
             tpace = ESys_GetNextTime(pacing, NULL);
             engine_pace = ESys_GetLevel(pacing, NULL);
             rhs(state, state_ddt, param);
-            
+
             // Check for NaN, these will eventually propagate to all variables,
             // so we only have to check a single one.
             if (isnan(state[0].value())) {
@@ -504,10 +504,10 @@ for i, var in enumerate(variables):
             // Check if we're finished
             // Do this *before* logging (half-open interval rule)
             if (engine_time >= tmax) break;
-            
+
             // Logging
             if (engine_time >= tlog) {
-                
+
                 // Log variables
                 for(i=0; i<n_vars; i++) {
                     flt = PyFloat_FromDouble(vars[i]->value());
@@ -520,7 +520,7 @@ for i, var in enumerate(variables):
                     }
                 }
                 ret = NULL;
-                
+
                 // Log variable-parameter-derivatives
                 list = PyList_New(NVP);
                 if (list == NULL) return sim_clean();
@@ -537,19 +537,19 @@ for i, var in enumerate(variables):
                 }
                 Py_DECREF(list);
                 list = NULL;
-                    
+
                 // Calculate next logging point
                 ilog++;
                 tlog = tmin + (double)ilog * log_interval;
             }
-            
+
             // Report back to python after every x steps
             steps_taken++;
             if (steps_taken >= 100) {
                 return PyFloat_FromDouble(engine_time);
             }
         }
-        
+
         // Set final state & state-parameter-derivatives
         for(i=0; i<NS; i++) {
             PyList_SetItem(state_out, i, PyFloat_FromDouble(state[i].value()));
@@ -563,7 +563,7 @@ for i, var in enumerate(variables):
         sim_clean();
         return PyFloat_FromDouble(engine_time);
     }
-    
+
     /*
      * Alters the value of a (literal) constant
      */
@@ -592,7 +592,7 @@ for var in model.variables(const=True, deep=True):
         PyErr_SetString(PyExc_Exception, errstr);
         return 0;
     }
-    
+
     // Methods in this module
     static PyMethodDef SimMethods[] = {
         {"set_constant", sim_set_constant, METH_VARARGS, "Change a (literal) constant."},

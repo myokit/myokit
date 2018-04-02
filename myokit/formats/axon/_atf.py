@@ -49,35 +49,29 @@ class AtfFile(object):
     def __getitem__(self, key):
         return self._data.__getitem__(key)
 
-    def items(self):
-        """
-        Returns a list containing this ATF file's data as (key, value) pairs.
-        """
-        return self._data.items()
-
     def __iter__(self):
         """
         Iterates over all data arrays in this ATF file.
         """
         return self._data.__iter__()
 
-    def iteritems(self):
+    def items(self):
         """
         Iterates over all key-value pairs in this ATF file's data.
         """
-        return self._data.iteritems()
+        return iter(self._data.items())
 
-    def iterkeys(self):
+    def keys(self):
         """
         Iterates over all keys in this ATF file's data.
         """
-        return self._data.iterkeys()
+        return iter(self._data.keys())
 
-    def itervalues(self):
+    def values(self):
         """
         Iterates over all values in this ATF file's data.
         """
-        return self._data.itervalues()
+        return iter(self._data.values())
 
     def __len__(self):
         """
@@ -91,12 +85,6 @@ class AtfFile(object):
         """
         return self._meta
 
-    def keys(self):
-        """
-        Returns a list containing this ATF file's keys.
-        """
-        return self._data.keys()
-
     def myokit_log(self):
         """
         Returns this file's time series data as a :class:`myokit.DataLog`.
@@ -104,8 +92,8 @@ class AtfFile(object):
         import myokit
         log = myokit.DataLog()
         if len(self._data) > 0:
-            log.set_time_key(self._data.iterkeys().next())
-        for k, v in self._data.iteritems():
+            log.set_time_key(next(self._data.keys()))
+        for k, v in self._data.items():
             log[k] = v
         return log
 
@@ -131,7 +119,7 @@ class AtfFile(object):
             val = []    # Values
             raw = []    # Fallback
             key_value_pairs = True
-            for i in xrange(nh):
+            for i in range(nh):
                 line = f.readline().strip()
                 line_index += 1
                 if line[0] != '"' or line[-1] != '"':
@@ -153,7 +141,7 @@ class AtfFile(object):
                 meta = []
                 val = iter(val)
                 for k in key:
-                    v = val.next()
+                    v = next(val)
                     meta.append(k + ' ' * (n - len(k)) + ' = ' + v)
                 self._meta = '\n'.join(meta)
             else:
@@ -183,7 +171,7 @@ class AtfFile(object):
                 a, b = 0, 0
                 if line[a] != '"':
                     raise Exception('Unable to parse columns headers.')
-                for i in xrange(nf):
+                for i in range(nf):
                     b = line.index('"', a + 1)
                     keys.append(line[a + 1:b])
                     a = line.index('"', b + 1)
@@ -212,12 +200,6 @@ class AtfFile(object):
                 vals = [float(x) for x in vals]
                 for k, d in enumerate(vals):
                     data[k].append(d)
-
-    def values(self):
-        """
-        Returns a list containing this atf file's time series data.
-        """
-        return self._data.value()
 
     def version(self):
         """
@@ -268,7 +250,7 @@ def save_atf(log, filename, fields=None):
             except KeyError:
                 raise ValueError('Variable <' + field + '> not found in log.')
     else:
-        for k, v in log.iteritems():
+        for k, v in log.items():
             if k != time:
                 keys.append(k)
                 data.append(iter(v))
@@ -305,6 +287,6 @@ def save_atf(log, filename, fields=None):
         # Write field names
         f.write(delim.join(['"' + k + '"' for k in keys]) + eol)
         # Write data
-        for i in xrange(nd):
+        for i in range(nd):
             f.write(
-                delim.join([myokit.strfloat(d.next()) for d in data]) + eol)
+                delim.join([myokit.strfloat(next(d)) for d in data]) + eol)

@@ -169,7 +169,7 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
     def _ex_piecewise(self, e):
         s = ''
         n = len(e) // 2
-        for i in xrange(0, n):
+        for i in range(0, n):
             s += '(' + self.ex(e._e[i]) + ' if ' + self.ex(e._i[i]) + ' else '
         s += self.ex(e._e[n])
         s += ')' * n
@@ -242,11 +242,11 @@ class NumpyExpressionWriter(PythonExpressionWriter):
     def _ex_piecewise(self, e):
         n = len(e._i)
         s = [self.function_prefix, 'select([']
-        for i in xrange(0, n):
+        for i in range(0, n):
             s.append(self.ex(e._i[i]))
             s.append(', ')
         s.append('], [')
-        for i in xrange(0, n):
+        for i in range(0, n):
             s.append(self.ex(e._e[i]))
             s.append(', ')
         s.append('], ')

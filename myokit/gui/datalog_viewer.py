@@ -391,10 +391,10 @@ class AbfTab(QtWidgets.QTabWidget):
         self._abf = abf
         self._figures = []
         self._axes = []
-        for i in xrange(self._abf.data_channels()):
+        for i in range(self._abf.data_channels()):
             tab, name = self.create_graph_tab(i)
             self.addTab(tab, name)
-        for i in xrange(self._abf.protocol_channels()):
+        for i in range(self._abf.protocol_channels()):
             tab, name = self.create_protocol_tab(i)
             self.addTab(tab, name)
         self.addTab(self.create_info_tab(), 'Info')
@@ -517,7 +517,7 @@ class CsvTab(QtWidgets.QTabWidget):
             return
 
         # Add tab for each column
-        for k, v in log.iteritems():
+        for k, v in log.items():
             if k == time:
                 continue
             self.addTab(self.create_graph_tab(k, v), k)
@@ -740,7 +740,7 @@ class WcpTab(QtWidgets.QTabWidget):
         self._wcp = wcp
         self._figures = []
         self._axes = []
-        for i in xrange(self._wcp.records()):
+        for i in range(self._wcp.records()):
             self.addTab(self.create_graph_tab(i), 'Record ' + str(i))
         del(self._wcp)
 
@@ -757,7 +757,7 @@ class WcpTab(QtWidgets.QTabWidget):
         axes = figure.add_subplot(1, 1, 1)
         toolbar = backend.NavigationToolbar2QT(canvas, widget)
         # Draw lines
-        for i in xrange(self._wcp.channels()):
+        for i in range(self._wcp.channels()):
             axes.plot(
                 np.array(self._wcp.times(), copy=True),
                 np.array(self._wcp.values(record, i), copy=True),
