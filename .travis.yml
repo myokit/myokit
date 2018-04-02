@@ -32,7 +32,7 @@ before_script:
 # Run tests
 script:
   - python -m flake8
-  - python test/unit-main.py
+  - python test --unit
 
 # Send notifications
 notifications:

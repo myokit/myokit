@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Tests the simulation classes' interpretation of log_interval
 #
@@ -8,54 +8,33 @@
 #  See: http://myokit.org
 #
 from __future__ import print_function
-import myokit
-import myotest
 import os
 import unittest
 import numpy as np
 
+import myokit
 
-DEBUG = False
+from shared import DIR_DATA
 
-
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(Simulation('dynamic'))
-    suite.addTest(Simulation('periodic'))
-    suite.addTest(Simulation('point_list'))
-    suite.addTest(Simulation('point_list_2'))
-    suite.addTest(Simulation('interpolation_and_pacing'))
-    suite.addTest(Simulation1d('periodic'))
-    suite.addTest(ICSimulation('periodic'))
-    suite.addTest(PSimulation('periodic'))
-    return suite
+# Extra output
+debug = False
 
 
 class PeriodicTest(unittest.TestCase):
     """
     Tests a simulation class for consistent log entry timing.
     """
-    def sim_for_periodic(self):
-        raise NotImplementedError
-
-    def periodic(self):
+    def periodic(self, s):
         """
         Test periodic logging.
         """
-        # Get simulation
-        s = self.sim_for_periodic()
-        if DEBUG:
-            print('= ' + s.__class__.__name__ + ' :: Periodic logging =')
         # Set tolerance for equality testing
         emax = 1e-2     # Time steps for logging are approximate
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
         d = s.run(5, log=['engine.time'], log_interval=0.5).npview()
         t = d['engine.time']
         q = np.arange(0, 5, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
@@ -66,7 +45,7 @@ class PeriodicTest(unittest.TestCase):
         d = s.run(1, log=['engine.time'], log_interval=0.5).npview()
         t = d['engine.time']
         q = np.arange(0, 1, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
@@ -79,7 +58,7 @@ class PeriodicTest(unittest.TestCase):
         d = s.run(2, log=d, log_interval=0.5).npview()
         t = d['engine.time']
         q = np.arange(0, 5, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
@@ -92,15 +71,15 @@ class Simulation(PeriodicTest):
     Tests myokit.Simulation (which has dynamic, periodic and point-list
     logging) for consistent log entry timing.
     """
-    def dynamic(self):
+    def test_dynamic(self):
         """
         Test dynamic logging.
         """
         emax = 1e-6     # Used for equality testing
-        if DEBUG:
+        if debug:
             print('= Simulation :: Dynamic logging =')
         # Load model & protocol
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Create simulation
         s = myokit.Simulation(m, p)
         #
@@ -108,7 +87,7 @@ class Simulation(PeriodicTest):
         #
         d = s.run(50, log=['engine.time'])
         t = d['engine.time']
-        if DEBUG:
+        if debug:
             print(t[:2])
             print(t[-2:])
             print('- ' * 10)
@@ -124,7 +103,7 @@ class Simulation(PeriodicTest):
         s.reset()
         d = s.run(1, log=['engine.time'])
         t = d['engine.time']
-        if DEBUG:
+        if debug:
             print(t[:2])
             print(t[-2:])
             print('- ' * 10)
@@ -143,7 +122,7 @@ class Simulation(PeriodicTest):
         d = s.run(2, log=['engine.time'])
         t = d['engine.time']
         n = len(d['engine.time'])
-        if DEBUG:
+        if debug:
             print(d['engine.time'][:2])
         # Test first point not double
         self.assertGreater(t[1], t[0])
@@ -155,7 +134,7 @@ class Simulation(PeriodicTest):
         self.assertTrue(np.abs(t[-1] - 2) < emax)
         d = s.run(13, log=d)
         t = d['engine.time']
-        if DEBUG:
+        if debug:
             print(t[n - 2:n + 2])
         # Test last point not double
         self.assertGreater(t[-1], t[-2])
@@ -166,7 +145,7 @@ class Simulation(PeriodicTest):
         n = len(d['engine.time'])
         d = s.run(15, log=d)
         t = d['engine.time']
-        if DEBUG:
+        if debug:
             print(t[n - 2:n + 2])
         # Test last point not double
         self.assertGreater(t[-1], t[-2])
@@ -177,7 +156,7 @@ class Simulation(PeriodicTest):
         n = len(d['engine.time'])
         d = s.run(20, log=d)
         t = d['engine.time']
-        if DEBUG:
+        if debug:
             print(t[n - 2:n + 2])
             print(t[-2:])
             print('- ' * 10)
@@ -188,11 +167,12 @@ class Simulation(PeriodicTest):
         # Test intermediary points are different
         self.assertGreater(t[n], t[n - 1])
 
-    def sim_for_periodic(self):
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
-        return myokit.Simulation(m, p)
+    def test_periodic(self):
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.Simulation(m, p)
+        self.periodic(s)
 
-    def interpolation_and_pacing(self):
+    def test_interpolation_and_pacing(self):
         """
         Test if interpolation results in correct pacing values.
         """
@@ -243,12 +223,12 @@ class Simulation(PeriodicTest):
         self.assertTrue(np.all(p[200:250] == -70))
         self.assertTrue(np.all(p[250:300] == -80))
 
-    def point_list(self):
+    def test_point_list(self):
         """
         Test logging with a preset list of points.
         """
         # Load model
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Create simulation
         s = myokit.Simulation(m, p)
         # Don't allow decreasing values
@@ -311,13 +291,13 @@ class Simulation(PeriodicTest):
         d = s.run(5, log_times=times).npview()
         self.assertEqual(len(d.time()), 0)
 
-    def point_list_2(self):
+    def test_point_list_2(self):
         """
         Tests how the point-list logging performs when some of the logging
         points overlap with protocol change points.
         """
         # Load model
-        m = myokit.load_model(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Voltage clamp
         m.binding('pace').set_binding(None)
         v = m.get('membrane.V')
@@ -362,37 +342,27 @@ class Simulation(PeriodicTest):
             self.assertNotEqual(e['membrane.V'][0], e['membrane.V'][1])
 
 
-class SimulationOpenCL(PeriodicTest):
-    """
-    Tests myokit.SimulationOpenCL for consistent log entry timing.
-    """
-    def sim_for_periodic(self):
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
-        return myokit.SimulationOpenCL(m, p, ncells=1)
-
-
 class Simulation1d(PeriodicTest):
     """
     Tests myokit.Simulation1d for consistent log entry timing.
     """
-    def sim_for_periodic(self):
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
-        return myokit.Simulation1d(m, p, ncells=1)
+    def test_periodic(self):
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.Simulation1d(m, p, ncells=1)
+        self.periodic(s)
 
 
 class PSimulation(unittest.TestCase):
     """
     Tests myokit.PSimulation for consistent log entry timing.
     """
-    def periodic(self):
+    def test_periodic(self):
         """
         Test periodic logging.
         """
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.PSimulation(
             m, p, variables=['membrane.V'], parameters=['ina.gNa'])
-        if DEBUG:
-            print('= ' + s.__class__.__name__ + ' :: Periodic logging =')
         # Set tolerance for equality testing
         emax = 1e-2     # Time steps for logging are approximate
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
@@ -400,7 +370,7 @@ class PSimulation(unittest.TestCase):
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 5, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
@@ -412,7 +382,7 @@ class PSimulation(unittest.TestCase):
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 1, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
@@ -426,7 +396,7 @@ class PSimulation(unittest.TestCase):
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 5, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
@@ -438,14 +408,12 @@ class ICSimulation(unittest.TestCase):
     """
     Tests myokit.ICSimulation for consistent log entry timing.
     """
-    def periodic(self):
+    def test_periodic(self):
         """
         Test periodic logging.
         """
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.ICSimulation(m, p)
-        if DEBUG:
-            print('= ' + s.__class__.__name__ + ' :: Periodic logging =')
         # Set tolerance for equality testing
         emax = 1e-2     # Time steps for logging are approximate
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
@@ -453,7 +421,7 @@ class ICSimulation(unittest.TestCase):
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 5, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
@@ -465,7 +433,7 @@ class ICSimulation(unittest.TestCase):
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 1, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
@@ -479,7 +447,7 @@ class ICSimulation(unittest.TestCase):
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 5, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
@@ -487,58 +455,9 @@ class ICSimulation(unittest.TestCase):
         self.assertTrue(np.max(np.abs(t - q)) < emax)
 
 
-class FiberTissueSimulation(unittest.TestCase):
-    """
-    Tests myokit.FiberTissueSimulation for consistent log entry timing.
-    """
-    def periodic(self):
-        """
-        Test periodic logging.
-        """
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.FiberTissueSimulation(
-            m, m, p, ncells_fiber=(1, 1), ncells_tissue=(1, 1))
-        if DEBUG:
-            print('= ' + s.__class__.__name__ + ' :: Periodic logging =')
-        # Set tolerance for equality testing
-        emax = 1e-2  # Time steps for logging are approximate
-        # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
-        d, e = s.run(
-            5, logf=['engine.time'], logt=myokit.LOG_NONE, log_interval=0.5)
-        d = d.npview()
-        t = d['engine.time']
-        q = np.arange(0, 5, 0.5)
-        if DEBUG:
-            print(t)
-            print(q)
-            print('- ' * 10)
-        self.assertEqual(len(t), len(q))
-        self.assertTrue(np.max(np.abs(t - q)) < emax)
-        # Test 2: Very short simulation
-        s.reset()
-        d, e = s.run(
-            1, logf=['engine.time'], logt=myokit.LOG_NONE, log_interval=0.5)
-        d = d.npview()
-        t = d['engine.time']
-        q = np.arange(0, 1, 0.5)
-        if DEBUG:
-            print(t)
-            print(q)
-            print('- ' * 10)
-        self.assertEqual(len(t), len(q))
-        self.assertTrue(np.max(np.abs(t - q)) < emax)
-        # Test 3: Stop and start a simulation
-        s.reset()
-        d, e = s.run(
-            1, logf=['engine.time'], logt=myokit.LOG_NONE, log_interval=0.5)
-        d, e = s.run(2, logf=d, logt=myokit.LOG_NONE, log_interval=0.5)
-        d, e = s.run(2, logf=d, logt=myokit.LOG_NONE, log_interval=0.5)
-        d = d.npview()
-        t = d['engine.time']
-        q = np.arange(0, 5, 0.5)
-        if DEBUG:
-            print(t)
-            print(q)
-            print('- ' * 10)
-        self.assertEqual(len(t), len(q))
-        self.assertTrue(np.max(np.abs(t - q)) < emax)
+if __name__ == '__main__':
+    print('Add -v for more debug output')
+    import sys
+    if '-v' in sys.argv:
+        debug = True
+    unittest.main()

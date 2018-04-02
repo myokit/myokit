@@ -95,6 +95,7 @@ def exporter(name):
     """
     Creates and returns an instance of the exporter specified by ``name``.
     """
+    name = str(name)
     if _EXPORTERS is None:
         _update()
     try:
@@ -314,6 +315,7 @@ def ewriter(name):
     Creates and returns an instance of the expression writer specified by
     ``name``.
     """
+    name = str(name)
     if _EWRITERS is None:
         _update()
     try:
@@ -404,6 +406,7 @@ def importer(name):
     """
     Creates and returns an instance of the importer specified by ``name``.
     """
+    name = str(name)
     if _IMPORTERS is None:
         _update()
     try:

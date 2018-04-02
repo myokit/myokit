@@ -1,6 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
-# Tests the model construction API.
+# Tests the model API.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -8,40 +8,21 @@
 #  See: http://myokit.org
 #
 import unittest
+
 import myokit
-from myokit import Model, Component, Variable
-from myokit import Derivative
-from myokit import Equation, Name, Number, Plus, Minus, Multiply, PrefixMinus
-from myokit import IntegrityError, MissingRhsError, MissingTimeVariableError
-from myokit import UnusedVariableError, CyclicalDependencyError
-from myokit import DuplicateName, InvalidNameError
-from myokit import ParseError, IllegalReferenceError
-
-
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    build = unittest.TestSuite()
-    build.addTest(ModelBuildTest('model_creation'))
-    build.addTest(ModelBuildTest('move_variable'))
-    build.addTest(ModelBuildTest('remove_component'))
-    build.addTest(ModelBuildTest('remove_variable'))
-    build.addTest(ModelBuildTest('remove_with_alias'))
-    build.addTest(ModelBuildTest('invalid_names'))
-    build.addTest(ModelBuildTest('unused_and_cycles'))
-    build.addTest(ModelBuildTest('resolve'))
-    build.addTest(ModelBuildTest('scope'))
-    build.addTest(ModelBuildTest('no_rhs'))
-    build.addTest(ModelBuildTest('no_time_variable'))
-    build.addTest(ModelBuildTest('expressions_between'))
-    suite.addTests(build)
-    return suite
+from myokit import (
+    Model, Component, Variable, Derivative, Equation, Name, Number,
+    Plus, Minus, Multiply, PrefixMinus,
+    IntegrityError, MissingRhsError, MissingTimeVariableError,
+    UnusedVariableError, CyclicalDependencyError,
+    DuplicateName, InvalidNameError,
+    ParseError, IllegalReferenceError,
+)
 
 
 class ModelBuildTest(unittest.TestCase):
-    def model_creation(self):
+
+    def test_model_creation(self):
         # Create a model
         m = Model('LotkaVolterra')
 
@@ -330,7 +311,7 @@ class ModelBuildTest(unittest.TestCase):
         code2 = m.clone().code()
         self.assertEqual(code1, code2)
 
-    def move_variable(self):
+    def test_move_variable(self):
         """
         Tests the method to move component variables to another component.
         """
@@ -374,7 +355,7 @@ class ModelBuildTest(unittest.TestCase):
         E.move_variable(time, Z)
         m.validate()
 
-    def remove_component(self):
+    def test_remove_component(self):
         """
         Tests the removal of a component.
         """
@@ -419,7 +400,7 @@ class ModelBuildTest(unittest.TestCase):
         m.remove_component(X)
         self.assertEqual(m.count_components(), 0)
 
-    def remove_variable(self):
+    def test_remove_variable(self):
         """
         Tests the removal of a variable.
         """
@@ -507,7 +488,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(IntegrityError, a.remove_variable, b, True)
         X.remove_variable(a, recursive=True)
 
-    def remove_with_alias(self):
+    def test_remove_with_alias(self):
         """
         Tests cloning after an add / remove event.
         """
@@ -533,7 +514,7 @@ class ModelBuildTest(unittest.TestCase):
         m.validate()
         m.clone()   # Will raise error if alias isn't deleted
 
-    def resolve(self):
+    def test_resolve(self):
         """
         Tests if an error is raised when a variable can't be resolved.
         """
@@ -544,7 +525,7 @@ class ModelBuildTest(unittest.TestCase):
         p.set_rhs('10 * q')
         self.assertRaises(ParseError, q.set_rhs, '10 * r')
 
-    def scope(self):
+    def test_scope(self):
         """
         Tests if illegal references are detected.
         """
@@ -559,7 +540,7 @@ class ModelBuildTest(unittest.TestCase):
         r.set_rhs(Name(q))
         self.assertRaises(IllegalReferenceError, r.validate)
 
-    def invalid_names(self):
+    def test_invalid_names(self):
         """
         Tests if invalid or duplicate names are detected.
         """
@@ -597,7 +578,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(DuplicateName, v1.add_variable, 'c0')
         self.assertRaises(DuplicateName, v2.add_variable, 'c0')
 
-    def unused_and_cycles(self):
+    def test_unused_and_cycles(self):
         """
         Test unused variable and cycle detection.
         """
@@ -648,7 +629,7 @@ class ModelBuildTest(unittest.TestCase):
         c1_c.set_rhs(Multiply(Name(c1_a), Name(c1_b)))
         self.assertRaises(CyclicalDependencyError, m.validate)
 
-    def no_rhs(self):
+    def test_no_rhs_error(self):
         """
         Tests an exception is raised when a variable is missing an rhs.
         """
@@ -669,7 +650,7 @@ class ModelBuildTest(unittest.TestCase):
         b.set_rhs(2)
         m.validate()
 
-    def no_time_variable(self):
+    def test_no_time_variable(self):
         """
         Tests an exception is raised if nothing is bound to time.
         """
@@ -679,7 +660,7 @@ class ModelBuildTest(unittest.TestCase):
         t.set_rhs(Number(0))
         self.assertRaises(MissingTimeVariableError, m.validate)
 
-    def expressions_between(self):
+    def test_expressions_between(self):
         """
         Tests the ``expressions_between`` method.
         """
@@ -713,3 +694,7 @@ class ModelBuildTest(unittest.TestCase):
         for k, v in enumerate([a, b, c, d, e, f, g, h, i]):
             self.assertEqual(v.lhs(), eqs[k].lhs)
             self.assertEqual(v.rhs(), eqs[k].rhs)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -1,6 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
-# Tests the parser
+# Tests the function approximation methods
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -9,25 +9,13 @@
 #
 import unittest
 import numpy as np
+
 import myokit
 import myokit.lib.approx as approx
-import myotest
 
 
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    # Polynomials
-    suite.addTest(ApproxTest('test_polynomial'))
-    suite.addTest(ApproxTest('test_piecewise_polynomial'))
-    # Fitting
-    suite.addTest(ApproxTest('test_lagrange_fit'))
-    suite.addTest(ApproxTest('test_remez_fit'))
-    suite.addTest(ApproxTest('test_cubic_spline_fit'))
-    # Done!
-    return suite
+# Extra output
+debug = False
 
 
 class ApproxTest(unittest.TestCase):
@@ -69,7 +57,7 @@ class ApproxTest(unittest.TestCase):
         ]
         f = approx.PiecewisePolynomial(coeff, knots)
         g = f.myokit_form(myokit.Name('x')).pyfunc()
-        if myotest.DEBUG:
+        if debug:
             import matplotlib.pyplot as pl
             pl.figure()
             p0 = approx.Polynomial(coeff[0])
@@ -110,7 +98,7 @@ class ApproxTest(unittest.TestCase):
         g = approx.fit_lagrange_polynomial(f, p, n=15)
 
         # No error? Then okay
-        if myotest.DEBUG:
+        if debug:
             import matplotlib.pyplot as pl
             pl.figure()
             pl.title('Lagrange polynomial')
@@ -131,7 +119,7 @@ class ApproxTest(unittest.TestCase):
         g = approx.fit_remez_polynomial(f, p, n=15)
 
         # No error? Then okay
-        if myotest.DEBUG:
+        if debug:
             import matplotlib.pyplot as pl
             pl.figure()
             pl.title('Polynomial fitted with remez exchange algorithm')
@@ -153,7 +141,7 @@ class ApproxTest(unittest.TestCase):
         self.assertEqual(type(g), approx.Spline)
 
         # No error? Then okay
-        if myotest.DEBUG:
+        if debug:
             import matplotlib.pyplot as pl
             pl.figure()
             pl.title('Cubic spline fit')
@@ -163,3 +151,11 @@ class ApproxTest(unittest.TestCase):
             k = np.array(g.knots())
             pl.plot(k, f(k), 'x')
             pl.show()
+
+
+if __name__ == '__main__':
+    print('Add -v for more debug output')
+    import sys
+    if '-v' in sys.argv:
+        debug = True
+    unittest.main()

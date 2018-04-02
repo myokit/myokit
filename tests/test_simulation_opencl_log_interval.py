@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Tests the OpenCL simulation classes' interpretation of log_interval
 #
@@ -8,63 +8,64 @@
 #  See: http://myokit.org
 #
 from __future__ import print_function
-import myokit
-import myotest
 import os
 import unittest
 import numpy as np
-from simulation_log_interval import PeriodicTest
 
+import myokit
 
-DEBUG = False
+from shared import OpenCL_FOUND, DIR_DATA
+from test_simulation_log_interval import PeriodicTest
 
-
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(SimulationOpenCL('periodic'))
-    suite.addTest(FiberTissueSimulation('periodic'))
-    return suite
+debug = False
 
 
 class SimulationOpenCL(PeriodicTest):
     """
     Tests myokit.SimulationOpenCL for consistent log entry timing.
     """
-    def sim_for_periodic(self):
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
-        return myokit.SimulationOpenCL(m, p, ncells=1)
+    def test_periodic(self):
+        if not OpenCL_FOUND:
+            print('OpenCL support not found, skipping test.')
+            return
+
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.SimulationOpenCL(m, p, ncells=1)
+        self.periodic(s)
 
 
 class FiberTissueSimulation(unittest.TestCase):
     """
     Tests myokit.FiberTissueSimulation for consistent log entry timing.
     """
-    def periodic(self):
+    def test_periodic(self):
         """
         Test periodic logging.
         """
-        m, p, x = myokit.load(os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+        if not OpenCL_FOUND:
+            print('OpenCL support not found, skipping test.')
+            return
+
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.FiberTissueSimulation(
             m, m, p, ncells_fiber=(1, 1), ncells_tissue=(1, 1))
-        if DEBUG:
-            print('= ' + s.__class__.__name__ + ' :: Periodic logging =')
+
         # Set tolerance for equality testing
         emax = 1e-2  # Time steps for logging are approximate
+
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
         d, e = s.run(
             5, logf=['engine.time'], logt=myokit.LOG_NONE, log_interval=0.5)
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 5, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
         self.assertEqual(len(t), len(q))
         self.assertTrue(np.max(np.abs(t - q)) < emax)
+
         # Test 2: Very short simulation
         s.reset()
         d, e = s.run(
@@ -72,12 +73,13 @@ class FiberTissueSimulation(unittest.TestCase):
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 1, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
         self.assertEqual(len(t), len(q))
         self.assertTrue(np.max(np.abs(t - q)) < emax)
+
         # Test 3: Stop and start a simulation
         s.reset()
         d, e = s.run(
@@ -87,9 +89,17 @@ class FiberTissueSimulation(unittest.TestCase):
         d = d.npview()
         t = d['engine.time']
         q = np.arange(0, 5, 0.5)
-        if DEBUG:
+        if debug:
             print(t)
             print(q)
             print('- ' * 10)
         self.assertEqual(len(t), len(q))
         self.assertTrue(np.max(np.abs(t - q)) < emax)
+
+
+if __name__ == '__main__':
+    print('Add -v for more debug output')
+    import sys
+    if '-v' in sys.argv:
+        debug = True
+    unittest.main()

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Tests the DataLog class
 #
@@ -7,47 +7,24 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-import myokit
-import myotest
 import os
 import unittest
 import numpy as np
 
+import myokit
 
-def suite():
-    """
-    Returns a test suite with all tests in this module.
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(DataLogTest('extend'))
-    suite.addTest(DataLogTest('find_time'))
-    suite.addTest(DataLogTest('indexing'))
-    suite.addTest(DataLogTest('integrate'))
-    suite.addTest(DataLogTest('itrim'))
-    suite.addTest(DataLogTest('itrim_left'))
-    suite.addTest(DataLogTest('itrim_right'))
-    suite.addTest(DataLogTest('keys_like'))
-    suite.addTest(DataLogTest('length'))
-    suite.addTest(DataLogTest('prepare_single'))
-    suite.addTest(DataLogTest('prepare_1d'))
-    suite.addTest(DataLogTest('save'))
-    suite.addTest(DataLogTest('save_csv'))
-    suite.addTest(DataLogTest('split'))
-    suite.addTest(DataLogTest('split_periodic'))
-    suite.addTest(DataLogTest('trim'))
-    suite.addTest(DataLogTest('trim_left'))
-    suite.addTest(DataLogTest('trim_right'))
-    suite.addTest(DataLogTest('validate'))
-    return suite
+from shared import DIR_DATA, TemporaryDirectory
+
+
+# Extra output
+debug = False
 
 
 class DataLogTest(unittest.TestCase):
     """
     Tests the DataLog's functions.
     """
-    show_plots = False
-
-    def extend(self):
+    def test_extend(self):
         """
         Tests the extend function.
         """
@@ -116,7 +93,7 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(list(d3['v1']), v1)
         self.assertEqual(list(d3['v2']), v2)
 
-    def find_time(self):
+    def test_find_time(self):
         """
         Tests the find function.
         """
@@ -150,7 +127,7 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(x.find(20), 4)
         self.assertEqual(x.find(21), 5)
 
-    def indexing(self):
+    def test_indexing(self):
         """
         Tests the indexing overrides in the simulation log.
         """
@@ -178,7 +155,7 @@ class DataLogTest(unittest.TestCase):
         del(d['a', (5, 6)])
         self.assertFalse(('a', (5, 6)) in d)
 
-    def integrate(self):
+    def test_integrate(self):
         """
         Tests the integrate method.
         """
@@ -208,10 +185,10 @@ class DataLogTest(unittest.TestCase):
 
         # Get mean
         e = np.mean(e)
-        if myotest.DEBUG:
+        if debug:
             print(e)
         self.assertLess(e, 0.1)
-        if self.show_plots:
+        if debug:
             import matplotlib.pyplot as pl
             pl.figure()
             pl.plot(t, q, label='original')
@@ -222,7 +199,7 @@ class DataLogTest(unittest.TestCase):
             pl.legend(loc='upper left')
             pl.show()
 
-    def itrim(self):
+    def test_itrim(self):
         """
         Tests the itrim() method.
         """
@@ -256,7 +233,7 @@ class DataLogTest(unittest.TestCase):
         tr(1, 30)
         tr(-10, 40)
 
-    def itrim_left(self):
+    def test_itrim_left(self):
         """
         Tests the itrim_left() method.
         """
@@ -288,7 +265,7 @@ class DataLogTest(unittest.TestCase):
         tr(-5)
         tr(30)
 
-    def itrim_right(self):
+    def test_itrim_right(self):
         """
         Tests the itrim_right() method.
         """
@@ -320,7 +297,7 @@ class DataLogTest(unittest.TestCase):
         tr(-5)
         tr(30)
 
-    def length(self):
+    def test_length(self):
         """
         Tests the length() method.
         """
@@ -330,7 +307,7 @@ class DataLogTest(unittest.TestCase):
         d['v'] = [50, 60, 70, 80]
         self.assertEqual(d.length(), 4)
 
-    def keys_like(self):
+    def test_keys_like(self):
         """
         Tests the keys_like(query) method.
         """
@@ -365,7 +342,7 @@ class DataLogTest(unittest.TestCase):
             e.keys_like('m.v'),
             ['0.0.m.v', '0.1.m.v', '1.0.m.v', '1.1.m.v'])
 
-    def prepare_1d(self):
+    def test_prepare_1d(self):
         """
         Test the prepare_log function that handles the ``log`` argument passed
         into simulations. This function can handle different types of input.
@@ -394,7 +371,7 @@ class DataLogTest(unittest.TestCase):
         # Test multi-cell log preparing
         from myokit import prepare_log
         m = myokit.load_model(
-            os.path.join(myotest.DIR_DATA, 'lr-1991-testing.mmt'))
+            os.path.join(DIR_DATA, 'lr-1991-testing.mmt'))
 
         #
         # 1. Integer flags
@@ -855,7 +832,7 @@ class DataLogTest(unittest.TestCase):
         d = prepare_log(d, m, (2, 1), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
 
-    def prepare_single(self):
+    def test_prepare_single(self):
         """
         Test the prepare_log function that handles the ``log`` argument passed
         into simulations. This function can handle different types of input.
@@ -884,7 +861,7 @@ class DataLogTest(unittest.TestCase):
         # Test multi-cell log preparing
         from myokit import prepare_log
         m = myokit.load_model(
-            os.path.join(myotest.DIR_DATA, 'lr-1991-testing.mmt'))
+            os.path.join(DIR_DATA, 'lr-1991-testing.mmt'))
 
         #
         # 1. Integer flags
@@ -1101,108 +1078,106 @@ class DataLogTest(unittest.TestCase):
         d = prepare_log(d, m)
         self.assertIsInstance(d, myokit.DataLog)
 
-    def save(self):
+    def test_save(self):
         """
         Tests saving in binary format.
         """
-        fname = os.path.join(myotest.DIR_OUT, 'test.bin')
         d = myokit.DataLog()
         d['a.b'] = np.arange(0, 100, dtype=np.float32)
         d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
 
         # Test saving with double precision
-        d.save(fname)
-        e = myokit.DataLog.load(fname)
-        self.assertFalse(d is e)
-        if not myotest.DEBUG:
-            os.remove(fname)
-        self.assertEqual(len(d), len(e))
-        self.assertIn('a.b', e)
-        self.assertIn('c.d', e)
-        self.assertNotIn('a.d', e)
-        self.assertEqual(len(d['a.b']), len(e['a.b']))
-        self.assertEqual(len(d['c.d']), len(e['c.d']))
-        self.assertEqual(list(d['a.b']), list(e['a.b']))
-        self.assertEqual(list(d['c.d']), list(e['c.d']))
-        self.assertTrue(isinstance(d['a.b'][0], np.float32))
-        self.assertTrue(isinstance(d['c.d'][0], float))
-        self.assertTrue(isinstance(e['a.b'][0], float))
-        self.assertTrue(isinstance(e['c.d'][0], float))
-        self.assertEqual(e['a.b'].typecode, 'd')
-        self.assertEqual(e['c.d'].typecode, 'd')
+        with TemporaryDirectory() as td:
+            fname = td.path('test.bin')
+            d.save(fname)
+            e = myokit.DataLog.load(fname)
+            self.assertFalse(d is e)
+            self.assertEqual(len(d), len(e))
+            self.assertIn('a.b', e)
+            self.assertIn('c.d', e)
+            self.assertNotIn('a.d', e)
+            self.assertEqual(len(d['a.b']), len(e['a.b']))
+            self.assertEqual(len(d['c.d']), len(e['c.d']))
+            self.assertEqual(list(d['a.b']), list(e['a.b']))
+            self.assertEqual(list(d['c.d']), list(e['c.d']))
+            self.assertTrue(isinstance(d['a.b'][0], np.float32))
+            self.assertTrue(isinstance(d['c.d'][0], float))
+            self.assertTrue(isinstance(e['a.b'][0], float))
+            self.assertTrue(isinstance(e['c.d'][0], float))
+            self.assertEqual(e['a.b'].typecode, 'd')
+            self.assertEqual(e['c.d'].typecode, 'd')
 
         # Test saving with single precision
         d = myokit.DataLog()
         d.set_time_key('c.d')
         d['a.b'] = np.arange(0, 100, dtype=np.float32)
         d['c.d'] = np.sqrt(np.arange(0, 100, dtype=np.float32) * 1.2)
-        d.save(fname, precision=myokit.SINGLE_PRECISION)
-        e = myokit.DataLog.load(fname)
-        self.assertFalse(d is e)
-        if not myotest.DEBUG:
-            os.remove(fname)
-        self.assertEqual(len(d), len(e))
-        self.assertIn('a.b', e)
-        self.assertIn('c.d', e)
-        self.assertNotIn('a.d', e)
-        self.assertEqual(len(d['a.b']), len(e['a.b']))
-        self.assertEqual(len(d['c.d']), len(e['c.d']))
-        self.assertEqual(list(d['a.b']), list(e['a.b']))
-        self.assertEqual(list(d['c.d']), list(e['c.d']))
-        self.assertTrue(isinstance(d['a.b'][0], np.float32))
-        self.assertTrue(isinstance(d['c.d'][0], np.float32))
-        self.assertTrue(isinstance(e['a.b'][0], float))
-        self.assertTrue(isinstance(e['c.d'][0], float))
-        self.assertEqual(e['a.b'].typecode, 'f')
-        self.assertEqual(e['c.d'].typecode, 'f')
-        self.assertEqual(e.time_key(), 'c.d')
-        self.assertTrue(np.all(e.time() == d.time()))
-        self.assertTrue(np.all(e.time() == d['c.d']))
+        with TemporaryDirectory() as td:
+            fname = td.path('test.bin')
+            d.save(fname, precision=myokit.SINGLE_PRECISION)
+            e = myokit.DataLog.load(fname)
+            self.assertFalse(d is e)
+            self.assertEqual(len(d), len(e))
+            self.assertIn('a.b', e)
+            self.assertIn('c.d', e)
+            self.assertNotIn('a.d', e)
+            self.assertEqual(len(d['a.b']), len(e['a.b']))
+            self.assertEqual(len(d['c.d']), len(e['c.d']))
+            self.assertEqual(list(d['a.b']), list(e['a.b']))
+            self.assertEqual(list(d['c.d']), list(e['c.d']))
+            self.assertTrue(isinstance(d['a.b'][0], np.float32))
+            self.assertTrue(isinstance(d['c.d'][0], np.float32))
+            self.assertTrue(isinstance(e['a.b'][0], float))
+            self.assertTrue(isinstance(e['c.d'][0], float))
+            self.assertEqual(e['a.b'].typecode, 'f')
+            self.assertEqual(e['c.d'].typecode, 'f')
+            self.assertEqual(e.time_key(), 'c.d')
+            self.assertTrue(np.all(e.time() == d.time()))
+            self.assertTrue(np.all(e.time() == d['c.d']))
 
-    def save_csv(self):
+    def test_save_csv(self):
         """
         Tests saving as csv.
         """
-        fname = os.path.join(myotest.DIR_OUT, 'test.csv')
         d = myokit.DataLog()
 
         # Note: a.b and e.f are both non-decreaing, could be taken for time!
         d['a.b'] = np.arange(0, 100)
         d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
         d['e.f'] = np.arange(0, 100) + 1
-        d.save_csv(fname)
-        e = myokit.DataLog.load_csv(fname)
-        if not myotest.DEBUG:
-            os.remove(fname)
-        self.assertEqual(len(d), len(e))
-        self.assertIn('a.b', e)
-        self.assertIn('c.d', e)
-        self.assertNotIn('a.d', e)
-        self.assertEqual(len(d['a.b']), len(e['a.b']))
-        self.assertEqual(len(d['c.d']), len(e['c.d']))
-        self.assertEqual(list(d['a.b']), list(e['a.b']))
-        self.assertEqual(list(d['c.d']), list(e['c.d']))
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname)
+            e = myokit.DataLog.load_csv(fname)
+            self.assertEqual(len(d), len(e))
+            self.assertIn('a.b', e)
+            self.assertIn('c.d', e)
+            self.assertNotIn('a.d', e)
+            self.assertEqual(len(d['a.b']), len(e['a.b']))
+            self.assertEqual(len(d['c.d']), len(e['c.d']))
+            self.assertEqual(list(d['a.b']), list(e['a.b']))
+            self.assertEqual(list(d['c.d']), list(e['c.d']))
 
         # No time key set, will think a.b is time
         self.assertEqual(e.time()[0], d['a.b'][0])
 
         # Now set time key
         d.set_time_key('a.b')
-        d.save_csv(fname)
-        e = myokit.DataLog.load_csv(fname)
-        if not myotest.DEBUG:
-            os.remove(fname)
-        self.assertEqual(e.time()[0], d['a.b'][0])
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname)
+            e = myokit.DataLog.load_csv(fname)
+            self.assertEqual(e.time()[0], d['a.b'][0])
 
         # Now set time key
         d.set_time_key('e.f')
-        d.save_csv(fname)
-        e = myokit.DataLog.load_csv(fname)
-        if not myotest.DEBUG:
-            os.remove(fname)
-        self.assertEqual(e.time()[0], d['e.f'][0])
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname)
+            e = myokit.DataLog.load_csv(fname)
+            self.assertEqual(e.time()[0], d['e.f'][0])
 
-    def split(self):
+    def test_split(self):
         """
         Tests the split function.
         """
@@ -1282,7 +1257,7 @@ class DataLogTest(unittest.TestCase):
             self.assertEqual(v2, [])
             x = x.npview()
 
-    def split_periodic(self):
+    def test_split_periodic(self):
         """
         Tests the split_periodic() function.
         """
@@ -1418,7 +1393,7 @@ class DataLogTest(unittest.TestCase):
             np.array_equal(logs[1][tvar], np.array([500, 600, 700, 1000])))
         self.assertTrue(np.array_equal(logs[2][tvar], np.array([0, 1])))
 
-    def trim(self):
+    def test_trim(self):
         """
         Tests the trim() method.
         """
@@ -1452,7 +1427,7 @@ class DataLogTest(unittest.TestCase):
         tr(0.2, 30, 2, 30)
         tr(-10, 40, -10, 40)
 
-    def trim_left(self):
+    def test_trim_left(self):
         """
         Tests the trim_left function.
         """
@@ -1581,7 +1556,7 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(t, [])
         self.assertEqual(v, [])
 
-    def trim_right(self):
+    def test_trim_right(self):
         """
         Tests the cut_right function.
         """
@@ -1633,7 +1608,7 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(t, [0, 5, 10, 15, 20])
         self.assertEqual(v, [1, 2, 3, 4, 5])
 
-    def validate(self):
+    def test_validate(self):
         """
         Tests the validate() method.
         """
@@ -1661,3 +1636,11 @@ class DataLogTest(unittest.TestCase):
         d.validate()
         d['x'].append(1)
         self.assertRaises(myokit.InvalidDataLogError, d.validate)
+
+
+if __name__ == '__main__':
+    print('Add -v for more debug output')
+    import sys
+    if '-v' in sys.argv:
+        debug = True
+    unittest.main()

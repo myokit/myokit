@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Tests the dependency resolving and sorting to solvable order in the myokit
 # core.
@@ -9,41 +9,28 @@
 #  See: http://myokit.org
 #
 from __future__ import print_function
+#from __future__ import absolute_import, division
+#from __future__ import print_function, unicode_literals
 import os
 import unittest
+
 import myokit
-import myotest
+
+from shared import DIR_DATA
 
 
-def suite():
-    """
-    Returns a test suite with all tests in this module
-    """
-    suite = unittest.TestSuite()
-    suite.addTest(BasicReferenceTest('references'))
-    suite.addTest(ShallowDepTest('shallow'))
-    suite.addTest(DeepDepTest('deep'))
-    suite.addTest(DeepDepTest('deep_no_states'))
-    suite.addTest(DeepDepTest('deep_colnesting'))
-    suite.addTest(DeepDepTest('deep_encompassed'))
-    suite.addTest(ComponentDepTest('map_component_dependencies'))
-    suite.addTest(ComponentDepTest('map_component_io'))
-    suite.addTest(ComponentDepTest('component_cycles'))
-    suite.addTest(SolvableOrderTest('solvable_order'))
-    suite.addTest(SolvableOrderTest('solvable_subset'))
-    return suite
+# Extra output
+debug = False
 
 
 class DepTest(unittest.TestCase):
     """
     General dependency test. Loads model and destroys it
     """
-    verbose = False
-
     @classmethod
     def setUpClass(self):
         self.m = myokit.load_model(
-            os.path.join(myotest.DIR_DATA, 'lr-1991-dep.mmt'))
+            os.path.join(DIR_DATA, 'lr-1991-dep.mmt'))
 
     @classmethod
     def tearDownClass(self):
@@ -79,7 +66,7 @@ class DepTest(unittest.TestCase):
         dmap = depmap[key]
 
         # Show what will be tested
-        if self.verbose:
+        if debug:
             if deps:
                 print('Testing if ' + repr(key) + ' has ')
                 print('  [' + ', '.join([repr(d) for d in deps]) + ']')
@@ -121,7 +108,7 @@ class DepTest(unittest.TestCase):
         for dep in deps:
             self.assertIn(dep, dmap)
         # Show what was tested
-        if self.verbose:
+        if debug:
             if deps:
                 print(
                     comp.name() + ' has deps ('
@@ -130,18 +117,17 @@ class DepTest(unittest.TestCase):
                 print(comp.name() + ' has no dependencies')
 
     def head(self, text):
-        if self.verbose:
+        if debug:
             x = int((68 - len(text)) / 2)
             y = 68 - len(text) - x
             print('.' * y + ' ' + text + ' ' + '.' * x)
 
 
 class BasicReferenceTest(DepTest):
-    verbose = False
     """
     Tests the basics of reference checking
     """
-    def references(self):
+    def test_references(self):
         """
         Tests the list_reference() method.
         """
@@ -167,11 +153,10 @@ class BasicReferenceTest(DepTest):
 
 
 class ShallowDepTest(DepTest):
-    verbose = False
     """
     Tests the shallow dependency mapping.
     """
-    def shallow(self):
+    def test_shallow(self):
         """
         Tests the basic shallow depmap
         """
@@ -282,9 +267,7 @@ class DeepDepTest(DepTest):
     """
     Tests deep dependency mapping.
     """
-    verbose = False
-
-    def deep(self):
+    def test_deep(self):
         """
         Tests with::
 
@@ -422,7 +405,7 @@ class DeepDepTest(DepTest):
         has(n('test.t2'))
         head('Deep dependency check complete [with state deps]')
 
-    def deep_no_states(self):
+    def test_deep_no_states(self):
         """
         Test with::
 
@@ -559,7 +542,7 @@ class DeepDepTest(DepTest):
         head('Deep dependency check complete [no state deps]')
 
     # Tests the deep dependency mapping.
-    def deep_colnesting(self):
+    def test_deep_colnesting(self):
         """
         Test with
 
@@ -694,7 +677,7 @@ class DeepDepTest(DepTest):
             'Deep dependency check complete [with state deps, collapse'
             ' nesting]')
 
-    def deep_encompassed(self):
+    def test_deep_encompassed(self):
         """
         Test with::
 
@@ -810,9 +793,7 @@ class ComponentDepTest(DepTest):
     """
     Tests the component dependency mapping methods.
     """
-    verbose = False
-
-    def map_component_dependencies(self):
+    def test_map_component_dependencies(self):
         """
         Tests the method ``map_component_dependencies
         """
@@ -878,7 +859,7 @@ class ComponentDepTest(DepTest):
         has('engine')
         has('test', 'membrane')
 
-    def map_component_io(self):
+    def test_map_component_io(self):
         """
         Tests the method ``map_component_io
         """
@@ -888,12 +869,12 @@ class ComponentDepTest(DepTest):
         head = self.head
 
         def inn(comp, *deps):
-            if self.verbose:
+            if debug:
                 print('Input:')
             return self.has_lhs(d1, comp, *deps)
 
         def out(comp, *deps):
-            if self.verbose:
+            if debug:
                 print('Output:')
             return self.has_lhs(d2, comp, *deps)
 
@@ -1141,7 +1122,7 @@ class ComponentDepTest(DepTest):
         inn('test')
         out('test')
 
-    def component_cycles(self):
+    def test_component_cycles(self):
         # Specific test for the following bug:
         # Calling has_interdependent_components() returned True, but
         # component_cycles found nothing. The reason turned out to be that
@@ -1194,17 +1175,10 @@ class ComponentDepTest(DepTest):
 
 
 class SolvableOrderTest(DepTest):
-    verbose = False
     """
     Tests if the solvable order of the equations is determined correctly.
     """
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def solvable_order(self):
+    def test_solvable_order(self):
         """
         Test solvable_order()
         """
@@ -1243,7 +1217,7 @@ class SolvableOrderTest(DepTest):
                         i2 = i
                         if i1:
                             break
-                if self.verbose:
+                if debug:
                     if i1 < i2:
                         print(lhs1, 'occurs before', lhs2)
                     else:
@@ -1263,7 +1237,7 @@ class SolvableOrderTest(DepTest):
                         i2 = i
                         if i1:
                             break
-                if self.verbose:
+                if debug:
                     if i1 < i2:
                         print(c1, 'occurs before', c2)
                     else:
@@ -1275,7 +1249,7 @@ class SolvableOrderTest(DepTest):
         for i in xrange(0, 5):
             # Load model, get order
             self.m = myokit.load_model(
-                os.path.join(myotest.DIR_DATA, 'lr-1991-dep.mmt'))
+                os.path.join(DIR_DATA, 'lr-1991-dep.mmt'))
             self.order = self.m.solvable_order()
             # Start testing
             self.head('Testing cell component')
@@ -1354,7 +1328,7 @@ class SolvableOrderTest(DepTest):
         del(self.order)
         del(self.m)
 
-    def solvable_subset(self):
+    def test_solvable_subset(self):
         """
         Test solvable_subset()
         """
@@ -1386,7 +1360,7 @@ class SolvableOrderTest(DepTest):
                         i2 = i
                         if i1:
                             break
-                if self.verbose:
+                if debug:
                     if i1 < i2:
                         print(lhs1, 'occurs before', lhs2)
                     else:
@@ -1406,7 +1380,7 @@ class SolvableOrderTest(DepTest):
                         i2 = i
                         if i1:
                             break
-                if self.verbose:
+                if debug:
                     if i1 < i2:
                         print(c1, 'occurs before', c2)
                     else:
@@ -1418,7 +1392,7 @@ class SolvableOrderTest(DepTest):
         for i in xrange(0, 1):
             # Load model, get order
             self.m = myokit.load_model(
-                os.path.join(myotest.DIR_DATA, 'lr-1991.mmt'))
+                os.path.join(DIR_DATA, 'lr-1991.mmt'))
             # Test with a single constant
             self.head('Testing with constant cell.K_o')
             self.order = self.m.solvable_subset('cell.K_o')
@@ -1475,3 +1449,11 @@ class SolvableOrderTest(DepTest):
             self.head('Finished testing solvable_subset()')
         del(self.order)
         del(self.m)
+
+
+if __name__ == '__main__':
+    print('Add -v for more debug output')
+    import sys
+    if '-v' in sys.argv:
+        debug = True
+    unittest.main()

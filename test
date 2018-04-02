@@ -1,0 +1,286 @@
+#!/usr/bin/env python
+#
+# Runs all tests for Myokit.
+#
+# This file is part of Myokit
+#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Licensed under the GNU General Public License v3.0
+#  See: http://myokit.org
+#
+# Parts of this test script are based on the test script for Pints
+# See: https://github.com/pints-team/pints
+#
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+import gc
+import os
+import sys
+import fnmatch
+import argparse
+import unittest
+import traceback
+import subprocess
+
+
+def run_unit_tests(executable=None):
+    """
+    Runs unit tests, exits if they don't finish.
+
+    If an ``executable`` is given, tests are run in subprocesses using the
+    given executable (e.g. ``python2`` or ``python3``).
+    """
+    if executable is None:
+        suite = unittest.defaultTestLoader.discover(
+            'tests', pattern='test*.py')
+        unittest.TextTestRunner(verbosity=2).run(suite)
+    else:
+        print('Running unit tests with executable `' + executable + '`')
+        cmd = [executable] + [
+            '-m',
+            'unittest',
+            'discover',
+            '-v',
+            'tests',
+        ]
+        p = subprocess.Popen(cmd)
+        try:
+            ret = p.wait()
+        except KeyboardInterrupt:
+            try:
+                p.terminate()
+            except OSError:
+                pass
+            p.wait()
+            print('')
+            sys.exit(1)
+        if ret != 0:
+            sys.exit(ret)
+
+
+def run_flake8():
+    """
+    Runs flake8 in a subprocess, exits if it doesn't finish.
+    """
+    print('Running flake8 ... ')
+    sys.stdout.flush()
+    p = subprocess.Popen(['flake8'], stderr=subprocess.PIPE)
+    try:
+        ret = p.wait()
+    except KeyboardInterrupt:
+        try:
+            p.terminate()
+        except OSError:
+            pass
+        p.wait()
+        print('')
+        sys.exit(1)
+    if ret == 0:
+        print('ok')
+    else:
+        print('FAILED')
+        sys.exit(ret)
+
+
+def check_docs():
+    """
+    Checks if the documentation can be built.
+    """
+    print('Checking if docs can be built.')
+    p = subprocess.Popen([
+        'sphinx-build',
+        'doc',
+        'doc/_build/html',
+        '-W',
+    ])
+    try:
+        ret = p.wait()
+    except KeyboardInterrupt:
+        try:
+            p.terminate()
+        except OSError:
+            pass
+        p.wait()
+        print('')
+        sys.exit(1)
+    if ret != 0:
+        print('FAILED')
+        sys.exit(ret)
+
+
+def run_mmt_files(path):
+    """
+    Run all the `mmt` files in a given directory `path`.
+    """
+    import myokit
+
+    # Run without screen
+    #import matplotlib
+    #matplotlib.use('Agg')
+
+    # Get absolute path
+    path = os.path.abspath(path)
+
+    # Get current dir
+    current_dir = os.path.abspath(os.path.dirname(__file__))
+
+    # Change dir, make sure to change back again
+    try:
+        # Change to dir
+        os.chdir(path)
+
+        # Run all
+        glob = '*.mmt'
+        found = False
+        for fn in fnmatch.filter(os.listdir(path), glob):
+            # Load and run
+            try:
+                print('Loading ' + fn)
+                m, p, x = myokit.load(os.path.join(path, fn))
+                try:
+                    print('Running...')
+                    myokit.run(m, p, x)
+                except Exception:
+                    print(traceback.format_exc())
+                del(m, p, x)
+            except Exception:
+                print('Unable to load.')
+                print(traceback.format_exc())
+            try:
+                pl.close('all')
+            except Exception:
+                pass
+
+            # Tidy up
+            gc.collect()
+            print('-' * 70)
+    finally:
+        # Change back
+        os.chdir(current_dir)
+
+
+def run_publication_examples():
+    # Get publications directory
+    path = os.path.join('tests', 'publications')
+
+    # PBMB 2016. Myokit: A simple interface to cardiac cellular
+    # electrophysiology
+    run_mmt_files(os.path.join(path, 'pbmb-2016'))
+
+
+def run_web_examples():
+    # Get web directory
+    path = os.path.join(
+        'dev',
+        'web',
+        'html',
+        'static',
+        'download',
+        'data',
+        'examples',
+    )
+    if not os.path.isdir(path):
+        print('Web examples not found. Skipping.')
+        return
+
+    # Run
+    run_mmt_files(path)
+
+
+if __name__ == '__main__':
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(
+        description='Run unit tests for Myokit.',
+        epilog='To run individual unit tests, use e.g.'
+               ' $ tests/test_parser.py',
+    )
+
+    # Test combinations
+    parser.add_argument(
+        '--quick',
+        action='store_true',
+        help='Run quick checks (unit tests, flake8, docs)',
+    )
+    parser.add_argument(
+        '--full',
+        action='store_true',
+        help='Run all tests (including graphical ones)',
+    )
+
+    # Unit tests
+    parser.add_argument(
+        '--unit',
+        action='store_true',
+        help='Run all unit tests using the `python` interpreter.',
+    )
+    parser.add_argument(
+        '--unit2',
+        action='store_true',
+        help='Run all unit tests using the `python2` interpreter.',
+    )
+    parser.add_argument(
+        '--unit3',
+        action='store_true',
+        help='Run all unit tests using the `python3` interpreter.',
+    )
+    parser.add_argument(
+        '--nosub',
+        action='store_true',
+        help='Run all unit tests without starting a subprocess.',
+    )
+
+    # Publications and web examples
+    parser.add_argument(
+        '--publications',
+        action='store_true',
+        help='Run publication examples.',
+    )
+    parser.add_argument(
+        '--web',
+        action='store_true',
+        help='Run web examples.',
+    )
+    args = parser.parse_args()
+
+    # Run tests
+    has_run = False
+
+    # Test combinations
+    if args.quick:
+        has_run = True
+        run_flake8()
+        run_unit_tests('python')
+        check_docs()
+    if args.full:
+        has_run = True
+        run_flake8()
+        run_unit_tests('python')
+        check_docs()
+        run_web_examples()
+        run_publication_examples()
+
+    # Unit tests
+    if args.unit:
+        has_run = True
+        run_unit_tests('python')
+    if args.unit2:
+        has_run = True
+        run_unit_tests('python2')
+    if args.unit3:
+        has_run = True
+        run_unit_tests('python3')
+    if args.nosub:
+        has_run = True
+        run_unit_tests()
+
+    # Publication and web examples
+    if args.publications:
+        has_run = True
+        run_publication_examples()
+    if args.web:
+        has_run = True
+        run_web_examples()
+
+    # Help
+    if not has_run:
+        parser.print_help()
+
