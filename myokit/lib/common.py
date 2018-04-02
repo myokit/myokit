@@ -1,5 +1,5 @@
 #
-# Can run common experiments
+# Common experiments (activation, inactivation, etc.).
 #
 # Some functions in this module require a recent version of scipy (i.e. the
 # method scipy.optimize.curve_fit must exist).
@@ -9,6 +9,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import numpy as np
 import myokit
 
@@ -952,7 +955,7 @@ class StrengthDuration(object):
                     traceback.print_exc()
                 t2 = False
             if debug:
-                print t2
+                print(t2)
             if t1 == t2:
                 # No zero crossing found
                 amplitudes[k] = np.nan

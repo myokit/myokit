@@ -6,8 +6,11 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-from _exporter import StanExporter
-from _ewriter import StanExpressionWriter
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
+from ._exporter import StanExporter
+from ._ewriter import StanExpressionWriter
 
 
 # Importers

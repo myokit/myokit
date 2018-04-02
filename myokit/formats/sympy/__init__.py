@@ -6,8 +6,11 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-from _ereader import SymPyExpressionReader
-from _ewriter import SymPyExpressionWriter
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
+from ._ereader import SymPyExpressionReader
+from ._ewriter import SymPyExpressionWriter
 
 
 # Importers

@@ -6,10 +6,14 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import os
 import textwrap
 from xml.dom import minidom
 from cStringIO import StringIO
+
 import myokit
 from myokit import formats
 from myokit import Name, Number, Minus, Multiply, Divide, Power

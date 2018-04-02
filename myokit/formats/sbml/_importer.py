@@ -7,9 +7,13 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import xml.dom.minidom
 import os
 import re
+
 import myokit
 import myokit.units
 import myokit.formats

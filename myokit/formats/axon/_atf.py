@@ -6,10 +6,15 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 from collections import OrderedDict
 import numpy as np
 import os
 import re
+
+
 _FIELDS = re.compile(r'["]{1}[^"]*["]{1}')
 
 

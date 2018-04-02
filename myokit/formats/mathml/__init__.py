@@ -6,9 +6,12 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-from _parser import parse_mathml, parse_mathml_rhs, MathMLError  # noqa
-from _exporter import XMLExporter, HTMLExporter
-from _ewriter import MathMLExpressionWriter
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
+from ._parser import parse_mathml, parse_mathml_rhs, MathMLError  # noqa
+from ._exporter import XMLExporter, HTMLExporter
+from ._ewriter import MathMLExpressionWriter
 
 
 # Importers

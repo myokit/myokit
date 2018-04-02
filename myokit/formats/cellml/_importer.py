@@ -7,10 +7,14 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import os
 import textwrap
 import xml.dom.minidom
 from collections import OrderedDict as odict
+
 import myokit
 import myokit.units
 from myokit.mxml import dom_child, dom_next

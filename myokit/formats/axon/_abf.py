@@ -141,7 +141,9 @@
 # Information - but no direct code - from the matlab script get_abf_header.m
 # was also used: http://neurodata.hg.sourceforge.net/hgweb/neurodata/neurodata/
 #------------------------------------------------------------------------------
-from __future__ import division
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 from collections import OrderedDict
 import numpy as np
 import traceback
@@ -969,7 +971,7 @@ class AbfFile(object):
             n = header['sections']['SynchArray']['length']
             o = header['sections']['SynchArray']['index'] * BLOCKSIZE
         if n > 0:
-            dt = [('offset', 'i4'), ('len', 'i4')]
+            dt = [(b'offset', b'i4'), (b'len', b'i4')]
             sdata = np.memmap(self._filepath, dt, 'r', shape=(n), offset=o)
         else:
             sdata = np.empty((1), dt)
