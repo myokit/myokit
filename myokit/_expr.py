@@ -7,6 +7,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import math
 import numpy
 
@@ -1908,7 +1911,7 @@ class OrderedPiecewise(Function):
             raise IntegrityError(
                 'First argument to OrderedPiecewise function must be a'
                 ' subclass of LhsExpression.')
-        m = n / 2
+        m = n // 2
         self._p = [0] * (m - 1)     # Points
         self._e = [0] * m           # Expressions (pieces)
         oper = iter(ops)
@@ -1918,7 +1921,6 @@ class OrderedPiecewise(Function):
             self._e[i] = oper.next()
             op = oper.next()
             if not op.is_literal():
-                print op
                 raise myokit.NonLiteralValueError(
                     'The points splitting the domain of an OrderedPiecewise'
                     ' function must be given as literal values.')
@@ -2975,7 +2977,7 @@ class Unit(object):
         Evaluates self / other if future division is active.
         """
         # Only truediv is supported, so methods are equal
-        return self / other
+        return self.__div__(other)
 
 
 # Dimensionless unit, used to compare against

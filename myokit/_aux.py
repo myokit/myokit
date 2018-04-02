@@ -17,7 +17,12 @@ import shutil
 import fnmatch
 import zipfile
 import tempfile
-from cStringIO import StringIO
+try:
+    # Python 2
+    from cStringIO import StringIO
+except ImportError:
+    # Python3
+    from io import StringIO
 import myokit
 
 # Globally shared numpy expression writer

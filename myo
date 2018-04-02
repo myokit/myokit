@@ -9,13 +9,16 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-from __future__ import print_function
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 # Load Myokit
 import sys
 print('Loading Myokit...')
 sys.stdout.flush()
 import myokit
 import myokit.formats
+
 # Load remaining libraries
 import os
 import argparse
@@ -59,7 +62,7 @@ def block(filename, pyqt4=False, pyqt5=False, pyside=False):
     elif pyqt4:
         myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = True
-        myokit.FORCE_PYSIDE = False        
+        myokit.FORCE_PYSIDE = False
     elif pyside:
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYQT4 = False
@@ -232,7 +235,7 @@ def mmt_export(exporter, source, target):
             exporter.log('No protocol found.')
         else:
             exporter.log('Using embedded protocol.')
-        exporter.runnable(target, model, protocol)    
+        exporter.runnable(target, model, protocol)
     exporter.log_flair('Export successful')
     exporter.log(exporter.info())
 # Subcommand parser
@@ -240,7 +243,7 @@ export_parser = subparsers.add_parser(
     'export',
     description = 'Exports a Myokit model using the specified exporter.',
     help = 'Exports a Myokit model.',
-    )    
+    )
 export_parser.add_argument(
     'exporter',
     metavar = 'exporter',
@@ -299,7 +302,7 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False):
     elif pyqt4:
         myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = True
-        myokit.FORCE_PYSIDE = False        
+        myokit.FORCE_PYSIDE = False
     elif pyside:
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYQT4 = False
@@ -432,7 +435,7 @@ opencl_parser = subparsers.add_parser(
         ' displayed.',
     help = 'Prints information about OpenCL devices.',
     )
-opencl_parser.set_defaults(func=opencl)    
+opencl_parser.set_defaults(func=opencl)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -516,7 +519,7 @@ def opencl_select():
         print('Selection unchanged.')
     else:
         myokit.OpenCL.save_selection(platform, device)
-        print('Selection updated.')        
+        print('Selection updated.')
 # Subcommand parser
 opencl_select_parser = subparsers.add_parser(
     'opencl-select',
@@ -560,7 +563,7 @@ reset_parser.add_argument(
     '--force',
     action = 'store_true',
     help = 'Delete without prompting the user first.',
-    )    
+    )
 reset_parser.set_defaults(func=reset)
 
 
@@ -1110,7 +1113,7 @@ video_parser.add_argument(
     default = 'traditional',
     choices = myokit.ColorMap.names(),
     )
-video_parser.set_defaults(func=video)    
+video_parser.set_defaults(func=video)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

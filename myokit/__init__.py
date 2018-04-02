@@ -226,7 +226,7 @@ from ._err import (
     GenerationError, CompilationError,
     ImportError, ExportError,
     IncompatibleModelError,
-) # noqa
+)
 
 
 # Check if all errors imported
@@ -249,7 +249,7 @@ del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 from ._core import (
     ModelPart, Model, Component, Variable, check_name,
     Equation, EquationList, UserFunction,
-) # noqa
+)
 
 
 # Expressions and units
@@ -265,13 +265,13 @@ from ._expr import (
     Piecewise, OrderedPiecewise, Polynomial, Spline,
     UnsupportedFunction,
     Unit, Quantity,
-) # noqa
+)
 
 
 # Pacing protocol
 from ._protocol import (
     Protocol, ProtocolEvent, PacingSystem,
-) # noqa
+)
 
 
 # Parser functions
@@ -283,7 +283,7 @@ from ._parser import (
     parse_number_string as parse_number,
     parse_expression_string as parse_expression,
     strip_expression_units,
-) # noqa
+)
 
 
 # Auxillary functions
@@ -325,34 +325,34 @@ from ._aux import (
 
     # Snapshot creation for replicability
     pack_snapshot,
-) # noqa
+)
 
 
 # Data logging
 from ._datalog import (
     DataLog, LoggedVariableInfo, dimco, split_key, prepare_log
-) # noqa
+)
 from ._datablock import (
     DataBlock1d, DataBlock2d, ColorMap,
-) # noqa
+)
 
 
 # Simulations
 from ._sim import (
     ProgressReporter, ProgressPrinter,
     CModule, CppModule,
-) # noqa
-from ._sim.cvode import Simulation              # noqa
-from ._sim.cable import Simulation1d            # noqa
-from ._sim.opencl import OpenCL                 # noqa
-from ._sim.opencl import OpenCLInfo, OpenCLPlatformInfo, OpenCLDeviceInfo  # noqa
-from ._sim.openclsim import SimulationOpenCL    # noqa
+)
+from ._sim.cvode import Simulation
+from ._sim.cable import Simulation1d
+from ._sim.opencl import OpenCL
+from ._sim.opencl import OpenCLInfo, OpenCLPlatformInfo, OpenCLDeviceInfo
+from ._sim.openclsim import SimulationOpenCL
 # from ._sim.openmp import SimulationOpenMP
-from ._sim.fiber_tissue import FiberTissueSimulation    # noqa
-from ._sim.rhs import RhsBenchmarker            # noqa
-from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
-from ._sim.icsim import ICSimulation            # noqa
-from ._sim.psim import PSimulation              # noqa
+from ._sim.fiber_tissue import FiberTissueSimulation
+from ._sim.rhs import RhsBenchmarker
+from ._sim.jacobian import JacobianTracer, JacobianCalculator
+from ._sim.icsim import ICSimulation
+from ._sim.psim import PSimulation
 
 
 # Import whole modules
@@ -363,7 +363,7 @@ from . import (
     mxml,
     pacing,
     units,  # Also loads all common unit names
-) # noqa
+)
 
 # Globally shared progress reporter
 _Simulation_progress = None
@@ -383,25 +383,26 @@ def default_script():
     """
     Provides a default script to use when no embedded script is available.
     """
-    return """[[script]]
-import matplotlib.pyplot as pl
-import myokit
-
-# Get model and protocol, create simulation
-m = get_model()
-p = get_protocol()
-s = myokit.Simulation(m, p)
-
-# Run simulation
-d = s.run(1000)
-
-# Get the first state variable's name
-first_state = m.states().next()
-var = first_state.qname()
-
-# Display the results
-pl.figure()
-pl.plot(d.time(), d[var])
-pl.title(var)
-pl.show()
-"""
+    return '\n'.join((
+        "[[script]]",
+        "import matplotlib.pyplot as pl",
+        "import myokit",
+        "",
+        "# Get model and protocol, create simulation",
+        "m = get_model()",
+        "p = get_protocol()",
+        "s = myokit.Simulation(m, p)",
+        "",
+        "# Run simulation",
+        "d = s.run(1000)",
+        "",
+        "# Get the first state variable's name",
+        "first_state = m.states().next()",
+        "var = first_state.qname()",
+        "",
+        "# Display the results",
+        "pl.figure()",
+        "pl.plot(d.time(), d[var])",
+        "pl.title(var)",
+        "pl.show()",
+    ))
