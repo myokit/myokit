@@ -15,6 +15,17 @@ python:
 #  - "3.5"
 #  - "3.6"
 
+env:
+  matrix:
+    - MYOKIT_TEST=true
+
+matrix:
+    include:
+        - python: "2.7"
+          env:
+            - MYOKIT_COVERAGE=true
+
+
 # Install C dependencies
 before_install:
   - sudo apt-get -qq update
@@ -24,6 +35,8 @@ before_install:
 install:
   - pip install -e .
   - pip install numpy scipy sympy matplotlib flake8
+  - pip install coverage
+  - pip install codecov
 
 # Show Python version
 before_script:
@@ -31,8 +44,9 @@ before_script:
 
 # Run tests
 script:
-  - python -m flake8
-  - python test --unit
+  - if [[ $PINTS_COVERAGE == true ]]; then coverage run run-tests.py --nosub; fi;
+  - if [[ $MYOKIT_TEST == true ]]; then python -m flake8; fi;
+  - if [[ $MYOKIT_TEST == true ]]; then python test --unit; fi;
 
 # Send notifications
 notifications:
