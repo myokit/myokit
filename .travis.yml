@@ -9,11 +9,17 @@ dist: trusty
 
 language: python
 
-python:
-  - "2.7"
-#  - "3.4"
-#  - "3.5"
-#  - "3.6"
+matrix:
+    include:
+        - python: "2.7"
+          env:
+            - MYOKIT_COVER=false
+            - MYOKIT_TEST=true
+        - python: "2.7"
+          env:
+            - MYOKIT_COVER=true
+            - MYOKIT_TEST=false
+
 
 # Install C dependencies
 before_install:
@@ -24,6 +30,8 @@ before_install:
 install:
   - pip install -e .
   - pip install numpy scipy sympy matplotlib flake8
+  - pip install coverage
+  - pip install codecov
 
 # Show Python version
 before_script:
@@ -31,8 +39,13 @@ before_script:
 
 # Run tests
 script:
-  - python -m flake8
-  - python test --unit
+  - if [[ $MYOKIT_COVER == true ]]; then coverage run test --nosub; fi;
+  - if [[ $MYOKIT_TEST == true ]]; then python -m flake8; fi;
+  - if [[ $MYOKIT_TEST == true ]]; then python test --unit; fi;
+
+# Compile coverage report
+after_success:
+  - if [[ $MYOKIT_COVER == true ]]; then codecov; fi;
 
 # Send notifications
 notifications:
