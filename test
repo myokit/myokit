@@ -107,11 +107,9 @@ def check_docs():
         sys.exit(ret)
 
 
-def run_mmt_files(path, filename=None):
+def run_mmt_files(path):
     """
-    Run all the mmt files in a given directory `path`.
-
-    If `filename` is given, only the file with that name from `path` is run.
+    Run all the `mmt` files in a given directory `path`.
     """
     import myokit
 
@@ -122,55 +120,70 @@ def run_mmt_files(path, filename=None):
     # Get absolute path
     path = os.path.abspath(path)
 
-    # Change to dir
-    os.chdir(path)
+    # Get current dir
+    current_dir = os.path.abspath(os.path.dirname(__file__))
 
-    # Run all
-    glob = '*.mmt'
-    found = False
-    for fn in fnmatch.filter(os.listdir(path), glob):
-        # Real file?
-        if filename is not None:
-            if fn != filename:
-                continue
-            else:
-                found = True
+    # Change dir, make sure to change back again
+    try:
+        # Change to dir
+        os.chdir(path)
 
-        # Load and run
-        try:
-            print('Loading ' + fn)
-            m, p, x = myokit.load(os.path.join(path, fn))
+        # Run all
+        glob = '*.mmt'
+        found = False
+        for fn in fnmatch.filter(os.listdir(path), glob):
+            # Load and run
             try:
-                print('Running...')
-                myokit.run(m, p, x)
+                print('Loading ' + fn)
+                m, p, x = myokit.load(os.path.join(path, fn))
+                try:
+                    print('Running...')
+                    myokit.run(m, p, x)
+                except Exception:
+                    print(traceback.format_exc())
+                del(m, p, x)
             except Exception:
+                print('Unable to load.')
                 print(traceback.format_exc())
-            del(m, p, x)
-        except Exception:
-            print('Unable to load.')
-            print(traceback.format_exc())
-        try:
-            pl.close('all')
-        except Exception:
-            pass
+            try:
+                pl.close('all')
+            except Exception:
+                pass
 
-        # Tidy up
-        gc.collect()
-        print('-' * 70)
-
-    if filename is not None and not found:
-        print('Unable to find file: ' + str(filename))
-    else:
-        print('Done!')
+            # Tidy up
+            gc.collect()
+            print('-' * 70)
+    finally:
+        # Change back
+        os.chdir(current_dir)
 
 
-def run_publication_tests():
+def run_publication_examples():
     # Get publications directory
-    path_pub = os.path.join('tests', 'publications')
+    path = os.path.join('tests', 'publications')
 
     # PBMB 2016. Myokit: A simple interface to cardiac cellular
     # electrophysiology
-    run_mmt_files(os.path.join(path_pub, 'pbmb-2016'))
+    run_mmt_files(os.path.join(path, 'pbmb-2016'))
+
+
+def run_web_examples():
+    # Get web directory
+    path = os.path.join(
+        'dev',
+        'web',
+        'html',
+        'static',
+        'download',
+        'data',
+        'examples',
+    )
+    if not os.path.isdir(path):
+        print('Web examples not found. Skipping.')
+        return
+
+    # Run
+    run_mmt_files(path)
 
 
 if __name__ == '__main__':
@@ -180,11 +193,20 @@ if __name__ == '__main__':
         epilog='To run individual unit tests, use e.g.'
                ' $ tests/test_parser.py',
     )
+
+    # Test combinations
     parser.add_argument(
         '--quick',
         action='store_true',
         help='Run quick checks (unit tests, flake8, docs)',
     )
+    parser.add_argument(
+        '--full',
+        action='store_true',
+        help='Run all tests (including graphical ones)',
+    )
+
+    # Unit tests
     parser.add_argument(
         '--unit',
         action='store_true',
@@ -205,20 +227,38 @@ if __name__ == '__main__':
         action='store_true',
         help='Run all unit tests without starting a subprocess.',
     )
+
+    # Publications and web examples
     parser.add_argument(
         '--publications',
         action='store_true',
-        help='Run mmt files for publications',
+        help='Run publication examples.',
+    )
+    parser.add_argument(
+        '--web',
+        action='store_true',
+        help='Run web examples.',
     )
     args = parser.parse_args()
 
     # Run tests
     has_run = False
+
+    # Test combinations
     if args.quick:
         has_run = True
         run_flake8()
         run_unit_tests('python')
         check_docs()
+    if args.full:
+        has_run = True
+        run_flake8()
+        run_unit_tests('python')
+        check_docs()
+        run_web_examples()
+        run_publication_examples()
+
+    # Unit tests
     if args.unit:
         has_run = True
         run_unit_tests('python')
@@ -231,9 +271,16 @@ if __name__ == '__main__':
     if args.nosub:
         has_run = True
         run_unit_tests()
+
+    # Publication and web examples
     if args.publications:
         has_run = True
-        run_publication_tests()
+        run_publication_examples()
+    if args.web:
+        has_run = True
+        run_web_examples()
+
+    # Help
     if not has_run:
         parser.print_help()
 
