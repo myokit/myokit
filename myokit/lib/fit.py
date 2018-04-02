@@ -591,7 +591,7 @@ def map_grid(f, bounds, n, parallel=False, args=None):
     x = []
     n = iter(npoints)
     for xmin, xmax in bounds:
-        x.append(np.linspace(xmin, xmax, n.next()))
+        x.append(np.linspace(xmin, xmax, next(n)))
     # Create a grid from these points
     x = np.array(np.meshgrid(*x, indexing='ij'))
     # Re-organise the grid to be a series of nd-dimensional points

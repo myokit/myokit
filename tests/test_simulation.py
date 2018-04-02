@@ -48,7 +48,7 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(type(d), myokit.DataLog)
         self.assertIn('engine.time', d)
         n = len(d['engine.time'])
-        for k, v in d.iteritems():
+        for k, v in d.items():
             self.assertEqual(n, len(v))
 
     def test_no_protocol(self):

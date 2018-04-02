@@ -126,12 +126,12 @@ double tmax;            // The final simulation time
 double default_dt;      // The default step size
 PyObject* state_in;     // The initial states
 PyObject* state_out;    // The final states
-PyObject *protocol;     // The pacing protocol 
-PyObject *log_dict;     // The log dict 
-double log_interval;    // The log interval (0 to disable) 
+PyObject *protocol;     // The pacing protocol
+PyObject *log_dict;     // The log dict
+double log_interval;    // The log interval (0 to disable)
 
 // Cells
-Cell *cells;            // All used cells 
+Cell *cells;            // All used cells
 
 // Running
 int running = 0;        // Running yes/no
@@ -140,10 +140,10 @@ double dt_min;          // The minimum step size to use
 double tnext;           // The next forced time (event or end of sim)
 
 // Logging
-PyObject **logs;        // An array of pointers to a PyObject 
-double **vars;          // An array of pointers to double 
-int ivars;              // Iterate over logging variables 
-int nvars;              // Number of logging variables 
+PyObject **logs;        // An array of pointers to a PyObject
+double **vars;          // An array of pointers to double
+int ivars;              // Iterate over logging variables
+int nvars;              // Number of logging variables
 unsigned long ilog;     // The number of points in the log
 double tlog;            // Next logging point
 
@@ -152,10 +152,10 @@ double tpace;           // Next event start or end
 ESys pacing;            // Pacing system
 
 // Temporary objects: decref before re-using for another var :)
-// (Unless you got it through PyList_GetItem or PyTuble_GetItem) 
-PyObject *flt;              // PyFloat, various uses 
-PyObject *ret;              // PyFloat, used as return value from python calls 
-PyObject *list_update_str;  // PyString, ssed to call "append" method 
+// (Unless you got it through PyList_GetItem or PyTuble_GetItem)
+PyObject *flt;              // PyFloat, various uses
+PyObject *ret;              // PyFloat, used as return value from python calls
+PyObject *list_update_str;  // PyString, ssed to call "append" method
 
 /*
  * Given a current state, this method calculates all diffusion currents, sets
@@ -196,7 +196,7 @@ if var is not None:
     print(tab*2 + 'diffusion_current = g * (cell->' + vm + ' - clast->' + vm + ');')
     print(tab*2 + v(var) + ' = diffusion_current;')
     print(tab*1 + '}')
-    
+
 var = model.binding('pace')
 if var is not None:
     print(tab*1 + '//')
@@ -218,7 +218,7 @@ if var is not None:
 <?
 var = model.time()
 print(tab*2 + v(var) + ' = engine_time;')
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     for eq in eqs.equations(const=False, bound=False):
         print(tab*2 + w.eq(eq) + ';')
 ?>
@@ -242,18 +242,18 @@ sim_clean()
         printf("Cleaning.\n");
         #endif
 
-        // Done with str="append", decref it 
+        // Done with str="append", decref it
         Py_XDECREF(list_update_str); list_update_str = NULL;
 
-        // Free allocated space 
+        // Free allocated space
         free(logs); logs = NULL;
         free(vars); vars = NULL;
         free(cells); cells = NULL;
-        
+
         // Free pacing system memory
         ESys_Destroy(pacing); pacing = NULL;
 
-        // No longer running 
+        // No longer running
         running = 0;
     }
 
@@ -282,14 +282,14 @@ sim_init(PyObject *self, PyObject *args)
     #endif
 
     int icell;
-    Cell* cell;   
+    Cell* cell;
 
-    // Check if already running 
+    // Check if already running
     if (running != 0) {
         PyErr_SetString(PyExc_Exception, "Simulation already initialized.");
         return 0;
     }
-    
+
     // Set all pointers used by sim_clean to null
     list_update_str = NULL;
     logs = NULL;
@@ -311,33 +311,33 @@ sim_init(PyObject *self, PyObject *args)
             &log_dict,
             &log_interval)) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
-        // Nothing allocated yet, no pyobjects _created_, return directly 
+        // Nothing allocated yet, no pyobjects _created_, return directly
         return 0;
     }
 
-    // Now officialy running :) 
+    // Now officialy running :)
     running = 1;
 
     /////////////////////////////////////////////////////////////////
     //
     // From this point on, no more direct returning! Use sim_clean()
-    //  
+    //
     //
 
-    // Create cell structs 
+    // Create cell structs
     cells = (Cell*)malloc(ncells*sizeof(Cell));
     if (cells == 0) {
         PyErr_SetString(PyExc_Exception, "Number of cells must be greater than zero.");
         return sim_clean();
     }
-    
+
     // Check number of paced cells
     if (npaced > ncells) {
         PyErr_SetString(PyExc_Exception, "'npaced' cannot exceed ncells.");
         return sim_clean();
     } // If this is violated you get random segfaults
-    
-    // Check state in and out lists 
+
+    // Check state in and out lists
     if (!PyList_Check(state_in)) {
         PyErr_SetString(PyExc_Exception, "'state_in' must be a list.");
         return sim_clean();
@@ -364,7 +364,7 @@ sim_init(PyObject *self, PyObject *args)
             return sim_clean();
         }
     }
-    
+
     // Set minimum step size
     dt_min = 1e-2 * default_dt;
 
@@ -375,8 +375,8 @@ sim_init(PyObject *self, PyObject *args)
         return sim_clean();
     }
     nvars = PyDict_Size(log_dict);
-    logs = (PyObject**)malloc(sizeof(PyObject*)*nvars); // Pointers to logging lists 
-    vars = (double**)malloc(sizeof(double*)*nvars); // Pointers to variables to log 
+    logs = (PyObject**)malloc(sizeof(PyObject*)*nvars); // Pointers to logging lists
+    vars = (double**)malloc(sizeof(double*)*nvars); // Pointers to variables to log
 
     ivars = 0;
     char log_var_name[1000];
@@ -395,12 +395,12 @@ for var in model.variables(deep=True, const=False):
         cell++;
     }
 
-    // Check if log contained extra variables 
+    // Check if log contained extra variables
     if (ivars != nvars) {
         PyErr_SetString(PyExc_Exception, "Unknown variables found in logging dictionary.");
         return sim_clean();
     }
-    
+
     // Set up pacing
     ESys_Flag flag_pacing;
     pacing = ESys_Create(&flag_pacing);
@@ -411,17 +411,17 @@ for var in model.variables(deep=True, const=False):
     if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     tpace = ESys_GetNextTime(pacing, &flag_pacing);
     engine_pace = ESys_GetLevel(pacing, &flag_pacing);
-    
-    // Set simulation starting time 
+
+    // Set simulation starting time
     engine_time = tmin;
-    
+
     // Initialize cells: set constants, calculated constants, initial values,
     // zeros for pacing and stimulus
     cell = cells;
     for(icell=0; icell<ncells; icell++) {
         // Literal values & calculated constants
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     for eq in eqs.equations(const=True):
         print(tab*2 + w.eq(eq) + ';')
 ?>
@@ -438,13 +438,13 @@ if var is not None:
 var = model.binding('diffusion_current')
 if var is not None:
     print(tab*2 + v(var) + ' = 0;')
-?>        
+?>
         cell++;
     }
-    
+
     // Calculate rhs at initial time
     rhs();
-    
+
     // Always log the first step
     for(ivars = 0; ivars<nvars; ivars++) {
         flt = PyFloat_FromDouble(*vars[ivars]);
@@ -457,12 +457,12 @@ if var is not None:
         }
     }
     ret = NULL;
-    
+
     // Set first logging point
     ilog = 1;
     tlog = tmin + (double)ilog * log_interval;
 
-    // Done! 
+    // Done!
     Py_RETURN_NONE;
 }
 
@@ -477,14 +477,14 @@ sim_step(PyObject *self, PyObject *args)
     Cell* cell;
     int steps_taken = 0;
     double d;
-   
+
     #ifdef MYOKIT_DEBUG
     printf("Entering sim_step.\n");
     #endif
 
-    // Start simulation 
+    // Start simulation
     while(1) {
-    
+
         // Determine appropriate time step
         dt = default_dt;
         d = tpace - engine_time; if (d > dt_min && d < dt) dt = d;
@@ -493,13 +493,13 @@ sim_step(PyObject *self, PyObject *args)
 
         // Move to next time (1) Update the time variable
         engine_time += dt;
-        
+
         // Move to next time (2) Update the pacing variable
         flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
         if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
         tpace = ESys_GetNextTime(pacing, NULL);
         engine_pace = ESys_GetLevel(pacing, NULL);
-        
+
         // Move to next time (3) Update the states
         cell = cells;
         for(icell=0; icell<ncells; icell++) {
@@ -531,13 +531,13 @@ for var in model.states():
                 }
             }
             ret = NULL;
-            
+
             // Set next logging point
             ilog++;
             tlog = tmin + (double)ilog * log_interval;
         }
 
-        // Report back to python after every x steps 
+        // Report back to python after every x steps
         steps_taken++;
         if (steps_taken > 100) {
             steps_taken = 0;
@@ -546,7 +546,7 @@ for var in model.states():
             }
         }
     }
-    
+
     // Set final state
     #ifdef MYOKIT_DEBUG
     printf("Setting final state.\n");
@@ -564,7 +564,7 @@ for var in model.states():
     printf("Done, tidying up and returning.\n");
     #endif
 
-    sim_clean();    // Ignore return value 
+    sim_clean();    // Ignore return value
     return PyFloat_FromDouble(engine_time);
 }
 

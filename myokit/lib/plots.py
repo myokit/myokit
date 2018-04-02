@@ -131,7 +131,7 @@ def simulation_times(
     except KeyError:
         raise ValueError(
             'Selected mode not found. Avaiable modes are: '
-            + ', '.join(['"' + x + '"' for x in modes.iterkeys()]))
+            + ', '.join(['"' + x + '"' for x in modes.keys()]))
     return fn(axes, time, realtime, evaluations)
 
 

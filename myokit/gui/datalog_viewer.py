@@ -517,7 +517,7 @@ class CsvTab(QtWidgets.QTabWidget):
             return
 
         # Add tab for each column
-        for k, v in log.iteritems():
+        for k, v in log.items():
             if k == time:
                 continue
             self.addTab(self.create_graph_tab(k, v), k)

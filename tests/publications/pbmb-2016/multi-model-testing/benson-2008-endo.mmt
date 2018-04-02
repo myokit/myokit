@@ -4,11 +4,11 @@ author: Michael Clerx
 desc: """
     Benson 2008 model for canine ventricular epicardial, mid-myocardial and
     endocardial myocytes.
-    
+
     Adapted from CellML models. Original meta-data follows below:
-    
+
     ---------------------------------------------------------------------------
-    
+
     Catherine Lloyd
     Auckland Bioengineering Institute, The University of Auckland
 
@@ -21,7 +21,7 @@ desc: """
     has been added to switch between the original (default value 0) and
     'tissue' (any other value, for example 1) models.
 
-    ABSTRACT: We have constructed computational models of canine ventricular 
+    ABSTRACT: We have constructed computational models of canine ventricular
     cells and tissues, ultimately combining detailed tissue architecture and
     heterogeneous transmural electrophysiology. The heterogeneity is introduced
     by modifying the Hund-Rudy canine cell model in order to reproduce
@@ -59,7 +59,7 @@ desc: """
     probability of re-entry in the tissue.
 
     The original paper reference is cited below:
-    
+
     The canine virtual ventricular wall: a platform for dissecting
     pharmacological effects on propagation and arrhythmogenesis
     Alan P. Benson, Oleg V. Aslanidi, Henggui Zhang and Arun V. Holden, 2008
@@ -515,7 +515,7 @@ types = {
 pl.figure()
 pl.xlabel('Time [ms]')
 pl.ylabel('Vm [mV]')
-for k, name in types.iteritems():
+for k, name in types.items():
     s.reset()
     s.set_constant('cell.type', k)
     s.pre(1000 * 50)

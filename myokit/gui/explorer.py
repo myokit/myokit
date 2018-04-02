@@ -197,7 +197,7 @@ class Explorer(QtWidgets.QDialog):
         reset_keys = True
         if self._keys:
             # Only reset keys if the old set differs from the new
-            if self._keys == set(d.iterkeys()):
+            if self._keys == set(d.keys()):
                 reset_keys = False
         # Append or reset old data
         reset_plot = True
@@ -214,10 +214,10 @@ class Explorer(QtWidgets.QDialog):
             y = self._select_y.currentText()
             self._select_x.clear()
             self._select_y.clear()
-            for k in sorted(d.iterkeys()):
+            for k in sorted(d.keys()):
                 self._select_x.addItem(k)
                 self._select_y.addItem(k)
-            self._keys = set(d.iterkeys())
+            self._keys = set(d.keys())
             # Attempt to keep current variables
             x = self._select_x.findText(x)
             if x < 0:
@@ -227,7 +227,7 @@ class Explorer(QtWidgets.QDialog):
             y = self._select_y.findText(y)
             if y < 0:
                 # Guess: First log entry (first state)
-                y = self._select_y.findText(d.iterkeys().next())
+                y = self._select_y.findText(next(d.keys()))
             self._select_y.setCurrentIndex(y)
         # Add new data
         self._data.append(d)

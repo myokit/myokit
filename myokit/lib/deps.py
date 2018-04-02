@@ -184,7 +184,7 @@ class DiGraph(object):
         return len(self.nodes)
 
     def __iter__(self):
-        return self.nodes.itervalues()
+        return self.nodes.values()
 
     def __getitem__(self, key):
         return self.nodes.__getitem__(key)
@@ -233,7 +233,7 @@ class DiGraph(object):
             if n != len(self.nodes):
                 raise ValueError('Matrix must have same size as graph.')
             # Clear existing edges
-            for node in self.nodes.itervalues():
+            for node in self.nodes.values():
                 node.clear_edges()
         else:
             # Delete nodes
@@ -311,7 +311,7 @@ class DiGraph(object):
             try:
                 v = 0
                 while v == 0:
-                    v = ni.next() - mi.next()
+                    v = next(ni) - next(mi)
                 return v < 0
             except StopIteration:
                 return len(n) < len(m)
@@ -455,7 +455,7 @@ class DiGraph(object):
         else:
             if self.nodes:
                 out = []
-                for node in self.nodes.itervalues():
+                for node in self.nodes.values():
                     out.append('Node "' + node.label() + '"')
                     for edge in node.edgo:
                         out.append('  > Node "' + edge.label() + '"')
@@ -738,7 +738,7 @@ def create_component_dependency_graph(
         node.label = c.name()
     # Add edges, get sorted dict of nodes sorted by #deps
     order = {}
-    for c, cdeps in deps.iteritems():
+    for c, cdeps in deps.items():
         n = 0
         for d in cdeps:
             g.add_edge(c, d)
@@ -758,7 +758,7 @@ def create_component_dependency_graph(
         if False:
             dy = -dy
             y = 1 - y
-        for key in sorted(order.iterkeys()):
+        for key in sorted(order.keys()):
             level = order[key]
             nLevel = len(level)
             dx = (1 - 2 * p) / (nLevel - 1) if nLevel > 1 else 0
@@ -795,7 +795,7 @@ def create_variable_dependency_graph(model):
     deps = model.map_shallow_dependencies(
         collapse=True, omit_states=True, omit_constants=True)
     # Create nodes
-    for lhs, dps in deps.iteritems():
+    for lhs, dps in deps.items():
         # Create node
         node = g.add_node(lhs)
         # Set node label
@@ -806,7 +806,7 @@ def create_variable_dependency_graph(model):
         node.rgba = (random.random(), random.random(), random.random(), 0.9)
     # Create edges
     used = set()
-    for lhs, dps in deps.iteritems():
+    for lhs, dps in deps.items():
         for dep in dps:
             g.add_edge(lhs, dep)
             used.add(lhs)

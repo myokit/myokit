@@ -358,8 +358,8 @@ class CellMLImporter(myokit.formats.Importer):
                         + '>.')
 
         # Check for references that are never connected
-        for cname, rfs in references.iteritems():
-            for vname, ref in rfs.iteritems():
+        for cname, rfs in references.items():
+            for vname, ref in rfs.items():
                 if ref is None:
                     self.warn(
                         'Unresolved reference <' + str(vname) + '> in'
@@ -372,8 +372,8 @@ class CellMLImporter(myokit.formats.Importer):
 
         # The references should now all point to either a variable or a
         # reference to another variable. In the next step, these are resolved.
-        for cname, rfs in references.iteritems():
-            for vname, ref in rfs.iteritems():
+        for cname, rfs in references.items():
+            for vname, ref in rfs.items():
                 if type(ref) == tuple:
                     while True:
                         ref = references[ref[0]][ref[1]]
@@ -481,9 +481,9 @@ class CellMLImporter(myokit.formats.Importer):
             self.log('Found ' + str(n) + ' equations in ' + cname + '.')
 
         # Use remaining initial values (can be used to set constants)
-        for cname, vls in values.iteritems():
+        for cname, vls in values.items():
             vrs = variables[cname]
-            for vname, val in vls.iteritems():
+            for vname, val in vls.items():
                 vrs[vname].set_rhs(myokit.Number(val))
 
         # Bind time variable to engine time
@@ -671,7 +671,7 @@ class CellMLImporter(myokit.formats.Importer):
                     units[unit.name] = unit
             return units
         munits = order(munits)
-        for name, units in cunits.iteritems():
+        for name, units in cunits.items():
             cunits[name] = order(units)
 
         # Convert units
@@ -724,12 +724,12 @@ class CellMLImporter(myokit.formats.Importer):
             return base
 
         # Convert all units in <model>
-        for name, obj in munits.iteritems():
+        for name, obj in munits.items():
             munits[name] = convert(obj)
 
         # Convert all units in components
-        for cname, units in cunits.iteritems():
-            for name, obj in units.iteritems():
+        for cname, units in cunits.items():
+            for name, obj in units.items():
                 units[name] = convert(obj, units)
 
         # Return unit maps

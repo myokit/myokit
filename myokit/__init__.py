@@ -397,7 +397,7 @@ def default_script():
         "d = s.run(1000)",
         "",
         "# Get the first state variable's name",
-        "first_state = m.states().next()",
+        "first_state = next(m.states)",
         "var = first_state.qname()",
         "",
         "# Display the results",

@@ -91,4 +91,4 @@ t = T;
 
 % Show result
 figure
-plot(t, <?= v(model.states().next()) ?>)
+plot(t, <?= v(next(model.states())) ?>)

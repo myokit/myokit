@@ -136,10 +136,10 @@ class DataBlock1d(object):
         Returns a :class:`myokit.DataBlock2d` based on this 1d data block.
         """
         b = DataBlock2d(self._nx, 1, self._time)
-        for k, v in self._0d.iteritems():
+        for k, v in self._0d.items():
             b.set0d(k, v)
         shape = (self._nt, 1, self._nx)
-        for k, v in self._1d.iteritems():
+        for k, v in self._1d.items():
             b.set2d(k, v.reshape(shape))
         return b
 
@@ -243,7 +243,7 @@ class DataBlock1d(object):
             raise ValueError('The given time variable should be 0d.')
         # Check if everything is 0d or 1d, get size
         size = None
-        for name, info in infos.iteritems():
+        for name, info in infos.items():
             d = info.dimension()
             if d not in (0, 1):
                 raise ValueError(
@@ -262,7 +262,7 @@ class DataBlock1d(object):
         nx = size[0]
         # Create data block
         block = DataBlock1d(nx, log[time], copy=True)
-        for name, info in infos.iteritems():
+        for name, info in infos.items():
             if info.dimension() == 0:
                 # Add 0d time series
                 if name == time:
@@ -486,19 +486,19 @@ class DataBlock1d(object):
                 iprogress = 0
                 progress.update(iprogress * fraction)
             head = iter(head)
-            nt = int(head.next())
-            nx = int(head.next())
-            dtype = str(head.next())[1:-1]
+            nt = int(next(head))
+            nx = int(next(head))
+            dtype = str(next(head))[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
                     'Unable to read DataBlock1d: unrecognized data type "'
                     + str(dtype) + '".')
             names_0d = []
             names_1d = []
-            name = head.next()
+            name = next(head)
             while name != '1':
                 names_0d.append(name[1:-1])
-                name = head.next()
+                name = next(head)
             for name in head:
                 names_1d.append(name[1:-1])
             del(head)
@@ -624,9 +624,9 @@ class DataBlock1d(object):
         n = self._nt * self._nx
         body_str = []
         body_str.append(array.array(dtype, self._time))
-        for name, data in self._0d.iteritems():
+        for name, data in self._0d.items():
             body_str.append(array.array(dtype, data))
-        for name, data in self._1d.iteritems():
+        for name, data in self._1d.items():
             body_str.append(array.array(dtype, data.reshape(n, order='C')))
         if sys.byteorder == 'big':
             for ar in body_str:
@@ -874,7 +874,7 @@ class DataBlock2d(object):
         block = DataBlock2d(nx, ny, time, copy=True)
         # Enter 0d data
         if map0d:
-            for name, old in map0d.iteritems():
+            for name, old in map0d.items():
                 if old[0] is None:
                     b = block2
                     n = old[1]
@@ -888,7 +888,7 @@ class DataBlock2d(object):
                         ' be None.')
                 block.set0d(name, b.get0d(n))
         # Enter 2d data
-        for name, source in map2d.iteritems():
+        for name, source in map2d.items():
             # Get data sources
             name1, name2 = source[0], source[1]
             source1 = block1.get2d(name1)
@@ -970,7 +970,7 @@ class DataBlock2d(object):
             raise ValueError('The given time variable should be 0d.')
         # Check if everything is 0d or 2d, get size
         size = None
-        for name, info in infos.iteritems():
+        for name, info in infos.items():
             d = info.dimension()
             if d not in (0, 2):
                 raise ValueError(
@@ -989,7 +989,7 @@ class DataBlock2d(object):
         nx, ny = size
         # Create data block
         block = DataBlock2d(nx, ny, log[time], copy=True)
-        for name, info in infos.iteritems():
+        for name, info in infos.items():
             if info.dimension() == 0:
                 # Add 0d time series
                 if name == time:
@@ -1055,7 +1055,7 @@ class DataBlock2d(object):
         stored in this block. The given values are references! No copy of the
         data is made.
         """
-        return self._2d.iteritems()
+        return self._2d.items()
 
     def items2d(self):
         """
@@ -1063,7 +1063,7 @@ class DataBlock2d(object):
         stored in this block. The given values are references! No copy of the
         data is made.
         """
-        return self._2d.iteritems()
+        return self._2d.items()
 
     def keys0d(self):
         """
@@ -1190,20 +1190,20 @@ class DataBlock2d(object):
                 iprogress = 0
                 progress.update(iprogress * fraction)
             head = iter(head)
-            nt = int(head.next())
-            ny = int(head.next())
-            nx = int(head.next())
-            dtype = str(head.next())[1:-1]
+            nt = int(next(head))
+            ny = int(next(head))
+            nx = int(next(head))
+            dtype = str(next(head))[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
                     'Unable to read DataBlock2d: unrecognized data type "'
                     + str(dtype) + '".')
             names_0d = []
             names_2d = []
-            name = head.next()
+            name = next(head)
             while name != '2':
                 names_0d.append(name[1:-1])
-                name = head.next()
+                name = next(head)
             for name in head:
                 names_2d.append(name[1:-1])
             del(head)
@@ -1328,9 +1328,9 @@ class DataBlock2d(object):
         n = self._nt * self._ny * self._nx
         body_str = []
         body_str.append(array.array(dtype, self._time))
-        for name, data in self._0d.iteritems():
+        for name, data in self._0d.items():
             body_str.append(array.array(dtype, data))
-        for name, data in self._2d.iteritems():
+        for name, data in self._2d.items():
             body_str.append(array.array(dtype, data.reshape(n, order='C')))
         if sys.byteorder == 'big':
             for ar in body_str:
@@ -1579,7 +1579,7 @@ class ColorMap(object):
         """
         Returns an iterator over the names of all available colormaps.
         """
-        return ColorMap._colormaps.iterkeys()
+        return ColorMap._colormaps.keys()
 
     @staticmethod
     def normalize(floats, lower=None, upper=None):

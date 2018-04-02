@@ -467,7 +467,7 @@ class TemplatedRunnableExporter(Exporter):
             raise Myokit.ExportError(msg, self)
         # Render all templates
         tpl_vars = self._vars(model, protocol, *args)
-        for tpl_name, out_name in self._dict().iteritems():
+        for tpl_name, out_name in self._dict().items():
             # Create any dirs embedded in output file path
             file_dir = os.path.split(out_name)[0]
             if file_dir:
@@ -594,7 +594,7 @@ def _update():
             x = m.importers()
         except AttributeError:
             x = {}
-        for k, v in x.iteritems():
+        for k, v in x.items():
             if k in _IMPORTERS:
                 raise Exception('Duplicate importer name: "' + str(k) + '".')
             _IMPORTERS[k] = v
@@ -602,7 +602,7 @@ def _update():
             x = m.exporters()
         except AttributeError:
             x = {}
-        for k, v in x.iteritems():
+        for k, v in x.items():
             if k in _EXPORTERS:
                 raise Exception('Duplicate exporter name: "' + str(k) + '".')
             _EXPORTERS[k] = v
@@ -610,7 +610,7 @@ def _update():
             x = m.ewriters()
         except AttributeError:
             x = {}
-        for k, v in x.iteritems():
+        for k, v in x.items():
             if k in _EWRITERS:
                 raise Exception(
                     'Duplicate expression writer name: "' + str(k) + '".')

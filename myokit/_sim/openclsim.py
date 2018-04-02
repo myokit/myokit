@@ -381,7 +381,7 @@ class SimulationOpenCL(myokit.CModule):
                 # Search for first occurrence of propagating NaN in the log
                 ifirst = None
                 kfirst = None
-                for key, ar in log.iteritems():
+                for key, ar in log.items():
                     if ifirst is None:
                         if not np.isfinite(ar[-1]):
                             # First NaN found
@@ -716,7 +716,7 @@ class SimulationOpenCL(myokit.CModule):
         # Create list of intermediary variables that need to be logged
         inter_log = []
         vars_checked = set()
-        for var in log.iterkeys():
+        for var in log.keys():
             var = myokit.split_key(var)[1]
             if var in vars_checked:
                 continue
@@ -757,7 +757,7 @@ class SimulationOpenCL(myokit.CModule):
         # Create field values vector
         n = len(self._fields) * self._nx * self._ny
         if n:
-            field_data = self._fields.itervalues()
+            field_data = self._fields.values()
             field_data = [np.array(x, copy=False) for x in field_data]
             field_data = np.vstack(field_data)
             field_data = list(field_data.reshape(n, order='F'))

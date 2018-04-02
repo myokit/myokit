@@ -216,7 +216,7 @@ static void
 updateConstants(void)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     for eq in eqs.equations(const=True):
         if not eq.rhs.is_literal():
             print(tab + w.eq(eq) + ';')
@@ -238,7 +238,7 @@ rhs(realtype t, N_Vector y, N_Vector ydot, void *f_data)
         }
     }
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     if eqs.has_equations(const=False):
         print(tab + '// ' + label)
         for eq in eqs.equations(const=False):
@@ -260,7 +260,7 @@ static int
 update_bindings(realtype t, N_Vector y, N_Vector ydot, void *f_data)
 {
 <?
-for var, internal in bound_variables.iteritems():
+for var, internal in bound_variables.items():
     print(tab + v(var) + ' = ' + internal + ';')
 ?>
     return 0;
@@ -681,7 +681,7 @@ for var in model.states():
     // Check bound variables
     j = i;
 <?
-for var, internal in bound_variables.iteritems():
+for var, internal in bound_variables.items():
     print(tab + 'i += log_add(log_dict, logs, vars, i, "' + var.qname() + '", &' + v(var)  + ');')
 ?>
     log_bound = (i > j);

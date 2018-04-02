@@ -92,7 +92,7 @@ class DataLog(OrderedDict):
             # Get enumerated iterator over characters
             line = enumerate(line)
             try:
-                i, c = line.next()
+                i, c = next(line)
             except StopIteration:
                 e(1, i, 'Empty line, expecting header.')
             run1 = True
@@ -103,14 +103,14 @@ class DataLog(OrderedDict):
                     run2 = True
                     while run2:
                         try:
-                            i, c = line.next()
+                            i, c = next(line)
                         except StopIteration:
                             e(
                                 1, i,
                                 'Unexpected end-of-line inside quoted string.')
                         if c == quote:
                             try:
-                                i, c = line.next()
+                                i, c = next(line)
                                 if c == quote:
                                     text.append(quote)
                                 elif c == delim:
@@ -129,14 +129,14 @@ class DataLog(OrderedDict):
                     while run1 and c != delim:
                         try:
                             text.append(c)
-                            i, c = line.next()
+                            i, c = next(line)
                         except StopIteration:
                             run1 = False
                 # Append new field to list
                 keys.append(''.join(text))
                 # Read next character
                 try:
-                    i, c = line.next()
+                    i, c = next(line)
                 except StopIteration:
                     run1 = False
             if c == delim:
@@ -178,7 +178,7 @@ class DataLog(OrderedDict):
         """
         import numpy as np
         out = DataLog()
-        for k, d in self.iteritems():
+        for k, d in self.items():
             out[k] = np.array(d, copy=False)
         return out
 
@@ -211,7 +211,7 @@ class DataLog(OrderedDict):
             keys = []
             data = []
             n = []
-            for key, dat in sorted(self.iteritems()):
+            for key, dat in sorted(self.items()):
                 keys.append(key)
                 data.append(iter(dat))
                 n.append(len(dat))
@@ -239,14 +239,14 @@ class DataLog(OrderedDict):
                 for i in range(0, n):
                     line = []
                     for d in data:
-                        line.append(myokit.strfloat(d.next()))
+                        line.append(myokit.strfloat(next(d)))
                     f.write(delim.join(line) + eol)
             else:
                 for i in range(0, n):
                     line = []
                     for d in data:
                         try:
-                            line.append(myokit.strfloat(d.next()))
+                            line.append(myokit.strfloat(next(d)))
                         except StopIteration:
                             line.append('0')
                     f.write(delim.join(line) + eol)

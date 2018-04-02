@@ -19,14 +19,14 @@ import myokit
 functions{
 
   /**
-   * Uses bisection to find a value `x` in a vector `sorted`. 
+   * Uses bisection to find a value `x` in a vector `sorted`.
    *
    * @param x The value to search for.
    * @param sorted A sorted (non-decreasing) vector of values to search in.
    * @return The greatest array indice `i` such that `sorted[i] <= x`
    */
   int find_interval_elem(real x, vector sorted) {
-   
+
     int N;
     int iter;
     int max_iter;
@@ -36,7 +36,7 @@ functions{
     real left;
     real right;
     real mid;
-    
+
     N = num_elements(sorted);
     if(N == 0) return(0);
 
@@ -73,7 +73,7 @@ functions{
       print("Maximum number of iterations reached.");
     return left_ind;
   }
-  
+
   /**
    * Calculates the value of the pace variable (i.e. the model input), based
    * on an externally defined time-series.
@@ -87,11 +87,11 @@ functions{
 
     // Find indice for current time
     int i = find_interval_elem(time, values);
-    
+
     // Return pacing value
     return (i == 0) ? values[1] : values[i];
   }
-  
+
   /**
    * Calculates the model derivatives
    *
@@ -99,7 +99,7 @@ functions{
    */
   real[] derivatives(real time, real[] state, real[] parameters, real[] xr,
       int[] xi) {
-    
+
     // Get current pacing value
     real pace = get_pacing_value(time, xr, xi);
 <?
@@ -112,7 +112,7 @@ for k, var in enumerate(parameters):
 
 print(2*tab)
 print(2*tab + '// Constants')
-for label, eq_list in equations.iteritems():
+for label, eq_list in equations.items():
     eqs = []
     for eq in eq_list.equations(const=True, bound=False):
         if eq.lhs.var() not in parameters:
@@ -127,13 +127,13 @@ for label, eq_list in equations.iteritems():
             print(2*tab + 'real ' + e(eq) + ';')
 
 print(2*tab)
-print(2*tab + '// States')    
+print(2*tab + '// States')
 for k, var in enumerate(model.states()):
     print(2*tab + 'real ' + v(var) + ' = state[' + str(k + 1) + '];')
 
 print(2*tab)
 print(2*tab + '// Calculate states')
-for label, eq_list in equations.iteritems():
+for label, eq_list in equations.items():
     eqs = []
     for eq in eq_list.equations(const=False, bound=False):
         if eq.lhs.var() not in parameters:
@@ -156,7 +156,7 @@ for k, var in enumerate(model.states()):
 ?>
     return derivatives;
   }
-  
+
   vector solve_forced_ode(real[] ts, real X0, real[] theta, real[] V, real t0){
     int x_i[1];
     real I[size(V),1];
@@ -205,12 +205,12 @@ model{
   // solve ODE using stiff solver
   vector[N] I_int;
   I_int = solve_forced_ode(ts, X0, theta, V,-0.1);
-  
+
   // likelihood
   for(i in 1:N){
     I[i] ~ normal(I_int[i],sigma);
   }
-  
+
   //priors
   p1 ~ normal(900,500);
   p2 ~ normal(5,1);

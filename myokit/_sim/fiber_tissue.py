@@ -457,7 +457,7 @@ class FiberTissueSimulation(myokit.CModule):
         def find_error_position(log):
             ifirst = None   # Log list index
             kfirst = None   # Log key
-            for key, ar in log.iteritems():
+            for key, ar in log.items():
                 if ifirst is None:
                     if not np.isfinite(ar[-1]):
                         # First NaN found
@@ -738,7 +738,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Create list of intermediary fiber variables that need to be logged
         inter_logf = []
         vars_checked = set()
-        for var in logf.iterkeys():
+        for var in logf.keys():
             var = myokit.split_key(var)[1]
             if var in vars_checked:
                 continue
@@ -750,7 +750,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Create list of intermediary tissue variables that need to be logged
         inter_logt = []
         vars_checked = set()
-        for var in logt.iterkeys():
+        for var in logt.keys():
             var = myokit.split_key(var)[1]
             if var in vars_checked:
                 continue

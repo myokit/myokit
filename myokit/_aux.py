@@ -366,8 +366,8 @@ def format_float_dict(d):
     string.
     """
     out = []
-    n = max([len(str(k)) for k in d.iterkeys()])
-    for k, v in d.iteritems():
+    n = max([len(str(k)) for k in d.keys()])
+    for k, v in d.items():
         k = str(k)
         out.append(k + ' ' * (n - len(k)) + ' = ' + strfloat(v))
     return '\n'.join(out)
@@ -651,7 +651,7 @@ class ModelComparison(object):
         else:
             name = ' in <' + x1.qname() + '>'
         seen = set()
-        for key, value in x1.meta.iteritems():
+        for key, value in x1.meta.items():
             seen.add(key)
             try:
                 if value != x2.meta[key]:
@@ -662,7 +662,7 @@ class ModelComparison(object):
                 self._write(
                     '[2] Missing Meta property' + name + ': "' + str(key)
                     + '"')
-        for key, value in x2.meta.iteritems():
+        for key, value in x2.meta.items():
             if key not in seen:
                 self._write(
                     '[1] Missing Meta property' + name + ': "' + str(key)
@@ -678,7 +678,7 @@ class ModelComparison(object):
         c2 = m2.state()
         for k, v1 in enumerate(s1):
             try:
-                v2 = s2.next()
+                v2 = next(s2)
             except StopIteration:
                 self._write('[2] Missing state at position ' + str(k))
                 continue
@@ -724,14 +724,14 @@ class ModelComparison(object):
         u1 = m1.user_functions()
         u2 = m2.user_functions()
         seen = set()
-        for name, func in u1.iteritems():
+        for name, func in u1.items():
             seen.append(name)
             try:
                 if func != u2[name]:
                     self._write('[x] Mismatched User function <' + name + '>')
             except KeyError:
                 self._write('[2] Missing User function <' + name + '>')
-        for name, func in u2.iteritems():
+        for name, func in u2.items():
             if name not in seen:
                 self._write('[1] Missing User function <' + name + '>.')
 

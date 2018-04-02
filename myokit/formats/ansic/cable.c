@@ -8,7 +8,7 @@
 # module_name A module name
 # model       A myokit model
 # ---------------------------
-# 
+#
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
@@ -30,11 +30,11 @@ bound_variables = model.prepare_bindings({
     'pace'         : 'pace',
     'diffusion_current' : 'current'
     }).keys()
-    
+
 if model.binding('diffusion_current') is None:
     raise Exception('This exporter requires a variable to be bound to'
         ' "diffusion_current".')
-    
+
 # Define var/lhs function
 def v(var, pre='cell->'):
     """
@@ -130,7 +130,7 @@ static void
 Cell_set_literals(Cell *cell)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     for eq in eqs.equations(const=True):
         if eq.rhs.is_literal():
             print(tab + w.eq(eq) + ';')
@@ -144,7 +144,7 @@ static void
 Cell_calculate_constants(Cell *cell)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     for eq in eqs.equations(const=True):
         if not eq.rhs.is_literal():
             print(tab + w.eq(eq) + ';')
@@ -168,7 +168,7 @@ static void
 Cell_calculate_derivatives(Cell *cell)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     for eq in eqs.equations(const=False, bound=False):
         print(tab + w.eq(eq) + ';')
 ?>}
@@ -334,7 +334,7 @@ while next:
     /* Logging interval */
     double log_interval = 1;
     double time_log = time_min;
-    
+
     /* Current in */
     double diffusion_current = 0;
 
@@ -345,7 +345,7 @@ while next:
         /* Set membrane currents */
         cell = clast = cnext = cells;
         cnext++;
-        
+
         /* Current, first cell */
         diffusion_current = R_CELL_TO_CELL * (cell-><?=vm?> - cnext-><?=vm?>);
 <?
@@ -364,9 +364,9 @@ for var in bound_variables:
         print(tab*3 + v(var) + ' = diffusion_current;')
 ?>            clast++;
             cell++;
-            cnext++;        
+            cnext++;
         }
-        
+
         /* Current, final cell */
         diffusion_current = R_CELL_TO_CELL * (cell-><?=vm?> - clast-><?=vm?>);
 <?

@@ -70,7 +70,11 @@ class ExportTest(unittest.TestCase):
 
     def test_exporters(self):
         for name in myokit.formats.exporters():
-            self.go(name)
+            try:
+                self.go(name)
+            except myokit.ExportError as e:
+                raise Exception(
+                    'Exporter error for ' + name + ': ' + e.message)
 
 
 class SympyTest(unittest.TestCase):

@@ -137,7 +137,7 @@ class BasicReferenceTest(DepTest):
         r = myokit.Plus(myokit.Number(5), dy)
         r = r.references()
         self.assertEqual(len(r), 1)
-        r = iter(r).next()
+        r = next(iter(r))
         self.assertEqual(r, dy)
         # Test in parsed model
         d = self.d

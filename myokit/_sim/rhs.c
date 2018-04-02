@@ -82,7 +82,7 @@ static void
 updateConstants(void)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     for eq in eqs.equations(const=True):
         if not eq.rhs.is_literal():
             print(tab + w.eq(eq) + ';')
@@ -93,7 +93,7 @@ static inline void
 rhs(void)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     if eqs.has_equations(const=False):
         print(tab + '/* ' + label + ' */')
         for eq in eqs.equations(const=False):
@@ -111,7 +111,7 @@ static inline void
 partial_rhs(void)
 {
 <?
-for label, eqs in equations.iteritems():
+for label, eqs in equations.items():
     first = True
     for eq in eqs.equations(const=False):
         var = eq.lhs.var()
@@ -315,7 +315,7 @@ bench(PyObject* self, PyObject* args, void (*fnc)(void))
             Py_DECREF(f2);
             f1 = f2 = NULL;
         }
-        
+
         // Store time difference in list
         // Steals ref, so no decreffing is needed!
         PyList_SetItem(times, start + i, PyFloat_FromDouble(time_difference));

@@ -172,7 +172,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._variable_select.activated.connect(self.event_variable_selected)
         self._variable_select.setMinimumWidth(120)
         # Colormap selection
-        self._colormap = myokit.ColorMap.names().next()
+        self._colormap = next(myokit.ColorMap.names())
         self._colormap_select = QtWidgets.QComboBox()
         for cmap in myokit.ColorMap.names():
             self._colormap_select.addItem(cmap)
@@ -1115,10 +1115,10 @@ class GraphArea(QtWidgets.QWidget):
         yy = (self._data.trace(variable, x, y) - ymin) / (ymax - ymin)
         yy = iter(1 - yy)
         path = QtGui.QPainterPath()
-        x, y = xx.next(), yy.next()
+        x, y = next(xx), next(yy)
         path.moveTo(x, y)
         for i in range(1, len(self._time)):
-            x, y = xx.next(), yy.next()
+            x, y = next(xx), next(yy)
             path.lineTo(x, y)
         self._temp_index = index
         self._temp_path = path
@@ -1133,7 +1133,7 @@ class GraphArea(QtWidgets.QWidget):
         d = myokit.DataLog()
         if self._data:
             d['engine.time'] = self._data.time()
-            for index in self._frozen.iterkeys():
+            for index in self._frozen.keys():
                 x, y, variable = index
                 d[variable, x, y] = self._data.trace(variable, x, y)
             if self._temp_index:
@@ -1174,12 +1174,12 @@ class GraphArea(QtWidgets.QWidget):
         pen.setWidth(0)
         # Draw frozen graphs
         colors = iter(self._color_cycle)
-        for path in self._frozen.itervalues():
+        for path in self._frozen.values():
             try:
-                pen.setColor(colors.next())
+                pen.setColor(next(colors))
             except StopIteration:
                 colors = iter(self._color_cycle)
-                pen.setColor(colors.next())
+                pen.setColor(next(colors))
             painter.setPen(pen)
             painter.drawPath(path)
         # Draw temp graph

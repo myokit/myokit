@@ -278,7 +278,7 @@ class StepProtocol(object):
         if factor is None:
             factor = np.ones(len(self._steps))
         for k, log in enumerate(self._logs):
-            v = steps.next()
+            v = next(steps)
             d = myokit.DataLog()
             for var in self._vars:
                 d[var] = np.array(log[var]) * factor[k]

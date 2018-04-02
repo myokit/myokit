@@ -1819,9 +1819,9 @@ class Piecewise(Function):
         self._e = [0] * (m + 1)     # Expressions
         oper = iter(ops)
         for i in range(0, m):
-            self._i[i] = oper.next()
-            self._e[i] = oper.next()
-        self._e[m] = oper.next()
+            self._i[i] = next(oper)
+            self._e[i] = next(oper)
+        self._e[m] = next(oper)
 
     def conditions(self):
         """
@@ -1842,7 +1842,7 @@ class Piecewise(Function):
         # Check if the options have the same unit (or None)
         d = myokit.units.dimensionless
         units = iter(units)
-        shared = units.next()
+        shared = next(units)
         for u in units:
             if u == shared:         # Normal case + propagating Nones
                 continue
@@ -1915,11 +1915,11 @@ class OrderedPiecewise(Function):
         self._p = [0] * (m - 1)     # Points
         self._e = [0] * m           # Expressions (pieces)
         oper = iter(ops)
-        oper.next()
+        next(oper)
         last = None
         for i in range(0, m - 1):
-            self._e[i] = oper.next()
-            op = oper.next()
+            self._e[i] = next(oper)
+            op = next(oper)
             if not op.is_literal():
                 raise myokit.NonLiteralValueError(
                     'The points splitting the domain of an OrderedPiecewise'
@@ -1928,14 +1928,14 @@ class OrderedPiecewise(Function):
             if last is None:
                 last = op._eval({}, myokit.DOUBLE_PRECISION)
             else:
-                next = op._eval({}, myokit.DOUBLE_PRECISION)
-                if next <= last:
+                nxt = op._eval({}, myokit.DOUBLE_PRECISION)
+                if nxt <= last:
                     raise ValueError(
                         'The points at which the domain is split must be'
-                        ' strictly increasing (' + str(next) + ' <= '
+                        ' strictly increasing (' + str(nxt) + ' <= '
                         + str(last) + ').')
-                last = next
-        self._e[m - 1] = oper.next()
+                last = nxt
+        self._e[m - 1] = next(oper)
 
     def count_pieces(self):
         """
@@ -1973,7 +1973,7 @@ class OrderedPiecewise(Function):
                 ' same unit as the variable.')
         # Check if all possible values have the same unit
         units = iter(e_units)
-        shared = units.next()
+        shared = next(units)
         for u in units:
             if u == shared:         # Normal case + propagating Nones
                 continue
@@ -2625,7 +2625,7 @@ class Unit(object):
     }
 
     # Mapping of SI quantifier symbols to their values
-    _si_quantifiers = dict((v, k) for k, v in _si_exponents.iteritems())
+    _si_quantifiers = dict((v, k) for k, v in _si_exponents.items())
 
     def __init__(self, exponents=None, multiplier=0):
         if exponents is None:

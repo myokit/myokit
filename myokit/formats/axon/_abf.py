@@ -363,7 +363,7 @@ class AbfFile(object):
         def show_dict(name, d, tab=''):
             m = max(0, 38 - len(tab) - int(0.1 + len(name) / 2))
             out.append(tab + '-' * m + '  ' + name + '  ' + '-' * m)
-            for n, v in d.iteritems():
+            for n, v in d.items():
                 n = str(n)
                 if type(v) == OrderedDict:
                     show_dict(n, v, tab + '  ')
@@ -862,7 +862,7 @@ class AbfFile(object):
                 return index in h['epochInfoPerDAC']
 
             def einfo(index):
-                for e in h['epochInfoPerDAC'][index].itervalues():
+                for e in h['epochInfoPerDAC'][index].values():
                     yield {
                         'type': e['nEpochType'],
                         'init_duration': e['lEpochInitDuration'],

@@ -295,16 +295,16 @@ def parse_mathml_rhs(
                     parsex(dom_child(dom_next(node))))
         elif name == 'root':
             # Check degree, if given
-            next = dom_next(node)
-            if next.tagName == 'degree':
+            nxt = dom_next(node)
+            if nxt.tagName == 'degree':
                 # Degree given, return x^(1/d) unless d is 2
-                d = parsex(dom_child(next))
-                x = parsex(dom_next(next))
+                d = parsex(dom_child(nxt))
+                x = parsex(dom_next(nxt))
                 if d.is_literal() and d.eval() == 2:
                     return myokit.Sqrt(x)
                 return myokit.Power(x, myokit.Divide(myokit.Number(1), d))
             else:
-                return myokit.Sqrt(parsex(next))
+                return myokit.Sqrt(parsex(nxt))
         elif name == 'power':
             n2 = dom_next(node)
             return myokit.Power(parsex(n2), parsex(dom_next(n2)))
@@ -518,7 +518,7 @@ def parse_mathml_rhs(
             f = iter(funcs)
             for c in conds:
                 args.append(c)
-                args.append(f.next())
+                args.append(next(f))
             args.append(other)
             return myokit.Piecewise(*args)
         #

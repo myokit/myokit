@@ -680,7 +680,7 @@ def suitable_expressions(
     # Iterate over variables, attempt to find suitable functions
     functions = []
     for v, deps in model.map_deep_dependencies(
-            omit_states=False, filter_encompassed=True).iteritems():
+            omit_states=False, filter_encompassed=True).items():
         # Exclude blacklisted lhs expressions
         if v in blacklist:
             continue
@@ -912,7 +912,7 @@ class PolynomialFitter(Fitter):
             else:
                 self.log('No suitable approximation found.')
         # Create updated model
-        for var, fit in fits.iteritems():
+        for var, fit in fits.items():
             var.set_rhs(fit)
             var.meta['approximate'] = 'polynomial'
             self._changed.append(var.qname())
@@ -1069,7 +1069,7 @@ class CubicSplineFitter(Fitter):
             else:
                 self.log('No suitable approximation found.')
         # Create updated model
-        for var, fit in fits.iteritems():
+        for var, fit in fits.items():
             var.set_rhs(fit)
             var.meta['approximate'] = 'cubic_spline'
             self._changed.append(var.qname())

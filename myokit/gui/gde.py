@@ -249,7 +249,7 @@ class DocumentNode(QtCore.QObject):
         Clears the selection (if any) of this node and any children nodes.
         """
         self.deselect()
-        for kid in self._kids.itervalues():
+        for kid in self._kids.values():
             kid.clear_selection()
 
     def deselect(self):
@@ -348,9 +348,9 @@ class DocumentNode(QtCore.QObject):
         """
         e = et.Element(self._ntype)
         e.attrib['name'] = self._name
-        for d in self._data.itervalues():
+        for d in self._data.values():
             e.append(d.get_xml())
-        for k in self._kids.itervalues():
+        for k in self._kids.values():
             e.append(k.get_xml())
         return e
 
@@ -380,14 +380,14 @@ class DocumentNode(QtCore.QObject):
         """
         Returns an iterator over this node's children.
         """
-        return self._kids.itervalues()
+        return self._kids.values()
 
-    def iterdata(self):
+    def data(self):
         """
         Returns an iterator over the :class:`DocumentValue` objects stored in
         this node.
         """
-        return self._data.itervalues()
+        return iter(self._data.values())
 
     def __len__(self):
         """
@@ -891,8 +891,8 @@ class GdeDocument(Document):
                     f.write(header)
                     for i in range(sam):
                         f.write(
-                            fmt.format(x.next()) + ','
-                            + fmt.format(y.next()) + '\n')
+                            fmt.format(next(x)) + ','
+                            + fmt.format(next(y)) + '\n')
             else:
                 with open(path, 'w') as f:
                     f.write(header)
@@ -1717,17 +1717,17 @@ class DA_ChangeVariables(DocumentAction):
     def _perform(self):
         if self.old_variables is None:
             self.old_variables = {}
-            for name, value in self.variables.iteritems():
+            for name, value in self.variables.items():
                 self.old_variables[name] = \
                     self.node.get_variable(name).get_value()
-        for name, value in self.variables.iteritems():
+        for name, value in self.variables.items():
             var = self.node.get_variable(name)
             var.silent_set_value(value)
             self.node.variable_changed.emit(self.node, var)
             var.variable_changed.emit(var)
 
     def _undo(self):
-        for name, value in self.old_variables.iteritems():
+        for name, value in self.old_variables.items():
             var = self.node.get_variable(name)
             var.silent_set_value(value)
             self.node.variable_changed.emit(self.node, var)
@@ -2629,7 +2629,7 @@ class DocumentVariableList(QtWidgets.QWidget):
         if node is None:
             return
         # Load new kids
-        for k, var in enumerate(node.iterdata()):
+        for k, var in enumerate(node.data()):
             label = QtWidgets.QLabel(var.get_name(), parent=self)
             field = DocumentVariableField.create(self, var)
             self._grid.addWidget(label, k, 0)
@@ -2830,9 +2830,9 @@ class GdeScene(QtWidgets.QGraphicsScene):
             self._image.disconnect()
             self._xaxis.disconnect()
             self._yaxis.disconnect()
-            #for item in self._data.itervalues():
+            #for item in self._data.values():
             #    item.disconnect()
-            for item in self._sets.itervalues():
+            for item in self._sets.values():
                 item.disconnect()
         # Child items will disconnect when deleted by refcount decrease.
         self._image = None
@@ -3637,9 +3637,9 @@ class DataSetItem(SceneItem):
         # Create path
         path = QtGui.QPainterPath()
         x, y = iter(x2), iter(y2)
-        path.moveTo(*scene.norm2scene(x.next(), y.next()))
+        path.moveTo(*scene.norm2scene(next(x), next(y)))
         for i in range(1, sam):
-            path.lineTo(*scene.norm2scene(x.next(), y.next()))
+            path.lineTo(*scene.norm2scene(next(x), next(y)))
         self._path = path
         # Redraw
         self.update()

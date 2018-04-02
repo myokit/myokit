@@ -25,7 +25,7 @@ import matplotlib.pyplot as pl
 
 #
 # In this example, we show the three different cell types the TTP model can
-# simulate. 
+# simulate.
 #
 # This example has been tested with Myokit XXX
 #
@@ -49,7 +49,7 @@ modes = {
     1 : 'Epicardial',
     2 : 'Mid-myocardial',
     }
-for index, name in modes.iteritems():
+for index, name in modes.items():
 
     # Change the simulation's cell type variable
     s.set_constant('cell.type', index)
@@ -57,16 +57,16 @@ for index, name in modes.iteritems():
     # Pre-pace for a few beats
     #s.pre(50 * 1000)
     s.pre(3 * 1000)
-    
+
     # Run a logged simulation
     d = s.run(500)
-    
+
     # Store to disk for post-processing (optional)
     d.save_csv('/tmp/ttp-2006-' + name + '.csv')
 
     # Display the simulated membrane potential
     pl.plot(d['engine.time'], d['membrane.V'], label=name)
-    
+
     # Reset the simulation
     s.reset()
 

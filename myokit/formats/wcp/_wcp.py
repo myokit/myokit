@@ -82,7 +82,7 @@ class WcpFile(object):
         # Tidy up read data
         header = {}
         header_raw = {}
-        for k, v in h.iteritems():
+        for k, v in h.items():
             # Convert to appropriate data type
             try:
                 t = HEADER_FIELDS[k]
@@ -117,7 +117,7 @@ class WcpFile(object):
         for i in range(self._nc):
             j = str(i)
             c = {}
-            for k, t in HEADER_CHANNEL_FIELDS.iteritems():
+            for k, t in HEADER_CHANNEL_FIELDS.items():
                 c[k] = t(h[k + j])
             channel_headers.append(c)
             self._channel_names.append(c['yn'])
