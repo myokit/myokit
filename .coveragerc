@@ -1,5 +1,7 @@
 [run]
 source = myokit
+omit =
+    myokit/gui/*
 
 [report]
 exclude_lines =
