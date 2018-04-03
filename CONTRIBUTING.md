@@ -8,7 +8,7 @@ We use [GIT](https://en.wikipedia.org/wiki/Git) and [GitHub](https://en.wikipedi
 
 1. If you're planning to contribute to Myokit, don't check out the repo directly, but create a [fork](https://help.github.com/articles/fork-a-repo/) and then [clone](https://help.github.com/articles/cloning-a-repository/) it onto your local system .
 2. Install Myokit in development mode, with `$ python setup.py develop`.
-3. [Test](#testing) if everything's working, using the test script: `$ python test/unit-main.py`.
+3. [Test](#testing) if everything's working, using the test script: `$ python test --quick`.
 
 If you run into any issues at this stage, please discuss them with us on Github!
 
@@ -104,7 +104,13 @@ Secondly, Matplotlib should never be imported at the module level, but always in
 
 Myokit uses the [unittest](https://docs.python.org/3.3/library/unittest.html) package for tests.
 
-To run unit tests, use
+To run style tests, unit tests, and check the docs can be built, use
+
+```
+$ python test --quick
+```
+
+To run unit tests only, use
 
 ```
 $ python test --unit
