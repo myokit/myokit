@@ -104,18 +104,11 @@ Secondly, Matplotlib should never be imported at the module level, but always in
 
 Myokit uses the [unittest](https://docs.python.org/3.3/library/unittest.html) package for tests.
 
-To run tests, use
+To run unit tests, use
 
 ```
-$ python test/unit-main.py
+$ python test --unit
 ```
-
-If you have OpenCL installed, use
-
-```
-$ python test/unit-full.py
-```
-
 
 
 
