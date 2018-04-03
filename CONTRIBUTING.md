@@ -143,3 +143,10 @@ make html
 Next, open a browser, and navigate to your local Myokit directory (by typing the path, or part of the path into your location bar). Then have a look at `<your myokit path>/doc/build/html/index.html`.
 
 
+
+## Infrastructure
+
+- Tests are run using [travis](https://travis-ci.com/) and published [here](https://travis-ci.org/MichaelClerx/myokit). Configuration file `.travis.yml` ([syntax](https://docs.travis-ci.com/))
+- Coverage is tested using [codecov.io](https://docs.codecov.io/docs) which builds on [coverage](https://coverage.readthedocs.io/). Configuration file: `.coveragerc` ([syntax](https://coverage.readthedocs.io/en/latest/config.html))
+- Documentation is published per release, on http://docs.myokit.org
+- Code style is checked using flake8. Configuration file: `.flake8` ([syntax](http://flake8.pycqa.org/en/latest/user/configuration.html))
