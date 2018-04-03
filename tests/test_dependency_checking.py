@@ -8,9 +8,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-from __future__ import print_function
-#from __future__ import absolute_import, division
-#from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import os
 import unittest
 
@@ -1202,10 +1202,10 @@ class SolvableOrderTest(DepTest):
 
         def before(lhs1, *lhs2s):
             """ Asserts lhs1 comes before lhs2 in the current component """
-            if type(lhs1) == str:
+            if type(lhs1) in (str, unicode):
                 lhs1 = self.m.get(self.ccomp + '.' + lhs1).lhs()
             for lhs2 in lhs2s:
-                if type(lhs2) == str:
+                if type(lhs2) in (str, unicode):
                     lhs2 = self.m.get(self.ccomp + '.' + lhs2).lhs()
                 i1 = i2 = None
                 for i, eq in enumerate(self.order[self.ccomp]):
@@ -1345,10 +1345,10 @@ class SolvableOrderTest(DepTest):
 
         def before(lhs1, *lhs2s):
             """ Asserts lhs1 comes before lhs2 in the current component """
-            if type(lhs1) == str:
+            if type(lhs1) in (str, unicode):
                 lhs1 = self.m.get(lhs1).lhs()
             for lhs2 in lhs2s:
-                if type(lhs2) == str:
+                if type(lhs2) in (str, unicode):
                     lhs2 = self.m.get(lhs2).lhs()
                 i1 = i2 = None
                 for i, eq in enumerate(self.order):

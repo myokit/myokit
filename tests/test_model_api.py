@@ -7,6 +7,9 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
+
 import unittest
 
 import myokit
@@ -238,10 +241,10 @@ class ModelBuildTest(unittest.TestCase):
 
         # Test dependency mapping
         def has(var, *dps):
-            lst = vrs[m.get(var).lhs() if type(var) == str else var]
+            lst = vrs[m.get(var).lhs() if type(var) in [str, unicode] else var]
             self.assertEqual(len(lst), len(dps))
             for d in dps:
-                d = m.get(d).lhs() if type(d) == str else d
+                d = m.get(d).lhs() if type(d) in [str, unicode] else d
                 self.assertIn(d, lst)
 
         vrs = m.map_shallow_dependencies(omit_states=False)
