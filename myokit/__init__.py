@@ -23,6 +23,7 @@ and then a myokit.Simulation which you can .run() to obtain simulated results.
 # functions and classes described below. No submodules of myokit will be
 # loaded!
 
+
 #
 # GUI and graphical modules should not be auto-included because they define a
 # matplotlib backend to use. If the user requires a different backend, this
@@ -31,7 +32,10 @@ and then a myokit.Simulation which you can .run() to obtain simulated results.
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+
+#
 # Check python version
+#
 import sys
 if sys.hexversion < 0x02070000:
     print('-- ERROR --')
@@ -40,6 +44,7 @@ if sys.hexversion < 0x02070000:
     print(sys.version)
     print()
     sys.exit(1)
+
 
 #
 # Version information
@@ -61,9 +66,11 @@ if not RELEASE:
     VERSION_INT += ('dev', )
     VERSION += '.dev'
 
+
 # Don't expose x on Python2
 if not sys.hexversion > 0x03000000:
     del(x)
+
 
 # Myokit version
 def version(raw=False):
@@ -79,8 +86,9 @@ def version(raw=False):
         t2 += '|  |' + '_' * 5
         return '\n' + t1 + '\n' + t2
 
+
 # Warn about development version
-import logging
+import logging      # noqa
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.info('Loading Myokit version ' + VERSION)
@@ -93,6 +101,7 @@ if not RELEASE:
 
 # Don't expose standard libraries as part of Myokit
 del(sys, logging)
+
 
 #
 # Licensing
@@ -154,6 +163,7 @@ This file is part of Myokit
 # Single-line copyright notice
 COPYRIGHT = '(C) 2011-2017, Maastricht University, University of Oxford'
 
+
 #
 # Paths
 #
@@ -189,10 +199,12 @@ EXAMPLE = os.path.join(DIR_DATA, 'example.mmt')
 # Don't expose standard libraries as part of Myokit
 del(os, inspect)
 
+
 #
 # Debugging mode: Simulation code will be shown, not executed
 #
 DEBUG = False
+
 
 #
 # Data logging flags (bitmasks)
@@ -233,12 +245,14 @@ TIME_FORMAT = '%H:%M:%S'
 #
 DEBUG_LINE_NUMBERS = True
 
+
 #
 # GUI: Favor PySide or PyQt
 #
 FORCE_PYQT5 = False
 FORCE_PYQT4 = False
 FORCE_PYSIDE = False
+
 
 #
 # Library paths and settings
@@ -263,12 +277,13 @@ OPENCL_INC = []
 from . import _config   # noqa
 del(_config)
 
+
 #
 # Imports
 #
 
 # Exceptions
-from ._err import (
+from ._err import ( # noqa
     MyokitError,
     IntegrityError, InvalidBindingError, InvalidLabelError,
     DuplicateName, InvalidNameError, IllegalAliasError,
@@ -305,13 +320,13 @@ for ex in inspect.getmembers(_err):
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 
 # Model structure
-from ._core import (
+from ._core import ( # noqa
     ModelPart, Model, Component, Variable, check_name,
     Equation, EquationList, UserFunction,
 )
 
 # Expressions and units
-from ._expr import (
+from ._expr import ( # noqa
     Expression, LhsExpression, Derivative, Name, Number,
     PrefixExpression, PrefixPlus, PrefixMinus,
     InfixExpression, Plus, Minus, Multiply, Divide,
@@ -326,12 +341,12 @@ from ._expr import (
 )
 
 # Pacing protocol
-from ._protocol import (
+from ._protocol import ( # noqa
     Protocol, ProtocolEvent, PacingSystem,
 )
 
 # Parser functions
-from ._parser import (
+from ._parser import ( # noqa
     KEYWORDS,
     parse, split, format_parse_error,
     parse_model, parse_protocol, parse_state,
@@ -342,7 +357,7 @@ from ._parser import (
 )
 
 # Auxillary functions
-from ._aux import (
+from ._aux import ( # noqa
     # Global date and time formats
     date, time,
 
@@ -383,45 +398,51 @@ from ._aux import (
 )
 
 # Data logging
-from ._datalog import (
+from ._datalog import ( # noqa
     DataLog, LoggedVariableInfo, dimco, split_key, prepare_log
 )
-from ._datablock import (
+from ._datablock import ( # noqa
     DataBlock1d, DataBlock2d, ColorMap,
 )
 
 
 # Simulations
-from ._sim import (
+from ._sim import ( # noqa
     ProgressReporter, ProgressPrinter,
     CModule, CppModule,
 )
-from ._sim.cvode import Simulation
-from ._sim.cable import Simulation1d
-from ._sim.opencl import OpenCL
-from ._sim.opencl import OpenCLInfo, OpenCLPlatformInfo, OpenCLDeviceInfo
-from ._sim.openclsim import SimulationOpenCL
+from ._sim.cvode import Simulation          # noqa
+from ._sim.cable import Simulation1d        # noqa
+from ._sim.rhs import RhsBenchmarker        # noqa
+from ._sim.icsim import ICSimulation        # noqa
+from ._sim.psim import PSimulation          # noqa
+from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
 # from ._sim.openmp import SimulationOpenMP
-from ._sim.fiber_tissue import FiberTissueSimulation
-from ._sim.rhs import RhsBenchmarker
-from ._sim.jacobian import JacobianTracer, JacobianCalculator
-from ._sim.icsim import ICSimulation
-from ._sim.psim import PSimulation
+from ._sim.opencl import ( # noqa
+    OpenCL,
+    OpenCLInfo,
+    OpenCLPlatformInfo,
+    OpenCLDeviceInfo,
+)
+from ._sim.openclsim import SimulationOpenCL    # noqa
+from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
 
 # Import whole modules
 # This allows these modules to be used after myokit was imported, without
 # importing the modules specifically (like os and os.path).
 # All modules imported here must report so in their docs
-from . import (
+from . import ( # noqa
     mxml,
     pacing,
     units,  # Also loads all common unit names
 )
 
+
 #
 # Globally shared progress reporter
 #
 _Simulation_progress = None
+
 
 #
 # Default mmt file parts
