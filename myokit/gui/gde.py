@@ -380,7 +380,7 @@ class DocumentNode(QtCore.QObject):
         """
         Returns an iterator over this node's children.
         """
-        return self._kids.values()
+        return iter(self._kids.values())
 
     def data(self):
         """

@@ -232,11 +232,11 @@ class Editor(QtWidgets.QPlainTextEdit):
                 cursor.beginEditBlock()     # Undo grouping
                 doc = self.document()
                 b = doc.findBlock(start)
-                e = next(doc.findBlock(end))
+                e = doc.findBlock(end).next()
                 while b != e:
                     cursor.setPosition(b.position())
                     cursor.insertText(TABS * SPACE)
-                    b = next(b)
+                    b = b.next()
                 cursor.endEditBlock()
             else:
                 # Insert spaces until next tab stop
@@ -254,7 +254,7 @@ class Editor(QtWidgets.QPlainTextEdit):
             b = doc.findBlock(start)
             while b.isValid() and b.position() <= end:
                 blocks.append(b)
-                b = next(b)
+                b = b.next()
             # Dedent
             for b in blocks:
                 t = b.text()
@@ -282,7 +282,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                     new_start -= p
                 new_end -= p
                 q += p
-                b = next(b)
+                b = b.next()
             last = b.previous()
             new_start = max(new_start, first.position())
             new_end = max(new_end, new_start)
@@ -486,7 +486,7 @@ class Editor(QtWidgets.QPlainTextEdit):
             if block.isVisible() and bbot >= etop:
                 painter.drawText(
                     0, btop, width, height, Qt.AlignRight, str(count))
-            block = next(block)
+            block = block.next()
             btop = bbot
             bbot += self.blockBoundingRect(block).height()
 
@@ -606,7 +606,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         block = first
         blocks = [first]
         while block != last:
-            block = next(block)
+            block = block.next()
             blocks.append(block)
         lines = [block.text() for block in blocks]
         indent = [len(t) - len(t.lstrip()) for t in lines if len(t) > 0]
@@ -654,7 +654,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 cursor.setPosition(
                     block.position() + a, QtGui.QTextCursor.KeepAnchor)
                 cursor.removeSelectedText()
-            block = next(block)
+            block = block.next()
         cursor.endEditBlock()
 
 
