@@ -41,17 +41,62 @@ if sys.hexversion < 0x02070000:
     print()
     sys.exit(1)
 
-# Constants
-
+#
 # Version information
+#
+
+# True if this is a release, False for a development version
+RELEASE = False
+
+# Version as a tuple (major, minor, revision)
+#  - Changes to major are rare
+#  - Changes to minor indicate new features, possible slight backwards
+#    incompatibility
+#  - Changes to revision indicate bugfixes, tiny new features
 VERSION_INT = 1, 26, 4
+
+# String version of the version number
 VERSION = '.'.join([str(x) for x in VERSION_INT])
+if not RELEASE:
+    VERSION_INT += ('dev', )
+    VERSION += '.dev'
+
+# Don't expose x on Python2
 if not sys.hexversion > 0x03000000:
     del(x)
-del(sys)
-RELEASE = ''
 
+# Myokit version
+def version(raw=False):
+    """
+    Returns the current Myokit version.
+    """
+    if raw:
+        return VERSION
+    else:
+        t1 = ' Myokit ' + VERSION + ' '
+        t2 = '_' * len(t1)
+        t1 += '|/\\'
+        t2 += '|  |' + '_' * 5
+        return '\n' + t1 + '\n' + t2
+
+# Warn about development version
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.info('Loading Myokit version ' + VERSION)
+if not RELEASE:
+    log.warning(
+        'Using development version of Myokit. This may contain untested'
+        ' features and bugs. Please see http://myokit.org for the latest'
+        ' stable releases.')
+
+
+# Don't expose standard libraries as part of Myokit
+del(sys, logging)
+
+#
 # Licensing
+#
 
 # Full license text
 LICENSE = """
@@ -109,7 +154,11 @@ This file is part of Myokit
 # Single-line copyright notice
 COPYRIGHT = '(C) 2011-2017, Maastricht University, University of Oxford'
 
-# Myokit paths
+#
+# Paths
+#
+
+# Myokit root
 import os, inspect  # noqa
 try:
     frame = inspect.currentframe()
@@ -119,12 +168,14 @@ finally:
     # https://docs.python.org/2/library/inspect.html#the-interpreter-stack
     del(frame)
 
+# Binary data files
 DIR_DATA = os.path.join(DIR_MYOKIT, '_bin')
+
+# C header files
 DIR_CFUNC = os.path.join(DIR_MYOKIT, '_sim')
 
 # Location of myokit user info
 DIR_USER = os.path.join(os.path.expanduser('~'), '.myokit')
-
 if os.path.exists(DIR_USER):
     if not os.path.isdir(DIR_USER):
         raise Exception(
@@ -132,16 +183,20 @@ if os.path.exists(DIR_USER):
 else:
     os.makedirs(DIR_USER)
 
-# Location of example mmt file
+# Example mmt file
 EXAMPLE = os.path.join(DIR_DATA, 'example.mmt')
 
-# Prevent standard libraries being represented as part of Myokit
+# Don't expose standard libraries as part of Myokit
 del(os, inspect)
 
+#
 # Debugging mode: Simulation code will be shown, not executed
+#
 DEBUG = False
 
+#
 # Data logging flags (bitmasks)
+#
 LOG_NONE = 0
 LOG_STATE = 1
 LOG_BOUND = 2
@@ -149,29 +204,45 @@ LOG_INTER = 4
 LOG_DERIV = 8
 LOG_ALL = LOG_STATE + LOG_INTER + LOG_BOUND + LOG_DERIV
 
+#
 # Floating point precision
+#
 SINGLE_PRECISION = 32
 DOUBLE_PRECISION = 64
 
+#
 # Unit checking modes
+#
 UNIT_TOLERANT = 1
 UNIT_STRICT = 2
 
-# Maximum precision float output
+#
+# Maximum precision float output format strings
+#
 SFDOUBLE = '{:< 1.17e}'
 SFSINGLE = '{:< 1.9e}'
 
+#
 # Date and time formats to use throughout Myokit
+#
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 TIME_FORMAT = '%H:%M:%S'
 
+#
 # Add line numbers to debug output of simulations
+#
 DEBUG_LINE_NUMBERS = True
 
-# Favor PySide or PyQt
+#
+# GUI: Favor PySide or PyQt
+#
 FORCE_PYQT5 = False
 FORCE_PYQT4 = False
 FORCE_PYSIDE = False
+
+#
+# Library paths and settings
+#
 
 # Location of the Sundials (CVODE) shared library objects (.dll or .so)
 SUNDIALS_LIB = []
@@ -188,23 +259,13 @@ OPENCL_LIB = []
 # Location of the OpenCL header files (.h)
 OPENCL_INC = []
 
-
 # Load settings
 from . import _config   # noqa
 del(_config)
 
-
-# Myokit version
-def version(raw=False):
-    """
-    Returns the current Myokit version.
-    """
-    if raw:
-        return VERSION
-    else:
-        return '\n Myokit version ' + VERSION + ' ' * (15 - len(VERSION)) \
-               + '|/\\\n_______________________________|  |______'
-
+#
+# Imports
+#
 
 # Exceptions
 from ._err import (
@@ -228,7 +289,6 @@ from ._err import (
     IncompatibleModelError,
 )
 
-
 # Check if all errors imported
 # Dynamically importing them doesn't seem to be possible, and forgetting to
 #  import an error creates a hard to debug bug (something needs to go wrong
@@ -244,13 +304,11 @@ for ex in inspect.getmembers(_err):
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 
-
 # Model structure
 from ._core import (
     ModelPart, Model, Component, Variable, check_name,
     Equation, EquationList, UserFunction,
 )
-
 
 # Expressions and units
 from ._expr import (
@@ -267,12 +325,10 @@ from ._expr import (
     Unit, Quantity,
 )
 
-
 # Pacing protocol
 from ._protocol import (
     Protocol, ProtocolEvent, PacingSystem,
 )
-
 
 # Parser functions
 from ._parser import (
@@ -284,7 +340,6 @@ from ._parser import (
     parse_expression_string as parse_expression,
     strip_expression_units,
 )
-
 
 # Auxillary functions
 from ._aux import (
@@ -327,7 +382,6 @@ from ._aux import (
     pack_snapshot,
 )
 
-
 # Data logging
 from ._datalog import (
     DataLog, LoggedVariableInfo, dimco, split_key, prepare_log
@@ -354,7 +408,6 @@ from ._sim.jacobian import JacobianTracer, JacobianCalculator
 from ._sim.icsim import ICSimulation
 from ._sim.psim import PSimulation
 
-
 # Import whole modules
 # This allows these modules to be used after myokit was imported, without
 # importing the modules specifically (like os and os.path).
@@ -365,11 +418,14 @@ from . import (
     units,  # Also loads all common unit names
 )
 
+#
 # Globally shared progress reporter
+#
 _Simulation_progress = None
 
-
+#
 # Default mmt file parts
+#
 def default_protocol():
     """
     Provides a default protocol to use when no embedded one is available.
@@ -406,3 +462,4 @@ def default_script():
         "pl.title(var)",
         "pl.show()",
     ))
+

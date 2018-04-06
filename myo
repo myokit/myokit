@@ -14,8 +14,9 @@ from __future__ import print_function, unicode_literals
 
 # Load Myokit
 import sys
-print('Loading Myokit...')
-sys.stdout.flush()
+if sys.argv[-2:] != ['version', '--raw']:
+    print('Loading Myokit...')
+    sys.stdout.flush()
 import myokit
 import myokit.formats
 
