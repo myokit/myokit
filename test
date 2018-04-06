@@ -88,8 +88,8 @@ def check_docs():
     print('Checking if docs can be built.')
     p = subprocess.Popen([
         'sphinx-build',
-        'doc',
-        'doc/_build/html',
+        'docs/source',
+        'docs/build/html',
         '-W',
     ])
     try:

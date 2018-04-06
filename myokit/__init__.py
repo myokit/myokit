@@ -161,7 +161,7 @@ This file is part of Myokit
 """.strip()
 
 # Single-line copyright notice
-COPYRIGHT = '(C) 2011-2017, Maastricht University, University of Oxford'
+COPYRIGHT = '(C) 2011-2018, Maastricht University, University of Oxford'
 
 
 #
