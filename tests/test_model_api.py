@@ -924,7 +924,7 @@ class ModelBuildTest(unittest.TestCase):
         )
 
     def test_model_eval_state_derivatives(self):
-        """ Test Model.eval_state_derivatives() """
+        """ Test Model.eval_state_derivatives(). """
         model = myokit.Model('m')
         component = model.add_component('comp1')
         t = component.add_variable('time')
@@ -948,6 +948,31 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(
             model.eval_state_derivatives(state=[1, 1, 2], inputs={'time': 0}),
             [1, 2, 3])
+
+    def test_expressions_for(self):
+        """ Tests Model.expressions_for(). """
+        m = myokit.load_model('example')
+        eqs, vrs = m.expressions_for('ina.m')
+        # Simple test
+        self.assertEqual(len(eqs), 3)
+        self.assertEqual(len(vrs), 2)
+        self.assertIn(myokit.Name(m.get('ina.m')), vrs)
+        self.assertIn(myokit.Name(m.get('membrane.V')), vrs)
+
+    def test_format_state(self):
+        """ Tests Model.format_state() """
+        m = myokit.load_model('example')
+        self.assertEqual(
+            m.format_state(),
+            'membrane.V = -84.5286\n'
+            'ina.m      = 0.0017\n'
+            'ina.h      = 0.9832\n'
+            'ina.j      = 0.995484\n'
+            'ica.d      = 3e-06\n'
+            'ica.f      = 1.0\n'
+            'ik.x       = 0.0057\n'
+            'ica.Ca_i   = 0.0002'
+        )
 
 
 if __name__ == '__main__':
