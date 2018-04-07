@@ -1232,7 +1232,7 @@ class Model(ObjectWithMeta, VarProvider):
             del(temp)
             # Store original rhs values, set temporary new ones
             org_inputs = {}
-            for label, number in inputs:
+            for label, number in inputs.items():
                 var = self._bindings[label]
                 org_inputs[var] = var.rhs()
                 var.set_rhs(myokit.Number(number))

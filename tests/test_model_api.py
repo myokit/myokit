@@ -941,6 +941,13 @@ class ModelBuildTest(unittest.TestCase):
         c.set_rhs('b + c')
         model.validate()
         self.assertEqual(model.eval_state_derivatives(), [1, 4, 5])
+        self.assertEqual(
+            model.eval_state_derivatives(state=[1, 1, 2]), [1, 2, 3])
+        c.set_rhs('b + c + time')
+        self.assertEqual(model.eval_state_derivatives(), [1, 4, 6])
+        self.assertEqual(
+            model.eval_state_derivatives(state=[1, 1, 2], inputs={'time': 0}),
+            [1, 2, 3])
 
 
 if __name__ == '__main__':
