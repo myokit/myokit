@@ -1,7 +1,7 @@
 #
 # Myokit auxillary functions: This module can be used to gather any
 # functions that are important enough to warrant inclusion in the main
-# myokit function but do not belong to the _core or _parser or _simulation.
+# myokit module but don't belong to any specific hidden module.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford

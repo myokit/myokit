@@ -826,7 +826,7 @@ class ModelBuildTest(unittest.TestCase):
         x = c.add_variable('x')
 
         # Test basics
-        f = m.add_function('f', ('a', 'b', 'c'), 'a + b + c')
+        m.add_function('f', ('a', 'b', 'c'), 'a + b + c')
         x.set_rhs('f(1, 2, 3)')
         self.assertEqual(x.eval(), 6)
 
@@ -863,7 +863,6 @@ class ModelBuildTest(unittest.TestCase):
         c = component.add_variable('c')
         c.set_rhs('a + b')
         model.check_units()
-
 
 
 if __name__ == '__main__':
