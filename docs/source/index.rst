@@ -19,7 +19,7 @@ These pages contain the documentation for Myokit. This consists of
 - Developer documentation on the :ref:`GUI classes <api/gui>`.
 - An alphabetical :ref:`index <api/index>` to the Myokit api.
 - A set of :ref:`command line tools <cmd/index>`.
-  
+
 
 For more information write to michael@myokit.org
 

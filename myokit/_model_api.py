@@ -395,7 +395,9 @@ class VarProvider(object):
              Set to True to return nested variables meeting all other criteria.
 
         ``sort=True|False`` (by default it's ``False``)
-            Set to True to return the variables in a consistent order.
+            Set to True to return the variables in a consistent order. (Note
+            that this does _not_ mean alphabetical sorting of all variables,
+            just that the order is consistent between calls!)
         """
         def viter(stream, const, inter, state, bound, deep):
             for var in stream:
@@ -463,7 +465,7 @@ class VarOwner(ModelPart, VarProvider):
             self._variables[name] = var = Variable(self, name)
         finally:
             self.model()._reset_validation()
-            if var:
+            if var is not None:
                 var._reset_cache()
         return var
 
@@ -484,15 +486,18 @@ class VarOwner(ModelPart, VarProvider):
         try:
             return self.add_variable(name)
         except myokit.DuplicateName:
-            n_tries = 256
-            for i in range(n_tries):
-                try:
-                    return self.add_variable(name + '_' + str(1 + i))
-                except DuplicateName:
-                    pass
-            raise Exception(
-                'Unable to add variable after maximum number of attempts ('
-                + str(n_tries) + ').')
+            # Get similar names
+            root = name + '_'
+            n = len(name) + 1
+            names = set([
+                x.name() for x in self.variables() if x.name()[:n] == root])
+            # Find unused variant
+            for i in range(1, 2 + len(names)):
+                name = root + str(i)
+                if name not in names:
+                    break
+            # Add
+            return self.add_variable(name)
 
     def can_add_variable(self, name):
         """
@@ -660,11 +665,13 @@ class VarOwner(ModelPart, VarProvider):
             m = self.model()
             (var, sug, msg) = m.suggest_variable(name)
             return msg
+
         # Try resolving as an alias
         try:
             return self._component._alias_map[name]
         except KeyError:
             pass
+
         # Resolve as a local variable name
         dot = name.find('.')
         if dot < 0:
@@ -782,21 +789,25 @@ class Model(ObjectWithMeta, VarProvider):
         try:
             return self.add_component(name)
         except myokit.DuplicateName:
-            n_tries = 256
-            for i in range(n_tries):
-                try:
-                    return self.add_component(name + '_' + str(1 + i))
-                except DuplicateName:
-                    pass
-            raise Exception(
-                'Unable to add component after maximum number of attempts ('
-                + str(n_tries) + ').')
+            # Get similar names
+            root = name + '_'
+            n = len(name) + 1
+            names = set([
+                x.name() for x in self.components() if x.name()[:n] == root])
+            # Find unused variant
+            for i in range(1, 2 + len(names)):
+                name = root + str(i)
+                if name not in names:
+                    break
+            # Add
+            return self.add_component(name)
 
     def add_function(self, name, arguments, template):
         """
         Adds a user function to this model.
         """
         name = check_name(name)
+
         # Check argument names and uniqueness
         arguments = [myokit.Name(check_name(x)) for x in arguments]
         n = len(arguments)
@@ -806,6 +817,11 @@ class Model(ObjectWithMeta, VarProvider):
                     raise myokit.DuplicateFunctionArgument(
                         'The argument name <' + str(arg)
                         + '> is already in use in this function.')
+
+        # Check template is expression
+        if not isinstance(template, myokit.Expression):
+            template = myokit.parse_expression(template)
+
         # Check function uniqueness. Add number of arguments to name to allow
         # overloading
         uname = name + '(' + str(n) + ')'
@@ -813,12 +829,14 @@ class Model(ObjectWithMeta, VarProvider):
             raise myokit.DuplicateFunctionName(
                 'A function called "' + name + '" with ' + str(n)
                 + ' arguments is already defined in this model.')
+
         # Check template
         refs = template.references()
         for ref in refs:
             if isinstance(ref, myokit.Derivative):
                 raise myokit.InvalidFunction(
                     'The dot() operator cannot be used in user functions.')
+
         # Check for unused arguments, undeclared arguments
         ref_names = set([x._value for x in refs])
         for arg in arguments:
@@ -832,6 +850,7 @@ class Model(ObjectWithMeta, VarProvider):
             raise myokit.InvalidFunction(
                 'The variable <' + ref_names.pop()
                 + '> is used in the function but never declared.')
+
         # Create function and return
         func = UserFunction(name, arguments, template)
         self._user_functions[uname] = func
@@ -969,12 +988,12 @@ class Model(ObjectWithMeta, VarProvider):
         b.write('[[model]]\n')
         self._code(b, 0)
         if line_numbers:
-            lines = b.get_value().split('\n')
+            lines = b.getvalue().strip().split('\n')
             out = []
-            n = 1 + int(math.ceil(math.log10(len(lines))))
+            n = int(math.ceil(math.log10(len(lines))))
             for k, line in enumerate(lines):
                 out.append('%*d ' % (n, 1 + k) + line)
-            return '\n'.join(out)
+            return '\n'.join(out) + '\n'
         else:
             return b.getvalue()
 
@@ -985,6 +1004,7 @@ class Model(ObjectWithMeta, VarProvider):
         # b = buffer, t = number of tabs
         # Meta properties
         self._code_meta(b, 0)
+
         # Initial state
         if self._state:
             pre = t * TAB
@@ -998,6 +1018,10 @@ class Model(ObjectWithMeta, VarProvider):
                     pre + name + ' ' * (n - len(name)) + ' = ' + eq.rhs.code()
                     + '\n')
             b.write(pre + '\n')
+        else:
+            # No initial state? Then add newline
+            b.write('\n')
+
         # Components
         for c in self.components(sort=True):
             c._code(b, t)
@@ -1208,7 +1232,7 @@ class Model(ObjectWithMeta, VarProvider):
             del(temp)
             # Store original rhs values, set temporary new ones
             org_inputs = {}
-            for label, number in inputs:
+            for label, number in inputs.items():
                 var = self._bindings[label]
                 org_inputs[var] = var.rhs()
                 var.set_rhs(myokit.Number(number))
@@ -1399,17 +1423,21 @@ class Model(ObjectWithMeta, VarProvider):
 
         return '\n'.join(out)
 
-    def format_state_derivs(self, state, deriv):
+    def format_state_derivatives(self, state=None, derivatives=None):
         """
         Like :meth:`format_state` but displays the derivatives along with
         each state's value.
         """
         n = len(self._state)
-        if len(state) != n:
+        if state is None:
+            state = self.state()
+        elif len(state) != n:
             raise ValueError(
                 'Argument `state` must be a list of (' + str(n)
                 + ') floating point numbers.')
-        if len(deriv) != n:
+        if derivatives is None:
+            derivatives = self.eval_state_derivatives()
+        elif len(derivatives) != n:
             raise ValueError(
                 'Argument `deriv` must be a list of (' + str(n)
                 + ') floating point numbers.')
@@ -1417,7 +1445,7 @@ class Model(ObjectWithMeta, VarProvider):
         n = max([len(x.qname()) for x in self.states()])
         for i, var in enumerate(self.states()):
             s = myokit.strfloat(state[i])
-            d = myokit.strfloat(deriv[i])
+            d = myokit.strfloat(derivatives[i])
             out.append(
                 var.qname() + ' ' * (n - len(var.qname())) + ' = ' + s
                 + ' ' * (24 - len(s)) + '   dot = ' + d)
@@ -3662,7 +3690,7 @@ class Variable(VarOwner):
         if unit is None or isinstance(unit, myokit.Unit):
             self._unit = unit
         elif type(unit) in (str, unicode):
-            self._unit = myokit.Unit.parse_simple(unit)
+            self._unit = myokit.parse_unit(unit)
         else:
             raise TypeError('Method set_unit() expects a myokit.Unit or None.')
         # No need to reset validation status or cache. Units are checked only

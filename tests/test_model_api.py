@@ -38,7 +38,9 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(len(m), 1)
 
         # Add variable a
+        self.assertFalse(X.has_variable('a'))
         a = X.add_variable('a')
+        self.assertTrue(X.has_variable('a'))
         self.assertEqual(a, a)
         self.assertIsInstance(a, Variable)
         self.assertEqual(len(X), 1)
@@ -69,7 +71,9 @@ class ModelBuildTest(unittest.TestCase):
         self.assertIsInstance(b, Variable)
         self.assertEqual(len(X), 2)
         self.assertIn(b.name(), X)
+        self.assertFalse(b.has_variable('b1'))
         b1 = b.add_variable('b1')
+        self.assertTrue(b.has_variable('b1'))
         self.assertEqual(len(b), 1)
         self.assertIn(b1.name(), b)
         self.assertIsInstance(b1, Variable)
@@ -212,24 +216,36 @@ class ModelBuildTest(unittest.TestCase):
         has(a, b, c, d, x, y, time)
         vrs = [i for i in m.variables(inter=False, deep=True)]
         has(a, b, c, d, x, y, b1, b2, time)
-        vrs = [i for i in m.variables(const=True, state=True)]
+        vrs = list(m.variables(const=True, state=True))
         has()
-        vrs = [i for i in m.variables(const=True, state=False)]
+        vrs = list(m.variables(const=True, state=False))
         has(a, b, c, d)
 
+        # Test sorted variable iteration
+        names = [v.name() for v in m.variables(deep=True, sort=True)]
+        self.assertEqual(names, [
+            'a', 'b', 'b1', 'b2', 'x', 'c', 'd', 'y', 'total', 'time'])
+
         # Test equation iteration
+        # Deeper testing is done when testing the ``variables`` method.
         eq = [eq for eq in X.equations(deep=False)]
         self.assertEqual(len(eq), 3)
+        self.assertEqual(len(eq), X.count_equations(deep=False))
         eq = [eq for eq in X.equations(deep=True)]
         self.assertEqual(len(eq), 5)
+        self.assertEqual(len(eq), X.count_equations(deep=True))
         eq = [eq for eq in Y.equations(deep=False)]
         self.assertEqual(len(eq), 3)
+        self.assertEqual(len(eq), Y.count_equations(deep=False))
         eq = [eq for eq in Y.equations(deep=True)]
         self.assertEqual(len(eq), 3)
+        self.assertEqual(len(eq), Y.count_equations(deep=True))
         eq = [eq for eq in Z.equations(deep=False)]
         self.assertEqual(len(eq), 1)
+        self.assertEqual(len(eq), Z.count_equations(deep=False))
         eq = [eq for eq in Z.equations(deep=True)]
         self.assertEqual(len(eq), 1)
+        self.assertEqual(len(eq), Z.count_equations(deep=True))
         eq = [eq for eq in E.equations(deep=False)]
         self.assertEqual(len(eq), 1)
         eq = [eq for eq in E.equations(deep=True)]
@@ -280,8 +296,10 @@ class ModelBuildTest(unittest.TestCase):
         has('Y.d')
         has('Y.y', 'Y.c', 'Y.d')
         has('Z.total')
+
         # Validate
         m.validate()
+
         # Get solvable order
         order = m.solvable_order()
         self.assertEqual(len(order), 5)
@@ -289,10 +307,12 @@ class ModelBuildTest(unittest.TestCase):
         self.assertIn('X', order)
         self.assertIn('Y', order)
         self.assertIn('Z', order)
+
         # Check that X comes before Y
         pos = dict([(name, k) for k, name in enumerate(order)])
         self.assertLess(pos['X'], pos['Y'])
         self.assertEqual(pos['*remaining*'], 4)
+
         # Check component equation lists
         eqs = order['*remaining*']
         self.assertEqual(len(eqs), 0)
@@ -309,6 +329,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(eqs[1].code(), 'b1 = 1')
         self.assertEqual(eqs[2].code(), 'b2 = X.a - b1 - 1')
         self.assertEqual(eqs[3].code(), 'X.b = b1 + b2')
+
         # Test model export and cloning
         code1 = m.code()
         code2 = m.clone().code()
@@ -353,10 +374,24 @@ class ModelBuildTest(unittest.TestCase):
         time = E.add_variable('time')
         time.set_rhs(0)
         time.set_binding('time')
+
         # Move time variable into X
         m.validate()    # If not valid, this will raise an exception
         E.move_variable(time, Z)
         m.validate()
+
+        # Can't do it a second time
+        self.assertRaises(ValueError, E.move_variable, time, Z)
+
+        # Move to self
+        Z.move_variable(time, Z)
+        m.validate()
+        Z.move_variable(time, Z)
+        m.validate()
+
+        # Duplicate variable name
+        E.add_variable('time')
+        self.assertRaises(myokit.DuplicateName, Z.move_variable, time, E)
 
     def test_remove_component(self):
         """
@@ -552,7 +587,11 @@ class ModelBuildTest(unittest.TestCase):
         t = c0.add_variable('time')
         t.set_rhs(Number(0))
         t.set_binding('time')
+
+        # Test add component
+        # Duplicates
         self.assertRaises(DuplicateName, m.add_component, 'c0')
+        # Badly formed names
         self.assertRaises(InvalidNameError, m.add_component, '0')
         self.assertRaises(InvalidNameError, m.add_component, '_0')
         self.assertRaises(InvalidNameError, m.add_component, '123abvc')
@@ -560,7 +599,13 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(InvalidNameError, m.add_component, 'ab.cd')
         self.assertRaises(InvalidNameError, m.add_component, 'ab!cd')
         self.assertRaises(InvalidNameError, m.add_component, '5*x')
+        # Keywords
+        self.assertRaises(InvalidNameError, m.add_component, 'and')
+        self.assertRaises(InvalidNameError, m.add_component, 'bind')
+        # Test adding variable to component
         c1 = m.add_component('c1')
+        # Duplicate
+        # Badly formed names
         self.assertRaises(InvalidNameError, c0.add_variable, '0')
         self.assertRaises(InvalidNameError, c0.add_variable, '_aap')
         self.assertRaises(InvalidNameError, c0.add_variable, '123abvc')
@@ -568,7 +613,18 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(InvalidNameError, c0.add_variable, 'ab.cd')
         self.assertRaises(InvalidNameError, c0.add_variable, 'ab!cd')
         self.assertRaises(InvalidNameError, c0.add_variable, '5*x')
+        # Keywords
+        self.assertRaises(InvalidNameError, c0.add_variable, 'or')
+        self.assertRaises(InvalidNameError, c0.add_variable, 'label')
+
+        # Test adding variable to variable
         v1 = c0.add_variable('c0')
+        # Duplicate
+        v2 = c1.add_variable('c0')
+        self.assertRaises(DuplicateName, c1.add_variable, 'c0')
+        self.assertRaises(DuplicateName, v1.add_variable, 'c0')
+        self.assertRaises(DuplicateName, v2.add_variable, 'c0')
+        # Badly formed names
         self.assertRaises(InvalidNameError, v1.add_variable, '0')
         self.assertRaises(InvalidNameError, v1.add_variable, '_aap')
         self.assertRaises(InvalidNameError, v1.add_variable, '123abvc')
@@ -576,10 +632,9 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(InvalidNameError, v1.add_variable, 'ab.cd')
         self.assertRaises(InvalidNameError, v1.add_variable, 'ab!cd')
         self.assertRaises(InvalidNameError, v1.add_variable, '5*x')
-        v2 = c1.add_variable('c0')
-        self.assertRaises(DuplicateName, c1.add_variable, 'c0')
-        self.assertRaises(DuplicateName, v1.add_variable, 'c0')
-        self.assertRaises(DuplicateName, v2.add_variable, 'c0')
+        # Keywords
+        self.assertRaises(InvalidNameError, v1.add_variable, 'not')
+        self.assertRaises(InvalidNameError, v1.add_variable, 'in')
 
     def test_unused_and_cycles(self):
         """
@@ -697,6 +752,242 @@ class ModelBuildTest(unittest.TestCase):
         for k, v in enumerate([a, b, c, d, e, f, g, h, i]):
             self.assertEqual(v.lhs(), eqs[k].lhs)
             self.assertEqual(v.rhs(), eqs[k].rhs)
+
+    def test_add_component_allow_renamining(self):
+        """
+        Tests the ``Model.add_component_allow_renaming`` method.
+        """
+        m = Model('test')
+        c = m.add_component('c')
+        self.assertTrue(m.has_component('c'))
+        self.assertRaises(myokit.DuplicateName, m.add_component, 'c')
+        d = m.add_component_allow_renaming('c')
+        self.assertEqual(c.name(), 'c')
+        self.assertEqual(d.name(), 'c_1')
+        e = m.add_component_allow_renaming('c')
+        self.assertEqual(e.name(), 'c_2')
+
+        # Test repeated calls
+        r = m.add_component('r')
+        for i in range(10):
+            r = m.add_component_allow_renaming('r')
+            self.assertEqual(r.name(), 'r_' + str(1 + i))
+
+    def test_add_variable_allow_renaming(self):
+        """
+        Tests the ``VarProvider.add_variable_allow_renaming`` method.
+        """
+        m = Model('test')
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        self.assertTrue(c.has_variable('x'))
+        self.assertRaises(myokit.DuplicateName, c.add_variable, 'x')
+        y = c.add_variable_allow_renaming('x')
+        self.assertEqual(x.name(), 'x')
+        self.assertEqual(y.name(), 'x_1')
+        z = c.add_variable_allow_renaming('x')
+        self.assertEqual(z.name(), 'x_2')
+
+        # Test repeated calls
+        r = c.add_variable('r')
+        for i in range(10):
+            r = c.add_variable_allow_renaming('r')
+            self.assertEqual(r.name(), 'r_' + str(1 + i))
+
+    def test_get(self):
+        """
+        Tests the VarOwner.get() method.
+        """
+        # Test basics
+        m = Model('test')
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        self.assertIs(m.get('c'), c)
+        self.assertIs(m.get('c.x'), x)
+        self.assertIs(c.get('x'), x)
+
+        # Test asking for object
+        self.assertIs(m.get(c), c)
+        self.assertIs(m.get(x), x)
+        self.assertIs(c.get(x), x)
+        self.assertIs(x.get(c), c)
+
+        # Test not founds
+        self.assertRaises(KeyError, m.get, 'y')
+        self.assertRaises(KeyError, m.get, 'c.y')
+
+        # Test class filter
+        self.assertIs(m.get('c', myokit.Component), c)
+        self.assertRaises(KeyError, m.get, 'c', myokit.Variable)
+        self.assertIs(m.get('c.x', myokit.Variable), x)
+        self.assertRaises(KeyError, m.get, 'x', myokit.Component)
+
+    def test_add_function(self):
+        """
+        Tests the ``Model.add_function`` method.
+        """
+        m = myokit.Model('m')
+        c = m.add_component('c')
+        x = c.add_variable('x')
+
+        # Test basics
+        m.add_function('f', ('a', 'b', 'c'), 'a + b + c')
+        x.set_rhs('f(1, 2, 3)')
+        self.assertEqual(x.eval(), 6)
+
+        # Test duplicate name
+        # Different number of arguments is allowed:
+        m.add_function('f', ('a', 'b'), 'a + b')
+        self.assertRaises(
+            myokit.DuplicateFunctionName, m.add_function, 'f', ('a', 'b'),
+            'a - b')
+
+        # Test duplicate argument name
+        self.assertRaises(
+            myokit.DuplicateFunctionArgument, m.add_function, 'g', ('a', 'a'),
+            'a + a')
+
+        # Dot operator is not allowed
+        self.assertRaises(
+            myokit.InvalidFunction, m.add_function, 'fdot', ('a', ), 'dot(a)')
+
+        # Unused argument
+        self.assertRaises(
+            myokit.InvalidFunction, m.add_function, 'fun', ('a', 'b'), 'a')
+
+    def test_check_units(self):
+        """
+        Tests the ``model.check_units`` method.
+        """
+        model = myokit.Model('m')
+        component = model.add_component('c')
+        a = component.add_variable('a')
+        a.set_rhs(1)
+        b = component.add_variable('b')
+        b.set_rhs(2)
+        c = component.add_variable('c')
+        c.set_rhs('a + b')
+        model.check_units()
+
+        a.set_rhs('1 [N]')
+        b.set_rhs('2 [m]')
+        c.set_rhs('a * b')
+        model.check_units()
+        c.set_unit('A')
+        self.assertRaises(myokit.IncompatibleUnitError, model.check_units)
+        c.set_unit(myokit.parse_unit('N*m'))
+        model.check_units()
+
+    def test_code(self):
+        model = myokit.Model('m')
+        component = model.add_component('comp1')
+        a = component.add_variable('a')
+        b = component.add_variable('b')
+        c = component.add_variable('c')
+        a.set_rhs('1 [N]')
+        b.set_rhs('2 [m]')
+        c.set_rhs('a * b')
+        c.set_unit('N*m')
+        component2 = model.add_component('comp2')
+        d = component2.add_variable('d')
+        d.set_rhs(myokit.Name(a))
+
+        self.assertEqual(
+            model.code(),
+            '[[model]]\n'
+            'name: m\n'
+            '\n'
+            '[comp1]\n'
+            'a = 1 [N]\n'
+            'b = 2 [m]\n'
+            'c = a * b\n'
+            '    in [J]\n'
+            '\n'
+            '[comp2]\n'
+            'd = comp1.a\n'
+            '\n'
+        )
+
+        self.assertEqual(
+            model.code(line_numbers=True),
+            ' 1 [[model]]\n'
+            ' 2 name: m\n'
+            ' 3 \n'
+            ' 4 [comp1]\n'
+            ' 5 a = 1 [N]\n'
+            ' 6 b = 2 [m]\n'
+            ' 7 c = a * b\n'
+            ' 8     in [J]\n'
+            ' 9 \n'
+            '10 [comp2]\n'
+            '11 d = comp1.a\n'
+        )
+
+    def test_model_eval_state_derivatives(self):
+        """ Test Model.eval_state_derivatives(). """
+        model = myokit.Model('m')
+        component = model.add_component('comp1')
+        t = component.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(1)
+        a = component.add_variable('a')
+        b = component.add_variable('b')
+        c = component.add_variable('c')
+        a.promote(1)
+        a.set_rhs('1')
+        b.promote(2)
+        b.set_rhs('2 * b')
+        c.promote(3)
+        c.set_rhs('b + c')
+        model.validate()
+        self.assertEqual(model.eval_state_derivatives(), [1, 4, 5])
+        self.assertEqual(
+            model.eval_state_derivatives(state=[1, 1, 2]), [1, 2, 3])
+        c.set_rhs('b + c + time')
+        self.assertEqual(model.eval_state_derivatives(), [1, 4, 6])
+        self.assertEqual(
+            model.eval_state_derivatives(state=[1, 1, 2], inputs={'time': 0}),
+            [1, 2, 3])
+
+    def test_expressions_for(self):
+        """ Tests Model.expressions_for(). """
+        m = myokit.load_model('example')
+        eqs, vrs = m.expressions_for('ina.m')
+        # Simple test
+        self.assertEqual(len(eqs), 3)
+        self.assertEqual(len(vrs), 2)
+        self.assertIn(myokit.Name(m.get('ina.m')), vrs)
+        self.assertIn(myokit.Name(m.get('membrane.V')), vrs)
+
+    def test_format_state(self):
+        """ Tests Model.format_state() """
+        m = myokit.load_model('example')
+        self.assertEqual(
+            m.format_state(),
+            'membrane.V = -84.5286\n'
+            'ina.m      = 0.0017\n'
+            'ina.h      = 0.9832\n'
+            'ina.j      = 0.995484\n'
+            'ica.d      = 3e-06\n'
+            'ica.f      = 1.0\n'
+            'ik.x       = 0.0057\n'
+            'ica.Ca_i   = 0.0002'
+        )
+
+    def test_format_state_derivatives(self):
+        """ Tests Model.format_state_derivatives() """
+        m = myokit.load_model('example')
+        self.assertEqual(
+            m.format_state_derivatives(), # noqa
+'membrane.V = -84.5286                   dot = -5.68008003798848027e-02\n'
+'ina.m      = 0.0017                     dot = -4.94961486033834719e-03\n'
+'ina.h      = 0.9832                     dot =  9.02025299127830887e-06\n'
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04\n'
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04\n'
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07\n'
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n'
+'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'
+        )
 
 
 if __name__ == '__main__':

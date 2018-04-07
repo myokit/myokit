@@ -421,6 +421,55 @@ class ModelParseTest(unittest.TestCase):
         m = myokit.load_model(os.path.join(DIR_DATA, model))
         m.validate()
 
+    def test_unresolved_references(self):
+        """
+        Tests parsing models with unresolved references.
+        """
+        m = """
+[[model]]
+
+[c]
+t = 0 bind time
+x = 5
+"""
+        myokit.parse_model(m)
+
+        # Bad variable in same component
+        m = """
+[[model]]
+
+[c]
+t = 0 bind time
+x = 5
+y = z
+"""
+        self.assertRaises(myokit.ParseError, myokit.parse_model, m)
+
+        # Bad component
+        m = """
+[[model]]
+
+[c]
+t = 0 bind time
+x = 5
+y = d.z
+"""
+        self.assertRaises(myokit.ParseError, myokit.parse_model, m)
+
+        # Bad variable in other component
+        m = """
+[[model]]
+
+[c]
+t = 0 bind time
+x = 5
+y = d.b
+
+[d]
+a = 12
+"""
+        self.assertRaises(myokit.ParseError, myokit.parse_model, m)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -905,7 +905,7 @@ class FiberTissueSimulation(myokit.CModule):
                     try:
                         derivs = model.eval_state_derivatives(
                             states[1], precision=self._precision)
-                        txt.append(model.format_state_derivs(
+                        txt.append(model.format_state_derivatives(
                             states[1], derivs))
                     except myokit.NumericalError as ee:
                         txt.append(ee.message)

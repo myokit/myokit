@@ -324,8 +324,8 @@ for ex in inspect.getmembers(_err):
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 
-# Model structure
-from ._core import ( # noqa
+# Model api
+from ._model_api import ( # noqa
     ModelPart, Model, Component, Variable, check_name,
     Equation, EquationList, UserFunction,
 )
