@@ -1423,17 +1423,21 @@ class Model(ObjectWithMeta, VarProvider):
 
         return '\n'.join(out)
 
-    def format_state_derivs(self, state, deriv):
+    def format_state_derivatives(self, state=None, derivatives=None):
         """
         Like :meth:`format_state` but displays the derivatives along with
         each state's value.
         """
         n = len(self._state)
-        if len(state) != n:
+        if state is None:
+            state = self.state()
+        elif len(state) != n:
             raise ValueError(
                 'Argument `state` must be a list of (' + str(n)
                 + ') floating point numbers.')
-        if len(deriv) != n:
+        if derivatives is None:
+            derivatives = self.eval_state_derivatives()
+        elif len(derivatives) != n:
             raise ValueError(
                 'Argument `deriv` must be a list of (' + str(n)
                 + ') floating point numbers.')
@@ -1441,7 +1445,7 @@ class Model(ObjectWithMeta, VarProvider):
         n = max([len(x.qname()) for x in self.states()])
         for i, var in enumerate(self.states()):
             s = myokit.strfloat(state[i])
-            d = myokit.strfloat(deriv[i])
+            d = myokit.strfloat(derivatives[i])
             out.append(
                 var.qname() + ' ' * (n - len(var.qname())) + ' = ' + s
                 + ' ' * (24 - len(s)) + '   dot = ' + d)

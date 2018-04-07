@@ -845,7 +845,8 @@ class SimulationOpenCL(myokit.CModule):
                         derivs = self._model.eval_state_derivatives(
                             states[1], precision=self._precision)
                         txt.append(
-                            self._model.format_state_derivs(states[1], derivs))
+                            self._model.format_state_derivatives(
+                                states[1], derivs))
                     except myokit.NumericalError as ee:
                         txt.append(ee.message)
             except myokit.FindNanError as e:

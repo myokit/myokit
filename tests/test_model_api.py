@@ -974,6 +974,21 @@ class ModelBuildTest(unittest.TestCase):
             'ica.Ca_i   = 0.0002'
         )
 
+    def test_format_state_derivatives(self):
+        """ Tests Model.format_state_derivatives() """
+        m = myokit.load_model('example')
+        self.assertEqual(
+            m.format_state_derivatives(), # noqa
+'membrane.V = -84.5286                   dot = -5.68008003798848027e-02\n'
+'ina.m      = 0.0017                     dot = -4.94961486033834719e-03\n'
+'ina.h      = 0.9832                     dot =  9.02025299127830887e-06\n'
+'ina.j      = 0.995484                   dot = -3.70409866928434243e-04\n'
+'ica.d      = 3e-06                      dot =  3.68067721821794798e-04\n'
+'ica.f      = 1.0                        dot = -3.55010150519739432e-07\n'
+'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n'
+'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
