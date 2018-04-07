@@ -908,8 +908,6 @@ class ModelBuildTest(unittest.TestCase):
             '\n'
         )
 
-        print(model.code(line_numbers=True))
-
         self.assertEqual(
             model.code(line_numbers=True),
             ' 1 [[model]]\n'
@@ -924,6 +922,25 @@ class ModelBuildTest(unittest.TestCase):
             '10 [comp2]\n'
             '11 d = comp1.a\n'
         )
+
+    def test_model_eval_state_derivatives(self):
+        """ Test Model.eval_state_derivatives() """
+        model = myokit.Model('m')
+        component = model.add_component('comp1')
+        t = component.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(1)
+        a = component.add_variable('a')
+        b = component.add_variable('b')
+        c = component.add_variable('c')
+        a.promote(1)
+        a.set_rhs('1')
+        b.promote(2)
+        b.set_rhs('2 * b')
+        c.promote(3)
+        c.set_rhs('b + c')
+        model.validate()
+        self.assertEqual(model.eval_state_derivatives(), [1, 4, 5])
 
 
 if __name__ == '__main__':
