@@ -988,12 +988,12 @@ class Model(ObjectWithMeta, VarProvider):
         b.write('[[model]]\n')
         self._code(b, 0)
         if line_numbers:
-            lines = b.get_value().split('\n')
+            lines = b.getvalue().strip().split('\n')
             out = []
-            n = 1 + int(math.ceil(math.log10(len(lines))))
+            n = int(math.ceil(math.log10(len(lines))))
             for k, line in enumerate(lines):
                 out.append('%*d ' % (n, 1 + k) + line)
-            return '\n'.join(out)
+            return '\n'.join(out) + '\n'
         else:
             return b.getvalue()
 
@@ -1004,6 +1004,7 @@ class Model(ObjectWithMeta, VarProvider):
         # b = buffer, t = number of tabs
         # Meta properties
         self._code_meta(b, 0)
+
         # Initial state
         if self._state:
             pre = t * TAB
@@ -1017,6 +1018,10 @@ class Model(ObjectWithMeta, VarProvider):
                     pre + name + ' ' * (n - len(name)) + ' = ' + eq.rhs.code()
                     + '\n')
             b.write(pre + '\n')
+        else:
+            # No initial state? Then add newline
+            b.write('\n')
+
         # Components
         for c in self.components(sort=True):
             c._code(b, t)
@@ -3681,7 +3686,7 @@ class Variable(VarOwner):
         if unit is None or isinstance(unit, myokit.Unit):
             self._unit = unit
         elif type(unit) in (str, unicode):
-            self._unit = myokit.Unit.parse_simple(unit)
+            self._unit = myokit.parse_unit(unit)
         else:
             raise TypeError('Method set_unit() expects a myokit.Unit or None.')
         # No need to reset validation status or cache. Units are checked only

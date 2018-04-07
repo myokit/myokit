@@ -296,8 +296,10 @@ class ModelBuildTest(unittest.TestCase):
         has('Y.d')
         has('Y.y', 'Y.c', 'Y.d')
         has('Z.total')
+
         # Validate
         m.validate()
+
         # Get solvable order
         order = m.solvable_order()
         self.assertEqual(len(order), 5)
@@ -305,10 +307,12 @@ class ModelBuildTest(unittest.TestCase):
         self.assertIn('X', order)
         self.assertIn('Y', order)
         self.assertIn('Z', order)
+
         # Check that X comes before Y
         pos = dict([(name, k) for k, name in enumerate(order)])
         self.assertLess(pos['X'], pos['Y'])
         self.assertEqual(pos['*remaining*'], 4)
+
         # Check component equation lists
         eqs = order['*remaining*']
         self.assertEqual(len(eqs), 0)
@@ -325,6 +329,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(eqs[1].code(), 'b1 = 1')
         self.assertEqual(eqs[2].code(), 'b2 = X.a - b1 - 1')
         self.assertEqual(eqs[3].code(), 'X.b = b1 + b2')
+
         # Test model export and cloning
         code1 = m.code()
         code2 = m.clone().code()
@@ -872,6 +877,53 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(myokit.IncompatibleUnitError, model.check_units)
         c.set_unit(myokit.parse_unit('N*m'))
         model.check_units()
+
+    def test_code(self):
+        model = myokit.Model('m')
+        component = model.add_component('comp1')
+        a = component.add_variable('a')
+        b = component.add_variable('b')
+        c = component.add_variable('c')
+        a.set_rhs('1 [N]')
+        b.set_rhs('2 [m]')
+        c.set_rhs('a * b')
+        c.set_unit('N*m')
+        component2 = model.add_component('comp2')
+        d = component2.add_variable('d')
+        d.set_rhs(myokit.Name(a))
+
+        self.assertEqual(
+            model.code(),
+            '[[model]]\n'
+            'name: m\n'
+            '\n'
+            '[comp1]\n'
+            'a = 1 [N]\n'
+            'b = 2 [m]\n'
+            'c = a * b\n'
+            '    in [J]\n'
+            '\n'
+            '[comp2]\n'
+            'd = comp1.a\n'
+            '\n'
+        )
+
+        print(model.code(line_numbers=True))
+
+        self.assertEqual(
+            model.code(line_numbers=True),
+            ' 1 [[model]]\n'
+            ' 2 name: m\n'
+            ' 3 \n'
+            ' 4 [comp1]\n'
+            ' 5 a = 1 [N]\n'
+            ' 6 b = 2 [m]\n'
+            ' 7 c = a * b\n'
+            ' 8     in [J]\n'
+            ' 9 \n'
+            '10 [comp2]\n'
+            '11 d = comp1.a\n'
+        )
 
 
 if __name__ == '__main__':
