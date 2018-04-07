@@ -817,6 +817,54 @@ class ModelBuildTest(unittest.TestCase):
         self.assertIs(m.get('c.x', myokit.Variable), x)
         self.assertRaises(KeyError, m.get, 'x', myokit.Component)
 
+    def test_add_function(self):
+        """
+        Tests the ``Model.add_function`` method.
+        """
+        m = myokit.Model('m')
+        c = m.add_component('c')
+        x = c.add_variable('x')
+
+        # Test basics
+        f = m.add_function('f', ('a', 'b', 'c'), 'a + b + c')
+        x.set_rhs('f(1, 2, 3)')
+        self.assertEqual(x.eval(), 6)
+
+        # Test duplicate name
+        # Different number of arguments is allowed:
+        m.add_function('f', ('a', 'b'), 'a + b')
+        self.assertRaises(
+            myokit.DuplicateFunctionName, m.add_function, 'f', ('a', 'b'),
+            'a - b')
+
+        # Test duplicate argument name
+        self.assertRaises(
+            myokit.DuplicateFunctionArgument, m.add_function, 'g', ('a', 'a'),
+            'a + a')
+
+        # Dot operator is not allowed
+        self.assertRaises(
+            myokit.InvalidFunction, m.add_function, 'fdot', ('a', ), 'dot(a)')
+
+        # Unused argument
+        self.assertRaises(
+            myokit.InvalidFunction, m.add_function, 'fun', ('a', 'b'), 'a')
+
+    def test_check_units(self):
+        """
+        Tests the ``model.check_units`` method.
+        """
+        model = myokit.Model('m')
+        component = model.add_component('c')
+        a = component.add_variable('a')
+        a.set_rhs(1)
+        b = component.add_variable('b')
+        b.set_rhs(2)
+        c = component.add_variable('c')
+        c.set_rhs('a + b')
+        model.check_units()
+
+
 
 if __name__ == '__main__':
     unittest.main()

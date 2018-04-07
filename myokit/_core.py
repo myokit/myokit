@@ -665,11 +665,13 @@ class VarOwner(ModelPart, VarProvider):
             m = self.model()
             (var, sug, msg) = m.suggest_variable(name)
             return msg
+
         # Try resolving as an alias
         try:
             return self._component._alias_map[name]
         except KeyError:
             pass
+
         # Resolve as a local variable name
         dot = name.find('.')
         if dot < 0:
@@ -805,6 +807,7 @@ class Model(ObjectWithMeta, VarProvider):
         Adds a user function to this model.
         """
         name = check_name(name)
+
         # Check argument names and uniqueness
         arguments = [myokit.Name(check_name(x)) for x in arguments]
         n = len(arguments)
@@ -814,6 +817,11 @@ class Model(ObjectWithMeta, VarProvider):
                     raise myokit.DuplicateFunctionArgument(
                         'The argument name <' + str(arg)
                         + '> is already in use in this function.')
+
+        # Check template is expression
+        if not isinstance(template, myokit.Expression):
+            template = myokit.parse_expression(template)
+
         # Check function uniqueness. Add number of arguments to name to allow
         # overloading
         uname = name + '(' + str(n) + ')'
@@ -821,12 +829,14 @@ class Model(ObjectWithMeta, VarProvider):
             raise myokit.DuplicateFunctionName(
                 'A function called "' + name + '" with ' + str(n)
                 + ' arguments is already defined in this model.')
+
         # Check template
         refs = template.references()
         for ref in refs:
             if isinstance(ref, myokit.Derivative):
                 raise myokit.InvalidFunction(
                     'The dot() operator cannot be used in user functions.')
+
         # Check for unused arguments, undeclared arguments
         ref_names = set([x._value for x in refs])
         for arg in arguments:
@@ -840,6 +850,7 @@ class Model(ObjectWithMeta, VarProvider):
             raise myokit.InvalidFunction(
                 'The variable <' + ref_names.pop()
                 + '> is used in the function but never declared.')
+
         # Create function and return
         func = UserFunction(name, arguments, template)
         self._user_functions[uname] = func

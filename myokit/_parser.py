@@ -467,6 +467,7 @@ def parse_user_function(stream, info):
     # Parse template
     expect(stream.next(), EQUAL)
     expr = convert_proto_expression(parse_proto_expression(stream, info))
+    print(expr)
     expect(stream.next(), EOL)
     # Create user function
     try:
@@ -1754,8 +1755,18 @@ def parse_expression_string(string, context=None):
     A :class:`myokit.Variable` object can be given as ``context`` to resolve
     any references against.
     """
+    # Create fino from context variable, if given
+    # (Required when parsing user functions given as strings)
+    info = None
+    if context is not None:
+        info = ParseInfo()
+        info.model = context.model()
+
+    # Tokenise and parse string to proto expression
     s = Tokenizer(string)
-    e = parse_proto_expression(s)
+    e = parse_proto_expression(s, info=info)
+
+    # Check for eol, eof, then nothing else
     expect(s.next(), EOL)
     expect(s.next(), EOF)
     try:
@@ -1764,7 +1775,10 @@ def parse_expression_string(string, context=None):
             'Unused tokens', 0, 0,
             'Expecting a string containing only a single expression.')
     except StopIteration:
-        return convert_proto_expression(e, context)
+        pass
+
+    # Convert proto expression and return
+    return convert_proto_expression(e, context, info)
 
 
 def parse_number_string(string):
