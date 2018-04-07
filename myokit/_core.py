@@ -395,7 +395,9 @@ class VarProvider(object):
              Set to True to return nested variables meeting all other criteria.
 
         ``sort=True|False`` (by default it's ``False``)
-            Set to True to return the variables in a consistent order.
+            Set to True to return the variables in a consistent order. (Note
+            that this does _not_ mean alphabetical sorting of all variables,
+            just that the order is consistent between calls!)
         """
         def viter(stream, const, inter, state, bound, deep):
             for var in stream:
@@ -463,7 +465,7 @@ class VarOwner(ModelPart, VarProvider):
             self._variables[name] = var = Variable(self, name)
         finally:
             self.model()._reset_validation()
-            if var:
+            if var is not None:
                 var._reset_cache()
         return var
 

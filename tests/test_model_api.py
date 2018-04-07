@@ -216,10 +216,15 @@ class ModelBuildTest(unittest.TestCase):
         has(a, b, c, d, x, y, time)
         vrs = [i for i in m.variables(inter=False, deep=True)]
         has(a, b, c, d, x, y, b1, b2, time)
-        vrs = [i for i in m.variables(const=True, state=True)]
+        vrs = list(m.variables(const=True, state=True))
         has()
-        vrs = [i for i in m.variables(const=True, state=False)]
+        vrs = list(m.variables(const=True, state=False))
         has(a, b, c, d)
+
+        # Test sorted variable iteration
+        names = [v.name() for v in m.variables(deep=True, sort=True)]
+        self.assertEqual(names, [
+            'a', 'b', 'b1', 'b2', 'x', 'c', 'd', 'y', 'total', 'time'])
 
         # Test equation iteration
         # Deeper testing is done when testing the ``variables`` method.
@@ -364,10 +369,24 @@ class ModelBuildTest(unittest.TestCase):
         time = E.add_variable('time')
         time.set_rhs(0)
         time.set_binding('time')
+
         # Move time variable into X
         m.validate()    # If not valid, this will raise an exception
         E.move_variable(time, Z)
         m.validate()
+
+        # Can't do it a second time
+        self.assertRaises(ValueError, E.move_variable, time, Z)
+
+        # Move to self
+        Z.move_variable(time, Z)
+        m.validate()
+        Z.move_variable(time, Z)
+        m.validate()
+
+        # Duplicate variable name
+        E.add_variable('time')
+        self.assertRaises(myokit.DuplicateName, Z.move_variable, time, E)
 
     def test_remove_component(self):
         """
@@ -769,6 +788,34 @@ class ModelBuildTest(unittest.TestCase):
         for i in range(10):
             r = c.add_variable_allow_renaming('r')
             self.assertEqual(r.name(), 'r_' + str(1 + i))
+
+    def test_get(self):
+        """
+        Tests the VarOwner.get() method.
+        """
+        # Test basics
+        m = Model('test')
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        self.assertIs(m.get('c'), c)
+        self.assertIs(m.get('c.x'), x)
+        self.assertIs(c.get('x'), x)
+
+        # Test asking for object
+        self.assertIs(m.get(c), c)
+        self.assertIs(m.get(x), x)
+        self.assertIs(c.get(x), x)
+        self.assertIs(x.get(c), c)
+
+        # Test not founds
+        self.assertRaises(KeyError, m.get, 'y')
+        self.assertRaises(KeyError, m.get, 'c.y')
+
+        # Test class filter
+        self.assertIs(m.get('c', myokit.Component), c)
+        self.assertRaises(KeyError, m.get, 'c', myokit.Variable)
+        self.assertIs(m.get('c.x', myokit.Variable), x)
+        self.assertRaises(KeyError, m.get, 'x', myokit.Component)
 
 
 if __name__ == '__main__':
