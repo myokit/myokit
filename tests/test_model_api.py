@@ -38,7 +38,9 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(len(m), 1)
 
         # Add variable a
+        self.assertFalse(X.has_variable('a'))
         a = X.add_variable('a')
+        self.assertTrue(X.has_variable('a'))
         self.assertEqual(a, a)
         self.assertIsInstance(a, Variable)
         self.assertEqual(len(X), 1)
@@ -69,7 +71,9 @@ class ModelBuildTest(unittest.TestCase):
         self.assertIsInstance(b, Variable)
         self.assertEqual(len(X), 2)
         self.assertIn(b.name(), X)
+        self.assertFalse(b.has_variable('b1'))
         b1 = b.add_variable('b1')
+        self.assertTrue(b.has_variable('b1'))
         self.assertEqual(len(b), 1)
         self.assertIn(b1.name(), b)
         self.assertIsInstance(b1, Variable)
@@ -218,18 +222,25 @@ class ModelBuildTest(unittest.TestCase):
         has(a, b, c, d)
 
         # Test equation iteration
+        # Deeper testing is done when testing the ``variables`` method.
         eq = [eq for eq in X.equations(deep=False)]
         self.assertEqual(len(eq), 3)
+        self.assertEqual(len(eq), X.count_equations(deep=False))
         eq = [eq for eq in X.equations(deep=True)]
         self.assertEqual(len(eq), 5)
+        self.assertEqual(len(eq), X.count_equations(deep=True))
         eq = [eq for eq in Y.equations(deep=False)]
         self.assertEqual(len(eq), 3)
+        self.assertEqual(len(eq), Y.count_equations(deep=False))
         eq = [eq for eq in Y.equations(deep=True)]
         self.assertEqual(len(eq), 3)
+        self.assertEqual(len(eq), Y.count_equations(deep=True))
         eq = [eq for eq in Z.equations(deep=False)]
         self.assertEqual(len(eq), 1)
+        self.assertEqual(len(eq), Z.count_equations(deep=False))
         eq = [eq for eq in Z.equations(deep=True)]
         self.assertEqual(len(eq), 1)
+        self.assertEqual(len(eq), Z.count_equations(deep=True))
         eq = [eq for eq in E.equations(deep=False)]
         self.assertEqual(len(eq), 1)
         eq = [eq for eq in E.equations(deep=True)]
@@ -552,7 +563,11 @@ class ModelBuildTest(unittest.TestCase):
         t = c0.add_variable('time')
         t.set_rhs(Number(0))
         t.set_binding('time')
+
+        # Test add component
+        # Duplicates
         self.assertRaises(DuplicateName, m.add_component, 'c0')
+        # Badly formed names
         self.assertRaises(InvalidNameError, m.add_component, '0')
         self.assertRaises(InvalidNameError, m.add_component, '_0')
         self.assertRaises(InvalidNameError, m.add_component, '123abvc')
@@ -560,7 +575,13 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(InvalidNameError, m.add_component, 'ab.cd')
         self.assertRaises(InvalidNameError, m.add_component, 'ab!cd')
         self.assertRaises(InvalidNameError, m.add_component, '5*x')
+        # Keywords
+        self.assertRaises(InvalidNameError, m.add_component, 'and')
+        self.assertRaises(InvalidNameError, m.add_component, 'bind')
+        # Test adding variable to component
         c1 = m.add_component('c1')
+        # Duplicate
+        # Badly formed names
         self.assertRaises(InvalidNameError, c0.add_variable, '0')
         self.assertRaises(InvalidNameError, c0.add_variable, '_aap')
         self.assertRaises(InvalidNameError, c0.add_variable, '123abvc')
@@ -568,7 +589,18 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(InvalidNameError, c0.add_variable, 'ab.cd')
         self.assertRaises(InvalidNameError, c0.add_variable, 'ab!cd')
         self.assertRaises(InvalidNameError, c0.add_variable, '5*x')
+        # Keywords
+        self.assertRaises(InvalidNameError, c0.add_variable, 'or')
+        self.assertRaises(InvalidNameError, c0.add_variable, 'label')
+
+        # Test adding variable to variable
         v1 = c0.add_variable('c0')
+        # Duplicate
+        v2 = c1.add_variable('c0')
+        self.assertRaises(DuplicateName, c1.add_variable, 'c0')
+        self.assertRaises(DuplicateName, v1.add_variable, 'c0')
+        self.assertRaises(DuplicateName, v2.add_variable, 'c0')
+        # Badly formed names
         self.assertRaises(InvalidNameError, v1.add_variable, '0')
         self.assertRaises(InvalidNameError, v1.add_variable, '_aap')
         self.assertRaises(InvalidNameError, v1.add_variable, '123abvc')
@@ -576,10 +608,9 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaises(InvalidNameError, v1.add_variable, 'ab.cd')
         self.assertRaises(InvalidNameError, v1.add_variable, 'ab!cd')
         self.assertRaises(InvalidNameError, v1.add_variable, '5*x')
-        v2 = c1.add_variable('c0')
-        self.assertRaises(DuplicateName, c1.add_variable, 'c0')
-        self.assertRaises(DuplicateName, v1.add_variable, 'c0')
-        self.assertRaises(DuplicateName, v2.add_variable, 'c0')
+        # Keywords
+        self.assertRaises(InvalidNameError, v1.add_variable, 'not')
+        self.assertRaises(InvalidNameError, v1.add_variable, 'in')
 
     def test_unused_and_cycles(self):
         """
@@ -697,6 +728,47 @@ class ModelBuildTest(unittest.TestCase):
         for k, v in enumerate([a, b, c, d, e, f, g, h, i]):
             self.assertEqual(v.lhs(), eqs[k].lhs)
             self.assertEqual(v.rhs(), eqs[k].rhs)
+
+    def test_add_component_allow_renamining(self):
+        """
+        Tests the ``Model.add_component_allow_renaming`` method.
+        """
+        m = Model('test')
+        c = m.add_component('c')
+        self.assertTrue(m.has_component('c'))
+        self.assertRaises(myokit.DuplicateName, m.add_component, 'c')
+        d = m.add_component_allow_renaming('c')
+        self.assertEqual(c.name(), 'c')
+        self.assertEqual(d.name(), 'c_1')
+        e = m.add_component_allow_renaming('c')
+        self.assertEqual(e.name(), 'c_2')
+
+        # Test repeated calls
+        r = m.add_component('r')
+        for i in range(10):
+            r = m.add_component_allow_renaming('r')
+            self.assertEqual(r.name(), 'r_' + str(1 + i))
+
+    def test_add_variable_allow_renaming(self):
+        """
+        Tests the ``VarProvider.add_variable_allow_renaming`` method.
+        """
+        m = Model('test')
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        self.assertTrue(c.has_variable('x'))
+        self.assertRaises(myokit.DuplicateName, c.add_variable, 'x')
+        y = c.add_variable_allow_renaming('x')
+        self.assertEqual(x.name(), 'x')
+        self.assertEqual(y.name(), 'x_1')
+        z = c.add_variable_allow_renaming('x')
+        self.assertEqual(z.name(), 'x_2')
+
+        # Test repeated calls
+        r = c.add_variable('r')
+        for i in range(10):
+            r = c.add_variable_allow_renaming('r')
+            self.assertEqual(r.name(), 'r_' + str(1 + i))
 
 
 if __name__ == '__main__':

@@ -484,15 +484,18 @@ class VarOwner(ModelPart, VarProvider):
         try:
             return self.add_variable(name)
         except myokit.DuplicateName:
-            n_tries = 256
-            for i in range(n_tries):
-                try:
-                    return self.add_variable(name + '_' + str(1 + i))
-                except DuplicateName:
-                    pass
-            raise Exception(
-                'Unable to add variable after maximum number of attempts ('
-                + str(n_tries) + ').')
+            # Get similar names
+            root = name + '_'
+            n = len(name) + 1
+            names = set([
+                x.name() for x in self.variables() if x.name()[:n] == root])
+            # Find unused variant
+            for i in range(1, 2 + len(names)):
+                name = root + str(i)
+                if name not in names:
+                    break
+            # Add
+            return self.add_variable(name)
 
     def can_add_variable(self, name):
         """
@@ -782,15 +785,18 @@ class Model(ObjectWithMeta, VarProvider):
         try:
             return self.add_component(name)
         except myokit.DuplicateName:
-            n_tries = 256
-            for i in range(n_tries):
-                try:
-                    return self.add_component(name + '_' + str(1 + i))
-                except DuplicateName:
-                    pass
-            raise Exception(
-                'Unable to add component after maximum number of attempts ('
-                + str(n_tries) + ').')
+            # Get similar names
+            root = name + '_'
+            n = len(name) + 1
+            names = set([
+                x.name() for x in self.components() if x.name()[:n] == root])
+            # Find unused variant
+            for i in range(1, 2 + len(names)):
+                name = root + str(i)
+                if name not in names:
+                    break
+            # Add
+            return self.add_component(name)
 
     def add_function(self, name, arguments, template):
         """
