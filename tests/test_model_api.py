@@ -864,6 +864,15 @@ class ModelBuildTest(unittest.TestCase):
         c.set_rhs('a + b')
         model.check_units()
 
+        a.set_rhs('1 [N]')
+        b.set_rhs('2 [m]')
+        c.set_rhs('a * b')
+        model.check_units()
+        c.set_unit('A')
+        self.assertRaises(myokit.IncompatibleUnitError, model.check_units)
+        c.set_unit(myokit.parse_unit('N*m'))
+        model.check_units()
+
 
 if __name__ == '__main__':
     unittest.main()
