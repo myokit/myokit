@@ -44,6 +44,11 @@ if sys.hexversion < 0x02070000:
     print(sys.version)
     print()
     sys.exit(1)
+#elif sys.hexversion >= 0x03000000:
+#    print('-- ERROR --')
+#    print('Python 3 is not yet fully supported.')
+#    print()
+#    sys.exit(1)
 
 
 #
@@ -58,7 +63,7 @@ RELEASE = False
 #  - Changes to minor indicate new features, possible slight backwards
 #    incompatibility
 #  - Changes to revision indicate bugfixes, tiny new features
-VERSION_INT = 1, 26, 4
+VERSION_INT = 1, 27, 0
 
 # String version of the version number
 VERSION = '.'.join([str(x) for x in VERSION_INT])
