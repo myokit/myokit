@@ -81,13 +81,15 @@ def run_flake8():
         sys.exit(ret)
 
 
-def check_docs():
+def run_doc_tests():
     """
-    Checks if the documentation can be built.
+    Checks if the documentation can be built, runs all doc tests.
     """
     print('Checking if docs can be built.')
     p = subprocess.Popen([
         'sphinx-build',
+        '-b',
+        'doctest',
         'docs/source',
         'docs/build/html',
         '-W',
@@ -228,6 +230,13 @@ if __name__ == '__main__':
         help='Run all unit tests without starting a subprocess.',
     )
 
+    # Doctests
+    parser.add_argument(
+        '--doctest',
+        action='store_true',
+        help='Run doctests.',
+    )
+
     # Publications and web examples
     parser.add_argument(
         '--publications',
@@ -249,12 +258,12 @@ if __name__ == '__main__':
         has_run = True
         run_flake8()
         run_unit_tests('python')
-        check_docs()
+        run_doc_tests()
     if args.full:
         has_run = True
         run_flake8()
         run_unit_tests('python')
-        check_docs()
+        run_doc_tests()
         run_web_examples()
         run_publication_examples()
 
@@ -271,6 +280,11 @@ if __name__ == '__main__':
     if args.nosub:
         has_run = True
         run_unit_tests()
+
+    # Doctests
+    if args.doctest:
+        has_run = True
+        run_doc_tests()
 
     # Publication and web examples
     if args.publications:
