@@ -32,6 +32,7 @@ class MatlabExpressionWriter(PythonExpressionWriter):
          value_if_false).
         """
         self.cFunc = func
+
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
     #def _ex_number(self, e):
@@ -40,19 +41,23 @@ class MatlabExpressionWriter(PythonExpressionWriter):
     def _ex_prefix_minus(self, e):
         return \
             '-(' + self.ex(e[0]) + ')' if e.bracket() else '-' + self.ex(e[0])
+
     #def _ex_plus(self, e):
     #def _ex_minus(self, e):
     #def _ex_multiply(self, e):
     #def _ex_divide(self, e):
 
     def _ex_quotient(self, e):
+        # Round towards minus infinity
         return 'floor(' + self._ex_infix(e, '/') + ')'
 
     def _ex_remainder(self, e):
+        # Uses the round-towards-minus-infinity convention!
         return 'mod(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
 
     def _ex_power(self, e):
         return self._ex_infix(e, '^')
+
     #def _ex_sqrt(self, e):
     #    Ignore imaginary part
     #    return 'real(' + self._ex_function(e, 'sqrt') + ')'
@@ -69,6 +74,7 @@ class MatlabExpressionWriter(PythonExpressionWriter):
             return self._ex_function(e, 'log')
         else:
             return '(log(' + self.ex(e[0]) + ') / log(' + self.ex(e[1]) + '))'
+
     #def _ex_log10(self, e):
     #def _ex_floor(self, e):
     #def _ex_ceil(self, e):
@@ -78,6 +84,7 @@ class MatlabExpressionWriter(PythonExpressionWriter):
 
     def _ex_not(self, e):
         return '!(' + self.ex(e[0]) + ')'
+
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
     #def _ex_more(self, e):
@@ -92,7 +99,7 @@ class MatlabExpressionWriter(PythonExpressionWriter):
         return self._ex_infix_condition(e, '||')
 
     def _ex_if(self, e):
-        return '%s(%s ? %s : %s)' % (
+        return '%s(%s, %s, %s)' % (
             self.cFunc, self.ex(e._i), self.ex(e._t), self.ex(e._e))
 
     def _ex_piecewise(self, e):
