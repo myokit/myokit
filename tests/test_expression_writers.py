@@ -370,6 +370,12 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         # Test fetching using ewriter method --> Won't work!
         self.assertRaises(TypeError, myokit.formats.ewriter, 'cellml')
 
+        # Content mode not allowed
+        self.assertRaises(RuntimeError, w.set_mode, True)
+
+        # Lhs function setting not allowed
+        self.assertRaises(NotImplementedError, w.set_lhs_function, None)
+
 
 class CppExpressionWriterTest(unittest.TestCase):
     """ Tests the C++ ewriter class. """

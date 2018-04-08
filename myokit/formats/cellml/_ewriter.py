@@ -66,4 +66,4 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
         This expression writer always uses unames, setting an LHS function is
         not supported.
         """
-        pass
+        raise NotImplementedError
