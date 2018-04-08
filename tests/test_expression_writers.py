@@ -1052,8 +1052,8 @@ class MathMLExpressionWriterTest(unittest.TestCase):
         )
 
         # Test for unfound variable (invalid cellml model)
-        #x = myokit.Name('a string')
-        #self.assertEqual(w.ex(x), 'ehllo')
+        x = myokit.Name('a string')
+        self.assertEqual(w.ex(x), '<ci>a string</ci>')
 
         # Test lhs function
         w.set_lhs_function(lambda v: 'bert')

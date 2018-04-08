@@ -31,7 +31,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         # Default lhs conversion function
         def flhs(lhs):
             var = lhs.var()
-            if type(var) == str:
+            if type(var) in [str, unicode]:
                 # This can happen with time variable of derivative if the
                 # proper variable isn't set!
                 return var
