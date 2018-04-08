@@ -24,15 +24,3 @@ Converting html to ascii
 
 .. autofunction:: html2ascii
 
-
-Writing html documents
-----------------------
-
-.. autoclass:: TinyHtmlPage
-
-.. autoclass:: TinyHtmlNode
-
-.. autoclass:: TinyHtmlScheme
-
-.. autofunction:: write_mathml
-
