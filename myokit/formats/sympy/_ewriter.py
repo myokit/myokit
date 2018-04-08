@@ -26,11 +26,14 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
     """
     def __init__(self):
         super(SymPyExpressionWriter, self).__init__()
-        self._flhs = lambda lhs: str(lhs)
+
         try:
             import sympy # noqa
         except ImportError:
             raise RuntimeError('This class requires SymPy to be installed.')
+
+        self._flhs = None
+        self.set_lhs_function(lambda lhs: str(lhs))
 
     def set_lhs_function(self, f):
         """
@@ -40,7 +43,7 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
         The argument ``f`` should be a function that takes an ``LhsExpression``
         as input and returns a string.
         """
-        self._lhs = f
+        self._flhs = f
 
     def eq(self, eq):
         """
