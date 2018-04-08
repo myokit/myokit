@@ -117,8 +117,9 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             tag = element
         self._ex(e, tag)
         if element is None:
-            enc = 'utf-8'
-            return ''.join([self._et.tostring(kid, enc) for kid in tag])
+            #enc = 'utf-8'
+            #return ''.join([self._et.tostring(kid, enc) for kid in tag])
+            return ''.join([self._et.tostring(kid) for kid in tag])
 
     def _ex(self, e, t):
         """
@@ -128,7 +129,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             action = self._op_map[type(e)]
         except KeyError:
             raise Exception('Unsupported type: ' + str(type(e)))
-        return action(e, t)
+        action(e, t)
 
     def _ex_prefix(self, e, t, cml):
         """
@@ -160,7 +161,12 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             k = self._et.SubElement(r, 'mfenced') if e.bracket(e[0]) else r
             self._ex(e[0], k)
             x = self._et.SubElement(r, 'mo')
-            x.text = e.operator_rep()
+            if isinstance(e, myokit.MoreEqual):
+                x.text = '\u2265'
+            elif isinstance(e, myokit.LessEqual):
+                x.text = '\u2264'
+            else:
+                x.text = e.operator_rep()
             k = self._et.SubElement(r, 'mfenced') if e.bracket(e[1]) else r
             self._ex(e[1], k)
         else:
@@ -214,13 +220,13 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         return self._ex_prefix(e, t, 'minus')
 
     def _ex_plus(self, e, t):
-        return self._ex_infix(e, t, 'plus')
+        self._ex_infix(e, t, 'plus')
 
     def _ex_minus(self, e, t):
-        return self._ex_infix(e, t, 'minus')
+        self._ex_infix(e, t, 'minus')
 
     def _ex_multiply(self, e, t):
-        return self._ex_infix(e, t, 'times')
+        self._ex_infix(e, t, 'times')
 
     def _ex_divide(self, e, t):
         if self._pres:
@@ -236,10 +242,10 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             self._ex(e[1], a)
 
     def _ex_quotient(self, e, t):
-        return self._ex_infix(e, t, 'quotient')
+        self._ex_infix(e, t, 'quotient')
 
     def _ex_remainder(self, e, t):
-        return self._ex_infix(e, t, 'rem')
+        self._ex_infix(e, t, 'rem')
 
     def _ex_power(self, e, t):
         if self._pres:
@@ -247,28 +253,28 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             self._ex(e[0], x)
             self._ex(e[1], x)
         else:
-            return self._ex_function(e, t, 'power')
+            self._ex_function(e, t, 'power')
 
     def _ex_sqrt(self, e, t):
-        return self._ex_function(e, t, 'root')
+        self._ex_function(e, t, 'root')
 
     def _ex_sin(self, e, t):
-        return self._ex_function(e, t, 'sin')
+        self._ex_function(e, t, 'sin')
 
     def _ex_cos(self, e, t):
-        return self._ex_function(e, t, 'cos')
+        self._ex_function(e, t, 'cos')
 
     def _ex_tan(self, e, t):
-        return self._ex_function(e, t, 'tan')
+        self._ex_function(e, t, 'tan')
 
     def _ex_asin(self, e, t):
-        return self._ex_function(e, t, 'arcsin')
+        self._ex_function(e, t, 'arcsin')
 
     def _ex_acos(self, e, t):
-        return self._ex_function(e, t, 'arccos')
+        self._ex_function(e, t, 'arccos')
 
     def _ex_atan(self, e, t):
-        return self._ex_function(e, t, 'arctan')
+        self._ex_function(e, t, 'arctan')
 
     def _ex_exp(self, e, t):
         if self._pres:
@@ -313,46 +319,47 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
                 self._ex(e[0], a)
 
     def _ex_log10(self, e, t):
-        return self._ex_function(e, t, 'log')
+        self._ex_function(e, t, 'log')
 
     def _ex_floor(self, e, t):
-        return self._ex_function(e, t, 'floor')
+        self._ex_function(e, t, 'floor')
 
     def _ex_ceil(self, e, t):
-        return self._ex_function(e, t, 'ceiling')
+        self._ex_function(e, t, 'ceiling')
 
     def _ex_abs(self, e, t):
-        return self._ex_function(e, t, 'abs')
+        self._ex_function(e, t, 'abs')
 
     def _ex_not(self, e, t):
-        return self._ex_prefix(e, t, 'plus')
+        # https://www.w3.org/TR/MathML2/chapter4.html#id.4.4.3.15
+        self._ex_prefix(e, t, 'not')
 
     def _ex_equal(self, e, t):
-        return self._ex_infix(e, t, 'eq')
+        self._ex_infix(e, t, 'eq')
 
     def _ex_not_equal(self, e, t):
-        return self._ex_infix(e, t, 'neq')
+        self._ex_infix(e, t, 'neq')
 
     def _ex_more(self, e, t):
-        return self._ex_infix(e, t, 'gt')
+        self._ex_infix(e, t, 'gt')
 
     def _ex_less(self, e, t):
-        return self._ex_infix(e, t, 'lt')
+        self._ex_infix(e, t, 'lt')
 
     def _ex_more_equal(self, e, t):
-        return self._ex_infix(e, t, 'geq')
+        self._ex_infix(e, t, 'geq')
 
     def _ex_less_equal(self, e, t):
-        return self._ex_infix(e, t, 'leq')
+        self._ex_infix(e, t, 'leq')
 
     def _ex_and(self, e, t):
-        return self._ex_infix(e, t, 'and')
+        self._ex_infix(e, t, 'and')
 
     def _ex_or(self, e, t):
-        return self._ex_infix(e, t, 'or')
+        self._ex_infix(e, t, 'or')
 
     def _ex_if(self, e, t):
-        return self._ex_piecewise(e.piecewise(), t)
+        self._ex_piecewise(e.piecewise(), t)
 
     def _ex_piecewise(self, e, t):
         if self._pres:

@@ -98,7 +98,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         """
         b.append(func)
         b.append('\\left(')
-        b.append(', '.join([self.ex(x) for x in e]))
+        b.append(','.join([self.ex(x) for x in e]))
         b.append('\\right)')
 
     def _ex_infix_condition(self, e, b, op):
@@ -148,10 +148,14 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         b.append('}')
 
     def _ex_quotient(self, e, b):
-        self._ex_function(e, b, 'quotient')
+        # Note: Quotient in myokit uses round-to-zero (like Python does!)
+        # See: myokit.Quotient
+        b.append('\\left\\lfloor')
+        self._ex_divide(e, b)
+        b.append('\\right\\rfloor')
 
     def _ex_remainder(self, e, b):
-        self._ex_function(e, b, 'remainder')
+        self._ex_function(e, b, '\\bmod')
 
     def _ex_power(self, e, b):
         if e.bracket(e[0]):
@@ -200,31 +204,31 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         b.append('\\right)')
 
     def _ex_log10(self, e, b):
-        return self._ex_function(e, 'log_{10}')
+        return self._ex_log(myokit.Log(e[0], myokit.Number(10)), b)
 
     def _ex_floor(self, e, b):
-        b.append('\\left\\lfloor')
+        b.append('\\left\\lfloor{')
         self._ex(e[0], b)
-        b.append('\\right\\rfloor')
+        b.append('}\\right\\rfloor')
 
     def _ex_ceil(self, e, b):
-        b.append('\\left\\lceil')
+        b.append('\\left\\lceil{')
         self._ex(e[0], b)
-        b.append('\\right\\rceil')
+        b.append('}\\right\\rceil')
 
     def _ex_abs(self, e, b):
-        b.append('\\lvert')
+        b.append('\\lvert{')
         self._ex(e[0], b)
-        b.append('\\rvert')
+        b.append('}\\rvert')
 
     def _ex_not(self, e, b):
         self._ex_function(e, b, '\\not')
 
     def _ex_equal(self, e, b):
-        self._ex_infix_condition(e, b, '==')
+        self._ex_infix_condition(e, b, '=')
 
     def _ex_not_equal(self, e, b):
-        self._ex_infix_condition(e, b, '!=')
+        self._ex_infix_condition(e, b, '\\neq')
 
     def _ex_more(self, e, b):
         self._ex_infix_condition(e, b, '>')
@@ -233,10 +237,10 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         self._ex_infix_condition(e, b, '<')
 
     def _ex_more_equal(self, e, b):
-        self._ex_infix_condition(e, b, '>=')
+        self._ex_infix_condition(e, b, '\\geq')
 
     def _ex_less_equal(self, e, b):
-        self._ex_infix_condition(e, b, '<=')
+        self._ex_infix_condition(e, b, '\\leq')
 
     def _ex_and(self, e, b):
         self._ex_infix_condition(e, b, '\\and')
@@ -245,7 +249,9 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         self._ex_infix_condition(e, b, '\\or')
 
     def _ex_if(self, e, b):
-        self._ex_function(e, b, 'if')   # No slashes!
+        # Not suported
+        self._ex_function(e, b, 'if')
 
     def _ex_piecewise(self, e, b):
-        self._ex_function(e, b, '\\piecewise')
+        # Not suported
+        self._ex_function(e, b, 'piecewise')

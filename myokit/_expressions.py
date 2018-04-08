@@ -1171,12 +1171,27 @@ class Quotient(InfixExpression):
     """
     *Extends:* :class:`InfixExpression`
 
-    Represents the quotient of a division ``left // right``.
+    Represents the quotient (integer division) of a division ``left // right``.
 
-    >>> from myokit import *
-    >>> x = parse_expression('7 // 3')
+    >>> import myokit
+    >>> x = myokit.parse_expression('7 // 3')
     >>> print(x.eval())
     2.0
+
+    Note that, for negative numbers Myokit follows the convention of Python
+    (and some other languages, but not e.g. C) of rounding towards negative
+    infinity, rather than towards zero. Thus:
+
+    >>> print(myokit.parse_expression('-7 // 3').eval())
+    -3.0
+
+    Similarly:
+
+    >>> print(myokit.parse_expression('5 // -3').eval())
+    -2.0
+
+    See: https://python-history.blogspot.co.uk/2010/08/
+    And: https://en.wikipedia.org/wiki/Modulo_operation
     """
     _rbp = PRODUCT
     _rep = '//'
@@ -1212,6 +1227,28 @@ class Remainder(InfixExpression):
     >>> x = myokit.parse_expression('7 % 3')
     >>> print(x.eval())
     1.0
+
+    Note that, for negative numbers Myokit follows the convention of Python
+    that the quotient is rounded to negative infinity. Thus:
+
+    >>> print(myokit.parse_expression('-7 // 3').eval())
+    -3.0
+
+    and therefore:
+
+    >>> print(myokit.parse_expression('-7 % 3').eval())
+    2.0
+
+    Similarly:
+
+    >>> print(myokit.parse_expression('5 // -3').eval())
+    -2.0
+
+    so that:
+
+    >>> print(myokit.parse_expression('5 % -3').eval())
+    -1.0
+
     """
     _rbp = PRODUCT
     _rep = '%'

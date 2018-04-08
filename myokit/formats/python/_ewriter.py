@@ -21,10 +21,10 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
     def __init__(self):
         super(PythonExpressionWriter, self).__init__()
 
-        self.flhs = None
+        self._flhs = None
         self.set_lhs_function(lambda v: str(v))
 
-        self.function_prefix = 'math.'
+        self._function_prefix = 'math.'
 
     def set_lhs_function(self, f):
         """
@@ -34,7 +34,7 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         The argument ``f`` should be a function that takes an ``LhsExpression``
         as input and returns a string.
         """
-        self.flhs = f
+        self._flhs = f
 
     def _ex_infix(self, e, op):
         """
@@ -53,7 +53,7 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         """
         Handles ex() for function operators
         """
-        return self.function_prefix + func \
+        return self._function_prefix + func \
             + '(' + ', '.join([self.ex(x) for x in e]) + ')'
 
     def _ex_infix_condition(self, e, op):
@@ -63,10 +63,10 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         return '(' + self.ex(e[0]) + ' ' + op + ' ' + self.ex(e[1]) + ')'
 
     def _ex_name(self, e):
-        return self.flhs(e)
+        return self._flhs(e)
 
     def _ex_derivative(self, e):
-        return self.flhs(e)
+        return self._flhs(e)
 
     def _ex_number(self, e):
         return myokit.strfloat(e)
@@ -187,7 +187,7 @@ class NumpyExpressionWriter(PythonExpressionWriter):
     """
     def __init__(self):
         super(NumpyExpressionWriter, self).__init__()
-        self.function_prefix = 'numpy.'
+        self._function_prefix = 'numpy.'
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
     #def _ex_number(self, e):
@@ -230,12 +230,12 @@ class NumpyExpressionWriter(PythonExpressionWriter):
     #def _ex_or(self, e):
 
     def _ex_if(self, e):
-        return self.function_prefix + 'select([' + self.ex(e._i) + '], [' \
+        return self._function_prefix + 'select([' + self.ex(e._i) + '], [' \
             + self.ex(e._t) + '], ' + self.ex(e._e) + ')'
 
     def _ex_piecewise(self, e):
         n = len(e._i)
-        s = [self.function_prefix, 'select([']
+        s = [self._function_prefix, 'select([']
         s.append(', '.join([self.ex(x) for x in e._i]))
         s.append('], [')
         s.append(', '.join([self.ex(x) for x in e._e[:-1]]))
