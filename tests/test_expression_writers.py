@@ -790,6 +790,9 @@ class LatexExpressionWriterTest(unittest.TestCase):
         # Power
         x = myokit.Power(a, b)
         self.assertEqual(w.ex(x), '\\text{a}^{12.0}')
+        # Power with brackets
+        x = myokit.Power(myokit.Plus(a, b), b)
+        self.assertEqual(w.ex(x), '\\left(\\text{a}+12.0\\right)^{12.0}')
         # Sqrt
         x = myokit.Sqrt(b)
         self.assertEqual(w.ex(x), '\\sqrt{12.0}')
