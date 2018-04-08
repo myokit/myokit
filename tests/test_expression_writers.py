@@ -2170,6 +2170,19 @@ class SymPyExpressionWriterTest(unittest.TestCase):
         self.assertEqual(
             w.ex(x), sympy.Piecewise((ca, c1), (cb, c2), (cc, True)))
 
+        # Unsupported type
+        u = myokit.UnsupportedFunction('frog', x)
+        self.assertRaises(ValueError, w.ex, u)
+
+        # Derivative
+        avar.promote(4)
+        x = myokit.Derivative(myokit.Name(avar))
+        self.assertEqual(w.ex(x), sympy.symbols('dot(c.a)'))
+
+        # Equation
+        e = myokit.Equation(a, b)
+        self.assertEqual(w.eq(e), sympy.Eq(ca, cb))
+
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('sympy')
         self.assertIsInstance(w, myokit.formats.sympy.SymPyExpressionWriter)
