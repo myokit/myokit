@@ -50,24 +50,24 @@ import myokit
 # [ ] Ceil
 # [ ] Abs
 
-# If
-# Piecewise,
+# [ ] Equal
+# [ ] NotEqual
+# [ ] More
+# [ ] Less
+# [ ] MoreEqual
+# [ ] LessEqual
 
-# Not
-# And
-# Or
+# [ ] Not
+# [ ] And
+# [ ] Or
 
-# Equal
-# NotEqual
-# More
-# Less
-# MoreEqual
-# LessEqual
+# [ ] If
+# [ ] Piecewise,
 
-# UnsupportedFunction
+# [ ] UnsupportedFunction
 
-# Unit --> See test_units.py
-# Quantity --> See test_units.py
+# [x] Unit --> See test_units.py
+# [x] Quantity --> See test_units.py
 
 
 class ExpressionsTest(unittest.TestCase):

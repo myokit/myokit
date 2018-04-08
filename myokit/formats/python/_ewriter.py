@@ -20,7 +20,10 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
     """
     def __init__(self):
         super(PythonExpressionWriter, self).__init__()
-        self.flhs = lambda v: str(v)
+
+        self.flhs = None
+        self.set_lhs_function(lambda v: str(v))
+
         self.function_prefix = 'math.'
 
     def set_lhs_function(self, f):
@@ -136,7 +139,7 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         return 'abs(' + self.ex(e[0]) + ')'
 
     def _ex_not(self, e):
-        return 'not(' + self.ex(e[0]) + ')'
+        return 'not (' + self.ex(e[0]) + ')'
 
     def _ex_equal(self, e):
         return self._ex_infix_condition(e, '==')
@@ -233,13 +236,9 @@ class NumpyExpressionWriter(PythonExpressionWriter):
     def _ex_piecewise(self, e):
         n = len(e._i)
         s = [self.function_prefix, 'select([']
-        for i in range(0, n):
-            s.append(self.ex(e._i[i]))
-            s.append(', ')
+        s.append(', '.join([self.ex(x) for x in e._i]))
         s.append('], [')
-        for i in range(0, n):
-            s.append(self.ex(e._e[i]))
-            s.append(', ')
+        s.append(', '.join([self.ex(x) for x in e._e[:-1]]))
         s.append('], ')
         s.append(self.ex(e._e[n]))
         s.append(')')
