@@ -21,16 +21,18 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         super(LatexExpressionWriter, self).__init__()
 
         # Default time variable
-        self._time = 't'
+        self._time = None
+        self.set_time_variable_name()
 
         # Default lhs function
+        self._flhs = None
         def fhls(lhs):
             var = self._prepare_name(lhs.var().uname())
             var = '\\text{' + var + '}'     # Depends on amsmath package!
             if isinstance(lhs, myokit.Derivative):
                 var = '\\frac{d}{d\\text{t}}' + var
             return var
-        self._flhs = fhls
+        self.set_lhs_function(fhls)
 
     def set_lhs_function(self, f):
         """
@@ -73,7 +75,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         try:
             action = self._op_map[type(e)]
         except KeyError:
-            raise Exception('Unsupported type: ' + str(type(e)))
+            raise ValueError('Unsupported type: ' + str(type(e)))
         action(e, b)
 
     def _ex_infix(self, e, b, op):
