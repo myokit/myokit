@@ -23,11 +23,13 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
         self.function_prefix = ''
         self.sp = (precision == myokit.SINGLE_PRECISION)
         self.nm = bool(native_math)
+
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
 
     def _ex_number(self, e):
         return myokit.strfloat(e) + 'f' if self.sp else myokit.strfloat(e)
+
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):
     #def _ex_plus(self, e):
@@ -42,22 +44,24 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
         return self._ex_infix(e, '/')
 
     def _ex_quotient(self, e):
-        return 'floor(' + self._ex_infix(e, '/') + ')'
+        # Note that this _must_ round towards minus infinity.
+        # See myokit.Quotient.
+        # Assuming it follows C and so we need a custom implementation.
+        return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])))
 
     def _ex_remainder(self, e):
-        return 'fmod(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
+        # Note that this _must_ use the same round-to-neg-inf convention as
+        # myokit.Quotient.
+        # Assuming it follows C and so we need a custom implementation.
+        return self.ex(myokit.Minus(
+            e[0], myokit.Multiply(e[1], myokit.Quotient(e[0], e[1]))))
 
     def _ex_power(self, e):
-        if e[1] == 2:
-            # TODO: This can be optimised with native functions
+        if e[1] == myokit.Number(2):
             if e.bracket(e[0]):
-                out = '(' + self.ex(e[0]) + ') * '
+                return '(' + self.ex(e[0]) + ') * (' + self.ex(e[0]) + ')'
             else:
-                out = self.ex(e[0]) + ' * '
-            if e.bracket(e[1]):
-                return out + '(' + self.ex(e[1]) + ')'
-            else:
-                return out + self.ex(e[1])
+                return self.ex(e[0]) + ' * ' + self.ex(e[0])
         else:
             return 'pow(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
 
@@ -112,6 +116,7 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
 
     def _ex_not(self, e):
         return '!(' + self.ex(e[0]) + ')'
+
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
     #def _ex_more(self, e):

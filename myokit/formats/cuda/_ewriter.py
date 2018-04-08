@@ -58,15 +58,11 @@ class CudaExpressionWriter(PythonExpressionWriter):
             e[0], myokit.Multiply(e[1], myokit.Quotient(e[0], e[1]))))
 
     def _ex_power(self, e):
-        if e[1] == 2:
+        if e[1] == myokit.Number(2):
             if e.bracket(e[0]):
-                out = '(' + self.ex(e[0]) + ') * '
+                return '(' + self.ex(e[0]) + ') * (' + self.ex(e[0]) + ')'
             else:
-                out = self.ex(e[0]) + ' * '
-            if e.bracket(e[1]):
-                return out + '(' + self.ex(e[1]) + ')'
-            else:
-                return out + self.ex(e[1])
+                return self.ex(e[0]) + ' * ' + self.ex(e[0])
         else:
             f = 'powf' if self.sp else 'pow'
             return f + '(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
