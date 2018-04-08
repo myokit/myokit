@@ -11,10 +11,9 @@ submodules detailed in the sections listed below.
 ..  toctree::
 
     common_experiments
-    common_plots    
+    common_plots
     dependency_analysis
-    function_approximation
     markov
     multi
     parameter_estimation
-    
+

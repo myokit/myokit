@@ -175,15 +175,6 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         s += ')' * n
         return s
 
-    def _ex_opiecewise(self, e):
-        return self._ex_if(e.if_tree())
-
-    def _ex_polynomial(self, e):
-        return self.ex(e.tree())
-
-    def _ex_spline(self, e):
-        return self._ex_opiecewise(e)
-
 
 class NumpyExpressionWriter(PythonExpressionWriter):
     """
@@ -254,7 +245,3 @@ class NumpyExpressionWriter(PythonExpressionWriter):
         s.append(')')
         return ''.join(s)
 
-    def _ex_opiecewise(self, e):
-        return self._ex_piecewise(e.piecewise())
-    #def _ex_polynomial(self, e):
-    #def _ex_spline(self, e):

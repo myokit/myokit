@@ -165,9 +165,6 @@ class ExpressionWriter(object):
             myokit.Or: self._ex_or,
             myokit.If: self._ex_if,
             myokit.Piecewise: self._ex_piecewise,
-            myokit.OrderedPiecewise: self._ex_opiecewise,
-            myokit.Polynomial: self._ex_polynomial,
-            myokit.Spline: self._ex_spline,
         }
 
     def eq(self, q):
@@ -291,15 +288,6 @@ class ExpressionWriter(object):
         raise NotImplementedError
 
     def _ex_piecewise(self, e):
-        raise NotImplementedError
-
-    def _ex_opiecewise(self, e):
-        raise NotImplementedError
-
-    def _ex_polynomial(self, e):
-        raise NotImplementedError
-
-    def _ex_spline(self, e):
         raise NotImplementedError
 
     def set_lhs_function(self, f):

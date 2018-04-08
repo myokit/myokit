@@ -101,6 +101,4 @@ class StanExpressionWriter(PythonExpressionWriter):
         s.append(self.ex(e._e[n]))
         s.append(')' * n)
         return ''.join(s)
-    #def _ex_opiecewise(self, e):
-    #def _ex_polynomial(self, e):
-    #def _ex_spline(self, e):
+
