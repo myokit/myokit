@@ -455,6 +455,7 @@ def parse_user_function(stream, info):
     """
     # Parse name
     token, name, line, char = expect(stream.next(), FUNC_NAME)
+
     # Parse argument list
     args = []
     expect(stream.next(), PAREN_OPEN)
@@ -464,11 +465,12 @@ def parse_user_function(stream, info):
         token = expect(stream.next(), [COMMA, PAREN_CLOSE])
         if token[0] == COMMA:
             token = expect(stream.next(), NAME)
+
     # Parse template
     expect(stream.next(), EQUAL)
     expr = convert_proto_expression(parse_proto_expression(stream, info))
-    print(expr)
     expect(stream.next(), EOL)
+
     # Create user function
     try:
         info.model.add_function(name, args, expr)
@@ -488,6 +490,7 @@ def parse_component(stream, info=None):
         raise Exception(
             'parse_component requires at least a model to be present in its'
             ' ParseInfo.')
+
     # Parse component declaration
     expect(stream.next(), BRACKET_OPEN)
     token = expect(stream.next(), NAME)
@@ -503,8 +506,10 @@ def parse_component(stream, info=None):
         raise ParseError(
             'Illegal component name', line, char, e2.message, cause=e2)
     reg_token(info, token, component)
+
     # Add alias map
     info.alias_map[component] = {}
+
     # Parse fields
     token = stream.peek()
     while token[0] not in [BRACKET_OPEN, SEGMENT_HEADER, EOF]:
@@ -550,6 +555,7 @@ def parse_alias(stream, info, component):
         amap = info.alias_map[component]
     except KeyError:
         amap = info.alias_map[component] = {}
+
     # Parse
     token = expect(stream.next(), [USE])
     while True:
@@ -562,14 +568,17 @@ def parse_alias(stream, info, component):
                 'Aliassed variables must be specified using their fully'
                 ' qualified name (component.variable)')
         token_v = expect(stream.next(), NAME)   # variable
+
         # Get reference name
         if stream.peek()[0] == AS:
             expect(stream.next(), AS)
             code, name, line, char = expect(stream.next(), NAME)
         else:
             code, name, line, char = token_v
+
         # Create alias
         amap[name] = (token, token_c, token_v)
+
         # Expecting end of line or next alias
         next = expect(stream.next(), [COMMA, EOL])
         if next[0] == EOL:
@@ -589,12 +598,15 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
     # Ensure valid parse info and alias map
     if info is None:
         info = ParseInfo()
+
     # List of tokens to register with the final variable
     toreg = []
+
     # Parse variable declaration
     token = expect(stream.next(), [NAME, FUNC_NAME])
     toreg.append(token)
     code, name, line, char = token
+
     # Allow dot() function on lhs
     if code == FUNC_NAME:
         if name != 'dot':
@@ -613,10 +625,12 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
         is_state = True
     else:
         is_state = False
+
     # Check if name is already in use for an alias
     component = parent
     if not isinstance(component, myokit.Component):
         component = component.parent(myokit.Component)
+
     # Create variable
     try:
         var = parent.add_variable(name)
@@ -626,10 +640,12 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
     except myokit.InvalidNameError as e2:
         raise ParseError(
             'Illegal variable name', line, char, e2.message, cause=e2)
+
     # Register tokens
     for token in toreg:
         reg_token(info, token, var)
     del(toreg)
+
     # Set initial value for states
     if is_state:
         if not var.qname() in info.initial_values:
@@ -644,6 +660,7 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
             raise ParseError(
                 'Illegal state value', t[2], t[3], e.message, cause=e)
         del(info.initial_values[var.qname()])
+
     # Parse definition, quick unit, bind, label and description syntax
     # These token must occur in a fixed order!
     unit = None
@@ -677,6 +694,7 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
         desc = expect(stream.next(), TEXT)[1].strip()
         var.meta['desc'] = desc
     expect(stream.next(), EOL)
+
     # Parse indented fields (temp vars, meta or unit)
     if stream.peek()[0] == INDENT:
         stream.next()
@@ -724,8 +742,10 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
             # Next line
             token = stream.peek()[0]
         expect(stream.next(), DEDENT)
+
     # Set unit
     var.set_unit(unit)
+
     # Normal operation is to leave the ._proto_rhs untouched until the full
     # model has been parsed and variables have been resolved. For debugging, it
     # may be nice to resolve at this point already.
@@ -739,8 +759,10 @@ def parse_binding(stream, info, var):
     Parses the "bind" part of a variable definition.
     """
     token, name, line, char = expect(stream.next(), BIND)
+
     # Get binding label
     label = expect(stream.next(), NAME)[1]
+
     # Bind variable
     try:
         var.set_binding(label)
@@ -2081,7 +2103,7 @@ led_parsers[MOREEQUAL] = InfixParser(myokit.MoreEqual)
 led_parsers[LESSEQUAL] = InfixParser(myokit.LessEqual)
 led_parsers[AND] = InfixParser(myokit.And)
 led_parsers[OR] = InfixParser(myokit.Or)
-# Functions
+# Mathematical functions
 functions = {}
 functions['sqrt'] = myokit.Sqrt
 functions['sin'] = myokit.Sin
@@ -2096,10 +2118,8 @@ functions['log10'] = myokit.Log10
 functions['floor'] = myokit.Floor
 functions['ceil'] = myokit.Ceil
 functions['abs'] = myokit.Abs
-functions['if'] = myokit.If
-# Advanced functions
+# Further functions
 functions['dot'] = myokit.Derivative
+functions['if'] = myokit.If
 functions['piecewise'] = myokit.Piecewise
-functions['opiecewise'] = myokit.OrderedPiecewise
-functions['spline'] = myokit.Spline
-functions['polynomial'] = myokit.Polynomial
+

@@ -70,7 +70,7 @@ of variables of meta-data properties
     x = <expression>
     y = <expression>
     dot(z) = <expression>
-    
+
 All component names must be unique.
 
 Defining variables
@@ -132,7 +132,7 @@ Variables can specify their units using the ``in`` keyword::
 
     x = 12 : A weight
         in [kg]
-        
+
 This specifies that the variable ``x`` is in the unit ``kg``, regardless of how
 ``x`` is defined: ``x = 12`` or ``x = exp(cos(4)+2)``, we know that it's in
 ``kg``.
@@ -147,7 +147,7 @@ derivative. Thus::
 
     dot(V) = 5
         in [mV]
-        
+
 specifies that ``V`` is in ``[mV]``. Using ``[ms]`` as time unit, the
 expression ``dot(V)`` itself is expressed in ``[mV/ms]``.
 
@@ -241,7 +241,7 @@ Variables from other components can be addressed using the syntax
 
     [membrane]
     dot(V) = expression
-    
+
     [other]
     x = 5 * exp(membrane.V)
 
@@ -252,7 +252,7 @@ variables from different components::
 
     [membrane]
     dot(V) = expression
-    
+
     [other]
     use membrane.V as Vm
     x = 5 * exp(Vm)
@@ -273,7 +273,7 @@ Alias definitions can be chained together with commas::
 
 Nested variables
 ================
-Many electrophysiological equations contain repeated terms or terms with a 
+Many electrophysiological equations contain repeated terms or terms with a
 conceptual meaning that are not used by any other equations within the system.
 To separate these "sub-equations", myokit allows nesting of variables.
 
@@ -283,7 +283,7 @@ on the subsequent line::
     dot(m) = a * (1 - m) + b * m
         a = 5 * exp(3)
         b = 10 * 1 / exp(V + 40)
-        
+
 In this example, ``m`` is said to be the parent of ``a`` and ``b``. Variables
 with the same parent are referred to as siblings.
 
@@ -293,7 +293,7 @@ Myokit allows multi-level nesting::
         a = 5 * exp(3)
         b = c + 14
             c = 5
-            
+
 Here, the set of ``m`` and ``b`` are refered to as ``c``'s ancestors.
 
 Scope and naming
@@ -301,7 +301,7 @@ Scope and naming
 Using an unqualified name, a variable can always access its own child variables
 or a child of any of its ancestors. Access to children of any other variables
 is not allowed.
-    
+
 Using a qualified name (component.variable), a variable can access non-nested
 variables in any component.
 
@@ -331,7 +331,7 @@ Multi-line metadata values can be entered by wrapping them in triple quotes::
               very
               long description
               """
-              
+
 The line breaks in multi-line values are maintained, all whitespace is
 trimmed from the right-hand side. On the left, whitespace corresponding to
 the lowest indentation level is trimmed.
@@ -342,8 +342,8 @@ The following operators are provided:
 
 +---------+-----------------------------+-----------------+
 |  ``+``  | Addition                    | ``1 + 1 = 2``   |
-+---------+-----------------------------+-----------------+    
-|  ``-``  | Subtraction                 | ``2 - 1 = 1``   |    
++---------+-----------------------------+-----------------+
+|  ``-``  | Subtraction                 | ``2 - 1 = 1``   |
 +---------+-----------------------------+-----------------+
 |  ``*``  | Multiplication              | ``4 * 2 = 8``   |
 +---------+-----------------------------+-----------------+
@@ -454,51 +454,6 @@ Which should be read as::
 The final "else" part is not optional. If conditions overlap, only the first
 condition that evaluates to true will be used.
 
-Very often, like in the example above, piecewise statements are used to define
-a piecewise continuous function over some range. For example ``f(x) = f0(x)``
-for ``x < 0``, ``f(x) = f1(x)`` for ``0 <= x < 10`` and ``f(x) = f2(x)``
-otherwise. Such statements can benefit from (1) a shorter syntax and (2) an
-optimised implementation (for example a switch() statement or a binary decision
-tree). For such cases, the ``opiecewise`` function (short for "ordered
-piecewise") can be used::
-
-    x = piecewise(
-        V < -50, 0.2 * exp((V - 12) / 4.7),
-        V <   0, 0.5 * exp((V + 19) / 1.2),
-        0)
-
-can be written as::
-
-    x = opiecewise(V,
-        -50, 0.2 * exp((V - 12) / 4.7),
-          0, 0.5 * exp((V + 19) / 1.2),
-          0)
-          
-When using ``opiecewise`` the different switching points (-50 and 0 in the
-example) should be specified in increasing order.
-          
-Splines & Polynomials
-=====================
-          
-The :class:`Spline` construct, specified as ``spline`` can be used to define a
-piecewise polynomial function where each polynomial has the same degree.
-Polynomials can be written in myokit using the ``polynomial`` function. For
-example, the following::
-
-    p = polynomial(x, 4, 2, 3)
-    
-is mathematically equivalent to::
-
-    p = 4 + 2*x + 3*x^2
-    
-Splines follow the same syntax as ``opiecewise``, but each piece must be
-written using ``polynomial``::
-
-    s = spline(x,
-        0.5, polynomial(x, 1, 2, 3),
-        1.5, polynomial(x, 2, 3, 4),
-        3.5, polynomial(x, 5, 6, 7))
-
 .. _syntax/template_functions:
 
 User defined functions
@@ -551,7 +506,7 @@ number of problems with this:
    there is nothing in their derivatives that indicates to an ODE solver that
    something interesting is about to happen. As a result, the solver may skip
    over the - typically very short - stimuli.
-   
+
 To remedy this, the standard myokit simulation engine has an event-driven
 pacing mechanism that can be accessed through the variable ``pace``::
 
@@ -576,7 +531,7 @@ A typical label is "membrane_potential"::
     [membrane]
     dot(V) = -(I_K + I_Na + I_Ca + I_stim)
         label membrane_potential
-        
+
 A quick syntax for the label construct is provided::
 
     [membrane]
@@ -616,7 +571,7 @@ syntax on the same line as the variable definition. If multiple shorthands are
 used, their order is important. The correct order is::
 
     x = 15 in [ms] bind time label special : comment
-    
+
 Example: Luo-Rudy 1991
 ======================
 What follows is an adaptation of the 1991 Luo-Rudy model for the ventricular
@@ -668,7 +623,7 @@ myocyte::
         in [mV]
 
     [ions]
-    Nao = 140 [mmol/L] : External Na+ concentration   
+    Nao = 140 [mmol/L] : External Na+ concentration
     Nai = 18  [mmol/L] : Internal Na+ concentration
     Ki  = 145 [mmol/L] : Internal K+ concentration
     Ko  = 5.4 [mmol/L] : External K+ concentration
@@ -693,7 +648,7 @@ myocyte::
             3.56 * exp(0.079 * V) + 310000 * exp(0.35 * V),
             1 / (0.13 * (1 + exp((V + 10.66) / -11.1)))
             )
-    dot(j) = alpha * (1 - j) - beta * j : j-gate of the fast sodium channel    
+    dot(j) = alpha * (1 - j) - beta * j : j-gate of the fast sodium channel
         alpha = piecewise(V < -40,
             (-127140 * exp(0.2444 * V) - 0.00003474 * exp(-0.04391 * V))
              * (V + 37.78) / (1 + exp(0.311 * (V + 79.23))),
@@ -708,7 +663,7 @@ myocyte::
     use membrane.V
     E_si = 7.7 - 13.0287 * log(Cai)
     i_si = 0.09 * d * f * (V - E_si)
-    dot(d) = alpha * (1 - d) - beta * d 
+    dot(d) = alpha * (1 - d) - beta * d
         alpha = 0.095 * sig(V, 5, 0.01, 0.072)
         beta  = 0.07 * sig(V, -44, 0.017, -0.05)
     dot(f) = alpha * (1 - f) - beta * f
@@ -739,7 +694,7 @@ myocyte::
         beta = (0.49124 * exp(0.08032 * (V - E_K1 + 5.476))
                 + exp(0.06175 * (V - E_K1 - 594.31))
                ) / (1 + exp(-0.5143 * (V - E_K1 + 4.753)))
-        
+
     [k_plateau]
     g_Kp = 0.0183 [mS/cm^2]
     E_Kp = k_time_independent.E_K1

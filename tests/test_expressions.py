@@ -16,12 +16,64 @@ import myokit
 
 #TODO Add tests for all operators
 
+# Expression, LhsExpression, Derivative,
+# PrefixExpression, PrefixPlus, PrefixMinus,
+# InfixExpression,
+# Function,
+# Condition, PrefixCondition, InfixCondition
 
-class NumberTest(unittest.TestCase):
-    def test_basics(self):
-        """
-        Test the basics of the Number class.
-        """
+# [ ] Name
+# [ ] Number
+
+# [ ] Plus
+# [ ] Minus
+# [ ] Multiply
+# [ ] Divide
+
+# [ ] Quotient
+# [ ] Remainder
+
+# [ ] Power
+# [ ] Sqrt
+# [ ] Exp
+# [ ] Log
+# [ ] Log10
+
+# [ ] Sin
+# [ ] Cos
+# [ ] Tan
+# [ ] ASin
+# [ ] ACos
+# [ ] ATan
+
+# [ ] Floor
+# [ ] Ceil
+# [ ] Abs
+
+# [ ] Equal
+# [ ] NotEqual
+# [ ] More
+# [ ] Less
+# [ ] MoreEqual
+# [ ] LessEqual
+
+# [ ] Not
+# [ ] And
+# [ ] Or
+
+# [ ] If
+# [ ] Piecewise,
+
+# [ ] UnsupportedFunction
+
+# [x] Unit --> See test_units.py
+# [x] Quantity --> See test_units.py
+
+
+class ExpressionsTest(unittest.TestCase):
+
+    def test_number(self):
+        """ Tests ``Number``. """
         # Test myokit.Number creation and representation
         x = myokit.Number(-4.0)
         self.assertEqual(str(x), '-4')
@@ -47,6 +99,7 @@ class NumberTest(unittest.TestCase):
         self.assertEqual(str(x), '4 [pF]')
         x = myokit.Number(-3, myokit.Unit.parse_simple('pF'))
         self.assertEqual(str(x), '-3 [pF]')
+
         # Test unit conversion
         x = myokit.Number('2000', myokit.units.pF)
         y = x.convert('nF')
@@ -57,6 +110,117 @@ class NumberTest(unittest.TestCase):
         b = x.convert('uF')
         self.assertEqual(a, b)
         self.assertRaises(myokit.IncompatibleUnitError, x.convert, 'A')
+
+        # Test properties
+        x = myokit.Number(2)
+        self.assertFalse(x.is_conditional())
+        self.assertTrue(x.is_constant())
+        self.assertTrue(x.is_literal())
+        self.assertFalse(x.is_state_value())
+
+        # Test python function
+        f = x.pyfunc()
+        self.assertTrue(callable(f))
+        self.assertEqual(f(), x.eval())
+
+    def test_name(self):
+        """ Tests ``Name``. """
+        model = myokit.Model()
+        component = model.add_component('c')
+        xvar = component.add_variable('x')
+        xvar.set_rhs('15')
+        yvar = component.add_variable('y')
+        yvar.set_rhs('3 * x ')
+        zvar = component.add_variable('z')
+        zvar.set_rhs('2 + y + x')
+
+        x = myokit.Name(xvar)
+        self.assertEqual(x.code(), 'c.x')
+
+        # Test clone
+        a = x.clone()
+        self.assertEqual(x, a)
+        z = myokit.Name(zvar)
+        a = z.clone()
+        self.assertEqual(z, a)
+        # With substitution (handled in Name)
+        y = myokit.Name(yvar)
+        a = x.clone(subst={x: y})
+        self.assertEqual(y, a)
+        a = x.clone()
+        self.assertEqual(x, a)
+        # With expansion (handled in Name)
+        a = z.clone()
+        self.assertEqual(z, a)
+        a = z.clone(expand=True)
+        self.assertTrue(a.is_literal())
+        self.assertFalse(z.is_literal())
+        self.assertEqual(z.eval(), a.eval())
+        # With expansion but retention of selected variables (handled in Name)
+        a = z.clone(expand=True, retain=[x])
+        self.assertNotEqual(a, z)
+        self.assertFalse(a.is_literal())
+        self.assertEqual(z.eval(), a.eval())
+        # Few options for how to specify x:
+        b = z.clone(expand=True, retain=['c.x'])
+        self.assertEqual(a, b)
+        b = z.clone(expand=True, retain=[xvar])
+        self.assertEqual(a, b)
+
+        # Test rhs
+        # Name of non-state: rhs() should be the associated variable's rhs
+        self.assertEqual(x.rhs(), myokit.Number(15))
+        # Name of state: rhs() should be the initial value (since this is the
+        # value of the variable).
+        xvar.promote(12)
+        self.assertEqual(x.rhs(), myokit.Number(12))
+        # Invalid variable:
+        a = myokit.Name('test')
+        self.assertRaises(Exception, a.rhs)
+
+        # Test validation
+        x.validate()
+        y.validate()
+        z.validate()
+        a = myokit.Name('test')
+        self.assertRaises(myokit.IntegrityError, a.validate)
+
+        # Test var()
+        self.assertEqual(x.var(), xvar)
+        self.assertEqual(y.var(), yvar)
+        self.assertEqual(z.var(), zvar)
+
+        # Test properties
+        # State x
+        self.assertFalse(x.is_conditional())
+        self.assertFalse(x.is_constant())
+        self.assertFalse(x.is_literal())
+        self.assertTrue(x.is_state_value())
+        # State-dependent variable y
+        self.assertFalse(y.is_conditional())
+        self.assertFalse(y.is_constant())
+        self.assertFalse(y.is_literal())
+        self.assertFalse(y.is_state_value())
+        # Non-state x
+        xvar.demote()
+        self.assertFalse(x.is_conditional())
+        self.assertTrue(x.is_constant())
+        self.assertFalse(x.is_literal())    # A name is never a literal!
+        self.assertFalse(x.is_state_value())
+        # (Non-state)-dependent variable y
+        self.assertFalse(y.is_conditional())
+        self.assertTrue(y.is_constant())
+        self.assertFalse(y.is_literal())
+        self.assertFalse(y.is_state_value())
+
+        # Test python function
+        # Function for Name is always `lambda x: x` (ignores rhs!)
+        f = x.pyfunc()
+        self.assertTrue(callable(f))
+        self.assertEqual(f(100), 100)
+        f = z.pyfunc()
+        self.assertTrue(callable(f))
+        self.assertEqual(f(5), 5)
 
 
 class ExpressionTest(unittest.TestCase):
@@ -125,74 +289,6 @@ class ExpressionTest(unittest.TestCase):
         x = myokit.If(false, three, two).piecewise()
         self.assertIsInstance(x, myokit.Piecewise)
         self.assertEqual(x.eval(), 2)
-
-    def test_opiecewise(self):
-        """
-        Tests OrderedPiecewise
-        """
-        x = myokit.Name('x')
-        p = myokit.OrderedPiecewise(
-            x,
-            myokit.parse_expression('1 * 10'), myokit.Number(1),
-            myokit.parse_expression('2 * 10'), myokit.Number(2),
-            myokit.parse_expression('3 * 10'), myokit.Number(3),
-            myokit.parse_expression('4 * 10')
-        )
-
-        def test(p, x):
-            self.assertEqual(p.eval(subst={x: 0}), 10)
-            self.assertEqual(p.eval(subst={x: 0.99}), 10)
-            self.assertEqual(p.eval(subst={x: 1}), 20)
-            self.assertEqual(p.eval(subst={x: 1.99}), 20)
-            self.assertEqual(p.eval(subst={x: 2}), 30)
-            self.assertEqual(p.eval(subst={x: 2.99}), 30)
-            self.assertEqual(p.eval(subst={x: 3}), 40)
-            self.assertEqual(p.eval(subst={x: 4}), 40)
-        test(p, x)
-
-        # Conversion to piecewise
-        w = myokit.Piecewise(
-            myokit.Less(x, myokit.Number(1)), myokit.parse_expression('1* 10'),
-            myokit.Less(x, myokit.Number(2)), myokit.parse_expression('2 *10'),
-            myokit.Less(
-                x, myokit.Number(3)), myokit.parse_expression('3 * 10'),
-            myokit.parse_expression('4 * 10'))
-        test(w, x)
-        q = p.piecewise()
-        self.assertEqual(q, w)
-        test(p, x)
-
-        # Test conversion to binary tree
-        r = p.if_tree()
-        test(r, x)
-
-    def test_polynomial(self):
-        """
-        Tests Polynomial.
-        """
-        x = myokit.Name('x')
-        c = [
-            myokit.Number(5),
-            myokit.Number(4),
-            myokit.Number(3),
-            myokit.Number(2)
-        ]
-        p = myokit.Polynomial(x, *c)
-        self.assertEqual(p.eval(subst={x: 0}), 5)
-        self.assertEqual(p.eval(subst={x: 1}), 14)
-        self.assertEqual(p.eval(subst={x: 2}), 41)
-        self.assertEqual(p.eval(subst={x: -1}), 2)
-        self.assertEqual(p.eval(subst={x: 0.5}), 8)
-        q = p.tree()
-        self.assertNotEqual(p, q)
-        for i in [-1, 0, 0.5, 1, 2]:
-            s = {x: i}
-            self.assertEqual(p.eval(subst=s), q.eval(subst=s))
-        q = p.tree(horner=False)
-        self.assertNotEqual(p, q)
-        for i in [-1, 0, 0.5, 1, 2]:
-            s = {x: i}
-            self.assertEqual(p.eval(subst=s), q.eval(subst=s))
 
 
 if __name__ == '__main__':

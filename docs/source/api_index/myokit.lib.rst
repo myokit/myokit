@@ -4,23 +4,6 @@
 myokit.lib
 ==========
 
-myokit.lib.approx
------------------
-- :class:`myokit.lib.approx.CubicSplineFitter`
-- :class:`myokit.lib.approx.FittedFunction`
-- :class:`myokit.lib.approx.Fitter`
-- :class:`myokit.lib.approx.FittingError`
-- :meth:`myokit.lib.approx.fit_cubic_spline`
-- :meth:`myokit.lib.approx.fit_lagrange_polynomial`
-- :meth:`myokit.lib.approx.fit_remez_polynomial`
-- :meth:`myokit.lib.approx.list_fitters`
-- :class:`myokit.lib.approx.PiecewisePolynomial`
-- :class:`myokit.lib.approx.Polynomial`
-- :class:`myokit.lib.approx.PolynomialFitter`
-- :meth:`myokit.lib.approx.solve_cubic_spline`
-- :class:`myokit.lib.approx.Spline`
-- :meth:`myokit.lib.approx.suitable_expressions`
-
 myokit.lib.common
 -----------------
 - :class:`myokit.lib.common.Activation`

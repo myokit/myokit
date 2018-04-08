@@ -331,16 +331,15 @@ from ._model_api import ( # noqa
 )
 
 # Expressions and units
-from ._expr import ( # noqa
+from ._expressions import ( # noqa
     Expression, LhsExpression, Derivative, Name, Number,
     PrefixExpression, PrefixPlus, PrefixMinus,
     InfixExpression, Plus, Minus, Multiply, Divide,
     Quotient, Remainder, Power,
-    Function, Sqrt, Sin, Cos, Tan, ASin, ACos, ATan, Exp, Log, Log10, Floor,
-    Ceil, Abs,
-    If, Condition, PrefixCondition, Not, And, Or, InfixCondition,
-    Equal, NotEqual, More, Less, MoreEqual, LessEqual,
-    Piecewise, OrderedPiecewise, Polynomial, Spline,
+    Function,
+    Sqrt, Exp, Log, Log10, Sin, Cos, Tan, ASin, ACos, ATan, Floor, Ceil, Abs,
+    Condition, PrefixCondition, InfixCondition, If, Piecewise,
+    Not, And, Or, Equal, NotEqual, More, Less, MoreEqual, LessEqual,
     UnsupportedFunction,
     Unit, Quantity,
 )

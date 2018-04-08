@@ -101,7 +101,6 @@ myokit
 - :class:`myokit.OpenCLInfo`
 - :class:`myokit.OpenCLPlatformInfo`
 - :class:`myokit.Or`
-- :class:`myokit.OrderedPiecewise`
 - :class:`myokit.PacingSystem`
 - :meth:`myokit.pack_snapshot`
 - :meth:`myokit.parse`
@@ -114,7 +113,6 @@ myokit
 - :meth:`myokit.parse_unit`
 - :class:`myokit.Piecewise`
 - :class:`myokit.Plus`
-- :class:`myokit.Polynomial`
 - :class:`myokit.Power`
 - :class:`myokit.PrefixCondition`
 - :class:`myokit.PrefixExpression`
@@ -149,7 +147,6 @@ myokit
 - :class:`myokit.SimulationOpenCL`
 - :class:`myokit.SimultaneousProtocolEventError`
 - :class:`myokit.Sin`
-- :class:`myokit.Spline`
 - :meth:`myokit.split`
 - :meth:`myokit.split_key`
 - :class:`myokit.Sqrt`
