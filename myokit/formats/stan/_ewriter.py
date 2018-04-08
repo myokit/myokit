@@ -11,6 +11,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import myokit
 from myokit.formats.python import PythonExpressionWriter
 
 
@@ -34,6 +35,7 @@ class StanExpressionWriter(PythonExpressionWriter):
          value_if_false).
         """
         self.cFunc = func
+
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
     #def _ex_number(self, e):
@@ -45,11 +47,16 @@ class StanExpressionWriter(PythonExpressionWriter):
     #def _ex_divide(self, e):
 
     def _ex_quotient(self, e):
-        return 'floor(' + self._ex_infix(e, '/') + ')'
-    #def _ex_remainder(self, e):
+        # Use floor to round towards minus infinity
+        return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])))
+
+    def _ex_remainder(self, e):
+        # fmod uses correct convention
+        return self._ex_function(e, 'fmod')
 
     def _ex_power(self, e):
         return self._ex_infix(e, '^')
+
     #def _ex_sqrt(self, e):
     #def _ex_sin(self, e):
     #def _ex_cos(self, e):
@@ -66,7 +73,8 @@ class StanExpressionWriter(PythonExpressionWriter):
             return '(log(' + self.ex(e[0]) + ') / log(' + self.ex(e[1]) + '))'
 
     def _ex_log10(self, e):
-        return '(log(' + self.ex(e) + ') / log(10))'
+        return 'log10(' + self.ex(e[0]) + ')'
+
     #def _ex_floor(self, e):
     #def _ex_ceil(self, e):
 
@@ -75,6 +83,7 @@ class StanExpressionWriter(PythonExpressionWriter):
 
     def _ex_not(self, e):
         return '!(' + self.ex(e[0]) + ')'
+
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
     #def _ex_more(self, e):
@@ -89,15 +98,14 @@ class StanExpressionWriter(PythonExpressionWriter):
         return self._ex_infix_condition(e, '||')
 
     def _ex_if(self, e):
-        return (
-            '(' + self.ex(e._i) + ' ? ' + self.ex(e._t) + ': ' + self.ex(e._e)
-            + ')')
+        return ('(' + self.ex(e._i) + ' ? ' + self.ex(e._t) + ' : ' +
+                self.ex(e._e) + ')')
 
     def _ex_piecewise(self, e):
         s = []
         n = len(e._i)
         for i in range(0, n):
-            s.append('(%s ? %s: ' % (self.ex(e._i[i]), self.ex(e._e[i])))
+            s.append('(%s ? %s : ' % (self.ex(e._i[i]), self.ex(e._e[i])))
         s.append(self.ex(e._e[n]))
         s.append(')' * n)
         return ''.join(s)
