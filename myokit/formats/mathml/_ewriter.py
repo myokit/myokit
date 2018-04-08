@@ -130,7 +130,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         try:
             action = self._op_map[type(e)]
         except KeyError:
-            raise Exception('Unsupported type: ' + str(type(e)))
+            raise ValueError('Unsupported type: ' + str(type(e)))
         action(e, t)
 
     def _ex_prefix(self, e, t, cml):

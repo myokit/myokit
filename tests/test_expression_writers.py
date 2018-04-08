@@ -1051,6 +1051,11 @@ class MathMLExpressionWriterTest(unittest.TestCase):
             '</piecewise>'
         )
 
+        # Equation
+        e = myokit.Equation(a, b)
+        self.assertEqual(
+            w.eq(e), '<apply><eq />' + ca + cb + '</apply>')
+
         # Test for unfound variable (invalid cellml model)
         x = myokit.Name('a string')
         self.assertEqual(w.ex(x), '<ci>a string</ci>')
@@ -1059,6 +1064,10 @@ class MathMLExpressionWriterTest(unittest.TestCase):
         w.set_lhs_function(lambda v: 'bert')
         x = myokit.Name(avar)
         self.assertEqual(w.ex(x), '<ci>bert</ci>')
+
+        # Unsupported type
+        u = myokit.UnsupportedFunction('frog', x)
+        self.assertRaises(ValueError, w.ex, u)
 
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('mathml')
