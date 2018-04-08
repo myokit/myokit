@@ -88,13 +88,10 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
         return sp.Mul(self.ex(e[0]), sp.Pow(self.ex(e[1]), -1))
 
     def _ex_quotient(self, e):
-        # Integer division a // b == (a - a % b) / b
-        a = self.ex(e[0])
-        b = self.ex(e[1])
-        return sp.Mul(sp.Add(a, sp.Mul(-1, sp.Mod(a, b))), sp.Pow(b, -1))
+        return self.ex(e[0]) // self.ex(e[1])
 
     def _ex_remainder(self, e):
-        return sp.Mod(self.ex(e[0]), self.ex(e[1]))
+        return self.ex(e[0]) % self.ex(e[1])
 
     def _ex_power(self, e):
         return sp.Pow(self.ex(e[0]), self.ex(e[1]))
