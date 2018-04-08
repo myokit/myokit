@@ -23,7 +23,9 @@ class StanExpressionWriter(PythonExpressionWriter):
     def __init__(self):
         super(StanExpressionWriter, self).__init__()
         self._function_prefix = ''
-        self._fcond = 'ifthenelse'
+
+        self._fcond = None
+        self.set_condition_function('ifthenelse')
 
     def set_condition_function(self, func=None):
         """
