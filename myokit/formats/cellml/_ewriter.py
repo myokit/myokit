@@ -9,6 +9,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import myokit
 from myokit.formats.mathml import MathMLExpressionWriter
 
 
@@ -40,12 +41,25 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
         x = self._et.SubElement(t, 'ci')
         x.text = e.var().uname()
 
+    def _ex_quotient(self, e, t):
+        # Note that this _must_ round towards minus infinity!
+        # See myokit.Quotient !
+        return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])), t)
+
+    def _ex_remainder(self, e, t):
+        # Note that this _must_ use the same round-to-neg-inf convention as
+        # myokit.Quotient! Implementation below is consistent with Python
+        # convention:
+        return self.ex(myokit.Minus(
+            e[0], myokit.Multiply(e[1], myokit.Quotient(e[0], e[1]))), t)
+
     def set_mode(self, presentation=False):
         """
-        This expression writer only supports content MathML, so this method
-        does nothing.
+        This expression writer only supports content MathML.
         """
-        pass
+        if presentation:
+            raise RuntimeError(
+                'Presentation MathML is not supported in CellML.')
 
     def set_lhs_function(self, f):
         """

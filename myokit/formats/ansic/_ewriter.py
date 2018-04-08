@@ -33,6 +33,7 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
          value_if_false).
         """
         self.cFunc = func
+
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
     #def _ex_number(self, e):
@@ -44,6 +45,7 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
             return '(-(' + self.ex(e[0]) + '))'
         else:
             return '(-' + self.ex(e[0]) + ')'
+
     #def _ex_plus(self, e):
     #def _ex_minus(self, e):
     #def _ex_multiply(self, e):
@@ -52,7 +54,7 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
     def _ex_quotient(self, e):
         # Note that this _must_ round towards minus infinity!
         # See myokit.Quotient !
-        return 'floor(' + self._ex_infix(e, '/') + ')'
+        return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])))
 
     def _ex_remainder(self, e):
         # Note that this _must_ use the same round-to-neg-inf convention as
@@ -63,6 +65,7 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
 
     def _ex_power(self, e):
         return 'pow(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
+
     #def _ex_sqrt(self, e):
     #def _ex_sin(self, e):
     #def _ex_cos(self, e):
@@ -76,6 +79,7 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
         if len(e) == 1:
             return self._ex_function(e, 'log')
         return '(log(' + self.ex(e[0]) + ') / log(' + self.ex(e[1]) + '))'
+
     #def _ex_log10(self, e):
     #def _ex_floor(self, e):
     #def _ex_ceil(self, e):
@@ -85,6 +89,7 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
 
     def _ex_not(self, e):
         return '!(' + self.ex(e[0]) + ')'
+
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
     #def _ex_more(self, e):
