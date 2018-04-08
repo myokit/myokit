@@ -99,6 +99,7 @@ class ExpressionsTest(unittest.TestCase):
         self.assertEqual(str(x), '4 [pF]')
         x = myokit.Number(-3, myokit.Unit.parse_simple('pF'))
         self.assertEqual(str(x), '-3 [pF]')
+
         # Test unit conversion
         x = myokit.Number('2000', myokit.units.pF)
         y = x.convert('nF')
@@ -109,6 +110,18 @@ class ExpressionsTest(unittest.TestCase):
         b = x.convert('uF')
         self.assertEqual(a, b)
         self.assertRaises(myokit.IncompatibleUnitError, x.convert, 'A')
+
+        # Test properties
+        x = myokit.Number(2)
+        self.assertFalse(x.is_conditional())
+        self.assertTrue(x.is_constant())
+        self.assertTrue(x.is_literal())
+        self.assertFalse(x.is_state_value())
+
+        # Test python function
+        f = x.pyfunc()
+        self.assertTrue(callable(f))
+        self.assertEqual(f(), x.eval())
 
     def test_name(self):
         """ Tests ``Name``. """
@@ -176,6 +189,38 @@ class ExpressionsTest(unittest.TestCase):
         self.assertEqual(x.var(), xvar)
         self.assertEqual(y.var(), yvar)
         self.assertEqual(z.var(), zvar)
+
+        # Test properties
+        # State x
+        self.assertFalse(x.is_conditional())
+        self.assertFalse(x.is_constant())
+        self.assertFalse(x.is_literal())
+        self.assertTrue(x.is_state_value())
+        # State-dependent variable y
+        self.assertFalse(y.is_conditional())
+        self.assertFalse(y.is_constant())
+        self.assertFalse(y.is_literal())
+        self.assertFalse(y.is_state_value())
+        # Non-state x
+        xvar.demote()
+        self.assertFalse(x.is_conditional())
+        self.assertTrue(x.is_constant())
+        self.assertFalse(x.is_literal())    # A name is never a literal!
+        self.assertFalse(x.is_state_value())
+        # (Non-state)-dependent variable y
+        self.assertFalse(y.is_conditional())
+        self.assertTrue(y.is_constant())
+        self.assertFalse(y.is_literal())
+        self.assertFalse(y.is_state_value())
+
+        # Test python function
+        # Function for Name is always `lambda x: x` (ignores rhs!)
+        f = x.pyfunc()
+        self.assertTrue(callable(f))
+        self.assertEqual(f(100), 100)
+        f = z.pyfunc()
+        self.assertTrue(callable(f))
+        self.assertEqual(f(5), 5)
 
 
 class ExpressionTest(unittest.TestCase):
