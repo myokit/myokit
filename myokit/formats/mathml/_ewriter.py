@@ -37,6 +37,8 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
                 return var
             return var.qname()
         self._flhs = flhs
+        # Can't do this here --> CellML one has it overridden with exception
+        #self.set_lhs_function(flhs)
 
         # Default number conversion function
         self._fnum = lambda x: myokit.strfloat(x.eval())
@@ -60,7 +62,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         The argument ``f`` should be a function that takes an ``LhsExpression``
         as input and returns a string.
         """
-        self._lhs = f
+        self._flhs = f
 
     def set_mode(self, presentation=False):
         """
