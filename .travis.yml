@@ -34,19 +34,19 @@ matrix:
             - MYOKIT_TEST_COVER=false
             - MYOKIT_TEST_DOC=false
         # Doc test
-        - python: "2.7"
-          env:
-            - MYOKIT_TEST_DOC=true
-            - MYOKIT_TEST_UNIT=false
-            - MYOKIT_TEST_COVER=false
-            - MYOKIT_TEST_STYLE=false
+        #- python: "2.7"
+        #  env:
+        #    - MYOKIT_TEST_DOC=true
+        #    - MYOKIT_TEST_UNIT=false
+        #    - MYOKIT_TEST_COVER=false
+        #    - MYOKIT_TEST_STYLE=false
 
 # Install C dependencies
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libsundials-serial-dev
   # Install GUI libraries
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then sudo apt-get install -y python-qt5; fi;
+  #- if [[ $MYOKIT_TEST_DOC == true ]]; then sudo apt-get install -y python-qt5; fi;
 
 # Install Python dependencies
 install:
@@ -59,7 +59,7 @@ install:
   # Install style checking code
   - if [[ $MYOKIT_TEST_STYLE == true ]]; then pip install flake8; fi;
   # Install doc building code
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install sphinx; fi;
+  #- if [[ $MYOKIT_TEST_DOC == true ]]; then pip install sphinx; fi;
   # Install GUI libraries
 
 # Show Python version
@@ -71,7 +71,7 @@ script:
   - if [[ $MYOKIT_TEST_UNIT == true ]]; then python test --unit; fi;
   - if [[ $MYOKIT_TEST_COVER == true ]]; then coverage run test --nosub; fi;
   - if [[ $MYOKIT_TEST_STYLE == true ]]; then python -m flake8; fi;
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then python test --doctest; fi;
+  #- if [[ $MYOKIT_TEST_DOC == true ]]; then python test --doctest; fi;
 
 # Compile coverage report
 after_success:
