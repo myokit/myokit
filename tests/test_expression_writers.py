@@ -28,6 +28,9 @@ import myokit.formats.sympy
 # Name
 # Number
 
+# PrefixMinus
+# PrefixPlus
+
 # Plus
 # Minus
 # Multiply
@@ -84,6 +87,13 @@ class AnsicExpressionWriterTest(unittest.TestCase):
         # Number with unit
         b = myokit.Number('12', 'pF')
         self.assertEqual(w.ex(b), '12.0')
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), '12.0')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), '(-12.0)')
 
         # Plus
         x = myokit.Plus(a, b)
@@ -241,6 +251,13 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         c = myokit.Number(1)
         cc = '<cn cellml:units="dimensionless">1.0</cn>'
         self.assertEqual(w.ex(c), cc)
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), '<apply><plus />' + cb + '</apply>')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), '<apply><minus />' + cb + '</apply>')
 
         # Plus
         x = myokit.Plus(a, b)
@@ -408,6 +425,13 @@ class CppExpressionWriterTest(unittest.TestCase):
         b = myokit.Number('12', 'pF')
         self.assertEqual(w.ex(b), '12.0')
 
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), '12.0')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), '(-12.0)')
+
         # Plus
         x = myokit.Plus(a, b)
         self.assertEqual(w.ex(x), 'c.a + 12.0')
@@ -542,6 +566,15 @@ class CudaExpressionWriterTest(unittest.TestCase):
         b = myokit.Number('12', 'pF')
         self.assertEqual(ws.ex(b), '12.0f')
         self.assertEqual(wd.ex(b), '12.0')
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(ws.ex(x), '12.0f')
+        self.assertEqual(wd.ex(x), '12.0')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(ws.ex(x), '(-12.0f)')
+        self.assertEqual(wd.ex(x), '(-12.0)')
 
         # Plus
         x = myokit.Plus(a, b)
@@ -721,6 +754,17 @@ class LatexExpressionWriterTest(unittest.TestCase):
         b = myokit.Number('12', 'pF')
         self.assertEqual(w.ex(b), '12.0')
 
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), '12.0')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), '\\left(-12.0\\right)')
+        # Prefix minus with bracket
+        x = myokit.PrefixMinus(myokit.Plus(a, b))
+        self.assertEqual(
+            w.ex(x), '\\left(-\\left(\\text{a}+12.0\\right)\\right)')
+
         # Plus
         x = myokit.Plus(a, b)
         self.assertEqual(w.ex(x), '\\text{a}+12.0')
@@ -873,6 +917,13 @@ class MathMLExpressionWriterTest(unittest.TestCase):
         cc = '<cn>1.0</cn>'
         self.assertEqual(w.ex(c), cc)
 
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), '<apply><plus />' + cb + '</apply>')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), '<apply><minus />' + cb + '</apply>')
+
         # Plus
         x = myokit.Plus(a, b)
         self.assertEqual(w.ex(x), '<apply><plus />' + ca + cb + '</apply>')
@@ -1021,6 +1072,15 @@ class MathMLExpressionWriterTest(unittest.TestCase):
         c = myokit.Number(1)
         cc = '<mn>1.0</mn>'
         self.assertEqual(w.ex(c), cc)
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(
+            w.ex(x), '<mrow><mo>+</mo>' + cb + '</mrow>')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(
+            w.ex(x), '<mrow><mo>-</mo>' + cb + '</mrow>')
 
         # Plus
         x = myokit.Plus(a, b)
@@ -1202,6 +1262,13 @@ class MatlabExpressionWriterTest(unittest.TestCase):
         b = myokit.Number('12', 'pF')
         self.assertEqual(w.ex(b), '12.0')
 
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), '12.0')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), '(-12.0)')
+
         # Plus
         x = myokit.Plus(a, b)
         self.assertEqual(w.ex(x), 'c.a + 12.0')
@@ -1333,6 +1400,13 @@ class NumpyExpressionWriterTest(unittest.TestCase):
         # Number with unit
         b = myokit.Number('12', 'pF')
         self.assertEqual(w.ex(b), '12.0')
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), '12.0')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), '(-12.0)')
 
         # Plus
         x = myokit.Plus(a, b)
@@ -1473,6 +1547,17 @@ class OpenCLExpressionWriterTest(unittest.TestCase):
         self.assertEqual(ws.ex(b), '12.0f')
         self.assertEqual(wd.ex(b), '12.0')
         self.assertEqual(wn.ex(b), '12.0f')
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(ws.ex(x), '12.0f')
+        self.assertEqual(wd.ex(x), '12.0')
+        self.assertEqual(wn.ex(x), '12.0f')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(ws.ex(x), '(-12.0f)')
+        self.assertEqual(wd.ex(x), '(-12.0)')
+        self.assertEqual(wn.ex(x), '(-12.0f)')
 
         # Plus
         x = myokit.Plus(a, b)
@@ -1683,6 +1768,13 @@ class PythonExpressionWriterTest(unittest.TestCase):
         b = myokit.Number('12', 'pF')
         self.assertEqual(w.ex(b), '12.0')
 
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), '12.0')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), '(-12.0)')
+
         # Plus
         x = myokit.Plus(a, b)
         self.assertEqual(w.ex(x), 'c.a + 12.0')
@@ -1813,6 +1905,13 @@ class StanExpressionWriterTest(unittest.TestCase):
         # Number with unit
         b = myokit.Number('12', 'pF')
         self.assertEqual(w.ex(b), '12.0')
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), '12.0')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), '(-12.0)')
 
         # Plus
         x = myokit.Plus(a, b)
@@ -1952,6 +2051,13 @@ class SymPyExpressionWriterTest(unittest.TestCase):
         b = myokit.Number('12', 'pF')
         cb = sympy.Float(12)
         self.assertEqual(w.ex(b), cb)
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertEqual(w.ex(x), cb)
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertEqual(w.ex(x), -cb)
 
         # Plus
         x = myokit.Plus(a, b)

@@ -37,11 +37,7 @@ class MatlabExpressionWriter(PythonExpressionWriter):
     #def _ex_derivative(self, e):
     #def _ex_number(self, e):
     #def _ex_prefix_plus(self, e):
-
-    def _ex_prefix_minus(self, e):
-        return \
-            '-(' + self.ex(e[0]) + ')' if e.bracket() else '-' + self.ex(e[0])
-
+    #def _ex_prefix_minus(self, e):
     #def _ex_plus(self, e):
     #def _ex_minus(self, e):
     #def _ex_multiply(self, e):

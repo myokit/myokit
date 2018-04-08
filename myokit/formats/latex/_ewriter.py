@@ -126,12 +126,14 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         self._ex(e[0], b)
 
     def _ex_prefix_minus(self, e, b):
+        b.append('\\left(')
         b.append('-')
         if e.bracket():
             b.append('\\left(')
         self._ex(e[0], b)
         if e.bracket():
             b.append('\\right)')
+        b.append('\\right)')
 
     def _ex_plus(self, e, b):
         self._ex_infix(e, b, '+')

@@ -30,13 +30,7 @@ class CudaExpressionWriter(PythonExpressionWriter):
         return myokit.strfloat(e) + 'f' if self._sp else myokit.strfloat(e)
 
     #def _ex_prefix_plus(self, e):
-
-    def _ex_prefix_minus(self, e):
-        if e.bracket():
-            return '-(' + self.ex(e[0]) + ')'
-        else:
-            return '-' + self.ex(e[0])
-
+    #def _ex_prefix_minus(self, e):
     #def _ex_plus(self, e):
     #def _ex_minus(self, e):
     #def _ex_multiply(self, e):
