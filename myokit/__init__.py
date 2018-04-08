@@ -331,7 +331,7 @@ from ._model_api import ( # noqa
 )
 
 # Expressions and units
-from ._expr import ( # noqa
+from ._expressions import ( # noqa
     Expression, LhsExpression, Derivative, Name, Number,
     PrefixExpression, PrefixPlus, PrefixMinus,
     InfixExpression, Plus, Minus, Multiply, Divide,

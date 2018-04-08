@@ -16,12 +16,64 @@ import myokit
 
 #TODO Add tests for all operators
 
+# Expression, LhsExpression, Derivative,
+# PrefixExpression, PrefixPlus, PrefixMinus,
+# InfixExpression,
+# Function,
+# Condition, PrefixCondition, InfixCondition
 
-class NumberTest(unittest.TestCase):
-    def test_basics(self):
-        """
-        Test the basics of the Number class.
-        """
+# [ ] Name
+# [ ] Number
+
+# [ ] Plus
+# [ ] Minus
+# [ ] Multiply
+# [ ] Divide
+
+# [ ] Quotient
+# [ ] Remainder
+
+# [ ] Power
+# [ ] Sqrt
+# [ ] Exp
+# [ ] Log
+# [ ] Log10
+
+# [ ] Sin
+# [ ] Cos
+# [ ] Tan
+# [ ] ASin
+# [ ] ACos
+# [ ] ATan
+
+# [ ] Floor
+# [ ] Ceil
+# [ ] Abs
+
+# If
+# Piecewise,
+
+# Not
+# And
+# Or
+
+# Equal
+# NotEqual
+# More
+# Less
+# MoreEqual
+# LessEqual
+
+# UnsupportedFunction
+
+# Unit --> See test_units.py
+# Quantity --> See test_units.py
+
+
+class ExpressionsTest(unittest.TestCase):
+
+    def test_number(self):
+        """ Tests ``Number``. """
         # Test myokit.Number creation and representation
         x = myokit.Number(-4.0)
         self.assertEqual(str(x), '-4')
@@ -57,6 +109,73 @@ class NumberTest(unittest.TestCase):
         b = x.convert('uF')
         self.assertEqual(a, b)
         self.assertRaises(myokit.IncompatibleUnitError, x.convert, 'A')
+
+    def test_name(self):
+        """ Tests ``Name``. """
+        model = myokit.Model()
+        component = model.add_component('c')
+        xvar = component.add_variable('x')
+        xvar.set_rhs('15')
+        yvar = component.add_variable('y')
+        yvar.set_rhs('3 * x ')
+        zvar = component.add_variable('z')
+        zvar.set_rhs('2 + y + x')
+
+        x = myokit.Name(xvar)
+        self.assertEqual(x.code(), 'c.x')
+
+        # Test clone
+        a = x.clone()
+        self.assertEqual(x, a)
+        z = myokit.Name(zvar)
+        a = z.clone()
+        self.assertEqual(z, a)
+        # With substitution (handled in Name)
+        y = myokit.Name(yvar)
+        a = x.clone(subst={x: y})
+        self.assertEqual(y, a)
+        a = x.clone()
+        self.assertEqual(x, a)
+        # With expansion (handled in Name)
+        a = z.clone()
+        self.assertEqual(z, a)
+        a = z.clone(expand=True)
+        self.assertTrue(a.is_literal())
+        self.assertFalse(z.is_literal())
+        self.assertEqual(z.eval(), a.eval())
+        # With expansion but retention of selected variables (handled in Name)
+        a = z.clone(expand=True, retain=[x])
+        self.assertNotEqual(a, z)
+        self.assertFalse(a.is_literal())
+        self.assertEqual(z.eval(), a.eval())
+        # Few options for how to specify x:
+        b = z.clone(expand=True, retain=['c.x'])
+        self.assertEqual(a, b)
+        b = z.clone(expand=True, retain=[xvar])
+        self.assertEqual(a, b)
+
+        # Test rhs
+        # Name of non-state: rhs() should be the associated variable's rhs
+        self.assertEqual(x.rhs(), myokit.Number(15))
+        # Name of state: rhs() should be the initial value (since this is the
+        # value of the variable).
+        xvar.promote(12)
+        self.assertEqual(x.rhs(), myokit.Number(12))
+        # Invalid variable:
+        a = myokit.Name('test')
+        self.assertRaises(Exception, a.rhs)
+
+        # Test validation
+        x.validate()
+        y.validate()
+        z.validate()
+        a = myokit.Name('test')
+        self.assertRaises(myokit.IntegrityError, a.validate)
+
+        # Test var()
+        self.assertEqual(x.var(), xvar)
+        self.assertEqual(y.var(), yvar)
+        self.assertEqual(z.var(), zvar)
 
 
 class ExpressionTest(unittest.TestCase):

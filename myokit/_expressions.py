@@ -694,8 +694,10 @@ class Name(LhsExpression):
         if expand and isinstance(self._value, myokit.Variable):
             if not self._value.is_state():
                 if (retain is None) or (
-                        self._value not in retain
-                        and self._value.qname() not in retain):
+                        self not in retain
+                        and self._value not in retain
+                        and self._value.qname() not in retain
+                ):
                     return self._value.rhs().clone(subst, expand, retain)
         return Name(self._value)
 
@@ -1356,9 +1358,7 @@ class UnsupportedFunction(Function):
         super(UnsupportedFunction, self).__init__(*ops)
 
     def _validate(self, trail):
-        raise IntegrityError(
-            'Temporary function still present in expression.',
-            self._token)
+        raise IntegrityError('UnsupportedFunction in expression.', self._token)
 
 
 class Sqrt(Function):
