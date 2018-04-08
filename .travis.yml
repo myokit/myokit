@@ -46,7 +46,7 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libsundials-serial-dev
   # Install GUI libraries
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then sudo apt-get install -y python-qt4; fi;
+  - if [[ $MYOKIT_TEST_DOC == true ]]; then sudo apt-get install -y python-qt5; fi;
 
 # Install Python dependencies
 install:
