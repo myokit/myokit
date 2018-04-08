@@ -11,15 +11,34 @@ language: python
 
 matrix:
     include:
+        # Unit test Python 2.7
         - python: "2.7"
           env:
-            - MYOKIT_COVER=false
-            - MYOKIT_TEST=true
+            - MYOKIT_TEST_UNIT=true
+            - MYOKIT_TEST_COVER=false
+            - MYOKIT_TEST_STYLE=false
+            - MYOKIT_TEST_DOC=false
+        # Cover
         - python: "2.7"
           env:
-            - MYOKIT_COVER=true
-            - MYOKIT_TEST=false
-
+            - MYOKIT_TEST_UNIT=false
+            - MYOKIT_TEST_COVER=true
+            - MYOKIT_TEST_STYLE=false
+            - MYOKIT_TEST_DOC=false
+      # Style check
+        - python: "2.7"
+          env:
+            - MYOKIT_TEST_UNIT=false
+            - MYOKIT_TEST_COVER=false
+            - MYOKIT_TEST_STYLE=true
+            - MYOKIT_TEST_DOC=false
+        # Doc test
+        - python: "2.7"
+          env:
+            - MYOKIT_TEST_UNIT=false
+            - MYOKIT_TEST_COVER=false
+            - MYOKIT_TEST_STYLE=false
+            - MYOKIT_TEST_DOC=true
 
 # Install C dependencies
 before_install:
@@ -39,9 +58,10 @@ before_script:
 
 # Run tests
 script:
-  - if [[ $MYOKIT_COVER == true ]]; then coverage run test --nosub; fi;
-  - if [[ $MYOKIT_TEST == true ]]; then python -m flake8; fi;
-  - if [[ $MYOKIT_TEST == true ]]; then python test --unit; fi;
+  - if [[ $MYOKIT_TEST_UNIT == true ]]; then python test --unit; fi;
+  - if [[ $MYOKIT_TEST_COVER == true ]]; then coverage run test --nosub; fi;
+  - if [[ $MYOKIT_TEST_STYLE == true ]]; then python -m flake8; fi;
+  - if [[ $MYOKIT_TEST_DOC == true ]]; then python test --doctest; fi;
 
 # Compile coverage report
 after_success:
