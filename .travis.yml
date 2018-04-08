@@ -10,6 +10,7 @@ dist: trusty
 language: python
 
 matrix:
+    # Always put true env variable first, for nicer overview on travis website
     include:
         # Unit test Python 2.7
         - python: "2.7"
@@ -21,24 +22,24 @@ matrix:
         # Cover
         - python: "2.7"
           env:
-            - MYOKIT_TEST_UNIT=false
             - MYOKIT_TEST_COVER=true
+            - MYOKIT_TEST_UNIT=false
             - MYOKIT_TEST_STYLE=false
             - MYOKIT_TEST_DOC=false
       # Style check
         - python: "2.7"
           env:
+            - MYOKIT_TEST_STYLE=true
             - MYOKIT_TEST_UNIT=false
             - MYOKIT_TEST_COVER=false
-            - MYOKIT_TEST_STYLE=true
             - MYOKIT_TEST_DOC=false
         # Doc test
         - python: "2.7"
           env:
+            - MYOKIT_TEST_DOC=true
             - MYOKIT_TEST_UNIT=false
             - MYOKIT_TEST_COVER=false
             - MYOKIT_TEST_STYLE=false
-            - MYOKIT_TEST_DOC=true
 
 # Install C dependencies
 before_install:
@@ -47,10 +48,17 @@ before_install:
 
 # Install Python dependencies
 install:
+  # Install main components
   - pip install -e .
-  - pip install numpy scipy sympy matplotlib flake8
-  - pip install coverage
-  - pip install codecov
+  # Install optional extras (needed for testing and docs)
+  - pip install sympy
+  # Install cover checking libraries
+  - if [[ $MYOKIT_TEST_COVER == true ]]; then pip install coverage codecov; fi;
+  # Install style checking code
+  - if [[ $MYOKIT_TEST_STYLE == true ]]; then pip install flake8; fi;
+  # Install doc building code
+  # Includes GUI libraries
+  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install sphinx PySide; fi;
 
 # Show Python version
 before_script:
@@ -65,7 +73,7 @@ script:
 
 # Compile coverage report
 after_success:
-  - if [[ $MYOKIT_COVER == true ]]; then codecov; fi;
+  - if [[ $MYOKIT_TEST_COVER == true ]]; then codecov; fi;
 
 # Send notifications
 notifications:

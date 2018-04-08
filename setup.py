@@ -46,7 +46,7 @@ setup(
     install_requires=[
         'numpy',
         'scipy',
-        'matplotlib>=1.5',
-        # PyQT or PySide?
+        'matplotlib>=1.5',       # Move to extras?
+        # PyQT or PySide? (PySide is pip installable)
     ],
 )
