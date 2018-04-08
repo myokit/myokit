@@ -44,12 +44,16 @@ if sys.hexversion < 0x02070000:
     print(sys.version)
     print()
     sys.exit(1)
-#elif sys.hexversion >= 0x03000000:
-#    print('-- ERROR --')
-#    print('Python 3 is not yet fully supported.')
-#    print()
-#    sys.exit(1)
-
+elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
+    print('-- ERROR --')
+    print('Python 3.0 to 3.3 are not supported.')
+    print()
+    sys.exit(1)
+elif sys.hexversion >= 0x03040000:
+    print('-- ERROR --')
+    print('Python 3.4+ is not fully supported yet.')
+    print()
+    # Don't exit, allow testing with Python 3.4+
 
 #
 # Version information
