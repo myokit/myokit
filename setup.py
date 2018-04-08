@@ -47,6 +47,7 @@ setup(
         'numpy',
         'scipy',
         'matplotlib>=1.5',       # Move to extras?
-        # PyQT or PySide? (PySide is pip installable)
+        # PyQT or PySide?
+        # (PySide is pip installable, Travis can get PyQt from apt)
     ],
 )

@@ -45,20 +45,21 @@ matrix:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libsundials-serial-dev
+  # Install GUI libraries
+  - if [[ $MYOKIT_TEST_DOC == true ]]; then sudo apt-get install -y python-pyqt5; fi;
 
 # Install Python dependencies
 install:
   # Install main components
   - pip install -e .
-  # Install optional extras (needed for testing and docs)
+  # Install optional extras (needed for unit tests and docs)
   - pip install sympy
   # Install cover checking libraries
   - if [[ $MYOKIT_TEST_COVER == true ]]; then pip install coverage codecov; fi;
   # Install style checking code
   - if [[ $MYOKIT_TEST_STYLE == true ]]; then pip install flake8; fi;
   # Install doc building code
-  # Includes GUI libraries
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install sphinx PySide; fi;
+  # Install GUI libraries
 
 # Show Python version
 before_script:
