@@ -117,8 +117,9 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             tag = element
         self._ex(e, tag)
         if element is None:
-            enc = 'utf-8'
-            return ''.join([self._et.tostring(kid, enc) for kid in tag])
+            #enc = 'utf-8'
+            #return ''.join([self._et.tostring(kid, enc) for kid in tag])
+            return ''.join([self._et.tostring(kid) for kid in tag])
 
     def _ex(self, e, t):
         """
@@ -160,7 +161,12 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             k = self._et.SubElement(r, 'mfenced') if e.bracket(e[0]) else r
             self._ex(e[0], k)
             x = self._et.SubElement(r, 'mo')
-            x.text = e.operator_rep()
+            if isinstance(e, myokit.MoreEqual):
+                x.text = '\u2265'
+            elif isinstance(e, myokit.LessEqual):
+                x.text = '\u2264'
+            else:
+                x.text = e.operator_rep()
             k = self._et.SubElement(r, 'mfenced') if e.bracket(e[1]) else r
             self._ex(e[1], k)
         else:

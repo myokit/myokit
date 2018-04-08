@@ -501,6 +501,175 @@ class CppExpressionWriterTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.cpp.CppExpressionWriter)
 
 
+class CudaExpressionWriterTest(unittest.TestCase):
+    """ Tests the CUDA ewriter class. """
+
+    def test_all(self):
+        # Single and double precision
+        ws = myokit.formats.cuda.CudaExpressionWriter()
+        wd = myokit.formats.cuda.CudaExpressionWriter(myokit.DOUBLE_PRECISION)
+
+        model = myokit.Model()
+        component = model.add_component('c')
+        avar = component.add_variable('a')
+
+        # Name
+        a = myokit.Name(avar)
+        self.assertEqual(ws.ex(a), 'c.a')
+        self.assertEqual(wd.ex(a), 'c.a')
+        # Number with unit
+        b = myokit.Number('12', 'pF')
+        self.assertEqual(ws.ex(b), '12.0f')
+        self.assertEqual(wd.ex(b), '12.0')
+
+        # Plus
+        x = myokit.Plus(a, b)
+        self.assertEqual(ws.ex(x), 'c.a + 12.0f')
+        self.assertEqual(wd.ex(x), 'c.a + 12.0')
+        # Minus
+        x = myokit.Minus(a, b)
+        self.assertEqual(ws.ex(x), 'c.a - 12.0f')
+        self.assertEqual(wd.ex(x), 'c.a - 12.0')
+        # Multiply
+        x = myokit.Multiply(a, b)
+        self.assertEqual(ws.ex(x), 'c.a * 12.0f')
+        self.assertEqual(wd.ex(x), 'c.a * 12.0')
+        # Divide
+        x = myokit.Divide(a, b)
+        self.assertEqual(ws.ex(x), 'c.a / 12.0f')
+        self.assertEqual(wd.ex(x), 'c.a / 12.0')
+
+        # Quotient
+        x = myokit.Quotient(a, b)
+        self.assertEqual(ws.ex(x), 'floorf(c.a / 12.0f)')
+        self.assertEqual(wd.ex(x), 'floor(c.a / 12.0)')
+        # Remainder
+        x = myokit.Remainder(a, b)
+        self.assertEqual(ws.ex(x), 'c.a - 12.0f * (floorf(c.a / 12.0f))')
+        self.assertEqual(wd.ex(x), 'c.a - 12.0 * (floor(c.a / 12.0))')
+
+        # Power
+        x = myokit.Power(a, b)
+        self.assertEqual(ws.ex(x), 'powf(c.a, 12.0f)')
+        self.assertEqual(wd.ex(x), 'pow(c.a, 12.0)')
+        # Sqrt
+        x = myokit.Sqrt(b)
+        self.assertEqual(ws.ex(x), 'sqrtf(12.0f)')
+        self.assertEqual(wd.ex(x), 'sqrt(12.0)')
+        # Exp
+        x = myokit.Exp(a)
+        self.assertEqual(ws.ex(x), 'expf(c.a)')
+        self.assertEqual(wd.ex(x), 'exp(c.a)')
+        # Log(a)
+        x = myokit.Log(b)
+        self.assertEqual(ws.ex(x), 'logf(12.0f)')
+        self.assertEqual(wd.ex(x), 'log(12.0)')
+        # Log(a, b)
+        x = myokit.Log(a, b)
+        self.assertEqual(ws.ex(x), '(logf(c.a) / logf(12.0f))')
+        self.assertEqual(wd.ex(x), '(log(c.a) / log(12.0))')
+        # Log10
+        x = myokit.Log10(b)
+        self.assertEqual(ws.ex(x), 'log10f(12.0f)')
+        self.assertEqual(wd.ex(x), 'log10(12.0)')
+
+        # Sin
+        x = myokit.Sin(b)
+        self.assertEqual(ws.ex(x), 'sinf(12.0f)')
+        self.assertEqual(wd.ex(x), 'sin(12.0)')
+        # Cos
+        x = myokit.Cos(b)
+        self.assertEqual(ws.ex(x), 'cosf(12.0f)')
+        self.assertEqual(wd.ex(x), 'cos(12.0)')
+        # Tan
+        x = myokit.Tan(b)
+        self.assertEqual(ws.ex(x), 'tanf(12.0f)')
+        self.assertEqual(wd.ex(x), 'tan(12.0)')
+        # ASin
+        x = myokit.ASin(b)
+        self.assertEqual(ws.ex(x), 'asinf(12.0f)')
+        self.assertEqual(wd.ex(x), 'asin(12.0)')
+        # ACos
+        x = myokit.ACos(b)
+        self.assertEqual(ws.ex(x), 'acosf(12.0f)')
+        self.assertEqual(wd.ex(x), 'acos(12.0)')
+        # ATan
+        x = myokit.ATan(b)
+        self.assertEqual(ws.ex(x), 'atanf(12.0f)')
+        self.assertEqual(wd.ex(x), 'atan(12.0)')
+
+        # Floor
+        x = myokit.Floor(b)
+        self.assertEqual(ws.ex(x), 'floorf(12.0f)')
+        self.assertEqual(wd.ex(x), 'floor(12.0)')
+        # Ceil
+        x = myokit.Ceil(b)
+        self.assertEqual(ws.ex(x), 'ceilf(12.0f)')
+        self.assertEqual(wd.ex(x), 'ceil(12.0)')
+        # Abs
+        x = myokit.Abs(b)
+        self.assertEqual(ws.ex(x), 'fabsf(12.0f)')
+        self.assertEqual(wd.ex(x), 'fabs(12.0)')
+
+        # Equal
+        x = myokit.Equal(a, b)
+        self.assertEqual(ws.ex(x), '(c.a == 12.0f)')
+        self.assertEqual(wd.ex(x), '(c.a == 12.0)')
+        # NotEqual
+        x = myokit.NotEqual(a, b)
+        self.assertEqual(ws.ex(x), '(c.a != 12.0f)')
+        self.assertEqual(wd.ex(x), '(c.a != 12.0)')
+        # More
+        x = myokit.More(a, b)
+        self.assertEqual(ws.ex(x), '(c.a > 12.0f)')
+        self.assertEqual(wd.ex(x), '(c.a > 12.0)')
+        # Less
+        x = myokit.Less(a, b)
+        self.assertEqual(ws.ex(x), '(c.a < 12.0f)')
+        self.assertEqual(wd.ex(x), '(c.a < 12.0)')
+        # MoreEqual
+        x = myokit.MoreEqual(a, b)
+        self.assertEqual(ws.ex(x), '(c.a >= 12.0f)')
+        self.assertEqual(wd.ex(x), '(c.a >= 12.0)')
+        # LessEqual
+        x = myokit.LessEqual(a, b)
+        self.assertEqual(ws.ex(x), '(c.a <= 12.0f)')
+        self.assertEqual(wd.ex(x), '(c.a <= 12.0)')
+
+        # Not
+        cond1 = myokit.parse_expression('5 > 3')
+        cond2 = myokit.parse_expression('2 < 1')
+        x = myokit.Not(cond1)
+        self.assertEqual(ws.ex(x), '!((5.0f > 3.0f))')
+        self.assertEqual(wd.ex(x), '!((5.0 > 3.0))')
+        # And
+        x = myokit.And(cond1, cond2)
+        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) && (2.0f < 1.0f))')
+        self.assertEqual(wd.ex(x), '((5.0 > 3.0) && (2.0 < 1.0))')
+        # Or
+        x = myokit.Or(cond1, cond2)
+        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) || (2.0f < 1.0f))')
+        self.assertEqual(wd.ex(x), '((5.0 > 3.0) || (2.0 < 1.0))')
+
+        # If
+        x = myokit.If(cond1, a, b)
+        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) ? c.a : 12.0f)')
+        self.assertEqual(wd.ex(x), '((5.0 > 3.0) ? c.a : 12.0)')
+        # Piecewise
+        c = myokit.Number(1)
+        x = myokit.Piecewise(cond1, a, cond2, b, c)
+        self.assertEqual(
+            ws.ex(x),
+            '((5.0f > 3.0f) ? c.a : ((2.0f < 1.0f) ? 12.0f : 1.0f))')
+        self.assertEqual(
+            wd.ex(x),
+            '((5.0 > 3.0) ? c.a : ((2.0 < 1.0) ? 12.0 : 1.0))')
+
+        # Test fetching using ewriter method
+        w = myokit.formats.ewriter('cuda')
+        self.assertIsInstance(w, myokit.formats.cuda.CudaExpressionWriter)
+
+
 class LatexExpressionWriterTest(unittest.TestCase):
     """ Tests the Latex ewriter class. """
 
@@ -650,8 +819,9 @@ class LatexExpressionWriterTest(unittest.TestCase):
 class MathMLExpressionWriterTest(unittest.TestCase):
     """ Tests the MathML ewriter class. """
 
-    def test_all(self):
+    def test_content(self):
         w = myokit.formats.mathml.MathMLExpressionWriter()
+        w.set_mode(presentation=False)
 
         model = myokit.Model()
         component = model.add_component('c')
@@ -735,7 +905,6 @@ class MathMLExpressionWriterTest(unittest.TestCase):
         self.assertEqual(w.ex(x), '<apply><abs />' + cb + '</apply>')
 
         # Quotient
-        # Uses custom implementation: CellML doesn't have these operators.
         x = myokit.Quotient(a, b)
         self.assertEqual(w.ex(x), '<apply><quotient />' + ca + cb + '</apply>')
         # Remainder
@@ -764,8 +933,8 @@ class MathMLExpressionWriterTest(unittest.TestCase):
         # Not
         cond1 = myokit.parse_expression('5 > 3')
         cond2 = myokit.parse_expression('2 < 1')
-        c1 = ('<apply><gt /><cn>5.0</cn><cn>3.0</cn></apply>')
-        c2 = ('<apply><lt /><cn>2.0</cn><cn>1.0</cn></apply>')
+        c1 = '<apply><gt /><cn>5.0</cn><cn>3.0</cn></apply>'
+        c2 = '<apply><lt /><cn>2.0</cn><cn>1.0</cn></apply>'
         x = myokit.Not(cond1)
         self.assertEqual(w.ex(x), '<apply><not />' + c1 + '</apply>')
         # And
@@ -774,6 +943,189 @@ class MathMLExpressionWriterTest(unittest.TestCase):
         # Or
         x = myokit.Or(cond1, cond2)
         self.assertEqual(w.ex(x), '<apply><or />' + c1 + c2 + '</apply>')
+
+        # If
+        x = myokit.If(cond1, a, b)
+        self.assertEqual(
+            w.ex(x),
+            '<piecewise>'
+            '<piece>' + ca + c1 + '</piece>'
+            '<otherwise>' + cb + '</otherwise>'
+            '</piecewise>'
+        )
+        # Piecewise
+        x = myokit.Piecewise(cond1, a, cond2, b, c)
+        self.assertEqual(
+            w.ex(x),
+            '<piecewise>'
+            '<piece>' + ca + c1 + '</piece>'
+            '<piece>' + cb + c2 + '</piece>'
+            '<otherwise>' + cc + '</otherwise>'
+            '</piecewise>'
+        )
+
+        # Test fetching using ewriter method
+        w = myokit.formats.ewriter('mathml')
+        self.assertIsInstance(w, myokit.formats.mathml.MathMLExpressionWriter)
+
+    def test_presentation(self):
+        w = myokit.formats.mathml.MathMLExpressionWriter()
+        w.set_mode(presentation=True)
+
+        model = myokit.Model()
+        component = model.add_component('c')
+        avar = component.add_variable('a')
+
+        # Name
+        a = myokit.Name(avar)
+        ca = '<mi>c.a</mi>'
+        self.assertEqual(w.ex(a), ca)
+        # Number with unit
+        b = myokit.Number('12', 'pF')
+        cb = '<mn>12.0</mn>'
+        self.assertEqual(w.ex(b), cb)
+        # Number without unit
+        c = myokit.Number(1)
+        cc = '<mn>1.0</mn>'
+        self.assertEqual(w.ex(c), cc)
+
+        # Plus
+        x = myokit.Plus(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>+</mo>' + cb + '</mrow>')
+        # Minus
+        x = myokit.Minus(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>-</mo>' + cb + '</mrow>')
+        # Multiply
+        x = myokit.Multiply(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>*</mo>' + cb + '</mrow>')
+        # Divide
+        x = myokit.Divide(a, b)
+        self.assertEqual(w.ex(x), '<mfrac>' + ca + cb + '</mfrac>')
+
+        # Power
+        x = myokit.Power(a, b)
+        self.assertEqual(w.ex(x), '<msup>' + ca + cb + '</msup>')
+        # Sqrt
+        x = myokit.Sqrt(b)
+        self.assertEqual(
+            w.ex(x), '<mrow><mi>root</mi><mfenced>' + cb + '</mfenced></mrow>')
+        # Exp
+        x = myokit.Exp(a)
+        self.assertEqual(w.ex(x), '<msup><mi>e</mi>' + ca + '</msup>')
+        # Log(a)
+        x = myokit.Log(b)
+        self.assertEqual(
+            w.ex(x), '<mrow><mi>ln</mi><mfenced>' + cb + '</mfenced></mrow>')
+        # Log(a, b)
+        x = myokit.Log(a, b)
+        self.assertEqual(
+            w.ex(x),
+            '<mrow><msub><mi>log</mi>' + cb + '</msub>'
+            '<mfenced>' + ca + '</mfenced></mrow>'
+        )
+        # Log10
+        x = myokit.Log10(b)
+        self.assertEqual(
+            w.ex(x), '<mrow><mi>log</mi><mfenced>' + cb + '</mfenced></mrow>')
+
+        # Sin
+        x = myokit.Sin(b)
+        self.assertEqual(
+            w.ex(x), '<mrow><mi>sin</mi><mfenced>' + cb + '</mfenced></mrow>')
+        # Cos
+        x = myokit.Cos(b)
+        self.assertEqual(
+            w.ex(x), '<mrow><mi>cos</mi><mfenced>' + cb + '</mfenced></mrow>')
+        # Tan
+        x = myokit.Tan(b)
+        self.assertEqual(
+            w.ex(x), '<mrow><mi>tan</mi><mfenced>' + cb + '</mfenced></mrow>')
+        # ASin
+        x = myokit.ASin(b)
+        self.assertEqual(
+            w.ex(x),
+            '<mrow><mi>arcsin</mi><mfenced>' + cb + '</mfenced></mrow>')
+        # ACos
+        x = myokit.ACos(b)
+        self.assertEqual(
+            w.ex(x),
+            '<mrow><mi>arccos</mi><mfenced>' + cb + '</mfenced></mrow>')
+        # ATan
+        x = myokit.ATan(b)
+        self.assertEqual(
+            w.ex(x),
+            '<mrow><mi>arctan</mi><mfenced>' + cb + '</mfenced></mrow>')
+
+        # Floor
+        x = myokit.Floor(b)
+        self.assertEqual(
+            w.ex(x),
+            '<mrow><mi>floor</mi><mfenced>' + cb + '</mfenced></mrow>')
+        # Ceil
+        x = myokit.Ceil(b)
+        self.assertEqual(
+            w.ex(x),
+            '<mrow><mi>ceiling</mi><mfenced>' + cb + '</mfenced></mrow>')
+        # Abs
+        x = myokit.Abs(b)
+        self.assertEqual(
+            w.ex(x), '<mrow><mi>abs</mi><mfenced>' + cb + '</mfenced></mrow>')
+
+        # Quotient
+        x = myokit.Quotient(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>//</mo>' + cb + '</mrow>')
+        # Remainder
+        x = myokit.Remainder(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>%</mo>' + cb + '</mrow>')
+
+        # Equal
+        x = myokit.Equal(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>==</mo>' + cb + '</mrow>')
+        # NotEqual
+        x = myokit.NotEqual(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>!=</mo>' + cb + '</mrow>')
+        # More
+        x = myokit.More(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>&gt;</mo>' + cb + '</mrow>')
+        # Less
+        x = myokit.Less(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>&lt;</mo>' + cb + '</mrow>')
+        # MoreEqual
+        # Named version &ge; is not output, shows decimal code instead
+        x = myokit.MoreEqual(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>&#8805;</mo>' + cb + '</mrow>')
+        # LessEqual
+        # Named version &le; is not output, shows decimal code instead
+        x = myokit.LessEqual(a, b)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + ca + '<mo>&#8804;</mo>' + cb + '</mrow>')
+
+        # Not
+        cond1 = myokit.parse_expression('5 > 3')
+        cond2 = myokit.parse_expression('2 < 1')
+        c1 = '<mrow><mn>5.0</mn><mo>&gt;</mo><mn>3.0</mn></mrow>'
+        c2 = '<mrow><mn>2.0</mn><mo>&lt;</mo><mn>1.0</mn></mrow>'
+        x = myokit.Not(cond1)
+        self.assertEqual(
+            w.ex(x), '<mrow><mo>(</mo><mo>not</mo>' + c1 + '<mo>)</mo></mrow>')
+        # And
+        x = myokit.And(cond1, cond2)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + c1 + '<mo>and</mo>' + c2 + '</mrow>')
+        # Or
+        x = myokit.Or(cond1, cond2)
+        self.assertEqual(
+            w.ex(x), '<mrow>' + c1 + '<mo>or</mo>' + c2 + '</mrow>')
 
         # If
         x = myokit.If(cond1, a, b)
