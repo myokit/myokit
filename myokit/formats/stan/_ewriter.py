@@ -22,8 +22,8 @@ class StanExpressionWriter(PythonExpressionWriter):
     """
     def __init__(self):
         super(StanExpressionWriter, self).__init__()
-        self.function_prefix = ''
-        self.cFunc = 'ifthenelse'
+        self._function_prefix = ''
+        self._fcond = 'ifthenelse'
 
     def set_condition_function(self, func=None):
         """
@@ -34,7 +34,7 @@ class StanExpressionWriter(PythonExpressionWriter):
          name of a function taking arguments (condition, value_if_true,
          value_if_false).
         """
-        self.cFunc = func
+        self._fcond = func
 
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):

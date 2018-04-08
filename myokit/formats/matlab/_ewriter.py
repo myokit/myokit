@@ -19,8 +19,8 @@ class MatlabExpressionWriter(PythonExpressionWriter):
     """
     def __init__(self):
         super(MatlabExpressionWriter, self).__init__()
-        self.function_prefix = ''
-        self.cFunc = 'ifthenelse'
+        self._function_prefix = ''
+        self._fcond = 'ifthenelse'
 
     def set_condition_function(self, func=None):
         """
@@ -31,7 +31,7 @@ class MatlabExpressionWriter(PythonExpressionWriter):
          name of a function taking arguments (condition, value_if_true,
          value_if_false).
         """
-        self.cFunc = func
+        self._fcond = func
 
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
@@ -100,13 +100,13 @@ class MatlabExpressionWriter(PythonExpressionWriter):
 
     def _ex_if(self, e):
         return '%s(%s, %s, %s)' % (
-            self.cFunc, self.ex(e._i), self.ex(e._t), self.ex(e._e))
+            self._fcond, self.ex(e._i), self.ex(e._t), self.ex(e._e))
 
     def _ex_piecewise(self, e):
         s = []
         n = len(e._i)
         for i in range(0, n):
-            s.append(self.cFunc)
+            s.append(self._fcond)
             s.append('(')
             s.append(self.ex(e._i[i]))
             s.append(', ')

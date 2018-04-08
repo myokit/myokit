@@ -20,8 +20,8 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
     """
     def __init__(self):
         super(AnsiCExpressionWriter, self).__init__()
-        self.function_prefix = ''
-        self.cFunc = None
+        self._function_prefix = ''
+        self._fcond = None
 
     def set_condition_function(self, func=None):
         """
@@ -32,7 +32,7 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
          name of a C function taking arguments (condition, value_if_true,
          value_if_false).
         """
-        self.cFunc = func
+        self._fcond = func
 
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
@@ -105,15 +105,15 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
 
     def _ex_if(self, e):
         ite = (self.ex(e._i), self.ex(e._t), self.ex(e._e))
-        if self.cFunc is None:
+        if self._fcond is None:
             return '(%s ? %s : %s)' % ite
         else:
-            return '%s(%s, %s, %s)' % ((self.cFunc,) + ite)
+            return '%s(%s, %s, %s)' % ((self._fcond,) + ite)
 
     def _ex_piecewise(self, e):
         s = []
         n = len(e._i)
-        if self.cFunc is None:
+        if self._fcond is None:
             for i in range(0, n):
                 s.append('(%s ? %s : ' % (self.ex(e._i[i]), self.ex(e._e[i])))
             s.append(self.ex(e._e[n]))
@@ -122,7 +122,7 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
             for i in range(0, n):
                 s.append(
                     '%s(%s, %s, ' % (
-                        self.cFunc, self.ex(e._i[i]), self.ex(e._e[i])))
+                        self._fcond, self.ex(e._i[i]), self.ex(e._e[i])))
             s.append(self.ex(e._e[n]))
             s.append(')' * n)
         return ''.join(s)

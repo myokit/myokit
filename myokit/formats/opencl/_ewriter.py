@@ -20,15 +20,15 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
     """
     def __init__(self, precision=myokit.SINGLE_PRECISION, native_math=True):
         super(OpenCLExpressionWriter, self).__init__()
-        self.function_prefix = ''
-        self.sp = (precision == myokit.SINGLE_PRECISION)
-        self.nm = bool(native_math)
+        self._function_prefix = ''
+        self._sp = (precision == myokit.SINGLE_PRECISION)
+        self._nm = bool(native_math)
 
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
 
     def _ex_number(self, e):
-        return myokit.strfloat(e) + 'f' if self.sp else myokit.strfloat(e)
+        return myokit.strfloat(e) + 'f' if self._sp else myokit.strfloat(e)
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):
@@ -38,7 +38,7 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
 
     def _ex_divide(self, e):
         # Native divide seemed to cause some issues
-        #if self.nm:
+        #if self._nm:
         #    return 'native_divide(' + self.ex(e[0]) +', '+ self.ex(e[1]) + ')'
         #else:
         return self._ex_infix(e, '/')
@@ -66,19 +66,19 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
             return 'pow(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
 
     def _ex_sqrt(self, e):
-        f = 'native_sqrt' if self.nm else 'sqrt'
+        f = 'native_sqrt' if self._nm else 'sqrt'
         return self._ex_function(e, f)
 
     def _ex_sin(self, e):
-        f = 'native_sin' if self.nm else 'sin'
+        f = 'native_sin' if self._nm else 'sin'
         return self._ex_function(e, f)
 
     def _ex_cos(self, e):
-        f = 'native_cos' if self.nm else 'cos'
+        f = 'native_cos' if self._nm else 'cos'
         return self._ex_function(e, f)
 
     def _ex_tan(self, e):
-        f = 'native_tan' if self.nm else 'tan'
+        f = 'native_tan' if self._nm else 'tan'
         return self._ex_function(e, f)
 
     def _ex_asin(self, e):
@@ -91,18 +91,18 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
         return self._ex_function(e, 'atan')
 
     def _ex_exp(self, e):
-        f = 'native_exp' if self.nm else 'exp'
+        f = 'native_exp' if self._nm else 'exp'
         return self._ex_function(e, f)
 
     def _ex_log(self, e):
-        f = 'native_log' if self.nm else 'log'
+        f = 'native_log' if self._nm else 'log'
         if len(e) == 1:
             return self._ex_function(e, f)
         return '(' + f + '(' + self.ex(e[0]) + ') / ' + f + '(' \
             + self.ex(e[1]) + '))'
 
     def _ex_log10(self, e):
-        f = 'native_log10' if self.nm else 'log10'
+        f = 'native_log10' if self._nm else 'log10'
         return self._ex_function(e, f)
 
     def _ex_floor(self, e):

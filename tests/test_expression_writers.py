@@ -194,6 +194,17 @@ class AnsicExpressionWriterTest(unittest.TestCase):
             w.ex(x),
             '((5.0 > 3.0) ? c.a : ((2.0 < 1.0) ? 12.0 : 1.0))')
 
+        # If/Piecewise with special function
+        w.set_condition_function('ifthenelse')
+        x = myokit.If(cond1, a, b)
+        self.assertEqual(w.ex(x), 'ifthenelse((5.0 > 3.0), c.a, 12.0)')
+        # Piecewise
+        c = myokit.Number(1)
+        x = myokit.Piecewise(cond1, a, cond2, b, c)
+        self.assertEqual(
+            w.ex(x),
+            'ifthenelse((5.0 > 3.0), c.a, ifthenelse((2.0 < 1.0), 12.0, 1.0))')
+
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('ansic')
         self.assertIsInstance(w, myokit.formats.ansic.AnsiCExpressionWriter)
