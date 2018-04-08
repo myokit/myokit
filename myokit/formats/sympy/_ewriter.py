@@ -28,10 +28,9 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
         super(SymPyExpressionWriter, self).__init__()
         self._flhs = lambda lhs: str(lhs)
         try:
-            import sympy
-            del(sympy)
-        except NameError:
-            raise Exception('This class requires SymPy to be installed.')
+            import sympy # noqa
+        except ImportError:
+            raise RuntimeError('This class requires SymPy to be installed.')
 
     def set_lhs_function(self, f):
         """

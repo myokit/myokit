@@ -25,13 +25,13 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         self.set_time_variable_name()
 
         # Default lhs function
-        self._flhs = None
         def fhls(lhs):
             var = self._prepare_name(lhs.var().uname())
             var = '\\text{' + var + '}'     # Depends on amsmath package!
             if isinstance(lhs, myokit.Derivative):
                 var = '\\frac{d}{d\\text{t}}' + var
             return var
+        self._flhs = None
         self.set_lhs_function(fhls)
 
     def set_lhs_function(self, f):
