@@ -22,11 +22,13 @@ class CudaExpressionWriter(PythonExpressionWriter):
         super(CudaExpressionWriter, self).__init__()
         self.function_prefix = ''
         self.sp = (precision == myokit.SINGLE_PRECISION)
+
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
 
     def _ex_number(self, e):
         return myokit.strfloat(e) + 'f' if self.sp else myokit.strfloat(e)
+
     #def _ex_prefix_plus(self, e):
 
     def _ex_prefix_minus(self, e):
@@ -34,18 +36,26 @@ class CudaExpressionWriter(PythonExpressionWriter):
             return '-(' + self.ex(e[0]) + ')'
         else:
             return '-' + self.ex(e[0])
+
     #def _ex_plus(self, e):
     #def _ex_minus(self, e):
     #def _ex_multiply(self, e):
     #def _ex_divide(self, e):
 
     def _ex_quotient(self, e):
-        f = 'floorf' if self.sp else 'floor'
-        return f + '(' + self._ex_infix(e, '/') + ')'
+        # Note that this _must_ round towards minus infinity.
+        # See myokit.Quotient
+        # CUDA docs are unclear on convention, so assuming it follows C and
+        # so we need a custom implementation.
+        return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])))
 
     def _ex_remainder(self, e):
-        f = 'fmodf' if self.sp else 'fmod'
-        return f + '(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
+        # Note that this _must_ use the same round-to-neg-inf convention as
+        # myokit.Quotient.
+        # CUDA docs are unclear on convention, so assuming it follows C and
+        # so we need a custom implementation.
+        return self.ex(myokit.Minus(
+            e[0], myokit.Multiply(e[1], myokit.Quotient(e[0], e[1]))))
 
     def _ex_power(self, e):
         if e[1] == 2:
@@ -118,6 +128,7 @@ class CudaExpressionWriter(PythonExpressionWriter):
 
     def _ex_not(self, e):
         return '!(' + self.ex(e[0]) + ')'
+
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
     #def _ex_more(self, e):
