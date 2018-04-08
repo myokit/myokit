@@ -9,6 +9,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import myokit
 from myokit.formats.python import PythonExpressionWriter
 
 
@@ -49,10 +50,16 @@ class AnsiCExpressionWriter(PythonExpressionWriter):
     #def _ex_divide(self, e):
 
     def _ex_quotient(self, e):
+        # Note that this _must_ round towards minus infinity!
+        # See myokit.Quotient !
         return 'floor(' + self._ex_infix(e, '/') + ')'
 
     def _ex_remainder(self, e):
-        return 'fmod(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
+        # Note that this _must_ use the same round-to-neg-inf convention as
+        # myokit.Quotient! Implementation below is consistent with Python
+        # convention:
+        return self.ex(myokit.Minus(
+            e[0], myokit.Multiply(e[1], myokit.Quotient(e[0], e[1]))))
 
     def _ex_power(self, e):
         return 'pow(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'

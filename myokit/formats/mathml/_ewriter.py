@@ -17,6 +17,9 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
     This :class:`ExpressionWriter <myokit.formats.ExpressionWriter>` translates
     Myokit :class:`expressions <myokit.Expression>` to Content MathML or
     Presentation MathML.
+
+    The output will be in a form suitable for use with CellML (and so will not
+    contain elements outside of the supported CellML set of operations).
     """
     def __init__(self):
         super(MathMLExpressionWriter, self).__init__()
@@ -236,9 +239,11 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             self._ex(e[1], a)
 
     def _ex_quotient(self, e, t):
+        #TODO: Not in CellML subset: update this!
         return self._ex_infix(e, t, 'quotient')
 
     def _ex_remainder(self, e, t):
+        #TODO: Not in CellML subset: update this!
         return self._ex_infix(e, t, 'rem')
 
     def _ex_power(self, e, t):

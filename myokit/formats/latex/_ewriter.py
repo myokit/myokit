@@ -148,8 +148,11 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         b.append('}')
 
     def _ex_quotient(self, e, b):
-        # Not supported!
-        self._ex_function(e, b, 'quotient')
+        # Note: Quotient in myokit uses round-to-zero (like Python does!)
+        # See: myokit.Quotient
+        b.append('\\left\\lfloor')
+        self._ex_divide(e, b)
+        b.append('\\right\\rfloor')
 
     def _ex_remainder(self, e, b):
         self._ex_function(e, b, '\\bmod')
