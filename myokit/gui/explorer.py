@@ -227,7 +227,7 @@ class Explorer(QtWidgets.QDialog):
             y = self._select_y.findText(y)
             if y < 0:
                 # Guess: First log entry (first state)
-                y = self._select_y.findText(next(d.keys()))
+                y = self._select_y.findText(next(iter(d.keys())))
             self._select_y.setCurrentIndex(y)
         # Add new data
         self._data.append(d)
