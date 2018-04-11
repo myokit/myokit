@@ -579,9 +579,9 @@ def run(source, debug, debugfile):
     # Read mmt file
     try:
         print('Reading model from ' + source)
-        with myokit.Benchmarker() as b:
-            (model, protocol, script) = myokit.load(source)
-            print('File loaded in ' + str(b.time()) + ' seconds')
+        b = myokit.Benchmarker()
+        (model, protocol, script) = myokit.load(source)
+        print('File loaded in ' + str(b.time()) + ' seconds')
         if model is None:
             print('No model definition found')
         else:

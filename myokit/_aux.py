@@ -75,15 +75,7 @@ class Benchmarker(object):
     """
     Allows benchmarking using the with statement.
 
-    Typical use case (one-shot use)::
-
-        m,p,x = myokit.load('example')
-        s = myokit.Simulation(m, p)
-        with myokit.Benchmarker() as b:
-            s.run()
-            print(b.time())
-
-    Alternative use::
+    Example::
 
         m,p,x = myokit.load('example')
         s = myokit.Simulation(m, p)
@@ -97,14 +89,6 @@ class Benchmarker(object):
     """
     def __init__(self, output=None):
         self._start = timeit.default_timer()
-        self._methods = {}
-
-    def __enter__(self):
-        self.reset()
-        return self
-
-    def __exit__(self, *args):
-        del(self)
 
     def format(self, time):
         """
