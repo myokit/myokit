@@ -259,6 +259,40 @@ class LoadSaveTest(unittest.TestCase):
             self.assertEqual(pp.code(), p.code())
             self.assertEqual(xx, None)
 
+    def test_load_partial(self):
+        """ Test loading of partial files. """
+        mpath = os.path.join(DIR_DATA, 'beeler-1977-model.mmt')
+        ppath = os.path.join(DIR_DATA, 'beeler-1977-protocol.mmt')
+        spath = os.path.join(DIR_DATA, 'beeler-1977-script.mmt')
+
+        m, p, x = myokit.load(mpath)
+        self.assertIsInstance(m, myokit.Model)
+        self.assertIsNone(p)
+        self.assertIsNone(x)
+
+        m, p, x = myokit.load(ppath)
+        self.assertIsNone(m)
+        self.assertIsInstance(p, myokit.Protocol)
+        self.assertIsNone(x)
+
+        m, p, x = myokit.load(spath)
+        self.assertIsNone(m)
+        self.assertIsNone(p)
+        self.assertIn(type(x), (str, unicode))
+
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_model, ppath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_model, spath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_protocol, mpath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_protocol, spath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_script, mpath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_script, ppath)
+
 
 if __name__ == '__main__':
     unittest.main()
