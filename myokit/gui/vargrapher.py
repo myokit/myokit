@@ -1,7 +1,5 @@
 #
-# Source code editor for Myokit.
-#
-# This code is based in part on examples provided by the PyQt project.
+# Widget to display graphs of variable's equations.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -29,7 +27,7 @@ import myokit.gui
 import matplotlib
 import matplotlib.figure
 from myokit.gui import matplotlib_backend as backend
-from mpl_toolkits.mplot3d import axes3d     # noqa -- make flake8 ignore this
+from mpl_toolkits.mplot3d import axes3d     # noqa
 
 
 # Constants

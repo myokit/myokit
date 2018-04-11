@@ -53,7 +53,7 @@ class AtfFile(object):
         """
         Iterates over all data arrays in this ATF file.
         """
-        return self._data.__iter__()
+        return iter(self._data)
 
     def items(self):
         """
