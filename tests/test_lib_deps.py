@@ -107,8 +107,7 @@ class LibDepsTest(unittest.TestCase):
         # Create plot
         deps.plot_component_dependency_graph(model)
 
-
-    def test_component_dependency_graph(self):
+    def test_variable_dependency_graph(self):
         """
         Tests create_ and plot_ variable dependency graph method, to show
         digraph plot of variable dependencies.
@@ -122,7 +121,6 @@ class LibDepsTest(unittest.TestCase):
 
         # Create plot
         deps.plot_variable_dependency_graph(model)
-
 
 
 if __name__ == '__main__':
