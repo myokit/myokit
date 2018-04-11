@@ -99,7 +99,7 @@ def steptrain(vsteps, vhold, tpre, tstep, tpost=0):
     return p
 
 
-def steptrain_linear(vmin, vmax, dv, vhold, tpre, tstep, tpost=0):
+def steptrain_linear(vstart, vend, dv, vhold, tpre, tstep, tpost=0):
     """
     Creates a series of increasing or decreasing steps away from a holding
     value (typically a holding potential). This type of protocol is commonly
@@ -108,21 +108,20 @@ def steptrain_linear(vmin, vmax, dv, vhold, tpre, tstep, tpost=0):
       1. For the first ``tpre`` time units, the pacing variable is held at the
          value given by ``vhold``.
       2. For the next ``tstep`` time units, the pacing variable is held at a
-         value from ``vsteps``
+         value ranging from vstart to vend, with increments dv.
       3. For the next ``tpost`` time units, the pacing variable is held at the
          value ``vhold`` again.
 
-    These three steps are repeated for each value in the range from ``vmin``
-    up to (but not including) ``vmax``, with an increment specified as
-    ``dv``.
+    These three steps are repeated for each value in the range from ``vstart``
+    up to (but not including) ``vend``, with an increment specified as ``dv``.
     """
     # Check v arguments
-    if vmax > vmin:
+    if vend > vstart:
         if dv <= 0:
-            raise ValueError('vmax > vmin so dv must be strictly positive.')
+            raise ValueError('vend > vstart so dv must be strictly positive.')
     else:
         if dv >= 0:
-            raise ValueError('vmax > vmin so dv must be negative.')
+            raise ValueError('vend < vstart so dv must be negative.')
     # Check time arguments
     if tpre < 0:
         raise ValueError('Time tpre can not be negative.')
@@ -133,14 +132,15 @@ def steptrain_linear(vmin, vmax, dv, vhold, tpre, tstep, tpost=0):
     # Create protocol
     p = myokit.Protocol()
     time = 0
-    for i in range(abs((vmax - vmin) / dv)):
+    for i in range(int(abs((vend - vstart) / dv))):
         if tpre > 0:
             p.schedule(vhold, time, tpre)
             time += tpre
         if tstep > 0:
-            p.schedule(vmin + i * dv, time, tstep)
+            p.schedule(vstart + i * dv, time, tstep)
             time += tstep
         if tpost > 0:
             p.schedule(vhold, time, tpost)
             time += tpost
     return p
+
