@@ -10,6 +10,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import sys
 import unittest
 
 import myokit
@@ -77,6 +78,39 @@ class AuxText(unittest.TestCase):
         self.assertEqual(
             b.format(3600 * 24 * 7),
             '1 week, 0 days, 0 hours, 0 minutes, 0 seconds')
+
+    def test_py_capture(self):
+        """ Tests the PyCapture method. """
+        # Test basic use
+        with myokit.PyCapture() as c:
+            print('Hello')
+            self.assertEqual(c.text(), 'Hello\n')
+            sys.stdout.write('Test')
+        self.assertEqual(c.text(), 'Hello\nTest')
+
+        # Test wrapping
+        with myokit.PyCapture() as c:
+            print('Hello')
+            self.assertEqual(c.text(), 'Hello\n')
+            with myokit.PyCapture() as d:
+                print('Yes')
+            self.assertEqual(d.text(), 'Yes\n')
+            sys.stdout.write('Test')
+        self.assertEqual(c.text(), 'Hello\nTest')
+
+        # Test disabling / enabling
+        with myokit.PyCapture() as c:
+            print('Hello')
+            self.assertEqual(c.text(), 'Hello\n')
+            with myokit.PyCapture() as d:
+                sys.stdout.write('Yes')
+                d.disable()
+                print('Hmmm')
+                d.enable()
+                print('No')
+            self.assertEqual(d.text(), 'YesNo\n')
+            sys.stdout.write('Test')
+        self.assertEqual(c.text(), 'Hello\nHmmm\nTest')
 
 
 if __name__ == '__main__':

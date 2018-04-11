@@ -254,11 +254,11 @@ class SubCapture(PyCapture):
             # If possible, flush original outputs
             try:
                 sys.stdout.flush()
-            except AttributeError:
+            except AttributeError:          # pragma: no cover
                 pass
             try:
                 sys.stderr.flush()
-            except AttributeError:
+            except AttributeError:          # pragma: no cover
                 pass
             # Save any redirected output / error streams
             self._stdout = sys.stdout

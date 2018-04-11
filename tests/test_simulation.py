@@ -83,6 +83,20 @@ class SimulationTest(unittest.TestCase):
         self.assertNotEqual(e['engine.time'][n - 1], e['engine.time'][n])
         self.assertGreater(e['engine.time'][n], e['engine.time'][n - 1])
 
+    def test_progress_writer(self):
+        """
+        Test running with a progress writer.
+        """
+        sim = myokit.Simulation(self.model, self.protocol)
+        with myokit.PyCapture() as c:
+            sim.run(110, progress=myokit.ProgressPrinter())
+        c = c.text().splitlines()
+        self.assertEqual(len(c), 2)
+        self.assertEqual(
+            c[0],'[0.0 minutes] 1.9 % done, estimated 0 seconds remaining')
+        self.assertEqual(
+            c[1],'[0.0 minutes] 100.0 % done, estimated 0 seconds remaining')
+
 
 class RuntimeSimulationTest(unittest.TestCase):
     """
