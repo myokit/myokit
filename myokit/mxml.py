@@ -65,8 +65,7 @@ def dom_next(node, selector=False):
 
 def html2ascii(html, width=79, indent='  '):
     """
-    Flattens HTML and attempts to create readable ASCII code (actually utf-8
-    rather than ascii).
+    Flattens HTML and attempts to create readable ASCII code.
 
     The output will be text-wrapped after ``width`` characters. Each new level
     of nesting will be indented with the text given as ``indent``.
@@ -101,7 +100,11 @@ def html2ascii(html, width=79, indent='  '):
             """
             End the current line.
             """
-            line = ''.join(self.line)
+            try:
+                line = ''.join(self.line)
+            except Exception:
+                print(self.line)
+                raise
             self.line = []
             if line:
                 self.text.append(line)
@@ -126,8 +129,10 @@ def html2ascii(html, width=79, indent='  '):
             if self.inhead:
                 return
 
-            # Decode html characters & add to line
-            data = str(data.encode('utf8', 'ignore'))
+            # Convert to ascii, if possible
+            data = data.encode('ascii', 'ignore')
+
+            # Non-empty? Then add to line
             if data:
                 self.line.append(data)
 
@@ -177,7 +182,7 @@ def html2ascii(html, width=79, indent='  '):
                 if limode == 'ul':
                     self.line.append('* ')
                 else:
-                    self.line.append(str(1 + licount) + ' ')
+                    self.line.append(unicode(1 + licount) + ' ')
 
             elif tag == 'em' or tag == 'i':
                 self.line.append(' *')
@@ -243,7 +248,19 @@ def html2ascii(html, width=79, indent='  '):
                 self.line.append('_ ')
 
         def handle_entityref(self, name):
-            self.line.append(self.unescape('&' + name + ';'))
+            # Ignore content while in head
+            if self.inhead:
+                return
+
+            # Convert html characters
+            data = self.unescape('&' + name + ';')
+
+            # Convert to ascii, if possible
+            data = data.encode('ascii', 'ignore')
+
+            # Non-empty? Then add to line
+            if data:
+                self.line.append(data)
 
         def gettext(self):
             self.endline()
