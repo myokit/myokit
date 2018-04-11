@@ -293,6 +293,18 @@ class LoadSaveTest(unittest.TestCase):
         self.assertRaises(
             myokit.SectionNotFoundError, myokit.load_script, ppath)
 
+    def test_load_save_state(self):
+        """ Test loading/saving state. """
+        m, p, x = myokit.load('example')
+        with TemporaryDirectory() as d:
+            # Test save and load without model
+            f = d.path('state.txt')
+            myokit.save_state(f, m.state())
+            self.assertEqual(myokit.load_state(f), m.state())
+            # Test save and load with model argument
+            myokit.save_state(f, m.state(), m)
+            self.assertEqual(myokit.load_state(f, m), m.state())
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -179,11 +179,11 @@ class PyCapture(object):
             # If possible, flush current outputs
             try:
                 sys.stdout.flush()
-            except AttributeError:          # pragma: no cover
+            except AttributeError:  # pragma: no cover
                 pass
             try:
                 sys.stderr.flush()
-            except AttributeError:          # pragma: no cover
+            except AttributeError:  # pragma: no cover
                 pass
             # Save current sys stdout / stderr redirects, if any
             self._stdout = sys.stdout
@@ -254,11 +254,11 @@ class SubCapture(PyCapture):
             # If possible, flush original outputs
             try:
                 sys.stdout.flush()
-            except AttributeError:          # pragma: no cover
+            except AttributeError:  # pragma: no cover
                 pass
             try:
                 sys.stderr.flush()
-            except AttributeError:          # pragma: no cover
+            except AttributeError:  # pragma: no cover
                 pass
             # Save any redirected output / error streams
             self._stdout = sys.stdout
@@ -479,27 +479,36 @@ def load_state_bin(filename):
     # Open file
     with zipfile.ZipFile(filename, 'r') as f:
         info = f.infolist()
-        if len(info) != 1:
+
+        if len(info) != 1:  # pragma: no cover
             raise Exception('Invalid state file format [10].')
+
         # Split into parts, get data type and array size
         info = info[0]
         parts = info.filename.split('_')
-        if len(parts) != 3:
+
+        if len(parts) != 3:     # pragma: no cover
             raise Exception('Invalid state file format [20].')
-        if parts[0] != 'state':
+
+        if parts[0] != 'state':     # pragma: no cover
             raise Exception('Invalid state file format [30].')
+
         code = parts[1]
-        if code not in ['d', 'f']:
+        if code not in ['d', 'f']:  # pragma: no cover
             raise Exception('Invalid state file format [40].')
+
         size = int(parts[2])
-        if size < 0:
+        if size < 0:    # pragma: no cover
             raise Exception('Invalid state file format [50].')
+
         # Create array, read bytes into array
         ar = array.array(code)
         ar.fromstring(f.read(info))
+
         # Always store as little endian
         if sys.byteorder == 'big':
             ar.byteswap()
+
     return ar
 
 
@@ -513,8 +522,10 @@ def lvsd(s1, s2):
     """
     if len(s1) < len(s2):
         return lvsd(s2, s1)
+
     if not s1:
         return len(s2)
+
     previous_row = range(len(s2) + 1)
     for i, c1 in enumerate(s1):
         current_row = [i + 1]
@@ -524,6 +535,7 @@ def lvsd(s1, s2):
             substitutions = previous_row[j] + (c1 != c2)
             current_row.append(min(insertions, deletions, substitutions))
         previous_row = current_row
+
     return previous_row[-1]
 
 
@@ -541,23 +553,32 @@ class ModelComparison(object):
     def __init__(self, model1, model2, live=False):
         # Difference list
         self._diff = []
+
         # Live reporting
         self._live = True if live else False
+
         # Compare models
         if live:
             print('Comparing:')
             print('  [1] ' + model1.name())
             print('  [2] ' + model2.name())
+
         # -> Model meta data
         self._meta(model1, model2)
+
         # -> User functions
         self._userfunc(model1, model2)
+
         # -> Time variable
         self._time(model1, model2)
+
         # -> State vector
         self._state(model1, model2)
+
         # -> Components & Variables
         self._components(model1, model2)
+
+        # Final report
         if live:
             print('Done')
             print('  ' + str(len(self._diff)) + ' differences found')
@@ -1077,6 +1098,7 @@ def save_state(filename, state, model=None):
     """
     # Check filename
     filename = os.path.expanduser(filename)
+
     # Format
     if model is not None:
         state = model.map_to_state(state)
@@ -1093,6 +1115,8 @@ def save_state(filename, state, model=None):
                 'State must be given as list (or other iterable) or'
                 ' save_state() must be used with the third argument `model`'
                 ' set.')
+
+    # Store
     with open(filename, 'w') as f:
         f.write(state)
 
