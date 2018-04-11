@@ -59,9 +59,9 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
     def _ex_power(self, e):
         if e[1] == myokit.Number(2):
             if e.bracket(e[0]):
-                return '(' + self.ex(e[0]) + ') * (' + self.ex(e[0]) + ')'
+                return '((' + self.ex(e[0]) + ') * (' + self.ex(e[0]) + '))'
             else:
-                return self.ex(e[0]) + ' * ' + self.ex(e[0])
+                return '(' + self.ex(e[0]) + ' * ' + self.ex(e[0]) + ')'
         else:
             return 'pow(' + self.ex(e[0]) + ', ' + self.ex(e[1]) + ')'
 

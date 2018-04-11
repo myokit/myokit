@@ -608,12 +608,12 @@ class CudaExpressionWriterTest(unittest.TestCase):
         self.assertEqual(wd.ex(x), 'pow(c.a, 12.0)')
         # Square
         x = myokit.Power(a, myokit.Number(2))
-        self.assertEqual(ws.ex(x), 'c.a * c.a')
-        self.assertEqual(wd.ex(x), 'c.a * c.a')
+        self.assertEqual(ws.ex(x), '(c.a * c.a)')
+        self.assertEqual(wd.ex(x), '(c.a * c.a)')
         # Square with brackets
         x = myokit.Power(myokit.Plus(a, b), myokit.Number(2))
-        self.assertEqual(ws.ex(x), '(c.a + 12.0f) * (c.a + 12.0f)')
-        self.assertEqual(wd.ex(x), '(c.a + 12.0) * (c.a + 12.0)')
+        self.assertEqual(ws.ex(x), '((c.a + 12.0f) * (c.a + 12.0f))')
+        self.assertEqual(wd.ex(x), '((c.a + 12.0) * (c.a + 12.0))')
         # Sqrt
         x = myokit.Sqrt(b)
         self.assertEqual(ws.ex(x), 'sqrtf(12.0f)')
@@ -1619,14 +1619,14 @@ class OpenCLExpressionWriterTest(unittest.TestCase):
         self.assertEqual(wn.ex(x), 'pow(c.a, 12.0f)')
         # Square
         x = myokit.Power(a, myokit.Number(2))
-        self.assertEqual(ws.ex(x), 'c.a * c.a')
-        self.assertEqual(wd.ex(x), 'c.a * c.a')
-        self.assertEqual(wn.ex(x), 'c.a * c.a')
+        self.assertEqual(ws.ex(x), '(c.a * c.a)')
+        self.assertEqual(wd.ex(x), '(c.a * c.a)')
+        self.assertEqual(wn.ex(x), '(c.a * c.a)')
         # Square with brackets
         x = myokit.Power(myokit.Plus(a, b), myokit.Number(2))
-        self.assertEqual(ws.ex(x), '(c.a + 12.0f) * (c.a + 12.0f)')
-        self.assertEqual(wd.ex(x), '(c.a + 12.0) * (c.a + 12.0)')
-        self.assertEqual(wn.ex(x), '(c.a + 12.0f) * (c.a + 12.0f)')
+        self.assertEqual(ws.ex(x), '((c.a + 12.0f) * (c.a + 12.0f))')
+        self.assertEqual(wd.ex(x), '((c.a + 12.0) * (c.a + 12.0))')
+        self.assertEqual(wn.ex(x), '((c.a + 12.0f) * (c.a + 12.0f))')
         # Sqrt
         x = myokit.Sqrt(b)
         self.assertEqual(ws.ex(x), 'native_sqrt(12.0f)')
