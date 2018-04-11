@@ -287,6 +287,11 @@ class ModelParseTest(unittest.TestCase):
         except myokit.ParseError as e:
             self.assertIsInstance(e.cause, myokit.IntegrityError)
             self.assertIsInstance(e.cause, myokit.UnresolvedReferenceError)
+            # Token is not set when resolving name (string)
+            self.assertIsNone(e.cause.token())
+            # But line and char should be set in parse error by parser
+            self.assertEqual(e.line, 8)
+            self.assertEqual(e.char, 16)
 
     def test_cyclical_reference_error(self):
         """
