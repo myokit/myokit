@@ -292,6 +292,8 @@ class ModelParseTest(unittest.TestCase):
             # But line and char should be set in parse error by parser
             self.assertEqual(e.line, 8)
             self.assertEqual(e.char, 16)
+            # Check str() method (only implemented for parse errors)
+            str(e)
 
     def test_cyclical_reference_error(self):
         """

@@ -335,20 +335,17 @@ class ParseError(MyokitError):
     ``char``
         The character the error ocurred on (integer, first char is zero)
     ``desc``
-        A more detailed description of the error (optional)
+        A more detailed description of the error.
     ``cause``
         Another exception that triggered this exception (or ``None``).
     """
-    def __init__(self, name, line, char, desc=None, cause=None):
+    def __init__(self, name, line, char, desc, cause=None):
         self.name = str(name)
         self.line = int(line)
         self.char = int(char)
         self.value = self.name + ' on line ' + str(self.line)
-        if desc is not None:
-            self.desc = str(desc)
-            self.value += ': ' + self.desc
-        else:
-            self.desc = None
+        self.desc = str(desc)
+        self.value += ': ' + self.desc
         self.cause = cause
         super(ParseError, self).__init__(self.value)
 
