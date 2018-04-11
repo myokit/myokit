@@ -712,7 +712,7 @@ class Model(ObjectWithMeta, VarProvider):
     using ``if "x" in m:``.
 
     Variables stored inside components can be accessed using :meth:`get()` or
-    :meth:`itervalues()`. Values defined through their derivative make up the
+    :meth:`values()`. Values defined through their derivative make up the
     model state and can be accessed using :meth:`states()`. States have
     initial values accessible through :meth:`inits()`.
 
