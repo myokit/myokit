@@ -26,7 +26,7 @@ class AsciifierTest(unittest.TestCase):
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-    <title>Myokit - The Maastricht Myocyte Toolkit</title>
+    <title>Myokit &amp; an entity test</title>
     <base href="http://myokit.org/" />
     <link rel="stylesheet" type="text/css" media="all"
         href="http://myokit.org/static/css/myokit-16.css" />
