@@ -2621,6 +2621,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         # Reset warnings
         self._warnings = []
+
         # Check time variable
         time = self.time()
         if time is None:
@@ -2631,6 +2632,7 @@ class Model(ObjectWithMeta, VarProvider):
             raise myokit.IntegrityError(
                 'Invalid time variable set. Time variable must be bound to'
                 ' external value "time".')
+
         # Validation of components, variables
         for c in self.components():
             if c._parent != self:
@@ -2644,6 +2646,7 @@ class Model(ObjectWithMeta, VarProvider):
                     c._parent = self
             # Deep validation
             c.validate(fix_crudely)
+
         # Test component mapping
         for n, c in self._components.items():
             if n != c.qname():
@@ -2651,6 +2654,7 @@ class Model(ObjectWithMeta, VarProvider):
                 raise myokit.IntegrityError(
                     'Component called <' + c.qname() + '> found at index <'
                     + n + '>.')
+
         # Test current state values
         n = len(self._state)
         if n != len(self._current_state):
@@ -2658,10 +2662,13 @@ class Model(ObjectWithMeta, VarProvider):
             raise myokit.IntegrityError(
                 'Current state values list must have same size as state'
                 ' variables list.')
+
         # Find cycles, warn of unused variables
         self._validate_solvability(fix_crudely)
+
         # Create globally unique names
         self.create_unique_names()
+
         # Return
         self._valid = True
 
@@ -3012,6 +3019,7 @@ class Component(VarOwner):
         if m is None:
             raise myokit.IntegrityError(
                 'No model found in hierarchy for <' + self.qname() + '>.')
+
         # Validate child variables
         for v in self.variables():
             if v._parent != self:
@@ -3024,6 +3032,7 @@ class Component(VarOwner):
                 else:
                     self.model()._warn(msg + ' Attempting fix.')
                     v._parent = self
+
             # Deep validation
             v.validate(fix_crudely)
 

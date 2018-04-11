@@ -74,9 +74,12 @@ class CyclicalDependencyError(IntegrityError):
     :class:`Variable` objects in the cycle.
     """
     def __init__(self, cycle):
+        # Set message
         msg = 'Cyclical reference found: (' + ' > '.join(
             [v.var().qname() for v in cycle]) + ').'
-        tok = cycle[0]._token
+        # Set token: First item in cycle is model's defining lhs
+        tok = cycle[0].var()._token
+        # Raise
         super(CyclicalDependencyError, self).__init__(msg, tok)
 
 

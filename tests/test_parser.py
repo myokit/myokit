@@ -89,6 +89,9 @@ class PhasedParseTest(unittest.TestCase):
         self.assertEqual(e.eval(), 3)
         # Etc etc etc
 
+        # Test bad value
+        self.assertRaises(myokit.ParseError, p, '5 beans')
+
     def test_parse_state(self):
         """
         Test parse_state(), uses parse_expression()
@@ -202,6 +205,7 @@ class PhasedParseTest(unittest.TestCase):
 class ModelParseTest(unittest.TestCase):
     def test_model_creation(self):
         m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+
         # Test components
         self.assertEqual(len(m), 9)
         self.assertIn('engine', m)
@@ -213,6 +217,7 @@ class ModelParseTest(unittest.TestCase):
         self.assertIn('ib', m)
         self.assertIn('ik', m)
         self.assertIn('ikp', m)
+
         # Test state
         states = [
             'membrane.V',
@@ -237,6 +242,7 @@ class ModelParseTest(unittest.TestCase):
         self.assertEqual(ref, out)
         for k, eq in enumerate(m.inits()):
             self.assertEqual(eq.rhs.eval(), values[k])
+
         # Test state parsing / setting
         m.set_state(values)
         for k, eq in enumerate(m.inits()):
@@ -249,6 +255,7 @@ class ModelParseTest(unittest.TestCase):
         m.set_state(s)
         for k, eq in enumerate(m.inits()):
             self.assertEqual(eq.rhs.eval(), values[k])
+
         # Test cloning
         try:
             m2 = m.clone()
@@ -260,6 +267,51 @@ class ModelParseTest(unittest.TestCase):
             print(myokit.format_parse_error(e, s.splitlines()))
             raise e
         self.assertEqual(m.code(), m2.code())
+
+    def test_unresolved_reference_error(self):
+        """
+        Tests unresolved reference errors.
+        """
+        code = """
+            [[model]]
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            x = a
+            """
+        self.assertRaises(myokit.ParseError, myokit.parse, code)
+        try:
+            myokit.parse(code)
+        except myokit.ParseError as e:
+            self.assertIsInstance(e.cause, myokit.IntegrityError)
+            self.assertIsInstance(e.cause, myokit.UnresolvedReferenceError)
+
+    def test_cyclical_reference_error(self):
+        """
+        Tests cyclical reference errors.
+        """
+        code = """
+            [[model]]
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            x = y
+            y = x
+            """
+        self.assertRaises(myokit.ParseError, myokit.parse, code)
+        try:
+            myokit.parse(code)
+        except myokit.ParseError as e:
+            self.assertIsInstance(e.cause, myokit.IntegrityError)
+            self.assertIsInstance(e.cause, myokit.CyclicalDependencyError)
+            self.assertEqual(e.line, 9)
+            self.assertEqual(e.char, 12)
+            from myokit._parser import NAME
+            self.assertEqual(e.cause.token(), (NAME, 'y', 9, 12))
 
     def test_piecewise(self):
         """
@@ -305,6 +357,7 @@ class ModelParseTest(unittest.TestCase):
             dot(q) = 2
             """
         myokit.parse(code)
+
         # Non-literal value
         code = """
             [[model]]
@@ -339,6 +392,7 @@ class ModelParseTest(unittest.TestCase):
             r = 10 * ploep
             """
         myokit.parse(code)
+
         # Duplicate alias is allowed
         code = """
             [[model]]
@@ -355,6 +409,7 @@ class ModelParseTest(unittest.TestCase):
             q = 2 * one
             """
         myokit.parse(code)
+
         # Duplicate name
         code = """
             [[model]]
@@ -370,6 +425,7 @@ class ModelParseTest(unittest.TestCase):
             use c.p as q
             """
         self.assertRaises(myokit.ParseError, myokit.parse, code)
+
         # API Alias
         m = myokit.Model('InvalidNameAlias')
         c = m.add_component('c')
@@ -381,8 +437,10 @@ class ModelParseTest(unittest.TestCase):
         r = d.add_variable('r')
         r.set_rhs('1 / 1e2')
         d.add_alias('p', p)
+
         # Invalid name
         self.assertRaises(myokit.InvalidNameError, d.add_alias, '_plf', q)
+
         # Duplicate names
         self.assertRaises(myokit.DuplicateName, d.add_alias, 'p', q)
         self.assertRaises(myokit.DuplicateName, c.add_alias, 'p', r)

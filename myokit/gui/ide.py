@@ -1846,30 +1846,37 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if console:
                 self._console.write('No changes to model since last build.')
             return self._valid_model
+
         # Parse and validate
         model = None
+
         # Reset last model error
         self._last_model_error = None
+
         # Check for empty model field
         lines = self._model_editor.get_text()
         if lines.strip() == '':
             if console:
                 self._console.write('No model found.')
             return None
+
         # Validate and return
         lines = lines.splitlines()
         try:
             # Parse
             model = myokit.parse_model(lines)
+
             # Show output
             if console:
                 self._console.write('No errors found in model definition.')
             if model.has_warnings():
                 if console or errors_in_console:
                     self._console.write(model.format_warnings())
+
             # Cache validated model
             self._valid_model = model
             return model
+
         except myokit.ParseError as e:
             if console or errors_in_console:
                 # Write error to console
@@ -1877,6 +1884,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 # Store error
                 self._last_model_error = e
             return False
+
         except myokit.IntegrityError as e:
             if console or errors_in_console:
                 self.statusBar().showMessage('Model integrity error')

@@ -35,10 +35,13 @@ def parse(source):
         raw.next
     except AttributeError:
         raw = iter(raw)
+
     # Create tokenizer
     stream = Tokenizer(raw)
+
     # Start parsing
     model = protocol = script = None
+
     # Get segments
     token = expect(stream.peek(), SEGMENT_HEADER)
     if token[1][2:-2] not in ['protocol', 'script']:
@@ -60,6 +63,7 @@ def parse(source):
         script = parse_script_from_stream(stream, raw)
     else:
         expect(stream.next(), EOF)
+
     # Return
     return (model, protocol, script)
 
@@ -76,6 +80,7 @@ def parse_model(source):
         raw.next
     except AttributeError:
         raw = iter(raw)
+
     # Parse and return
     stream = Tokenizer(raw)
     token = expect(stream.peek(), SEGMENT_HEADER)
@@ -355,6 +360,7 @@ def parse_model_from_stream(stream, syntax_only=False):
     """
     # Create parse info object
     info = ParseInfo()
+
     # Parse header definition
     token = expect(stream.next(), SEGMENT_HEADER)
     if token[1][2:-2] != 'model':
@@ -362,9 +368,11 @@ def parse_model_from_stream(stream, syntax_only=False):
             'Invalid segment header', token[2], token[3],
             'Expecting [[model]]')
     expect(stream.next(), EOL)
+
     # Create model
     model = info.model = myokit.Model()
     reg_token(info, token, model)
+
     # Parse header data
     token = stream.peek()
     while token[0] in (NAME, FUNC_NAME, META_NAME):
@@ -403,22 +411,28 @@ def parse_model_from_stream(stream, syntax_only=False):
             info.initial_values[name] = expr
             reg_token(info, t0, expr)
         token = stream.peek()
+
     # Save order of state variables
     state_order = info.initial_values.keys()
+
     # Parse components
     while stream.peek()[0] == BRACKET_OPEN:
         parse_component(stream, info)
     expect(stream.peek(), (EOF, BRACKET_OPEN, SEGMENT_HEADER))
+
     # Syntax checking mode
     if syntax_only:
         return True
+
     # All initial variables must have been used
     for qname, e in info.initial_values.items():
         raise ParseError(
             'Unused initial value', 0, 0,
             'An unused initial value was found for "' + str(qname) + '".')
+
     # Re-order the model state
     model.reorder_state(state_order)
+
     # Order encountered tokens
     m = model._tokens
     model._tokens = {}
@@ -426,8 +440,10 @@ def parse_model_from_stream(stream, syntax_only=False):
         model._tokens[line] = {}
         for char in sorted(m[line].keys()):
             model._tokens[line][char] = m[line][char]
+
     # Resolve alias map
     resolve_alias_map_names(info)
+
     # Resolve variable references to objects
     # A.K.A. Parse proto expression into Myokit.Expression
     for var in model.variables(deep=True):
@@ -436,6 +452,7 @@ def parse_model_from_stream(stream, syntax_only=False):
             # won't have been resolved in the first place.
             var.set_rhs(convert_proto_expression(var._proto_rhs, var, info))
         del(var._proto_rhs)
+
     # Check the semantics of the model
     try:
         model.validate()
@@ -445,6 +462,7 @@ def parse_model_from_stream(stream, syntax_only=False):
             raise ParseError(
                 'IntegrityError', t[2], t[3], e.message, cause=e)
         raise ParseError('IntegrityError', 0, 0, e.message, cause=e)
+
     # Return
     return model
 
