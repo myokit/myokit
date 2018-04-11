@@ -182,6 +182,7 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.next_time(), float('inf'))
         self.assertEqual(s.pace(), 0)
+
         # Test basic use + log creation methods
         p = myokit.Protocol()
         p.schedule(1, 10, 1, 1000, 0)
@@ -201,6 +202,10 @@ class PacingTest(unittest.TestCase):
             pl.figure()
             pl.plot(d.time(), d['pace'])
             pl.show()
+
+        # Test bad interval call
+        self.assertRaises(ValueError, p.create_log_for_interval, 100, 0)
+
         # Test raising of errors on rescheduled events
         p = myokit.Protocol()
         p.schedule(1, 0, 1, 1000)
@@ -223,6 +228,31 @@ class PacingTest(unittest.TestCase):
         except myokit.SimultaneousProtocolEventError as e:
             m = e.message
             self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
+
+    def test_create_log_for_times(self):
+        """
+        Tests the method Protocol.create_log_for_times()
+        """
+        p = myokit.Protocol()
+        #          level, self.characteristic_time(), duration
+        p.schedule(2, 10, 100, 1000, 2)
+
+        t = [0, 9.999, 10, 10.001, 109.999, 110, 110.001, 1000, 1009.99, 1010,
+             1110, 2000, 2020]
+        v = [0, 0, 2, 2, 2, 0, 0, 0, 0, 2, 0, 0, 0]
+        d = p.create_log_for_times(t)
+        self.assertEqual(len(d), 2)
+        self.assertIn('time', d)
+        self.assertIn('pace', d)
+        self.assertEqual(d.time(), t)
+        self.assertEqual(d['pace'], v)
+
+    def test_guess_duration(self):
+        """
+        Deprecated method.
+        """
+        p = myokit.Protocol()
+        self.assertEqual(p.characteristic_time(), p.guess_duration())
 
     def test_event_based_pacing_ansic(self):
         """

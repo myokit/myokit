@@ -242,6 +242,9 @@ class Protocol(object):
 
         This method now returns the value given by :meth:`characteristic_time`.
         """
+        import logging
+        logger = logging.getLogger('myokit')
+        logger.warning('Protocol.guess_duration() is deprecated.')
         return self.characteristic_time()
 
     def head(self):
