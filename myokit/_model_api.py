@@ -3738,6 +3738,7 @@ class Variable(VarOwner):
         if self._rhs is None:
             raise myokit.MissingRhsError(self)
         self._rhs.validate()
+
         # Check state variables
         is_state = self._indice is not None
         is_deriv = self.lhs().is_derivative()
@@ -3759,11 +3760,13 @@ class Variable(VarOwner):
             raise myokit.IntegrityError(
                 'A derivative was set for <' + self.qname() + '> but this is'
                 ' not a state variable.')
+
         # Check for component as parent
         m = self.parent(Component)
         if m is None:
             raise myokit.IntegrityError(
                 'No component found in hierarchy for <' + self.qname() + '>.')
+
         # Validate references
         for ref in self._refs_to:
             # References can be made to:
@@ -3780,6 +3783,7 @@ class Variable(VarOwner):
             if ref._parent.is_ancestor(self):
                 continue
             raise myokit.IllegalReferenceError(ref, self)
+
         # Validate child variables
         for v in self.variables():
             if v._parent != self:

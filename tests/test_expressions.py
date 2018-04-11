@@ -73,7 +73,9 @@ import myokit
 class ExpressionsTest(unittest.TestCase):
 
     def test_number(self):
-        """ Tests ``Number``. """
+        """
+        Tests ``Number``.
+        """
         # Test myokit.Number creation and representation
         x = myokit.Number(-4.0)
         self.assertEqual(str(x), '-4')
@@ -124,7 +126,9 @@ class ExpressionsTest(unittest.TestCase):
         self.assertEqual(f(), x.eval())
 
     def test_name(self):
-        """ Tests ``Name``. """
+        """
+        Tests ``Name``.
+        """
         model = myokit.Model()
         component = model.add_component('c')
         xvar = component.add_variable('x')
