@@ -125,6 +125,9 @@ def run_mmt_files(path):
     # Get current dir
     current_dir = os.path.abspath(os.path.dirname(__file__))
 
+    # Error states
+    error = 0
+
     # Change dir, make sure to change back again
     try:
         # Change to dir
@@ -142,6 +145,7 @@ def run_mmt_files(path):
                     print('Running...')
                     myokit.run(m, p, x)
                 except Exception:
+                    error = 1
                     print(traceback.format_exc())
                 del(m, p, x)
             except Exception:
@@ -155,18 +159,30 @@ def run_mmt_files(path):
             # Tidy up
             gc.collect()
             print('-' * 70)
+
+            # Quit on error
+            if error:
+                return error
     finally:
         # Change back
         os.chdir(current_dir)
 
+    # Return error status 0
+    return error
 
 def run_publication_examples():
+    """
+    Runs all publication examples.
+    """
     # Get publications directory
     path = os.path.join('tests', 'publications')
 
+    # Run, exit on error
+
     # PBMB 2016. Myokit: A simple interface to cardiac cellular
     # electrophysiology
-    run_mmt_files(os.path.join(path, 'pbmb-2016'))
+    if run_mmt_files(os.path.join(path, 'pbmb-2016')):
+        sys.exit(1)
 
 
 def run_web_examples():
@@ -184,8 +200,9 @@ def run_web_examples():
         print('Web examples not found. Skipping.')
         return
 
-    # Run
-    run_mmt_files(path)
+    # Run, exit on error
+    if run_mmt_files(path):
+        sys.exit(1)
 
 
 if __name__ == '__main__':
@@ -248,10 +265,25 @@ if __name__ == '__main__':
         action='store_true',
         help='Run web examples.',
     )
+
+    # Disable matplotlib output
+    parser.add_argument(
+        '--blind',
+        action='store_true',
+        help='Disable matplotlib output.',
+    )
+
+    # Parse arguments
     args = parser.parse_args()
 
     # Run tests
     has_run = False
+
+    # Disable matplotlib output
+    if args.blind:
+        has_run = False
+        import matplotlib
+        matplotlib.use('Agg')
 
     # Test combinations
     if args.quick:
