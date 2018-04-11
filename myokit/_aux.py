@@ -349,12 +349,11 @@ def format_float_dict(d):
     Takes a dictionary of ``string : float`` mappings and returns a formatted
     string.
     """
-    out = []
-    n = max([len(str(k)) for k in d.keys()])
-    for k, v in d.items():
-        k = str(k)
-        out.append(k + ' ' * (n - len(k)) + ' = ' + strfloat(v))
-    return '\n'.join(out)
+    keys = [str(k) for k in d.keys()]
+    keys.sort()
+    n = max([len(k) for k in keys])
+    return '\n'.join(
+        [k + ' ' * (n - len(k)) + ' = ' + strfloat(d[k]) for k in keys])
 
 
 def format_path(path, root=None):

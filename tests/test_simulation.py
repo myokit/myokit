@@ -93,9 +93,9 @@ class SimulationTest(unittest.TestCase):
         c = c.text().splitlines()
         self.assertEqual(len(c), 2)
         self.assertEqual(
-            c[0],'[0.0 minutes] 1.9 % done, estimated 0 seconds remaining')
+            c[0], '[0.0 minutes] 1.9 % done, estimated 0 seconds remaining')
         self.assertEqual(
-            c[1],'[0.0 minutes] 100.0 % done, estimated 0 seconds remaining')
+            c[1], '[0.0 minutes] 100.0 % done, estimated 0 seconds remaining')
 
 
 class RuntimeSimulationTest(unittest.TestCase):

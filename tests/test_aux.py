@@ -10,6 +10,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import os
 import sys
 import unittest
 
@@ -111,6 +112,40 @@ class AuxText(unittest.TestCase):
             self.assertEqual(d.text(), 'YesNo\n')
             sys.stdout.write('Test')
         self.assertEqual(c.text(), 'Hello\nHmmm\nTest')
+
+    def test_examplify(self):
+        """ Test examplify. """
+        self.assertEqual(myokit._aux._examplify('test.txt'), 'test.txt')
+        self.assertEqual(myokit._aux._examplify('example'), myokit.EXAMPLE)
+
+    def test_format_float_dict(self):
+        """ Tests myokit.format_float_dict. """
+        d = {'one': 1, 'Definitely two': 2, 'Three-ish': 3.1234567}
+        x = myokit.format_float_dict(d).splitlines()
+        self.assertEqual(len(x), 3)
+        self.assertEqual(x[0], 'Definitely two = 2')
+        self.assertEqual(x[1], 'Three-ish      = 3.1234567')
+        self.assertEqual(x[2], 'one            = 1')
+
+    def test_format_path(self):
+        """ Tests format_path(). """
+        self.assertEqual(
+            myokit.format_path(os.path.join('a', 'b', 'c')), 'a/b/c')
+        self.assertEqual(
+            myokit.format_path('.'), './')
+        self.assertEqual(
+            myokit.format_path('a/'), 'a')
+        root = os.path.join(os.path.abspath('.'), 'a')
+        self.assertEqual(
+            myokit.format_path(os.path.join(root, 'b', 'c'), root), 'b/c')
+        self.assertEqual(
+            myokit.format_path('/', root='/'), './')
+        # Path outside of root
+        self.assertEqual(
+            myokit.format_path(
+                os.path.abspath('/test'),
+                os.path.abspath('/test/tost')),
+            '/test')
 
 
 if __name__ == '__main__':
