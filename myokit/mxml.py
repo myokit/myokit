@@ -100,11 +100,7 @@ def html2ascii(html, width=79, indent='  '):
             """
             End the current line.
             """
-            try:
-                line = ''.join(self.line)
-            except Exception:
-                print(self.line)
-                raise
+            line = ''.join(self.line)
             self.line = []
             if line:
                 self.text.append(line)
