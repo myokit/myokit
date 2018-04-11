@@ -16,65 +16,85 @@ import myokit
 # Don't import pyplot yet, this will crash if no window environment is loaded
 
 
-def create_state_dependency_matrix(model, direct=False, knockout=[]):
+def create_state_dependency_matrix(model, direct=False, knockout=None):
     """
     Creates a matrix showing state variable dependency distances.
 
-    Dependencies can either be direct (a relies on b) or indirect (a relies on
-    b which relies on c, but a does not rely on c directly). To show only
-    direct dependencies, set ``direct=True``, in this case the returned matrix
-    will show the shape of the system's Jacobian.
+    A distance of ``1`` from state ``x`` to state ``y`` means that ``dot(x)``
+    depends on ``y``.
+    A distance of ``2`` means that ``dot(x)`` does not depend on ``y``, but
+    does depend on another state whose derivative depends directly on ``y``.
 
-    Variables can be "knocked out" by adding them to the list in the
-    ``knockout`` parameter. If x depends on y and y depends on z, knocking out
-    y will prevent the method from findind x's dependency on z.
+    State variables can be "knocked out" by adding them to the ``knockout``
+    list. The rows and columns for knocked out variables will be set to zero,
+    and knocked out variables won't be taken into account when calculating
+    indirect dependencies (distance>1).
+
+    Arguments:
+
+    ``model``
+        The model to create a matrix for.
+    ``direct``
+        True if only direct dependencies (distance=1) should be shown. In this
+        case, the returned matrix will show the shape of the jacobian.
+    ``knockout``
+        A list of state variables or state variable names to "knock-out".
+
     """
-    # Create matrix of direct dependencies
-    s = [x for x in model.states()]
-    n = len(s)
-    m = [0] * n
+    # Gather dependencies
+    states = [x for x in model.states()]
+    n = len(states)
     deep = model.map_deep_dependencies(collapse=True, omit_states=False)
-    i = 0
-    for var in s:
-        m[i] = [0] * n
-        for dep in deep[var.lhs()]:
-            if dep.var().is_state():
-                m[i][dep.var().indice()] = 1
-        i += 1
+
+    # Get indices to knock out, if any
+    iknock = []
+    if knockout is not None:
+        for v in knockout:
+            # Ensure all items in knockout are state variables from this model
+            v = model.get(v, class_filter=myokit.Variable)
+            if not v.is_state():
+                raise ValueError('Knockout variables must be states.')
+            iknock.append(v.indice())
+
+    # Create matrix of direct dependencies
+    m = []
+    for i, var in enumerate(states):
+        row = [0] * n
+        if i not in iknock:
+            for dep in deep[var.lhs()]:
+                if dep.var().is_state():
+                    j = dep.var().indice()
+                    if j not in iknock:
+                        row[j] = 1
+        m.append(row)
+
+    # Return directly
     if direct:
         return m
-    # Create two copies of dependency matrix, apply knockouts
-    p = []
-    q = []
-    for i in range(0, n):
-        pp = []
-        qq = []
-        for j in range(0, n):
-            v = m[i][j] if s[i] not in knockout else 0
-            pp.append(v)
-            qq.append(v)
-        p.append(pp)
-        q.append(qq)
-    del(m)
-    # The distance at step+1 will be set in q, calculated from p
-    # At the end of each iteration, q is copied into p
-    # At the end of this operation, p = q = the distances
+
+    # Create copy of m
+    q = [list(row) for row in m]
+
+    # The distance at step+1 will be set in q, calculated from m
+    # At the end of each iteration, q is copied into m
+    # At the end of this operation, m = q = the distances
     # Repeat this trick n-1 times...
     for index in range(1, n):
         for i in range(0, n):
             for j in range(0, n):
                 # ... for every item
-                if p[i][j] == index:
+                if m[i][j] == index:
                     # ... where the value is the current index 1,2,3...
                     for k in range(0, n):
                         # ... update the entries
                         # ... unless a previous value was set
-                        if q[i][k] == 0 and p[j][k] > 0:
-                            q[i][k] = p[i][j] + p[j][k]
+                        if q[i][k] == 0 and m[j][k] > 0:
+                            q[i][k] = m[i][j] + m[j][k]
         for i in range(0, n):
             for j in range(0, n):
-                p[i][j] = q[i][j]
-    return p
+                m[i][j] = q[i][j]
+
+    return m
 
 
 def plot_state_dependency_matrix(
@@ -92,14 +112,17 @@ def plot_state_dependency_matrix(
     Returns a matplotlib axes object.
     """
     import matplotlib.pyplot as pl
+
     # Create dependency matrix
     m = create_state_dependency_matrix(model, direct, knockout)
     n = len(m)
+
     # Configure axes
     a = axes if axes is not None else pl.gca()
     a.set_aspect('equal')
     a.set_xlim(0, n + 2)
     a.set_ylim(0, n)
+
     # Create matrix plot
     from matplotlib.patches import Rectangle
     w = 1.0 / (max(max(m)))     # color weight
@@ -115,12 +138,14 @@ def plot_state_dependency_matrix(
             if (vv > 1.0):
                 return (0, 1.0, 0)
             return (vv, vv, 1.0)
+
     for y, row in enumerate(m):
         y = n - y - 1
         for x, v in enumerate(row):
             r = Rectangle((x + p1, y + p1), p2, p2, color=c(v))
             a.add_patch(r)
             r.set_clip_box(a.bbox)
+
         # Add colorbar
         r = Rectangle((1 + n + p1, y + p1), p2, p2, color=c(1 + y))
         a.add_patch(r)
@@ -131,10 +156,12 @@ def plot_state_dependency_matrix(
             str(y + 1),
             horizontalalignment='center',
             verticalalignment='center')
+
     # Set tick labels
     names = [i.qname() for i in model.states()]
     a.set_xticks([i + 0.5 for i in range(0, n)])
     a.set_xticklabels(names)
+
     from matplotlib.transforms import Affine2D
     r = Affine2D.identity()
     a.set_yticks([i + 0.5 for i in range(0, n)])
@@ -145,14 +172,17 @@ def plot_state_dependency_matrix(
         tick[0].label2On = True
         tick[0].label1On = False
         tick[0].label2.set_rotation('vertical')
+
     # Add axes labels
     a.annotate(
         'Affecting variable -->',
         xy=(0, -0.05),
+        xytext=(0, -0.05),
+        xycoords='axes fraction',
         ha='left',
         va='center',
-        xycoords='axes fraction',
         textcoords='offset points')
+
     # Adjust subplot margins
     return a
 
@@ -184,7 +214,7 @@ class DiGraph(object):
         return len(self.nodes)
 
     def __iter__(self):
-        return self.nodes.values()
+        return iter(self.nodes.values())
 
     def __getitem__(self, key):
         return self.nodes.__getitem__(key)
@@ -496,7 +526,7 @@ class DiGraph(object):
                         nodes = list(node.edgi)
                         nodes.extend(list(node.edgo))
                         nodes.sort(key=lambda snode: snode.x)
-                        node.x = nodes[n / 2].x
+                        node.x = nodes[int(n / 2)].x
                 # Fix possible issues with new coordinates
                 org = list(layer)
                 layer.sort(key=lambda snode: snode.x)
