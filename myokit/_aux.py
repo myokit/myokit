@@ -195,11 +195,11 @@ class PyCapture(object):
             # If possible, flush current outputs
             try:
                 sys.stdout.flush()
-            except AttributeError:
+            except AttributeError:          # pragma: no cover
                 pass
             try:
                 sys.stderr.flush()
-            except AttributeError:
+            except AttributeError:          # pragma: no cover
                 pass
             # Save current sys stdout / stderr redirects, if any
             self._stdout = sys.stdout
