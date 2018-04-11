@@ -197,8 +197,11 @@ def html2ascii(html, width=79, indent='  '):
             """ Called when an open/end tag is encountered. """
             if tag == 'br':
                 self.endline()
+
             elif tag == 'hr':
+                self.endline()
                 self.text.append('-' * self.LW)
+                self.endline()
 
         def handle_endtag(self, tag):
             """ Called when an endtag is encountered. """

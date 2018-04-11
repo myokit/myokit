@@ -50,6 +50,7 @@ class AsciifierTest(unittest.TestCase):
     <div>
         <h2>Software</h2>
         <strong>This is strong</strong> &amp; this is an ampersand.
+        <hr />
         <ul>
             <li>One</li>
             <li><a href="http://myokit.org/download">Two</a></li>
@@ -89,6 +90,7 @@ Software
 -------------------------------------------------------------------------------
 
 **This is strong** & this is an ampersand.
+-------------------------------------------------------------------------------
 
   * One
   * Two
