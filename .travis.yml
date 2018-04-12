@@ -45,8 +45,8 @@ matrix:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libsundials-serial-dev
-  # Install GUI libraries
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then sudo apt-get install -y python-qt4; fi;
+  # Note: Python packages loaded here are not pulled into the virtualenv,
+  # so won't be importable.
 
 # Install Python dependencies
 install:
@@ -61,6 +61,7 @@ install:
   # Install doc building code
   - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install sphinx; fi;
   # Install GUI libraries
+  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install pyqt5; fi;
 
 # Show Python version
 before_script:
