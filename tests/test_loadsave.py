@@ -333,6 +333,35 @@ class LoadSaveTest(unittest.TestCase):
             d = np.array(myokit.load_state_bin(f)) - np.array(m.state())
             self.assertTrue(np.all(np.abs(d) < 1e-5))   # Not very precise!
 
+    def test_pack_snapshot(self):
+        """ Tests if the pack_snapshot method runs without exceptions. """
+        with TemporaryDirectory() as d:
+            # Run!
+            path = d.path('pack.zip')
+            new_path = myokit.pack_snapshot(path)
+            self.assertTrue(os.path.isfile(new_path))
+            self.assertTrue(os.path.getsize(new_path) > 500000)
+
+            # Run with same location --> error
+            self.assertRaises(
+                IOError, myokit.pack_snapshot, path, overwrite=False)
+
+            # Run with overwrite switch is ok
+            myokit.pack_snapshot(path, overwrite=True)
+
+            # Write to directory: finds own filename
+            path = d.path('')
+            new_path = myokit.pack_snapshot(path)
+            self.assertEqual(new_path[:len(path)], path)
+            self.assertTrue(len(new_path) - len(path) > 5)
+
+            # Write to directory again without overwrite --> error
+            self.assertRaises(
+                IOError, myokit.pack_snapshot, path, overwrite=False)
+
+            # Run with overwrite switch is ok
+            myokit.pack_snapshot(path, overwrite=True)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -135,6 +135,8 @@ class AuxText(unittest.TestCase):
         # No trailing slash
         self.assertEqual(
             myokit.format_path('a/'), 'a')
+        self.assertEqual(
+            myokit.format_path('a/b/'), 'a/b')
         # Use with custom root
         root = os.path.join(os.path.abspath('.'), 'a')
         self.assertEqual(

@@ -377,8 +377,6 @@ def format_path(path, root=None):
             return './'
         if path[0] == '/':
             path = path[1:]
-        if path == '':
-            return './'
         if path[-1] == '/':
             path = path[0:-1]
     if path == '':
@@ -836,6 +834,7 @@ def pack_snapshot(path, overwrite=True):
         '.gitignore',
         '.git',
         '*.pyc',
+        '__pycache__',
     ]
 
     def skip(filename):
@@ -863,6 +862,7 @@ def pack_snapshot(path, overwrite=True):
                 walk(pre, leaf, start)
             elif os.path.isfile(leaf):
                 zf.write(leaf, os.path.join(pre, name), zmod)
+
     # Create zipfile at temporary location
     tf = tempfile.mkstemp()
     try:
@@ -870,6 +870,7 @@ def pack_snapshot(path, overwrite=True):
         try:
             # Add myokit module
             walk('myokit', myokit.DIR_MYOKIT)
+
             # Add license file
             license = bytes(myokit.LICENSE)
             zf.writestr('LICENSE', license, zmod)
@@ -879,6 +880,8 @@ def pack_snapshot(path, overwrite=True):
     finally:
         if os.path.isfile(tf[1]):
             os.remove(tf[1])
+
+    # Return path to new file
     return path
 
 
