@@ -502,7 +502,7 @@ def load_state_bin(filename):
         ar.fromstring(f.read(info))
 
         # Always store as little endian
-        if sys.byteorder == 'big':
+        if sys.byteorder == 'big':  # pragma: no cover
             ar.byteswap()
 
     return list(ar)
@@ -1148,7 +1148,7 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
 
     # Create array, ensure it's little-endian
     ar = array.array(code, state)
-    if sys.byteorder == 'big':
+    if sys.byteorder == 'big':  # pragma: no cover
         ar.byteswap()
 
     # Store precision and data type in internal filename

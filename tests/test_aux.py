@@ -16,7 +16,7 @@ import unittest
 
 import myokit
 
-#from shared import TemporaryDirectory
+from shared import DIR_DATA, TemporaryDirectory
 
 
 class AuxText(unittest.TestCase):
@@ -155,6 +155,77 @@ class AuxText(unittest.TestCase):
                 os.path.abspath('/test'),
                 os.path.abspath('/test/tost')),
             '/test')
+
+    def test_pack_snapshot(self):
+        """ Tests if the pack_snapshot method runs without exceptions. """
+        with TemporaryDirectory() as d:
+            # Run!
+            path = d.path('pack.zip')
+            new_path = myokit.pack_snapshot(path)
+            self.assertTrue(os.path.isfile(new_path))
+            self.assertTrue(os.path.getsize(new_path) > 500000)
+
+            # Run with same location --> error
+            self.assertRaises(
+                IOError, myokit.pack_snapshot, path, overwrite=False)
+
+            # Run with overwrite switch is ok
+            myokit.pack_snapshot(path, overwrite=True)
+
+            # Write to directory: finds own filename
+            path = d.path('')
+            new_path = myokit.pack_snapshot(path)
+            self.assertEqual(new_path[:len(path)], path)
+            self.assertTrue(len(new_path) - len(path) > 5)
+
+            # Write to directory again without overwrite --> error
+            self.assertRaises(
+                IOError, myokit.pack_snapshot, path, overwrite=False)
+
+            # Run with overwrite switch is ok
+            myokit.pack_snapshot(path, overwrite=True)
+
+    def test_levenshtein_distance(self):
+        """ Tests the levenshtein distance method. """
+        self.assertEqual(myokit.lvsd('kitten', 'sitting'), 3)
+        self.assertEqual(myokit.lvsd('sitting', 'kitten'), 3)
+        self.assertEqual(myokit.lvsd('saturday', 'sunday'), 3)
+        self.assertEqual(myokit.lvsd('sunday', 'saturday'), 3)
+        self.assertEqual(myokit.lvsd('michael', 'jennifer'), 7)
+        self.assertEqual(myokit.lvsd('jennifer', 'michael'), 7)
+        self.assertEqual(myokit.lvsd('jennifer', ''), 8)
+        self.assertEqual(myokit.lvsd('', 'jennifer'), 8)
+
+    def test_model_comparison(self):
+        """ Tests the model comparison class. """
+
+        m1 = os.path.join(DIR_DATA, 'beeler-1977-model.mmt')
+        m2 = os.path.join(DIR_DATA, 'beeler-1977-model-different.mmt')
+        m1 = myokit.load_model(m1)
+        m2 = myokit.load_model(m2)
+
+        with myokit.PyCapture() as capture:
+            myokit.ModelComparison(m1, m2, live=True)
+        self.assertEqual(capture.text(), """
+Comparing:
+  [1] beeler-1977
+  [2] beeler-1977-with-differences
+[x] Mismatched Meta property in model: "desc"
+[x] Mismatched Meta property in model: "name"
+[x] Mismatched Initial value for <ina.h>
+[x] Mismatched State at position 5: [1]<isi.d> [2]<isiz.d>
+[x] Mismatched State at position 6: [1]<isi.f> [2]<isiz.f>
+[x] Mismatched RHS <calcium.Cai>
+[x] Mismatched RHS <ina.h.alpha>
+[x] Mismatched RHS <ina.j>
+[2] Missing Variable <ina.j.beta>
+[1] Missing Variable <ina.j.jeta>
+[2] Missing Component <isi>
+[x] Mismatched RHS <membrane.C>
+[x] Mismatched RHS <membrane.i_ion>
+[1] Missing Component <isiz>
+Done
+  14 differences found""".strip() + '\n')
 
 
 if __name__ == '__main__':
