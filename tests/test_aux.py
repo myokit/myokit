@@ -14,6 +14,13 @@ import os
 import sys
 import unittest
 
+try:
+    # Python 2
+    from cStringIO import StringIO
+except ImportError:
+    # Python3
+    from io import StringIO
+
 import myokit
 
 from shared import DIR_DATA, TemporaryDirectory
@@ -328,6 +335,15 @@ class AuxText(unittest.TestCase):
         with myokit.PyCapture():
             myokit.run(m, p, '[[script]]\n' + x)
         self.assertRaises(ZeroDivisionError, myokit.run, m, p, 'print(1 / 0)')
+
+        # Test with stringio
+        x = "print('Hi there')"
+        s = StringIO()
+        with myokit.PyCapture() as c:
+            myokit.run(m, p, x, stderr=s, stdout=s)
+        self.assertEqual(c.text(), '')
+        self.assertEqual(s.getvalue(), 'Hi there\n')
+
 
 
 if __name__ == '__main__':
