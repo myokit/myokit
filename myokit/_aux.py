@@ -377,8 +377,6 @@ def format_path(path, root=None):
             return './'
         if path[0] == '/':
             path = path[1:]
-        if path[-1] == '/':
-            path = path[0:-1]
     return path
 
 
@@ -624,7 +622,7 @@ class ModelComparison(object):
         """
         Returns ``True`` if the two models were equal.
         """
-        return len
+        return len(self._diff) == 0
 
     def __iter__(self):
         """
@@ -746,14 +744,10 @@ class ModelComparison(object):
         c1, c2 = v1.lhs().code(), v2.lhs().code()
         if c1 != c2:
             self._write('[x] Mismatched LHS <' + name + '>')
-            #self._write('[x] Mismatched LHS <' + name + '>\n  ' + c1  + '\n  '
-            #    + c2)
         # Right-hand side expression
         c1, c2 = v1.rhs().code(), v2.rhs().code()
         if c1 != c2:
             self._write('[x] Mismatched RHS <' + name + '>')
-            #self._write('[x] Mismatched RHS <' + name + '>\n  ' + c1 + '\n  '
-            #    + c2)
         # Units
         if v1.unit() != v2.unit():
             self._write('[x] Mismatched unit <' + name + '>')

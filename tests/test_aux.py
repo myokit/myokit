@@ -205,7 +205,7 @@ class AuxText(unittest.TestCase):
         m2 = myokit.load_model(m2)
 
         with myokit.PyCapture() as capture:
-            myokit.ModelComparison(m1, m2, live=True)
+            c = myokit.ModelComparison(m1, m2, live=True)
         self.assertEqual(capture.text(), """
 Comparing:
   [1] beeler-1977
@@ -226,6 +226,15 @@ Comparing:
 [1] Missing Component <isiz>
 Done
   14 differences found""".strip() + '\n')
+
+        # Test equality method
+        self.assertFalse(c.equal())
+        self.assertTrue(myokit.ModelComparison(m1, m1).equal())
+        self.assertTrue(myokit.ModelComparison(m2, m2).equal())
+
+        # Test len and iterator interface
+        self.assertEqual(len(c), 14)
+        self.assertEqual(len([x for x in c]), 14)
 
 
 if __name__ == '__main__':
