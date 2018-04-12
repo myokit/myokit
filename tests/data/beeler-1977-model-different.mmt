@@ -1,6 +1,5 @@
 [[model]]
 name: beeler-1977-with-differences
-author: Michael Clerx
 desc: """
     The 1997 Beeler Reuter model of the AP in ventricular myocytes.
     
@@ -11,6 +10,9 @@ desc: """
     Beeler, Reuter (1976) Reconstruction of the action potential of ventricular
     myocardial fibres
     """
+extra: "This is new"
+f(x) = 5 * x
+g(x) = 3 * x
 # Initial values:
 membrane.V  = -84.622
 calcium.Cai = 2e-7
@@ -19,11 +21,10 @@ ina.h       = 1.0
 ina.j       = 0.98
 isiz.d       = 0.003
 isiz.f       = 1.0
-ix1.x1      = 0.0004
 
 
 [engine]
-time = 0 in [ms] bind time
+toim = 0 in [ms] bind time
 pace = 0 bind pace
 
 [membrane]
@@ -61,10 +62,9 @@ dot(j) =  alpha * (1 - j) - jeta * j
 
 [isiz]
 use membrane.V as V
-gsBar = 0.09
 Es = -82.3 - 13.0287 * log(calcium.Cai)
     in [mV]
-Isi = gsBar * d * f * (V - Es)
+Isi = 0.09 * d * f * (V - Es)
     in [uA/cm^2]
     desc: """
     The slow inward current, primarily carried by calcium ions. Called either
@@ -100,7 +100,5 @@ Ix1 = x1 * 0.8 * (exp(0.04 * (V + 77)) - 1) / exp(0.04 * (V + 35))
     in [uA/cm^2]
     desc: """A voltage- and time-dependent outward current, primarily carried
           by potassium ions"""
-dot(x1) = alpha * (1 - x1) - beta * x1
-    alpha = 0.0005 * exp(0.083 * (V + 50)) / (exp(0.057 * (V + 50)) + 1)
-    beta  = 0.0013 * exp(-0.06 * (V + 20)) / (exp(-0.04 * (V + 333)) + 1)
+x1 = 0.0004
 

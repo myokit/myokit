@@ -598,8 +598,7 @@ class ModelComparison(object):
         """
         Compares the contents of two components with the same name.
         """
-        if c1.qname() != c2.qname():
-            raise Exception('Differently named components passed to _comp')
+        assert(c1.qname() == c2.qname())
         # Meta information
         self._meta(c1, c2)
         # Test variables
@@ -640,10 +639,7 @@ class ModelComparison(object):
         """
         Compares two objects' meta properties.
         """
-        if type(x1) != type(x2):
-            raise Exception(
-                'Comparing incompatible objects: ' + str(type(x1)) + ' and '
-                + str(type(x2)) + '.')
+        assert(type(x1) == type(x2))
         if isinstance(x1, myokit.Model):
             name = ' in model'
         else:
@@ -723,7 +719,7 @@ class ModelComparison(object):
         u2 = m2.user_functions()
         seen = set()
         for name, func in u1.items():
-            seen.append(name)
+            seen.add(name)
             try:
                 if func != u2[name]:
                     self._write('[x] Mismatched User function <' + name + '>')
@@ -738,8 +734,7 @@ class ModelComparison(object):
         Compares two variables with the same name.
         """
         name = v1.qname()
-        if v2.qname() != name:
-            raise Exception('Differently named variables passed to _var')
+        assert(v2.qname() == name)
         # Left-hand side expression
         c1, c2 = v1.lhs().code(), v2.lhs().code()
         if c1 != c2:

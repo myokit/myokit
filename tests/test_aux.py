@@ -195,6 +195,7 @@ class AuxText(unittest.TestCase):
         self.assertEqual(myokit.lvsd('jennifer', 'michael'), 7)
         self.assertEqual(myokit.lvsd('jennifer', ''), 8)
         self.assertEqual(myokit.lvsd('', 'jennifer'), 8)
+        self.assertEqual(myokit.lvsd('', ''), 0)
 
     def test_model_comparison(self):
         """ Tests the model comparison class. """
@@ -206,26 +207,47 @@ class AuxText(unittest.TestCase):
 
         with myokit.PyCapture() as capture:
             c = myokit.ModelComparison(m1, m2, live=True)
-        self.assertEqual(capture.text(), """
-Comparing:
-  [1] beeler-1977
-  [2] beeler-1977-with-differences
-[x] Mismatched Meta property in model: "desc"
-[x] Mismatched Meta property in model: "name"
-[x] Mismatched Initial value for <ina.h>
-[x] Mismatched State at position 5: [1]<isi.d> [2]<isiz.d>
-[x] Mismatched State at position 6: [1]<isi.f> [2]<isiz.f>
-[x] Mismatched RHS <calcium.Cai>
-[x] Mismatched RHS <ina.h.alpha>
-[x] Mismatched RHS <ina.j>
-[2] Missing Variable <ina.j.beta>
-[1] Missing Variable <ina.j.jeta>
-[2] Missing Component <isi>
-[x] Mismatched RHS <membrane.C>
-[x] Mismatched RHS <membrane.i_ion>
-[1] Missing Component <isiz>
-Done
-  14 differences found""".strip() + '\n')
+
+        differences = [
+            '[x] Mismatched Meta property in model: "desc"',
+            '[x] Mismatched Meta property in model: "name"',
+            '[2] Missing Meta property in model: "author"',
+            '[1] Missing Meta property in model: "extra"',
+            '[x] Mismatched User function <f(1)>',
+            '[1] Missing User function <g(1)>.',
+            '[x] Mismatched Time variable: [1]<engine.time> [2]<engine.toim>',
+            '[x] Mismatched Initial value for <ina.h>',
+            '[x] Mismatched State at position 5: [1]<isi.d> [2]<isiz.d>',
+            '[x] Mismatched State at position 6: [1]<isi.f> [2]<isiz.f>',
+            '[2] Missing state at position 7',
+            '[x] Mismatched RHS <calcium.Cai>',
+            '[2] Missing Variable <engine.time>',
+            '[1] Missing Variable <engine.toim>',
+            '[x] Mismatched RHS <ina.h.alpha>',
+            '[x] Mismatched RHS <ina.j>',
+            '[2] Missing Variable <ina.j.beta>',
+            '[1] Missing Variable <ina.j.jeta>',
+            '[2] Missing Component <isi>',
+            '[x] Mismatched LHS <ix1.x1>',
+            '[x] Mismatched RHS <ix1.x1>',
+            '[2] Missing Variable <ix1.x1.alpha>',
+            '[2] Missing Variable <ix1.x1.beta>',
+            '[x] Mismatched RHS <membrane.C>',
+            '[x] Mismatched RHS <membrane.i_ion>',
+            '[1] Missing Component <isiz>',
+        ]
+
+        live = [
+            'Comparing:',
+            '  [1] beeler-1977',
+            '  [2] beeler-1977-with-differences',
+        ] + differences + [
+            'Done',
+            '  26 differences found',
+        ]
+
+        self.assertEqual(capture.text(), '\n'.join(live) + '\n')
+        self.assertEqual(c.text(), '\n'.join(differences))
 
         # Test equality method
         self.assertFalse(c.equal())
@@ -233,8 +255,16 @@ Done
         self.assertTrue(myokit.ModelComparison(m2, m2).equal())
 
         # Test len and iterator interface
-        self.assertEqual(len(c), 14)
-        self.assertEqual(len([x for x in c]), 14)
+        self.assertEqual(len(c), len(differences))
+        self.assertEqual(len([x for x in c]), len(differences))
+
+    def test_numpy_writer(self):
+        """ Test NumPy expression writer. """
+        pass #TODO
+
+    def test_py_writer(self):
+        """ Test Python expression writer. """
+        pass #TODO
 
 
 if __name__ == '__main__':
