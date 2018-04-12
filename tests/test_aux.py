@@ -282,6 +282,9 @@ class AuxText(unittest.TestCase):
         import myokit.formats
         import myokit.formats.python
         self.assertIsInstance(w, myokit.formats.python.NumpyExpressionWriter)
+        # Test custom name method for this writer
+        e = myokit.parse_expression('5 + 3 * x')
+        self.assertEqual(w.ex(e), '5.0 + 3.0 * x')
 
     def test_python_writer(self):
         """ Test Python expression writer obtaining method. """
@@ -290,6 +293,25 @@ class AuxText(unittest.TestCase):
         import myokit.formats
         import myokit.formats.python
         self.assertIsInstance(w, myokit.formats.python.PythonExpressionWriter)
+        # Test custom name method for this writer
+        e = myokit.parse_expression('5 + 3 * x')
+        self.assertEqual(w.ex(e), '5.0 + 3.0 * x')
+
+    def test_run(self):
+        """ Test run() method. """
+        m, p, _ = myokit.load('example')
+        x = '\n'.join([
+            'import myokit',
+            'm = get_model()',
+            'p = get_protocol()',
+            's = myokit.Simulation(m, p)',
+            's.run(200)',
+        ])
+        with myokit.PyCapture():
+            myokit.run(m, p, x)
+        with myokit.PyCapture():
+            myokit.run(m, p, '[[script]]\n' + x)
+        self.assertRaises(ZeroDivisionError, myokit.run, m, p, 'print(1 / 0)')
 
 
 if __name__ == '__main__':
