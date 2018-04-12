@@ -61,7 +61,7 @@ install:
   # Install doc building code
   - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install sphinx; fi;
   # Install GUI libraries
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install pyqt5; fi;
+  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install pyqt4; fi;
 
 # Show Python version
 before_script:
