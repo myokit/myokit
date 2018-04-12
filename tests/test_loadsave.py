@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
+import numpy as np
 
 import myokit
 
@@ -301,9 +302,36 @@ class LoadSaveTest(unittest.TestCase):
             f = d.path('state.txt')
             myokit.save_state(f, m.state())
             self.assertEqual(myokit.load_state(f), m.state())
+
             # Test save and load with model argument
             myokit.save_state(f, m.state(), m)
             self.assertEqual(myokit.load_state(f, m), m.state())
+
+            # Save without, load with model
+            myokit.save_state(f, m.state())
+            self.assertEqual(myokit.load_state(f, m), m.state())
+
+            # Save with model, load without
+            # Loaded version is dict!
+            myokit.save_state(f, m.state(), m)
+            dct = dict(zip([v.qname() for v in m.states()], m.state()))
+            self.assertEqual(myokit.load_state(f), dct)
+
+    def test_load_save_state_bin(self):
+        """ Test loading/saving state in binary format. """
+        m, p, x = myokit.load('example')
+        with TemporaryDirectory() as d:
+
+            # Test save and load with double precision
+            f = d.path('state.bin')
+            myokit.save_state_bin(f, m.state())
+            self.assertEqual(myokit.load_state_bin(f), m.state())
+
+            # Test save and load with single precision
+            f = d.path('state.bin')
+            myokit.save_state_bin(f, m.state(), myokit.SINGLE_PRECISION)
+            d = np.array(myokit.load_state_bin(f)) - np.array(m.state())
+            self.assertTrue(np.all(np.abs(d) < 1e-5))   # Not very precise!
 
 
 if __name__ == '__main__':

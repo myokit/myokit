@@ -129,15 +129,22 @@ class AuxText(unittest.TestCase):
 
     def test_format_path(self):
         """ Tests format_path(). """
+        # Normal use
         self.assertEqual(
             myokit.format_path(os.path.join('a', 'b', 'c')), 'a/b/c')
-        self.assertEqual(
-            myokit.format_path('.'), './')
+        # No trailing slash
         self.assertEqual(
             myokit.format_path('a/'), 'a')
+        # Use with custom root
         root = os.path.join(os.path.abspath('.'), 'a')
         self.assertEqual(
             myokit.format_path(os.path.join(root, 'b', 'c'), root), 'b/c')
+        # Empty path
+        self.assertEqual(
+            myokit.format_path(''), './')
+        self.assertEqual(
+            myokit.format_path('.'), './')
+        # Filesystem root
         self.assertEqual(
             myokit.format_path('/', root='/'), './')
         # Path outside of root

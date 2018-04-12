@@ -509,7 +509,7 @@ def load_state_bin(filename):
         if sys.byteorder == 'big':
             ar.byteswap()
 
-    return ar
+    return list(ar)
 
 
 def lvsd(s1, s2):
