@@ -1097,17 +1097,8 @@ def save_state(filename, state, model=None):
         state = model.map_to_state(state)
         state = model.format_state(state)
     else:
-        s = []
-        try:
-            state = [myokit.strfloat(s) for s in state]
-            state = '\n'.join(state)
-        except Exception:
-            raise Exception(
-                # TODO Specific error should be caught
-                # TODO Message should be much much clearer
-                'State must be given as list (or other iterable) or'
-                ' save_state() must be used with the third argument `model`'
-                ' set.')
+        state = [myokit.strfloat(s) for s in state]
+        state = '\n'.join(state)
 
     # Store
     with open(filename, 'w') as f:
