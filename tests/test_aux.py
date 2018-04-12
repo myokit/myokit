@@ -234,6 +234,7 @@ class AuxText(unittest.TestCase):
             '[2] Missing Variable <ix1.x1.beta>',
             '[x] Mismatched RHS <membrane.C>',
             '[x] Mismatched RHS <membrane.i_ion>',
+            '[x] Mismatched unit <membrane.V>',
             '[1] Missing Component <isiz>',
         ]
 
@@ -243,7 +244,7 @@ class AuxText(unittest.TestCase):
             '  [2] beeler-1977-with-differences',
         ] + differences + [
             'Done',
-            '  26 differences found',
+            '  ' + str(len(differences)) + ' differences found',
         ]
 
         self.assertEqual(capture.text(), '\n'.join(live) + '\n')
@@ -261,6 +262,18 @@ class AuxText(unittest.TestCase):
         # Test reverse is similar
         d = myokit.ModelComparison(m2, m1)
         self.assertEqual(len(c), len(d))
+
+        # Test detection of missing time variable
+        # Note: user function disappears when cloning
+        m3 = m1.clone()
+        m3.binding('time').set_binding(None)
+        c = myokit.ModelComparison(m1, m3)
+        self.assertEqual(
+            c.text(),
+            '[2] Missing User function <f(1)>\n'
+            '[2] Missing Time variable <engine.time>')
+        self.assertEqual(len(c), 2)
+        self.assertEqual(len(c), len(myokit.ModelComparison(m3, m1)))
 
     def test_numpy_writer_method(self):
         """ Test NumPy expression writer obtaining method. """
