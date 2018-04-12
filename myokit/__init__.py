@@ -387,7 +387,7 @@ from ._aux import ( # noqa
     natural_sort_key,
 
     # Dyanmic generation of Python/Numpy expressions
-    pywriter, numpywriter,
+    python_writer, numpy_writer,
 
     # Model comparison
     ModelComparison,

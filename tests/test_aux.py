@@ -258,13 +258,21 @@ class AuxText(unittest.TestCase):
         self.assertEqual(len(c), len(differences))
         self.assertEqual(len([x for x in c]), len(differences))
 
-    def test_numpy_writer(self):
-        """ Test NumPy expression writer. """
-        pass #TODO
+    def test_numpy_writer_method(self):
+        """ Test NumPy expression writer obtaining method. """
+        import myokit
+        w = myokit.numpy_writer()
+        import myokit.formats
+        import myokit.formats.python
+        self.assertIsInstance(w, myokit.formats.python.NumpyExpressionWriter)
 
-    def test_py_writer(self):
-        """ Test Python expression writer. """
-        pass #TODO
+    def test_python_writer(self):
+        """ Test Python expression writer obtaining method. """
+        import myokit
+        w = myokit.python_writer()
+        import myokit.formats
+        import myokit.formats.python
+        self.assertIsInstance(w, myokit.formats.python.PythonExpressionWriter)
 
 
 if __name__ == '__main__':

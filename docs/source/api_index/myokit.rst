@@ -95,7 +95,7 @@ myokit
 - :class:`myokit.Number`
 - :class:`myokit.NumericalError`
 - :meth:`myokit.natural_sort_key`
-- :meth:`myokit.numpywriter`
+- :meth:`myokit.numpy_writer`
 - :class:`myokit.OpenCL`
 - :class:`myokit.OpenCLDeviceInfo`
 - :class:`myokit.OpenCLInfo`
@@ -127,7 +127,7 @@ myokit
 - :class:`myokit.ProtocolParseError`
 - :class:`myokit.PSimulation`
 - :class:`myokit.PyCapture`
-- :meth:`myokit.pywriter`
+- :meth:`myokit.python_writer`
 - :class:`myokit.Quantity`
 - :class:`myokit.Quotient`
 - :class:`myokit.Remainder`

@@ -72,9 +72,9 @@ Other functions
 
 .. autofunction:: natural_sort_key
 
-.. autofunction:: numpywriter
+.. autofunction:: numpy_writer
 
-.. autofunction:: pywriter
+.. autofunction:: python_writer
 
 .. autofunction:: run
 

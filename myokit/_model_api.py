@@ -3439,15 +3439,18 @@ class Variable(VarOwner):
         # Get expression writer
         if use_numpy:
             import numpy
-            w = myokit.numpywriter()
+            w = myokit.numpy_writer()
         else:
             import math
-            w = myokit.pywriter()
+            w = myokit.python_writer()
+
         # Get arguments, equations
         eqs, args = self.model().expressions_for(self)
+
         # Handle function arguments
         func = [w.ex(x) for x in args]
         func, args = zip(*sorted(zip(func, args)))  # Sort both following func
+
         # Create function text
         func = ['def var_pyfunc_generated(' + ','.join(func) + '):']
         tab = '\t'
@@ -3458,6 +3461,7 @@ class Variable(VarOwner):
             func.append(tab + w.eq(eq))
         func.append(tab + 'return ' + w.ex(eqs[-1].lhs))
         func = '\n'.join(func) + '\n'
+
         # Create function
         local = {}
         if use_numpy:
@@ -3465,6 +3469,7 @@ class Variable(VarOwner):
         else:
             exec(func, {'math': math}, local)
         handle = local['var_pyfunc_generated']
+
         # Return
         if arguments:
             return (handle, args)

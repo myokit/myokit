@@ -759,7 +759,7 @@ class ModelComparison(object):
         self._diff.append(text)
 
 
-def numpywriter():
+def numpy_writer():
     """
     Returns a globally shared numpy expression writer.
 
@@ -872,7 +872,7 @@ def pack_snapshot(path, overwrite=True):
     return path
 
 
-def pywriter():
+def python_writer():
     """
     Returns a globally shared python expression writer.
 
@@ -886,7 +886,7 @@ def pywriter():
     """
     global _pywriter_
     if _pywriter_ is None:
-        from formats.python import PythonExpressionWriter
+        from .formats.python import PythonExpressionWriter
         _pywriter_ = PythonExpressionWriter()
 
         def name(x):

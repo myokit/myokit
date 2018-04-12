@@ -369,19 +369,22 @@ class Expression(object):
         """
         # Get expression writer
         if use_numpy:
-            w = myokit.numpywriter()
+            w = myokit.numpy_writer()
         else:
-            w = myokit.pywriter()
+            w = myokit.python_writer()
+
         # Create function text
         args = [w.ex(x) for x in self._references]
         c = 'def ex_pyfunc_generated(' + ','.join(args) + '):\n    return ' \
             + w.ex(self)
+
         # Create function
         local = {}
         if use_numpy:
             exec(c, {'numpy': numpy}, local)
         else:
             exec(c, {'math': math}, local)
+
         # Return
         return local['ex_pyfunc_generated']
 
@@ -395,9 +398,10 @@ class Expression(object):
         """
         # Get expression writer
         if use_numpy:
-            w = myokit.numpywriter()
+            w = myokit.numpy_writer()
         else:
-            w = myokit.pywriter()
+            w = myokit.python_writer()
+
         # Return string
         return w.ex(self)
 

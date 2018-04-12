@@ -350,7 +350,7 @@ class LinearModel(object):
         # Create function to create parametrisable matrices
         #
         self._model.reserve_unique_names('A', 'B', 'n', 'numpy')
-        writer = myokit.numpywriter()
+        writer = myokit.numpy_writer()
         w = writer.ex
         head = 'def matrix_function('
         head += ','.join([w(p.lhs()) for p in self._inputs])
