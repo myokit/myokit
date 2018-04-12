@@ -1909,6 +1909,10 @@ class PythonExpressionWriterTest(unittest.TestCase):
         w = myokit.formats.ewriter('python')
         self.assertIsInstance(w, myokit.formats.python.PythonExpressionWriter)
 
+        # Test lhs method
+        w.set_lhs_function(lambda x: 'sheep')
+        self.assertEqual(w.ex(a), 'sheep')
+
 
 class StanExpressionWriterTest(unittest.TestCase):
     """ Tests the Stan ewriter class. """

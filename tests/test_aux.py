@@ -282,9 +282,17 @@ class AuxText(unittest.TestCase):
         import myokit.formats
         import myokit.formats.python
         self.assertIsInstance(w, myokit.formats.python.NumpyExpressionWriter)
+
         # Test custom name method for this writer
         e = myokit.parse_expression('5 + 3 * x')
         self.assertEqual(w.ex(e), '5.0 + 3.0 * x')
+
+        # Test with unvalidated model (no unames set)
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('5 + x')
+        self.assertEqual(w.ex(x.rhs()), '5.0 + c_x')
 
     def test_python_writer(self):
         """ Test Python expression writer obtaining method. """
@@ -293,16 +301,24 @@ class AuxText(unittest.TestCase):
         import myokit.formats
         import myokit.formats.python
         self.assertIsInstance(w, myokit.formats.python.PythonExpressionWriter)
+
         # Test custom name method for this writer
         e = myokit.parse_expression('5 + 3 * x')
         self.assertEqual(w.ex(e), '5.0 + 3.0 * x')
+
+        # Test with unvalidated model (no unames set)
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('5 + x')
+        self.assertEqual(w.ex(x.rhs()), '5.0 + c_x')
 
     def test_run(self):
         """ Test run() method. """
         m, p, _ = myokit.load('example')
         x = '\n'.join([
             'import myokit',
-            'm = get_model()',
+            'm = get_model()',  # Test magic methods
             'p = get_protocol()',
             's = myokit.Simulation(m, p)',
             's.run(200)',
