@@ -345,6 +345,5 @@ class AuxText(unittest.TestCase):
         self.assertEqual(s.getvalue(), 'Hi there\n')
 
 
-
 if __name__ == '__main__':
     unittest.main()

@@ -260,6 +260,30 @@ class LoadSaveTest(unittest.TestCase):
             self.assertEqual(pp.code(), p.code())
             self.assertEqual(xx, None)
 
+        # Save all as strings
+        with TemporaryDirectory() as d:
+            opath = d.path('test.mmt')
+            myokit.save(opath, m, p, x)
+            with open(opath, 'r') as f:
+                text1 = f.read()
+            myokit.save(opath, m.code(), p.code(), x)
+            with open(opath, 'r') as f:
+                text2 = f.read()
+            self.assertEqual(text1, text2)
+
+        # Save all as strings without [[model]] or [[protocol]] tage
+        with TemporaryDirectory() as d:
+            opath = d.path('test.mmt')
+            myokit.save(opath, m, p, x)
+            with open(opath, 'r') as f:
+                text1 = f.read()
+            mcode = '\n'.join(m.code().splitlines()[1:])
+            pcode = '\n'.join(p.code().splitlines()[1:])
+            myokit.save(opath, mcode, pcode, x)
+            with open(opath, 'r') as f:
+                text2 = f.read()
+            self.assertEqual(text1, text2)
+
         # Save all, compare with string generated version
         with TemporaryDirectory() as d:
             opath = d.path('test.mmt')

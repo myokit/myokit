@@ -1023,9 +1023,11 @@ def save(filename=None, model=None, protocol=None, script=None):
                 model = model.strip()
                 if model != '' and model[:9] != '[[model]]':
                     f.write('[[model]]\n')
+            model = model.strip()
             if model:
                 f.write(model)
                 f.write('\n\n')
+
         if protocol is not None:
             if isinstance(protocol, myokit.Protocol):
                 protocol = protocol.code()
@@ -1037,6 +1039,7 @@ def save(filename=None, model=None, protocol=None, script=None):
             if protocol:
                 f.write(protocol)
                 f.write('\n\n')
+
         if script is not None:
             script = script.strip()
             if script != '' and script[:10] != '[[script]]':
