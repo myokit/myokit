@@ -34,12 +34,12 @@ matrix:
             - MYOKIT_TEST_COVER=false
             - MYOKIT_TEST_DOC=false
         # Doc test
-        - python: "2.7"
-          env:
-            - MYOKIT_TEST_DOC=true
-            - MYOKIT_TEST_UNIT=false
-            - MYOKIT_TEST_COVER=false
-            - MYOKIT_TEST_STYLE=false
+        #- python: "3.6"
+        #  env:
+        #    - MYOKIT_TEST_DOC=true
+        #    - MYOKIT_TEST_UNIT=false
+        #    - MYOKIT_TEST_COVER=false
+        #    - MYOKIT_TEST_STYLE=false
 
 # Install C dependencies
 before_install:
@@ -61,7 +61,7 @@ install:
   # Install doc building code
   - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install sphinx; fi;
   # Install GUI libraries
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install pyqt4; fi;
+  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip3 install pyqt5; fi;
 
 # Show Python version
 before_script:
