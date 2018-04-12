@@ -379,8 +379,6 @@ def format_path(path, root=None):
             path = path[1:]
         if path[-1] == '/':
             path = path[0:-1]
-    if path == '':
-        return './'
     return path
 
 
