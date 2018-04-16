@@ -24,7 +24,7 @@ logger = logging.getLogger('myokit')
 logger.warning(
     'The module myokit.lib.common is deprecated: it will be removed in future'
     ' versions of Myokit.'
-    )
+)
 
 
 class StepProtocol(object):
