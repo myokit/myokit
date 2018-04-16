@@ -35,6 +35,18 @@ import multiprocessing
 import numpy as np
 
 
+#
+# This module is deprecated!
+#
+import logging
+logger = logging.getLogger('myokit')
+logger.warning(
+    'The module myokit.lib.fit is deprecated: it will be removed in future'
+    ' version of Myokit. Please have a look at Pints'
+    ' (https://github.com/pints-team/pints) instead.'
+)
+
+
 def bfgs(f, x, bounds, max_iter=500, args=None):
     """
     Local optimizer that minimizes a function ``f`` using the constrained

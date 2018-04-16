@@ -244,7 +244,11 @@ class Protocol(object):
         """
         import logging
         logger = logging.getLogger('myokit')
-        logger.warning('Protocol.guess_duration() is deprecated.')
+        logger.warning(
+            'The method Protocol.guess_duration() is deprecated: it will be'
+            ' removed in future versions of Myokit. Please use the method'
+            ' `characteristic_time` instead.'
+        )
         return self.characteristic_time()
 
     def head(self):

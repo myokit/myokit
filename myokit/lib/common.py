@@ -16,6 +16,17 @@ import numpy as np
 import myokit
 
 
+#
+# This module is deprecated!
+#
+import logging
+logger = logging.getLogger('myokit')
+logger.warning(
+    'The module myokit.lib.common is deprecated: it will be removed in future'
+    ' versions of Myokit.'
+    )
+
+
 class StepProtocol(object):
     """
     An abstract base class for step protocol experiments.
