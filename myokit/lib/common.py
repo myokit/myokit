@@ -637,8 +637,6 @@ class Restitution(object):
     """
     def __init__(self, model, vvar=None):
         # Check model
-        if not model.is_valid():
-            raise ValueError('This method requires a validated model.')
         self._model = model.clone()
 
         # Check membrane potential
@@ -679,18 +677,27 @@ class Restitution(object):
             'period': self._clmin,
             'multiplier': 0,
         }
-        p = myokit.Protocol()
-        p.schedule(**e)
 
         # Create simulation
-        s = myokit.Simulation(self._model, p, apd_var=self._vvar)
+        s = myokit.Simulation(self._model, apd_var=self._vvar)
         s.set_max_step_size(self._max_step_size)
 
         # Start testing
-        c = self._clmin
+        i = 0
         pcls = []
         apds = []
-        while c < self._clmax:
+        c = self._clmax
+        while c >= self._clmin:
+            # Update cycle length
+            c = self._clmax - i * self._dcl
+            i += 1
+
+            # Create and set new protocol
+            p = myokit.Protocol()
+            e['period'] = c
+            p.schedule(**e)
+            s.set_protocol(p)
+
             # Run simulation
             s.reset()
             s.pre(c * self._pre_beats)
@@ -699,17 +706,11 @@ class Restitution(object):
                 log=myokit.LOG_NONE,
                 apd_threshold=self._apd_threshold
             )
+
             # Save apds
             for apd in a['duration']:
                 pcls.append(c)
                 apds.append(apd)
-            # Increase cycle length
-            c += self._dcl
-            # Create and set new protocol
-            e['period'] = c
-            p = myokit.Protocol()
-            p.schedule(**e)
-            s.set_protocol(p)
 
         # Store data
         self._data = pcls, apds
@@ -781,6 +782,7 @@ class Restitution(object):
             The duration of the pacing stimulus.
         ``stim_level``
             The level of the dimensionless pacing stimulus.
+
         """
         duration = float(duration)
         level = float(level)
@@ -802,11 +804,9 @@ class Restitution(object):
         Sets the pacing cycle lengths tested in this experiment.
 
         ``clmin``
-            The lowest cycle-time tested (where
-            ``cl = systole + diastole length``)
+            The shortest cycle length tested.
         ``clmax``
-            The highest cycle-time tested (where
-            ``cl = systole + diastole length``)
+            The longest cycle length tested.
         ``dcl``
             The size of the steps from ``clmin`` to ``clmax``
 
@@ -816,8 +816,6 @@ class Restitution(object):
         dcl = float(dcl)
         if clmin < 0:
             raise ValueError('Minimum time cannot be negative.')
-        if clmax < 0:
-            raise ValueError('Maximum time cannot be negative.')
         if clmin >= clmax:
             raise ValueError('Minimum time must be smaller than maximum time.')
         if dcl <= 0:
