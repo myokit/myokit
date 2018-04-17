@@ -9,37 +9,30 @@ dist: trusty
 
 language: python
 
+env:
+  - MYOKIT_UNIT=true
+    MYOKIT_COVER=false
+    MYOKIT_STYLE=false
+    MYOKIT_DOC=false
+
+
 matrix:
     # Always put true env variable first, for nicer overview on travis website
     include:
-        # Unit test Python 2.7
+        # Unit tests
         - python: "2.7"
           env:
-            - MYOKIT_TEST_UNIT=true
-            - MYOKIT_TEST_COVER=false
-            - MYOKIT_TEST_STYLE=false
-            - MYOKIT_TEST_DOC=false
-        # Cover
+            - MYOKIT_UNIT=true
+        # Style, cover, and docs (latest version only)
         - python: "2.7"
           env:
-            - MYOKIT_TEST_COVER=true
-            - MYOKIT_TEST_UNIT=false
-            - MYOKIT_TEST_STYLE=false
-            - MYOKIT_TEST_DOC=false
-      # Style check
+            - MYOKIT_COVER=true
         - python: "2.7"
           env:
-            - MYOKIT_TEST_STYLE=true
-            - MYOKIT_TEST_UNIT=false
-            - MYOKIT_TEST_COVER=false
-            - MYOKIT_TEST_DOC=false
-        # Doc test
+            - MYOKIT_STYLE=true
         #- python: "3.6"
         #  env:
-        #    - MYOKIT_TEST_DOC=true
-        #    - MYOKIT_TEST_UNIT=false
-        #    - MYOKIT_TEST_COVER=false
-        #    - MYOKIT_TEST_STYLE=false
+        #    - MYOKIT_DOC=true
 
 # Install C dependencies
 before_install:
@@ -55,13 +48,13 @@ install:
   # Install optional extras (needed for unit tests and docs)
   - pip install sympy
   # Install cover checking libraries
-  - if [[ $MYOKIT_TEST_COVER == true ]]; then pip install coverage codecov; fi;
+  - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
   # Install style checking code
-  - if [[ $MYOKIT_TEST_STYLE == true ]]; then pip install flake8; fi;
+  - if [[ $MYOKIT_STYLE == true ]]; then pip install flake8; fi;
   # Install doc building code
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip install sphinx; fi;
+  - if [[ $MYOKIT_DOC == true ]]; then pip install sphinx; fi;
   # Install GUI libraries
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then pip3 install pyqt5; fi;
+  - if [[ $MYOKIT_DOC == true ]]; then pip3 install pyqt5; fi;
 
 # Show Python version
 before_script:
@@ -69,14 +62,14 @@ before_script:
 
 # Run tests
 script:
-  - if [[ $MYOKIT_TEST_UNIT == true ]]; then python test --unit; fi;
-  - if [[ $MYOKIT_TEST_COVER == true ]]; then coverage run test --nosub; fi;
-  - if [[ $MYOKIT_TEST_STYLE == true ]]; then python -m flake8; fi;
-  - if [[ $MYOKIT_TEST_DOC == true ]]; then python test --doctest; fi;
+  - if [[ $MYOKIT_UNIT == true ]]; then python test --unit; fi;
+  - if [[ $MYOKIT_COVER == true ]]; then coverage run test --nosub; fi;
+  - if [[ $MYOKIT_STYLE == true ]]; then python -m flake8; fi;
+  - if [[ $MYOKIT_DOC == true ]]; then python test --doctest; fi;
 
 # Compile coverage report
 after_success:
-  - if [[ $MYOKIT_TEST_COVER == true ]]; then codecov; fi;
+  - if [[ $MYOKIT_COVER == true ]]; then codecov; fi;
 
 # Send notifications
 notifications:
