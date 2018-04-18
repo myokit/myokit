@@ -42,8 +42,11 @@ setup(
     # Packages to include
     packages=find_packages(include=('myokit', 'myokit.*')),
 
-    # Also load non-python files (via MANIFEST.in)
+    # Include non-python files (via MANIFEST.in)
     include_package_data=True,
+
+    # Register myo as a shell script
+    scripts=['myo'],
 
     # List of dependencies
     install_requires=[
