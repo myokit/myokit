@@ -6,6 +6,7 @@ omit =
     myokit/_sim/openclsim.py
     myokit/_sim/fiber_tissue.py
     myokit/_command.py
+    myokit/__main__.py
 
 [report]
 exclude_lines =
