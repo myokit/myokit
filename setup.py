@@ -45,8 +45,10 @@ setup(
     # Include non-python files (via MANIFEST.in)
     include_package_data=True,
 
-    # Register myo as a shell script
-    scripts=['myo'],
+    # Register myokit as a shell script
+    entry_points={
+        'console_scripts': ['myokit = myokit._command:main']
+    },
 
     # List of dependencies
     install_requires=[

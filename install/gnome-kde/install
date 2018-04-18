@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Installs GNOME desktop items for myokit and the myokit datablock viewer into
 # the user home directory, adds a mime-type file for .mmt files (again in the

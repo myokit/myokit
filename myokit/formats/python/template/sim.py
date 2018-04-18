@@ -59,7 +59,7 @@ for comp in equations:
     if comp != '*remaining*':
         components.append(model.get(comp))
 
-?>#!/usr/bin/env python2
+?>#!/usr/bin/env python
 #
 # Generated on <?= myokit.date() ?>
 #
