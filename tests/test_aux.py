@@ -344,6 +344,119 @@ class AuxText(unittest.TestCase):
         self.assertEqual(c.text(), '')
         self.assertEqual(s.getvalue(), 'Hi there\n')
 
+    def test_step(self):
+        """ Tests the step() method. """
+        m1 = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+
+        # Test simple output
+        x = myokit.step(m1).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name         Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
+            'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
+            'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
+            'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
+            'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
+            'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
+            'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
+            'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
+            '-' * 79,
+        ]
+        for i, line in enumerate(y):
+            self.assertEqual(line, x[i])
+        self.assertEqual(len(x), len(y))
+
+        # Test comparison against another model
+        m2 = m1.clone()
+        x = myokit.step(m1, reference=m2).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name         Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
+            '                                       -3.97224086575331814e-04',
+            '                                                               ',
+            'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
+            '                                       -1.56608433137725457e-09',
+            '                                                               ',
+            'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
+            '                                        7.48738392280519083e-02',
+            '                                                               ',
+            'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
+            '                                       -1.78891889478854579e-03',
+            '                                                               ',
+            'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
+            '                                       -3.06255006833574140e-04',
+            '                                                               ',
+            'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
+            '                                       -5.11993904291850035e-06',
+            '                                                               ',
+            'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
+            '                                        1.88374114688215870e-04',
+            '                                                               ',
+            'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
+            '                                       -3.21682814207918156e-07',
+            '                                                               ',
+            'Model check completed without errors.',
+            '-' * 79,
+        ]
+
+        for i, line in enumerate(y):
+            self.assertEqual(line, x[i])
+        self.assertEqual(len(x), len(y))
+
+        # Add small mismatch
+        m2.get('ina.m').set_rhs(
+            myokit.Multiply(m2.get('ina.m').rhs(), myokit.Number(1 + 1e-15)))
+        # Add large mismatch
+        m2.get('isi.f').set_rhs(
+            myokit.Multiply(m2.get('isi.f').rhs(), myokit.Number(2)))
+
+        # Test comparison against another model
+        x = myokit.step(m1, reference=m2).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name         Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
+            '                                       -3.97224086575331814e-04',
+            '                                                               ',
+            'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
+            '                                       -1.56608433137725457e-09',
+            '                                                               ',
+            'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
+            '                                        7.48738392280519915e-02',
+            '                                                        ^^^^^^^',
+            'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
+            '                                       -1.78891889478854579e-03',
+            '                                                               ',
+            'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
+            '                                       -3.06255006833574140e-04',
+            '                                                               ',
+            'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
+            '                                       -5.11993904291850035e-06',
+            '                                                               ',
+            'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
+            '                                        3.76748229376431740e-04'
+            ' X',
+            '                                        ^^^^^^^^^^^^^^^^^^^^^^^',
+            'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
+            '                                       -3.21682814207918156e-07',
+            '                                                               ',
+            'Found (1) large mismatches between output and reference values.',
+            'Found (1) small mismatches.',
+            '-' * 79,
+        ]
+
+        for i, line in enumerate(y):
+            self.assertEqual(line, x[i])
+        self.assertEqual(len(x), len(y))
+
 
 if __name__ == '__main__':
     unittest.main()

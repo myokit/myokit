@@ -1163,33 +1163,54 @@ def step(model, initial=None, reference=None, ignore_errors=False):
 
     Returns a string indicating the results.
     """
+    # Get initial state
+    if initial is None:
+        initial = model.state()
+
+    # Get evaluation at initial state
+    values = model.eval_state_derivatives(
+        state=initial, ignore_errors=ignore_errors)
+
+    # Log settings
     fmat = myokit.SFDOUBLE
     line_width = 79
     precision = 10
-    log = []
-    log.append('Evaluating state vector derivatives...')
-    if initial is None:
-        initial = model.state()
-    values = model.eval_state_derivatives(
-        state=initial, ignore_errors=ignore_errors)
+
+    # Get max variable name width
     w = max([len(v.qname()) for v in model.states()])
     if w < 4:
         w = 4
-    f = '{:<' + str(w) + '}  {:<24}  {:<24}'
+
+    # Create log header
+    log = []
+    log.append('Evaluating state vector derivatives...')
     log.append('-' * line_width)
-    log.append(f.format('Name', 'Initial value', 'Derivative at t=0'))
+    log.append(('{:<' + str(w) + '}  {:<24}  {:<24}').format(
+        'Name', 'Initial value', 'Derivative at t=0'))
     log.append('-' * line_width)
+
+    # Format for states
     f = '{: <' + str(w) + '}  ' + fmat + '  ' + fmat
-    if reference:
+
+    if not reference:
+        # Default output: intial value and derivative
+        for r, v in enumerate(model.states()):
+            log.append(f.format(v.qname(), v.state_value(), values[r]))
+    else:
+        # Comparing output
+
+        # Reference should be a state evaluation, or a model
         if isinstance(reference, myokit.Model):
             reference = reference.eval_state_derivatives(
                 state=initial, ignore_errors=ignore_errors)
+
         h = ' ' * (w + 28)
         i = h + ' ' * 20
         g = h + fmat
         errors = 0
         warnings = 0
         zero = fmat.format(0)[1:]
+
         for r, v in enumerate(model.states()):
             x = values[r]
             y = reference[r]
@@ -1197,14 +1218,17 @@ def step(model, initial=None, reference=None, ignore_errors=False):
             xx = fmat.format(x)
             yy = fmat.format(y)
             line = g.format(y)
+
             if xx[0] != yy[0] and (xx[1:] == yy[1:] == zero):
                 # zero equals minus zero, don't count as error
                 log.append(line)
                 log.append(h)
+
             elif xx[-4:] != yy[-4:]:
                 errors += 1
                 log.append(line + ' X !!!')
                 log.append(i + '^^^^')
+
             else:
                 threshold = 3 + precision  # 3 rubbish chars
                 if xx[0:threshold] != yy[0:threshold]:
@@ -1223,17 +1247,20 @@ def step(model, initial=None, reference=None, ignore_errors=False):
                 for pos in range(pos, n):
                     line2 += '^'
                 log.append(line2)
+
+        # Show large mismatches between model and reference
         if errors > 0:
             log.append(
                 'Found (' + str(errors) + ') large mismatches between output'
                 ' and reference values.')
         else:
             log.append('Model check completed without errors.')
+
+        # Show small mismatches between model and reference
         if warnings > 0:
             log.append('Found (' + str(warnings) + ') small mismatches.')
-    else:
-        for r, v in enumerate(model.states()):
-            log.append(f.format(v.qname(), v.state_value(), values[r]))
+
+    # Finalise and return
     log.append('-' * line_width)
     return '\n'.join(log)
 
