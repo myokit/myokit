@@ -18,7 +18,7 @@ def printline():
     print('-' * line_width)
 
 
-def parse():
+def main():
     """
     Imports myokit. Gets parsing.
     """

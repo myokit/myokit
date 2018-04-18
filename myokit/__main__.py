@@ -11,5 +11,5 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 if __name__ == '__main__':
-    from . import _command
-    _command.parse()
+    from ._command import main
+    main()
