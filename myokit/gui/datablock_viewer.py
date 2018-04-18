@@ -172,7 +172,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._variable_select.activated.connect(self.event_variable_selected)
         self._variable_select.setMinimumWidth(120)
         # Colormap selection
-        self._colormap = next(myokit.ColorMap.names())
+        self._colormap = next(iter(myokit.ColorMap.names()))
         self._colormap_select = QtWidgets.QComboBox()
         for cmap in myokit.ColorMap.names():
             self._colormap_select.addItem(cmap)
