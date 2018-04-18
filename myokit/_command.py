@@ -216,6 +216,7 @@ def evaluate(expression):
     """
     Evaluates an expression in mmt syntax.
     """
+    import myokit
     try:
         e = myokit.parse_expression(expression)
         e = e.eval() if e.is_literal() else e
@@ -245,6 +246,7 @@ def mmt_export(exporter, source, target):
     """
     Exports a myokit model.
     """
+    import sys
     import myokit
     import myokit.formats
 
@@ -521,6 +523,7 @@ def opencl_select():
     """
     Lets the user select the OpenCL device to use.
     """
+    import sys
     import myokit
 
     w = 70
@@ -631,6 +634,7 @@ def reset(force=False):
     """
     Removes all Myokit settings files.
     """
+    import sys
     import myokit
 
     # Ask user if settings should be deleted
@@ -647,7 +651,6 @@ def reset(force=False):
         shutil.rmtree(myokit.DIR_USER)
         print('Done')
     else:
-        import sys
         print('Aborting.')
         sys.exit(1)
 
@@ -674,6 +677,7 @@ def run(source, debug, debugfile):
     """
     Runs an mmt file script.
     """
+    import sys
     import myokit
 
     # Debug?
@@ -780,6 +784,7 @@ def step(source, ref, ini, raw):
     """
     Loads a model and evaluates the state vector derivatives.
     """
+    import sys
     import myokit
 
     # Parse reference file, if given
@@ -875,6 +880,7 @@ def update():
     """
     Perform an online update.
     """
+    import sys
     import myokit
     import shutil
     import urllib
@@ -1140,6 +1146,7 @@ def video(src, key, dst, fps, colormap):
     """
     Use "moviepy" to create an animation from a DataBlock2d.
     """
+    import sys
     import myokit
 
     # Test if moviepy is installed
