@@ -27,7 +27,7 @@ def main():
     # Create parser
     import argparse
     parser = argparse.ArgumentParser(
-        usage='myokit <command>',
+        usage='myokit',
         description='Command line tools for myokit.',
     )
     subparsers = parser.add_subparsers(
