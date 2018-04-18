@@ -46,7 +46,7 @@ setup(
     include_package_data=True,
 
     # Register myokit as a shell script
-    entry_points = {
+    entry_points={
         'console_scripts': ['myokit = myokit._command:main']
     },
 
