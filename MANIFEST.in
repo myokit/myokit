@@ -1,0 +1,5 @@
+include myokit/_sim/*.h myokit/_sim/*.c
+include myokit/_sim/*.hpp myokit/sim/*.cpp
+include myokit/_sim/*.cl
+recursive-include myokit/formats template/*
+graft myokit/_bin

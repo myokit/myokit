@@ -42,6 +42,9 @@ setup(
     # Packages to include
     packages=find_packages(include=('myokit', 'myokit.*')),
 
+    # Also load non-python files (via MANIFEST.in)
+    include_package_data=True,
+
     # List of dependencies
     install_requires=[
         'numpy',

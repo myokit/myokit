@@ -37,4 +37,9 @@ Windows users can install icons using the [Myokit installer for Windows](http://
 ## Using Myokit as a library
 If you want to be able to access Myokit from outside the Myokit directory (so that `import myokit` will work in any Python program), run:
 
-    python setup.py develop
+    pip install -e .
+
+To undo this, use:
+
+    pip uninstall myokit
+
