@@ -38,7 +38,7 @@ class CudaKernelExporter(myokit.formats.TemplatedRunnableExporter):
         return inspect.getdoc(self)
 
     def _dir(self, root):
-        return os.path.join(root, 'cuda')
+        return os.path.join(root, 'cuda', 'template')
 
     def _dict(self):
         return {'kernel.cu': 'kernel.cu'}

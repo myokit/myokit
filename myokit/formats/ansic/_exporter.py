@@ -14,9 +14,6 @@ import os
 import myokit.formats
 
 
-DIRNAME = 'ansic'
-
-
 class AnsiCExporter(myokit.formats.TemplatedRunnableExporter):
     """
     This :class:`Exporter <myokit.formats.Exporter>` generates a runnable ansic
@@ -57,7 +54,7 @@ class AnsiCExporter(myokit.formats.TemplatedRunnableExporter):
         return inspect.getdoc(self)
 
     def _dir(self, root):
-        return os.path.join(root, DIRNAME)
+        return os.path.join(root, 'ansic', 'template')
 
     def _dict(self):
         return {'sim.c': 'sim.c'}
@@ -106,7 +103,7 @@ class AnsiCEulerExporter(myokit.formats.TemplatedRunnableExporter):
         return inspect.getdoc(self)
 
     def _dir(self, root):
-        return os.path.join(root, DIRNAME)
+        return os.path.join(root, 'ansic', 'template')
 
     def _dict(self):
         return {'euler.c': 'euler.c'}
@@ -171,7 +168,7 @@ class AnsiCCableExporter(myokit.formats.TemplatedRunnableExporter):
         return inspect.getdoc(self)
 
     def _dir(self, root):
-        return os.path.join(root, DIRNAME)
+        return os.path.join(root, 'ansic', 'template')
 
     def _dict(self):
         return {'cable.c': 'cable.c'}
