@@ -1,5 +1,7 @@
 [run]
 source = myokit
+include =
+    myokit/_parser.py
 omit =
     myokit/gui/*
     myokit/_sim/opencl.py
