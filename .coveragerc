@@ -1,2 +1,6 @@
 [run]
-source = myokit
+source =
+    myokit
+    myokit/__init__.py
+    myokit/__parser.py__
+
