@@ -309,7 +309,7 @@ def unexpected_token(token, expected):
     if code not in hide:
         got += ' "' + text + '"'
     # Parse expected token(s) or string
-    if type(expected) != str:
+    if type(expected) not in [unicode, str, bytes]:
         if len(expected) > 2:
             expected = 'one of [ ' \
                 + ', '.join([token_str[i] for i in expected]) + ' ]'
