@@ -528,5 +528,13 @@ a = 12
         self.assertRaises(myokit.ParseError, myokit.parse_model, m)
 
 
+#TODO: Add tests for protocol parsing. Found a bug when parsing this:
+#
+#  [[protocol]]
+#   -80     next    300     0
+#   -120    3196.0  50.0    0       0
+#
+
+
 if __name__ == '__main__':
     unittest.main()
