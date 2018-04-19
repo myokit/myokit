@@ -1046,10 +1046,15 @@ def update():
         # Move current version into back-up path
         os.mkdir(path_backup)
         nodes = [
-            'about',
+            'install',
             'myokit',
+            'CITATION',
+            'CONTRIBUTING.md',
+            'LICENSE',
+            'MANIFEST.in',
             'myo',
-            'readme.txt',
+            'README.md',
+            'setup.py',
         ]
         for node in nodes:
             src = os.path.join(path_current, node)
