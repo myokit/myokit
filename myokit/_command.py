@@ -36,23 +36,23 @@ def main():
     )
 
     # Add subparsers
-    add_block_parser(subparsers)
-    add_compare_parser(subparsers)
-    add_debug_parser(subparsers)
-    add_eval_parser(subparsers)
-    add_export_parser(subparsers)
-    add_gde_parser(subparsers)
-    add_ide_parser(subparsers)
-    add_import_parser(subparsers)
-    add_log_parser(subparsers)
-    add_opencl_parser(subparsers)
-    add_opencl_select_parser(subparsers)
-    add_reset_parser(subparsers)
-    add_run_parser(subparsers)
-    add_step_parser(subparsers)
-    add_update_parser(subparsers)
-    add_version_parser(subparsers)
-    add_video_parser(subparsers)
+    add_block_parser(subparsers)            # Launch the DataBlock viewer
+    add_compare_parser(subparsers)          # Compare models
+    add_debug_parser(subparsers)            # Debug an RHS equation
+    add_eval_parser(subparsers)             # Evaluate an expression
+    add_export_parser(subparsers)           # Export an mmt file
+    add_gde_parser(subparsers)              # Launch the graph data extractor
+    add_ide_parser(subparsers)              # Launch the IDE
+    add_import_parser(subparsers)           # Import a file to mmt
+    add_log_parser(subparsers)              # Launch the DataLog viewer
+    add_opencl_parser(subparsers)           # Show OpenCL support
+    add_opencl_select_parser(subparsers)    # Select OpenCL platform
+    add_reset_parser(subparsers)            # Reset config files
+    add_run_parser(subparsers)              # Run an mmt file
+    add_step_parser(subparsers)             # Load a model, perform 1 step
+    add_update_parser(subparsers)           # Update Myokit
+    add_version_parser(subparsers)          # Show version info
+    add_video_parser(subparsers)            # Convert a DataBlock to video
 
     # Parse!
     if len(sys.argv) == 1:
