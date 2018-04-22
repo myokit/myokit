@@ -877,9 +877,11 @@ class DataBlock2d(object):
             raise ValueError(
                 'Both datablocks must contain data from the same points in'
                 ' time.')
+
         # Check indices
         nt, h1, w1 = block1.shape()
         nt, h2, w2 = block2.shape()
+
         if pos1:
             x1, y1 = [int(i) for i in pos1]
             if x1 < 0 or y1 < 0:
@@ -888,6 +890,7 @@ class DataBlock2d(object):
                     + str(x1) + ', ' + str(y1) + ').')
         else:
             x1, y1 = 0, 0
+
         if pos2:
             x2, y2 = [int(i) for i in pos2]
             if x2 < 0 or y2 < 0:
@@ -896,14 +899,17 @@ class DataBlock2d(object):
                     + str(x2) + ', ' + str(y2) + ').')
         else:
             x2, y2 = x1 + w1, 0
+
         # Check for overlap
         if not (x1 >= x2 + w2 or x2 >= x1 + w1
                 or y1 >= y2 + h2 or y2 >= y1 + h2):
             raise ValueError('The two data blocks indices cannot overlap.')
+
         # Create new datablock
         nx = max(x1 + w1, x2 + w2)
         ny = max(y1 + h1, y2 + h2)
         block = DataBlock2d(nx, ny, time, copy=True)
+
         # Enter 0d data
         if map0d:
             for name, old in map0d.items():
@@ -919,29 +925,27 @@ class DataBlock2d(object):
                         ' entries to a tuple (a, b) where either a or b must'
                         ' be None.')
                 block.set0d(name, b.get0d(n))
+
         # Enter 2d data
         for name, source in map2d.items():
             # Get data sources
             name1, name2 = source[0], source[1]
             source1 = block1.get2d(name1)
             source2 = block2.get2d(name2)
+
             # Get padding value
             try:
                 pad = float(source[2])
             except IndexError:
-                # Get the first value, of a cell not likely to be paced
-                pad = source1[0, int(h1 / 2), int(w1 / 2)]
-                # Compare to see which side of the mean it's on
-                mean = 0.5 * (np.mean(source1) + np.mean(source2))
-                if pad > mean:
-                    pad = max(np.max(source1), np.max(source2))
-                else:
-                    pad = min(np.min(source1), np.min(source2))
+                # Get lowest value
+                pad = min(np.min(source1), np.min(source2))
+
             # Create new data field
             field = pad * np.ones((nt, ny, nx))
             field[:, y1:y1 + h1, x1:x1 + w1] = source1
             field[:, y2:y2 + h2, x2:x2 + w2] = source2
             block.set2d(name, field)
+
         # Return new block
         return block
 
@@ -1094,7 +1098,7 @@ class DataBlock2d(object):
         stored in this block. The given values are references! No copy of the
         data is made.
         """
-        return self._2d.items()
+        return self._0d.items()
 
     def items2d(self):
         """
@@ -1444,7 +1448,7 @@ class DataBlock2d(object):
         will be a newline character).
         """
         # Check filename
-        filename = os.expanduser(filename)
+        filename = os.path.expanduser(filename)
         # Save
         data = self._2d[name]
         data = data[frame]
@@ -1643,21 +1647,15 @@ class ColorMap(object):
         return ColorMap._colormaps.keys()
 
     @staticmethod
-    def normalize(floats, lower=None, upper=None):
+    def normalize(floats, lower, upper):
         """
         Normalizes the given float data based on the specified lower and upper
-        bounds. If no bounds are set, the scaling is deduced from the data.
+        bounds.
         """
         floats = np.array(floats, copy=True)
-        # Find or enforce lower and upper bounds
-        if lower is None:
-            lower = np.min(floats)
-        else:
-            floats[floats < lower] = lower
-        if upper is None:
-            upper = np.max(floats)
-        else:
-            floats[floats > upper] = upper
+        # Enforce lower and upper bounds
+        floats[floats < lower] = lower
+        floats[floats > upper] = upper
         # Normalize
         n = floats - lower
         r = upper - lower

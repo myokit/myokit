@@ -542,6 +542,9 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertRaises(ValueError, b1.set1d, 'x', x)
 
     def test_keys(self):
+        """
+        Tests the keys0d() and keys1d() methods.
+        """
         w = 2
         time = [1, 2, 3]
         b1 = myokit.DataBlock1d(w, time)
@@ -600,7 +603,142 @@ class DataBlock2dTest(unittest.TestCase):
         # Decreasing times
         self.assertRaises(ValueError, myokit.DataBlock2d, w, h, [3, 2, 1])
 
+    def test_colors(self):
+        """
+        Tests conversion to colors using different color maps.
+        """
+        w, h = 2, 3
+        time = [1, 2, 3]
+        b = myokit.DataBlock2d(w, h, time)
+        x = np.array([  # Each 3 by 2 array is a point in time
+            [[0, 1],
+             [2, 3],
+             [4, 5]],
+
+            [[5, 4],
+             [3, 2],
+             [1, 0]],
+
+            [[0, 0],
+             [0, 0],
+             [0, 0]],
+        ])
+        b.set2d('x', x)
+
+        # Red colormap
+        t0 = np.array([  # Deepest array is a pixel
+            [[255, 255, 255], [255, 204, 204]],
+            [[255, 153, 153], [255, 102, 102]],
+            [[255, 50, 50], [255, 0, 0]],
+        ])
+        t1 = np.array([
+            [[255, 0, 0], [255, 50, 50]],
+            [[255, 102, 102], [255, 153, 153]],
+            [[255, 204, 204], [255, 255, 255]],
+        ])
+        t2 = np.array([
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+        ])
+        c = b.colors('x', colormap='red')
+        self.assertTrue(np.all(c == np.array([t0, t1, t2])))
+
+        # Red with normalization
+        t0 = np.array([
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 127, 127]],
+            [[255, 0, 0], [255, 0, 0]],
+        ])
+        t1 = np.array([
+            [[255, 0, 0], [255, 0, 0]],
+            [[255, 127, 127], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+        ])
+        t2 = np.array([
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+        ])
+        c = b.colors('x', colormap='red', lower=2, upper=4)
+        self.assertTrue(np.all(c[0] == t0))
+        self.assertTrue(np.all(c[1] == t1))
+        self.assertTrue(np.all(c[2] == t2))
+
+        # Red with extreme normalization
+        t2 = np.array([
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+        ])
+        c = b.colors('x', colormap='red', lower=4, upper=4)
+        self.assertTrue(np.all(c[0] == t2))
+        self.assertTrue(np.all(c[1] == t2))
+        self.assertTrue(np.all(c[2] == t2))
+
+        # Green
+        t0 = np.array([
+            [[255, 255, 255], [204, 255, 204]],
+            [[153, 255, 153], [102, 255, 102]],
+            [[50, 255, 50], [0, 255, 0]],
+        ])
+        t1 = np.array([
+            [[0, 255, 0], [50, 255, 50]],
+            [[102, 255, 102], [153, 255, 153]],
+            [[204, 255, 204], [255, 255, 255]],
+        ])
+        t2 = np.array([
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+        ])
+        c = b.colors('x', colormap='green')
+        self.assertTrue(np.all(c == np.array([t0, t1, t2])))
+
+        # Blue colormap
+        t0 = np.array([  # Deepest array is a pixel
+            [[255, 255, 255], [204, 204, 255]],
+            [[153, 153, 255], [102, 102, 255]],
+            [[50, 50, 255], [0, 0, 255]],
+        ])
+        t1 = np.array([
+            [[0, 0, 255], [50, 50, 255]],
+            [[102, 102, 255], [153, 153, 255]],
+            [[204, 204, 255], [255, 255, 255]],
+        ])
+        t2 = np.array([
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+            [[255, 255, 255], [255, 255, 255]],
+        ])
+        c = b.colors('x', colormap='blue')
+        self.assertTrue(np.all(c == np.array([t0, t1, t2])))
+
+        # Rainbow/traditional colormap
+        t0 = np.array([  # Deepest array is a pixel
+            [[153, 61, 143], [49, 35, 212]],
+            [[4, 235, 249], [4, 250, 14]],
+            [[209, 213, 35], [153, 61, 61]],
+        ])
+        t1 = np.array([
+            [[153, 61, 61], [209, 213, 35]],
+            [[4, 250, 14], [4, 235, 249]],
+            [[49, 35, 212], [153, 61, 143]],
+        ])
+        t2 = np.array([
+            [[153, 61, 143], [153, 61, 143]],
+            [[153, 61, 143], [153, 61, 143]],
+            [[153, 61, 143], [153, 61, 143]],
+        ])
+        c = b.colors('x', colormap='traditional')
+        self.assertTrue(np.all(c[0] == t0))
+        self.assertTrue(np.all(c[1] == t1))
+        self.assertTrue(np.all(c[2] == t2))
+
     def test_combined(self):
+        """
+        Tests loading, saving, conversion from data log.
+        """
         # Create simulation log with 1d data
         log = myokit.DataLog()
         log.set_time_key('time')
@@ -674,6 +812,123 @@ class DataBlock2dTest(unittest.TestCase):
             self.assertTrue(np.all(yb == yc))
             self.assertFalse(yb is yc)
 
+    def test_combine(self):
+        """
+        Tests the combine() method.
+        """
+        # Create first data block
+        w1, h1 = 2, 3
+        t1 = [1, 2, 3]
+        b1 = myokit.DataBlock2d(w1, h1, t1)
+        x1 = np.array([  # Each 3 by 2 array is a point in time
+            [[0, 1],
+             [2, 3],
+             [4, 5]],
+            [[5, 4],
+             [3, 2],
+             [1, 0]],
+            [[0, 0],
+             [0, 0],
+             [0, 0]],
+        ])
+        b1.set2d('x', x1)
+
+        # Create first data block
+        w2, h2 = 1, 2
+        t2 = [1, 2, 3]
+        b2 = myokit.DataBlock2d(w2, h2, t2)
+        x2 = np.array([  # Each 2 by 1 array is a point in time
+            [[0],
+             [1]],
+            [[2],
+             [3]],
+            [[4],
+             [5]],
+        ])
+        b2.set2d('x', x2)
+
+        # Basic combine
+        m12 = {'x': ('x', 'x', -1)}
+        b = myokit.DataBlock2d.combine(b1, b2, m12)
+        c0 = [[0, 1, 0],
+              [2, 3, 1],
+              [4, 5, -1]]
+        c1 = [[5, 4, 2],
+              [3, 2, 3],
+              [1, 0, -1]]
+        c2 = [[0, 0, 4],
+              [0, 0, 5],
+              [0, 0, -1]]
+        x = b.get2d('x')
+        self.assertTrue(np.all(x[0] == c0))
+        self.assertTrue(np.all(x[1] == c1))
+        self.assertTrue(np.all(x[2] == c2))
+
+        # Combine with automatic padding value
+        mx = {'x': ('x', 'x')}
+        b = myokit.DataBlock2d.combine(b1, b2, mx)
+        c0 = [[0, 1, 0],
+              [2, 3, 1],
+              [4, 5, 0]]
+        c1 = [[5, 4, 2],
+              [3, 2, 3],
+              [1, 0, 0]]
+        c2 = [[0, 0, 4],
+              [0, 0, 5],
+              [0, 0, 0]]
+        x = b.get2d('x')
+        self.assertTrue(np.all(x[0] == c0))
+        self.assertTrue(np.all(x[1] == c1))
+        self.assertTrue(np.all(x[2] == c2))
+
+        # Combine with pos1 and pos2 set
+        m12 = {'x': ('x', 'x', -1)}
+        b = myokit.DataBlock2d.combine(b1, b2, m12, pos1=(1, 0), pos2=(0, 1))
+        c0 = [[-1, 0, 1],
+              [0, 2, 3],
+              [1, 4, 5]]
+        c1 = [[-1, 5, 4],
+              [2, 3, 2],
+              [3, 1, 0]]
+        c2 = [[-1, 0, 0],
+              [4, 0, 0],
+              [5, 0, 0]]
+        x = b.get2d('x')
+        self.assertTrue(np.all(x[0] == c0))
+        self.assertTrue(np.all(x[1] == c1))
+        self.assertTrue(np.all(x[2] == c2))
+
+        # Combine with 0d information
+        b1.set0d('y', [0, 10, 20])
+        b2.set0d('y', [20, 30, 40])
+        b = myokit.DataBlock2d.combine(b1, b2, m12, {'y': ('y', None)})
+        self.assertTrue(np.all(b.get0d('y') == [0, 10, 20]))
+        b = myokit.DataBlock2d.combine(b1, b2, m12, {'y': (None, 'y')})
+        self.assertTrue(np.all(b.get0d('y') == [20, 30, 40]))
+        self.assertRaises(
+            ValueError, myokit.DataBlock2d.combine, b1, b2, m12,
+            {'y': ('y', 'y')})
+
+        # Test bad time points
+        b1 = myokit.DataBlock2d(w1, h1, t1)
+        b2 = myokit.DataBlock2d(w2, h2, [4, 5, 6])
+        self.assertRaises(ValueError, myokit.DataBlock2d.combine, b1, b2, m12)
+
+        # Test negative pos1, bad pos2
+        b1 = myokit.DataBlock2d(w1, h1, t1)
+        b2 = myokit.DataBlock2d(w2, h2, t2)
+        self.assertRaises(
+            ValueError, myokit.DataBlock2d.combine, b1, b2, m12, pos1=(0, -1))
+        self.assertRaises(
+            ValueError, myokit.DataBlock2d.combine, b1, b2, m12, pos2=(0, -1))
+
+        # Test overlapping pos1, bad pos2
+        b1 = myokit.DataBlock2d(w1, h1, t1)
+        b2 = myokit.DataBlock2d(w2, h2, t2)
+        self.assertRaises(
+            ValueError, myokit.DataBlock2d.combine, b1, b2, m12, pos1=(0, 0),
+            pos2=(1, 1))
+
     def test_from_data_log(self):
         """
         Tests some edge cases of `DataBlock1d.from_DataLog`.
@@ -729,7 +984,50 @@ class DataBlock2dTest(unittest.TestCase):
         del(d['1.2.y'])
         self.assertRaises(ValueError, myokit.DataBlock2d.from_DataLog, d)
 
-    def test_keys(self):
+    def test_images(self):
+        """
+        Tests the images() method.
+        """
+        w, h = 2, 2
+        time = [1, 2]
+        b = myokit.DataBlock2d(w, h, time)
+        x = np.array([  # Each 2 by 2 array is a point in time
+            [[0, 1],
+             [2, 3]],
+            [[3, 4],
+             [4, 5]],
+        ])
+        b.set2d('x', x)
+
+        # Red colormap
+        t0 = np.array([  # Like colors, but strided together (ARGB32)
+            255, 255, 255, 255, 204, 204, 255, 255,
+            153, 153, 255, 255, 102, 102, 255, 255
+        ])
+        t1 = np.array([
+            102, 102, 255, 255, 50, 50, 255, 255,
+            50, 50, 255, 255, 0, 0, 255, 255,
+        ])
+
+        c = b.images('x', colormap='red')
+        self.assertTrue(np.all(c[0] == t0))
+        self.assertTrue(np.all(c[1] == t1))
+
+    def test_is_square(self):
+        """
+        Tests the is_square method.
+        """
+        b = myokit.DataBlock2d(1, 1, [1, 2, 3])
+        self.assertTrue(b.is_square())
+        b = myokit.DataBlock2d(1, 2, [1, 2, 3])
+        self.assertFalse(b.is_square())
+        b = myokit.DataBlock2d(10, 10, [1, 2, 3])
+        self.assertTrue(b.is_square())
+
+    def test_keys_and_items(self):
+        """
+        Tests the keys0d and keys2d methods, plus the items methods.
+        """
         w = 2
         h = 3
         time = [1, 2, 3]
@@ -740,13 +1038,17 @@ class DataBlock2dTest(unittest.TestCase):
         pace = np.array([0, 0, 2])
         b.set0d('pace', pace)
         self.assertEqual(len(list(b.keys0d())), 1)
+        self.assertEqual(len(dict(b.items0d())), 1)
         self.assertIn('pace', b.keys0d())
         b.set0d('poos', pace)
         self.assertEqual(len(list(b.keys0d())), 2)
+        self.assertEqual(len(dict(b.items0d())), 2)
         self.assertIn('poos', b.keys0d())
+        self.assertIn('poos', dict(b.items0d()).keys())
 
         # Test keys2d
         self.assertEqual(len(list(b.keys2d())), 0)
+        self.assertEqual(len(dict(b.items2d())), 0)
         x = np.array([
             [[1, 2], [3, 4], [5, 6]],
             [[3, 4], [5, 6], [7, 8]],
@@ -754,9 +1056,72 @@ class DataBlock2dTest(unittest.TestCase):
         ])
         b.set2d('x', x)
         self.assertEqual(len(list(b.keys2d())), 1)
+        self.assertEqual(len(dict(b.items2d())), 1)
         y = 3 * x + 1
         b.set2d('y', y)
         self.assertEqual(len(list(b.keys2d())), 2)
+        self.assertEqual(len(dict(b.items2d())), 2)
+
+    def test_dominant_eigenvalues(self):
+        """
+        Tests the dominant_eigenvalues method.
+        """
+        # Won't work on non-square matrix
+        b = myokit.DataBlock2d(1, 2, [1])
+        self.assertRaises(Exception, b.dominant_eigenvalues, 'x')
+
+        # Proper test
+        b = myokit.DataBlock2d(3, 3, [1])
+        x = [[2, 0, 0], [0, 3, 4], [0, 4, 9]]
+        b.set2d('x', [x])
+        self.assertEqual(b.dominant_eigenvalues('x')[0], 11)
+
+        # Complex values
+        b = myokit.DataBlock2d(3, 3, [1])
+        x = [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
+        b.set2d('x', [x])
+        self.assertAlmostEqual(
+            b.dominant_eigenvalues('x')[0], -0.5 - np.sqrt(3) / 2j)
+
+    def test_eigenvalues(self):
+        """
+        Tests the eigenvalues method.
+        """
+        # Won't work on non-square matrix
+        b = myokit.DataBlock2d(1, 2, [1])
+        self.assertRaises(Exception, b.eigenvalues, 'x')
+
+        # Proper test
+        b = myokit.DataBlock2d(3, 3, [1])
+        x = [[2, 0, 0], [0, 3, 4], [0, 4, 9]]
+        b.set2d('x', [x])
+        self.assertTrue(np.all(b.eigenvalues('x') == [[11, 1, 2]]))
+
+        # Complex values
+        b = myokit.DataBlock2d(3, 3, [1])
+        x = [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
+        b.set2d('x', [x])
+        e = b.eigenvalues('x')[0]
+        self.assertAlmostEqual(e[0], -0.5 - np.sqrt(3) / 2j)
+        self.assertAlmostEqual(e[1], -0.5 + np.sqrt(3) / 2j)
+        self.assertAlmostEqual(e[2], 1)
+
+    def test_largest_eigenvalues(self):
+        # Won't work on non-square matrix
+        b = myokit.DataBlock2d(1, 2, [1])
+        self.assertRaises(Exception, b.largest_eigenvalues, 'x')
+
+        # Proper test
+        b = myokit.DataBlock2d(3, 3, [1])
+        x = [[2, 0, 0], [0, 3, 4], [0, 4, 9]]
+        b.set2d('x', [x])
+        self.assertEqual(b.largest_eigenvalues('x')[0], 11)
+
+        # Complex values
+        b = myokit.DataBlock2d(3, 3, [1])
+        x = [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
+        b.set2d('x', [x])
+        self.assertAlmostEqual(b.largest_eigenvalues('x')[0], 1)
 
     def test_load_bad_file(self):
         """
@@ -885,6 +1250,72 @@ class DataBlock2dTest(unittest.TestCase):
         b = myokit.DataBlock2d.load(path, p)
         self.assertIsNone(b)
 
+    def test_save_frame_csv(self):
+        """
+        Tests the save_frame_csv() method.
+        """
+        w, h = 2, 3
+        time = [1, 2, 3]
+        b = myokit.DataBlock2d(w, h, time)
+        x = np.array([  # Each 3 by 2 array is a point in time
+            [[0, 1],
+             [2, 3],
+             [4, 5]],
+
+            [[5, 4],
+             [3, 2],
+             [1, 0]],
+
+            [[0, 0],
+             [0, 0],
+             [0, 0]],
+        ])
+        b.set2d('x', x)
+
+        with TemporaryDirectory() as d:
+            path = d.path('test.csv')
+            b.save_frame_csv(path, 'x', 0)
+            with open(path, 'r') as f:
+                lines = [unicode(x) for x in f.readlines()]
+            self.assertEqual(lines[0], '"x","y","value"\n')
+            self.assertEqual(lines[1], '0,0,0\n')
+            self.assertEqual(lines[2], '1,0,1\n')
+            self.assertEqual(lines[3], '0,1,2\n')
+            self.assertEqual(lines[4], '1,1,3\n')
+            self.assertEqual(lines[5], '0,2,4\n')
+            self.assertEqual(lines[6], '1,2,5')
+
+    def test_save_frame_grid(self):
+        """
+        Tests the save_frame_grid() method.
+        """
+        w, h = 2, 3
+        time = [1, 2, 3]
+        b = myokit.DataBlock2d(w, h, time)
+        x = np.array([  # Each 3 by 2 array is a point in time
+            [[0, 1],
+             [2, 3],
+             [4, 5]],
+
+            [[5, 4],
+             [3, 2],
+             [1, 0]],
+
+            [[0, 0],
+             [0, 0],
+             [0, 0]],
+        ])
+        b.set2d('x', x)
+
+        with TemporaryDirectory() as d:
+            path = d.path('test.csv')
+            b.save_frame_grid(path, 'x', 0)
+            with open(path, 'r') as f:
+                lines = [unicode(x) for x in f.readlines()]
+            self.assertEqual(lines[0], '0 1\n')
+            self.assertEqual(lines[1], '2 3\n')
+            self.assertEqual(lines[2], '4 5')
+
     def test_set0d(self):
         """
         Tests set0d().
@@ -960,6 +1391,40 @@ class DataBlock2dTest(unittest.TestCase):
         ])
         b1.set2d('x', x)
         self.assertTrue(np.all(b1.trace('x', 1, 1) == [4, 6, 2]))
+
+
+class ColorMapTest(unittest.TestCase):
+    """
+    Tests extra methods from ColorMap class.
+    """
+    def test_exists(self):
+        self.assertFalse(myokit.ColorMap.exists('michael'))
+        self.assertTrue(myokit.ColorMap.exists('red'))
+
+    def test_get(self):
+        self.assertIsInstance(myokit.ColorMap.get('red'), myokit.ColorMap)
+        self.assertRaises(KeyError, myokit.ColorMap.get, 'michael')
+
+    def test_names(self):
+        names = list(myokit.ColorMap.names())
+        self.assertIn('red', names)
+
+    def test_image(self):
+        """
+        Tests the image() method, that returns a colormap representation
+        """
+        # Red colormap
+        m = np.array([  # Like colors, but strided together (ARGB32)
+            0, 0, 255, 255,
+            50, 50, 255, 255,
+            102, 102, 255, 255,
+            153, 153, 255, 255,
+            204, 204, 255, 255,
+            255, 255, 255, 255,
+        ])
+
+        c = myokit.ColorMap.image('red', 1, 6)
+        self.assertTrue(np.all(c == m))
 
 
 if __name__ == '__main__':
