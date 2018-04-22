@@ -1,7 +1,5 @@
 [run]
 source = myokit
-include =
-    myokit/_parser.py
 omit =
     myokit/gui/*
     myokit/_sim/opencl.py
@@ -13,6 +11,7 @@ omit =
 [report]
 exclude_lines =
     pragma: no cover
+    pragma: no linux-cover
     def __repr__
     raise AssertionError
     raise NotImplementedError

@@ -205,6 +205,60 @@ class PacingFactoryTest(unittest.TestCase):
             self.assertEqual(e.multiplier(), 0)
             t += tpost
 
+    def test_steptrain_bad_values(self):
+        """
+        Tests the creation of a step protocol with illegal times.
+        """
+        vs = [-100, -80, 40, -20]
+        vhold = -80
+        tpre = 200
+        tstep = 1000
+        tpost = 800
+
+        myokit.pacing.steptrain(vs, vhold, tpre, tstep, tpost)
+        self.assertRaises(
+            ValueError, myokit.pacing.steptrain, vs, vhold, -1, tstep, tpost)
+        self.assertRaises(
+            ValueError, myokit.pacing.steptrain, vs, vhold, tpre, -1, tpost)
+        self.assertRaises(
+            ValueError, myokit.pacing.steptrain, vs, vhold, tpre, tstep, -1)
+
+    def test_steptrain_linear_bad_values(self):
+        """
+        Tests the creation of a step protocol with linear steps and bad values.
+        """
+        # Incrementing steps
+        vmin = -40
+        vmax = 40
+        dv = 20
+        vhold = -80
+        tpre = 200
+        tstep = 1000
+        tpost = 800
+
+        # Wrong direction of dv
+        myokit.pacing.steptrain_linear(
+            vmin, vmax, dv, vhold, tpre, tstep, tpost)
+        self.assertRaises(
+            ValueError, myokit.pacing.steptrain_linear, vmin, vmax, -dv, vhold,
+            tpre, tstep, tpost)
+        myokit.pacing.steptrain_linear(
+            vmax, vmin, -dv, vhold, tpre, tstep, tpost)
+        self.assertRaises(
+            ValueError, myokit.pacing.steptrain_linear, vmax, vmin, dv, vhold,
+            tpre, tstep, tpost)
+
+        # Bad times
+        self.assertRaises(
+            ValueError, myokit.pacing.steptrain_linear, vmin, vmax, dv, vhold,
+            -1, tstep, tpost)
+        self.assertRaises(
+            ValueError, myokit.pacing.steptrain_linear, vmin, vmax, dv, vhold,
+            tpre, -1, tpost)
+        self.assertRaises(
+            ValueError, myokit.pacing.steptrain_linear, vmin, vmax, dv, vhold,
+            tpre, tstep, -1)
+
 
 if __name__ == '__main__':
     unittest.main()

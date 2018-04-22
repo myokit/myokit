@@ -465,29 +465,36 @@ class AuxText(unittest.TestCase):
         self.assertEqual(len(x), len(y))
 
         # Test positive/negative zero comparison
-        m = myokit.Model()
-        c = m.add_component('c')
+        m1 = myokit.Model()
+        c = m1.add_component('c')
         x = c.add_variable('x')
         x.promote(1)
         x.set_rhs('-0.0')
         y = c.add_variable('y')
         y.promote(1)
         y.set_rhs('0.0')
+        m2 = m1.clone()
+        m2.get('c.x').set_rhs(0.0)
 
-        x = myokit.step(m).splitlines()
+        x = myokit.step(m1, reference=m2).splitlines()
         y = [
             'Evaluating state vector derivatives...',
             '-' * 79,
             'Name  Initial value             Derivative at t=0       ',
             '-' * 79,
             'c.x    1.00000000000000000e+00  -0.00000000000000000e+00',
+            '                                 0.00000000000000000e+00',
+            '                                                        ',
             'c.y    1.00000000000000000e+00   0.00000000000000000e+00',
+            '                                 0.00000000000000000e+00',
+            '                                                        ',
+            'Model check completed without errors.',
             '-' * 79,
         ]
 
         #for i, line in enumerate(y):
-        #    print(line)
-        #    print(x[i])
+        #    print(line + '<')
+        #    print(x[i] + '<')
         for i, line in enumerate(y):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))

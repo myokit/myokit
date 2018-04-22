@@ -15,6 +15,7 @@ from __future__ import print_function, unicode_literals
 # into this method's namespace. This allows us to use the constants defined
 # before this method was called.
 import myokit
+
 # Load libraries
 import os
 import platform
@@ -28,16 +29,20 @@ def _create(path):
     """
     # Get operating system
     system = platform.system()
+
     # Create config parser
     config = ConfigParser.ConfigParser(allow_no_value=True)
+
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str
+
     # General information
     config.add_section('myokit')
     config.set(
         'myokit',
         '# This file can be used to set global configuration options for'
         ' Myokit.')
+
     # Date format
     config.add_section('time')
     config.set('time', '# Date format used throughout Myokit')
@@ -47,10 +52,12 @@ def _create(path):
     config.set('time', '# Format should be acceptable for time.strftime')
     config.set('time', '# Format should be acceptable for time.strftime')
     config.set('time', 'time_format', myokit.TIME_FORMAT)
+
     # Add line numbers to debug output of simulations
     config.add_section('debug')
     config.set('debug', '# Add line numbers to debug output of simulations')
     config.set('debug', 'line_numbers', myokit.DEBUG_LINE_NUMBERS)
+
     # GUI Backend
     config.add_section('gui')
     config.set('gui', '# Backend to use for graphical user interface.')
@@ -59,13 +66,15 @@ def _create(path):
     config.set('gui', '#backend = pyqt5')
     config.set('gui', '#backend = pyqt4')
     config.set('gui', '#backend = pyside')
+
     # Locations of sundials library
     config.add_section('sundials')
     config.set(
         'sundials', '# Location of sundials shared libary files'
         ' (.so or .dll).')
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
-    if system == 'Windows':
+
+    if system == 'Windows':     # pragma: no linux-cover
         # All windowses
         # First, try finding local sundials install
         sundials_win = os.path.join(
@@ -85,9 +94,11 @@ def _create(path):
             '/usr/local/lib',
             '/opt/local/lib',
         ]))
+
     config.set('sundials', '# Location of sundials header files (.h).')
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
-    if system == 'Windows':
+
+    if system == 'Windows':     # pragma: no linux-cover
         # All windowses
         config.set('sundials', 'inc', ';'.join([
             os.path.join(sundials_win, 'include'),
@@ -102,12 +113,14 @@ def _create(path):
             '/usr/local/include',
             '/opt/local/include',
         ]))
+
     # Locations of OpenCL libraries
     config.add_section('opencl')
     config.set(
         'opencl', '# Location of opencl shared libary files (.so or .dll).')
     config.set('opencl', '# Multiple paths can be set using ; as separator.')
-    if system == 'Windows':
+
+    if system == 'Windows':     # pragma: no linux-cover
         # All windowses
         c32 = 'C:\\Program Files\\'
         c64 = 'C:\\Program Files (x86)\\'
@@ -126,9 +139,11 @@ def _create(path):
             '/usr/lib64/nvidia',
             '/usr/local/cuda/lib64',
         ]))
+
     config.set('opencl', '# Location of opencl header files (.h).')
     config.set('opencl', '# Multiple paths can be set using ; as separator.')
-    if system == 'Windows':
+
+    if system == 'Windows':     # pragma: no linux-cover
         # All windowses
         c32 = 'C:\\Program Files\\'
         c64 = 'C:\\Program Files (x86)\\'
@@ -147,12 +162,15 @@ def _create(path):
             '/usr/include/CL',
             '/usr/local/cuda/include',
         ]))
+
     # Write ini file
     try:
         with open(path, 'wb') as configfile:
             config.write(configfile)
-    except Exception:
-        print('Warning: Unable to write settings to ' + str(path))
+    except IOError:     # pragma: no cover
+        import logging
+        logger = logging.getLogger('myokit')
+        logger.warning('Warning: Unable to write settings to ' + str(path))
 
 
 def _load():
@@ -161,32 +179,40 @@ def _load():
     """
     # Location of configuration file
     path = os.path.join(myokit.DIR_USER, 'myokit.ini')
+
     # No file present? Create one and return
     if not os.path.isfile(path):
         _create(path)
+
     # Create the config parser (no value allows comments)
     config = ConfigParser.ConfigParser(allow_no_value=True)
+
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str
+
     # Parse the config file
     config.read(path)
+
     # Date format
     if config.has_option('time', 'date_format'):
         x = config.get('time', 'date_format')
         if x:
-            myokit.DATE_FORMAT = x
+            myokit.DATE_FORMAT = unicode(x)
+
     # Time format
     if config.has_option('time', 'time_format'):
         x = config.get('time', 'time_format')
         if x:
-            myokit.TIME_FORMAT = x
+            myokit.TIME_FORMAT = unicode(x)
+
     # Add line numbers to debug output of simulations
     if config.has_option('debug', 'line_numbers'):
         try:
             myokit.DEBUG_LINE_NUMBERS = config.getboolean(
                 'debug', 'line_numbers')
-        except ValueError:
+        except ValueError:  # pragma: no cover
             pass
+
     # GUI Backend
     if config.has_option('gui', 'backend'):
         x = config.get('gui', 'backend').strip().lower()
@@ -202,23 +228,24 @@ def _load():
             myokit.FORCE_PYSIDE = False
             myokit.FORCE_PYQT4 = False
             myokit.FORCE_PYQT5 = True
-        else:
-            # If empty or invalid, don't adjust the settings!
-            pass
+        #else:
+        # If empty or invalid, don't adjust the settings!
+
     # Sundial libraries and header files
     if config.has_option('sundials', 'lib'):
         for x in config.get('sundials', 'lib').split(';'):
-            myokit.SUNDIALS_LIB.append(x.strip())
+            myokit.SUNDIALS_LIB.append(unicode(x.strip()))
     if config.has_option('sundials', 'inc'):
         for x in config.get('sundials', 'inc').split(';'):
-            myokit.SUNDIALS_INC.append(x.strip())
+            myokit.SUNDIALS_INC.append(unicode(x.strip()))
+
     # OpenCL libraries and header files
     if config.has_option('opencl', 'lib'):
         for x in config.get('opencl', 'lib').split(';'):
-            myokit.OPENCL_LIB.append(x.strip())
+            myokit.OPENCL_LIB.append(unicode(x.strip()))
     if config.has_option('opencl', 'inc'):
         for x in config.get('opencl', 'inc').split(';'):
-            myokit.OPENCL_INC.append(x.strip())
+            myokit.OPENCL_INC.append(unicode(x.strip()))
 
 
 # Load settings
