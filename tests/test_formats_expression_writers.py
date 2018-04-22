@@ -10,7 +10,9 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import os
 import unittest
+
 import myokit
 import myokit.formats
 import myokit.formats.ansic
@@ -24,6 +26,7 @@ import myokit.formats.python
 import myokit.formats.stan
 import myokit.formats.sympy
 
+from shared import DIR_DATA
 
 # Name
 # Number
@@ -2211,6 +2214,22 @@ class SymPyExpressionWriterTest(unittest.TestCase):
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('sympy')
         self.assertIsInstance(w, myokit.formats.sympy.SymPyExpressionWriter)
+
+    def test_read_write(self):
+
+        try:
+            import sympy    # noqa
+        except ImportError:
+            print('SymPy not found, skipping test.')
+            return
+
+        m = myokit.load_model(
+            os.path.join(DIR_DATA, 'heijman-2011.mmt'))
+
+        for v in m.variables(deep=True):
+            e = v.rhs()
+            e = myokit.formats.sympy.write(e)
+            e = myokit.formats.sympy.read(e)
 
 
 if __name__ == '__main__':

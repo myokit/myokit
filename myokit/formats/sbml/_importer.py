@@ -50,7 +50,8 @@ class SBMLImporter(myokit.formats.Importer):
             name = self.re_alpha.sub('_', name)
             if not self.re_name.match(name):
                 name = 'x_' + name2
-            self.warn('Converting name <' + org_name + '> to <' + name + '>.')
+            self.logger().warn(
+                'Converting name <' + org_name + '> to <' + name + '>.')
         return name
 
     def _convert_unit(self, unit):
@@ -69,11 +70,15 @@ class SBMLImporter(myokit.formats.Importer):
         return info
 
     def model(self, path):
+
+        # Get logger
+        log = self.logger()
+
         # Parse xml file
         path = os.path.abspath(os.path.expanduser(path))
-        self.log('Reading ' + str(path))
         dom = xml.dom.minidom.parse(path)
         xmodel = dom.getElementsByTagName('model')[0]
+
         # Get model node
         if xmodel.getAttribute('name'):
             name = str(xmodel.getAttribute('name'))
@@ -81,63 +86,75 @@ class SBMLImporter(myokit.formats.Importer):
             name = str(xmodel.getAttribute('id'))
         else:
             name = 'Imported SBML model'
+
         # Create myokit model
         model = myokit.Model(self._convert_name(name))
-        self.log('Reading model "' + model.meta['name'] + '"')
+        log.log('Reading model "' + model.meta['name'] + '"')
+
         # Create one giant component to hold all variables
         comp = model.add_component('sbml')
+
         # Handle notes, if given
         x = dom_child(xmodel, 'notes')
         if x:
-            self.log('Converting <model> notes to ascii')
+            log.log('Converting <model> notes to ascii')
             model.meta['desc'] = html2ascii(x.toxml(), width=75)
             # width = 79 - 4 for tab!
+
         # Warn about missing functionality
         x = dom_child(xmodel, 'listOfCompartments')
         if x:
-            self.warn('Compartments are not supported.')
+            log.warn('Compartments are not supported.')
         x = dom_child(xmodel, 'listOfSpecies')
         if x:
-            self.warn('Species are not supported.')
+            log.warn('Species are not supported.')
         x = dom_child(xmodel, 'listOfConstraints')
         if x:
-            self.warn('Constraints are not supported.')
+            log.warn('Constraints are not supported.')
         x = dom_child(xmodel, 'listOfReactions')
         if x:
-            self.warn('Reactions are not supported.')
+            log.warn('Reactions are not supported.')
         x = dom_child(xmodel, 'listOfEvents')
         if x:
-            self.warn('Events are not supported.')
+            log.warn('Events are not supported.')
+
         # Handle custom functions TODO???
         x = dom_child(xmodel, 'listOfFunctionDefinitions')
         if x:
-            self.warn('Custom math functions are not (yet) implemented.')
+            log.warn('Custom math functions are not (yet) implemented.')
+
         # Parse custom units
         x = dom_child(xmodel, 'listOfUnitDefinitions')
         if x:
             self._parse_units(model, comp, x)
+
         # Parse parameters (constants + parameters)
         x = dom_child(xmodel, 'listOfParameters')
         if x:
             self._parse_parameters(model, comp, x)
+
         # Parse rules (equations)
         x = dom_child(xmodel, 'listOfRules')
         if x:
             self._parse_rules(model, comp, x)
+
         # Parse extra initial assignments
         x = dom_child(xmodel, 'listOfInitialAssignments')
         if x:
             self._parse_initial_assignments(model, comp, x)
+
         # Write warnings to log
-        self.log_warnings()
+        log.log_warnings()
+
         # Run model validation, order variables etc
         try:
             model.validate()
         except myokit.IntegrityError as e:
-            self.log_line()
-            self.log('WARNING: Integrity error found in model:')
-            self.log(e.message)
-            self.log_line()
+            log.log_line()
+            log.log('WARNING: Integrity error found in model:')
+            log.log(e.message)
+            log.log_line()
+
         # Return finished model
         return model
 
@@ -150,9 +167,11 @@ class SBMLImporter(myokit.formats.Importer):
             var = str(node.getAttribute('symbol')).strip()
             var = self._convert_name(var)
             if var in comp:
-                self.log('Parsing initial assignment for "' + var + '".')
+                self.logger().log(
+                    'Parsing initial assignment for "' + var + '".')
                 var = comp[var]
                 expr = parse_mathml_rhs(dom_child(node, 'math'), comp, self)
+
                 if var.is_state():
                     # Initial value
                     var.set_state_value(expr, default=True)
@@ -163,6 +182,7 @@ class SBMLImporter(myokit.formats.Importer):
                 raise SBMLError(
                     'Initial assignment found for unknown parameter <' + var
                     + '>.')
+
             node = dom_next(node, 'initialAssignment')
 
     def _parse_parameters(self, model, comp, node):
@@ -173,9 +193,10 @@ class SBMLImporter(myokit.formats.Importer):
         while node:
             # Create variable
             name = self._convert_name(str(node.getAttribute('id')))
-            self.log('Found parameter "' + name + '"')
+            self.logger().log('Found parameter "' + name + '"')
             if name in comp:
-                self.warn('Skipping duplicate parameter name: ' + str(name))
+                self.logger().warn(
+                    'Skipping duplicate parameter name: ' + str(name))
             else:
                 # Create variable
                 unit = None
@@ -202,7 +223,8 @@ class SBMLImporter(myokit.formats.Importer):
             var = self._convert_name(
                 str(node.getAttribute('variable')).strip())
             if var in comp:
-                self.log('Parsing assignment rule for <' + str(var) + '>.')
+                self.logger().log(
+                    'Parsing assignment rule for <' + str(var) + '>.')
                 var = comp[var]
                 var.set_rhs(parse_mathml_rhs(
                     dom_child(node, 'math'), comp, self))
@@ -210,13 +232,14 @@ class SBMLImporter(myokit.formats.Importer):
                 raise SBMLError(
                     'Assignment found for unknown parameter: "' + var + '".')
             node = dom_next(node, 'assignmentRule')
+
         # Create variables with rate rules (states)
         node = dom_child(parent, 'rateRule')
         while node:
             var = self._convert_name(
                 str(node.getAttribute('variable')).strip())
             if var in comp:
-                self.log('Parsing rate rule for <' + var + '>.')
+                self.logger().log('Parsing rate rule for <' + var + '>.')
                 var = comp[var]
                 ini = var.rhs()
                 ini = ini.eval() if ini else 0
@@ -236,7 +259,7 @@ class SBMLImporter(myokit.formats.Importer):
         node = dom_child(node, 'unitDefinition')
         while node:
             name = node.getAttribute('id')
-            self.log('Parsing unit definition for "' + name + '".')
+            self.logger().log('Parsing unit definition for "' + name + '".')
             unit = myokit.units.dimensionless
             node2 = dom_child(node, 'listOfUnits')
             node2 = dom_child(node2, 'unit')

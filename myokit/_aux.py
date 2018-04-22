@@ -1176,10 +1176,8 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     line_width = 79
     precision = 10
 
-    # Get max variable name width
-    w = max([len(v.qname()) for v in model.states()])
-    if w < 4:
-        w = 4
+    # Get max variable name width (at least 4, for 'Name' header)
+    w = max(4, max([len(v.qname()) for v in model.states()]))
 
     # Create log header
     log = []
@@ -1219,16 +1217,18 @@ def step(model, initial=None, reference=None, ignore_errors=False):
             yy = fmat.format(y)
             line = g.format(y)
 
+            # Sign error: zero equals minus zero, don't count as error
             if xx[0] != yy[0] and (xx[1:] == yy[1:] == zero):
-                # zero equals minus zero, don't count as error
                 log.append(line)
                 log.append(h)
 
+            # Different exponent, huge error
             elif xx[-4:] != yy[-4:]:
                 errors += 1
                 log.append(line + ' X !!!')
                 log.append(i + '^^^^')
 
+            # No error of smaller error
             else:
                 threshold = 3 + precision  # 3 rubbish chars
                 if xx[0:threshold] != yy[0:threshold]:
@@ -1269,123 +1269,20 @@ def strfloat(number):
     """
     Turns the given number into a string, without losing accuracy.
     """
+    # Pass through strings
     if type(number) in [str, unicode]:
         return number
+
+    # Handle myokit.Numbers
     if isinstance(number, myokit.Number):
         number = number.eval()
+
     # For most numbers, allow python to format the float
     s = str(number)
     if len(s) < 10:
         return s
+
     # But if the number is given with lots of decimals, use the highest
     # precision number possible
     return myokit.SFDOUBLE.format(number)
 
-
-class TextLogger(object):
-    """
-    *Abstract class*
-
-    Base class for any object that needs to keep a text log of its operations.
-    """
-    def __init__(self):
-        self._log = []
-        self._live = False
-        self._line_width = 79
-        self._warnings = []
-
-    def clear_warnings(self):
-        """
-        Clears any currently set warnings.
-        """
-        self._warnings = []
-
-    def has_warnings(self):
-        """
-        Returns ``True`` if this logger has any warnings.
-        """
-        return len(self._warnings) > 0
-
-    def is_live(self):
-        """
-        Returns True if live logging is enabled and any logged messages are
-        directly printed to ``stdout``.
-        """
-        return bool(self._live)
-
-    def log(self, *text):
-        """
-        Writes text to the log. Text fragments given as separate arguments will
-        be written to the log as separate lines.
-        """
-        for line in text:
-            self._log.append(line)
-        if self._live:
-            for line in text:
-                print(line)
-
-    def log_line(self):
-        """
-        Writes a horizontal line (------) to the log.
-        """
-        self.log('-' * self._line_width)
-
-    def log_flair(self, text):
-        """
-        Logs a single text fragment centered on the line, surrounded by lines
-        of hyphens::
-
-            ------------------------------------------------------------
-                                     Like this!
-            ------------------------------------------------------------
-        """
-        self.log('-' * self._line_width)
-        self.log(' ' * ((self._line_width - len(text)) // 2) + text)
-        self.log('-' * self._line_width)
-
-    def log_warnings(self):
-        """
-        Writes all the logged warnings to the log and clears the warnings
-        buffer.
-        """
-        if self._warnings:
-            n = len(self._warnings)
-            if n == 1:
-                self.log_flair('One warning generated')
-            else:
-                self.log_flair(str(n) + ' Warnings generated')
-            for k, w in enumerate(self._warnings):
-                self.log('(' + str(1 + k) + ') ' + str(w))
-            self.log_line()
-            self._warnings = []
-
-    def set_live(self, enabled=True):
-        """
-        When live logging is enabled, all log data will be written to
-        ``stdout`` immediatly.
-        """
-        self._live = bool(enabled)
-
-    def set_log_line_width(self, width):
-        """
-        Changes the line width used by this text logger.
-        """
-        self._line_width = int(width)
-
-    def text(self):
-        """
-        Returns the logged text.
-        """
-        return '\n'.join(self._log)
-
-    def warn(self, message):
-        """
-        Logs a warning to the warnings list.
-        """
-        self._warnings.append(message)
-
-    def warnings(self):
-        """
-        Returns an iterator over all warnings currently set
-        """
-        return iter(self._warnings)

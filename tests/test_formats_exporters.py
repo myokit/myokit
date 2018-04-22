@@ -14,22 +14,19 @@ import os
 import unittest
 
 import myokit
-import myokit.formats as formats
+import myokit.formats
 
-from shared import TemporaryDirectory, DIR_DATA
+from shared import TemporaryDirectory
 
 
 class ExportTest(unittest.TestCase):
 
-    def go(self, exporter):
+    def _test(self, e):
         """
-        Test the export functions for a given exporter type.
+        Test a given exporter `e`.
         """
         # Load model, protocol
         m, p, x = myokit.load('example')
-
-        # Get exporter
-        e = formats.exporter(exporter)
 
         # Create empty output directory as subdirectory of DIR_OUT
         with TemporaryDirectory() as d:
@@ -71,24 +68,54 @@ class ExportTest(unittest.TestCase):
                 raise Exception(
                     'No types of export supported by: ' + exporter)
 
-    def test_exporters(self):
+    def test_ansic_exporter(self):
+        self._test(myokit.formats.exporter('ansic'))
+
+    def test_ansic_cable_exporter(self):
+        self._test(myokit.formats.exporter('ansic-cable'))
+
+    def test_ansic_euler_exporter(self):
+        self._test(myokit.formats.exporter('ansic-euler'))
+
+    def test_cellml_exporter(self):
+        self._test(myokit.formats.exporter('cellml'))
+
+    def test_cuda_kernel_exporter(self):
+        self._test(myokit.formats.exporter('cuda-kernel'))
+
+    def test_latex_article_exporter(self):
+        self._test(myokit.formats.exporter('latex-article'))
+
+    def test_latex_poster_exporter(self):
+        self._test(myokit.formats.exporter('latex-poster'))
+
+    def test_html_exporter(self):
+        self._test(myokit.formats.exporter('html'))
+
+    def test_xml_exporter(self):
+        self._test(myokit.formats.exporter('xml'))
+
+    def test_matlab_exporter(self):
+        self._test(myokit.formats.exporter('matlab'))
+
+    def test_opencl_exporter(self):
+        self._test(myokit.formats.exporter('opencl'))
+
+    def test_python_exporter(self):
+        self._test(myokit.formats.exporter('python'))
+
+    def test_stan_exporter(self):
+        self._test(myokit.formats.exporter('stan'))
+
+    def test_completeness(self):
+        """
+        Tests that all exporters have a test (so meta!).
+        """
+        methods = [x for x in dir(self) if x[:5] == 'test_']
         for name in myokit.formats.exporters():
-            try:
-                self.go(name)
-            except myokit.ExportError as e:
-                raise Exception(
-                    'Exporter error for ' + name + ': ' + e.message)
-
-
-class SympyTest(unittest.TestCase):
-    def test_expression(self):
-        from myokit.formats import sympy
-        m = myokit.load_model(
-            os.path.join(DIR_DATA, 'heijman-2011.mmt'))
-        for v in m.variables(deep=True):
-            e = v.rhs()
-            e = sympy.write(e)
-            e = sympy.read(e)
+            name = name.replace('-', '_')
+            name = 'test_' + name + '_exporter'
+            self.assertIn(name, methods)
 
 
 if __name__ == '__main__':

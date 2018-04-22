@@ -240,7 +240,7 @@ UNIT_STRICT = 2
 #
 # Maximum precision float output format strings
 #
-SFDOUBLE = '{:< 1.17e}'
+SFDOUBLE = '{:< 1.17e}'  # Exponent can have 3 digits for very small numbers
 SFSINGLE = '{:< 1.9e}'
 
 #
@@ -394,9 +394,6 @@ from ._aux import ( # noqa
 
     # Benchmarking
     Benchmarker,
-
-    # Logging
-    TextLogger,
 
     # Misc
     lvsd, format_path, strfloat, format_float_dict,

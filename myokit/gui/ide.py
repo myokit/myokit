@@ -445,10 +445,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             try:
                 e.model(filename, m)
                 msg = 'Export successful.'
-                e.log(e.info())
+                e.logger().log(e.info())
             except myokit.ExportError:
                 msg = 'Export failed.'
-            self._console.write(msg + '\n' + e.text())
+            self._console.write(msg + '\n' + e.logger().text())
         except Exception:
             self.show_exception()
 
@@ -482,10 +482,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             try:
                 e.runnable(path, m, p)
                 msg = 'Export successful.'
-                e.log(e.info())
+                e.logger().log(e.info())
             except myokit.ExportError:
                 msg = 'Export failed.'
-            self._console.write(msg + '\n' + e.text())
+            self._console.write(msg + '\n' + e.logger().text())
         except Exception:
             self.show_exception()
 
@@ -519,7 +519,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self.new_file()
                 self._protocol_editor.setPlainText(protocol.code())
                 self._console.write(
-                    'Protocol imported successfully.\n' + i.text())
+                    'Protocol imported successfully.\n' + i.logger().text())
                 # Set working directory to file's path
                 self._path = os.path.dirname(filename)
                 os.chdir(self._path)
@@ -532,7 +532,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self._tool_save.setEnabled(True)
                 self.update_window_title()
             except myokit.ImportError:
-                self._console.write('Protocol import failed.\n' + i.text())
+                self._console.write(
+                    'Protocol import failed.\n' + i.logger().text())
                 self.statusBar().showMessage('Protocol import failed.')
         except Exception:
             self.show_exception()
@@ -559,9 +560,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self.new_file()
                 self._model_editor.setPlainText(model.code())
                 # Write log to console
-                i.log_warnings()
+                i.logger().log_warnings()
                 self._console.write(
-                    'Model imported successfully.\n' + i.text())
+                    'Model imported successfully.\n' + i.logger().text())
                 # Set working directory to file's path
                 self._path = os.path.dirname(filename)
                 os.chdir(self._path)
@@ -575,9 +576,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self.update_window_title()
             except myokit.ImportError as e:
                 # Write output to console
-                i.log_warnings()
+                i.logger().log_warnings()
                 self._console.write(
-                    'Model import failed.\n' + i.text()
+                    'Model import failed.\n' + i.logger().text()
                     + '\n\nModel import failed.\n' + e.message)
                 self.statusBar().showMessage('Model import failed.')
         except Exception:

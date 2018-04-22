@@ -45,7 +45,7 @@ def parse_mathml_rhs(
     classes support the dict interface.
 
     If the argument ``logger`` is given this will be used to log messages to,
-    assuming the :class:`myokit.TextLogger` interface.
+    assuming the :class:`myokit.formats.TextLogger` interface.
 
     Optional post-processing of numbers (``<cn>`` tags) can be added by passing
     in a callable ``number_post_processor(tag, number)``. This will be called

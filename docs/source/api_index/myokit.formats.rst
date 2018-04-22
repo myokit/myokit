@@ -13,6 +13,7 @@ myokit.formats
 - :class:`myokit.formats.Importer`
 - :meth:`myokit.formats.importers`
 - :class:`myokit.formats.TemplatedRunnableExporter`
+- :class:`myokit.formats.TextLogger`
 
 myokit.formats.ansic
 --------------------

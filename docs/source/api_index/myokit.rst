@@ -155,7 +155,6 @@ myokit
 - :meth:`myokit.strip_expression_units`
 - :class:`myokit.SubCapture`
 - :class:`myokit.Tan`
-- :class:`myokit.TextLogger`
 - :meth:`myokit.time`
 - :class:`myokit.Unit`
 - :class:`myokit.UnresolvedReferenceError`

@@ -35,11 +35,12 @@ class Simulation(myokit.CModule):
 
     When a simulation is created, the simulation time is set to 0 and both the
     current and the default state are copied from the model.
-    After each call to :meth:`run` the time variable and current state are
-    updated, so that each successive call to run continues where the previous
-    simulation left off. A :meth:`reset` method is provided that will set the
-    time back to 0 and revert the current state to the default state. To change
-    the time or state manually, use :meth:`set_time` and :meth:`set_state`.
+    After each call to :meth:`Simulation.run` the time variable and current
+    state are updated, so that each successive call to run continues where the
+    previous simulation left off. A :meth:`reset` method is provided that will
+    set the time back to 0 and revert the current state to the default state.
+    To change the time or state manually, use :meth:`set_time` and
+    :meth:`set_state`.
 
     A pre-pacing method :meth:`pre` is provided that doesn't affect the
     simulation time but will update the current *and the default state*. This

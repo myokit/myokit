@@ -95,7 +95,7 @@ class CellMLExporter(myokit.formats.Exporter):
         if add_hardcoded_pacing:
             # Check for pacing variable
             if model.binding('pace') is None:
-                self.warn(
+                self.logger().warn(
                     'No variable bound to "pace", unable to add hardcoded'
                     ' stimulus protocol.')
             else:
@@ -380,7 +380,7 @@ class CellMLExporter(myokit.formats.Exporter):
                 f.write(xml.toprettyxml(encoding='utf-8'))
 
         # Log any generated warnings
-        self.log_warnings()
+        self.logger().log_warnings()
 
     def supports_model(self):
         """

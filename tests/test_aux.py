@@ -365,6 +365,9 @@ class AuxText(unittest.TestCase):
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '-' * 79,
         ]
+        #for i, line in enumerate(y):
+        #    print(line)
+        #    print(x[i])
         for i, line in enumerate(y):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))
@@ -415,6 +418,9 @@ class AuxText(unittest.TestCase):
         # Add large mismatch
         m2.get('isi.f').set_rhs(
             myokit.Multiply(m2.get('isi.f').rhs(), myokit.Number(2)))
+        # Add huge mismatch
+        m2.get('ix1.x1').set_rhs(
+            myokit.Multiply(m2.get('ix1.x1').rhs(), myokit.Number(100)))
 
         # Test comparison against another model
         x = myokit.step(m1, reference=m2).splitlines()
@@ -446,9 +452,10 @@ class AuxText(unittest.TestCase):
             ' X',
             '                                        ^^^^^^^^^^^^^^^^^^^^^^^',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
-            '                                       -3.21682814207918156e-07',
-            '                                                               ',
-            'Found (1) large mismatches between output and reference values.',
+            '                                       -3.21682814207918156e-05'
+            ' X !!!',
+            '                                                           ^^^^',
+            'Found (2) large mismatches between output and reference values.',
             'Found (1) small mismatches.',
             '-' * 79,
         ]
@@ -456,6 +463,60 @@ class AuxText(unittest.TestCase):
         for i, line in enumerate(y):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))
+
+        # Test positive/negative zero comparison
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.promote(1)
+        x.set_rhs('-0.0')
+        y = c.add_variable('y')
+        y.promote(1)
+        y.set_rhs('0.0')
+
+        x = myokit.step(m).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name  Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'c.x    1.00000000000000000e+00  -0.00000000000000000e+00',
+            'c.y    1.00000000000000000e+00   0.00000000000000000e+00',
+            '-' * 79,
+        ]
+
+        #for i, line in enumerate(y):
+        #    print(line)
+        #    print(x[i])
+        for i, line in enumerate(y):
+            self.assertEqual(line, x[i])
+        self.assertEqual(len(x), len(y))
+
+    def test_strfloat(self):
+        """
+        Test float to string conversion.
+        """
+        # Simple numbers
+        self.assertEqual(myokit.strfloat(0), '0')
+        self.assertEqual(myokit.strfloat(0.0000), '0.0')
+        self.assertEqual(myokit.strfloat(1.234), '1.234')
+        self.assertEqual(
+            myokit.strfloat(0.12432656245e12), ' 1.24326562450000000e+11')
+        self.assertEqual(myokit.strfloat(-0), '0')
+        self.assertEqual(myokit.strfloat(-0.0000), '-0.0')
+        self.assertEqual(myokit.strfloat(-1.234), '-1.234')
+        self.assertEqual(
+            myokit.strfloat(-0.12432656245e12), '-1.24326562450000000e+11')
+
+        # Strings are not converted
+        x = u'1.234'
+        self.assertIs(x, myokit.strfloat(x))
+        x = b'1.234'
+        self.assertIs(x, myokit.strfloat(x))
+
+        # Myokit Numbers are converted
+        x = myokit.Number(1.23)
+        self.assertEqual(myokit.strfloat(x), '1.23')
 
 
 if __name__ == '__main__':

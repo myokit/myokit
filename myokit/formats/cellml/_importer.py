@@ -79,13 +79,14 @@ class CellMLImporter(myokit.formats.Importer):
         model = self._parse_model(dom)
 
         # Run model validation, order variables etc
+        log = self.logger()
         try:
             model.validate()
         except myokit.IntegrityError as e:
-            self.warn('Integrity error found in model: ' + e.message)
+            log.warn('Integrity error found in model: ' + e.message)
         except Exception:
             import traceback
-            self.warn(
+            log.warn(
                 'Exception occurred when validating model. '
                 + traceback.format_exc())
         return model
@@ -118,16 +119,16 @@ class CellMLImporter(myokit.formats.Importer):
 
         # Check for <factorial> (allowed in all CellML, but why?)
         if model_tag.getElementsByTagName('factorial'):
-            self.warn('The <factorial> tag is not supported.')
+            self.logger().warn('The <factorial> tag is not supported.')
 
         # Check for MathML features not currently allowed in CellML
         # Check for <partialdiff> (not allowed in any CellML)
         if model_tag.getElementsByTagName('partialdiff'):
-            self.warn('The <partialdiff> tag is not supported.')
+            self.logger().warn('The <partialdiff> tag is not supported.')
 
         # Check for <sum> (not allowed in any CellML)
         if model_tag.getElementsByTagName('sum'):
-            self.warn('The <sum> tag is not supported.')
+            self.logger().warn('The <sum> tag is not supported.')
 
         # Parse unit definitions
         si_units, munits, cunits = self._parse_units(model_tag)
@@ -153,7 +154,7 @@ class CellMLImporter(myokit.formats.Importer):
         for tag in model_tag.getElementsByTagName('component'):
             cname = tag.getAttribute('name')
             name = self._sanitise_name(cname)
-            self.log('Parsing component: ' + name)
+            self.logger().log('Parsing component: ' + name)
             comp = model.add_component(name)
             components[cname] = comp
 
@@ -182,7 +183,7 @@ class CellMLImporter(myokit.formats.Importer):
                         'Group registered for unknown component: '
                         + kid.getAttribute('component'))
                 # Log relationship
-                self.log(
+                self.logger().log(
                     'Component <' + comp.qname() + '> is encapsulated in <'
                     + pcomp.qname() + '>.')
                 # Add relationship
@@ -242,7 +243,7 @@ class CellMLImporter(myokit.formats.Importer):
                 # Native variable? Then create
                 if not (pub == 'in' or pri == 'in'):
                     name = self._sanitise_name(vname)
-                    self.log('Parsing variable: ' + name)
+                    self.logger().log('Parsing variable: ' + name)
                     var = comp.add_variable(name)
                     vrs[vname] = var
                     init = str(vtag.getAttribute('initial_value'))
@@ -296,14 +297,14 @@ class CellMLImporter(myokit.formats.Importer):
                 try:
                     int1 = ifs1[ref1]
                 except KeyError:
-                    self.warn(
+                    self.logger().warn(
                         'No interface found for variable <' + str(ref1)
                         + '>, unable to resolve connection.')
                     break
                 try:
                     int2 = ifs2[ref2]
                 except KeyError:
-                    self.warn(
+                    self.logger().warn(
                         'No interface found for variable <' + str(ref2)
                         + '>, unable to resolve connection.')
                     break
@@ -322,7 +323,7 @@ class CellMLImporter(myokit.formats.Importer):
                     # Reference from comp1 to its child comp2
                     ref_to_one = False
                 else:
-                    self.warn(
+                    self.logger().warn(
                         'Unable to resolve connection between <'
                         + str(ref1) + '> in ' + str(comp1) + '('
                         + str(int1[0]) + ', ' + str(int1[1]) + ') and <'
@@ -331,7 +332,7 @@ class CellMLImporter(myokit.formats.Importer):
                     continue
                 # Check units
                 if int1[2] != int2[2]:
-                    self.warn(
+                    self.logger().warn(
                         'Unit mismatch between <' + str(ref1) + '> in '
                         + str(int1[2]) + ' and <' + str(ref2) + '> given in '
                         + str(int2[2]) + '.')
@@ -340,19 +341,19 @@ class CellMLImporter(myokit.formats.Importer):
                     ref = rfs1[ref1] if ref_to_one else rfs2[ref2]
                 except KeyError:
                     a, b = ref2, ref1 if ref_to_one else ref1, ref2
-                    self.warn(
+                    self.logger().warn(
                         'Unable to resolve reference of ' + str(a) + ' to '
                         + str(b) + '.')
                     continue
                 if ref_to_one:
                     rfs2[ref2] = (cname1, ref1)
-                    self.log(
+                    self.logger().log(
                         'Variable <' + str(ref2) + '> in <' + str(cname2)
                         + '> points at <' + str(ref1) + '> in <' + str(cname1)
                         + '>.')
                 else:
                     rfs1[ref1] = (cname2, ref2)
-                    self.log(
+                    self.logger().log(
                         'Variable <' + str(ref1) + '> in <' + str(cname1)
                         + '> points at <' + str(ref2) + '> in <' + str(cname2)
                         + '>.')
@@ -361,7 +362,7 @@ class CellMLImporter(myokit.formats.Importer):
         for cname, rfs in references.items():
             for vname, ref in rfs.items():
                 if ref is None:
-                    self.warn(
+                    self.logger().warn(
                         'Unresolved reference <' + str(vname) + '> in'
                         ' component <' + str(cname) + '>. Creating a dummy'
                         ' variable with this name.')
@@ -409,7 +410,7 @@ class CellMLImporter(myokit.formats.Importer):
             return parse_mathml_rhs(
                 node,
                 var_table=rfs,
-                logger=self,
+                logger=self.logger(),
                 number_post_processor=npp,
                 derivative_post_processor=dpp)
 
@@ -468,7 +469,7 @@ class CellMLImporter(myokit.formats.Importer):
                             i = float(vls[vname])
                             del(vls[vname])
                         except KeyError:
-                            self.warn(
+                            self.logger().warn(
                                 'No initial value found for <' + var.qname()
                                 + '>.')
                             i = 0
@@ -478,7 +479,8 @@ class CellMLImporter(myokit.formats.Importer):
                     # Continue
                     tag = dom_next(tag)
                     n += 1
-            self.log('Found ' + str(n) + ' equations in ' + cname + '.')
+            self.logger().log(
+                'Found ' + str(n) + ' equations in ' + cname + '.')
 
         # Use remaining initial values (can be used to set constants)
         for cname, vls in values.items():
@@ -497,13 +499,13 @@ class CellMLImporter(myokit.formats.Importer):
         for var in no_rhs:
             refs = set([x for x in var.refs_by()])
             if len(refs) == 0 or refs in no_rhs:
-                self.warn(
+                self.logger().warn(
                     'No expression for variable <' + var.qname() + '> is'
                     ' defined and no other variables reference it. The'
                     ' variable will be removed.')
                 var.parent().remove_variable(var)
             else:
-                self.warn(
+                self.logger().warn(
                     'No expression for variable <' + var.qname() + '> is'
                     ' defined. This variable will be set to zero.')
                 var.set_rhs(myokit.Number(0))
@@ -599,11 +601,11 @@ class CellMLImporter(myokit.formats.Importer):
             Parses <units> tags into Unit objects.
             """
             name = tag.getAttribute('name')
-            self.log('Parsing unit: ' + name)
+            self.logger().log('Parsing unit: ' + name)
             unit = Unit(name)
             for part in tag.getElementsByTagName('unit'):
                 if part.hasAttribute('offset'):
-                    self.warn(
+                    self.logger().warn(
                         'The "offset" attribute for <unit> tags is not'
                         ' supported.')
                 p = Part(part.getAttribute('units'))
@@ -667,7 +669,8 @@ class CellMLImporter(myokit.formats.Importer):
             if todo:
                 # Unable to resolve all units
                 for unit in todo:
-                    self.warn('Unable to resolve unit: ' + str(unit.name))
+                    self.logger().warn(
+                        'Unable to resolve unit: ' + str(unit.name))
                     units[unit.name] = unit
             return units
         munits = order(munits)
@@ -689,7 +692,7 @@ class CellMLImporter(myokit.formats.Importer):
                 elif local_map and part.base in local_map:
                     unit = local_map[part.base]
                 else:
-                    self.warn('Unknown base unit: ' + str(part.base))
+                    self.logger().warn('Unknown base unit: ' + str(part.base))
                     return None
                 # Add prefix
                 if part.prefix is not None:
@@ -702,7 +705,7 @@ class CellMLImporter(myokit.formats.Importer):
                             else:
                                 raise ValueError
                         except ValueError:
-                            self.warn(
+                            self.logger().warn(
                                 'Unknown prefix in unit specification: "'
                                 + str(part.prefix) + '".')
                             return None
@@ -710,7 +713,7 @@ class CellMLImporter(myokit.formats.Importer):
                 if part.exponent is not None:
                     e = int(part.exponent)
                     if e - part.exponent > 1e-15:
-                        self.warn(
+                        self.logger().warn(
                             'Non-integer exponents in unit specification are'
                             ' not supported: ' + str(part.exponent))
                         return None
@@ -720,7 +723,8 @@ class CellMLImporter(myokit.formats.Importer):
                     unit *= part.multiplier
                 # Multiply base unit with this one
                 base *= unit
-            self.log('Converted unit "' + obj.name + '" to ' + str(base))
+            self.logger().log(
+                'Converted unit "' + obj.name + '" to ' + str(base))
             return base
 
         # Convert all units in <model>
@@ -747,7 +751,7 @@ class CellMLImporter(myokit.formats.Importer):
             try:
                 return self._generated_names[name]
             except KeyError:
-                self.warn('Invalid name: ' + e.message)
+                self.logger().warn('Invalid name: ' + e.message)
                 clean = 'generated_name_' + str(1 + len(self._generated_names))
                 self._generated_names[name] = clean
                 return clean
