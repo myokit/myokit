@@ -19,6 +19,44 @@ import myokit
 from shared import TemporaryDirectory, DIR_DATA
 
 
+class Progress(myokit.ProgressReporter):
+    """
+    Progress reporter just for debugging.
+    """
+    def __init__(self):
+        self.entered = False
+        self.exited = False
+        self.updated = False
+
+    def enter(self, msg=None):
+        self.entered = True
+
+    def exit(self):
+        self.exited = True
+
+    def update(self, f):
+        self.updated = True
+        return True
+
+
+class CancellingProgress(myokit.ProgressReporter):
+    """
+    Progress reporter just for debugging.
+    """
+    def __init__(self, okays=0):
+        self.okays = int(okays)
+
+    def enter(self, msg=None):
+        pass
+
+    def exit(self):
+        pass
+
+    def update(self, f):
+        self.okays -= 1
+        return self.okays >= 0
+
+
 class DataBlock1dTest(unittest.TestCase):
     """
     Tests the DataBlock1d
@@ -119,6 +157,22 @@ class DataBlock1dTest(unittest.TestCase):
         # Decreasing times
         self.assertRaises(ValueError, myokit.DataBlock1d, w, [3, 2, 1])
 
+    def test_block2d(self):
+        """
+        Tests conversion to 2d.
+        """
+        w = 2
+        time = [1, 2, 3]
+        pace = [0, 0, 2]
+        x = np.array([[1, 1], [2, 2], [3, 3]])
+        b1 = myokit.DataBlock1d(w, time)
+        b1.set0d('pace', pace)
+        b1.set1d('x', x)
+
+        b2 = b1.block2d()
+        self.assertTrue(np.all(b2.get0d('pace') == pace))
+        self.assertTrue(np.all(b2.get2d('x') == x.reshape((3, 1, 2))))
+
     def test_cv(self):
         """
         Tests the CV method.
@@ -132,6 +186,89 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertRaises(ValueError, b.cv, 'membrane.V', border=-1)
         # Too large
         self.assertRaises(ValueError, b.cv, 'membrane.V', border=1000)
+
+        # No upstroke
+        time = np.linspace(0, 1, 100)
+        down = np.zeros(100) - 85
+
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = time
+        d['x', 0] = down
+        d['x', 1] = down
+        d['x', 2] = down
+        d['x', 3] = down
+        d['x', 4] = down
+        b = myokit.DataBlock1d.from_DataLog(d)
+        self.assertEqual(b.cv('x'), 0)
+
+        # No propagation: Single-cell stimulus
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = time
+        d['x', 0] = np.array(down, copy=True)
+        d['x', 1] = np.array(down, copy=True)
+        d['x', 2] = np.array(down, copy=True)
+        d['x', 3] = np.array(down, copy=True)
+        d['x', 4] = np.array(down, copy=True)
+        d['x', 1][10:] = 40
+        b = myokit.DataBlock1d.from_DataLog(d)
+        self.assertEqual(b.cv('x'), 0)
+
+        # No propagation: Multi-cell stimulus
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = time
+        d['x', 0] = np.array(down, copy=True)
+        d['x', 1] = np.array(down, copy=True)
+        d['x', 2] = np.array(down, copy=True)
+        d['x', 3] = np.array(down, copy=True)
+        d['x', 4] = np.array(down, copy=True)
+        d['x', 1][10:] = 40
+        d['x', 2][10:] = 40
+        d['x', 3][10:] = 40
+        b = myokit.DataBlock1d.from_DataLog(d)
+        self.assertEqual(b.cv('x'), 0)
+
+    def test_from_data_log(self):
+        """
+        Tests some edge cases of `DataBlock1d.from_DataLog`.
+        """
+        # Test valid construction
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = [1, 2, 3]
+        d['x', 0] = [0, 0, 0]
+        d['x', 1] = [1, 1, 2]
+        myokit.DataBlock1d.from_DataLog(d)
+
+        # No time key
+        d = myokit.DataLog()
+        d['time'] = [1, 2, 3]
+        d['x', 0] = [0, 0, 0]
+        d['x', 1] = [1, 1, 2]
+        self.assertRaises(ValueError, myokit.DataBlock1d.from_DataLog, d)
+
+        # Multi-dimensional time key
+        d.set_time_key('0.x')
+        self.assertRaises(ValueError, myokit.DataBlock1d.from_DataLog, d)
+
+        # 2-dimensional stuff
+        d.set_time_key('time')
+        myokit.DataBlock1d.from_DataLog(d)
+        d['y', 0, 0] = [10, 10, 10]
+        self.assertRaises(ValueError, myokit.DataBlock1d.from_DataLog, d)
+
+        # Mismatched dimensions
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = [1, 2, 3]
+        d['x', 0] = [0, 0, 0]
+        d['x', 1] = [1, 1, 2]
+        d['y', 0] = [2, 0, 0]
+        d['y', 1] = [3, 1, 2]
+        d['y', 2] = [0, 4, 5]
+        self.assertRaises(ValueError, myokit.DataBlock1d.from_DataLog, d)
 
     def test_grids(self):
         """
@@ -234,11 +371,235 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertTrue(np.all(y[:-1, :-1] == yy))
         self.assertTrue(np.all(z == zz))
 
+    def test_load_bad_file(self):
+        """
+        Tests loading errors.
+        """
+        # Not enough files
+        path = os.path.join(DIR_DATA, 'bad1d-1-not-enough-files.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock1d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Not enough files', message)
+
+        # No header file
+        path = os.path.join(DIR_DATA, 'bad1d-2-no-header.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock1d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Header not found', message)
+
+        # No data file
+        path = os.path.join(DIR_DATA, 'bad1d-3-no-data.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock1d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Data not found', message)
+
+        # Not a zip
+        path = os.path.join(DIR_DATA, 'bad1d-4-not-a-zip.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock1d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Bad zip', message)
+
+        # Unknown data type in data
+        path = os.path.join(DIR_DATA, 'bad1d-5-bad-data-type.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock1d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Unrecognized data type', message)
+
+        # Not enough data: detected at time level
+        path = os.path.join(DIR_DATA, 'bad1d-6-time-too-short.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock1d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('larger data', message)
+
+        # Not enoug data: detected at 0d level
+        path = os.path.join(DIR_DATA, 'bad1d-7-0d-too-short.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock1d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('larger data', message)
+
+        # Not enough data: detected at 1d level
+        path = os.path.join(DIR_DATA, 'bad1d-8-1d-too-short.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock1d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('larger data', message)
+
+        # Test progress reporter
+        path = os.path.join(DIR_DATA, 'cv1d.zip')
+        p = Progress()
+        self.assertFalse(p.entered)
+        self.assertFalse(p.exited)
+        self.assertFalse(p.updated)
+        b = myokit.DataBlock1d.load(path, p)
+        self.assertIsNotNone(b)
+        self.assertTrue(p.entered)
+        self.assertTrue(p.exited)
+        self.assertTrue(p.updated)
+
+        # Test cancelling in progress reporter
+        p = CancellingProgress()
+        b = myokit.DataBlock1d.load(path, p)
+        self.assertIsNone(b)
+        p = CancellingProgress(1)
+        b = myokit.DataBlock1d.load(path, p)
+        self.assertIsNone(b)
+        p = CancellingProgress(2)
+        b = myokit.DataBlock1d.load(path, p)
+        self.assertIsNone(b)
+        p = CancellingProgress(3)
+        b = myokit.DataBlock1d.load(path, p)
+        self.assertIsNone(b)
+
+    def test_set0d(self):
+        """
+        Tests set0d().
+        """
+        w = 2
+        time = [1, 2, 3]
+        b1 = myokit.DataBlock1d(w, time)
+
+        # Test valid call
+        pace = np.array([0, 0, 2])
+        b1.set0d('pace', pace)
+        self.assertTrue(np.all(b1.get0d('pace') == pace))
+
+        # Test copying
+        b1.set0d('pace', pace, copy=False)
+        self.assertTrue(np.all(b1.get0d('pace') == pace))
+        self.assertIs(b1.get0d('pace'), pace)
+        b1.set0d('pace', pace, copy=True)
+        self.assertTrue(np.all(b1.get0d('pace') == pace))
+        self.assertIsNot(b1.get0d('pace'), pace)
+
+        # Test bad calls
+        self.assertRaises(ValueError, b1.set0d, '', pace)
+        self.assertRaises(ValueError, b1.set0d, 'pace', [1, 2, 3, 4])
+        self.assertRaises(ValueError, b1.set0d, 'pace', np.array([1, 2, 3, 4]))
+
+    def test_set1d(self):
+        """
+        Tests set1d().
+        """
+        w = 2
+        time = [1, 2, 3]
+        b1 = myokit.DataBlock1d(w, time)
+
+        # Test valid call
+        x = np.array([[1, 1], [2, 2], [3, 3]])
+        b1.set1d('x', x)
+        self.assertTrue(np.all(b1.get1d('x') == x))
+
+        # Test copying
+        b1.set1d('x', x, copy=False)
+        self.assertTrue(np.all(b1.get1d('x') == x))
+        self.assertIs(b1.get1d('x'), x)
+        b1.set1d('x', x, copy=True)
+        self.assertTrue(np.all(b1.get1d('x') == x))
+        self.assertIsNot(b1.get1d('x'), x)
+
+        # Test bad calls
+        self.assertRaises(ValueError, b1.set1d, '', x)
+        x = np.array([[1, 1], [2, 2], [3, 3], [4, 4]])
+        self.assertRaises(ValueError, b1.set1d, 'x', x)
+
+    def test_keys(self):
+        w = 2
+        time = [1, 2, 3]
+        b1 = myokit.DataBlock1d(w, time)
+
+        # Test keys0d
+        self.assertEqual(len(list(b1.keys0d())), 0)
+        pace = np.array([0, 0, 2])
+        b1.set0d('pace', pace)
+        self.assertEqual(len(list(b1.keys0d())), 1)
+        self.assertIn('pace', b1.keys0d())
+        b1.set0d('poos', pace)
+        self.assertEqual(len(list(b1.keys0d())), 2)
+        self.assertIn('poos', b1.keys0d())
+
+        # Test keys1d
+        self.assertEqual(len(list(b1.keys1d())), 0)
+        x = np.array([[1, 1], [2, 2], [3, 3]])
+        b1.set1d('x', x)
+        self.assertEqual(len(list(b1.keys1d())), 1)
+        y = np.array([[2, 1], [3, 2], [4, 3]])
+        b1.set1d('y', y)
+        self.assertEqual(len(list(b1.keys1d())), 2)
+
+    def test_trace(self):
+        w = 2
+        time = [1, 2, 3]
+        b = myokit.DataBlock1d(w, time)
+        x = np.array([[1, 4], [2, 5], [3, 6]])
+        b.set1d('x', x)
+        self.assertTrue(np.all(b.trace('x', 0) == [1, 2, 3]))
+        self.assertTrue(np.all(b.trace('x', 1) == [4, 5, 6]))
+
 
 class DataBlock2dTest(unittest.TestCase):
     """
-    Tests the DataBlock2d
+    Tests `DataBlock2d`.
     """
+
+    def test_bad_constructor(self):
+        """
+        Tests bad arguments to a DataBlock2d raise ValueErrors.
+        """
+        # Test valid constructor
+        w = 2
+        h = 3
+        time = [1, 2, 3]
+        myokit.DataBlock2d(w, h, time)
+
+        # Test w < 1, h < 1
+        self.assertRaises(ValueError, myokit.DataBlock2d, 0, h, time)
+        self.assertRaises(ValueError, myokit.DataBlock2d, w, 0, time)
+
+        # Test time matrix
+        self.assertRaises(ValueError, myokit.DataBlock2d, w, h, [[1, 2, 3]])
+
+        # Decreasing times
+        self.assertRaises(ValueError, myokit.DataBlock2d, w, h, [3, 2, 1])
+
     def test_combined(self):
         # Create simulation log with 1d data
         log = myokit.DataLog()
@@ -313,25 +674,292 @@ class DataBlock2dTest(unittest.TestCase):
             self.assertTrue(np.all(yb == yc))
             self.assertFalse(yb is yc)
 
-    def test_bad_constructor(self):
+    def test_from_data_log(self):
         """
-        Tests bad arguments to a DataBlock2d raise ValueErrors.
+        Tests some edge cases of `DataBlock1d.from_DataLog`.
         """
-        # Test valid constructor
+        # Test valid construction
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = [1, 2, 3]
+        d['x', 0, 0] = [0, 0, 0]
+        d['x', 1, 0] = [1, 1, 2]
+        d['x', 0, 1] = [1, 2, 2]
+        d['x', 1, 1] = [3, 4, 5]
+        d['x', 0, 2] = [6, 6, 6]
+        d['x', 1, 2] = [7, 7, 2]
+        myokit.DataBlock2d.from_DataLog(d)
+
+        # No time key
+        d.set_time_key(None)
+        self.assertRaises(ValueError, myokit.DataBlock2d.from_DataLog, d)
+
+        # Bad time key
+        d.set_time_key('z')
+
+        # Multi-dimensional time key
+        d.set_time_key('0.0.x')
+        self.assertRaises(ValueError, myokit.DataBlock2d.from_DataLog, d)
+
+        # 1-dimensional stuff
+        d.set_time_key('time')
+        myokit.DataBlock2d.from_DataLog(d)
+        d['y', 0] = [10, 10, 10]
+        d['y', 1] = [20, 20, 20]
+        self.assertRaises(ValueError, myokit.DataBlock2d.from_DataLog, d)
+
+        # Mismatched dimensions
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = [1, 2, 3]
+        d['x', 0, 0] = [0, 0, 0]
+        d['x', 1, 0] = [1, 1, 2]
+        d['x', 0, 1] = [1, 2, 2]
+        d['x', 1, 1] = [3, 4, 5]
+        d['x', 0, 2] = [6, 6, 6]
+        d['x', 1, 2] = [7, 7, 2]
+        d['y', 0, 0] = [0, 0, 0]
+        d['y', 1, 0] = [1, 1, 2]
+        d['y', 0, 1] = [1, 2, 2]
+        d['y', 1, 1] = [3, 4, 5]
+        d['y', 0, 2] = [6, 6, 6]
+        d['y', 1, 2] = [7, 7, 2]
+        myokit.DataBlock2d.from_DataLog(d)
+        del(d['0.2.y'])
+        del(d['1.2.y'])
+        self.assertRaises(ValueError, myokit.DataBlock2d.from_DataLog, d)
+
+    def test_keys(self):
         w = 2
         h = 3
         time = [1, 2, 3]
-        myokit.DataBlock2d(w, h, time)
+        b = myokit.DataBlock2d(w, h, time)
 
-        # Test w < 1, h < 1
-        self.assertRaises(ValueError, myokit.DataBlock1d, 0, h, time)
-        self.assertRaises(ValueError, myokit.DataBlock1d, w, 0, time)
+        # Test keys0d
+        self.assertEqual(len(list(b.keys0d())), 0)
+        pace = np.array([0, 0, 2])
+        b.set0d('pace', pace)
+        self.assertEqual(len(list(b.keys0d())), 1)
+        self.assertIn('pace', b.keys0d())
+        b.set0d('poos', pace)
+        self.assertEqual(len(list(b.keys0d())), 2)
+        self.assertIn('poos', b.keys0d())
 
-        # Test time matrix
-        self.assertRaises(ValueError, myokit.DataBlock2d, w, h, [[1, 2, 3]])
+        # Test keys2d
+        self.assertEqual(len(list(b.keys2d())), 0)
+        x = np.array([
+            [[1, 2], [3, 4], [5, 6]],
+            [[3, 4], [5, 6], [7, 8]],
+            [[1, 1], [2, 2], [3, 3]]
+        ])
+        b.set2d('x', x)
+        self.assertEqual(len(list(b.keys2d())), 1)
+        y = 3 * x + 1
+        b.set2d('y', y)
+        self.assertEqual(len(list(b.keys2d())), 2)
 
-        # Decreasing times
-        self.assertRaises(ValueError, myokit.DataBlock2d, w, h, [3, 2, 1])
+    def test_load_bad_file(self):
+        """
+        Tests loading errors.
+        """
+        # Not enough files
+        path = os.path.join(DIR_DATA, 'bad2d-1-not-enough-files.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock2d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Not enough files', message)
+
+        # No header file
+        path = os.path.join(DIR_DATA, 'bad2d-2-no-header.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock2d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Header not found', message)
+
+        # No data file
+        path = os.path.join(DIR_DATA, 'bad2d-3-no-data.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock2d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Data not found', message)
+
+        # Not a zip
+        path = os.path.join(DIR_DATA, 'bad2d-4-not-a-zip.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock2d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Bad zip', message)
+
+        # Unknown data type in data
+        path = os.path.join(DIR_DATA, 'bad2d-5-bad-data-type.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock2d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('Unrecognized data type', message)
+
+        # Unknown data type in data
+        path = os.path.join(DIR_DATA, 'bad2d-6-time-too-short.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock2d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('larger data', message)
+
+        # Unknown data type in data
+        path = os.path.join(DIR_DATA, 'bad2d-7-0d-too-short.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock2d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('larger data', message)
+
+        # Unknown data type in data
+        path = os.path.join(DIR_DATA, 'bad2d-8-2d-too-short.zip')
+        self.assertRaises(
+            myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
+        message = ''
+        try:
+            myokit.DataBlock2d.load(path)
+        except myokit.DataBlockReadError as e:
+            message = e.message
+        self.assertIn('larger data', message)
+
+        # Test progress reporter
+        path = os.path.join(DIR_DATA, 'block2d.zip')
+        p = Progress()
+        self.assertFalse(p.entered)
+        self.assertFalse(p.exited)
+        self.assertFalse(p.updated)
+        b = myokit.DataBlock2d.load(path, p)
+        self.assertIsNotNone(b)
+        self.assertTrue(p.entered)
+        self.assertTrue(p.exited)
+        self.assertTrue(p.updated)
+
+        # Test cancelling in progress reporter
+        p = CancellingProgress()
+        b = myokit.DataBlock2d.load(path, p)
+        self.assertIsNone(b)
+        p = CancellingProgress(1)
+        b = myokit.DataBlock2d.load(path, p)
+        self.assertIsNone(b)
+        p = CancellingProgress(2)
+        b = myokit.DataBlock2d.load(path, p)
+        self.assertIsNone(b)
+        p = CancellingProgress(3)
+        b = myokit.DataBlock2d.load(path, p)
+        self.assertIsNone(b)
+
+        # Test loading 1d block with 2d method
+        path = os.path.join(DIR_DATA, 'cv1d.zip')
+        b = myokit.DataBlock2d.load(path)
+        self.assertIsInstance(b, myokit.DataBlock2d)
+        # Test if None is passed through
+        p = CancellingProgress()
+        b = myokit.DataBlock2d.load(path, p)
+        self.assertIsNone(b)
+
+    def test_set0d(self):
+        """
+        Tests set0d().
+        """
+        w = 2
+        h = 3
+        time = [1, 2, 3]
+        b1 = myokit.DataBlock2d(w, h, time)
+
+        # Test valid call
+        pace = np.array([0, 0, 2])
+        b1.set0d('pace', pace)
+        self.assertTrue(np.all(b1.get0d('pace') == pace))
+
+        # Test copying
+        b1.set0d('pace', pace, copy=False)
+        self.assertTrue(np.all(b1.get0d('pace') == pace))
+        self.assertIs(b1.get0d('pace'), pace)
+        b1.set0d('pace', pace, copy=True)
+        self.assertTrue(np.all(b1.get0d('pace') == pace))
+        self.assertIsNot(b1.get0d('pace'), pace)
+
+        # Test bad calls
+        self.assertRaises(ValueError, b1.set0d, '', pace)
+        self.assertRaises(ValueError, b1.set0d, 'pace', [1, 2, 3, 4])
+        self.assertRaises(ValueError, b1.set0d, 'pace', np.array([1, 2, 3, 4]))
+
+    def test_set2d(self):
+        """
+        Tests set2d().
+        """
+        w = 2
+        h = 3
+        time = [1, 2, 3]
+        b1 = myokit.DataBlock2d(w, h, time)
+
+        # Test valid call
+        x = np.array([
+            [[1, 2], [3, 4], [5, 6]],
+            [[3, 4], [5, 6], [7, 8]],
+            [[1, 1], [2, 2], [3, 3]]
+        ])
+
+        b1.set2d('x', x)
+        self.assertTrue(np.all(b1.get2d('x') == x))
+
+        # Test copying
+        b1.set2d('x', x, copy=False)
+        self.assertTrue(np.all(b1.get2d('x') == x))
+        self.assertIs(b1.get2d('x'), x)
+        b1.set2d('x', x, copy=True)
+        self.assertTrue(np.all(b1.get2d('x') == x))
+        self.assertIsNot(b1.get2d('x'), x)
+
+        # Test bad calls
+        self.assertRaises(ValueError, b1.set2d, '', x)
+        x = np.array([
+            [[1, 2], [3, 4]],
+            [[3, 4], [5, 6]],
+            [[1, 1], [2, 2]],
+        ])
+        self.assertRaises(ValueError, b1.set2d, 'x', x)
+
+    def test_trace(self):
+        w = 2
+        h = 3
+        time = [1, 2, 3]
+        b1 = myokit.DataBlock2d(w, h, time)
+        x = np.array([
+            [[1, 2], [3, 4], [5, 6]],
+            [[3, 4], [5, 6], [7, 8]],
+            [[1, 1], [2, 2], [3, 3]]
+        ])
+        b1.set2d('x', x)
+        self.assertTrue(np.all(b1.trace('x', 1, 1) == [4, 6, 2]))
 
 
 if __name__ == '__main__':

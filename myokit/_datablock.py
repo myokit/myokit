@@ -186,6 +186,10 @@ class DataBlock1d(object):
         ilo = border                # First indice
         ihi = self._nx - border     # Last indice + 1
 
+        # Indices of cells with AP
+        i1 = None
+        i2 = None
+
         # Get Vm, reshaped to get each cell's time-series successively.
         v_series = self._1d[name].reshape(self._nt * self._nx, order='F')
 
@@ -204,13 +208,15 @@ class DataBlock1d(object):
                 # No crossing found
                 if have_crossing:
                     # CV calculation ends here
-                    ihi = i
+                    i2 = i - 1
                     break
-                else:
-                    # Delay CV calculation until first crossing
-                    ilo += 1
             else:
-                have_crossing = True
+                # Crossing found!
+                if have_crossing:
+                    i2 = i
+                else:
+                    i1 = i
+                    have_crossing = True
                 itime = 1 + itime[0]
                 # Interpolate to get better estimate
                 v0 = v[itime - 1]
@@ -221,9 +227,13 @@ class DataBlock1d(object):
         if not have_crossing:
             return 0
 
+        # No propagation: all depolarisations at the same time
+        if np.all(t == t[0]):
+            return 0
+
         # Get times in seconds, lengths in cm
         t = np.array(t, copy=False) * time_multiplier
-        x = np.arange(ilo, ihi, dtype=float) * length
+        x = np.arange(i1, 1 + i2, dtype=float) * length
 
         # Use linear least squares to find the conduction velocity
         A = np.vstack([t, np.ones(len(t))]).T
@@ -238,16 +248,23 @@ class DataBlock1d(object):
         Creates a DataBlock1d from a :class:`myokit.DataLog`.
         """
         log.validate()
+
         # Get time variable name
         time = log.time_key()
         if time is None:
             raise ValueError('No time variable set in data log.')
+
         # Get log info
         infos = log.variable_info()
+
         # Check time variable
-        info = infos[time]
-        if info.dimension() != 0:
-            raise ValueError('The given time variable should be 0d.')
+        try:
+            info = infos[time]
+        except KeyError:
+            # Already checked time variable exists, so if not found now must
+            # be multi-dimensional
+            raise ValueError('Time variable must be 0-dimensional.')
+
         # Check if everything is 0d or 1d, get size
         size = None
         for name, info in infos.items():
@@ -264,9 +281,11 @@ class DataBlock1d(object):
                     raise ValueError(
                         'The given simulation log contains 1d'
                         ' data sets of different sizes.')
+
         # Get dimensions
         nt = len(log[time])
         nx = size[0]
+
         # Create data block
         block = DataBlock1d(nx, log[time], copy=True)
         for name, info in infos.items():
@@ -275,7 +294,9 @@ class DataBlock1d(object):
                 if name == time:
                     continue
                 block.set0d(name, log[name], copy=True)
+
             else:
+
                 # Convert to 1d time series
                 data = np.zeros(nt * nx)
                 # Iterate over info.keys(), this has the correct order!
@@ -288,6 +309,7 @@ class DataBlock1d(object):
                 if data.base is not None:
                     data = np.array(data)
                 block.set1d(name, data, copy=False)
+
         return block
 
     def get0d(self, name):
@@ -448,7 +470,7 @@ class DataBlock1d(object):
             f = None
             f = zipfile.ZipFile(filename, 'r')
             info = f.infolist()
-            if len(info) < 2:
+            if len(info) < 3:
                 raise myokit.DataBlockReadError(
                     'Invalid DataBlock1d file format: Not enough files in'
                     ' zip.')
@@ -459,23 +481,26 @@ class DataBlock1d(object):
                 head = names.index('header_block1d.txt')
             except ValueError:
                 raise myokit.DataBlockReadError(
-                    'Invalid DataBlock1d file format: header not found.')
+                    'Invalid DataBlock1d file format: Header not found.')
             try:
                 body = names.index('data.bin')
             except ValueError:
                 raise myokit.DataBlockReadError(
-                    'Invalid DataBlock1d file format: data not found.')
+                    'Invalid DataBlock1d file format: Data not found.')
 
             # Read head and body into memory (let's assume it fits...)
             head = f.read(info[head])
             body = f.read(info[body])
+
         except zipfile.BadZipfile:
             raise myokit.DataBlockReadError(
-                'Unable to read DataBlock1d: bad zip file.')
-        except zipfile.LargeZipFile:
+                'Unable to read DataBlock1d: Bad zip file.')
+
+        except zipfile.LargeZipFile:    # pragma: no cover
             raise myokit.DataBlockReadError(
-                'Unable to read DataBlock1d: zip file requires zip64 support'
+                'Unable to read DataBlock1d: Zip file requires zip64 support'
                 ' and this has not been enabled on this system.')
+
         finally:
             if f:
                 f.close()
@@ -498,7 +523,7 @@ class DataBlock1d(object):
             dtype = str(next(head))[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock1d: unrecognized data type "'
+                    'Unable to read DataBlock1d: Unrecognized data type "'
                     + str(dtype) + '".')
             names_0d = []
             names_1d = []
@@ -520,11 +545,11 @@ class DataBlock1d(object):
             end += n0
             if end > nb:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock1d: header indicates larger data'
+                    'Unable to read DataBlock1d: Header indicates larger data'
                     ' than found in the body.')
             data = array.array(dtype)
             data.fromstring(body[start:end])
-            if sys.byteorder == 'big':
+            if sys.byteorder == 'big':  # pragma: no cover
                 data.byteswap()
             data = np.array(data)
             if progress:
@@ -541,11 +566,11 @@ class DataBlock1d(object):
                 end += n0
                 if end > nb:
                     raise myokit.DataBlockReadError(
-                        'Unable to read DataBlock1d: header indicates larger'
+                        'Unable to read DataBlock1d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
                 data.fromstring(body[start:end])
-                if sys.byteorder == 'big':
+                if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data)
                 block.set0d(name, data, copy=False)
@@ -560,11 +585,11 @@ class DataBlock1d(object):
                 end += n1
                 if end > nb:
                     raise myokit.DataBlockReadError(
-                        'Unable to read DataBlock1d: header indicates larger'
+                        'Unable to read DataBlock1d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
                 data.fromstring(body[start:end])
-                if sys.byteorder == 'big':
+                if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data).reshape(nt, nx, order='C')
                 block.set1d(name, data, copy=False)
@@ -635,7 +660,7 @@ class DataBlock1d(object):
             body_str.append(array.array(dtype, data))
         for name, data in self._1d.items():
             body_str.append(array.array(dtype, data.reshape(n, order='C')))
-        if sys.byteorder == 'big':
+        if sys.byteorder == 'big':  # pragma: no cover
             for ar in body_str:
                 ar.byteswap()
         body_str = b''.join([ar.tostring() for ar in body_str])
@@ -965,16 +990,23 @@ class DataBlock2d(object):
         Creates a DataBlock2d from a :class:`myokit.DataLog`.
         """
         log.validate()
+
         # Get time variable name
         time = log.time_key()
         if time is None:
             raise ValueError('No time variable set in data log.')
+
         # Get log info
         infos = log.variable_info()
+
         # Check time variable
-        info = infos[time]
-        if info.dimension() != 0:
-            raise ValueError('The given time variable should be 0d.')
+        try:
+            info = infos[time]
+        except KeyError:
+            # Already checked time variable exists, so if not found now must
+            # be multi-dimensional
+            raise ValueError('Time variable must be 0-dimensional.')
+
         # Check if everything is 0d or 2d, get size
         size = None
         for name, info in infos.items():
@@ -1131,6 +1163,7 @@ class DataBlock2d(object):
         converted to a 2d block without warning.
         """
         filename = os.path.expanduser(filename)
+
         # Load compression modules
         import zipfile
         try:
@@ -1139,20 +1172,23 @@ class DataBlock2d(object):
         except ImportError:
             raise Exception(
                 'This method requires the ``zlib`` module to be installed.')
+
         # Get size of single and double types on this machine
         dsize = {
             'd': len(array.array('d', [1]).tostring()),
             'f': len(array.array('f', [1]).tostring()),
         }
+
         # Read data from file
         try:
             f = None
             f = zipfile.ZipFile(filename, 'r')
             info = f.infolist()
-            if len(info) < 2:
+            if len(info) < 3:
                 raise myokit.DataBlockReadError(
-                    'Invalid DataBlock2d file format: not enough files in'
+                    'Invalid DataBlock2d file format: Not enough files in'
                     ' zip.')
+
             # Get ZipInfo objects
             names = [x.filename for x in info]
             try:
@@ -1163,28 +1199,36 @@ class DataBlock2d(object):
                     head = names.index('header_block1d.txt')
                 except ValueError:
                     raise myokit.DataBlockReadError(
-                        'Invalid DataBlock2d file format: header not found.')
+                        'Invalid DataBlock2d file format: Header not found.')
+
                 # It's a DataBlock1d, attempt reading as such
                 f.close()
-                return DataBlock1d.load(filename, progress, msg).block2d()
+                block1d = DataBlock1d.load(filename, progress, msg)
+                return None if block1d is None else block1d.block2d()
+
             try:
                 body = names.index('data.bin')
             except ValueError:
                 raise myokit.DataBlockReadError(
-                    'Invalid DataBlock2d file format: data file not found.')
+                    'Invalid DataBlock2d file format: Data not found.')
+
             # Read head and body into memory (let's assume it fits...)
             head = f.read(info[head])
             body = f.read(info[body])
+
         except zipfile.BadZipfile:
             raise myokit.DataBlockReadError(
-                'Unable to read DataBlock2d: bad zip file.')
-        except zipfile.LargeZipFile:
+                'Unable to read DataBlock2d: Bad zip file.')
+
+        except zipfile.LargeZipFile:    # pragma: no cover
             raise myokit.DataBlockReadError(
                 'Unable to read DataBlock2d: zip file requires zip64 support'
                 ' and this has not been enabled on this system.')
+
         finally:
             if f:
                 f.close()
+
         # Parse head
         head = head.splitlines()
         try:
@@ -1200,11 +1244,13 @@ class DataBlock2d(object):
             nt = int(next(head))
             ny = int(next(head))
             nx = int(next(head))
+
             dtype = str(next(head))[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock2d: unrecognized data type "'
+                    'Unable to read DataBlock2d: Unrecognized data type "'
                     + str(dtype) + '".')
+
             names_0d = []
             names_2d = []
             name = next(head)
@@ -1214,39 +1260,44 @@ class DataBlock2d(object):
             for name in head:
                 names_2d.append(name[1:-1])
             del(head)
+
             # Parse body
             start, end = 0, 0
             n0 = dsize[dtype] * nt
             n2 = n0 * ny * nx
             nb = len(body)
+
             # Read time
             end += n0
             if end > nb:
                 raise myokit.DataBlockReadError(
-                    'Unable to read DataBlock2d: header indicates larger data'
+                    'Unable to read DataBlock2d: Header indicates larger data'
                     ' than found in the body.')
+
             data = array.array(dtype)
             data.fromstring(body[start:end])
-            if sys.byteorder == 'big':
+            if sys.byteorder == 'big':  # pragma: no cover
                 data.byteswap()
             data = np.array(data)
             if progress:
                 iprogress += 1
                 if not progress.update(iprogress * fraction):
                     return
+
             # Create data block
             block = DataBlock2d(nx, ny, data, copy=False)
+
             # Read 0d data
             for name in names_0d:
                 start = end
                 end += n0
                 if end > nb:
                     raise myokit.DataBlockReadError(
-                        'Unable to read DataBlock2d: header indicates larger'
+                        'Unable to read DataBlock2d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
                 data.fromstring(body[start:end])
-                if sys.byteorder == 'big':
+                if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data)
                 block.set0d(name, data, copy=False)
@@ -1254,17 +1305,18 @@ class DataBlock2d(object):
                     iprogress += 1
                     if not progress.update(iprogress * fraction):
                         return
+
             # Read 2d data
             for name in names_2d:
                 start = end
                 end += n2
                 if end > nb:
                     raise myokit.DataBlockReadError(
-                        'Unable to read DataBlock2d: header indicates larger'
+                        'Unable to read DataBlock2d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
                 data.fromstring(body[start:end])
-                if sys.byteorder == 'big':
+                if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data).reshape(nt, ny, nx, order='C')
                 block.set2d(name, data, copy=False)
@@ -1273,7 +1325,9 @@ class DataBlock2d(object):
                     if not progress.update(iprogress * fraction):
                         return
             return block
+
         finally:
+
             if progress:
                 progress.exit()
 
@@ -1339,7 +1393,7 @@ class DataBlock2d(object):
             body_str.append(array.array(dtype, data))
         for name, data in self._2d.items():
             body_str.append(array.array(dtype, data.reshape(n, order='C')))
-        if sys.byteorder == 'big':
+        if sys.byteorder == 'big':  # pragma: no cover
             for ar in body_str:
                 ar.byteswap()
         body_str = b''.join([ar.tostring() for ar in body_str])

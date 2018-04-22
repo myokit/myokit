@@ -178,12 +178,12 @@ import myokit
 # Create simulation
 m = get_model()
 p = get_protocol()
-s = myokit.SimulationOpenCL(m, p, 64)
+s = myokit.SimulationOpenCL(m, p, (16, 16))
 
 # Run
 d = s.run(500, log=['engine.time', 'membrane.V', 'engine.pace'])
-b = d.block1d()
-b.save('cv1d.zip')
+b = d.block2d()
+b.save('block2d.zip')
 
-print(myokit.strfloat(b.cv('membrane.V')))
+#print(myokit.strfloat(b.cv('membrane.V')))
 
