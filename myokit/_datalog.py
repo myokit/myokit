@@ -483,13 +483,8 @@ class DataLog(OrderedDict):
                 raise myokit.DataLogReadError('Invalid log file format.')
             try:
                 head = f.getinfo('structure.txt')
-                old_format = False
             except KeyError:
-                try:
-                    head = f.getinfo('header.txt')
-                    old_format = True
-                except KeyError:
-                    raise myokit.DataLogReadError('Invalid log file format.')
+                raise myokit.DataLogReadError('Invalid log file format.')
             # Read file contents
             head = f.read(head)
             body = f.read(body)
@@ -507,38 +502,18 @@ class DataLog(OrderedDict):
         log = DataLog()
 
         # Parse header
-        if old_format:
-            # Parse header in old format
-            head = head.splitlines()
-            if len(head) == 1:
-                # Empty file
-                return log
-            head = iter(head)
-
-            # Skip first line
-            next(head)
-
-            # Get field information, data type and size is given redundantly
-            fields = []
-            for line in head:
-                field, data_type, data_size = entry.split(',')
-                fields.append(field[1:-1])
-            data_size = int(data_size)
-            data_type = data_type[1:-1]
-        else:
-            # Parse header in new format:
-            # Number of fields, length of data arrays, data type, time, fields
-            head = iter(head.splitlines())
-            n = int(next(head))
-            data_size = int(next(head))
-            data_type = next(head)
-            time = next(head)
-            if time:
-                # Note, this field doesn't have to be present in the log!
-                log._time = time
-            fields = [x for x in head]
-            if len(fields) != n:
-                raise DataLogReadError('Invalid number of fields specified.')
+        # Number of fields, length of data arrays, data type, time, fields
+        head = iter(head.splitlines())
+        n = int(next(head))
+        data_size = int(next(head))
+        data_type = next(head)
+        time = next(head)
+        if time:
+            # Note, this field doesn't have to be present in the log!
+            log._time = time
+        fields = [x for x in head]
+        if len(fields) != n:
+            raise DataLogReadError('Invalid number of fields specified.')
 
         # Get size of each entry on disk
         if data_size < 0:
