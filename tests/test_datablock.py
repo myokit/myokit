@@ -10,12 +10,13 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import os
 import unittest
 import numpy as np
 
 import myokit
 
-from shared import TemporaryDirectory
+from shared import TemporaryDirectory, DIR_DATA
 
 
 class DataBlock1dTest(unittest.TestCase):
@@ -99,6 +100,38 @@ class DataBlock1dTest(unittest.TestCase):
             yc = c.get1d('y')
             self.assertTrue(np.all(yb == yc))
             self.assertFalse(yb is yc)
+
+    def test_bad_constructor(self):
+        """
+        Tests bad arguments to a DataBlock1d raise ValueErrors.
+        """
+        # Test valid constructor
+        w = 2
+        time = [1, 2, 3]
+        myokit.DataBlock1d(w, time)
+
+        # Test w < 1
+        self.assertRaises(ValueError, myokit.DataBlock1d, 0, time)
+
+        # Test time matrix
+        self.assertRaises(ValueError, myokit.DataBlock1d, w, [[1, 2, 3]])
+
+        # Decreasing times
+        self.assertRaises(ValueError, myokit.DataBlock1d, w, [3, 2, 1])
+
+    def test_cv(self):
+        """
+        Tests the CV method.
+        """
+        b = os.path.join(DIR_DATA, 'cv1d.zip')
+        b = myokit.DataBlock1d.load(b)
+        self.assertAlmostEqual(b.cv('membrane.V'), 5.95272837350686004e+01)
+
+        # Invalid border argument
+        # Negative
+        self.assertRaises(ValueError, b.cv, 'membrane.V', border=-1)
+        # Too large
+        self.assertRaises(ValueError, b.cv, 'membrane.V', border=1000)
 
     def test_grids(self):
         """
@@ -279,6 +312,26 @@ class DataBlock2dTest(unittest.TestCase):
             yc = c.get2d('y')
             self.assertTrue(np.all(yb == yc))
             self.assertFalse(yb is yc)
+
+    def test_bad_constructor(self):
+        """
+        Tests bad arguments to a DataBlock2d raise ValueErrors.
+        """
+        # Test valid constructor
+        w = 2
+        h = 3
+        time = [1, 2, 3]
+        myokit.DataBlock2d(w, h, time)
+
+        # Test w < 1, h < 1
+        self.assertRaises(ValueError, myokit.DataBlock1d, 0, h, time)
+        self.assertRaises(ValueError, myokit.DataBlock1d, w, 0, time)
+
+        # Test time matrix
+        self.assertRaises(ValueError, myokit.DataBlock2d, w, h, [[1, 2, 3]])
+
+        # Decreasing times
+        self.assertRaises(ValueError, myokit.DataBlock2d, w, h, [3, 2, 1])
 
 
 if __name__ == '__main__':

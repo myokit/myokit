@@ -176,18 +176,22 @@ class DataBlock1d(object):
         else:
             border = int(border)
             if border < 0:
-                raise Exception('The argument `border` cannot be negative.')
+                raise ValueError('The argument `border` cannot be negative.')
             elif border >= self._nx // 2:
-                raise Exception(
+                raise ValueError(
                     'The argument `border` must be less than half the number'
                     ' of cells.')
+
         # Get indices of selected cells
         ilo = border                # First indice
         ihi = self._nx - border     # Last indice + 1
+
         # Get Vm, reshaped to get each cell's time-series successively.
         v_series = self._1d[name].reshape(self._nt * self._nx, order='F')
+
         # Split Vm into a series per cell (returns views!)
         v_series = np.split(v_series, self._nx)
+
         # Find first activation time
         have_crossing = False
         t = []
@@ -216,17 +220,20 @@ class DataBlock1d(object):
                 t.append(t0 + (threshold - v0) * (t1 - t0) / (v1 - v0))
         if not have_crossing:
             return 0
+
         # Get times in seconds, lengths in cm
         t = np.array(t, copy=False) * time_multiplier
         x = np.arange(ilo, ihi, dtype=float) * length
+
         # Use linear least squares to find the conduction velocity
         A = np.vstack([t, np.ones(len(t))]).T
         cv = np.linalg.lstsq(A, x)[0][0]
+
         # Return
         return cv
 
     @staticmethod
-    def fromDataLog(log):
+    def from_DataLog(log):
         """
         Creates a DataBlock1d from a :class:`myokit.DataLog`.
         """
@@ -953,7 +960,7 @@ class DataBlock2d(object):
         return np.array(eigenvalues)
 
     @staticmethod
-    def fromDataLog(log):
+    def from_DataLog(log):
         """
         Creates a DataBlock2d from a :class:`myokit.DataLog`.
         """

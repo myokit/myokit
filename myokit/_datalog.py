@@ -179,13 +179,13 @@ class DataLog(OrderedDict):
         """
         Returns a copy of this log as a :class:`DataBlock1d`.
         """
-        return myokit.DataBlock1d.fromDataLog(self)
+        return myokit.DataBlock1d.from_DataLog(self)
 
     def block2d(self):
         """
         Returns a copy of this log as a :class:`DataBlock2d`.
         """
-        return myokit.DataBlock2d.fromDataLog(self)
+        return myokit.DataBlock2d.from_DataLog(self)
 
     def clone(self, numpy=False):
         """
