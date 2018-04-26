@@ -147,6 +147,71 @@ class EvaluatorTest(unittest.TestCase):
         except Exception as e:
             self.assertIn('Exception in subprocess', str(e))
 
+    def test_worker(self):
+        """
+        Manual test of worker, since cover doesn't pick up on its run method.
+        """
+        from myokit.lib.fit import _Worker as Worker
+
+        # Define function
+        def f(x):
+            if x == 30:
+                raise KeyboardInterrupt
+            return 2 * x
+
+        # Create queues for worker
+        import multiprocessing
+        tasks = multiprocessing.Queue()
+        results = multiprocessing.Queue()
+        errors = multiprocessing.Queue()
+        error = multiprocessing.Event()
+        tasks.put((0, 1))
+        tasks.put((1, 2))
+        tasks.put((2, 3))
+        max_tasks = 3
+
+        w = Worker(f, (), tasks, results, max_tasks, errors, error)
+        w.run()
+
+        self.assertEqual(results.get(timeout=0.01), (0, 2))
+        self.assertEqual(results.get(timeout=0.01), (1, 4))
+        self.assertEqual(results.get(timeout=0.01), (2, 6))
+        self.assertTrue(results.empty())
+
+        # Test worker stops if error flag is set
+        tasks = multiprocessing.Queue()
+        results = multiprocessing.Queue()
+        errors = multiprocessing.Queue()
+        error = multiprocessing.Event()
+        tasks.put((0, 1))
+        tasks.put((1, 2))
+        tasks.put((2, 3))
+        error.set()
+
+        w = Worker(f, (), tasks, results, max_tasks, errors, error)
+        w.run()
+
+        self.assertEqual(results.get(timeout=0.01), (0, 2))
+        self.assertTrue(results.empty())
+
+        # Tests worker catches, stores and halts on exception
+        tasks = multiprocessing.Queue()
+        results = multiprocessing.Queue()
+        errors = multiprocessing.Queue()
+        error = multiprocessing.Event()
+        tasks.put((0, 1))
+        tasks.put((1, 30))
+        tasks.put((2, 3))
+
+        w = Worker(f, (), tasks, results, max_tasks, errors, error)
+        w.run()
+
+        self.assertEqual(results.get(timeout=0.01), (0, 2))
+        self.assertTrue(results.empty())
+        self.assertTrue(error.is_set())
+        #self.assertFalse(errors.empty())
+        self.assertIsNotNone(errors.get(timeout=0.01))
+
 
 class QuadFitTest(unittest.TestCase):
     """
