@@ -106,6 +106,47 @@ class EvaluatorTest(unittest.TestCase):
         # max tasks must be >0
         self.assertRaises(ValueError, fit.ParallelEvaluator, f, 1, 0)
 
+        # Exceptions in called method should trigger halt, cause new exception
+
+        # Any old exception
+        def ioerror_on_fifty(x):
+            if x == 50:
+                raise IOError
+            return x
+
+        e = fit.ParallelEvaluator(ioerror_on_fifty)
+        self.assertRaises(Exception, e.evaluate, range(100))
+        try:
+            e.evaluate([1, 2, 50])
+        except Exception as e:
+            self.assertIn('Exception in subprocess', str(e))
+
+        # System exit
+        def system_exit_on_40(x):
+            if x == 40:
+                raise SystemExit
+            return x
+
+        e = fit.ParallelEvaluator(ioerror_on_fifty)
+        self.assertRaises(Exception, e.evaluate, range(100))
+        try:
+            e.evaluate([1, 2, 40])
+        except Exception as e:
+            self.assertIn('Exception in subprocess', str(e))
+
+        # Keyboard interrupt (Ctrl-C)
+        def user_cancel_on_30(x):
+            if x == 30:
+                raise KeyboardInterrupt
+            return x
+
+        e = fit.ParallelEvaluator(ioerror_on_fifty)
+        self.assertRaises(Exception, e.evaluate, range(100))
+        try:
+            e.evaluate([1, 2, 30])
+        except Exception as e:
+            self.assertIn('Exception in subprocess', str(e))
+
 
 class QuadFitTest(unittest.TestCase):
     """
