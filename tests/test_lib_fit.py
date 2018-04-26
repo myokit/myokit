@@ -26,17 +26,35 @@ class EvaluatorTest(unittest.TestCase):
     Tests the sequential and parallel evaluation classes.
     """
     def test_evaluators(self):
+
         # Test basic sequential/parallel evaluation
         # Create test data
         def f(x):
             if x == 0:
                 raise Exception('Everything is terrible')
             return 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / x
+
         x = 1 + np.random.random(100)
+
         # Simple run: sequential and parallel
         fit.evaluate(f, x, parallel=False)
+
         # Note: the overhead is almost 100% of the run-time of this test
         fit.evaluate(f, x, parallel=True)
+
+        # Test object with args
+        def g(x, y, z):
+            self.assertEqual(y, 10)
+            self.assertEqual(z, 20)
+
+        e = fit.SequentialEvaluator(g, [10, 20])
+        e.evaluate([1])
+
+        # Argument must be callable
+        self.assertRaises(ValueError, fit.SequentialEvaluator, 1)
+
+        # Args must be a sequence
+        self.assertRaises(ValueError, fit.SequentialEvaluator, g, 1)
 
     def test_parallel_evaluator(self):
         # Test parallel execution
@@ -45,22 +63,48 @@ class EvaluatorTest(unittest.TestCase):
             if x == 0:
                 raise Exception('Everything is terrible')
             return 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / x
+
         e = fit.ParallelEvaluator(f, max_tasks_per_worker=9)
+
         # Test 1
         x = 1 + np.random.random(30)
         e.evaluate(x)
+
         # Test 2
         x = 2 + np.random.random(15)
         e.evaluate(x)
+
         # Test 3 (with exception)
         x[13] = 0
         self.assertRaises(Exception, e.evaluate, x)
+
         # Repeat run with exception
         x[11] = 0
         self.assertRaises(Exception, e.evaluate, x)
+
         # Repeat run
         x = 1 + np.random.random(16)
         e.evaluate(x)
+
+        # Test object with args
+        def g(x, y, z):
+            self.assertEqual(y, 10)
+            self.assertEqual(z, 20)
+
+        e = fit.ParallelEvaluator(g, args=[10, 20])
+        e.evaluate([1])
+
+        # Argument must be callable
+        self.assertRaises(ValueError, fit.ParallelEvaluator, 1)
+
+        # Args must be a sequence
+        self.assertRaises(ValueError, fit.ParallelEvaluator, g, args=1)
+
+        # n-workers must be >0
+        self.assertRaises(ValueError, fit.ParallelEvaluator, f, 0)
+
+        # max tasks must be >0
+        self.assertRaises(ValueError, fit.ParallelEvaluator, f, 1, 0)
 
 
 class QuadFitTest(unittest.TestCase):

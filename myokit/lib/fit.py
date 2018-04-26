@@ -409,7 +409,7 @@ class Evaluator(object):
         A function or other callable object ``f`` that takes a value ``x`` and
         returns an evaluation ``f(x)``.
     ``args``
-        An optional tuple containing extra arguments to ``f``. If ``args`` is
+        An optional sequence of extra arguments to ``f``. If ``args`` is
         specified, ``f`` will be called as ``f(x, *args)``.
 
     """
@@ -419,10 +419,12 @@ class Evaluator(object):
         self._function = function
         if args is None:
             self._args = ()
-        elif type(args) != tuple:
-            raise ValueError(
-                'The argument `args` must be either None or a tuple.')
         else:
+            try:
+                len(args)
+            except TypeError:
+                raise ValueError(
+                    'The argument `args` must be either None or a sequence.')
             self._args = args
 
     def evaluate(self, positions):
