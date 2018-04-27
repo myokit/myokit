@@ -805,7 +805,7 @@ multiprocessing.html#all-platforms>`_ for details).
         cleaned = 0
         for k in range(len(self._workers) - 1, -1, -1):
             w = self._workers[k]
-            if w.exitcode is not None:
+            if w.exitcode is not None:  # pragma: no cover
                 w.join()
                 cleaned += 1
                 del(self._workers[k])
@@ -838,15 +838,19 @@ multiprocessing.html#all-platforms>`_ for details).
         # For some reason these lines block when running on windows
         #if not (self._tasks.empty() and self._results.empty()):
         #    raise Exception('Unhandled tasks/results left in queues.')
+
         # Clean up any dead workers
         self._clean()
+
         # Ensure worker pool is populated
         self._populate()
+
         # Start
         try:
             # Enqueue all tasks (non-blocking)
             for k, x in enumerate(positions):
                 self._tasks.put((k, x))
+
             # Collect results (blocking)
             n = len(positions)
             m = 0
@@ -861,10 +865,12 @@ multiprocessing.html#all-platforms>`_ for details).
                         m += 1
                 except Queue.Empty:
                     pass
+
                 # Clean dead workers
-                if self._clean():
+                if self._clean():   # pragma: no cover
                     # Repolate
                     self._populate()
+
         except (IOError, EOFError):     # pragma: no cover
             # IOErrors can originate from the queues as a result of issues in
             # the subprocesses. Check if the error flag is set. If it is, let
@@ -885,6 +891,7 @@ multiprocessing.html#all-platforms>`_ for details).
         # Error in worker threads
         if self._error.is_set():
             errors = self._stop()
+
             # Raise exception
             if errors:
                 pid, trace = errors[0]
@@ -988,17 +995,20 @@ def powell(f, x, xtol=1e-4, ftol=1e-4, max_iter=500, args=None):
     # Check if function is callable
     if not callable(f):
         raise ValueError('The argument `f` must be a callable function.')
+
     # Check extra arguments
     if args is None:
         args = ()
     elif type(args) != tuple:
         raise ValueError('The argument `args` must be either None or a tuple.')
+
     # Check stopping criteria
     xtol = float(xtol)
     ftol = float(ftol)
     max_iter = int(max_iter)
     if max_iter < 1:
         raise ValueError('Maximum number of iterations must be at least 1.')
+
     # Minimize
     res = minimize(f, x, args=args, method='Powell', tol=None, options={
         'xtol': xtol, 'ftol': ftol, 'maxiter': max_iter, 'disp': False})
