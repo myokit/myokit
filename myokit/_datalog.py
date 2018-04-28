@@ -495,7 +495,7 @@ class DataLog(OrderedDict):
             body = f.read(body)
         except zipfile.BadZipfile:
             raise myokit.DataLogReadError('Unable to read log: bad zip file.')
-        except zipfile.LargeZipFile:
+        except zipfile.LargeZipFile:    # pragma: no cover
             raise myokit.DataLogReadError(
                 'Unable to read log: zip file requires zip64 support and this'
                 ' has not been enabled on this system.')
@@ -518,16 +518,18 @@ class DataLog(OrderedDict):
             log._time = time
         fields = [x for x in head]
         if len(fields) != n:
-            raise DataLogReadError('Invalid number of fields specified.')
+            raise myokit.DataLogReadError(
+                'Invalid number of fields specified.')
 
         # Get size of each entry on disk
         if data_size < 0:
-            raise DataLogReadError(
+            raise myokit.DataLogReadError(
                 'Invalid data size: ' + str(data_size) + '.')
         try:
             data_size *= dsize[data_type]
         except KeyError:
-            raise DataLogReadError('Invalid data type: "' + data_type + '".')
+            raise myokit.DataLogReadError(
+                'Invalid data type: "' + data_type + '".')
 
         # Parse read data
         fraction = 1.0 / len(fields)

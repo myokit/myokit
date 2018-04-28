@@ -58,6 +58,11 @@ class DataLogTest(unittest.TestCase):
         self.assertRaises(ValueError, d1.extend, d2)
         d2.set_time_key('time')
 
+        # Both logs must have the same keys
+        d2['v3'] = v1
+        self.assertRaises(ValueError, d1.extend, d2)
+        del(d2['v3'])
+
         # Times can overlap
         d2['time'] = [3, 4, 5]
         d1.extend(d2)
@@ -298,16 +303,6 @@ class DataLogTest(unittest.TestCase):
         tr(2)
         tr(-5)
         tr(30)
-
-    def test_length(self):
-        """
-        Tests the length() method.
-        """
-        d = myokit.DataLog()
-        d.set_time_key('t')
-        d['t'] = [10, 20, 30, 40]
-        d['v'] = [50, 60, 70, 80]
-        self.assertEqual(d.length(), 4)
 
     def test_keys_like(self):
         """
@@ -1137,6 +1132,66 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(np.all(e.time() == d.time()))
             self.assertTrue(np.all(e.time() == d['c.d']))
 
+    def test_load_errors(self):
+        """
+        Tests if the correct load errors are raised.
+        """
+        # Missing data file
+        path = os.path.join(DIR_DATA, 'badlog-1-no-data.zip')
+        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
+        try:
+            myokit.DataLog.load(path)
+        except myokit.DataLogReadError as e:
+            self.assertIn('log file format', str(e))
+
+        # Missing structure file
+        path = os.path.join(DIR_DATA, 'badlog-2-no-structure.zip')
+        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
+        try:
+            myokit.DataLog.load(path)
+        except myokit.DataLogReadError as e:
+            self.assertIn('log file format', str(e))
+
+        # Not a zip
+        path = os.path.join(DIR_DATA, 'badlog-3-not-a-zip.zip')
+        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
+        try:
+            myokit.DataLog.load(path)
+        except myokit.DataLogReadError as e:
+            self.assertIn('bad zip file', str(e))
+
+        # Wrong number of fields
+        path = os.path.join(DIR_DATA, 'badlog-4-invalid-n-fields.zip')
+        #self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
+        try:
+            myokit.DataLog.load(path)
+        except myokit.DataLogReadError as e:
+            self.assertIn('number of fields', str(e))
+
+        # Negative data size
+        path = os.path.join(DIR_DATA, 'badlog-5-invalid-data-size.zip')
+        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
+        try:
+            myokit.DataLog.load(path)
+        except myokit.DataLogReadError as e:
+            self.assertIn('Invalid data size', str(e))
+
+        # Unknown data type
+        path = os.path.join(DIR_DATA, 'badlog-6-bad-data-type.zip')
+        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
+        try:
+            myokit.DataLog.load(path)
+        except myokit.DataLogReadError as e:
+            self.assertIn('Invalid data type', str(e))
+
+        # Not enough data
+        path = os.path.join(DIR_DATA, 'badlog-7-not-enough-data.zip')
+        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
+        try:
+            myokit.DataLog.load(path)
+        except myokit.DataLogReadError as e:
+            self.assertIn('larger data size than', str(e))
+
     def test_save_csv(self):
         """
         Tests saving as csv.
@@ -1672,6 +1727,88 @@ class DataLogTest(unittest.TestCase):
         self.assertAlmostEqual(1, apds1['start'][1] / apds2['start'][1])
         self.assertAlmostEqual(1, apds1['duration'][0] / apds2['duration'][0])
         self.assertAlmostEqual(1, apds1['duration'][1] / apds2['duration'][1])
+
+    def test_clone(self):
+        """
+        Tests data log cloning.
+        """
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.Simulation(m, p)
+        d1 = s.run(100, log=myokit.LOG_BOUND + myokit.LOG_STATE).npview()
+        d2 = d1.clone()
+
+        # Check keys are the same
+        self.assertEqual(d1.keys(), d2.keys())
+
+        # Check the values are the same, but not the same objects
+        for k, v in d1.items():
+            self.assertTrue(np.all(v == d2[k]))
+            self.assertFalse(v is d2[k])
+            self.assertTrue(type(d2[k]) == list)
+
+        # Check cloning as numpy arrays
+        d2 = d1.clone(numpy=True)
+        self.assertEqual(d1.keys(), d2.keys())
+        for k, v in d1.items():
+            self.assertTrue(np.all(v == d2[k]))
+            self.assertFalse(v is d2[k])
+            self.assertTrue(type(d2[k]) == np.ndarray)
+
+    def test_fold(self):
+        """
+        Tests the fold() method.
+        """
+        d = myokit.DataLog(time='time')
+        d['time'] = range(100)
+        d['x'] = list(np.arange(100) * 3)
+
+        # Test without discarding remainder
+        d2 = d.fold(30, discard_remainder=False)
+        self.assertEqual(set(d2.keys()), set([
+            'time', '0.x', '1.x', '2.x', '3.x']))
+
+        # Test with discarding remainder
+        d = d.npview()
+        d2 = d.fold(30)
+        self.assertEqual(set(d2.keys()), set([
+            'time', '0.x', '1.x', '2.x']))
+        self.assertEqual(len(d2['time']), 30)
+        self.assertEqual(len(d2['0.x']), 30)
+        self.assertEqual(len(d2['1.x']), 30)
+        self.assertEqual(len(d2['2.x']), 30)
+        self.assertTrue(np.all(d2['time'] == d['time'][:30]))
+        self.assertTrue(np.all(d2['0.x'] == d['x'][:30]))
+        self.assertTrue(np.all(d2['1.x'] == d['x'][30:60]))
+        self.assertTrue(np.all(d2['2.x'] == d['x'][60:90]))
+
+    def test_has_nan(self):
+        """
+        Tests the has_nan() method, which checks if the _final_ value in any
+        field is NaN.
+        """
+        d = myokit.DataLog(time='time')
+        d['time'] = range(100)
+        d['x'] = list(np.arange(100) * 3)
+        d['y'] = list(np.arange(100) * 3)
+        d['z'] = list(np.arange(100) * 3)
+        self.assertFalse(d.has_nan())
+        d['x'][-3] = float('nan')
+        self.assertFalse(d.has_nan())
+        d['x'][-1] = float('inf')
+        self.assertFalse(d.has_nan())
+        d['x'][-1] = float('nan')
+        self.assertTrue(d.has_nan())
+
+    def test_length(self):
+        """
+        Tests the lenght() method, that counts the length of the log's entries.
+        """
+        d = myokit.DataLog(time='time')
+        self.assertEqual(d.length(), 0)
+        d['time'] = list(np.arange(100) * 3)
+        self.assertEqual(d.length(), 100)
+        d['x'] = list(np.arange(100) * 3)
+        self.assertEqual(d.length(), 100)
 
 
 if __name__ == '__main__':
