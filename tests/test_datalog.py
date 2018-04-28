@@ -1292,6 +1292,13 @@ class DataLogTest(unittest.TestCase):
         self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
         self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
+        # Test semicolons at end of each line
+        path = os.path.join(DIR_DATA, 'datalog-5-semicolons.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
     def test_split(self):
         """
         Tests the split function.

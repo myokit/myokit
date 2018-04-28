@@ -608,11 +608,8 @@ class DataLog(OrderedDict):
             if line == '':
                 return log
 
-            # Trim end of line
-            if len(line) > 1 and line[-2:] == '\r\n':
-                eol = 2
-                line = line[:-2]
-            elif len(line) > 0:
+            # Trim end of line (Python takes care of windows format)
+            if len(line) > 0:
                 eol = 1
                 line = line[:-1]
 
