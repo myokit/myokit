@@ -16,7 +16,7 @@ import numpy as np
 
 import myokit
 
-from shared import TemporaryDirectory, DIR_DATA
+from shared import TemporaryDirectory, DIR_DATA, DIR_IO
 from shared import TestReporter, CancellingReporter
 
 
@@ -339,7 +339,7 @@ class DataBlock1dTest(unittest.TestCase):
         Tests loading errors.
         """
         # Not enough files
-        path = os.path.join(DIR_DATA, 'bad1d-1-not-enough-files.zip')
+        path = os.path.join(DIR_IO, 'bad1d-1-not-enough-files.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
         message = ''
@@ -350,7 +350,7 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertIn('Not enough files', message)
 
         # No header file
-        path = os.path.join(DIR_DATA, 'bad1d-2-no-header.zip')
+        path = os.path.join(DIR_IO, 'bad1d-2-no-header.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
         message = ''
@@ -361,7 +361,7 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertIn('Header not found', message)
 
         # No data file
-        path = os.path.join(DIR_DATA, 'bad1d-3-no-data.zip')
+        path = os.path.join(DIR_IO, 'bad1d-3-no-data.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
         message = ''
@@ -372,7 +372,7 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertIn('Data not found', message)
 
         # Not a zip
-        path = os.path.join(DIR_DATA, 'bad1d-4-not-a-zip.zip')
+        path = os.path.join(DIR_IO, 'bad1d-4-not-a-zip.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
         message = ''
@@ -383,7 +383,7 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertIn('Bad zip', message)
 
         # Unknown data type in data
-        path = os.path.join(DIR_DATA, 'bad1d-5-bad-data-type.zip')
+        path = os.path.join(DIR_IO, 'bad1d-5-bad-data-type.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
         message = ''
@@ -394,7 +394,7 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertIn('Unrecognized data type', message)
 
         # Not enough data: detected at time level
-        path = os.path.join(DIR_DATA, 'bad1d-6-time-too-short.zip')
+        path = os.path.join(DIR_IO, 'bad1d-6-time-too-short.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
         message = ''
@@ -405,7 +405,7 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertIn('larger data', message)
 
         # Not enoug data: detected at 0d level
-        path = os.path.join(DIR_DATA, 'bad1d-7-0d-too-short.zip')
+        path = os.path.join(DIR_IO, 'bad1d-7-0d-too-short.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
         message = ''
@@ -416,7 +416,7 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertIn('larger data', message)
 
         # Not enough data: detected at 1d level
-        path = os.path.join(DIR_DATA, 'bad1d-8-1d-too-short.zip')
+        path = os.path.join(DIR_IO, 'bad1d-8-1d-too-short.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock1d.load, path)
         message = ''
@@ -1091,7 +1091,7 @@ class DataBlock2dTest(unittest.TestCase):
         Tests loading errors.
         """
         # Not enough files
-        path = os.path.join(DIR_DATA, 'bad2d-1-not-enough-files.zip')
+        path = os.path.join(DIR_IO, 'bad2d-1-not-enough-files.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
         message = ''
@@ -1102,7 +1102,7 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertIn('Not enough files', message)
 
         # No header file
-        path = os.path.join(DIR_DATA, 'bad2d-2-no-header.zip')
+        path = os.path.join(DIR_IO, 'bad2d-2-no-header.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
         message = ''
@@ -1113,7 +1113,7 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertIn('Header not found', message)
 
         # No data file
-        path = os.path.join(DIR_DATA, 'bad2d-3-no-data.zip')
+        path = os.path.join(DIR_IO, 'bad2d-3-no-data.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
         message = ''
@@ -1124,7 +1124,7 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertIn('Data not found', message)
 
         # Not a zip
-        path = os.path.join(DIR_DATA, 'bad2d-4-not-a-zip.zip')
+        path = os.path.join(DIR_IO, 'bad2d-4-not-a-zip.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
         message = ''
@@ -1135,7 +1135,7 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertIn('Bad zip', message)
 
         # Unknown data type in data
-        path = os.path.join(DIR_DATA, 'bad2d-5-bad-data-type.zip')
+        path = os.path.join(DIR_IO, 'bad2d-5-bad-data-type.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
         message = ''
@@ -1146,7 +1146,7 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertIn('Unrecognized data type', message)
 
         # Unknown data type in data
-        path = os.path.join(DIR_DATA, 'bad2d-6-time-too-short.zip')
+        path = os.path.join(DIR_IO, 'bad2d-6-time-too-short.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
         message = ''
@@ -1157,7 +1157,7 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertIn('larger data', message)
 
         # Unknown data type in data
-        path = os.path.join(DIR_DATA, 'bad2d-7-0d-too-short.zip')
+        path = os.path.join(DIR_IO, 'bad2d-7-0d-too-short.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
         message = ''
@@ -1168,7 +1168,7 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertIn('larger data', message)
 
         # Unknown data type in data
-        path = os.path.join(DIR_DATA, 'bad2d-8-2d-too-short.zip')
+        path = os.path.join(DIR_IO, 'bad2d-8-2d-too-short.zip')
         self.assertRaises(
             myokit.DataBlockReadError, myokit.DataBlock2d.load, path)
         message = ''
@@ -1179,7 +1179,7 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertIn('larger data', message)
 
         # Test progress reporter
-        path = os.path.join(DIR_DATA, 'block2d.zip')
+        path = os.path.join(DIR_IO, 'block2d.zip')
         p = TestReporter()
         self.assertFalse(p.entered)
         self.assertFalse(p.exited)

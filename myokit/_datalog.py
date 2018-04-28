@@ -609,9 +609,8 @@ class DataLog(OrderedDict):
                 return log
 
             # Trim end of line (Python takes care of windows format)
-            if len(line) > 0:
-                eol = 1
-                line = line[:-1]
+            eol = 1
+            line = line[:-1]
 
             # Trim ; at end of line if given
             if line[-1:] == ';':
@@ -640,6 +639,8 @@ class DataLog(OrderedDict):
                         i, c = next(line)
                 except StopIteration:
                     break
+
+                # Read!
                 if c == quote:
 
                     # Read quoted field + delimiter or eol
@@ -650,6 +651,7 @@ class DataLog(OrderedDict):
                         except StopIteration:
                             e(1, i, 'Unexpected end-of-line inside quoted'
                                 ' string.')
+
                         if c == quote:
                             try:
                                 i, c = next(line)
@@ -675,7 +677,10 @@ class DataLog(OrderedDict):
                             run1 = False
 
                 # Append new field to list
-                keys.append(''.join(text))
+                key = ''.join(text)
+                if key == '':
+                    e(1, i, 'Empty field in header.')
+                keys.append(key)
 
                 # Read next character
                 try:
@@ -695,35 +700,31 @@ class DataLog(OrderedDict):
                 log[key] = x
 
             # Read remaining data
-            try:
-                n = 0
-                while True:
-                    row = f.readline()
+            n = 0
+            while True:
+                row = f.readline()
 
-                    # Stop if a blank line is returned: indicates EOF!
-                    # (Empty line in file still has line ending)
-                    if row.strip() == '':
-                        break
+                # Stop if a blank line is returned: indicates EOF!
+                # (Empty line in file still has line ending)
+                if row.strip() == '':
+                    break
 
-                    # Ignore lines commented with #
-                    if row.lstrip()[:1] == '#':
-                        continue
-                    row = row[:-eol]
-                    row = row.split(delim)
-                    n += 1
-                    if len(row) != m:
-                        e(
-                            n, 0, 'Wrong number of columns found in row '
-                            + str(n) + '. Expecting ' + str(m) + ', found '
-                            + str(len(row)) + '.')
-                    try:
-                        for k, v in enumerate(row):
-                            lists[k].append(float(v))
-                    except ValueError:
-                        e(n, 0, 'Unable to convert found data to floats.')
-
-            except StopIteration:
-                pass
+                # Ignore lines commented with #
+                if row.lstrip()[:1] == '#':
+                    continue
+                row = row[:-eol]
+                row = row.split(delim)
+                n += 1
+                if len(row) != m:
+                    e(
+                        n, 0, 'Wrong number of columns found in row '
+                        + str(n) + '. Expecting ' + str(m) + ', found '
+                        + str(len(row)) + '.')
+                try:
+                    for k, v in enumerate(row):
+                        lists[k].append(float(v))
+                except ValueError:
+                    e(n, 0, 'Unable to convert found data to floats.')
 
             # Guess time variable
             for key in keys:
