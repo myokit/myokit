@@ -31,8 +31,7 @@ class DataLogTest(unittest.TestCase):
         """
         Tests the extend function.
         """
-        d1 = myokit.DataLog()
-        d1.set_time_key('time')
+        d1 = myokit.DataLog(time='time')
         v1 = [10, 9, 10, -1, -1, -1]
         v2 = [12, 2, 43, 31, 2, 7]
         d1['time'] = [1, 2, 3]
@@ -1639,6 +1638,40 @@ class DataLogTest(unittest.TestCase):
         d.validate()
         d['x'].append(1)
         self.assertRaises(myokit.InvalidDataLogError, d.validate)
+
+    def test_apd(self):
+        """
+        Tests the apd method.
+        """
+        # Very coarse check
+        d = myokit.DataLog(time='time')
+        d['time'] = np.linspace(0, 10, 11)
+        d['v'] = np.ones(10) * -85
+        d['v'][1:3] = 40
+        d['v'][6:9] = 40
+        apds = d.apd(v='v')
+        self.assertEqual(len(apds), 2)
+        self.assertTrue(apds['start'][0] > 0)
+        self.assertTrue(apds['start'][0] < 1)
+        self.assertTrue(apds['duration'][0] > 2.5)
+        self.assertTrue(apds['duration'][0] < 3.0)
+        self.assertTrue(apds['start'][1] > 5)
+        self.assertTrue(apds['start'][1] < 6)
+        self.assertTrue(apds['duration'][1] > 3.5)
+        self.assertTrue(apds['duration'][1] < 4.0)
+
+        # Check against example model
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.Simulation(m, p, apd_var='membrane.V')
+        d, apds1 = s.run(
+            2000, log=['engine.time', 'membrane.V'], apd_threshold=-70)
+        apds2 = d.apd(threshold=-70)
+        self.assertEqual(len(apds1), 2)
+        self.assertEqual(len(apds2), 2)
+        self.assertAlmostEqual(1, apds1['start'][0] / apds2['start'][0])
+        self.assertAlmostEqual(1, apds1['start'][1] / apds2['start'][1])
+        self.assertAlmostEqual(1, apds1['duration'][0] / apds2['duration'][0])
+        self.assertAlmostEqual(1, apds1['duration'][1] / apds2['duration'][1])
 
 
 if __name__ == '__main__':

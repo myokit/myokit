@@ -107,14 +107,17 @@ class DataLog(OrderedDict):
         if time is not None:
             self.set_time_key(time)
 
-    def apd(self, v='membrane.V', threshold=None):
+    def apd(self, v='membrane.V', threshold=-70):
         """
         Calculates one or more Action Potential Durations (APDs) in a single
         cell's membrane potential.
 
-        *Note: More accuracte apd measurements can be created using the*
+        *Note 1: More accuracte apd measurements can be created using the*
         :class:`Simulation` *object's APD tracking functionality. See*
         :meth:`Simulation.run()` *for details.*
+
+        *Note 2: This APD is defined by simply checking crossing of a threshold
+        potential, and does not look at lowest of highest voltages in a signal.
 
         The membrane potential data should be listed in the log under the key
         given by ``v``.
@@ -133,10 +136,13 @@ class DataLog(OrderedDict):
             """
             x = np.asarray(x)
             y = np.asarray(y)
+
             # Get boolean array of places where v exceeds the threshold
             h = y > t
+
             # Get boolean array of indices just before a crossing
             c = np.argwhere(h[1:] - h[:-1])
+
             # Gather crossing times
             crossings = []
             for i in c:
@@ -148,30 +154,29 @@ class DataLog(OrderedDict):
                     xc = x[i] + (t - y[i]) / sc
                 crossings.append((xc, sc))
             return crossings
+
         # Check time variable
         t = np.asarray(self.time())
+
         # Check voltage variable
         v = np.asarray(self[v])
+
         # Check threshold
         threshold = float(threshold)
+
         # Initial status: check if already in AP
-        apds = []
-        inap = v[0] >= threshold
+        apds = myokit.DataLog()
+        apds['start'] = []
+        apds['duration'] = []
         last = t[0]
+
         # Evaluate crossings
         for time, slope in crossings(t, v, threshold):
-            if slope > 0:
-                # New AP
-                inap = True
-            elif slope < 0:
+            if slope < 0:
                 # End of AP
-                inap = False
                 if last != t[0]:    # Don't inlcude AP started before t[0]
-                    apds.append((last, time - last))
-            else:
-                # This will never happen :)
-                if inap and last != t[0]:
-                    apds.append((last, time - last))
+                    apds['start'].append(last)
+                    apds['duration'].append(time - last)
             last = time
         return apds
 
