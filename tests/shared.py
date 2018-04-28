@@ -85,3 +85,41 @@ class TemporaryDirectory(object):
             return '<TemporaryDirectory, outside of context>'
         else:
             return self._dir
+
+
+class TestReporter(myokit.ProgressReporter):
+    """
+    Progress reporter just for debugging.
+    """
+    def __init__(self):
+        self.entered = False
+        self.exited = False
+        self.updated = False
+
+    def enter(self, msg=None):
+        self.entered = True
+
+    def exit(self):
+        self.exited = True
+
+    def update(self, f):
+        self.updated = True
+        return True
+
+
+class CancellingReporter(myokit.ProgressReporter):
+    """
+    Progress reporter just for debugging, dies after `x` updates.
+    """
+    def __init__(self, okays=0):
+        self.okays = int(okays)
+
+    def enter(self, msg=None):
+        pass
+
+    def exit(self):
+        pass
+
+    def update(self, f):
+        self.okays -= 1
+        return self.okays >= 0

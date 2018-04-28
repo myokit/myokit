@@ -17,44 +17,7 @@ import numpy as np
 import myokit
 
 from shared import TemporaryDirectory, DIR_DATA
-
-
-class Progress(myokit.ProgressReporter):
-    """
-    Progress reporter just for debugging.
-    """
-    def __init__(self):
-        self.entered = False
-        self.exited = False
-        self.updated = False
-
-    def enter(self, msg=None):
-        self.entered = True
-
-    def exit(self):
-        self.exited = True
-
-    def update(self, f):
-        self.updated = True
-        return True
-
-
-class CancellingProgress(myokit.ProgressReporter):
-    """
-    Progress reporter just for debugging.
-    """
-    def __init__(self, okays=0):
-        self.okays = int(okays)
-
-    def enter(self, msg=None):
-        pass
-
-    def exit(self):
-        pass
-
-    def update(self, f):
-        self.okays -= 1
-        return self.okays >= 0
+from shared import TestReporter, CancellingReporter
 
 
 class DataBlock1dTest(unittest.TestCase):
@@ -465,7 +428,7 @@ class DataBlock1dTest(unittest.TestCase):
 
         # Test progress reporter
         path = os.path.join(DIR_DATA, 'cv1d.zip')
-        p = Progress()
+        p = TestReporter()
         self.assertFalse(p.entered)
         self.assertFalse(p.exited)
         self.assertFalse(p.updated)
@@ -476,16 +439,16 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertTrue(p.updated)
 
         # Test cancelling in progress reporter
-        p = CancellingProgress()
+        p = CancellingReporter()
         b = myokit.DataBlock1d.load(path, p)
         self.assertIsNone(b)
-        p = CancellingProgress(1)
+        p = CancellingReporter(1)
         b = myokit.DataBlock1d.load(path, p)
         self.assertIsNone(b)
-        p = CancellingProgress(2)
+        p = CancellingReporter(2)
         b = myokit.DataBlock1d.load(path, p)
         self.assertIsNone(b)
-        p = CancellingProgress(3)
+        p = CancellingReporter(3)
         b = myokit.DataBlock1d.load(path, p)
         self.assertIsNone(b)
 
@@ -1217,7 +1180,7 @@ class DataBlock2dTest(unittest.TestCase):
 
         # Test progress reporter
         path = os.path.join(DIR_DATA, 'block2d.zip')
-        p = Progress()
+        p = TestReporter()
         self.assertFalse(p.entered)
         self.assertFalse(p.exited)
         self.assertFalse(p.updated)
@@ -1228,16 +1191,16 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertTrue(p.updated)
 
         # Test cancelling in progress reporter
-        p = CancellingProgress()
+        p = CancellingReporter()
         b = myokit.DataBlock2d.load(path, p)
         self.assertIsNone(b)
-        p = CancellingProgress(1)
+        p = CancellingReporter(1)
         b = myokit.DataBlock2d.load(path, p)
         self.assertIsNone(b)
-        p = CancellingProgress(2)
+        p = CancellingReporter(2)
         b = myokit.DataBlock2d.load(path, p)
         self.assertIsNone(b)
-        p = CancellingProgress(3)
+        p = CancellingReporter(3)
         b = myokit.DataBlock2d.load(path, p)
         self.assertIsNone(b)
 
@@ -1246,7 +1209,7 @@ class DataBlock2dTest(unittest.TestCase):
         b = myokit.DataBlock2d.load(path)
         self.assertIsInstance(b, myokit.DataBlock2d)
         # Test if None is passed through
-        p = CancellingProgress()
+        p = CancellingReporter()
         b = myokit.DataBlock2d.load(path, p)
         self.assertIsNone(b)
 

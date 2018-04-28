@@ -553,7 +553,7 @@ class DataLog(OrderedDict):
                 # Read data
                 ar = array.array(data_type)
                 ar.fromstring(body[start:end])
-                if sys.byteorder == 'big':
+                if sys.byteorder == 'big':  # pragma: no cover
                     ar.byteswap()
                 log[field] = ar
         finally:
@@ -593,28 +593,33 @@ class DataLog(OrderedDict):
 
         quote = '"'
         delim = ','
-        with open(filename, 'r') as f:
+        with open(filename, 'U') as f:
             # Read header
             keys = []   # The log keys, in order of appearance
             try:
                 line = f.readline()
-                # Ignore lines commented with #
+
+                # Ignore comments
                 while line.lstrip()[:1] == '#':
                     line = f.readline()
+
             except EOFError:
                 # Empty file
                 return log
+
             # Trim end of line
             if len(line) > 1 and line[-2:] == '\r\n':
                 eol = 2
                 line = line[:-2]
-            else:
+            elif len(line) > 0:
                 eol = 1
                 line = line[:-1]
+
             # Trim ; at end of line if given
             if line[-1:] == ';':
                 eol += 1
                 line = line[:-1]
+
             # Get enumerated iterator over characters
             line = enumerate(line)
             try:
@@ -622,12 +627,15 @@ class DataLog(OrderedDict):
             except StopIteration:
                 # Empty line
                 return log
+
             # Whitespace characters to ignore
             whitespace = ' \f\t'
+
             # Start parsing header fields
             run1 = True
             while run1:
                 text = []
+
                 # Skip whitespace
                 try:
                     while c in whitespace:
@@ -635,6 +643,7 @@ class DataLog(OrderedDict):
                 except StopIteration:
                     break
                 if c == quote:
+
                     # Read quoted field + delimiter or eol
                     run2 = True
                     while run2:
@@ -658,6 +667,7 @@ class DataLog(OrderedDict):
                         else:
                             text.append(c)
                 else:
+
                     # Read unquoted field + delimiter or eol
                     while run1 and c != delim:
                         try:
@@ -665,15 +675,19 @@ class DataLog(OrderedDict):
                             i, c = next(line)
                         except StopIteration:
                             run1 = False
+
                 # Append new field to list
                 keys.append(''.join(text))
+
                 # Read next character
                 try:
                     i, c = next(line)
                 except StopIteration:
                     run1 = False
+
             if c == delim:
                 e(1, i, 'Empty field in header.')
+
             # Create data structure
             m = len(keys)
             lists = []
@@ -681,14 +695,17 @@ class DataLog(OrderedDict):
                 x = array.array(typecode)
                 lists.append(x)
                 log[key] = x
+
             # Read remaining data
             try:
                 n = 0
                 while True:
                     row = f.readline()
+
                     # Ignore blank lines
                     if row.strip() == '':
                         break
+
                     # Ignore lines commented with #
                     if row.lstrip()[:1] == '#':
                         continue
@@ -705,8 +722,10 @@ class DataLog(OrderedDict):
                             lists[k].append(float(v))
                     except ValueError:
                         e(n, 0, 'Unable to convert found data to floats.')
+
             except StopIteration:
                 pass
+
             # Guess time variable
             for key in keys:
                 x = np.array(log[key], copy=False)
@@ -714,6 +733,7 @@ class DataLog(OrderedDict):
                 if np.all(y > 0):
                     log.set_time_key(key)
                     break
+
             # Return log
             return log
 
@@ -859,7 +879,7 @@ class DataLog(OrderedDict):
             head_str.append(k)
             # Create array, ensure it's litte-endian
             ar = array.array(dtype, v)
-            if sys.byteorder == 'big':
+            if sys.byteorder == 'big':  # pragma: no cover
                 ar.byteswap()
             body_str.append(ar.tostring())
 

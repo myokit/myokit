@@ -17,6 +17,7 @@ import numpy as np
 import myokit
 
 from shared import DIR_DATA, TemporaryDirectory
+from shared import TestReporter, CancellingReporter
 
 
 # Extra output
@@ -24,6 +25,7 @@ debug = False
 
 
 class DataLogTest(unittest.TestCase):
+
     """
     Tests the DataLog's functions.
     """
@@ -1192,6 +1194,25 @@ class DataLogTest(unittest.TestCase):
         except myokit.DataLogReadError as e:
             self.assertIn('larger data size than', str(e))
 
+    def test_load_with_progress(self):
+        """
+        Tests loading with a progress reporter.
+        """
+        p = TestReporter()
+        path = os.path.join(DIR_DATA, 'goodlog.zip')
+        self.assertFalse(p.entered)
+        self.assertFalse(p.exited)
+        self.assertFalse(p.updated)
+        d = myokit.DataLog.load(path, progress=p)
+        self.assertTrue(p.entered)
+        self.assertTrue(p.exited)
+        self.assertTrue(p.updated)
+        self.assertEqual(type(d), myokit.DataLog)
+
+        p = CancellingReporter(1)
+        d = myokit.DataLog.load(path, progress=p)
+        self.assertIsNone(d)
+
     def test_save_csv(self):
         """
         Tests saving as csv.
@@ -1233,6 +1254,43 @@ class DataLogTest(unittest.TestCase):
             d.save_csv(fname)
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(e.time()[0], d['e.f'][0])
+
+    def test_load_csv_errors(self):
+        """
+        Tests for errors during csv loading.
+        """
+        # Test errory file, with comments etc., should work fine!
+        path = os.path.join(DIR_DATA, 'datalog.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
+        # Empty file
+        path = os.path.join(DIR_DATA, 'datalog-1-empty.csv')
+        d = myokit.DataLog.load_csv(path)
+        self.assertEqual(set(d.keys()), set())
+
+        # Test windows line endings
+        path = os.path.join(DIR_DATA, 'datalog-2-windows.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
+        # Test old mac line endings
+        path = os.path.join(DIR_DATA, 'datalog-3-old-mac.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
+
+        # Test empty lines at end
+        path = os.path.join(DIR_DATA, 'datalog-4-empty-lines.csv')
+        d = myokit.DataLog.load_csv(path).npview()
+        self.assertEqual(set(d.keys()), set(['time', 'v']))
+        self.assertTrue(np.all(d['time'] == (1 + np.arange(6))))
+        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(6))))
 
     def test_split(self):
         """
