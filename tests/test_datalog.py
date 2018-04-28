@@ -1255,6 +1255,77 @@ class DataLogTest(unittest.TestCase):
             e = myokit.DataLog.load_csv(fname)
             self.assertEqual(e.time()[0], d['e.f'][0])
 
+        # Test saving with single precision
+        d = myokit.DataLog(time='a.b')
+        d['a.b'] = np.arange(0, 100)
+        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
+        d['e.f'] = np.arange(0, 100) + 1
+        d = d.npview()
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname, precision=myokit.SINGLE_PRECISION)
+            e = myokit.DataLog.load_csv(fname).npview()
+            self.assertEqual(len(d), len(e))
+            self.assertIn('a.b', e)
+            self.assertIn('c.d', e)
+            self.assertNotIn('a.d', e)
+            self.assertEqual(len(d['a.b']), len(e['a.b']))
+            self.assertEqual(len(d['c.d']), len(e['c.d']))
+            self.assertTrue(np.all(np.abs(d['a.b'] - e['a.b']) < 1e-6))
+            self.assertTrue(np.all(np.abs(d['c.d'] - e['c.d']) < 1e-6))
+
+        # Test saving with python string formats
+        d = myokit.DataLog(time='a.b')
+        d['a.b'] = np.arange(0, 100)
+        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
+        d['e.f'] = np.arange(0, 100) + 1
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname, precision=None)
+            e = myokit.DataLog.load_csv(fname)
+            self.assertEqual(len(d), len(e))
+            self.assertIn('a.b', e)
+            self.assertIn('c.d', e)
+            self.assertNotIn('a.d', e)
+            self.assertEqual(len(d['a.b']), len(e['a.b']))
+            self.assertEqual(len(d['c.d']), len(e['c.d']))
+            self.assertTrue(np.all(np.abs(d['a.b'] - e['a.b']) < 1e-6))
+            self.assertTrue(np.all(np.abs(d['c.d'] - e['c.d']) < 1e-6))
+
+        # Test invalid precision arguments
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            self.assertRaises(ValueError, d.save_csv, fname, 'ernie')
+
+        # Test saving with a fixed order
+        d = myokit.DataLog(time='a.b')
+        d['a.b'] = np.arange(0, 100)
+        d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
+        d['e.f'] = np.arange(0, 100) + 1
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname, order=['a.b', 'c.d', 'e.f'])
+            with open(fname, 'U') as f:
+                header = f.readline()
+            self.assertEqual(header, '"a.b","c.d","e.f"\n')
+
+            d.save_csv(fname, order=['e.f', 'a.b', 'c.d'])
+            with open(fname, 'U') as f:
+                header = f.readline()
+            self.assertEqual(header, '"e.f","a.b","c.d"\n')
+
+            # Test invalid order
+            self.assertRaises(
+                ValueError, d.save_csv, fname, order=['e.f', 'a.b', 'c.e'])
+
+        # Test saving and loading empty log
+        d = myokit.DataLog()
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname)
+            e = myokit.DataLog.load_csv(fname)
+            self.assertEqual(len(e.keys()), 0)
+
     def test_load_csv_errors(self):
         """
         Tests for errors during csv loading.
@@ -1608,6 +1679,23 @@ class DataLogTest(unittest.TestCase):
         self.assertTrue(
             np.array_equal(logs[1][tvar], np.array([500, 600, 700, 1000])))
         self.assertTrue(np.array_equal(logs[2][tvar], np.array([0, 1])))
+
+        # Test on empty log
+        d = myokit.DataLog(time='t')
+        self.assertRaises(myokit.InvalidDataLogError, d.split_periodic, 100)
+        d['t'] = []
+        self.assertRaises(RuntimeError, d.split_periodic, 10)
+
+        # Test negative period
+        d['t'] = [1, 2, 3, 4]
+        self.assertRaises(ValueError, d.split_periodic, 0)
+        self.assertRaises(ValueError, d.split_periodic, -1)
+
+        # Test larger period than log data
+        d['x'] = [4, 5, 6, 7]
+        e = d.split_periodic(100)
+        self.assertEqual(set(d.keys()), set(e.keys()))
+        self.assertFalse(d is e)
 
     def test_trim(self):
         """
@@ -1968,6 +2056,28 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(d.length(), 100)
         d['x'] = list(np.arange(100) * 3)
         self.assertEqual(d.length(), 100)
+
+    def test_regularize(self):
+        """
+        Tests the regularize() method.
+        """
+        d = myokit.DataLog(time='time')
+        d['time'] = np.log(np.linspace(1, 25, 100))
+        d['values'] = np.linspace(1, 25, 100)
+        e = d.regularize(dt=0.5)
+        self.assertEqual(len(e['time']), 7)
+        x = np.array([0, 0.5, 1, 1.5, 2, 2.5, 3])
+        self.assertTrue(np.all(e['time'] == x))
+        for i, y in enumerate(x):
+            self.assertTrue(np.abs(np.exp(y) - e['values'][i]) < 0.02)
+
+        # test setting tmin and tmax
+        e = d.regularize(dt=0.5, tmin=0.4, tmax=2.6)
+        self.assertEqual(len(e['time']), 5)
+        x = np.array([0.4, 0.9, 1.4, 1.9, 2.4])
+        self.assertTrue(np.all(e['time'] == x))
+        for i, y in enumerate(x):
+            self.assertTrue(np.abs(np.exp(y) - e['values'][i]) < 0.02)
 
 
 if __name__ == '__main__':

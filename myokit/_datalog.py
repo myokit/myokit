@@ -793,9 +793,11 @@ class DataLog(OrderedDict):
         """
         self.validate()
         from scipy.interpolate import UnivariateSpline as Spline
+
         # Check time variable
         time = self.time()
         n = len(time)
+
         # Get left indice for splines
         imin = 0
         if tmin is None:
@@ -803,20 +805,19 @@ class DataLog(OrderedDict):
         elif tmin > time[0]:
             # Find position of tmin in time list, then add two points to the
             # left so that the spline has 4 points
-            imin = np.searchsorted(time, tmin) - 2
-            if imin < 0:
-                imin = 0
+            imin = max(0, np.searchsorted(time, tmin) - 2)
+
         # Get right indice for splines
         imax = n
         if tmax is None:
             tmax = time[-1]
         elif tmax < time[-1]:
-            imax = np.searchsorted(time, tmax) + 2
-            if imax > n:
-                imax = n
+            imax = min(n, np.searchsorted(time, tmax) + 2)
+
         # Get time steps
         steps = 1 + np.floor((tmax - tmin) / dt)
         rtime = tmin + dt * np.arange(0, steps)
+
         # Create output and return
         out = DataLog()
         out._time = self._time
@@ -970,6 +971,7 @@ class DataLog(OrderedDict):
         with open(filename, 'wb') as f:
             # Convert dict structure to ordered sequences
             if order:
+                order = [str(x) for x in order]
                 if set(order) != set(self.keys()):
                     raise ValueError(
                         'The given `order` sequence must contain all the same'
@@ -1057,21 +1059,28 @@ class DataLog(OrderedDict):
         return half-closed endpoints (containing only the left point), set
         ``closed_intervals`` to ``False``.
         """
+        # Validate log before starting
         self.validate()
+
         # Check time variable
         time = self.time()
         if len(time) < 1:
-            raise Exception('DataLog entries have zero length.')
+            raise RuntimeError('DataLog entries have zero length.')
+
         # Check period
         period = float(period)
         if period <= 0:
             raise ValueError('Period must be greater than zero')
+
         # Get start, end, etc
         tmin = 0    # time[0]
         tmax = time[len(time) - 1]
         nlogs = int(np.ceil((tmax - tmin) / period))
+
+        # No splitting needed? Return clone!
         if nlogs < 2:
-            return self
+            return self.clone()
+
         # Find split points
         tstarts = tmin + np.arange(nlogs) * period
         istarts = [0] * nlogs
@@ -1080,17 +1089,21 @@ class DataLog(OrderedDict):
             while k < nlogs and t >= tstarts[k]:
                 istarts[k] = i
                 k += 1
+
         # Create logs
         logs = []
         for i in range(0, nlogs - 1):
             log = DataLog()
             log._time = self._time
+
             # Get indices
             imin = istarts[i]
             imax = istarts[i + 1]
+
             # Include right point endpoint if needed
             if closed_intervals and time[imax] == tstarts[i + 1]:
                 imax += 1
+
             # Select sections of log and append
             for k, v in self.items():
                 d = self[k][imin:imax]
@@ -1099,14 +1112,17 @@ class DataLog(OrderedDict):
                     d = np.array(d, copy=True, dtype=float)
                 log[k] = d
             logs.append(log)
+
         # Last log
         log = DataLog()
         log._time = self._time
         imin = istarts[-1]
         imax = len(time)
+
         # Not including right endpoints? Then may be required to omit last pt
         if not closed_intervals and time[-1] >= tmin + nlogs * period:
             imax -= 1
+
         # Select sections of log and append
         for k, v in self.items():
             d = self[k][imin:imax]
@@ -1115,6 +1131,7 @@ class DataLog(OrderedDict):
                 d = np.array(d, copy=True, dtype=float)
             log[k] = d
         logs.append(log)
+
         # Adjust
         if adjust:
             if isinstance(time, np.ndarray):
@@ -1127,6 +1144,8 @@ class DataLog(OrderedDict):
                     tdiff = k * period
                     for i in range(len(tlist)):
                         tlist[i] -= tdiff
+
+        # Return
         return logs
 
     def time(self):
