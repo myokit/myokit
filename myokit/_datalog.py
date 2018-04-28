@@ -596,15 +596,16 @@ class DataLog(OrderedDict):
         with open(filename, 'U') as f:
             # Read header
             keys = []   # The log keys, in order of appearance
-            try:
+
+            # Read first line
+            line = f.readline()
+
+            # Ignore comments
+            while line.lstrip()[:1] == '#':
                 line = f.readline()
 
-                # Ignore comments
-                while line.lstrip()[:1] == '#':
-                    line = f.readline()
-
-            except EOFError:
-                # Empty file
+            # Stop on EOF (indicated by blank line without line ending)
+            if line == '':
                 return log
 
             # Trim end of line
@@ -702,7 +703,8 @@ class DataLog(OrderedDict):
                 while True:
                     row = f.readline()
 
-                    # Ignore blank lines
+                    # Stop if a blank line is returned: indicates EOF!
+                    # (Empty line in file still has line ending)
                     if row.strip() == '':
                         break
 
