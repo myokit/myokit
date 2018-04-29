@@ -1140,59 +1140,43 @@ class DataLogTest(unittest.TestCase):
         """
         # Missing data file
         path = os.path.join(DIR_IO, 'badlog-1-no-data.zip')
-        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
-        try:
-            myokit.DataLog.load(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('log file format', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
+            path)
 
         # Missing structure file
         path = os.path.join(DIR_IO, 'badlog-2-no-structure.zip')
-        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
-        try:
-            myokit.DataLog.load(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('log file format', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
+            path)
 
         # Not a zip
         path = os.path.join(DIR_IO, 'badlog-3-not-a-zip.zip')
-        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
-        try:
-            myokit.DataLog.load(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('bad zip file', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'bad zip file', myokit.DataLog.load, path)
 
         # Wrong number of fields
         path = os.path.join(DIR_IO, 'badlog-4-invalid-n-fields.zip')
-        #self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
-        try:
-            myokit.DataLog.load(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('number of fields', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'number of fields', myokit.DataLog.load,
+            path)
 
         # Negative data size
         path = os.path.join(DIR_IO, 'badlog-5-invalid-data-size.zip')
-        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
-        try:
-            myokit.DataLog.load(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('Invalid data size', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'Invalid data size', myokit.DataLog.load,
+            path)
 
         # Unknown data type
         path = os.path.join(DIR_IO, 'badlog-6-bad-data-type.zip')
-        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
-        try:
-            myokit.DataLog.load(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('Invalid data type', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'Invalid data type', myokit.DataLog.load,
+            path)
 
         # Not enough data
         path = os.path.join(DIR_IO, 'badlog-7-not-enough-data.zip')
-        self.assertRaises(myokit.DataLogReadError, myokit.DataLog.load, path)
-        try:
-            myokit.DataLog.load(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('larger data size than', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'larger data', myokit.DataLog.load, path)
 
     def test_load_with_progress(self):
         """
@@ -1372,12 +1356,9 @@ class DataLogTest(unittest.TestCase):
 
         # Test unterminated string
         path = os.path.join(DIR_IO, 'datalog-6-open-string.csv')
-        self.assertRaises(
-            myokit.DataLogReadError, myokit.DataLog.load_csv, path)
-        try:
-            myokit.DataLog.load_csv(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('inside quoted string', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'inside quoted', myokit.DataLog.load_csv,
+            path)
 
         # Test empty lines between data
         path = os.path.join(DIR_IO, 'datalog-7-empty-lines-2.csv')
@@ -1412,57 +1393,39 @@ class DataLogTest(unittest.TestCase):
 
         # Test header "abc"x"adc"
         path = os.path.join(DIR_IO, 'datalog-12-bad-header.csv')
-        self.assertRaises(
-            myokit.DataLogReadError, myokit.DataLog.load_csv, path)
-        try:
-            myokit.DataLog.load_csv(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('Expecting double quote', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'Expecting double quote',
+            myokit.DataLog.load_csv, path)
 
         # Test empty field "" in header
         path = os.path.join(DIR_IO, 'datalog-13-header-with-empty-1.csv')
-        self.assertRaises(
-            myokit.DataLogReadError, myokit.DataLog.load_csv, path)
-        try:
-            myokit.DataLog.load_csv(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('Empty field in', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
+            path)
 
         # Test empty field "x",,"y" in header
         path = os.path.join(DIR_IO, 'datalog-14-header-with-empty-2.csv')
-        self.assertRaises(
-            myokit.DataLogReadError, myokit.DataLog.load_csv, path)
-        try:
-            myokit.DataLog.load_csv(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('Empty field in', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
+            path)
 
         # Test empty field "time","v", in header
         path = os.path.join(DIR_IO, 'datalog-15-header-with-empty-3.csv')
-        self.assertRaises(
-            myokit.DataLogReadError, myokit.DataLog.load_csv, path)
-        try:
-            myokit.DataLog.load_csv(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('Empty field in', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
+            path)
 
         # Test wrong field count in data
         path = os.path.join(DIR_IO, 'datalog-16-wrong-columns-in-data.csv')
-        self.assertRaises(
-            myokit.DataLogReadError, myokit.DataLog.load_csv, path)
-        try:
-            myokit.DataLog.load_csv(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('Wrong number of columns', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'Wrong number of columns',
+            myokit.DataLog.load_csv, path)
 
         # Test non-float data
         path = os.path.join(DIR_IO, 'datalog-17-non-float-data.csv')
-        self.assertRaises(
-            myokit.DataLogReadError, myokit.DataLog.load_csv, path)
-        try:
-            myokit.DataLog.load_csv(path)
-        except myokit.DataLogReadError as e:
-            self.assertIn('Unable to convert', str(e))
+        self.assertRaisesRegexp(
+            myokit.DataLogReadError, 'Unable to convert',
+            myokit.DataLog.load_csv, path)
 
     def test_split(self):
         """
@@ -2121,19 +2084,13 @@ class DataLogTest(unittest.TestCase):
 
         # Test non-existing time key
         d = myokit.DataLog(time='t')
-        self.assertRaises(myokit.InvalidDataLogError, d.time)
-        try:
-            d.time()
-        except myokit.InvalidDataLogError as e:
-            self.assertIn('Invalid key', str(e))
+        self.assertRaisesRegexp(
+            myokit.InvalidDataLogError, 'Invalid key', d.time)
 
         # Test no time key
         d = myokit.DataLog()
-        self.assertRaises(myokit.InvalidDataLogError, d.time)
-        try:
-            d.time()
-        except myokit.InvalidDataLogError as e:
-            self.assertIn('No time', str(e))
+        self.assertRaisesRegexp(
+            myokit.InvalidDataLogError, 'No time', d.time)
 
     def test_variable_info_errors(self):
         """
@@ -2144,12 +2101,9 @@ class DataLogTest(unittest.TestCase):
         d['t'] = [1, 2, 3, 4]
         d['0.v'] = [1, 2, 3, 4]
         d['1.1.v'] = [1, 2, 3, 4]
-        self.assertRaises(RuntimeError, d.variable_info)
+        self.assertRaisesRegexp(
+            RuntimeError, 'Different dimensions', d.variable_info)
         # Note: Valid log, so not an InvalidDataLogError
-        try:
-            d.variable_info()
-        except RuntimeError as e:
-            self.assertIn('Different dimensions', str(e))
 
         # Test "irregular data": can't be arranged in a rectangular grid
         d = myokit.DataLog(time='t')
@@ -2158,12 +2112,8 @@ class DataLogTest(unittest.TestCase):
         d['0.2.v'] = [1, 2, 3, 4]
         d['1.0.v'] = [1, 2, 3, 4]
         d['1.1.v'] = [1, 2, 3, 4]
-        self.assertRaises(RuntimeError, d.variable_info)
+        self.assertRaisesRegexp(RuntimeError, 'Irregular', d.variable_info)
         # Note: Valid log, so not an InvalidDataLogError
-        try:
-            d.variable_info()
-        except RuntimeError as e:
-            self.assertIn('Irregular data', str(e))
 
     def test_variable_info(self):
         """

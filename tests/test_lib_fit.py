@@ -113,11 +113,9 @@ class EvaluatorTest(unittest.TestCase):
             return x
 
         e = fit.ParallelEvaluator(ioerror_on_five)
-        self.assertRaises(Exception, e.evaluate, range(10))
-        try:
-            e.evaluate([1, 2, 5])
-        except Exception as e:
-            self.assertIn('Exception in subprocess', str(e))
+
+        self.assertRaisesRegexp(
+            Exception, 'in subprocess', e.evaluate, range(10))
 
     def test_worker(self):
         """
@@ -326,6 +324,7 @@ class FittingTest(unittest.TestCase):
         except ImportError:
             print('CMA module not found, skipping test.')
             return
+
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.cmaes(

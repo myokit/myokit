@@ -59,11 +59,7 @@ class LibMultiTest(unittest.TestCase):
         # Path must be a directory
         path = os.path.join(DIR_MULTI, 'lr-1991.mmt')
         i = multi.iterdir(path)
-        self.assertRaises(ValueError, next, i)
-        try:
-            next(multi.iterdir(path))
-        except ValueError as e:
-            self.assertIn('not a directory', str(e))
+        self.assertRaisesRegexp(ValueError, 'not a directory', next, i)
 
     def test_scandir(self):
         """
