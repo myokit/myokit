@@ -11,7 +11,7 @@
 #---------------------------------  credits  ----------------------------------
 #
 # Some of the local optimisers in this module are simply wrappers around SciPy
-# implementations, as such, they require SciPy to run.
+# implementations.
 #
 # Similarly, the CMA-ES method relies on the `cma` package by Nikolaus Hansen.
 #
@@ -19,7 +19,7 @@
 # using both the published papers (see below) and the implementation in PyBrain
 # (http://pybrain.org) as references.
 #
-# The remaining algorithsm and optimisation routines are original
+# The remaining algorithms and optimisation routines are original
 # implementations, and try to credit the algorithm's authors were possible.
 #
 from __future__ import absolute_import, division
@@ -202,14 +202,17 @@ def cmaes(
     except ImportError:
         raise ImportError(
             'This method requires the `cma` module to be installed')
+
     # Test if function is callable
     if not callable(f):
         raise ValueError('The argument f must be a callable function.')
+
     # Check extra arguments
     if args is None:
         args = ()
     elif type(args) != tuple:
         raise ValueError('The argument `args` must be either None or a tuple.')
+
     # Check bounds
     d = len(bounds)
     if d < 1:
@@ -228,6 +231,7 @@ def cmaes(
         upper[i] = up
     del(bounds)
     brange = upper - lower
+
     # Check hint
     if hint is None:
         hint = lower + 0.5 * (upper - lower)
@@ -242,6 +246,7 @@ def cmaes(
             raise ValueError(
                 'Hint must be within the specified bounds (error with'
                 ' parameter ' + str(1 + j) + ').')
+
     # Check sigma hint
     if sigma is not None:
         sigma = float(sigma)
@@ -252,8 +257,10 @@ def cmaes(
         # optimal solution is within +/- 3*sigma from the initial guess, see
         # API docs).
         sigma = np.min(upper - lower) / 6.0
+
     # Check if parallelization is required
     parallel = bool(parallel)
+
     # Set population size
     if n is None:
         # Explicitly set default used by cma-es
@@ -268,13 +275,16 @@ def cmaes(
         if n < 1:
             raise ValueError(
                 'Population size must be `None` or non-zero integer')
+
     # Check number of IPOP restarts
     ipop = int(ipop)
     if ipop < 0:
         raise ValueError('Number of IPOP restarts must be zero or positive.')
+
     # Check convergence criteria
     fatol = float(fatol)
     target = float(target)
+
     # Check callback function
     if callback is not None:
         if not callable(callback):
@@ -282,14 +292,17 @@ def cmaes(
                 'Argument `callback` must be a callable function or `None`.')
     # Check if verbose mode is enabled
     verbose = bool(verbose)
+
     # Report first point
     if callback is not None:
         callback(np.array(hint, copy=True), f(hint, *args))
+
     # Create evaluator object
     if parallel:
         evaluator = ParallelEvaluator(f, args=args)
     else:
         evaluator = SequentialEvaluator(f, args=args)
+
     # Set up simulation options
     try:
         best_solution = cma.BestSolution()
@@ -302,6 +315,12 @@ def cmaes(
     options.set('ftarget', target)
     if not verbose:
         options.set('verbose', -9)
+
+    # If no seed is given, CMAES reseeds. So to get consistent results always
+    # pass in a seed. This can be random generated (because then you can still
+    # seed np.random to get consistent output).
+    options.set('seed', np.random.randint(2**32))
+
     # Start one or multiple runs
     for i in range(1 + ipop):
         # Set population size, increase for ipop restarts
@@ -309,9 +328,11 @@ def cmaes(
         if verbose:
             print('Run ' + str(1 + i) + ': population size ' + str(n))
         n *= 2
+
         # Run repeats from random points
         if i > 0:
             hint = lower + brange * np.random.uniform(0, 1, d)
+
         # Search
         es = cma.CMAEvolutionStrategy(hint, sigma, options)
         while not es.stop():
@@ -322,18 +343,23 @@ def cmaes(
                 callback(np.array(r[0], copy=True), r[1])
             if verbose:
                 es.disp()
+
         # Show result
         if verbose:
             es.result_pretty()
+
         # Update best solution
         best_solution.update(es.best)
+
         # Stop if target was already met
         x, fx, evals = best_solution.get()
         if fx is not None and fx < target:
             break
+
     # No result found? Then return hint and score of hint
     if x is None:
         return (hint, f(hint, *args))
+
     # Return proper result
     return (x, fx)
 
@@ -500,6 +526,7 @@ def loss_surface_colors(x, y, f, xlim=None, ylim=None, markers='+'):
     """
     import matplotlib.pyplot as pl
     from matplotlib.collections import PolyCollection
+
     # Check limits
     if xlim is None:
         xmin = 0.80 * np.min(x)
@@ -513,8 +540,10 @@ def loss_surface_colors(x, y, f, xlim=None, ylim=None, markers='+'):
         ylim = ymin, ymax
     else:
         ymin, ymax = [float(a) for a in ylim]
+
     # Get voronoi regions
     x, y, f, regions = voronoi_regions(x, y, f, xlim, ylim)
+
     # Create figure and axes
     figure, axes = pl.subplots()
     axes.set_xlim(xmin, xmax)
@@ -539,12 +568,16 @@ def loss_surface_mesh(x, y, f):
     """
     # Import mayavi
     from mayavi import mlab
+
     # Create a figure
     mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1))
+
     # Visualize the points
     p = mlab.points3d(x, y, f, f, scale_mode='none', scale_factor=0)
+
     # Create and visualize the mesh
     mlab.pipeline.surface(mlab.pipeline.delaunay2d(p))
+
     # Display the created surface
     mlab.show()
 
@@ -587,6 +620,7 @@ def map_grid(f, bounds, n, parallel=False, args=None):
         if len(b) != 2:
             raise ValueError(
                 'A minimum and maximum must be specified for each dimension.')
+
     # Check number of points
     try:
         len(n)
@@ -601,15 +635,19 @@ def map_grid(f, bounds, n, parallel=False, args=None):
                 ' for each dimension.')
     npoints = np.array(n)
     ntotal = np.prod(npoints)
+
     # Create points
     x = []
     n = iter(npoints)
     for xmin, xmax in bounds:
         x.append(np.linspace(xmin, xmax, next(n)))
+
     # Create a grid from these points
     x = np.array(np.meshgrid(*x, indexing='ij'))
+
     # Re-organise the grid to be a series of nd-dimensional points
     x = x.reshape((ndims, ntotal)).transpose()
+
     # Evaluate and return
     return x, evaluate(f, x, parallel=parallel, args=args)
 
@@ -2286,25 +2324,25 @@ def xnes(
     *Note: This method requires the `scipy` module to be installed.*
 
     """
-    # Test if scipy installed
-    try:
-        import scipy
-        import scipy.linalg
-    except ImportError:
-        raise ImportError('The xnes() method requires SciPy to be installed.')
+    import scipy
+    import scipy.linalg
+
     # Test if function is callable
     if not callable(f):
         raise ValueError('The argument f must be a callable function.')
+
     # Test extra arguments
     if args is None:
         args = ()
     elif type(args) != tuple:
         raise ValueError(
             'The argument `args` must be either None or a tuple.')
+
     # Get dimension of the search space
     d = len(bounds)
     if d < 1:
         raise ValueError('Dimension must be at least 1.')
+
     # Check bounds
     lower = np.zeros(d)
     upper = np.zeros(d)
@@ -2319,10 +2357,13 @@ def xnes(
         lower[i] = lo
         upper[i] = up
     del(bounds)
+
     # Create periodic parameter space transform to implement boundaries
     transform = _TriangleWaveTransform(lower, upper)
+
     # Wrap transform around score function
     function = _ParameterTransformWrapper(f, transform)
+
     # Check hint
     if hint is None:
         hint = lower + 0.5 * (upper - lower)
@@ -2337,8 +2378,10 @@ def xnes(
             raise ValueError(
                 'Hint must be within the specified bounds (error with'
                 ' parameter ' + str(1 + j) + ').')
+
     # Check if parallelization is required
     parallel = bool(parallel)
+
     # Set population size
     if n is None:
         # Explicitly set default
@@ -2353,6 +2396,7 @@ def xnes(
         if n < 1:
             raise ValueError(
                 'Population size must be `None` or non-zero integer')
+
     # Parse verbose argument
     if verbose is True:
         verbose = 100
@@ -2360,66 +2404,85 @@ def xnes(
         verbose = int(verbose)
         if verbose <= 0:
             verbose = False
+
     # Show configuration info
     if verbose:
         if parallel:
             print('Running in parallel mode with population size ' + str(n))
         else:
             print('Running in sequential mode with population size ' + str(n))
+
     # Check convergence critera
     max_iter = int(max_iter)
     if max_iter < 1:
         raise ValueError('Maximum iterations must be greater than zero.')
     target = float(target)
+
     # Check callback function
     if callback is not None:
         if not callable(callback):
             raise ValueError(
                 'Argument `callback` must be a callable function or `None`.')
+
     # Create evaluator object
     if parallel:
         evaluator = ParallelEvaluator(function, args=args)
     else:
         evaluator = SequentialEvaluator(function, args=args)
+
     # Set up progress reporting in verbose mode
     nextMessage = 0
+
     # Set up algorithm
     # Learning rates
     eta_mu = 1
     eta_A = 0.6 * (3 + np.log(d)) * d ** -1.5
+
     # Pre-calculated utilities
     us = np.maximum(0, np.log(n / 2 + 1) - np.log(1 + np.arange(n)))
     us /= np.sum(us)
     us -= 1 / n
+
     # Center of distribution
     mu = hint
+
     # Square root of covariance matrix
     A = np.eye(d)
+
     # Identity matrix for later use
     I = np.eye(d)
+
     # Best solution found
     xbest = hint
     fbest = function(hint, *args)
+
     # Report first point
     if callback is not None:
         callback(np.array(hint, copy=True), fbest)
+
     # Start running
     for iteration in range(1, 1 + max_iter):
+
         # Create new samples
         zs = np.array([np.random.normal(0, 1, d) for i in range(n)])
         xs = np.array([mu + np.dot(A, zs[i]) for i in range(n)])
+
         # Evaluate at the samples
         fxs = evaluator.evaluate(xs)
+
         # Order the normalized samples according to the scores
         order = np.argsort(fxs)
         zs = zs[order]
+
         # Update center
         Gd = np.dot(us, zs)
         mu += eta_mu * np.dot(A, Gd)
+
         # Update best if needed
         if fxs[order[0]] < fbest:
             xbest = xs[order[0]]
             fbest = fxs[order[0]]
+
             # Target reached? Then break and return
             if fbest <= target:
                 # Report to callback if requested
@@ -2428,9 +2491,11 @@ def xnes(
                 if verbose:
                     print('Target reached, halting')
                 break
+
         # Report to callback if requested
         if callback is not None:
             callback(transform(xbest), fbest)
+
         # Show progress in verbose mode:
         if verbose:
             if iteration >= nextMessage:
@@ -2439,13 +2504,16 @@ def xnes(
                     nextMessage = iteration + 1
                 else:
                     nextMessage = verbose * (1 + iteration // verbose)
+
         # Update root of covariance matrix
         Gm = np.dot(np.array([np.outer(z, z).T - I for z in zs]).T, us)
         A *= scipy.linalg.expm(np.dot(0.5 * eta_A, Gm))
+
     # Show stopping criterion
     if fbest > target:
         if verbose:
             print('Maximum iterations reached, halting')
+
     # Get final score at mu
     fmu = function(mu, *args)
     if fmu < fbest:
@@ -2453,6 +2521,7 @@ def xnes(
             print('Final score at mu beats best sample')
         xbest = mu
         fbest = fmu
+
     # Show final value and return
     if verbose:
         print(str(iteration) + ': ' + str(fbest))

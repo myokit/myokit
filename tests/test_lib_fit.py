@@ -107,43 +107,15 @@ class EvaluatorTest(unittest.TestCase):
         self.assertRaises(ValueError, fit.ParallelEvaluator, f, 1, 0)
 
         # Exceptions in called method should trigger halt, cause new exception
-
-        # Any old exception
-        def ioerror_on_fifty(x):
-            if x == 50:
+        def ioerror_on_five(x):
+            if x == 5:
                 raise IOError
             return x
 
-        e = fit.ParallelEvaluator(ioerror_on_fifty)
-        self.assertRaises(Exception, e.evaluate, range(100))
+        e = fit.ParallelEvaluator(ioerror_on_five)
+        self.assertRaises(Exception, e.evaluate, range(10))
         try:
-            e.evaluate([1, 2, 50])
-        except Exception as e:
-            self.assertIn('Exception in subprocess', str(e))
-
-        # System exit
-        def system_exit_on_40(x):
-            if x == 40:
-                raise SystemExit
-            return x
-
-        e = fit.ParallelEvaluator(ioerror_on_fifty)
-        self.assertRaises(Exception, e.evaluate, range(100))
-        try:
-            e.evaluate([1, 2, 40])
-        except Exception as e:
-            self.assertIn('Exception in subprocess', str(e))
-
-        # Keyboard interrupt (Ctrl-C)
-        def user_cancel_on_30(x):
-            if x == 30:
-                raise KeyboardInterrupt
-            return x
-
-        e = fit.ParallelEvaluator(ioerror_on_fifty)
-        self.assertRaises(Exception, e.evaluate, range(100))
-        try:
-            e.evaluate([1, 2, 30])
+            e.evaluate([1, 2, 5])
         except Exception as e:
             self.assertIn('Exception in subprocess', str(e))
 
@@ -340,29 +312,31 @@ class FittingTest(unittest.TestCase):
         self._score = score
 
         # Give a hint
-        self._hint = [0.03, 0.05]
+        # p1 = 0.1027 / 3.802 ~ 0.0270
+        # p2 = 0.20 / 3.802 ~ 0.0526
+        self._hint = [0.0269, 0.052]
 
-    #def test_cmaes(self):
-    #    """
-    #    Tests if a CMA-ES routine runs without errors.
-    #    """
-    #    # NOT RUN AT THE MOMENT
-    #    # CMA-ES changes matplotlib behaviour (not super important here),
-    #    # produces a bunch or warnings, and takes too long
-    #    try:
-    #        import cma
-    #        del(cma)
-    #    except ImportError:
-    #        raise ImportError('Unable to load cma module for cma-es test.')
-    #    with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
-    #        x, f = fit.cmaes(
-    #           self._score, self._boundaries, hint=self._hint, parallel=False,
-    #            target=0.5)
+    def test_cmaes(self):
+        """
+        Tests if a CMA-ES routine runs without errors.
+        """
+        try:
+            import cma
+            del(cma)
+        except ImportError:
+            print('CMA module not found, skipping test.')
+            return
+        np.random.seed(1)
+        with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
+            x, f = fit.cmaes(
+                self._score, self._boundaries, hint=self._hint, parallel=False,
+                target=1)
 
     def test_pso(self):
         """
         Tests if a PSO routine runs without errors.
         """
+        np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.pso(
                 self._score, self._boundaries, hints=[self._hint],
@@ -372,6 +346,7 @@ class FittingTest(unittest.TestCase):
         """
         Tests if a SNES routine runs without errors.
         """
+        np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.snes(
                 self._score, self._boundaries, hint=self._hint, parallel=False,
@@ -381,6 +356,7 @@ class FittingTest(unittest.TestCase):
         """
         Tests if a xNES routine runs without errors.
         """
+        np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.xnes(
                 self._score, self._boundaries, hint=self._hint, parallel=False,
