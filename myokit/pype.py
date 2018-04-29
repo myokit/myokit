@@ -11,7 +11,6 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import re
-import os
 import sys
 import parser
 import traceback
@@ -228,34 +227,3 @@ class PypeError(Exception):
         super(PypeError, self).__init__()
         self.message = msg
 
-
-def from_shell():
-    """
-    Parses command lines arguments to allow Pype templating from the shell.
-    """
-    import argparse
-    arg = argparse.ArgumentParser(description='PHP-style templating engine')
-    arg.add_argument(
-        'filename',
-        metavar='template',
-        help='The template file to parse'
-    )
-    args = arg.parse_args()
-    filename = os.path.abspath(args.filename)
-    if not os.path.exists(filename):
-        print('Error: Template not found: "' + filename + '"')
-        exit(1)
-    e = TemplateEngine()
-    try:
-        print(e.process(filename, variables))
-    except PypeError:
-        print('Pype error:')
-        print(e.message)
-        d = e.error_details()
-        if d:
-            print(d)
-        sys.exit(1)
-
-
-if __name__ == '__main__':
-    from_shell()

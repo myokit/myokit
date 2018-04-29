@@ -50,5 +50,3 @@ exist for such purposes.*
 
 .. autoclass:: PypeError
 
-.. autofunction:: from_shell
-
