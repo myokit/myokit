@@ -98,10 +98,24 @@ class LibPlotTest(unittest.TestCase):
 
         # Run simulation, get currents
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+
+        # Add dummy current, that never carries much charge and should be
+        # ignored
+        c = m.add_component('dummy')
+        x = c.add_variable('IDummy')
+        x.set_rhs('0 * membrane.V')
+
         s = myokit.Simulation(m, p)
-        currents = ['ina.INa', 'ik1.IK1', 'ica.ICa']
+        currents = ['ina.INa', 'ik1.IK1', 'ica.ICa', 'dummy.IDummy']
         d = s.run(600, log=['engine.time', 'membrane.V'] + currents)
 
+        plt.figure()
+        plots.current_arrows(d, 'membrane.V', currents)
+        plt.show()
+
+        # Massive peak at final point
+        d = d.npview()
+        d['dummy.IDummy'][-1] = 100
         plt.figure()
         plots.current_arrows(d, 'membrane.V', currents)
         plt.show()
@@ -136,6 +150,13 @@ class LibPlotTest(unittest.TestCase):
 
         # Colors set
         colors = ['green', 'blue', 'yellow', 'brown', 'gray']
+        plt.figure()
+        plots.cumulative_current(d, currents, colors=colors)
+        plt.legend()
+        plt.show()
+
+        # Not enough colors set (will repeat array)
+        colors = ['green', 'blue']
         plt.figure()
         plots.cumulative_current(d, currents, colors=colors)
         plt.legend()

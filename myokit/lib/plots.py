@@ -236,6 +236,8 @@ def current_arrows(log, voltage, currents, axes=None):
             ars = 'rarrow'
             arx = t_mid
             if k + 1 == len(times):
+                # Massive current at final point, bit weird but should handle
+                # this case...
                 ary = memv[k]
                 arr = 0
             else:
@@ -326,7 +328,7 @@ def cumulative_current(
             colors.extend(colors)
     else:
         # Colormap
-        cmap = matplotlib.cm.get_cmap(name='spectral')
+        cmap = matplotlib.cm.get_cmap(name='Spectral')
         colors = [cmap(i) for i in np.linspace(0.9, 0.1, len(currents))]
 
     # Offsets
