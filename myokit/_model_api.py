@@ -1997,14 +1997,12 @@ class Model(ObjectWithMeta, VarProvider):
 
     def name(self):
         """
-        Returns a name for this model: If the meta data property ``name`` is
-        set this is used, if not the string "Unnamed model" is returned.
+        Returns the model meta property ``name``, or ``None`` if it isn't set.
         """
         try:
-            name = self.meta['name']
+            return self.meta['name']
         except KeyError:
-            return 'Unnamed model'
-        return str(name)
+            return None
 
     def prepare_bindings(self, labels):
         """
