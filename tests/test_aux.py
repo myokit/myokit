@@ -26,7 +26,7 @@ import myokit
 from shared import DIR_DATA, TemporaryDirectory
 
 
-class AuxText(unittest.TestCase):
+class AuxTest(unittest.TestCase):
     """
     Tests various methods from myokit._aux.
     """
