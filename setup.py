@@ -54,8 +54,22 @@ setup(
     install_requires=[
         'numpy',
         'scipy',
-        'matplotlib>=1.5',       # Move to extras?
         # PyQT or PySide?
         # (PySide is pip installable, Travis can get PyQt from apt)
     ],
+
+    # Optional extras
+    extras_require={
+        'docs': [
+            'sphinx>=1.5, !=1.7.3',     # Doc generation
+        ],
+        'dev': [
+            'flake8>=3',                # Style checking
+        ],
+        'optional': [
+            'cma',                      # Used in lib.fit
+            'matplotlib>=1.5',          # Used in lib.deps, lib.plots
+            'sympy',                    # Used in formats.sympy
+        ],
+    },
 )
