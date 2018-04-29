@@ -935,7 +935,7 @@ multiprocessing.html#all-platforms>`_ for details).
                 pid, trace = errors[0]
                 raise Exception('Exception in subprocess:' + trace)
             else:
-                # Don't this every happens!
+                # Don't think this ever happens!
                 raise Exception(
                     'Unknown exception in subprocess.')  # pragma: no cover
 

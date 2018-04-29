@@ -117,15 +117,18 @@ class LinearModel(object):
     # its internal state in any way!
     def __init__(self, model, states, parameters=None, current=None, vm=None):
         super(LinearModel, self).__init__()
+
         # Import sympy, or raise an ImportError if we can't.
         from myokit.formats import sympy
         del(sympy)
+
         #
         # Check input
         #
         # Clone model
         self._model = model.clone()
         del(model)
+
         # Check and collect state variables
         self._states = []
         for state in states:
@@ -143,6 +146,7 @@ class LinearModel(object):
                     'State <' + state.qname() + '> was added twice.')
             self._states.append(state)
         del(states)
+
         # Check and collect parameter variables
         unique = set()
         self._parameters = []
@@ -166,6 +170,7 @@ class LinearModel(object):
             self._parameters.append(parameter)
         del(unique)
         del(parameters)
+
         # Check current variable
         if current is not None:
             if isinstance(current, myokit.Variable):
@@ -175,6 +180,7 @@ class LinearModel(object):
                 raise ValueError('Current variable can not be a state.')
         self._current = current
         del(current)
+
         # Check membrane potential variable
         if vm is None:
             vm = self._model.label('membrane_potential')
@@ -193,13 +199,18 @@ class LinearModel(object):
             raise ValueError(
                 'The membrane potential should not be included in the list of'
                 ' states.')
+        if self._membrane_potential == self._current:
+            raise ValueError(
+                'The membrane potential should not be the current variable.')
         del(vm)
+
         #
         # Demote unnecessary states, remove bindings and validate model.
         #
         # Get values of all states
         # Note: Do this _before_ changing the model!
         self._default_state = np.array([v.state_value() for v in self._states])
+
         # Freeze remaining, non-markov-model states
         s = self._model.state()   # Get state values before changing anything!
         for k, state in enumerate(self._model.states()):
@@ -207,18 +218,22 @@ class LinearModel(object):
                 state.demote()
                 state.set_rhs(s[k])
         del(s)
+
         # Unbind everything except time
         for label, var in self._model.bindings():
             if label != 'time':
                 var.set_binding(None)
+
         # Check if current variable depends on selected states
         # (At this point, anything not dependent on the states is a constant)
         if self._current is not None and self._current.is_constant():
             raise ValueError(
                 'Current must be a function of the markov model\'s state'
                 ' variables.')
+
         # Validate modified model
         self._model.validate()
+
         #
         # Create functions:
         #   matrix_function(vm, p1, p2, ...   ) --> A, B
@@ -226,14 +241,18 @@ class LinearModel(object):
         #   rate_list_function(vm, p1, p2, ...) --> R
         #       where R contains tuples (i, j, rij)
         #
+
         # Create a list of inputs to the functions
         self._inputs = self._parameters + [self._membrane_potential]
+
         # Get the default values for all inputs
         self._default_inputs = np.array([v.eval() for v in self._inputs])
+
         # Create functions
         self._matrix_function = None
         self._rate_list_function = None
         self._generate_functions()
+
         #
         # Partial validation
         #
@@ -244,11 +263,13 @@ class LinearModel(object):
                     raise Exception(
                         'State <' + s.qname() + '> depends on <' + d.qname()
                         + '> but not vice versa.')
+
         # Check the sum of all states is 1
         tolerance = 1e-8
         x = np.sum(self._default_state)
         if np.abs(x - 1) > tolerance:
             raise Exception('The sum of states is not equal to 1: ' + str(x))
+
         # Check the sum of all derivatives per column
         A, B = self.matrices()
         for k, x in enumerate(np.sum(A, axis=0)):
@@ -266,10 +287,12 @@ class LinearModel(object):
         complicated enough to warrant its own method...)
         """
         from myokit.formats import sympy
+
         # Create mapping from states to index
         state_indices = {}
         for k, state in enumerate(self._states):
             state_indices[state] = k
+
         # Extract expressions for state & current variables:
         #  1. Get expanded equation
         #  2. Convert to sympy
@@ -285,6 +308,7 @@ class LinearModel(object):
             e = self._current.rhs().clone(expand=True, retain=self._inputs)
             e = sympy.write(e)
             current_expression = sympy.read(e.expand(), self._model)
+
         # Create parametrisable matrices to evaluate the state & current
         #  1. For each expression, get the terms. This works because Sympy
         #     returns the equations as an addition of terms (or a single term).
@@ -296,28 +320,34 @@ class LinearModel(object):
         for i in range(n):
             A.append([myokit.Number(0) for j in range(n)])
         for row, e in enumerate(expressions):
+
             # Scan terms
             for term in _list_terms(e):
+
                 # Look for the single state this expression depends on
                 state = None
                 for ref in term.references():
                     if ref.var().is_state():
                         if state is not None:
-                            raise ValueError(
+                            raise Exception(
                                 'Unable to write expression as linear'
                                 ' combination of states: ' + str(e))
                         state = ref.var()
+
                 # Get factor
                 state, factor = _find_factor(term, e)
+
                 # Add factor to transition matrix
                 col = state_indices[state]
                 cur = A[row][col]
                 if cur != myokit.Number(0):
                     factor = myokit.Plus(cur, factor)
                 A[row][col] = factor
+
                 # Store transition in transition list
                 if row != col:
                     T.add((col, row))   # A is mirrored
+
         # Create a parametrisable matrix for the current
         B = [myokit.Number(0) for i in range(n)]
         if self._current is not None:
@@ -337,6 +367,7 @@ class LinearModel(object):
                 if cur != myokit.Number(0):
                     factor = myokit.Plus(cur, factor)
                 B[col] = factor
+
         # Create list of transition rates and associated equations
         T = list(T)
         T.sort()
@@ -346,6 +377,7 @@ class LinearModel(object):
                 if (i, j) in T:
                     R.append((i, j, A[j][i]))   # A is mirrored
         del(T)
+
         #
         # Create function to create parametrisable matrices
         #
@@ -370,11 +402,13 @@ class LinearModel(object):
         code = head + '\n' + '\n'.join(['    ' + line for line in body])
         globl = {'numpy': np, 'n': n}
         local = {}
+
         # TODO What's the difference between these two?
         # If the function version works, use that for python3 compatibility!
         # exec(code, globl, local)
         exec code in globl, local
         self._matrix_function = local['matrix_function']
+
         #
         # Create function to return list of transition rates
         #
@@ -440,13 +474,18 @@ class LinearModel(object):
         alphabetical order (using a natural sort).
         """
         model = component.model()
+
         # Get or check states
         if states is None:
+
             # Get state variables
             states = [x for x in component.variables(state=True)]
+
             # Sort by state indice
             states.sort(key=lambda x: x.indice())
+
         else:
+
             # Make sure states are variables. This is required to automatically
             # find a current variable.
             states_in = states
@@ -455,13 +494,16 @@ class LinearModel(object):
                 if isinstance(state, myokit.Variable):
                     state = state.qname()
                 states.append(model.get(state))
+
         # Get parameters
         if parameters is None:
+
             # Get parameters
             parameters = [
                 x for x in component.variables(const=True) if x.is_literal()]
             # Sort by qname, using natural sort
             parameters.sort(key=lambda x: myokit.natural_sort_key(x.qname()))
+
         # Get current
         if current is None:
             currents = []
@@ -481,6 +523,7 @@ class LinearModel(object):
                 current = currents[0]
             except IndexError:
                 raise ValueError('No current variable found.')
+
         # Get membrane potential
         if vm is None:
             vm = model.label('membrane_potential')
@@ -488,6 +531,7 @@ class LinearModel(object):
                 raise ValueError(
                     'The model must define a variable labeled as'
                     ' "membrane_potential".')
+
         # Create and return LinearModel
         return LinearModel(model, states, parameters, current, vm)
 
@@ -521,7 +565,7 @@ class LinearModel(object):
                 raise ValueError(
                     'Illegal parameter vector size: '
                     + str(len(self._parameters)) + ' required, '
-                    + str(len(paramaters)) + ' provided.')
+                    + str(len(parameters)) + ' provided.')
             inputs[:-1] = [float(x) for x in parameters]
         return self._matrix_function(*inputs)
 
@@ -665,6 +709,7 @@ class AnalyticalSimulation(object):
         if not isinstance(model, LinearModel):
             raise ValueError('First parameter must be a `LinearModel`.')
         self._model = model
+
         # Check protocol
         if protocol is None:
             self._protocol = None
@@ -672,29 +717,38 @@ class AnalyticalSimulation(object):
             raise ValueError('Protocol must be a myokit.Protocol object')
         else:
             self._protocol = protocol.clone()
-        # Check if we have a current variable
-        self._has_current = self._model.current() is not None
-        # Set state
-        self._state = np.array(
-            self._model.default_state(), copy=True, dtype=float)
-        # Set default state
-        self._default_state = np.array(self._state, copy=True)
-        # Get membrane potential
-        self._membrane_potential = self._model.default_membrane_potential()
-        # Get parameters
-        self._parameters = np.array(
-            self._model.default_parameters(), copy=True, dtype=float)
-        # Cached matrices
-        self._cached_matrices = None
-        # Cached partial solution (eigenvalue decomposition etc.)
-        self._cached_solution = None
+
         # Time variable
         self._time = 0
+
         # If protocol was given, create pacing system, update vm
         self._pacing = None
         if self._protocol:
             self._pacing = myokit.PacingSystem(self._protocol)
             self._membrane_potential = self._pacing.advance(self._time)
+
+        # Check if we have a current variable
+        self._has_current = self._model.current() is not None
+
+        # Set state
+        self._state = np.array(
+            self._model.default_state(), copy=True, dtype=float)
+
+        # Set default state
+        self._default_state = np.array(self._state, copy=True)
+
+        # Get membrane potential
+        self._membrane_potential = self._model.default_membrane_potential()
+
+        # Get parameters
+        self._parameters = np.array(
+            self._model.default_parameters(), copy=True, dtype=float)
+
+        # Cached matrices
+        self._cached_matrices = None
+
+        # Cached partial solution (eigenvalue decomposition etc.)
+        self._cached_solution = None
 
     def current(self, state):
         """
@@ -921,6 +975,12 @@ class AnalyticalSimulation(object):
         self._cached_matrices = None
         self._cached_solution = None
 
+    def set_protocol(self, protocol=None):
+        """
+        Sets (or unsets) the protocol.
+        """
+        self._protocol = protocol
+
     def set_state(self, state):
         """
         Changes the initial state used by in this simulation.
@@ -1055,6 +1115,7 @@ class DiscreteSimulation(object):
         if not isinstance(model, LinearModel):
             raise ValueError('First parameter must be a `LinearModel`.')
         self._model = model
+
         # Check protocol
         if protocol is None:
             self._protocol = None
@@ -1062,24 +1123,32 @@ class DiscreteSimulation(object):
             raise ValueError('Protocol must be a myokit.Protocol object')
         else:
             self._protocol = protocol.clone()
+
         # Get state and discretize
         nchannels = int(nchannels)
         if nchannels < 1:
             raise ValueError('The number of channels must be at least 1.')
         self._nchannels = nchannels
+
         # Set state
         self._state = self.discretize_state(self._model.default_state())
+
         # Set default state
         self._default_state = list(self._state)
+
         # Set membrane potential
         self._membrane_potential = self._model.default_membrane_potential()
+
         # Set parameters
         self._parameters = np.array(
             self._model.default_parameters(), copy=True, dtype=float)
+
         # Cached transition rate list
         self._cached_rates = None
+
         # Set simulation time
         self._time = 0
+
         # If protocol was given, create pacing system, update vm
         self._pacing = None
         if self._protocol:
@@ -1153,13 +1222,16 @@ class DiscreteSimulation(object):
         duration = float(duration)
         if duration < 0:
             raise ValueError('Duration must be non-negative.')
+
         # Run
         # This isn't much faster, but this way the simulation's interface is
         # similar to the standard simulation one.
         old_time = self._time
         self.run(duration)
+
         # Update default state
         self._default_state = list(self._state)
+
         # Reset time, reset protocol
         self._time = old_time
         if self._protocol:
