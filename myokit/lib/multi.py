@@ -1,5 +1,5 @@
 #
-# Tools for running multi-model experiments
+# Tools for running experiments on multiple models.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -13,42 +13,51 @@ import myokit
 import os
 
 
-def iterdir(path):
+def iterdir(path, guarantee_model_names=True):
     """
-    Iterates over a directory yielding tuples ``(name, model, protocol)`` where
-    ``name`` is the name of a model, ``model`` is a :class:`myokit.Model` and
-    ``protocol`` is a :class:`myokit.Protocol`.
+    Iterates over a directory yielding tuples ``(model, protocol)`` where
+    ``model`` is a :class:`myokit.Model` and ``protocol`` is a
+    :class:`myokit.Protocol`.
 
-    Depending on the contents of the found files, some entries in the model or
-    protocol lists may be ``None``. The results will be yielded ordered by
-    filename. Model names are determined by inspecting the models for a
-    meta-data entry "name", if no such entry is found the filename is used
-    (without the extension). The method does not descend into child
-    directories.
+    Depending on the contents of the found files, some entries might not have a
+    protocol. Files without a model are skipped.
 
-    Names that do not specify a name will be given their filename as name. This
-    ensures every model read by this method has a name meta-property.
+    The results will be yielded ordered by filename.
+    The method does not descend into child directories.
+
+    If ``guarantee_model_names`` is ``True`` (default), models that do not
+    specify a ``name`` meta-attribute will be given their filename as name.
+    This ensures every model read by this method has a name meta-property.
     """
     # Fix path
     path = os.path.expanduser(os.path.abspath(path))
+
     if not os.path.isdir(path):
-        raise IOError('Given path is not a directory.')
+        raise ValueError('Given path is not a directory.')
+
     # Scan files
     for fname in sorted(os.listdir(path)):
         fpath = os.path.join(path, fname)
+
         # Check if it's a model file
         if not os.path.isfile(fpath):
             continue
         base, ext = os.path.splitext(fname)
         if ext != '.mmt':
             continue
+
         # Read model & protocol
         model, protocol, x = myokit.load(fpath)
-        # Get model name or file name
-        name = model.name()
-        if not name:
-            name = base
-            model.meta['name'] = name
+
+        # Skip files without model
+        if model is None:
+            continue
+
+        # Set name attribute
+        if guarantee_model_names:
+            if not model.name():
+                model.meta['name'] = base
+
         # Yield
         yield model, protocol
 
@@ -64,9 +73,10 @@ def scandir(path):
     ms = {}
     ps = {}
     for model, protocol in iterdir(path):
-        names.append(model.name())
-        ms.append(model)
-        ps.append(protocol)
+        name = model.name()
+        names.append(name)
+        ms[name] = model
+        ps[name] = protocol
     models = []
     protocols = []
     for name in sorted(names):
@@ -145,3 +155,4 @@ def unit(variable, unit):
             variable.model().name(),
             'Incompatible units: ' + str(variable.unit()) + ' and '
             + str(unit) + '.')
+
