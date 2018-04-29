@@ -316,9 +316,7 @@ if __name__ == '__main__':
     # Doctests
     if args.doctest:
         has_run = True
-        #run_doc_tests()
-        import PyQt4
-        print('Imported pyqt4')
+        run_doc_tests()
 
     # Publication and web examples
     if args.publications:
