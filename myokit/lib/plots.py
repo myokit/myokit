@@ -176,7 +176,6 @@ def current_arrows(log, voltage, currents, axes=None):
 
     # Find "zero" points, points of interest
     threshold_abs = 0.1
-    threshold_int = 0
     for ii, I in enumerate(traces):
 
         # Capture parts where abs(I) is greather than the threshold and the
@@ -219,10 +218,6 @@ def current_arrows(log, voltage, currents, axes=None):
                 s_total += steps[k] * I_total[k]
                 t_mid += steps[k] * I[k] * times[k]
                 i_peak = max(i_peak, abs(I[k]))
-
-            # Test if relative total transferred charge is above threshold
-            if abs(q_total / s_total) < threshold_int:
-                continue
 
             # Weighted midpoint in time (weight is height * width)
             t_mid /= q_total
