@@ -39,18 +39,27 @@ class LinearModelTest(unittest.TestCase):
             'ina.C1',
             'ina.IF',
             'ina.IS',
-            'ina.O',
+            model.get('ina.O'),
         ]
         parameters = [
             'ina.p1',
             'ina.p2',
             'ina.p3',
-            'ina.p4',
+            model.get('ina.p4'),
         ]
         current = 'ina.i'
 
         # Create a markov model
-        markov.LinearModel(model, states, parameters, current)
+        m = markov.LinearModel(model, states, parameters, current)
+        markov.LinearModel(model, states, parameters, model.get(current))
+
+        # Check membrane potential
+        self.assertEqual(m.membrane_potential(), 'membrane.V')
+
+        # Check parameters
+        parameters[3] = parameters[3].qname()
+        for p in m.parameters():
+            self.assertIn(p, parameters)
 
         # Test deprecated MarkovModel class
         m2 = markov.MarkovModel(model, states, parameters, current)
@@ -166,8 +175,20 @@ class LinearModelTest(unittest.TestCase):
         x.set_rhs(str(x.rhs()) + ' + C1^2')
         y.set_rhs(str(y.rhs()) + ' - C1^2')
         self.assertRaisesRegexp(
-            Exception, 'linear combination', markov.LinearModel, m2, states,
-            parameters, current)
+            Exception, 'not Multiply or Name', markov.LinearModel,
+            m2, states, parameters, current)
+
+        # Not a linear model
+        m2 = model.clone()
+        markov.LinearModel(m2, states, parameters, current)
+        x = m2.get(states[0])
+        y = m2.get(states[1])
+        # Set rhs to something non-linear, make sure columns still sum to 0
+        x.set_rhs(str(x.rhs()) + ' + p1')
+        y.set_rhs(str(y.rhs()) + ' - p1')
+        self.assertRaisesRegexp(
+            Exception, 'non-state reference', markov.LinearModel,
+            m2, states, parameters, current)
 
         # Not a linear model
         m2 = model.clone()
@@ -178,8 +199,25 @@ class LinearModelTest(unittest.TestCase):
         x.set_rhs(str(x.rhs()) + ' + 5')
         y.set_rhs(str(y.rhs()) + ' - 5')
         self.assertRaisesRegexp(
-            Exception, 'linear combination', markov.LinearModel, m2, states,
-            parameters, current)
+            Exception, 'not Multiply or Name', markov.LinearModel,
+            m2, states, parameters, current)
+
+        # Current not a linear combination of states
+        m2 = model.clone()
+        markov.LinearModel(m2, states, parameters, current)
+        m2.get(current).set_rhs('5 + sqrt(ina.O)')
+        self.assertRaisesRegexp(
+            Exception, 'not Multiply or Name', markov.LinearModel,
+            m2, states, parameters, current)
+
+        # Current not a linear combination of states
+        m2 = model.clone()
+        markov.LinearModel(m2, states, parameters, current)
+        x = m2.get(current)
+        x.set_rhs(str(x.rhs()) + ' + p1')
+        self.assertRaisesRegexp(
+            Exception, 'non-state reference', markov.LinearModel,
+            m2, states, parameters, current)
 
     def test_automatic_creation(self):
         """ Create a linear model from a component. """
@@ -202,7 +240,7 @@ class LinearModelTest(unittest.TestCase):
             'ina.C1',
             'ina.IF',
             'ina.IS',
-            'ina.O',
+            model.get('ina.O'),
         ]
         markov.LinearModel.from_component(model.get('ina'), states=states)
 
@@ -210,13 +248,16 @@ class LinearModelTest(unittest.TestCase):
             'ina.p1',
             'ina.p2',
             'ina.p3',
-            'ina.p4',
+            model.get('ina.p4',)
         ]
         markov.LinearModel.from_component(
             model.get('ina'), parameters=parameters)
 
         current = 'ina.i'
         markov.LinearModel.from_component(model.get('ina'), current=current)
+
+        markov.LinearModel.from_component(
+            model.get('ina'), current=model.get(current))
 
     def test_linear_model_matrices(self):
         """
@@ -235,6 +276,20 @@ class LinearModelTest(unittest.TestCase):
 
         # Requires 21 parameters
         self.assertRaises(ValueError, m.matrices, -20, range(3))
+
+    def test_linear_model_steady_state(self):
+        """ Tests the method LinearModel.steady_state(). """
+
+        # Create model
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(fname)
+        m = markov.LinearModel.from_component(model.get('ina'))
+
+        ss = list(m.steady_state())
+        model.set_state(ss + ss)    # Model has 2 ina's
+        derivs = model.eval_state_derivatives()
+        for i in range(len(ss)):
+            self.assertAlmostEqual(0, derivs[i])
 
     def test_analytical_simulation(self):
         """ Tests the AnalyticalSimulation class. """
@@ -299,6 +354,13 @@ class LinearModelTest(unittest.TestCase):
         s.reset()
         self.assertEqual(state, s.state())
 
+        # Run can append to log
+        d = s.run(10)
+        n = len(d['engine.time'])
+        e = s.run(1, log=d)
+        self.assertIs(d, e)
+        self.assertTrue(len(d['engine.time']) > n)
+
     def test_analytical_simulation_properties(self):
         """
         Tests basic get/set methods of analytical simulation.
@@ -328,6 +390,14 @@ class LinearModelTest(unittest.TestCase):
         self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
         self.assertEqual(list(state), list(s.state()))
+
+        # Default state
+        dstate = np.zeros(len(s.default_state()))
+        dstate[0] = 0.5
+        dstate[1] = 0.5
+        self.assertNotEqual(list(dstate), list(s.default_state()))
+        s.set_default_state(dstate)
+        self.assertEqual(list(dstate), list(s.default_state()))
 
     def test_discrete_simulation(self):
         """ Tests the DiscreteSimulation class, running, resetting etc.. """
@@ -374,6 +444,13 @@ class LinearModelTest(unittest.TestCase):
         s.reset()
         self.assertEqual(state, s.state())
 
+        # Run can append to log
+        d = s.run(10)
+        n = len(d['engine.time'])
+        e = s.run(1, log=d)
+        self.assertIs(d, e)
+        self.assertTrue(len(d['engine.time']) > n)
+
     def test_discrete_simulation_properties(self):
         """
         Tests basic get/set methods of discrete simulation.
@@ -406,6 +483,14 @@ class LinearModelTest(unittest.TestCase):
         self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
         self.assertEqual(list(state), list(s.state()))
+
+        # Default state
+        dstate = np.zeros(len(s.default_state()))
+        dstate[0] = 25
+        dstate[1] = 25
+        self.assertNotEqual(list(dstate), list(s.default_state()))
+        s.set_default_state(dstate)
+        self.assertEqual(list(dstate), list(s.default_state()))
 
 
 if __name__ == '__main__':

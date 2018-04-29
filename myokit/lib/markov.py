@@ -331,7 +331,8 @@ class LinearModel(object):
                         if state is not None:
                             raise Exception(
                                 'Unable to write expression as linear'
-                                ' combination of states: ' + str(e))
+                                ' combination of states (found term without'
+                                ' state dependency): ' + str(e))
                         state = ref.var()
 
                 # Get factor
@@ -356,7 +357,8 @@ class LinearModel(object):
                 for ref in term.references():
                     if ref.var().is_state():
                         if state is not None:
-                            raise ValueError(
+                            # Should already have been caught!
+                            raise ValueError(  # pragma: no cover
                                 'Unable to write expression for current as'
                                 ' linear combination of states: '
                                 + str(current_expression))
@@ -975,12 +977,6 @@ class AnalyticalSimulation(object):
         self._cached_matrices = None
         self._cached_solution = None
 
-    def set_protocol(self, protocol=None):
-        """
-        Sets (or unsets) the protocol.
-        """
-        self._protocol = protocol
-
     def set_state(self, state):
         """
         Changes the initial state used by in this simulation.
@@ -1284,6 +1280,7 @@ class DiscreteSimulation(object):
         duration = float(duration)
         if duration < 0:
             raise ValueError('Duration must be non-negative.')
+
         # Set up logging
         time_key = self._model._model.time().qname()
         vm_key = self._model._membrane_potential
@@ -1295,7 +1292,9 @@ class DiscreteSimulation(object):
             log[vm_key] = []
             for key in self._model.states():
                 log[key] = []
+
         else:
+
             # Check existing log
             if len(log.keys()) > 2 + len(self._state):
                 raise ValueError('Invalid log: contains extra keys.')
@@ -1305,10 +1304,13 @@ class DiscreteSimulation(object):
             except KeyError:
                 raise ValueError(
                     'Invalid log: missing entry for <' + str(key) + '>.')
+
         if self._protocol is None:
             # Simulate with fixed V
             self._run(duration, log)
+
         else:
+
             # Voltage clamp
             tfinal = self._time + duration
             while self._time < tfinal:
@@ -1318,6 +1320,7 @@ class DiscreteSimulation(object):
                 # Update pacing
                 self._membrane_potential = self._pacing.advance(tnext, tfinal)
                 self._cached_rates = None
+
         # Return
         return log
 
@@ -1330,9 +1333,11 @@ class DiscreteSimulation(object):
         log_states = []
         for key in self._model.states():
             log_states.append(log[key])
+
         # Get current time and state
         t = self._time
         state = np.array(self._state, copy=True, dtype=int)
+
         # Get list of transitions
         R = []      # Transition rates
         SI = []     # From state
@@ -1344,28 +1349,37 @@ class DiscreteSimulation(object):
         R = np.array(R)
         SI = np.array(SI)
         SJ = np.array(SJ)
-        debug = False
+
         # Run
         n_steps = 0
         t_stop = self._time + duration
+
+        # Request for a short time can result in duration=0 at this point,
+        # Must set variables otherwise set in loop below here
+        if t >= t_stop:
+            lambdas = R * state[SI]
+
         while t < t_stop:
             # Log
             log_time.append(t)
             for i, x in enumerate(state):
                 log_states[i].append(x)
             n_steps += 1
-            if debug:
-                print(t, state)
+
             # Get lambdas
             lambdas = R * state[SI]
+
             # Get sum of lambdas
             lsum = np.sum(lambdas)
+
             # Sample time until next transition from an exponential
             # distribution with mean 1 / lsum
             tau = np.random.exponential(1 / lsum)
+
             # Don't step beyond the stopping time!
             if t + tau > t_stop:
                 break
+
             # Get type of transition
             transition = np.random.uniform(0, lsum)
             rsum = 0
@@ -1373,12 +1387,12 @@ class DiscreteSimulation(object):
                 rsum += r
                 if rsum > transition:
                     break
-            if debug:
-                print(str(t) + ': ' + str(SI[i]) + ' --> ' + str(SJ[i]))
+
             # Perform transition
             state[SI[i]] -= 1
             state[SJ[i]] += 1
             t += tau
+
         # Perform final step using the "brute-force" approach, ensuring we
         # reach self._time + duration exactly.
         # Note that for large tau, the estimates of the probability that
@@ -1388,14 +1402,14 @@ class DiscreteSimulation(object):
         lambdas *= tau
         for i, r in enumerate(lambdas):
             if np.random.uniform(0, 1) < r:
-                if debug:
-                    print('Final: ' + str(SI[i]) + ' --> ' + str(SJ[i]))
                 # Perform transition
                 state[SI[i]] -= 1
                 state[SJ[i]] += 1
+
         # Add vm to log
         vm_key = self._model._membrane_potential
         log[vm_key].extend([self._membrane_potential] * n_steps)
+
         # Update current state and time
         self._state = list(state)
         self._time += duration
@@ -1483,20 +1497,24 @@ def _find_factor(expression, original):
     contains multiple states an error is raised.
     """
     t = type(expression)
+
     if t == myokit.Name:
         var = expression.var()
         if not var.is_state():
             raise ValueError(
-                'Unable to write expression as linear combination of states: '
+                'Unable to write expression as linear combination of states'
+                ' (non-state reference found): '
                 + str(original))
         return var, myokit.Number(1)
+
     elif t == myokit.Multiply:
         a, b = expression
         # Check if a contains a state and b is constant
         ac, bc = a.is_constant(), b.is_constant()
         if (ac and bc) or not (ac or bc):
             raise ValueError(
-                'Unable to write expression as linear combination of states: '
+                'Unable to write expression as linear combination of states'
+                ' (state multiplied by non-constant): '
                 + str(original))
         if ac:
             a, b = b, a
@@ -1510,8 +1528,8 @@ def _find_factor(expression, original):
             return state, factor
     else:
         raise ValueError(
-            'Unable to write expression as linear combination of states: '
-            + str(original))
+            'Unable to write expression as linear combination of states'
+            ' (term that is not Multiply or Name found): ' + str(original))
 
 
 class MarkovModel(object):
