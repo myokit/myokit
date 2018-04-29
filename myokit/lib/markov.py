@@ -1449,9 +1449,6 @@ class MarkovModel(object):
     update your code to use these classes instead. This class will be removed
     in future versions of Myokit.
     """
-    def __init__(self):
-        raise NotImplementedError('Please use the class LinearModel instead.')
-
     @staticmethod
     def from_component(
             component, states=None, parameters=None, current=None, vm=None):
