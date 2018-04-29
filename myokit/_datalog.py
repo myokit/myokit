@@ -117,7 +117,8 @@ class DataLog(OrderedDict):
         :meth:`Simulation.run()` *for details.*
 
         *Note 2: This APD is defined by simply checking crossing of a threshold
-        potential, and does not look at lowest of highest voltages in a signal.
+        potential, and does not look at lowest of highest voltages in a
+        signal.*
 
         The membrane potential data should be listed in the log under the key
         given by ``v``.

@@ -13,23 +13,12 @@ Model comparison
 
 .. _api/modelcomparison:
 
-
 Benchmarking
 ============
 
 .. autoclass:: Benchmarker
 
 .. _api/logging:
-
-
-Logging
-=======
-A number of Myokit functions (for example importers and exporters) maintain a
-log of their actions using the TextLogger class described below. If anything
-goes wrong, these logs should contain a more detailed error message than a
-simple exception.
-
-.. autoclass:: TextLogger
 
 State i/o
 =========
