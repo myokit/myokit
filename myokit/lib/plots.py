@@ -59,9 +59,9 @@ def simulation_times(
 
     Returns a matplotlib axes object.
     """
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
     if axes is None:
-        axes = pl.gca()
+        axes = plt.gca()
 
     def stair(ax, time, realtime, evaluations):
         if time is None:
@@ -118,6 +118,7 @@ def simulation_times(
         evls = evls[1:] - evls[:-1]
         step = np.arange(1, 1 + len(evls))
         ax.step(step, evls, where='mid', label=label)
+
     modes = {
         'stair': stair,
         'stair_inverse': stair_inverse,
@@ -126,6 +127,7 @@ def simulation_times(
         'time_per_step': time_per_step,
         'eval_per_step': eval_per_step,
     }
+
     try:
         fn = modes[mode]
     except KeyError:
@@ -148,28 +150,35 @@ def current_arrows(log, voltage, currents, axes=None):
 
     Returns a matplotlib axes object.
     """
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
+
     # Get currents, normalize with respect to total current at each time
     log = log.npview()
     traces = [log[x] for x in currents]
     times = log.time()
     memv = log[voltage]
+
     # Get sum of _absolute_ traces!
     I_total = np.zeros(len(traces[0]))
     for I in traces:
         I_total += abs(I)
+
     # Create axes
-    ax = axes if axes is not None else pl.gca()
+    ax = axes if axes is not None else plt.gca()
+
     # Plot membrane potential
     ax.plot(times, memv)
     ax.set_title(voltage)
+
     # Get width of time steps
     steps = np.concatenate((times[0:1], times, times[-1:]))
     steps = 0.5 * steps[2:] - 0.5 * steps[0:-2]
+
     # Find "zero" points, points of interest
     threshold_abs = 0.1
     threshold_int = 0
     for ii, I in enumerate(traces):
+
         # Capture parts where abs(I) is greather than the threshold and the
         # sign doesn't change
         parts = []
@@ -189,6 +198,7 @@ def current_arrows(log, voltage, currents, axes=None):
             sign = (i >= 0)
         if indices is not None:
             parts.append(indices)
+
         # For each part, calculate
         #  the weighted midpoint in time
         #  the total charge transferred
@@ -209,14 +219,18 @@ def current_arrows(log, voltage, currents, axes=None):
                 s_total += steps[k] * I_total[k]
                 t_mid += steps[k] * I[k] * times[k]
                 i_peak = max(i_peak, abs(I[k]))
+
             # Test if relative total transferred charge is above threshold
             if abs(q_total / s_total) < threshold_int:
                 continue
+
             # Weighted midpoint in time (weight is height * width)
             t_mid /= q_total
+
             # Add sign to peak current
             if sum(I) < 0:
                 i_peak *= -1.0
+
             # Add arrow
             k = np.nonzero(times >= t_mid)[0][0]
             ars = 'rarrow'
@@ -236,11 +250,13 @@ def current_arrows(log, voltage, currents, axes=None):
                 if abs(arr) > 90:
                     arr = 180 + arr
                     ars = 'larrow'
+
             bbox_props = dict(
                 boxstyle=ars + ',pad=0.3',
                 fc='w',
                 ec='black',
                 lw=1)
+
             ax.annotate(
                 currents[ii],
                 xy=(arx, ary),
@@ -253,7 +269,7 @@ def current_arrows(log, voltage, currents, axes=None):
 
 
 def cumulative_current(
-        log, currents, axes, labels=None, colors=None, integrate=False):
+        log, currents, axes=None, labels=None, colors=None, integrate=False):
     """
     Plots a number of currents, one on top of the other, with the positive and
     negative parts of the current plotted separately.
@@ -285,15 +301,24 @@ def cumulative_current(
     order they appear during an AP.
     """
     import matplotlib
+    import matplotlib.pyplot as plt
+
+    # Get axes
+    if axes is None:
+        axes = plt.gca()
+
     # Get numpy version of log
     log = log.npview()
+
     # Get time
     t = log.time()
+
     # Get currents or charges
     if integrate:
         signals = [log.integrate(c) for c in currents]
     else:
         signals = [log[c] for c in currents]
+
     # Colors
     n = len(currents)
     if colors:
@@ -303,12 +328,16 @@ def cumulative_current(
         # Colormap
         cmap = matplotlib.cm.get_cmap(name='spectral')
         colors = [cmap(i) for i in np.linspace(0.9, 0.1, len(currents))]
+
     # Offsets
     op = on = 0
+
     # Plot
     for k, c in enumerate(currents):
+
         # Get color
         color = colors[k]
+
         # Get label
         if labels:
             label = labels[k]
@@ -317,10 +346,12 @@ def cumulative_current(
                 label = 'Q(' + c[c.find('.') + 1:] + ')'
             else:
                 label = c[c.find('.') + 1:]
+
         # Split signal
         s = signals[k]
         p = np.maximum(s, 0) + op
         n = np.minimum(s, 0) + on
+
         # Plot!
         axes.fill_between(t, p, op, facecolor=color)
         axes.fill_between(t, n, on, facecolor=color)
@@ -329,3 +360,4 @@ def cumulative_current(
         axes.plot(t, n, color='k', lw=1)
         on = n
         op = p
+

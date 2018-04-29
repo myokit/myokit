@@ -87,7 +87,7 @@ class LibDepsTest(unittest.TestCase):
 
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
-        matplotlib.use('Agg')
+        matplotlib.use('template')
 
         # Create plot
         deps.plot_state_dependency_matrix(model)
@@ -102,7 +102,7 @@ class LibDepsTest(unittest.TestCase):
 
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
-        matplotlib.use('Agg')
+        matplotlib.use('template')
 
         # Create plot
         deps.plot_component_dependency_graph(model)
@@ -117,7 +117,7 @@ class LibDepsTest(unittest.TestCase):
 
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
-        matplotlib.use('Agg')
+        matplotlib.use('template')
 
         # Create plot
         deps.plot_variable_dependency_graph(model)

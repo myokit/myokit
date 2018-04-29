@@ -40,6 +40,10 @@ ica.Ca_i   = 0.0002
 time = 0 bind time
 pace = 1 bind pace  # Set to 1 to test if it becomes 0 without a protocol
 
+# Benchmarking methods (used in lib.plot testing)
+realtime = 0 bind realtime
+evaluations = 0 bind evaluations
+
 # Membrane potential and stimulus
 [membrane]
 dot(V) = -(i_ion + i_stim + i_diff)
