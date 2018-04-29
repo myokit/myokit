@@ -1176,7 +1176,7 @@ class DataLog(OrderedDict):
     def trim(self, a, b, adjust=False):
         """
         Returns a copy of this log, with all data before time ``a`` and after
-        time ``b`` removed.
+        (and including) time ``b`` removed.
 
         If ``adjust`` is set to ``True``, all logged times will be lowered by
         ``a``.
@@ -1209,7 +1209,8 @@ class DataLog(OrderedDict):
 
     def trim_right(self, value):
         """
-        Returns a copy of this log, with all data after time ``value`` removed.
+        Returns a copy of this log, with all data at times after and including
+        ``value`` removed.
         """
         return self.itrim_right(self.find(value))
 
@@ -1275,10 +1276,12 @@ class DataLog(OrderedDict):
         for key in self:
             # Split key into id / name parts
             idx, name = split_key(key)
+
             # Create tuple version of id
             idx = idx.split('.')
             idx = idx[:-1]
             idx = tuple([int(i) for i in idx])
+
             # Find or create entry in dict of id lists
             try:
                 id_list = id_lists[name]
@@ -1286,44 +1289,55 @@ class DataLog(OrderedDict):
             except KeyError:
                 # Create entry in id lists dict
                 id_lists[name] = id_list = []
+
                 # Create entry in id sets dict (one set for every dimension)
                 id_sets[name] = id_set = [set() for x in idx]
+
             # Check if the dimensions are the same each time a name occurs.
             if id_list and len(id_list[0]) != len(idx):
                 key1 = '.'.join([str(x) for x in id_list[0]]) + '.' + name
                 key2 = '.'.join([str(x) for x in idx]) + '.' + name
-                raise ValueError(
+                raise RuntimeError(
                     'Different dimensions used for the same variable. Found: <'
                     + key1 + '> and <' + key2 + '>.')
+
             # Update the id list
             id_list.append(idx)
+
             # Update the id set
             for k, i in enumerate(idx):
                 id_set[k].add(i)
+
         # Create variable info objects
         infos = {}
         for name, id_list in id_lists.items():
             id_set = id_sets[name]
+
             # Check if the data is regular.
             n = len(id_list)
             m = 1
             for x in id_set:
                 m *= len(x)
+
             if n != m:
-                raise ValueError(
+                raise RuntimeError(
                     'Irregular data used for variable <' + str(name) + '>')
+
             # Create variable info object
             infos[name] = info = LoggedVariableInfo()
             info._name = name
             info._dimension = len(id_set)
             info._size = tuple([len(x) for x in id_set])
+
             # Add sorted ids
             if id_list[0]:
                 id_list.sort()
             info._ids = id_list
+
             # Add sorted keys
             s = '.' + name if id_list[0] else name
             info._keys = ['.'.join([str(x) for x in y]) + s for y in id_list]
+
         return infos
 
 
@@ -1454,7 +1468,7 @@ class LoggedVariableInfo(object):
         """
         return self._name
 
-    def to_long_string(self):
+    def to_long_string(self):   # pragma: no cover (debug function)
         out = [self._name]
         out.append('  dimension: ' + str(self._dimension))
         out.append('  size: ' + ', '.join([str(x) for x in self._size]))

@@ -25,10 +25,10 @@ debug = False
 
 
 class DataLogTest(unittest.TestCase):
-
     """
     Tests the DataLog's functions.
     """
+
     def test_extend(self):
         """
         Tests the extend function.
@@ -1731,6 +1731,37 @@ class DataLogTest(unittest.TestCase):
         tr(0.2, 30, 2, 30)
         tr(-10, 40, -10, 40)
 
+        # Without adjustment
+        d = myokit.DataLog(time='t')
+        d['t'] = [1, 2, 3, 4, 5]
+        d['v'] = [10, 20, 30, 40, 50]
+        e = d.trim(2, 5, adjust=False)
+        self.assertEqual(len(e['t']), 3)
+        self.assertEqual(len(e['v']), 3)
+        self.assertEqual(e['t'], [2, 3, 4])
+        self.assertEqual(e['v'], [20, 30, 40])
+
+        # With adjustment
+        d = myokit.DataLog(time='t')
+        d['t'] = [1, 2, 3, 4, 5]
+        d['v'] = [10, 20, 30, 40, 50]
+        e = d.trim(2, 5, adjust=True)
+        self.assertEqual(len(e['t']), 3)
+        self.assertEqual(len(e['v']), 3)
+        self.assertEqual(e['t'], [0, 1, 2])
+        self.assertEqual(e['v'], [20, 30, 40])
+
+        # Without adjustment, numpy
+        d = myokit.DataLog(time='t')
+        d['t'] = [1, 2, 3, 4, 5]
+        d['v'] = [10, 20, 30, 40, 50]
+        d = d.npview()
+        e = d.trim(2, 5, adjust=True)
+        self.assertEqual(len(e['t']), 3)
+        self.assertEqual(len(e['v']), 3)
+        self.assertTrue(np.all(e['t'] == [0, 1, 2]))
+        self.assertTrue(np.all(e['v'] == [20, 30, 40]))
+
     def test_trim_left(self):
         """
         Tests the trim_left function.
@@ -2078,6 +2109,115 @@ class DataLogTest(unittest.TestCase):
         self.assertTrue(np.all(e['time'] == x))
         for i, y in enumerate(x):
             self.assertTrue(np.abs(np.exp(y) - e['values'][i]) < 0.02)
+
+    def test_time(self):
+        """
+        Tests the time() method.
+        """
+        d = myokit.DataLog(time='t')
+        t = [1, 2, 3]
+        d['t'] = t
+        self.assertIs(d['t'], t)
+
+        # Test non-existing time key
+        d = myokit.DataLog(time='t')
+        self.assertRaises(myokit.InvalidDataLogError, d.time)
+        try:
+            d.time()
+        except myokit.InvalidDataLogError as e:
+            self.assertIn('Invalid key', str(e))
+
+        # Test no time key
+        d = myokit.DataLog()
+        self.assertRaises(myokit.InvalidDataLogError, d.time)
+        try:
+            d.time()
+        except myokit.InvalidDataLogError as e:
+            self.assertIn('No time', str(e))
+
+    def test_variable_info_errors(self):
+        """
+        Tests errors raised during variable info checking.
+        """
+        # Test mismatched dimensions (1d versus 2d)
+        d = myokit.DataLog(time='t')
+        d['t'] = [1, 2, 3, 4]
+        d['0.v'] = [1, 2, 3, 4]
+        d['1.1.v'] = [1, 2, 3, 4]
+        self.assertRaises(RuntimeError, d.variable_info)
+        # Note: Valid log, so not an InvalidDataLogError
+        try:
+            d.variable_info()
+        except RuntimeError as e:
+            self.assertIn('Different dimensions', str(e))
+
+        # Test "irregular data": can't be arranged in a rectangular grid
+        d = myokit.DataLog(time='t')
+        d['t'] = [1, 2, 3, 4]
+        d['0.0.v'] = [1, 2, 3, 4]
+        d['0.2.v'] = [1, 2, 3, 4]
+        d['1.0.v'] = [1, 2, 3, 4]
+        d['1.1.v'] = [1, 2, 3, 4]
+        self.assertRaises(RuntimeError, d.variable_info)
+        # Note: Valid log, so not an InvalidDataLogError
+        try:
+            d.variable_info()
+        except RuntimeError as e:
+            self.assertIn('Irregular data', str(e))
+
+    def test_variable_info(self):
+        """
+        Tests if correct variable info is returned.
+        """
+        d = myokit.DataLog(time='t')
+        # Odd grid
+        d['0.0.v'] = [0, 1, 2, 3]
+        d['0.2.v'] = [1, 2, 3, 4]
+        d['1.0.v'] = [2, 3, 4, 5]
+        d['1.2.v'] = [3, 4, 5, 6]
+        d['3.0.v'] = [4, 5, 6, 7]
+        d['3.2.v'] = [5, 6, 7, 8]
+        # Nice grid
+        d['0.0.w'] = [0, 1, 2, 3]
+        d['0.1.w'] = [1, 2, 3, 4]
+        d['1.0.w'] = [2, 3, 4, 5]
+        d['1.1.w'] = [3, 4, 5, 6]
+        d['2.0.w'] = [4, 5, 6, 7]
+        d['2.1.w'] = [5, 6, 7, 8]
+        i = d.variable_info()
+
+        # Check found variables
+        self.assertEqual(set(i.keys()), set(['v', 'w']))
+
+        # Check if data is in a regular grid
+        v = i['v']
+        w = i['w']
+        self.assertFalse(v.is_regular_grid())
+        self.assertTrue(w.is_regular_grid())
+
+        # Check ids
+        vids = [(0, 0), (0, 2), (1, 0), (1, 2), (3, 0), (3, 2)]
+        self.assertEqual(list(v.ids()), vids)
+        wids = [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
+        self.assertEqual(list(w.ids()), wids)
+
+        # Check keys
+        viter = v.keys()
+        for vid in vids:
+            self.assertEqual(
+                str(vid[0]) + '.' + str(vid[1]) + '.' + 'v', next(viter))
+        witer = w.keys()
+        for wid in wids:
+            self.assertEqual(
+                str(wid[0]) + '.' + str(wid[1]) + '.' + 'w', next(witer))
+
+        # Check size
+        self.assertEqual(v.size(), (3, 2))
+        self.assertEqual(w.size(), (3, 2))
+
+        # Check name
+        self.assertEqual(v.name(), 'v')
+        self.assertEqual(w.name(), 'w')
 
 
 if __name__ == '__main__':
