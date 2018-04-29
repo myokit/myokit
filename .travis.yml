@@ -43,10 +43,8 @@ before_install:
 
 # Install Python dependencies
 install:
-  # Install main components
-  - pip install -e .[dev, optional]
-  # Install optional extras (needed for unit tests and docs)
-  - pip install sympy
+  # Install Myokit with extra dependencies
+  - pip install -e .[dev,optional]
   # Install cover checking libraries
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
   # Install style checking code
