@@ -14,7 +14,13 @@ import re
 import sys
 import parser
 import traceback
-from cStringIO import StringIO
+
+try:
+    # Python 2
+    from cStringIO import StringIO
+except ImportError:
+    # Python3
+    from io import StringIO
 
 
 class TemplateEngine(object):
@@ -55,16 +61,20 @@ class TemplateEngine(object):
         """
         # Reset error log
         self.error = None
+
         # Check input
         if not type(variables) == dict:
             raise ValueError(
                 'Second argument passed to process() must be dict'
                 ' (variable_name : value)')
+
         # Convert script, any exceptions are thrown as PypeErrors
         script = self._convert(filename)
+
         # Get or create output stream
         stdout = self.stream if self.stream else StringIO()
         stderr = StringIO()
+
         # Run and handle errors
         error = None
         try:
@@ -83,10 +93,12 @@ class TemplateEngine(object):
                     sys.stdout = sysout
                 if syserr:
                     sys.stderr = syserr    # Ignore error output
+
             if error:
                 # Add exception traceback to error message
                 msg = [traceback.format_exc()]
                 line = None
+
                 # Search for error occurring in <string> (IE the executable
                 # template)
                 try:
@@ -107,6 +119,7 @@ class TemplateEngine(object):
                             next = next.tb_next
                     finally:
                         del(next)
+
                 if line:
                     # Error during template execution
                     sep = '- ' * 39 + '-'
@@ -122,6 +135,7 @@ class TemplateEngine(object):
                     msg.append(msg[0])
                 self.error = '\n'.join(msg)
                 raise PypeError('Error during template execution step.')
+
         finally:
             # Retrieving stack in except clause creates self reference in
             # stack, causing the garbage handler never to delete it. Solve
@@ -129,6 +143,7 @@ class TemplateEngine(object):
             # See: http://docs.python.org/library/sys.html#sys.exc_info
             if error:
                 del(error)
+
         # Custom stream? Then don't interfere. If not, return stream contents.
         if self.stream:
             return
@@ -141,6 +156,7 @@ class TemplateEngine(object):
         """
         with open(source, 'r') as f:
             source = f.read()
+
         # Define token recognising regex, helpers
         tags = [r'<\?=', r'<\?', r'\?>']
         rTags = re.compile('(' + '|'.join(tags) + ')')
@@ -148,23 +164,28 @@ class TemplateEngine(object):
         rEol = re.compile('[\n]{1}')
         rWhite = re.compile(r'[ \f\t]*')
         indent = ''
+
         # Convert
         tag_open = None
         out = ['import sys']
         for part in rTags.split(source):
+
             if part == '?>':
                 if tag_open is None:
                     self.error = 'Closing tag found without opening tag'
                     raise PypeError(self.error)
                 tag_open = None
+
             elif part == '<?' or part == '<?=':
                 if tag_open is not None:
                     self.error = 'Nested opening tag found'
                     raise PypeError(self.error)
                 tag_open = part
+
             elif part == '"""':
                 out.append('me!')
                 out.append(indent + 'sys.stdout.write(\'"""\')')
+
             elif tag_open == '<?':
                 # Full python statement, remember final indenting
                 lines = rEol.split(part)
@@ -175,6 +196,7 @@ class TemplateEngine(object):
                 m = rWhite.match(line)
                 indent = line[0:m.end()]
                 out.append(part)
+
             elif tag_open == '<?=':
                 # Quick printing statement, python code must be expression
                 part = part.strip()
@@ -187,8 +209,10 @@ class TemplateEngine(object):
                     err.append(msg)
                     self.error = '\n'.join(err)
                     raise PypeError(msg)
+
                 out.append(
                     indent + 'sys.stdout.write(str(' + part + '))')
+
             else:
                 # Non-python code, just print
                 # Triple quoted strings should be handled separately
@@ -196,17 +220,21 @@ class TemplateEngine(object):
                     if part == '"""':
                         out.append(indent + 'sys.stdout.write(\'"""\')')
                         continue
+
                     # If part ends in a ", this will cause problems, so...
                     nQuotes = 0
                     while part[-1:] == '"':
                         part = part[0:-1]
                         nQuotes += 1
+
                     out.append(
                         indent + 'sys.stdout.write(r"""' + part + '""")')
+
                     if nQuotes > 0:
                         out.append(
                             indent + 'sys.stdout.write(\'' + '"' * nQuotes
                             + '\')')
+
         return '\n'.join(out)
 
     def set_output_stream(self, stream):
