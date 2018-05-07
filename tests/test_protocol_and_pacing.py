@@ -173,6 +173,14 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(s.time(), 10)
         self.assertEqual(s.next_time(), 11)
         self.assertEqual(s.pace(), 2)
+        self.assertRaisesRegexp(ValueError, 'cannot be before', s.advance, 0)
+
+        # Test max time
+        s.advance(20, max_time=13)
+        self.assertEqual(s.time(), 13)
+        self.assertEqual(s.next_time(), 13)
+        self.assertEqual(s.pace(), 0)
+
         p = myokit.Protocol()
         p.schedule(2, 1, 1, 10, 0)
         s = myokit.PacingSystem(p)

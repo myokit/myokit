@@ -703,21 +703,27 @@ class PacingSystem(object):
         new_time = float(new_time)
         if self._time > new_time:
             raise ValueError('New time cannot be before the current time.')
+
         if max_time is not None:
             max_time = float(max_time)
             if new_time > max_time:
                 new_time = max_time
+
         self._time = new_time
+
         # Advance pacing system
         while self._tnext <= self._time:
+
             # Stop at max_time, if given
             if max_time is not None:
                 if self._tnext == max_time:
                     break
+
             # Active event finished
             if self._fire and self._tnext >= self._tdown:
                 self._fire = None
                 self._pace = 0
+
             # New event starting
             e = self._protocol._head
             if e and self._time >= e._start:
@@ -725,27 +731,30 @@ class PacingSystem(object):
                 self._fire = e
                 self._tdown = e._start + e._duration
                 self._pace = e._level
+
                 # Reschedule recurring events
                 if e._period > 0 and e._multiplier != 1:
                     if e._multiplier > 1:
                         e._multiplier -= 1
                     e._start += e._period
                     self._protocol.add(e)
+
             # Next stopping time
             if max_time is not None:
                 self._tnext = max_time
             else:
                 self._tnext = float('inf')
+
             if self._fire and self._tnext > self._tdown:
                 self._tnext = self._tdown
             if e and self._tnext > e._start:
                 self._tnext = e._start
+
         return self._pace
 
     def next_time(self):
         """
-        Returns the next time the value of the pacing variable will be
-        updated.
+        Returns the next time the pacing system will halt at.
         """
         return self._tnext
 
