@@ -10,12 +10,12 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import os
 import unittest
 
-import myokit, myokit.pype
+import myokit
+import myokit.pype
 
-from shared import TemporaryDirectory, DIR_DATA
+from shared import TemporaryDirectory
 
 
 class PypeTest(unittest.TestCase):
@@ -30,24 +30,44 @@ class PypeTest(unittest.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'dict', e.process, 'file.txt', [])
 
-        self.error("""<?print(1/0) ?>""", {}, 'ZeroDivisionError')
+        # Test not-a-file
+        self.assertRaises(IOError, e.process, 'file.txt', {})
 
-    def error(self, template, args, message):
+        # Test simple error
+        self.e("""<?print(1/0) ?>""", {}, 'ZeroDivisionError')
+
+        # Test closing without opening
+        self.e("""Hello ?>""", {}, 'without opening tag')
+
+        # Opening without closing is allowed
+        self.e("""<?print('hi')""", {})
+
+        # Nested opening
+        self.e("""<?print('hi')<?print('hello')?>""", {}, 'Nested opening tag')
+
+        # Too much inside <?=?>
+        self.e("""<?=print('hi')?>""", {}, 'contain a single')
+
+    def e(self, template, args, expected_error=None):
         """
-        Runs a template, returns any error raised.
+        Runs a template, if an error is expected it checks if it's the right
+        one, otherwise simply raises it.
         """
         with TemporaryDirectory() as d:
             path = d.path('template')
             with open(path, 'w') as f:
                 f.write(template)
             e = myokit.pype.TemplateEngine()
-            try:
+            if expected_error is None:
                 e.process(path, args)
-            except myokit.pype.PypeError:
-                # Check expected message in error details
-                self.assertIn(message, e.error_details())
-                return
-            raise RuntimeError('PypeError not raised.')
+            else:
+                try:
+                    e.process(path, args)
+                except myokit.pype.PypeError:
+                    # Check expected message in error details
+                    self.assertIn(expected_error, e.error_details())
+                    return
+                raise RuntimeError('PypeError not raised.')
 
 
 if __name__ == '__main__':

@@ -145,10 +145,7 @@ class TemplateEngine(object):
                 del(error)
 
         # Custom stream? Then don't interfere. If not, return stream contents.
-        if self.stream:
-            return
-        else:
-            return stdout.getvalue()
+        return None if self.stream else stdout.getvalue()
 
     def _convert(self, source):
         """
