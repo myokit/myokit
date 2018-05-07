@@ -51,6 +51,9 @@ class PypeTest(unittest.TestCase):
         # Triple quote should be allowed
         self.e('''Hello"""string"""yes''', {})
 
+        # OSError from inside pype
+        self.e("""Hello<?open('file.txt', 'r')?>yes""", {}, 'No such file')
+
     def e(self, template, args, expected_error=None):
         """
         Runs a template, if an error is expected it checks if it's the right
