@@ -24,6 +24,7 @@ class PacingTest(unittest.TestCase):
     Contains tests for the Protocol class, ProtocolEvent, PacingSystem and
     the C implementation of pacing.
     """
+
     def test_event_creation(self):
         """
         Tests the basics of creating events.
@@ -247,6 +248,41 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(d.time(), t)
         self.assertEqual(d['pace'], v)
 
+        # Empty times
+        d = p.create_log_for_times([])
+        self.assertEqual(len(d.time()), 0)
+        self.assertEqual(len(d['pace']), 0)
+
+        # Decreasing times
+        self.assertRaisesRegexp(
+            ValueError, 'non-decreasing', p.create_log_for_times, [1, 0])
+
+        # Negative times
+        self.assertRaisesRegexp(
+            ValueError, 'negative', p.create_log_for_times, [-1, 0])
+
+    def test_in_words(self):
+        """
+        Tests :meth:`Protocol.in_words()`.
+        """
+        p = myokit.Protocol()
+        self.assertEqual(p.in_words(), 'Empty protocol.')
+
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 1000, 2)
+        self.assertEqual(
+            p.in_words(),
+            'Stimulus of 2.0 times the normal level applied at t=10.0, '
+            'lasting 100.0 and occurring 2 times with a period of 1000.0.')
+
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 1000, 0)
+        self.assertEqual(
+            p.in_words(),
+            'Stimulus of 2.0 times the normal level applied at t=10.0,'
+            ' lasting 100.0 and recurring indefinitely'
+            ' with a period of 1000.0.')
+
     def test_guess_duration(self):
         """
         Deprecated method.
@@ -413,6 +449,132 @@ class PacingTest(unittest.TestCase):
         test(1.75, 4.75)
         test(6, 10.5)
         test(5.5, 10.25)
+
+    def test_is_infinite(self):
+        """ Tests :meth:`Protocol.is_infinite(). """
+        p = myokit.Protocol()
+        self.assertFalse(p.is_infinite())
+
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 1000, 2)
+        self.assertFalse(p.is_infinite())
+
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 1000, 2)
+        p.schedule(2, 1, 1, 1000, 0)
+        self.assertTrue(p.is_infinite())
+
+    def test_is_sequence(self):
+        """ Tests :meth:`Protocol.is_sequence(). """
+        p = myokit.Protocol()
+        self.assertTrue(p.is_sequence())
+        self.assertTrue(p.is_sequence(True))
+        self.assertTrue(p.is_unbroken_sequence())
+        self.assertTrue(p.is_unbroken_sequence(True))
+
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 1000, 2)
+        self.assertFalse(p.is_sequence())
+        self.assertRaisesRegexp(
+            Exception, 'contains periodic', p.is_sequence, True)
+        self.assertFalse(p.is_unbroken_sequence())
+        self.assertRaisesRegexp(
+            Exception, 'contains periodic', p.is_unbroken_sequence, True)
+
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 1000, 2)
+        p.schedule(2, 1, 1, 1000, 0)
+        self.assertFalse(p.is_sequence())
+        self.assertRaisesRegexp(
+            Exception, 'contains periodic', p.is_sequence, True)
+        self.assertFalse(p.is_unbroken_sequence())
+        self.assertRaisesRegexp(
+            Exception, 'contains periodic', p.is_unbroken_sequence, True)
+
+        # Overlapping events
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 0, 0)
+        p.schedule(2, 12, 1, 0, 0)
+        p.schedule(2, 420, 1, 0, 0)
+        self.assertFalse(p.is_sequence())
+        self.assertRaisesRegexp(
+            Exception, 'overlap', p.is_sequence, True)
+        self.assertFalse(p.is_unbroken_sequence())
+        self.assertRaisesRegexp(
+            Exception, 'overlap', p.is_unbroken_sequence, True)
+
+        # Non-overlapping events
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 0, 0)
+        p.schedule(2, 120, 1, 0, 0)
+        p.schedule(2, 420, 1, 0, 0)
+        self.assertTrue(p.is_sequence())
+        self.assertTrue(p.is_sequence(True))
+        self.assertFalse(p.is_unbroken_sequence())
+        self.assertRaisesRegexp(
+            Exception, 'start directly after', p.is_unbroken_sequence, True)
+
+        # Unbroken sequence
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 0, 0)
+        p.schedule(2, 110, 310, 0, 0)
+        p.schedule(2, 420, 1, 0, 0)
+        self.assertTrue(p.is_sequence())
+        self.assertTrue(p.is_sequence(True))
+        self.assertTrue(p.is_unbroken_sequence())
+        self.assertTrue(p.is_unbroken_sequence(True))
+
+    def test_levels(self):
+        """ Tests :meth:`Protocol.levels(). """
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 0, 0)
+        p.schedule(3, 110, 310, 0, 0)
+        p.schedule(1, 420, 1, 0, 0)
+        self.assertTrue(p.is_unbroken_sequence())
+        self.assertEqual(p.levels(), [2, 3, 1])
+
+    def test_range(self):
+        """ Tests :meth:`Protocol.range(). """
+        p = myokit.Protocol()
+        self.assertEqual(p.range(), (0, 0))
+
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 0, 0)
+        p.schedule(3, 110, 310, 0, 0)
+        p.schedule(1, 420, 1, 0, 0)
+        self.assertTrue(p.is_unbroken_sequence())
+        self.assertEqual(p.range(), (0, 3))
+
+        p = myokit.Protocol()
+        p.schedule(2, 0, 110, 0, 0)
+        p.schedule(3, 110, 310, 0, 0)
+        p.schedule(1, 420, 1, 0, 0)
+        self.assertTrue(p.is_unbroken_sequence())
+        self.assertEqual(p.range(), (1, 3))
+
+    def test_protocol_to_string(self):
+        """ Tests str(protocol). """
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 0, 0)
+        p.schedule(3, 110, 310, 0, 0)
+        p.schedule(1, 420, 1, 0, 0)
+        self.assertEqual(p.code(), str(p))
+
+    def test_tail(self):
+        """
+        Tests :meth:`Protocol.tail()`, which returns the final protocol event.
+        """
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 0, 0)
+        p.schedule(3, 110, 310, 0, 0)
+        p.schedule(1, 420, 1, 0, 0)
+        self.assertEqual(p.tail().start(), 420)
+
+        p = myokit.Protocol()
+        p.schedule(1, 420, 1, 0, 0)
+        p.schedule(2, 10, 100, 0, 0)
+        p.schedule(3, 110, 310, 0, 0)
+        self.assertEqual(p.tail().start(), 420)
 
 
 if __name__ == '__main__':

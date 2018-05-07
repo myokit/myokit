@@ -264,7 +264,7 @@ class Protocol(object):
         Returns a description of this protocol in words.
         """
         if self._head is None:
-            return "Empty protocol"
+            return 'Empty protocol.'
         out = []
         e = self._head
         while e is not None:
@@ -359,7 +359,7 @@ class Protocol(object):
                         + ' which finishes at t=' + str(t) + '.')
             return True
         if exception:
-            check()
+            return check()
         else:
             try:
                 return check()
@@ -408,13 +408,22 @@ class Protocol(object):
     def range(self):
         """
         Returns the minimum and maximum levels set in this protocol.
+        Will return ``0, 0`` for empty protocols.
         """
-        lo, hi = 0, 0
         e = self._head
+        if e is None:
+            return 0, 0
+
+        if e._start > 0:
+            lo = hi = 0
+        else:
+            lo = hi = e._level
+
         while e is not None:
             lo = min(e._level, lo)
             hi = max(e._level, hi)
             e = e._next
+
         return lo, hi
 
     def schedule(self, level, start, duration, period=0, multiplier=0):
