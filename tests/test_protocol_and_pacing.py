@@ -62,6 +62,7 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(f.duration(), 0.5)
         self.assertEqual(f.period(), 0)
         self.assertEqual(f.multiplier(), 0)
+        self.assertEqual(f.stop(), 10.5)
 
         # Invalid event: period is zero but multiplier is not
         self.assertRaises(
@@ -280,6 +281,19 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(
             p.in_words(),
             'Stimulus of 2.0 times the normal level applied at t=10.0,'
+            ' lasting 100.0 and recurring indefinitely'
+            ' with a period of 1000.0.')
+        self.assertEqual(p.in_words(), str(p.tail()))
+
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 1000, 0)
+        p.schedule(2, 300, 100, 1000, 0)
+        self.assertEqual(
+            p.in_words(),
+            'Stimulus of 2.0 times the normal level applied at t=10.0,'
+            ' lasting 100.0 and recurring indefinitely'
+            ' with a period of 1000.0.\n'
+            'Stimulus of 2.0 times the normal level applied at t=300.0,'
             ' lasting 100.0 and recurring indefinitely'
             ' with a period of 1000.0.')
 
