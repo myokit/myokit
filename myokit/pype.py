@@ -181,11 +181,7 @@ class TemplateEngine(object):
 
             elif tag_open == '<?':
                 # Full python statement, remember final indenting
-                lines = rEol.split(part)
-                if lines:
-                    line = lines.pop()
-                else:
-                    line = part
+                line = rEol.split(part).pop()
                 m = rWhite.match(line)
                 indent = line[0:m.end()]
                 out.append(part)
