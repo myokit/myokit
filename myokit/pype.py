@@ -106,7 +106,7 @@ class TemplateEngine(object):
                     # property is set and if it is equal to <string>
                     if error[1].filename == '<string>':
                         line = error[1].lineno
-                except Exception:
+                except AttributeError:
                     # No filename or lineno property or filename not equal to
                     # <string>. Attempt to scan the strack trace for a frame
                     # with filename <string> and extract the line number.
@@ -156,8 +156,8 @@ class TemplateEngine(object):
 
         # Define token recognising regex, helpers
         tags = [r'<\?=', r'<\?', r'\?>']
-        rTags = re.compile('(' + '|'.join(tags) + ')')
-        rQuot = re.compile('(""")')
+        rTags = re.compile(r'(' + '|'.join(tags) + ')')
+        rQuot = re.compile(r'(""")')
         rEol = re.compile('[\n]{1}')
         rWhite = re.compile(r'[ \f\t]*')
         indent = ''
@@ -178,9 +178,6 @@ class TemplateEngine(object):
                     self.error = 'Nested opening tag found'
                     raise PypeError(self.error)
                 tag_open = part
-
-            elif part == '"""':
-                out.append(indent + 'sys.stdout.write(\'"""\')')
 
             elif tag_open == '<?':
                 # Full python statement, remember final indenting
