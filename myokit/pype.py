@@ -180,7 +180,6 @@ class TemplateEngine(object):
                 tag_open = part
 
             elif part == '"""':
-                out.append('me!')
                 out.append(indent + 'sys.stdout.write(\'"""\')')
 
             elif tag_open == '<?':

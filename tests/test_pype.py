@@ -48,6 +48,9 @@ class PypeTest(unittest.TestCase):
         # Too much inside <?=?>
         self.e("""<?=print('hi')?>""", {}, 'contain a single')
 
+        # Triple quote should be allowed
+        self.e('''Hello"""string"""yes''', {})
+
     def e(self, template, args, expected_error=None):
         """
         Runs a template, if an error is expected it checks if it's the right
