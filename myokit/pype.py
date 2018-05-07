@@ -105,7 +105,9 @@ class TemplateEngine(object):
                     # Try checking the last exception, see if its filename
                     # property is set and if it is equal to <string>
                     if error[1].filename == '<string>':
-                        line = error[1].lineno
+                        line = error[1].lineno  # pragma: no cover
+                    else:
+                        raise AttributeError
                 except AttributeError:
                     # No filename or lineno property or filename not equal to
                     # <string>. Attempt to scan the strack trace for a frame
