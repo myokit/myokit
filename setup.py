@@ -10,11 +10,12 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from setuptools import setup, find_packages
 
+
 # Get version number
 import os
 import sys
 sys.path.append(os.path.abspath('myokit'))
-from __version__ import VERSION as version
+from _myokit_version import VERSION as version  # noqa
 sys.path.pop()
 del(os, sys)
 

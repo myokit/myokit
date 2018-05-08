@@ -6,6 +6,7 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
+import sys
 
 # True if this is a release, False for a development version
 RELEASE = False
@@ -24,7 +25,5 @@ if not RELEASE:
     VERSION += '.dev'
 
 # Don't expose x on Python2
-import sys
 if not sys.hexversion > 0x03000000:
     del(x)
-del(sys)

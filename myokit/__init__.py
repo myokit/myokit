@@ -59,7 +59,8 @@ elif sys.hexversion >= 0x03040000:
 #
 # Version information
 #
-from .__version__ import RELEASE, VERSION_INT, VERSION
+from ._myokit_version import RELEASE, VERSION_INT, VERSION  # noqa
+
 
 # Myokit version
 def version(raw=False):
