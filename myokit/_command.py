@@ -254,37 +254,40 @@ def mmt_export(exporter, source, target):
     exporter = myokit.formats.exporter(exporter)
 
     # Set to auto-print
-    exporter.set_live(True)
-    exporter.log_flair(str(exporter.__class__.__name__))
+    logger = exporter.logger()
+    logger.set_live(True)
+    logger.log_flair(str(exporter.__class__.__name__))
 
     # Parse input file
     try:
-        exporter.log('Reading model from ' + myokit.format_path(source))
+        logger.log('Reading model from ' + myokit.format_path(source))
         model, protocol, script = myokit.load(source)
     except myokit.ParseError as ex:
-        exporter.log(myokit.format_parse_error(ex, source))
+        logger.log(myokit.format_parse_error(ex, source))
         sys.exit(1)
+
     # Must have model
     if model is None:
-        exporter.log('Error: Imported file must contain model definition.')
+        logger.log('Error: Imported file must contain model definition.')
         sys.exit(1)
     else:
-        exporter.log('Model read successfully')
+        logger.log('Model read successfully')
+
     # Export model or runnable
     if exporter.supports_model():
         # Export model
-        exporter.log('Exporting model')
+        logger.log('Exporting model')
         exporter.model(target, model)
     else:
         # Export runnable
-        exporter.log('Exporting runnable')
+        logger.log('Exporting runnable')
         if protocol is None:
-            exporter.log('No protocol found.')
+            logger.log('No protocol found.')
         else:
-            exporter.log('Using embedded protocol.')
+            logger.log('Using embedded protocol.')
         exporter.runnable(target, model, protocol)
-    exporter.log_flair('Export successful')
-    exporter.log(exporter.info())
+    logger.log_flair('Export successful')
+    logger.log(exporter.info())
 
 
 def add_export_parser(subparsers):
@@ -413,10 +416,13 @@ def mmt_import(importer, source, target=None):
     # Get importer
     importer = myokit.formats.importer(importer)
 
+    # Get logger
+    logger = importer.logger()
+
     # If a target is specified, set the importer to live logging mode
     if target:
-        importer.set_live(True)
-    importer.log_flair(str(importer.__class__.__name__))
+        logger.set_live(True)
+    logger.log_flair(str(importer.__class__.__name__))
 
     # Import
     m = importer.model(source)
@@ -424,9 +430,9 @@ def mmt_import(importer, source, target=None):
     # If a target is specified, save the output
     if target:
         # Save or output model to new location
-        importer.log('Saving output to ' + str(target))
+        logger.log('Saving output to ' + str(target))
         myokit.save(target, m)
-        importer.log('Done.')
+        logger.log('Done.')
     else:
         # Write it to screen
         print(myokit.save(None, m))
