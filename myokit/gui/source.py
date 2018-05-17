@@ -1050,13 +1050,16 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
     """
     def __init__(self, document):
         super(ScriptHighlighter, self).__init__(document)
+
         # Highlighting rules
         self._rules = []
+
         # Numbers
         style = QtGui.QTextCharFormat()
         style.setForeground(QtGui.QColor(255, 0, 255))
         pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
         self._rules.append((pattern, style))
+
         # True/False/None
         style = QtGui.QTextCharFormat()
         style.setForeground(QtGui.QColor(255, 0, 255))
@@ -1066,12 +1069,14 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         self._rules.append((pattern, style))
         pattern = QtCore.QRegExp(r'\bNone\b')
         self._rules.append((pattern, style))
+
         # Built-in essential functions
         style = QtGui.QTextCharFormat()
         style.setForeground(QtGui.QColor(0, 128, 128))
         for func in _PYFUNC:
             pattern = QtCore.QRegExp(r'\b' + str(func) + r'\b')
             self._rules.append((pattern, style))
+
         # Keywords
         import keyword
         style = QtGui.QTextCharFormat()
@@ -1080,6 +1085,7 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         for kw in keyword.kwlist:
             pattern = QtCore.QRegExp(r'\b' + kw + r'\b')
             self._rules.append((pattern, style))
+
         # Strings
         self._string_style = QtGui.QTextCharFormat()
         self._string_style.setForeground(QtGui.QColor(255, 0, 255))
@@ -1087,9 +1093,11 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         self._rules.append((pattern, self._string_style))
         pattern = QtCore.QRegExp(r"'([^'\\]|\\')*'")
         self._rules.append((pattern, self._string_style))
+
         # Multi-line strings
         self._string1 = QtCore.QRegExp(r"'''")
         self._string2 = QtCore.QRegExp(r'"""')
+
         # Comments
         style = QtGui.QTextCharFormat()
         style.setForeground(QtGui.QColor(20, 20, 255))
@@ -1120,22 +1128,28 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         def find_start(text, next):
             s1 = self._string1.indexIn(text, next)
             s2 = self._string2.indexIn(text, next)
-            if s1 >= 0 and s2 >= 0:
-                current = 1 if s1 < s2 else 2
-                start = min(s1, s2)
-                next = start + 3
-            elif s1 >= 0:
-                current = 1
-                start = s1
-                next = start + 3
-            elif s2 >= 0:
-                current = 2
-                start = s2
-                next = start + 3
-            else:
+            if s1 < 0 and s2 < 0:
                 current = 0
                 start = -1
                 next = -1
+            else:
+                if s1 >= 0 and s2 >= 0:
+                    current = 1 if s1 < s2 else 2
+                    start = min(s1, s2)
+                elif s1 >= 0:
+                    current = 1
+                    start = s1
+                elif s2 >= 0:
+                    current = 2
+                    start = s2
+                next = start + 3
+
+                # Check we're not in a comment
+                i = text.rfind('\n', start) + 1
+                if text[i:i + 1] == '#':
+                    current = 0
+                    start = end = -1
+
             return current, start, next
         # Check state of previous block
         previous = self.previousBlockState()
