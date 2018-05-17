@@ -408,6 +408,24 @@ class ExpressionsTest(unittest.TestCase):
         self.assertEqual(x.pystr(use_numpy=False), '3.0 * math.sqrt(v)')
         self.assertEqual(x.pystr(use_numpy=True), '3.0 * numpy.sqrt(v)')
 
+    def test_tree_str(self):
+        """
+        Tests :meth:`Expression.tree_str()`.
+        More extensive testing of this method should happen in the individual
+        expression tests.
+        """
+        x = myokit.parse_expression('1 + 2 * 3 / 4')
+        self.assertEqual(x.tree_str(), '\n'.join([
+            '+',
+            '  1',
+            '  /',
+            '    *',
+            '      2',
+            '      3',
+            '    4',
+            '',
+        ]))
+
 
 if __name__ == '__main__':
     unittest.main()
