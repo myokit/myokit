@@ -1569,27 +1569,30 @@ def prepare_log(
             try:
                 v = model.get(var)
             except KeyError:
-                raise Exception(
+                raise ValueError(
                     'Unknown variable specified in global_vars <'
                     + str(var) + '>.')
             if v.is_state():
-                raise Exception('State cannot be global variable.')
+                raise ValueError('State cannot be global variable.')
 
     # Function to check if variable is allowed (doesn't handle derivatives)
     def check_if_allowed_class(var):
         if var.is_constant():
-            raise Exception('This log does not support constants.')
+            raise ValueError('This log does not support constants.')
         elif var.is_state():
             if not myokit.LOG_STATE & allowed_classes:
-                raise Exception('This log does not support state variables.')
+                raise ValueError('This log does not support state variables.')
         elif var.is_bound():
             if not myokit.LOG_BOUND & allowed_classes:
-                raise Exception('This log does not support bound variables.')
+                raise ValueError('This log does not support bound variables.')
         elif not myokit.LOG_INTER & allowed_classes:
-            raise Exception(
+            raise ValueError(
                 'This log does not support intermediary variables.')
 
+    #
     # First option, no log argument given, use the "if_empty" option
+    #
+
     if log is None:
         # Check if if_empty matches allowed_classes
         # (AKA test if ``if_empty`` is contained in ``allowed_classes``)
@@ -1597,30 +1600,41 @@ def prepare_log(
             log = if_empty
         else:
             # This one's only for programmers :-)
-            raise Exception('if_empty option not contained in allowed_classes')
+            raise ValueError(
+                'The option given for `if_empty` should be an allowed class.')
 
+    #
     # Second option, log given as integer flag: create a simulation log and
     # return it.
+    #
+
     if type(log) == int:
+
         # Log argument given as flag
         flag = log
         log = myokit.DataLog()
         if flag == myokit.LOG_ALL:
             flag = allowed_classes
+
         if myokit.LOG_STATE & flag:
+
             # Check if allowed
             if not (myokit.LOG_STATE & allowed_classes):
-                raise Exception('This log does not support state variables.')
+                raise ValueError('This log does not support state variables.')
+
             # Add states
             for s in model.states():
                 name = s.qname()
                 for c in dcombos:
                     log[c + name] = array.array(typecode)
             flag -= myokit.LOG_STATE
+
         if myokit.LOG_BOUND & flag:
+
             # Check if allowed
             if not (myokit.LOG_BOUND & allowed_classes):
-                raise Exception('This log does not support bound variables.')
+                raise ValueError('This log does not support bound variables.')
+
             # Add bound variables
             for label, var in model.bindings():
                 name = var.qname()
@@ -1630,11 +1644,14 @@ def prepare_log(
                     for c in dcombos:
                         log[c + name] = array.array(typecode)
             flag -= myokit.LOG_BOUND
+
         if myokit.LOG_INTER & flag:
+
             # Check if allowed
             if not (myokit.LOG_INTER & allowed_classes):
-                raise Exception(
+                raise ValueError(
                     'This log does not support intermediary variables.')
+
             # Add intermediary variables
             for var in model.variables(inter=True, deep=True):
                 name = var.qname()
@@ -1644,154 +1661,196 @@ def prepare_log(
                     for c in dcombos:
                         log[c + name] = array.array(typecode)
             flag -= myokit.LOG_INTER
+
         if myokit.LOG_DERIV & flag:
+
             # Check if allowed
             if not (myokit.LOG_DERIV & allowed_classes):
-                raise Exception('This log does not support time-derivatives.')
+                raise ValueError('This log does not support time-derivatives.')
+
             # Add state derivatives
             for var in model.states():
                 name = var.qname()
                 for c in dcombos:
                     log['dot(' + c + name + ')'] = array.array(typecode)
             flag -= myokit.LOG_DERIV
+
         if flag != 0:
-            raise Exception('One or more unknown flags given as log.')
+            raise ValueError('One or more unknown flags given as log.')
+
         # Set time variable
         time = model.time().qname()
         if time in log:
             log.set_time_key(time)
+
         # Return
         return log
 
+    #
     # Third option, a dict or DataLog is given. Test if it's suitable for this
     # simulation.
+    #
+
     if isinstance(log, dict):
+
         # Ensure it's a DataLog
         if not isinstance(log, myokit.DataLog):
             log = myokit.DataLog(log)
+
         # Set time variable
         time = model.time().qname()
         if time in log:
             log.set_time_key(time)
+
         # Ensure the log is valid
         log.validate()
+
         # Check dict keys
         keys = set(log.keys())
         if len(keys) == 0:
             return log
+
         for key in keys:
             # Handle derivatives
             deriv = key[0:4] == 'dot(' and key[-1:] == ')'
             if deriv:
                 key = key[4:-1]
+
             # Split of index / name
             kdims, kname = split_key(key)
+
             # Test name-key
             try:
                 var = model.get(kname)
             except KeyError:
-                raise Exception(
+                raise ValueError(
                     'Unknown variable <' + str(kname) + '> in log.')
+
             # Check if in class of allowed variables
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
-                    raise Exception('This log does not support derivatives.')
+                    raise ValueError('This log does not support derivatives.')
                 if not var.is_state():
-                    raise Exception(
+                    raise ValueError(
                         'Cannot log time derivative of non-state <'
                         + var.qname() + '>.')
             else:
                 check_if_allowed_class(var)
+
             # Check dimensions
             if kdims:
+
                 # Raise error if global
                 if kname in global_vars:
-                    raise Exception(
-                        'Cannot specify a cell index for global'
-                        ' logging variable <' + str(kname) + '>.')
+                    raise ValueError(
+                        'Cannot specify a cell index for global logging'
+                        ' variable <' + str(kname) + '>.')
+
                 # Test dim key
                 if kdims not in dcombos:
-                    raise Exception(
+                    raise ValueError(
                         'Invalid index <' + str(kdims) + '> in log.')
+
             elif dims:
+
                 # Raise error if non-global variable is used in multi-cell log
                 if kname not in global_vars:
-                    raise Exception(
+                    raise ValueError(
                         'DataLog contains non-indexed entry for'
                         ' cell-specific variable <' + str(kname) + '>.')
+
         # Check dict values can be appended to
         m = 'append'
         for v in log.values():
             if not (hasattr(v, m) and callable(getattr(v, m))):
-                raise Exception(
+                raise ValueError(
                     'Logging dict must map qnames to objects'
                     ' that support the append() method.')
+
         # Return
         return log
+
+    #
+    # Fourth option, a sequence of variable names, either global or local.
+    #
 
     # Check if list interface works
     # If not, then raise exception
     try:
         if len(log) > 0:
-            x = log[0]
+            log[0]
     except Exception:
-        raise Exception(
-            'Argument `log` has unexpected type. Expecting None,'
-            ' integer flag, sequence of names, dict or DataLog.')
+        raise ValueError(
+            'Argument `log` has unexpected type. Expecting None, integer flag,'
+            ' sequence of names, dict or DataLog.')
+
     if isinstance(log, str) or isinstance(log, unicode):
-        raise Exception(
+        raise ValueError(
             'String passed in as `log` argument, should be list'
             ' or other sequence containing strings.')
 
-    # Fourth option, a sequence of variable names, either global or local.
+    # Parse log argument as list
     lst = log
     log = myokit.DataLog()
     checked_knames = set()
     for key in lst:
+
         # Allow variable objects and LhsExpressions
         if isinstance(key, myokit.Variable):
             key = key.qname()
         elif isinstance(key, myokit.LhsExpression):
             key = str(key)
+
         # Handle derivatives
         deriv = key[0:4] == 'dot(' and key[-1:] == ')'
         if deriv:
             key = key[4:-1]
+
         # Split off cell indexes
         kdims, kname = split_key(key)
+
         # Don't re-test multi-dim vars
         if kname not in checked_knames:
+
             # Test if name key points to valid variable
             try:
                 var = model.get(kname)
             except KeyError:
-                raise Exception(
-                    'Unknown variable <' + str(kname) + '> in log.')
+                raise ValueError(
+                    'Unknown variable <' + str(kname) + '> in list.')
+
             # Check if in class of allowed variables
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
-                    raise Exception(
+                    raise ValueError(
                         'This log does not support derivatives.')
                 if not var.is_state():
-                    raise Exception(
+                    raise ValueError(
                         'Cannot log time derivative of non-state <'
                         + var.qname() + '>.')
             else:
                 check_if_allowed_class(var)
             checked_knames.add(kname)
+
         # Add key to log
         if kdims:
+
             # Raise error if global
             if kname in global_vars:
-                raise Exception(
-                    'Cannot specify a cell index for global'
-                    ' logging variable <' + str(kname) + '>.')
+                raise ValueError(
+                    'Cannot specify a cell index for global logging variable'
+                    ' <' + str(kname) + '>.')
+
             # Test dim key
             if kdims not in dcombos:
-                raise Exception('Invalid index <' + str(kdims) + '> in log.')
+                raise ValueError(
+                    'Invalid index <' + str(kdims) + '> in list.')
+
             key = kdims + kname if not deriv else 'dot(' + kdims + kname + ')'
             log[key] = array.array(typecode)
+
         else:
+
             if kname in global_vars:
                 key = kname if not deriv else 'dot(' + kname + ')'
                 log[key] = array.array(typecode)

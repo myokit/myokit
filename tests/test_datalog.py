@@ -341,31 +341,9 @@ class DataLogTest(unittest.TestCase):
             e.keys_like('m.v'),
             ['0.0.m.v', '0.1.m.v', '1.0.m.v', '1.1.m.v'])
 
-    def test_prepare_1d(self):
+    def test_prepare_log_0d(self):
         """
-        Test the prepare_log function that handles the ``log`` argument passed
-        into simulations. This function can handle different types of input.
-        From its doc:
-
-        An existing simulation log
-            In this case, the log is tested for compatibility with the given
-            model and simulation dimensions. For multi-cellular simulations
-            this means all keys in the log must have the form
-            "x.component.variable" where "x" is the cell index (for example "1"
-            or "2.3").
-        A list (or other sequence) of variable names to log.
-            In this case, the list is converted to a DataLog object. All
-            arguments in the list must be either strings corresponding to the
-            variables' qnames (so "membrane.V") or variable objects from the
-            given model.
-            For multi-cell models, _only_ the qnames should be given (so
-            "membrane.V" is valid, while "1.2.membrane.V" is not.
-        An integer flag
-            For example ``myokit.LOG_NONE``, ``myokit.LOG_STATE`` or
-            ``myokit.LOG_STATE + myokit.LOG_BOUND``.
-        None
-            In this case the value from ``if_empty`` will be copied into log
-            before the function proceeds to build a log.
+        Tests the `prepare_log` method for single-cell simulations.
         """
         # Test multi-cell log preparing
         from myokit import prepare_log
@@ -375,10 +353,319 @@ class DataLogTest(unittest.TestCase):
         #
         # 1. Integer flags
         #
+
+        # No variables
+        d = prepare_log(myokit.LOG_NONE, m)
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertEqual(len(d), 0)
+
+        # States
+        d = prepare_log(myokit.LOG_STATE, m)
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertEqual(len(d), 8)
+        self.assertIn('membrane.V', d)
+        self.assertIn('ina.m', d)
+        self.assertIn('ina.h', d)
+        self.assertIn('ina.j', d)
+        self.assertIn('ica.d', d)
+        self.assertIn('ica.f', d)
+        self.assertIn('ik.x', d)
+        self.assertIn('ica.Ca_i', d)
+        self.assertNotIn('garbage', d)
+        self.assertNotIn('engine.time', d)
+
+        # Internal variables
+        d = prepare_log(myokit.LOG_INTER, m)
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertIn('membrane.i_stim', d)
+        self.assertIn('membrane.i_ion', d)
+        self.assertIn('ina.a', d)
+        self.assertIn('ina.m.alpha', d)
+        self.assertIn('ina.m.beta', d)
+        self.assertIn('ina.h.alpha', d)
+        self.assertIn('ina.h.beta', d)
+        self.assertIn('ina.j.alpha', d)
+        self.assertIn('ina.j.beta', d)
+        self.assertIn('ina.INa', d)
+        self.assertIn('ik.xi', d)
+        self.assertIn('ik.x.alpha', d)
+        self.assertIn('ik.x.beta', d)
+        self.assertIn('ik.IK', d)
+        self.assertIn('ikp.IKp', d)
+        self.assertIn('ica.E', d)
+        self.assertIn('ica.d.alpha', d)
+        self.assertIn('ica.d.beta', d)
+        self.assertIn('ica.d.beta.va', d)
+        self.assertIn('ica.d.beta.vb', d)
+        self.assertIn('ica.d.beta.vc', d)
+        self.assertIn('ica.d.beta.vc.vd', d)
+        self.assertIn('ica.f.alpha', d)
+        self.assertIn('ica.f.beta', d)
+        self.assertIn('ica.ICa', d)
+        self.assertIn('ica.ICa.nest1', d)
+        self.assertIn('ica.ICa.nest2', d)
+        self.assertIn('ik1.gK1', d)
+        self.assertIn('ik1.gK1.alpha', d)
+        self.assertIn('ik1.gK1.beta', d)
+        self.assertIn('ik1.IK1', d)
+        self.assertIn('ib.Ib', d)
+        self.assertEqual(len(d), 32)
+
+        # Bound variables
+        d = prepare_log(myokit.LOG_BOUND, m)
+        self.assertIn('engine.time', d)
+        self.assertIn('engine.pace', d)
+        self.assertIn('membrane.i_diff', d)
+        self.assertEqual(len(d), 3)
+
+        # Combinations
+        self.assertEqual(
+            len(prepare_log(myokit.LOG_NONE + myokit.LOG_BOUND, m)), 3)
+        self.assertEqual(
+            len(prepare_log(myokit.LOG_NONE + myokit.LOG_INTER, m)), 32)
+        self.assertEqual(
+            len(prepare_log(myokit.LOG_BOUND + myokit.LOG_STATE, m)), 11)
+        self.assertEqual(
+            len(prepare_log(myokit.LOG_STATE + myokit.LOG_INTER, m)), 40)
+
+        #
+        # 2. None
+        #
+
+        d = prepare_log(None, m, if_empty=myokit.LOG_NONE)
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertEqual(len(d), 0)
+        d = prepare_log(None, m, if_empty=myokit.LOG_STATE)
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertEqual(len(d), 8)
+
+        #
+        # 3. List of names
+        #
+
+        d = prepare_log(('engine.time', 'membrane.V'), m)
+        self.assertEqual(len(d), 2)
+        d = prepare_log((
+            'engine.time',
+            'engine.pace',
+            'membrane.V',
+            'ina.m',
+            'ina.h',
+            'ina.j',
+            'ica.d',
+            'ica.f',
+            'ik.x',
+            'ica.Ca_i',
+            'membrane.i_stim',
+            'membrane.i_ion',
+            'membrane.i_diff',
+            'ina.a',
+            'ina.m.alpha',
+            'ina.m.beta',
+            'ina.h.alpha',
+            'ina.h.beta',
+            'ina.j.alpha',
+            'ina.j.beta',
+            'ina.INa',
+            'ik.xi',
+            'ik.x.alpha',
+            'ik.x.beta',
+            'ik.IK',
+            'ikp.IKp',
+            'ica.E',
+            'ica.d.alpha',
+            'ica.d.beta',
+            'ica.d.beta.va',
+            'ica.d.beta.vb',
+            'ica.d.beta.vc',
+            'ica.d.beta.vc.vd',
+            'ica.f.alpha',
+            'ica.f.beta',
+            'ica.ICa',
+            'ica.ICa.nest1',
+            'ica.ICa.nest2',
+            'ik1.gK1',
+            'ik1.gK1.alpha',
+            'ik1.gK1.beta',
+            'ik1.IK1',
+            'ib.Ib',), m)
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertEqual(len(d), 32 + 8 + 3)
+        self.assertIn('engine.time', d)
+        self.assertIn('engine.pace', d)
+        self.assertIn('membrane.V', d)
+        self.assertIn('ina.m', d)
+        self.assertIn('ina.h', d)
+        self.assertIn('ina.j', d)
+        self.assertIn('ica.d', d)
+        self.assertIn('ica.f', d)
+        self.assertIn('ik.x', d)
+        self.assertIn('ica.Ca_i', d)
+        self.assertIn('membrane.i_stim', d)
+        self.assertIn('ina.a', d)
+        self.assertIn('ina.m.alpha', d)
+        self.assertIn('ina.m.beta', d)
+        self.assertIn('ina.h.alpha', d)
+        self.assertIn('ina.h.beta', d)
+        self.assertIn('ina.j.alpha', d)
+        self.assertIn('ina.j.beta', d)
+        self.assertIn('ina.INa', d)
+        self.assertIn('ik.xi', d)
+        self.assertIn('ik.x.alpha', d)
+        self.assertIn('ik.x.beta', d)
+        self.assertIn('ik.IK', d)
+        self.assertIn('ikp.IKp', d)
+        self.assertIn('ica.E', d)
+        self.assertIn('ica.d.alpha', d)
+        self.assertIn('ica.d.beta', d)
+        self.assertIn('ica.d.beta.va', d)
+        self.assertIn('ica.d.beta.vb', d)
+        self.assertIn('ica.d.beta.vc', d)
+        self.assertIn('ica.d.beta.vc.vd', d)
+        self.assertIn('ica.f.alpha', d)
+        self.assertIn('ica.f.beta', d)
+        self.assertIn('ica.ICa', d)
+        self.assertIn('ica.ICa.nest1', d)
+        self.assertIn('ica.ICa.nest2', d)
+        self.assertIn('ik1.gK1', d)
+        self.assertIn('ik1.gK1.alpha', d)
+        self.assertIn('ik1.gK1.beta', d)
+        self.assertIn('ik1.IK1', d)
+        self.assertIn('ib.Ib', d)
+
+        # Variables or LhsExpressions in list
+        d = prepare_log([m.get('membrane.V')], m)
+        self.assertIn('membrane.V', d)
+        d = prepare_log([m.get('membrane.V').lhs()], m)
+        self.assertIn('dot(membrane.V)', d)
+
+        #
+        # 4. Existing log
+        #
+        # Empty log
+        d = prepare_log({}, m)
+        self.assertEqual(len(d), 0)
+        #
+        d = prepare_log({'engine.time': []}, m)
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertEqual(len(d), 1)
+        self.assertIn('engine.time', d)
+        self.assertNotIn('membrane.V', d)
+        d = prepare_log({'engine.time': [1, 2, 3]}, m)
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertEqual(len(d), 1)
+        self.assertIn('engine.time', d)
+        self.assertNotIn('membrane.V', d)
+        self.assertEqual(len(d['engine.time']), 3)
+        d = prepare_log({'engine.time': [1, 2, 3], 'membrane.V': [1, 2, 3]}, m)
+        self.assertIsInstance(d, myokit.DataLog)
+        self.assertEqual(len(d), 2)
+        d = prepare_log(d, m)
+        self.assertIsInstance(d, myokit.DataLog)
+        d = prepare_log(d, m)
+        self.assertIsInstance(d, myokit.DataLog)
+
+        #
+        # 5. Errors
+        #
+
+        # Disallowed variable types, and explicitly specified variables
+        self.assertRaisesRegexp(
+            ValueError, 'support constants', prepare_log, ['cell.Na_o'], m)
+        self.assertRaisesRegexp(
+            ValueError, 'support state', prepare_log, ['membrane.V'], m,
+            allowed_classes=myokit.LOG_BOUND)
+        self.assertRaisesRegexp(
+            ValueError, 'support bound', prepare_log, ['engine.pace'], m,
+            allowed_classes=myokit.LOG_STATE)
+        self.assertRaisesRegexp(
+            ValueError, 'support intermediary', prepare_log, ['ina.INa'], m,
+            allowed_classes=myokit.LOG_STATE)
+
+        # Empty log argument, but bad `if-empty` argument
+        self.assertRaisesRegexp(
+            ValueError, 'if_empty', prepare_log, None, m,
+            if_empty=myokit.LOG_STATE, allowed_classes=myokit.LOG_BOUND)
+
+        # Disallowed variable types, and integer flags for variables
+        self.assertRaisesRegexp(
+            ValueError, 'support state', prepare_log, myokit.LOG_STATE, m,
+            allowed_classes=myokit.LOG_BOUND)
+        self.assertRaisesRegexp(
+            ValueError, 'support bound', prepare_log, myokit.LOG_BOUND, m,
+            allowed_classes=myokit.LOG_STATE)
+        self.assertRaisesRegexp(
+            ValueError, 'support intermediary', prepare_log, myokit.LOG_INTER,
+            m, allowed_classes=myokit.LOG_STATE)
+        self.assertRaisesRegexp(
+            ValueError, 'support time-derivatives', prepare_log,
+            myokit.LOG_DERIV, m, allowed_classes=myokit.LOG_STATE)
+
+        # Unknown integer flags
+        self.assertRaisesRegexp(ValueError, 'unknown flag', prepare_log, -1, m)
+
+        # Unknown variable in log/dict
+        d = myokit.DataLog()
+        d['bert.bert'] = []
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown variable', prepare_log, d, m)
+
+        # Unsupported time-derivative in log/dict
+        d = myokit.DataLog()
+        d['dot(membrane.V)'] = []
+        self.assertRaisesRegexp(
+            ValueError, 'derivatives', prepare_log, d, m,
+            allowed_classes=myokit.LOG_STATE)
+
+        # Time-derivative of non-state in log/dict
+        d = myokit.DataLog()
+        d['dot(ina.INa)'] = []
+        self.assertRaisesRegexp(
+            ValueError, 'derivative of non-state', prepare_log, d, m)
+
+        # Log given with objects that we can't append to
+        self.assertRaisesRegexp(
+            ValueError, 'support the append', prepare_log,
+            {'membrane.V': 'hi'}, m)
+
+        # Argument `log` doesn't match any of the options
+        self.assertRaisesRegexp(
+            ValueError, 'unexpected type', prepare_log, IOError, m)
+        self.assertRaisesRegexp(
+            ValueError, 'String passed', prepare_log, 'membrane.V', m)
+
+        # Unknown variable in list
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown variable', prepare_log, ['bert.bert'], m)
+
+        # Unsupported time-derivative in list
+        self.assertRaisesRegexp(
+            ValueError, 'derivatives', prepare_log, ['dot(membrane.V)'], m,
+            allowed_classes=myokit.LOG_STATE)
+
+        # Time-derivative of non-state in list
+        self.assertRaisesRegexp(
+            ValueError, 'derivative of non-state', prepare_log,
+            ['dot(ina.INa)'], m)
+
+    def test_prepare_log_2d(self):
+        """
+        Tests the `prepare_log` method for 2-dimensional logs.
+        """
+        # Test multi-cell log preparing
+        from myokit import prepare_log
+        m = myokit.load_model(
+            os.path.join(DIR_DATA, 'lr-1991-testing.mmt'))
+
+        #
+        # 1. Integer flags
+        #
+
         # No variables
         d = prepare_log(myokit.LOG_NONE, m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 0)
+
         # States
         d = prepare_log(myokit.LOG_STATE, m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
@@ -487,7 +774,6 @@ class DataLogTest(unittest.TestCase):
         self.assertIn('1.0.ib.Ib', d)
 
         # Bound variables
-        # b = ['time', 'pace', 'diffusion_current']
         d = prepare_log(myokit.LOG_BOUND, m, (2, 1))
         self.assertEqual(len(d), 6)
         self.assertIn('0.0.engine.time', d)
@@ -518,6 +804,7 @@ class DataLogTest(unittest.TestCase):
         d = prepare_log(myokit.LOG_NONE, m, (2, 1), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 0)
+
         # States
         d = prepare_log(myokit.LOG_STATE, m, (2, 1), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
@@ -529,10 +816,12 @@ class DataLogTest(unittest.TestCase):
         d = prepare_log(myokit.LOG_STATE, m, (4, 2), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 64)
+
         # Internal variables
         d = prepare_log(myokit.LOG_INTER, m, (2, 1), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 64)
+
         # Bound variables
         d = prepare_log(myokit.LOG_BOUND, m, (2, 1), global_vars=g)
         self.assertEqual(len(d), 5)
@@ -541,6 +830,7 @@ class DataLogTest(unittest.TestCase):
         self.assertIn('1.0.engine.pace', d)
         self.assertIn('0.0.membrane.i_diff', d)
         self.assertIn('1.0.membrane.i_diff', d)
+
         # Combinations
         self.assertEqual(
             len(prepare_log(myokit.LOG_NONE + myokit.LOG_BOUND, m, (2, 1),
@@ -554,6 +844,14 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(
             len(prepare_log(myokit.LOG_STATE + myokit.LOG_INTER, m, (2, 1),
                 global_vars=g)), 80)
+
+        # Global intermediary variable
+        m2 = m.clone()
+        x = m2.get('engine').add_variable('x')
+        x.set_rhs('5 * pace')
+        d = prepare_log(
+            myokit.LOG_INTER, m2, (2, 1), global_vars=g + ['engine.x'])
+        self.assertIn('engine.x', d)
 
         #
         # 2. None
@@ -711,13 +1009,6 @@ class DataLogTest(unittest.TestCase):
         self.assertIn('1.0.ik1.IK1', d)
         self.assertIn('1.0.ib.Ib', d)
 
-        def err():
-            prepare_log(('engine.time', 'membrane.dudez'), m, (2, 1))
-
-        self.assertRaises(Exception, err)
-        self.assertRaises(Exception, prepare_log, 'engine.time', m)
-        self.assertRaises(Exception, prepare_log, {'map_to': 'rubbish'}, m)
-
         #
         # 3B. Globals and local
         #
@@ -735,10 +1026,6 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(len(d), 2)
         self.assertIn('engine.time', d)
         self.assertIn('0.0.membrane.V', d)
-        self.assertRaises(
-            Exception, prepare_log,
-            ('engine.time', '2.2.membrane.V'),
-            m, (2, 1), global_vars=g)
         d = prepare_log(
             ('engine.time', '0.0.membrane.V', '1.0.membrane.V'),
             m, (2, 1), global_vars=g)
@@ -760,18 +1047,14 @@ class DataLogTest(unittest.TestCase):
         self.assertIn('engine.time', d)
         self.assertIn('0.0.membrane.V', d)
         self.assertIn('1.0.membrane.V', d)
-        self.assertRaises(
-            Exception, prepare_log,
-            ('1.0.engine.time', '0.0.membrane.V'), m, (2, 1), global_vars=g)
-        self.assertRaises(
-            Exception, prepare_log,
-            ('1.0.engine.time', 'membrane.V'), m, (2, 1), global_vars=g)
 
         #
         # 4. Existing log
         #
-        self.assertRaises(
-            Exception, prepare_log, {'engine.time': 'rubbish'}, m)
+        # Empty log
+        d = prepare_log({}, m)
+        self.assertEqual(len(d), 0)
+        #
         d = prepare_log({'1.0.engine.time': []}, m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 1)
@@ -787,27 +1070,16 @@ class DataLogTest(unittest.TestCase):
         d = prepare_log(
             {'0.0.engine.time': [1, 2, 3], '1.0.membrane.V': [1, 2, 3]},
             m, (2, 1))
-        self.assertRaises(
-            Exception, prepare_log,
-            {'2.0.engine.time': [1, 2, 3], '1.0.membrane.V': [1, 2, 3]},
-            m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 2)
-        #self.assertRaises(Exception, prepare_log, {'engine.time': [1, 2, 3],
-        #    'membrane.V': [1,2]}, m)
-        # Different lengths is weird, but doesn't hurt...
-        self.assertRaises(
-            Exception, prepare_log, {'1.0.engine.toom': [1, 2, 3]}, m, (2, 1))
         d = prepare_log(d, m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
         d = prepare_log(d, m, (2, 1))
         self.assertIsInstance(d, myokit.DataLog)
+
         #
         # 4B. Existing log, globals and local
         #
-        self.assertRaises(
-            Exception, prepare_log, {'1.0.engine.time': []}, m,
-            (2, 1), global_vars=g)
         d = prepare_log({'engine.time': [1, 2, 3]}, m, (2, 1), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 1)
@@ -818,264 +1090,49 @@ class DataLogTest(unittest.TestCase):
             m, (2, 1), global_vars=g)
         self.assertIsInstance(d, myokit.DataLog)
         self.assertEqual(len(d), 2)
-        self.assertRaises(
-            Exception, prepare_log,
-            {'engine.time': [1, 2, 3], '0.0.membrane.V': [1, 2, 3]},
+        d = prepare_log(d, m, (2, 1), global_vars=g)
+        self.assertIsInstance(d, myokit.DataLog)
+        d = prepare_log(d, m, (2, 1), global_vars=g)
+        self.assertIsInstance(d, myokit.DataLog)
+
+        #
+        # 5. Errors
+        #
+
+        # Unknown global variable
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown variable specified in global', prepare_log,
+            myokit.LOG_NONE, m, (2, 1), global_vars=['michael'])
+
+        # State passed as global variable
+        self.assertRaisesRegexp(
+            ValueError, 'State cannot be global', prepare_log, myokit.LOG_NONE,
+            m, (2, 1), global_vars=['membrane.V'])
+
+        # Index specified for global variable in log/dict
+        self.assertRaisesRegexp(
+            ValueError, 'index for global', prepare_log,
+            {'0.0.engine.time': []}, m, (2, 1), global_vars=['engine.time'])
+
+        # Invalid index for variable in log/dict
+        self.assertRaisesRegexp(
+            ValueError, 'Invalid index', prepare_log, {'3.3.membrane.V': []},
             m, (2, 1))
-        self.assertRaises(
-            Exception, prepare_log,
-            {'engine.time': [1, 2, 3], '5.0.membrane.V': [1, 2, 3]},
-            m, (2, 1), global_vars=g)
-        d = prepare_log(d, m, (2, 1), global_vars=g)
-        self.assertIsInstance(d, myokit.DataLog)
-        d = prepare_log(d, m, (2, 1), global_vars=g)
-        self.assertIsInstance(d, myokit.DataLog)
 
-    def test_prepare_single(self):
-        """
-        Test the prepare_log function that handles the ``log`` argument passed
-        into simulations. This function can handle different types of input.
-        From its doc:
+        # No index for variable that needs it, in log/dict
+        self.assertRaisesRegexp(
+            ValueError, 'non-indexed entry', prepare_log, {'membrane.V': []},
+            m, (2, 1))
 
-        An existing simulation log
-            In this case, the log is tested for compatibility with the given
-            model and simulation dimensions. For multi-cellular simulations
-            this means all keys in the log must have the form
-            "x.component.variable" where "x" is the cell index (for example "1"
-            or "2.3").
-        A list (or other sequence) of variable names to log.
-            In this case, the list is converted to a DataLog object. All
-            arguments in the list must be either strings corresponding to the
-            variables' qnames (so "membrane.V") or variable objects from the
-            given model.
-            For multi-cell models, _only_ the qnames should be given (so
-            "membrane.V" is valid, while "1.2.membrane.V" is not.
-        An integer flag
-            For example ``myokit.LOG_NONE``, ``myokit.LOG_STATE`` or
-            ``myokit.LOG_STATE + myokit.LOG_BOUND``.
-        None
-            In this case the value from ``if_empty`` will be copied into log
-            before the function proceeds to build a log.
-        """
-        # Test multi-cell log preparing
-        from myokit import prepare_log
-        m = myokit.load_model(
-            os.path.join(DIR_DATA, 'lr-1991-testing.mmt'))
+        # Index specified for global variable in list
+        self.assertRaisesRegexp(
+            ValueError, 'index for global', prepare_log,
+            ['0.0.engine.time'], m, (2, 1), global_vars=['engine.time'])
 
-        #
-        # 1. Integer flags
-        #
-        # No variables
-        d = prepare_log(myokit.LOG_NONE, m)
-        self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 0)
-
-        # States
-        d = prepare_log(myokit.LOG_STATE, m)
-        self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 8)
-        self.assertIn('membrane.V', d)
-        self.assertIn('ina.m', d)
-        self.assertIn('ina.h', d)
-        self.assertIn('ina.j', d)
-        self.assertIn('ica.d', d)
-        self.assertIn('ica.f', d)
-        self.assertIn('ik.x', d)
-        self.assertIn('ica.Ca_i', d)
-        self.assertNotIn('garbage', d)
-        self.assertNotIn('engine.time', d)
-
-        # Internal variables
-        d = prepare_log(myokit.LOG_INTER, m)
-        self.assertIsInstance(d, myokit.DataLog)
-        self.assertIn('membrane.i_stim', d)
-        self.assertIn('membrane.i_ion', d)
-        self.assertIn('ina.a', d)
-        self.assertIn('ina.m.alpha', d)
-        self.assertIn('ina.m.beta', d)
-        self.assertIn('ina.h.alpha', d)
-        self.assertIn('ina.h.beta', d)
-        self.assertIn('ina.j.alpha', d)
-        self.assertIn('ina.j.beta', d)
-        self.assertIn('ina.INa', d)
-        self.assertIn('ik.xi', d)
-        self.assertIn('ik.x.alpha', d)
-        self.assertIn('ik.x.beta', d)
-        self.assertIn('ik.IK', d)
-        self.assertIn('ikp.IKp', d)
-        self.assertIn('ica.E', d)
-        self.assertIn('ica.d.alpha', d)
-        self.assertIn('ica.d.beta', d)
-        self.assertIn('ica.d.beta.va', d)
-        self.assertIn('ica.d.beta.vb', d)
-        self.assertIn('ica.d.beta.vc', d)
-        self.assertIn('ica.d.beta.vc.vd', d)
-        self.assertIn('ica.f.alpha', d)
-        self.assertIn('ica.f.beta', d)
-        self.assertIn('ica.ICa', d)
-        self.assertIn('ica.ICa.nest1', d)
-        self.assertIn('ica.ICa.nest2', d)
-        self.assertIn('ik1.gK1', d)
-        self.assertIn('ik1.gK1.alpha', d)
-        self.assertIn('ik1.gK1.beta', d)
-        self.assertIn('ik1.IK1', d)
-        self.assertIn('ib.Ib', d)
-        self.assertEqual(len(d), 32)
-
-        # Bound variables
-        d = prepare_log(myokit.LOG_BOUND, m)
-        self.assertIn('engine.time', d)
-        self.assertIn('engine.pace', d)
-        self.assertIn('membrane.i_diff', d)
-        self.assertEqual(len(d), 3)
-
-        # Combinations
-        self.assertEqual(
-            len(prepare_log(myokit.LOG_NONE + myokit.LOG_BOUND, m)), 3)
-        self.assertEqual(
-            len(prepare_log(myokit.LOG_NONE + myokit.LOG_INTER, m)), 32)
-        self.assertEqual(
-            len(prepare_log(myokit.LOG_BOUND + myokit.LOG_STATE, m)), 11)
-        self.assertEqual(
-            len(prepare_log(myokit.LOG_STATE + myokit.LOG_INTER, m)), 40)
-
-        #
-        # 2. None
-        #
-        d = prepare_log(None, m, if_empty=myokit.LOG_NONE)
-        self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 0)
-        d = prepare_log(None, m, if_empty=myokit.LOG_STATE)
-        self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 8)
-
-        #
-        # 3. List of names
-        #
-        d = prepare_log(('engine.time', 'membrane.V'), m)
-        self.assertEqual(len(d), 2)
-        d = prepare_log((
-            'engine.time',
-            'engine.pace',
-            'membrane.V',
-            'ina.m',
-            'ina.h',
-            'ina.j',
-            'ica.d',
-            'ica.f',
-            'ik.x',
-            'ica.Ca_i',
-            'membrane.i_stim',
-            'membrane.i_ion',
-            'membrane.i_diff',
-            'ina.a',
-            'ina.m.alpha',
-            'ina.m.beta',
-            'ina.h.alpha',
-            'ina.h.beta',
-            'ina.j.alpha',
-            'ina.j.beta',
-            'ina.INa',
-            'ik.xi',
-            'ik.x.alpha',
-            'ik.x.beta',
-            'ik.IK',
-            'ikp.IKp',
-            'ica.E',
-            'ica.d.alpha',
-            'ica.d.beta',
-            'ica.d.beta.va',
-            'ica.d.beta.vb',
-            'ica.d.beta.vc',
-            'ica.d.beta.vc.vd',
-            'ica.f.alpha',
-            'ica.f.beta',
-            'ica.ICa',
-            'ica.ICa.nest1',
-            'ica.ICa.nest2',
-            'ik1.gK1',
-            'ik1.gK1.alpha',
-            'ik1.gK1.beta',
-            'ik1.IK1',
-            'ib.Ib',), m)
-        self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 32 + 8 + 3)
-        self.assertIn('engine.time', d)
-        self.assertIn('engine.pace', d)
-        self.assertIn('membrane.V', d)
-        self.assertIn('ina.m', d)
-        self.assertIn('ina.h', d)
-        self.assertIn('ina.j', d)
-        self.assertIn('ica.d', d)
-        self.assertIn('ica.f', d)
-        self.assertIn('ik.x', d)
-        self.assertIn('ica.Ca_i', d)
-        self.assertIn('membrane.i_stim', d)
-        self.assertIn('ina.a', d)
-        self.assertIn('ina.m.alpha', d)
-        self.assertIn('ina.m.beta', d)
-        self.assertIn('ina.h.alpha', d)
-        self.assertIn('ina.h.beta', d)
-        self.assertIn('ina.j.alpha', d)
-        self.assertIn('ina.j.beta', d)
-        self.assertIn('ina.INa', d)
-        self.assertIn('ik.xi', d)
-        self.assertIn('ik.x.alpha', d)
-        self.assertIn('ik.x.beta', d)
-        self.assertIn('ik.IK', d)
-        self.assertIn('ikp.IKp', d)
-        self.assertIn('ica.E', d)
-        self.assertIn('ica.d.alpha', d)
-        self.assertIn('ica.d.beta', d)
-        self.assertIn('ica.d.beta.va', d)
-        self.assertIn('ica.d.beta.vb', d)
-        self.assertIn('ica.d.beta.vc', d)
-        self.assertIn('ica.d.beta.vc.vd', d)
-        self.assertIn('ica.f.alpha', d)
-        self.assertIn('ica.f.beta', d)
-        self.assertIn('ica.ICa', d)
-        self.assertIn('ica.ICa.nest1', d)
-        self.assertIn('ica.ICa.nest2', d)
-        self.assertIn('ik1.gK1', d)
-        self.assertIn('ik1.gK1.alpha', d)
-        self.assertIn('ik1.gK1.beta', d)
-        self.assertIn('ik1.IK1', d)
-        self.assertIn('ib.Ib', d)
-
-        def err():
-            prepare_log(('engine.time', 'membrane.dudez'), m)
-        self.assertRaises(Exception, err)
-        self.assertRaises(Exception, prepare_log, 'engine.time', m)
-        self.assertRaises(Exception, prepare_log, {'map_to': 'rubbish'}, m)
-
-        #
-        # 4. Existing log
-        #
-        self.assertRaises(
-            Exception, prepare_log, {'engine.time': 'rubbish'}, m)
-        d = prepare_log({'engine.time': []}, m)
-        self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 1)
-        self.assertIn('engine.time', d)
-        self.assertNotIn('membrane.V', d)
-        d = prepare_log({'engine.time': [1, 2, 3]}, m)
-        self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 1)
-        self.assertIn('engine.time', d)
-        self.assertNotIn('membrane.V', d)
-        self.assertEqual(len(d['engine.time']), 3)
-        d = prepare_log({'engine.time': [1, 2, 3], 'membrane.V': [1, 2, 3]}, m)
-        self.assertIsInstance(d, myokit.DataLog)
-        self.assertEqual(len(d), 2)
-        # self.assertRaises(Exception, prepare_log, {'engine.time': [1, 2, 3],
-        #    'membrane.V': [1,2]}, m)
-        # Different lengths is weird, but doesn't hurt...
-        self.assertRaises(
-            Exception, prepare_log, {'engine.toom': [1, 2, 3]}, m)
-        d = prepare_log(d, m)
-        self.assertIsInstance(d, myokit.DataLog)
-        d = prepare_log(d, m)
-        self.assertIsInstance(d, myokit.DataLog)
+        # Invalid index for variable in list
+        self.assertRaisesRegexp(
+            ValueError, 'Invalid index', prepare_log, ['3.3.membrane.V'], m,
+            (2, 1))
 
     def test_save(self):
         """
