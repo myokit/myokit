@@ -1131,9 +1131,10 @@ class Divide(InfixExpression):
 
     def _eval(self, subst, precision):
         try:
-            return (
-                self._op1._eval(subst, precision)
-                / self._op2._eval(subst, precision))
+            b = self._op2._eval(subst, precision)
+            if b == 0:
+                raise ZeroDivisionError()
+            return self._op1._eval(subst, precision) / b
         except (ArithmeticError, ValueError) as e:
             raise EvalError(self, subst, e)
 
