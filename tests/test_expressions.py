@@ -12,7 +12,7 @@ from __future__ import print_function, unicode_literals
 
 import unittest
 import myokit
-
+import numpy as np
 
 #TODO Add tests for all operators
 
@@ -120,14 +120,6 @@ class ExpressionsTest(unittest.TestCase):
         self.assertTrue(x.is_literal())
         self.assertFalse(x.is_state_value())
 
-        # Test python function
-        f = x.pyfunc(use_numpy=False)
-        self.assertTrue(callable(f))
-        self.assertEqual(f(), x.eval())
-        f = x.pyfunc(use_numpy=True)
-        self.assertTrue(callable(f))
-        self.assertEqual(f(), x.eval())
-
     def test_name(self):
         """
         Tests :class:`Name`.
@@ -219,22 +211,6 @@ class ExpressionsTest(unittest.TestCase):
         self.assertTrue(y.is_constant())
         self.assertFalse(y.is_literal())
         self.assertFalse(y.is_state_value())
-
-        # Test python function
-        # Function for Name is always `lambda x: x` (ignores rhs!)
-        f = x.pyfunc(use_numpy=False)
-        self.assertTrue(callable(f))
-        self.assertEqual(f(100), 100)
-        f = x.pyfunc(use_numpy=True)
-        self.assertTrue(callable(f))
-        self.assertEqual(f(100), 100)
-
-        f = z.pyfunc(use_numpy=False)
-        self.assertTrue(callable(f))
-        self.assertEqual(f(5), 5)
-        f = z.pyfunc(use_numpy=True)
-        self.assertTrue(callable(f))
-        self.assertEqual(f(5), 5)
 
     def test_equal(self):
         """
@@ -406,6 +382,31 @@ class ExpressionsTest(unittest.TestCase):
         self.assertFalse(pe('1 + 2 + 3').is_conditional())
         self.assertTrue(pe('if(1, 0, 2)').is_conditional())
         self.assertTrue(pe('1 + if(1, 0, 2)').is_conditional())
+
+    def test_pyfunc(self):
+        """
+        Tests the pyfunc() method.
+        """
+        # Note: Extensive testing happens in pywriter / numpywriter tests!
+        x = myokit.parse_expression('3 * sqrt(v)')
+        f = x.pyfunc(use_numpy=False)
+        self.assertTrue(callable(f))
+        self.assertEqual(f(4), 6)
+        self.assertRaises(TypeError, f, np.array([1, 2, 3]))
+
+        f = x.pyfunc(use_numpy=True)
+        self.assertTrue(callable(f))
+        self.assertEqual(f(4), 6)
+        self.assertEqual(list(f(np.array([1, 4, 9]))), [3, 6, 9])
+
+    def test_pystr(self):
+        """
+        Tests the pystr() method.
+        """
+        # Note: Extensive testing happens in pywriter / numpywriter tests!
+        x = myokit.parse_expression('3 * sqrt(v)')
+        self.assertEqual(x.pystr(use_numpy=False), '3.0 * math.sqrt(v)')
+        self.assertEqual(x.pystr(use_numpy=True), '3.0 * numpy.sqrt(v)')
 
 
 if __name__ == '__main__':
