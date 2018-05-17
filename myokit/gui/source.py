@@ -1148,7 +1148,7 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
                 i = text.rfind('\n', start) + 1
                 if text[i:i + 1] == '#':
                     current = 0
-                    start = end = -1
+                    start = next = -1
 
             return current, start, next
         # Check state of previous block
