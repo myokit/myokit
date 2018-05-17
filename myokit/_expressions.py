@@ -152,17 +152,38 @@ class Expression(object):
         numerical values.
 
         The optional argument ``subst`` can be used to pass a dictionary
-        mapping expressions to their results. Calling ``eval`` on an expression
-        listed as a key in the dictionary will return the stored result.
+        mapping :class:`LhsExpression` objects to expressions or numbers to
+        substitute them with.
 
         For debugging purposes, the argument ``precision`` can be set to
         ``myokit.SINGLE_PRECISION`` to perform the evaluation with 32 bit
         floating point numbers.
         """
+        # Check subst dict
+        if subst:
+            try:
+                subst = dict(subst)
+            except TypeError:
+                raise ValueError('Argument `subst` must be dict or None.')
+            for k, v in subst.items():
+                if not isinstance(k, myokit.LhsExpression):
+                    raise ValueError(
+                        'All keys in `subst` must LhsExpression objects.')
+                if not isinstance(v, myokit.Expression):
+                    try:
+                        v = float(v)
+                    except ValueError:
+                        raise ValueError(
+                            'All values in `subst` must be Expression objects'
+                            ' or numbers.')
+                    subst[k] = myokit.Number(v)
+
+        # Evaluate
         try:
             return self._eval(subst, precision)
         except EvalError as e:
 
+            # It went wrong! Create a nice error message.
             out = [_expr_error_message(self, e)]
 
             # Show values of operands
@@ -182,18 +203,21 @@ class Expression(object):
                 out.append('And the following variables:')
                 for ref in refs:
                     name = str(ref)
+
+                    # Perform substitution, or get expression from lhs
                     if subst and ref in subst:
                         ref = subst[ref]
-                        # Substitution is used for numerical evaluation only.
-                        # It is valid to replace a variable with any numerical
-                        # type.
-                        if not isinstance(ref, myokit.Expression):
-                            ref = myokit.Number(ref)
+                    else:
+                        ref = ref.rhs()
+
                     if isinstance(ref, Number):
+                        # Show numbers on same line
                         pre = '  ' + name + ' = '
                     else:
-                        out.append('  ' + name + ' = ' + ref.rhs().code())
+                        # Show expressions + results on next line
+                        out.append('  ' + name + ' = ' + ref.code())
                         pre = '  ' + ' ' * len(name) + ' = '
+
                     try:
                         out.append(pre + str(ref._eval(subst, precision)))
                     except EvalError:
@@ -612,7 +636,7 @@ class LhsExpression(Expression):
 
     def _eval(self, subst, precision):
         if subst and self in subst:
-            return subst[self]
+            return subst[self].eval()
         try:
             return self.rhs()._eval(subst, precision)
         except (ArithmeticError, ValueError) as e:

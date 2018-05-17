@@ -325,6 +325,72 @@ class ExpressionsTest(unittest.TestCase):
         e = myokit.parse_expression('1 / 0')
         self.assertRaises(myokit.NumericalError, e.eval)
 
+        # Test errors-in-errors
+        e = myokit.parse_expression('16^1000 / 0')
+        self.assertRaisesRegexp(myokit.NumericalError, 'another error', e.eval)
+
+        # Test errors with variables
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        z = c.add_variable('z')
+        x.set_rhs(0)
+        y.set_rhs('5 / 2')
+        z.set_rhs('(x + y) / 0')
+        self.assertRaisesRegexp(
+            myokit.NumericalError, 'c.x = 0', z.rhs().eval)
+        self.assertRaisesRegexp(
+            myokit.NumericalError, 'c.y = 5 / 2', z.rhs().eval)
+
+        # Test error in error with variables
+        y.set_rhs('16^1000')
+        self.assertRaisesRegexp(
+            myokit.NumericalError, 'another error', z.eval)
+
+        # Test substitution
+        y.set_rhs('5')
+        z.set_rhs('x / y')
+        z.rhs().eval(subst={x.lhs(): 0})
+        z.rhs().eval(subst={x.lhs(): myokit.Number(1)})
+        self.assertEqual(
+            z.rhs().eval(
+                subst={x.lhs(): myokit.parse_expression('5 * 5 * 5')}),
+            25)
+
+        # Test errors in substitution dict format
+        self.assertRaisesRegexp(ValueError, 'dict or None', z.rhs().eval, 2)
+        self.assertRaisesRegexp(ValueError, 'All keys', z.rhs().eval, {5: 1})
+        self.assertRaisesRegexp(
+            ValueError, 'All values', z.rhs().eval, {x.lhs(): 'hello'})
+
+    def test_int_conversion(self):
+        """
+        Tests conversion of expressions to int.
+        """
+        x = myokit.parse_expression('1 + 2 + 3')
+        self.assertEqual(int(x), 6)
+        x = myokit.parse_expression('1 + 3.9')
+        self.assertEqual(int(x), 4)
+
+    def test_float_conversion(self):
+        """
+        Tests conversion of expressions to float.
+        """
+        x = myokit.parse_expression('1 + 2 + 3')
+        self.assertEqual(int(x), 6)
+        x = myokit.parse_expression('1 + 3.9')
+        self.assertEqual(float(x), 4.9)
+
+    def test_is_conditional(self):
+        """
+        Tests :meth:`Expression.is_conditional().`.
+        """
+        pe = myokit.parse_expression
+        self.assertFalse(pe('1 + 2 + 3').is_conditional())
+        self.assertTrue(pe('if(1, 0, 2)').is_conditional())
+        self.assertTrue(pe('1 + if(1, 0, 2)').is_conditional())
+
 
 if __name__ == '__main__':
     unittest.main()
