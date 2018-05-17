@@ -1212,9 +1212,9 @@ class Model(ObjectWithMeta, VarProvider):
         can be evaluated using 32 bit floating point. To do this, set
         ``precision=myokit.SINGLE_PRECISION``.
 
-        By default, the evaluation routine checks for numerical errors
-        (divide-by-zeros, invalid operations and overflows). To run an
-        evaluation without error checking, set ``ignore_errors=True``.
+        By default, the evaluation routine raises
+        :class:`myokit.NumericalError` exceptions for invalid operations. To
+        return ``NaN`` instead, set ``ignore_errors=True``.
         """
         # Apply new state if required
         if state is not None:
@@ -1242,10 +1242,18 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Evaluate all variables in solvable order
         values = {}
-        for group in order.values():
-            for eq in group:
-                values[eq.lhs] = eq.rhs.eval(
-                    values, precision=precision, ignore_errors=ignore_errors)
+        if ignore_errors:
+            for group in order.values():
+                for eq in group:
+                    try:
+                        value = eq.rhs.eval(values, precision=precision)
+                    except myokit.NumericalError:
+                        value = float('nan')
+                    values[eq.lhs] = value
+        else:
+            for group in order.values():
+                for eq in group:
+                    values[eq.lhs] = eq.rhs.eval(values, precision=precision)
 
         # Extract state from evaluated values
         out = [0] * self.count_states()

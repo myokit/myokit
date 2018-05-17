@@ -74,7 +74,7 @@ class ExpressionsTest(unittest.TestCase):
 
     def test_number(self):
         """
-        Tests ``Number``.
+        Tests :class:`Number`.
         """
         # Test myokit.Number creation and representation
         x = myokit.Number(-4.0)
@@ -127,7 +127,7 @@ class ExpressionsTest(unittest.TestCase):
 
     def test_name(self):
         """
-        Tests ``Name``.
+        Tests :class:`Name`.
         """
         model = myokit.Model()
         component = model.add_component('c')
@@ -226,11 +226,9 @@ class ExpressionsTest(unittest.TestCase):
         self.assertTrue(callable(f))
         self.assertEqual(f(5), 5)
 
-
-class ExpressionTest(unittest.TestCase):
     def test_equal(self):
         """
-        Tests __eq__ operators
+        Tests expression's ``__eq__`` operators
         """
         a1 = myokit.Number(4)
         a2 = myokit.Number(5)
@@ -263,7 +261,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_if(self):
         """
-        Tests If
+        Tests :class:`If`.
         """
         true = myokit.Number(1)
         false = myokit.Number(0)
@@ -293,6 +291,39 @@ class ExpressionTest(unittest.TestCase):
         x = myokit.If(false, three, two).piecewise()
         self.assertIsInstance(x, myokit.Piecewise)
         self.assertEqual(x.eval(), 2)
+
+    def test_contains_type(self):
+        """
+        Tests :meth:`Expression.contains_type`.
+        """
+        self.assertTrue(myokit.Name('x').contains_type(myokit.Name))
+        self.assertFalse(myokit.Name('x').contains_type(myokit.Number))
+        self.assertTrue(myokit.Number(4).contains_type(myokit.Number))
+        self.assertFalse(myokit.Number(4).contains_type(myokit.Name))
+
+        e = myokit.parse_expression('x + 3')
+        self.assertTrue(e.contains_type(myokit.Name))
+        self.assertTrue(e.contains_type(myokit.Number))
+        self.assertTrue(e.contains_type(myokit.Plus))
+        self.assertFalse(e.contains_type(myokit.Minus))
+
+        e = myokit.parse_expression('x * (x * (x * (x * (x * (1 + 1)))))')
+        self.assertTrue(e.contains_type(myokit.Multiply))
+        self.assertTrue(e.contains_type(myokit.Plus))
+        self.assertTrue(e.contains_type(myokit.Number))
+        self.assertFalse(e.contains_type(myokit.Minus))
+
+    def test_eval(self):
+        """
+        Tests :meth:`Expression.eval()`.
+        """
+        # Test basic use
+        e = myokit.parse_expression('1 + 1 + 1')
+        self.assertEqual(e.eval(), 3)
+
+        # Test errors
+        e = myokit.parse_expression('1 / 0')
+        self.assertRaises(myokit.NumericalError, e.eval)
 
 
 if __name__ == '__main__':

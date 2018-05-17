@@ -144,9 +144,7 @@ class Expression(object):
         # Get polish is fast because it uses caching
         return self._polish() == other._polish()
 
-    def eval(
-            self, subst=None, precision=myokit.DOUBLE_PRECISION,
-            ignore_errors=False):
+    def eval(self, subst=None, precision=myokit.DOUBLE_PRECISION):
         """
         Evaluates this expression and returns the result. This operation will
         fail if the expression contains any
@@ -160,34 +158,13 @@ class Expression(object):
         For debugging purposes, the argument ``precision`` can be set to
         ``myokit.SINGLE_PRECISION`` to perform the evaluation with 32 bit
         floating point numbers.
-
-        By default, evaluations are performed using error checking: a
-        :class:`myokit.NumericalError` is raised on divide-by-zeros, invalid
-        operations (like 0/0) and overflows (but not underflows). To run an
-        evaluation without error checking, set ``ignore_errors=True``.
         """
         try:
-            numpy_err = numpy.geterr()
-            if ignore_errors:
-                numpy.seterr(
-                    divide='ignore',
-                    invalid='ignore',
-                    over='ignore',
-                    under='ignore',
-                )
-            else:
-                numpy.seterr(
-                    divide='raise',     # Divide-by-zero is attempted
-                    invalid='raise',    # Some invalid operation, like 0/0
-                    over='raise',       # Overflow: nothing in a model should
-                    under='ignore',     # Underflow: ignore
-                    # Underflows are important, but don't cause nans in single
-                    # precision simulations, which is the main goal of this
-                    # error checking.
-                )
             return self._eval(subst, precision)
         except EvalError as e:
+
             out = [_expr_error_message(self, e)]
+
             # Show values of operands
             ops = [op for op in e.expr]
             if ops:
@@ -198,6 +175,7 @@ class Expression(object):
                         out.append(pre + str(op._eval(subst, precision)))
                     except EvalError:
                         out.append(pre + 'another error')
+
             # Show variables included in expression
             refs = e.expr.references()
             if refs:
@@ -220,10 +198,10 @@ class Expression(object):
                         out.append(pre + str(ref._eval(subst, precision)))
                     except EvalError:
                         out.append(pre + 'another error')
+
+            # Raise new exception with better message
             out = '\n'.join(out)
             raise myokit.NumericalError(out)
-        finally:
-            numpy.seterr(**numpy_err)
 
     def _eval(self, subst, precision):
         """
