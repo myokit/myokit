@@ -206,20 +206,20 @@ class Expression(object):
 
                     # Perform substitution, or get expression from lhs
                     if subst and ref in subst:
-                        ref = subst[ref]
+                        rhs = subst[ref]
                     else:
-                        ref = ref.rhs()
+                        rhs = ref.rhs()
 
-                    if isinstance(ref, Number):
+                    if isinstance(rhs, Number):
                         # Show numbers on same line
                         pre = '  ' + name + ' = '
                     else:
                         # Show expressions + results on next line
-                        out.append('  ' + name + ' = ' + ref.code())
+                        out.append('  ' + name + ' = ' + rhs.code())
                         pre = '  ' + ' ' * len(name) + ' = '
 
                     try:
-                        out.append(pre + str(ref._eval(subst, precision)))
+                        out.append(pre + str(rhs._eval(subst, precision)))
                     except EvalError:
                         out.append(pre + 'another error')
 

@@ -121,7 +121,10 @@ class ExpressionsTest(unittest.TestCase):
         self.assertFalse(x.is_state_value())
 
         # Test python function
-        f = x.pyfunc()
+        f = x.pyfunc(use_numpy=False)
+        self.assertTrue(callable(f))
+        self.assertEqual(f(), x.eval())
+        f = x.pyfunc(use_numpy=True)
         self.assertTrue(callable(f))
         self.assertEqual(f(), x.eval())
 
@@ -219,10 +222,17 @@ class ExpressionsTest(unittest.TestCase):
 
         # Test python function
         # Function for Name is always `lambda x: x` (ignores rhs!)
-        f = x.pyfunc()
+        f = x.pyfunc(use_numpy=False)
         self.assertTrue(callable(f))
         self.assertEqual(f(100), 100)
-        f = z.pyfunc()
+        f = x.pyfunc(use_numpy=True)
+        self.assertTrue(callable(f))
+        self.assertEqual(f(100), 100)
+
+        f = z.pyfunc(use_numpy=False)
+        self.assertTrue(callable(f))
+        self.assertEqual(f(5), 5)
+        f = z.pyfunc(use_numpy=True)
         self.assertTrue(callable(f))
         self.assertEqual(f(5), 5)
 
@@ -363,6 +373,12 @@ class ExpressionsTest(unittest.TestCase):
         self.assertRaisesRegexp(ValueError, 'All keys', z.rhs().eval, {5: 1})
         self.assertRaisesRegexp(
             ValueError, 'All values', z.rhs().eval, {x.lhs(): 'hello'})
+
+        # Test if substituted Name is treated as number in error formatting
+        y.set_rhs('x')
+        z.set_rhs('(x + y) / 0')
+        self.assertRaisesRegexp(
+            myokit.NumericalError, 'c.y = 3', z.rhs().eval, {y.lhs(): 3})
 
     def test_int_conversion(self):
         """
