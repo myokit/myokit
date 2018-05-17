@@ -639,7 +639,7 @@ class LhsExpression(Expression):
             return subst[self].eval()
         try:
             return self.rhs()._eval(subst, precision)
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
         except KeyError as e:
             #TODO: Who raises the KeyError?
@@ -912,7 +912,7 @@ class PrefixPlus(PrefixExpression):
     def _eval(self, subst, precision):
         try:
             return self._op._eval(subst, precision)
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -938,7 +938,7 @@ class PrefixMinus(PrefixExpression):
     def _eval(self, subst, precision):
         try:
             return -self._op._eval(subst, precision)
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1033,7 +1033,7 @@ class Plus(InfixExpression):
             return (
                 self._op1._eval(subst, precision)
                 + self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1076,7 +1076,7 @@ class Minus(InfixExpression):
             return (
                 self._op1._eval(subst, precision)
                 - self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1118,7 +1118,7 @@ class Multiply(InfixExpression):
             return (
                 self._op1._eval(subst, precision)
                 * self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1159,7 +1159,7 @@ class Divide(InfixExpression):
             if b == 0:
                 raise ZeroDivisionError()
             return self._op1._eval(subst, precision) / b
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1208,7 +1208,7 @@ class Quotient(InfixExpression):
             return (
                 self._op1._eval(subst, precision)
                 // self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1265,7 +1265,7 @@ class Remainder(InfixExpression):
             return (
                 self._op1._eval(subst, precision)
                 % self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1294,7 +1294,7 @@ class Power(InfixExpression):
             return (
                 self._op1._eval(subst, precision)
                 ** self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1421,7 +1421,7 @@ class Sqrt(Function):
     def _eval(self, subst, precision):
         try:
             return numpy.sqrt(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1453,7 +1453,7 @@ class Sin(UnaryDimensionlessFunction):
     def _eval(self, subst, precision):
         try:
             return numpy.sin(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -1476,7 +1476,7 @@ class Cos(UnaryDimensionlessFunction):
     def _eval(self, subst, precision):
         try:
             return numpy.cos(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -1496,7 +1496,7 @@ class Tan(UnaryDimensionlessFunction):
     def _eval(self, subst, precision):
         try:
             return numpy.tan(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -1516,7 +1516,7 @@ class ASin(UnaryDimensionlessFunction):
     def _eval(self, subst, precision):
         try:
             return numpy.arcsin(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -1536,7 +1536,7 @@ class ACos(UnaryDimensionlessFunction):
     def _eval(self, subst, precision):
         try:
             return numpy.arccos(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -1561,7 +1561,7 @@ class ATan(UnaryDimensionlessFunction):
     def _eval(self, subst, precision):
         try:
             return numpy.arctan(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -1581,7 +1581,7 @@ class Exp(UnaryDimensionlessFunction):
     def _eval(self, subst, precision):
         try:
             return numpy.exp(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -1614,7 +1614,7 @@ class Log(Function):
             return (
                 numpy.log(self._operands[0]._eval(subst, precision)) /
                 numpy.log(self._operands[1]._eval(subst, precision)))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1657,7 +1657,7 @@ class Log10(UnaryDimensionlessFunction):
     def _eval(self, subst, precision):
         try:
             return numpy.log10(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -1680,7 +1680,7 @@ class Floor(Function):
     def _eval(self, subst, precision):
         try:
             return numpy.floor(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1706,7 +1706,7 @@ class Ceil(Function):
     def _eval(self, subst, precision):
         try:
             return numpy.ceil(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1732,7 +1732,7 @@ class Abs(Function):
     def _eval(self, subst, precision):
         try:
             return numpy.abs(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -1961,7 +1961,7 @@ class Not(PrefixCondition):
     def _eval(self, subst, precision):
         try:
             return not(self._op._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -2024,7 +2024,7 @@ class Equal(BinaryComparison):
             return (
                 self._op1._eval(subst, precision)
                 == self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -2047,7 +2047,7 @@ class NotEqual(BinaryComparison):
             return (
                 self._op1._eval(subst, precision)
                 != self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -2068,7 +2068,7 @@ class More(BinaryComparison):
             return (
                 self._op1._eval(subst, precision)
                 > self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -2089,7 +2089,7 @@ class Less(BinaryComparison):
             return (
                 self._op1._eval(subst, precision)
                 < self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -2110,7 +2110,7 @@ class MoreEqual(BinaryComparison):
             return (
                 self._op1._eval(subst, precision)
                 >= self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -2131,7 +2131,7 @@ class LessEqual(BinaryComparison):
             return (
                 self._op1._eval(subst, precision)
                 <= self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
 
@@ -2155,7 +2155,7 @@ class And(InfixCondition):
             return (
                 self._op1._eval(subst, precision)
                 and self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
@@ -2186,7 +2186,7 @@ class Or(InfixCondition):
             return (
                 self._op1._eval(subst, precision)
                 or self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
