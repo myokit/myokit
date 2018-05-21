@@ -557,10 +557,10 @@ class Simulation(myokit.CModule):
         """
         abs_tol = float(abs_tol)
         if abs_tol <= 0:
-            raise Exception('Absolute tolerance must be positive float.')
+            raise ValueError('Absolute tolerance must be positive float.')
         rel_tol = float(rel_tol)
         if rel_tol <= 0:
-            raise Exception('Relative tolerance must be positive float.')
+            raise ValueError('Relative tolerance must be positive float.')
         self._sim.set_tolerance(abs_tol, rel_tol)
 
     def state(self):

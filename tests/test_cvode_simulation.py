@@ -176,8 +176,10 @@ class SimulationTest(unittest.TestCase):
         """
         Tests :meth:`Simulation.set_tolerance()`.
         """
-        self.assertRaisesRegexp(self.sim.set_tolerance, abs_tol=0)
-        self.assertRaisesRegexp(self.sim.set_tolerance, rel_tol=0)
+        self.assertRaisesRegexp(
+            ValueError, 'Absolute', self.sim.set_tolerance, abs_tol=0)
+        self.assertRaisesRegexp(
+            ValueError, 'Relative', self.sim.set_tolerance, rel_tol=0)
         self.sim.set_tolerance(1e-6, 1e-4)
 
 
