@@ -236,8 +236,13 @@ class Simulation(PeriodicTest):
 
         # Don't allow decreasing values
         times = [1, 2, 1]
-        with self.assertRaises(ValueError):
-            s.run(5, log_times=times)
+        self.assertRaisesRegexp(
+            ValueError, 'non-decreasing', s.run, 5, log_times=times)
+
+        # Can't use together with a log interval
+        self.assertRaisesRegexp(
+            ValueError, 'simultaneously', s.run, 5, log_interval=1,
+            log_times=[1, 2, 3])
 
         # Get some odd times
         times = np.linspace(0, 90, 999)

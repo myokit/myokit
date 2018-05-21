@@ -113,9 +113,14 @@ class SimulationTest(unittest.TestCase):
         """
         # More testing is done in test_datalog.py!
 
+        # Apd var is not a state
         self.assertRaisesRegexp(
             ValueError, 'must be a state', myokit.Simulation, self.model,
             self.protocol, apd_var='ina.INa')
+
+        # No apd var given, but threshold provided
+        self.assertRaisesRegexp(
+            ValueError, 'without apd_var', self.sim.run, 1, apd_threshold=12)
 
     def test_last_state(self):
         """
@@ -159,6 +164,21 @@ class SimulationTest(unittest.TestCase):
         d2 = self.sim.eval_derivatives()
         self.assertNotEqual(d1, d2)
         self.assertEqual(d1, self.sim.eval_derivatives(s1))
+        self.sim.set_state(s1)
+        self.assertEqual(d1, self.sim.eval_derivatives())
+
+    def test_bad_progress_reporter(self):
+        """ Calls run() with something that isn't a progress reporter. """
+        self.assertRaisesRegexp(
+            ValueError, 'ProgressReporter', self.sim.run, 5, progress=12)
+
+    def set_tolerance(self):
+        """
+        Tests :meth:`Simulation.set_tolerance()`.
+        """
+        self.assertRaisesRegexp(self.sim.set_tolerance, abs_tol=0)
+        self.assertRaisesRegexp(self.sim.set_tolerance, rel_tol=0)
+        self.sim.set_tolerance(1e-6, 1e-4)
 
 
 class RuntimeSimulationTest(unittest.TestCase):
