@@ -172,7 +172,7 @@ class SimulationTest(unittest.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'ProgressReporter', self.sim.run, 5, progress=12)
 
-    def set_tolerance(self):
+    def test_set_tolerance(self):
         """
         Tests :meth:`Simulation.set_tolerance()`.
         """
