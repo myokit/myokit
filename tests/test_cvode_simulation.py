@@ -107,6 +107,23 @@ class SimulationTest(unittest.TestCase):
             ValueError, 'must be a state', myokit.Simulation, self.model,
             self.protocol, apd_var='ina.INa')
 
+    def test_last_state(self):
+        """
+        Returns the last state before an error, or None.
+        """
+        m = self.model.clone()
+        istim = m.get('membrane.i_stim')
+        istim.set_rhs('engine.pace / stim_amplitude')
+        s = myokit.Simulation(m, self.protocol)
+        self.assertIsNone(s.last_state())
+        s.run(1)
+        self.assertIsNone(s.last_state())
+        s.set_constant('membrane.i_stim.stim_amplitude', 0)
+        s.reset()
+        self.assertRaisesRegexp(myokit.SimulationError, "at t = 0", s.run, 5)
+        self.assertEqual(len(s.last_state()), len(s.state()))
+        self.assertEqual(s.last_state(), s.state())
+
 
 class RuntimeSimulationTest(unittest.TestCase):
     """

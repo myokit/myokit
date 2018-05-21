@@ -146,7 +146,7 @@ class Simulation(myokit.CModule):
         state reached during that simulation. In all other cases, this method
         will return ``None``.
         """
-        return list(self._error_state)
+        return list(self._error_state) if self._error_state else None
 
     def eval_derivatives(self, y=None):
         """
