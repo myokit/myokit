@@ -124,6 +124,32 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(len(s.last_state()), len(s.state()))
         self.assertEqual(s.last_state(), s.state())
 
+    def test_last_evaluations_and_steps(self):
+        """
+        Tests :meth:`Simulation.last_number_of_evaluations()` and
+        :meth:`Simulation.last_number_of_steps()`
+        """
+        s = myokit.Simulation(self.model, self.protocol)
+        self.assertEqual(s.last_number_of_evaluations(), 0)
+        self.assertEqual(s.last_number_of_steps(), 0)
+        s.run(1)
+        self.assertTrue(s.last_number_of_evaluations() > 0)
+        self.assertTrue(s.last_number_of_steps() > 0)
+        self.assertNotEqual(
+            s.last_number_of_evaluations(), s.last_number_of_steps())
+
+    def test_eval_derivatives(self):
+        """
+        Tests :meth:`Simulation.eval_derivatives()`.
+        """
+        s = myokit.Simulation(self.model, self.protocol)
+        s1 = s.state()
+        d1 = s.eval_derivatives()
+        s.run(1)
+        d2 = s.eval_derivatives()
+        self.assertNotEqual(d1, d2)
+        self.assertEqual(d1, s.eval_derivatives(s1))
+
 
 class RuntimeSimulationTest(unittest.TestCase):
     """
