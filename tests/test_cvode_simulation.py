@@ -53,6 +53,16 @@ class SimulationTest(unittest.TestCase):
         for k, v in d.items():
             self.assertEqual(n, len(v))
 
+        # Can't do negative times
+        self.assertRaisesRegexp(ValueError, 'negative', self.sim.run, -1)
+
+        # Negative log interval is set to zero
+        self.sim.reset()
+        d1 = self.sim.run(5)
+        self.sim.reset()
+        d2 = self.sim.run(5, log_interval=-5)
+        self.assertEqual(d1.time(), d2.time())
+
     def test_no_protocol(self):
         """
         Test running without a protocol.
@@ -142,13 +152,13 @@ class SimulationTest(unittest.TestCase):
         """
         Tests :meth:`Simulation.eval_derivatives()`.
         """
-        s = myokit.Simulation(self.model, self.protocol)
-        s1 = s.state()
-        d1 = s.eval_derivatives()
-        s.run(1)
-        d2 = s.eval_derivatives()
+        self.sim.reset()
+        s1 = self.sim.state()
+        d1 = self.sim.eval_derivatives()
+        self.sim.run(1)
+        d2 = self.sim.eval_derivatives()
         self.assertNotEqual(d1, d2)
-        self.assertEqual(d1, s.eval_derivatives(s1))
+        self.assertEqual(d1, self.sim.eval_derivatives(s1))
 
 
 class RuntimeSimulationTest(unittest.TestCase):

@@ -233,31 +233,38 @@ class Simulation(PeriodicTest):
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Create simulation
         s = myokit.Simulation(m, p)
+
         # Don't allow decreasing values
         times = [1, 2, 1]
         with self.assertRaises(ValueError):
             s.run(5, log_times=times)
+
         # Get some odd times
         times = np.linspace(0, 90, 999)
+
         # Test!
         s.reset()
         d = s.run(100, log_times=times).npview()
         self.assertTrue(np.all(d.time() == times))
+
         # Reset and run again
         s.reset()
         d = s.run(100, log_times=times).npview()
         self.assertTrue(np.all(d.time() == times))
+
         # Run in parts
         s.reset()
         d = s.run(50, log_times=times)
         self.assertEqual(len(d.time()), np.where(times >= 50)[0][0])
         d = s.run(50, log=d, log_times=times).npview()
         self.assertTrue(np.all(d.time() == times))
+
         # Pre-pacing
         s.reset()
         s.pre(50)
         s.run(100, log_times=times)
         self.assertTrue(np.all(d.time() == times))
+
         # Partial logging
         s.reset()
         s.run(10)
@@ -272,18 +279,21 @@ class Simulation(PeriodicTest):
         imax = np.where(times >= 55)[0][0]
         self.assertEqual(len(d.time()), imax - imin)
         self.assertTrue(np.all(d.time() == times[imin:imax]))
+
         # Get some regular times
         times = [0, 1, 2, 3, 4, 5]
         s.reset()
         d = s.run(6, log_times=times).npview()
         self.assertEqual(len(d.time()), len(times))
         self.assertTrue(np.all(d.time() == times))
+
         # Repeated points
         times = [0, 0, 0, 5, 5, 5]
         s.reset()
         d = s.run(6, log_times=times).npview()
         self.assertEqual(len(d.time()), len(times))
         self.assertTrue(np.all(d.time() == times))
+
         # End points not included, unless also visited!
         s.reset()
         s.run(5)
@@ -292,6 +302,11 @@ class Simulation(PeriodicTest):
         self.assertTrue(np.all(d.time() == times[3:]))
         d = s.run(5, log_times=times).npview()
         self.assertEqual(len(d.time()), 0)
+
+        # Empty list is same as none
+        s.reset()
+        d = s.run(1, log_times=[])
+        self.assertNotEqual(len(d.time()), 0)
 
     def test_point_list_2(self):
         """

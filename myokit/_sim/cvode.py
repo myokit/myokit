@@ -275,7 +275,7 @@ class Simulation(myokit.CModule):
 
         # Simulation times
         if duration < 0:
-            raise Exception('Simulation time can\'t be negative.')
+            raise ValueError('Simulation time can\'t be negative.')
         tmin = self._time
         tmax = tmin + duration
 
