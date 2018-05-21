@@ -108,7 +108,6 @@ class SimulationTest(unittest.TestCase):
             self.protocol, apd_var='ina.INa')
 
 
-
 class RuntimeSimulationTest(unittest.TestCase):
     """
     Tests the obtaining of runtimes from the CVode simulation.
