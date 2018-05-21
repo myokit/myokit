@@ -97,6 +97,17 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(
             c[1], '[0.0 minutes] 100.0 % done, estimated 0 seconds remaining')
 
+    def test_apd_tracking(self):
+        """
+        Tests the APD calculation method.
+        """
+        # More testing is done in test_datalog.py!
+
+        self.assertRaisesRegexp(
+            ValueError, 'must be a state', myokit.Simulation, self.model,
+            self.protocol, apd_var='ina.INa')
+
+
 
 class RuntimeSimulationTest(unittest.TestCase):
     """
