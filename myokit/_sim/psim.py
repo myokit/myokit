@@ -244,8 +244,10 @@ class PSimulation(myokit.CppModule):
         """
         # Reset time
         self._time = 0
+
         # Reset state
         self._state = list(self._default_state)
+
         # Reset state-parameter-derivatives
         ms = len(self._state)
         mp = len(self._parameters)
@@ -405,8 +407,10 @@ class PSimulation(myokit.CppModule):
             raise ValueError(
                 'The given variable <' + var.qname() + '> is set as a'
                 ' parameter. Use set_parameters() instead.')
+
         # Update value in compiled simulation module
         self._sim.set_constant(var.qname(), value)
+
         # Update value in internal model
         self._model.set_value(var.qname(), value)
 
@@ -424,8 +428,9 @@ class PSimulation(myokit.CppModule):
             # Create list to update so that property change only happens after
             # error checks.
             new_values = list(self._values)
+
             # Check all key-value pairs
-            for k, v in values:
+            for k, v in values.items():
                 if isinstance(k, myokit.Variable):
                     k = k.qname()
                 try:
@@ -440,13 +445,16 @@ class PSimulation(myokit.CppModule):
                         ' parameter.')
                 new_values[i] = float(v)
             self._values = new_values
+
         else:
+
             # Check size of list & set
             if len(values) != len(self._values):
                 raise ValueError(
                     'Argument `values` should be either a dict or a list of '
                     + str(len(self._values)) + ' values.')
             self._values = [float(x) for x in values]
+
         # Reset the simulation: the stored partial derivatives are no longer
         # accurate.
         self.reset()

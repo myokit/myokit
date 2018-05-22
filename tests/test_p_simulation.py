@@ -29,11 +29,25 @@ class PSimulation(unittest.TestCase):
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m, p, x = myokit.load(m)
 
-        # Run a tiny simulation
+        # Create simulation
         s = myokit.PSimulation(
             m, p, variables=['membrane.V'], parameters=['ina.gNa', 'ica.gCa'])
+
+        # Test state & default state
+        self.assertEqual(s.state(), s.default_state())
+
+        # Run a tiny simulation
         s.set_step_size(0.002)
         d, dp = s.run(10, log_interval=2)
+
+        # Test state & default state
+        self.assertNotEqual(s.state(), s.default_state())
+        s.reset()
+        self.assertEqual(s.state(), s.default_state())
+
+        # Test pre-pacing --> Not implemented!
+        #s.pre(2)
+        #self.assertEqual(s.state(), s.default_state())
 
         # Create without variables or parameters
         self.assertRaisesRegexp(
@@ -104,8 +118,35 @@ class PSimulation(unittest.TestCase):
         self.assertRaisesRegexp(ValueError, 'must contain', s.block, e, dp)
 
         # Wrong size derivatives array
-        de = dp[:,:-1]
-        self.assertRaisesRegexp(ValueError, 'shape', s.block, d, dp[:,:-1])
+        self.assertRaisesRegexp(ValueError, 'shape', s.block, d, dp[:, :-1])
+
+    def test_set_constant(self):
+        """
+        Tests :meth:`PSimulation.set_constant()` and
+        :meth:`PSimulation.set_parameters()`
+        """
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.PSimulation(
+            m, p, variables=['membrane.V'], parameters=['ina.gNa'])
+        s.set_constant('ica.gCa', 1)
+
+        # Variable is not a literal
+        self.assertRaisesRegexp(
+            ValueError, 'literal', s.set_constant, 'membrane.V', 1)
+
+        # Variable is in parameters list
+        self.assertRaisesRegexp(
+            ValueError, 'parameter', s.set_constant, 'ina.gNa', 1)
+
+        # Set parameter values
+        s.set_parameters([1])
+        self.assertRaisesRegexp(
+            ValueError, '1 values', s.set_parameters, [1, 2])
+        s.set_parameters({'ina.gNa': 1})
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown', s.set_parameters, {'bert': 2})
+        self.assertRaisesRegexp(
+            ValueError, 'parameter', s.set_parameters, {'ica.gCa': 2})
 
 
 if __name__ == '__main__':
