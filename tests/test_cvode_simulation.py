@@ -16,7 +16,7 @@ import numpy as np
 
 import myokit
 
-from shared import DIR_DATA
+from shared import DIR_DATA, CancellingReporter
 
 
 class SimulationTest(unittest.TestCase):
@@ -71,6 +71,7 @@ class SimulationTest(unittest.TestCase):
         self.sim.pre(50)
         self.sim.set_protocol(None)
         d = self.sim.run(50).npview()
+
         # Check if pace was set to zero (see prop 651 / technical docs).
         self.assertTrue(np.all(d['engine.pace'] == 0.0))
 
@@ -93,10 +94,11 @@ class SimulationTest(unittest.TestCase):
         self.assertNotEqual(e['engine.time'][n - 1], e['engine.time'][n])
         self.assertGreater(e['engine.time'][n], e['engine.time'][n - 1])
 
-    def test_progress_writer(self):
+    def test_progress_reporter(self):
         """
-        Test running with a progress writer.
+        Test running with a progress reporter.
         """
+        # Test if it works
         sim = myokit.Simulation(self.model, self.protocol)
         with myokit.PyCapture() as c:
             sim.run(110, progress=myokit.ProgressPrinter())
@@ -106,6 +108,15 @@ class SimulationTest(unittest.TestCase):
             c[0], '[0.0 minutes] 1.9 % done, estimated 0 seconds remaining')
         self.assertEqual(
             c[1], '[0.0 minutes] 100.0 % done, estimated 0 seconds remaining')
+
+        # Not a progress reporter
+        self.assertRaisesRegexp(
+            ValueError, 'ProgressReporter', self.sim.run, 5, progress=12)
+
+        # Cancel from reporter
+        self.assertRaises(
+            myokit.SimulationCancelledError, self.sim.run, 1,
+            progress=CancellingReporter(0))
 
     def test_apd_tracking(self):
         """
@@ -166,11 +177,6 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(d1, self.sim.eval_derivatives(s1))
         self.sim.set_state(s1)
         self.assertEqual(d1, self.sim.eval_derivatives())
-
-    def test_bad_progress_reporter(self):
-        """ Calls run() with something that isn't a progress reporter. """
-        self.assertRaisesRegexp(
-            ValueError, 'ProgressReporter', self.sim.run, 5, progress=12)
 
     def test_set_tolerance(self):
         """

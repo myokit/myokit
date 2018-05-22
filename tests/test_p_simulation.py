@@ -16,7 +16,7 @@ import numpy as np
 
 import myokit
 
-from shared import DIR_DATA
+from shared import DIR_DATA, CancellingReporter
 
 
 class PSimulation(unittest.TestCase):
@@ -42,8 +42,10 @@ class PSimulation(unittest.TestCase):
         self.assertTrue(np.all(dp == 0))
 
         # Run a tiny simulation
+        self.assertEqual(s.time(), 0)
         s.set_step_size(0.002)
         d, dp = s.run(10, log_interval=2)
+        self.assertEqual(s.time(), 10)
 
         # Test derivatives method
         dp = s.derivatives()
@@ -54,6 +56,7 @@ class PSimulation(unittest.TestCase):
         self.assertNotEqual(s.state(), s.default_state())
         s.reset()
         self.assertEqual(s.state(), s.default_state())
+        self.assertEqual(s.time(), 0)
 
         # Test derivatives method after reset
         dp = s.derivatives()
@@ -115,6 +118,16 @@ class PSimulation(unittest.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'negative', s.run, -1)
 
+        # Negative or zero step size
+        self.assertRaisesRegexp(
+            ValueError, 'zero', s.set_step_size, 0)
+        self.assertRaisesRegexp(
+            ValueError, 'zero', s.set_step_size, -1)
+
+        # Set unset protocol
+        s.set_protocol(None)
+        s.set_protocol(p)
+
     def test_block(self):
         """
         Tests :meth:`PSimulation.block()`.
@@ -147,6 +160,7 @@ class PSimulation(unittest.TestCase):
         s = myokit.PSimulation(
             m, p, variables=['membrane.V'], parameters=['ina.gNa'])
         s.set_constant('ica.gCa', 1)
+        s.set_constant(m.get('ica.gCa'), 1)
 
         # Variable is not a literal
         self.assertRaisesRegexp(
@@ -161,10 +175,36 @@ class PSimulation(unittest.TestCase):
         self.assertRaisesRegexp(
             ValueError, '1 values', s.set_parameters, [1, 2])
         s.set_parameters({'ina.gNa': 1})
+        s.set_parameters({m.get('ina.gNa'): 1})
         self.assertRaisesRegexp(
             ValueError, 'Unknown', s.set_parameters, {'bert': 2})
         self.assertRaisesRegexp(
             ValueError, 'parameter', s.set_parameters, {'ica.gCa': 2})
+
+    def test_progress_reporter(self):
+        """
+        Test running with a progress reporter.
+        """
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        s = myokit.PSimulation(
+            m, p, variables=['membrane.V'], parameters=['ina.gNa'])
+        with myokit.PyCapture() as c:
+            s.run(2, progress=myokit.ProgressPrinter())
+        c = c.text().splitlines()
+        self.assertEqual(len(c), 2)
+        self.assertEqual(
+            c[0], '[0.0 minutes] 50.0 % done, estimated 0 seconds remaining')
+        self.assertEqual(
+            c[1], '[0.0 minutes] 100.0 % done, estimated 0 seconds remaining')
+
+        # Not a progress reporter
+        self.assertRaisesRegexp(
+            ValueError, 'ProgressReporter', s.run, 1, progress=12)
+
+        # Cancel from reporter
+        self.assertRaises(
+            myokit.SimulationCancelledError, s.run, 1,
+            progress=CancellingReporter(0))
 
 
 if __name__ == '__main__':
