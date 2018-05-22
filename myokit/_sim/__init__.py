@@ -52,13 +52,12 @@ class CModule(object):
     Abstract base class for classes that dynamically create and compile a
     back-end C-module.
     """
-    def _code(self, tpl, tpl_vars, line_numbers=False):
+    def _code(self, tpl, tpl_vars, line_numbers=False):  # pragma: no cover
         """
         Returns the code that would be created by the equivalent call to
         :meth:`_compile()`.
         """
         # This is a debugging/development method, so not hit in cover checking
-        # pragma: no cover
         if line_numbers:
             lines = []
             i = 1
