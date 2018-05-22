@@ -164,10 +164,9 @@ class CModule(object):
         """
         # Test if given module path is writable
         if target is not None:
-            if os.path.exists(target):
+            if os.path.exists(target):  # pragma: no cover
                 # This shouldn't really occur: Writing is always done in a
                 # temporary directory
-                # pragma: no cover
                 if os.path.isdir(target):
                     line = 'Can\'t create output file. A directory exists at '
                     line += format_path(target)
