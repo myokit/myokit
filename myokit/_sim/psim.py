@@ -103,7 +103,7 @@ class PSimulation(myokit.CppModule):
 
         # Check tracked variables
         if len(variables) != len(set(variables)):
-            raise ValueError('Variables to track can only be specified once.')
+            raise ValueError('Duplicate variable in `variables`.')
         self._variables = []
         for v in variables:
             if isinstance(v, myokit.Variable):
@@ -120,7 +120,7 @@ class PSimulation(myokit.CppModule):
 
         # Check parameters
         if len(parameters) != len(set(parameters)):
-            raise ValueError('Parameters can only be specified once.')
+            raise ValueError('Duplicate parameter in `parameters`.')
         self._parameters = []
         for p in parameters:
             if isinstance(p, myokit.Variable):
@@ -192,7 +192,7 @@ class PSimulation(myokit.CppModule):
         Takes the output of a simulation (a simulation log and a list of
         derivatives) and combines it into a single :class:`DataBlock2d` object.
 
-        Each entry in the log is converted to a 0d entry in the log. The
+        Each entry in the log is converted to a 0d entry in the block. The
         calculated derivatives are stored as the 2d field ``derivatives``.
         """
         # Get time data
