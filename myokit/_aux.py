@@ -143,6 +143,12 @@ class PyCapture(object):
         self._dupout = None     # String buffer to redirect stdout to
         self._duperr = None     # String buffer to redirect stderr to
 
+    def clear(self):
+        """
+        Deletes all captured text.
+        """
+        self._captured = []
+
     def disable(self):
         """
         Disables the silencing. Any capturing currently taking place is halted.

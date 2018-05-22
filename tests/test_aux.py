@@ -120,6 +120,16 @@ class AuxTest(unittest.TestCase):
             sys.stdout.write('Test')
         self.assertEqual(c.text(), 'Hello\nHmmm\nTest')
 
+        # Test clear() method
+        with myokit.PyCapture() as c:
+            print('Hi')
+            self.assertEqual(c.text(), 'Hi\n')
+            print('Ho')
+            self.assertEqual(c.text(), 'Hi\nHo\n')
+            c.clear()
+            print('Ha')
+            self.assertEqual(c.text(), 'Ha\n')
+
     def test_examplify(self):
         """ Test examplify. """
         self.assertEqual(myokit._aux._examplify('test.txt'), 'test.txt')
