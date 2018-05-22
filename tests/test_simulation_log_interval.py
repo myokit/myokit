@@ -387,6 +387,7 @@ class PSimulation(unittest.TestCase):
             m, p, variables=['membrane.V'], parameters=['ina.gNa'])
         # Set tolerance for equality testing
         emax = 1e-2     # Time steps for logging are approximate
+
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
         d, e = s.run(5, log=['engine.time'], log_interval=0.5)
         d = d.npview()
@@ -398,6 +399,7 @@ class PSimulation(unittest.TestCase):
             print('- ' * 10)
         self.assertEqual(len(t), len(q))
         self.assertTrue(np.max(np.abs(t - q)) < emax)
+
         # Test 2: Very short simulation
         s.reset()
         d, e = s.run(1, log=['engine.time'], log_interval=0.5)
@@ -410,6 +412,7 @@ class PSimulation(unittest.TestCase):
             print('- ' * 10)
         self.assertEqual(len(t), len(q))
         self.assertTrue(np.max(np.abs(t - q)) < emax)
+
         # Test 3: Stop and start a simulation
         s.reset()
         d, e = s.run(1, log=['engine.time'], log_interval=0.5)
@@ -424,6 +427,13 @@ class PSimulation(unittest.TestCase):
             print('- ' * 10)
         self.assertEqual(len(t), len(q))
         self.assertTrue(np.max(np.abs(t - q)) < emax)
+
+        # Negative or 0 log interval --> Log every step
+        s.set_step_size(0.01)
+        d, dp = s.run(1, log_interval=0)
+        self.assertEqual(len(d.time()), 101)
+        d, dp = s.run(1, log_interval=-1)
+        self.assertEqual(len(d.time()), 101)
 
 
 class ICSimulation(unittest.TestCase):

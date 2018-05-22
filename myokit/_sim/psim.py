@@ -227,7 +227,7 @@ class PSimulation(myokit.CppModule):
     def derivatives(self):
         """
         Return the partial derivatives of the current state with respect to the
-        parameters
+        parameters. Only works once the simulation has been run!
         """
         ms = len(self._state)
         mp = len(self._parameters)
@@ -290,7 +290,7 @@ class PSimulation(myokit.CppModule):
         ``d[:,0,2]``.
 
         A log entry is created every time *at least* ``log_interval`` time
-        units have passed.
+        units have passed. If ``log_interval <= 0`` every step taken is logged.
 
         To obtain feedback on the simulation progress, an object implementing
         the :class:`myokit.ProgressReporter` interface can be passed in.
@@ -299,7 +299,7 @@ class PSimulation(myokit.CppModule):
         """
         # Simulation times
         if duration < 0:
-            raise Exception('Simulation time can\'t be negative.')
+            raise ValueError('Simulation time can\'t be negative.')
         tmin = self._time
         tmax = tmin + duration
 
@@ -321,7 +321,7 @@ class PSimulation(myokit.CppModule):
             + myokit.LOG_INTER,
         )
 
-        # Logging period (0 = disabled)
+        # Logging period (0 = log at every step)
         log_interval = float(log_interval)
         if log_interval < 0:
             log_interval = 0
@@ -373,10 +373,12 @@ class PSimulation(myokit.CppModule):
             finally:
                 # Clean even after KeyboardInterrupt or other Exception
                 self._sim.sim_clean()
+
             # Update internal state
             self._state = list(state)
             self._state_ddp = list(state_ddp)
             self._time += duration
+
             # Convert derivatives to numpy arrays
             varab_ddp = np.array([
                 np.array(np.array(x).reshape(mv, mp), copy=True)

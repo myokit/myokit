@@ -36,14 +36,29 @@ class PSimulation(unittest.TestCase):
         # Test state & default state
         self.assertEqual(s.state(), s.default_state())
 
+        # Test derivatives method
+        dp = s.derivatives()
+        self.assertEqual(dp.shape, (8, 2))
+        self.assertTrue(np.all(dp == 0))
+
         # Run a tiny simulation
         s.set_step_size(0.002)
         d, dp = s.run(10, log_interval=2)
 
-        # Test state & default state
+        # Test derivatives method
+        dp = s.derivatives()
+        self.assertEqual(dp.shape, (8, 2))
+        self.assertFalse(np.all(dp == 0))
+
+        # Test state & default state before & after reset
         self.assertNotEqual(s.state(), s.default_state())
         s.reset()
         self.assertEqual(s.state(), s.default_state())
+
+        # Test derivatives method after reset
+        dp = s.derivatives()
+        self.assertEqual(dp.shape, (8, 2))
+        self.assertTrue(np.all(dp == 0))
 
         # Test pre-pacing --> Not implemented!
         #s.pre(2)
@@ -59,10 +74,9 @@ class PSimulation(unittest.TestCase):
 
         # Run without validated model
         m2 = m.clone()
-        m2.get('membrane.V').set_rhs(
-            myokit.Multiply(m2.get('membrane.V').rhs(), myokit.Number(0.9)))
+        m2.add_component('bert')
         s = myokit.PSimulation(
-            m, p, variables=['membrane.V'], parameters=['ina.gNa', 'ica.gCa'])
+            m2, p, variables=['membrane.V'], parameters=['ina.gNa', 'ica.gCa'])
         s.set_step_size(0.002)
         d, dp = s.run(10, log_interval=2)
 
@@ -96,6 +110,10 @@ class PSimulation(unittest.TestCase):
         myokit.PSimulation(
             m, p, variables=[m.get('membrane.V')],
             parameters=[m.get('ina.gNa')])
+
+        # Negative times
+        self.assertRaisesRegexp(
+            ValueError, 'negative', s.run, -1)
 
     def test_block(self):
         """
