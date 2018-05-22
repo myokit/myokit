@@ -326,10 +326,9 @@ class ProgressPrinter(ProgressReporter):
         pass
 
     def update(self, f):
-        if f == 0:
-            # First call, reset
-            self._b.reset()
-            self._f = None
+        """
+        See: :meth:`ProgressReporter.update()`.
+        """
         if self._d < 0:
             f = 10 * round(10 * f, 0)
         else:
@@ -350,5 +349,5 @@ class ProgressPrinter(ProgressReporter):
             t = str(round(t / 60, 1))
             self._output_stream.write(
                 '[' + t + ' minutes] ' + str(f) + ' % done' + p + '\n')
-            sys.stdout.flush()
+            self._output_stream.flush()
         return True

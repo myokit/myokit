@@ -18,7 +18,7 @@ import myokit
 from shared import DIR_DATA
 
 
-class JacobianCalculator(unittest.TestCase):
+class JacobianCalculatorTest(unittest.TestCase):
     """
     Tests the JacobianCalculator.
     """

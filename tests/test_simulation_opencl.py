@@ -18,7 +18,7 @@ import myokit
 from shared import OpenCL_FOUND, DIR_DATA
 
 
-class SimulationOpenCL1d(unittest.TestCase):
+class SimulationOpenCL1dTest(unittest.TestCase):
     """
     Tests the OpenCL simulation in 1d mode.
     """
@@ -63,7 +63,7 @@ class SimulationOpenCL1d(unittest.TestCase):
         s.run(1, log=['engine.time', 'membrane.V'])
 
 
-class SimulationOpenCL2d(unittest.TestCase):
+class SimulationOpenCL2dTest(unittest.TestCase):
     """
     Tests the OpenCL simulation in 2d mode.
     """
@@ -79,7 +79,7 @@ class SimulationOpenCL2d(unittest.TestCase):
         s.run(1, log=['engine.time', 'membrane.V'])
 
 
-class FiberTissueSimulation(unittest.TestCase):
+class FiberTissueSimulationTest(unittest.TestCase):
     """
     Tests the fiber-tissue simulation.
     """

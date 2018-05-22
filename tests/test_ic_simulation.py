@@ -18,9 +18,9 @@ import myokit
 from shared import DIR_DATA
 
 
-class ICSimulation(unittest.TestCase):
+class ICSimulationTest(unittest.TestCase):
     """
-    Tests the ICSimulation.
+    Tests the :class:`ICSimulation`.
     """
     def test_simple(self):
         # Load model

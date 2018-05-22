@@ -68,7 +68,7 @@ class PeriodicTest(unittest.TestCase):
         self.assertTrue(np.max(np.abs(t - q)) < emax)
 
 
-class Simulation(PeriodicTest):
+class SimulationTest(PeriodicTest):
     """
     Tests myokit.Simulation (which has dynamic, periodic and point-list
     logging) for consistent log entry timing.
@@ -364,7 +364,7 @@ class Simulation(PeriodicTest):
             self.assertNotEqual(e['membrane.V'][0], e['membrane.V'][1])
 
 
-class Simulation1d(PeriodicTest):
+class Simulation1dTest(PeriodicTest):
     """
     Tests myokit.Simulation1d for consistent log entry timing.
     """
@@ -374,7 +374,7 @@ class Simulation1d(PeriodicTest):
         self.periodic(s)
 
 
-class PSimulation(unittest.TestCase):
+class PSimulationTest(unittest.TestCase):
     """
     Tests myokit.PSimulation for consistent log entry timing.
     """
@@ -436,7 +436,7 @@ class PSimulation(unittest.TestCase):
         self.assertEqual(len(d.time()), 101)
 
 
-class ICSimulation(unittest.TestCase):
+class ICSimulationTest(unittest.TestCase):
     """
     Tests myokit.ICSimulation for consistent log entry timing.
     """

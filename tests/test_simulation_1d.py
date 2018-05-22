@@ -18,7 +18,7 @@ import myokit
 from shared import DIR_DATA
 
 
-class Simulation1d(unittest.TestCase):
+class Simulation1dTest(unittest.TestCase):
     """
     Tests the non-parallel 1d simulation.
     """
@@ -30,6 +30,7 @@ class Simulation1d(unittest.TestCase):
         ss = [s.state(x) for x in range(n)]
         for si in ss:
             self.assertEqual(sm, si)
+
         # Test setting a single, global state
         sx = [0] * 8
         self.assertNotEqual(sm, sx)
@@ -39,6 +40,7 @@ class Simulation1d(unittest.TestCase):
         self.assertEqual(sx * n, s.state())
         s.set_state(sm)
         self.assertEqual(sm * n, s.state())
+
         # Test setting a single state
         j = 1
         s.set_state(sx, j)

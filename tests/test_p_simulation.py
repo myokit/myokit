@@ -19,7 +19,7 @@ import myokit
 from shared import DIR_DATA, CancellingReporter
 
 
-class PSimulation(unittest.TestCase):
+class PSimulationTest(unittest.TestCase):
     """
     Tests the PSimulation.
     """

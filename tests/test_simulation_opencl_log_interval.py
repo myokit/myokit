@@ -22,7 +22,7 @@ from test_simulation_log_interval import PeriodicTest
 debug = False
 
 
-class SimulationOpenCL(PeriodicTest):
+class SimulationOpenCLTest(PeriodicTest):
     """
     Tests myokit.SimulationOpenCL for consistent log entry timing.
     """
@@ -36,7 +36,7 @@ class SimulationOpenCL(PeriodicTest):
         self.periodic(s)
 
 
-class FiberTissueSimulation(unittest.TestCase):
+class FiberTissueSimulationTest(unittest.TestCase):
     """
     Tests myokit.FiberTissueSimulation for consistent log entry timing.
     """

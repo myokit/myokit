@@ -16,7 +16,7 @@ import numpy as np
 import myokit
 
 
-class RhsBenchmarker(unittest.TestCase):
+class RhsBenchmarkerTest(unittest.TestCase):
     """
     Tests the RhsBenchmarker class.
     """

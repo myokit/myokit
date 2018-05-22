@@ -18,7 +18,7 @@ import myokit
 from shared import DIR_DATA
 
 
-class JacobianTracer(unittest.TestCase):
+class JacobianTracerTest(unittest.TestCase):
     """
     Tests the JacobianTracer.
     """
