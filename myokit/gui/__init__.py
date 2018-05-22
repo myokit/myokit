@@ -242,9 +242,9 @@ for k, v in ICONS.items():
 
 # Toolbar style suitable for platform
 TOOL_BUTTON_STYLE = Qt.ToolButtonTextUnderIcon
-if platform == 'Windows':
+if platform == 'Windows':   # pragma: no linux cover
     TOOL_BUTTON_STYLE = Qt.ToolButtonIconOnly
-elif platform == 'Darwin':
+elif platform == 'Darwin':  # pragma: no linux cover
     TOOL_BUTTON_STYLE = Qt.ToolButtonTextOnly
 
 
@@ -272,7 +272,7 @@ def qtMonospaceFont():
     Attempts to create and return a monospace font.
     """
     font = QtGui.QFont('monospace')
-    if platform == 'Windows':
+    if platform == 'Windows':   # pragma: no linux cover
         font.setStyleHint(QtGui.QFont.TypeWriter)
     else:
         font.setStyleHint(QtGui.QFont.Monospace)

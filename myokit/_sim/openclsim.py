@@ -244,7 +244,7 @@ class SimulationOpenCL(myokit.CModule):
 
         # Define libraries
         libs = ['OpenCL']
-        if platform.system() != 'Windows':
+        if platform.system() != 'Windows':  # pragma: no windows cover
             libs.append('m')
 
         # Create extension

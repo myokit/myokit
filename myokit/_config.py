@@ -74,7 +74,7 @@ def _create(path):
         ' (.so or .dll).')
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
-    if system == 'Windows':     # pragma: no linux-cover
+    if system == 'Windows':     # pragma: no linux cover
         # All windowses
         # First, try finding local sundials install
         sundials_win = os.path.join(
@@ -98,7 +98,7 @@ def _create(path):
     config.set('sundials', '# Location of sundials header files (.h).')
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
-    if system == 'Windows':     # pragma: no linux-cover
+    if system == 'Windows':     # pragma: no linux cover
         # All windowses
         config.set('sundials', 'inc', ';'.join([
             os.path.join(sundials_win, 'include'),
@@ -120,7 +120,7 @@ def _create(path):
         'opencl', '# Location of opencl shared libary files (.so or .dll).')
     config.set('opencl', '# Multiple paths can be set using ; as separator.')
 
-    if system == 'Windows':     # pragma: no linux-cover
+    if system == 'Windows':     # pragma: no linux cover
         # All windowses
         c32 = 'C:\\Program Files\\'
         c64 = 'C:\\Program Files (x86)\\'
@@ -143,7 +143,7 @@ def _create(path):
     config.set('opencl', '# Location of opencl header files (.h).')
     config.set('opencl', '# Multiple paths can be set using ; as separator.')
 
-    if system == 'Windows':     # pragma: no linux-cover
+    if system == 'Windows':     # pragma: no linux cover
         # All windowses
         c32 = 'C:\\Program Files\\'
         c64 = 'C:\\Program Files (x86)\\'

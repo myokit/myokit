@@ -129,7 +129,7 @@ class ICSimulation(myokit.CppModule):
 
         # Define libraries
         libs = []
-        if platform.system() != 'Windows':
+        if platform.system() != 'Windows':  # pragma: no windows cover
             libs.append('m')
 
         # Create simulation

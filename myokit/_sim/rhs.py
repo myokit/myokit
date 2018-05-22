@@ -70,7 +70,7 @@ class RhsBenchmarker(myokit.CModule):
 
         # Define libraries
         libs = []
-        if platform.system() != 'Windows':
+        if platform.system() != 'Windows':  # pragma: no windows cover
             libs.append('m')
 
         # Create extension
@@ -136,13 +136,17 @@ class RhsBenchmarker(myokit.CModule):
 
         """
         self._check_log(log)
+
         # Get first and last+1 position to check
         start = 0
         stop = len(log[next(self._model.states()).qname()])
+
         # Check repeats
         repeats = int(repeats)
+
         # Create benchmarking function
         bench = timeit.default_timer
+
         # Run
         times = self._ext.bench_part(bench, log, start, stop, repeats, fastest)
         return times

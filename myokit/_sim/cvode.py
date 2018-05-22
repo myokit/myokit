@@ -131,7 +131,7 @@ class Simulation(myokit.CModule):
             'sundials_cvode',
             'sundials_nvecserial',
         ]
-        if platform.system() != 'Windows':
+        if platform.system() != 'Windows':  # pragma: no windows cover
             libs.append('m')
 
         # Create extension

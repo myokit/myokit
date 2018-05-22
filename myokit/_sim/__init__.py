@@ -23,7 +23,7 @@ import traceback
 # (deprecated) os.popen command fails. The docs suggest to replace calls to
 # popen with subprocess.Popen. The following wrapper implements this
 # dynamically.
-if platform.system() == 'Windows':
+if platform.system() == 'Windows':  # pragma: no linux cover
     import subprocess  # noqa
 
     def _ospop(command, mode='r', bufsize=0):

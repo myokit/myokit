@@ -79,7 +79,7 @@ class JacobianTracer(myokit.CppModule):
 
         # Define libraries
         libs = []
-        if platform.system() != 'Windows':
+        if platform.system() != 'Windows':  # pragma: no windows cover
             libs.append('m')
 
         # Compile extension
@@ -135,6 +135,7 @@ class JacobianTracer(myokit.CppModule):
             elif n != len(states[-1]):
                 raise ValueError(
                     'Each entry in the log must have the same length.')
+
         # Extract a value for every required input
         inputs = []
         for label in self._inputs:
@@ -146,6 +147,7 @@ class JacobianTracer(myokit.CppModule):
                     'The given log must contain logged data for input used by'
                     ' the model. Missing: <' + v.qname() + '>  which is bound'
                     ' to ' + label + '.')
+
         # Create data block
         tvar = self._model.time().qname()
         try:
@@ -158,12 +160,15 @@ class JacobianTracer(myokit.CppModule):
         for k, v in log.items():
             if k != tvar:
                 block.set0d(k, v)
+
         # Create iterators over lists of state and input values
         istates = [iter(x) for x in states]
         iinputs = [iter(x) for x in inputs]
+
         # Length of derivs and partials lists
         ns = self._model.count_states()
         ns2 = ns * ns
+
         # Pass every state into the generator, store the output
         partials = []
         for i in range(n):
@@ -178,6 +183,7 @@ class JacobianTracer(myokit.CppModule):
             partial = partial.reshape((ns, ns))
             partials.append(partial)
         partials = np.array(partials)
+
         # Create a simulation
         block.set2d('jacobians', partials, copy=False)
         return block
