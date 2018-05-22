@@ -57,6 +57,8 @@ class CModule(object):
         Returns the code that would be created by the equivalent call to
         :meth:`_compile()`.
         """
+        # This is a debugging/development method, so not hit in cover checking
+        # pragma: no cover
         if line_numbers:
             lines = []
             i = 1
@@ -152,7 +154,7 @@ class CModule(object):
         finally:
             try:
                 shutil.rmtree(d_cache)
-            except Exception:
+            except Exception:   # pragma: no cover
                 pass
 
     def _export(self, source, varmap, target=None):
@@ -170,14 +172,18 @@ class CModule(object):
                     raise IOError(line)
             # Open output file
             handle = open(target, 'w')
+
         # Create source
         p = pype.TemplateEngine()
         if target is not None:
             p.set_output_stream(handle)
+
         try:
             result = None
             result = p.process(source, varmap)
-        except pype.PypeError:
+        except pype.PypeError:  # pragma: no cover
+            # Not included in cover, because this can only happen if the
+            # template code is wrong, i.e. during development.
             msg = ['An error ocurred while processing the template']
             msg.append(traceback.format_exc())
             d = p.error_details()
@@ -187,6 +193,7 @@ class CModule(object):
         finally:
             if target is not None:
                 handle.close()
+
         return result
 
     def _source_file(self):
