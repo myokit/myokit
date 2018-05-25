@@ -750,7 +750,20 @@ class ModelBuildTest(unittest.TestCase):
         i.promote(0.43)
         i.set_rhs('1 + h')
         m.validate()
+
         eqs = m.expressions_between(a, i)
+        self.assertEqual(len(eqs), 9)
+        for k, v in enumerate([a, b, c, d, e, f, g, h, i]):
+            self.assertEqual(v.lhs(), eqs[k].lhs)
+            self.assertEqual(v.rhs(), eqs[k].rhs)
+
+        eqs = m.expressions_between(a.lhs(), i.lhs())
+        self.assertEqual(len(eqs), 9)
+        for k, v in enumerate([a, b, c, d, e, f, g, h, i]):
+            self.assertEqual(v.lhs(), eqs[k].lhs)
+            self.assertEqual(v.rhs(), eqs[k].rhs)
+
+        eqs = m.expressions_between('membrane.a', 'membrane.i')
         self.assertEqual(len(eqs), 9)
         for k, v in enumerate([a, b, c, d, e, f, g, h, i]):
             self.assertEqual(v.lhs(), eqs[k].lhs)
@@ -818,12 +831,14 @@ class ModelBuildTest(unittest.TestCase):
         # Test not founds
         self.assertRaises(KeyError, m.get, 'y')
         self.assertRaises(KeyError, m.get, 'c.y')
+        self.assertRaises(KeyError, c.get, 'y')
 
         # Test class filter
         self.assertIs(m.get('c', myokit.Component), c)
         self.assertRaises(KeyError, m.get, 'c', myokit.Variable)
         self.assertIs(m.get('c.x', myokit.Variable), x)
-        self.assertRaises(KeyError, m.get, 'x', myokit.Component)
+        self.assertRaises(KeyError, m.get, 'c.x', myokit.Component)
+        self.assertRaises(KeyError, c.get, 'x', myokit.Component)
 
     def test_model_get(self):
         """
@@ -995,6 +1010,12 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(
             model.eval_state_derivatives(state=[1, 1, 2], inputs={'time': 0}),
             [1, 2, 3])
+
+        # Errors
+        c.set_rhs('(b + c) / 0')
+        self.assertRaises(myokit.NumericalError, model.eval_state_derivatives)
+        nan = model.eval_state_derivatives(ignore_errors=True)[2]
+        self.assertNotEqual(nan, nan)   # x != x is a nan test...
 
     def test_expressions_for(self):
         """ Tests Model.expressions_for(). """

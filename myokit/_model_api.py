@@ -1256,23 +1256,24 @@ class Model(ObjectWithMeta, VarProvider):
 
     def expressions_between(self, start, finish):
         """
-        Takes two variables and returns all equations through which ``start``
-        influences ``finish``.
-
+        Takes two variables and returns all equations through which the
+        variable ``start`` influences the variable ``finish``.
         """
-        # Check input
+        # Check start variable
         if isinstance(start, Variable):
-            start = start.lhs()
+            start = self.get(start.qname()).lhs()
+        elif isinstance(start, myokit.LhsExpression):
+            start = self.get(start.var().qname(), myokit.Variable).lhs()
+        else:
+            start = self.get(start, myokit.Variable).lhs()
+
+        # Check finish variable
         if isinstance(finish, Variable):
-            finish = finish.lhs()
-        if start.var().model() != self:
-            raise ValueError(
-                'LhsExpression "start" must point to a variable in this'
-                ' model.')
-        if finish.var().model() != self:
-            raise ValueError(
-                'LhsExpression "finish" must point to a variable in this'
-                ' model.')
+            finish = self.get(finish.qname()).lhs()
+        elif isinstance(finish, myokit.LhsExpression):
+            finish = self.get(finish.var().qname(), myokit.Variable).lhs()
+        else:
+            finish = self.get(finish, myokit.Variable).lhs()
 
         # Find all routes from start to finish
         # Along the way, add each found route to `order` in such a manner that
