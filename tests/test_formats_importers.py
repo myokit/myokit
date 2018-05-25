@@ -41,6 +41,10 @@ class CellMLTest(unittest.TestCase):
         m = i.model(os.path.join(DIR_DATA, 'corrias.cellml'))
         m.validate()
 
+    def test_info(self):
+        i = formats.importer('cellml')
+        self.assertIn(type(i.info()), [str, unicode])
+
 
 class SBMLTest(unittest.TestCase):
     def test_model(self):
@@ -52,6 +56,10 @@ class SBMLTest(unittest.TestCase):
         except myokit.MissingTimeVariableError:
             # SBML models don't specify the time variable
             pass
+
+    def test_info(self):
+        i = formats.importer('sbml')
+        self.assertIn(type(i.info()), [str, unicode])
 
 
 class ChannelMLTest(unittest.TestCase):
@@ -74,12 +82,20 @@ class ChannelMLTest(unittest.TestCase):
         cs = [c for c in m.components()]
         self.assertEqual(len(cs), 2)
 
+    def test_info(self):
+        i = formats.importer('channelml')
+        self.assertIn(type(i.info()), [str, unicode])
+
 
 class AxonTest(unittest.TestCase):
     def test_protocol(self):
         i = formats.importer('abf')
         self.assertTrue(i.supports_protocol())
         i.protocol(os.path.join(DIR_DATA, 'proto.abf'))
+
+    def test_info(self):
+        i = formats.importer('abf')
+        self.assertIn(type(i.info()), [str, unicode])
 
 
 if __name__ == '__main__':

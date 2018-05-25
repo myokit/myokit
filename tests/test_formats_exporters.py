@@ -25,6 +25,9 @@ class ExportTest(unittest.TestCase):
         """
         Test a given exporter `e`.
         """
+        # Test info method.
+        self.assertIn(type(e.info()), [str, unicode])
+
         # Load model, protocol
         m, p, x = myokit.load('example')
 
