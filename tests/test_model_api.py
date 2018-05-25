@@ -973,12 +973,17 @@ class ModelBuildTest(unittest.TestCase):
     def test_expressions_for(self):
         """ Tests Model.expressions_for(). """
         m = myokit.load_model('example')
-        eqs, vrs = m.expressions_for('ina.m')
+
         # Simple test
+        eqs, vrs = m.expressions_for('ina.m')
         self.assertEqual(len(eqs), 3)
         self.assertEqual(len(vrs), 2)
         self.assertIn(myokit.Name(m.get('ina.m')), vrs)
         self.assertIn(myokit.Name(m.get('membrane.V')), vrs)
+
+        # Massive test
+        eqs, vrs = m.expressions_for('membrane.V')
+        self.assertEqual(len(eqs), 37)
 
         # Bad system
         m = myokit.Model()
@@ -993,6 +998,8 @@ class ModelBuildTest(unittest.TestCase):
     def test_format_state(self):
         """ Tests Model.format_state() """
         m = myokit.load_model('example')
+
+        # Test without state argument
         self.assertEqual(
             m.format_state(),
             'membrane.V = -84.5286\n'
@@ -1005,9 +1012,48 @@ class ModelBuildTest(unittest.TestCase):
             'ica.Ca_i   = 0.0002'
         )
 
+        # Test with state argument
+        self.assertEqual(
+            m.format_state([1, 2, 3, 4, 5, 6, 7, 8]),
+            'membrane.V = 1\n'
+            'ina.m      = 2\n'
+            'ina.h      = 3\n'
+            'ina.j      = 4\n'
+            'ica.d      = 5\n'
+            'ica.f      = 6\n'
+            'ik.x       = 7\n'
+            'ica.Ca_i   = 8'
+        )
+
+        # Test with invalid state argument
+        self.assertRaisesRegexp(
+            ValueError, 'list of \(8\)', m.format_state, [1, 2, 3])
+
+        # Test with second state argument
+        self.assertEqual(
+            m.format_state([1, 2, 3, 4, 5, 6, 7, 8], [8, 7, 6, 5, 4, 3, 2, 1]),
+            'membrane.V = 1    8\n'
+            'ina.m      = 2    7\n'
+            'ina.h      = 3    6\n'
+            'ina.j      = 4    5\n'
+            'ica.d      = 5    4\n'
+            'ica.f      = 6    3\n'
+            'ik.x       = 7    2\n'
+            'ica.Ca_i   = 8    1'
+        )
+
+        # Test with invalid second state argument
+        self.assertRaisesRegexp(
+            ValueError, 'list of \(8\)', m.format_state,
+            [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
+
     def test_format_state_derivatives(self):
-        """ Tests Model.format_state_derivatives() """
+        """
+        Tests Model.format_state_derivatives().
+        """
         m = myokit.load_model('example')
+
+        # Test without arguments
         self.assertEqual(
             m.format_state_derivatives(), # noqa
 'membrane.V = -84.5286                   dot = -5.68008003798848027e-02\n'
@@ -1019,6 +1065,42 @@ class ModelBuildTest(unittest.TestCase):
 'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n'
 'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'
         )
+
+        # Test with state argument
+        self.assertEqual(
+            m.format_state_derivatives([1, 2, 3, 4, 5, 6, 7, 8]), # noqa
+'membrane.V = 1                          dot = -5.68008003798848027e-02\n'
+'ina.m      = 2                          dot = -4.94961486033834719e-03\n'
+'ina.h      = 3                          dot =  9.02025299127830887e-06\n'
+'ina.j      = 4                          dot = -3.70409866928434243e-04\n'
+'ica.d      = 5                          dot =  3.68067721821794798e-04\n'
+'ica.f      = 6                          dot = -3.55010150519739432e-07\n'
+'ik.x       = 7                          dot = -2.04613933160084307e-07\n'
+'ica.Ca_i   = 8                          dot = -6.99430692442154227e-06'
+        )
+
+        # Test with invalid state argument
+        self.assertRaisesRegexp(
+            ValueError, 'list of \(8\)', m.format_state_derivatives, [1, 2, 3])
+
+        # Test with derivs argument
+        self.assertEqual(
+            m.format_state_derivatives(
+                [1, 2, 3, 4, 5, 6, 7, 8], [8, 7, 6, 5, 4, 3, 2, 1]),
+            'membrane.V = 1                          dot = 8\n'
+            'ina.m      = 2                          dot = 7\n'
+            'ina.h      = 3                          dot = 6\n'
+            'ina.j      = 4                          dot = 5\n'
+            'ica.d      = 5                          dot = 4\n'
+            'ica.f      = 6                          dot = 3\n'
+            'ik.x       = 7                          dot = 2\n'
+            'ica.Ca_i   = 8                          dot = 1'
+        )
+
+        # Test with invalid derivs argument
+        self.assertRaisesRegexp(
+            ValueError, 'list of \(8\)', m.format_state_derivatives,
+            [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
     def test_unique_names(self):
         """ Tests Model.create_unique_names. """
@@ -1044,17 +1126,21 @@ class ModelBuildTest(unittest.TestCase):
         ax = a.add_variable('x')
         abx = a.add_variable('b_x')
         ax1 = a.add_variable('x_1')
+        ax11 = a.add_variable('x_1_1')
         b = m.add_component('b')
         bx = b.add_variable('x')
+        bx11 = b.add_variable('x_1_1')
         bx1 = b.add_variable('x_1')
         m.create_unique_names()
         self.assertEqual(a.uname(), 'a')
         self.assertEqual(ax.uname(), 'a_x')
         self.assertEqual(abx.uname(), 'b_x')
         self.assertEqual(ax1.uname(), 'a_x_1')
+        self.assertEqual(ax11.uname(), 'a_x_1_1')
         self.assertEqual(b.uname(), 'b')
         self.assertEqual(bx.uname(), 'b_x_1')
-        self.assertEqual(bx1.uname(), 'b_x_1_1')
+        self.assertEqual(bx11.uname(), 'b_x_1_1')
+        self.assertEqual(bx1.uname(), 'b_x_1_2')
 
         # Disputed component name
         m = myokit.Model()
