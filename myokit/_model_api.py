@@ -1040,31 +1040,13 @@ class Model(ObjectWithMeta, VarProvider):
 
     def component_cycles(self):
         """
-        Checks this model for cyclical references between components. For
-        example if ``a.p`` depends on ``b.q`` while ``b.x`` depends on ``a.y``.
+        Finds cyclical references between components and returns them. For
+        example, if ``a.p`` depends on ``b.q`` while ``b.x`` depends on
+        ``a.y``, a cycle ``a > b > a`` will be returned.
 
-        The returned value is a list of "cycles", for example, if the only
-        cycle found was `a > b > a`, the method would return::
-
-            [
-                [Component('a'), Component('b'), Component('a')]
-            ]
-
-        If two components cause a cycle by multiple routes, this is counted as
-        a single cycle. The list of cycles returned is sorted from most
-        occurences to fewest. The cycle chosen to represent an often occurring
-        route is chosen by searching for the smallest cycle. Because there is
-        some randomness in the way the model is traversed, this may not be the
-        same route every time the method is called.
-
-        To get a quick overview of the cycles in a model, use::
-
-            for c in m.component_cycles():
-                print(' > '.join([x.name() for x in c]))
-
-        For big models, this method can take a considerable amount of time to
-        execute. To just check if there are any interdependent components, use
-        the faster method :meth:`has_interdependent_components()`.
+        For a faster way to check if there are any interdependent components
+        (without returning the exact cycles found), use
+        :meth:`has_interdependent_components()`.
         """
         # Collect dependencies between components in a structure:
         # compdeps = {
@@ -1083,36 +1065,33 @@ class Model(ObjectWithMeta, VarProvider):
                         d1.add(c2)
 
         # Follow each component, find cycles
-        cycles = []
-        followed = set()
+        # Don't inspect any component twice, if cycles exist one will always be
+        # detected on the first pass
+        cycles = []         # Found cycles, e.g. (a, b, c, a)
+        followed = set()    # Prevent inspecting twice
 
         def follow(comp, trail):
+            # Detect cycle:
             if comp in trail:
                 cycles.append(trail[trail.index(comp):] + [comp])
                 return
+
+            # No cycle detected, append to trail
             trail.append(comp)
+
+            # Follow all
             for comp2 in compdeps[comp]:
-                if comp2 not in followed:
-                    follow(comp2, trail)
+                follow(comp2, trail)
             trail.pop()
             followed.add(comp)
+
+        # Start following
         for comp in self.components():
             if comp not in followed:
                 follow(comp, [])
 
-        # Score cycles by occurence of first and last component
-        scores = {}
-        for cycle in cycles:
-            cid = (cycle[0], cycle[-1])
-            try:
-                scores[cid][0] += 1
-            except KeyError:
-                scores[cid] = [1, cycle]
-            if len(cycle) < len(scores[cid][1]):
-                scores[cid][1] = cycle
-        cycles = scores.values()
-        cycles.sort(key=lambda x: -x[0])
-        return [x[1] for x in cycles]
+        # Return cycles
+        return cycles
 
     def __contains__(self, key):
         return key in self._components
@@ -1158,8 +1137,10 @@ class Model(ObjectWithMeta, VarProvider):
                         disputed.add(name)
                     else:
                         allnames.add(name)
+
         # Set unique names
         for comp in self.components():
+
             # Set names for component
             name = comp._name
             if name in disputed:
@@ -1171,6 +1152,7 @@ class Model(ObjectWithMeta, VarProvider):
                     name = root + str(i)
                 allnames.add(name)
             comp._uname = name
+
             # Set names for variables
             for var in comp.variables(deep=True):
                 name = var._name
@@ -1484,8 +1466,11 @@ class Model(ObjectWithMeta, VarProvider):
         To return only objects of a certain class, pass it in as
         ``class_filter``.
         """
+        # Return model part immediatly
         if isinstance(name, ModelPart):
             return name
+
+        # Split name, get different parts
         names = name.split('.')
         x = self
         try:
@@ -1493,10 +1478,13 @@ class Model(ObjectWithMeta, VarProvider):
                 x = x[name]
         except KeyError:
             raise KeyError(str(name))
+
+        # Apply optional class filter
         if class_filter:
             if not isinstance(x, class_filter):
                 raise KeyError(str(name) + ' of class ' + str(class_filter))
             pass
+
         return x
 
     def get_function(self, name, nargs):

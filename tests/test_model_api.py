@@ -2,6 +2,9 @@
 #
 # Tests the model API.
 #
+# Notes:
+#  - Tests for dependency checking in models are in `test_dependency_checking`.
+#
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
@@ -794,9 +797,9 @@ class ModelBuildTest(unittest.TestCase):
             r = c.add_variable_allow_renaming('r')
             self.assertEqual(r.name(), 'r_' + str(1 + i))
 
-    def test_get(self):
+    def test_varowner_get(self):
         """
-        Tests the VarOwner.get() method.
+        Tests VarOwner.get().
         """
         # Test basics
         m = Model('test')
@@ -822,6 +825,43 @@ class ModelBuildTest(unittest.TestCase):
         self.assertIs(m.get('c.x', myokit.Variable), x)
         self.assertRaises(KeyError, m.get, 'x', myokit.Component)
 
+    def test_model_get(self):
+        """
+        Tests Model.get().
+        """
+        m = myokit.load_model('example')
+
+        # Get by name
+        v = m.get('membrane.V')
+        self.assertEqual(v.qname(), 'membrane.V')
+        self.assertIsInstance(v, myokit.Variable)
+
+        # Get by variable ref (useful for handling unknown input type)
+        w = m.get(v)
+        self.assertIs(w, v)
+
+        # Get nested
+        a = m.get('ina.m.alpha')
+        self.assertEqual(a.qname(), 'ina.m.alpha')
+        self.assertIsInstance(a, myokit.Variable)
+
+        # Get component
+        c = m.get('membrane')
+        self.assertEqual(c.qname(), 'membrane')
+        self.assertIsInstance(c, myokit.Component)
+
+        # Get with filter
+        a = m.get('ina.m.alpha', myokit.Variable)
+        self.assertEqual(a.qname(), 'ina.m.alpha')
+        self.assertIsInstance(a, myokit.Variable)
+        self.assertRaises(KeyError, m.get, 'ina.m.alpha', myokit.Component)
+        self.assertRaises(KeyError, m.get, 'ina', myokit.Variable)
+        m.get('ina', myokit.Component)
+
+        # Get non-existent
+        self.assertRaises(KeyError, m.get, 'membrane.bert')
+        self.assertRaises(KeyError, m.get, 'bert.bert')
+
     def test_add_function(self):
         """
         Tests the ``Model.add_function`` method.
@@ -838,22 +878,29 @@ class ModelBuildTest(unittest.TestCase):
         # Test duplicate name
         # Different number of arguments is allowed:
         m.add_function('f', ('a', 'b'), 'a + b')
-        self.assertRaises(
-            myokit.DuplicateFunctionName, m.add_function, 'f', ('a', 'b'),
-            'a - b')
+        self.assertRaisesRegexp(
+            myokit.DuplicateFunctionName, 'already defined', m.add_function,
+            'f', ('a', 'b'), 'a - b')
 
         # Test duplicate argument name
-        self.assertRaises(
-            myokit.DuplicateFunctionArgument, m.add_function, 'g', ('a', 'a'),
-            'a + a')
+        self.assertRaisesRegexp(
+            myokit.DuplicateFunctionArgument, 'already in use',
+            m.add_function, 'g', ('a', 'a'), 'a + a')
 
         # Dot operator is not allowed
-        self.assertRaises(
-            myokit.InvalidFunction, m.add_function, 'fdot', ('a', ), 'dot(a)')
+        self.assertRaisesRegexp(
+            myokit.InvalidFunction, 'dot\(\) operator',
+            m.add_function, 'fdot', ('a', ), 'dot(a)')
 
         # Unused argument
-        self.assertRaises(
-            myokit.InvalidFunction, m.add_function, 'fun', ('a', 'b'), 'a')
+        self.assertRaisesRegexp(
+            myokit.InvalidFunction, 'never used', m.add_function, 'fun',
+            ('a', 'b'), 'a')
+
+        # Unspecified variable
+        self.assertRaisesRegexp(
+            myokit.InvalidFunction, 'never declared',
+            m.add_function, 'fun', ('a', ), 'a + b')
 
     def test_check_units(self):
         """
@@ -988,6 +1035,34 @@ class ModelBuildTest(unittest.TestCase):
 'ik.x       = 0.0057                     dot = -2.04613933160084307e-07\n'
 'ica.Ca_i   = 0.0002                     dot = -6.99430692442154227e-06'
         )
+
+    def test_unique_names(self):
+        """ Tests Model.create_unique_names. """
+        # Heavily disputed variablee names
+        m = myokit.Model()
+        a = m.add_component('a')
+        a.add_variable('x')
+        b = m.add_component('b')
+        b.add_variable('x')
+        x3 = m.add_component('x')
+        x3.add_variable('x')
+        m.create_unique_names()
+        self.assertEqual(m.get('a').uname(), 'a')
+        self.assertEqual(m.get('a.x').uname(), 'a_x')
+        self.assertEqual(m.get('b').uname(), 'b')
+        self.assertEqual(m.get('b.x').uname(), 'b_x')
+        self.assertEqual(m.get('x').uname(), 'x_1')
+        self.assertEqual(m.get('x.x').uname(), 'x_x')
+
+        # Disputed component name
+        m = myokit.Model()
+        a = m.add_component('a')
+        a.add_variable('x')
+        m.add_component('x')
+        m.create_unique_names()
+        self.assertEqual(m.get('a').uname(), 'a')
+        self.assertEqual(m.get('a.x').uname(), 'a_x')
+        self.assertEqual(m.get('x').uname(), 'x_1')
 
 
 if __name__ == '__main__':

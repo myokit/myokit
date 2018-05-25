@@ -1123,6 +1123,42 @@ class ComponentDepTest(DepTest):
         out('test')
 
     def test_component_cycles(self):
+        """
+        Tests Model.component_cycles().
+        """
+        # Create structure:
+        #
+        #         C           A on B
+        #       / | \         B on C
+        # A - B   |  D        C on D and C on E
+        #       \ | /         D on E
+        #         E           E on B and E on C
+        #
+        # Should have cycles:
+        #  B - C - D - E - B
+        #  C - D - E - C
+        #  B - C - E - B
+        #  C - E - C
+        #
+        m = myokit.Model('cycles')
+        a = m.add_component('a')
+        b = m.add_component('b')
+        c = m.add_component('c')
+        d = m.add_component('d')
+        e = m.add_component('e')
+        a1 = a.add_variable('a1')
+        b1 = b.add_variable('b1')
+        c1 = c.add_variable('c1')
+        d1 = d.add_variable('d1')
+        e1 = e.add_variable('e1')
+        a1.set_rhs('b.b1')
+        b1.set_rhs('c.c1')
+        c1.set_rhs('d.d1 + e.e1')
+        d1.set_rhs('e.e1')
+        e1.set_rhs('b.b1 + c.c1')
+        cycles = m.component_cycles()
+        self.assertEqual(len(cycles), 4)
+
         # Specific test for the following bug:
         # Calling has_interdependent_components() returned True, but
         # component_cycles found nothing. The reason turned out to be that
@@ -1149,6 +1185,7 @@ class ComponentDepTest(DepTest):
         except KeyError:
             # No cycles found, so just pick a random correct case and fail :)
             self.assertEqual(cycles, [[a, b, a]])
+
         # Case 1
         m = myokit.Model('bug')
         a = m.add_component('a')
