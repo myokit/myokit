@@ -721,54 +721,6 @@ class ModelBuildTest(unittest.TestCase):
         t.set_rhs(Number(0))
         self.assertRaises(MissingTimeVariableError, m.validate)
 
-    def test_expressions_between(self):
-        """
-        Tests the ``expressions_between`` method.
-        """
-        m = Model('test')
-        x = m.add_component('membrane')
-        t = x.add_variable('time')
-        t.set_rhs(0)
-        t.set_binding('time')
-        a = x.add_variable('a')
-        a.set_rhs(12)
-        b = x.add_variable('b')
-        b.set_rhs('3 * a')
-        c = x.add_variable('c')
-        c.set_rhs('a + b')
-        d = x.add_variable('d')
-        d.set_rhs('a * c')
-        e = x.add_variable('e')
-        e.set_rhs('sqrt(d) * b + 3*c')
-        f = x.add_variable('f')
-        f.set_rhs('exp(e - 10)')
-        g = x.add_variable('g')
-        g.set_rhs('3 * e + 4 * f')
-        h = x.add_variable('h')
-        h.set_rhs('f + cos(g)')
-        i = x.add_variable('i')
-        i.promote(0.43)
-        i.set_rhs('1 + h')
-        m.validate()
-
-        eqs = m.expressions_between(a, i)
-        self.assertEqual(len(eqs), 9)
-        for k, v in enumerate([a, b, c, d, e, f, g, h, i]):
-            self.assertEqual(v.lhs(), eqs[k].lhs)
-            self.assertEqual(v.rhs(), eqs[k].rhs)
-
-        eqs = m.expressions_between(a.lhs(), i.lhs())
-        self.assertEqual(len(eqs), 9)
-        for k, v in enumerate([a, b, c, d, e, f, g, h, i]):
-            self.assertEqual(v.lhs(), eqs[k].lhs)
-            self.assertEqual(v.rhs(), eqs[k].rhs)
-
-        eqs = m.expressions_between('membrane.a', 'membrane.i')
-        self.assertEqual(len(eqs), 9)
-        for k, v in enumerate([a, b, c, d, e, f, g, h, i]):
-            self.assertEqual(v.lhs(), eqs[k].lhs)
-            self.assertEqual(v.rhs(), eqs[k].rhs)
-
     def test_add_component_allow_renamining(self):
         """
         Tests the ``Model.add_component_allow_renaming`` method.
@@ -1027,6 +979,16 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(len(vrs), 2)
         self.assertIn(myokit.Name(m.get('ina.m')), vrs)
         self.assertIn(myokit.Name(m.get('membrane.V')), vrs)
+
+        # Bad system
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        x.set_rhs('y')
+        y.set_rhs('x')
+        self.assertRaisesRegexp(
+            Exception, 'Failed to solve', m.expressions_for, 'c.x')
 
     def test_format_state(self):
         """ Tests Model.format_state() """

@@ -1156,6 +1156,8 @@ class ComponentDepTest(DepTest):
         c1.set_rhs('d.d1 + e.e1')
         d1.set_rhs('e.e1')
         e1.set_rhs('b.b1 + c.c1')
+
+        # Check 4 cycles exist
         cycles = m.component_cycles()
         self.assertEqual(len(cycles), 4)
 

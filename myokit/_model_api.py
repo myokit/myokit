@@ -1258,69 +1258,6 @@ class Model(ObjectWithMeta, VarProvider):
         # Return calculated state
         return out
 
-    def expressions_between(self, start, finish):
-        """
-        Takes two variables and returns all equations through which the
-        variable ``start`` influences the variable ``finish``.
-        """
-        # Check start variable
-        if isinstance(start, Variable):
-            start = self.get(start.qname()).lhs()
-        elif isinstance(start, myokit.LhsExpression):
-            start = self.get(start.var().qname(), myokit.Variable).lhs()
-        else:
-            start = self.get(start, myokit.Variable).lhs()
-
-        # Check finish variable
-        if isinstance(finish, Variable):
-            finish = self.get(finish.qname()).lhs()
-        elif isinstance(finish, myokit.LhsExpression):
-            finish = self.get(finish.var().qname(), myokit.Variable).lhs()
-        else:
-            finish = self.get(finish, myokit.Variable).lhs()
-
-        # Find all routes from start to finish
-        # Along the way, add each found route to `order` in such a manner that
-        # the elements maintain their dependency order.
-        order = [start]
-        visited = set()
-
-        def merge(trail):
-            """ Merges the new found trail with the existing order """
-            p = 0
-            for t in trail:
-                try:
-                    # Item in list: Advance cursor
-                    p = 1 + order.index(t, p)
-                except ValueError:
-                    # Item not in list: Add at current position
-                    order.insert(p, t)
-                    p += 1
-
-        # Start searching backwards from the finish
-        def follow(lhs, trail):
-            """ Searches backwards """
-            if lhs in order:
-                return merge(trail)
-            if lhs in visited:
-                return
-            trail.append(lhs)
-            for d in lhs.rhs().references():
-                if d.is_state_value():
-                    continue
-                follow(d, trail)
-            trail.pop()
-            visited.add(lhs)
-
-        # Create ordered list of lhs expressions
-        follow(finish, [])
-
-        # Convert `order` to a list of equations
-        eq_list = []
-        for lhs in reversed(order):
-            eq_list.append(Equation(lhs, lhs.rhs()))
-        return eq_list
-
     def expressions_for(self, variable):
         """
         Returns a tuple ``(eqs, args)`` where ``eqs`` is a list of Equation
