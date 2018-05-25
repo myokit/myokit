@@ -837,6 +837,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertIs(m.get('c', myokit.Component), c)
         self.assertRaises(KeyError, m.get, 'c', myokit.Variable)
         self.assertIs(m.get('c.x', myokit.Variable), x)
+        self.assertIs(c.get('x', myokit.Variable), x)
         self.assertRaises(KeyError, m.get, 'c.x', myokit.Component)
         self.assertRaises(KeyError, c.get, 'x', myokit.Component)
 
@@ -1059,21 +1060,39 @@ class ModelBuildTest(unittest.TestCase):
 
     def test_unique_names(self):
         """ Tests Model.create_unique_names. """
-        # Heavily disputed variablee names
+        # Heavily disputed variable names
         m = myokit.Model()
         a = m.add_component('a')
-        a.add_variable('x')
+        ax = a.add_variable('x')
         b = m.add_component('b')
-        b.add_variable('x')
-        x3 = m.add_component('x')
-        x3.add_variable('x')
+        bx = b.add_variable('x')
+        x = m.add_component('x')
+        xx = x.add_variable('x')
         m.create_unique_names()
-        self.assertEqual(m.get('a').uname(), 'a')
-        self.assertEqual(m.get('a.x').uname(), 'a_x')
-        self.assertEqual(m.get('b').uname(), 'b')
-        self.assertEqual(m.get('b.x').uname(), 'b_x')
-        self.assertEqual(m.get('x').uname(), 'x_1')
-        self.assertEqual(m.get('x.x').uname(), 'x_x')
+        self.assertEqual(a.uname(), 'a')
+        self.assertEqual(ax.uname(), 'a_x')
+        self.assertEqual(b.uname(), 'b')
+        self.assertEqual(bx.uname(), 'b_x')
+        self.assertEqual(x.uname(), 'x_1')
+        self.assertEqual(xx.uname(), 'x_x')
+
+        # Disputed variable name --> Generated name already exists
+        m = myokit.Model()
+        a = m.add_component('a')
+        ax = a.add_variable('x')
+        abx = a.add_variable('b_x')
+        ax1 = a.add_variable('x_1')
+        b = m.add_component('b')
+        bx = b.add_variable('x')
+        bx1 = b.add_variable('x_1')
+        m.create_unique_names()
+        self.assertEqual(a.uname(), 'a')
+        self.assertEqual(ax.uname(), 'a_x')
+        self.assertEqual(abx.uname(), 'b_x')
+        self.assertEqual(ax1.uname(), 'a_x_1')
+        self.assertEqual(b.uname(), 'b')
+        self.assertEqual(bx.uname(), 'b_x_1')
+        self.assertEqual(bx1.uname(), 'b_x_1_1')
 
         # Disputed component name
         m = myokit.Model()
@@ -1084,6 +1103,18 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(m.get('a').uname(), 'a')
         self.assertEqual(m.get('a.x').uname(), 'a_x')
         self.assertEqual(m.get('x').uname(), 'x_1')
+
+        # Disputed component name --> Generated name already exists
+        m = myokit.Model()
+        a = m.add_component('a')
+        a.add_variable('x')
+        m.add_component('x')
+        m.add_component('x_1')
+        m.create_unique_names()
+        self.assertEqual(m.get('a').uname(), 'a')
+        self.assertEqual(m.get('a.x').uname(), 'a_x')
+        self.assertEqual(m.get('x').uname(), 'x_2')
+        self.assertEqual(m.get('x_1').uname(), 'x_1')
 
 
 if __name__ == '__main__':

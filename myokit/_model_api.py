@@ -574,8 +574,11 @@ class VarOwner(ModelPart, VarProvider):
             ... x = c.get('ina.h')      # Searches for <ina.ina.h>: KeyError!
 
         """
+        # Return model part immediatly
         if isinstance(name, ModelPart):
             return name
+
+        # Find variable
         names = name.split('.')
         x = self
         try:
@@ -583,10 +586,11 @@ class VarOwner(ModelPart, VarProvider):
                 x = x[name]
         except KeyError:
             raise KeyError(str(name))
-        if class_filter:
-            if not isinstance(x, class_filter):
-                raise KeyError(str(name) + ' of class ' + str(class_filter))
-            pass
+
+        # Apply optional class filter
+        if class_filter and not isinstance(x, class_filter):
+            raise KeyError(str(name) + ' of class ' + str(class_filter))
+
         return x
 
     def __getitem__(self, key):
@@ -1481,10 +1485,8 @@ class Model(ObjectWithMeta, VarProvider):
             raise KeyError(str(name))
 
         # Apply optional class filter
-        if class_filter:
-            if not isinstance(x, class_filter):
-                raise KeyError(str(name) + ' of class ' + str(class_filter))
-            pass
+        if class_filter and not isinstance(x, class_filter):
+            raise KeyError(str(name) + ' of class ' + str(class_filter))
 
         return x
 
