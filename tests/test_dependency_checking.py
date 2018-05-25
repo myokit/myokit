@@ -1489,6 +1489,24 @@ class SolvableOrderTest(DepTest):
         del(self.order)
         del(self.m)
 
+    def test_has_interdependent_components(self):
+        """
+        Tests Model.has_interdependent_components().
+        """
+        m = myokit.Model()
+        c = m.add_component('c')
+        c1 = c.add_variable('c1')
+        c1.set_rhs(1)
+        c2 = c.add_variable('c2')
+        c2.set_rhs(2)
+        self.assertFalse(m.has_interdependent_components())
+        d = m.add_component('d')
+        d1 = d.add_variable('d1')
+        d1.set_rhs('c.c1')
+        self.assertFalse(m.has_interdependent_components())
+        c2.set_rhs('d.d1')
+        self.assertTrue(m.has_interdependent_components())
+
 
 if __name__ == '__main__':
     print('Add -v for more debug output')
