@@ -1164,6 +1164,35 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(m.get('x').uname(), 'x_2')
         self.assertEqual(m.get('x_1').uname(), 'x_1')
 
+    def test_warnings(self):
+        """
+        Tests Model.has_warnings(), model.warnings() and
+        Model.format_warnings().
+        """
+        # Test model without warnings
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        v = c.add_variable('v')
+        v.set_rhs('3 - v')
+        v.promote(0.1)
+        m.validate()
+
+        self.assertFalse(m.has_warnings())
+        self.assertIn('0 validation warning', m.format_warnings())
+        self.assertEqual(m.warnings(), [])
+
+        # Test model with warnings
+        v.demote()
+        v.set_rhs(3)
+        m.validate()
+
+        self.assertTrue(m.has_warnings())
+        self.assertIn('1 validation warning', m.format_warnings())
+        self.assertIn('Unused variable', str(m.warnings()[0]))
+
 
 if __name__ == '__main__':
     unittest.main()
