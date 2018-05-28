@@ -15,6 +15,8 @@ from __future__ import print_function, unicode_literals
 
 import unittest
 
+from shared import TemporaryDirectory
+
 import myokit
 from myokit import (
     Model, Component, Variable, Derivative, Equation, Name, Number,
@@ -1213,6 +1215,23 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(len(labels), 1)
         self.assertEqual(labels[0][0], 'membrane_potential')
         self.assertEqual(labels[0][1], v)
+
+    def test_load_save_state(self):
+        """
+        Tests :meth:`Model.save_state()` and :meth:`Model.load_state()`.
+        """
+        m = myokit.load_model('example')
+        s1 = m.state()
+        with TemporaryDirectory() as d:
+            path = d.path('state.csv')
+            m.save_state(path)
+            self.assertEqual(m.state(), s1)
+            sx = list(s1)
+            sx[0] = 10
+            m.set_state(sx)
+            self.assertNotEqual(m.state(), s1)
+            m.load_state(path)
+            self.assertEqual(m.state(), s1)
 
 
 if __name__ == '__main__':
