@@ -75,14 +75,12 @@ class WcpFile(object):
             #header_size = 512 * int(h['nbh'])
             # Seems to be size in bytes!
             header_size = int(h['nbh'])
-        except KeyError:
-            # pragma: no cover
+        except KeyError:    # pragma: no cover
             # Calculate header size based on number of channels
             header_size = (int((int(h['nc']) - 1) / 8) + 1) * 1024
 
         # Read remaining header data
-        if header_size > 1024:
-            # pragma: no cover
+        if header_size > 1024:  # pragma: no cover
             data += f.read(header_size - 1024)
             h = [x.strip().split('=') for x in data.split('\n')]
             h = dict([(x[0].lower(), x[1]) for x in h if len(x) == 2])
@@ -135,13 +133,11 @@ class WcpFile(object):
         # Data is stored as 16 bit integers (little-endian)
         try:
             rab_size = 512 * header['nba']
-        except KeyError:
-            # pragma: no cover
+        except KeyError:    # pragma: no cover
             rab_size = header_size
         try:
             rdb_size = 512 * header['nbd']
-        except KeyError:
-            # pragma: no cover
+        except KeyError:    # pragma: no cover
             rdb_size = 2 * self._nc * self._np
 
         # Maximum A/D sample value at vmax
