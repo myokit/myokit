@@ -1709,23 +1709,28 @@ class Model(ObjectWithMeta, VarProvider):
                 deps = set()
             if trail is None:
                 trail = []
+
             # Followed already? Return stored result
             if lhs in deep:
                 for dep in deep[lhs]:
                     deps.add(dep)
                 return deps
+
             # Cycle check
             if lhs in trail:
                 trail = trail[trail.index(lhs):]
                 trail.append(lhs)
                 raise myokit.CyclicalDependencyError(trail)
+
             # Not in shallow? Error in dict
             if lhs not in shallow:
-                raise KeyError(
+                raise RuntimeError(  # pragma: no cover
                     'Variable ' + str(lhs._value) + ' not found in dict of'
                     ' shallow dependencies')
+
             # Add this var as a dependency
             deps.add(lhs)
+
             # Follow child dependencies
             trail2 = trail + [lhs]
             for kid in shallow[lhs]:

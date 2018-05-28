@@ -788,6 +788,15 @@ class DeepDepTest(DepTest):
             'Deep dependency check complete [with state deps, no encompassed'
             ' vars]')
 
+    def test_deep_cyles(self):
+        """
+        Tests if the deep test finds cyclical dependencies.
+        """
+        m = self.m.clone()
+        m.get('cell.Na_i').set_rhs('3 * ina.INa')
+        self.assertRaises(
+            myokit.CyclicalDependencyError, m.map_deep_dependencies)
+
 
 class ComponentDepTest(DepTest):
     """
