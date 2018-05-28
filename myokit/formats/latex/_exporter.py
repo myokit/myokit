@@ -69,9 +69,8 @@ class PdfExporter(myokit.formats.Exporter):
                 text.replace('\\', '\\\\')
                 f.write('\\section{Introduction}\n')
                 f.write(text)
-            except KeyError:
+            except KeyError:    # pragma: no cover
                 # No need to test this
-                # pragma: no cover
                 pass
 
             # Initial conditions
