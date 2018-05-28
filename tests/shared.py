@@ -29,6 +29,9 @@ DIR_DATA = os.path.join(DIR_TEST, 'data')
 # Extra files in the data directory for load/save testings
 DIR_IO = os.path.join(DIR_DATA, 'io')
 
+# The publications directory
+DIR_PUBLICATIONS = os.path.join(DIR_TEST, 'publications')
+
 # OpenCL support
 OpenCL_FOUND = myokit.OpenCL.supported()
 
