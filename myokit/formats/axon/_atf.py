@@ -34,6 +34,7 @@ class AtfFile(object):
         # The path to the file and its basename
         self._file = os.path.abspath(filename)
         self._filename = os.path.basename(filename)
+
         # Read data
         self._version = None
         self._meta = None
@@ -92,7 +93,7 @@ class AtfFile(object):
         import myokit
         log = myokit.DataLog()
         if len(self._data) > 0:
-            log.set_time_key(next(self._data.keys()))
+            log.set_time_key(next(iter(self._data.keys())))
         for k, v in self._data.items():
             log[k] = v
         return log
@@ -108,10 +109,12 @@ class AtfFile(object):
             if line[:3] != 'ATF':
                 raise Exception('Unrecognised file type.')
             self._version = line[3:].strip()
+
             # Read number of header lines, number of fields
             line = f.readline()
             line_index += 1
             nh, nf = [int(x) for x in line.split()]
+
             # Read header data
             # If formatted as key-value pairs, format the meta data nicely.
             # Otherwise, just enter as is.
@@ -146,12 +149,15 @@ class AtfFile(object):
                 self._meta = '\n'.join(meta)
             else:
                 self._meta = '\n'.join(raw)
+
             # Read time-series data
             self._data = OrderedDict()
             line = f.readline().strip()
             line_index += 1
+
             # Test if comma separated or space/tab separated
             delims = _FIELDS.split(line)
+
             # First and last delim must be empty (i.e. line starts and ends
             # with '"')
             if delims[0] != '' or delims[-1] != '':
@@ -165,6 +171,7 @@ class AtfFile(object):
             for delim in delims:
                 if commas != (',' in delim):
                     raise Exception('Mixed delimiters are not supported.')
+
             # Read column headers
             keys = []
             try:
@@ -181,6 +188,7 @@ class AtfFile(object):
                 raise Exception(
                     'Unable to parse column headers: Expected ' + str(nf)
                     + ' headers, found ' + str(len(keys)) + '.')
+
             # Read data
             data = []
             for key in keys:
@@ -228,16 +236,20 @@ def save_atf(log, filename, fields=None):
     """
     log.validate()
     import myokit
+
     # Check filename
     filename = os.path.expanduser(filename)
+
     # Delimiters
     # Dos-style EOL: Open file in 'wb' mode to stop windows writing \r\r\n
     eol = '\r\n'
     delim = '\t'
+
     # Create data and keys lists
     data = [iter(log.time())]
     time = log.time_key()
     keys = [time]
+
     # Check fields
     if fields:
         for field in fields:
@@ -254,12 +266,14 @@ def save_atf(log, filename, fields=None):
             if k != time:
                 keys.append(k)
                 data.append(iter(v))
+
     for k in keys:
         if '"' in k:
             raise ValueError('Column names must not contain double quotes.')
         if '\r' in k or '\n' in k:
             raise ValueError(
                 'Column names must not contain newlines or carriage returns.')
+
     # Check if time is equally spaced
     t = np.asarray(log.time())
     dt = t[1:] - t[:-1]
@@ -267,25 +281,31 @@ def save_atf(log, filename, fields=None):
     dt_err = dt_ref * 1e-6
     if np.any(np.abs(dt - dt_ref) > dt_err):
         raise ValueError('The time variable must be regularly spaced.')
+
     # Create header
     header = []
     header.append(('myokit-version', 'Myokit ' + myokit.version(raw=True)))
     header.append(('date-created', myokit.date()))
     header.append(('sampling-interval', dt_ref))
+
     # Get sizes
     nh = len(header)
     nf = len(keys)
     nd = log.length()
+
     # Write file
     with open(filename, 'wb') as f:
         # Write version number
         f.write('ATF 1.0' + eol)
+
         # Write number of header lines, number of fields
         f.write(str(nh) + delim + str(nf) + eol)
         for k, v in header:
             f.write('"' + str(k) + '=' + str(v) + '"' + eol)
+
         # Write field names
         f.write(delim.join(['"' + k + '"' for k in keys]) + eol)
+
         # Write data
         for i in range(nd):
             f.write(

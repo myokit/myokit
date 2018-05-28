@@ -1193,6 +1193,27 @@ class ModelBuildTest(unittest.TestCase):
         self.assertIn('1 validation warning', m.format_warnings())
         self.assertIn('Unused variable', str(m.warnings()[0]))
 
+    def test_labels(self):
+        """
+        Tests model.labels() method.
+        """
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        v = c.add_variable('v')
+        v.set_rhs('3 - v')
+        v = c.add_variable('plopt')
+        v.set_rhs(1)
+        v = c.add_variable('vvv')
+        v.set_label('membrane_potential')
+        v.set_rhs(1)
+        labels = m.labels()
+        self.assertEqual(len(labels), 1)
+        self.assertEqual(labels[0][0], 'membrane_potential')
+        self.assertEqual(labels[0][1], v)
+
 
 if __name__ == '__main__':
     unittest.main()
