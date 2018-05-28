@@ -494,6 +494,7 @@ class PacingTest(unittest.TestCase):
         self.assertTrue(p.is_unbroken_sequence())
         self.assertTrue(p.is_unbroken_sequence(True))
 
+        # First event is periodic
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 1000, 2)
         self.assertFalse(p.is_sequence())
@@ -503,6 +504,18 @@ class PacingTest(unittest.TestCase):
         self.assertRaisesRegexp(
             Exception, 'contains periodic', p.is_unbroken_sequence, True)
 
+        # Second event is periodic
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 0, 0)
+        p.schedule(20, 100, 100, 1000, 1000)
+        self.assertFalse(p.is_sequence())
+        self.assertRaisesRegexp(
+            Exception, 'contains periodic', p.is_sequence, True)
+        self.assertFalse(p.is_unbroken_sequence())
+        self.assertRaisesRegexp(
+            Exception, 'contains periodic', p.is_unbroken_sequence, True)
+
+        # Multiple periodic events
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 1000, 2)
         p.schedule(2, 1, 1, 1000, 0)
