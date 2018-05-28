@@ -36,15 +36,18 @@ class WcpFile(object):
         # The path to the file and its basename
         self._filepath = os.path.abspath(filepath)
         self._filename = os.path.basename(filepath)
+
         # Records
         self._records = None
         self._channel_names = None
         self._nr = None     # Records in file
         self._nc = None     # Channels per record
         self._np = None     # Samples per channel
-        self._dt = None     # Sampling interval
+        #self._dt = None     # Sampling interval
+
         # Time signal
         self._time = None
+
         # Open the file, extract its contents
         with open(filepath, 'rb') as f:
             self._(f)
@@ -62,9 +65,10 @@ class WcpFile(object):
         h = [x.strip().split('=') for x in data.split('\n')]
         h = dict([(x[0].lower(), x[1]) for x in h if len(x) == 2])
         if int(h['ver']) != 9:
-            raise ValueError(
+            raise NotImplementedError(
                 'Only able to read format version 9. Given file is in format'
                 ' version ' + str(h['ver']))
+
         # Get header size
         try:
             # Get number of 512 byte sectors in header
@@ -72,13 +76,17 @@ class WcpFile(object):
             # Seems to be size in bytes!
             header_size = int(h['nbh'])
         except KeyError:
+            # pragma: no cover
             # Calculate header size based on number of channels
             header_size = (int((int(h['nc']) - 1) / 8) + 1) * 1024
+
         # Read remaining header data
         if header_size > 1024:
+            # pragma: no cover
             data += f.read(header_size - 1024)
             h = [x.strip().split('=') for x in data.split('\n')]
             h = dict([(x[0].lower(), x[1]) for x in h if len(x) == 2])
+
         # Tidy up read data
         header = {}
         header_raw = {}
@@ -103,13 +111,14 @@ class WcpFile(object):
         # Get vital fields from header
         # Records in file
         self._nr = header['nr']
+
         # Channels per record
         self._nc = header['nc']
         try:
             # Samples per channel
             self._np = header['np']
         except KeyError:
-            self._np = (header['nbd'] * 512) / (2 * self._nc)
+            self._np = (header['nbd'] * 512) // (2 * self._nc)
 
         # Get channel specific fields
         channel_headers = []
@@ -127,10 +136,12 @@ class WcpFile(object):
         try:
             rab_size = 512 * header['nba']
         except KeyError:
+            # pragma: no cover
             rab_size = header_size
         try:
             rdb_size = 512 * header['nbd']
         except KeyError:
+            # pragma: no cover
             rdb_size = 2 * self._nc * self._np
 
         # Maximum A/D sample value at vmax
@@ -142,31 +153,42 @@ class WcpFile(object):
         for i in range(self._nr):
             # Read analysis block
             f.seek(offset)
+
             # Status of signal (Accepted or rejected, as string)
             rstatus = f.read(8)
+
             # Type of recording, as string
             rtype = f.read(4)
+
             # Group number (float set by the user)
             group_number = struct.unpack('<f', f.read(4))[0]
+
             # Time of recording, as float, not sure how to interpret
             rtime = struct.unpack('<f', f.read(4))[0]
+
             # Sampling interval: pretty sure this should be the same as the
             # file wide one in header['dt']
             rint = struct.unpack('<f', f.read(4))[0]
+
             # Maximum positive limit of A/D converter voltage range
             vmax = struct.unpack('<' + 'f' * self._nc, f.read(4 * self._nc))
+
             # String marker set by user
             marker = f.read(16)
+
             # Delete unused
             del(rstatus, rtype, group_number, rtime, rint, marker)
+
             # Increase offset beyond analysis block
             offset += rab_size
+
             # Get data from data block
             data = np.memmap(
                 self._filepath, np.dtype('<i2'), 'r',
                 shape=(self._np, self._nc),
                 offset=offset,
             )
+
             # Separate channels and apply scaling
             record = []
             for j in range(self._nc):
@@ -175,8 +197,10 @@ class WcpFile(object):
                 d = np.array(data[:, h['yo']].astype('f4') * s)
                 record.append(d)
             records.append(record)
+
             # Increase offset beyong data block
             offset += rdb_size
+
         self._records = records
 
         # Create time signal
@@ -241,11 +265,11 @@ class WcpFile(object):
         """
         return self._nr
 
-    def sampling_interval(self):
-        """
-        Returns the sampling interval used in this file.
-        """
-        return self._dt
+    #def sampling_interval(self):
+    #    """
+    #    Returns the sampling interval used in this file.
+    #    """
+    #    return self._dt
 
     def times(self):
         """

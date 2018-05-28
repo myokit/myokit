@@ -44,12 +44,15 @@ class PdfExporter(myokit.formats.Exporter):
         """
         # Create an expression writer
         e = LatexExpressionWriter()
+
         # Write a simple file
         with open(path, 'w') as f:
             f.write('\\documentclass[fleqn]{article}\n')
             f.write('\\usepackage[a4paper,margin=0.7in]{geometry}\n')
+
             # Nice math stuff (\text{})
             f.write('\\usepackage{amsmath}\n')
+
             # Break lines automatically
             f.write('\\usepackage{breqn}\n')
             f.write('\\begin{document}\n')
@@ -58,6 +61,7 @@ class PdfExporter(myokit.formats.Exporter):
             f.write('\\title{' + title + '}\n')
             f.write('\\author{' + author + '}\n')
             f.write('\\maketitle\n')
+
             # Introduction
             try:
                 text = model.meta['desc']
@@ -66,7 +70,10 @@ class PdfExporter(myokit.formats.Exporter):
                 f.write('\\section{Introduction}\n')
                 f.write(text)
             except KeyError:
+                # No need to test this
+                # pragma: no cover
                 pass
+
             # Initial conditions
             f.write('\\section{Initial conditions}\n')
             for v in model.states():
@@ -75,6 +82,7 @@ class PdfExporter(myokit.formats.Exporter):
                 f.write(' = ')
                 f.write(e.ex(myokit.Number(v.state_value())))
                 f.write('\\end{dmath}\n')
+
             # Write each component
             for c in model.components():
                 f.write('\\section{' + self._clean(c.name()) + '}\n')
@@ -89,6 +97,7 @@ class PdfExporter(myokit.formats.Exporter):
                     f.write('\\begin{dmath}\n')
                     f.write(e.eq(v.eq()) + '\n')
                     f.write('\\end{dmath}\n')
+
             # End of document
             f.write('\\end{document}\n')
 
@@ -115,12 +124,6 @@ class PosterExporter(myokit.formats.Exporter):
     def __init__(self):
         super(PosterExporter, self).__init__()
 
-    def _clean(self, text):
-        """
-        Cleans some text for use in latex.
-        """
-        return text.replace('_', '\_')
-
     def info(self):
         import inspect
         return inspect.getdoc(self)
@@ -130,16 +133,21 @@ class PosterExporter(myokit.formats.Exporter):
         Exports a model to an xml document.
         """
         path = os.path.abspath(os.path.expanduser(path))
+
         # Create an expression writer
         e = LatexExpressionWriter()
+
         # Write a simple file
         with open(path, 'w') as f:
             f.write('\\documentclass{article}\n')
             f.write('\\usepackage[a4paper,landscape,margin=0.7in]{geometry}\n')
+
             # Nice math stuff (\text{})
             f.write('\\usepackage{amsmath}\n')
+
             # Break lines automatically
             f.write('\\usepackage{breqn}\n')
+
             # Growing page
             f.write('\\usepackage[active,tightpage]{preview}\n')
             f.write('\\renewcommand{\\PreviewBorder}{1in}\n')
@@ -150,12 +158,14 @@ class PosterExporter(myokit.formats.Exporter):
             f.write('\\author{}\n')
             f.write('\\date{}\n')
             f.write('\\maketitle\n')
+
             # Write each component
             for c in model.components():
                 for v in c.variables(deep=True):
                     f.write('\\(\n')
                     f.write(e.eq(v.eq()) + '\n')
                     f.write('\\)\n')
+
             # End of document
             f.write('\\end{preview}\n')
             f.write('\\end{document}\n')

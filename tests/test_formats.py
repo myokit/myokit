@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the exporters from the format module.
+# Tests infrastructure (e.g. the text logger) from the formats module.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -17,8 +17,14 @@ import myokit.formats
 
 
 class FormatsTest(unittest.TestCase):
+    """
+    Tests infrastructure (e.g. the text logger) from the formats module.
+    """
 
     def test_text_logger(self):
+        """
+        Tests myokit.formats.TextLogger().
+        """
 
         # Test basic methods
         with myokit.PyCapture() as c:
