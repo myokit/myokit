@@ -924,6 +924,8 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(m.name(), 'ernie')
         m.set_name(None)
         self.assertIsNone(m.name())
+        m.set_name(None)
+        self.assertIsNone(m.name())
 
         m = myokit.Model(name='ernie')
         self.assertEqual(m.name(), 'ernie')
@@ -1273,6 +1275,8 @@ class ModelAPITest(unittest.TestCase):
         t.set_rhs(0)
         v = c.add_variable('v')
         v.set_rhs('3 - v')
+        w = c.add_variable('w')
+        w.set_rhs(0)
         bindings = m.bindings()
         self.assertEqual(len(bindings), 1)
         self.assertEqual(bindings[0][0], 'time')
@@ -1287,6 +1291,12 @@ class ModelAPITest(unittest.TestCase):
         self.assertRaisesRegexp(
             myokit.InvalidBindingError, 'Duplicate binding', v.set_binding,
             'time')
+
+        # Binding can't overlap with label
+        v.set_label('membrane_potential')
+        self.assertRaisesRegexp(
+            myokit.InvalidBindingError, 'in use as a label', w.set_binding,
+            'membrane_potential')
 
     def test_labels(self):
         """
@@ -1319,6 +1329,11 @@ class ModelAPITest(unittest.TestCase):
         self.assertRaisesRegexp(
             myokit.InvalidLabelError, 'already in use', w.set_label,
             'membrane_potential')
+
+        # Labels can't overlap with bindings
+        self.assertRaisesRegexp(
+            myokit.InvalidLabelError, 'in use as a binding', w.set_label,
+            'time')
 
     def test_load_save_state(self):
         """
@@ -1439,6 +1454,26 @@ class ModelAPITest(unittest.TestCase):
         m.resolve_interdependent_components()
         self.assertEqual(m.count_components(), 4)
         m.get('remaining_2')
+
+    def test_show_evaluation_of(self):
+        """
+        Tests :meth:`Model.show_evaluation_of(variable)`.
+
+        Depends mostly on `references()`, and `code()` methods.
+        """
+        m = myokit.load_model('example')
+
+        # Test for intermediary variable
+        e = m.show_evaluation_of('ina.INa')
+        self.assertIn('ina.INa = ', e)
+        self.assertIn('Intermediary variable', e)
+        self.assertEqual(len(e.splitlines()), 13)
+
+        # Test for state variable (with nested variables)
+        e = m.show_evaluation_of('ina.m')
+        self.assertIn('ina.m = ', e)
+        self.assertIn('State variable', e)
+        self.assertEqual(len(e.splitlines()), 15)
 
 
 if __name__ == '__main__':

@@ -2177,15 +2177,18 @@ class Model(ObjectWithMeta, VarProvider):
             if len(s) < 10:
                 return s
             return '%0.17e' % number
+
         # Add basic info
         spacer = '-' * 60
         var, out = self._var_info(var, spacer)
+
         # Add initial value
         rhs = var.rhs()
         if var.is_state():
             out.append('Initial value = ' + str(var.state_value()))
             out.append(spacer)
         varname = var.lhs().code()
+
         # Add references
         deps = rhs.references()
         if deps:
@@ -2195,6 +2198,7 @@ class Model(ObjectWithMeta, VarProvider):
                     dep.code() + ' ' * (n - len(dep.code())) + ' = '
                     + format_float(dep.eval()))
             out.append(spacer)
+
         # Add nested variables
         if len(var) > 0:
             n = max(len(x.name()) for x in var.variables(deep=True))
@@ -2204,6 +2208,7 @@ class Model(ObjectWithMeta, VarProvider):
                     + tmp.rhs().code())
                 out.append(' ' * n + ' = ' + format_float(tmp.rhs().eval()))
             out.append(spacer)
+
         # Add final value
         out.append(varname + ' = ' + rhs.code())
         out.append(' ' * len(varname) + ' = ' + format_float(rhs.eval()))
