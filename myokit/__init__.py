@@ -86,7 +86,7 @@ if not RELEASE:
     log.warning(
         'Using development version of Myokit. This may contain untested'
         ' features and bugs. Please see http://myokit.org for the latest'
-        ' stable releases.')
+        ' stable release.')
 
 
 # Don't expose standard libraries as part of Myokit
