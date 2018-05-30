@@ -2401,12 +2401,10 @@ class Model(ObjectWithMeta, VarProvider):
         :class:`EquationList`.
 
         The returned equations can be used to recalculate the model
-        expressions, given fixed values for the roots and leaving all other
-        variable unaffected.
+        expressions, given new values for the variables in ``args``.
 
         The input arguments can be given as :class:`LhsExpression` objects or
-        string names of variables, in this case, the Lhs returned by
-        :meth:`Variable.lhs()` will be used.
+        string names of variables.
         """
         # 1. Get set of root lhs objects
         msg = 'All input arguments to solvable_subset must be' \
@@ -2498,6 +2496,7 @@ class Model(ObjectWithMeta, VarProvider):
         # Return variable or set error message
         name = str(name)
         if '.' not in name:
+
             # Attempt to Suggest component
             for c in self.components():
                 for v in c.variables():
@@ -2506,10 +2505,14 @@ class Model(ObjectWithMeta, VarProvider):
                             None, v, 'No component specified for: <' + name
                             + '>. Did you mean <' + v.qname() + '> ?'
                         )
+
             # No alternative component found
             msg = 'Unknown variable: <' + name + '>.'
+
         else:
+
             par, var = name.split('.', 1)
+
             if par not in self._components:
                 msg = 'Unknown component: <' + par + '>.'
             else:
@@ -2521,6 +2524,7 @@ class Model(ObjectWithMeta, VarProvider):
                     return (var, None, None)
                 except KeyError:
                     msg = 'Unknown variable: <' + name + '>.'
+
         # Suggest closest match
         qname = name
         d = 1 + name.rfind('.')
@@ -2540,11 +2544,13 @@ class Model(ObjectWithMeta, VarProvider):
             if d < mn:
                 mn = d
                 sg = v
+
         if sg is not None:
             msg += ' Did you mean "' + sg.qname() + '"?'
-            if sg.qname().lower() == name.lower():
+            if sg.qname().lower() == qname_low:
                 msg += ' (Case mismatch)'
             return (None, sg, msg)
+
         return (None, None, msg)
 
     def time(self):

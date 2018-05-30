@@ -1497,6 +1497,43 @@ class ModelAPITest(unittest.TestCase):
         # Test deprecated alias
         m.show_line(m.get('ina.INa'))
 
+    def test_suggest(self):
+        """
+        Tests :meth:`Model.suggest(variable_name)`.
+        """
+        m = myokit.Model()
+        c1 = m.add_component('c1')
+        t = c1.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        c2 = m.add_component('c2')
+        v = c2.add_variable('v')
+        v.set_rhs('3')
+
+        # Test with correct name
+        found, suggested, msg = m.suggest_variable('c1.time')
+        self.assertEqual(found, t)
+        self.assertIsNone(suggested)
+        self.assertIsNone(msg)
+
+        # Test with wrong name
+        found, suggested, msg = m.suggest_variable('c1.tim')
+        self.assertIsNone(found)
+        self.assertEqual(suggested, t)
+        self.assertIn('Unknown', msg)
+
+        # Test with case mismatch
+        found, suggested, msg = m.suggest_variable('c1.timE')
+        self.assertIsNone(found)
+        self.assertEqual(suggested, t)
+        self.assertIn('Case mismatch', msg)
+
+        # Test without component
+        found, suggested, msg = m.suggest_variable('time')
+        self.assertIsNone(found)
+        self.assertEqual(suggested, t)
+        self.assertIn('No component', msg)
+
 
 if __name__ == '__main__':
     unittest.main()
