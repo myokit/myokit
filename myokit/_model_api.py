@@ -2397,8 +2397,8 @@ class Model(ObjectWithMeta, VarProvider):
     def solvable_subset(self, *args):
         """
         Returns all equations dependent on one or more :class:`LhsExpression`
-        objects (the "roots") in a solvable order. The resulting equations are
-        stored in an :class:`EquationList`.
+        objects in a solvable order. The resulting equations are stored in an
+        :class:`EquationList`.
 
         The returned equations can be used to recalculate the model
         expressions, given fixed values for the roots and leaving all other
@@ -2464,7 +2464,7 @@ class Model(ObjectWithMeta, VarProvider):
                 if not dps:
                     todo.add(lhs)
             if not todo:
-                raise Exception('Equation ordering failed.')
+                raise RuntimeError('Equation ordering failed.')
             for lhs in todo:
                 del(deps[lhs])
                 eqs.append(Equation(lhs, lhs.rhs()))

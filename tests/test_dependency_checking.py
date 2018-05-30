@@ -1378,7 +1378,7 @@ class SolvableOrderTest(DepTest):
         # Test with cycles
         self.m.get('ina.m').demote()
         self.assertRaisesRegexp(
-            RuntimeError, 'Equation ordering failed', self.m.solvable_order)
+            RuntimeError, 'Equation ordering failed.', self.m.solvable_order)
         del(self.m)
 
     def test_solvable_subset(self):
@@ -1440,66 +1440,85 @@ class SolvableOrderTest(DepTest):
                         print(c1, 'does NOT occur before', c2)
                 self.assertLess(i1, i2)
 
-        # Start
-        # Run multiple times because ordering is slightly random.
-        for i in range(0, 1):
-            # Load model, get order
-            self.m = myokit.load_model(
-                os.path.join(DIR_DATA, 'lr-1991.mmt'))
-            # Test with a single constant
-            self.head('Testing with constant cell.K_o')
-            self.order = self.m.solvable_subset('cell.K_o')
-            self.assertEqual(len(self.order), 10)
-            before('ik.gK', 'ik.IK')
-            before('ik.E', 'ik.IK')
-            before('ik.IK', 'membrane.V')
-            before('ik1.E', 'ik1.gK1.alpha', 'ik1.gK1.beta', 'ik1.IK1')
-            before('ik1.gK1.alpha', 'ik1.gK1')
-            before('ik1.gK1.beta', 'ik1.gK1')
-            before('ik1.gK1', 'ik1.IK1')
-            before('ik1.IK1', 'membrane.V')
-            # Test with two constants, no changes
-            self.head('Testing with constants cell.K_o and cell.K_i')
-            self.order = self.m.solvable_subset('cell.K_o', 'cell.K_i')
-            self.assertEqual(len(self.order), 10)
-            before('ik.gK', 'ik.IK')
-            before('ik.E', 'ik.IK')
-            before('ik.IK', 'membrane.V')
-            before('ik1.E', 'ik1.gK1.alpha', 'ik1.gK1.beta', 'ik1.IK1')
-            before('ik1.gK1.alpha', 'ik1.gK1')
-            before('ik1.gK1.beta', 'ik1.gK1')
-            before('ik1.gK1', 'ik1.IK1')
-            before('ik1.IK1', 'membrane.V')
-            # Test with two constants that intersect
-            self.head('Testing with constants cell.K_o and cell.RTF.R')
-            self.order = self.m.solvable_subset('cell.K_o', 'cell.RTF.R')
-            self.assertEqual(len(self.order), 13)
-            before('cell.RTF.R', 'cell.RTF')
-            before('cell.RTF', 'ik.E', 'ik1.E', 'ina.ENa')
-            before('ina.ENa', 'ina.INa')
-            before('ina.INa', 'membrane.V')
-            before('ik.gK', 'ik.IK')
-            before('ik.E', 'ik.IK')
-            before('ik.IK', 'membrane.V')
-            before('ik1.E', 'ik1.gK1.alpha', 'ik1.gK1.beta', 'ik1.IK1')
-            before('ik1.gK1.alpha', 'ik1.gK1')
-            before('ik1.gK1.beta', 'ik1.gK1')
-            before('ik1.gK1', 'ik1.IK1')
-            before('ik1.IK1', 'membrane.V')
-            # Test with state variable
-            self.head('Testing with state variable Name(ina.m)')
-            self.order = self.m.solvable_subset(
-                myokit.Name(self.m.get('ina.m')))
-            self.assertEqual(len(self.order), 4)
-            self.assertIn(
-                myokit.Derivative(myokit.Name(self.m.get('ina.m'))),
-                [x.lhs for x in self.order])
-            before('ina.INa', 'membrane.V')
-            # Test with derivative
-            self.head('Testing with dot(membrane.V)')
-            self.order = self.m.solvable_subset('membrane.V')
-            self.assertEqual(len(self.order), 0)
-            self.head('Finished testing solvable_subset()')
+        # Load model, get order
+        self.m = myokit.load_model(
+            os.path.join(DIR_DATA, 'lr-1991.mmt'))
+
+        # Test with a single constant
+        self.head('Testing with constant cell.K_o')
+        self.order = self.m.solvable_subset('cell.K_o')
+        self.assertEqual(len(self.order), 10)
+        before('ik.gK', 'ik.IK')
+        before('ik.E', 'ik.IK')
+        before('ik.IK', 'membrane.V')
+        before('ik1.E', 'ik1.gK1.alpha', 'ik1.gK1.beta', 'ik1.IK1')
+        before('ik1.gK1.alpha', 'ik1.gK1')
+        before('ik1.gK1.beta', 'ik1.gK1')
+        before('ik1.gK1', 'ik1.IK1')
+        before('ik1.IK1', 'membrane.V')
+
+        # Test with two constants, no changes
+        self.head('Testing with constants cell.K_o and cell.K_i')
+        self.order = self.m.solvable_subset('cell.K_o', 'cell.K_i')
+        self.assertEqual(len(self.order), 10)
+        before('ik.gK', 'ik.IK')
+        before('ik.E', 'ik.IK')
+        before('ik.IK', 'membrane.V')
+        before('ik1.E', 'ik1.gK1.alpha', 'ik1.gK1.beta', 'ik1.IK1')
+        before('ik1.gK1.alpha', 'ik1.gK1')
+        before('ik1.gK1.beta', 'ik1.gK1')
+        before('ik1.gK1', 'ik1.IK1')
+        before('ik1.IK1', 'membrane.V')
+
+        # Test with two constants that intersect
+        self.head('Testing with constants cell.K_o and cell.RTF.R')
+        self.order = self.m.solvable_subset('cell.K_o', 'cell.RTF.R')
+        self.assertEqual(len(self.order), 13)
+        before('cell.RTF.R', 'cell.RTF')
+        before('cell.RTF', 'ik.E', 'ik1.E', 'ina.ENa')
+        before('ina.ENa', 'ina.INa')
+        before('ina.INa', 'membrane.V')
+        before('ik.gK', 'ik.IK')
+        before('ik.E', 'ik.IK')
+        before('ik.IK', 'membrane.V')
+        before('ik1.E', 'ik1.gK1.alpha', 'ik1.gK1.beta', 'ik1.IK1')
+        before('ik1.gK1.alpha', 'ik1.gK1')
+        before('ik1.gK1.beta', 'ik1.gK1')
+        before('ik1.gK1', 'ik1.IK1')
+        before('ik1.IK1', 'membrane.V')
+
+        # Test with state variable
+        self.head('Testing with state variable Name(ina.m)')
+        self.order = self.m.solvable_subset(
+            myokit.Name(self.m.get('ina.m')))
+        self.assertEqual(len(self.order), 4)
+        self.assertIn(
+            myokit.Derivative(myokit.Name(self.m.get('ina.m'))),
+            [x.lhs for x in self.order])
+        before('ina.INa', 'membrane.V')
+
+        # Test with derivative
+        self.head('Testing with dot(membrane.V)')
+        self.order = self.m.solvable_subset('membrane.V')
+        self.assertEqual(len(self.order), 0)
+        self.head('Finished testing solvable_subset()')
+
+        # Arguments must be strings, LhsExpressions pointing to variables,
+        # or variables
+        self.assertRaisesRegexp(
+            ValueError, 'must be LhsExpression', self.m.solvable_subset,
+            12)
+        self.assertRaisesRegexp(
+            ValueError, 'must be LhsExpression', self.m.solvable_subset,
+            'membrane')
+
+        # Cyclical dependencies
+        self.m.get('ina.m').demote()
+        self.assertRaisesRegexp(
+            RuntimeError, 'Equation ordering failed.', self.m.solvable_subset,
+            'ina.m.alpha')
+
+        # Tidy
         del(self.order)
         del(self.m)
 
