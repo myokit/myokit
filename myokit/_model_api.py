@@ -1911,30 +1911,15 @@ class Model(ObjectWithMeta, VarProvider):
 
     def merge_interdependent_components(self):
         """
-        Checks if the model contains components that each depend on the other.
-        If so, these components will be merged together into a new component
-        called "remaining".
+        Deprecated alias of :meth:`resolve_interdependent_components`.
         """
-        equations = self.solvable_order()
-        remaining = equations['*remaining*']
-        if len(remaining) < 1:
-            # Model is already okay
-            return
-        # Get name for new component
-        comp = 'remaining'
-        if comp in self._components:
-            comp_root = comp + '_'
-            i = 1
-            while comp in self._components:
-                i += 1
-                comp = comp_root + str(i)
-        # Create new component (resets validation status)
-        comp = self.add_component(comp)
-        # Move variables to new component
-        for eq in remaining:
-            var = eq.lhs.var()
-            var.parent().move_variable(var, comp, var.uname())
-        # Done!
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning(
+            'The method `merge_interdependent_components` is deprecated.'
+            ' Please use `resolve_interdependent_components` instead.')
+        self.resolve_interdependent_components()
 
     def name(self):
         """
@@ -2112,6 +2097,36 @@ class Model(ObjectWithMeta, VarProvider):
         Will reset the model's validation status to not validated.
         """
         self._valid = None
+
+    def resolve_interdependent_components(self):
+        """
+        Checks if the model contains components that each depend on the other.
+        If so, variables from these components will be moved to a new component
+        called "remaining" until the issue is resolved.
+        """
+        equations = self.solvable_order()
+        remaining = equations['*remaining*']
+        if len(remaining) < 1:
+            # Model is already okay
+            return
+
+        # Get name for new component
+        comp = 'remaining'
+        if comp in self._components:
+            comp_root = comp + '_'
+            i = 1
+            while comp in self._components:
+                i += 1
+                comp = comp_root + str(i)
+
+        # Create new component (resets validation status)
+        comp = self.add_component(comp)
+
+        # Move variables to new component
+        for eq in remaining:
+            var = eq.lhs.var()
+            var.parent().move_variable(var, comp, var.uname())
+        # Done!
 
     def save_state(self, filename):
         """

@@ -55,7 +55,7 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
         from myokit.formats.opencl import keywords
         # Clone model, merge interdependent components
         model = model.clone()
-        model.merge_interdependent_components()
+        model.resolve_interdependent_components()
         # Process bindings, remove unsupported bindings, get map of bound
         # variables to internal names.
         bound_variables = model.prepare_bindings({

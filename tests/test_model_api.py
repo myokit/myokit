@@ -872,6 +872,12 @@ class ModelBuildTest(unittest.TestCase):
             myokit.InvalidFunction, 'never declared',
             m.add_function, 'fun', ('a', ), 'a + b')
 
+
+class ModelAPITest(unittest.TestCase):
+    """
+    Further tests of the model API.
+    """
+
     def test_check_units(self):
         """
         Tests the ``model.check_units`` method.
@@ -1232,6 +1238,109 @@ class ModelBuildTest(unittest.TestCase):
             self.assertNotEqual(m.state(), s1)
             m.load_state(path)
             self.assertEqual(m.state(), s1)
+
+    def test_map_to_state(self):
+        """
+        Tests :meth:`Model.map_to_state()`.
+        """
+        # Create test model
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        v = c.add_variable('v')
+        v.set_rhs('3 - v')
+        v.promote(0)
+        w = c.add_variable('w')
+        w.set_rhs('1 - w')
+        w.promote(0)
+
+        # List of numbers
+        x = m.map_to_state([1, 2])
+        self.assertEqual(x, [1.0, 2.0])
+
+        # Wrong size list
+        self.assertRaisesRegexp(
+            ValueError, 'Wrong number', m.map_to_state, [1, 2, 3])
+
+        # String not tested, handled by parse_state.
+
+        # Dict of names
+        x = m.map_to_state({'c.v': 2, 'c.w': 3})
+        self.assertEqual(x, [2.0, 3.0])
+
+        # Dict of Variables
+        x = m.map_to_state({v: 2, 'c.w': 3})
+        self.assertEqual(x, [2.0, 3.0])
+
+        # Missing state
+        self.assertRaisesRegexp(
+            ValueError, 'Missing state', m.map_to_state, {v: 2})
+
+    def test_resolve_interdependent_components(self):
+        """
+        Tests :meth:`Model.resolve_interdependent_components()`.
+        """
+        # Create test model
+        m = myokit.Model()
+        c1 = m.add_component('c1')
+        t = c1.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        c2 = m.add_component('c2')
+        v = c2.add_variable('v')
+        c3 = m.add_component('c3')
+        w = c3.add_variable('w')
+        x = c3.add_variable('x')
+        v.set_rhs(3)
+        w.set_rhs(2)
+        x.set_rhs(1)
+
+        # Test merge not required
+        self.assertEqual(m.has_interdependent_components(), False)
+
+        # Test merge doesn't change model
+        self.assertEqual(m.count_components(), 3)
+        m.resolve_interdependent_components()
+        self.assertEqual(m.count_components(), 3)
+
+        # Test deprecated name
+        m.merge_interdependent_components()
+        self.assertEqual(m.count_components(), 3)
+
+        # Create interdependent components
+        v.set_rhs('3 - c3.x')
+        w.set_rhs('1 - c2.v')
+
+        # Test merge is required
+        self.assertTrue(m.has_interdependent_components())
+
+        # Merge
+        self.assertEqual(m.count_components(), 3)
+        m.resolve_interdependent_components()
+        self.assertEqual(m.count_components(), 4)
+        m.get('remaining')
+
+        # Test name clash detection
+        m = myokit.Model()
+        c1 = m.add_component('remaining')
+        t = c1.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        c2 = m.add_component('remaining_1')
+        v = c2.add_variable('v')
+        c3 = m.add_component('c3')
+        w = c3.add_variable('w')
+        x = c3.add_variable('x')
+        v.set_rhs('3 - c3.x')
+        w.set_rhs('1 - remaining_1.v')
+        x.set_rhs('12')
+
+        self.assertEqual(m.count_components(), 3)
+        m.resolve_interdependent_components()
+        self.assertEqual(m.count_components(), 4)
+        m.get('remaining_2')
 
 
 if __name__ == '__main__':

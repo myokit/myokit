@@ -23,7 +23,7 @@ import myokit.formats.ansic as ansic
 model = model.clone()
 
 # Merge interdepdent components
-model.merge_interdependent_components()
+model.resolve_interdependent_components()
 
 # Reserve keywords
 model.reserve_unique_names(*ansic.keywords)

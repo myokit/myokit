@@ -27,7 +27,7 @@ precision = myokit.SINGLE_PRECISION
 model = model.clone()
 
 # Merge interdepdent components
-model.merge_interdependent_components()
+model.resolve_interdependent_components()
 
 # Reserve keywords
 model.reserve_unique_names(*cuda.keywords)
