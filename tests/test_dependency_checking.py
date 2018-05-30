@@ -1374,6 +1374,11 @@ class SolvableOrderTest(DepTest):
             self.head('Finished testing solvable_order')
         del(self.ccomp)
         del(self.order)
+
+        # Test with cycles
+        self.m.get('ina.m').demote()
+        self.assertRaisesRegexp(
+            RuntimeError, 'Equation ordering failed', self.m.solvable_order)
         del(self.m)
 
     def test_solvable_subset(self):

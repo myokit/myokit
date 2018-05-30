@@ -2389,7 +2389,7 @@ class Model(ObjectWithMeta, VarProvider):
                     if lhs in dps:
                         dps.remove(lhs)
         if len(todo):
-            raise Exception('Equation ordering failed')
+            raise RuntimeError('Equation ordering failed.')
 
         # Return
         return out
