@@ -1201,10 +1201,11 @@ class ModelAPITest(unittest.TestCase):
         self.assertIn('1 validation warning', m.format_warnings())
         self.assertIn('Unused variable', str(m.warnings()[0]))
 
-    def test_labels(self):
+    def test_bindings(self):
         """
-        Tests model.labels() method.
+        Tests setting bindings and :meth:`Model.bindings()`.
         """
+        # Test set_binding() and bindings()
         m = myokit.Model()
         c = m.add_component('c')
         t = c.add_variable('time')
@@ -1212,15 +1213,52 @@ class ModelAPITest(unittest.TestCase):
         t.set_rhs(0)
         v = c.add_variable('v')
         v.set_rhs('3 - v')
-        v = c.add_variable('plopt')
-        v.set_rhs(1)
-        v = c.add_variable('vvv')
+        bindings = m.bindings()
+        self.assertEqual(len(bindings), 1)
+        self.assertEqual(bindings[0][0], 'time')
+        self.assertEqual(bindings[0][1], t)
+
+        # Can't have two labels
+        self.assertRaisesRegexp(
+            myokit.InvalidBindingError, 'already bound to', t.set_binding,
+            'bert')
+
+        # No two variables can have the same label
+        self.assertRaisesRegexp(
+            myokit.InvalidBindingError, 'Duplicate binding', v.set_binding,
+            'time')
+
+    def test_labels(self):
+        """
+        Tests setting labels and :meth:`Model.labels()`.
+        """
+        # Test set_label() and labels()
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        v = c.add_variable('v')
+        v.set_rhs('3 - v')
         v.set_label('membrane_potential')
-        v.set_rhs(1)
+        w = c.add_variable('w')
+        w.set_rhs(1)
+        x = c.add_variable('x')
+        x.set_rhs(1)
         labels = m.labels()
         self.assertEqual(len(labels), 1)
         self.assertEqual(labels[0][0], 'membrane_potential')
         self.assertEqual(labels[0][1], v)
+
+        # Can't have two labels
+        self.assertRaisesRegexp(
+            myokit.InvalidLabelError, 'already has a label', v.set_label,
+            'bert')
+
+        # No two variables can have the same label
+        self.assertRaisesRegexp(
+            myokit.InvalidLabelError, 'already in use', w.set_label,
+            'membrane_potential')
 
     def test_load_save_state(self):
         """
