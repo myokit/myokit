@@ -2551,7 +2551,9 @@ class Model(ObjectWithMeta, VarProvider):
                 msg += ' (Case mismatch)'
             return (None, sg, msg)
 
-        return (None, None, msg)
+        # At the moment, we're accepting almost everything, so no need to test
+        # this line!
+        return (None, None, msg)    # pragma: no-cover
 
     def time(self):
         """
