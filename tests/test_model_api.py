@@ -410,19 +410,23 @@ class ModelBuildTest(unittest.TestCase):
         m.remove_component(X)
         self.assertEqual(m.count_components(), 0)
         self.assertRaises(KeyError, m.remove_component, X)
+
         # Test if orphaned
         self.assertIsNone(X.parent())
+
         # Re-adding
         self.assertEqual(m.count_components(), 0)
         X = m.add_component('X')
         self.assertEqual(m.count_components(), 1)
-        # With internal variables
+
+        # With internal variables and string name
         a = X.add_variable('a')
         a.set_rhs(Number(4))
         b = X.add_variable('b')
         b.set_rhs(Name(a))
-        m.remove_component(X)
+        m.remove_component('X')
         self.assertEqual(m.count_components(), 0)
+
         # With dependencies from another component
         X = m.add_component('X')
         a = X.add_variable('a')
@@ -437,6 +441,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertEqual(m.count_components(), 2)
         self.assertRaises(IntegrityError, m.remove_component, X)
         self.assertEqual(m.count_components(), 2)
+
         # In the right order...
         m.remove_component(Y)
         self.assertEqual(m.count_components(), 1)
@@ -871,6 +876,61 @@ class ModelBuildTest(unittest.TestCase):
         self.assertRaisesRegexp(
             myokit.InvalidFunction, 'never declared',
             m.add_function, 'fun', ('a', ), 'a + b')
+
+    def test_reorder_state(self):
+        """
+        Tests :meth:`Model.reorder_state()`.
+        """
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        v = c.add_variable('v')
+        v.set_rhs('3 - v')
+        v.promote(0)
+        w = c.add_variable('w')
+        w.set_rhs(1)
+        w.promote(0)
+        self.assertEqual(list(m.states()), [v, w])
+        m.reorder_state([w, v])
+        self.assertEqual(list(m.states()), [w, v])
+        m.reorder_state([w, v])
+        self.assertEqual(list(m.states()), [w, v])
+        m.reorder_state([v, w])
+        self.assertEqual(list(m.states()), [v, w])
+
+        # Wrong number of states
+        self.assertRaisesRegexp(
+            ValueError, 'number of entries', m.reorder_state, [v])
+        self.assertRaisesRegexp(
+            ValueError, 'number of entries', m.reorder_state, [v, w, v])
+
+        # Duplicate entries
+        self.assertRaisesRegexp(
+            ValueError, 'Duplicate', m.reorder_state, [v, v])
+
+        # Not a state
+        self.assertRaisesRegexp(
+            ValueError, 'must all be', m.reorder_state, [v, t])
+
+    def test_name(self):
+        """
+        Tests :meth:`Model.set_name(name)`.
+        """
+        m = myokit.Model()
+        self.assertIsNone(m.name())
+        m.set_name('ernie')
+        self.assertEqual(m.name(), 'ernie')
+        m.set_name(None)
+        self.assertIsNone(m.name())
+
+        m = myokit.Model(name='ernie')
+        self.assertEqual(m.name(), 'ernie')
+        m.set_name(None)
+        self.assertIsNone(m.name())
+        m.set_name('bert')
+        self.assertEqual(m.name(), 'bert')
 
 
 class ModelAPITest(unittest.TestCase):

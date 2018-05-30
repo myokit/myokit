@@ -2140,7 +2140,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         if name is None:
             try:
-                del(self._meta['name'])
+                del(self.meta['name'])
             except KeyError:
                 pass
         else:
