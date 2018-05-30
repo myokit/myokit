@@ -1033,7 +1033,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                     'No variable selected. Please select a variable in the'
                     ' model editing tab.')
                 return
-            self._console.write(var.model().show_line(var))
+            self._console.write(var.model().show_line_of(var))
         except Exception:
             self.show_exception()
 

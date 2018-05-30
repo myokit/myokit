@@ -2234,8 +2234,20 @@ class Model(ObjectWithMeta, VarProvider):
 
     def show_line(self, var):
         """
-        Returns a string containing the type of variable this is and the line
-        it was defined on.
+        Deprecated alias of :meth:`show_line_of`.
+        """
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning(
+            'The method `show_line` is deprecated and will be removed in'
+            ' future versions of Myokit. Please use `show_line_of` instead.')
+        self.show_line_of(var)
+
+    def show_line_of(self, var):
+        """
+        Returns a string containing the type of variable ``var`` is and the
+        line it was defined on.
         """
         var, out = self._var_info(var)
         if var._token:

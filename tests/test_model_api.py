@@ -1475,6 +1475,28 @@ class ModelAPITest(unittest.TestCase):
         self.assertIn('State variable', e)
         self.assertEqual(len(e.splitlines()), 15)
 
+    def test_show_expressions_for(self):
+        """
+        Tests :meth:`Model.show_expressions_for(variable)`.
+        """
+        m = myokit.load_model('example')
+        e = m.show_expressions_for(m.get('ina.INa'))
+        self.assertIn('ina.INa is a function of', e)
+        self.assertEqual(len(e.splitlines()), 20)
+
+    def test_show_line_of(self):
+        """
+        Tests :meth:`Model.show_line_of(variable)`.
+        """
+        m = myokit.load_model('example')
+        e = m.show_line_of(m.get('ina.INa'))
+        self.assertIn('Defined on line 86', e)
+        self.assertIn('Intermediary variable', e)
+        self.assertEqual(len(e.splitlines()), 3)
+
+        # Test deprecated alias
+        m.show_line(m.get('ina.INa'))
+
 
 if __name__ == '__main__':
     unittest.main()
