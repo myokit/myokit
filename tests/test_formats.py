@@ -35,13 +35,20 @@ class FormatsTest(unittest.TestCase):
             x.log_line()
             x.log('More text')
             self.assertFalse(x.has_warnings())
+            self.assertEqual(len(list(x.warnings())), 0)
             x.warn('Everything is awful.')
             self.assertTrue(x.has_warnings())
+            self.assertEqual(len(list(x.warnings())), 1)
+            self.assertEqual(list(x.warnings()), ['Everything is awful.'])
             x.clear_warnings()
             self.assertFalse(x.has_warnings())
+            self.assertEqual(len(list(x.warnings())), 0)
             x.warn('Things are not good.')
             self.assertTrue(x.has_warnings())
+            self.assertEqual(len(list(x.warnings())), 1)
+            self.assertEqual(list(x.warnings()), ['Things are not good.'])
             x = x.text().splitlines()
+
         self.assertEqual(c.text(), '')
         y = [
             '-' * 79,

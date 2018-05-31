@@ -104,7 +104,7 @@ def exporter(name):
     Creates and returns an instance of the exporter specified by ``name``.
     """
     name = str(name)
-    if _EXPORTERS is None:
+    if _EXPORTERS is None:  # pragma: no cover
         _update()
     try:
         return _EXPORTERS[name]()
@@ -116,7 +116,7 @@ def exporters():
     """
     Returns a list of available exporters by name.
     """
-    if _EXPORTERS is None:
+    if _EXPORTERS is None:  # pragma: no cover
         _update()
     return sorted(_EXPORTERS.keys())
 
@@ -312,7 +312,7 @@ def ewriter(name):
     ``name``.
     """
     name = str(name)
-    if _EWRITERS is None:
+    if _EWRITERS is None:   # pragma: no cover
         _update()
     try:
         return _EWRITERS[name]()
@@ -324,7 +324,7 @@ def ewriters():
     """
     Returns a list of available expression writers by name.
     """
-    if _EWRITERS is None:
+    if _EWRITERS is None:   # pragma: no cover
         _update()
     return sorted(_EWRITERS.keys())
 
@@ -408,7 +408,7 @@ def importer(name):
     Creates and returns an instance of the importer specified by ``name``.
     """
     name = str(name)
-    if _IMPORTERS is None:
+    if _IMPORTERS is None:  # pragma: no cover
         _update()
     try:
         return _IMPORTERS[name]()
@@ -420,7 +420,7 @@ def importers():
     """
     Returns a list of available importers by name.
     """
-    if _IMPORTERS is None:
+    if _IMPORTERS is None:  # pragma: no cover
         _update()
     return sorted(_IMPORTERS.keys())
 
