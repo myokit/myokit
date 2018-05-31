@@ -287,73 +287,18 @@ class DiGraph(object):
 
         Will raise an exception if this digraph has cycles.
         """
-        def isless(n, m):
-            """
-            Returns True if n < m
-
-            Given two decreasing lists of integers::
-
-                n = [n1, n2, ..., nt]
-                m = [m1, m2, ..., ms]
-
-            We say that n < m if either
-
-                1. for some i >= 1, we have nj = mj for all j in [1,i-1] and
-                    ni < mi
-                    (So if all elements up to i are equal and the i-th element
-                    of n is smaller)
-                2. t < s and ni = mi for i in [1,t]
-                    (m is equal to n + some extra values)
-
-            Example::
-
-                n = [9]
-                m = [10, 9, 8, 7]
-                -----------------
-                The first 0 elements are equal and the 1st element of n is
-                smaller than the first element of m, so n < m
-
-                n = [10, 9, 7]
-                m = [10, 9, 8, 7, 2]
-                --------------------
-                The first 2 elements are equal and the 3d element of n is
-                smaller than the 3d element of m, so n < m
-
-                n = [10, 9, 7, 6, 2]
-                m = [10, 9, 8]
-                --------------------
-                The first 2 elements are equal and the 3d element of n is
-                smaller than the 3d element of m, so n < m
-
-                n = [10, 9, 8]
-                m = [10, 9, 8, 7, 2]
-                --------------------
-                n is shorter than m and all values are equal: n < m
-
-                n = [10, 9, 8]
-                m = [10, 9, 8]
-                --------------------
-                Neither criterium met: n is not smaller than m
-
-            """
-            ni = iter(n)
-            mi = iter(m)
-            try:
-                v = 0
-                while v == 0:
-                    v = next(ni) - next(mi)
-                return v < 0
-            except StopIteration:
-                return len(n) < len(m)
         # Get minimal equivalent graph
         original = graph
         graph = graph.meg_dag()
+
         # Number of nodes
         n = len(graph)
+
         # Values of nodes
         P = collections.OrderedDict()
         for node in graph:
             P[node] = 0
+
         # Pick a random node with no leaving edges (successors)
         first = None
         for node in graph:
@@ -364,6 +309,7 @@ class DiGraph(object):
             raise Exception(
                 'Graph is not acyclical: no node without successors found.')
         P[first] = 1
+
         # Assign remaining orders
         for i in range(2, n + 1):
             kmin = None
@@ -389,6 +335,7 @@ class DiGraph(object):
                     nmin = node
             # Assign value to node with minimum value sequence
             P[nmin] = i
+
         # Assign levels
         L = []      # Layers
         D = set()   # Contains nodes already assigned
@@ -400,6 +347,7 @@ class DiGraph(object):
                 E.clear()
             E.add(node)
         L.append([original[x.uid] for x in E])
+
         # Convert to lists
         layers = []
         for layer in L:
