@@ -249,7 +249,9 @@ class AbfFile(object):
             self._protocol = []
 
         # The measured data as a list of sweeps
-        if not self._is_protocol_file:
+        if self._is_protocol_file:
+            self._sweeps = []
+        else:
             self._sweeps = self._read_sweeps()
 
     def data_channels(self):
@@ -321,7 +323,10 @@ class AbfFile(object):
         out = []
 
         # Show file info
-        out.append('Axon Binary File: ' + self._filename)
+        if self._is_protocol_file:
+            out.append('Axon Protocol File: ' + self._filename)
+        else:
+            out.append('Axon Binary File: ' + self._filename)
         out.append('ABF Format version ' + str(self._version))
         out.append('Recorded on: ' + str(self._datetime))
 
@@ -347,17 +352,18 @@ class AbfFile(object):
         out.append('Sampling rate: ' + str(self._rate) + ' Hz')
 
         # Show channel info
-        for i, c in enumerate(self._sweeps[0]._channels):
-            out.append('Channel ' + str(i) + ': "' + c._name + '"')
-            if c._type:
-                out.append('  Type: ' + type_mode_names[c._type])
-            out.append('  Unit: ' + c._unit.strip())
-            if c._lopass:
-                out.append('  Low-pass filter: ' + str(c._lopass) + ' Hz')
-            if c._cm:
-                out.append('  Cm (telegraphed): ' + str(c._cm) + ' pF')
-            if c._rs:
-                out.append('  Rs (telegraphed): ' + str(c._rs))
+        if self._sweeps:
+            for i, c in enumerate(self._sweeps[0]._channels):
+                out.append('Channel ' + str(i) + ': "' + c._name + '"')
+                if c._type:
+                    out.append('  Type: ' + type_mode_names[c._type])
+                out.append('  Unit: ' + c._unit.strip())
+                if c._lopass:
+                    out.append('  Low-pass filter: ' + str(c._lopass) + ' Hz')
+                if c._cm:
+                    out.append('  Cm (telegraphed): ' + str(c._cm) + ' pF')
+                if c._rs:
+                    out.append('  Rs (telegraphed): ' + str(c._rs))
 
         # Methods
         def show_dict(name, d, tab=''):

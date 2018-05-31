@@ -71,6 +71,26 @@ Channel 0: "IN 0"
   Low-pass filter: 10000.0 Hz
   Cm (telegraphed): 6.34765625 pF''')
 
+    def test_read_protocol_v1(self):
+        """
+        Tests reading a v1 protocol file.
+        """
+        # Load file
+        path = os.path.join(DIR_DATA, 'abf-protocol.pro')
+        abf = axon.AbfFile(path)
+
+        # Check version info
+        self.assertIn('version 1.65', abf.info())
+        self.assertEqual(abf.info(),    # noqa
+'''Axon Protocol File: abf-protocol.pro
+ABF Format version 1.65
+Recorded on: 2005-06-17 14:33:02.160000
+Acquisition mode: 5: Episodic stimulation mode
+Protocol set for 1 trials, measuring 0.0s start-to-start.
+    with 1 runs per trial, measuring 0.0s start-to-start.
+     and 30 sweeps per run, measuring 5.0 s start-to-start
+Sampling rate: 20000.0 Hz''')
+
 
 class AtfTest(unittest.TestCase):
     """
