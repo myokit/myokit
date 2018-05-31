@@ -148,6 +148,7 @@ from collections import OrderedDict
 import numpy as np
 import traceback
 import datetime
+import logging
 import struct
 import os
 
@@ -243,9 +244,12 @@ class AbfFile(object):
         # The protocol used (a list of sweeps)
         try:
             self._protocol = self._read_protocol()
-        except Exception:
-            print('Warning: Unable to read protocol')
-            print(traceback.format_exc())
+        except Exception:   # pragma: no cover
+            # If this happens, we need to update the code!
+            logging.basicConfig()
+            log = logging.getLogger(__name__)
+            log.warning('Unable to read protocol from ' + self._filepath)
+            log.warning(traceback.format_exc())
             self._protocol = []
 
         # The measured data as a list of sweeps
@@ -475,39 +479,50 @@ class AbfFile(object):
         function, set ``ms=False``.
         """
         import myokit
+
         # Only episodic stimulation is supported.
-        if self._mode != ACMODE_EPISODIC_STIMULATION:
+        if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
             return myokit.Protocol()
+
         # Check channel
         if channel is None:
             channel = 0
         else:
             channel = int(channel)
+
         # User lists are not supported
-        if self._version < 2:
+        if self._version < 2:  # pragma: no cover
             if self._header['nULEnable'][channel]:
                 raise NotImplementedError('User lists are not supported.')
-        else:
+        else:   # pragma: no cover
             for userlist in self._header['listUserListInfo']:
                 if userlist['nULEnable']:
                     raise NotImplementedError('User lists are not supported.')
+
         # Create protocol
         p = myokit.Protocol()
+
         # Get epoch functions set by _read_protocol
         dinfo, einfo_exists, einfo = self._epoch_functions
         start = 0
         next_start = 0
         f = 1e3 if ms else 1
         for iSweep in range(self._sweepsPerRun):
-            if not einfo_exists(channel):
+
+            if not einfo_exists(channel):   # pragma: no cover
+                # Not sure if this can happen, if so, would need to update code
                 raise Exception('Missing protocol data')
+
             for e in einfo(channel):
                 kind = e['type']
+
                 if kind not in epoch_types:
                     raise NotImplementedError(
                         'Unknown epoch type: ' + str(kind))
+
                 if kind == EPOCH_DISABLED:
                     continue
+
                 elif kind == EPOCH_STEPPED:
                     # Event at step
                     dur = f * e['init_duration'] / self._rate
@@ -517,9 +532,11 @@ class AbfFile(object):
                     e_length = dur + iSweep * inc
                     p.schedule(e_level, e_start, e_length)
                     start += e_length
-                else:
+
+                else:   # pragma: no cover
                     raise NotImplementedError(
                         'Usupported epoch type: ' + epoch_types(kind))
+
             # Event at holding potential
             next_start += f * self._sweepStartToStart
             e_level = dinfo(channel, 'fDACHoldingLevel')
@@ -527,6 +544,7 @@ class AbfFile(object):
             e_length = next_start - start
             p.schedule(e_level, e_start, e_length)
             start = next_start
+
         return p
 
     def protocol_channels(self):
@@ -566,8 +584,10 @@ class AbfFile(object):
         """
         # Get epoch functions set by _read_protocol
         dinfo, einfo_exists, einfo = self._epoch_functions
-        if not einfo_exists(channel):
+        if not einfo_exists(channel):  # pragma: no cover
+            # Not sure if this can happen, if so need to update code.
             raise Exception('Missing protocol data')
+
         # Create list of step lists
         levels = []
         for e in einfo(channel):
@@ -579,10 +599,11 @@ class AbfFile(object):
             elif kind == EPOCH_STEPPED:
                 levels.append([])
             else:
-                raise ValueError(
+                raise NotImplementedError(
                     'Unsupported epoch type: ' + epoch_types(kind))
-        levels = tuple(levels)
+
         # Gather steps
+        levels = tuple(levels)
         for i in range(self._sweepsPerRun):
             for k, e in enumerate(einfo(channel)):
                 levels[k].append(e['init_level'] + e['level_inc'] * i)
@@ -617,6 +638,7 @@ class AbfFile(object):
         else:
             t1 = str(self._header['uFileStartDate'])
             t2 = float(self._header['uFileStartTimeMS']) / 1000
+
         YY = int(t1[0:4])
         MM = int(t1[4:6])
         DD = int(t1[6:8])
@@ -625,6 +647,7 @@ class AbfFile(object):
         ss = t2 - hh * 3600 - mm * 60
         ms = int((ss % 1) * 1e6)
         ss = int(ss)
+
         return datetime.datetime(YY, MM, DD, hh, mm, ss, ms)
 
     def _read_header(self):
@@ -655,7 +678,9 @@ class AbfFile(object):
             if type(val) == str and len(val) > 0 and ord(val[0]) == 0:
                 return None
             return val
+
         fid = struct_file(self._filepath, 'rb')
+
         # Get ABF Format version (pClamp < 10 is version 1, after is version 2)
         sig = fid.read(4)
         if sig == 'ABF ':
@@ -664,10 +689,12 @@ class AbfFile(object):
             version = 2
         else:
             raise NotImplementedError('Unknown ABF Format "' + str(sig) + '".')
+
         # Gather header fields
         header = OrderedDict()
         for key, offset, format in headerFields[version]:
             header[key] = ups(fid.read_f(format, offset))
+
         # Get uniform file version number
         if version < 2:
             self._version = np.round(header['fFileVersionNumber'] * 100) / 100
@@ -675,12 +702,15 @@ class AbfFile(object):
             n = header['fFileVersionNumber']
             self._version = n[3] + 0.1 * n[2] + 0.01 * n[1] + 0.001 * n[0]
         #self._version = version = header['fFileVersionNumber']
+
         # Get file start time in seconds
         if version < 2:
             header['lFileStartTime'] += header['nFileStartMillisecs'] / 1000
         else:
             header['lFileStartTime'] = header['uFileStartTimeMS'] / 1000
+
         if version < 2:
+
             # Version 1: Only read tags
             tags = []
             for i in range(header['lNumTagEntries']):
@@ -691,7 +721,9 @@ class AbfFile(object):
                 tags.append(tag)
             header['tags'] = tags
             self.strings = []
+
         else:
+
             # Version 2
             # Find location of file sections
             sections = OrderedDict()
@@ -702,9 +734,11 @@ class AbfFile(object):
                 sections[s]['data'] = data
                 sections[s]['length'] = length
             header['sections'] = sections
+
             # String section contains channel names and units
             fid.seek(sections['Strings']['index'] * BLOCKSIZE)
             strings = fid.read(sections['Strings']['data'])
+
             # Starts with header we need to skip
             # DWORD dwSignature;    4 bytes
             # DWORD dwVersion;      4 bytes
@@ -714,9 +748,11 @@ class AbfFile(object):
             # UINT  uUnused[6];     24 bytes
             # Total: 44 bytes
             strings = strings[44:]
+
             # C-style string termination
             strings = strings.split('\x00')
             self.strings = strings
+
             # Read tag section
             tags = []
             offs = sections['Tag']['index'] * BLOCKSIZE
@@ -728,6 +764,7 @@ class AbfFile(object):
                     tag[key] = ups(fid.read_f(format))
                 tags.append(tag)
             header['tags'] = tags
+
             # Read protocol section
             protocol = OrderedDict()
             offs = sections['Protocol']['index'] * BLOCKSIZE
@@ -735,6 +772,7 @@ class AbfFile(object):
             for key, format in protocolFields:
                 protocol[key] = ups(fid.read_f(format))
             header['protocol'] = protocol
+
             # Read analog-digital conversion sections
             adc = []
             offs = sections['ADC']['index'] * BLOCKSIZE
@@ -749,6 +787,7 @@ class AbfFile(object):
                 ADC['ADCChUnits'] = strings[ADC['lADCUnitsIndex'] - 1]
                 adc.append(ADC)
             header['listADCInfo'] = adc
+
             # Read DAC section
             dac = []
             offs = sections['DAC']['index'] * BLOCKSIZE
@@ -764,6 +803,7 @@ class AbfFile(object):
                     strings[DAC['lDACChannelUnitsIndex'] - 1]
                 dac.append(DAC)
             header['listDACInfo'] = dac
+
             # Read UserList section
             userlists = []
             for i in range(sections['UserList']['length']):
@@ -773,6 +813,7 @@ class AbfFile(object):
                     UserList[key] = ups(fid.read_f(format))
                 userlists.append(DAC)
             header['listUserListInfo'] = userlists
+
             # Read epoch-per-DAC section
             # The resulting OrderedDict has the following structure:
             #  - the first index is the DAC number
@@ -792,6 +833,7 @@ class AbfFile(object):
                     info[DACNum] = OrderedDict()
                 info[DACNum][EpochNum] = einf
             header['epochInfoPerDAC'] = info
+
         fid.close()
         return header
 
@@ -807,12 +849,15 @@ class AbfFile(object):
         values returned by the Myokit
         """
         # Only episodic stimulation is supported.
-        if self._mode != ACMODE_EPISODIC_STIMULATION:
+        if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
             return []
+
+        # Start reading
         h = self._header
 
         # Step 1: Gather information about the protocol
         if self._version < 2:
+
             # Before version 2: Sections are fixed length, locations absolute
             self._numberOfTrials = h['lNumberOfTrials']
             self._trialStartToStart = h['fTrialStartToStart']
@@ -842,9 +887,11 @@ class AbfFile(object):
                         'init_level': h['fEpochInitLevel'][i],
                         'level_inc': h['fEpochLevelInc'][i],
                     }
-                raise StopIteration
+                #raise StopIteration
             self._epoch_functions = (dinfo, einfo_exists, einfo)
+
         else:
+
             # Version 2 uses variable length sections
             p = h['protocol']
 
@@ -876,25 +923,28 @@ class AbfFile(object):
                         'init_level': e['fEpochInitLevel'],
                         'level_inc': e['fEpochLevelInc'],
                     }
-                raise StopIteration
+                #raise StopIteration
             self._epoch_functions = (dinfo, einfo_exists, einfo)
+
         # Step 2: Generate analog signals corresponding to the waveforms
         # suggested by the 'epochs' in the protocol
         # User lists are not supported
-        if self._version < 2:
+        if self._version < 2:   # pragma: no cover
             if any(self._header['nULEnable']):
                 return []
-        else:
+        else:   # pragma: no cover
             for userlist in self._header['listUserListInfo']:
                 if userlist['nULEnable']:
                     return []
         sweeps = []
+
         # Number of DAC channels = number of channels that can be used
         #  to output a stimulation
         nDac = self.protocol_channels()
         start = 0
         for iSweep in range(h['lActualSweeps']):
             sweep = Sweep(nDac)
+
             # Create channels for this sweep
             for iDac in range(nDac):
                 c = Channel(self)
@@ -908,20 +958,27 @@ class AbfFile(object):
                 c._rate = self._rate
                 c._start = start
                 sweep[iDac] = c
+
                 # No stimulation info for this channel? Then continue
                 if not einfo_exists(iDac):
                     continue
+
                 # Save last sample index
                 i_last = int(nSam * 15625 / 1e6)  # TODO: What's this?
+
                 # For each 'epoch' in the stimulation signal
                 for e in einfo(iDac):
                     kind = e['type']
                     if kind not in epoch_types:
                         raise NotImplementedError(
                             'Unknown epoch type: ' + str(kind))
+
                     if kind == EPOCH_DISABLED:
+
                         continue
+
                     elif kind == EPOCH_STEPPED:
+
                         dur = e['init_duration']
                         inc = e['duration_inc']
                         i1 = i_last
@@ -937,11 +994,15 @@ class AbfFile(object):
                             # The protocol may extend beyond the number of
                             # samples in the recording
                             break
-                    else:
-                        print(
-                            'Warning: Unsupported epoch type: '
-                            + epoch_types(kind))
+
+                    else:  # pragma: no cover
+
+                        logging.basicConfig()
+                        log = logging.getLogger(__name__)
+                        log.warning(
+                            'Unsupported epoch type: ' + epoch_types(kind))
                         continue
+
             sweeps.append(sweep)
             start += self._sweepStartToStart
         return sweeps
@@ -953,11 +1014,14 @@ class AbfFile(object):
         header = self._header
         version = self._version
         nc = self._nc
+
         # Sampling rate is constant for all sweeps and channels
         # TODO: This won't work for 2-rate protocols
         rate = self._rate
+
         # Get binary integer format
         dt = np.dtype('i2') if header['nDataFormat'] == 0 else np.dtype('f4')
+
         # Get number of channels, create a numpy memory map
         if version < 2:
             # Old files, get info from fields stored directly in header
@@ -969,6 +1033,7 @@ class AbfFile(object):
             o = header['sections']['Data']['index'] * BLOCKSIZE
             n = header['sections']['Data']['length']
         data = np.memmap(self._filepath, dt, 'r', shape=(n,), offset=o)
+
         # Load list of sweeps (Sweeps are called 'episodes' in ABF < 2)
         if version < 2:
             n = header['lSynchArraySize']
@@ -983,17 +1048,23 @@ class AbfFile(object):
             sdata = np.empty((1), dt)
             sdata[0]['len'] = data.size
             sdata[0]['offset'] = 0
+
         # Get data
         pos = 0
+
         # Data structure
         sweeps = []
+
         # Time-offset at start of sweep
         start = sdata[0]['offset'] / rate
         for j in range(sdata.size):
+
             # Create a new sweep
             sweep = Sweep(nc)
+
             # Get the number of data points
             size = sdata[j]['len']
+
             # Calculate the correct size for variable-length event mode
             if self._mode == ACMODE_VARIABLE_LENGTH_EVENTS:
                 if version < 2:
@@ -1002,10 +1073,12 @@ class AbfFile(object):
                     f = float(header['protocol']['fSynchTimeUnit'])
                 if f != 0:
                     size /= f
+
             # Get a memory map to the relevant part of the data
             part = data[pos: pos + size]
             pos += size
             part = part.reshape((part.size // nc, nc)).astype('f')
+
             # If needed, reformat the integers
             if header['nDataFormat'] == 0:
                 # Data given as integers? Convert to floating point
@@ -1018,6 +1091,7 @@ class AbfFile(object):
             if self._mode != ACMODE_EPISODIC_STIMULATION:
                 # All modes except episodic stimulation
                 start = sdata[j]['offset'] / rate
+
             for i in range(nc):
                 c = Channel(self)
                 c._data = part[:, i]
@@ -1045,10 +1119,13 @@ class AbfFile(object):
                         # is an undescribed "complex function" of both low-pass
                         # settings...
                         c._lopass = None
+
                 else:
+
                     c._name = str(header['listADCInfo'][i]['ADCChNames'])
                     c._unit = str(header['listADCInfo'][i]['ADCChUnits'])
                     c._numb = int(header['listADCInfo'][i]['nADCNum'])
+
                     # Get telegraphed info
                     if header['listADCInfo'][i]['nTelegraphEnable']:
                         c._type = int(
@@ -1060,6 +1137,7 @@ class AbfFile(object):
                                 'fTelegraphAccessResistance'])
                         c._lopass = float(
                             header['listADCInfo'][i]['fTelegraphFilter'])
+
                     # Updated low-pass cutoff
                     if 'nSignalType' in header['protocol']:
                         if header['protocol']['nSignalType'] != 0:
@@ -1070,11 +1148,14 @@ class AbfFile(object):
                 c._rate = rate
                 c._start = start
                 sweep[i] = c
+
             if self._mode == ACMODE_EPISODIC_STIMULATION:
                 # Increase time according to sweeps in episodic stim. mode
                 start += self._sweepStartToStart
+
             # Store sweep
             sweeps.append(sweep)
+
         return sweeps
 
     def _set_conversion_factors(self):
@@ -1093,22 +1174,30 @@ class AbfFile(object):
                     * h['fADCProgrammableGain'][i]
                     * h['lADCResolution']
                     / h['fADCRange'])
+
                 # Signal conditioner used?
                 if h['nSignalType'] != 0:
                     f *= h['fSignalGain'][i]
+
                 # Additional gain?
                 if h['nTelegraphEnable'][i]:
                     f *= h['fTelegraphAdditGain'][i]
+
                 # Set fina gain factor
                 self._adc_factors.append(1.0 / f)
+
                 # Shift
                 s = h['fInstrumentOffset'][i]
+
                 # Signal conditioner used?
                 if h['nSignalType'] != 0:
                     s -= h['fSignalOffset'][i]
+
                 # Set final offset
                 self._adc_offsets.append(s)
+
         else:
+
             a = h['listADCInfo']
             p = h['protocol']
             for i in range(self._nc):
@@ -1118,21 +1207,27 @@ class AbfFile(object):
                     * a[i]['fADCProgrammableGain']
                     * p['lADCResolution']
                     / p['fADCRange'])
+
                 # Signal conditioner used?
                 if 'nSignalType' in h:
                     if h['nSignalType'] != 0:
                         f *= a[i]['fSignalGain']
+
                 # Additional gain?
                 if a[i]['nTelegraphEnable']:
                     f *= a[i]['fTelegraphAdditGain']
+
                 # Set final gain factor
                 self._adc_factors.append(1.0 / f)
+
                 # Shift
                 s = a[i]['fInstrumentOffset']
+
                 # Signal conditioner used?
                 if 'nSignalType' in h:
                     if h['nSignalType'] != 0:
                         s -= a[i]['fSignalOffset']
+
                 # Set final offset
                 self._adc_offsets.append(s)
 
@@ -1162,7 +1257,8 @@ class Sweep(object):
 
     def __setitem__(self, key, value):
         if type(key) == slice:
-            raise ValueError('Assignment with slices is not supported.')
+            raise NotImplementedError(
+                'Assignment with slices is not supported.')
         self._channels[key] = value
 
 
@@ -1176,24 +1272,34 @@ class Channel(object):
         super(Channel, self).__init__()
         self._parent_file = parent_file  # The abf file this channel is from
         self._type = TYPE_UNKNOWN   # Type of recording
+
         # This channel's name
         self._name = None
+
         # This channel's index (see note below)
         self._numb = None
+
         # The units this channel's data is in
         self._unit = None
+
         # The raw data points
         self._data = None
+
         # Sampling rate in Hz
         self._rate = None
+
         # The signal start time
         self._start = None
+
         # The reported membrane capacitance
         self._cm = None
+
         # The reported access resistance
         self._rs = None
+
         # The reported low-pass filter cut-off frequency
         self._lopass = None
+
         # Note that the channel indices are not necessarily sequential! So a
         # file with 2 channels can have indices 0 and 3.
 

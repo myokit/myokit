@@ -47,6 +47,10 @@ Sampling rate: 10000.0 Hz
 Channel 0: "IN 0      "
   Unit: pA''')
 
+        # Test protocol extraction
+        p = abf.myokit_protocol()
+        self.assertEqual(len(p), 18)
+
     def test_read_v2(self):
         """
         Tests reading a version 2 file.
@@ -71,6 +75,10 @@ Channel 0: "IN 0"
   Low-pass filter: 10000.0 Hz
   Cm (telegraphed): 6.34765625 pF''')
 
+        # Test protocol extraction
+        p = abf.myokit_protocol()
+        self.assertEqual(len(p), 2)
+
     def test_read_protocol_v1(self):
         """
         Tests reading a v1 protocol file.
@@ -90,6 +98,18 @@ Protocol set for 1 trials, measuring 0.0s start-to-start.
     with 1 runs per trial, measuring 0.0s start-to-start.
      and 30 sweeps per run, measuring 5.0 s start-to-start
 Sampling rate: 20000.0 Hz''')
+
+        # Load, force as protocol
+        path = os.path.join(DIR_DATA, 'abf-protocol.pro')
+        abf = axon.AbfFile(path, is_protocol_file=True)
+
+        # Check version info
+        self.assertIn('version 1.65', abf.info())
+        self.assertIn('Axon Protocol File', abf.info())
+
+        # Test protocol extraction
+        p = abf.myokit_protocol()
+        self.assertEqual(len(p), 60)
 
 
 class AtfTest(unittest.TestCase):
