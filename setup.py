@@ -23,8 +23,6 @@ del(os, sys)
 # Load text for description and license
 with open('README.md') as f:
     readme = f.read()
-with open('LICENSE') as f:
-    license = f.read()
 
 
 # Go!
@@ -39,7 +37,7 @@ setup(
 
     long_description=readme,
 
-    license=license,
+    license='GNU General Public License version 3',
 
     author='Michael Clerx',
 
