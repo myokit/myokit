@@ -351,7 +351,7 @@ class AbfFile(object):
             out.append('Channel ' + str(i) + ': "' + c._name + '"')
             if c._type:
                 out.append('  Type: ' + type_mode_names[c._type])
-            out.append('  Unit: ' + c._unit)
+            out.append('  Unit: ' + c._unit.strip())
             if c._lopass:
                 out.append('  Low-pass filter: ' + str(c._lopass) + ' Hz')
             if c._cm:

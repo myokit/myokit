@@ -29,7 +29,7 @@ class WcpTest(unittest.TestCase):
         Test basic wcp file reading.
         """
         # Load old file from Maastricht
-        fname = '20141121_003.wcp'
+        fname = 'wcp-file.wcp'
         path = os.path.join(DIR_DATA, fname)
         w = wcp.WcpFile(path)
 
@@ -46,7 +46,7 @@ class WcpTest(unittest.TestCase):
         """
         Tests conversion to a data log.
         """
-        w = wcp.WcpFile(os.path.join(DIR_DATA, '20141121_003.wcp'))
+        w = wcp.WcpFile(os.path.join(DIR_DATA, 'wcp-file.wcp'))
         d = w.myokit_log()
         keys = ['time']
         for cn in w.channel_names():
@@ -65,7 +65,7 @@ class WcpTest(unittest.TestCase):
         matplotlib.use('template')
 
         # Load and create plots
-        w = wcp.WcpFile(os.path.join(DIR_DATA, '20141121_003.wcp'))
+        w = wcp.WcpFile(os.path.join(DIR_DATA, 'wcp-file.wcp'))
         w.plot()
 
 

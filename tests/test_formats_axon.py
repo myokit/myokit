@@ -10,13 +10,66 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import os
 import unittest
 import numpy as np
 
 import myokit
 import myokit.formats.axon as axon
 
-from shared import TemporaryDirectory
+from shared import TemporaryDirectory, DIR_DATA
+
+
+class AbfTest(unittest.TestCase):
+    """
+    Tests the ABF format support.
+    """
+
+    def test_read_v1(self):
+        """
+        Tests reading a version 1 file.
+        """
+        # Load file
+        path = os.path.join(DIR_DATA, 'abf-v1.abf')
+        abf = axon.AbfFile(path)
+
+        # Check version info
+        self.assertIn('version 1.65', abf.info())
+        self.assertEqual(abf.info(),    # noqa
+'''Axon Binary File: abf-v1.abf
+ABF Format version 1.65
+Recorded on: 2014-11-14 12:52:29.389999
+Acquisition mode: 5: Episodic stimulation mode
+Protocol set for 1 trials, measuring 0.0s start-to-start.
+    with 1 runs per trial, measuring 0.0s start-to-start.
+     and 9 sweeps per run, measuring 0.5 s start-to-start
+Sampling rate: 10000.0 Hz
+Channel 0: "IN 0      "
+  Unit: pA''')
+
+    def test_read_v2(self):
+        """
+        Tests reading a version 2 file.
+        """
+        # Load file
+        path = os.path.join(DIR_DATA, 'abf-v2.abf')
+        abf = axon.AbfFile(path)
+
+        # Check version info
+        self.assertIn('version 2.0', abf.info())
+        self.assertEqual(abf.info(),    # noqa
+'''Axon Binary File: abf-v2.abf
+ABF Format version 2.0
+Recorded on: 2014-10-01 14:03:55.980999
+Acquisition mode: 5: Episodic stimulation mode
+Protocol set for 1 trials, measuring 0.0s start-to-start.
+    with 1 runs per trial, measuring 0.0s start-to-start.
+     and 1 sweeps per run, measuring 5.0 s start-to-start
+Sampling rate: 10000.0 Hz
+Channel 0: "IN 0"
+  Unit: pA
+  Low-pass filter: 10000.0 Hz
+  Cm (telegraphed): 6.34765625 pF''')
 
 
 class AtfTest(unittest.TestCase):

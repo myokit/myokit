@@ -91,7 +91,7 @@ class AxonTest(unittest.TestCase):
     def test_protocol(self):
         i = formats.importer('abf')
         self.assertTrue(i.supports_protocol())
-        i.protocol(os.path.join(DIR_DATA, 'proto.abf'))
+        i.protocol(os.path.join(DIR_DATA, 'abf-v1.abf'))
 
     def test_info(self):
         i = formats.importer('abf')

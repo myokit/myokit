@@ -52,7 +52,9 @@ class Exporter(object):
         :class:`myokit.ExportError` is raised.
         """
         self._logger.log('Storing data in: ' + path)
+
         if os.path.exists(path):
+
             if not os.path.isdir(path):
                 msg = 'Can\'t create output directory. A file exists at the' \
                       ' specified location ' + path
@@ -61,7 +63,9 @@ class Exporter(object):
                 raise myokit.ExportError(msg, self)
             else:
                 self._logger.log('Using existing directory ' + path)
+
         else:
+
             if path != '' and not os.path.isdir(path):
                 self._logger.log('Creating directory structure ' + path)
                 os.makedirs(path)
@@ -635,6 +639,12 @@ class TextLogger(object):
 
         self._line_width = None
         self.set_line_width()
+
+    def clear(self):
+        """
+        Clears the logged text.
+        """
+        self._log = []
 
     def clear_warnings(self):
         """

@@ -15,6 +15,8 @@ import unittest
 import myokit
 import myokit.formats
 
+from shared import TemporaryDirectory
+
 
 class FormatsTest(unittest.TestCase):
     """
@@ -47,7 +49,7 @@ class FormatsTest(unittest.TestCase):
             self.assertTrue(x.has_warnings())
             self.assertEqual(len(list(x.warnings())), 1)
             self.assertEqual(list(x.warnings()), ['Things are not good.'])
-            x = x.text().splitlines()
+            z = x.text().splitlines()
 
         self.assertEqual(c.text(), '')
         y = [
@@ -58,9 +60,13 @@ class FormatsTest(unittest.TestCase):
             '-' * 79,
             'More text',
         ]
-        for i, line in enumerate(x):
+        for i, line in enumerate(z):
             self.assertEqual(line, y[i])
-        self.assertEqual(len(x), len(y))
+        self.assertEqual(len(z), len(y))
+
+        # Test clearing
+        x.clear()
+        self.assertEqual(x.text(), '')
 
         # Test live writing
         with myokit.PyCapture() as c:
@@ -136,6 +142,37 @@ class FormatsTest(unittest.TestCase):
         for i, line in enumerate(x):
             self.assertEqual(line, y[i])
         self.assertEqual(len(x), len(y))
+
+
+class ExporterTest(unittest.TestCase):
+    """
+    Tests some parts of :class:`Exporter` that are not tested when testing the
+    various exporter implementations.
+    """
+    def test_writable_dir(self):
+        """
+        Tests :meth:`_test_writable_dir` for existing paths.
+        """
+        m, p, x = myokit.load('example')
+        e = myokit.formats.exporter('ansic')
+        with TemporaryDirectory() as d:
+
+            # Create in new dir
+            path = d.path('new-dir')
+            e.runnable(path, m, p)
+            self.assertNotIn('Using existing', e.logger().text())
+
+            # Create again, in same dir (should be ok)
+            e._logger.clear()
+            e.runnable(path, m, p)
+            self.assertIn('Using existing', e.logger().text())
+
+            # Create at location of file: not allowed!
+            path = d.path('file')
+            with open(path, 'w') as f:
+                f.write('Hello')
+            self.assertRaisesRegexp(
+                myokit.ExportError, 'file exists', e.runnable, path, m, p)
 
 
 if __name__ == '__main__':
