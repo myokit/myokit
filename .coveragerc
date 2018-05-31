@@ -1,22 +1,6 @@
 [run]
-source = myokit
-omit =
-    myokit/gui/*
-    myokit/_sim/opencl.py
-    myokit/_sim/openclsim.py
-    myokit/_sim/fiber_tissue.py
-    myokit/_command.py
-    myokit/__main__.py
-    myokit/lib/fit.py
+source =
+    myokit
+    myokit/__init__.py
+    myokit/__parser.py__
 
-[report]
-exclude_lines =
-    pragma: no cover
-    pragma: no linux cover
-    def __repr__
-    raise AssertionError
-    raise NotImplementedError
-    except ImportError:
-    if False:
-    if __name__ == .__main__.:
-    if myokit.DEBUG:
