@@ -91,7 +91,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Bracket matching
         cursor = self.textCursor()
         if not cursor.hasSelection():
-            # Test if in front of or behind and opening or closing bracket
+            # Test if in front of or behind an opening or closing bracket
             pos = cursor.position()
             bracket = None
             if not cursor.atEnd():
