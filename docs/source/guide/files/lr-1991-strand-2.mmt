@@ -3,7 +3,7 @@
 
 
 [[script]]
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import numpy as np
 import myokit
 
@@ -14,12 +14,12 @@ d = s.run(600)
 b = d.block1d()
 
 x,y,z = b.grid('membrane.V')
-f = pl.figure()
-pl.pcolormesh(x,y,z)
-pl.grid(False)
-pl.xlim(0, np.max(d['engine.time']))
-pl.ylim(0, n - 1)
-pl.colorbar()
-pl.tight_layout()
-pl.show()
+f = plt.figure()
+plt.pcolormesh(x,y,z)
+plt.grid(False)
+plt.xlim(0, np.max(d['engine.time']))
+plt.ylim(0, n - 1)
+plt.colorbar()
+plt.tight_layout()
+plt.show()
 

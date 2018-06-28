@@ -13,25 +13,25 @@ For convenience, the most important commands are listed here:
 
 ``figure()``
     Creates a new figure
-    
+
 ``subplot(321)``
     Indicates the next figure will be 1st part of a subplot containing 3 rows
     and 2 columns. An alternative syntax is ``subplot(3,2,1)``.
     (`docs <http://matplotlib.sourceforge.net/api/pyplot_api.html>`__)
-    
+
 ``plot(x,y)``
     Creates a plot of y versus x
-    
+
     The type of marker can be set with the third positional argument::
-    
+
         plot(x, y, '*')
-        
+
     Label, color and line width can be set with::
-    
-        plot(x, y, label='y versus x', color='blue', lw=3)    
+
+        plot(x, y, label='y versus x', color='blue', lw=3)
 ``show()``
     Displays the created plots
-    
+
 ``figure.savefig(filename)``
     Saves a figure to a file.
     (`docs <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.savefig>`__)
@@ -55,7 +55,7 @@ For convenience, the most important commands are listed here:
 ``legend()``
     Using plot(x,y,label='abc') you can create labelled plots. The ``legend()``
     commands will use these to build a legend.
-    
+
     The legend's location can be set with the ``loc`` keyword and string values
     such as "upper right", "left", "lower" or "center". To create multi-column
     legends, use the keyword ``ncol``, for example ``ncol=2``.
@@ -76,14 +76,14 @@ For convenience, the most important commands are listed here:
 
 ``quiver(x,y,u,v)``
     Creates vector plots::
-    
+
         x = linspace(0,10,11)
         y = linspace(0,15,16)
         (X,Y) = meshgrid(x,y)
         u = 5*X
         v = 5*Y
         quiver(X,Y,u,v,angles='xy',scale=1000,color='r')
-        
+
 ``xlabel(s), ylabel(s)``
     Add or set label on x or y axis
 
@@ -96,10 +96,10 @@ To further customize the axis, use the axes object returned by the ``subplot``
 Example
 -------
 The following is an example plot script for running in the GUI::
-    
+
     [[script]]
     import myokit
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
 
     # Get model & protocol from magic methods
     m = get_model()
@@ -114,7 +114,8 @@ The following is an example plot script for running in the GUI::
     # Display the result
     t = d['environment.t']
     v = d['membrane.V']
-    pl.plot(t, v)
-    pl.grid(True)
-    pl.title('Membrane potential versus time')
-    pl.show()
+    plt.plot(t, v)
+    plt.grid(True)
+    plt.title('Membrane potential versus time')
+    plt.show()
+

@@ -115,10 +115,6 @@ def run_mmt_files(path):
     """
     import myokit
 
-    # Run without screen
-    #import matplotlib
-    #matplotlib.use('Agg')
-
     # Get absolute path
     path = os.path.abspath(path)
 
@@ -151,10 +147,6 @@ def run_mmt_files(path):
             except Exception:
                 print('Unable to load.')
                 print(traceback.format_exc())
-            try:
-                pl.close('all')
-            except Exception:
-                pass
 
             # Tidy up
             gc.collect()

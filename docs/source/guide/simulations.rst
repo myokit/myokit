@@ -49,7 +49,7 @@ under :ref:`API::Simulations <api/simulations>`. The most common types are:
    the CVODE solver to perform high-speed single cell simulations.
  * The multi-cell :class:`SimulationOpenCL` class, which runs parallelised 1d
    or 2d simulations using a forward-Euler solver implemented in OpenCL.
-  
+
 All simulation types take a :class:`Model <myokit.Model>` as first argument
 and a :class:`Protocol <myokit.Protocol>` as optional second. Models and
 protocols passed into a simulation are always *cloned*. As a result, changes
@@ -61,7 +61,7 @@ Single cell example::
     import myokit
     m, p, x = myokit.load('example.mmt')
     s = myokit.Simulation(m, p)
-    
+
 For multi-cellular simulations, the number of cells needs to be specified::
 
     import myokit
@@ -73,7 +73,7 @@ For 2d simulations, use a tuple for the size::
     import myokit
     m, p, x = myokit.load('example.mmt')
     s = myokit.SimulationOpenCL(m, p, ncells=(64, 64))
-    
+
 Additional arguments may need to be provided to multi-cellular simulations,
 for example the cell-to-cell conductance and the number of cells to receive an
 external pacing stimulus. For details, see the documentation of the
@@ -92,27 +92,27 @@ Internally, simulation objects maintain
     - A copy of the model state, representing the model's default state.
 
 When a simulation is created, the time variable is set to zero and both the
-state and the default state are set to the values obtained from the 
+state and the default state are set to the values obtained from the
 simulation's model. Every call to ``run(t)`` has the following effects:
 
     - The time is moved ``t`` units ahead
     - The simulation state is advanced ``t`` units in time.
     - The default state is unaffected.
-   
+
 Example::
 
     import myokit
     m, p, x = myokit.load('example.mmt')
     s = myokit.Simulation(m, p)
-    
+
     # The simulation time is now zero, the simulation state is the one returned
     # by m.state()
-    
+
     log = s.run(1000)
-    
+
     # The simulation time is now 1000, the simulation state has been advanced
     # 1000 units in time.
-    
+
     s.default_state() # Returns the original state
     s.state()         # Returns the state at t=1000
     s.time()          # Returns the new simulation time, t=1000
@@ -131,13 +131,13 @@ Example::
     import myokit
     m, p, x = myokit.load('example.mmt')
     s = myokit.Simulation(m, p)
-    
+
     d1 = s.run(1000)
     s.reset()
     d2 = s.run(1000)
-    
+
     # At this stage, d1 and d2 should contain the same values.
-    
+
 Frequently, a model needs to be "pre-paced" to a (semi-)stable orbit before
 running a simulation. This can be done using the method
 :meth:`pre(t) <myokit.Simulation.pre>`. Calls to ``pre()`` have the following
@@ -146,7 +146,7 @@ effects:
     - The time variable is unaffected
     - The state has been advanced ``t`` units in time
     - The default state has been advanced ``t`` units in time
-    
+
 This can be used to repeat the previous example, but now from a new starting
 point::
 
@@ -154,19 +154,19 @@ point::
     import myokit
     m, p, x = myokit.load('example.mmt')
     s = myokit.Simulation(m, p)
-    
+
     # Pre-pace for a 100 beats
     s.pre(100 * 1000)
-    
-    # Run the same simulation twice    
+
+    # Run the same simulation twice
     d1 = s.run(1000)
     s.reset()
     d2 = s.run(1000)
-    
+
 Manual changes to state, default state and time can be made using the methods
 :meth:`set_state() <myokit.Simulation.set_state>`, :meth:`set_default_state()
 <myokit.Simulation.set_default_state>` and :meth:`set_time()
-<myokit.Simulation.set_time>`. 
+<myokit.Simulation.set_time>`.
 
 This approach is shared among all simulation types. For multi-cellular
 simulation the syntax for :meth:`set_state()
@@ -185,19 +185,19 @@ containing the logged values::
     m, p, x = myokit.load('example.mmt')
     s = myokit.Simulation(m, p)
     d = s.run(1000)
-    
-    import matplotlib.pyplot as pl
-    pl.figure()
-    pl.plot(d['engine.time'], d['membrane.V'])
-    pl.figure()
-    
+
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot(d['engine.time'], d['membrane.V'])
+    plt.figure()
+
 In this example, no special instructions were given to the Simulation about
 which variables to log. For large models or longer simulations it is often best
 to specify which variables to store. This can be done in a number of ways, the
 most common of which is to specify the variables explictly using their qnames::
 
     d = s.run(1000, log=['engine.time', 'membrane.V'])
-    
+
 A shorthand is provided to log common variable types:
 
 ``myokit.LOG_NONE``
@@ -210,11 +210,11 @@ A shorthand is provided to log common variable types:
     Log internal variables
 ``myokit.LOG_ALL``
     Log everything
-    
+
 For example, to log all states and bound variables, use::
 
     d = s.run(1000, log=myokit.LOG_STATE+myokit.LOG_BOUND)
-    
+
 Finally, an existing simulation log can be given as the ``log`` argument. In
 this case, new values will be appended to the existing log. This allows
 simulations to be run in parts::
@@ -222,10 +222,10 @@ simulations to be run in parts::
     import myokit
     m, p, x = myokit.load('example.mmt')
     s = myokit.Simulation(m, p)
-    
+
     # Run the first 500 ms, log states and bound variables
     d = s.run(500, log=myokit.LOG_STATE+myokit.LOG_BOUND)
-    
+
     # Run the next 500ms, append to the log
     d = s.run(500, log=d)
 
@@ -249,17 +249,17 @@ Example: Single cell
 The following example uses the Luo-Rudy (I) model to create a plot of the
 action potential::
 
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
     import myokit
-    
+
     m, p, x = myokit.load('lr-1991.mmt')
     s = myokit.Simulation(m, p)
     d = s.run(1000)
-    
-    pl.figure()
-    pl.plot(d['engine.time'], d['membrane.V'])
-    pl.show()
-    
+
+    plt.figure()
+    plt.plot(d['engine.time'], d['membrane.V'])
+    plt.show()
+
 Result:
 
 .. figure:: /_static/guide/lr-1991-0d.png
@@ -270,23 +270,23 @@ Example: A 1d strand of cells
 The following example uses the same model in a strand simulation, and plots
 each trace side-by-side::
 
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
     import numpy as np
     import myokit
-    
+
     m, p, x = myokit.load('lr-1991.mmt')
     n = 64
     s = myokit.SimulationOpenCL(m, p, ncells=n)
     d = s.run(600)
 
     from mpl_toolkits.mplot3d import axes3d
-    f = pl.figure()
+    f = plt.figure()
     x = f.gca(projection='3d')
     z = np.ones(len(d['engine.time']))
     for i in xrange(0, n):
         x.plot(d['engine.time'], z*i, d['membrane.V', i])
-    pl.tight_layout()
-    pl.show()
+    plt.tight_layout()
+    plt.show()
 
 Result:
 
@@ -298,10 +298,10 @@ Example: A color-coded strand of cells
 The following example uses the same model in a strand simulation, and plots
 the resulting voltages in a color-coded format::
 
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
     import numpy as np
     import myokit
-    
+
     m, p, x = myokit.load('lr-1991.mmt')
     n = 64
     s = myokit.SimulationOpenCL(m, p, ncells=n)
@@ -309,18 +309,17 @@ the resulting voltages in a color-coded format::
     b = d.block1d()
 
     x,y,z = b.grid('membrane.V')
-    f = pl.figure()
-    pl.pcolormesh(x,y,z)
-    pl.grid(False)
-    pl.xlim(0, np.max(d['engine.time']))
-    pl.ylim(0, n - 1)
-    pl.colorbar()
-    pl.tight_layout()
-    pl.show()
+    f = plt.figure()
+    plt.pcolormesh(x,y,z)
+    plt.grid(False)
+    plt.xlim(0, np.max(d['engine.time']))
+    plt.ylim(0, n - 1)
+    plt.colorbar()
+    plt.tight_layout()
+    plt.show()
 
 Result:
 
 .. figure:: /_static/guide/lr-1991-1d-color.png
     :align: center
-    
-    
+

@@ -3,7 +3,7 @@
 
 
 [[script]]
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import numpy as np
 import myokit
 
@@ -13,11 +13,11 @@ s = myokit.SimulationOpenCL(m, p, ncells=n)
 d = s.run(600)
 
 from mpl_toolkits.mplot3d import axes3d
-f = pl.figure()
+f = plt.figure()
 x = f.gca(projection='3d')
 z = np.ones(len(d['engine.time']))
 for i in range(0, n):
     x.plot(d['engine.time'], z*i, d['membrane.V', i])
-pl.tight_layout()
-pl.show()
+plt.tight_layout()
+plt.show()
 

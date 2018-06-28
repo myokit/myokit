@@ -393,7 +393,7 @@ run::
 
     [[script]]
     import myokit
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
 
     # Get model & protocol from magic methods
     m = get_model()
@@ -408,8 +408,10 @@ run::
     # Display the result
     t = d['environment.t']
     v = d['membrane.V']
-    pl.plot(t, v)
-    pl.show()
+
+    plt.figure()
+    plt.plot(t, v)
+    plt.show()
 
 The resulting file can now be saved as a plain-text ``.mmt`` file and run
 using the GUI or the ``myo run`` script. This example can be downloaded from

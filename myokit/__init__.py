@@ -448,7 +448,7 @@ def default_script():
     """
     return '\n'.join((
         "[[script]]",
-        "import matplotlib.pyplot as pl",
+        "import matplotlib.pyplot as plt",
         "import myokit",
         "",
         "# Get model and protocol, create simulation",
@@ -464,9 +464,9 @@ def default_script():
         "var = first_state.qname()",
         "",
         "# Display the results",
-        "pl.figure()",
-        "pl.plot(d.time(), d[var])",
-        "pl.title(var)",
-        "pl.show()",
+        "plt.figure()",
+        "plt.plot(d.time(), d[var])",
+        "plt.title(var)",
+        "plt.show()",
     ))
 
