@@ -524,7 +524,7 @@ def loss_surface_colors(x, y, f, xlim=None, ylim=None, markers='+'):
 
     *Note: This method requires Matplotlib to be installed.*
     """
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
     from matplotlib.collections import PolyCollection
 
     # Check limits
@@ -545,7 +545,7 @@ def loss_surface_colors(x, y, f, xlim=None, ylim=None, markers='+'):
     x, y, f, regions = voronoi_regions(x, y, f, xlim, ylim)
 
     # Create figure and axes
-    figure, axes = pl.subplots()
+    figure, axes = plt.subplots()
     axes.set_xlim(xmin, xmax)
     axes.set_ylim(ymin, ymax)
     c = PolyCollection(regions, array=f, edgecolors='none')

@@ -247,13 +247,13 @@ class WcpFile(object):
         """
         Creates matplotlib plots of all data in this file.
         """
-        import matplotlib.pyplot as pl
+        import matplotlib.pyplot as plt
         for record in self._records:
-            pl.figure()
+            plt.figure()
             for k, channel in enumerate(record):
-                pl.subplot(self._nc, 1, 1 + k)
-                pl.plot(self._time, channel)
-        pl.show()
+                plt.subplot(self._nc, 1, 1 + k)
+                plt.plot(self._time, channel)
+        plt.show()
 
     def records(self):
         """

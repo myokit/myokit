@@ -34,8 +34,8 @@ from . import vargrapher
 # Matplotlib imports
 # Matplotlib.pyplot must be imported _after_ myokit.gui has set the backend
 import matplotlib
-matplotlib.interactive(True)    # Allows pl.show()
-import matplotlib.pyplot as pl  # noqa -- Make flake8 ignore this line
+matplotlib.interactive(True)        # Allows plt.show()
+import matplotlib.pyplot as plt     # noqa -- Make flake8 ignore this line
 
 # Application title
 TITLE = 'Myokit IDE'
@@ -355,11 +355,11 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             model = self.model(errors_in_console=True)
             if not model:
                 return
-            f = pl.figure()
+            f = plt.figure()
             a = f.add_subplot(1, 1, 1)
             myokit.lib.deps.plot_component_dependency_graph(
                 model, axes=a, omit_states=True, omit_constants=True)
-            pl.show()
+            plt.show()
         except Exception:
             self.show_exception()
 
@@ -726,15 +726,15 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 if b == 0:
                     b = 1000
                 d = p.create_log_for_interval(a, b, for_drawing=True)
-                pl.figure()
-                pl.plot(d['time'], d['pace'])
+                plt.figure()
+                plt.plot(d['time'], d['pace'])
                 lo, hi = p.range()
                 if lo == 0 and hi == 1:
-                    pl.ylim(-0.1, 1.1)
+                    plt.ylim(-0.1, 1.1)
                 else:
                     r = (hi - lo) * 0.1
-                    pl.ylim(lo - r, hi + r)
-                pl.show()
+                    plt.ylim(lo - r, hi + r)
+                plt.show()
         except Exception:
             self.show_exception()
 
@@ -886,7 +886,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if not model:
                 return
             # Show graph
-            f = pl.figure()
+            f = plt.figure()
             a = f.add_subplot(1, 1, 1)
             myokit.lib.deps.plot_state_dependency_matrix(model, axes=a)
             # Tweak figure margins (doesn't always work)
@@ -897,7 +897,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 top=0.77,
                 wspace=0,
                 hspace=0)
-            pl.show()
+            plt.show()
         except Exception:
             self.show_exception()
 
@@ -956,10 +956,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             model = self.model(errors_in_console=True)
             if not model:
                 return
-            f = pl.figure()
+            f = plt.figure()
             a = f.add_subplot(1, 1, 1)
             myokit.lib.deps.plot_variable_dependency_graph(model, axes=a)
-            pl.show()
+            plt.show()
         except Exception:
             self.show_exception()
 

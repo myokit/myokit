@@ -102,7 +102,7 @@ dot(x1) = alpha * (1 - x1) - beta * x1
 1.0      100      2        1000     0
 
 [[script]]
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import myokit
 
 # Get model and protocol, create simulation
@@ -114,6 +114,6 @@ s = myokit.Simulation(m, p)
 d = s.run(1000)
 
 # Display the result
-pl.figure()
-pl.plot(d['engine.time'], d['membrane.V'])
-pl.show()
+plt.figure()
+plt.plot(d['engine.time'], d['membrane.V'])
+plt.show()

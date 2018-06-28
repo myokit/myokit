@@ -42,7 +42,7 @@ dot(x) = alpha * (1 - x) - beta * x
         in [1/ms]
     beta  = 0.0013 [1/ms] * exp(-0.06 [1/mV] * (V + 20 [mV])) / (1 + exp(-0.04 [1/mV] * (V + 20 [mV])))
         in [1/ms]
-xi = if(V < -100 [mV], 1, 
+xi = if(V < -100 [mV], 1,
     if(V == -77 [mV],
         2.837 [mV] * 0.04 [1/mV] / exp(0.04 [1/mV] * (V + 35 [mV])),
         2.837 [mV] * (exp(0.04 [1/mV] * (V + 77 [mV])) - 1) / ((V + 77 [mV]) * exp(0.04 [1/mV] * (V + 35 [mV])))
@@ -94,7 +94,7 @@ gKp = 0.0183 [mS/cm^2]
 Kp = 1 / (1 + exp((7.488 [mV] - V) / 5.98 [mV]))
 IKp = gKp * Kp * (V - ik1.E)
     desc: Plateau Potassium current
-    in [uA/cm^2]    
+    in [uA/cm^2]
 
 # Slow inward Calcium current
 [ica]
@@ -160,7 +160,7 @@ RTF = R*T/F
     R = 8314 [mJ/mol/K] : Gas constant
     T = 310 [K] : Absolute temperature
     F = 96500 [C/mol] : Faraday constant (Value used in LR model)
-    
+
 # Simulation engine variables
 [engine]
 desc: """
@@ -175,7 +175,7 @@ pace = 0 bind pace
 
 [[script]]
 import myokit
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 
 # Run simulation
 m = get_model()
@@ -185,7 +185,7 @@ s.pre(1000)
 d = s.run(1000)
 
 # Show results
-pl.figure()
-pl.plot(d['engine.time'], d['membrane.V'])
-pl.show()
+plt.figure()
+plt.plot(d['engine.time'], d['membrane.V'])
+plt.show()
 

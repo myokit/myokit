@@ -111,14 +111,14 @@ def plot_state_dependency_matrix(
 
     Returns a matplotlib axes object.
     """
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
 
     # Create dependency matrix
     m = create_state_dependency_matrix(model, direct, knockout)
     n = len(m)
 
     # Configure axes
-    a = axes if axes is not None else pl.gca()
+    a = axes if axes is not None else plt.gca()
     a.set_aspect('equal')
     a.set_xlim(0, n + 2)
     a.set_ylim(0, n)
@@ -629,12 +629,12 @@ def plot_digraph(graph, axes=None, r_node=None):
 
     Returns a matplotlib axes object.
     """
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
     import matplotlib.lines as lines
     import matplotlib.patches as patches
     limits = [None, None, None, None]
     # Create axes
-    ax = axes if axes is not None else pl.gca()
+    ax = axes if axes is not None else plt.gca()
     ax.set_frame_on(False)
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)

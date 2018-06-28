@@ -15,15 +15,15 @@ log = DataLog.load_csv(fname).npview()
 
 # Plot
 if False:
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D     # noqa
     # Show each cell's trace
-    fg = pl.figure()
+    fg = plt.figure()
     ax = fg.gca(projection='3d')
     zz = np.ones(len(time))
     for k, log in enumerate(logs):
         ax.plot(time, k * zz, log)
-    pl.show()
+    plt.show()
 else:
     # Create grid data
     time = log['engine.time']
@@ -33,9 +33,9 @@ else:
     z = np.zeros((ncell, ntime))
     for k in range(ncell):
         z[k][:] = log.get(vname, k)
-    import matplotlib.pyplot as pl
-    f = pl.figure()
+    import matplotlib.pyplot as plt
+    f = plt.figure()
     a = f.add_subplot(111)
     r = float(ntime) / ncell
     a.imshow(z, interpolation='nearest', aspect=r)
-    pl.show()
+    plt.show()

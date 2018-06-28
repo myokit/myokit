@@ -1,5 +1,5 @@
 [[script]]
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import myokit
 
 # Get model and protocol, create simulation
@@ -11,7 +11,7 @@ s = myokit.Simulation(m, p)
 d = s.run(1000)
 
 # Display the result
-pl.figure()
-pl.plot(d['engine.time'], d['membrane.V'])
-pl.show()
+plt.figure()
+plt.plot(d['engine.time'], d['membrane.V'])
+plt.show()
 

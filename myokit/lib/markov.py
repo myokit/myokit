@@ -694,15 +694,15 @@ class AnalyticalSimulation(object):
         d = s.run(10)
 
         # Show the results
-        import matplotlib.pyplot as pl
-        pl.figure()
-        pl.subplot(211)
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.subplot(211)
         for state in m.states():
-            pl.plot(d.time(), d[state], label=state)
-        pl.legend(loc='center right')
-        pl.subplot(212)
-        pl.plot(d.time(), d[m.current()])
-        pl.show()
+            plt.plot(d.time(), d[state], label=state)
+        plt.legend(loc='center right')
+        plt.subplot(212)
+        plt.plot(d.time(), d[m.current()])
+        plt.show()
 
     """
     def __init__(self, model, protocol=None):
@@ -1085,11 +1085,12 @@ class DiscreteSimulation(object):
         s.set_membrane_potential(-30)
         d = s.run(10)
 
-        import matplotlib.pyplot as pl
+        import matplotlib.pyplot as plt
+        plt.figure()
         for state in m.states():
-            pl.step(d.time(), d[state], label=state)
-        pl.legend()
-        pl.show()
+            plt.step(d.time(), d[state], label=state)
+        plt.legend()
+        plt.show()
 
     References
 

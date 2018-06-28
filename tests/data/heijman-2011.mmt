@@ -2560,7 +2560,7 @@ dot(f_ryr)  = (d - f_ryr)  / tau_ryr
 1.0      100      0.5      1000     0
 
 [[script]]
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import myokit
 
 # Create simulation
@@ -2572,6 +2572,6 @@ s = myokit.Simulation(m, p)
 d = s.run(1000, log=['engine.time', 'membrane.V'])
 
 # Display the result
-pl.plot(d['engine.time'], d['membrane.V'])
-pl.title('Membrane potential')
-pl.show()
+plt.plot(d['engine.time'], d['membrane.V'])
+plt.title('Membrane potential')
+plt.show()

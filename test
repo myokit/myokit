@@ -118,6 +118,10 @@ def run_mmt_files(path):
     # Get absolute path
     path = os.path.abspath(path)
 
+    # Show what we're running
+    print('Running mmt files for:')
+    print('  ' + path)
+
     # Get current dir
     current_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -169,8 +173,6 @@ def run_publication_examples():
     # Get publications directory
     path = os.path.join('tests', 'publications')
 
-    # Run, exit on error
-
     # PBMB 2016. Myokit: A simple interface to cardiac cellular
     # electrophysiology
     if run_mmt_files(os.path.join(path, 'pbmb-2016')):
@@ -178,6 +180,9 @@ def run_publication_examples():
 
 
 def run_web_examples():
+    """
+    Runs all web examples.
+    """
     # Get web directory
     path = os.path.join(
         'dev',

@@ -177,13 +177,13 @@ class AbfFile(object):
         f = AbfFile('some_file.abf')
         for sweep in f:
             for channel in sweep:
-                pl.plot(channel.times(), channel.values())
+                plt.plot(channel.times(), channel.values())
 
     Similarly, protocol data can be accessed using::
 
         for sweep in f.protocol():
             for channel in sweep:
-                pl.plot(channel.times(), channel.values())
+                plt.plot(channel.times(), channel.values())
 
     Note that the number of output ("protocol") channels need not equal the
     number of input ("data") channels.
@@ -405,26 +405,26 @@ class AbfFile(object):
         """
         Creates and returns a matplotlib figure of this abf file's contents.
         """
-        import matplotlib.pyplot as pl
-        f = pl.figure()
-        pl.suptitle(self.filename())
-        pl.subplot(2, 1, 1)
-        pl.title('Measured data')
+        import matplotlib.pyplot as plt
+        f = plt.figure()
+        plt.suptitle(self.filename())
+        plt.subplot(2, 1, 1)
+        plt.title('Measured data')
         times = None
         for sweep in self:
             for channel in sweep:
                 if times is None:
                     times = channel.times()
-                pl.plot(times, channel.values())
+                plt.plot(times, channel.values())
         for sweep in self.protocol():
             n = len(sweep)
             times = None
             for i, channel in enumerate(sweep):
                 if times is None:
                     times = channel.times()
-                pl.subplot(2, n, n + 1 + i)
-                pl.title(channel.name())
-                pl.plot(times, channel.values())
+                plt.subplot(2, n, n + 1 + i)
+                plt.title(channel.name())
+                plt.plot(times, channel.values())
         return f
 
     def myokit_log(self):

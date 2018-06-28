@@ -33,16 +33,16 @@ class AnsiCExporter(myokit.formats.TemplatedRunnableExporter):
 
     Example plot script::
 
-        import matplotlib.pyplot as pl
+        import matplotlib.pyplot as plt
         with open('v.txt', 'r') as f:
           T,V = [], []
           for line in f:
             t,v = [float(x) for x in line.split()]
             T.append(t)
             V.append(v)
-        pl.figure()
-        pl.plot(T, V)
-        pl.show()
+        plt.figure()
+        plt.plot(T, V)
+        plt.show()
 
     To compile in gcc, use::
 
@@ -82,16 +82,16 @@ class AnsiCEulerExporter(myokit.formats.TemplatedRunnableExporter):
 
     Example plot script::
 
-        import matplotlib.pyplot as pl
+        import matplotlib.pyplot as plt
         with open('v.txt', 'r') as f:
           T,V = [], []
           for line in f:
             t,v = [float(x) for x in line.split()]
             T.append(t)
             V.append(v)
-        pl.figure()
-        pl.plot(T, V)
-        pl.show()
+        plt.figure()
+        plt.plot(T, V)
+        plt.show()
 
     To compile using gcc::
 
@@ -147,16 +147,16 @@ class AnsiCCableExporter(myokit.formats.TemplatedRunnableExporter):
 
         import myokit
         import numpy as np
-        import matplotlib.pyplot as pl
+        import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import axes3d
         d = myokit.load_csv('data.txt')
         n = 50 # Assuming 50 cells
-        f = pl.figure()
+        f = plt.figure()
         x = f.gca(projection='3d')
         z = np.ones(len(d['time']))
         for i in range(0, n):
             x.plot(d['time'], z*i, d.get(str(i)+'_V'))
-        pl.show()
+        plt.show()
 
     To compile using gcc::
 

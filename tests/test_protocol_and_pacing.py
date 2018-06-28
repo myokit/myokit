@@ -208,10 +208,10 @@ class PacingTest(unittest.TestCase):
         d = p.create_log_for_interval(0, 2000, for_drawing=True)
         self.assertEqual(d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000])
         if False:
-            import matplotlib.pyplot as pl
-            pl.figure()
-            pl.plot(d.time(), d['pace'])
-            pl.show()
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(d.time(), d['pace'])
+            plt.show()
 
         # Test bad interval call
         self.assertRaises(ValueError, p.create_log_for_interval, 100, 0)
@@ -414,9 +414,9 @@ class PacingTest(unittest.TestCase):
             t = d.time()
             v = d['membrane.V']
             # Plot trace
-            import matplotlib.pyplot as pl
-            pl.figure()
-            pl.plot(t, v, 'x')
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(t, v, 'x')
             # Get some points halfway, 1/4 of the way, and 3/4 of the way
             # between the known points
             t2 = t[:-1] + 0.25 * (t[1:] - t[:-1])
@@ -430,8 +430,8 @@ class PacingTest(unittest.TestCase):
             v2 = [pacing.pace(x) for x in t2]
             print(b.time())
             # Plot the new points
-            pl.plot(t2, v2, '.', color='green')
-            pl.show()
+            plt.plot(t2, v2, '.', color='green')
+            plt.show()
             # Quite
             import sys
             sys.exit(1)

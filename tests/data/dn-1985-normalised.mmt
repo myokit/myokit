@@ -409,7 +409,7 @@ Nao = 140 [mmol/L]
 0        10       0.5      1000     0
 
 [[script]]
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import myokit
 
 # Get model and protocol, create simulation
@@ -425,8 +425,8 @@ tvar = m.time().qname()
 svar = next(m.states()).qname()
 
 # Display the results
-pl.figure()
-pl.plot(d[tvar], d[svar])
-pl.title(svar + ' against ' + tvar)
-pl.show()
+plt.figure()
+plt.plot(d[tvar], d[svar])
+plt.title(svar + ' against ' + tvar)
+plt.show()
 

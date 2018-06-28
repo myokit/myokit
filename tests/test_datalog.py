@@ -198,15 +198,15 @@ class DataLogTest(unittest.TestCase):
             print(e)
         self.assertLess(e, 0.1)
         if debug:
-            import matplotlib.pyplot as pl
-            pl.figure()
-            pl.plot(t, q, label='original')
-            pl.plot(t, x, label='mid sum')
-            pl.legend(loc='upper left')
-            pl.figure()
-            pl.plot(t, np.abs(x - q) / q, label='mid sum error')
-            pl.legend(loc='upper left')
-            pl.show()
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(t, q, label='original')
+            plt.plot(t, x, label='mid sum')
+            plt.legend(loc='upper left')
+            plt.figure()
+            plt.plot(t, np.abs(x - q) / q, label='mid sum error')
+            plt.legend(loc='upper left')
+            plt.show()
 
     def test_itrim(self):
         """
