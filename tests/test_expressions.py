@@ -445,6 +445,10 @@ class NameTest(unittest.TestCase):
 
         self.assertEqual(x.code(), 'c.x')
 
+        # Test invalid creation
+        myokit.Name('this is ok')
+        self.assertRaises(ValueError, myokit.Name, 3)
+
         # Test rhs
         # Name of non-state: rhs() should be the associated variable's rhs
         self.assertEqual(x.rhs(), myokit.Number(15))
@@ -545,6 +549,23 @@ class NameTest(unittest.TestCase):
         self.assertEqual(a, b)
         b = z.clone(expand=True, retain=[vx])
         self.assertEqual(a, b)
+
+    def test_rhs(self):
+        """
+        Tests Name.rhs().
+        """
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('3 + 2')
+
+        x = myokit.Name(x)
+        self.assertEqual(x.rhs().eval(), 5)
+
+    def test_tree_str(self):
+        """ Tests Name.tree_str() """
+        x = myokit.Name('hi')
+        self.assertEqual(x.tree_str(), 'hi\n')
 
 
 if __name__ == '__main__':

@@ -760,7 +760,6 @@ class Name(LhsExpression):
             return Number(self._value.state_value())
         elif self._value.lhs() == self:
             return self._value.rhs()
-        raise Exception('No rhs found for "' + str(self) + '"')
 
     def _tree_str(self, b, n):
         b.write(' ' * n + str(self._value) + '\n')
