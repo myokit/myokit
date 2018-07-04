@@ -70,147 +70,7 @@ import numpy as np
 # [x] Quantity --> See test_units.py
 
 
-class ExpressionsTest(unittest.TestCase):
-
-    def test_number(self):
-        """
-        Tests :class:`Number`.
-        """
-        # Test myokit.Number creation and representation
-        x = myokit.Number(-4.0)
-        self.assertEqual(str(x), '-4')
-        x = myokit.Number(4.0)
-        self.assertEqual(str(x), '4')
-        y = myokit.Number(4)
-        self.assertEqual(str(y), '4')
-        self.assertEqual(x, y)
-        self.assertFalse(x is y)
-        x = myokit.Number(4.01)
-        self.assertEqual(str(x), '4.01')
-        x = myokit.Number(-4.01)
-        self.assertEqual(str(x), '-4.01')
-        x = myokit.Number('-4e9')
-        self.assertEqual(str(x), '-4.00000000000000000e9')
-        x = myokit.Number('4e+09')
-        self.assertEqual(str(x), ' 4.00000000000000000e9')
-        x = myokit.Number('-4e+00')
-        self.assertEqual(str(x), '-4')
-        x = myokit.Number('4e-05')
-        self.assertEqual(str(x), '4e-5')
-        x = myokit.Number(4, myokit.Unit.parse_simple('pF'))
-        self.assertEqual(str(x), '4 [pF]')
-        x = myokit.Number(-3, myokit.Unit.parse_simple('pF'))
-        self.assertEqual(str(x), '-3 [pF]')
-
-        # Test unit conversion
-        x = myokit.Number('2000', myokit.units.pF)
-        y = x.convert('nF')
-        self.assertEqual(y.eval(), 2)
-        self.assertEqual(str(y), '2 [nF]')
-        self.assertEqual(y.unit(), myokit.Unit.parse_simple('nF'))
-        a = y.convert('uF')
-        b = x.convert('uF')
-        self.assertEqual(a, b)
-        self.assertRaises(myokit.IncompatibleUnitError, x.convert, 'A')
-
-        # Test properties
-        x = myokit.Number(2)
-        self.assertFalse(x.is_conditional())
-        self.assertTrue(x.is_constant())
-        self.assertTrue(x.is_literal())
-        self.assertFalse(x.is_state_value())
-
-    def test_name(self):
-        """
-        Tests :class:`Name`.
-        """
-        model = myokit.Model()
-        component = model.add_component('c')
-        xvar = component.add_variable('x')
-        xvar.set_rhs('15')
-        yvar = component.add_variable('y')
-        yvar.set_rhs('3 * x ')
-        zvar = component.add_variable('z')
-        zvar.set_rhs('2 + y + x')
-
-        x = myokit.Name(xvar)
-        self.assertEqual(x.code(), 'c.x')
-
-        # Test clone
-        a = x.clone()
-        self.assertEqual(x, a)
-        z = myokit.Name(zvar)
-        a = z.clone()
-        self.assertEqual(z, a)
-        # With substitution (handled in Name)
-        y = myokit.Name(yvar)
-        a = x.clone(subst={x: y})
-        self.assertEqual(y, a)
-        a = x.clone()
-        self.assertEqual(x, a)
-        # With expansion (handled in Name)
-        a = z.clone()
-        self.assertEqual(z, a)
-        a = z.clone(expand=True)
-        self.assertTrue(a.is_literal())
-        self.assertFalse(z.is_literal())
-        self.assertEqual(z.eval(), a.eval())
-        # With expansion but retention of selected variables (handled in Name)
-        a = z.clone(expand=True, retain=[x])
-        self.assertNotEqual(a, z)
-        self.assertFalse(a.is_literal())
-        self.assertEqual(z.eval(), a.eval())
-        # Few options for how to specify x:
-        b = z.clone(expand=True, retain=['c.x'])
-        self.assertEqual(a, b)
-        b = z.clone(expand=True, retain=[xvar])
-        self.assertEqual(a, b)
-
-        # Test rhs
-        # Name of non-state: rhs() should be the associated variable's rhs
-        self.assertEqual(x.rhs(), myokit.Number(15))
-        # Name of state: rhs() should be the initial value (since this is the
-        # value of the variable).
-        xvar.promote(12)
-        self.assertEqual(x.rhs(), myokit.Number(12))
-        # Invalid variable:
-        a = myokit.Name('test')
-        self.assertRaises(Exception, a.rhs)
-
-        # Test validation
-        x.validate()
-        y.validate()
-        z.validate()
-        a = myokit.Name('test')
-        self.assertRaises(myokit.IntegrityError, a.validate)
-
-        # Test var()
-        self.assertEqual(x.var(), xvar)
-        self.assertEqual(y.var(), yvar)
-        self.assertEqual(z.var(), zvar)
-
-        # Test properties
-        # State x
-        self.assertFalse(x.is_conditional())
-        self.assertFalse(x.is_constant())
-        self.assertFalse(x.is_literal())
-        self.assertTrue(x.is_state_value())
-        # State-dependent variable y
-        self.assertFalse(y.is_conditional())
-        self.assertFalse(y.is_constant())
-        self.assertFalse(y.is_literal())
-        self.assertFalse(y.is_state_value())
-        # Non-state x
-        xvar.demote()
-        self.assertFalse(x.is_conditional())
-        self.assertTrue(x.is_constant())
-        self.assertFalse(x.is_literal())    # A name is never a literal!
-        self.assertFalse(x.is_state_value())
-        # (Non-state)-dependent variable y
-        self.assertFalse(y.is_conditional())
-        self.assertTrue(y.is_constant())
-        self.assertFalse(y.is_literal())
-        self.assertFalse(y.is_state_value())
+class ExpressionTest(unittest.TestCase):
 
     def test_equal(self):
         """
@@ -425,6 +285,215 @@ class ExpressionsTest(unittest.TestCase):
             '    4',
             '',
         ]))
+
+    def test_validation(self):
+        """
+        Tests :meth:`Expression.validate()`.
+        """
+        e = myokit.parse_expression('5 + 2 * exp(3 / (1 + 2))')
+        e.validate()
+        self.assertIsNone(e.validate())
+
+        # Test cycles in expression tree are found (not via variables!)
+        p = myokit.Plus(myokit.Number(1), myokit.Number(1))
+        # Have to hack this in, since, properly used, expressions are immutable
+        p._operands = (myokit.Number(2), p)
+        self.assertRaisesRegexp(myokit.IntegrityError, 'yclical', p.validate)
+
+        # Wrong type operands
+        # Again, need to hack this in so creation doesn't fault!
+        p._operands = (myokit.Number(1), 2)
+        self.assertRaisesRegexp(myokit.IntegrityError, 'type', p.validate)
+
+    def test_walk(self):
+        """
+        Tests :meth:`Expression.walk().
+        """
+        e = myokit.parse_expression('1 / (2 + exp(3 + sqrt(4)))')
+        w = list(e.walk())
+        self.assertEqual(len(w), 9)
+        self.assertEqual(type(w[0]), myokit.Divide)
+        self.assertEqual(type(w[1]), myokit.Number)
+        self.assertEqual(type(w[2]), myokit.Plus)
+        self.assertEqual(type(w[3]), myokit.Number)
+        self.assertEqual(type(w[4]), myokit.Exp)
+        self.assertEqual(type(w[5]), myokit.Plus)
+        self.assertEqual(type(w[6]), myokit.Number)
+        self.assertEqual(type(w[7]), myokit.Sqrt)
+        self.assertEqual(type(w[8]), myokit.Number)
+        self.assertEqual(w[1].eval(), 1)
+        self.assertEqual(w[3].eval(), 2)
+        self.assertEqual(w[6].eval(), 3)
+        self.assertEqual(w[8].eval(), 4)
+
+        w = list(e.walk(allowed_types=[myokit.Sqrt, myokit.Exp]))
+        self.assertEqual(len(w), 2)
+        self.assertEqual(type(w[0]), myokit.Exp)
+        self.assertEqual(type(w[1]), myokit.Sqrt)
+
+        w = list(e.walk(allowed_types=myokit.Exp))
+        self.assertEqual(len(w), 1)
+        self.assertEqual(type(w[0]), myokit.Exp)
+
+
+class ExpressionsTest(unittest.TestCase):
+
+    def test_number(self):
+        """
+        Tests :class:`Number`.
+        """
+        # Test myokit.Number creation and representation
+        x = myokit.Number(-4.0)
+        self.assertEqual(str(x), '-4')
+        x = myokit.Number(4.0)
+        self.assertEqual(str(x), '4')
+        y = myokit.Number(4)
+        self.assertEqual(str(y), '4')
+        self.assertEqual(x, y)
+        self.assertFalse(x is y)
+        x = myokit.Number(4.01)
+        self.assertEqual(str(x), '4.01')
+        x = myokit.Number(-4.01)
+        self.assertEqual(str(x), '-4.01')
+        x = myokit.Number('-4e9')
+        self.assertEqual(str(x), '-4.00000000000000000e9')
+        x = myokit.Number('4e+09')
+        self.assertEqual(str(x), ' 4.00000000000000000e9')
+        x = myokit.Number('-4e+00')
+        self.assertEqual(str(x), '-4')
+        x = myokit.Number('4e-05')
+        self.assertEqual(str(x), '4e-5')
+        x = myokit.Number(4, myokit.Unit.parse_simple('pF'))
+        self.assertEqual(str(x), '4 [pF]')
+        x = myokit.Number(-3, myokit.Unit.parse_simple('pF'))
+        self.assertEqual(str(x), '-3 [pF]')
+
+        # Test unit conversion
+        x = myokit.Number('2000', myokit.units.pF)
+        y = x.convert('nF')
+        self.assertEqual(y.eval(), 2)
+        self.assertEqual(str(y), '2 [nF]')
+        self.assertEqual(y.unit(), myokit.Unit.parse_simple('nF'))
+        a = y.convert('uF')
+        b = x.convert('uF')
+        self.assertEqual(a, b)
+        self.assertRaises(myokit.IncompatibleUnitError, x.convert, 'A')
+
+        # Test properties
+        x = myokit.Number(2)
+        self.assertFalse(x.is_conditional())
+        self.assertTrue(x.is_constant())
+        self.assertTrue(x.is_literal())
+        self.assertFalse(x.is_state_value())
+
+        # Test construction
+        # Second argument must be a unit, if given
+        myokit.Number(3, 'kg')
+        self.assertRaisesRegexp(ValueError, 'Unit', myokit.Number, 3, 1)
+        # Construction from quantity
+        q = myokit.Quantity(3, 'kg')
+        myokit.Number(q)
+        self.assertEqual(q.unit(), myokit.parse_unit('kg'))
+        self.assertRaisesRegexp(ValueError, 'unit', myokit.Number, q, 'kg')
+
+        # Never needs a bracket
+        x = myokit.Number(2)
+        self.assertFalse(x.bracket())
+
+    def test_name(self):
+        """
+        Tests :class:`Name`.
+        """
+        model = myokit.Model()
+        component = model.add_component('c')
+        xvar = component.add_variable('x')
+        xvar.set_rhs('15')
+        yvar = component.add_variable('y')
+        yvar.set_rhs('3 * x ')
+        zvar = component.add_variable('z')
+        zvar.set_rhs('2 + y + x')
+
+        x = myokit.Name(xvar)
+        self.assertEqual(x.code(), 'c.x')
+
+        # Test clone
+        a = x.clone()
+        self.assertEqual(x, a)
+        z = myokit.Name(zvar)
+        a = z.clone()
+        self.assertEqual(z, a)
+        # With substitution (handled in Name)
+        y = myokit.Name(yvar)
+        a = x.clone(subst={x: y})
+        self.assertEqual(y, a)
+        a = x.clone()
+        self.assertEqual(x, a)
+        # With expansion (handled in Name)
+        a = z.clone()
+        self.assertEqual(z, a)
+        a = z.clone(expand=True)
+        self.assertTrue(a.is_literal())
+        self.assertFalse(z.is_literal())
+        self.assertEqual(z.eval(), a.eval())
+        # With expansion but retention of selected variables (handled in Name)
+        a = z.clone(expand=True, retain=[x])
+        self.assertNotEqual(a, z)
+        self.assertFalse(a.is_literal())
+        self.assertEqual(z.eval(), a.eval())
+        # Few options for how to specify x:
+        b = z.clone(expand=True, retain=['c.x'])
+        self.assertEqual(a, b)
+        b = z.clone(expand=True, retain=[xvar])
+        self.assertEqual(a, b)
+
+        # Test rhs
+        # Name of non-state: rhs() should be the associated variable's rhs
+        self.assertEqual(x.rhs(), myokit.Number(15))
+        # Name of state: rhs() should be the initial value (since this is the
+        # value of the variable).
+        xvar.promote(12)
+        self.assertEqual(x.rhs(), myokit.Number(12))
+        # Invalid variable:
+        a = myokit.Name('test')
+        self.assertRaises(Exception, a.rhs)
+
+        # Test validation
+        x.validate()
+        y.validate()
+        z.validate()
+        a = myokit.Name('test')
+        self.assertRaises(myokit.IntegrityError, a.validate)
+
+        # Test var()
+        self.assertEqual(x.var(), xvar)
+        self.assertEqual(y.var(), yvar)
+        self.assertEqual(z.var(), zvar)
+
+        # Test properties
+        # State x
+        self.assertFalse(x.is_conditional())
+        self.assertFalse(x.is_constant())
+        self.assertFalse(x.is_literal())
+        self.assertTrue(x.is_state_value())
+        # State-dependent variable y
+        self.assertFalse(y.is_conditional())
+        self.assertFalse(y.is_constant())
+        self.assertFalse(y.is_literal())
+        self.assertFalse(y.is_state_value())
+        # Non-state x
+        xvar.demote()
+        self.assertFalse(x.is_conditional())
+        self.assertTrue(x.is_constant())
+        self.assertFalse(x.is_literal())    # A name is never a literal!
+        self.assertFalse(x.is_state_value())
+        # (Non-state)-dependent variable y
+        self.assertFalse(y.is_conditional())
+        self.assertTrue(y.is_constant())
+        self.assertFalse(y.is_literal())
+        self.assertFalse(y.is_state_value())
+
+        # Never needs a bracket
+        self.assertFalse(x.bracket())
 
 
 if __name__ == '__main__':

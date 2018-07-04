@@ -490,10 +490,10 @@ class Expression(object):
 
         else:
 
-            if isinstance(allowed_types, Expression):
-                allowed_types = [allowed_types]
+            if type(allowed_types) == type:
+                allowed_types = set([allowed_types])
             else:
-                allowed_types = set((allowed_types,))
+                allowed_types = set(allowed_types)
 
             def walker(op):
                 if type(op) in allowed_types:
