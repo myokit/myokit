@@ -336,11 +336,11 @@ class ExpressionTest(unittest.TestCase):
         self.assertEqual(type(w[0]), myokit.Exp)
 
 
-class ExpressionsTest(unittest.TestCase):
+class NumberTest(unittest.TestCase):
 
-    def test_number(self):
+    def test_basic(self):
         """
-        Tests :class:`Number`.
+        Tests construction, other basics.
         """
         # Test myokit.Number creation and representation
         x = myokit.Number(-4.0)
@@ -396,13 +396,39 @@ class ExpressionsTest(unittest.TestCase):
         self.assertEqual(q.unit(), myokit.parse_unit('kg'))
         self.assertRaisesRegexp(ValueError, 'unit', myokit.Number, q, 'kg')
 
+    def test_bracket(self):
+        """ Tests Number.bracket(). """
         # Never needs a bracket
         x = myokit.Number(2)
         self.assertFalse(x.bracket())
 
-    def test_name(self):
+    def test_clone(self):
+        """ Tests Number.clone(). """
+        x = myokit.Number(2)
+        y = x.clone()
+        self.assertIsNot(x, y)
+        self.assertEqual(x, y)
+
+        # With substitution
+        z = myokit.Number(10)
+        y = x.clone(subst={x: z})
+        self.assertEqual(y, z)
+
+    def test_eval(self):
         """
-        Tests :class:`Name`.
+        Tests evaluation (with single precision).
+        """
+        x = myokit.Number(2)
+        self.assertEqual(type(x.eval()), float)
+        self.assertEqual(
+            type(x.eval(precision=myokit.SINGLE_PRECISION)), np.float32)
+
+
+class NameTest(unittest.TestCase):
+
+    def test_basics(self):
+        """
+        Tests creation, representation,
         """
         model = myokit.Model()
         component = model.add_component('c')
@@ -414,37 +440,10 @@ class ExpressionsTest(unittest.TestCase):
         zvar.set_rhs('2 + y + x')
 
         x = myokit.Name(xvar)
-        self.assertEqual(x.code(), 'c.x')
-
-        # Test clone
-        a = x.clone()
-        self.assertEqual(x, a)
-        z = myokit.Name(zvar)
-        a = z.clone()
-        self.assertEqual(z, a)
-        # With substitution (handled in Name)
         y = myokit.Name(yvar)
-        a = x.clone(subst={x: y})
-        self.assertEqual(y, a)
-        a = x.clone()
-        self.assertEqual(x, a)
-        # With expansion (handled in Name)
-        a = z.clone()
-        self.assertEqual(z, a)
-        a = z.clone(expand=True)
-        self.assertTrue(a.is_literal())
-        self.assertFalse(z.is_literal())
-        self.assertEqual(z.eval(), a.eval())
-        # With expansion but retention of selected variables (handled in Name)
-        a = z.clone(expand=True, retain=[x])
-        self.assertNotEqual(a, z)
-        self.assertFalse(a.is_literal())
-        self.assertEqual(z.eval(), a.eval())
-        # Few options for how to specify x:
-        b = z.clone(expand=True, retain=['c.x'])
-        self.assertEqual(a, b)
-        b = z.clone(expand=True, retain=[xvar])
-        self.assertEqual(a, b)
+        z = myokit.Name(zvar)
+
+        self.assertEqual(x.code(), 'c.x')
 
         # Test rhs
         # Name of non-state: rhs() should be the associated variable's rhs
@@ -475,25 +474,77 @@ class ExpressionsTest(unittest.TestCase):
         self.assertFalse(x.is_constant())
         self.assertFalse(x.is_literal())
         self.assertTrue(x.is_state_value())
+
         # State-dependent variable y
         self.assertFalse(y.is_conditional())
         self.assertFalse(y.is_constant())
         self.assertFalse(y.is_literal())
         self.assertFalse(y.is_state_value())
+
         # Non-state x
         xvar.demote()
         self.assertFalse(x.is_conditional())
         self.assertTrue(x.is_constant())
         self.assertFalse(x.is_literal())    # A name is never a literal!
         self.assertFalse(x.is_state_value())
+
         # (Non-state)-dependent variable y
         self.assertFalse(y.is_conditional())
         self.assertTrue(y.is_constant())
         self.assertFalse(y.is_literal())
         self.assertFalse(y.is_state_value())
 
+    def test_bracket(self):
+        """ Tests Name.bracket(). """
         # Never needs a bracket
+        x = myokit.Name('hi')
         self.assertFalse(x.bracket())
+
+    def test_clone(self):
+        """ Tests Name.clone(). """
+        m = myokit.Model()
+        c = m.add_component('c')
+        vx = c.add_variable('x')
+        vy = c.add_variable('y')
+        vz = c.add_variable('z')
+        vx.set_rhs(1)
+        vy.set_rhs('2 * x')
+        vz.set_rhs('2 * x + y')
+        x = myokit.Name(vx)
+        y = myokit.Name(vy)
+        z = myokit.Name(vz)
+
+        # Test clone
+        a = x.clone()
+        self.assertEqual(x, a)
+        a = z.clone()
+        self.assertEqual(z, a)
+
+        # With substitution (handled in Name)
+        a = x.clone(subst={x: y})
+        self.assertEqual(y, a)
+        a = x.clone()
+        self.assertEqual(x, a)
+
+        # With expansion (handled in Name)
+        a = z.clone()
+        self.assertEqual(z, a)
+        a = z.clone(expand=True)
+        self.assertTrue(a.is_literal())
+        self.assertFalse(z.is_literal())
+        self.assertEqual(z.eval(), a.eval())
+
+        # With expansion but retention of selected variables (handled in Name)
+        a = z.clone(expand=True, retain=[x])
+        self.assertNotEqual(a, z)
+        self.assertFalse(a.is_literal())
+        self.assertEqual(z.eval(), a.eval())
+
+        # Few options for how to specify x:
+        b = z.clone(expand=True, retain=['c.x'])
+        self.assertEqual(a, b)
+        b = z.clone(expand=True, retain=[vx])
+        self.assertEqual(a, b)
 
 
 if __name__ == '__main__':

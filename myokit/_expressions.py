@@ -641,15 +641,6 @@ class LhsExpression(Expression):
             return self.rhs()._eval(subst, precision)
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-        except KeyError as e:
-            #TODO: Who raises the KeyError?
-            if self.var().is_state():
-                v = self.var().state_value()
-                if precision == myokit.SINGLE_PRECISION:
-                    v = numpy.float32(v)
-                return v
-            else:
-                raise
 
     def is_constant(self):
         return self.var().is_constant()
