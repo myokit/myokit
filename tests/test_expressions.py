@@ -16,58 +16,8 @@ import numpy as np
 
 #TODO Add tests for all operators
 
-# Expression, LhsExpression, Derivative,
-# PrefixExpression, PrefixPlus, PrefixMinus,
-# InfixExpression,
-# Function,
-# Condition, PrefixCondition, InfixCondition
-
-# [ ] Name
-# [ ] Number
-
-# [ ] Plus
-# [ ] Minus
-# [ ] Multiply
-# [ ] Divide
-
-# [ ] Quotient
-# [ ] Remainder
-
-# [ ] Power
-# [ ] Sqrt
-# [ ] Exp
-# [ ] Log
-# [ ] Log10
-
-# [ ] Sin
-# [ ] Cos
-# [ ] Tan
-# [ ] ASin
-# [ ] ACos
-# [ ] ATan
-
-# [ ] Floor
-# [ ] Ceil
-# [ ] Abs
-
-# [ ] Equal
-# [ ] NotEqual
-# [ ] More
-# [ ] Less
-# [ ] MoreEqual
-# [ ] LessEqual
-
-# [ ] Not
-# [ ] And
-# [ ] Or
-
-# [ ] If
-# [ ] Piecewise,
-
-# [ ] UnsupportedFunction
-
-# [x] Unit --> See test_units.py
-# [x] Quantity --> See test_units.py
+# Unit --> See test_units.py
+# Quantity --> See test_units.py
 
 
 class ExpressionTest(unittest.TestCase):
@@ -337,6 +287,9 @@ class ExpressionTest(unittest.TestCase):
 
 
 class NumberTest(unittest.TestCase):
+    """
+    Tests myokit.Number.
+    """
 
     def test_basic(self):
         """
@@ -425,6 +378,9 @@ class NumberTest(unittest.TestCase):
 
 
 class NameTest(unittest.TestCase):
+    """
+    Tests myokit.Name.
+    """
 
     def test_basics(self):
         """
@@ -566,6 +522,71 @@ class NameTest(unittest.TestCase):
         """ Tests Name.tree_str() """
         x = myokit.Name('hi')
         self.assertEqual(x.tree_str(), 'hi\n')
+
+
+class DerivativeTest(unittest.TestCase):
+    """
+    Tests myokit.Derivative.
+    """
+    def test_basic(self):
+        """
+        Tests creation.
+        """
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        n = myokit.Name(v)
+
+        myokit.Derivative(n)
+        self.assertRaisesRegexp(
+            ValueError, 'of Name', myokit.Derivative, myokit.Number(1))
+
+    def test_bracket(self):
+        """ Tests Derivative.bracket() """
+        x = myokit.Derivative(myokit.Name('x'))
+        self.assertFalse(x.bracket())
+
+
+# Plus
+# Minus
+# Multiply
+# Divide
+
+# Quotient
+# Remainder
+
+# Power
+# Sqrt
+# Exp
+# Log
+# Log10
+
+# Sin
+# Cos
+# Tan
+# ASin
+# ACos
+# ATan
+
+# Floor
+# Ceil
+# Abs
+
+# Equal
+# NotEqual
+# More
+# Less
+# MoreEqual
+# LessEqual
+
+# Not
+# And
+# Or
+
+# If
+# Piecewise,
+
+# UnsupportedFunction
 
 
 if __name__ == '__main__':
