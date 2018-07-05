@@ -680,13 +680,49 @@ class TestPrefixPlus(unittest.TestCase):
 
         # Test with spaces
         y = myokit.Plus(
-            myokit.PrefixPlus(myokit.Number(1)),
+            myokit.PrefixPlus(myokit.Number(-1)),
             myokit.PrefixPlus(myokit.Number(2)))
-        self.assertEqual(y.tree_str(), '+\n  +\n    1\n  +\n    2\n')
+        self.assertEqual(y.tree_str(), '+\n  +\n    -1\n  +\n    2\n')
 
 
-# PrefixPlus
-# PrefixMinus
+class TestPrefixMinus(unittest.TestCase):
+    """
+    Tests myokit.PrefixMinus.
+    """
+    def test_clone(self):
+        """ Tests PrefixMinus.clone(). """
+        x = myokit.PrefixMinus(myokit.Number(3))
+        y = x.clone()
+        self.assertIsNot(y, x)
+        self.assertEqual(y, x)
+
+        z = myokit.PrefixMinus(myokit.Number(4))
+        y = x.clone(subst={x: z})
+        self.assertIsNot(y, x)
+        self.assertIs(y, z)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, z)
+
+        i = myokit.Number(1)
+        j = myokit.Number(2)
+        x = myokit.PrefixMinus(i)
+        y = x.clone(subst={i: j})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, myokit.PrefixMinus(j))
+
+    def test_tree_str(self):
+        """ Tests PrefixMinus.tree_str() """
+        # Test simple
+        x = myokit.PrefixMinus(myokit.Number(1))
+        self.assertEqual(x.tree_str(), '-\n  1\n')
+
+        # Test with spaces
+        y = myokit.Plus(
+            myokit.PrefixMinus(myokit.Number(1)),
+            myokit.PrefixMinus(myokit.Number(-2)))
+        self.assertEqual(y.tree_str(), '+\n  -\n    1\n  -\n    -2\n')
+
 
 # Plus
 # Minus
