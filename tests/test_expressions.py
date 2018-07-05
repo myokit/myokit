@@ -1481,7 +1481,93 @@ class SqrtTest(unittest.TestCase):
         self.assertEqual(x.tree_str(), 'sqrt\n  +\n    1\n    sqrt\n      2\n')
 
 
-# Sqrt
+class ExpTest(unittest.TestCase):
+    """
+    Tests myokit.Exp.
+    """
+    def test_creation(self):
+        """ Tests Exp creation. """
+        myokit.Exp(myokit.Number(1))
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'wrong number', myokit.Exp,
+            myokit.Number(1), myokit.Number(2))
+
+    def test_clone(self):
+        """ Tests Exp.clone(). """
+        i = myokit.Number(3)
+        j = myokit.Number(10)
+        x = myokit.Exp(i)
+        y = x.clone()
+        self.assertIsNot(y, x)
+        self.assertEqual(y, x)
+
+        z = myokit.Exp(j)
+        y = x.clone(subst={x: z})
+        self.assertIsNot(y, x)
+        self.assertIs(y, z)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, z)
+
+        y = x.clone(subst={i: j})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, z)
+
+    def test_bracket(self):
+        """ Tests Exp.bracket(). """
+        i = myokit.Number(1)
+        j = myokit.parse_expression('1 + 2')
+        x = myokit.Exp(i)
+        self.assertFalse(x.bracket(i))
+        x = myokit.Exp(j)
+        self.assertFalse(x.bracket(j))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+
+    def test_eval(self):
+        """ Tests Exp.eval(). """
+        x = myokit.Exp(myokit.Number(9))
+        self.assertEqual(x.eval(), np.exp(9))
+
+    def test_eval_unit(self):
+        """ Tests Exp.eval_unit(). """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        z = c.add_variable('z')
+        x.set_rhs(1)
+        z.set_rhs(myokit.Exp(x.lhs()))
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(myokit.units.volt)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless',
+            z.lhs().eval_unit, s)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+
+    def test_tree_str(self):
+        """ Tests Exp.tree_str(). """
+        # Test simple
+        x = myokit.Exp(myokit.Number(2))
+        self.assertEqual(x.tree_str(), 'exp\n  2\n')
+
+        # Test with spaces
+        x = myokit.PrefixMinus(x)
+        self.assertEqual(x.tree_str(), '-\n  exp\n    2\n')
+        x = myokit.parse_expression('exp(1 + exp(2))')
+        self.assertEqual(x.tree_str(), 'exp\n  +\n    1\n    exp\n      2\n')
+
+
 # Exp
 # Log
 # Log10

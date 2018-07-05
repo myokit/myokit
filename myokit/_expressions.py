@@ -1374,13 +1374,19 @@ class UnaryDimensionlessFunction(Function):
     """
     def _eval_unit(self, mode):
         unit = self._operands[0]._eval_unit(mode)
+
+        # Propagate None in tolerant mode
         if unit is None:
             return None
-        elif mode != myokit.UNIT_STRICT or unit == myokit.units.dimensionless:
-            return myokit.units.dimensionless
-        raise EvalUnitError(
-            self, 'Function ' + self._fname + '() requires a'
-            ' dimensionless operand.')
+
+        # Check unit in strict mode
+        if mode == myokit.UNIT_STRICT and unit != myokit.units.dimensionless:
+            raise EvalUnitError(
+                self, 'Function ' + self._fname + '() requires a'
+                ' dimensionless operand.')
+
+        # Unary dimensionless functions are always dimensionless
+        return myokit.units.dimensionless
 
 
 class UnsupportedFunction(Function):
