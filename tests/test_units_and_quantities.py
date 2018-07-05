@@ -25,6 +25,10 @@ class MyokitUnitTest(unittest.TestCase):
         myokit.Unit.parse_simple('g')
         myokit.Unit.parse_simple('kg')
 
+        myokit.Unit([0, 0, 0, 0, 0, 0, 0])
+        self.assertRaises(ValueError, myokit.Unit, [0, 0, 0, 0, 0, 0])
+        self.assertRaises(ValueError, myokit.Unit, [0, 0, 0, 0, 0, 0, 0, 0])
+
     def test_convert(self):
         """
         Test unit conversion.
