@@ -137,7 +137,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         """
         Exports e as a prefix expression with ContentML representation cml.
         """
-        bra = e.bracket()
+        bra = e.bracket(e[0])
         if self._pres:
             row = self._et.SubElement(t, 'mrow')
             if bra:

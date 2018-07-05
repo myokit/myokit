@@ -565,7 +565,6 @@ class DerivativeTest(unittest.TestCase):
     def test_bracket(self):
         """ Tests Derivative.bracket() """
         x = myokit.Derivative(myokit.Name('x'))
-        self.assertFalse(x.bracket())
         self.assertFalse(x.bracket(myokit.Name('x')))
         self.assertRaises(ValueError, x.bracket, myokit.Number(1))
 
@@ -680,6 +679,16 @@ class TestPrefixPlus(unittest.TestCase):
         self.assertNotEqual(x, y)
         self.assertEqual(y, myokit.PrefixPlus(j))
 
+    def test_bracket(self):
+        """ Tests PrefixPlus.bracket(). """
+        i = myokit.Number(1)
+        x = myokit.PrefixPlus(i)
+        self.assertFalse(x.bracket(i))
+        i = myokit.Plus(myokit.Number(1), myokit.Number(2))
+        x = myokit.PrefixPlus(i)
+        self.assertTrue(x.bracket(i))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
+
     def test_tree_str(self):
         """ Tests PrefixPlus.tree_str() """
         # Test simple
@@ -691,13 +700,6 @@ class TestPrefixPlus(unittest.TestCase):
             myokit.PrefixPlus(myokit.Number(-1)),
             myokit.PrefixPlus(myokit.Number(2)))
         self.assertEqual(y.tree_str(), '+\n  +\n    -1\n  +\n    2\n')
-
-    def test_bracket(self):
-        """ Tests PrefixPlus.bracket(). """
-        x = myokit.PrefixPlus(myokit.Number(1))
-        self.assertFalse(x.bracket())
-        x = myokit.PrefixPlus(myokit.parse_expression('1 + 2'))
-        self.assertTrue(x.bracket())
 
 
 class TestPrefixMinus(unittest.TestCase):
@@ -726,6 +728,16 @@ class TestPrefixMinus(unittest.TestCase):
         self.assertNotEqual(x, y)
         self.assertEqual(y, myokit.PrefixMinus(j))
 
+    def test_bracket(self):
+        """ Tests PrefixMinus.bracket(). """
+        i = myokit.Number(1)
+        x = myokit.PrefixMinus(i)
+        self.assertFalse(x.bracket(i))
+        i = myokit.Plus(myokit.Number(1), myokit.Number(2))
+        x = myokit.PrefixMinus(i)
+        self.assertTrue(x.bracket(i))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
+
     def test_tree_str(self):
         """ Tests PrefixMinus.tree_str() """
         # Test simple
@@ -738,20 +750,13 @@ class TestPrefixMinus(unittest.TestCase):
             myokit.PrefixMinus(myokit.Number(-2)))
         self.assertEqual(y.tree_str(), '+\n  -\n    1\n  -\n    -2\n')
 
-    def test_bracket(self):
-        """ Tests PrefixMinus.bracket(). """
-        x = myokit.PrefixMinus(myokit.Number(1))
-        self.assertFalse(x.bracket())
-        x = myokit.PrefixMinus(myokit.parse_expression('1 + 2'))
-        self.assertTrue(x.bracket())
-
 
 class TestPlus(unittest.TestCase):
     """
     Tests myokit.Plus.
     """
     def test_clone(self):
-        """ Tests PrefixMinus.clone(). """
+        """ Tests Plus.clone(). """
         i = myokit.Number(3)
         j = myokit.Number(4)
         x = myokit.Plus(i, j)
@@ -775,11 +780,242 @@ class TestPlus(unittest.TestCase):
         self.assertNotEqual(x, y)
         self.assertEqual(y, myokit.Plus(i, i))
 
+    def test_bracket(self):
+        """ Tests Plus.bracket(). """
+        i = myokit.Number(1)
+        j = myokit.parse_expression('1 + 2')
+        x = myokit.Plus(i, j)
+        self.assertFalse(x.bracket(i))
+        self.assertTrue(x.bracket(j))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
 
-# Plus
-# Minus
-# Multiply
-# Divide
+    def test_tree_str(self):
+        """ Tests Plus.tree_str(). """
+        # Test simple
+        x = myokit.Plus(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '+\n  1\n  2\n')
+
+        # Test with spaces
+        x = myokit.PrefixMinus(x)
+        self.assertEqual(x.tree_str(), '-\n  +\n    1\n    2\n')
+        x = myokit.parse_expression('1 + (2 + 3)')
+        self.assertEqual(x.tree_str(), '+\n  1\n  +\n    2\n    3\n')
+
+    def test_eval_unit(self):
+        """ Tests Plus.eval_unit(). """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        z = c.add_variable('z')
+        x.set_rhs(1)
+        y.set_rhs(1)
+        z.set_rhs(myokit.Plus(x.lhs(), y.lhs()))
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        y.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), None)
+        x.set_unit(myokit.units.volt)
+        self.assertRaises(
+            myokit.IncompatibleUnitError,
+            z.lhs().eval_unit, myokit.UNIT_STRICT)
+        y.set_unit(myokit.units.volt)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+        x.set_unit(None)
+        self.assertRaises(
+            myokit.IncompatibleUnitError,
+            z.lhs().eval_unit, myokit.UNIT_STRICT)
+        y.set_unit(None)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), None)
+
+
+class TestMinus(unittest.TestCase):
+    """
+    Tests myokit.Minus.
+    """
+    def test_tree_str(self):
+        """ Tests Minus.tree_str(). """
+        # Test simple
+        x = myokit.Minus(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '-\n  1\n  2\n')
+
+        # Test with spaces
+        x = myokit.PrefixMinus(x)
+        self.assertEqual(x.tree_str(), '-\n  -\n    1\n    2\n')
+        x = myokit.parse_expression('1 - (2 - 3)')
+        self.assertEqual(x.tree_str(), '-\n  1\n  -\n    2\n    3\n')
+
+    def test_eval_unit(self):
+        """ Tests Minus.eval_unit(). """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        z = c.add_variable('z')
+        x.set_rhs(1)
+        y.set_rhs(1)
+        z.set_rhs(myokit.Minus(x.lhs(), y.lhs()))
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        y.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), None)
+        x.set_unit(myokit.units.volt)
+        self.assertRaises(
+            myokit.IncompatibleUnitError,
+            z.lhs().eval_unit, myokit.UNIT_STRICT)
+        y.set_unit(myokit.units.volt)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+        x.set_unit(None)
+        self.assertRaises(
+            myokit.IncompatibleUnitError,
+            z.lhs().eval_unit, myokit.UNIT_STRICT)
+        y.set_unit(None)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), None)
+
+
+class TestMultiply(unittest.TestCase):
+    """
+    Tests myokit.Multiply.
+    """
+    def test_tree_str(self):
+        """ Tests Multiply.tree_str(). """
+        # Test simple
+        x = myokit.Multiply(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '*\n  1\n  2\n')
+
+        # Test with spaces
+        x = myokit.PrefixMinus(x)
+        self.assertEqual(x.tree_str(), '-\n  *\n    1\n    2\n')
+        x = myokit.parse_expression('1 * (2 * 3)')
+        self.assertEqual(x.tree_str(), '*\n  1\n  *\n    2\n    3\n')
+
+    def test_eval_unit(self):
+        """ Tests Multiply.eval_unit(). """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        z = c.add_variable('z')
+        x.set_rhs(1)
+        y.set_rhs(1)
+        z.set_rhs(myokit.Multiply(x.lhs(), y.lhs()))
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        y.set_unit(myokit.units.meter)
+        self.assertEqual(
+            z.lhs().eval_unit(), myokit.units.volt * myokit.units.meter)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.meter)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode (where None becomes dimensionless)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+        y.set_unit(myokit.units.meter)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            myokit.units.volt * myokit.units.meter)
+        x.set_unit(None)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            myokit.units.meter)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(myokit.UNIT_STRICT), None)
+
+
+class TestDivide(unittest.TestCase):
+    """
+    Tests myokit.Divide.
+    """
+    def test_tree_str(self):
+        """ Tests Divide.tree_str(). """
+        # Test simple
+        x = myokit.Divide(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '/\n  1\n  2\n')
+
+        # Test with spaces
+        x = myokit.PrefixMinus(x)
+        self.assertEqual(x.tree_str(), '-\n  /\n    1\n    2\n')
+        x = myokit.parse_expression('1 / (2 / 3)')
+        self.assertEqual(x.tree_str(), '/\n  1\n  /\n    2\n    3\n')
+
+    def test_eval_unit(self):
+        """ Tests Divide.eval_unit(). """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        z = c.add_variable('z')
+        x.set_rhs(1)
+        y.set_rhs(1)
+        z.set_rhs(myokit.Divide(x.lhs(), y.lhs()))
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        y.set_unit(myokit.units.meter)
+        self.assertEqual(
+            z.lhs().eval_unit(), myokit.units.volt / myokit.units.meter)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), 1 / myokit.units.meter)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode (where None becomes dimensionless)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+        y.set_unit(myokit.units.meter)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            myokit.units.volt / myokit.units.meter)
+        x.set_unit(None)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            1 / myokit.units.meter)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(myokit.UNIT_STRICT), None)
+
 
 # Quotient
 # Remainder

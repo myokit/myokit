@@ -805,8 +805,8 @@ class Derivative(LhsExpression):
         self._op = op
         self._references = set([self])
 
-    def bracket(self, op=None):
-        if not (op is None or op == self._op):
+    def bracket(self, op):
+        if op != self._op:
             raise ValueError('Given operand is not in this expression.')
         return False
 
@@ -873,7 +873,9 @@ class PrefixExpression(Expression):
         super(PrefixExpression, self).__init__((op,))
         self._op = op
 
-    def bracket(self, op=None):
+    def bracket(self, op):
+        if op != self._op:
+            raise ValueError('Given operand is not in this expression.')
         return (self._op._rbp > LITERAL) and (self._op._rbp < self._rbp)
 
     def clone(self, subst=None, expand=False, retain=None):
@@ -1121,7 +1123,7 @@ class Multiply(InfixExpression):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
-        if unit1 == unit2 is None:
+        if unit1 is None and unit2 is None:
             return None     # None propagation
         if mode == myokit.UNIT_STRICT:
             if unit1 is None:

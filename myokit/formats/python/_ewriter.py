@@ -75,7 +75,7 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         return self.ex(e[0])
 
     def _ex_prefix_minus(self, e):
-        if e.bracket():
+        if e.bracket(e[0]):
             return '(-(' + self.ex(e[0]) + '))'
         else:
             return '(-' + self.ex(e[0]) + ')'
