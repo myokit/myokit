@@ -608,6 +608,8 @@ class Number(Expression):
             return self._value
 
     def _eval_unit(self, mode):
+        if mode == myokit.UNIT_STRICT and self._unit is None:
+            return myokit.units.dimensionless
         return self._unit
 
     def is_constant(self):
@@ -728,7 +730,10 @@ class Name(LhsExpression):
                 b.write(self._value.qname(c))
 
     def _eval_unit(self, mode):
+
+        # Get unit from value
         if self._value is not None:
+
             # Return variable unit
             unit = self._value.unit()
             if unit is not None:
@@ -740,7 +745,10 @@ class Name(LhsExpression):
                 rhs = self._value.rhs()
                 if rhs is not None:
                     return rhs._eval_unit(mode)
-        # Unlinked name or no unit found, return None
+
+        # Unlinked name or no unit found, return dimensionless or None
+        if mode == myokit.UNIT_STRICT:
+            return myokit.units.dimensionless
         return None
 
     def __eq__(self, other):
@@ -826,16 +834,24 @@ class Derivative(LhsExpression):
         return self._op == other._op
 
     def _eval_unit(self, mode):
-        numer = self._op._eval_unit(mode)
-        denom = self._op._value.model().time_unit()
+        # Get numerator (never None in strict mode)
+        unit1 = self._op._eval_unit(mode)
 
-        # Return resulting fraction
-        if numer is None:
-            # Numerator can be None, because from eval_unit, but denominator
-            # is always a unit (e.g. dimensionless).
-            return 1 / denom
-        else:
-            return numer / denom
+        # Get denomenator
+        # Note: Don't use time_unit() here: it converts None to dimensionless
+        # which isn't desired in tolerant mode.
+        time = self._op._value.model().time()
+        unit2 = None if time is None else time.unit()
+        if unit2 is None and mode == myokit.UNIT_STRICT:
+            # In strict mode, set to dimensionless if None
+            unit2 = myokit.units.dimensionless
+
+        # Handle as division
+        if unit2 is None:
+            return unit1    # Can be None in tolerant mode!
+        elif unit1 is None:
+            return 1 / unit2
+        return unit1 / unit2
 
     def is_derivative(self):
         return True
@@ -892,6 +908,9 @@ class PrefixExpression(Expression):
         if brackets:
             b.write(')')
 
+    def _eval_unit(self, mode):
+        return self._op._eval_unit(mode)
+
     def _tree_str(self, b, n):
         b.write(' ' * n + self._rep + '\n')
         self._op._tree_str(b, n + self._treeDent)
@@ -916,9 +935,6 @@ class PrefixPlus(PrefixExpression):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _eval_unit(self, mode):
-        return self._op._eval_unit(mode)
-
     def _polishb(self, b):
         self._op._polishb(b)
 
@@ -941,9 +957,6 @@ class PrefixMinus(PrefixExpression):
             return -self._op._eval(subst, precision)
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _eval_unit(self, mode):
-        return self._op._eval_unit(mode)
 
     def _polishb(self, b):
         b.write('~ ')
@@ -1040,16 +1053,10 @@ class Plus(InfixExpression):
         unit2 = self._op2._eval_unit(mode)
         if unit1 == unit2:
             return unit1
-        elif mode == myokit.UNIT_STRICT:
-            if unit1 is None and unit2 == myokit.units.dimensionless:
-                return unit2
-            elif unit2 is None and unit1 == myokit.units.dimensionless:
-                return unit1
-        else:
-            if unit1 is None:
-                return unit2
-            if unit2 is None:
-                return unit1
+        if unit1 is None:
+            return unit2
+        if unit2 is None:
+            return unit1
         raise EvalUnitError(
             self, 'Addition requires equal units, got '
             + str(unit1) + ' and ' + str(unit2) + '.')
@@ -1083,16 +1090,10 @@ class Minus(InfixExpression):
         unit2 = self._op2._eval_unit(mode)
         if unit1 == unit2:
             return unit1
-        elif mode == myokit.UNIT_STRICT:
-            if unit1 is None and unit2 == myokit.units.dimensionless:
-                return unit2
-            elif unit2 is None and unit1 == myokit.units.dimensionless:
-                return unit1
-        else:
-            if unit1 is None:
-                return unit2
-            if unit2 is None:
-                return unit1
+        if unit1 is None:
+            return unit2
+        if unit2 is None:
+            return unit1
         raise EvalUnitError(
             self, 'Subtraction requires equal units, got ' + str(unit1)
             + ' and ' + str(unit2) + '.')
@@ -1123,18 +1124,10 @@ class Multiply(InfixExpression):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
-        if unit1 is None and unit2 is None:
-            return None     # None propagation
-        if mode == myokit.UNIT_STRICT:
-            if unit1 is None:
-                unit1 = myokit.units.dimensionless
-            if unit2 is None:
-                unit2 = myokit.units.dimensionless
-        else:
-            if unit1 is None:
-                return unit2
-            if unit2 is None:
-                return unit1
+        if unit1 is None:
+            return unit2
+        if unit2 is None:
+            return unit1
         return unit1 * unit2
 
 
@@ -1164,12 +1157,11 @@ class Divide(InfixExpression):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
-        if unit1 == unit2 is None:
-            return None     # None propagation
+
+        if unit2 is None:
+            return unit1    # None propagation in tolerant mode
         elif unit1 is None:
             return 1 / unit2
-        elif unit2 is None:
-            return unit1
         return unit1 / unit2
 
 
@@ -1213,12 +1205,11 @@ class Quotient(InfixExpression):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
-        if unit1 == unit2 is None:
-            return None
+
+        if unit2 is None:
+            return unit1    # None propagation in tolerant mode
         elif unit1 is None:
             return 1 / unit2
-        elif unit2 is None:
-            return unit1
         return unit1 / unit2
 
 
