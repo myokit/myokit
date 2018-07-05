@@ -1833,9 +1833,118 @@ class ATanTest(unittest.TestCase):
         self.assertEqual(x.tree_str(), 'atan\n  0.5\n')
 
 
-# Floor
-# Ceil
-# Abs
+class FloorTest(unittest.TestCase):
+    """
+    Tests myokit.Floor.
+    """
+    def test_eval(self):
+        """ Tests Floor.eval(). """
+        x = myokit.Floor(myokit.Number(0.9))
+        self.assertEqual(x.eval(), 0)
+
+    def test_eval_unit(self):
+        """
+        Tests Floor.eval_unit().
+        """
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('floor(3)')
+        y = c.add_variable('y')
+        y.set_rhs('floor(2 [N])')
+
+        # Test in tolerant mode
+        self.assertEqual(x.lhs().eval_unit(), None)
+        self.assertEqual(y.lhs().eval_unit(), myokit.units.Newton)
+
+        # Test in strict mode
+        self.assertEqual(
+            x.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+        self.assertEqual(
+            y.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+
+    def test_tree_str(self):
+        """ Tests Floor.tree_str(). """
+        x = myokit.Floor(myokit.Number(0.5))
+        self.assertEqual(x.tree_str(), 'floor\n  0.5\n')
+
+
+class CeilTest(unittest.TestCase):
+    """
+    Tests myokit.Ceil.
+    """
+    def test_eval(self):
+        """ Tests Ceil.eval(). """
+        x = myokit.Ceil(myokit.Number(0.9))
+        self.assertEqual(x.eval(), 1)
+
+    def test_eval_unit(self):
+        """
+        Tests Ceil.eval_unit().
+        """
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('ceil(3)')
+        y = c.add_variable('y')
+        y.set_rhs('ceil(2 [N])')
+
+        # Test in tolerant mode
+        self.assertEqual(x.lhs().eval_unit(), None)
+        self.assertEqual(y.lhs().eval_unit(), myokit.units.Newton)
+
+        # Test in strict mode
+        self.assertEqual(
+            x.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+        self.assertEqual(
+            y.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+
+    def test_tree_str(self):
+        """ Tests Ceil.tree_str(). """
+        x = myokit.Ceil(myokit.Number(0.5))
+        self.assertEqual(x.tree_str(), 'ceil\n  0.5\n')
+
+
+class AbsTest(unittest.TestCase):
+    """
+    Tests myokit.Abs.
+    """
+    def test_eval(self):
+        """ Tests Abs.eval(). """
+        x = myokit.Abs(myokit.Number(0.9))
+        self.assertEqual(x.eval(), 0.9)
+        x = myokit.Abs(myokit.Number(-0.9))
+        self.assertEqual(x.eval(), 0.9)
+
+    def test_eval_unit(self):
+        """
+        Tests Abs.eval_unit().
+        """
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('abs(3)')
+        y = c.add_variable('y')
+        y.set_rhs('abs(2 [N])')
+
+        # Test in tolerant mode
+        self.assertEqual(x.lhs().eval_unit(), None)
+        self.assertEqual(y.lhs().eval_unit(), myokit.units.Newton)
+
+        # Test in strict mode
+        self.assertEqual(
+            x.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+        self.assertEqual(
+            y.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+
+    def test_tree_str(self):
+        """ Tests Abs.tree_str(). """
+        x = myokit.Abs(myokit.Number(0.5))
+        self.assertEqual(x.tree_str(), 'abs\n  0.5\n')
+
 
 # Equal
 # NotEqual
