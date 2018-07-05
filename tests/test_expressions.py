@@ -1568,9 +1568,140 @@ class ExpTest(unittest.TestCase):
         self.assertEqual(x.tree_str(), 'exp\n  +\n    1\n    exp\n      2\n')
 
 
-# Exp
-# Log
-# Log10
+class LogTest(unittest.TestCase):
+    """
+    Tests myokit.Log.
+    """
+    def test_creation(self):
+        """ Tests Log creation. """
+        myokit.Log(myokit.Number(1))
+        myokit.Log(myokit.Number(1), myokit.Number(2))
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'wrong number', myokit.Log,
+            myokit.Number(1), myokit.Number(2), myokit.Number(3))
+
+    def test_clone(self):
+        """ Tests Log.clone(). """
+        # Test with one operand
+        i = myokit.Number(3)
+        j = myokit.Number(10)
+        x = myokit.Log(i)
+        y = x.clone()
+        self.assertIsNot(y, x)
+        self.assertEqual(y, x)
+
+        z = myokit.Log(j)
+        y = x.clone(subst={x: z})
+        self.assertIsNot(y, x)
+        self.assertIs(y, z)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, z)
+
+        y = x.clone(subst={i: j})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, z)
+
+        # Test with two operands
+        x = myokit.Log(i, j)
+        y = x.clone()
+        self.assertIsNot(y, x)
+        self.assertEqual(y, x)
+
+        z = myokit.Log(j, i)
+        y = x.clone(subst={x: z})
+        self.assertIsNot(y, x)
+        self.assertIs(y, z)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, z)
+
+        y = x.clone(subst={i: j})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, myokit.Log(j, j))
+        y = x.clone(subst={j: i})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, myokit.Log(i, i))
+
+    def test_bracket(self):
+        """ Tests Log.bracket(). """
+        i = myokit.Number(1)
+        j = myokit.parse_expression('1 + 2')
+
+        # Test with one operand
+        x = myokit.Log(i)
+        self.assertFalse(x.bracket(i))
+        x = myokit.Log(j)
+        self.assertFalse(x.bracket(j))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+
+        # Test with two operands
+        x = myokit.Log(i, j)
+        self.assertFalse(x.bracket(i))
+        self.assertFalse(x.bracket(j))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+
+    def test_eval(self):
+        """ Tests Exp.eval(). """
+        x = myokit.Log(myokit.Number(9))
+        self.assertEqual(x.eval(), np.log(9))
+
+    def test_eval_unit(self):
+        """ Tests Log.eval_unit(). """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        z = c.add_variable('z')
+        x.set_rhs(1)
+        z.set_rhs(myokit.Log(x.lhs()))
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(myokit.units.volt)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless',
+            z.lhs().eval_unit, s)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+
+    def test_tree_str(self):
+        """ Tests Log.tree_str(). """
+        # Test simple
+        x = myokit.Log(myokit.Number(2))
+        self.assertEqual(x.tree_str(), 'log\n  2\n')
+
+        # Test with spaces
+        x = myokit.PrefixMinus(x)
+        self.assertEqual(x.tree_str(), '-\n  log\n    2\n')
+        x = myokit.parse_expression('log(log(1, 2))')
+        self.assertEqual(x.tree_str(), 'log\n  log\n    1\n    2\n')
+
+
+class Log10Test(unittest.TestCase):
+    """
+    Tests myokit.Log10.
+    """
+    def test_eval(self):
+        """ Tests Log10.eval(). """
+        x = myokit.Log10(myokit.Number(9))
+        self.assertEqual(x.eval(), np.log10(9))
+
+    def test_tree_str(self):
+        """ Tests Log10.tree_str(). """
+        # Test simple
+        x = myokit.Log10(myokit.Number(2))
+        self.assertEqual(x.tree_str(), 'log10\n  2\n')
+
 
 # Sin
 # Cos
