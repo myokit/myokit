@@ -1698,17 +1698,99 @@ class Log10Test(unittest.TestCase):
 
     def test_tree_str(self):
         """ Tests Log10.tree_str(). """
-        # Test simple
         x = myokit.Log10(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'log10\n  2\n')
 
 
-# Sin
-# Cos
-# Tan
-# ASin
-# ACos
-# ATan
+class SinTest(unittest.TestCase):
+    """
+    Tests myokit.Sin.
+    """
+    def test_eval(self):
+        """ Tests Sin.eval(). """
+        x = myokit.Sin(myokit.Number(9))
+        self.assertEqual(x.eval(), np.sin(9))
+
+    def test_tree_str(self):
+        """ Tests Sin.tree_str(). """
+        x = myokit.Sin(myokit.Number(2))
+        self.assertEqual(x.tree_str(), 'sin\n  2\n')
+
+
+class CosTest(unittest.TestCase):
+    """
+    Tests myokit.Cos.
+    """
+    def test_eval(self):
+        """ Tests Cos.eval(). """
+        x = myokit.Cos(myokit.Number(9))
+        self.assertEqual(x.eval(), np.cos(9))
+
+    def test_tree_str(self):
+        """ Tests Cos.tree_str(). """
+        x = myokit.Cos(myokit.Number(2))
+        self.assertEqual(x.tree_str(), 'cos\n  2\n')
+
+
+class TanTest(unittest.TestCase):
+    """
+    Tests myokit.Tan.
+    """
+    def test_eval(self):
+        """ Tests Tan.eval(). """
+        x = myokit.Tan(myokit.Number(9))
+        self.assertEqual(x.eval(), np.tan(9))
+
+    def test_tree_str(self):
+        """ Tests Tan.tree_str(). """
+        x = myokit.Tan(myokit.Number(2))
+        self.assertEqual(x.tree_str(), 'tan\n  2\n')
+
+
+class ASinTest(unittest.TestCase):
+    """
+    Tests myokit.ASin.
+    """
+    def test_eval(self):
+        """ Tests ASin.eval(). """
+        x = myokit.ASin(myokit.Number(0.9))
+        self.assertEqual(x.eval(), np.arcsin(0.9))
+
+    def test_tree_str(self):
+        """ Tests ASin.tree_str(). """
+        x = myokit.ASin(myokit.Number(0.5))
+        self.assertEqual(x.tree_str(), 'asin\n  0.5\n')
+
+
+class ACosTest(unittest.TestCase):
+    """
+    Tests myokit.ACos.
+    """
+    def test_eval(self):
+        """ Tests ACos.eval(). """
+        x = myokit.ACos(myokit.Number(0.9))
+        self.assertEqual(x.eval(), np.arccos(0.9))
+
+    def test_tree_str(self):
+        """ Tests ACos.tree_str(). """
+        x = myokit.ACos(myokit.Number(0.5))
+        self.assertEqual(x.tree_str(), 'acos\n  0.5\n')
+
+
+class ATanTest(unittest.TestCase):
+    """
+    Tests myokit.ATan.
+    """
+    def test_eval(self):
+        """ Tests ATan.eval(). """
+        x = myokit.ATan(myokit.Number(0.9))
+        self.assertEqual(x.eval(), np.arctan(0.9))
+
+    def test_tree_str(self):
+        """ Tests ATan.tree_str(). """
+        x = myokit.ATan(myokit.Number(0.5))
+        self.assertEqual(x.tree_str(), 'atan\n  0.5\n')
+
 
 # Floor
 # Ceil
