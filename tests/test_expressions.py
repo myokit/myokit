@@ -1644,8 +1644,13 @@ class LogTest(unittest.TestCase):
 
     def test_eval(self):
         """ Tests Exp.eval(). """
+        # One argument
         x = myokit.Log(myokit.Number(9))
         self.assertEqual(x.eval(), np.log(9))
+
+        # Two arguments
+        x = myokit.Log(myokit.Number(9), myokit.Number(5))
+        self.assertEqual(x.eval(), np.log(9) / np.log(5))
 
     def test_eval_unit(self):
         """ Tests Log.eval_unit(). """
@@ -1653,18 +1658,22 @@ class LogTest(unittest.TestCase):
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
+        y = c.add_variable('y')
         z = c.add_variable('z')
         x.set_rhs(1)
+        y.set_rhs(2)
+
+        # Single operand
         z.set_rhs(myokit.Log(x.lhs()))
 
-        # Test in tolerant mode
+        # Test in tolerant mode (single operand)
         self.assertEqual(z.lhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
         self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
         x.set_unit(None)
         self.assertEqual(z.lhs().eval_unit(), None)
 
-        # Test in strict mode
+        # Test in strict mode (single operand)
         s = myokit.UNIT_STRICT
         self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
@@ -1672,6 +1681,38 @@ class LogTest(unittest.TestCase):
             myokit.IncompatibleUnitError, 'dimensionless',
             z.lhs().eval_unit, s)
         x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+
+        # Double operand
+        z.set_rhs(myokit.Log(x.lhs(), y.lhs()))
+
+        # Test in tolerant mode (double operand)
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        y.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode (double operand)
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(myokit.units.volt)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless',
+            z.lhs().eval_unit, s)
+        y.set_unit(myokit.units.volt)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless',
+            z.lhs().eval_unit, s)
+        x.set_unit(None)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless',
+            z.lhs().eval_unit, s)
+        y.set_unit(None)
         self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
@@ -1810,7 +1851,14 @@ class ATanTest(unittest.TestCase):
 # If
 # Piecewise,
 
-# UnsupportedFunction
+class UnsupportedFunctionTest(unittest.TestCase):
+    """
+    Tests the myokit.UnsupportedFunction placeholder class.
+    """
+    def test_validation(self):
+        """ Tests UnsupportedFunction.validate(). """
+        x = myokit.UnsupportedFunction('test', [myokit.Number(1)])
+        self.assertRaises(myokit.IntegrityError, x.validate)
 
 
 if __name__ == '__main__':

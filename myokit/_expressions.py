@@ -1622,22 +1622,28 @@ class Log(Function):
             unit = self._operands[0]._eval_unit(mode)
             if unit is None:
                 return None
-            elif mode != myokit.UNIT_STRICT or \
-                    unit == myokit.units.dimensionless:
-                return myokit.units.dimensionless
-            raise EvalUnitError(
-                self, 'Function log() requires a dimensionless operand.')
+            if mode == myokit.UNIT_STRICT:
+                if unit != myokit.units.dimensionless:
+                    raise EvalUnitError(
+                        self, 'Log() requires a dimensionless operand.')
+            return myokit.units.dimensionless
+
         else:
             # Two operands
             unit1 = self._operands[0]._eval_unit(mode)
             unit2 = self._operands[1]._eval_unit(mode)
-            if unit1 == unit2 is None:
-                return None     # Propagating Nones
-            ok = (None, myokit.units.dimensionless)
-            if mode != myokit.UNIT_STRICT or (unit1 in ok and unit2 in ok):
-                return myokit.units.dimensionless
-            raise EvalUnitError(
-                self, 'Function log() requires dimensionless operands.')
+
+            # Propagate None in tolerant mode
+            if unit1 is None and unit2 is None:
+                return None
+
+            # Check units in strict mode
+            if mode == myokit.UNIT_STRICT:
+                if not unit1 == unit2 == myokit.units.dimensionless:
+                    raise EvalUnitError(
+                        self, 'Log() requires dimensionless operands.')
+
+            return myokit.units.dimensionless
 
 
 class Log10(UnaryDimensionlessFunction):
