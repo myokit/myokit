@@ -575,6 +575,14 @@ class DerivativeTest(unittest.TestCase):
         self.assertNotEqual(y, x)
         self.assertEqual(y, z)
 
+        i = myokit.Name('i')
+        j = myokit.Name('j')
+        x = myokit.Derivative(i)
+        y = x.clone(subst={i: j})
+        self.assertIsNot(y, x)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, myokit.Derivative(j))
+
     def test_eval_unit(self):
         """ Tests Derivative.eval_unit() """
         # Create mini model
@@ -637,6 +645,48 @@ class DerivativeTest(unittest.TestCase):
         e = myokit.Plus(d, d)
         self.assertEqual(e.tree_str(), '+\n  dot(c.x)\n  dot(c.x)\n')
 
+
+class TestPrefixPlus(unittest.TestCase):
+    """
+    Tests myokit.PrefixPlus.
+    """
+    def test_clone(self):
+        """ Tests PrefixPlus.clone(). """
+        x = myokit.PrefixPlus(myokit.Number(3))
+        y = x.clone()
+        self.assertIsNot(y, x)
+        self.assertEqual(y, x)
+
+        z = myokit.PrefixPlus(myokit.Number(4))
+        y = x.clone(subst={x: z})
+        self.assertIsNot(y, x)
+        self.assertIs(y, z)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, z)
+
+        i = myokit.Number(1)
+        j = myokit.Number(2)
+        x = myokit.PrefixPlus(i)
+        y = x.clone(subst={i: j})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, myokit.PrefixPlus(j))
+
+    def test_tree_str(self):
+        """ Tests PrefixPlus.tree_str() """
+        # Test simple
+        x = myokit.PrefixPlus(myokit.Number(1))
+        self.assertEqual(x.tree_str(), '+\n  1\n')
+
+        # Test with spaces
+        y = myokit.Plus(
+            myokit.PrefixPlus(myokit.Number(1)),
+            myokit.PrefixPlus(myokit.Number(2)))
+        self.assertEqual(y.tree_str(), '+\n  +\n    1\n  +\n    2\n')
+
+
+# PrefixPlus
+# PrefixMinus
 
 # Plus
 # Minus
