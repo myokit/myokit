@@ -811,15 +811,12 @@ class Derivative(LhsExpression):
 
     def _eval_unit(self, mode):
         numer = self._op._eval_unit(mode)
-        try:
-            denom = self._op._value.model().time_unit()
-        except AttributeError:
-            denom = None
+        denom = self._op._value.model().time_unit()
 
         # Return resulting fraction
-        if denom is None:
-            return numer
-        elif numer is None:
+        if numer is None:
+            # Numerator can be None, because from eval_unit, but denominator
+            # is always a unit (e.g. dimensionless).
             return 1 / denom
         else:
             return numer / denom

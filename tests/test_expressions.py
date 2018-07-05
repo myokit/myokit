@@ -590,6 +590,19 @@ class DerivativeTest(unittest.TestCase):
         t.set_unit(None)
         self.assertEqual(d.eval_unit(), myokit.units.volt)
 
+    def test_rhs(self):
+        """ Tests Derivative.rhs() """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('(10 - x) / 100')
+        x.promote(0)
+
+        # Get derivative object
+        d = x.lhs()
+        self.assertEqual(d.rhs(), x.rhs())
+
 
 # Plus
 # Minus
