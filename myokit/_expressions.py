@@ -766,6 +766,8 @@ class Name(LhsExpression):
 
     def _validate(self, trail):
         super(Name, self)._validate(trail)
+        # Check value: String is allowed at construction for debugging, but
+        # not here!
         if not isinstance(self._value, myokit.ModelPart):
             raise IntegrityError(
                 'Name value "' + repr(self._value) + '" is not an instance of'
@@ -832,9 +834,7 @@ class Derivative(LhsExpression):
         return '<Derivative(' + repr(self._op) + ')>'
 
     def rhs(self):
-        if self._op._value.lhs() == self:
-            return self._op._value.rhs()
-        raise Exception('No rhs found for "' + str(self) + '"')
+        return self._op._value.rhs()
 
     def _tree_str(self, b, n):
         b.write(' ' * n + 'dot(' + str(self._op._value) + ')' + '\n')
@@ -844,9 +844,6 @@ class Derivative(LhsExpression):
 
     def _validate(self, trail):
         super(Derivative, self)._validate(trail)
-        if not isinstance(self._op, LhsExpression):
-            raise IntegrityError(
-                'Derivative requires LhsExpression as operand', self._token)
 
 
 class PrefixExpression(Expression):

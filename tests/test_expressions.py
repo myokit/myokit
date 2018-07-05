@@ -376,6 +376,16 @@ class NumberTest(unittest.TestCase):
         self.assertEqual(
             type(x.eval(precision=myokit.SINGLE_PRECISION)), np.float32)
 
+    def test_tree_str(self):
+        """ Tests Number.tree_str() """
+        # Test simple
+        x = myokit.Number(1)
+        self.assertEqual(x.tree_str(), '1\n')
+
+        # Test with spaces
+        e = myokit.Plus(x, myokit.Number(-2))
+        self.assertEqual(e.tree_str(), '+\n  1\n  -2\n')
+
 
 class NameTest(unittest.TestCase):
     """
@@ -520,8 +530,13 @@ class NameTest(unittest.TestCase):
 
     def test_tree_str(self):
         """ Tests Name.tree_str() """
-        x = myokit.Name('hi')
-        self.assertEqual(x.tree_str(), 'hi\n')
+        # Test simple
+        x = myokit.Name('y')
+        self.assertEqual(x.tree_str(), 'y\n')
+
+        # Test with spaces
+        e = myokit.Plus(x, x)
+        self.assertEqual(e.tree_str(), '+\n  y\n  y\n')
 
 
 class DerivativeTest(unittest.TestCase):
@@ -602,6 +617,25 @@ class DerivativeTest(unittest.TestCase):
         # Get derivative object
         d = x.lhs()
         self.assertEqual(d.rhs(), x.rhs())
+
+    def test_tree_str(self):
+        """ Tests Derivative.tree_str() """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('(10 - x) / 100')
+        x.promote(0)
+
+        # Get derivative object
+        d = x.lhs()
+
+        # Test simple
+        self.assertEqual(d.tree_str(), 'dot(c.x)\n')
+
+        # Test with spaces
+        e = myokit.Plus(d, d)
+        self.assertEqual(e.tree_str(), '+\n  dot(c.x)\n  dot(c.x)\n')
 
 
 # Plus
