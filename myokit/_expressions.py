@@ -70,9 +70,17 @@ class Expression(object):
 
     def bracket(self, op=None):
         """
-        Returns True if this operator requires brackets. For example, ``5 + 3``
-        should return True, since ``2 * 5 + 3 != 2 * (5 + 3)`` while ``sin(3)``
-        should return False.
+        Checks if the given operand (which should be an operand of this
+        expression) needs brackets around it when writing a mathematical
+        expression.
+
+        For example, ``5 + 3`` will require a bracket when used in a
+        multiplication (e.g. ``2 * (5 + 3)``), so calling ``bracket(5 + 3)`` on
+        a multiplication will return ``True``.
+
+        Alternatively, when used in a function the expression will not require
+        brackets, as the function (e.g. ``sin()``) already provides them, so
+        calling ``bracket(5 + 3)`` on a function will return False.
         """
         raise NotImplementedError
 
@@ -574,6 +582,8 @@ class Number(Expression):
             self._str += ' ' + str(self._unit)
 
     def bracket(self, op=None):
+        if op is not None:
+            raise ValueError('Given operand is not in this expression.')
         return False
 
     def clone(self, subst=None, expand=False, retain=None):
@@ -631,9 +641,6 @@ class LhsExpression(Expression):
     no right-hand side is defined. In other words, this will only work if the
     expression is embedded in a variable's defining equation.
     """
-    def bracket(self, op=None):
-        return False
-
     def _eval(self, subst, precision):
         if subst and self in subst:
             return subst[self].eval()
@@ -684,6 +691,11 @@ class Name(LhsExpression):
                     ' myokit.Variable (or, when debugging, a string).')
         self._value = value
         self._references = set([self])
+
+    def bracket(self, op=None):
+        if op is not None:
+            raise ValueError('Given operand is not in this expression.')
+        return False
 
     def clone(self, subst=None, expand=False, retain=None):
         if subst and self in subst:
@@ -794,6 +806,8 @@ class Derivative(LhsExpression):
         self._references = set([self])
 
     def bracket(self, op=None):
+        if not (op is None or op == self._op):
+            raise ValueError('Given operand is not in this expression.')
         return False
 
     def clone(self, subst=None, expand=False, retain=None):
@@ -955,9 +969,7 @@ class InfixExpression(Expression):
             return (op._rbp > LITERAL and (op._rbp < self._rbp))
         elif op == self._op2:
             return (op._rbp > LITERAL and (op._rbp <= self._rbp))
-        else:
-            raise Exception(
-                'Given parameter is not an operand of this operator')
+        raise ValueError('Given operand is not in this expression.')
 
     def clone(self, subst=None, expand=False, retain=None):
         if subst and self in subst:
@@ -1323,7 +1335,7 @@ class Function(Expression):
                     ' number of arguments (' + str(len(ops)) + ', expecting '
                     + ' or '.join([str(x) for x in self._nargs]) + ').')
 
-    def bracket(self, op):
+    def bracket(self, op=None):
         return False
 
     def clone(self, subst=None, expand=False, retain=None):

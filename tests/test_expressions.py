@@ -355,6 +355,9 @@ class NumberTest(unittest.TestCase):
         x = myokit.Number(2)
         self.assertFalse(x.bracket())
 
+        # Doesn't have an operand
+        self.assertRaises(ValueError, x.bracket, myokit.Number(2))
+
     def test_clone(self):
         """ Tests Number.clone(). """
         x = myokit.Number(2)
@@ -470,6 +473,9 @@ class NameTest(unittest.TestCase):
         x = myokit.Name('hi')
         self.assertFalse(x.bracket())
 
+        # Doesn't have an operand
+        self.assertRaises(ValueError, x.bracket, myokit.Number(2))
+
     def test_clone(self):
         """ Tests Name.clone(). """
         m = myokit.Model()
@@ -560,6 +566,8 @@ class DerivativeTest(unittest.TestCase):
         """ Tests Derivative.bracket() """
         x = myokit.Derivative(myokit.Name('x'))
         self.assertFalse(x.bracket())
+        self.assertFalse(x.bracket(myokit.Name('x')))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(1))
 
     def test_clone(self):
         """ Tests Derivative.clone(). """
@@ -684,6 +692,13 @@ class TestPrefixPlus(unittest.TestCase):
             myokit.PrefixPlus(myokit.Number(2)))
         self.assertEqual(y.tree_str(), '+\n  +\n    -1\n  +\n    2\n')
 
+    def test_bracket(self):
+        """ Tests PrefixPlus.bracket(). """
+        x = myokit.PrefixPlus(myokit.Number(1))
+        self.assertFalse(x.bracket())
+        x = myokit.PrefixPlus(myokit.parse_expression('1 + 2'))
+        self.assertTrue(x.bracket())
+
 
 class TestPrefixMinus(unittest.TestCase):
     """
@@ -722,6 +737,43 @@ class TestPrefixMinus(unittest.TestCase):
             myokit.PrefixMinus(myokit.Number(1)),
             myokit.PrefixMinus(myokit.Number(-2)))
         self.assertEqual(y.tree_str(), '+\n  -\n    1\n  -\n    -2\n')
+
+    def test_bracket(self):
+        """ Tests PrefixMinus.bracket(). """
+        x = myokit.PrefixMinus(myokit.Number(1))
+        self.assertFalse(x.bracket())
+        x = myokit.PrefixMinus(myokit.parse_expression('1 + 2'))
+        self.assertTrue(x.bracket())
+
+
+class TestPlus(unittest.TestCase):
+    """
+    Tests myokit.Plus.
+    """
+    def test_clone(self):
+        """ Tests PrefixMinus.clone(). """
+        i = myokit.Number(3)
+        j = myokit.Number(4)
+        x = myokit.Plus(i, j)
+        y = x.clone()
+        self.assertIsNot(y, x)
+        self.assertEqual(y, x)
+
+        z = myokit.Plus(j, i)
+        y = x.clone(subst={x: z})
+        self.assertIsNot(y, x)
+        self.assertIs(y, z)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, z)
+
+        y = x.clone(subst={i: j})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, myokit.Plus(j, j))
+        y = x.clone(subst={j: i})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, myokit.Plus(i, i))
 
 
 # Plus
