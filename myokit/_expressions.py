@@ -1290,11 +1290,12 @@ class Power(InfixExpression):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
-        if mode == myokit.UNIT_STRICT:
-            # Check unit2 only in strict mode
-            if unit2 not in (None, myokit.units.dimensionless):
-                raise EvalUnitError(
-                    self, 'Exponent in Power must be dimensionless.')
+
+        # In strict mode, check 2nd unit is dimensionless
+        if unit2 != myokit.units.dimensionless and mode == myokit.UNIT_STRICT:
+            raise EvalUnitError(
+                self, 'Exponent in Power must be dimensionless.')
+
         if unit1 is None:
             return None
         return unit1 ** self._op2.eval()
@@ -1329,6 +1330,8 @@ class Function(Expression):
                     + ' or '.join([str(x) for x in self._nargs]) + ').')
 
     def bracket(self, op=None):
+        if op not in self._operands:
+            raise ValueError('Given operand is not in this expression.')
         return False
 
     def clone(self, subst=None, expand=False, retain=None):

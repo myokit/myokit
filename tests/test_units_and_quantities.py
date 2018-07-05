@@ -13,14 +13,6 @@ from __future__ import print_function, unicode_literals
 import unittest
 
 import myokit
-from myokit import (
-    parse_unit as pu,
-    parse_expression as pe,
-    IncompatibleUnitError as E,
-    UNIT_STRICT as S,
-    UNIT_TOLERANT as T,
-    Name, Derivative,
-)
 
 
 class MyokitUnitTest(unittest.TestCase):

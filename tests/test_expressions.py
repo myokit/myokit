@@ -1285,7 +1285,202 @@ class RemainderTest(unittest.TestCase):
         self.assertEqual(x.tree_str(), '%\n  1\n  %\n    2\n    3\n')
 
 
-# Power
+class PowerTest(unittest.TestCase):
+    """
+    Tests myokit.Power.
+    """
+    def test_clone(self):
+        """ Tests Power.clone(). """
+        i = myokit.Number(3)
+        j = myokit.Number(4)
+        x = myokit.Power(i, j)
+        y = x.clone()
+        self.assertIsNot(y, x)
+        self.assertEqual(y, x)
+
+        z = myokit.Power(j, i)
+        y = x.clone(subst={x: z})
+        self.assertIsNot(y, x)
+        self.assertIs(y, z)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, z)
+
+        y = x.clone(subst={i: j})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, myokit.Power(j, j))
+        y = x.clone(subst={j: i})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, myokit.Power(i, i))
+
+    def test_bracket(self):
+        """ Tests Power.bracket(). """
+        i = myokit.Number(1)
+        j = myokit.parse_expression('1 + 2')
+        x = myokit.Power(i, j)
+        self.assertFalse(x.bracket(i))
+        self.assertTrue(x.bracket(j))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+
+    def test_eval(self):
+        """
+        Tests Power evaluation.
+        """
+        x = myokit.Power(myokit.Number(2), myokit.Number(3))
+        self.assertEqual(x.eval(), 8)
+        x = myokit.Power(
+            myokit.Number(2), myokit.PrefixMinus(myokit.Number(1)))
+        self.assertEqual(x.eval(), 0.5)
+
+    def test_eval_unit(self):
+        """ Tests Power.eval_unit(). """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        z = c.add_variable('z')
+        x.set_rhs(1)
+        y.set_rhs(2)
+        z.set_rhs(myokit.Power(x.lhs(), y.lhs()))
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt ** 2)
+        y.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt ** 2)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.volt ** 2)
+        y.set_unit(myokit.units.volt)
+        self.assertRaises(
+            myokit.IncompatibleUnitError,
+            z.lhs().eval_unit, myokit.UNIT_STRICT)
+        x.set_unit(None)
+        self.assertRaises(
+            myokit.IncompatibleUnitError,
+            z.lhs().eval_unit, myokit.UNIT_STRICT)
+        y.set_unit(None)
+        self.assertEqual(
+            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+
+    def test_tree_str(self):
+        """ Tests Power.tree_str(). """
+        # Test simple
+        x = myokit.Power(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '^\n  1\n  2\n')
+
+        # Test with spaces
+        x = myokit.PrefixMinus(x)
+        self.assertEqual(x.tree_str(), '-\n  ^\n    1\n    2\n')
+        x = myokit.parse_expression('1 ^ (2 ^ 3)')
+        self.assertEqual(x.tree_str(), '^\n  1\n  ^\n    2\n    3\n')
+
+
+class SqrtTest(unittest.TestCase):
+    """
+    Tests myokit.Sqrt.
+    """
+    def test_creation(self):
+        """ Tests Sqrt creation. """
+        myokit.Sqrt(myokit.Number(1))
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'wrong number', myokit.Sqrt,
+            myokit.Number(1), myokit.Number(2))
+
+    def test_clone(self):
+        """ Tests Sqrt.clone(). """
+        i = myokit.Number(3)
+        j = myokit.Number(10)
+        x = myokit.Sqrt(i)
+        y = x.clone()
+        self.assertIsNot(y, x)
+        self.assertEqual(y, x)
+
+        z = myokit.Sqrt(j)
+        y = x.clone(subst={x: z})
+        self.assertIsNot(y, x)
+        self.assertIs(y, z)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, z)
+
+        y = x.clone(subst={i: j})
+        self.assertIsNot(x, y)
+        self.assertNotEqual(x, y)
+        self.assertEqual(y, z)
+
+    def test_bracket(self):
+        """ Tests Sqrt.bracket(). """
+        i = myokit.Number(1)
+        j = myokit.parse_expression('1 + 2')
+        x = myokit.Sqrt(i)
+        self.assertFalse(x.bracket(i))
+        x = myokit.Sqrt(j)
+        self.assertFalse(x.bracket(j))
+        self.assertRaises(ValueError, x.bracket, myokit.Number(3))
+
+    def test_eval(self):
+        """
+        Tests Sqrt evaluation.
+        """
+        x = myokit.Sqrt(myokit.Number(9))
+        self.assertEqual(x.eval(), 3)
+
+    def test_eval_unit(self):
+        """ Tests Sqrt.eval_unit(). """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        z = c.add_variable('z')
+        x.set_rhs(1)
+        z.set_rhs(myokit.Sqrt(x.lhs()))
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.volt)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'non-integer exponents',
+            z.lhs().eval_unit)
+        x.set_unit(myokit.units.volt ** 2)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(myokit.units.volt)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'non-integer exponents',
+            z.lhs().eval_unit, s)
+        x.set_unit(myokit.units.volt ** 2)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.volt)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+
+    def test_tree_str(self):
+        """ Tests Sqrt.tree_str(). """
+        # Test simple
+        x = myokit.Sqrt(myokit.Number(2))
+        self.assertEqual(x.tree_str(), 'sqrt\n  2\n')
+
+        # Test with spaces
+        x = myokit.PrefixMinus(x)
+        self.assertEqual(x.tree_str(), '-\n  sqrt\n    2\n')
+        x = myokit.parse_expression('sqrt(1 + sqrt(2))')
+        self.assertEqual(x.tree_str(), 'sqrt\n  +\n    1\n    sqrt\n      2\n')
+
+
 # Sqrt
 # Exp
 # Log
