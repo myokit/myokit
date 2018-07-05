@@ -546,6 +546,50 @@ class DerivativeTest(unittest.TestCase):
         x = myokit.Derivative(myokit.Name('x'))
         self.assertFalse(x.bracket())
 
+    def test_clone(self):
+        """ Tests Derivative.clone(). """
+        x = myokit.Derivative(myokit.Name('x'))
+        y = x.clone()
+        self.assertIsNot(y, x)
+        self.assertEqual(y, x)
+
+        z = myokit.Derivative(myokit.Name('z'))
+        y = x.clone(subst={x: z})
+        self.assertIsNot(y, x)
+        self.assertIs(y, z)
+        self.assertNotEqual(y, x)
+        self.assertEqual(y, z)
+
+    def test_eval_unit(self):
+        """ Tests Derivative.eval_unit() """
+        # Create mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs('0')
+        t.set_binding('time')
+        x = c.add_variable('x')
+        x.set_rhs('(10 - x) / 100')
+        x.promote(0)
+
+        # Get derivative object
+        d = x.lhs()
+
+        # No units set anywhere: dimensionless
+        self.assertEqual(d.eval_unit(), myokit.units.dimensionless)
+
+        # Time has a unit
+        t.set_unit(myokit.units.second)
+        self.assertEqual(d.eval_unit(), myokit.parse_unit('1/s'))
+
+        # Both have a unit
+        x.set_unit(myokit.units.volt)
+        self.assertEqual(d.eval_unit(), myokit.parse_unit('V/s'))
+
+        # Time has no unit
+        t.set_unit(None)
+        self.assertEqual(d.eval_unit(), myokit.units.volt)
+
 
 # Plus
 # Minus

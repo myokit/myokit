@@ -27,7 +27,7 @@ with open('README.md') as f:
 
 # Go!
 setup(
-    # Module name
+    # Module name (lowercase)
     name='myokit',
 
     # Version

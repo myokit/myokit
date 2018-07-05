@@ -815,6 +815,7 @@ class Derivative(LhsExpression):
             denom = self._op._value.model().time_unit()
         except AttributeError:
             denom = None
+
         # Return resulting fraction
         if denom is None:
             return numer
