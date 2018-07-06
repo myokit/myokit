@@ -29,18 +29,60 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertRaises(ValueError, myokit.Unit, [0, 0, 0, 0, 0, 0])
         self.assertRaises(ValueError, myokit.Unit, [0, 0, 0, 0, 0, 0, 0, 0])
 
+    def test_can_convert(self):
+        """
+        Tests :meth:`Unit.can_convert()`.
+        """
+        self.assertTrue(myokit.Unit.can_convert(
+            myokit.units.volt, myokit.units.mV))
+        self.assertFalse(myokit.Unit.can_convert(
+            myokit.units.volt, myokit.units.ampere))
+
     def test_convert(self):
         """
-        Test unit conversion.
+        Test :meth:`Unit.convert()`.
         """
-        mV = myokit.Unit.parse_simple('mV')
-        V = myokit.Unit.parse_simple('V')
+        mV = myokit.units.mV
+        V = myokit.units.V
         self.assertEqual(myokit.Unit.convert(2, mV, V), 0.002)
         self.assertEqual(myokit.Unit.convert(2, V, mV), 2000)
 
-    def test_output(self):
+        # None and dimensionless are ok
+        d = myokit.units.dimensionless
+        self.assertEqual(myokit.Unit.convert(1, None, None), 1)
+        self.assertEqual(myokit.Unit.convert(1, d, None), 1)
+        self.assertEqual(myokit.Unit.convert(1, None, d), 1)
+        self.assertEqual(myokit.Unit.convert(1, d, d), 1)
+        self.assertRaises(
+            myokit.IncompatibleUnitError, myokit.Unit.convert, 1, d, V)
+        self.assertRaises(
+            myokit.IncompatibleUnitError, myokit.Unit.convert, 1, V, d)
+        self.assertRaises(
+            myokit.IncompatibleUnitError, myokit.Unit.convert, 1, None, V)
+        self.assertRaises(
+            myokit.IncompatibleUnitError, myokit.Unit.convert, 1, V, None)
+
+        # Strings can be parsed
+        self.assertEqual(myokit.Unit.convert(1, None, '1'), 1)
+        self.assertEqual(myokit.Unit.convert(1, '1', None), 1)
+        self.assertEqual(myokit.Unit.convert(1, 'V', V), 1)
+        self.assertEqual(myokit.Unit.convert(1, V, 'V'), 1)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'from',
+            myokit.Unit.convert, 1, V, 'A')
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'from',
+            myokit.Unit.convert, 1, 'A', V)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'given object',
+            myokit.Unit.convert, 1, V, 'Alf')
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'given object',
+            myokit.Unit.convert, 1, 'Alf', V)
+
+    def test_str_and_repr(self):
         """
-        Test unit representation.
+        Test :meth:`Unit.str()` and :meth:`Unit.repr()`.
         """
         self.assertEqual(repr(myokit.units.N), '[g*m/s^2 (1000)]')
         # Unit with representation in alternative base
