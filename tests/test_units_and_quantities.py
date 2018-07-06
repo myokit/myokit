@@ -266,6 +266,7 @@ class QuantityTest(unittest.TestCase):
         self.assertNotEqual(a, Q('0.01 [V]'))
         self.assertEqual(a, Q('0.01 [V]').convert('mV'))
         self.assertNotEqual(Q(4), 4)
+        self.assertNotEqual(4, Q(4))
 
     def test_convert(self):
         """ Test :meth:`Quantity.convert()`. """
