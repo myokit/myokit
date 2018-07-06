@@ -2251,7 +2251,64 @@ class OrTest(unittest.TestCase):
         self.assertEqual(x.tree_str(), '+\n  3\n  or\n    1\n    2\n')
 
 
-# Or
+class NotTest(unittest.TestCase):
+    """
+    Tests myokit.Not.
+    """
+    def test_code(self):
+        """ Tests Not.code(). """
+        x = myokit.Not(myokit.Number(1))
+        self.assertEqual(x.code(), 'not 1')
+        x = myokit.Not(myokit.Equal(myokit.Number(1), myokit.Number(1)))
+        self.assertEqual(x.code(), 'not (1 == 1)')
+
+    def test_eval(self):
+        """ Tests Not.eval(). """
+        x = myokit.Not(myokit.Number(1))
+        self.assertFalse(x.eval())
+        x = myokit.Not(myokit.Number(0))
+        self.assertTrue(x.eval())
+
+    def test_eval_unit(self):
+        """
+        Tests Not.eval_unit().
+        """
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('1')
+        z = c.add_variable('z')
+        z.set_rhs('not x')
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+        x.set_unit(myokit.units.dimensionless)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+        x.set_unit(myokit.units.dimensionless)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+
+    def test_polish(self):
+        """ Tests Not._polish(). """
+        x = myokit.Not(myokit.Number(1))
+        self.assertEqual(x._polish(), 'not 1')
+        x = myokit.Not(myokit.Equal(myokit.Number(1), myokit.Number(1)))
+        self.assertEqual(x._polish(), 'not == 1 1')
+
 
 # If
 # Piecewise,
