@@ -1946,12 +1946,168 @@ class AbsTest(unittest.TestCase):
         self.assertEqual(x.tree_str(), 'abs\n  0.5\n')
 
 
-# Equal
-# NotEqual
-# More
-# Less
-# MoreEqual
-# LessEqual
+class EqualTest(unittest.TestCase):
+    """
+    Tests myokit.Equal.
+    """
+    def test_eval(self):
+        """ Tests Equal.eval(). """
+        x = myokit.Equal(myokit.Number(1), myokit.Number(1))
+        self.assertTrue(x.eval())
+        x = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertFalse(x.eval())
+
+    def test_eval_unit(self):
+        """
+        Tests Equal.eval_unit().
+        """
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('3')
+        y = c.add_variable('y')
+        y.set_rhs('3')
+        z = c.add_variable('z')
+        z.set_rhs('x == y')
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.ampere)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        y.set_unit(myokit.units.ampere)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        y.set_unit(myokit.units.volt)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'equal units', z.lhs().eval_unit)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'equal units', z.lhs().eval_unit, s)
+        y.set_unit(myokit.units.ampere)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        y.set_unit(myokit.units.volt)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'equal units', z.lhs().eval_unit)
+        x.set_unit(None)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'equal units', z.lhs().eval_unit, s)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+
+    def test_tree_str(self):
+        """ Tests Equal.tree_str(). """
+        x = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '==\n  1\n  2\n')
+        x = myokit.Plus(myokit.Number(3), x)
+        self.assertEqual(x.tree_str(), '+\n  3\n  ==\n    1\n    2\n')
+
+
+class NotEqualTest(unittest.TestCase):
+    """
+    Tests myokit.NotEqual.
+    """
+    def test_eval(self):
+        """ Tests NotEqual.eval(). """
+        x = myokit.NotEqual(myokit.Number(1), myokit.Number(1))
+        self.assertFalse(x.eval())
+        x = myokit.NotEqual(myokit.Number(1), myokit.Number(2))
+        self.assertTrue(x.eval())
+
+    def test_tree_str(self):
+        """ Tests NotEqual.tree_str(). """
+        x = myokit.NotEqual(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '!=\n  1\n  2\n')
+        x = myokit.Plus(myokit.Number(3), x)
+        self.assertEqual(x.tree_str(), '+\n  3\n  !=\n    1\n    2\n')
+
+
+class MoreTest(unittest.TestCase):
+    """
+    Tests myokit.More.
+    """
+    def test_eval(self):
+        """ Tests More.eval(). """
+        x = myokit.More(myokit.Number(1), myokit.Number(1))
+        self.assertFalse(x.eval())
+        x = myokit.More(myokit.Number(3), myokit.Number(2))
+        self.assertTrue(x.eval())
+
+    def test_tree_str(self):
+        """ Tests More.tree_str(). """
+        x = myokit.More(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '>\n  1\n  2\n')
+        x = myokit.Plus(myokit.Number(3), x)
+        self.assertEqual(x.tree_str(), '+\n  3\n  >\n    1\n    2\n')
+
+
+class LessTest(unittest.TestCase):
+    """
+    Tests myokit.Less.
+    """
+    def test_eval(self):
+        """ Tests Less.eval(). """
+        x = myokit.Less(myokit.Number(1), myokit.Number(1))
+        self.assertFalse(x.eval())
+        x = myokit.Less(myokit.Number(1), myokit.Number(2))
+        self.assertTrue(x.eval())
+
+    def test_tree_str(self):
+        """ Tests Less.tree_str(). """
+        x = myokit.Less(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '<\n  1\n  2\n')
+        x = myokit.Plus(myokit.Number(3), x)
+        self.assertEqual(x.tree_str(), '+\n  3\n  <\n    1\n    2\n')
+
+
+class MoreEqualTest(unittest.TestCase):
+    """
+    Tests myokit.MoreEqual.
+    """
+    def test_eval(self):
+        """ Tests MoreEqual.eval(). """
+        x = myokit.MoreEqual(myokit.Number(1), myokit.Number(1))
+        self.assertTrue(x.eval())
+        x = myokit.MoreEqual(myokit.Number(3), myokit.Number(2))
+        self.assertTrue(x.eval())
+        x = myokit.MoreEqual(myokit.Number(1), myokit.Number(2))
+        self.assertFalse(x.eval())
+
+    def test_tree_str(self):
+        """ Tests MoreEqual.tree_str(). """
+        x = myokit.MoreEqual(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '>=\n  1\n  2\n')
+        x = myokit.Plus(myokit.Number(3), x)
+        self.assertEqual(x.tree_str(), '+\n  3\n  >=\n    1\n    2\n')
+
+
+class LessEqualTest(unittest.TestCase):
+    """
+    Tests myokit.LessEqual.
+    """
+    def test_eval(self):
+        """ Tests LessEqual.eval(). """
+        x = myokit.LessEqual(myokit.Number(1), myokit.Number(1))
+        self.assertTrue(x.eval())
+        x = myokit.LessEqual(myokit.Number(1), myokit.Number(2))
+        self.assertTrue(x.eval())
+        x = myokit.LessEqual(myokit.Number(2), myokit.Number(1))
+        self.assertFalse(x.eval())
+
+    def test_tree_str(self):
+        """ Tests LessEqual.tree_str(). """
+        x = myokit.LessEqual(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), '<=\n  1\n  2\n')
+        x = myokit.Plus(myokit.Number(3), x)
+        self.assertEqual(x.tree_str(), '+\n  3\n  <=\n    1\n    2\n')
+
 
 # Not
 # And

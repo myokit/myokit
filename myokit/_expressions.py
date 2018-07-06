@@ -247,7 +247,7 @@ class Expression(object):
         its variables and literals.
 
         Incompatible units may result in a
-        :class:`EvalUnitError` being raised. The method for
+        :class:`myokit.IncompatibleUnitError` being raised. The method for
         dealing with unspecified units can be set using the ``mode`` argument.
 
         Using ``myokit.UNIT_STRICT`` any unspecified unit will be treated as
@@ -1051,12 +1051,14 @@ class Plus(InfixExpression):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
+
         if unit1 == unit2:
             return unit1
         if unit1 is None:
             return unit2
         if unit2 is None:
             return unit1
+
         raise EvalUnitError(
             self, 'Addition requires equal units, got '
             + str(unit1) + ' and ' + str(unit2) + '.')
@@ -1088,12 +1090,14 @@ class Minus(InfixExpression):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
+
         if unit1 == unit2:
             return unit1
         if unit1 is None:
             return unit2
         if unit2 is None:
             return unit1
+
         raise EvalUnitError(
             self, 'Subtraction requires equal units, got ' + str(unit1)
             + ' and ' + str(unit2) + '.')
@@ -1124,10 +1128,12 @@ class Multiply(InfixExpression):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
+
         if unit1 is None:
             return unit2
         if unit2 is None:
             return unit1
+
         return unit1 * unit2
 
 
@@ -1162,6 +1168,7 @@ class Divide(InfixExpression):
             return unit1    # None propagation in tolerant mode
         elif unit1 is None:
             return 1 / unit2
+
         return unit1 / unit2
 
 
@@ -1210,6 +1217,7 @@ class Quotient(InfixExpression):
             return unit1    # None propagation in tolerant mode
         elif unit1 is None:
             return 1 / unit2
+
         return unit1 / unit2
 
 
@@ -1618,6 +1626,7 @@ class Log(Function):
 
     def _eval_unit(self, mode):
         if len(self._operands) == 1:
+
             # One operand
             unit = self._operands[0]._eval_unit(mode)
             if unit is None:
@@ -1629,6 +1638,7 @@ class Log(Function):
             return myokit.units.dimensionless
 
         else:
+
             # Two operands
             unit1 = self._operands[0]._eval_unit(mode)
             unit2 = self._operands[1]._eval_unit(mode)
@@ -1780,13 +1790,16 @@ class If(Function):
         return self._e._eval(subst, precision)
 
     def _eval_unit(self, mode):
+
         # Check the condition and all options
         self._i._eval_unit(mode)
         unit2 = self._t._eval_unit(mode)
         unit3 = self._e._eval_unit(mode)
+
         # Check if the options have the same unit (or None)
         if unit2 == unit3:
             return unit2
+
         # Check if still valid, or raise error
         if mode == myokit.UNIT_STRICT:
             if unit2 is None and unit3 == myokit.units.dimensionless:
@@ -1885,9 +1898,11 @@ class Piecewise(Function):
         return self._e[-1]._eval(subst, precision)
 
     def _eval_unit(self, mode):
+
         # Check the conditions and all options
         units = [x._eval_unit(mode) for x in self._i]   # And discard :)
         units = [x._eval_unit(mode) for x in self._e]
+
         # Check if the options have the same unit (or None)
         d = myokit.units.dimensionless
         units = iter(units)
@@ -1999,12 +2014,16 @@ class BinaryComparison(InfixCondition):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
+
+        # Equal (including both None) is always ok
         if unit1 == unit2:
             return None if unit1 is None else myokit.units.dimensionless
+
+        # In tolerant mode, a single None is OK
         if unit1 is None or unit2 is None:
-            d = myokit.units.dimensionless
-            if mode == myokit.UNIT_TOLERANT or unit1 == d or unit2 == d:
-                return d
+            return myokit.units.dimensionless
+
+        # Otherwise must match
         raise EvalUnitError(
             self, 'Condition ' + self._rep + ' requires equal units on both'
             ' sides, got ' + str(unit1) + ' and ' + str(unit2) + '.')
@@ -2231,8 +2250,8 @@ class EvalUnitError(Exception):
     *Extends:* ``Exception``
 
     Used internally when an error is encountered during an ``eval_unit()``
-    operation. Is replaced by a ``EvalUnitError`` which is then
-    sent to the caller.
+    operation. Is replaced by a :class:`myokit.IncompatibleUnitError` which is
+    then sent to the caller.
 
     ``expr``
         The expression that generated the error
@@ -2246,8 +2265,8 @@ class EvalUnitError(Exception):
 
 def _expr_error_message(owner, e):
     """
-    Takes an EvalError or an EvalUnitError and traces the origins of the error
-    in the expression. Returns an error message.
+    Takes an ``EvalError`` or an ``EvalUnitError`` and traces the origins of
+    the error in the expression. Returns an error message.
 
     Arguments:
 
