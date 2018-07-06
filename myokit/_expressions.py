@@ -2936,11 +2936,6 @@ class Quantity(object):
             other = Quantity(other)
         return Quantity(self._value * other._value, self._unit * other._unit)
 
-    def __ne__(self, other):
-        if not isinstance(other, Quantity):
-            return True
-        return self._value != other._value or self._unit != other._unit
-
     def __radd__(self, other):
         return self + other
 
