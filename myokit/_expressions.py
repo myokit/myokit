@@ -2865,10 +2865,7 @@ class Quantity(object):
                     raise ValueError(
                         'Failed to parse string "' + str(value)
                         + '" as myokit.Quantity.')
-                try:
-                    self._unit = myokit.parse_unit(parts[1].strip()[:-1])
-                except IndexError:
-                    pass
+                self._unit = myokit.parse_unit(parts[1].strip()[:-1])
 
             # No unit set yet? Then check unit argument
             if self._unit is None:
