@@ -102,6 +102,18 @@ class ExpressionTest(unittest.TestCase):
         self.assertRaisesRegexp(
             myokit.NumericalError, 'c.y = 3', z.rhs().eval, {y.lhs(): 3})
 
+    def test_eval_unit_error(self):
+        """
+        Tests error handling for eval_unit.
+        """
+        x = myokit.parse_expression('1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
+        with self.assertRaises(myokit.IncompatibleUnitError) as e:
+            x.eval_unit()
+        m = e.exception.message.splitlines()
+        self.assertEqual(len(m), 4)
+        self.assertEqual(m[2], '  1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
+        self.assertEqual(m[3], '                    ~~~~~~~~~~~~~~')
+
     def test_int_conversion(self):
         """
         Tests conversion of expressions to int.
