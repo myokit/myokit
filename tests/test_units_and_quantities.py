@@ -219,6 +219,9 @@ class QuantityTest(unittest.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'Two units', myokit.Quantity, '2 [mV]', 'mV')
 
+        # Test hash
+        self.assertEqual(str(x), x.__hash__())
+
     def test_number_conversion(self):
         """ Tests Quantity conversion from and to number. """
         from myokit import Quantity as Q
@@ -262,6 +265,7 @@ class QuantityTest(unittest.TestCase):
         self.assertNotEqual(a, Q('10 [V]'))
         self.assertNotEqual(a, Q('0.01 [V]'))
         self.assertEqual(a, Q('0.01 [V]').convert('mV'))
+        self.assertNotEqual(Q(4), 4)
 
     def test_convert(self):
         """ Test :meth:`Quantity.convert()`. """
@@ -285,6 +289,7 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(add(a, b), Q('13 [mV]'))
         b = Q('3 [V]')
         self.assertRaises(myokit.IncompatibleUnitError, add, a, b)
+        self.assertRaises(myokit.IncompatibleUnitError, add, a, 3)
         a = Q(4)
         self.assertEqual(a + 2, Q(6))
         self.assertEqual(a + 3, Q(7, myokit.units.dimensionless))
@@ -335,6 +340,8 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(str(c), '5.0 [mS]')
         self.assertEqual(b.convert('V'), Q('0.002 [V]'))
         self.assertRaises(myokit.IncompatibleUnitError, a.convert, 'V')
+        a = Q(3)
+        self.assertEqual(a / 2, Q(3 / 2))
 
     def test_cast(self):
         """ Test :meth:`Quanity.cast()`. """
