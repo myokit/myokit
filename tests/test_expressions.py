@@ -2412,6 +2412,10 @@ class PiecewiseTest(unittest.TestCase):
             myokit.IntegrityError, 'odd number', myokit.Piecewise,
             cond1, then1, cond2, then2)
 
+        # Wrong number of operands
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, '3 or more', myokit.Piecewise, cond1)
+
     def test_eval(self):
         """ Tests Piecewise.eval(). """
         ct = myokit.Equal(myokit.Number(1), myokit.Number(1))
