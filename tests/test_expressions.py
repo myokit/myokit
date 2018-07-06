@@ -2310,7 +2310,99 @@ class NotTest(unittest.TestCase):
         self.assertEqual(x._polish(), 'not == 1 1')
 
 
-# If
+class IfTest(unittest.TestCase):
+    """
+    Tests myokit.If.
+    """
+    def test_creation(self):
+        """
+        Tests creation plus some accessor methods.
+        """
+        cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
+        then = myokit.Number(10)
+        else_ = myokit.Number(20)
+        if_ = myokit.If(cond, then, else_)
+
+        # Test condition()
+        self.assertEqual(if_.condition(), cond)
+
+        # Test is_conditional()
+        self.assertTrue(if_.is_conditional())
+
+    def test_eval(self):
+        """ Tests If.eval(). """
+        cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
+        then = myokit.Number(10)
+        else_ = myokit.Number(20)
+        if_ = myokit.If(cond, then, else_)
+        self.assertEqual(if_.eval(), 10)
+
+        cond = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        if_ = myokit.If(cond, then, else_)
+        self.assertEqual(if_.eval(), 20)
+
+    def test_eval_unit(self):
+        """ Tests If.eval_unit(). """
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        v1 = c.add_variable('v1')
+        v2 = c.add_variable('v2')
+        v3 = c.add_variable('v3')
+        v4 = c.add_variable('v4')
+        v1.set_rhs('1 == 1')
+        v2.set_rhs(2)
+        v3.set_rhs(3)
+        v4.set_rhs('if(v1, v2, v3)')
+        z = v4.lhs()
+
+        # Test in tolerant mode
+        self.assertEqual(z.eval_unit(), None)
+        v2.set_unit(myokit.units.ampere)
+        self.assertEqual(z.eval_unit(), myokit.units.ampere)
+        v3.set_unit(myokit.units.ampere)
+        self.assertEqual(z.eval_unit(), myokit.units.ampere)
+        v2.set_unit(None)
+        self.assertEqual(z.eval_unit(), myokit.units.ampere)
+        v3.set_unit(None)
+        self.assertEqual(z.eval_unit(), None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.eval_unit(s), myokit.units.dimensionless)
+        v2.set_unit(myokit.units.ampere)
+        self.assertRaises(myokit.IncompatibleUnitError, z.eval_unit, s)
+        v3.set_unit(myokit.units.ampere)
+        self.assertEqual(z.eval_unit(s), myokit.units.ampere)
+        v2.set_unit(None)
+        self.assertRaises(myokit.IncompatibleUnitError, z.eval_unit, s)
+        v3.set_unit(None)
+        self.assertEqual(z.eval_unit(s), myokit.units.dimensionless)
+
+    def test_piecewise_conversion(self):
+        """ Tests If.piecewise(). """
+        cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
+        then = myokit.Number(10)
+        else_ = myokit.Number(20)
+        if_ = myokit.If(cond, then, else_)
+        pw = if_.piecewise()
+        self.assertEqual(if_.eval(), pw.eval())
+
+        cond = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        if_ = myokit.If(cond, then, else_)
+        pw = if_.piecewise()
+        self.assertEqual(if_.eval(), pw.eval())
+
+    def test_value(self):
+        """ Tests If.value(). """
+        cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
+        then = myokit.Number(10)
+        else_ = myokit.Number(20)
+        if_ = myokit.If(cond, then, else_)
+        self.assertEqual(if_.value(True), then)
+        self.assertEqual(if_.value(False), else_)
+
+
 # Piecewise,
 
 class UnsupportedFunctionTest(unittest.TestCase):

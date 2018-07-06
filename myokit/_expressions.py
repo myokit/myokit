@@ -1796,21 +1796,17 @@ class If(Function):
         unit2 = self._t._eval_unit(mode)
         unit3 = self._e._eval_unit(mode)
 
-        # Check if the options have the same unit (or None)
+        # Check if the options have the same unit (or None in tolerant mode)
         if unit2 == unit3:
             return unit2
 
-        # Check if still valid, or raise error
-        if mode == myokit.UNIT_STRICT:
-            if unit2 is None and unit3 == myokit.units.dimensionless:
-                return unit3
-            elif unit3 is None and unit2 == myokit.units.dimensionless:
-                return unit2
-        else:
-            if unit2 is None:
-                return unit3
-            if unit3 is None:
-                return unit2
+        # Allow 1 None in tolerant mode
+        if unit2 is None:
+            return unit3
+        elif unit3 is None:
+            return unit2
+
+        # Mismatching units
         raise EvalUnitError(
             self, 'Units of `then` and `else` part of an `if`'
             ' must match. Got ' + str(unit2) + ' and ' + str(unit3) + '.')
