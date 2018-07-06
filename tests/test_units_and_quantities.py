@@ -200,6 +200,25 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(float(a), 4)
         self.assertEqual(str(a), '4.0 [1]')
 
+        # Creation from a myokit Number
+        x = myokit.Number(2)
+        a = Q(x)
+        self.assertRaisesRegexp(
+            ValueError, 'Cannot specify', Q, x, myokit.Unit())
+
+        # Creation with string value
+        x = myokit.Quantity('2')
+        x = myokit.Quantity('2 [mV]')
+        self.assertRaisesRegexp(
+            ValueError, 'could not be converted', myokit.Quantity, int)
+        self.assertRaisesRegexp(
+            ValueError, 'Failed to parse', myokit.Quantity, 'wolf')
+        self.assertRaisesRegexp(
+            ValueError, 'Failed to parse', myokit.Quantity, 'a [mV]')
+        x = myokit.Quantity('2', 'mV')
+        self.assertRaisesRegexp(
+            ValueError, 'Two units', myokit.Quantity, '2 [mV]', 'mV')
+
     def test_number_conversion(self):
         """ Tests Quantity conversion from and to number. """
         from myokit import Quantity as Q

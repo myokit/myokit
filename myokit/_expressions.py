@@ -2829,6 +2829,7 @@ class Quantity(object):
 
     """
     def __init__(self, value, unit=None):
+
         if isinstance(value, myokit.Expression):
             # Convert myokit.Expression
             if unit is not None:
@@ -2838,22 +2839,26 @@ class Quantity(object):
             self._value = value.eval()
             unit = value.unit()
             self._unit = unit if unit is not None else dimensionless
+
         else:
             # Convert other types
             self._unit = None
             try:
                 # Convert value to float
                 self._value = float(value)
-            except ValueError:
+
+            except (ValueError, TypeError):
+
                 # Try parsing string
                 try:
                     self._value = str(value)
-                except ValueError:
+                    parts = value.split('[', 1)
+                except Exception:
                     raise ValueError(
                         'Value of type ' + str(type(value))
                         + ' could not be converted to myokit.Quantity.')
+
                 # Very simple number-with-unit parsing
-                parts = value.split('[', 1)
                 try:
                     self._value = float(parts[0])
                 except ValueError:
@@ -2864,6 +2869,7 @@ class Quantity(object):
                     self._unit = myokit.parse_unit(parts[1].strip()[:-1])
                 except IndexError:
                     pass
+
             # No unit set yet? Then check unit argument
             if self._unit is None:
                 if unit is None:
@@ -2874,6 +2880,7 @@ class Quantity(object):
                     self._unit = myokit.parse_unit(unit)
             elif unit is not None:
                 raise ValueError('Two units specified for myokit.Quantity.')
+
         # Create string representation
         self._str = str(self._value) + ' ' + str(self._unit)
 
