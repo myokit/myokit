@@ -2621,11 +2621,11 @@ class Unit(object):
                     + ' exponents, which is not supported.')
         return Unit([int(x) for x in e], self._m * f)
 
-    def __rdiv__(self, other):
+    def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
         """
         Evaluates ``other / self``, where other is not a unit
         """
-        return Unit([-a for a in self._x], math.log10(other) - self._m)
+        return self.__rtruediv__(self, other)
 
     @staticmethod
     def register(name, unit, quantifiable=False, output=False):
@@ -2944,7 +2944,7 @@ class Quantity(object):
     def __radd__(self, other):
         return self + other
 
-    def __rdiv__(self, other):
+    def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
         return Quanity(other) / self
 
     def __rmul__(self, other):
