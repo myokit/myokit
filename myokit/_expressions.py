@@ -2571,9 +2571,11 @@ class Unit(object):
         if name in ['1', '']:
             # Return empty unit
             return Unit()
+
         try:
             # Return clone of named unit
             return Unit(Unit._units[name])
+
         except KeyError:
             p1 = name[0]
             p2 = name[1:]
@@ -2582,21 +2584,25 @@ class Unit(object):
                 try:
                     q = Unit._si_quantifiers[p1]
                 except KeyError:
+
                     if p1 not in Unit._si_quantifiers:
                         raise KeyError(
                             'Unknown quantifier: "' + str(p1) + '".')
-                    else:
+                    else:   # pragma: no cover
                         raise Exception(
                             'Unit "' + str(p1) + '" listed as quantifiable'
                             ' does not appear in unit list.')
+
                 # Return new unit with updated exponent
                 u = Unit._units[p2]
                 return Unit(u._x, u._m + q)
+
             elif p1 in Unit._si_quantifiers and p2 in Unit._units:
                 # Attempt to quantify non-quantifiable unit
                 raise KeyError(
                     'Unit "' + str(p2) + '" cannot have quantifier "' + str(p1)
                     + '".')
+
             else:
                 # Just plain wrong
                 raise KeyError('Unknown unit: "' + str(name) + '".')

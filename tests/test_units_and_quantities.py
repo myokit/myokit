@@ -80,6 +80,87 @@ class MyokitUnitTest(unittest.TestCase):
             myokit.IncompatibleUnitError, 'given object',
             myokit.Unit.convert, 1, 'Alf', V)
 
+    def test_float(self):
+        """ Tests :meth:`Unit.__float__()`. """
+        x = myokit.Unit()
+        x *= 123
+        self.assertAlmostEqual(float(x), 123)
+
+        # Can't convert unless dimensionless (but with any multiplier)
+        x *= myokit.units.V
+        self.assertRaises(TypeError, float, x)
+
+    def test_operators(self):
+        """ Tests overloaded unit operators. """
+        # Test div
+        d = myokit.Unit()
+        self.assertEqual(d._x, [0] * 7)
+        d = d / myokit.units.m
+        self.assertEqual(d._x, [0, -1, 0, 0, 0, 0, 0])
+        d = d / myokit.units.m
+        self.assertEqual(d._x, [0, -2, 0, 0, 0, 0, 0])
+        d = d / d
+        self.assertEqual(d._x, [0, 0, 0, 0, 0, 0, 0])
+
+        # Test mul
+        d = myokit.Unit()
+        self.assertEqual(d._x, [0] * 7)
+        d = d * myokit.units.s
+        self.assertEqual(d._x, [0, 0, 1, 0, 0, 0, 0])
+        d = d * myokit.units.m
+        self.assertEqual(d._x, [0, 1, 1, 0, 0, 0, 0])
+        d = d * d
+        self.assertEqual(d._x, [0, 2, 2, 0, 0, 0, 0])
+
+        # Test pow
+        d = myokit.Unit()
+        self.assertEqual(d._x, [0] * 7)
+        d *= myokit.units.s
+        d *= myokit.units.m
+        self.assertEqual(d._x, [0, 1, 1, 0, 0, 0, 0])
+        d = d**3
+        self.assertEqual(d._x, [0, 3, 3, 0, 0, 0, 0])
+
+        # Test rdiv and rmul (i.e. with non-units)
+        d = myokit.Unit()
+        d *= myokit.units.meter
+        self.assertEqual(d._m, 0)
+        self.assertEqual(d._x, [0, 1, 0, 0, 0, 0, 0])
+        d = 1000 * d
+        self.assertEqual(d._m, 3)
+        d = 1 / d
+        self.assertEqual(d._m, -3)
+        self.assertEqual(d._x, [0, -1, 0, 0, 0, 0, 0])
+        d = 100 * d
+        self.assertEqual(d._m, -1)
+        d = 10 * d
+        self.assertEqual(d._m, 0)
+
+    def test_parse_simple(self):
+        """
+        Tests edge cases for :meth:`Unit.parse_simple()`.
+        """
+        # Easy case
+        self.assertEqual(myokit.Unit.parse_simple('mV'), myokit.units.mV)
+
+        # Bad quantifier
+        self.assertRaisesRegexp(
+            KeyError, 'Unknown quantifier', myokit.Unit.parse_simple, 'jV')
+
+        # Not a quantifiable unit
+        self.assertRaisesRegexp(
+            KeyError, 'cannot have quantifier', myokit.Unit.parse_simple,
+            'mNewton')
+
+        # Unknown unit
+        self.assertRaisesRegexp(
+            KeyError, 'Unknown unit', myokit.Unit.parse_simple, 'Frog')
+
+    def test_register_errors(self):
+        """ Tests errors for Unit.register (rest is already used a lot). """
+        self.assertRaises(TypeError, myokit.Unit.register, 4, myokit.Unit())
+        self.assertRaises(TypeError, myokit.Unit.register, 'hi', 4)
+
     def test_str_and_repr(self):
         """
         Test :meth:`Unit.str()` and :meth:`Unit.repr()`.
@@ -98,10 +179,8 @@ class QuantityTest(unittest.TestCase):
     """
     Tests the Quantity class for unit arithmetic.
     """
-    def test_basic(self):
-        """
-        Tests the basic functionality of the Quantity class.
-        """
+    def test_creation_and_str(self):
+        """ Tests Quanity creation and :meth:`Quantity.__str__()`. """
         from myokit import Quantity as Q
 
         # Creation and string representation
@@ -121,8 +200,12 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(float(a), 4)
         self.assertEqual(str(a), '4.0 [1]')
 
-        # Conversion from myokit number
+    def test_number_conversion(self):
+        """ Tests Quantity conversion from and to number. """
+        from myokit import Quantity as Q
         from myokit import Number as N
+
+        # Conversion from number
         d = N(4)
         self.assertIsNone(d.unit())
         e = Q(d)
@@ -137,15 +220,22 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(b.eval(), 10)
         self.assertEqual(b.unit(), myokit.units.mV)
 
-        # Use in set_rhs
+    def test_as_rhs(self):
+        """ Test Quantity use in set_rhs. """
+        from myokit import Quantity as Q
+
         m = myokit.Model()
         c = m.add_component('a')
         v = c.add_variable('v')
+        a = Q('10 [mV]')
         v.set_rhs(a)
         self.assertEqual(v.rhs().unit(), myokit.units.mV)
         self.assertEqual(v.eval(), 10)
 
-        # Equality and inequality
+    def test_eq(self):
+        """ Test :meth:`Quantity.__eq__()`. """
+        from myokit import Quantity as Q
+
         a = Q('10 [mV]')
         self.assertEqual(a, Q('10 [mV]'))
         self.assertNotEqual(a, Q('11 [mV]'))
@@ -154,9 +244,16 @@ class QuantityTest(unittest.TestCase):
         self.assertNotEqual(a, Q('0.01 [V]'))
         self.assertEqual(a, Q('0.01 [V]').convert('mV'))
 
-        # Conversion
+    def test_convert(self):
+        """ Test :meth:`Quantity.convert()`. """
+        from myokit import Quantity as Q
+
         a = Q('10 [mV]')
         self.assertEqual(a.convert('V'), Q('0.01 [V]'))
+
+    def test_operators(self):
+        """ Test overloaded operators for Quantity. """
+        from myokit import Quantity as Q
 
         # Addition
         a = Q('10 [mV]')
@@ -220,7 +317,10 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(b.convert('V'), Q('0.002 [V]'))
         self.assertRaises(myokit.IncompatibleUnitError, a.convert, 'V')
 
-        # Cast
+    def test_cast(self):
+        """ Test :meth:`Quanity.cast()`. """
+        from myokit import Quantity as Q
+
         a = Q('10 [uA]')
         b = a.cast('mV')
         self.assertEqual(a, Q('10 [uA]'))
