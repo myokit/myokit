@@ -2185,11 +2185,19 @@ class And(InfixCondition):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
-        ok = (None, myokit.units.dimensionless)
-        if unit1 not in ok or unit2 not in ok:
-            raise EvalUnitError(
-                self, 'Operator `and` expects dimensionless operands.')
-        return None if unit1 == unit2 is None else myokit.units.dimensionless
+
+        # Propagate both None in tolerant mode
+        if unit1 is None and unit2 is None:
+            return None
+
+        # Ideal: both dimensionless
+        unit1 = myokit.units.dimensionless if unit1 is None else unit1
+        unit2 = myokit.units.dimensionless if unit2 is None else unit2
+        if unit1 == unit2 == myokit.units.dimensionless:
+            return unit1
+
+        raise EvalUnitError(
+            self, 'Operator `and` expects dimensionless operands.')
 
 
 class Or(InfixCondition):
@@ -2216,11 +2224,19 @@ class Or(InfixCondition):
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
         unit2 = self._op2._eval_unit(mode)
-        ok = (None, myokit.units.dimensionless)
-        if unit1 not in ok or unit2 not in ok:
-            raise EvalUnitError(
-                self, 'Operator `or` expects dimensionless operands.')
-        return None if unit1 == unit2 is None else myokit.units.dimensionless
+
+        # Propagate both None in tolerant mode
+        if unit1 is None and unit2 is None:
+            return None
+
+        # Ideal: both dimensionless
+        unit1 = myokit.units.dimensionless if unit1 is None else unit1
+        unit2 = myokit.units.dimensionless if unit2 is None else unit2
+        if unit1 == unit2 == myokit.units.dimensionless:
+            return unit1
+
+        raise EvalUnitError(
+            self, 'Operator `or` expects dimensionless operands.')
 
 
 class EvalError(Exception):

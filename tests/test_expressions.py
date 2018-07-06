@@ -2109,8 +2109,148 @@ class LessEqualTest(unittest.TestCase):
         self.assertEqual(x.tree_str(), '+\n  3\n  <=\n    1\n    2\n')
 
 
-# Not
-# And
+class AndTest(unittest.TestCase):
+    """
+    Tests myokit.And.
+    """
+    def test_eval(self):
+        """ Tests And.eval(). """
+        x = myokit.And(myokit.Number(1), myokit.Number(1))
+        self.assertTrue(x.eval())
+        x = myokit.And(myokit.Number(0), myokit.Number(2))
+        self.assertFalse(x.eval())
+
+    def test_eval_unit(self):
+        """
+        Tests And.eval_unit().
+        """
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('1')
+        y = c.add_variable('y')
+        y.set_rhs('1')
+        z = c.add_variable('z')
+        z.set_rhs('x and y')
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+        y.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+        x.set_unit(myokit.units.dimensionless)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+        y.set_unit(myokit.units.dimensionless)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+        y.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+        x.set_unit(myokit.units.dimensionless)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+        y.set_unit(myokit.units.dimensionless)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+
+    def test_tree_str(self):
+        """ Tests And.tree_str(). """
+        x = myokit.And(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), 'and\n  1\n  2\n')
+        x = myokit.Plus(myokit.Number(3), x)
+        self.assertEqual(x.tree_str(), '+\n  3\n  and\n    1\n    2\n')
+
+
+class OrTest(unittest.TestCase):
+    """
+    Tests myokit.Or.
+    """
+    def test_eval(self):
+        """ Tests Or.eval(). """
+        x = myokit.Or(myokit.Number(1), myokit.Number(1))
+        self.assertTrue(x.eval())
+        x = myokit.Or(myokit.Number(0), myokit.Number(2))
+        self.assertTrue(x.eval())
+        x = myokit.Or(myokit.Number(0), myokit.Number(0))
+        self.assertFalse(x.eval())
+
+    def test_eval_unit(self):
+        """
+        Tests Or.eval_unit().
+        """
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('1')
+        y = c.add_variable('y')
+        y.set_rhs('1')
+        z = c.add_variable('z')
+        z.set_rhs('x or y')
+
+        # Test in tolerant mode
+        self.assertEqual(z.lhs().eval_unit(), None)
+        x.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+        y.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+        x.set_unit(myokit.units.dimensionless)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+        y.set_unit(myokit.units.dimensionless)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(), None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+        y.set_unit(myokit.units.ampere)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+        x.set_unit(myokit.units.dimensionless)
+        self.assertRaisesRegexp(
+            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+        y.set_unit(myokit.units.dimensionless)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        x.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        y.set_unit(None)
+        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+
+    def test_tree_str(self):
+        """ Tests Or.tree_str(). """
+        x = myokit.Or(myokit.Number(1), myokit.Number(2))
+        self.assertEqual(x.tree_str(), 'or\n  1\n  2\n')
+        x = myokit.Plus(myokit.Number(3), x)
+        self.assertEqual(x.tree_str(), '+\n  3\n  or\n    1\n    2\n')
+
+
 # Or
 
 # If
