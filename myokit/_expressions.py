@@ -1863,6 +1863,8 @@ class Piecewise(Function):
 
     def __init__(self, *ops):
         super(Piecewise, self).__init__(*ops)
+
+        # Check number of arguments
         n = len(self._operands)
         if n % 2 == 0:
             raise IntegrityError(
@@ -1871,6 +1873,7 @@ class Piecewise(Function):
         if n < 3:
             raise IntegrityError(
                 'Piecewise function must have 3 or more arguments.')
+
         # Check arguments
         m = n // 2
         self._i = [0] * m           # Conditions
@@ -1899,23 +1902,17 @@ class Piecewise(Function):
         units = [x._eval_unit(mode) for x in self._i]   # And discard :)
         units = [x._eval_unit(mode) for x in self._e]
 
-        # Check if the options have the same unit (or None)
-        d = myokit.units.dimensionless
-        units = iter(units)
-        shared = next(units)
-        for u in units:
-            if u == shared:         # Normal case + propagating Nones
-                continue
-            elif shared is None:    # (and u is not None)
-                if mode == myokit.UNIT_TOLERANT or u == d:
-                    shared = u
-                    continue
-            elif u is None:         # (and shared is not None)
-                if mode == myokit.UNIT_TOLERANT or shared == d:
-                    continue
-            raise EvalUnitError(
-                self, 'All branches of a piecewise() must have the same unit.')
-        return shared
+        # Check if the options have the same unit
+        units = set(units)
+        # Nones are allowed in tolerant mode, can't occur in strict mode
+        if None in units:
+            units.remove(None)
+            if len(units) == 0:
+                return None
+        if len(units) == 1:
+            return units.pop()
+        raise EvalUnitError(
+            self, 'All branches of a piecewise() must have the same unit.')
 
     def is_conditional(self):
         return True

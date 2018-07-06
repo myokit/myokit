@@ -2339,7 +2339,158 @@ class IfTest(unittest.TestCase):
         self.assertEqual(if_.value(False), else_)
 
 
-# Piecewise,
+class PiecewiseTest(unittest.TestCase):
+    """
+    Tests myokit.Piecewise.
+    """
+    def test_creation(self):
+        """
+        Tests Piecewise creation plus some accessor methods.
+        """
+        # Like an if
+        cond1 = myokit.Equal(myokit.Number(1), myokit.Number(1))
+        then1 = myokit.Number(10)
+        final = myokit.Number(99)
+        pw = myokit.Piecewise(cond1, then1, final)
+
+        # Test is_conditional()
+        self.assertTrue(pw.is_conditional())
+
+        # Test conditions()
+        c = list(pw.conditions())
+        self.assertEqual(len(c), 1)
+        self.assertEqual(c[0], cond1)
+
+        # Test pieces()
+        p = list(pw.pieces())
+        self.assertEqual(len(p), 2)
+        self.assertEqual(p[0], then1)
+        self.assertEqual(p[1], final)
+
+        # Like a big if
+        cond1 = myokit.Equal(myokit.Number(2), myokit.Number(1))
+        then1 = myokit.Number(1)
+        cond2 = myokit.Equal(myokit.Number(3), myokit.Number(1))
+        then2 = myokit.Number(2)
+        cond3 = myokit.Equal(myokit.Number(1), myokit.Number(1))
+        then3 = myokit.Number(3)
+        final = myokit.Number(99)
+        pw = myokit.Piecewise(cond1, then1, cond2, then2, cond3, then3, final)
+
+        # Test conditions()
+        c = list(pw.conditions())
+        self.assertEqual(len(c), 3)
+        self.assertEqual(c[0], cond1)
+        self.assertEqual(c[1], cond2)
+        self.assertEqual(c[2], cond3)
+
+        # Test pieces()
+        p = list(pw.pieces())
+        self.assertEqual(len(p), 4)
+        self.assertEqual(p[0], then1)
+        self.assertEqual(p[1], then2)
+        self.assertEqual(p[2], then3)
+        self.assertEqual(p[3], final)
+
+        # Wrong number of operands
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'odd number', myokit.Piecewise,
+            cond1, then1)
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'odd number', myokit.Piecewise,
+            cond1, then1, cond2, then2)
+
+    def test_eval(self):
+        """ Tests Piecewise.eval(). """
+        ct = myokit.Equal(myokit.Number(1), myokit.Number(1))
+        cf = myokit.Equal(myokit.Number(1), myokit.Number(2))
+        then1 = myokit.Number(1)
+        then2 = myokit.Number(2)
+        then3 = myokit.Number(3)
+        final = myokit.Number(99)
+
+        pw = myokit.Piecewise(cf, then1, cf, then2, cf, then3, final)
+        self.assertEqual(pw.eval(), 99)
+        pw = myokit.Piecewise(cf, then1, cf, then2, ct, then3, final)
+        self.assertEqual(pw.eval(), 3)
+        pw = myokit.Piecewise(cf, then1, ct, then2, ct, then3, final)
+        self.assertEqual(pw.eval(), 2)
+        pw = myokit.Piecewise(ct, then1, ct, then2, ct, then3, final)
+        self.assertEqual(pw.eval(), 1)
+        pw = myokit.Piecewise(ct, then1, cf, then2, ct, then3, final)
+        self.assertEqual(pw.eval(), 1)
+        pw = myokit.Piecewise(ct, then1, ct, then2, cf, then3, final)
+        self.assertEqual(pw.eval(), 1)
+        pw = myokit.Piecewise(ct, then1, cf, then2, cf, then3, final)
+        self.assertEqual(pw.eval(), 1)
+        pw = myokit.Piecewise(cf, then1, cf, then2, cf, then3, final)
+        self.assertEqual(pw.eval(), 99)
+
+    def test_eval_unit(self):
+        """ Tests Piecewise.eval_unit(). """
+        # Mini model
+        m = myokit.Model()
+        comp = m.add_component('comp')
+
+        # Create conditions
+        c1 = comp.add_variable('c1')
+        c2 = comp.add_variable('c2')
+        c1.set_rhs('1 == 2')
+        c2.set_rhs('1 == 2')
+
+        # Create values
+        t1 = comp.add_variable('t1')
+        t2 = comp.add_variable('t2')
+        t3 = comp.add_variable('t3')
+        t1.set_rhs(1)
+        t2.set_rhs(2)
+        t3.set_rhs(3)
+
+        # Create piecewise
+        pw = comp.add_variable('pw')
+        pw.set_rhs('piecewise(c1, t1, c2, t2, t3)')
+        z = pw.lhs()
+
+        # Test in tolerant mode
+        self.assertEqual(z.eval_unit(), None)
+        t1.set_unit(myokit.units.ampere)
+        self.assertEqual(z.eval_unit(), myokit.units.ampere)
+        t2.set_unit(myokit.units.ampere)
+        self.assertEqual(z.eval_unit(), myokit.units.ampere)
+        t3.set_unit(myokit.units.ampere)
+        self.assertEqual(z.eval_unit(), myokit.units.ampere)
+        t1.set_unit(None)
+        self.assertEqual(z.eval_unit(), myokit.units.ampere)
+        t2.set_unit(None)
+        self.assertEqual(z.eval_unit(), myokit.units.ampere)
+        t3.set_unit(None)
+        self.assertEqual(z.eval_unit(), None)
+        t2.set_unit(myokit.units.Newton)
+        t3.set_unit(myokit.units.volt)
+        self.assertRaises(myokit.IncompatibleUnitError, z.eval_unit)
+        t1.set_unit(None)
+        t2.set_unit(None)
+        t3.set_unit(None)
+
+        # Test in strict mode
+        s = myokit.UNIT_STRICT
+        self.assertEqual(z.eval_unit(s), myokit.units.dimensionless)
+        t1.set_unit(myokit.units.ampere)
+        self.assertRaises(myokit.IncompatibleUnitError, z.eval_unit, s)
+        t2.set_unit(myokit.units.ampere)
+        self.assertRaises(myokit.IncompatibleUnitError, z.eval_unit, s)
+        t3.set_unit(myokit.units.ampere)
+        self.assertEqual(z.eval_unit(s), myokit.units.ampere)
+        t1.set_unit(None)
+        self.assertRaises(myokit.IncompatibleUnitError, z.eval_unit, s)
+        t2.set_unit(None)
+        self.assertRaises(myokit.IncompatibleUnitError, z.eval_unit, s)
+        t3.set_unit(None)
+        self.assertEqual(z.eval_unit(s), myokit.units.dimensionless)
+        t2.set_unit(myokit.units.Newton)
+        t3.set_unit(myokit.units.volt)
+        self.assertRaises(myokit.IncompatibleUnitError, z.eval_unit, s)
+
 
 class UnsupportedFunctionTest(unittest.TestCase):
     """
