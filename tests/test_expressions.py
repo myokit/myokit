@@ -14,79 +14,15 @@ import unittest
 import myokit
 import numpy as np
 
-#TODO Add tests for all operators
 
 # Unit --> See test_units.py
 # Quantity --> See test_units.py
 
 
 class ExpressionTest(unittest.TestCase):
-
-    def test_equal(self):
-        """
-        Tests expression's ``__eq__`` operators
-        """
-        a1 = myokit.Number(4)
-        a2 = myokit.Number(5)
-        self.assertEqual(a1, a1)
-        self.assertEqual(a1, myokit.Number(4))
-        self.assertEqual(a1, myokit.Number(4.0))
-        self.assertNotEqual(a1, a2)
-        b1 = myokit.Name('test')
-        b2 = myokit.Name('tost')
-        self.assertEqual(b1, b1)
-        self.assertNotEqual(b1, b2)
-        c1 = myokit.PrefixPlus(a1)
-        c2 = myokit.PrefixPlus(a1)
-        self.assertEqual(c1, c1)
-        self.assertEqual(c1, c2)
-        c2 = myokit.PrefixPlus(a2)
-        self.assertNotEqual(c1, c2)
-        d1 = myokit.Plus(a1, a2)
-        d2 = myokit.Plus(a1, a2)
-        self.assertEqual(d1, d1)
-        self.assertEqual(d1, d2)
-        d2 = myokit.Plus(a2, a1)
-        self.assertNotEqual(d2, d1)
-        e1 = myokit.Sqrt(a1)
-        e2 = myokit.Sqrt(a1)
-        self.assertEqual(e1, e1)
-        self.assertEqual(e1, e2)
-        e2 = myokit.Sqrt(a2)
-        self.assertNotEqual(e1, e2)
-
-    def test_if(self):
-        """
-        Tests :class:`If`.
-        """
-        true = myokit.Number(1)
-        false = myokit.Number(0)
-        two = myokit.Number(2)
-        three = myokit.Number(3)
-        x = myokit.If(true, two, three)
-        self.assertEqual(x.eval(), 2)
-        self.assertEqual(x.condition(), true)
-        x = myokit.If(true, three, two)
-        self.assertEqual(x.eval(), 3)
-        x = myokit.If(false, two, three)
-        self.assertEqual(x.eval(), 3)
-        self.assertEqual(x.condition(), false)
-        x = myokit.If(false, three, two)
-        self.assertEqual(x.eval(), 2)
-
-        # Conversion to piecewise
-        x = myokit.If(true, two, three).piecewise()
-        self.assertIsInstance(x, myokit.Piecewise)
-        self.assertEqual(x.eval(), 2)
-        x = myokit.If(true, three, two).piecewise()
-        self.assertIsInstance(x, myokit.Piecewise)
-        self.assertEqual(x.eval(), 3)
-        x = myokit.If(false, two, three).piecewise()
-        self.assertIsInstance(x, myokit.Piecewise)
-        self.assertEqual(x.eval(), 3)
-        x = myokit.If(false, three, two).piecewise()
-        self.assertIsInstance(x, myokit.Piecewise)
-        self.assertEqual(x.eval(), 2)
+    """
+    Tests various methods of the :class:`myokit.Expression` class.
+    """
 
     def test_contains_type(self):
         """
