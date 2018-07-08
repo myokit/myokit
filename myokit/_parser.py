@@ -1356,33 +1356,45 @@ class Tokenizer:
         return txt
 
     def _tizer(self, stream, check_indenting):
+
         # All columns are stored to determine the level of indenting
         #  (This may require some extra checks...)
         columns = []
+
         # Indenting
         dents = 0
+
         # Parentheses must line up, parentheses can join lines together
         bracket_depth = 0
         bracket_lines = []
+
         # Lines can be appended with () or \, or """ for meta-values
         append_next_line = False
         in_multi_string = False
+
         # Block comments can be made by starting a line with """
         in_block_comment = False
+
         # Comment was found on the current line
         comment = False
+
         # TEXT also follows the \ rule
         text_buffer = False
         text_start = None
+
         # Loop through lines
         numb = 0
         ln = 0
         for line in stream:
-            # Unicode conversion
+
+            # First line number is 1
             numb += 1
+
+            # Unicode conversion
             if type(line) != str:
                 line = unicodedata.normalize('NFKD', line).encode(
                     'ascii', 'ignore')
+
             # Handle multi-line meta-property strings
             if in_multi_string:
                 line = line.rstrip()
@@ -1402,6 +1414,7 @@ class Tokenizer:
                 in_multi_string = False
                 text_buffer = False
                 continue
+
             # Handle block comments
             if in_block_comment:
                 p = line.find('"""')
@@ -1417,14 +1430,17 @@ class Tokenizer:
                     continue
                 else:
                     line = line[p + 3:]
+
             # Ordinary lines, strip comments
             z = line.find('#')
             comment = (z >= 0)
             if comment:
                 line = line[0:z]
+
             # Trim whitespace from end of string
             line = line.rstrip()
             ln = len(line)
+
             # Skip empty lines
             if ln == 0:
                 if append_next_line:
@@ -1444,12 +1460,17 @@ class Tokenizer:
                     yield EOL, _sEOL, numb, ln
                     append_next_line = False
                 continue
+
             # Index of character in character array
+            # First character is 0
             pos = 0
+
             # Position in line (tab = 8 columns)
             column = 0
+
             # Initial whitespace is indenting
             countColumns = True
+
             # Append this line to previous?
             if append_next_line:
                 # Skip whitespace
@@ -1469,6 +1490,7 @@ class Tokenizer:
                         text_buffer = False
                     continue
             append_next_line = False
+
             # Loop over token matches
             while pos < ln:
                 m = _rTOKEN.match(line, pos)
@@ -1479,8 +1501,10 @@ class Tokenizer:
                     token = line[start:end]
                     size = end - start
                     pos = end
+
                     # New line? convert whitespace to indent/dedent
                     if countColumns and check_indenting:
+
                         if char in _sWHITE:
                             for char in token:
                                 if char == ' ':
@@ -1492,6 +1516,7 @@ class Tokenizer:
                                     #  apparently
                                     column = 0
                             continue
+
                         else:
 
                             if not columns:
@@ -1519,10 +1544,12 @@ class Tokenizer:
                                             ' previous level')
                             # Finished counting columns for this line
                             countColumns = False
+
                     # Ignore whitespace between tokens
                     if char == ' ' or char == '\t' or char == '\f':
                         yield WHITESPACE, token, numb, start
                         continue
+
                     if size == 1:
                         if char == ':':
                             # Colon? Treat remainder of line as text
@@ -1592,7 +1619,9 @@ class Tokenizer:
                             if index >= 0:
                                 yield _SINGLE_MAP[index], token, numb, start
                                 continue
+
                     elif size == 2:
+
                         if token[1] == '=':
                             # Comparison with ?=
                             index = _COMPEQ.find(char)
@@ -1603,10 +1632,12 @@ class Tokenizer:
                             # Quotient (Integer division)
                             yield QUOTIENT, token, numb, start
                             continue
+
                     if char == '[':
                         # Segment
                         yield SEGMENT_HEADER, token, numb, start
                         continue
+
                     if char in _sNUMBERS:
                         # Integer or float
                         m = _rFloat.search(token)
@@ -1615,10 +1646,12 @@ class Tokenizer:
                         else:
                             yield INTEGER, token, numb, start
                         continue
+
                     if char == '.' and size > 1:
                         # Float
                         yield FLOAT, token, numb, start
                         continue
+
                     if token[-1] == '(':
                         # Function opening
                         # Yield function name, then back up to yield PAREN_OPEN
@@ -1644,7 +1677,9 @@ class Tokenizer:
                         # Variable name
                         yield NAME, token, numb, start
                         continue
+
                 else:
+
                     m = _rSPACE.search(line, pos)
                     if not m:
                         token = line[pos:]
@@ -1653,6 +1688,7 @@ class Tokenizer:
                     raise ParseError(
                         'Unknown or invalid token', numb, pos,
                         'Unrecognized token: ' + token)
+
             # Join lines with open parentheses
             if bracket_depth > 0:
                 append_next_line = True
@@ -1660,6 +1696,7 @@ class Tokenizer:
                 # Yield end-of-line
                 if not (append_next_line or in_multi_string):
                     yield EOL, _sEOL, numb, ln
+
         # End of file, test parentheses mismatch
         if bracket_depth > 0:
             numb, pos = bracket_lines.pop()
@@ -1670,6 +1707,7 @@ class Tokenizer:
             raise ParseError(
                 'Unclosed multi-line string', text_start[0], text_start[1] - 3,
                 'Comment opened but never closed')
+
         # De-dent at end of file
         if check_indenting:
             while dents > 0:

@@ -1492,6 +1492,34 @@ class Model(ObjectWithMeta, VarProvider):
         """
         return self._valid
 
+    def item_at_text_position(self, line, char):
+        """
+        Finds the component, variable, or expression at the position
+        ``(line, char)``, and returns a tuple ``(token, object)`` with a
+        parser token and the found object, or ``None`` if nothing is found.
+
+        Both ``line`` and ``char`` should be given as integers. The first line
+        is line 1, while the first character is char 0.
+        """
+        if line not in self._tokens:
+            return None
+            # This will cause problems for multi-line strings...
+            # (But at the moment, these don't register tokens anyway)
+
+        tokens = self._tokens[line]
+        t = None
+        for c in sorted(tokens, reverse=True):
+            if c <= char:
+                t = tokens[c]
+                break
+
+        if t is not None:
+            # Test if position is in token
+            if char >= t[0][3] + len(t[0][1]):
+                t = None
+
+        return t
+
     def label(self, label):
         """
         Returns the variable with the given label. If no variable is labelled
@@ -2765,30 +2793,6 @@ class Model(ObjectWithMeta, VarProvider):
         Returns the value of a variable.
         """
         return self.get(qname).rhs().eval()
-
-    def variable_at_text_position(self, line, char):
-        """
-        Searches for a (token, object) tuple matching the given text position.
-        Not all tokens are stored, so this function may return None.
-
-        Both ``line`` and ``char`` should be given as integers, with the first
-        line and first char having index ``0``.
-        """
-        if line not in self._tokens:
-            return None
-            # This will cause problems for multi-line strings...
-            # (But at the moment, these don't register tokens anyway)
-        tokens = self._tokens[line]
-        t = None
-        for c in sorted(tokens, reverse=True):
-            if c <= char:
-                t = tokens[c]
-                break
-        if t is not None:
-            # Test if position is in token
-            if char >= t[0][3] + len(t[0][1]):
-                t = None
-        return t
 
     def _var_info(self, var, spacer=None):
         """

@@ -2099,7 +2099,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             return False
         # Get variable
         line, char = self._model_editor.cursor_position()
-        token = m.variable_at_text_position(line + 1, char)
+        token = m.item_at_text_position(line + 1, char)
         if token is None:
             return None
         if isinstance(token[1], myokit.Variable):

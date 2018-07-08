@@ -1625,6 +1625,67 @@ class ModelTest(unittest.TestCase):
         m.validate()
         self.assertEqual(len(m.warnings()), 0)  # issue fixed!
 
+    def test_value(self):
+        """
+        Tests :meth:`Model.value()`.
+        """
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_binding('time')
+        t.set_rhs(1000)
+        self.assertEqual(m.value('c.t'), 1000)
+
+    def test_item_at_text_position(self):
+        """
+        Tests :meth:`Model.item_at_text_position()`.
+        """
+        text = [
+            '[[model]]',        # 1
+            'c.x = 0',          # 2
+            '',                 # 3
+            '[e]',              # 4
+            't = 0 bind time',
+            '',
+            '[c]',
+            'desc: This is a test component',
+            'dot(x) = (10 - x) / y',
+            'y = 5 + y1',
+            '    y1 = 3',
+            ''
+        ]
+        model = myokit.parse_model(text)
+        e = model.get('e')
+        t = model.get('e.t')
+        c = model.get('c')
+        x = model.get('c.x')
+        y = model.get('c.y')
+        y1 = model.get('c.y.y1')
+
+        def check(line, char, var):
+            tv = model.item_at_text_position(line, char)
+            if var is None:
+                self.assertIsNone(tv)
+            else:
+                token, var2 = tv
+                self.assertIsNotNone(var2)
+                self.assertEqual(var.qname(), var2.qname())
+
+        # It doesn't work on initial conditions
+        check(1, 0, None)
+        check(1, 1, None)
+        check(1, 2, None)
+
+        # Find the component e and its variable
+        check(4, 1, e)
+        check(5, 0, t)
+
+        # Find the component c and its variables
+        check(7, 1, c)
+        check(9, 4, x)
+        check(10, 0, y)
+        check(11, 4, y1)
+
 
 class VariableTest(unittest.TestCase):
     """
