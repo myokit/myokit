@@ -102,6 +102,32 @@ class ExpressionTest(unittest.TestCase):
         self.assertRaisesRegexp(
             myokit.NumericalError, 'c.y = 3', z.rhs().eval, {y.lhs(): 3})
 
+        # Error handling --> Correct bit should be highlighted
+        z.set_rhs('(1 + 2 * (3 + sin(1 / (2 * x + (0 / 0)))))')
+        with self.assertRaises(myokit.NumericalError) as e:
+            z.eval()
+        m = e.exception.message.splitlines()
+        self.assertEqual(len(m), 7)
+        self.assertEqual(m[2], '  1 + 2 * (3 + sin(1 / (2 * c.x + 0 / 0)))')
+        self.assertEqual(m[3], '                                  ~~~~~')
+
+        # Error handling --> Error when descending down a tree should be found
+        y.set_rhs('3 * z')
+        with self.assertRaises(myokit.NumericalError) as e:
+            y.eval()
+        m = e.exception.message.splitlines()
+        self.assertEqual(len(m), 10)
+        self.assertEqual(m[1], 'Encountered when evaluating')
+        self.assertEqual(m[2], '  3 * c.z')
+        self.assertEqual(m[3], 'Error located at:')
+        self.assertEqual(m[4], '  c.z')
+        self.assertEqual(
+            m[5], 'c.z = 1 + 2 * (3 + sin(1 / (2 * c.x + 0 / 0)))')
+        self.assertEqual(m[6], '                                      ~~~~~')
+        self.assertEqual(m[7], 'With the following operands:')
+        self.assertEqual(m[8], '  (1) 0.0')
+        self.assertEqual(m[9], '  (2) 0.0')
+
     def test_eval_unit_error(self):
         """
         Tests error handling for eval_unit.
