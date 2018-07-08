@@ -1677,8 +1677,11 @@ class ModelTest(unittest.TestCase):
         check(1, 2, None)
 
         # Find the component e and its variable
+        check(4, 0, None)
         check(4, 1, e)
+        check(4, 2, None)
         check(5, 0, t)
+        check(5, 1, None)
 
         # Find the component c and its variables
         check(7, 1, c)

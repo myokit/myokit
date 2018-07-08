@@ -595,7 +595,8 @@ class DerivativeTest(unittest.TestCase):
 
         myokit.Derivative(n)
         self.assertRaisesRegexp(
-            ValueError, 'of Name', myokit.Derivative, myokit.Number(1))
+            myokit.IntegrityError, 'named variables', myokit.Derivative,
+            myokit.Number(1))
 
     def test_bracket(self):
         """ Tests Derivative.bracket() """

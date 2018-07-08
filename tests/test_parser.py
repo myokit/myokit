@@ -483,49 +483,68 @@ class ModelParseTest(unittest.TestCase):
         Tests parsing models with unresolved references.
         """
         m = """
-[[model]]
+            [[model]]
 
-[c]
-t = 0 bind time
-x = 5
-"""
+            [c]
+            t = 0 bind time
+            x = 5
+            """
         myokit.parse_model(m)
 
         # Bad variable in same component
         m = """
-[[model]]
+            [[model]]
 
-[c]
-t = 0 bind time
-x = 5
-y = z
-"""
+            [c]
+            t = 0 bind time
+            x = 5
+            y = z
+            """
         self.assertRaises(myokit.ParseError, myokit.parse_model, m)
 
         # Bad component
         m = """
-[[model]]
+            [[model]]
 
-[c]
-t = 0 bind time
-x = 5
-y = d.z
-"""
+            [c]
+            t = 0 bind time
+            x = 5
+            y = d.z
+            """
         self.assertRaises(myokit.ParseError, myokit.parse_model, m)
 
         # Bad variable in other component
         m = """
-[[model]]
+            [[model]]
 
-[c]
-t = 0 bind time
-x = 5
-y = d.b
+            [c]
+            t = 0 bind time
+            x = 5
+            y = d.b
 
-[d]
-a = 12
-"""
+            [d]
+            a = 12
+            """
         self.assertRaises(myokit.ParseError, myokit.parse_model, m)
+
+    def test_invalid_dot_in_rhs(self):
+        """
+        Tests parsing a model with an invalid dot() in a variable's RHS.
+        """
+        # This model has dot(1 - x), which is not allowed!
+        code = """
+            [[model]]
+            c.x = 0
+
+            [engine]
+            time = 0 bind time
+
+            [c]
+            dot(x) = 1 - x
+            p = dot(1 - x)
+            """
+        self.assertRaisesRegexp(
+            myokit.ParseError, 'named variables', myokit.parse, code)
 
 
 #TODO: Add tests for protocol parsing. Found a bug when parsing this:

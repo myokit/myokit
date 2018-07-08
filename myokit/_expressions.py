@@ -805,7 +805,8 @@ class Derivative(LhsExpression):
     def __init__(self, op):
         super(Derivative, self).__init__((op,))
         if not isinstance(op, Name):
-            raise ValueError('The operator must be an instance of Name.')
+            raise IntegrityError(
+                'The dot() operator can only be used on named variables.')
         self._op = op
         self._references = set([self])
 
