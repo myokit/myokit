@@ -2617,7 +2617,9 @@ class Model(ObjectWithMeta, VarProvider):
         if time is None:
             self._valid = False
             raise myokit.MissingTimeVariableError()
-        if time.binding() != 'time':
+        if time.binding() != 'time':    # pragma: no cover
+            # Added cover pragma: This can only happen if there is a bug
+            # somewhere!
             self._valid = False
             raise myokit.IntegrityError(
                 'Invalid time variable set. Time variable must be bound to'
@@ -2625,7 +2627,8 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Validation of components, variables
         for c in self.components():
-            if c._parent != self:
+            if c._parent != self:   # pragma: no cover
+                # Cover pragma: This can only happen if there's an API bug
                 msg = 'Component parent doesn\'t match with enclosing model <'
                 msg += c.name() + '>.'
                 if not fix_crudely:
@@ -2639,7 +2642,8 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Test component mapping
         for n, c in self._components.items():
-            if n != c.qname():
+            if n != c.qname():  # pragma: no cover
+                # Cover pragma: This can only happen if there's an API bug
                 self._valid = False
                 raise myokit.IntegrityError(
                     'Component called <' + c.qname() + '> found at index <'
@@ -2647,7 +2651,8 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Test current state values
         n = len(self._state)
-        if n != len(self._current_state):
+        if n != len(self._current_state):   # pragma: no cover
+            # Cover pragma: This can only happen if there's an API bug
             self._valid = False
             raise myokit.IntegrityError(
                 'Current state values list must have same size as state'
