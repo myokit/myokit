@@ -1525,6 +1525,18 @@ class ModelTest(unittest.TestCase):
         """
         m = myokit.load_model('example')
 
+        # Test for literal
+        e = m.show_evaluation_of('cell.Na_o')
+        self.assertIn('cell.Na_o = ', e)
+        self.assertIn('Literal constant', e)
+        self.assertEqual(len(e.splitlines()), 4)
+
+        # Test for calculated constant
+        e = m.show_evaluation_of('ina.ENa')
+        self.assertIn('ina.ENa = ', e)
+        self.assertIn('Calculated constant', e)
+        self.assertEqual(len(e.splitlines()), 10)
+
         # Test for intermediary variable
         e = m.show_evaluation_of('ina.INa')
         self.assertIn('ina.INa = ', e)
@@ -1536,6 +1548,17 @@ class ModelTest(unittest.TestCase):
         self.assertIn('ina.m = ', e)
         self.assertIn('State variable', e)
         self.assertEqual(len(e.splitlines()), 15)
+
+        # Test with guessing of similar
+        e = m.show_evaluation_of('ina.Na_o')
+        self.assertIn('not found', e)
+        self.assertIn('cell.Na_o = ', e)
+        self.assertIn('Literal constant', e)
+        self.assertEqual(len(e.splitlines()), 5)
+
+        # Test with nothing similar
+        m = myokit.Model()
+        self.assertRaises(Exception, m.show_evaluation_of, 'Hello')
 
     def test_show_expressions_for(self):
         """
