@@ -731,20 +731,16 @@ class Name(LhsExpression):
 
     def _eval_unit(self, mode):
 
-        # Get unit from value
+        # Try getting unit from variable, if linked
         if self._value is not None:
+            return self._value.unit(mode)
 
-            # Return variable unit
-            unit = self._value.unit()
-            if unit is not None:
-                return unit
-            elif not self._value.is_state():
-                # For states, the expression unit specifies the unit of the
-                # deriviative, so this wouldn't work. In addition, since dot(x)
-                # often depends on x, this can lead to cyclic recursion.
-                rhs = self._value.rhs()
-                if rhs is not None:
-                    return rhs._eval_unit(mode)
+            # Note: Don't get it from the variable's RHS!
+            # If the variable unit isn't specified:
+            #  1. In tolerant mode a None will propagate without errors
+            #  2. In strict mode, it is dimensionless (and if the RHS thinks
+            #     otherwise the RHS is wrong).
+            # In addition, for e.g. derivatives this can lead to cycles.
 
         # Unlinked name or no unit found, return dimensionless or None
         if mode == myokit.UNIT_STRICT:
@@ -838,13 +834,12 @@ class Derivative(LhsExpression):
         unit1 = self._op._eval_unit(mode)
 
         # Get denomenator
-        # Note: Don't use time_unit() here: it converts None to dimensionless
-        # which isn't desired in tolerant mode.
-        time = self._op._value.model().time()
-        unit2 = None if time is None else time.unit()
-        if unit2 is None and mode == myokit.UNIT_STRICT:
-            # In strict mode, set to dimensionless if None
-            unit2 = myokit.units.dimensionless
+        unit2 = \
+            myokit.units.dimensionless if mode == myokit.UNIT_STRICT else None
+        if self._op._value is not None:
+            model = self._op._value.model()
+            if model is not None:
+                unit2 = model.time_unit(mode)
 
         # Handle as division
         if unit2 is None:

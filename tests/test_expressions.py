@@ -498,15 +498,31 @@ class NameTest(unittest.TestCase):
         y.set_rhs(2)
         y.set_unit(myokit.units.Newton)
 
+        # At this point, x and y both have a unitless rhs (despite y having a
+        # variable unit)
+
         # Test in tolerant mode
-        self.assertEqual(x.lhs().eval_unit(), None)
-        self.assertEqual(y.lhs().eval_unit(), myokit.units.Newton)
+        self.assertEqual(x.rhs().eval_unit(), None)
+        self.assertEqual(y.rhs().eval_unit(), None)
 
         # Test in strict mode
         self.assertEqual(
-            x.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            x.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         self.assertEqual(
-            y.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+            y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+
+        # Now have x mention y in its rhs
+        x.set_rhs('y')
+
+        # Test in tolerant mode
+        self.assertEqual(x.rhs().eval_unit(), myokit.units.Newton)
+        self.assertEqual(y.rhs().eval_unit(), None)
+
+        # Test in strict mode
+        self.assertEqual(
+            x.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+        self.assertEqual(
+            y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_rhs(self):
         """
@@ -703,14 +719,14 @@ class PrefixPlusTest(unittest.TestCase):
         y.set_rhs('+(2 [N])')
 
         # Test in tolerant mode
-        self.assertEqual(x.lhs().eval_unit(), None)
-        self.assertEqual(y.lhs().eval_unit(), myokit.units.Newton)
+        self.assertEqual(x.rhs().eval_unit(), None)
+        self.assertEqual(y.rhs().eval_unit(), myokit.units.Newton)
 
         # Test in strict mode
         self.assertEqual(
-            x.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            x.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         self.assertEqual(
-            y.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+            y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
         """ Tests PrefixPlus.tree_str() """
@@ -781,14 +797,14 @@ class PrefixMinusTest(unittest.TestCase):
         y.set_rhs('-(2 [N])')
 
         # Test in tolerant mode
-        self.assertEqual(x.lhs().eval_unit(), None)
-        self.assertEqual(y.lhs().eval_unit(), myokit.units.Newton)
+        self.assertEqual(x.rhs().eval_unit(), None)
+        self.assertEqual(y.rhs().eval_unit(), myokit.units.Newton)
 
         # Test in strict mode
         self.assertEqual(
-            x.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            x.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         self.assertEqual(
-            y.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+            y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
         """ Tests PrefixMinus.tree_str() """
@@ -863,33 +879,33 @@ class PlusTest(unittest.TestCase):
         z.set_rhs(myokit.Plus(x.lhs(), y.lhs()))
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         y.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertRaises(
             myokit.IncompatibleUnitError,
-            z.lhs().eval_unit, myokit.UNIT_STRICT)
+            z.rhs().eval_unit, myokit.UNIT_STRICT)
         y.set_unit(myokit.units.volt)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
         x.set_unit(None)
         self.assertRaises(
             myokit.IncompatibleUnitError,
-            z.lhs().eval_unit, myokit.UNIT_STRICT)
+            z.rhs().eval_unit, myokit.UNIT_STRICT)
         y.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Plus.tree_str(). """
@@ -928,33 +944,33 @@ class MinusTest(unittest.TestCase):
         z.set_rhs(myokit.Minus(x.lhs(), y.lhs()))
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         y.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertRaises(
             myokit.IncompatibleUnitError,
-            z.lhs().eval_unit, myokit.UNIT_STRICT)
+            z.rhs().eval_unit, myokit.UNIT_STRICT)
         y.set_unit(myokit.units.volt)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
         x.set_unit(None)
         self.assertRaises(
             myokit.IncompatibleUnitError,
-            z.lhs().eval_unit, myokit.UNIT_STRICT)
+            z.rhs().eval_unit, myokit.UNIT_STRICT)
         y.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Minus.tree_str(). """
@@ -993,34 +1009,34 @@ class MultiplyTest(unittest.TestCase):
         z.set_rhs(myokit.Multiply(x.lhs(), y.lhs()))
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         y.set_unit(myokit.units.meter)
         self.assertEqual(
-            z.lhs().eval_unit(), myokit.units.volt * myokit.units.meter)
+            z.rhs().eval_unit(), myokit.units.volt * myokit.units.meter)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.meter)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.meter)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode (where None becomes dimensionless)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
         y.set_unit(myokit.units.meter)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            z.rhs().eval_unit(myokit.UNIT_STRICT),
             myokit.units.volt * myokit.units.meter)
         x.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            z.rhs().eval_unit(myokit.UNIT_STRICT),
             myokit.units.meter)
         y.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Multiply.tree_str(). """
@@ -1071,34 +1087,34 @@ class DivideTest(unittest.TestCase):
         z.set_rhs(myokit.Divide(x.lhs(), y.lhs()))
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         y.set_unit(myokit.units.meter)
         self.assertEqual(
-            z.lhs().eval_unit(), myokit.units.volt / myokit.units.meter)
+            z.rhs().eval_unit(), myokit.units.volt / myokit.units.meter)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), 1 / myokit.units.meter)
+        self.assertEqual(z.rhs().eval_unit(), 1 / myokit.units.meter)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode (where None becomes dimensionless)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
         y.set_unit(myokit.units.meter)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            z.rhs().eval_unit(myokit.UNIT_STRICT),
             myokit.units.volt / myokit.units.meter)
         x.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            z.rhs().eval_unit(myokit.UNIT_STRICT),
             1 / myokit.units.meter)
         y.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
 
 class QuotientTest(unittest.TestCase):
@@ -1125,34 +1141,34 @@ class QuotientTest(unittest.TestCase):
         z.set_rhs(myokit.Quotient(x.lhs(), y.lhs()))
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         y.set_unit(myokit.units.meter)
         self.assertEqual(
-            z.lhs().eval_unit(), myokit.units.volt / myokit.units.meter)
+            z.rhs().eval_unit(), myokit.units.volt / myokit.units.meter)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), 1 / myokit.units.meter)
+        self.assertEqual(z.rhs().eval_unit(), 1 / myokit.units.meter)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode (where None becomes dimensionless)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
         y.set_unit(myokit.units.meter)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            z.rhs().eval_unit(myokit.UNIT_STRICT),
             myokit.units.volt / myokit.units.meter)
         x.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            z.rhs().eval_unit(myokit.UNIT_STRICT),
             1 / myokit.units.meter)
         y.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Quotient.tree_str(). """
@@ -1191,34 +1207,34 @@ class RemainderTest(unittest.TestCase):
         z.set_rhs(myokit.Remainder(x.lhs(), y.lhs()))
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         y.set_unit(myokit.units.meter)
         self.assertEqual(
-            z.lhs().eval_unit(), myokit.units.volt)
+            z.rhs().eval_unit(), myokit.units.volt)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode (where None becomes dimensionless)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.volt)
         y.set_unit(myokit.units.meter)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            z.rhs().eval_unit(myokit.UNIT_STRICT),
             myokit.units.volt)
         x.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT),
+            z.rhs().eval_unit(myokit.UNIT_STRICT),
             myokit.units.dimensionless)
         y.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Remainder.tree_str(). """
@@ -1294,32 +1310,32 @@ class PowerTest(unittest.TestCase):
         z.set_rhs(myokit.Power(x.lhs(), y.lhs()))
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt ** 2)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt ** 2)
         y.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt ** 2)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt ** 2)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.volt ** 2)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.volt ** 2)
         y.set_unit(myokit.units.volt)
         self.assertRaises(
             myokit.IncompatibleUnitError,
-            z.lhs().eval_unit, myokit.UNIT_STRICT)
+            z.rhs().eval_unit, myokit.UNIT_STRICT)
         x.set_unit(None)
         self.assertRaises(
             myokit.IncompatibleUnitError,
-            z.lhs().eval_unit, myokit.UNIT_STRICT)
+            z.rhs().eval_unit, myokit.UNIT_STRICT)
         y.set_unit(None)
         self.assertEqual(
-            z.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Power.tree_str(). """
@@ -1394,27 +1410,27 @@ class SqrtTest(unittest.TestCase):
         z.set_rhs(myokit.Sqrt(x.lhs()))
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        #self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
         self.assertRaisesRegexp(
             myokit.IncompatibleUnitError, 'non-integer exponents',
-            z.lhs().eval_unit)
+            z.rhs().eval_unit)
         x.set_unit(myokit.units.volt ** 2)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertRaisesRegexp(
             myokit.IncompatibleUnitError, 'non-integer exponents',
-            z.lhs().eval_unit, s)
+            z.rhs().eval_unit, s)
         x.set_unit(myokit.units.volt ** 2)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.volt)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.volt)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Sqrt.tree_str(). """
@@ -1487,21 +1503,21 @@ class ExpTest(unittest.TestCase):
         z.set_rhs(myokit.Exp(x.lhs()))
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertRaisesRegexp(
             myokit.IncompatibleUnitError, 'dimensionless',
-            z.lhs().eval_unit, s)
+            z.rhs().eval_unit, s)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Exp.tree_str(). """
@@ -1615,53 +1631,53 @@ class LogTest(unittest.TestCase):
         z.set_rhs(myokit.Log(x.lhs()))
 
         # Test in tolerant mode (single operand)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode (single operand)
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertRaisesRegexp(
             myokit.IncompatibleUnitError, 'dimensionless',
-            z.lhs().eval_unit, s)
+            z.rhs().eval_unit, s)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
         # Double operand
         z.set_rhs(myokit.Log(x.lhs(), y.lhs()))
 
         # Test in tolerant mode (double operand)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         y.set_unit(myokit.units.volt)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode (double operand)
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
         self.assertRaisesRegexp(
             myokit.IncompatibleUnitError, 'dimensionless',
-            z.lhs().eval_unit, s)
+            z.rhs().eval_unit, s)
         y.set_unit(myokit.units.volt)
         self.assertRaisesRegexp(
             myokit.IncompatibleUnitError, 'dimensionless',
-            z.lhs().eval_unit, s)
+            z.rhs().eval_unit, s)
         x.set_unit(None)
         self.assertRaisesRegexp(
             myokit.IncompatibleUnitError, 'dimensionless',
-            z.lhs().eval_unit, s)
+            z.rhs().eval_unit, s)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Log.tree_str(). """
@@ -1803,14 +1819,14 @@ class FloorTest(unittest.TestCase):
         y.set_rhs('floor(2 [N])')
 
         # Test in tolerant mode
-        self.assertEqual(x.lhs().eval_unit(), None)
-        self.assertEqual(y.lhs().eval_unit(), myokit.units.Newton)
+        self.assertEqual(x.rhs().eval_unit(), None)
+        self.assertEqual(y.rhs().eval_unit(), myokit.units.Newton)
 
         # Test in strict mode
         self.assertEqual(
-            x.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            x.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         self.assertEqual(
-            y.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+            y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
         """ Tests Floor.tree_str(). """
@@ -1840,14 +1856,14 @@ class CeilTest(unittest.TestCase):
         y.set_rhs('ceil(2 [N])')
 
         # Test in tolerant mode
-        self.assertEqual(x.lhs().eval_unit(), None)
-        self.assertEqual(y.lhs().eval_unit(), myokit.units.Newton)
+        self.assertEqual(x.rhs().eval_unit(), None)
+        self.assertEqual(y.rhs().eval_unit(), myokit.units.Newton)
 
         # Test in strict mode
         self.assertEqual(
-            x.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            x.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         self.assertEqual(
-            y.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+            y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
         """ Tests Ceil.tree_str(). """
@@ -1879,14 +1895,14 @@ class AbsTest(unittest.TestCase):
         y.set_rhs('abs(2 [N])')
 
         # Test in tolerant mode
-        self.assertEqual(x.lhs().eval_unit(), None)
-        self.assertEqual(y.lhs().eval_unit(), myokit.units.Newton)
+        self.assertEqual(x.rhs().eval_unit(), None)
+        self.assertEqual(y.rhs().eval_unit(), myokit.units.Newton)
 
         # Test in strict mode
         self.assertEqual(
-            x.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+            x.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
         self.assertEqual(
-            y.lhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
+            y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
         """ Tests Abs.tree_str(). """
@@ -1920,35 +1936,35 @@ class EqualTest(unittest.TestCase):
         z.set_rhs('x == y')
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.ampere)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         y.set_unit(myokit.units.ampere)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         y.set_unit(myokit.units.volt)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'equal units', z.lhs().eval_unit)
+            myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'equal units', z.lhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.ampere)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         y.set_unit(myokit.units.volt)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'equal units', z.lhs().eval_unit)
+            myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit)
         x.set_unit(None)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'equal units', z.lhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit, s)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Equal.tree_str(). """
@@ -2083,41 +2099,41 @@ class AndTest(unittest.TestCase):
         z.set_rhs('x and y')
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         y.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         x.set_unit(myokit.units.dimensionless)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         y.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         x.set_unit(myokit.units.dimensionless)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests And.tree_str(). """
@@ -2155,41 +2171,41 @@ class OrTest(unittest.TestCase):
         z.set_rhs('x or y')
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         y.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         x.set_unit(myokit.units.dimensionless)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         y.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         x.set_unit(myokit.units.dimensionless)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         y.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
         """ Tests Or.tree_str(). """
@@ -2230,25 +2246,25 @@ class NotTest(unittest.TestCase):
         z.set_rhs('not x')
 
         # Test in tolerant mode
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionless', z.lhs().eval_unit)
+            myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         x.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.lhs().eval_unit(), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(), None)
+        self.assertEqual(z.rhs().eval_unit(), None)
 
         # Test in strict mode
         s = myokit.UNIT_STRICT
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
         self.assertRaisesRegexp(
-            myokit.IncompatibleUnitError, 'dimensionles', z.lhs().eval_unit, s)
+            myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         x.set_unit(myokit.units.dimensionless)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(None)
-        self.assertEqual(z.lhs().eval_unit(s), myokit.units.dimensionless)
+        self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_polish(self):
         """ Tests Not._polish(). """
@@ -2302,7 +2318,7 @@ class IfTest(unittest.TestCase):
         v2.set_rhs(2)
         v3.set_rhs(3)
         v4.set_rhs('if(v1, v2, v3)')
-        z = v4.lhs()
+        z = v4.rhs()
 
         # Test in tolerant mode
         self.assertEqual(z.eval_unit(), None)
@@ -2465,7 +2481,7 @@ class PiecewiseTest(unittest.TestCase):
         # Create piecewise
         pw = comp.add_variable('pw')
         pw.set_rhs('piecewise(c1, t1, c2, t2, t3)')
-        z = pw.lhs()
+        z = pw.rhs()
 
         # Test in tolerant mode
         self.assertEqual(z.eval_unit(), None)

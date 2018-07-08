@@ -340,228 +340,6 @@ class ModelBuildTest(unittest.TestCase):
         code2 = m.clone().code()
         self.assertEqual(code1, code2)
 
-    def test_move_variable(self):
-        """
-        Tests the method to move component variables to another component.
-        """
-        # Create a model
-        m = Model('LotkaVolterra')
-        X = m.add_component('X')
-        a = X.add_variable('a')
-        a.set_rhs(3)
-        b = X.add_variable('b')
-        b1 = b.add_variable('b1')
-        b2 = b.add_variable('b2')
-        b1.set_rhs(1)
-        b2.set_rhs(Minus(Minus(Name(a), Name(b1)), Number(1)))
-        b.set_rhs(Plus(Name(b1), Name(b2)))
-        x = X.add_variable('x')
-        x.promote()
-        Y = m.add_component('Y')
-        c = Y.add_variable('c')
-        c.set_rhs(Minus(Name(a), Number(1)))
-        d = Y.add_variable('d')
-        d.set_rhs(2)
-        y = Y.add_variable('y')
-        y.promote()
-        x.set_rhs(Minus(
-            Multiply(Name(a), Name(x)),
-            Multiply(Multiply(Name(b), Name(x)), Name(y))))
-        x.set_state_value(10)
-        y.set_rhs(Plus(
-            Multiply(PrefixMinus(Name(c)), Name(y)),
-            Multiply(Multiply(Name(d), Name(x)), Name(y))))
-        y.set_state_value(5)
-        Z = m.add_component('Z')
-        t = Z.add_variable('total')
-        t.set_rhs(Plus(Name(x), Name(y)))
-        E = m.add_component('engine')
-        time = E.add_variable('time')
-        time.set_rhs(0)
-        time.set_binding('time')
-
-        # Move time variable into X
-        m.validate()    # If not valid, this will raise an exception
-        E.move_variable(time, Z)
-        m.validate()
-
-        # Can't do it a second time
-        self.assertRaises(ValueError, E.move_variable, time, Z)
-
-        # Move to self
-        Z.move_variable(time, Z)
-        m.validate()
-        Z.move_variable(time, Z)
-        m.validate()
-
-        # Duplicate variable name
-        E.add_variable('time')
-        self.assertRaises(myokit.DuplicateName, Z.move_variable, time, E)
-
-    def test_remove_component(self):
-        """
-        Tests the removal of a component.
-        """
-        # Create model
-        m = Model('LotkaVolterra')
-        # Simplest case
-        X = m.add_component('X')
-        self.assertEqual(m.count_components(), 1)
-        m.remove_component(X)
-        self.assertEqual(m.count_components(), 0)
-        self.assertRaises(KeyError, m.remove_component, X)
-
-        # Test if orphaned
-        self.assertIsNone(X.parent())
-
-        # Re-adding
-        self.assertEqual(m.count_components(), 0)
-        X = m.add_component('X')
-        self.assertEqual(m.count_components(), 1)
-
-        # With internal variables and string name
-        a = X.add_variable('a')
-        a.set_rhs(Number(4))
-        b = X.add_variable('b')
-        b.set_rhs(Name(a))
-        m.remove_component('X')
-        self.assertEqual(m.count_components(), 0)
-
-        # With dependencies from another component
-        X = m.add_component('X')
-        a = X.add_variable('a')
-        a.set_rhs(Number(45))
-        b = X.add_variable('b')
-        b.set_rhs(Name(b))
-        Y = m.add_component('Y')
-        c = Y.add_variable('c')
-        c.set_rhs(Name(a))
-        d = Y.add_variable('d')
-        d.set_rhs(Name(c))
-        self.assertEqual(m.count_components(), 2)
-        self.assertRaises(IntegrityError, m.remove_component, X)
-        self.assertEqual(m.count_components(), 2)
-
-        # In the right order...
-        m.remove_component(Y)
-        self.assertEqual(m.count_components(), 1)
-        m.remove_component(X)
-        self.assertEqual(m.count_components(), 0)
-
-    def test_remove_variable(self):
-        """
-        Tests the removal of a variable.
-        """
-        # Create a model
-        m = Model('LotkaVolterra')
-        # Add a variable 'a'
-        X = m.add_component('X')
-        # Simplest case
-        a = X.add_variable('a')
-        self.assertEqual(X.count_variables(), 1)
-        X.remove_variable(a)
-        self.assertEqual(X.count_variables(), 0)
-        self.assertRaises(Exception, X.remove_variable, a)
-        # Test re-adding
-        a = X.add_variable('a')
-        a.set_rhs(Number(5))
-        self.assertEqual(X.count_variables(), 1)
-        # Test deleting dependent variables
-        b = X.add_variable('b')
-        self.assertEqual(X.count_variables(), 2)
-        b.set_rhs(Plus(Number(3), Name(a)))
-        # Test blocking of removal
-        self.assertRaises(IntegrityError, X.remove_variable, a)
-        self.assertEqual(X.count_variables(), 2)
-        # Test removal in the right order
-        X.remove_variable(b)
-        self.assertEqual(X.count_variables(), 1)
-        X.remove_variable(a)
-        self.assertEqual(X.count_variables(), 0)
-        # Test reference to current state variable values
-        a = X.add_variable('a')
-        a.set_rhs(Number(5))
-        a.promote()
-        b = X.add_variable('b')
-        b.set_rhs(Plus(Number(3), Name(a)))
-        self.assertRaises(IntegrityError, X.remove_variable, a)
-        X.remove_variable(b)
-        X.remove_variable(a)
-        self.assertEqual(X.count_variables(), 0)
-        # Test reference to current state variable values with "self"-ref
-        a = X.add_variable('a')
-        a.promote()
-        a.set_rhs(Name(a))
-        X.remove_variable(a)
-        # Test it doesn't interfere with normal workings
-        a = X.add_variable('a')
-        a.promote()
-        a.set_rhs(Name(a))
-        b = X.add_variable('b')
-        b.set_rhs(Name(a))
-        self.assertRaises(IntegrityError, X.remove_variable, a)
-        X.remove_variable(b)
-        X.remove_variable(a)
-        # Test reference to dot
-        a = X.add_variable('a')
-        a.set_rhs(Number(5))
-        a.promote()
-        b = X.add_variable('b')
-        b.set_rhs(Derivative(Name(a)))
-        self.assertRaises(IntegrityError, X.remove_variable, a)
-        X.remove_variable(b)
-        X.remove_variable(a)
-        # Test if orphaned
-        self.assertIsNone(b.parent())
-        # Test deleting variable with nested variables
-        a = X.add_variable('a')
-        b = a.add_variable('b')
-        b.set_rhs(Plus(Number(2), Number(2)))
-        a.set_rhs(Multiply(Number(3), Name(b)))
-        self.assertRaises(IntegrityError, X.remove_variable, a)
-        self.assertEqual(a.count_variables(), 1)
-        self.assertEqual(X.count_variables(), 1)
-        # Test recursive deleting
-        X.remove_variable(a, recursive=True)
-        self.assertEqual(a.count_variables(), 0)
-        self.assertEqual(X.count_variables(), 0)
-        # Same with dot(a) = a, b = 3 * a
-        a = X.add_variable('a')
-        a.promote(0.123)
-        b = a.add_variable('b')
-        b.set_rhs(Multiply(Number(3), Name(a)))
-        a.set_rhs(Name(b))
-        self.assertRaises(IntegrityError, X.remove_variable, a)
-        self.assertRaises(IntegrityError, a.remove_variable, b)
-        self.assertRaises(IntegrityError, a.remove_variable, b, True)
-        X.remove_variable(a, recursive=True)
-
-    def test_remove_with_alias(self):
-        """
-        Tests cloning after an add / remove event.
-        """
-        m = Model('AddRemoveClone')
-        c = m.add_component('c')
-        p = c.add_variable('p')
-        p.set_binding('time')
-        p.set_rhs(0)
-        q = c.add_variable('q')
-        q.set_rhs(12)
-        m.validate()    # Raises error if not ok
-        m.clone()       # Raises error if not ok
-        d = m.add_component('d')
-        d.add_alias('bert', p)
-        e = d.add_variable('e')
-        e.set_rhs('10 * bert')
-        m.validate()
-        m.clone()
-        d.add_alias('ernie', q)
-        m.validate()
-        m.clone()
-        c.remove_variable(q)
-        m.validate()
-        m.clone()   # Will raise error if alias isn't deleted
-
     def test_resolve(self):
         """
         Tests if an error is raised when a variable can't be resolved.
@@ -697,6 +475,290 @@ class ModelBuildTest(unittest.TestCase):
         c1_c.set_rhs(Multiply(Name(c1_a), Name(c1_b)))
         self.assertRaises(CyclicalDependencyError, m.validate)
 
+
+class VarOwnerTest(unittest.TestCase):
+    """
+    Tests parts of :class:`myokit.VarOwner`.
+    """
+    def test_move_variable(self):
+        """
+        Tests the method to move component variables to another component.
+        """
+        # Create a model
+        m = Model('LotkaVolterra')
+        X = m.add_component('X')
+        a = X.add_variable('a')
+        a.set_rhs(3)
+        b = X.add_variable('b')
+        b1 = b.add_variable('b1')
+        b2 = b.add_variable('b2')
+        b1.set_rhs(1)
+        b2.set_rhs(Minus(Minus(Name(a), Name(b1)), Number(1)))
+        b.set_rhs(Plus(Name(b1), Name(b2)))
+        x = X.add_variable('x')
+        x.promote()
+        Y = m.add_component('Y')
+        c = Y.add_variable('c')
+        c.set_rhs(Minus(Name(a), Number(1)))
+        d = Y.add_variable('d')
+        d.set_rhs(2)
+        y = Y.add_variable('y')
+        y.promote()
+        x.set_rhs(Minus(
+            Multiply(Name(a), Name(x)),
+            Multiply(Multiply(Name(b), Name(x)), Name(y))))
+        x.set_state_value(10)
+        y.set_rhs(Plus(
+            Multiply(PrefixMinus(Name(c)), Name(y)),
+            Multiply(Multiply(Name(d), Name(x)), Name(y))))
+        y.set_state_value(5)
+        Z = m.add_component('Z')
+        t = Z.add_variable('total')
+        t.set_rhs(Plus(Name(x), Name(y)))
+        E = m.add_component('engine')
+        time = E.add_variable('time')
+        time.set_rhs(0)
+        time.set_binding('time')
+
+        # Move time variable into X
+        m.validate()    # If not valid, this will raise an exception
+        E.move_variable(time, Z)
+        m.validate()
+
+        # Can't do it a second time
+        self.assertRaises(ValueError, E.move_variable, time, Z)
+
+        # Move to self
+        Z.move_variable(time, Z)
+        m.validate()
+        Z.move_variable(time, Z)
+        m.validate()
+
+        # Duplicate variable name
+        E.add_variable('time')
+        self.assertRaises(myokit.DuplicateName, Z.move_variable, time, E)
+
+    def test_remove_variable(self):
+        """
+        Tests the removal of a variable.
+        """
+        # Create a model
+        m = Model('LotkaVolterra')
+        # Add a variable 'a'
+        X = m.add_component('X')
+        # Simplest case
+        a = X.add_variable('a')
+        self.assertEqual(X.count_variables(), 1)
+        X.remove_variable(a)
+        self.assertEqual(X.count_variables(), 0)
+        self.assertRaises(Exception, X.remove_variable, a)
+        # Test re-adding
+        a = X.add_variable('a')
+        a.set_rhs(Number(5))
+        self.assertEqual(X.count_variables(), 1)
+        # Test deleting dependent variables
+        b = X.add_variable('b')
+        self.assertEqual(X.count_variables(), 2)
+        b.set_rhs(Plus(Number(3), Name(a)))
+        # Test blocking of removal
+        self.assertRaises(IntegrityError, X.remove_variable, a)
+        self.assertEqual(X.count_variables(), 2)
+        # Test removal in the right order
+        X.remove_variable(b)
+        self.assertEqual(X.count_variables(), 1)
+        X.remove_variable(a)
+        self.assertEqual(X.count_variables(), 0)
+        # Test reference to current state variable values
+        a = X.add_variable('a')
+        a.set_rhs(Number(5))
+        a.promote()
+        b = X.add_variable('b')
+        b.set_rhs(Plus(Number(3), Name(a)))
+        self.assertRaises(IntegrityError, X.remove_variable, a)
+        X.remove_variable(b)
+        X.remove_variable(a)
+        self.assertEqual(X.count_variables(), 0)
+        # Test reference to current state variable values with "self"-ref
+        a = X.add_variable('a')
+        a.promote()
+        a.set_rhs(Name(a))
+        X.remove_variable(a)
+        # Test it doesn't interfere with normal workings
+        a = X.add_variable('a')
+        a.promote()
+        a.set_rhs(Name(a))
+        b = X.add_variable('b')
+        b.set_rhs(Name(a))
+        self.assertRaises(IntegrityError, X.remove_variable, a)
+        X.remove_variable(b)
+        X.remove_variable(a)
+        # Test reference to dot
+        a = X.add_variable('a')
+        a.set_rhs(Number(5))
+        a.promote()
+        b = X.add_variable('b')
+        b.set_rhs(Derivative(Name(a)))
+        self.assertRaises(IntegrityError, X.remove_variable, a)
+        X.remove_variable(b)
+        X.remove_variable(a)
+        # Test if orphaned
+        self.assertIsNone(b.parent())
+        # Test deleting variable with nested variables
+        a = X.add_variable('a')
+        b = a.add_variable('b')
+        b.set_rhs(Plus(Number(2), Number(2)))
+        a.set_rhs(Multiply(Number(3), Name(b)))
+        self.assertRaises(IntegrityError, X.remove_variable, a)
+        self.assertEqual(a.count_variables(), 1)
+        self.assertEqual(X.count_variables(), 1)
+        # Test recursive deleting
+        X.remove_variable(a, recursive=True)
+        self.assertEqual(a.count_variables(), 0)
+        self.assertEqual(X.count_variables(), 0)
+        # Same with dot(a) = a, b = 3 * a
+        a = X.add_variable('a')
+        a.promote(0.123)
+        b = a.add_variable('b')
+        b.set_rhs(Multiply(Number(3), Name(a)))
+        a.set_rhs(Name(b))
+        self.assertRaises(IntegrityError, X.remove_variable, a)
+        self.assertRaises(IntegrityError, a.remove_variable, b)
+        self.assertRaises(IntegrityError, a.remove_variable, b, True)
+        X.remove_variable(a, recursive=True)
+
+    def test_varowner_get(self):
+        """
+        Tests VarOwner.get().
+        """
+        # Test basics
+        m = Model('test')
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        self.assertIs(m.get('c'), c)
+        self.assertIs(m.get('c.x'), x)
+        self.assertIs(c.get('x'), x)
+
+        # Test asking for object
+        self.assertIs(m.get(c), c)
+        self.assertIs(m.get(x), x)
+        self.assertIs(c.get(x), x)
+        self.assertIs(x.get(c), c)
+
+        # Test not founds
+        self.assertRaises(KeyError, m.get, 'y')
+        self.assertRaises(KeyError, m.get, 'c.y')
+        self.assertRaises(KeyError, c.get, 'y')
+
+        # Test class filter
+        self.assertIs(m.get('c', myokit.Component), c)
+        self.assertRaises(KeyError, m.get, 'c', myokit.Variable)
+        self.assertIs(m.get('c.x', myokit.Variable), x)
+        self.assertIs(c.get('x', myokit.Variable), x)
+        self.assertRaises(KeyError, m.get, 'c.x', myokit.Component)
+        self.assertRaises(KeyError, c.get, 'x', myokit.Component)
+
+    def test_add_variable_allow_renaming(self):
+        """
+        Tests the ``VarProvider.add_variable_allow_renaming`` method.
+        """
+        m = Model('test')
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        self.assertTrue(c.has_variable('x'))
+        self.assertRaises(myokit.DuplicateName, c.add_variable, 'x')
+        y = c.add_variable_allow_renaming('x')
+        self.assertEqual(x.name(), 'x')
+        self.assertEqual(y.name(), 'x_1')
+        z = c.add_variable_allow_renaming('x')
+        self.assertEqual(z.name(), 'x_2')
+
+        # Test repeated calls
+        r = c.add_variable('r')
+        for i in range(10):
+            r = c.add_variable_allow_renaming('r')
+            self.assertEqual(r.name(), 'r_' + str(1 + i))
+
+
+class ModelTest(unittest.TestCase):
+    """
+    Tests parts of :class:`myokit.Model`.
+    """
+    def test_remove_component(self):
+        """
+        Tests the removal of a component.
+        """
+        # Create model
+        m = Model('LotkaVolterra')
+        # Simplest case
+        X = m.add_component('X')
+        self.assertEqual(m.count_components(), 1)
+        m.remove_component(X)
+        self.assertEqual(m.count_components(), 0)
+        self.assertRaises(KeyError, m.remove_component, X)
+
+        # Test if orphaned
+        self.assertIsNone(X.parent())
+
+        # Re-adding
+        self.assertEqual(m.count_components(), 0)
+        X = m.add_component('X')
+        self.assertEqual(m.count_components(), 1)
+
+        # With internal variables and string name
+        a = X.add_variable('a')
+        a.set_rhs(Number(4))
+        b = X.add_variable('b')
+        b.set_rhs(Name(a))
+        m.remove_component('X')
+        self.assertEqual(m.count_components(), 0)
+
+        # With dependencies from another component
+        X = m.add_component('X')
+        a = X.add_variable('a')
+        a.set_rhs(Number(45))
+        b = X.add_variable('b')
+        b.set_rhs(Name(b))
+        Y = m.add_component('Y')
+        c = Y.add_variable('c')
+        c.set_rhs(Name(a))
+        d = Y.add_variable('d')
+        d.set_rhs(Name(c))
+        self.assertEqual(m.count_components(), 2)
+        self.assertRaises(IntegrityError, m.remove_component, X)
+        self.assertEqual(m.count_components(), 2)
+
+        # In the right order...
+        m.remove_component(Y)
+        self.assertEqual(m.count_components(), 1)
+        m.remove_component(X)
+        self.assertEqual(m.count_components(), 0)
+
+    def test_remove_with_alias(self):
+        """
+        Tests cloning after an add / remove event.
+        """
+        m = Model('AddRemoveClone')
+        c = m.add_component('c')
+        p = c.add_variable('p')
+        p.set_binding('time')
+        p.set_rhs(0)
+        q = c.add_variable('q')
+        q.set_rhs(12)
+        m.validate()    # Raises error if not ok
+        m.clone()       # Raises error if not ok
+        d = m.add_component('d')
+        d.add_alias('bert', p)
+        e = d.add_variable('e')
+        e.set_rhs('10 * bert')
+        m.validate()
+        m.clone()
+        d.add_alias('ernie', q)
+        m.validate()
+        m.clone()
+        c.remove_variable(q)
+        m.validate()
+        m.clone()   # Will raise error if alias isn't deleted
+
     def test_no_rhs_error(self):
         """
         Tests an exception is raised when a variable is missing an rhs.
@@ -747,58 +809,6 @@ class ModelBuildTest(unittest.TestCase):
         for i in range(10):
             r = m.add_component_allow_renaming('r')
             self.assertEqual(r.name(), 'r_' + str(1 + i))
-
-    def test_add_variable_allow_renaming(self):
-        """
-        Tests the ``VarProvider.add_variable_allow_renaming`` method.
-        """
-        m = Model('test')
-        c = m.add_component('c')
-        x = c.add_variable('x')
-        self.assertTrue(c.has_variable('x'))
-        self.assertRaises(myokit.DuplicateName, c.add_variable, 'x')
-        y = c.add_variable_allow_renaming('x')
-        self.assertEqual(x.name(), 'x')
-        self.assertEqual(y.name(), 'x_1')
-        z = c.add_variable_allow_renaming('x')
-        self.assertEqual(z.name(), 'x_2')
-
-        # Test repeated calls
-        r = c.add_variable('r')
-        for i in range(10):
-            r = c.add_variable_allow_renaming('r')
-            self.assertEqual(r.name(), 'r_' + str(1 + i))
-
-    def test_varowner_get(self):
-        """
-        Tests VarOwner.get().
-        """
-        # Test basics
-        m = Model('test')
-        c = m.add_component('c')
-        x = c.add_variable('x')
-        self.assertIs(m.get('c'), c)
-        self.assertIs(m.get('c.x'), x)
-        self.assertIs(c.get('x'), x)
-
-        # Test asking for object
-        self.assertIs(m.get(c), c)
-        self.assertIs(m.get(x), x)
-        self.assertIs(c.get(x), x)
-        self.assertIs(x.get(c), c)
-
-        # Test not founds
-        self.assertRaises(KeyError, m.get, 'y')
-        self.assertRaises(KeyError, m.get, 'c.y')
-        self.assertRaises(KeyError, c.get, 'y')
-
-        # Test class filter
-        self.assertIs(m.get('c', myokit.Component), c)
-        self.assertRaises(KeyError, m.get, 'c', myokit.Variable)
-        self.assertIs(m.get('c.x', myokit.Variable), x)
-        self.assertIs(c.get('x', myokit.Variable), x)
-        self.assertRaises(KeyError, m.get, 'c.x', myokit.Component)
-        self.assertRaises(KeyError, c.get, 'x', myokit.Component)
 
     def test_model_get(self):
         """
@@ -934,36 +944,88 @@ class ModelBuildTest(unittest.TestCase):
         m.set_name('bert')
         self.assertEqual(m.name(), 'bert')
 
-
-class ModelAPITest(unittest.TestCase):
-    """
-    Further tests of the model API.
-    """
-
     def test_check_units(self):
         """
         Tests the ``model.check_units`` method.
         """
         model = myokit.Model('m')
         component = model.add_component('c')
+        t = component.add_variable('time')
+        t.set_binding('time')
+
+        # Check units before any rhs or units set
+        s = myokit.UNIT_STRICT
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'No RHS set', model.check_units)
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'No RHS set', model.check_units, s)
+
+        # Check units before any rhs set
+        t.set_unit('s')
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'No RHS set', model.check_units)
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'No RHS set', model.check_units, s)
+
+        # Check mini model with rhs and units, no states
+        t.set_rhs('0 [s]')
         a = component.add_variable('a')
         a.set_rhs(1)
+        model.check_units()
+        model.check_units(s)
+
+        # Check mini model with a state
+        # Strict check should fail: a's RHS should be in 1/s
+        a.promote(0)
+        model.check_units()
+        self.assertRaises(myokit.IncompatibleUnitError, model.check_units, s)
+        a.set_rhs('1 [1/s]')
+        model.check_units(s)
+
         b = component.add_variable('b')
         b.set_rhs(2)
         c = component.add_variable('c')
-        c.set_rhs('a + b')
+        c.set_rhs('2 * b')
         model.check_units()
+        model.check_units(s)
 
-        a.set_rhs('1 [N]')
+        a.set_rhs('1 [N/s]')
         b.set_rhs('2 [m]')
         c.set_rhs('a * b')
+
+        # No variable units set
         model.check_units()
+        self.assertRaises(myokit.IncompatibleUnitError, model.check_units, s)
+
+        # Variable unit set for state
+        a.set_unit('N')     # So rhs should be N/s
+        b.set_unit('m')
+        model.check_units()
+        self.assertRaises(myokit.IncompatibleUnitError, model.check_units, s)
+
+        # Bad derived unit
         c.set_unit('A')
         self.assertRaises(myokit.IncompatibleUnitError, model.check_units)
+        self.assertRaises(myokit.IncompatibleUnitError, model.check_units, s)
+
         c.set_unit(myokit.parse_unit('N*m'))
         model.check_units()
+        model.check_units(s)
+
+        # References use variable unit, not RHS unit!
+        model = myokit.Model('m')
+        component = model.add_component('c')
+        x = component.add_variable('x')
+        y = component.add_variable('y')
+        x.set_unit(None)
+        y.set_unit(None)
+        x.set_rhs('5 [mV]')
+        y.set_rhs('3 [A] + x')  # x unit is unspecified, not mV!
+        model.check_units()
+        self.assertRaises(myokit.IncompatibleUnitError, model.check_units, s)
 
     def test_code(self):
+        """ Tests :meth:`Model.code()`. """
         model = myokit.Model('m')
         component = model.add_component('comp1')
         a = component.add_variable('a')
@@ -1533,6 +1595,33 @@ class ModelAPITest(unittest.TestCase):
         self.assertIsNone(found)
         self.assertEqual(suggested, t)
         self.assertIn('No component', msg)
+
+
+class VariableTest(unittest.TestCase):
+    """
+    Tests parts of :class:`myokit.Variable`.
+    """
+    def test_unit(self):
+        """ Tests :meth:`Variable.unit()`. """
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        d = myokit.units.dimensionless
+
+        # Test no unit case
+        self.assertIsNone(v.unit())
+        self.assertEqual(v.unit(myokit.UNIT_STRICT), d)
+
+        # RHS unit is not variable unit
+        v.set_rhs('1 [ms]')
+        self.assertIsNone(v.unit())
+        self.assertEqual(v.unit(myokit.UNIT_STRICT), d)
+
+        # Test unit-set case
+        kg = myokit.units.kg
+        v.set_unit(kg)
+        self.assertEqual(v.unit(), kg)
+        self.assertEqual(v.unit(myokit.UNIT_STRICT), kg)
 
 
 if __name__ == '__main__':

@@ -894,61 +894,69 @@ class Model(ObjectWithMeta, VarProvider):
 
         Per variable, the unit check proceeds in two steps:
 
-        1. The unit resulting from the variable's rhs is evaluated. This may
+        1. The unit resulting from the variable's RHS is evaluated. This may
            trigger an :class:`myokit.IncompatibleUnitExpression` if any
-           inompatibilities are found in the expression.
+           inompatibilities are found in the expression (see below).
         2. The calculated unit is compared with the variable unit. An
            ``IncompatibleUnitError`` will be triggered if the two units don't
            match.
 
-        The way unspecified units (i.e. ``unit=None``) will be handled depends
-        on the used `mode`:
+        Two unit-checking modes are available.
 
         In strict mode (``mode=myokit.UNIT_STRICT``), all unspecified units in
-        expressions are treated as implying "dimensionless". For example, the
-        expression ``None * [mV]`` will read as ``[1] * [mV]`` which will
-        result in the unit ``[mV]``. This mode highlights problems with
-        expressions such as ``5 + V``, where ``V`` is in ``[mV]``. The correct
-        way to write this for the strict check to pass is by specifying a unit
-        for the literal five: ``5 [mV] + V``. Functions requiring dimensionless
-        input, such as ``exp()`` will trigger an error if the input is not
-        dimensionless. For example::
+        expressions are treated as "dimensionless". For example, the expression
+        ``5 * V`` where ``V`` is in ``[mV]`` will be treated as dimensionless
+        times millivolt (or ``[1] * [mV] in mmt syntax), resulting in the unit
+        ``[mV]``.
+        The expression ``5 + V`` will be interpreted as dimensionless plus
+        millivolt, and will raise an error.
+        In strict mode, functions such as ``sin`` and ``exp`` will check that
+        their argument is dimensionless (so ``sin(3 [m])`` is never allowed,
+        only e.g. ``sin(3 [m] / 1 [m])``).
 
-            exp(V + 5)
+        In tolerant mode, unspecified units will be treated as whatever makes
+        the expression work. So ``? + [mV]`` wil be interpreted as
+        ``[mV] + [mV]``. In addition, functions that require dimensionless
+        input in strict mode won't perform this check in tolerant mode.
 
-        should be written as
+        A note about references:
 
-            exp((V + 5[mV]) / 1 [mV])
+        In both modes, when a reference is encountered, for example when
+        checking the expression ``5 * y``, the system will look up the variable
+        y's unit, and will not look at y's rhs.
+        Consider the following buggy model:
 
-        to pass the check in strict mode.
+            x = 5 [mV]      # RHS unit, no variable unit
+            y = 3 [A] + x   # RHS unit, no variable unit
 
-        In tolerant mode, expressions involving a ``None`` will assume it
-        represents either ``[1]`` or a compatible unit. For example
-        ``None * [mV]`` will be read as ``[1] * [mV]``, while ``None + [A]``
-        will be treated as ``[A] + [A]``. Functions requiring dimensionless
-        input will simply discard the unit if incompatible.
-
-        In both modes, the second step is performed in a tolerant manner for
-        unspecified units: If either the variable unit or the calculated unit
-        is unspecified, the check proceeds without raises exceptions. Without
-        this rule, specifications of constants would become needlessly complex.
-        For example::
-
-            gNa = 10 [mS]
-
-        would have to be written as
-
-            gNa = 10 [mS] in [mS]
-
+        When checking the expression ``y = 3 + x`` the variable ``x`` will be
+        treated as unspecified, because no variable unit is set for ``x`` using
+        the ``in`` keyword. In strict mode, this will lead to an error when
+        checking ``x = 5 [mV]`` because ``x`` is dimensionless while ``5 [mV]``
+        has units ``[mV]``. In tolerant mode, no error will be raised. When
+        tolerantly evaluating ``y = 3[A] + x`` it will be assumed that ``x`` is
+        also in ``[A]``, because no variable unit is given that says otherwise,
+        despite the RHS of ``x`` having units ``mV``.
         """
+        # Get time unit
+        t = self.time_unit(mode)
+
         # Check variable units against calculated units (and check caluclated
         # units in the process).
-        t = self.time_unit()
         for var in self.variables(deep=True):
-            v = var.unit()
-            e = var.rhs().eval_unit(mode=mode)
+            # Get variable unit
+            v = var.unit(mode)
+
+            # Get rhs unit
+            e = var.rhs()
+            if e is None:
+                raise myokit.IntegrityError('No RHS set for ' + var.qname())
+            e = e.eval_unit(mode)
+
+            # Rhs unit from a state? Then multiply by time to get var's unit
             if e is not None and var.is_state():
                 e *= t
+
             if v != e and v is not None and e is not None:
                 raise myokit.IncompatibleUnitError(
                     'Incompatible units in <' + var.qname()
@@ -2568,19 +2576,22 @@ class Model(ObjectWithMeta, VarProvider):
         except KeyError:
             return None
 
-    def time_unit(self):
+    def time_unit(self, mode=myokit.UNIT_TOLERANT):
         """
         Returns the units used by this model's time variable.
 
-        If no variable has been declared or the variable doesn't specify a unit
-        ``myokit.units.dimensionless`` is returned.
+        If no time unit is set and ``mode`` is ``myokit.UNIT_TOLERANT``
+        (default), then ``None`` is returned. With ``mode`` set to
+        ``myokit.UNIT_STRICT`` the returned value in this case is
+        ``myokit.units.dimensionless``.
         """
         try:
             time = self._bindings['time']
         except KeyError:
-            return myokit.units.dimensionless
-        unit = time.unit()
-        return unit if unit is not None else myokit.units.dimensionless
+            if mode == myokit.UNIT_STRICT:
+                return myokit.units.dimensionless
+            return None
+        return time.unit(mode)
 
     def user_functions(self):
         """
@@ -3698,10 +3709,13 @@ class Variable(VarOwner):
             raise Exception('Only state variables have initial values.')
         return self.model()._current_state[self._indice]
 
-    def unit(self):
+    def unit(self, mode=myokit.UNIT_TOLERANT):
         """
-        Returns the unit specified for this variable. If no unit was set, the
-        unit "dimensionless" is returned.
+        Returns the unit specified for this variable.
+
+        If no unit was set and ``mode`` is ``myokit.UNIT_TOLERANT``, then None
+        is returned. In ``myokit.UNIT_STRICT`` mode the value
+        ``myokit.units.dimensionless`` is returned in this case.
 
         Variables' units are set using :meth:`Variable.set_unit()` or using
         the ``in`` keyword in ``.mmt`` files. The unit set for a variable is
@@ -3709,6 +3723,8 @@ class Variable(VarOwner):
         expressions to be validated by computing the resulting unit of an
         expression and comparing it with the value set for the variable.
         """
+        if mode == myokit.UNIT_STRICT and self._unit is None:
+            return myokit.units.dimensionless
         return self._unit
 
     def validate(self, fix_crudely=False):
