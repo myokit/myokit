@@ -2601,13 +2601,17 @@ class Model(ObjectWithMeta, VarProvider):
         # Names and expressions are immutable, so ok to return
         return dict(self._user_functions)
 
-    def validate(self, fix_crudely=False):
+    def validate(self, remove_unused_variables=False):
         """
-        Attempts to check model validity, raises errors if it isn't. Any
-        warnings previously set will be erased.
+        Attempts to check model validity, raises errors if it isn't.
 
-        An attempt to crudely "fix" the model can be made by setting
-        ``fix_crudely`` to True.
+        Small issues (e.g. unused variables) will generate warnings, which
+        can be retrieved using :meth:`Model.warnings()` or
+        :meth:`Model.format_warnings()`. Any previously set warnings will be
+        erased whenever `validate()` is run.
+
+        If ``remove_unused_variables`` is set to True, any unused variables
+        will be removed from this model during validation.
         """
         # Reset warnings
         self._warnings = []
@@ -2631,14 +2635,10 @@ class Model(ObjectWithMeta, VarProvider):
                 # Cover pragma: This can only happen if there's an API bug
                 msg = 'Component parent doesn\'t match with enclosing model <'
                 msg += c.name() + '>.'
-                if not fix_crudely:
-                    self._valid = False
-                    raise myokit.IntegrityError(msg)
-                else:
-                    self._warn(msg + ' Attempting fix.')
-                    c._parent = self
+                self._valid = False
+                raise myokit.IntegrityError(msg)
             # Deep validation
-            c.validate(fix_crudely)
+            c.validate()
 
         # Test component mapping
         for n, c in self._components.items():
@@ -2659,7 +2659,7 @@ class Model(ObjectWithMeta, VarProvider):
                 ' variables list.')
 
         # Find cycles, warn of unused variables
-        self._validate_solvability(fix_crudely)
+        self._validate_solvability(remove_unused_variables)
 
         # Create globally unique names
         self.create_unique_names()
@@ -2667,7 +2667,7 @@ class Model(ObjectWithMeta, VarProvider):
         # Return
         self._valid = True
 
-    def _validate_solvability(self, remove_unused=False):
+    def _validate_solvability(self, remove_unused_variables=False):
         """
         Tests if all values are used and checks for cycles.
 
@@ -2684,8 +2684,8 @@ class Model(ObjectWithMeta, VarProvider):
              variable. Bound and labelled variables are always counted as
              "used".
 
-        If the optional argument ``remove_unused`` is set to true, unused
-        variables are removed from the model.
+        If the optional argument ``remove_unused_variables`` is set to true,
+        any unused variables will be removed from the model.
         """
         # Mark all variables as unused
         for var in self.variables(deep=True):
@@ -2731,7 +2731,7 @@ class Model(ObjectWithMeta, VarProvider):
         for var in self.variables(deep=True):
             if not var._used:
                 # Everything else counts as unused
-                if remove_unused:
+                if remove_unused_variables:
                     # Option 1, delete unused variables.
                     to_remove.append(var)
                 else:
@@ -3003,12 +3003,9 @@ class Component(VarOwner):
         """
         return '<Component(' + self.qname() + ')>'
 
-    def validate(self, fix_crudely=False):
+    def validate(self):
         """
         Attempts to check component validity, raises errors if it isn't.
-
-        An attempt to crudely "fix" the component can be made by setting
-        ``fix_crudely`` to True.
         """
         m = self.model()
         if m is None:
@@ -3022,14 +3019,11 @@ class Component(VarOwner):
                       ' parent: parent of <' + v.qname() + '> is set to <'\
                       + str(v._parent.qname()) + '>, but the variable is' \
                       ' stored in <' + str(self.qname()) + '>.'
-                if not fix_crudely:
-                    raise myokit.IntegrityError(msg, v._token)
-                else:
-                    self.model()._warn(msg + ' Attempting fix.')
-                    v._parent = self
+                self.model()._warn(msg + ' Attempting fix.')
+                v._parent = self
 
             # Deep validation
-            v.validate(fix_crudely)
+            v.validate()
 
 
 class Variable(VarOwner):
@@ -3732,12 +3726,9 @@ class Variable(VarOwner):
             return myokit.units.dimensionless
         return self._unit
 
-    def validate(self, fix_crudely=False):
+    def validate(self):
         """
         Attempts to check this variable's validity, raises errors if it isn't.
-
-        An attempt to crudely "fix" the variable can be made by setting
-        ``fix_crudely`` to True.
         """
         # Validate rhs
         if self._rhs is None:
@@ -3796,13 +3787,11 @@ class Variable(VarOwner):
                       ' parent: parent of <' + v.qname() + '> is set to <'\
                       + str(v._parent.qname()) + '>, but the variable is' \
                       ' stored in <' + self.qname() + '>.'
-                if fix_crudely:
-                    self.model()._warn(msg + ' Attempting fix.')
-                    v._parent = self
-                else:
-                    raise myokit.IntegrityError(msg, v._token)
+                self.model()._warn(msg + ' Attempting fix.')
+                v._parent = self
+
             # Deep validation
-            v.validate(fix_crudely)
+            v.validate()
 
     def value(self):
         """

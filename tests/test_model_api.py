@@ -1596,6 +1596,35 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(suggested, t)
         self.assertIn('No component', msg)
 
+    def test_validate_and_remove_unused_variables(self):
+        """
+        Tests :class:`Model.validate` with ``remove_unused_variables=True``.
+        """
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        z = c.add_variable('z')
+        z1 = z.add_variable('z1')
+        x.set_rhs('(10 - x) / y')
+        x.promote(0)
+        y.set_rhs(1)
+        z.set_rhs('2 + z1')
+        z1.set_rhs(3)
+
+        # Two unused variables: z and z1
+        m.validate()
+        self.assertEqual(len(m.warnings()), 2)
+
+        # Remove unused variables
+        m.validate(remove_unused_variables=True)
+        self.assertEqual(len(m.warnings()), 2)  # 2 removal warnings
+        m.validate()
+        self.assertEqual(len(m.warnings()), 0)  # issue fixed!
+
 
 class VariableTest(unittest.TestCase):
     """
