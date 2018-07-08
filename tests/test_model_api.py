@@ -1713,6 +1713,33 @@ class ModelTest(unittest.TestCase):
         check(11, 4, y1)
 
 
+class ComponentTest(unittest.TestCase):
+    """
+    Tests parts of :class:`myokit.Component`.
+    """
+    def test_add_alias_errors(self):
+        """ Tests error handling in :meth:`Component.add_alias()`. """
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        d = m.add_component('d')
+        y = d.add_variable('y')
+        z = y.add_variable('z')
+
+        # Duplicate name
+        d.add_alias('great_name', x)
+        self.assertRaises(myokit.DuplicateName, d.add_alias, 'y', x)
+
+        # Alias for a nested variable
+        c.add_alias('not_a_problem', y)
+        self.assertRaisesRegexp(
+            myokit.IllegalAliasError, 'whose parent', c.add_alias, 'xyz', z)
+
+        # Alias for a variable in the same component
+        self.assertRaisesRegexp(
+            myokit.IllegalAliasError, 'same component', c.add_alias, 'zz', x)
+
+
 class VariableTest(unittest.TestCase):
     """
     Tests parts of :class:`myokit.Variable`.
