@@ -128,6 +128,13 @@ class ExpressionTest(unittest.TestCase):
         self.assertEqual(m[8], '  (1) 0.0')
         self.assertEqual(m[9], '  (2) 0.0')
 
+        # Debugging name: unlinked!
+        x = myokit.Name('x')
+        self.assertEqual(
+            x._eval_unit(myokit.UNIT_TOLERANT), None)
+        self.assertEqual(
+            x._eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
+
     def test_eval_unit_error(self):
         """
         Tests error handling for eval_unit.

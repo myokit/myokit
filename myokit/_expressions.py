@@ -732,7 +732,7 @@ class Name(LhsExpression):
     def _eval_unit(self, mode):
 
         # Try getting unit from variable, if linked
-        if self._value is not None:
+        if isinstance(self._value, myokit.Variable):
             return self._value.unit(mode)
 
             # Note: Don't get it from the variable's RHS!
