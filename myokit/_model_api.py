@@ -3012,19 +3012,20 @@ class Component(VarOwner):
         Attempts to check component validity, raises errors if it isn't.
         """
         m = self.model()
-        if m is None:
+        if m is None:   # pragma: no cover
+            # Cover pragma: Can only be reached through an API bug.
             raise myokit.IntegrityError(
                 'No model found in hierarchy for <' + self.qname() + '>.')
 
         # Validate child variables
         for v in self.variables():
-            if v._parent != self:
-                msg = 'Child variable\'s parent does not match with actual' \
-                      ' parent: parent of <' + v.qname() + '> is set to <'\
-                      + str(v._parent.qname()) + '>, but the variable is' \
-                      ' stored in <' + str(self.qname()) + '>.'
-                self.model()._warn(msg + ' Attempting fix.')
-                v._parent = self
+            if v._parent != self:   # pragma: no cover
+                # Cover pragma: Can only be reached through an API bug
+                raise myokit.IntegrityError(
+                    'Child variable\'s parent does not match with actual'
+                    ' parent: parent of <' + v.qname() + '> is set to <'
+                    + str(v._parent.qname()) + '>, but the variable is'
+                    ' stored in <' + str(self.qname()) + '>.')
 
             # Deep validation
             v.validate()
@@ -3786,13 +3787,13 @@ class Variable(VarOwner):
 
         # Validate child variables
         for v in self.variables():
-            if v._parent != self:
-                msg = 'Child variable\'s parent does not match with actual' \
-                      ' parent: parent of <' + v.qname() + '> is set to <'\
-                      + str(v._parent.qname()) + '>, but the variable is' \
-                      ' stored in <' + self.qname() + '>.'
-                self.model()._warn(msg + ' Attempting fix.')
-                v._parent = self
+            if v._parent != self:   # pragma: no cover
+                # Cover pragma: Can only be reached through an API bug
+                raise myokit.IntegrityError(
+                    'Child variable\'s parent does not match with actual'
+                    ' parent: parent of <' + v.qname() + '> is set to <'
+                    + str(v._parent.qname()) + '>, but the variable is'
+                    ' stored in <' + self.qname() + '>.')
 
             # Deep validation
             v.validate()
