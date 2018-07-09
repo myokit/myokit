@@ -599,37 +599,42 @@ def _update():
         d = os.path.join(DIR_FORMATS, fname)
         if not os.path.isdir(d):
             continue
+
         # Only check modules
         f = os.path.join(d, '__init__.py')
         if not os.path.isfile(f):
-            continue
+            continue     # pragma: no cover
+
         # Dynamically load module
         name = 'myokit.formats.' + fname
         __import__(name)
         m = sys.modules[name]
+
         # Add importers, exporters and expression writers to global list
         try:
             x = m.importers()
         except AttributeError:
             x = {}
         for k, v in x.items():
-            if k in _IMPORTERS:
+            if k in _IMPORTERS:     # pragma: no cover
                 raise Exception('Duplicate importer name: "' + str(k) + '".')
             _IMPORTERS[k] = v
+
         try:
             x = m.exporters()
         except AttributeError:
             x = {}
         for k, v in x.items():
-            if k in _EXPORTERS:
+            if k in _EXPORTERS:     # pragma: no cover
                 raise Exception('Duplicate exporter name: "' + str(k) + '".')
             _EXPORTERS[k] = v
+
         try:
             x = m.ewriters()
         except AttributeError:
             x = {}
         for k, v in x.items():
-            if k in _EWRITERS:
+            if k in _EWRITERS:     # pragma: no cover
                 raise Exception(
                     'Duplicate expression writer name: "' + str(k) + '".')
             _EWRITERS[k] = v
