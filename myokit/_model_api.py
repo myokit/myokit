@@ -3446,7 +3446,9 @@ class Variable(VarOwner):
 
         # Handle function arguments
         func = [w.ex(x) for x in args]
-        func, args = zip(*sorted(zip(func, args)))  # Sort both following func
+        if func:
+            # Sort both following func
+            func, args = zip(*sorted(zip(func, args)))
 
         # Create function text
         func = ['def var_pyfunc_generated(' + ','.join(func) + '):']

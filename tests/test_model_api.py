@@ -14,6 +14,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import unittest
+import numpy as np
 
 from shared import TemporaryDirectory
 
@@ -1875,6 +1876,74 @@ class VariableTest(unittest.TestCase):
         v.set_label(None)
         self.assertFalse(v.is_labelled())
         self.assertIsNone(v.label())
+
+    def test_is_referenced(self):
+        """ Tests :meth:`Variable.is_referenced(). """
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        v.set_rhs(3)
+        w = c.add_variable('w')
+        w.set_rhs(4)
+
+        self.assertFalse(v.is_referenced())
+        self.assertFalse(w.is_referenced())
+        v.set_rhs('3 * w')
+        self.assertFalse(v.is_referenced())
+        self.assertTrue(w.is_referenced())
+        w.set_rhs('2 * v')
+        self.assertTrue(v.is_referenced())
+        self.assertTrue(w.is_referenced())
+
+    def test_pyfunc(self):
+        """ Tests :meth:`Variable.pyfunc(). """
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs(3)
+        y = c.add_variable('y')
+        y.set_rhs(4)
+        z = c.add_variable('z')
+        z.set_rhs('3 * x + y')
+
+        # No states --> No arguments
+        f = z.pyfunc(use_numpy=False)
+        self.assertEqual(f(), 13)
+        f = z.pyfunc(use_numpy=True)
+        self.assertEqual(f(), 13)
+        f, args = z.pyfunc(use_numpy=False, arguments=True)
+        self.assertEqual(args, [])
+        f, args = z.pyfunc(use_numpy=True, arguments=True)
+        self.assertEqual(args, [])
+
+        # One state
+        y.promote(3)
+        f = z.pyfunc(use_numpy=False)
+        self.assertEqual(f(1), 10)
+        f = z.pyfunc(use_numpy=True)
+        self.assertEqual(f(1), 10)
+        self.assertTrue(
+            np.all(f(np.array([1, 2, 4])) == np.array([10, 11, 13])))
+        f, args = z.pyfunc(use_numpy=False, arguments=True)
+        self.assertEqual(args, (myokit.Name(y), ))
+        f, args = z.pyfunc(use_numpy=True, arguments=True)
+        self.assertEqual(args, (myokit.Name(y), ))
+
+        # Two states (alphabetically ordered)
+        x.promote(2)
+        f = z.pyfunc(use_numpy=False)
+        self.assertEqual(f(1, 2), 5)
+        f = z.pyfunc(use_numpy=True)
+        self.assertEqual(f(1, 2), 5)
+        self.assertTrue(
+            np.all(f(
+                np.array([1, 2, 4]), np.array([3, 2, 1])
+            ) == np.array([6, 8, 13]))
+        )
+        f, args = z.pyfunc(use_numpy=False, arguments=True)
+        self.assertEqual(args, (myokit.Name(x), myokit.Name(y)))
+        f, args = z.pyfunc(use_numpy=True, arguments=True)
+        self.assertEqual(args, (myokit.Name(x), myokit.Name(y)))
 
 
 class UserFunctionTest(unittest.TestCase):
