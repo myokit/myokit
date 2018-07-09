@@ -120,6 +120,13 @@ class ExportTest(unittest.TestCase):
             name = 'test_' + name + '_exporter'
             self.assertIn(name, methods)
 
+    def test_unknown_exporter(self):
+        """
+        Tests the error handling for requesting an unknown exporter.
+        """
+        self.assertRaisesRegexp(
+            KeyError, 'Exporter not found', myokit.formats.exporter, 'elvish')
+
 
 if __name__ == '__main__':
     unittest.main()

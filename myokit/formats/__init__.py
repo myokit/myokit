@@ -188,7 +188,7 @@ class ExpressionWriter(object):
         """
         t = type(e)
         if t not in self._op_map:
-            raise Exception('Unknown expression type: ' + str(t))
+            raise ValueError('Unknown expression type: ' + str(t))
         return self._op_map[t](e)
 
     def _ex_name(self, e):

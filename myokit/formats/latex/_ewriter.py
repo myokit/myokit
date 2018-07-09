@@ -75,7 +75,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         try:
             action = self._op_map[type(e)]
         except KeyError:
-            raise ValueError('Unsupported type: ' + str(type(e)))
+            raise ValueError('Unknown expression type: ' + str(type(e)))
         action(e, b)
 
     def _ex_infix(self, e, b, op):

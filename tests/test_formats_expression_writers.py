@@ -70,6 +70,17 @@ import myokit.formats.stan
 # Piecewise
 
 
+class UnknownExpressionWriterTest(unittest.TestCase):
+    """ Tests requesting an unknown expression writer. """
+
+    def test_unknown(self):
+        """ Tests requesting an unknown expression writer. """
+        # Test fetching using ewriter method
+        self.assertRaisesRegexp(
+            KeyError, 'Expression writer not found', myokit.formats.ewriter,
+            'dada')
+
+
 class AnsicExpressionWriterTest(unittest.TestCase):
     """ Tests the Ansi C ewriter class. """
 
@@ -217,6 +228,10 @@ class AnsicExpressionWriterTest(unittest.TestCase):
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('ansic')
         self.assertIsInstance(w, myokit.formats.ansic.AnsiCExpressionWriter)
+
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
 
 
 class CellMLExpressionWriterTest(unittest.TestCase):
@@ -406,6 +421,10 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         # Lhs function setting not allowed
         self.assertRaises(NotImplementedError, w.set_lhs_function, None)
 
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
+
 
 class CppExpressionWriterTest(unittest.TestCase):
     """ Tests the C++ ewriter class. """
@@ -543,6 +562,10 @@ class CppExpressionWriterTest(unittest.TestCase):
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('cpp')
         self.assertIsInstance(w, myokit.formats.cpp.CppExpressionWriter)
+
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
 
 
 class CudaExpressionWriterTest(unittest.TestCase):
@@ -730,6 +753,10 @@ class CudaExpressionWriterTest(unittest.TestCase):
         w = myokit.formats.ewriter('cuda')
         self.assertIsInstance(w, myokit.formats.cuda.CudaExpressionWriter)
 
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
+
 
 class LatexExpressionWriterTest(unittest.TestCase):
     """ Tests the Latex ewriter class. """
@@ -893,6 +920,10 @@ class LatexExpressionWriterTest(unittest.TestCase):
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('latex')
         self.assertIsInstance(w, myokit.formats.latex.LatexExpressionWriter)
+
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
 
 
 class MathMLExpressionWriterTest(unittest.TestCase):
@@ -1071,6 +1102,10 @@ class MathMLExpressionWriterTest(unittest.TestCase):
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('mathml')
         self.assertIsInstance(w, myokit.formats.mathml.MathMLExpressionWriter)
+
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
 
     def test_presentation(self):
         w = myokit.formats.mathml.MathMLExpressionWriter()
@@ -1264,6 +1299,10 @@ class MathMLExpressionWriterTest(unittest.TestCase):
         w = myokit.formats.ewriter('mathml')
         self.assertIsInstance(w, myokit.formats.mathml.MathMLExpressionWriter)
 
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
+
 
 class MatlabExpressionWriterTest(unittest.TestCase):
     """ Tests the Matlab ewriter class. """
@@ -1403,6 +1442,10 @@ class MatlabExpressionWriterTest(unittest.TestCase):
         w = myokit.formats.ewriter('matlab')
         self.assertIsInstance(w, myokit.formats.matlab.MatlabExpressionWriter)
 
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
+
 
 class NumpyExpressionWriterTest(unittest.TestCase):
     """ Tests the Numpy ewriter class. """
@@ -1541,6 +1584,10 @@ class NumpyExpressionWriterTest(unittest.TestCase):
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('numpy')
         self.assertIsInstance(w, myokit.formats.python.NumpyExpressionWriter)
+
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
 
 
 class OpenCLExpressionWriterTest(unittest.TestCase):
@@ -1770,6 +1817,10 @@ class OpenCLExpressionWriterTest(unittest.TestCase):
         w = myokit.formats.ewriter('opencl')
         self.assertIsInstance(w, myokit.formats.opencl.OpenCLExpressionWriter)
 
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
+
 
 class PythonExpressionWriterTest(unittest.TestCase):
     """ Tests the Python ewriter class. """
@@ -1912,6 +1963,10 @@ class PythonExpressionWriterTest(unittest.TestCase):
         w.set_lhs_function(lambda x: 'sheep')
         self.assertEqual(w.ex(a), 'sheep')
 
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
+
 
 class StanExpressionWriterTest(unittest.TestCase):
     """ Tests the Stan ewriter class. """
@@ -2049,6 +2104,10 @@ class StanExpressionWriterTest(unittest.TestCase):
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('stan')
         self.assertIsInstance(w, myokit.formats.stan.StanExpressionWriter)
+
+        # Test without a Myokit expression
+        self.assertRaisesRegexp(
+            ValueError, 'Unknown expression type', w.ex, 7)
 
 
 if __name__ == '__main__':
