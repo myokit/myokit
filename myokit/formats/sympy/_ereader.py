@@ -13,7 +13,7 @@ import myokit
 import myokit.formats
 try:
     from sympy.core.symbol import Symbol
-    from sympy.core.numbers import Number
+    from sympy.core.numbers import Number, NegativeOne
     from sympy.core.add import Add
     from sympy.core.mul import Mul
     from sympy.core.mod import Mod
@@ -100,7 +100,12 @@ class SymPyExpressionReader(object):
 
     def _ex_name(self, e):
         var = str(e)
+        # Check if this is a derivative
+        # See :meth:`SymPyExpressionWriter._ex_derivative()`.
         if self._model:
+            if var[:4] == 'dot(' and var[-1:] == ')':
+                var = self._model.get(var[4:-1], myokit.Variable)
+                return myokit.Derivative(myokit.Name(var))
             var = self._model.get(var, myokit.Variable)
         return myokit.Name(var)
 
@@ -113,6 +118,8 @@ class SymPyExpressionReader(object):
 
     def _ex_multiply(self, e):
         a, b = e.as_two_terms()
+        if type(a) == NegativeOne:
+            return myokit.PrefixMinus(self.ex(b))
         return myokit.Multiply(self.ex(a), self.ex(b))
 
     def _ex_remainder(self, e):

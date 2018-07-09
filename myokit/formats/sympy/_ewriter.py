@@ -65,7 +65,9 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
         return sp.Symbol(self._flhs(e))
 
     def _ex_derivative(self, e):
-        # Derivatives are treated as symbols, not as derivatives!
+        # Because a myokit.Derivative doesn't always know what the time
+        # variable (or other free variable) is (and because this can change),
+        # we handle this using symbols, instead of the sp.Derivative class!
         return sp.Symbol(self._flhs(e))
 
     def _ex_number(self, e):

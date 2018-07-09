@@ -10,7 +10,6 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import os
 import unittest
 
 import myokit
@@ -24,9 +23,6 @@ import myokit.formats.matlab
 import myokit.formats.opencl
 import myokit.formats.python
 import myokit.formats.stan
-import myokit.formats.sympy
-
-from shared import DIR_DATA
 
 # Name
 # Number
@@ -2053,183 +2049,6 @@ class StanExpressionWriterTest(unittest.TestCase):
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('stan')
         self.assertIsInstance(w, myokit.formats.stan.StanExpressionWriter)
-
-
-class SymPyExpressionWriterTest(unittest.TestCase):
-    """ Tests the SymPy ewriter class. """
-
-    def test_all(self):
-        try:
-            import sympy
-        except ImportError:
-            print('SymPy not found, skipping test.')
-            return
-
-        w = myokit.formats.sympy.SymPyExpressionWriter()
-
-        model = myokit.Model()
-        component = model.add_component('c')
-        avar = component.add_variable('a')
-
-        # Name
-        a = myokit.Name(avar)
-        ca = sympy.Symbol('c.a')
-        self.assertEqual(w.ex(a), ca)
-        # Number with unit
-        b = myokit.Number('12', 'pF')
-        cb = sympy.Float(12)
-        self.assertEqual(w.ex(b), cb)
-
-        # Prefix plus
-        x = myokit.PrefixPlus(b)
-        self.assertEqual(w.ex(x), cb)
-        # Prefix minus
-        x = myokit.PrefixMinus(b)
-        self.assertEqual(w.ex(x), -cb)
-
-        # Plus
-        x = myokit.Plus(a, b)
-        self.assertEqual(w.ex(x), ca + cb)
-        # Minus
-        x = myokit.Minus(a, b)
-        self.assertEqual(w.ex(x), ca - cb)
-        # Multiply
-        x = myokit.Multiply(a, b)
-        self.assertEqual(w.ex(x), ca * cb)
-        # Divide
-        x = myokit.Divide(a, b)
-        self.assertEqual(w.ex(x), ca / cb)
-
-        # Quotient
-        x = myokit.Quotient(a, b)
-        self.assertEqual(w.ex(x), ca // cb)
-        # Remainder
-        x = myokit.Remainder(a, b)
-        self.assertEqual(w.ex(x), ca % cb)
-
-        # Power
-        x = myokit.Power(a, b)
-        self.assertEqual(w.ex(x), ca ** cb)
-        # Sqrt
-        x = myokit.Sqrt(a)
-        self.assertEqual(w.ex(x), sympy.sqrt(ca))
-        # Exp
-        x = myokit.Exp(a)
-        self.assertEqual(w.ex(x), sympy.exp(ca))
-        # Log(a)
-        x = myokit.Log(a)
-        self.assertEqual(w.ex(x), sympy.log(ca))
-        # Log(a, b)
-        x = myokit.Log(a, b)
-        self.assertEqual(w.ex(x), sympy.log(ca, cb))
-        # Log10
-        x = myokit.Log10(b)
-        self.assertEqual(w.ex(x), sympy.log(cb, 10))
-
-        # Sin
-        x = myokit.Sin(b)
-        self.assertEqual(w.ex(x), sympy.sin(cb))
-        # Cos
-        x = myokit.Cos(b)
-        self.assertEqual(w.ex(x), sympy.cos(cb))
-        # Tan
-        x = myokit.Tan(b)
-        self.assertEqual(w.ex(x), sympy.tan(cb))
-        # ASin
-        x = myokit.ASin(b)
-        self.assertEqual(w.ex(x), sympy.asin(cb))
-        # ACos
-        x = myokit.ACos(b)
-        self.assertEqual(w.ex(x), sympy.acos(cb))
-        # ATan
-        x = myokit.ATan(b)
-        self.assertEqual(w.ex(x), sympy.atan(cb))
-
-        # Floor
-        x = myokit.Floor(b)
-        self.assertEqual(w.ex(x), sympy.floor(cb))
-        # Ceil
-        x = myokit.Ceil(b)
-        self.assertEqual(w.ex(x), sympy.ceiling(cb))
-        # Abs
-        x = myokit.Abs(b)
-        self.assertEqual(w.ex(x), sympy.Abs(cb))
-
-        # Equal
-        x = myokit.Equal(a, b)
-        self.assertEqual(w.ex(x), sympy.Eq(ca, cb))
-        # NotEqual
-        x = myokit.NotEqual(a, b)
-        self.assertEqual(w.ex(x), sympy.Ne(ca, cb))
-        # More
-        x = myokit.More(a, b)
-        self.assertEqual(w.ex(x), sympy.Gt(ca, cb))
-        # Less
-        x = myokit.Less(a, b)
-        self.assertEqual(w.ex(x), sympy.Lt(ca, cb))
-        # MoreEqual
-        x = myokit.MoreEqual(a, b)
-        self.assertEqual(w.ex(x), sympy.Ge(ca, cb))
-        # LessEqual
-        x = myokit.LessEqual(a, b)
-        self.assertEqual(w.ex(x), sympy.Le(ca, cb))
-
-        # Not
-        cond1 = myokit.parse_expression('5 > 3')
-        cond2 = myokit.parse_expression('2 < 1')
-        c1 = sympy.Gt(5, 3)
-        c2 = sympy.Lt(2, 1)
-        x = myokit.Not(cond1)
-        self.assertEqual(w.ex(x), sympy.Not(c1))
-        # And
-        x = myokit.And(cond1, cond2)
-        self.assertEqual(w.ex(x), c1 and c2)
-        # Or
-        x = myokit.Or(cond1, cond2)
-        self.assertEqual(w.ex(x), c1 or c2)
-
-        # If
-        x = myokit.If(cond1, a, b)
-        self.assertEqual(w.ex(x), sympy.Piecewise((ca, c1), (cb, True)))
-        # Piecewise
-        c = myokit.Number(1)
-        cc = sympy.Float(1)
-        x = myokit.Piecewise(cond1, a, cond2, b, c)
-        self.assertEqual(
-            w.ex(x), sympy.Piecewise((ca, c1), (cb, c2), (cc, True)))
-
-        # Unsupported type
-        u = myokit.UnsupportedFunction('frog', x)
-        self.assertRaises(ValueError, w.ex, u)
-
-        # Derivative
-        avar.promote(4)
-        x = myokit.Derivative(myokit.Name(avar))
-        self.assertEqual(w.ex(x), sympy.symbols('dot(c.a)'))
-
-        # Equation
-        e = myokit.Equation(a, b)
-        self.assertEqual(w.eq(e), sympy.Eq(ca, cb))
-
-        # Test fetching using ewriter method
-        w = myokit.formats.ewriter('sympy')
-        self.assertIsInstance(w, myokit.formats.sympy.SymPyExpressionWriter)
-
-    def test_read_write(self):
-
-        try:
-            import sympy    # noqa
-        except ImportError:
-            print('SymPy not found, skipping test.')
-            return
-
-        m = myokit.load_model(
-            os.path.join(DIR_DATA, 'heijman-2011.mmt'))
-
-        for v in m.variables(deep=True):
-            e = v.rhs()
-            e = myokit.formats.sympy.write(e)
-            e = myokit.formats.sympy.read(e)
 
 
 if __name__ == '__main__':
