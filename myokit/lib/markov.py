@@ -1508,8 +1508,14 @@ def _find_factor(expression, original):
                 + str(original))
         return var, myokit.Number(1)
 
-    elif t == myokit.Multiply:
-        a, b = expression
+    elif t == myokit.Multiply or t == myokit.PrefixMinus:
+
+        if t == myokit.PrefixMinus:
+            a = myokit.Number(-1)
+            b = expression[0]
+        else:
+            a, b = expression
+
         # Check if a contains a state and b is constant
         ac, bc = a.is_constant(), b.is_constant()
         if (ac and bc) or not (ac or bc):
@@ -1519,6 +1525,7 @@ def _find_factor(expression, original):
                 + str(original))
         if ac:
             a, b = b, a
+
         # Check if a is a state
         if type(a) == myokit.Name and a.var().is_state():
             return a.var(), b
@@ -1530,7 +1537,8 @@ def _find_factor(expression, original):
     else:
         raise ValueError(
             'Unable to write expression as linear combination of states'
-            ' (term that is not Multiply or Name found): ' + str(original))
+            ' (term that is not Multiply or Name found): ' + str(t) +
+            ' in ' + str(original))
 
 
 class MarkovModel(object):
