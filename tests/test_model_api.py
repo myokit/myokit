@@ -114,6 +114,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertFalse(x.is_intermediary())
         self.assertTrue(x.is_constant())
         self.assertEqual(x.lhs(), Name(x))
+        self.assertRaises(Exception, x.demote)
         x.promote()
         self.assertTrue(x.is_state())
         self.assertFalse(x.is_intermediary())
@@ -1032,7 +1033,9 @@ class ModelTest(unittest.TestCase):
         b = component.add_variable('b')
         c = component.add_variable('c')
         a.set_rhs('1 [N]')
+        a.set_label('aaa')
         b.set_rhs('2 [m]')
+        b.set_binding('bbb')
         c.set_rhs('a * b')
         c.set_unit('N*m')
         component2 = model.add_component('comp2')
@@ -1045,8 +1048,8 @@ class ModelTest(unittest.TestCase):
             'name: m\n'
             '\n'
             '[comp1]\n'
-            'a = 1 [N]\n'
-            'b = 2 [m]\n'
+            'a = 1 [N] label aaa\n'
+            'b = 2 [m] bind bbb\n'
             'c = a * b\n'
             '    in [J]\n'
             '\n'
@@ -1055,19 +1058,24 @@ class ModelTest(unittest.TestCase):
             '\n'
         )
 
+        a.set_rhs('1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11')
+        b.set_rhs('2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12')
+
         self.assertEqual(
             model.code(line_numbers=True),
             ' 1 [[model]]\n'
             ' 2 name: m\n'
             ' 3 \n'
             ' 4 [comp1]\n'
-            ' 5 a = 1 [N]\n'
-            ' 6 b = 2 [m]\n'
-            ' 7 c = a * b\n'
-            ' 8     in [J]\n'
-            ' 9 \n'
-            '10 [comp2]\n'
-            '11 d = comp1.a\n'
+            ' 5 a = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11\n'
+            ' 6     label aaa\n'
+            ' 7 b = 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12\n'
+            ' 8     bind bbb\n'
+            ' 9 c = a * b\n'
+            '10     in [J]\n'
+            '11 \n'
+            '12 [comp2]\n'
+            '13 d = comp1.a\n'
         )
 
     def test_model_eval_state_derivatives(self):
