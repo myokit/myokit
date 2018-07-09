@@ -190,7 +190,32 @@ class ExportTest(unittest.TestCase):
         self._test(myokit.formats.exporter('python'))
 
     def test_stan_exporter(self):
+        # Basic test
         self._test(myokit.formats.exporter('stan'))
+
+        # Test with parameters and output variable specified
+
+        # Load model
+        m = myokit.load_model('example')
+
+        # Guess parameters
+        parameters = []
+        for v in m.get('ina').variables(const=True):
+            if v.name()[:1] == 'p':
+                parameters.append(v)
+        parameters.sort(key=lambda v: myokit.natural_sort_key(v.name()))
+
+        # Set output
+        output = 'ina.INa'
+
+        # Export to stan
+        e = myokit.formats.stan.StanExporter()
+        with TemporaryDirectory() as d:
+            dpath = d.path('out')
+            ret = e.runnable(dpath, m, parameters=parameters, output=output)
+            self.assertIsNone(ret)
+            self.assertTrue(os.path.isdir(dpath))
+            self.assertTrue(len(os.listdir(dpath)) > 0)
 
     def test_completeness(self):
         """
