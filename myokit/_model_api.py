@@ -2895,6 +2895,9 @@ class Component(VarOwner):
         Aliases can only be created for variables of other components.
         """
         name = check_name(name)
+        if not isinstance(variable, myokit.Variable):
+            raise myokit.IllegalAliasError(
+                'Aliases can only be created for variables.')
         if not self.can_add_variable(name):
             raise myokit.DuplicateName(
                 'The name <' + str(name) + '> is already in use within this'

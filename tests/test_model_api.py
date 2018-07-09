@@ -1717,6 +1717,39 @@ class ComponentTest(unittest.TestCase):
     """
     Tests parts of :class:`myokit.Component`.
     """
+    def test_alias_methods(self):
+        """ Tests various methods to do with aliases. """
+
+        # Proper use of add_alias
+        m = myokit.Model()
+        c1 = m.add_component('c1')
+        a = c1.add_variable('a')
+        a.set_rhs(2)
+        c2 = m.add_component('c2')
+        c2.add_alias('bert', a)
+        b = c2.add_variable('b')
+        b.set_rhs('3 * bert')
+        self.assertEqual(b.eval(), 6)
+
+        # Test alias() and alias_for(), remove_alias()
+        self.assertTrue(c2.has_alias('bert'))
+        self.assertTrue(c2.has_alias_for(a))
+        self.assertEqual(c2.alias('bert'), a)
+        self.assertEqual(c2.alias_for(a), 'bert')
+        c2.remove_alias('bert')
+        self.assertFalse(c2.has_alias('bert'))
+        self.assertFalse(c2.has_alias_for(a))
+        self.assertRaises(KeyError, c2.alias, 'bert')
+        self.assertRaises(KeyError, c2.alias_for, a)
+        c2.add_alias('bert', a)
+        c2.add_alias('ernie', a)
+        c2.add_alias('hello', a)
+        self.assertTrue(c2.has_alias_for(a))
+        c2.remove_alias('bert')
+        self.assertTrue(c2.has_alias_for(a))
+        c2.remove_aliases_for(a)
+        self.assertFalse(c2.has_alias_for(a))
+
     def test_add_alias_errors(self):
         """ Tests error handling in :meth:`Component.add_alias()`. """
         m = myokit.Model()
