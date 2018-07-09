@@ -19,7 +19,35 @@ import myokit.formats as formats
 from shared import DIR_DATA
 
 
+class ImporterTest(unittest.TestCase):
+    """ Tests shared importer functionality. """
+
+    def test_importer_interface(self):
+        """ Tests listing and creating importers. """
+        ims = myokit.formats.importers()
+        self.assertTrue(len(ims) > 0)
+        for i in ims:
+            self.assertIn(type(i), [str, unicode])
+            i = myokit.formats.importer(i)
+            self.assertTrue(isinstance(i, myokit.formats.Importer))
+
+    def test_unknown(self):
+        """ Tests requesting an unknown importer. """
+        # Test fetching using importer method
+        self.assertRaisesRegexp(
+            KeyError, 'Importer not found', myokit.formats.importer, 'blip')
+
+
 class CellMLTest(unittest.TestCase):
+    """ Tests the CellML importer. """
+
+    def test_capability_reporting(self):
+        """ Tests if the right capabilities are reported. """
+        i = formats.importer('cellml')
+        self.assertFalse(i.supports_component())
+        self.assertTrue(i.supports_model())
+        self.assertFalse(i.supports_protocol())
+
     def test_model_simple(self):
         # Beeler-Reuter is a simple model
         i = formats.importer('cellml')
@@ -47,6 +75,15 @@ class CellMLTest(unittest.TestCase):
 
 
 class SBMLTest(unittest.TestCase):
+    """ Tests SBML import. """
+
+    def test_capability_reporting(self):
+        """ Tests if the right capabilities are reported. """
+        i = formats.importer('sbml')
+        self.assertFalse(i.supports_component())
+        self.assertTrue(i.supports_model())
+        self.assertFalse(i.supports_protocol())
+
     def test_model(self):
         i = formats.importer('sbml')
         self.assertTrue(i.supports_model())
@@ -63,6 +100,15 @@ class SBMLTest(unittest.TestCase):
 
 
 class ChannelMLTest(unittest.TestCase):
+    """ Tests ChannelML importing. """
+
+    def test_capability_reporting(self):
+        """ Tests if the right capabilities are reported. """
+        i = formats.importer('channelml')
+        self.assertTrue(i.supports_component())
+        self.assertTrue(i.supports_model())
+        self.assertFalse(i.supports_protocol())
+
     def test_model(self):
         i = formats.importer('channelml')
         self.assertTrue(i.supports_model())
@@ -88,6 +134,15 @@ class ChannelMLTest(unittest.TestCase):
 
 
 class AxonTest(unittest.TestCase):
+    """ Partially tests Axon formats importing. """
+
+    def test_capability_reporting(self):
+        """ Tests if the right capabilities are reported. """
+        i = formats.importer('abf')
+        self.assertFalse(i.supports_component())
+        self.assertFalse(i.supports_model())
+        self.assertTrue(i.supports_protocol())
+
     def test_protocol(self):
         i = formats.importer('abf')
         self.assertTrue(i.supports_protocol())

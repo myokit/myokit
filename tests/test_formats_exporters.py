@@ -20,6 +20,9 @@ from shared import TemporaryDirectory
 
 
 class ExportTest(unittest.TestCase):
+    """
+    Tests various exporters.
+    """
 
     def _test(self, e):
         """
@@ -31,7 +34,6 @@ class ExportTest(unittest.TestCase):
         # Load model, protocol
         m, p, x = myokit.load('example')
 
-        # Create empty output directory as subdirectory of DIR_OUT
         with TemporaryDirectory() as d:
             path = d.path()
 
@@ -51,25 +53,84 @@ class ExportTest(unittest.TestCase):
             # Try runnable export
             if e.supports_runnable():
                 exports += 1
+
                 # Check without protocol
                 dpath = os.path.join(path, 'runnable1')
                 ret = e.runnable(dpath, m)
                 self.assertIsNone(ret)
                 self.assertTrue(os.path.isdir(dpath))
                 self.assertTrue(len(os.listdir(dpath)) > 0)
+
                 # Check with protocol
                 dpath = os.path.join(path, 'runnable2')
                 ret = e.runnable(dpath, m, p)
                 self.assertIsNone(ret)
                 self.assertTrue(os.path.isdir(dpath))
                 self.assertTrue(len(os.listdir(dpath)) > 0)
+
+                # Write to complex path
+                #path2 = os.path.join(path, 'runnable3', 'nest', 'test')
+                #ret = e.runnable(dpath, m, p)
+                #self.assertIsNone(ret)
+                #self.assertTrue(os.path.isdir(dpath))
+                #self.assertTrue(len(os.listdir(dpath)) > 0)
+
             else:
+
                 self.assertRaises(NotImplementedError, e.runnable, path, m, p)
 
             # Test if any exports were available
             if exports == 0:
                 raise Exception(
                     'No types of export supported by: ' + exporter)
+
+    def test_runnable_exporter_shared(self):
+        """
+        Tests shared functionality of the TemplatedRunnableExporters.
+        """
+        e = myokit.formats.exporter('ansic')
+
+        # Load model, protocol
+        m, p, x = myokit.load('example')
+
+        # Create empty output directory as subdirectory of DIR_OUT
+        with TemporaryDirectory() as d:
+            path = d.path()
+
+            # Simple export
+            dpath = os.path.join(path, 'runnable1')
+            ret = e.runnable(dpath, m)
+            self.assertIsNone(ret)
+            self.assertTrue(os.path.isdir(dpath))
+            self.assertTrue(len(os.listdir(dpath)) > 0)
+
+            # Write to complex path
+            dpath = os.path.join(path, 'runnable2', 'nest', 'test')
+            ret = e.runnable(dpath, m, p)
+            self.assertIsNone(ret)
+            self.assertTrue(os.path.isdir(dpath))
+            self.assertTrue(len(os.listdir(dpath)) > 0)
+
+            # Overwrite existing path
+            ret = e.runnable(dpath, m, p)
+            self.assertIsNone(ret)
+            self.assertTrue(os.path.isdir(dpath))
+            self.assertTrue(len(os.listdir(dpath)) > 0)
+
+            # Path pointing to file
+            dpath = os.path.join(path, 'file')
+            with open(dpath, 'w') as f:
+                f.write('contents\n')
+            self.assertRaisesRegexp(
+                myokit.ExportError, 'file exists', e.runnable, dpath, m, p)
+
+            # Directory where trying to write a file
+            dpath = os.path.join(path, 'runnable3')
+            fname = os.path.join(dpath, 'sim.c')
+            os.makedirs(fname)
+            self.assertRaisesRegexp(
+                myokit.ExportError, 'Directory exists',
+                e.runnable, dpath, m, p)
 
     def test_ansic_exporter(self):
         self._test(myokit.formats.exporter('ansic'))
