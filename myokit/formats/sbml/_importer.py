@@ -63,7 +63,7 @@ class SBMLImporter(myokit.formats.Importer):
             return self.units[unit]
         elif unit in unit_map:
             return unit_map[unit]
-        else:
+        else:      # pragma: no cover
             raise SBMLError('Unit not recognized: ' + str(unit))
 
     def info(self):
@@ -182,8 +182,8 @@ class SBMLImporter(myokit.formats.Importer):
                 else:
                     # Change of value
                     var.set_rhs(expr)
-            else:
-                raise SBMLError(
+            else:   # pragma: no cover
+                raise SBMLError(   # pragma: no cover
                     'Initial assignment found for unknown parameter <' + var
                     + '>.')
 
@@ -238,7 +238,7 @@ class SBMLImporter(myokit.formats.Importer):
                 var.set_rhs(parse_mathml_rhs(
                     dom_child(node, 'math'), refs, self.logger()))
             else:
-                raise SBMLError(
+                raise SBMLError(   # pragma: no cover
                     'Assignment found for unknown parameter: "' + var + '".')
             node = dom_next(node, 'assignmentRule')
 
@@ -256,7 +256,7 @@ class SBMLImporter(myokit.formats.Importer):
                 var.set_rhs(parse_mathml_rhs(
                     dom_child(node, 'math'), refs, self.logger()))
             else:
-                raise SBMLError(
+                raise SBMLError(   # pragma: no cover
                     'Derivative found for unknown parameter: <' + var + '>.')
             node = dom_next(node, 'rateRule')
 

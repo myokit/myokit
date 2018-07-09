@@ -202,7 +202,7 @@
           </rdf:RDF>
         </annotation>
       </parameter>
-      <parameter id="i_L" constant="false" name="i_L" metaid="metaid_0000014">
+      <parameter id="_i_L" constant="false" name="_i_L" metaid="metaid_0000014">
         <notes>
           <p xmlns="http://www.w3.org/1999/xhtml">
         leakage current</p>
@@ -559,10 +559,10 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule metaid="metaid_0000044" variable="i_L">
+      <assignmentRule metaid="metaid_0000044" variable="_i_L">
         <notes>
           <p xmlns="http://www.w3.org/1999/xhtml">
-        i_L = g_L * (V - V_L)</p>
+        _i_L = g_L * (V - V_L)</p>
 
         </notes>
         <annotation>
@@ -715,7 +715,7 @@
       <rateRule metaid="metaid_0000048" variable="V">
         <notes>
           <p xmlns="http://www.w3.org/1999/xhtml">
-        dV/dt = (I - (i_Na + i K + i_L))/Cm</p>
+        dV/dt = (I - (i_Na + i K + _i_L))/Cm</p>
 
         </notes>
         <math xmlns="http://www.w3.org/1998/Math/MathML">
@@ -728,7 +728,7 @@
                 <plus/>
                 <ci> i_Na </ci>
                 <ci> i K </ci>
-                <ci> i_L </ci>
+                <ci> _i_L </ci>
               </apply>
             </apply>
             <ci> Cm </ci>
