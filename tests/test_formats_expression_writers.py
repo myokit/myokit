@@ -70,8 +70,17 @@ import myokit.formats.stan
 # Piecewise
 
 
-class UnknownExpressionWriterTest(unittest.TestCase):
-    """ Tests requesting an unknown expression writer. """
+class ExpressionWriterTest(unittest.TestCase):
+    """ Tests shared expression writer functionality. """
+
+    def test_ewriter_interface(self):
+        """ Tests listing and creating expression writers. """
+        es = myokit.formats.ewriters()
+        self.assertTrue(len(es) > 0)
+        for e in es:
+            self.assertIn(type(e), [str, unicode])
+            e = myokit.formats.ewriter(e)
+            self.assertTrue(isinstance(e, myokit.formats.ExpressionWriter))
 
     def test_unknown(self):
         """ Tests requesting an unknown expression writer. """
@@ -412,8 +421,9 @@ class CellMLExpressionWriterTest(unittest.TestCase):
             '</piecewise>'
         )
 
-        # Test fetching using ewriter method --> Won't work!
-        self.assertRaises(TypeError, myokit.formats.ewriter, 'cellml')
+        # Test fetching using ewriter method
+        w = myokit.formats.ewriter('cellml')
+        self.assertIsInstance(w, myokit.formats.cellml.CellMLExpressionWriter)
 
         # Content mode not allowed
         self.assertRaises(RuntimeError, w.set_mode, True)

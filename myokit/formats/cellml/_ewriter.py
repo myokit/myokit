@@ -26,10 +26,10 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
     The expression writer requires a single argument ``units``. This should be
     a mapping of Myokit units to string unit names.
     """
-    def __init__(self, units):
+    def __init__(self, units=None):
         super(CellMLExpressionWriter, self).__init__()
         super(CellMLExpressionWriter, self).set_mode(presentation=False)
-        self._units = units
+        self._units = {} if units is None else units
 
     def _ex_number(self, e, t):
         x = self._et.SubElement(t, 'cn')
