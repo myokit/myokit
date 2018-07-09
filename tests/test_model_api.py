@@ -115,8 +115,6 @@ class ModelBuildTest(unittest.TestCase):
         self.assertFalse(x.is_intermediary())
         self.assertTrue(x.is_constant())
         self.assertEqual(x.lhs(), Name(x))
-        self.assertRaises(Exception, x.demote)
-        self.assertRaises(Exception, x.indice)
         x.promote()
         self.assertTrue(x.is_state())
         self.assertFalse(x.is_intermediary())
@@ -1382,11 +1380,6 @@ class ModelTest(unittest.TestCase):
         t.set_rhs(0)
         v = c.add_variable('v')
         v.set_rhs('3 - v')
-        self.assertFalse(v.is_labelled())
-        v.set_label('membrane_potential')
-        self.assertTrue(v.is_labelled())
-        v.set_label(None)
-        self.assertFalse(v.is_labelled())
         v.set_label('membrane_potential')
         w = c.add_variable('w')
         w.set_rhs(1)
@@ -1817,6 +1810,71 @@ class VariableTest(unittest.TestCase):
         v.set_unit(kg)
         self.assertEqual(v.unit(), kg)
         self.assertEqual(v.unit(myokit.UNIT_STRICT), kg)
+
+    def test_promote_demote(self):
+        """
+        Tests variable promotion and demotion.
+        """
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        v.set_rhs(3)
+
+        self.assertTrue(v.is_literal())
+        self.assertTrue(v.is_constant())
+        self.assertFalse(v.is_intermediary())
+        self.assertFalse(v.is_state())
+        self.assertEqual(v.lhs(), myokit.Name(v))
+        self.assertRaises(Exception, v.demote)
+        self.assertRaises(Exception, v.indice)
+        self.assertRaises(Exception, v.state_value)
+
+        v.promote(3)
+        self.assertFalse(v.is_literal())
+        self.assertFalse(v.is_constant())
+        self.assertFalse(v.is_intermediary())
+        self.assertTrue(v.is_state())
+        self.assertEqual(v.lhs(), myokit.Derivative(myokit.Name(v)))
+        self.assertEqual(v.indice(), 0)
+        self.assertEqual(v.state_value(), 3)
+
+        v.demote()
+        self.assertTrue(v.is_literal())
+        self.assertTrue(v.is_constant())
+        self.assertFalse(v.is_intermediary())
+        self.assertFalse(v.is_state())
+        self.assertEqual(v.lhs(), myokit.Name(v))
+        self.assertRaises(Exception, v.demote)
+        self.assertRaises(Exception, v.indice)
+        self.assertRaises(Exception, v.state_value)
+
+        # Test errors
+        v.promote(3)
+        self.assertRaisesRegexp(Exception, 'already', v.promote, 4)
+        v.demote()
+        v.set_binding('time')
+        self.assertRaisesRegexp(Exception, 'cannot be bound', v.promote, 4)
+        w = v.add_variable('w')
+        self.assertRaisesRegexp(
+            Exception, 'only be added to Components', w.promote, 4)
+
+    def test_labelling(self):
+        """
+        Tests variable labelling.
+        """
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        v.set_rhs(3)
+
+        self.assertFalse(v.is_labelled())
+        self.assertIsNone(v.label())
+        v.set_label('membrane_potential')
+        self.assertTrue(v.is_labelled())
+        self.assertEqual(v.label(), 'membrane_potential')
+        v.set_label(None)
+        self.assertFalse(v.is_labelled())
+        self.assertIsNone(v.label())
 
 
 class UserFunctionTest(unittest.TestCase):

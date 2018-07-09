@@ -298,7 +298,7 @@ class NumberTest(unittest.TestCase):
         x = myokit.Number('4e-05')
         self.assertEqual(str(x), '4e-5')
         x = myokit.Number('4e+15')
-        self.assertEqual(str(x), '4e+15')
+        self.assertEqual(str(x), '4e15')
         x = myokit.Number(4, myokit.Unit.parse_simple('pF'))
         self.assertEqual(str(x), '4 [pF]')
         x = myokit.Number(-3, myokit.Unit.parse_simple('pF'))
