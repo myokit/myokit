@@ -375,41 +375,50 @@ def parse_mathml_rhs(
             # Cosecant: csc(x) = 1 / sin(x)
             return myokit.Divide(
                 myokit.Number(1), myokit.Sin(parsex(dom_next(node))))
+
         elif name == 'sec':
             # Secant: sec(x) = 1 / cos(x)
             return myokit.Divide(
                 myokit.Number(1), myokit.Cos(parsex(dom_next(node))))
+
         elif name == 'cot':
             # Contangent: cot(x) = 1 / tan(x)
             return myokit.Divide(
                 myokit.Number(1), myokit.Tan(parsex(dom_next(node))))
+
         elif name == 'arccsc':
             # ArcCosecant: acsc(x) = asin(1/x)
             return myokit.ASin(
                 myokit.Divide(myokit.Number(1), parsex(dom_next(node))))
+
         elif name == 'arcsec':
             # ArcSecant: asec(x) = acos(1/x)
             return myokit.ACos(
                 myokit.Divide(myokit.Number(1), parsex(dom_next(node))))
+
         elif name == 'arccot':
             # ArcCotangent: acot(x) = atan(1/x)
             return myokit.ATan(
                 myokit.Divide(myokit.Number(1), parsex(dom_next(node))))
+
         #
         # Hyperbolic trigonometry (CellML again)
         #
+
         elif name == 'sinh':
             # Hyperbolic sine: sinh(x) = 0.5 * (e^x - e^-x)
             x = parsex(dom_next(node))
             return myokit.Multiply(
                 myokit.Number(0.5), myokit.Minus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
+
         elif name == 'cosh':
             # Hyperbolic cosine: cosh(x) = 0.5 * (e^x + e^-x)
             x = parsex(dom_next(node))
             return myokit.Multiply(
                 myokit.Number(0.5), myokit.Plus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
+
         elif name == 'tanh':
             # Hyperbolic tangent: tanh(x) = (e^2x - 1) / (e^2x + 1)
             x = parsex(dom_next(node))
@@ -417,14 +426,17 @@ def parse_mathml_rhs(
             return myokit.Divide(
                 myokit.Minus(e2x, myokit.Number(1)),
                 myokit.Plus(e2x, myokit.Number(1)))
+
         #
         # Inverse hyperbolic trigonometry (CellML...)
         #
+
         elif name == 'arcsinh':
             # Inverse hyperbolic sine: asinh(x) = log(x + sqrt(1 + x*x))
             x = parsex(dom_next(node))
             return myokit.Log(myokit.Plus(x, myokit.Sqrt(myokit.Plus(
                 myokit.Number(1), myokit.Multiply(x, x)))))
+
         elif name == 'arccosh':
             # Inverse hyperbolic cosine:
             #   acosh(x) = log(x + sqrt(x + 1) * sqrt(x - 1))
@@ -433,6 +445,7 @@ def parse_mathml_rhs(
                 myokit.Plus(x, myokit.Multiply(
                     myokit.Sqrt(myokit.Plus(x, myokit.Number(1))),
                     myokit.Sqrt(myokit.Minus(x, myokit.Number(1))))))
+
         elif name == 'arctanh':
             # Inverse hyperbolic tangent:
             #   atanh(x) = 0.5 * (log(1 + x) - log(1 - x))
@@ -441,21 +454,25 @@ def parse_mathml_rhs(
                 myokit.Number(0.5), myokit.Minus(
                     myokit.Log(myokit.Plus(myokit.Number(1), x)),
                     myokit.Log(myokit.Minus(myokit.Number(1), x))))
+
         #
         # Hyperbolic redundant trigonometry (CellML...)
         #
+
         elif name == 'csch':
             # Hyperbolic cosecant: csch(x) = 2 / (exp(x) - exp(-x))
             x = parsex(dom_next(node))
             return myokit.Divide(
                 myokit.Number(2), myokit.Minus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
+
         elif name == 'sech':
             # Hyperbolic secant: sech(x) = 2 / (exp(x) + exp(-x))
             x = parsex(dom_next(node))
             return myokit.Divide(
                 myokit.Number(2), myokit.Plus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
+
         elif name == 'coth':
             # Hyperbolic cotangent:
             #   coth(x) = (exp(2*x) + 1) / (exp(2*x) - 1)
@@ -464,62 +481,97 @@ def parse_mathml_rhs(
             return myokit.Divide(
                 myokit.Plus(e2x, myokit.Number(1)),
                 myokit.Minus(e2x, myokit.Number(1)))
+
         #
         # Inverse hyperbolic redundant trigonometry (CellML has a lot to answer
         # for...)
         #
+
         elif name == 'arccsch':
             # Inverse hyperbolic cosecant:
-            #   arccsch(x) = log(sqrt(1 + 1/x^2) + 1/x)
-            xi = myokit.Divide(myokit.Number(1), parsex(dom_next(node)))
+            #   arccsch(x) = log(sqrt(1/(x*x) + 1) + 1/x)
+            x = parsex(dom_next(node))
             return myokit.Log(
                 myokit.Plus(
                     myokit.Sqrt(
-                        myokit.Number(1),
-                        myokit.Power(xi, myokit.Number(2))), xi))
+                        myokit.Plus(
+                            myokit.Divide(
+                                myokit.Number(1),
+                                myokit.Multiply(x, x)
+                            ),
+                            myokit.Number(1)
+                        )
+                    ),
+                    myokit.Divide(myokit.Number(1), x))
+            )
         elif name == 'arcsech':
             # Inverse hyperbolic secant:
-            #   arcsech(x) = log(sqrt(1/x - 1) * sqrt(1/x + 1) + 1/x)
-            xi = myokit.Divide(myokit.Number(1), parsex(dom_next(node)))
+            #   arcsech(x) = log(sqrt(1/(x*x) - 1) + 1/x)
+            x = parsex(dom_next(node))
             return myokit.Log(
-                myokit.Plus(myokit.Multiply(
-                    myokit.Sqrt(myokit.Minus(xi, myokit.Number(1))),
-                    myokit.Sqrt(myokit.Plus(xi, myokit.Number(1)))), xi))
+                myokit.Plus(
+                    myokit.Sqrt(
+                        myokit.Minus(
+                            myokit.Divide(
+                                myokit.Number(1),
+                                myokit.Multiply(x, x)
+                            ),
+                            myokit.Number(1)
+                        )
+                    ),
+                    myokit.Divide(myokit.Number(1), x))
+            )
         elif name == 'arccoth':
             # Inverse hyperbolic cotangent:
-            #   arccoth(x) = 0.5 * (log(1 + 1/x) - log(1 - 1/x))
-            xi = myokit.Divide(myokit.Number(1), parsex(dom_next(node)))
+            #   arccoth(x) = 0.5 * (log(3 + 1) - log(3 - 1))
+            x = parsex(dom_next(node))
             return myokit.Multiply(
-                myokit.Number(0.5), myokit.Minus(
-                    myokit.Log(myokit.Plus(myokit.Number(1), xi)),
-                    myokit.Log(myokit.Minus(myokit.Number(1), xi))))
+                myokit.Number(0.5),
+                myokit.Log(
+                    myokit.Divide(
+                        myokit.Plus(x, myokit.Number(1)),
+                        myokit.Minus(x, myokit.Number(1))
+                    )
+                )
+            )
+
         #
         # Logic
         #
+
         elif name == 'and':
             return chain(myokit.And, node)
+
         elif name == 'or':
             return chain(myokit.Or, node)
+
         elif name == 'not':
             return chain(None, node, myokit.Not)
+
         elif name == 'eq' or name == 'equivalent':
             n2 = dom_next(node)
             return myokit.Equal(parsex(n2), parsex(dom_next(n2)))
+
         elif name == 'neq':
             n2 = dom_next(node)
             return myokit.NotEqual(parsex(n2), parsex(dom_next(n2)))
+
         elif name == 'gt':
             n2 = dom_next(node)
             return myokit.More(parsex(n2), parsex(dom_next(n2)))
+
         elif name == 'lt':
             n2 = dom_next(node)
             return myokit.Less(parsex(n2), parsex(dom_next(n2)))
+
         elif name == 'geq':
             n2 = dom_next(node)
             return myokit.MoreEqual(parsex(n2), parsex(dom_next(n2)))
+
         elif name == 'leq':
             n2 = dom_next(node)
             return myokit.LessEqual(parsex(n2), parsex(dom_next(n2)))
+
         elif name == 'piecewise':
             # Piecewise contains at least one piece, optionally contains an
             #  "otherwise". Syntax doesn't ensure this statement makes sense.
@@ -544,8 +596,12 @@ def parse_mathml_rhs(
                         'Unexpected tag type in <piecewise>: <' + piece.tagName
                         + '>.')
                 piece = dom_next(piece)
+
             if other is None:
+                if logger:
+                    logger.warn('No <otherwise> tag found in <piecewise>')
                 other = myokit.Number(0)
+
             # Create string of if statements
             args = []
             f = iter(funcs)
@@ -554,9 +610,11 @@ def parse_mathml_rhs(
                 args.append(next(f))
             args.append(other)
             return myokit.Piecewise(*args)
+
         #
         # Constants
         #
+
         elif name == 'pi':
             return myokit.Number('3.14159265358979323846')
         elif name == 'exponentiale':
@@ -566,6 +624,7 @@ def parse_mathml_rhs(
             return myokit.Number(1)
         elif name == 'false':
             return myokit.Number(0)
+
         #
         # Unknown/unhandled elements
         #
@@ -578,10 +637,14 @@ def parse_mathml_rhs(
                 ops.append(parsex(node))
                 node = dom_next(node)
             return myokit.UnsupportedFunction(name, ops)
+
     # Remove math node, if given
     if node.tagName == 'math':
         node = dom_child(node)
+
     # TODO: Check xmlns?
+
+    # Return
     return parsex(node)
 
 
@@ -596,29 +659,40 @@ def parse_mathml_number(node, logger=None):
     assuming the :class:`myokit.TextLogger` interface.
     """
     kind = node.getAttribute('type')
+
     if kind == '':
         # Default type
         kind = 'real'
+
     if kind == 'real':
         # Float, specified as 123.123 (no exponent!)
         # May be in a different base than 10
         base = node.getAttribute('base')
         if base:
-            raise MathMLError('BASE conversion for reals is not supported')
+            try:
+                base = float(base)
+            except (TypeError, ValueError):
+                raise MathMLError('Invalid BASE specified.')
+            if base != 10:
+                raise MathMLError('BASE conversion for reals is not supported')
         return myokit.Number(str(node.firstChild.data).strip())
+
     elif kind == 'integer':
         # Integer in any given base
         base = node.getAttribute('base')
         numb = str(node.firstChild.data).strip()
         if base:
-            v = int(numb, base)
+            v = int(numb, int(base))
             if logger:
-                logger.log('Converted from ' + str(numb) + ' to ' + str(v))
+                logger.log('Converted from base ' + str(base) + ' to 10.')
             numb = v
         return myokit.Number(numb)
+
     elif kind == 'double':
         # Floating point (positive, negative, exponents, etc)
+        numb = str(node.firstChild.data).strip()
         return myokit.Number(numb)
+
     elif kind == 'e-notation':
         # 1<sep />3 = 1e3
         sig = str(node.firstChild.data.strip())
@@ -627,6 +701,7 @@ def parse_mathml_number(node, logger=None):
         if logger:
             logger.log('Converted ' + sig + 'e' + str(exp) + '.')
         return myokit.Number(numb)
+
     elif kind == 'rational':
         # 1<sep />3 = 1 / 3
         num = str(node.firstChild.data.strip())
@@ -635,5 +710,7 @@ def parse_mathml_number(node, logger=None):
         if logger:
             logger.log('Converted ' + num + ' / ' + den + ' to ' + numb)
         return myokit.Number(numb)
+
     else:
         raise MathMLError('Unsupported <cn> type: ' + kind)
+
