@@ -43,10 +43,23 @@ class ExportTest(unittest.TestCase):
             # Try model export
             if e.supports_model():
                 exports += 1
+
+                # Basic export
                 fpath = os.path.join(path, 'model.txt')
                 ret = e.model(fpath, m)
                 self.assertIsNone(ret)
                 self.assertTrue(os.path.isfile(fpath))
+
+                # Unnamed model
+                name = m.name()
+                try:
+                    m.set_name(None)
+                    ret = e.model(fpath, m)
+                    self.assertIsNone(ret)
+                    self.assertTrue(os.path.isfile(fpath))
+                finally:
+                    m.set_name(name)
+
             else:
                 self.assertRaises(NotImplementedError, e.model, path, m)
 
