@@ -239,8 +239,10 @@ def parse_mathml_rhs(
                 try:
                     var = var_table[var]
                 except KeyError:
-                    logger.warn(
-                        'Unable to resolve reference to <' + str(var) + '>.')
+                    if logger:
+                        logger.warn(
+                            'Unable to resolve reference to <' + str(var)
+                            + '>.')
             return myokit.Name(var)
         elif name == 'diff':
             # Derivative
