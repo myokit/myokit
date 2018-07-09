@@ -13,7 +13,7 @@ import myokit
 from myokit.mxml import dom_child, dom_next
 
 
-class MathMLError(myokit.ExportError):
+class MathMLError(myokit.ImportError):
     """
     Raised if an error occurs during MathML import.
     """
@@ -227,15 +227,17 @@ def parse_mathml_rhs(
             for i in range(2, n):
                 ex = kind(ex, ops[i])
             return ex
+
         # Start parsing
         name = node.tagName
         if name == 'apply':
             # Brackets, can be ignored in an expression tree.
             return parsex(dom_child(node))
+
         elif name == 'ci':
             # Reference
             var = str(node.firstChild.data).strip()
-            if var_table:
+            if var_table is not None:
                 try:
                     var = var_table[var]
                 except KeyError:
@@ -244,12 +246,14 @@ def parse_mathml_rhs(
                             'Unable to resolve reference to <' + str(var)
                             + '>.')
             return myokit.Name(var)
+
         elif name == 'diff':
             # Derivative
             # Check time variable
             bvar = dom_next(node, 'bvar')
             if derivative_post_processor:
                 derivative_post_processor(parsex(dom_child(bvar, 'ci')))
+
             # Check degree, if given
             d = dom_child(bvar, 'degree')
             if d is not None:
@@ -257,6 +261,7 @@ def parse_mathml_rhs(
                 if not d == 1:
                     raise MathMLError(
                         'Only derivatives of degree one are supported.')
+
             # Create derivative and return
             x = dom_next(node, 'ci')
             if x is None:
@@ -264,30 +269,40 @@ def parse_mathml_rhs(
                     'Derivative of an expression found: only derivatives of'
                     ' variables are supported.')
             return myokit.Derivative(parsex(x))
+
         elif name == 'cn':
             # Number
             number = parse_mathml_number(node, logger)
             if number_post_processor:
                 return number_post_processor(node, number)
             return number
+
         #
         # Algebra
         #
+
         elif name == 'plus':
             return chain(myokit.Plus, node, myokit.PrefixPlus)
+
         elif name == 'minus':
             return chain(myokit.Minus, node, myokit.PrefixMinus)
+
         elif name == 'times':
             return chain(myokit.Multiply, node)
+
         elif name == 'divide':
             return chain(myokit.Divide, node)
+
         #
         # Functions
         #
+
         elif name == 'exp':
             return myokit.Exp(parsex(dom_next(node)))
+
         elif name == 'ln':
             return myokit.Log(parsex(dom_next(node)))
+
         elif name == 'log':
             if dom_next(node).tagName != 'logbase':
                 return myokit.Log10(parsex(dom_next(node)))
@@ -295,6 +310,7 @@ def parse_mathml_rhs(
                 return myokit.Log(
                     parsex(dom_next(dom_next(node))),
                     parsex(dom_child(dom_next(node))))
+
         elif name == 'root':
             # Check degree, if given
             nxt = dom_next(node)
@@ -307,39 +323,54 @@ def parse_mathml_rhs(
                 return myokit.Power(x, myokit.Divide(myokit.Number(1), d))
             else:
                 return myokit.Sqrt(parsex(nxt))
+
         elif name == 'power':
             n2 = dom_next(node)
             return myokit.Power(parsex(n2), parsex(dom_next(n2)))
+
         elif name == 'floor':
             return myokit.Floor(parsex(dom_next(node)))
+
         elif name == 'ceiling':
             return myokit.Ceil(parsex(dom_next(node)))
+
         elif name == 'abs':
             return myokit.Abs(parsex(dom_next(node)))
+
         elif name == 'quotient':
             n2 = dom_next(node)
             return myokit.Quotient(parsex(n2), parsex(dom_next(n2)))
+
         elif name == 'rem':
             n2 = dom_next(node)
             return myokit.Remainder(parsex(n2), parsex(dom_next(n2)))
+
         #
         # Trigonometry
         #
+
         elif name == 'sin':
             return myokit.Sin(parsex(dom_next(node)))
+
         elif name == 'cos':
             return myokit.Cos(parsex(dom_next(node)))
+
         elif name == 'tan':
             return myokit.Tan(parsex(dom_next(node)))
+
         elif name == 'arcsin':
             return myokit.ASin(parsex(dom_next(node)))
+
         elif name == 'arccos':
             return myokit.ACos(parsex(dom_next(node)))
+
         elif name == 'arctan':
             return myokit.ATan(parsex(dom_next(node)))
+
         #
         # Redundant trigonometry (CellML includes this)
         #
+
         elif name == 'csc':
             # Cosecant: csc(x) = 1 / sin(x)
             return myokit.Divide(

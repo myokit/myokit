@@ -713,7 +713,7 @@ class Name(LhsExpression):
         return Name(self._value)
 
     def _code(self, b, c):
-        if type(self._value) == str:
+        if type(self._value) in [str, unicode]:
             # Allow an exception for strings (used in function templates and
             # debugging).
             b.write('str:' + str(self._value))
@@ -756,7 +756,7 @@ class Name(LhsExpression):
         return self._value.is_state()
 
     def _polishb(self, b):
-        if type(self._value) == str:
+        if type(self._value) in [str, unicode]:
             # Allow an exception for strings
             b.write('str:')
             b.write(self._value)

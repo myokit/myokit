@@ -11,9 +11,11 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import unittest
+import xml.dom.minidom
 
 import myokit
 import myokit.formats.mathml
+from myokit.mxml import dom_child
 
 
 class ContentMathMLTest(unittest.TestCase):
@@ -31,8 +33,7 @@ class ContentMathMLTest(unittest.TestCase):
         w.set_mode(presentation=False)
 
         def r(ex):
-            import xml.dom.minidom
-            from myokit.mxml import dom_child
+            """ Read a MathML element (e.g. an <apply>) """
             var_table = {'c.a': avar}
             x = dom_child(xml.dom.minidom.parseString(ex))
             return myokit.formats.mathml.parse_mathml_rhs(x, var_table)
@@ -314,6 +315,49 @@ class ContentMathMLTest(unittest.TestCase):
         # Test without a Myokit expression
         self.assertRaisesRegexp(
             ValueError, 'Unknown expression type', w.ex, 7)
+
+    def test_parse_mathml(self):
+        """
+        Tests :meth:`myokit.formats.mathml.parse_mathml()`.
+        """
+        mathml = (
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '<apply><cn>1.0</cn></apply>'
+            '</math>'
+        )
+        self.assertEqual(
+            myokit.formats.mathml.parse_mathml(mathml), myokit.Number(1))
+
+    def test_parsing_bad_mathml(self):
+        """
+        Tests the parser on various invalid bits of mathml.
+        """
+        def test(s):
+            tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+            tag2 = '</math>'
+            myokit.formats.mathml.parse_mathml(tag1 + s + tag2)
+
+        me = myokit.formats.mathml.MathMLError
+
+        # No operands
+        self.assertRaisesRegexp(
+            me, 'at least one operand', test,
+            '<apply><times /></apply>')
+
+        # Only one operand
+        self.assertRaisesRegexp(
+            me, 'at least two operands', test,
+            '<apply><times /><cn>1.0</cn></apply>')
+
+        # Unresolvable reference
+        x = '<apply><ci>bert</ci></apply>'
+        var_table = {'ernie': 'banaan'}
+        logger = myokit.formats.TextLogger()
+        x = dom_child(xml.dom.minidom.parseString(x))
+        myokit.formats.mathml.parse_mathml_rhs(x, var_table, logger=logger)
+        w = list(logger.warnings())
+        self.assertEqual(len(w), 1)
+        self.assertIn('Unable to resolve', w[0])
 
 
 class PresentationMathMLTest(unittest.TestCase):
