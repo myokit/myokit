@@ -86,13 +86,27 @@ class SBMLTest(unittest.TestCase):
 
     def test_model(self):
         i = formats.importer('sbml')
-        self.assertTrue(i.supports_model())
-        m = i.model(os.path.join(DIR_DATA, 'HodgkinHuxley.xml'))
-        try:
-            m.validate()
-        except myokit.MissingTimeVariableError:
-            # SBML models don't specify the time variable
-            pass
+
+        def sbml(fname):
+            m = i.model(os.path.join(DIR_DATA, fname))
+            try:
+                m.validate()
+            except myokit.MissingTimeVariableError:
+                # SBML models don't specify the time variable
+                pass
+
+        # Basic Hodgkin-Huxley
+        sbml('HodgkinHuxley.xml')
+
+        # Same but without a model name
+        sbml('HodgkinHuxley-no-model-name-but-id.xml')
+        sbml('HodgkinHuxley-no-model-name-or-id.xml')
+
+        # Same but with funny variable names
+        sbml('HodgkinHuxley-funny-names.xml')
+
+        # Model with listOfInitialValues
+        sbml('Noble1962-initial-assignments.xml')
 
     def test_info(self):
         i = formats.importer('sbml')

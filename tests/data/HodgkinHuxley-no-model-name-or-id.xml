@@ -5,7 +5,7 @@
 <!-- http://www.ebi.ac.uk/biomodels/                   -->
 
 <sbml xmlns="http://www.sbml.org/sbml/level2/version3" level="2" metaid="metaid_000001" version="3">
-  <model id="hhsa_1952" name="hodgkin-huxley squid-axon 1952" metaid="metaid_0000002">
+  <model metaid="metaid_0000002">
     <notes>
       <body xmlns="http://www.w3.org/1999/xhtml">
         <p>This is an implementation of the Hodgkin-Huxley model of the electrical behavior of the squid axon membrane from:      <br/>
@@ -384,6 +384,7 @@
         <notes>
           <p xmlns="http://www.w3.org/1999/xhtml">
         V_neg = -V</p>
+
         </notes>
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>

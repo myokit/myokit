@@ -184,7 +184,7 @@
           </rdf:RDF>
         </annotation>
       </parameter>
-      <parameter id="i_K" constant="false" name="i_K" metaid="metaid_0000013">
+      <parameter id="i K" constant="false" name="i K" metaid="metaid_0000013">
         <notes>
           <p xmlns="http://www.w3.org/1999/xhtml">
         potassium current</p>
@@ -490,10 +490,10 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule metaid="metaid_0000043" variable="i_K">
+      <assignmentRule metaid="metaid_0000043" variable="i K">
         <notes>
           <p xmlns="http://www.w3.org/1999/xhtml">
-        i_K = g_K * n^4.0 * (V - V_K)</p>
+        i K = g_K * n^4.0 * (V - V_K)</p>
 
         </notes>
         <annotation>
@@ -715,7 +715,7 @@
       <rateRule metaid="metaid_0000048" variable="V">
         <notes>
           <p xmlns="http://www.w3.org/1999/xhtml">
-        dV/dt = (I - (i_Na + i_K + i_L))/Cm</p>
+        dV/dt = (I - (i_Na + i K + i_L))/Cm</p>
 
         </notes>
         <math xmlns="http://www.w3.org/1998/Math/MathML">
@@ -727,7 +727,7 @@
               <apply>
                 <plus/>
                 <ci> i_Na </ci>
-                <ci> i_K </ci>
+                <ci> i K </ci>
                 <ci> i_L </ci>
               </apply>
             </apply>

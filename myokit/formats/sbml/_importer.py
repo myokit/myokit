@@ -42,14 +42,14 @@ class SBMLImporter(myokit.formats.Importer):
 
     def _convert_name(self, name):
         """
-        Converts a name to something acceptable by myokit.
+        Converts a name to something acceptable to myokit.
         """
         if not self.re_name.match(name):
             org_name = name
             name = self.re_white.sub('_', name)
             name = self.re_alpha.sub('_', name)
             if not self.re_name.match(name):
-                name = 'x_' + name2
+                name = 'x_' + name
             self.logger().warn(
                 'Converting name <' + org_name + '> to <' + name + '>.')
         return name
@@ -94,6 +94,9 @@ class SBMLImporter(myokit.formats.Importer):
         # Create one giant component to hold all variables
         comp = model.add_component('sbml')
 
+        # Create table of variable names
+        refs = {}
+
         # Handle notes, if given
         x = dom_child(xmodel, 'notes')
         if x:
@@ -103,24 +106,24 @@ class SBMLImporter(myokit.formats.Importer):
 
         # Warn about missing functionality
         x = dom_child(xmodel, 'listOfCompartments')
-        if x:
+        if x:   # pragma: no cover
             log.warn('Compartments are not supported.')
         x = dom_child(xmodel, 'listOfSpecies')
-        if x:
+        if x:   # pragma: no cover
             log.warn('Species are not supported.')
         x = dom_child(xmodel, 'listOfConstraints')
-        if x:
+        if x:   # pragma: no cover
             log.warn('Constraints are not supported.')
         x = dom_child(xmodel, 'listOfReactions')
-        if x:
+        if x:   # pragma: no cover
             log.warn('Reactions are not supported.')
         x = dom_child(xmodel, 'listOfEvents')
-        if x:
+        if x:   # pragma: no cover
             log.warn('Events are not supported.')
 
-        # Handle custom functions TODO???
+        # Ignore custom functions
         x = dom_child(xmodel, 'listOfFunctionDefinitions')
-        if x:
+        if x:   # pragma: no cover
             log.warn('Custom math functions are not (yet) implemented.')
 
         # Parse custom units
@@ -131,17 +134,17 @@ class SBMLImporter(myokit.formats.Importer):
         # Parse parameters (constants + parameters)
         x = dom_child(xmodel, 'listOfParameters')
         if x:
-            self._parse_parameters(model, comp, x)
+            self._parse_parameters(model, comp, refs, x)
 
         # Parse rules (equations)
         x = dom_child(xmodel, 'listOfRules')
         if x:
-            self._parse_rules(model, comp, x)
+            self._parse_rules(model, comp, refs, x)
 
         # Parse extra initial assignments
         x = dom_child(xmodel, 'listOfInitialAssignments')
         if x:
-            self._parse_initial_assignments(model, comp, x)
+            self._parse_initial_assignments(model, comp, refs, x)
 
         # Write warnings to log
         log.log_warnings()
@@ -158,7 +161,7 @@ class SBMLImporter(myokit.formats.Importer):
         # Return finished model
         return model
 
-    def _parse_initial_assignments(self, model, comp, node):
+    def _parse_initial_assignments(self, model, comp, refs, node):
         """
         Parses any initial values specified outside of the rules section.
         """
@@ -170,11 +173,12 @@ class SBMLImporter(myokit.formats.Importer):
                 self.logger().log(
                     'Parsing initial assignment for "' + var + '".')
                 var = comp[var]
-                expr = parse_mathml_rhs(dom_child(node, 'math'), comp, self)
+                expr = parse_mathml_rhs(
+                    dom_child(node, 'math'), refs, self.logger())
 
                 if var.is_state():
                     # Initial value
-                    var.set_state_value(expr, default=True)
+                    var.set_state_value(expr)
                 else:
                     # Change of value
                     var.set_rhs(expr)
@@ -185,14 +189,15 @@ class SBMLImporter(myokit.formats.Importer):
 
             node = dom_next(node, 'initialAssignment')
 
-    def _parse_parameters(self, model, comp, node):
+    def _parse_parameters(self, model, comp, refs, node):
         """
         Parses parameters
         """
         node = dom_child(node, 'parameter')
         while node:
             # Create variable
-            name = self._convert_name(str(node.getAttribute('id')))
+            org_name = str(node.getAttribute('id'))
+            name = self._convert_name(org_name)
             self.logger().log('Found parameter "' + name + '"')
             if name in comp:
                 self.logger().warn(
@@ -210,9 +215,13 @@ class SBMLImporter(myokit.formats.Importer):
                 var = comp.add_variable(name)
                 var.set_unit(unit)
                 var.set_rhs(value)
+
+                # Store reference to variable
+                refs[org_name] = refs[name] = var
+
             node = dom_next(node, 'parameter')
 
-    def _parse_rules(self, model, comp, node):
+    def _parse_rules(self, model, comp, refs, node):
         """
         Parses the rules (equations) in this model
         """
@@ -227,7 +236,7 @@ class SBMLImporter(myokit.formats.Importer):
                     'Parsing assignment rule for <' + str(var) + '>.')
                 var = comp[var]
                 var.set_rhs(parse_mathml_rhs(
-                    dom_child(node, 'math'), comp, self))
+                    dom_child(node, 'math'), refs, self.logger()))
             else:
                 raise SBMLError(
                     'Assignment found for unknown parameter: "' + var + '".')
@@ -245,7 +254,7 @@ class SBMLImporter(myokit.formats.Importer):
                 ini = ini.eval() if ini else 0
                 var.promote(ini)
                 var.set_rhs(parse_mathml_rhs(
-                    dom_child(node, 'math'), comp, self))
+                    dom_child(node, 'math'), refs, self.logger()))
             else:
                 raise SBMLError(
                     'Derivative found for unknown parameter: <' + var + '>.')
