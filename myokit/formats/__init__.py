@@ -536,7 +536,7 @@ class TemplatedRunnableExporter(Exporter):
                 p.set_output_stream(f)
                 try:
                     p.process(tpl_name, tpl_vars)
-                except Exception as e:
+                except Exception as e:      # pragma: no cover
                     log.log_flair(
                         'An error ocurred while processing the template at '
                         + myokit.format_path(tpl_name))
