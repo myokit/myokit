@@ -270,6 +270,13 @@ class SymPyReadWriteTest(unittest.TestCase):
         self.assertEqual(w.ex(x), cx)
         self.assertEqual(r.ex(cx), x)
 
+        # Myokit piecewise's (like CellML's) always have a final True
+        # condition (i.e. an 'else'). SymPy doesn't require this, so test if
+        # we can import this --> It will add an "else 0"
+        x = myokit.Piecewise(cond1, a, myokit.Number(0))
+        cx = sympy.Piecewise((ca, c1))
+        self.assertEqual(r.ex(cx), x)
+
         # Myokit.Unsupported function placeholder --> Should raise exception
         u = myokit.UnsupportedFunction('frog', x)
         self.assertRaisesRegexp(ValueError, 'Unsupported type', w.ex, u)
