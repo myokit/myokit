@@ -199,7 +199,7 @@ class SBMLImporter(myokit.formats.Importer):
             org_name = str(node.getAttribute('id'))
             name = self._convert_name(org_name)
             self.logger().log('Found parameter "' + name + '"')
-            if name in comp:
+            if name in comp:    # pragma: no cover
                 self.logger().warn(
                     'Skipping duplicate parameter name: ' + str(name))
             else:

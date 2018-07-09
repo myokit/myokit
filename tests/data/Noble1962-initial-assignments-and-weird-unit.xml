@@ -63,6 +63,11 @@
     </rdf:Description>
   </rdf:RDF>
 </annotation><listOfUnitDefinitions>
+  <unitDefinition id="strang_unit" name="strange_unit">
+    <listOfUnits>
+      <unit metaid="_117103" kind="second" exponent="-1" multiplier="1000"/>
+    </listOfUnits>
+  </unitDefinition>
   <unitDefinition metaid="_117091" id="per_second" name="per_second">
     <listOfUnits>
       <unit metaid="_117103" kind="second" exponent="-1"/>
@@ -108,7 +113,7 @@
   <parameter metaid="_671374" id="g_Na_max" name="g_Na_max" value="400000" units="microS"/>
   <parameter metaid="_671377" id="g_Na" name="g_Na" units="microS" constant="false"/>
   <parameter metaid="_671380" id="E_Na" name="E_Na" value="40" units="millivolt"/>
-  <parameter metaid="_671383" id="m" name="m" value="0.01" units="dimensionless" constant="false"/>
+  <parameter metaid="_671383" id="m" name="m" value="0.00001" units="dimensionless" constant="false"/>
   <parameter metaid="_671386" id="alpha_m" name="alpha_m" units="per_second" constant="false"/>
   <parameter metaid="_671389" id="beta_m" name="beta_m" units="per_second" constant="false"/>
   <parameter metaid="_671392" id="V_sodium_channel_m_gate" name="V" units="millivolt"/>
@@ -136,6 +141,14 @@
               xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">
             <apply>
                 <cn sbml:units="millivolt"> -88 </cn>
+            </apply>
+        </math>
+    </initialAssignment>
+    <initialAssignment symbol="m">
+        <math xmlns="http://www.w3.org/1998/Math/MathML"
+              xmlns:sbml="http://www.sbml.org/sbml/level3/version2/core">
+            <apply>
+                <cn sbml:units="millivolt">0.01</cn>
             </apply>
         </math>
     </initialAssignment>

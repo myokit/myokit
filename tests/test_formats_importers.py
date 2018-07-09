@@ -105,8 +105,8 @@ class SBMLTest(unittest.TestCase):
         # Same but with funny variable names
         sbml('HodgkinHuxley-funny-names.xml')
 
-        # Model with listOfInitialValues
-        sbml('Noble1962-initial-assignments.xml')
+        # Model with listOfInitialValues and unit with multiplier
+        sbml('Noble1962-initial-assignments-and-weird-unit.xml')
 
     def test_info(self):
         i = formats.importer('sbml')
