@@ -483,6 +483,7 @@ class TemplatedRunnableExporter(Exporter):
 
             # Create any dirs embedded in output file path
             file_dir = os.path.split(out_name)[0]
+
             if file_dir:
                 file_dir = os.path.join(path, file_dir)
                 if os.path.exists(file_dir):

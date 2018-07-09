@@ -124,13 +124,34 @@ class ExportTest(unittest.TestCase):
             self.assertRaisesRegexp(
                 myokit.ExportError, 'file exists', e.runnable, dpath, m, p)
 
-            # Directory where trying to write a file
+            # Directory exists where we're trying to write a file
             dpath = os.path.join(path, 'runnable3')
             fname = os.path.join(dpath, 'sim.c')
             os.makedirs(fname)
             self.assertRaisesRegexp(
                 myokit.ExportError, 'Directory exists',
                 e.runnable, dpath, m, p)
+
+            # Directory embedded in the output file path
+            def embedded():
+                return {'sim.c': 'nested/sim.c'}
+
+            # 1. Normal operation
+            e._dict = embedded
+            dpath = os.path.join(path, 'runnable4')
+            ret = e.runnable(dpath, m, p)
+            self.assertIsNone(ret)
+            self.assertTrue(os.path.isdir(dpath))
+            self.assertTrue(len(os.listdir(dpath)) > 0)
+
+            # 2. Try to create directory where file exists
+            def embedded():
+                return {'sim.c': 'nested/sim.c/som.c'}
+
+            e._dict = embedded
+            dpath = os.path.join(path, 'runnable4')
+            self.assertRaisesRegexp(
+                myokit.ExportError, 'file or link', e.runnable, dpath, m, p)
 
     def test_ansic_exporter(self):
         self._test(myokit.formats.exporter('ansic'))
