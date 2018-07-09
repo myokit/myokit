@@ -107,6 +107,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertFalse(x.is_intermediary())
         self.assertFalse(x.is_constant())
         self.assertEqual(x.lhs(), Derivative(Name(x)))
+        self.assertEqual(x.indice(), 0)
 
         # Test demoting, promoting
         x.demote()
@@ -115,6 +116,7 @@ class ModelBuildTest(unittest.TestCase):
         self.assertTrue(x.is_constant())
         self.assertEqual(x.lhs(), Name(x))
         self.assertRaises(Exception, x.demote)
+        self.assertRaises(Exception, x.indice)
         x.promote()
         self.assertTrue(x.is_state())
         self.assertFalse(x.is_intermediary())
@@ -1380,6 +1382,11 @@ class ModelTest(unittest.TestCase):
         t.set_rhs(0)
         v = c.add_variable('v')
         v.set_rhs('3 - v')
+        self.assertFalse(v.is_labelled())
+        v.set_label('membrane_potential')
+        self.assertTrue(v.is_labelled())
+        v.set_label(None)
+        self.assertFalse(v.is_labelled())
         v.set_label('membrane_potential')
         w = c.add_variable('w')
         w.set_rhs(1)
@@ -1779,6 +1786,10 @@ class ComponentTest(unittest.TestCase):
         # Alias for a variable in the same component
         self.assertRaisesRegexp(
             myokit.IllegalAliasError, 'same component', c.add_alias, 'zz', x)
+
+        # Alias for a component
+        self.assertRaisesRegexp(
+            myokit.IllegalAliasError, 'for variables', c.add_alias, 'zz', c)
 
 
 class VariableTest(unittest.TestCase):
