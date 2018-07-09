@@ -3867,9 +3867,9 @@ class UserFunction(object):
     Arguments:
 
     ``name``
-        The user function's name
+        The user function's name (a string)
     ``arguments``
-        A list of function argument names
+        A list of function argument names (all of type :class:`Name`)
     ``template``
         The :class:`Expression` evaluating this function.
 
@@ -3887,7 +3887,8 @@ class UserFunction(object):
 
     def convert(self, arguments):
         """
-        Returns an :class:`Expression` object.
+        Returns an :class:`Expression` object, evaluated using the given
+        dictionary mapping argument Name objects to expressions.
         """
         if len(arguments) != len(self._arguments):
             raise ValueError('Wrong number of input arguments.')
