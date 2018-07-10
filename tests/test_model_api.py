@@ -2343,6 +2343,11 @@ class EquationTest(unittest.TestCase):
         self.assertEqual(eq.code(), 'str:x = 3')
         self.assertEqual(eq.code(), str(eq))
 
+    def test_hash(self):
+        """ Tests that equations can be hashed. """
+        # No exception = pass
+        hash(myokit.Equation(myokit.Name('x'), myokit.Number('3')))
+
     def test_iter(self):
         """ Tests iteration over an equation. """
         lhs = myokit.Name('x')
