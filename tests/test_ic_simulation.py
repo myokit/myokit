@@ -22,7 +22,8 @@ class ICSimulationTest(unittest.TestCase):
     """
     Tests the :class:`ICSimulation`.
     """
-    def test_simple(self):
+    def test_basic(self):
+        """ Tests basic usage. """
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m, p, x = myokit.load(m)
@@ -33,10 +34,26 @@ class ICSimulationTest(unittest.TestCase):
 
         # Create a datablock from the simulation log
         b = s.block(d, e)
-        del(d, e)
 
         # Calculate eigenvalues
         b.eigenvalues('derivatives')
+
+        # Log with missing time value
+        d2 = d.clone()
+        del(d2['engine.time'])
+        self.assertRaisesRegexp(ValueError, 'time', s.block, d2, e)
+
+        # Wrong size derivatives array
+        self.assertRaisesRegexp(ValueError, 'shape', s.block, d, e[:-1])
+
+        # Time can't be negative
+        self.assertRaises(ValueError, s.run, -1)
+
+    def test_invalid_model(self):
+        """ Tests running with an invalid model. """
+        m = myokit.Model()
+        self.assertRaises(
+            myokit.MissingTimeVariableError, myokit.ICSimulation, m)
 
 
 if __name__ == '__main__':

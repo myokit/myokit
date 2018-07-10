@@ -152,6 +152,7 @@ class ICSimulation(myokit.CppModule):
         except KeyError:
             raise ValueError(
                 'The given log must contain an entry for <' + tvar + '>.')
+
         # Check shape of derivatives array
         n = self._model.count_states()
         shape = (len(time), n, n)
@@ -159,6 +160,7 @@ class ICSimulation(myokit.CppModule):
             raise ValueError(
                 'Wrong input: Expecting a derivatives array of shape '
                 + str(shape) + '.')
+
         # Create datablock
         block = myokit.DataBlock2d(n, n, time)
         for k, v in log.items():
@@ -191,8 +193,10 @@ class ICSimulation(myokit.CppModule):
         """
         # Reset time
         self._time = 0
+
         # Reset state
         self._state = list(self._default_state)
+
         # Reset derivatives
         n = len(self._state)
         self._deriv = [0.0] * n**2
@@ -243,9 +247,10 @@ class ICSimulation(myokit.CppModule):
         """
         # Simulation times
         if duration < 0:
-            raise Exception('Simulation time can\'t be negative.')
+            raise ValueError('Simulation time can\'t be negative.')
         tmin = self._time
         tmax = tmin + duration
+
         # Parse log argument
         log = myokit.prepare_log(
             log,
@@ -254,12 +259,15 @@ class ICSimulation(myokit.CppModule):
             allowed_classes=myokit.LOG_STATE + myokit.LOG_BOUND
             + myokit.LOG_INTER,
         )
+
         # Logging period (0 = disabled)
         log_interval = float(log_interval)
         if log_interval < 0:
             log_interval = 0
+
         # Create empty list for derivative lists
         derivs = []
+
         # Get progress indication function (if any)
         if progress is None:
             progress = myokit._Simulation_progress
@@ -268,6 +276,7 @@ class ICSimulation(myokit.CppModule):
                 raise ValueError(
                     'The argument "progress" must be either a subclass of'
                     ' myokit.ProgressReporter or None.')
+
         # Run simulation
         if duration > 0:
             # Initialize
@@ -317,6 +326,7 @@ class ICSimulation(myokit.CppModule):
             derivs = np.array([
                 np.array(np.array(x).reshape(n, n), copy=True) for x in derivs
             ])
+
         # Return
         return log, derivs
 
