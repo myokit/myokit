@@ -49,6 +49,10 @@ class Simulation1dTest(unittest.TestCase):
         s.pre(1)
         self.assertNotEqual(s.default_state(0), m.state())
 
+        # Test running without a protocol
+        s.set_protocol(None)
+        s.run(1)
+
         # Simulation time can't be negative
         self.assertRaises(ValueError, s.run, -1)
 
