@@ -79,6 +79,15 @@ class Simulation1dTest(unittest.TestCase):
         self.assertEqual(s.paced_cells(), 1)
         self.assertRaises(ValueError, s.set_paced_cells, -1)
 
+        # Test setting step size
+        s.set_step_size(0.01)
+        self.assertRaises(ValueError, s.set_step_size, 0)
+
+        # Test setting time
+        self.assertNotEqual(s.time(), 100)
+        s.set_time(100)
+        self.assertEqual(s.time(), 100)
+
     def test_progress_reporter(self):
         """ Test running with a progress reporter. """
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
@@ -134,6 +143,7 @@ class Simulation1dTest(unittest.TestCase):
         self.assertRaises(ValueError, s.set_state, sx, -1)
         self.assertRaises(ValueError, s.set_state, sx, n)
         self.assertRaises(ValueError, s.state, -1)
+        self.assertRaises(ValueError, s.state, n)
 
     def test_set_default_state(self):
         """ Tests :meth:`Simulation1d.set_default_state()`. """
@@ -170,6 +180,7 @@ class Simulation1dTest(unittest.TestCase):
         self.assertRaises(ValueError, s.set_default_state, sx, -1)
         self.assertRaises(ValueError, s.set_default_state, sx, n)
         self.assertRaises(ValueError, s.default_state, -1)
+        self.assertRaises(ValueError, s.default_state, n)
 
 
 if __name__ == '__main__':
