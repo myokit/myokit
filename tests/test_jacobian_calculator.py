@@ -53,6 +53,17 @@ class JacobianCalculatorTest(unittest.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'Damping', c.newton_root, damping=1.1)
 
+        # Missing a state
+        x = m.state()[:-1]
+        self.assertRaisesRegexp(
+            ValueError, 'must have length', c.calculate, x)
+
+        # Non-numbers in state
+        x = m.state()
+        x[0] = 'Hello'
+        self.assertRaisesRegexp(
+            ValueError, 'floats', c.calculate, x)
+
 
 if __name__ == '__main__':
     unittest.main()
