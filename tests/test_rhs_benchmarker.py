@@ -111,7 +111,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
         m.validate()
 
         # Create benchmarker without variables
-        myokit.RhsBenchmarker(m, [])
+        myokit.RhsBenchmarker(m)
 
         # Create with objects
         myokit.RhsBenchmarker(m, [x])
