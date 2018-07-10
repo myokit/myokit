@@ -168,6 +168,59 @@ class AtfTest(unittest.TestCase):
                 ValueError, 'not found', axon.save_atf, log, path,
                 fields=['time', 'sint', 'hi'])
 
+    def test_accessors(self):
+        """ Tests various accessor methods of :class:`AtfFile`. """
+        with TemporaryDirectory() as d:
+            # Create data log
+            log = myokit.DataLog()
+            log.set_time_key('time')
+            log['time'] = np.arange(10)
+            log['sint'] = np.sin(log['time'])
+            log['cost'] = np.cos(log['time'])
+
+            # Write atf file
+            path = d.path('test.atf')
+            axon.save_atf(log, path)
+
+            # Read atf file
+            atf = myokit.formats.axon.AtfFile(path)
+
+            # Test filename()
+            self.assertEqual(atf.filename(), path)
+
+            # Test iter and getitem
+            self.assertEqual(len(list(iter(atf))), 3)
+            self.assertTrue(np.all(atf['time'] == log['time']))
+            self.assertTrue(np.all(atf['sint'] == log['sint']))
+            self.assertTrue(np.all(atf['cost'] == log['cost']))
+
+            # Test items()
+            items = list(atf.items())
+            self.assertEqual(items[0][0], 'time')
+            self.assertEqual(items[1][0], 'sint')
+            self.assertEqual(items[2][0], 'cost')
+            self.assertTrue(np.all(items[0][1] == log['time']))
+            self.assertTrue(np.all(items[1][1] == log['sint']))
+            self.assertTrue(np.all(items[2][1] == log['cost']))
+
+            # Test keys()
+            self.assertEqual(list(atf.keys()), ['time', 'sint', 'cost'])
+
+            # Test values()
+            values = list(atf.values())
+            self.assertTrue(np.all(values[0] == log['time']))
+            self.assertTrue(np.all(values[1] == log['sint']))
+            self.assertTrue(np.all(values[2] == log['cost']))
+
+            # Test len
+            self.assertEqual(len(atf), 3)
+
+            # Test info
+            self.assertIn('myokit', atf.info())
+
+            # Test version
+            self.assertEqual(atf.version(), '1.0')
+
 
 if __name__ == '__main__':
     unittest.main()
