@@ -18,9 +18,10 @@ import myokit
 
 class RhsBenchmarkerTest(unittest.TestCase):
     """
-    Tests the RhsBenchmarker class.
+    Tests :class:`RhsBenchmarker`.
     """
     def test_simple(self):
+        """ Tests basic functionality. """
 
         # Create test model
         m = myokit.Model('test')
@@ -37,7 +38,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
 
         # Create simulation log
         log = myokit.DataLog()
-        log['c.time'] = np.zeros(1000)
+        log['c.time'] = np.zeros(10)
         log['c.V'] = np.linspace(-80.0, 50.0, 10)
 
         # Number of repeats
@@ -49,6 +50,82 @@ class RhsBenchmarkerTest(unittest.TestCase):
         t = b.bench_full(log, repeats)
         t = b.bench_part(log, repeats)
         # No errors = pass
+
+        # Get mean and std after outlier removal
+        mean = b.mean(t)
+        mean, std = b.mean_std(t)
+
+    def test_bad_log(self):
+        """ Tests error handling when unsuitable log is used. """
+
+        # Create test model
+        m = myokit.Model('test')
+        c = m.add_component('c')
+        t = c.add_variable('time')
+        t.set_rhs('0')
+        t.set_binding('time')
+        v = c.add_variable('V')
+        v.set_rhs('0')
+        v.promote(-80.1)
+        w = c.add_variable('W')
+        w.set_rhs(0)
+        w.promote(10)
+        x = c.add_variable('x')
+        x.set_rhs('exp(V) + W')
+        m.validate()
+
+        # Create benchmarker
+        b = myokit.RhsBenchmarker(m, [x])
+
+        # Missing state variable
+        d = myokit.DataLog()
+        d['c.time'] = np.zeros(10)
+        #d['c.V'] = np.linspace(-80.0, 50.0, 10)
+        d['c.W'] = np.linspace(0.0, 10.0, 10)
+        self.assertRaisesRegexp(
+            ValueError, 'State variable <c.V> not found', b.bench_full, d, 1)
+
+        # Different size log entries
+        d = myokit.DataLog()
+        d['c.time'] = np.zeros(1000)
+        d['c.V'] = np.linspace(-80.0, 50.0, 10)
+        d['c.W'] = np.linspace(0.0, 10.0, 11)
+        self.assertRaisesRegexp(
+            ValueError, 'same length', b.bench_full, d, 1)
+
+    def test_creation(self):
+        """ Tests Benchmarker creation. """
+        # Create test model
+        m = myokit.Model('test')
+        c = m.add_component('c')
+        t = c.add_variable('time')
+        t.set_rhs('0')
+        t.set_binding('time')
+        v = c.add_variable('V')
+        v.set_rhs('0')
+        v.promote(-80.1)
+        x = c.add_variable('x')
+        x.set_rhs('exp(V)')
+        y = c.add_variable('y')
+        y.set_rhs(3)
+        m.validate()
+
+        # Create benchmarker without variables
+        myokit.RhsBenchmarker(m, [])
+
+        # Create with objects
+        myokit.RhsBenchmarker(m, [x])
+
+        # Create with strings
+        myokit.RhsBenchmarker(m, ['c.x'])
+
+        # Cannot create with constants
+        self.assertRaisesRegexp(
+            ValueError, 'constant', myokit.RhsBenchmarker, m, [y])
+
+        # Cannot create with bound variables
+        self.assertRaisesRegexp(
+            ValueError, 'bound', myokit.RhsBenchmarker, m, [t])
 
 
 if __name__ == '__main__':
