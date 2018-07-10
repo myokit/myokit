@@ -87,13 +87,33 @@ class SimulationTest(unittest.TestCase):
         n = 10
         time = list(range(n))
         pace = [0] * n
+        pace[2:4] = [0.5, 0.5]
 
-        self.sim.reset()
         self.sim.set_fixed_form_protocol(time, pace)
-        self.sim.run(n)
+        self.sim.reset()
+        d = self.sim.run(n, log_interval=1)
+        self.assertEqual(list(d.time()), time)
+        self.assertEqual(list(d['engine.pace']), pace)
 
         # Unset
         self.sim.set_fixed_form_protocol(None)
+        self.sim.reset()
+        d = self.sim.run(n, log_interval=1)
+        self.assertEqual(list(d['engine.pace']), [0] * n)
+
+        # Reset
+        self.sim.set_fixed_form_protocol(time, pace)
+        self.sim.reset()
+        d = self.sim.run(n, log_interval=1)
+        self.assertEqual(list(d.time()), time)
+        self.assertEqual(list(d['engine.pace']), pace)
+
+        # Unset, replace with original protocol
+        self.sim.set_protocol(self.protocol)
+        self.sim.reset()
+        d = self.sim.run(n, log_interval=1)
+        self.assertNotEqual(list(d['engine.pace']), pace)
+        self.assertNotEqual(list(d['engine.pace']), [0] * n)
 
         # Invalid protocols
         self.assertRaisesRegexp(
@@ -255,6 +275,29 @@ class SimulationTest(unittest.TestCase):
 
         self.assertEqual(self.sim.state(), state)
         self.assertEqual(self.sim.default_state(), default_state)
+
+    def test_set_constant(self):
+        """
+        Tests :meth:`Simulation.set_constant()`.
+        """
+        # Literal
+        self.sim.set_constant('cell.Na_i', 11)
+        self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
+
+        # Calculated constant
+        self.assertRaisesRegexp(
+            ValueError, 'not a literal', self.sim.set_constant, 'ina.ENa', 11)
+
+    def test_simulation_error(self):
+        """
+        Tests for simulation error detection.
+        """
+        p = myokit.Protocol()
+        p.schedule(level=1000, start=1, duration=1)
+        self.sim.reset()
+        self.sim.set_protocol(p)
+        self.assertRaises(myokit.SimulationError, self.sim.run, 10)
+        self.sim.set_protocol(self.protocol)
 
 
 class RuntimeSimulationTest(unittest.TestCase):

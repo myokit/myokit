@@ -441,6 +441,7 @@ sim_clean()
 
         // Free pacing system space
         ESys_Destroy(epacing); epacing = NULL;
+        FSys_Destroy(fpacing); fpacing = NULL;
 
         // No longer running
         running = 0;
@@ -498,6 +499,7 @@ sim_init(PyObject *self, PyObject *args)
     y_log = NULL;
     cvode_mem = NULL;
     epacing = NULL;
+    fpacing = NULL;
     log_times = NULL;
 
     // Check input arguments

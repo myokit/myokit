@@ -518,8 +518,10 @@ class Simulation(myokit.CModule):
                 raise ValueError('Times array given, but no values array.')
             if len(times) != len(values):
                 raise ValueError('Times and values array must have same size.')
+
         # Clear event-based protocol, if set
         self._protocol = None
+
         # Set new protocol
         if times is None:
             # Clear predetermined protocol
@@ -537,6 +539,7 @@ class Simulation(myokit.CModule):
         """
         # Clear predetermined protocol, if set
         self._fixed_form_protocol = None
+
         # Set new protocol
         if protocol is None:
             self._protocol = None
