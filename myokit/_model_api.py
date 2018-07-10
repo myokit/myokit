@@ -3055,14 +3055,19 @@ class Variable(VarOwner):
     """
     def __init__(self, parent, name):
         super(Variable, self).__init__(parent, name)
+
         # Indice, only set if this is a state variable
         self._indice = None
+
         # This variable's unit, if given, else dimensionless
         self._unit = None
+
         # This variable's label, if given
         self._label = None
+
         # This variable's binding label, if given
         self._binding = None
+
         # Used (created and deleted) by _validate_solvability()
         #   self._used
         # Cached return values for is_constant, etc
@@ -3073,6 +3078,7 @@ class Variable(VarOwner):
         self._is_intermediary = False
         self._is_literal = True
         self._is_state = False
+
         # Cached lists of references by and to
         # References are only counted for the variable's defining equation (IE
         # the expression returned by rhs()). References to values of state
@@ -3082,8 +3088,10 @@ class Variable(VarOwner):
         self._refs_to = set()   # Vars that this var refers to
         self._srefs_by = set()  # Vars that refer to this state var's value
         self._srefs_to = set()  # State var values that this var refers to
+
         # Left-hand side representation (name or dot)
         self._lhs = myokit.Name(self)
+
         # Right-hand side representation
         self._rhs = None
 
@@ -3214,8 +3222,12 @@ class Variable(VarOwner):
                 'Variable <' + self.qname() + '>'
                 ' can not be removed: it has children ' + ' and '.join(
                     ['<' + v.qname() + '>' for v in kids]) + '.')
+
         if self._refs_by or self._srefs_by:
             refs = self._refs_by.union(self._srefs_by)
+            if self in refs:
+                # Self-ref is allowed
+                refs.remove(self)
             if recursive:
                 # Refs from child variables are allowed
                 okay = set([x for x in refs if x.has_ancestor(self)])
@@ -3235,14 +3247,22 @@ class Variable(VarOwner):
                     'Variable <' + self.qname() + '>'
                     ' can not be removed: it is used by ' + ' and '.join(
                         ['<' + v.qname() + '>' for v in refs]) + '.')
+
         # Tell other variables it no longer depends on them
         for var in self._refs_to:
             var._refs_by.remove(self)
         for var in self._srefs_to:
             var._srefs_by.remove(self)
-        # State variable? Then demote first
+        self._refs_to = set()
+        self._srefs_to = set()
+        # Note: Don't update refs_by! When deleting a whole component, other
+        # variables may still have a _refs_to that they'll need to process,
+        # leading to KeyErrors in the lines above.
+
+        # State variable? Then demote
         if self.is_state():
             self.demote()
+
         # Delete child variables
         if recursive:
             for kid in kids:
@@ -3250,10 +3270,12 @@ class Variable(VarOwner):
                 kid._delete(recursive=True, whole_component=whole_component)
                 # Remove kid from list of nested variables
                 self._remove_variable_internal(kid)
+
         # Remove any aliases
         m = self.parent(Model)
         for c in m.components():
             c.remove_aliases_for(self)
+
         # Remove parent links
         super(Variable, self)._delete()
 
@@ -3266,18 +3288,39 @@ class Variable(VarOwner):
         """
         if self._indice is None:
             raise Exception('Variable is not a state variable.')
+
+        # Check that nobody has references to this var's derivative
+        if self._refs_by:
+            refs = ', '.join([r.qname() for r in self._refs_by])
+            raise Exception(
+                'Unable to demote variable while references to its derivative'
+                ' are made by (' + refs + ').')
+
         model = self.model()
         try:
             # Remove initial value
             del(model._current_state[self._indice])
+
             # Remove this variable from the state
             del(model._state[self._indice])
+
             # Set lhs to name expression
             self._lhs = myokit.Name(self)
+
             # Remove this variable's indice
             self._indice = None
+
             # Reset other states' indices
             model._reset_indices()
+
+            # All state refs to this variable are now considered ordinary refs
+            # (And _refs_by is emtpy, see check above)
+            for r in self._srefs_by:
+                r._srefs_to.remove(self)    # No longer an sref to me
+                r._refs_to.add(self)        # Now an ordinary ref to me
+            self._refs_by = self._srefs_by
+            self._srefs_by = set()
+
         finally:
             model._reset_validation()
             self._reset_cache(bubble=True)
@@ -3394,21 +3437,37 @@ class Variable(VarOwner):
         if self._binding is not None:
             raise Exception(
                 'State variables cannot be bound to an external value.')
+
+        # Check state value argument
         if isinstance(state_value, myokit.Expression):
             if not state_value.is_literal():
                 raise myokit.NonLiteralValueError(
                     'Expressions for state values can not contain references'
                     ' to other variables.')
+
         model = self.model()
         try:
             # Set lhs to derivative expression
             self._lhs = myokit.Derivative(myokit.Name(self))
+
             # Get new indice
             self._indice = len(model._state)
+
             # Add to list of states
             model._state.append(self)
+
             # Add value to list of current values
             model._current_state.append(float(state_value))
+
+            # All references to this variable are now considered references to
+            # its state value
+            assert(len(self._srefs_by) == 0)
+            for r in self._refs_by:
+                r._refs_to.remove(self)
+                r._srefs_to.add(self)
+            self._srefs_by = self._refs_by
+            self._refs_by = set()
+
         finally:
             model._reset_validation()
             self._reset_cache(bubble=True)
@@ -3480,23 +3539,17 @@ class Variable(VarOwner):
         Returns an iterator over the set of :class:`Variables <Variable>`  that
         refer to this variable in their defining equation.
 
-        For state variables, there are two things to take into account:
-
-         1. By default, only references to this variable's defining
-            :class:`LhsExpression` (I.E. the one returned by
-            :meth:`lhs() <Variable.lhs()>`) are returned. For a state
-            variable ``x``, this means the returned result contains all
-            variables referring to ``dot(x)``. To get an iterator over the
-            variables referring to ``x`` add the optional attribute
-            ``state_refs=True``. For non-state variables this setting will
-            trigger a :class:`ValueError`.
-         2. In cases where ``dot(x) = f(x)``, the returned iterator will _not_
-            include ``x`` in the list of variables depending on ``x``.
-
+        Note that only references to this variable's defining
+        :class:`LhsExpression` (i.e. the one returned by :meth:`lhs()`) are
+        returned. For a state variable ``x``, this means the returned result
+        contains all variables referring to ``dot(x)``. To get an iterator over
+        the variables referring to ``x`` instead, add the optional attribute
+        ``state_refs=True``. For non-state variables this setting will trigger
+        an :class:`Exception`.
         """
         if state_refs:
             if not self._is_state:
-                raise ValueError(
+                raise Exception(
                     'The argument "state_refs=True" can only be used on state'
                     ' variables.')
             return iter(self._srefs_by)
@@ -3655,25 +3708,26 @@ class Variable(VarOwner):
                 rhs = myokit.parse_expression(rhs, context=self)
             else:
                 rhs = myokit.Number(rhs)
+
         # Update the refs-by stored in the old dependencies
         for ref in self._refs_to:
             ref._refs_by.remove(self)
+        for ref in self._srefs_to:
+            ref._srefs_by.remove(self)
+
         # Get new references made by this variable, filter out references to
         # to values of state variables.
         self._refs_to = set(
             [r.var() for r in rhs.references() if not r.is_state_value()])
         self._srefs_to = set(
             [r.var() for r in rhs.references() if r.is_state_value()])
-        try:
-            # Ignore references like dot(y) = y
-            self._srefs_to.remove(self)
-        except KeyError:
-            pass
+
         # Update the refs-by stored in the new dependencies of this var
         for ref in self._refs_to:
             ref._refs_by.add(self)
         for ref in self._srefs_to:
             ref._srefs_by.add(self)
+
         # Set rhs
         self._rhs = rhs
         self.model()._reset_validation()
@@ -3782,13 +3836,23 @@ class Variable(VarOwner):
             # Quick checks first: sibling or direct child
             if ref._parent == self._parent or ref._parent == self:
                 continue
+
             # Component variable?
             if isinstance(ref._parent, Component):
                 continue
+
             # Child of ancestor of this variable
             if ref._parent.is_ancestor(self):
                 continue
             raise myokit.IllegalReferenceError(ref, self)
+
+        # Check no-one thinks this is a state unless it really is.
+        if self._srefs_by and not is_state:  # pragma: no cover
+            # Cover pragma: Can only be reached through an API bug
+            refs = ', '.join([r.qname() for r in self._srefs_by])
+            raise myokit.IntegrityError(
+                'Variable <' + self.qname() + '> is not a state, but is'
+                ' referred to as a state by (' + refs + ').')
 
         # Validate child variables
         for v in self.variables():

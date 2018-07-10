@@ -592,10 +592,23 @@ class DerivativeTest(unittest.TestCase):
         """
         m = myokit.Model()
         c = m.add_component('c')
-        v = c.add_variable('v')
-        n = myokit.Name(v)
+        x = c.add_variable('x')
+        x.set_rhs(3)
+        x.promote(0)
+        y = c.add_variable('y')
+        y.set_rhs(2)
 
-        myokit.Derivative(n)
+        # Derivative of state
+        d = myokit.Derivative(myokit.Name(x))
+        d.validate()
+
+        # Derivative of non-state: allowed during model building, but doesn't
+        # validate
+        d = myokit.Derivative(myokit.Name(y))
+        self.assertRaisesRegexp(
+            myokit.IntegrityError, 'only be defined for state', d.validate)
+
+        # Derivative of something other than a name: never allowed
         self.assertRaisesRegexp(
             myokit.IntegrityError, 'named variables', myokit.Derivative,
             myokit.Number(1))

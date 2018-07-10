@@ -1326,7 +1326,9 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m.warnings(), [])
 
         # Test model with warnings
+        v.validate()
         v.demote()
+        v.validate()
         v.set_rhs(3)
         m.validate()
 
@@ -1859,6 +1861,19 @@ class VariableTest(unittest.TestCase):
         self.assertRaisesRegexp(
             Exception, 'only be added to Components', w.promote, 4)
 
+        # Test we can't demote a variable with references to its derivative
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs(3)
+        x.promote()
+        y = c.add_variable('y')
+        y.set_rhs('1 + dot(x)')
+        self.assertRaisesRegexp(
+            Exception, 'references to its derivative', x.demote)
+        y.set_rhs('1 + x')
+        x.demote()
+
     def test_labelling(self):
         """
         Tests variable labelling.
@@ -1894,6 +1909,177 @@ class VariableTest(unittest.TestCase):
         w.set_rhs('2 * v')
         self.assertTrue(v.is_referenced())
         self.assertTrue(w.is_referenced())
+
+        z = c.add_variable('z')
+        z.set_rhs('3 * v')
+        self.assertFalse(z.is_referenced())
+        self.assertTrue(v.is_referenced())
+        w.set_rhs(1)
+        self.assertTrue(v.is_referenced())
+        z.set_rhs(2)
+        self.assertFalse(v.is_referenced())
+
+    def test_refs_by_and_to(self):
+        """ Tests :meth:`Variable.is_referenced(). """
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs(3)
+        y = c.add_variable('y')
+        y.set_rhs(4)
+        z = c.add_variable('z')
+        z.set_rhs(0)
+
+        self.assertEqual(list(x.refs_to()), [])
+        self.assertEqual(list(y.refs_to()), [])
+        self.assertEqual(list(z.refs_to()), [])
+        self.assertEqual(list(x.refs_by()), [])
+        self.assertEqual(list(y.refs_by()), [])
+        self.assertEqual(list(z.refs_by()), [])
+
+        z.set_rhs('3 * x')
+        self.assertEqual(list(x.refs_to()), [])
+        self.assertEqual(list(y.refs_to()), [])
+        self.assertEqual(list(z.refs_to()), [x])
+        self.assertEqual(list(x.refs_by()), [z])
+        self.assertEqual(list(y.refs_by()), [])
+        self.assertEqual(list(z.refs_by()), [])
+
+        y.set_rhs('2 + x')
+        self.assertEqual(list(x.refs_to()), [])
+        self.assertEqual(list(y.refs_to()), [x])
+        self.assertEqual(list(z.refs_to()), [x])
+        self.assertEqual(set(x.refs_by()), set([y, z]))
+        self.assertEqual(list(y.refs_by()), [])
+        self.assertEqual(list(z.refs_by()), [])
+
+        z.set_rhs(2)
+        self.assertEqual(list(x.refs_to()), [])
+        self.assertEqual(list(y.refs_to()), [x])
+        self.assertEqual(list(z.refs_to()), [])
+        self.assertEqual(list(x.refs_by()), [y])
+        self.assertEqual(list(y.refs_by()), [])
+        self.assertEqual(list(z.refs_by()), [])
+
+        # State refs
+        self.assertRaises(Exception, x.refs_by, True)
+        self.assertRaises(Exception, y.refs_by, True)
+        self.assertRaises(Exception, z.refs_by, True)
+        self.assertEqual(list(x.refs_to(True)), [])
+        self.assertEqual(list(y.refs_to(True)), [])
+        self.assertEqual(list(z.refs_to(True)), [])
+
+        # After promoting x, its refs should become srefs
+        x.promote(3)
+        self.assertEqual(list(x.refs_to(False)), [])
+        self.assertEqual(list(y.refs_to(False)), [])
+        self.assertEqual(list(z.refs_to(False)), [])
+        self.assertEqual(list(x.refs_by(False)), [])
+        self.assertEqual(list(y.refs_by(False)), [])
+        self.assertEqual(list(z.refs_by(False)), [])
+        self.assertEqual(list(x.refs_to(True)), [])
+        self.assertEqual(list(y.refs_to(True)), [x])
+        self.assertEqual(list(z.refs_to(True)), [])
+        self.assertEqual(list(x.refs_by(True)), [y])
+        self.assertRaises(Exception, y.refs_by, True)
+        self.assertRaises(Exception, z.refs_by, True)
+
+        # Add another reference to x, should now appear in state refs
+        z.set_rhs('3 + x')
+        self.assertEqual(list(x.refs_to(False)), [])
+        self.assertEqual(list(y.refs_to(False)), [])
+        self.assertEqual(list(z.refs_to(False)), [])
+        self.assertEqual(list(x.refs_by(False)), [])
+        self.assertEqual(list(y.refs_by(False)), [])
+        self.assertEqual(list(z.refs_by(False)), [])
+        self.assertEqual(list(x.refs_to(True)), [])
+        self.assertEqual(list(y.refs_to(True)), [x])
+        self.assertEqual(list(z.refs_to(True)), [x])
+        self.assertEqual(set(x.refs_by(True)), set([y, z]))
+        self.assertRaises(Exception, y.refs_by, True)
+        self.assertRaises(Exception, z.refs_by, True)
+        self.assertEqual(list(y._srefs_by), [])
+        self.assertEqual(list(z._srefs_by), [])
+
+        # Demote x: Now its state refs should become ordinary refs again
+        x.demote()
+        self.assertEqual(list(x.refs_to(False)), [])
+        self.assertEqual(list(y.refs_to(False)), [x])
+        self.assertEqual(list(z.refs_to(False)), [x])
+        self.assertEqual(set(x.refs_by(False)), set([y, z]))
+        self.assertEqual(list(y.refs_by(False)), [])
+        self.assertEqual(list(z.refs_by(False)), [])
+        self.assertEqual(list(x.refs_to(True)), [])
+        self.assertEqual(list(y.refs_to(True)), [])
+        self.assertEqual(list(z.refs_to(True)), [])
+        self.assertRaises(Exception, x.refs_by, True)
+        self.assertRaises(Exception, y.refs_by, True)
+        self.assertRaises(Exception, z.refs_by, True)
+        self.assertEqual(list(x._srefs_by), [])
+        self.assertEqual(list(y._srefs_by), [])
+        self.assertEqual(list(z._srefs_by), [])
+        x.validate()
+
+        #
+        # Another test, this time promoting first, then demoting later
+        #
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.promote(0)
+        x.set_rhs(3)
+        y = c.add_variable('y')
+        y.set_rhs('3 + x')
+
+        self.assertEqual(list(x.refs_to(False)), [])
+        self.assertEqual(list(y.refs_to(False)), [])
+        self.assertEqual(list(x.refs_by(False)), [])
+        self.assertEqual(list(y.refs_by(False)), [])
+        self.assertEqual(list(x.refs_to(True)), [])
+        self.assertEqual(list(y.refs_to(True)), [x])
+        self.assertEqual(list(x.refs_by(True)), [y])
+        self.assertRaises(Exception, y.refs_by, True)
+
+        # Demote x: Now its state refs should become ordinary refs again
+        x.demote()
+        self.assertEqual(list(x.refs_to(False)), [])
+        self.assertEqual(list(y.refs_to(False)), [x])
+        self.assertEqual(list(x.refs_by(False)), [y])
+        self.assertEqual(list(y.refs_by(False)), [])
+        self.assertEqual(list(x.refs_to(True)), [])
+        self.assertEqual(list(y.refs_to(True)), [])
+        self.assertRaises(Exception, x.refs_by, True)
+        self.assertRaises(Exception, y.refs_by, True)
+        x.validate()
+
+        #
+        # Another test, this time including self reference by a state
+        #
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        x = c.add_variable('x')
+        x.promote(0)
+        x.set_rhs('3 - x')
+        y = c.add_variable('y')
+        y.set_rhs('3 + x')
+
+        self.assertEqual(list(x.refs_to(False)), [])
+        self.assertEqual(list(y.refs_to(False)), [])
+        self.assertEqual(list(x.refs_by(False)), [])
+        self.assertEqual(list(y.refs_by(False)), [])
+        self.assertEqual(list(x.refs_to(True)), [x])
+        self.assertEqual(list(y.refs_to(True)), [x])
+        self.assertEqual(set(x.refs_by(True)), set([x, y]))
+        self.assertRaises(Exception, y.refs_by, True)
+
+        # Now demoting causes self-reference
+        m.validate()
+        x.demote()
+        x.validate()
+        self.assertRaises(myokit.CyclicalDependencyError, m.validate)
 
     def test_pyfunc(self):
         """ Tests :meth:`Variable.pyfunc(). """

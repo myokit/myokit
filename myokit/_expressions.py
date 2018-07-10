@@ -784,10 +784,10 @@ class Name(LhsExpression):
         super(Name, self)._validate(trail)
         # Check value: String is allowed at construction for debugging, but
         # not here!
-        if not isinstance(self._value, myokit.ModelPart):
+        if not isinstance(self._value, myokit.Variable):
             raise IntegrityError(
                 'Name value "' + repr(self._value) + '" is not an instance of'
-                ' class myokit.ModelPart', self._token)
+                ' class myokit.Variable', self._token)
 
     def var(self):
         return self._value
@@ -870,6 +870,12 @@ class Derivative(LhsExpression):
 
     def _validate(self, trail):
         super(Derivative, self)._validate(trail)
+        # Check if value is the name of a state variable
+        var = self._op.var()
+        if not (isinstance(var, myokit.Variable) and var.is_state()):
+            raise IntegrityError(
+                'Derivatives can only be defined for state variables.',
+                self._token)
 
 
 class PrefixExpression(Expression):
