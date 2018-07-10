@@ -564,6 +564,22 @@ class VarOwnerTest(unittest.TestCase):
         E.add_variable('time')
         self.assertRaises(myokit.DuplicateName, Z.move_variable, time, E)
 
+        # Create a nested variable by moving
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        w = c.add_variable('w')
+        self.assertFalse(w.is_nested())
+        c.move_variable(w, v)
+        self.assertTrue(w.is_nested())
+        v.move_variable(w, c)
+        self.assertFalse(w.is_nested())
+
+        # State variables can't be made nested
+        w.promote(0)
+        self.assertRaisesRegexp(
+            Exception, 'State variables', c.move_variable, w, v)
+
     def test_remove_variable(self):
         """
         Tests the removal of a variable.
@@ -2217,6 +2233,14 @@ class VariableTest(unittest.TestCase):
         # Set to a non unit
         self.assertRaisesRegexp(
             TypeError, 'expects a myokit.Unit', v.set_unit, 12)
+
+    def test_value(self):
+        """ Tests :meth:`Variable.value()`. """
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        v.set_rhs('1 + 2 + 3 + 4')
+        self.assertEqual(v.value(), 10)
 
 
 class UserFunctionTest(unittest.TestCase):

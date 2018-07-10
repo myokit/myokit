@@ -499,7 +499,7 @@ class VarOwner(ModelPart, VarProvider):
             # Add
             return self.add_variable(name)
 
-    def can_add_variable(self, name):
+    def can_add_variable(self, name, variable_whitelist=None):
         """
         Returns ``True`` if a variable can be added to this :class:`VarOwner`
         under the given ``name``.
@@ -507,24 +507,37 @@ class VarOwner(ModelPart, VarProvider):
         This method is automatically called by :meth:`add_variable()` and
         `move_variable()`, there is no need to call it before using these
         methods.
+
+        To ignore clashes with known variables, a list ``variable_whitelist``
+        can be passed in.
         """
         name = check_name(name)
+
+        # List of variables to exclude when checking
+        if variable_whitelist is None:
+            variable_whitelist = []
+
         # Determine if variable name would clash with an existing name:
         # Scenario 1: There is an alias accessible to this varowner that
         # clashes with this name
         if self._component.has_alias(name):
             return False
+
         # Scenario 2: One of this VarOwner's ancestors already contains a
         # variable of that name.
         par = self.parent()
         while type(par) != Model:
             if name in par:
-                return False
+                # Return False, unless the variable is whitelisted
+                return par[name] in variable_whitelist
             par = par.parent()
+
         # Scenario 3: One of this VarOwner's descendants already has that name.
         for var in self.variables(deep=True):
             if var.name() == name:
-                return False
+                # Return False, unless the variable is whitelisted
+                return var in variable_whitelist
+
         # It's free!
         return True
 
@@ -609,17 +622,30 @@ class VarOwner(ModelPart, VarProvider):
             raise ValueError(
                 'move_variable failed: variable <' + variable.qname()
                 + '> does not have parent <' + self.qname() + '>.')
+
+        # Check names
         old_name = variable.name()
         if new_name:
             new_name = str(new_name)
         else:
             new_name = old_name
+
+        # Ignore move to same position
         if new_parent == self and new_name == old_name:
             return
-        if not new_parent.can_add_variable(new_name):
+
+        # Check if name is allowed in new parent
+        if not new_parent.can_add_variable(new_name, [variable]):
             raise myokit.DuplicateName(
                 'The name <' + new_name + '> is already in use as a variable'
                 ' name within this scope.')
+
+        # Check state variables aren't made nested
+        if variable.is_state():
+            if not isinstance(new_parent, myokit.Component):
+                raise Exception('State variables cannot be nested.')
+
+        # Move
         try:
             # Change listing in VarOwner objects
             del(self._variables[old_name])
@@ -643,6 +669,7 @@ class VarOwner(ModelPart, VarProvider):
             raise ValueError(
                 'remove_variable failed: variable <' + variable.qname()
                 + '> does not have parent <' + self.qname() + '>.')
+
         # Handle internal variable deletion steps
         variable._delete(recursive=recursive)
         try:
@@ -3803,27 +3830,27 @@ class Variable(VarOwner):
         is_state = self._indice is not None
         is_deriv = self.lhs().is_derivative()
         if is_state:
-            if not is_deriv:
+            if not is_deriv:        # pragma: no cover
                 raise myokit.IntegrityError(
                     'Variable <' + self.qname() + '> is listed as a state'
                     ' variable but its lhs is not a derivative.')
-            if self._is_nested:
+            if self._is_nested:     # pragma: no cover
                 raise myokit.IntegrityError(
                     'State variables should not be nested: <'
                     + str(self.qname()) + '>.')
             m = self.model()
-            if not m._state[self._indice] == self:
+            if not m._state[self._indice] == self:  # pragma: no cover
                 raise myokit.IntegrityError(
                     'State variable not listed in model state vector at'
                     ' correct indice: <' + self.qname() + '>.')
-        elif is_deriv:
+        elif is_deriv:  # pragma: no cover
             raise myokit.IntegrityError(
                 'A derivative was set for <' + self.qname() + '> but this is'
                 ' not a state variable.')
 
         # Check for component as parent
         m = self.parent(Component)
-        if m is None:
+        if m is None:   # pragma: no cover
             raise myokit.IntegrityError(
                 'No component found in hierarchy for <' + self.qname() + '>.')
 
