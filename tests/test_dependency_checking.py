@@ -1376,7 +1376,7 @@ class SolvableOrderTest(DepTest):
         del(self.order)
 
         # Test with cycles
-        self.m.get('ina.m').demote()
+        self.m.get('ina.j').demote()
         self.assertRaisesRegexp(
             RuntimeError, 'Equation ordering failed.', self.m.solvable_order)
         del(self.m)
