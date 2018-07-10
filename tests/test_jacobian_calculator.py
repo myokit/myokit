@@ -34,12 +34,12 @@ class JacobianCalculatorTest(unittest.TestCase):
 
         # Test if still works with initial x all zero (Enno's bug)
         x = np.array(m.state()) * 0
-        x, f, j, e = c.newton_root(damping=0.01, max_iter=50)
+        x, f, j, e = c.newton_root(x, damping=0.01, max_iter=50)
 
         # Test if still works with a single zero
         x = np.array(m.state())
         x[0] = 0
-        x, f, j, e = c.newton_root(damping=0.01, max_iter=50)
+        x, f, j, e = c.newton_root(x, damping=0.01, max_iter=50)
 
         # Test quick return
         x = np.array(m.state())
