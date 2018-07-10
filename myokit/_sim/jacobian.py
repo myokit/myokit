@@ -150,11 +150,7 @@ class JacobianTracer(myokit.CppModule):
 
         # Create data block
         tvar = self._model.time().qname()
-        try:
-            time = log[tvar]
-        except KeyError:
-            raise ValueError(
-                'The given log must contain an entry for <' + time + '>.')
+        time = log[tvar]    # Already checked that all bound variables exist!
         nstates = self._model.count_states()
         block = myokit.DataBlock2d(nstates, nstates, time)
         for k, v in log.items():

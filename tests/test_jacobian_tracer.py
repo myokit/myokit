@@ -46,9 +46,23 @@ class JacobianTracerTest(unittest.TestCase):
         self.assertRaises(ValueError, g.dominant_eigenvalues)
 
         # Calculate the largest eigenvalues
-        g.dominant_eigenvalues(log=d)
-        g.dominant_eigenvalues(block=b)
+        g.largest_eigenvalues(log=d)
+        g.largest_eigenvalues(block=b)
         self.assertRaises(ValueError, g.dominant_eigenvalues)
+
+        # Log missing a state
+        d2 = d.clone()
+        del(d2['membrane.V'])
+        self.assertRaisesRegexp(ValueError, 'all state', g.jacobians, d2)
+
+        # Log entries differ in length
+        d2['membrane.V'] = d['membrane.V'][:-1]
+        self.assertRaisesRegexp(ValueError, 'same length', g.jacobians, d2)
+
+        # Log missing time
+        d2['membrane.V'] = d['engine.time']
+        del(d2['engine.time'])
+        self.assertRaisesRegexp(ValueError, 'bound', g.jacobians, d2)
 
 
 if __name__ == '__main__':
