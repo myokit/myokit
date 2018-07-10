@@ -246,7 +246,6 @@ def _load():
     if config.has_option('sundials', 'inc'):
         for x in config.get('sundials', 'inc').split(';'):
             myokit.SUNDIALS_INC.append(x.strip())
-            myokit.SUNDIALS_INC.append(x.strip())
     if config.has_option('sundials', 'version'):
         myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
 

@@ -241,7 +241,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         inifile = os.path.expanduser(SETTINGS_FILE)
         if not os.path.isfile(inifile):
             return
-        config = configparser.ConfigParser()
+        config = ConfigParser()
         config.read(inifile)
 
         # Window dimensions and location
@@ -363,7 +363,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         """
         Saves the user configuration to an ini file.
         """
-        config = configparser.ConfigParser()
+        config = ConfigParser()
         # Window dimensions and location
         config.add_section('window')
         g = self.geometry()

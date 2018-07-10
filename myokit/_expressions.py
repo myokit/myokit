@@ -692,7 +692,7 @@ class Name(LhsExpression):
                     'myokit.Name objects must have a value that is a'
                     ' myokit.Variable (or, when debugging, a string).')
         self._value = value
-        self._references = set((self))
+        self._references = set([self])
 
     def bracket(self, op=None):
         if op is not None:
@@ -808,7 +808,7 @@ class Derivative(LhsExpression):
             raise IntegrityError(
                 'The dot() operator can only be used on named variables.')
         self._op = op
-        self._references = set((self))
+        self._references = set([self])
 
     def bracket(self, op):
         if op != self._op:
