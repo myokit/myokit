@@ -394,17 +394,21 @@ class Simulation(myokit.CModule):
                         txt.append(en.message)
                     raise myokit.SimulationError('\n'.join(txt))
                 except Exception as e:
+
                     # Store error state
                     self._error_state = list(state)
+
                     # Check for known CVODE errors
                     if 'Function CVode()' in e.message:
                         raise myokit.SimulationError(e.message)
+
                     # Check for zero step error
-                    if e.message[:10] == 'ZERO_STEP ':
+                    if e.message[:10] == 'ZERO_STEP ':  # pragma: no cover
                         t = float(e.message[10:])
                         raise myokit.SimulationError(
                             'Maximum number of zero-size steps made at t='
                             + str(t))
+
                     # Unknown exception: re-raise!
                     raise
                 finally:

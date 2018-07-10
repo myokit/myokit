@@ -292,12 +292,22 @@ class SimulationTest(unittest.TestCase):
         """
         Tests for simulation error detection.
         """
+        # Silly protocol
         p = myokit.Protocol()
         p.schedule(level=1000, start=1, duration=1)
         self.sim.reset()
         self.sim.set_protocol(p)
         self.assertRaises(myokit.SimulationError, self.sim.run, 10)
         self.sim.set_protocol(self.protocol)
+
+        # Cvode error (test failure occurred too many times)
+        m = self.model.clone()
+        v = m.get('membrane.V')
+        v.set_rhs(myokit.Multiply(v.rhs(), myokit.Number(1e12)))
+        s = myokit.Simulation(m, self.protocol)
+        with self.assertRaises(myokit.SimulationError) as e:
+            s.run(5000)
+        self.assertIn('CV_ERR_FAILURE', e.exception.message)
 
 
 class RuntimeSimulationTest(unittest.TestCase):
