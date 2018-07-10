@@ -3609,6 +3609,8 @@ class Variable(VarOwner):
                          self._is_literal, self._is_constant, self._is_nested):
                 for ref in self._refs_by:
                     ref._reset_cache(bubble=True)
+                for ref in self._srefs_by:
+                    ref._reset_cache(bubble=True)
 
     def rhs(self):
         """
@@ -3828,7 +3830,7 @@ class Variable(VarOwner):
                 'No component found in hierarchy for <' + self.qname() + '>.')
 
         # Validate references
-        for ref in self._refs_to:
+        for ref in self._refs_to.union(self._srefs_to):
             # References can be made to:
             #  1. This variable's children or any of this variable's
             #     ancestor's children.
