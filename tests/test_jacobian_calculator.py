@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
+import numpy as np
 
 import myokit
 
@@ -26,9 +27,31 @@ class JacobianCalculatorTest(unittest.TestCase):
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m, p, x = myokit.load(m)
+
         # Run a simple simulation
         c = myokit.JacobianCalculator(m)
         x, f, j, e = c.newton_root(damping=0.01, max_iter=50)
+
+        # Test if still works with initial x all zero (Enno's bug)
+        x = np.array(m.state()) * 0
+        x, f, j, e = c.newton_root(damping=0.01, max_iter=50)
+
+        # Test if still works with a single zero
+        x = np.array(m.state())
+        x[0] = 0
+        x, f, j, e = c.newton_root(damping=0.01, max_iter=50)
+
+        # Test quick return
+        x = np.array(m.state())
+        x[0] = 0
+        x2, f, j, e = c.newton_root(damping=0.01, max_iter=1)
+        self.assertTrue(np.sum((x2 - x)**2) > 10)
+
+        # Invalid damping value
+        self.assertRaisesRegexp(
+            ValueError, 'Damping', c.newton_root, damping=0)
+        self.assertRaisesRegexp(
+            ValueError, 'Damping', c.newton_root, damping=1.1)
 
 
 if __name__ == '__main__':

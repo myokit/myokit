@@ -227,15 +227,19 @@ class JacobianCalculator(myokit.CppModule):
         super(JacobianCalculator, self).__init__()
         # Require a valid model
         model.validate()
+
         # Clone model
         self._model = model.clone()
+
         # Unbind all inputs
         for label, var in self._model.bindings():
             var.set_binding(None)
+
         # Extension module id
         JacobianCalculator._index += 1
         module_name = 'myokit_JacobianCalculator_' \
             + str(JacobianCalculator._index)
+
         # Template arguments
         args = {
             'module_name': module_name,
@@ -243,6 +247,7 @@ class JacobianCalculator(myokit.CppModule):
             'inputs': [],
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
+
         # Debug
         if myokit.DEBUG:
             print(
@@ -250,6 +255,7 @@ class JacobianCalculator(myokit.CppModule):
             )
             import sys
             sys.exit(1)
+
         # Compile extension
         libs = ['m']
         libd = []
@@ -272,13 +278,17 @@ class JacobianCalculator(myokit.CppModule):
             state = [float(x) for x in state]
         except ValueError:
             raise ValueError('State vector must contain floats.')
+
         # Create input vector
         inputs = []
+
         # Create output vectors
         deriv = [0] * n
         partial = [0] * n * n
+
         # Run!
         self._ext.calculate(state, inputs, deriv, partial)
+
         # Create numpy versions and return
         deriv = np.array(deriv, copy=False)
         partial = np.array(partial, copy=False).reshape((n, n))
@@ -308,22 +318,28 @@ class JacobianCalculator(myokit.CppModule):
         # Check damping variable
         if damping <= 0 or damping > 1:
             raise ValueError('Damping must be between 0 and 1.')
+
         # Get initial state
         if x is None:
             x = self._model.state()
         x = np.array(x)
+
         # Calculate derivatives & jacobian
         f, j = self.calculate(x)
         e = np.max(np.abs(f))
+
         # Iterations
         iterations = 0
+
         # Best solution
         best = x, f, j, e
+
         # Start
         while e > accuracy:
             # Solve J*s = -f
             #s = np.linalg.solve(j, -f)
             s = np.dot(np.linalg.pinv(j), -f)
+
             # Estimate relative step size
             if not np.any(x == 0):
                 # Calculate relative step size
@@ -335,20 +351,25 @@ class JacobianCalculator(myokit.CppModule):
             else:
                 # Unable to calculate
                 d = 1
+
             # Provide maximum relative step size based damping
             d = min(100 / d, damping)
+
             # Take step to next point
             x2 = x + d * s
-            if np.all(x2 == x):
+            if np.all(x2 == x):     # pragma: no cover
                 break
             x = x2
+
             # Check iterations
             iterations += 1
             if max_iter > 0 and iterations >= max_iter:
                 break
+
             # Calculate derivatives & jacobian
             f, j = self.calculate(x)
             e = np.max(np.abs(f))
             if e < best[3]:
                 best = x, f, j, e
+
         return best
