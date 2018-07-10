@@ -77,6 +77,7 @@ plot 'V.txt' using 1:2 with lines ls 1 title 'Vm'
 #include <math.h>
 #include <cvode/cvode.h>
 #include <nvector/nvector_serial.h>
+
 #define MYOKIT_SUNDIALS_VERSION <?= myokit.SUNDIALS_VERSION ?>
 #if MYOKIT_SUNDIALS_VERSION >= 30000
   #include <sunmatrix/sunmatrix_dense.h>

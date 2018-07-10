@@ -13,7 +13,6 @@ from collections import OrderedDict
 import math
 import re
 import myokit
-import myokit.formats.ansic as ansic
 
 try:
     # Python 2

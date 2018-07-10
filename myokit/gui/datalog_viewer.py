@@ -13,7 +13,6 @@ from __future__ import print_function, unicode_literals
 import gc
 import os
 import traceback
-import ConfigParser as configparser
 
 # Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
@@ -33,6 +32,14 @@ from myokit.gui import matplotlib_backend as backend
 
 # Numpy
 import numpy as np
+
+# Config parser
+try:
+    # Python2
+    from ConfigParser import ConfigParser
+except ImportError:
+    # Python 3
+    from configparser import RawConfigParser as ConfigParser
 
 
 # Application title

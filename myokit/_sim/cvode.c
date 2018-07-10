@@ -52,7 +52,7 @@ bound_variables = model.prepare_bindings({
     'time'        : 't',
     'pace'        : 'engine_pace',
     'realtime'    : 'engine_realtime',
-    'evaluations' : 'engine_evaluations'
+    'evaluations' : 'engine_evaluations',
     })
 #
 # About the bindings:
@@ -90,8 +90,6 @@ equations = model.solvable_order()
 #include "pacing.h"
 
 #define N_STATE <?= model.count_states() ?>
-
-
 
 // Pacing
 ESys epacing;               // Event-based pacing system
@@ -484,10 +482,13 @@ sim_init(PyObject *self, PyObject *args)
     PyObject *key;
     PyObject* ret;
     PyObject *value;
+
     #if MYOKIT_SUNDIALS_VERSION >= 30000
-      SUNMatrix sundials_dense_matrix;
-      SUNLinearSolver sundials_linear_solver;
-      ESys_Flag flag;
+
+    SUNMatrix sundials_dense_matrix;
+    SUNLinearSolver sundials_linear_solver;
+    ESys_Flag flag;
+
     #endif
 
     #ifndef SUNDIALS_DOUBLE_PRECISION
@@ -758,14 +759,17 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
     flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
     if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+
     #if MYOKIT_SUNDIALS_VERSION >= 30000
 
     sundials_dense_matrix = SUNDenseMatrix(N_STATE,N_STATE);
     if(check_cvode_flag((void *)sundials_dense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
-    /* Create dense SUNLinearSolver object for use by CVode */
+
+    // Create dense SUNLinearSolver object for use by CVode
     sundials_linear_solver = SUNDenseLinearSolver(y, sundials_dense_matrix);
     if(check_cvode_flag((void *)sundials_linear_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
-    /* Call CVDlsSetLinearSolver to attach the matrix and linear solver to CVode */
+
+    // Call CVDlsSetLinearSolver to attach the matrix and linear solver to CVode
     flag = CVDlsSetLinearSolver(cvode_mem, sundials_linear_solver, sundials_dense_matrix);
     if(check_cvode_flag(&flag, "CVDlsSetLinearSolver", 1)) return sim_clean();
 

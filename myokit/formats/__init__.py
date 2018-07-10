@@ -13,7 +13,6 @@ import myokit
 import os
 import sys
 import traceback
-from myokit._aux import TextLogger
 
 # Constants
 DIR_FORMATS = os.path.join(myokit.DIR_MYOKIT, 'formats')

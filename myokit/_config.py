@@ -19,7 +19,13 @@ import myokit
 # Load libraries
 import os
 import platform
-from configparser import RawConfigParser
+
+try:
+    # Python2
+    from ConfigParser import ConfigParser
+except ImportError:
+    # Python 3
+    from configparser import RawConfigParser as ConfigParser
 
 
 def _create(path):
@@ -31,12 +37,8 @@ def _create(path):
     system = platform.system()
 
     # Create config parser
-<<<<<<< HEAD
-    config = ConfigParser.ConfigParser(allow_no_value=True)
-
-=======
     config = ConfigParser(allow_no_value=True)
->>>>>>> Initial commit in Python3 compatibility branch
+
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str
 
@@ -191,12 +193,8 @@ def _load():
         _create(path)
 
     # Create the config parser (no value allows comments)
-<<<<<<< HEAD
-    config = ConfigParser.ConfigParser(allow_no_value=True)
+    config = ConfigParser(allow_no_value=True)
 
-=======
-    config = RawConfigParser(allow_no_value=True)
->>>>>>> Initial commit in Python3 compatibility branch
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str
 
@@ -241,7 +239,7 @@ def _load():
         #else:
         # If empty or invalid, don't adjust the settings!
 
-    # Sundial libraries and header files
+    # Sundial libraries, header files, and version
     if config.has_option('sundials', 'lib'):
         for x in config.get('sundials', 'lib').split(';'):
             myokit.SUNDIALS_LIB.append(x.strip())
