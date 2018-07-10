@@ -371,8 +371,4 @@ class JacobianCalculator(myokit.CppModule):
             if e < best[3]:
                 best = x, f, j, e
 
-            # Unable to calculate?
-            if np.isnan(e):
-                break
-
         return best
