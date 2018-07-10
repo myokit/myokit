@@ -2302,5 +2302,57 @@ class UserFunctionTest(unittest.TestCase):
             ValueError, 'Missing input argument', f.convert, args)
 
 
+class EquationTest(unittest.TestCase):
+    """
+    Tests :class:`myokit.Equation`.
+    """
+    def test_creation(self):
+        """ Tests creation of equations. """
+        lhs = myokit.Name('x')
+        rhs = myokit.Number('3')
+        myokit.Equation(lhs, rhs)
+
+    def test_eq(self):
+        """ Tests equality checking. """
+        eq1 = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
+        eq2 = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
+        self.assertEqual(eq1, eq2)
+        self.assertEqual(eq2, eq1)
+        self.assertFalse(eq1 != eq2)
+
+        eq2 = myokit.Equation(myokit.Name('x'), myokit.Number('4'))
+        self.assertNotEqual(eq1, eq2)
+        self.assertNotEqual(eq2, eq1)
+        self.assertTrue(eq1 != eq2)
+
+        eq2 = myokit.Equation(myokit.Name('y'), myokit.Number('3'))
+        self.assertNotEqual(eq1, eq2)
+        self.assertNotEqual(eq2, eq1)
+
+        eq2 = myokit.Equal(myokit.Name('x'), myokit.Number('3'))
+        self.assertNotEqual(eq1, eq2)
+        self.assertNotEqual(eq2, eq1)
+
+        eq2 = 'hi'
+        self.assertNotEqual(eq1, eq2)
+        self.assertNotEqual(eq2, eq1)
+
+    def test_code(self):
+        """ Tests :meth:`Equation.code()`. """
+        eq = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
+        self.assertEqual(eq.code(), 'str:x = 3')
+        self.assertEqual(eq.code(), str(eq))
+
+    def test_iter(self):
+        """ Tests iteration over an equation. """
+        lhs = myokit.Name('x')
+        rhs = myokit.Number('3')
+        eq = myokit.Equation(lhs, rhs)
+        i = iter(eq)
+        self.assertEqual(next(i), lhs)
+        self.assertEqual(next(i), rhs)
+        self.assertEqual(len(list(eq)), 2)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -3908,6 +3908,9 @@ class Equation(object):
     right-hand side.
 
     The sides of an equation are stored in the properties ``lhs`` and ``rhs``.
+
+    Note: This is not a :class:`myokit.Expression`, for that, see
+    :class:`myokit.Equal`.
     """
     def __init__(self, lhs, rhs):
         self.lhs = lhs
