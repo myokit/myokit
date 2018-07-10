@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
+import numpy as np
 
 import myokit
 
@@ -25,8 +26,8 @@ class ICSimulationTest(unittest.TestCase):
     def test_basic(self):
         """ Tests basic usage. """
         # Load model
-        m = os.path.join(DIR_DATA, 'lr-1991.mmt')
-        m, p, x = myokit.load(m)
+        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        n = m.count_states()
 
         # Run a simulation
         s = myokit.ICSimulation(m, p)
@@ -34,10 +35,12 @@ class ICSimulationTest(unittest.TestCase):
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.state(), m.state())
         self.assertEqual(s.default_state(), m.state())
+        self.assertTrue(np.all(s.derivatives() == np.eye(n)))
         d, e = s.run(20, log_interval=5)
         self.assertEqual(s.time(), 20)
         self.assertNotEqual(s.state(), m.state())
         self.assertEqual(s.default_state(), m.state())
+        self.assertFalse(np.all(s.derivatives() == np.eye(n)))
 
         # Create a datablock from the simulation log
         b = s.block(d, e)
