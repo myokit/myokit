@@ -115,13 +115,13 @@ class Simulation1d(myokit.CModule):
         # Get membrane potential variable
         self._vm = model.label('membrane_potential')
         if self._vm is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires the membrane potential'
                 ' variable to be labelled as "membrane_potential".')
 
         # Check for binding to diffusion_current
         if model.binding('diffusion_current') is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires a variable to be bound to'
                 ' "diffusion_current" to pass current from one cell to the'
                 ' next')
@@ -159,6 +159,34 @@ class Simulation1d(myokit.CModule):
         libd = None
         incd = [myokit.DIR_CFUNC]
         self._sim = self._compile(module_name, fname, args, libs, libd, incd)
+
+    def conductance(self):
+        """
+        Returns the current conductance.
+        """
+        return self._conductance
+
+    def default_state(self, icell=None):
+        """
+        Returns the default simulation state as a list of ``len(state) *
+        ncells`` floating point values. If the optional argument ``icell`` is
+        set to a valid cell index only the state of that cell is returned.
+        """
+        if icell is None:
+            return list(self._default_state)
+        else:
+            icell = int(icell)
+            if icell < 0 or icell >= self._ncells:
+                raise ValueError('Given cell index out of range.')
+            offset = icell * self._nstate
+            return self._default_state[offset:offset + self._nstate]
+
+    def paced_cells(self):
+        """
+        Returns the number of cells that will receive a stimulus from the
+        pacing protocol.
+        """
+        return self._npaced
 
     def pre(self, duration, progress=None, msg='Pre-pacing Simulation1d'):
         """
@@ -252,11 +280,13 @@ class Simulation1d(myokit.CModule):
     def _run(self, duration, log, log_interval, progress, msg):
         # Simulation times
         if duration < 0:
-            raise Exception('Simulation time can\'t be negative.')
+            raise ValueError('Simulation time can\'t be negative.')
         tmin = self._time
         tmax = tmin + duration
+
         # Gather global variables in model
         g = [self._model.time().qname()]
+
         # Parse log argument
         log = myokit.prepare_log(
             log,
@@ -267,9 +297,11 @@ class Simulation1d(myokit.CModule):
             allowed_classes=myokit.LOG_STATE + myokit.LOG_BOUND
             + myokit.LOG_INTER,
         )
+
         # Get event tuples
         # Logging period
         log_interval = 0 if log_interval is None else float(log_interval)
+
         # Get progress indication function (if any)
         if progress is None:
             progress = myokit._Simulation_progress
@@ -278,6 +310,7 @@ class Simulation1d(myokit.CModule):
                 raise ValueError(
                     'The argument "progress" must be either a subclass of'
                     ' myokit.ProgressReporter or None.')
+
         # Run simulation
         if duration > 0:
             # Initialize
@@ -312,8 +345,10 @@ class Simulation1d(myokit.CModule):
             finally:
                 # Clean even after keyboardinterrupt or exception
                 self._sim.sim_clean()
+
             # Update state
             self._state = state_out
+
         # Return log
         return log
 
@@ -329,7 +364,7 @@ class Simulation1d(myokit.CModule):
             else:
                 icell = int(icell)
                 if icell < 0 or icell >= self._ncells:
-                    raise KeyError('Given cell index out of range.')
+                    raise ValueError('Given cell index out of range.')
                 offset = icell * self._nstate
                 update[offset:offset + self._nstate] = state
                 return update
@@ -432,7 +467,7 @@ class Simulation1d(myokit.CModule):
         else:
             icell = int(icell)
             if icell < 0 or icell >= self._ncells:
-                raise KeyError('Given cell index out of range.')
+                raise ValueError('Given cell index out of range.')
             offset = icell * self._nstate
             return self._state[offset:offset + self._nstate]
 
