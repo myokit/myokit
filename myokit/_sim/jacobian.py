@@ -335,9 +335,8 @@ class JacobianCalculator(myokit.CppModule):
         best = x, f, j, e
 
         # Start
-        while e > accuracy:
+        while e > accuracy or np.isnan(e):
             # Solve J*s = -f
-            #s = np.linalg.solve(j, -f)
             s = np.dot(np.linalg.pinv(j), -f)
 
             # Estimate relative step size
@@ -371,5 +370,9 @@ class JacobianCalculator(myokit.CppModule):
             e = np.max(np.abs(f))
             if e < best[3]:
                 best = x, f, j, e
+
+            # Unable to calculate?
+            if np.isnan(e):
+                break
 
         return best

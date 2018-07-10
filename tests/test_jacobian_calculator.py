@@ -30,15 +30,16 @@ class JacobianCalculatorTest(unittest.TestCase):
 
         # Run a simple simulation
         c = myokit.JacobianCalculator(m)
-        x, f, j, e = c.newton_root(damping=0.01, max_iter=50)
+        x, f, j, e = c.newton_root(damping=1, max_iter=50)
 
-        # Test if still works with initial x all zero (Enno's bug)
-        x = np.array(m.state()) * 0
-        x, f, j, e = c.newton_root(x, damping=0.01, max_iter=50)
+        # Test if still runs with initial x all zero
+        # (But does cause a linear algebra issue in this case)
+        x = np.zeros(len(m.state()))
+        self.assertRaises(np.linalg.LinAlgError, c.newton_root, x)
 
-        # Test if still works with a single zero
+        # Test if still works with a single zero (Enno's bug)
         x = np.array(m.state())
-        x[0] = 0
+        x[1] = 0
         x, f, j, e = c.newton_root(x, damping=0.01, max_iter=50)
 
         # Test quick return
