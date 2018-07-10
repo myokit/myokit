@@ -163,7 +163,7 @@ class ModelBuildTest(unittest.TestCase):
         y.set_state_value(5)
         self.assertEqual(y.rhs().code(), '-Y.c * Y.y + Y.d * X.x * Y.y')
 
-        # Add another component, variables
+        # Add ano component, variables
         Z = m.add_component('Z')
         self.assertNotEqual(X, Z)
         self.assertNotEqual(Y, Z)
@@ -1395,6 +1395,11 @@ class ModelTest(unittest.TestCase):
             myokit.InvalidBindingError, 'in use as a label', w.set_binding,
             'membrane_potential')
 
+        # State variables can't be bound
+        v.promote(0)
+        self.assertRaisesRegexp(
+            myokit.InvalidBindingError, 'State variables', v.set_binding, 'x')
+
     def test_labels(self):
         """
         Tests setting labels and :meth:`Model.labels()`.
@@ -2154,6 +2159,64 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(args, (myokit.Name(x), myokit.Name(y)))
         f, args = z.pyfunc(use_numpy=True, arguments=True)
         self.assertEqual(args, (myokit.Name(x), myokit.Name(y)))
+
+    def test_rename(self):
+        """ Tests :meth:`Variable.rename(). """
+        # The functional part of this is done by Component.move_variable, so no
+        # extensive testing is required
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        v.rename('w')
+        self.assertEqual(v.name(), 'w')
+        self.assertEqual(v.qname(), 'c.w')
+
+    def test_set_state_value(self):
+        """ Tests :meth:`Variable.set_state_value()`. """
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        w = c.add_variable('w')
+
+        # Test basic functionality
+        v.promote(10)
+        self.assertEqual(v.state_value(), 10)
+        v.set_state_value(12)
+        self.assertEqual(v.state_value(), 12)
+
+        # Only states have this option
+        v.demote()
+        self.assertRaisesRegexp(
+            Exception, 'Only state variables', v.set_state_value, 3)
+        self.assertRaisesRegexp(
+            Exception, 'Only state variables', w.set_state_value, 3)
+
+        # State values must be literals
+        v.promote(3)
+        self.assertRaises(
+            myokit.NonLiteralValueError, v.set_state_value, w.lhs())
+
+    def test_set_unit(self):
+        """ Tests :meth:`Variable.set_unit()`. """
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+
+        # Test basic functionality
+        s = myokit.UNIT_STRICT
+        self.assertIsNone(v.unit())
+        self.assertEqual(v.unit(s), myokit.units.dimensionless)
+        v.set_unit(myokit.units.Newton)
+        self.assertEqual(v.unit(), myokit.units.Newton)
+        self.assertEqual(v.unit(s), myokit.units.Newton)
+
+        # Set via unit parsing
+        v.set_unit('kg/ms')
+        self.assertEqual(v.unit(), myokit.parse_unit('kg/ms'))
+
+        # Set to a non unit
+        self.assertRaisesRegexp(
+            TypeError, 'expects a myokit.Unit', v.set_unit, 12)
 
 
 class UserFunctionTest(unittest.TestCase):

@@ -3573,10 +3573,8 @@ class Variable(VarOwner):
         """
         Renames this variable.
         """
-        p = self._parent
-        if not p:
-            raise Exception('Unable to rename variable without parent.')
-        p.move_variable(self, p, new_name)
+        assert(self._parent is not None)
+        self._parent.move_variable(self, self._parent, new_name)
 
     def __repr__(self):
         if self._indice is not None:
