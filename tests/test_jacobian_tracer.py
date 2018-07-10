@@ -48,7 +48,7 @@ class JacobianTracerTest(unittest.TestCase):
         # Calculate the largest eigenvalues
         g.largest_eigenvalues(log=d)
         g.largest_eigenvalues(block=b)
-        self.assertRaises(ValueError, g.dominant_eigenvalues)
+        self.assertRaises(ValueError, g.largest_eigenvalues)
 
         # Log missing a state
         d2 = d.clone()
