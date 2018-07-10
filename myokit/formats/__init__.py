@@ -60,7 +60,7 @@ class Exporter(object):
                       ' specified location ' + path
                 self._logger.log_flair('An error occurred.')
                 self._logger.log(msg)
-                raise myokit.ExportError(msg, self)
+                raise myokit.ExportError(msg)
             else:
                 self._logger.log('Using existing directory ' + path)
 
@@ -469,13 +469,13 @@ class TemplatedRunnableExporter(Exporter):
             msg = 'Template directory not found: ' + tpl_dir
             log.log_flair('An error occurred.')
             log.log(msg)
-            raise myokit.ExportError(msg, self)
+            raise myokit.ExportError(msg)
         if not os.path.isdir(tpl_dir):  # pragma: no cover
             # Cover pragma: If this happens it's a bug in the exporter
             msg = 'Template path is not a directory:' + tpl_dir
             log.log_flair('An error occurred.')
             log.log(msg)
-            raise Myokit.ExportError(msg, self)
+            raise Myokit.ExportError(msg)
 
         # Render all templates
         tpl_vars = self._vars(model, protocol, *args)
@@ -493,7 +493,7 @@ class TemplatedRunnableExporter(Exporter):
                         msg += ' A file or link with that name already exists.'
                         log.log_flair('An error occurred.')
                         log.log(msg)
-                        raise myokit.ExportError(msg, self)
+                        raise myokit.ExportError(msg)
                 else:   # pragma: no cover
                     try:
                         os.makedirs(file_dir)
@@ -503,7 +503,7 @@ class TemplatedRunnableExporter(Exporter):
                         msg += ' IOError:' + str(e)
                         log.log_flair('An error occurred.')
                         log.log(msg)
-                        raise myokit.ExportError(msg, self)
+                        raise myokit.ExportError(msg)
 
             # Check if output file already exists
             out_name = os.path.join(path, out_name)
@@ -512,7 +512,7 @@ class TemplatedRunnableExporter(Exporter):
                     msg = 'Directory exists at ' + myokit.format_path(out_name)
                     log.log_flair('An error occurred.')
                     log.log(msg)
-                    raise myokit.ExportError(msg, self)
+                    raise myokit.ExportError(msg)
                 log.log('Overwriting ' + myokit.format_path(out_name))
 
             # Check template file
@@ -522,14 +522,14 @@ class TemplatedRunnableExporter(Exporter):
                 msg = 'File not found: ' + myokit.format_path(tpl_name)
                 log.log_flair('An error occurred.')
                 log.log(msg)
-                raise myokit.ExportError(msg, self)
+                raise myokit.ExportError(msg)
             if not os.path.isfile(tpl_name):    # pragma: no cover
                 # Cover pragma: If this happens it's a bug in the exporter
                 msg = 'Directory found, expecting file at '
                 msg += myokit.format_path(tpl_name)
                 log.log_flair('An error occurred.')
                 log.log(msg)
-                raise myokit.ExportError(msg, self)
+                raise myokit.ExportError(msg)
 
             # Render
             with open(out_name, 'w') as f:
@@ -549,7 +549,7 @@ class TemplatedRunnableExporter(Exporter):
                             log.log(d)
                     raise myokit.ExportError(   # pragma: no cover
                         'An internal error ocurred while processing a'
-                        ' template.', self)
+                        ' template.')
 
     def supports_runnable(self):
         """

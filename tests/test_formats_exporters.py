@@ -82,11 +82,11 @@ class ExportTest(unittest.TestCase):
                 self.assertTrue(len(os.listdir(dpath)) > 0)
 
                 # Write to complex path
-                #path2 = os.path.join(path, 'runnable3', 'nest', 'test')
-                #ret = e.runnable(dpath, m, p)
-                #self.assertIsNone(ret)
-                #self.assertTrue(os.path.isdir(dpath))
-                #self.assertTrue(len(os.listdir(dpath)) > 0)
+                dpath = os.path.join(path, 'runnable3', 'nest', 'test')
+                ret = e.runnable(dpath, m, p)
+                self.assertIsNone(ret)
+                self.assertTrue(os.path.isdir(dpath))
+                self.assertTrue(len(os.listdir(dpath)) > 0)
 
             else:
 
