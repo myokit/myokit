@@ -36,11 +36,19 @@ class JacobianTracerTest(unittest.TestCase):
         s.reset()
         d = s.run(20, log=myokit.LOG_STATE + myokit.LOG_BOUND)
 
-        # Calculate the dominant eigenvalues for each log position
+        # Calculate jacobians from log
         g = myokit.JacobianTracer(m)
         b = g.jacobians(d)
-        b.dominant_eigenvalues('jacobians')
-        b.largest_eigenvalues('jacobians')
+
+        # Calculate the dominant eigenvalues
+        g.dominant_eigenvalues(log=d)
+        g.dominant_eigenvalues(block=b)
+        self.assertRaises(ValueError, g.dominant_eigenvalues)
+
+        # Calculate the largest eigenvalues
+        g.dominant_eigenvalues(log=d)
+        g.dominant_eigenvalues(block=b)
+        self.assertRaises(ValueError, g.dominant_eigenvalues)
 
 
 if __name__ == '__main__':
