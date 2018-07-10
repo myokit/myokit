@@ -372,9 +372,3 @@ class ChannelMLImporter(formats.Importer):
     def supports_model(self):
         return True
 
-
-def tag(element):
-    t = element.tag
-    if '{' in t:
-        return t[t.find('}') + 1:]
-    return t
