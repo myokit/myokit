@@ -83,9 +83,11 @@ class ChannelMLImporter(formats.Importer):
             raise ChannelMLError(
                 'No variable labelled "membrane_potential" was found. This is'
                 ' required when adding ChannelML channels to existing models.')
+
         # Parse XML
         path = os.path.abspath(os.path.expanduser(path))
         dom = minidom.parse(path)
+
         # Get channelml tag
         root = dom.getElementsByTagName('channelml')
         try:
@@ -94,8 +96,10 @@ class ChannelMLImporter(formats.Importer):
             raise ChannelMLError(
                 'Unknown root element in xml document. Expecting a tag of type'
                 ' <channelml>.')
+
         # Extract meta data
         meta = self._rip_meta(root)
+
         # Get channeltype tag
         root = root.getElementsByTagName('channel_type')
         try:
@@ -105,19 +109,23 @@ class ChannelMLImporter(formats.Importer):
                 'No <channel_type> element found inside <channelml> element.'
                 ' Import of <synapse_type> and <ion_concentration> is not'
                 ' supported.')
+
         # Add channel component
         name = self._sanitise_name(root.getAttribute('name'))
         if name in model:
-            root = name
+            name_root = name
             i = 2
             while name in model:
-                name = root + '_' + str(i)
+                name = name_root + '_' + str(i)
                 i += 1
         component = model.add_component(name)
+
         # Add alias to membrane potential
         component.add_alias('v', vvar)
+
         # Add meta-data
         component.meta['desc'] = meta
+
         # Find current-voltage relation
         cvr = root.getElementsByTagName('current_voltage_relation')
         if len(cvr) < 1:
@@ -128,6 +136,7 @@ class ChannelMLImporter(formats.Importer):
                 'Multiple current voltage relations found, ignoring all but'
                 ' first.')
         cvr = cvr[0]
+
         # Check for q10
         try:
             q10 = cvr.getElementsByTagName('q10_settings')[0]
@@ -135,6 +144,7 @@ class ChannelMLImporter(formats.Importer):
                 q10.getAttribute('experimental_temp'))
         except IndexError:
             pass
+
         # Add reversal potential
         E = 0
         if cvr.hasAttribute('default_erev'):
@@ -142,6 +152,7 @@ class ChannelMLImporter(formats.Importer):
         evar = component.add_variable('E')
         evar.meta['desc'] = 'Reversal potential'
         evar.set_rhs(E)
+
         # Get maximum conductance
         gmax = 1.0
         if cvr.hasAttribute('default_gmax'):
@@ -149,6 +160,7 @@ class ChannelMLImporter(formats.Importer):
         gmaxvar = component.add_variable('gmax')
         gmaxvar.set_rhs(gmax)
         gmaxvar.meta['desc'] = 'Maximum conductance'
+
         # Add gates
         gvars = []
         for gate in cvr.getElementsByTagName('gate'):
@@ -159,6 +171,7 @@ class ChannelMLImporter(formats.Importer):
             cstate = cstate[0].getAttribute('id')
             ostate = gate.getElementsByTagName('open_state')
             ostate = ostate[0].getAttribute('id')
+
             # Transitions
             trans = gate.getElementsByTagName('transition')
             if len(trans) > 0:
@@ -167,6 +180,7 @@ class ChannelMLImporter(formats.Importer):
                     raise ChannelMLError(
                         'Expecting exactly 2 transitions for gate <' + gname
                         + '>.')
+
                 # Get closed-to-open state
                 tco = None
                 for t in trans:
@@ -178,6 +192,7 @@ class ChannelMLImporter(formats.Importer):
                     raise ChannelMLError(
                         'Unable to find closed-to-open transition for gate <'
                         + gname + '>')
+
                 # Get open-to-closed state
                 toc = None
                 for t in trans:
@@ -189,6 +204,7 @@ class ChannelMLImporter(formats.Importer):
                     raise ChannelMLError(
                         'Unable to find open-to-closed transition for gate <'
                         + gname + '>')
+
                 # Add closed-to-open transition
                 tname = self._sanitise_name(tco.getAttribute('name'))
                 tcovar = gvar.add_variable(tname)
@@ -201,6 +217,7 @@ class ChannelMLImporter(formats.Importer):
                         ' transition in gate <' + gname + '>: '
                         + myokit.format_parse_error(e))
                     tcovar.meta['expression'] = str(expr)
+
                 # Add open-to-closed transition
                 tname = self._sanitise_name(toc.getAttribute('name'))
                 tocvar = gvar.add_variable(tname)
@@ -213,10 +230,12 @@ class ChannelMLImporter(formats.Importer):
                         ' transition in gate <' + gname + '>: '
                         + myokit.format_parse_error(e))
                     tocvar.meta['expression'] = str(expr)
+
                 # Write equation for gate
                 gvar.set_rhs(Minus(
                     Multiply(Name(tcovar), Minus(Number(1), Name(gvar))),
                     Multiply(Name(tocvar), Name(gvar))))
+
             else:
                 # Use "steady-state & time_course" definition
                 ss = gate.getElementsByTagName('steady_state')
@@ -224,9 +243,10 @@ class ChannelMLImporter(formats.Importer):
                 if len(ss) < 1 or len(tc) < 1:
                     raise ChannelMLError(
                         'Unable to find transitions or steady state and'
-                        ' time_course for gate <' + gname + '>.')
+                        ' time course for gate <' + gname + '>.')
                 ss = ss[0]
                 tc = tc[0]
+
                 # Add steady-state variable
                 ssname = self._sanitise_name(ss.getAttribute('name'))
                 ssvar = gvar.add_variable(ssname)
@@ -238,6 +258,7 @@ class ChannelMLImporter(formats.Importer):
                         'Error parsing expression for steady state in gate <'
                         + gname + '>: ' + myokit.format_parse_error(e))
                     ssvar.meta['expression'] = str(expr)
+
                 # Add time course variable
                 tcname = self._sanitise_name(tc.getAttribute('name'))
                 tcvar = gvar.add_variable(tcname)
@@ -249,17 +270,21 @@ class ChannelMLImporter(formats.Importer):
                         'Error parsing expression for time course in gate <'
                         + gname + '>: ' + myokit.format_parse_error(e))
                     tcvar.meta['expression'] = str(expr)
+
                 # Write expression for gate
                 gvar.set_rhs(
                     Divide(Minus(Name(ssvar), Name(gvar)), Name(tcvar)))
+
             power = int(gate.getAttribute('instances'))
             if power > 1:
                 gvars.append(Power(Name(gvar), Number(power)))
             else:
                 gvars.append(Name(gvar))
+
         if len(gvars) < 1:
             raise ChannelMLError(
                 'Current voltage relation requires at least one gate.')
+
         # Add current variable
         ivar = component.add_variable('I')
         ivar.meta['desc'] = 'Current'
@@ -268,6 +293,7 @@ class ChannelMLImporter(formats.Importer):
             expr = Multiply(expr, gvars.pop())
         expr = Multiply(expr, Minus(Name(vvar), Name(evar)))
         ivar.set_rhs(expr)
+
         # Done, return component
         return component
 

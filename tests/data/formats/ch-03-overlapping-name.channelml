@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channelml
+    xmlns:meta="http://morphml.org/metadata/schema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://morphml.org/channelml/schema"
+    xsi:schemaLocation="http://morphml.org/channelml/schema  http://www.neuroml.org/NeuroMLValidator/NeuroMLFiles/Schemata/v1.8.1/Level2/ChannelML_v1.8.1.xsd"
+    units="Physiological Units">
+  <meta:notes>A ion channel model from Channelpedia(www.channelpedia.net)</meta:notes>
+  <channel_type name="membrane"><!-- Changed name to overlap with model component -->
+    <status value="stable">
+      <meta:comment>TBD</meta:comment>
+      <meta:contributor>
+        <meta:name>Rajnish Ranjan</meta:name>
+      </meta:contributor>
+    </status>
+    <meta:notes>Nav1.3 channel, with rate equations expressed in tau and inf form</meta:notes>
+    <meta:authorList>
+      <meta:modelAuthor>
+        <meta:name>Ranjan, R.</meta:name>
+      </meta:modelAuthor>
+      <meta:modelTranslator>
+        <meta:name>Rajnish Ranjan</meta:name>
+        <meta:institution>EPFL</meta:institution>
+        <meta:email>ranjan.rajnish-at-epfl.ch</meta:email>
+      </meta:modelTranslator>
+    </meta:authorList>
+    <meta:publication>
+      <meta:fullTitle>Nav1.3 sodium channels: rapid repriming and slow closed-state inactivation display quantitative differences after expression in a mammalian cell line and in spinal sensory neurons. J. Neurosci., ChannelML 2001,21,5952-61</meta:fullTitle>
+      <meta:pubmedRef>http://www.ncbi.nlm.nih.gov/pubmed/11487618</meta:pubmedRef>
+    </meta:publication>
+    <meta:neuronDBref>
+      <meta:modelName>Nav1.3_122</meta:modelName>
+      <meta:uri>channelpedia.net/icmodel/getchannelMLfile/122/43</meta:uri>
+    </meta:neuronDBref>
+    <current_voltage_relation cond_law="ohmic" default_gmax="1" default_erev="50.0" ion="Na">
+      <q10_settings q10_factor="1" experimental_temp="23.0"/>
+      <gate name="m" instances="3">
+        <closed_state id="m0"/>
+        <open_state id="m"/>
+        <transition expr="v &amp;neq; -26 ? (0.182 * ((v)- -26))/(1-(exp(-((v)- -26)/9)))" expr_form="generic" to="m" name="alpha" from="m0"/>
+        <transition expr="v &amp;neq; -26 ? (0.124 * (-(v) -26))/(1-(exp(-(-(v) -26)/9)))" expr_form="generic" to="m0" name="beta" from="m"/>
+      </gate>
+      <gate name="h" instances="1">
+        <closed_state id="h0"/>
+        <open_state id="h"/>
+        <steady_state expr="1 /(1+exp((v-(-65.0))/8.1))" expr_form="generic" to="h" name="inf" from="h0"/>
+        <time_course expr="0.40 + (0.265 * exp(-v/9.47))" expr_form="generic" to="h" name="tau" from="h0"/>
+      </gate>
+    </current_voltage_relation>
+  </channel_type>
+</channelml>

@@ -17,7 +17,7 @@ import numpy as np
 import myokit
 import myokit.formats.axon as axon
 
-from shared import TemporaryDirectory, DIR_DATA
+from shared import TemporaryDirectory, DIR_FORMATS
 
 
 class AbfTest(unittest.TestCase):
@@ -30,7 +30,7 @@ class AbfTest(unittest.TestCase):
         Tests reading a version 1 file.
         """
         # Load file
-        path = os.path.join(DIR_DATA, 'abf-v1.abf')
+        path = os.path.join(DIR_FORMATS, 'abf-v1.abf')
         abf = axon.AbfFile(path)
 
         # Check version info
@@ -56,7 +56,7 @@ Channel 0: "IN 0      "
         Tests reading a version 2 file.
         """
         # Load file
-        path = os.path.join(DIR_DATA, 'abf-v2.abf')
+        path = os.path.join(DIR_FORMATS, 'abf-v2.abf')
         abf = axon.AbfFile(path)
 
         # Check version info
@@ -84,7 +84,7 @@ Channel 0: "IN 0"
         Tests reading a v1 protocol file.
         """
         # Load file
-        path = os.path.join(DIR_DATA, 'abf-protocol.pro')
+        path = os.path.join(DIR_FORMATS, 'abf-protocol.pro')
         abf = axon.AbfFile(path)
 
         # Check version info
@@ -100,7 +100,7 @@ Protocol set for 1 trials, measuring 0.0s start-to-start.
 Sampling rate: 20000.0 Hz''')
 
         # Load, force as protocol
-        path = os.path.join(DIR_DATA, 'abf-protocol.pro')
+        path = os.path.join(DIR_FORMATS, 'abf-protocol.pro')
         abf = axon.AbfFile(path, is_protocol_file=True)
 
         # Check version info

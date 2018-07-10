@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channelml
+    xmlns:meta="http://morphml.org/metadata/schema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://morphml.org/channelml/schema"
+    xsi:schemaLocation="http://morphml.org/channelml/schema  http://www.neuroml.org/NeuroMLValidator/NeuroMLFiles/Schemata/v1.8.1/Level2/ChannelML_v1.8.1.xsd"
+    units="Physiological Units">
+  <meta:notes>A ion channel model from Channelpedia(www.channelpedia.net)</meta:notes>
+  <channel_type name="Nav1.3">
+    <current_voltage_relation cond_law="ohmic" default_gmax="1" default_erev="50.0" ion="Na">
+      <gate name="m" instances="3">
+        <closed_state id="m0"/>
+        <open_state id="m"/>
+        <transition expr="v &amp;neq; -26 ? (0.182 * ((v)- -26))/(1-(exp(-((v)- -26)/9)))" expr_form="generic" to="m" name="alpha" from="m0"/>
+        <transition expr="v &amp;neq; -26 ? (0.124 * (-(v) -26))/(1-(exp(-(-(v) -26)/9)))" expr_form="generic" to="m0" name="beta" from="m"/>
+        <transition expr="v &amp;neq; -26 ? (0.124 * (-(v) -26))/(1-(exp(-(-(v) -26)/9)))" expr_form="generic" to="m0" name="beta" from="m"/>
+      </gate>
+      <gate name="h" instances="1">
+        <closed_state id="h0"/>
+        <open_state id="h"/>
+        <steady_state expr="1 /(1+exp((v-(-65.0))/8.1))" expr_form="generic" to="h" name="inf" from="h0"/>
+        <time_course expr="0.40 + (0.265 * exp(-v/9.47))" expr_form="generic" to="h" name="tau" from="h0"/>
+      </gate>
+    </current_voltage_relation>
+  </channel_type>
+</channelml>

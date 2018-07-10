@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channelml
+    xmlns:meta="http://morphml.org/metadata/schema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://morphml.org/channelml/schema"
+    xsi:schemaLocation="http://morphml.org/channelml/schema  http://www.neuroml.org/NeuroMLValidator/NeuroMLFiles/Schemata/v1.8.1/Level2/ChannelML_v1.8.1.xsd"
+    units="Physiological Units">
+  <meta:notes>A ion channel model from Channelpedia(www.channelpedia.net)</meta:notes>
+  <chunnel_type name="Nav1.3">
+  </chunnel_type>
+</channelml>

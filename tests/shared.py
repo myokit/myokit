@@ -26,8 +26,11 @@ DIR_TEST = os.path.abspath(os.path.dirname(__file__))
 # The data directory
 DIR_DATA = os.path.join(DIR_TEST, 'data')
 
-# Extra files in the data directory for load/save testings
+# Extra files in the data directory for load/save testing
 DIR_IO = os.path.join(DIR_DATA, 'io')
+
+# Extra files in the data directory for format testing
+DIR_FORMATS = os.path.join(DIR_DATA, 'formats')
 
 # OpenCL support
 OpenCL_FOUND = myokit.OpenCL.supported()

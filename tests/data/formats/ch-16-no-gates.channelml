@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channelml
+    xmlns:meta="http://morphml.org/metadata/schema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://morphml.org/channelml/schema"
+    xsi:schemaLocation="http://morphml.org/channelml/schema  http://www.neuroml.org/NeuroMLValidator/NeuroMLFiles/Schemata/v1.8.1/Level2/ChannelML_v1.8.1.xsd"
+    units="Physiological Units">
+  <meta:notes>A ion channel model from Channelpedia(www.channelpedia.net)</meta:notes>
+  <channel_type name="Nav1.3">
+    <current_voltage_relation cond_law="ohmic" default_gmax="1" default_erev="50.0" ion="Na">
+    </current_voltage_relation>
+  </channel_type>
+</channelml>
