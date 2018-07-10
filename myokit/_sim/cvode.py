@@ -140,6 +140,12 @@ class Simulation(myokit.CModule):
         incd.append(myokit.DIR_CFUNC)
         self._sim = self._compile(module_name, fname, args, libs, libd, incd)
 
+    def default_state(self):
+        """
+        Returns the default state.
+        """
+        return list(self._default_state)
+
     def last_state(self):
         """
         If the last simulation resulted in an error, this will return the last

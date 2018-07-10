@@ -45,8 +45,13 @@ class SimulationTest(unittest.TestCase):
         Test simple run.
         """
         self.sim.reset()
-        self.sim.pre(50)
-        d = self.sim.run(50)
+        self.assertEqual(self.sim.time(), 0)
+        self.sim.pre(5)
+        self.assertEqual(self.sim.time(), 0)
+        d = self.sim.run(5)
+        self.assertEqual(self.sim.time(), 5)
+        self.sim.set_time(0)
+        self.assertEqual(self.sim.time(), 0)
         self.assertEqual(type(d), myokit.DataLog)
         self.assertIn('engine.time', d)
         n = len(d['engine.time'])
@@ -74,6 +79,32 @@ class SimulationTest(unittest.TestCase):
 
         # Check if pace was set to zero (see prop 651 / technical docs).
         self.assertTrue(np.all(d['engine.pace'] == 0.0))
+
+    def test_fixed_form_protocol(self):
+        """
+        Tests running with a fixed form protocol.
+        """
+        n = 10
+        time = list(range(n))
+        pace = [0] * n
+
+        self.sim.reset()
+        self.sim.set_fixed_form_protocol(time, pace)
+        self.sim.run(n)
+
+        # Unset
+        self.sim.set_fixed_form_protocol(None)
+
+        # Invalid protocols
+        self.assertRaisesRegexp(
+            ValueError, 'no times', self.sim.set_fixed_form_protocol,
+            values=pace)
+        self.assertRaisesRegexp(
+            ValueError, 'no values', self.sim.set_fixed_form_protocol,
+            times=time)
+        self.assertRaisesRegexp(
+            ValueError, 'same size', self.sim.set_fixed_form_protocol,
+            time, pace[:-1])
 
     def test_in_parts(self):
         """
@@ -187,6 +218,43 @@ class SimulationTest(unittest.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'Relative', self.sim.set_tolerance, rel_tol=0)
         self.sim.set_tolerance(1e-6, 1e-4)
+
+    def test_set_step_size(self):
+        """
+        Tests :meth:`Simulation.set_min_step_size()` and
+        :meth:`Simulation.set_max_step_size()`.
+        """
+        # Minimum: set, unset, allow negative value to unset
+        self.sim.set_min_step_size(0.1)
+        self.sim.set_min_step_size(None)
+        self.sim.set_min_step_size(-1)
+
+        # Same for max
+        self.sim.set_max_step_size(0.1)
+        self.sim.set_max_step_size(None)
+        self.sim.set_max_step_size(-1)
+
+    def test_set_state(self):
+        """
+        Tests :meth:`Simulation.set_state()` and
+        :meth:`Simulation.set_default_state()`.
+        """
+        # Get state and default state, both different from current
+        state = self.sim.state()
+        state[0] += 1
+        default_state = self.sim.default_state()
+        default_state[1] += 1
+        if state == default_state:
+            default_state[0] += 2
+
+        self.assertNotEqual(self.sim.state(), state)
+        self.assertNotEqual(self.sim.default_state(), default_state)
+
+        self.sim.set_state(state)
+        self.sim.set_default_state(default_state)
+
+        self.assertEqual(self.sim.state(), state)
+        self.assertEqual(self.sim.default_state(), default_state)
 
 
 class RuntimeSimulationTest(unittest.TestCase):
