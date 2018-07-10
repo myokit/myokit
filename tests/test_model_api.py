@@ -2234,6 +2234,25 @@ class VariableTest(unittest.TestCase):
         self.assertRaisesRegexp(
             TypeError, 'expects a myokit.Unit', v.set_unit, 12)
 
+    def test_validate(self):
+        """ Tests some edge cases for validation. """
+
+        # Test scope rule:
+        # Variables are allowed access all children of their ancestors
+        m = myokit.Model()
+        c = m.add_component('c')
+        p = c.add_variable('p')
+        p11 = p.add_variable('p11')
+        p12 = p.add_variable('p12')
+        p121 = p12.add_variable('p121')
+        p121.set_rhs('p + p11 + p12')
+        p121.validate()
+
+        # But not children of children of ancestors
+        p112 = p11.add_variable('p112')
+        p121.set_rhs(p112.lhs())
+        self.assertRaises(myokit.IllegalReferenceError, p121.validate)
+
     def test_value(self):
         """ Tests :meth:`Variable.value()`. """
         m = myokit.Model()
