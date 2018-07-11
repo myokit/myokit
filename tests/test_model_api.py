@@ -20,6 +20,12 @@ import myokit
 
 from shared import TemporaryDirectory
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:
+    basestring = str
+
 # Further model API tests are found in:
 #  - test_dependency_checking.py
 
@@ -274,10 +280,10 @@ class ModelBuildTest(unittest.TestCase):
 
         # Test dependency mapping
         def has(var, *dps):
-            lst = vrs[m.get(var).lhs() if type(var) in [str, unicode] else var]
+            lst = vrs[m.get(var).lhs() if isinstance(var, basestring) else var]
             self.assertEqual(len(lst), len(dps))
             for d in dps:
-                d = m.get(d).lhs() if type(d) in [str, unicode] else d
+                d = m.get(d).lhs() if isinstance(d, basestring) else d
                 self.assertIn(d, lst)
 
         vrs = m.map_shallow_dependencies(omit_states=False)
@@ -1390,7 +1396,7 @@ class ModelTest(unittest.TestCase):
         v.set_rhs('3 - v')
         w = c.add_variable('w')
         w.set_rhs(0)
-        bindings = m.bindings()
+        bindings = list(m.bindings())
         self.assertEqual(len(bindings), 1)
         self.assertEqual(bindings[0][0], 'time')
         self.assertEqual(bindings[0][1], t)
@@ -1433,7 +1439,7 @@ class ModelTest(unittest.TestCase):
         w.set_rhs(1)
         x = c.add_variable('x')
         x.set_rhs(1)
-        labels = m.labels()
+        labels = list(m.labels())
         self.assertEqual(len(labels), 1)
         self.assertEqual(labels[0][0], 'membrane_potential')
         self.assertEqual(labels[0][1], v)

@@ -3175,14 +3175,16 @@ class Variable(VarOwner):
         """
         # Create header line
         c = self.parent(Component)
-        lhs = self._lhs.code(c) if self._lhs else 'UNNAMED'
-        rhs = self._rhs.code(c) if self._rhs else 'UNDEFINED'
+        lhs = self._lhs.code(c) if self._lhs is not None else 'UNNAMED'
+        rhs = self._rhs.code(c) if self._rhs is not None else 'UNDEFINED'
         head = lhs + ' = ' + rhs
+
         # Get description from meta data
         try:
             desc = self.meta['desc']
         except KeyError:
             desc = None
+
         # Add bind and description shortcuts
         omit = []
         unit = self._unit
@@ -3208,24 +3210,31 @@ class Variable(VarOwner):
                 if len(text) < 79 and '\n' not in desc and '\r' not in desc:
                     head = text
                     omit.append('desc')
+
         # Append header line
         pre = t * TAB
         eol = '\n'
         b.write(pre + head + eol)
+
         # Indent!
         t += 1
         pre = t * TAB
+
         # Append unit
         if unit is not None:
             b.write(pre + 'in ' + str(unit) + eol)
+
         # Append binding
         if bind:
             b.write(pre + 'bind ' + bind + eol)
+
         # Append label
         if label:
             b.write(pre + 'label ' + label + eol)
+
         # Append meta properties
         self._code_meta(b, t, ignore=omit)
+
         # Append nested variables
         for var in self.variables(sort=True):
             var._code(b, t)
