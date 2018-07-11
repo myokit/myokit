@@ -23,50 +23,11 @@ import myokit.formats.opencl
 import myokit.formats.python
 import myokit.formats.stan
 
-# Name
-# Number
-
-# PrefixMinus
-# PrefixPlus
-
-# Plus
-# Minus
-# Multiply
-# Divide
-
-# Quotient
-# Remainder
-
-# Power
-# Sqrt
-# Exp
-# Log
-# Log10
-
-# Sin
-# Cos
-# Tan
-# ASin
-# ACos
-# ATan
-
-# Floor
-# Ceil
-# Abs
-
-# Equal
-# NotEqual
-# More
-# Less
-# MoreEqual
-# LessEqual
-
-# Not
-# And
-# Or
-
-# If
-# Piecewise
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class ExpressionWriterTest(unittest.TestCase):
@@ -84,7 +45,7 @@ class ExpressionWriterTest(unittest.TestCase):
     def test_unknown(self):
         """ Tests requesting an unknown expression writer. """
         # Test fetching using ewriter method
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             KeyError, 'Expression writer not found', myokit.formats.ewriter,
             'dada')
 
@@ -238,7 +199,7 @@ class AnsicExpressionWriterTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.ansic.AnsiCExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
@@ -431,7 +392,7 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         self.assertRaises(NotImplementedError, w.set_lhs_function, None)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
@@ -573,7 +534,7 @@ class CppExpressionWriterTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.cpp.CppExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
@@ -763,7 +724,7 @@ class CudaExpressionWriterTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.cuda.CudaExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
@@ -931,7 +892,7 @@ class LatexExpressionWriterTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.latex.LatexExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
@@ -1074,7 +1035,7 @@ class MatlabExpressionWriterTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.matlab.MatlabExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
@@ -1217,7 +1178,7 @@ class NumpyExpressionWriterTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.python.NumpyExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
@@ -1449,7 +1410,7 @@ class OpenCLExpressionWriterTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.opencl.OpenCLExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
@@ -1595,7 +1556,7 @@ class PythonExpressionWriterTest(unittest.TestCase):
         self.assertEqual(w.ex(a), 'sheep')
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
@@ -1737,7 +1698,7 @@ class StanExpressionWriterTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.stan.StanExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 

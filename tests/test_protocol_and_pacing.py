@@ -18,6 +18,12 @@ import myokit
 from ansic_event_based_pacing import AnsicEventBasedPacing
 from ansic_fixed_form_pacing import AnsicFixedFormPacing
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class PacingTest(unittest.TestCase):
     """
@@ -83,15 +89,11 @@ class PacingTest(unittest.TestCase):
 
         # Invalid event: starts simultaneously
         def sim(p, start, duration, period=0, multiplier=0, clash=0):
-            self.assertRaises(
-                myokit.SimultaneousProtocolEventError,
-                p.schedule, 2, start, duration, period, multiplier)
-            try:
+            with self.assertRaises(myokit.SimultaneousProtocolEventError) as e:
                 p.schedule(2, start, duration, period, multiplier)
-            except myokit.SimultaneousProtocolEventError as e:
-                m = e.message
-                t = m[2 + m.index('t='):-1]
-                self.assertEqual(float(t), clash)
+            m = str(e.exception)
+            t = m[2 + m.index('t='):-1]
+            self.assertEqual(float(t), clash)
         sim(p, 1, 0.5, clash=1)
         sim(p, 10, 0.5, clash=10)
         sim(p, 100, 0.5, clash=100)
@@ -173,7 +175,7 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(s.time(), 10)
         self.assertEqual(s.next_time(), 11)
         self.assertEqual(s.pace(), 2)
-        self.assertRaisesRegexp(ValueError, 'cannot be before', s.advance, 0)
+        self.assertRaisesRegex(ValueError, 'cannot be before', s.advance, 0)
 
         # Test max time
         s.advance(20, max_time=13)
@@ -232,12 +234,10 @@ class PacingTest(unittest.TestCase):
         s.advance(t)
         t = s.next_time()
         self.assertEqual(t, 2000)
-        self.assertRaises(myokit.SimultaneousProtocolEventError, s.advance, t)
-        try:
+        with self.assertRaises(myokit.SimultaneousProtocolEventError) as e:
             s.advance(t)
-        except myokit.SimultaneousProtocolEventError as e:
-            m = e.message
-            self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
+        m = str(e.exception)
+        self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
 
     def test_create_log_for_times(self):
         """
@@ -263,11 +263,11 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(len(d['pace']), 0)
 
         # Decreasing times
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'non-decreasing', p.create_log_for_times, [1, 0])
 
         # Negative times
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'negative', p.create_log_for_times, [-1, 0])
 
     def test_in_words(self):
@@ -498,10 +498,10 @@ class PacingTest(unittest.TestCase):
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 1000, 2)
         self.assertFalse(p.is_sequence())
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'contains periodic', p.is_sequence, True)
         self.assertFalse(p.is_unbroken_sequence())
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'contains periodic', p.is_unbroken_sequence, True)
 
         # Second event is periodic
@@ -509,10 +509,10 @@ class PacingTest(unittest.TestCase):
         p.schedule(2, 10, 100, 0, 0)
         p.schedule(20, 100, 100, 1000, 1000)
         self.assertFalse(p.is_sequence())
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'contains periodic', p.is_sequence, True)
         self.assertFalse(p.is_unbroken_sequence())
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'contains periodic', p.is_unbroken_sequence, True)
 
         # Multiple periodic events
@@ -520,10 +520,10 @@ class PacingTest(unittest.TestCase):
         p.schedule(2, 10, 100, 1000, 2)
         p.schedule(2, 1, 1, 1000, 0)
         self.assertFalse(p.is_sequence())
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'contains periodic', p.is_sequence, True)
         self.assertFalse(p.is_unbroken_sequence())
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'contains periodic', p.is_unbroken_sequence, True)
 
         # Overlapping events
@@ -532,10 +532,10 @@ class PacingTest(unittest.TestCase):
         p.schedule(2, 12, 1, 0, 0)
         p.schedule(2, 420, 1, 0, 0)
         self.assertFalse(p.is_sequence())
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'overlap', p.is_sequence, True)
         self.assertFalse(p.is_unbroken_sequence())
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'overlap', p.is_unbroken_sequence, True)
 
         # Non-overlapping events
@@ -546,7 +546,7 @@ class PacingTest(unittest.TestCase):
         self.assertTrue(p.is_sequence())
         self.assertTrue(p.is_sequence(True))
         self.assertFalse(p.is_unbroken_sequence())
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'start directly after', p.is_unbroken_sequence, True)
 
         # Unbroken sequence

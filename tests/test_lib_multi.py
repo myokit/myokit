@@ -18,6 +18,13 @@ import myokit.lib.multi as multi
 
 from shared import DIR_DATA
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
+# Path to multi-model testing files
 DIR_MULTI = os.path.join(DIR_DATA, 'multi')
 
 
@@ -59,7 +66,7 @@ class LibMultiTest(unittest.TestCase):
         # Path must be a directory
         path = os.path.join(DIR_MULTI, 'lr-1991.mmt')
         i = multi.iterdir(path)
-        self.assertRaisesRegexp(ValueError, 'not a directory', next, i)
+        self.assertRaisesRegex(ValueError, 'not a directory', next, i)
 
     def test_scandir(self):
         """

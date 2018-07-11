@@ -18,6 +18,11 @@ import myokit
 
 from shared import DIR_DATA
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 # Extra output
 debug = False
@@ -1377,7 +1382,7 @@ class SolvableOrderTest(DepTest):
 
         # Test with cycles
         self.m.get('ina.j').demote()
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             RuntimeError, 'Equation ordering failed.', self.m.solvable_order)
         del(self.m)
 
@@ -1505,16 +1510,16 @@ class SolvableOrderTest(DepTest):
 
         # Arguments must be strings, LhsExpressions pointing to variables,
         # or variables
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must be LhsExpression', self.m.solvable_subset,
             12)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must be LhsExpression', self.m.solvable_subset,
             'membrane')
 
         # Cyclical dependencies
         self.m.get('ina.m').demote()
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             RuntimeError, 'Equation ordering failed.', self.m.solvable_subset,
             'ina.m.alpha')
 

@@ -85,7 +85,7 @@ class TemplateEngine(object):
                 syserr = sys.stderr
                 sys.stdout = stdout
                 sys.stderr = stderr
-                exec(script) in variables
+                exec(script, variables)
             except Exception:
                 error = sys.exc_info()
             finally:
@@ -96,7 +96,7 @@ class TemplateEngine(object):
 
             if error:
                 # Add exception traceback to error message
-                msg = [traceback.format_exc()]
+                msg = traceback.format_exception(*error)
                 line = None
 
                 # Search for error occurring in <string> (IE the executable
@@ -242,7 +242,6 @@ class PypeError(Exception):
 
     An error thrown by the :class:`TemplateEngine`
     """
-    def __init__(self, msg):
-        super(PypeError, self).__init__()
-        self.message = msg
+    def __init__(self, message):
+        super(PypeError, self).__init__(message)
 

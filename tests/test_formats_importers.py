@@ -18,6 +18,12 @@ import myokit.formats as formats
 
 from shared import DIR_FORMATS
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class ImporterTest(unittest.TestCase):
     """ Tests shared importer functionality. """
@@ -34,7 +40,7 @@ class ImporterTest(unittest.TestCase):
     def test_unknown(self):
         """ Tests requesting an unknown importer. """
         # Test fetching using importer method
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             KeyError, 'Importer not found', myokit.formats.importer, 'blip')
 
 

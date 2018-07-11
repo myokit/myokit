@@ -19,6 +19,12 @@ import myokit.formats.channelml
 
 from shared import DIR_FORMATS
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class ChannelMLTest(unittest.TestCase):
     """ Tests ChannelML importing. """
@@ -64,12 +70,12 @@ class ChannelMLTest(unittest.TestCase):
         ce = myokit.formats.channelml.ChannelMLError
 
         # Wrong XML root element
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ce, 'Unknown root', i.model,
             os.path.join(DIR_FORMATS, 'ch-01-wrong-root.channelml'))
 
         # No channel_type element
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ce, 'No <channel_type>', i.model,
             os.path.join(DIR_FORMATS, 'ch-02-no-channel-type.channelml'))
 
@@ -80,7 +86,7 @@ class ChannelMLTest(unittest.TestCase):
         self.assertIn('membrane_2', m)  # Renamed channel membrane > membrane_2
 
         # No current_voltage_relation element
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ce, 'current voltage relation', i.model,
             os.path.join(DIR_FORMATS, 'ch-04-no-cvr.channelml'))
 
@@ -98,17 +104,17 @@ class ChannelMLTest(unittest.TestCase):
         m.validate()
 
         # Not exactly 2 transitions
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ce, 'exactly 2 transitions', i.model,
             os.path.join(DIR_FORMATS, 'ch-07-three-transitions.channelml'))
 
         # Not closed-to-open transition
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ce, 'closed-to-open', i.model,
             os.path.join(DIR_FORMATS, 'ch-08-no-closed-to-open.channelml'))
 
         # Not open-to-closed transition
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ce, 'open-to-closed', i.model,
             os.path.join(DIR_FORMATS, 'ch-09-no-open-to-closed.channelml'))
 
@@ -141,10 +147,10 @@ class ChannelMLTest(unittest.TestCase):
         self.assertEquals('bort', m.get('Nav1_3.m.beta').meta['expression'])
 
         # No transitions or steady-state/time-course for a gate
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ce, 'steady state', i.model,
             os.path.join(DIR_FORMATS, 'ch-12-no-steady-state.channelml'))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ce, 'time course', i.model,
             os.path.join(DIR_FORMATS, 'ch-13-no-time-course.channelml'))
 
@@ -171,7 +177,7 @@ class ChannelMLTest(unittest.TestCase):
         self.assertEquals('house', m.get('Nav1_3.h.tau').meta['expression'])
 
         # No gates
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ce, 'at least one gate', i.model,
             os.path.join(DIR_FORMATS, 'ch-16-no-gates.channelml'))
 

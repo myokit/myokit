@@ -19,7 +19,13 @@ import myokit
 # Load libraries
 import os
 import platform
-import ConfigParser
+
+try:
+    # Python2
+    from ConfigParser import ConfigParser
+except ImportError:
+    # Python 3
+    from configparser import RawConfigParser as ConfigParser
 
 
 def _create(path):
@@ -31,7 +37,7 @@ def _create(path):
     system = platform.system()
 
     # Create config parser
-    config = ConfigParser.ConfigParser(allow_no_value=True)
+    config = ConfigParser(allow_no_value=True)
 
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str
@@ -114,6 +120,8 @@ def _create(path):
             '/opt/local/include',
         ]))
 
+    config.set('sundials', 'version', myokit.SUNDIALS_VERSION)
+
     # Locations of OpenCL libraries
     config.add_section('opencl')
     config.set(
@@ -185,7 +193,7 @@ def _load():
         _create(path)
 
     # Create the config parser (no value allows comments)
-    config = ConfigParser.ConfigParser(allow_no_value=True)
+    config = ConfigParser(allow_no_value=True)
 
     # Make the parser case sensitive (need for unix paths!)
     config.optionxform = str
@@ -197,13 +205,13 @@ def _load():
     if config.has_option('time', 'date_format'):
         x = config.get('time', 'date_format')
         if x:
-            myokit.DATE_FORMAT = unicode(x)
+            myokit.DATE_FORMAT = str(x)
 
     # Time format
     if config.has_option('time', 'time_format'):
         x = config.get('time', 'time_format')
         if x:
-            myokit.TIME_FORMAT = unicode(x)
+            myokit.TIME_FORMAT = str(x)
 
     # Add line numbers to debug output of simulations
     if config.has_option('debug', 'line_numbers'):
@@ -231,21 +239,23 @@ def _load():
         #else:
         # If empty or invalid, don't adjust the settings!
 
-    # Sundial libraries and header files
+    # Sundial libraries, header files, and version
     if config.has_option('sundials', 'lib'):
         for x in config.get('sundials', 'lib').split(';'):
-            myokit.SUNDIALS_LIB.append(unicode(x.strip()))
+            myokit.SUNDIALS_LIB.append(x.strip())
     if config.has_option('sundials', 'inc'):
         for x in config.get('sundials', 'inc').split(';'):
-            myokit.SUNDIALS_INC.append(unicode(x.strip()))
+            myokit.SUNDIALS_INC.append(x.strip())
+    if config.has_option('sundials', 'version'):
+        myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
 
     # OpenCL libraries and header files
     if config.has_option('opencl', 'lib'):
         for x in config.get('opencl', 'lib').split(';'):
-            myokit.OPENCL_LIB.append(unicode(x.strip()))
+            myokit.OPENCL_LIB.append(x.strip())
     if config.has_option('opencl', 'inc'):
         for x in config.get('opencl', 'inc').split(';'):
-            myokit.OPENCL_INC.append(unicode(x.strip()))
+            myokit.OPENCL_INC.append(x.strip())
 
 
 # Load settings

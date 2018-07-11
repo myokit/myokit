@@ -155,7 +155,7 @@ class SBMLImporter(myokit.formats.Importer):
         except myokit.IntegrityError as e:
             log.log_line()
             log.log('WARNING: Integrity error found in model:')
-            log.log(e.message)
+            log.log(str(e))
             log.log_line()
 
         # Return finished model

@@ -19,6 +19,12 @@ import myokit.lib.markov as markov
 
 from shared import DIR_DATA
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class LinearModelTest(unittest.TestCase):
     """
@@ -66,17 +72,17 @@ class LinearModelTest(unittest.TestCase):
         self.assertEqual(type(m2), markov.AnalyticalSimulation)
 
         # State doesn't exist
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown state', markov.LinearModel, model,
             states + ['bert'], parameters, current)
 
         # State isn't a state
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'not a state', markov.LinearModel, model,
             states + ['ina.i'], parameters, current)
 
         # State added twice
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'twice', markov.LinearModel, model, states + ['ina.O'],
             parameters, current)
 
@@ -84,22 +90,22 @@ class LinearModelTest(unittest.TestCase):
         markov.LinearModel(model, states, None, current)
 
         # Non-literal parameter
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unsuitable', markov.LinearModel, model, states,
             parameters + ['ina.i'], current)
 
         # Parameter added twice
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Parameter listed twice', markov.LinearModel, model,
             states, parameters + ['ina.p1'], current)
 
         # Unknown parameter
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown parameter', markov.LinearModel, model, states,
             parameters + ['ina.p1000'], current)
 
         # Current is a state
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Current variable can not be a state',
             markov.LinearModel, model, states, parameters, 'ina.O')
 
@@ -107,7 +113,7 @@ class LinearModelTest(unittest.TestCase):
         m2 = model.clone()
         markov.LinearModel(m2, states, parameters, current)
         m2.get(current).set_rhs(0)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Current must be a function of', markov.LinearModel,
             m2, states, parameters, current)
 
@@ -115,23 +121,23 @@ class LinearModelTest(unittest.TestCase):
         m2 = model.clone()
         markov.LinearModel(m2, states, parameters, current)
         m2.get('membrane.V').set_label(None)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'potential must be specified', markov.LinearModel, m2,
             states, parameters, current)
         markov.LinearModel(m2, states, parameters, current, vm='membrane.V')
 
         # Vm is a parameter
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'list of parameters', markov.LinearModel, m2, states,
             parameters, current, vm=parameters[0])
 
         # Vm is a state
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'list of states', markov.LinearModel, m2, states,
             parameters, current, vm=states[0])
 
         # Vm is the current
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'be the current', markov.LinearModel, m2, states,
             parameters, current, vm=current)
 
@@ -144,7 +150,7 @@ class LinearModelTest(unittest.TestCase):
         x.set_rhs(str(x.rhs()) + '+ a12 * C2 + - b12 * C1')
         x = m2.get('ina.C1')
         x.set_rhs(str(x.rhs()) + ' - ina.C1')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'not vice versa', markov.LinearModel, m2, states,
             parameters, current)
 
@@ -153,7 +159,7 @@ class LinearModelTest(unittest.TestCase):
         markov.LinearModel(m2, states, parameters, current)
         m2.get(states[0]).set_state_value(0.6)
         m2.get(states[1]).set_state_value(0.6)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'sum of states', markov.LinearModel, m2, states,
             parameters, current)
 
@@ -162,7 +168,7 @@ class LinearModelTest(unittest.TestCase):
         markov.LinearModel(m2, states, parameters, current)
         x = m2.get(states[0])
         x.set_rhs('2 * ' + str(x.rhs()))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'sum to non-zero', markov.LinearModel, m2, states,
             parameters, current)
 
@@ -174,7 +180,7 @@ class LinearModelTest(unittest.TestCase):
         # Set rhs to something non-linear, make sure columns still sum to 0
         x.set_rhs(str(x.rhs()) + ' + C1^2')
         y.set_rhs(str(y.rhs()) + ' - C1^2')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'not Multiply or Name', markov.LinearModel,
             m2, states, parameters, current)
 
@@ -186,7 +192,7 @@ class LinearModelTest(unittest.TestCase):
         # Set rhs to something non-linear, make sure columns still sum to 0
         x.set_rhs(str(x.rhs()) + ' + p1')
         y.set_rhs(str(y.rhs()) + ' - p1')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'non-state reference', markov.LinearModel,
             m2, states, parameters, current)
 
@@ -198,7 +204,7 @@ class LinearModelTest(unittest.TestCase):
         # Set rhs to something non-linear, make sure columns still sum to 0
         x.set_rhs(str(x.rhs()) + ' + 5')
         y.set_rhs(str(y.rhs()) + ' - 5')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'not Multiply or Name', markov.LinearModel,
             m2, states, parameters, current)
 
@@ -206,7 +212,7 @@ class LinearModelTest(unittest.TestCase):
         m2 = model.clone()
         markov.LinearModel(m2, states, parameters, current)
         m2.get(current).set_rhs('5 + sqrt(ina.O)')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'not Multiply or Name', markov.LinearModel,
             m2, states, parameters, current)
 
@@ -215,7 +221,7 @@ class LinearModelTest(unittest.TestCase):
         markov.LinearModel(m2, states, parameters, current)
         x = m2.get(current)
         x.set_rhs(str(x.rhs()) + ' + p1')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'non-state reference', markov.LinearModel,
             m2, states, parameters, current)
 

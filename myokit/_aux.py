@@ -28,6 +28,12 @@ except ImportError:
     # Python3
     from io import StringIO
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 import myokit
 
 # Globally shared numpy expression writer
@@ -984,9 +990,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
                     'get_model': get_model,
                     'get_protocol': get_protocol,
                 }
-                exec self.script in environment
-            except Exception:
-                self.exc_info = sys.exc_info()
+                exec(self.script, environment)
             finally:
                 if oldstdout is not None:
                     sys.stdout = oldstdout
@@ -996,8 +1000,6 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
 
     r = Runner(model, protocol, script, stdout, stderr, progress)
     r.run()
-    if r.exc_info is not None:
-        raise r.exc_info[0], r.exc_info[1], r.exc_info[2]
 
     # Free some space
     del(r)
@@ -1276,7 +1278,7 @@ def strfloat(number):
     Turns the given number into a string, without losing accuracy.
     """
     # Pass through strings
-    if type(number) in [str, unicode]:
+    if isinstance(number, basestring):
         return number
 
     # Handle myokit.Numbers

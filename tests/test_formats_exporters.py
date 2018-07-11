@@ -18,6 +18,12 @@ import myokit.formats
 
 from shared import TemporaryDirectory
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class ExportTest(unittest.TestCase):
     """
@@ -134,14 +140,14 @@ class ExportTest(unittest.TestCase):
             dpath = os.path.join(path, 'file')
             with open(dpath, 'w') as f:
                 f.write('contents\n')
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 myokit.ExportError, 'file exists', e.runnable, dpath, m, p)
 
             # Directory exists where we're trying to write a file
             dpath = os.path.join(path, 'runnable3')
             fname = os.path.join(dpath, 'sim.c')
             os.makedirs(fname)
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 myokit.ExportError, 'Directory exists',
                 e.runnable, dpath, m, p)
 
@@ -163,7 +169,7 @@ class ExportTest(unittest.TestCase):
 
             e._dict = embedded
             dpath = os.path.join(path, 'runnable4')
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 myokit.ExportError, 'file or link', e.runnable, dpath, m, p)
 
     def test_ansic_exporter(self):
@@ -244,7 +250,7 @@ class ExportTest(unittest.TestCase):
         """
         Tests the error handling for requesting an unknown exporter.
         """
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             KeyError, 'Exporter not found', myokit.formats.exporter, 'elvish')
 
 

@@ -138,10 +138,10 @@ class DataLog(OrderedDict):
             x = np.asarray(x)
             y = np.asarray(y)
 
-            # Get boolean array of places where v exceeds the threshold
-            h = y > t
+            # Get array of places where v exceeds the threshold (1s and 0s)
+            h = (y > t) * 1
 
-            # Get boolean array of indices just before a crossing
+            # Get array of indices just before a crossing
             c = np.argwhere(h[1:] - h[:-1])
 
             # Gather crossing times

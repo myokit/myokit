@@ -16,6 +16,12 @@ from collections import OrderedDict
 import myokit
 from myokit import ParseError, ProtocolParseError
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 def parse(source):
     """
@@ -29,7 +35,7 @@ def parse(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in [str, unicode]:
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -74,7 +80,7 @@ def parse_model(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in [str, unicode]:
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -99,7 +105,7 @@ def parse_protocol(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in [str, unicode]:
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -123,7 +129,7 @@ def parse_script(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in [str, unicode]:
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -165,7 +171,7 @@ def parse_state(state):
     """
     # Get raw stream
     raw = state
-    if type(raw) in [str, unicode]:
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -209,7 +215,7 @@ def split(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in [str, unicode]:
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -309,7 +315,7 @@ def unexpected_token(token, expected):
     if code not in hide:
         got += ' "' + text + '"'
     # Parse expected token(s) or string
-    if type(expected) not in [unicode, str, bytes]:
+    if not isinstance(expected, basestring):
         if len(expected) > 2:
             expected = 'one of [ ' \
                 + ', '.join([token_str[i] for i in expected]) + ' ]'
@@ -413,7 +419,7 @@ def parse_model_from_stream(stream, syntax_only=False):
         token = stream.peek()
 
     # Save order of state variables
-    state_order = info.initial_values.keys()
+    state_order = list(info.initial_values.keys())
 
     # Parse components
     while stream.peek()[0] == BRACKET_OPEN:
@@ -460,8 +466,8 @@ def parse_model_from_stream(stream, syntax_only=False):
         t = e.token()
         if t:
             raise ParseError(
-                'IntegrityError', t[2], t[3], e.message, cause=e)
-        raise ParseError('IntegrityError', 0, 0, e.message, cause=e)
+                'IntegrityError', t[2], t[3], str(e), cause=e)
+        raise ParseError('IntegrityError', 0, 0, str(e), cause=e)
 
     # Return
     return model
@@ -497,7 +503,7 @@ def parse_user_function(stream, info):
             myokit.InvalidNameError,
             myokit.InvalidFunction) as e:
         raise ParseError(
-            'Invalid function declaration', line, char, e.message, cause=e)
+            'Invalid function declaration', line, char, str(e), cause=e)
 
 
 def parse_component(stream, info=None):
@@ -519,10 +525,10 @@ def parse_component(stream, info=None):
         component = info.model.add_component(name)
     except myokit.DuplicateName as e1:
         raise ParseError(
-            'Duplicate component name', line, char, e1.message, cause=e1)
+            'Duplicate component name', line, char, str(e1), cause=e1)
     except myokit.InvalidNameError as e2:
         raise ParseError(
-            'Illegal component name', line, char, e2.message, cause=e2)
+            'Illegal component name', line, char, str(e2), cause=e2)
     reg_token(info, token, component)
 
     # Add alias map
@@ -654,10 +660,10 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
         var = parent.add_variable(name)
     except myokit.DuplicateName as e1:
         raise ParseError(
-            'Duplicate variable name', line, char, e1.message, cause=e1)
+            'Duplicate variable name', line, char, str(e1), cause=e1)
     except myokit.InvalidNameError as e2:
         raise ParseError(
-            'Illegal variable name', line, char, e2.message, cause=e2)
+            'Illegal variable name', line, char, str(e2), cause=e2)
 
     # Register tokens
     for token in toreg:
@@ -676,7 +682,7 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
         except myokit.NonLiteralValueError as e:
             t = state_value._token
             raise ParseError(
-                'Illegal state value', t[2], t[3], e.message, cause=e)
+                'Illegal state value', t[2], t[3], str(e), cause=e)
         del(info.initial_values[var.qname()])
 
     # Parse definition, quick unit, bind, label and description syntax
@@ -785,7 +791,7 @@ def parse_binding(stream, info, var):
     try:
         var.set_binding(label)
     except myokit.InvalidBindingError as e:
-        raise ParseError('Illegal binding', line, char, e.message, cause=e)
+        raise ParseError('Illegal binding', line, char, str(e), cause=e)
 
 
 def parse_label(stream, info, var):
@@ -799,7 +805,7 @@ def parse_label(stream, info, var):
     try:
         var.set_label(label)
     except myokit.InvalidLabelError as e:
-        raise ParseError('Illegal label', line, char, e.message, cause=e)
+        raise ParseError('Illegal label', line, char, str(e), cause=e)
 
 
 def resolve_alias_map_names(info):
@@ -825,11 +831,11 @@ def resolve_alias_map_names(info):
             except myokit.DuplicateName as e:
                 raise ParseError(
                     'Duplicate name error',
-                    t_comp[2], t_comp[3], e.message, cause=e)
+                    t_comp[2], t_comp[3], str(e), cause=e)
             except myokit.InvalidNameError as e2:
                 raise ParseError(
                     'Illegal alias name',
-                    t_comp[2], t_comp[3], e2.message, cause=e)
+                    t_comp[2], t_comp[3], str(e2), cause=e)
 
 
 def parse_unit(stream):
@@ -843,7 +849,7 @@ def parse_unit(stream):
             unit = myokit.Unit.parse_simple(token[1])
         except KeyError as ke:
             raise ParseError(
-                'Unit not recognized', token[2], token[3], ke.message,
+                'Unit not recognized', token[2], token[3], kstr(e),
                 cause=ke)
         if stream.peek()[0] == POWER:
             stream.next()
@@ -867,7 +873,7 @@ def parse_unit(stream):
             part = myokit.Unit.parse_simple(token[1])
         except KeyError as ke:
             raise ParseError(
-                'Unit not recognized', token[2], token[3], ke.message,
+                'Unit not recognized', token[2], token[3], kstr(e),
                 cause=ke)
         if stream.peek()[0] == POWER:
             stream.next()
@@ -1015,7 +1021,7 @@ def parse_protocol_from_stream(stream):
             protocol.schedule(v, t, d, p, r)
         except myokit.ProtocolEventError as e:
             raise ProtocolParseError(
-                'Invalid event specification', n[2], 0, e.message)
+                'Invalid event specification', n[2], 0, str(e))
         n = stream.peek()
     return protocol
 
@@ -1048,7 +1054,7 @@ def strip_expression_units(model_text, skip_literals=True):
     This method will raise a :class:`myokit.ParseError` if the given code
     cannot be parsed to a valid model.
     """
-    if type(model_text) in (str, unicode):
+    if isinstance(model_text, basestring):
         lines = model_text.splitlines()
     else:
         lines = model_text
@@ -1288,7 +1294,7 @@ class Tokenizer:
         self._catchers = {}
         self._catcheri = 0
         # String given instead of stream of lines? Convert
-        if type(stream_of_lines) in (str, unicode):
+        if isinstance(stream_of_lines, basestring):
             stream_of_lines = iter(stream_of_lines.splitlines())
         # Create tokenizer
         self._tokenizer = self._tizer(stream_of_lines, check_indenting)
@@ -1306,11 +1312,11 @@ class Tokenizer:
         for c in self._catchers.values():
             c.append(self._next[1])
         try:
-            self._peek = self._tokenizer.next()
+            self._peek = next(self._tokenizer)
             while self._peek[0] == WHITESPACE:
                 for c in self._catchers.values():
                     c.append(self._peek[1])
-                self._peek = self._tokenizer.next()
+                self._peek = next(self._tokenizer)
         except StopIteration:
             self._has_last_value = True
 
@@ -1905,7 +1911,7 @@ def convert_proto_expression(e, context=None, info=None):
                 e = myokit.Name(context._resolve(ops[0]))
             except myokit.UnresolvedReferenceError as e:
                 a, b = tokens[0][2:4] if tokens else (0, 0)
-                m = e.message
+                m = str(e)
                 raise ParseError('Unresolved reference', a, b, m, cause=e)
         elif isinstance(element, myokit.UserFunction):
             # Handle user function
@@ -1922,7 +1928,7 @@ def convert_proto_expression(e, context=None, info=None):
             except myokit.IntegrityError as e:
                 line, char = tokens[0][2:4] if tokens else (0, 0)
                 raise ParseError(
-                    'Syntax error', line, char, e.message, cause=e)
+                    'Syntax error', line, char, str(e), cause=e)
         # Register tokens
         if info:
             for token in tokens:
@@ -1946,8 +1952,7 @@ def format_parse_error(ex, source=None):
     out.append('On line ' + str(ex.line) + ' character ' + str(ex.char))
     line = None
     if ex.line > 0 and source is not None:
-        kind = type(source)
-        if (kind == str or kind == unicode) and os.path.isfile(source):
+        if isinstance(source, basestring) and os.path.isfile(source):
             # Re-open file, find line
             f = open(source, 'r')
             for i in range(0, ex.line):

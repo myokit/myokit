@@ -18,6 +18,12 @@ import myokit
 
 from shared import DIR_DATA, TemporaryDirectory
 
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class LoadSaveTest(unittest.TestCase):
     """
@@ -138,10 +144,10 @@ class LoadSaveTest(unittest.TestCase):
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
         # Test example loading
         x = myokit.load_script('example')
-        self.assertTrue(isinstance(x, unicode) or isinstance(x, str))
+        self.assertTrue(isinstance(x, basestring))
         # Test file loading
         x = myokit.load_script(ipath)
-        self.assertTrue(isinstance(x, unicode) or isinstance(x, str))
+        self.assertTrue(isinstance(x, basestring))
         with TemporaryDirectory() as d:
             opath = d.path('test.mmt')
             myokit.save_script(opath, x)
@@ -153,7 +159,7 @@ class LoadSaveTest(unittest.TestCase):
             self.assertTrue('[[script]]' in text)
             # Test reloading
             xx = myokit.load_script(opath)
-            self.assertTrue(isinstance(xx, unicode) or isinstance(xx, str))
+            self.assertTrue(isinstance(xx, basestring))
             self.assertEqual(x, xx)
 
     def test_save(self):
@@ -165,7 +171,7 @@ class LoadSaveTest(unittest.TestCase):
         m, p, x = myokit.load('example')
         self.assertIsInstance(m, myokit.Model)
         self.assertIsInstance(p, myokit.Protocol)
-        self.assertTrue(isinstance(x, unicode) or isinstance(x, str))
+        self.assertTrue(isinstance(x, basestring))
 
         # Save all three and reload
         with TemporaryDirectory() as d:
@@ -311,7 +317,7 @@ class LoadSaveTest(unittest.TestCase):
         m, p, x = myokit.load(spath)
         self.assertIsNone(m)
         self.assertIsNone(p)
-        self.assertIn(type(x), (str, unicode))
+        self.assertTrue(isinstance(x, basestring))
 
         self.assertRaises(
             myokit.SectionNotFoundError, myokit.load_model, ppath)

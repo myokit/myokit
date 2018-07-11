@@ -272,7 +272,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             model.check_units(mode=myokit.UNIT_TOLERANT)
             self._console.write('Units ok! (checked in tolerant mode)')
         except myokit.IncompatibleUnitError as e:
-            self._console.write(e.message)
+            self._console.write(str(e))
         except Exception:
             self.show_exception()
 
@@ -287,7 +287,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             model.check_units(mode=myokit.UNIT_STRICT)
             self._console.write('Units ok! (checked in strict mode)')
         except myokit.IncompatibleUnitError as e:
-            self._console.write(e.message)
+            self._console.write(str(e))
         except Exception:
             self.show_exception()
 
@@ -315,7 +315,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except myokit.IntegrityError as e:
             self.statusBar().showMessage('Model integrity error')
             self._console.write('Model integrity error:')
-            self._console.write(e.message)
+            self._console.write(str(e))
         except Exception:
             self.show_exception()
 
@@ -579,7 +579,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 i.logger().log_warnings()
                 self._console.write(
                     'Model import failed.\n' + i.logger().text()
-                    + '\n\nModel import failed.\n' + e.message)
+                    + '\n\nModel import failed.\n' + str(e))
                 self.statusBar().showMessage('Model import failed.')
         except Exception:
             self.show_exception()
@@ -872,7 +872,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                     myokit.step(m, ignore_errors=ignore_errors))
             except myokit.NumericalError as ee:
                 self._console.write('A numerical error occurred:')
-                self._console.write(ee.message)
+                self._console.write(str(ee))
         except Exception:
             self.show_exception()
 
@@ -1890,7 +1890,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if console or errors_in_console:
                 self.statusBar().showMessage('Model integrity error')
                 self._console.write('Model integrity error:')
-                self._console.write(e.message)
+                self._console.write(str(e))
             return False
 
     def navigator_item_changed(self, item, previous_item):

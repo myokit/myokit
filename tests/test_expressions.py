@@ -14,6 +14,12 @@ import unittest
 import myokit
 import numpy as np
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 # Unit --> See test_units.py
 # Quantity --> See test_units.py
@@ -59,7 +65,7 @@ class ExpressionTest(unittest.TestCase):
 
         # Test errors-in-errors
         e = myokit.parse_expression('16^1000 / 0')
-        self.assertRaisesRegexp(myokit.NumericalError, 'another error', e.eval)
+        self.assertRaisesRegex(myokit.NumericalError, 'another error', e.eval)
 
         # Test errors with variables
         m = myokit.Model()
@@ -70,14 +76,14 @@ class ExpressionTest(unittest.TestCase):
         x.set_rhs(0)
         y.set_rhs('5 / 2')
         z.set_rhs('(x + y) / 0')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.NumericalError, 'c.x = 0', z.rhs().eval)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.NumericalError, 'c.y = 5 / 2', z.rhs().eval)
 
         # Test error in error with variables
         y.set_rhs('16^1000')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.NumericalError, 'another error', z.eval)
 
         # Test substitution
@@ -91,22 +97,22 @@ class ExpressionTest(unittest.TestCase):
             25)
 
         # Test errors in substitution dict format
-        self.assertRaisesRegexp(ValueError, 'dict or None', z.rhs().eval, 2)
-        self.assertRaisesRegexp(ValueError, 'All keys', z.rhs().eval, {5: 1})
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(ValueError, 'dict or None', z.rhs().eval, 2)
+        self.assertRaisesRegex(ValueError, 'All keys', z.rhs().eval, {5: 1})
+        self.assertRaisesRegex(
             ValueError, 'All values', z.rhs().eval, {x.lhs(): 'hello'})
 
         # Test if substituted Name is treated as number in error formatting
         y.set_rhs('x')
         z.set_rhs('(x + y) / 0')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.NumericalError, 'c.y = 3', z.rhs().eval, {y.lhs(): 3})
 
         # Error handling --> Correct bit should be highlighted
         z.set_rhs('(1 + 2 * (3 + sin(1 / (2 * x + (0 / 0)))))')
         with self.assertRaises(myokit.NumericalError) as e:
             z.eval()
-        m = e.exception.message.splitlines()
+        m = str(e.exception).splitlines()
         self.assertEqual(len(m), 7)
         self.assertEqual(m[2], '  1 + 2 * (3 + sin(1 / (2 * c.x + 0 / 0)))')
         self.assertEqual(m[3], '                                  ~~~~~')
@@ -115,7 +121,7 @@ class ExpressionTest(unittest.TestCase):
         y.set_rhs('3 * z')
         with self.assertRaises(myokit.NumericalError) as e:
             y.eval()
-        m = e.exception.message.splitlines()
+        m = str(e.exception).splitlines()
         self.assertEqual(len(m), 10)
         self.assertEqual(m[1], 'Encountered when evaluating')
         self.assertEqual(m[2], '  3 * c.z')
@@ -142,7 +148,7 @@ class ExpressionTest(unittest.TestCase):
         x = myokit.parse_expression('1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
         with self.assertRaises(myokit.IncompatibleUnitError) as e:
             x.eval_unit()
-        m = e.exception.message.splitlines()
+        m = str(e.exception).splitlines()
         self.assertEqual(len(m), 4)
         self.assertEqual(m[2], '  1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
         self.assertEqual(m[3], '                    ~~~~~~~~~~~~~~')
@@ -229,12 +235,13 @@ class ExpressionTest(unittest.TestCase):
         p = myokit.Plus(myokit.Number(1), myokit.Number(1))
         # Have to hack this in, since, properly used, expressions are immutable
         p._operands = (myokit.Number(2), p)
-        self.assertRaisesRegexp(myokit.IntegrityError, 'yclical', p.validate)
+        self.assertRaisesRegex(myokit.IntegrityError, 'yclical', p.validate)
 
         # Wrong type operands
         # Again, need to hack this in so creation doesn't fault!
         p._operands = (myokit.Number(1), 2)
-        self.assertRaisesRegexp(myokit.IntegrityError, 'type', p.validate)
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'must be other Expression', p.validate)
 
     def test_walk(self):
         """
@@ -298,7 +305,7 @@ class NumberTest(unittest.TestCase):
         x = myokit.Number('4e-05')
         self.assertEqual(str(x), '4e-5')
         x = myokit.Number('4e+15')
-        self.assertEqual(str(x), '4e15')
+        self.assertEqual(float(x), 4e15)
         x = myokit.Number(4, myokit.Unit.parse_simple('pF'))
         self.assertEqual(str(x), '4 [pF]')
         x = myokit.Number(-3, myokit.Unit.parse_simple('pF'))
@@ -325,12 +332,12 @@ class NumberTest(unittest.TestCase):
         # Test construction
         # Second argument must be a unit, if given
         myokit.Number(3, 'kg')
-        self.assertRaisesRegexp(ValueError, 'Unit', myokit.Number, 3, 1)
+        self.assertRaisesRegex(ValueError, 'Unit', myokit.Number, 3, 1)
         # Construction from quantity
         q = myokit.Quantity(3, 'kg')
         myokit.Number(q)
         self.assertEqual(q.unit(), myokit.parse_unit('kg'))
-        self.assertRaisesRegexp(ValueError, 'unit', myokit.Number, q, 'kg')
+        self.assertRaisesRegex(ValueError, 'unit', myokit.Number, q, 'kg')
 
     def test_bracket(self):
         """ Tests Number.bracket(). """
@@ -605,11 +612,11 @@ class DerivativeTest(unittest.TestCase):
         # Derivative of non-state: allowed during model building, but doesn't
         # validate
         d = myokit.Derivative(myokit.Name(y))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'only be defined for state', d.validate)
 
         # Derivative of something other than a name: never allowed
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'named variables', myokit.Derivative,
             myokit.Number(1))
 
@@ -1406,7 +1413,7 @@ class SqrtTest(unittest.TestCase):
     def test_creation(self):
         """ Tests Sqrt creation. """
         myokit.Sqrt(myokit.Number(1))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Sqrt,
             myokit.Number(1), myokit.Number(2))
 
@@ -1461,7 +1468,7 @@ class SqrtTest(unittest.TestCase):
         # Test in tolerant mode
         #self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'non-integer exponents',
             z.rhs().eval_unit)
         x.set_unit(myokit.units.volt ** 2)
@@ -1473,7 +1480,7 @@ class SqrtTest(unittest.TestCase):
         s = myokit.UNIT_STRICT
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'non-integer exponents',
             z.rhs().eval_unit, s)
         x.set_unit(myokit.units.volt ** 2)
@@ -1501,7 +1508,7 @@ class ExpTest(unittest.TestCase):
     def test_creation(self):
         """ Tests Exp creation. """
         myokit.Exp(myokit.Number(1))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Exp,
             myokit.Number(1), myokit.Number(2))
 
@@ -1562,7 +1569,7 @@ class ExpTest(unittest.TestCase):
         s = myokit.UNIT_STRICT
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless',
             z.rhs().eval_unit, s)
         x.set_unit(None)
@@ -1589,7 +1596,7 @@ class LogTest(unittest.TestCase):
         """ Tests Log creation. """
         myokit.Log(myokit.Number(1))
         myokit.Log(myokit.Number(1), myokit.Number(2))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Log,
             myokit.Number(1), myokit.Number(2), myokit.Number(3))
 
@@ -1690,7 +1697,7 @@ class LogTest(unittest.TestCase):
         s = myokit.UNIT_STRICT
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless',
             z.rhs().eval_unit, s)
         x.set_unit(None)
@@ -1714,15 +1721,15 @@ class LogTest(unittest.TestCase):
         s = myokit.UNIT_STRICT
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless',
             z.rhs().eval_unit, s)
         y.set_unit(myokit.units.volt)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless',
             z.rhs().eval_unit, s)
         x.set_unit(None)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless',
             z.rhs().eval_unit, s)
         y.set_unit(None)
@@ -1991,7 +1998,7 @@ class EqualTest(unittest.TestCase):
         y.set_unit(myokit.units.ampere)
         self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
         y.set_unit(myokit.units.volt)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit)
         x.set_unit(None)
         self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
@@ -2002,15 +2009,15 @@ class EqualTest(unittest.TestCase):
         s = myokit.UNIT_STRICT
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.ampere)
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         y.set_unit(myokit.units.volt)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit)
         x.set_unit(None)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'equal units', z.rhs().eval_unit, s)
         y.set_unit(None)
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
@@ -2150,13 +2157,13 @@ class AndTest(unittest.TestCase):
         # Test in tolerant mode
         self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         y.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         x.set_unit(myokit.units.dimensionless)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         y.set_unit(myokit.units.dimensionless)
         self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
@@ -2169,13 +2176,13 @@ class AndTest(unittest.TestCase):
         s = myokit.UNIT_STRICT
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         x.set_unit(myokit.units.dimensionless)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.dimensionless)
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
@@ -2222,13 +2229,13 @@ class OrTest(unittest.TestCase):
         # Test in tolerant mode
         self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         y.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         x.set_unit(myokit.units.dimensionless)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         y.set_unit(myokit.units.dimensionless)
         self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
@@ -2241,13 +2248,13 @@ class OrTest(unittest.TestCase):
         s = myokit.UNIT_STRICT
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         x.set_unit(myokit.units.dimensionless)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         y.set_unit(myokit.units.dimensionless)
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
@@ -2297,7 +2304,7 @@ class NotTest(unittest.TestCase):
         # Test in tolerant mode
         self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionless', z.rhs().eval_unit)
         x.set_unit(myokit.units.dimensionless)
         self.assertEqual(z.rhs().eval_unit(), myokit.units.dimensionless)
@@ -2308,7 +2315,7 @@ class NotTest(unittest.TestCase):
         s = myokit.UNIT_STRICT
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.ampere)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'dimensionles', z.rhs().eval_unit, s)
         x.set_unit(myokit.units.dimensionless)
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
@@ -2470,15 +2477,15 @@ class PiecewiseTest(unittest.TestCase):
         self.assertEqual(p[3], final)
 
         # Wrong number of operands
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'odd number', myokit.Piecewise,
             cond1, then1)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'odd number', myokit.Piecewise,
             cond1, then1, cond2, then2)
 
         # Wrong number of operands
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, '3 or more', myokit.Piecewise, cond1)
 
     def test_eval(self):

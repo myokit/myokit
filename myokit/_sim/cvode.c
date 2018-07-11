@@ -79,7 +79,14 @@ equations = model.solvable_order()
 #include <string.h>
 #include <cvode/cvode.h>
 #include <nvector/nvector_serial.h>
-#include <cvode/cvode_dense.h>
+#define MYOKIT_SUNDIALS_VERSION <?= myokit.SUNDIALS_VERSION ?>
+#if MYOKIT_SUNDIALS_VERSION >= 30000
+    #include <sunmatrix/sunmatrix_dense.h>
+    #include <sunlinsol/sunlinsol_dense.h>
+    #include <cvode/cvode_direct.h>
+#else
+    #include <cvode/cvode_dense.h>
+#endif
 #include <sundials/sundials_types.h>
 #include "pacing.h"
 
@@ -400,6 +407,10 @@ N_Vector y;          // Stores the current position y
 N_Vector y_log;      // Used to store y when logging
 N_Vector dy_log;     // Used to store dy when logging
 N_Vector y_last;     // Used to store previous value of y for error handling
+#if MYOKIT_SUNDIALS_VERSION >= 30000
+SUNMatrix sundense_matrix;          /* Dense matrix for linear solves */
+SUNLinearSolver sundense_solver;    /* Linear solver object */
+#endif
 
 // Root finding
 int* rootsfound;     // Used to store found roots
@@ -438,6 +449,10 @@ sim_clean()
             y_log = NULL;
         }
         CVodeFree(&cvode_mem); cvode_mem = NULL;
+        #if MYOKIT_SUNDIALS_VERSION >= 30000
+        SUNLinSolFree(sundense_solver); sundense_solver = NULL;
+        SUNMatDestroy(sundense_matrix); sundense_matrix = NULL;
+        #endif
 
         // Free pacing system space
         ESys_Destroy(epacing); epacing = NULL;
@@ -740,15 +755,16 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     // Set simulation starting time
     engine_time = tmin;
 
-    // Create solver
+    /* Create solver
+     * Using Backward differentiation and Newton iteration */
     cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
     if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+
+    /* Initialise solver memory, specify the rhs */
     flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
     if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
-    flag_cvode = CVDense(cvode_mem, N_STATE);
-    if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
 
-    // Set tolerances
+    /* Set absolute and relative tolerances */
     flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
     if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
 
@@ -761,6 +777,24 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     if (dt_min < 0) dt_min = 0.0;
     flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
     if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
+
+    #if MYOKIT_SUNDIALS_VERSION >= 30000
+        /* Create dense matrix for use in linear solves */
+        sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
+        if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+
+        /* Create dense linear solver object with matrix */
+        sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
+        if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+
+        /* Attach the matrix and solver to cvode */
+        flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+        if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
+    #else
+        /* Create dense matrix for use in linear solves */
+        flag_cvode = CVDense(cvode_mem, N_STATE);
+        if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+    #endif
 
     // Benchmarking? Then set engine_realtime to 0.0
     if (benchtime != Py_None) {
@@ -1166,9 +1200,13 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
         return 0;
     }
 
-    // From this point on, no more direct returning: use goto error
-    y = NULL;      // A cvode SERIAL vector
-    dy = NULL;     // A cvode SERIAL vector
+    /* From this point on, no more direct returning: use goto error */
+    y = NULL;      /* A cvode SERIAL vector */
+    dy = NULL;     /* A cvode SERIAL vector */
+    #if MYOKIT_SUNDIALS_VERSION >= 30000
+    sundense_matrix = NULL;     /* A matrix for linear solving */
+    sundense_solver = NULL;     /* A linear solver */
+    #endif
 
     // Temporary object: decref before re-using for another var :)
     // (Unless you get them using PyList_GetItem...)
@@ -1305,7 +1343,28 @@ static PyMethodDef SimMethods[] = {
 /*
  * Module definition
  */
-PyMODINIT_FUNC
-init<?=module_name?>(void) {
-    (void) Py_InitModule("<?= module_name ?>", SimMethods);
-}
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "<?= module_name ?>",       /* m_name */
+        "Generated CVODE module",   /* m_doc */
+        -1,                         /* m_size */
+        SimMethods,                 /* m_methods */
+        NULL,                       /* m_reload */
+        NULL,                       /* m_traverse */
+        NULL,                       /* m_clear */
+        NULL,                       /* m_free */
+    };
+
+    PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
+        PyModule_Create(&moduledef);
+    }
+
+#else
+
+    PyMODINIT_FUNC
+    init<?=module_name?>(void) {
+        (void) Py_InitModule("<?= module_name ?>", SimMethods);
+    }
+
+#endif

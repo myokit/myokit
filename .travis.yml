@@ -23,6 +23,15 @@ matrix:
         - python: "2.7"
           env:
             - MYOKIT_UNIT=true
+        #- python: "3.4"
+        #  env:
+        #    - MYOKIT_UNIT=true
+        #- python: "3.5"
+        #  env:
+        #    - MYOKIT_UNIT=true
+        #- python: "3.6"
+        #  env:
+        #    - MYOKIT_UNIT=true     
         # Style, cover, and docs (latest version only)
         - python: "2.7"
           env:

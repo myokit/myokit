@@ -122,7 +122,7 @@ PyObject* e(const char* msg)
 }
 
 // Calculated constants
-static int
+static void
 calculate_constants(Diff* state, Diff* state_ddt, Diff* param)
 {
 <?

@@ -18,6 +18,12 @@ import myokit
 
 from shared import DIR_DATA, CancellingReporter
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class PSimulationTest(unittest.TestCase):
     """
@@ -68,10 +74,10 @@ class PSimulationTest(unittest.TestCase):
         #self.assertEqual(s.state(), s.default_state())
 
         # Create without variables or parameters
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'variables', myokit.PSimulation, m, p,
             parameters=['ina.gNa'])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'parameters', myokit.PSimulation, m, p,
             variables=['membrane.V'])
 
@@ -84,28 +90,28 @@ class PSimulationTest(unittest.TestCase):
         d, dp = s.run(10, log_interval=2)
 
         # Variable or parameter given twice
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Duplicate variable', myokit.PSimulation, m, p,
             variables=['membrane.V', 'membrane.V'], parameters=['ina.gNa'])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Duplicate parameter', myokit.PSimulation, m, p,
             variables=['membrane.V'], parameters=['ina.gNa', 'ina.gNa'])
 
         # Bound variable or parameter
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'bound', myokit.PSimulation, m, p,
             variables=['engine.pace'], parameters=['ina.gNa'])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'bound', myokit.PSimulation, m, p,
             variables=['membrane.V'], parameters=['engine.pace'])
 
         # Constant variable
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'constant', myokit.PSimulation, m, p,
             variables=['ica.gCa'], parameters=['ina.gNa'])
 
         # Non-constant parameter
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'literal constant', myokit.PSimulation, m, p,
             variables=['membrane.V'], parameters=['cell.RTF'])
 
@@ -115,13 +121,13 @@ class PSimulationTest(unittest.TestCase):
             parameters=[m.get('ina.gNa')])
 
         # Negative times
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'negative', s.run, -1)
 
         # Negative or zero step size
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'zero', s.set_step_size, 0)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'zero', s.set_step_size, -1)
 
         # Set unset protocol
@@ -146,10 +152,10 @@ class PSimulationTest(unittest.TestCase):
         # Log without time
         e = myokit.DataLog(d)
         del(e[e.time_key()])
-        self.assertRaisesRegexp(ValueError, 'must contain', s.block, e, dp)
+        self.assertRaisesRegex(ValueError, 'must contain', s.block, e, dp)
 
         # Wrong size derivatives array
-        self.assertRaisesRegexp(ValueError, 'shape', s.block, d, dp[:, :-1])
+        self.assertRaisesRegex(ValueError, 'shape', s.block, d, dp[:, :-1])
 
     def test_set_constant(self):
         """
@@ -163,22 +169,22 @@ class PSimulationTest(unittest.TestCase):
         s.set_constant(m.get('ica.gCa'), 1)
 
         # Variable is not a literal
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'literal', s.set_constant, 'membrane.V', 1)
 
         # Variable is in parameters list
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'parameter', s.set_constant, 'ina.gNa', 1)
 
         # Set parameter values
         s.set_parameters([1])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, '1 values', s.set_parameters, [1, 2])
         s.set_parameters({'ina.gNa': 1})
         s.set_parameters({m.get('ina.gNa'): 1})
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown', s.set_parameters, {'bert': 2})
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'parameter', s.set_parameters, {'ica.gCa': 2})
 
     def test_progress_reporter(self):
@@ -198,7 +204,7 @@ class PSimulationTest(unittest.TestCase):
             c[1], '[0.0 minutes] 100.0 % done, estimated 0 seconds remaining')
 
         # Not a progress reporter
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'ProgressReporter', s.run, 1, progress=12)
 
         # Cancel from reporter

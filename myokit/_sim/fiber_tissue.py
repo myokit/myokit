@@ -908,11 +908,11 @@ class FiberTissueSimulation(myokit.CModule):
                         txt.append(model.format_state_derivatives(
                             states[1], derivs))
                     except myokit.NumericalError as ee:
-                        txt.append(ee.message)
+                        txt.append(str(ee))
             except myokit.FindNanError as e:
                 txt.append(
                     'Unable to pinpoint source of NaN, an error occurred:')
-                txt.append(e.message)
+                txt.append(str(e))
             raise myokit.SimulationError('\n'.join(txt))
 
         # Return logs

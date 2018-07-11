@@ -50,10 +50,15 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
     print()
     sys.exit(1)
 elif sys.hexversion >= 0x03040000:
-    print('-- ERROR --')
-    print('Python 3.4+ is not fully supported yet.')
-    print()
     # Don't exit, allow testing with Python 3.4+
+    import logging      # noqa
+    logging.basicConfig()
+    log = logging.getLogger(__name__)
+    log.warning('Myokit support for Python3 is still (very) experimental.')
+    del(logging, log)
+
+# Don't expose standard libraries as part of Myokit
+del(sys)
 
 
 #
@@ -87,10 +92,7 @@ if not RELEASE:
         'Using development version of Myokit. This may contain untested'
         ' features and bugs. Please see http://myokit.org for the latest'
         ' stable release.')
-
-
-# Don't expose standard libraries as part of Myokit
-del(sys, logging)
+del(logging, log)
 
 
 #
@@ -237,7 +239,7 @@ DEBUG_LINE_NUMBERS = True
 
 
 #
-# GUI: Favor PySide or PyQt
+# GUI: Favour PySide or PyQt
 #
 FORCE_PYQT5 = False
 FORCE_PYQT4 = False
@@ -299,6 +301,7 @@ from ._err import ( # noqa
 #  import an error creates a hard to debug bug (something needs to go wrong
 #  before the interpreter reaches the code raising the error and notices it's
 #  not there).
+from . import _err  # noqa
 import inspect  # noqa
 _globals = globals()
 ex, name, clas = None, None, None
@@ -308,6 +311,7 @@ for ex in inspect.getmembers(_err):
         if name not in _globals:
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
+del(_err)
 
 # Model api
 from ._model_api import ( # noqa
@@ -383,18 +387,23 @@ from ._aux import ( # noqa
     pack_snapshot,
 )
 
-# Data logging
-from ._datalog import ( # noqa
-    DataLog, LoggedVariableInfo, dimco, split_key, prepare_log
+
+# Progress reporting
+from ._progress import (    # noqa
+    ProgressReporter, ProgressPrinter,
 )
-from ._datablock import ( # noqa
+
+# Data logging
+from ._datalog import (     # noqa
+    DataLog, LoggedVariableInfo, dimco, split_key, prepare_log,
+)
+from ._datablock import (   # noqa
     DataBlock1d, DataBlock2d, ColorMap,
 )
 
 
 # Simulations
 from ._sim import ( # noqa
-    ProgressReporter, ProgressPrinter,
     CModule, CppModule,
 )
 from ._sim.cvode import Simulation          # noqa

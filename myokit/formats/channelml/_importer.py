@@ -12,7 +12,13 @@ from __future__ import print_function, unicode_literals
 import os
 import textwrap
 from xml.dom import minidom
-from cStringIO import StringIO
+
+try:
+    # Python 2
+    from cStringIO import StringIO
+except ImportError:
+    # Python3
+    from io import StringIO
 
 import myokit
 from myokit import formats
@@ -387,7 +393,7 @@ class ChannelMLImporter(formats.Importer):
         try:
             myokit.check_name(name)
         except myokit.InvalidNameError as e:
-            self.logger().warn('Invalid name: ' + e.message)
+            self.logger().warn('Invalid name: ' + str(e))
             self.generated_name_index += 1
             name = 'generated_name_' + str(self.generated_name_index)
         return name

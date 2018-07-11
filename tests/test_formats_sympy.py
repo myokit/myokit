@@ -15,6 +15,12 @@ import unittest
 import myokit
 import myokit.formats.sympy
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class SymPyReadWriteTest(unittest.TestCase):
     """
@@ -278,11 +284,11 @@ class SymPyReadWriteTest(unittest.TestCase):
 
         # Myokit.Unsupported function placeholder --> Should raise exception
         u = myokit.UnsupportedFunction('frog', x)
-        self.assertRaisesRegexp(ValueError, 'Unsupported type', w.ex, u)
+        self.assertRaisesRegex(ValueError, 'Unsupported type', w.ex, u)
 
         # SymPy function without Myokit equivalent --> Should raise exception
         cu = sympy.principal_branch(cx, cc)
-        self.assertRaisesRegexp(ValueError, 'Unsupported type', r.ex, cu)
+        self.assertRaisesRegex(ValueError, 'Unsupported type', r.ex, cu)
 
         # Derivative
         avar.promote(4)

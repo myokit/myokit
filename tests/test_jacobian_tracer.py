@@ -17,6 +17,12 @@ import myokit
 
 from shared import DIR_DATA
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class JacobianTracerTest(unittest.TestCase):
     """
@@ -53,16 +59,16 @@ class JacobianTracerTest(unittest.TestCase):
         # Log missing a state
         d2 = d.clone()
         del(d2['membrane.V'])
-        self.assertRaisesRegexp(ValueError, 'all state', g.jacobians, d2)
+        self.assertRaisesRegex(ValueError, 'all state', g.jacobians, d2)
 
         # Log entries differ in length
         d2['membrane.V'] = d['membrane.V'][:-1]
-        self.assertRaisesRegexp(ValueError, 'same length', g.jacobians, d2)
+        self.assertRaisesRegex(ValueError, 'same length', g.jacobians, d2)
 
         # Log missing time
         d2['membrane.V'] = d['engine.time']
         del(d2['engine.time'])
-        self.assertRaisesRegexp(ValueError, 'bound', g.jacobians, d2)
+        self.assertRaisesRegex(ValueError, 'bound', g.jacobians, d2)
 
 
 if __name__ == '__main__':

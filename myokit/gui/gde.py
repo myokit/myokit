@@ -30,7 +30,13 @@ import numpy as np
 import collections
 import xml.dom.minidom as minidom
 import xml.etree.cElementTree as et
-import ConfigParser as configparser
+
+try:
+    # Python2
+    from ConfigParser import ConfigParser
+except ImportError:
+    # Python 3
+    from configparser import RawConfigParser as ConfigParser
 
 import myokit.gui
 from myokit.gui import Qt, QtCore, QtGui, QtWidgets
@@ -2321,7 +2327,7 @@ class GraphDataExtractor(myokit.gui.MyokitApplication):
         inifile = os.path.expanduser(SETTINGS_FILE)
         if not os.path.isfile(inifile):
             return
-        config = configparser.ConfigParser()
+        config = ConfigParser()
         config.read(inifile)
 
         # Window dimensions and location

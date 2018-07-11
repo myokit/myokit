@@ -77,7 +77,15 @@ plot 'V.txt' using 1:2 with lines ls 1 title 'Vm'
 #include <math.h>
 #include <cvode/cvode.h>
 #include <nvector/nvector_serial.h>
-#include <cvode/cvode_dense.h>
+
+#define MYOKIT_SUNDIALS_VERSION <?= myokit.SUNDIALS_VERSION ?>
+#if MYOKIT_SUNDIALS_VERSION >= 30000
+  #include <sunmatrix/sunmatrix_dense.h>
+  #include <sundials/sundials_linearsolver.h>
+#else
+  #include <cvode/cvode_dense.h>
+#endif
+
 #include <sundials/sundials_types.h>
 
 #define N_STATE <?= model.count_states() ?>
@@ -216,6 +224,11 @@ int main()
     N_Vector dy = NULL;
     void *cvode_mem = NULL;
 
+    #if MYOKIT_SUNDIALS_VERSION >= 30000
+      SUNMatrix sundials_dense_matrix;
+      SUNLinearSolver sundials_linear_solver;
+    #endif
+
     /* Create state vector */
     y = N_VNew_Serial(N_STATE);
     if (check_flag((void*)y, "N_VNew_Serial", 0)) goto error;
@@ -306,8 +319,24 @@ while next:
     if (check_flag((void*)cvode_mem, "CVodeCreate", 0)) goto error;
     flag = CVodeInit(cvode_mem, rhs, t, y);
     if (check_flag(&flag, "CVodeInit", 1)) goto error;
+
+    #if MYOKIT_SUNDIALS_VERSION >= 30000
+
+    sundials_dense_matrix = SUNDenseMatrix(N_STATE,N_STATE);
+    if(check_flag((void *)sundials_dense_matrix, "SUNDenseMatrix", 0)) goto error;
+    /* Create dense SUNLinearSolver object for use by CVode */
+    sundials_linear_solver = SUNDenseLinearSolver(y, sundials_dense_matrix);
+    if(check_flag((void *)sundials_linear_solver, "SUNDenseLinearSolver", 0)) goto error;
+    /* Call CVDlsSetLinearSolver to attach the matrix and linear solver to CVode */
+    flag = CVDlsSetLinearSolver(cvode_mem, sundials_linear_solver, sundials_dense_matrix);
+    if(check_flag(&flag, "CVDlsSetLinearSolver", 1)) goto error;
+
+    #else
+
     flag = CVDense(cvode_mem, N_STATE);
     if (check_flag(&flag, "CVDense", 1)) goto error;
+
+    #endif
 
     /* Set tolerances */
     double reltol = RCONST(1.0e-4);

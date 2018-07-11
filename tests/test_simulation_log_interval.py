@@ -18,6 +18,12 @@ import myokit
 
 from shared import DIR_DATA
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 # Extra output
 debug = False
 
@@ -236,11 +242,11 @@ class SimulationTest(PeriodicTest):
 
         # Don't allow decreasing values
         times = [1, 2, 1]
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'non-decreasing', s.run, 5, log_times=times)
 
         # Can't use together with a log interval
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'simultaneously', s.run, 5, log_interval=1,
             log_times=[1, 2, 3])
 

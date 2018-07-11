@@ -17,6 +17,12 @@ import myokit.pype
 
 from shared import TemporaryDirectory
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class PypeTest(unittest.TestCase):
 
@@ -27,7 +33,7 @@ class PypeTest(unittest.TestCase):
 
         # Process method takes a dict
         e = myokit.pype.TemplateEngine()
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'dict', e.process, 'file.txt', [])
 
         # Test not-a-file
@@ -46,7 +52,7 @@ class PypeTest(unittest.TestCase):
         self.e("""<?print('hi')<?print('hello')?>""", {}, 'Nested opening tag')
 
         # Too much inside <?=?>
-        self.e("""<?=print('hi')?>""", {}, 'contain a single')
+        self.e("""<?=if 1 > 2: print('hi')?>""", {}, 'contain a single')
 
         # Triple quote should be allowed
         self.e('''Hello"""string"""yes''', {})

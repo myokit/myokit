@@ -18,6 +18,12 @@ import myokit
 
 from shared import DIR_DATA
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class JacobianCalculatorTest(unittest.TestCase):
     """
@@ -48,20 +54,20 @@ class JacobianCalculatorTest(unittest.TestCase):
         self.assertTrue(np.sum((x2 - x)**2) > 10)
 
         # Invalid damping value
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Damping', c.newton_root, damping=0)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Damping', c.newton_root, damping=1.1)
 
         # Missing a state
         x = m.state()[:-1]
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must have length', c.calculate, x)
 
         # Non-numbers in state
         x = m.state()
         x[0] = 'Hello'
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'floats', c.calculate, x)
 
 

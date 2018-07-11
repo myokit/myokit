@@ -18,6 +18,12 @@ import myokit.units
 
 from shared import DIR_DATA
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class TokenizerTest(unittest.TestCase):
     def test_tokenizer(self):
@@ -543,7 +549,7 @@ class ModelParseTest(unittest.TestCase):
             dot(x) = 1 - x
             p = dot(1 - x)
             """
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.ParseError, 'named variables', myokit.parse, code)
 
 

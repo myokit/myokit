@@ -391,7 +391,7 @@ class Simulation(myokit.CModule):
                     try:
                         self._model.eval_state_derivatives(state)
                     except myokit.NumericalError as en:
-                        txt.append(en.message)
+                        txt.append(str(en))
                     raise myokit.SimulationError('\n'.join(txt))
                 except Exception as e:
 
@@ -399,12 +399,12 @@ class Simulation(myokit.CModule):
                     self._error_state = list(state)
 
                     # Check for known CVODE errors
-                    if 'Function CVode()' in e.message:
-                        raise myokit.SimulationError(e.message)
+                    if 'Function CVode()' in str(e):
+                        raise myokit.SimulationError(str(e))
 
                     # Check for zero step error
-                    if e.message[:10] == 'ZERO_STEP ':  # pragma: no cover
-                        t = float(e.message[10:])
+                    if str(e)[:10] == 'ZERO_STEP ':  # pragma: no cover
+                        t = float(str(e)[10:])
                         raise myokit.SimulationError(
                             'Maximum number of zero-size steps made at t='
                             + str(t))

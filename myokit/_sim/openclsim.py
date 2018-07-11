@@ -237,8 +237,8 @@ class SimulationOpenCL(myokit.CModule):
 
         # Debug
         if myokit.DEBUG:
-            print(self._code(fname, args,
-                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
+            print(self._code(
+                fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
             import sys
             sys.exit(1)
 
@@ -848,11 +848,11 @@ class SimulationOpenCL(myokit.CModule):
                             self._model.format_state_derivatives(
                                 states[1], derivs))
                     except myokit.NumericalError as ee:
-                        txt.append(ee.message)
+                        txt.append(str(ee))
             except myokit.FindNanError as e:
                 txt.append(
                     'Unable to pinpoint source of NaN, an error occurred:')
-                txt.append(e.message)
+                txt.append(str(e))
             raise myokit.SimulationError('\n'.join(txt))
 
         # Return log

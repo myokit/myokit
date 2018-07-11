@@ -24,8 +24,8 @@ advised to add a try-catch block around a simulation::
     try:
         s.run(1000)
     except myokit.SimulationError as e:
-        print(e.message)
-        
+        print(str(e))
+
 Example result::
 
     Encountered numerical error at t=411.054992676 in cell (55) when membrane.V=-77.0.
@@ -53,7 +53,7 @@ Example result::
     Encountered when evaluating
       if(membrane.V < -100.0, 1.0, 2.837 * (exp(0.04 * (membrane.V + 77.0))
                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      
+
             - 1.0) / ((membrane.V + 77.0) * exp(0.04 * (membrane.V + 35.0))))
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

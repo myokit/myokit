@@ -17,6 +17,12 @@ import myokit.formats
 
 from shared import TemporaryDirectory
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class FormatsTest(unittest.TestCase):
     """
@@ -171,7 +177,7 @@ class ExporterTest(unittest.TestCase):
             path = d.path('file')
             with open(path, 'w') as f:
                 f.write('Hello')
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 myokit.ExportError, 'file exists', e.runnable, path, m, p)
 
 

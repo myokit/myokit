@@ -11,7 +11,13 @@ from __future__ import print_function, unicode_literals
 
 import os
 import myokit
-import ConfigParser
+
+try:
+    # Python2
+    from ConfigParser import ConfigParser
+except ImportError:
+    # Python 3
+    from configparser import RawConfigParser as ConfigParser
 
 
 # Settings file
@@ -53,7 +59,7 @@ class OpenCL(myokit.CModule):
                 mname, fname, args, libs, libd, incd)
         except myokit.CompilationError as e:
             OpenCL._instance = False
-            OpenCL._message = e.message
+            OpenCL._message = str(e)
 
     @staticmethod
     def info(formatted=False):
@@ -95,7 +101,7 @@ class OpenCL(myokit.CModule):
         # Read ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
         if os.path.isfile(inifile):
-            config = ConfigParser.ConfigParser()
+            config = ConfigParser()
             config.read(inifile)
 
             def get(section, option):
@@ -120,7 +126,7 @@ class OpenCL(myokit.CModule):
         Both platform and device are identified by their names.
         """
         # Create configuration
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         config.add_section('selection')
         if platform:
             config.set('selection', 'platform', platform)
