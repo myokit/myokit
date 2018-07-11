@@ -887,7 +887,6 @@ class AbfFile(object):
                         'init_level': h['fEpochInitLevel'][i],
                         'level_inc': h['fEpochLevelInc'][i],
                     }
-                #raise StopIteration
             self._epoch_functions = (dinfo, einfo_exists, einfo)
 
         else:
@@ -923,7 +922,6 @@ class AbfFile(object):
                         'init_level': e['fEpochInitLevel'],
                         'level_inc': e['fEpochLevelInc'],
                     }
-                #raise StopIteration
             self._epoch_functions = (dinfo, einfo_exists, einfo)
 
         # Step 2: Generate analog signals corresponding to the waveforms

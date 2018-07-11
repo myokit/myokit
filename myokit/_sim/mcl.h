@@ -1,6 +1,6 @@
 /*
  * mcl.h
- * 
+ *
  * Implements a number of OpenCL utility functions.
  *
  * This file is part of Myokit
@@ -29,6 +29,11 @@
 
 // Show debug output
 //#define MYOKIT_DEBUG
+
+// Python 2/3 compatibility
+#if PY_MAJOR_VERSION >= 3
+    #define PyInt_FromLong PyLong_FromLong
+#endif
 
 // Maximum number of platforms/devices to check for.
 #define MCL_MAX_PLATFORMS 255
@@ -65,7 +70,7 @@ void trim(char *str)
 /*
  * Checks for an opencl error, returns 1 if found and sets the error message,
  * else, returns 0.
- */ 
+ */
 static int
 mcl_flag(const cl_int flag)
 {
@@ -242,8 +247,8 @@ mcl_flag(const cl_int flag)
  *  this case a python error message will also be set.
  */
 int mcl_select_device(
-    PyObject* platform,
-    PyObject* device,
+    PyObject* platform,     // Must be bytes
+    PyObject* device,       // Must be bytes
     cl_platform_id* pid,
     cl_device_id* did)
 {
@@ -251,20 +256,20 @@ int mcl_select_device(
     const char* pname;
     const char* dname;
     if (platform != Py_None) {
-        if (!PyString_Check(platform)) {
-            PyErr_SetString(PyExc_Exception, "MCL_SELECT_DEVICE: 'platform' must be a string or None.");
+        if (!PyBytes_Check(platform)) {
+            PyErr_SetString(PyExc_Exception, "MCL_SELECT_DEVICE: 'platform' must be bytes or None.");
             return 1;
         }
-        pname = PyString_AsString(platform);
+        pname = PyBytes_AsString(platform);
     }
     if (device != Py_None) {
-        if (!PyString_Check(device)) {
-            PyErr_SetString(PyExc_Exception, "MCL_SELECT_DEVICE: 'device' must be a string.");
+        if (!PyBytes_Check(device)) {
+            PyErr_SetString(PyExc_Exception, "MCL_SELECT_DEVICE: 'device' must be a bytes or None.");
             return 1;
         }
-        dname = PyString_AsString(device);
+        dname = PyBytes_AsString(device);
     }
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Attempting to find platform and device.\n");
     if (platform == Py_None) {
@@ -278,7 +283,7 @@ int mcl_select_device(
         printf("Selected device: %s\n", dname);
     }
     #endif
-    
+
     // String containing name of platform/device
     char name[65536];
 
@@ -291,21 +296,21 @@ int mcl_select_device(
         PyErr_SetString(PyExc_Exception, "No OpenCL platforms found.");
         return 1;
     }
-    
+
     // Platform unspecified
     if (platform == Py_None) {
-    
+
         // Don't recommend a platform
         *pid = NULL;
-    
+
         // No platform or device specified
         if (device == Py_None) {
-            
+
             // Find any device on any platform, prefer GPU
             cl_device_id device_ids[1];
             cl_uint n_devices = 0;
             int i;
-            for (i=0; i<n_platforms; i++) {        
+            for (i=0; i<n_platforms; i++) {
                 flag = clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_GPU, 1, device_ids, &n_devices);
                 if(flag == CL_SUCCESS) {
                     // Set selected device and return.
@@ -332,9 +337,9 @@ int mcl_select_device(
             PyErr_SetString(PyExc_Exception, "No OpenCL devices found.");
             return 1;
 
-        // No platform specified, but there is a preferred device    
+        // No platform specified, but there is a preferred device
         } else {
-        
+
             // Find specified device on any platform
             cl_device_id device_ids[MCL_MAX_DEVICES];
             cl_uint n_devices = 0;
@@ -361,10 +366,10 @@ int mcl_select_device(
             PyErr_SetString(PyExc_Exception, "Specified OpenCL device not found.");
             return 1;
         }
-    
+
     // Platform specified by user
     } else {
-    
+
         // Find platform id
         int i;
         int found = 0;
@@ -383,10 +388,10 @@ int mcl_select_device(
             PyErr_SetString(PyExc_Exception, "Specified OpenCL platform not found.");
             return 1;
         }
-            
+
         // Platform specified, but no preference for device
         if (device == Py_None) {
-        
+
             // Find any device on specified platform, prefer GPU
             cl_device_id device_ids[1];
             cl_uint n_devices = 0;
@@ -411,11 +416,11 @@ int mcl_select_device(
             }
             // No device found
             PyErr_SetString(PyExc_Exception, "No OpenCL devices found on specified platform.");
-            return 1;    
-        
+            return 1;
+
         // Platform and device specified by user
         } else {
-        
+
             // Find specified platform/device combo
             cl_device_id device_ids[MCL_MAX_DEVICES];
             cl_uint n_devices = 0;
@@ -442,12 +447,12 @@ int mcl_select_device(
         }
     }
 }
-    
+
 /*
  * Rounds up to the nearest multiple of ws_size.
  */
 static int
-mcl_round_total_size(const int ws_size, const int total_size) 
+mcl_round_total_size(const int ws_size, const int total_size)
 {
     int size = (total_size / ws_size) * ws_size;
     if(size < total_size) size += ws_size;
@@ -482,7 +487,7 @@ mcl_device_info_clean()
  * Returns information about the available OpenCL platforms and devices.
  *
  * Returns a reference to a tuple of platform dicts
- * 
+ *
  * platforms = (
  *      dict(platform) {
  *          'profile'    : str,
@@ -505,7 +510,7 @@ mcl_device_info_clean()
  *                  'groups'     : int,     # Max work group size
  *                  'dimensions' : int,     # Max work item dimensions
  *                  'items'      : (ints),  # Max work item sizes
- *                  }    
+ *                  }
  *              ),
  *              ...
  *          },
@@ -529,19 +534,19 @@ mcl_device_info()
 
     // Number of platforms
     cl_uint n_platforms = 0;
-    
+
     // Get platforms
     cl_int flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
     if(mcl_flag(flag)) return mcl_device_info_clean();
 
     // Create platforms tuple
     platforms = PyTuple_New((size_t)n_platforms);
-    
+
     if (n_platforms == 0) {
         // No platforms found
         return platforms;
     }
-    
+
     // Devices & return values from queries
     cl_device_id device_ids[MCL_MAX_DEVICES];
     cl_uint n_devices = 0;
@@ -549,48 +554,48 @@ mcl_device_info()
     cl_ulong buf_ulong;
     size_t wgroup_size;
     size_t max_param;
-    
+
     // String buffer
     char buffer[65536];
-    
+
     // Check all platforms
     int i, j, k;
     for (i=0; i<n_platforms; i++) {
         // Create platform dict
         platform = PyDict_New();
-        
+
         // Profile
         flag = clGetPlatformInfo(platform_ids[i], CL_PLATFORM_PROFILE, sizeof(buffer), buffer, NULL);
         if(mcl_flag(flag)) return mcl_device_info_clean();
-        val = PyString_FromString(buffer);
+        val = PyUnicode_FromString(buffer);
         PyDict_SetItemString(platform, "profile", val);
         Py_DECREF(val); val = NULL;
 
         // Version
         flag = clGetPlatformInfo(platform_ids[i], CL_PLATFORM_VERSION, sizeof(buffer), buffer, NULL);
         if(mcl_flag(flag)) return mcl_device_info_clean();
-        val = PyString_FromString(buffer);
+        val = PyUnicode_FromString(buffer);
         PyDict_SetItemString(platform, "version", val);
         Py_DECREF(val); val = NULL;
 
         // Name
         flag = clGetPlatformInfo(platform_ids[i], CL_PLATFORM_NAME, sizeof(buffer), buffer, NULL);
         if(mcl_flag(flag)) return mcl_device_info_clean();
-        val = PyString_FromString(buffer);
+        val = PyUnicode_FromString(buffer);
         PyDict_SetItemString(platform, "name", val);
         Py_DECREF(val); val = NULL;
 
         // Vendor
         flag = clGetPlatformInfo(platform_ids[i], CL_PLATFORM_VENDOR, sizeof(buffer), buffer, NULL);
         if(mcl_flag(flag)) return mcl_device_info_clean();
-        val = PyString_FromString(buffer);
+        val = PyUnicode_FromString(buffer);
         PyDict_SetItemString(platform, "vendor", val);
         Py_DECREF(val); val = NULL;
 
         // Extensions
         flag = clGetPlatformInfo(platform_ids[i], CL_PLATFORM_EXTENSIONS, sizeof(buffer), buffer, NULL);
         if(mcl_flag(flag)) return mcl_device_info_clean();
-        val = PyString_FromString(buffer);
+        val = PyUnicode_FromString(buffer);
         PyDict_SetItemString(platform, "extensions", val);
         Py_DECREF(val); val = NULL;
 
@@ -602,74 +607,74 @@ mcl_device_info()
             return mcl_device_info_clean();
         }
         devices = PyTuple_New((size_t)n_devices);
-        
+
         for (j=0; j<n_devices; j++) {
             // Create device dict
             device = PyDict_New();
-        
+
             // Name
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_NAME, sizeof(buffer), buffer, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyString_FromString(buffer);
+            val = PyUnicode_FromString(buffer);
             PyDict_SetItemString(device, "name", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Vendor
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_VENDOR, sizeof(buffer), buffer, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyString_FromString(buffer);
+            val = PyUnicode_FromString(buffer);
             PyDict_SetItemString(device, "vendor", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Device version
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_VERSION, sizeof(buffer), buffer, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyString_FromString(buffer);
+            val = PyUnicode_FromString(buffer);
             PyDict_SetItemString(device, "version", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Driver version
             flag = clGetDeviceInfo(device_ids[j], CL_DRIVER_VERSION, sizeof(buffer), buffer, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyString_FromString(buffer);
+            val = PyUnicode_FromString(buffer);
             PyDict_SetItemString(device, "driver", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Clock speed (MHz)
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
             val = PyInt_FromLong(buf_uint);
             PyDict_SetItemString(device, "clock", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Global memory (bytes)
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
             val = PyInt_FromLong(buf_ulong);
             PyDict_SetItemString(device, "global", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Local memory (bytes)
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
             val = PyInt_FromLong(buf_ulong);
             PyDict_SetItemString(device, "local", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Const memory (bytes)
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
             val = PyInt_FromLong(buf_ulong);
             PyDict_SetItemString(device, "const", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Computing units
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
             val = PyInt_FromLong(buf_uint);
             PyDict_SetItemString(device, "units", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Max workgroup size
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(wgroup_size), &wgroup_size, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
@@ -683,7 +688,7 @@ mcl_device_info()
             val = PyInt_FromLong(buf_uint);
             PyDict_SetItemString(device, "dimensions", val);
             Py_DECREF(val); val = NULL;
-            
+
             work_item_sizes = (size_t*)malloc(buf_uint * sizeof(size_t));
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_WORK_ITEM_SIZES, buf_uint*sizeof(size_t), work_item_sizes, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
@@ -694,28 +699,28 @@ mcl_device_info()
             free(work_item_sizes); work_item_sizes = NULL;
             PyDict_SetItemString(device, "items", items);
             Py_DECREF(items); items = NULL;
-            
+
             // Maximum size of a kernel parameter
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_PARAMETER_SIZE, sizeof(max_param), &max_param, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
             val = PyInt_FromLong(max_param);
             PyDict_SetItemString(device, "param", val);
             Py_DECREF(val); val = NULL;
-            
+
             // Add device to devices tuple
             PyTuple_SetItem(devices, j, device);
             device = NULL;
         }
-        
+
         // Add devices entry to platform dict
         PyDict_SetItemString(platform, "devices", devices);
         Py_DECREF(devices); devices = NULL;
-        
+
         // Add platform to platforms tuple
         PyTuple_SetItem(platforms, i, platform);
         platform = NULL;
     }
-    
+
     // Return platforms
     return platforms;
 }

@@ -50,10 +50,15 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
     print()
     sys.exit(1)
 elif sys.hexversion >= 0x03040000:
-    print('-- WARNING --')
-    print('Python 3.4+ is not fully supported yet.')
-    print()
     # Don't exit, allow testing with Python 3.4+
+    import logging      # noqa
+    logging.basicConfig()
+    log = logging.getLogger(__name__)
+    log.warning('Myokit support for Python3 is still (very) experimental.')
+    del(logging, log)
+
+# Don't expose standard libraries as part of Myokit
+del(sys)
 
 
 #
@@ -87,10 +92,7 @@ if not RELEASE:
         'Using development version of Myokit. This may contain untested'
         ' features and bugs. Please see http://myokit.org for the latest'
         ' stable release.')
-
-
-# Don't expose standard libraries as part of Myokit
-del(sys, logging)
+del(logging, log)
 
 
 #
@@ -385,18 +387,23 @@ from ._aux import ( # noqa
     pack_snapshot,
 )
 
-# Data logging
-from ._datalog import ( # noqa
-    DataLog, LoggedVariableInfo, dimco, split_key, prepare_log
+
+# Progress reporting
+from ._progress import (    # noqa
+    ProgressReporter, ProgressPrinter,
 )
-from ._datablock import ( # noqa
+
+# Data logging
+from ._datalog import (     # noqa
+    DataLog, LoggedVariableInfo, dimco, split_key, prepare_log,
+)
+from ._datablock import (   # noqa
     DataBlock1d, DataBlock2d, ColorMap,
 )
 
 
 # Simulations
 from ._sim import ( # noqa
-    ProgressReporter, ProgressPrinter,
     CModule, CppModule,
 )
 from ._sim.cvode import Simulation          # noqa

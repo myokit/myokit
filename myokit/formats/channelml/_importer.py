@@ -12,7 +12,13 @@ from __future__ import print_function, unicode_literals
 import os
 import textwrap
 from xml.dom import minidom
-from cStringIO import StringIO
+
+try:
+    # Python 2
+    from cStringIO import StringIO
+except ImportError:
+    # Python3
+    from io import StringIO
 
 import myokit
 from myokit import formats

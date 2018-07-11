@@ -1,0 +1,15 @@
+Python3 issues
+
+- SubCapture doesn't work, obscures errors from compilation
+- Compilation doesn't work
+
+- C stuff:
+
+    - Integers are now longs
+        http://python3porting.com/cextensions.html#changes-in-python
+
+    - Modules are now intialised differently
+        http://python3porting.com/cextensions.html#module-initialization
+
+    - PyString_AsString
+        This gave access to string buffer, no longer possible with unicode!

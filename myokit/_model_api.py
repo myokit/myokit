@@ -21,6 +21,12 @@ except ImportError:
     # Python 3
     from io import StringIO
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:
+    basestring = str
+
 TAB = ' ' * 4
 NAME = re.compile(r'^[a-zA-Z]\w*$')
 META = re.compile(r'^[a-zA-Z]\w*(:[a-zA-Z]\w*)*$')
@@ -352,7 +358,6 @@ class VarProvider(object):
         def viter(stream):
             for x in stream:
                 yield x.eq()
-            raise StopIteration
         return viter(self.variables(const, inter, state, bound, deep))
 
     def variables(
@@ -419,7 +424,6 @@ class VarProvider(object):
                         continue
                 # Yield this variable
                 yield var
-            raise StopIteration
         stream = self._create_variable_stream(deep, sort)
         return viter(stream, const, inter, state, bound, deep)
 
@@ -1506,7 +1510,6 @@ class Model(ObjectWithMeta, VarProvider):
             for k, var in enumerate(model._state):
                 yield Equation(
                     myokit.Name(var), myokit.Number(self._current_state[k]))
-            raise StopIteration
         return StateDefIterator(self)
 
     def is_valid(self):
@@ -1944,7 +1947,7 @@ class Model(ObjectWithMeta, VarProvider):
 
         """
         n = self.count_states()
-        if type(state) in [str, unicode]:
+        if isinstance(state, basestring):
             # String given. Parse into name:float map or list
             state = myokit.parse_state(state)
         if isinstance(state, dict):
@@ -2474,7 +2477,7 @@ class Model(ObjectWithMeta, VarProvider):
               ' LhsExpression objects or string names of variables'
         roots = set()
         for lhs in args:
-            if type(lhs) in (str, unicode):
+            if isinstance(lhs, basestring):
                 lhs = self.get(lhs)
                 if not isinstance(lhs, myokit.Variable):
                     raise ValueError(msg)
@@ -3731,7 +3734,7 @@ class Variable(VarOwner):
         """
         # Handle string and number rhs's
         if not isinstance(rhs, myokit.Expression):
-            if type(rhs) in (str, unicode):
+            if isinstance(rhs, basestring):
                 rhs = myokit.parse_expression(rhs, context=self)
             else:
                 rhs = myokit.Number(rhs)
@@ -3783,7 +3786,7 @@ class Variable(VarOwner):
         """
         if unit is None or isinstance(unit, myokit.Unit):
             self._unit = unit
-        elif type(unit) in (str, unicode):
+        elif isinstance(unit, basestring):
             self._unit = myokit.parse_unit(unit)
         else:
             raise TypeError('Method set_unit() expects a myokit.Unit or None.')
