@@ -96,7 +96,7 @@ class TemplateEngine(object):
 
             if error:
                 # Add exception traceback to error message
-                msg = [traceback.format_exc()]
+                msg = traceback.format_exception(*error)
                 line = None
 
                 # Search for error occurring in <string> (IE the executable
