@@ -1,4 +1,7 @@
 [flake8]
+filename=
+    *.py,
+    ./test
 exclude=
     ./dev,
     ./.git,
