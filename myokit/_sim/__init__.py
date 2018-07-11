@@ -135,9 +135,9 @@ class CModule(object):
                         ext_modules=[ext],
                         script_args=[
                             b'build',
-                            bytes('--build-base=' + d_build),
+                            str('--build-base=' + d_build),
                             b'install',
-                            bytes('--install-lib=' + d_modul),
+                            str('--install-lib=' + d_modul),
                         ])
                 except (Exception, SystemExit) as e:
                     s.disable()

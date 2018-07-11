@@ -19,7 +19,7 @@ from myokit import ParseError, ProtocolParseError
 # Strings in Python2 and Python3
 try:
     basestring
-except NameError:
+except NameError:   # pragma: no cover
     basestring = str
 
 

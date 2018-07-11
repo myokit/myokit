@@ -1,5 +1,9 @@
 Python3 issues
 
+- Exceptions no longer have a .message. Instead, we should use str(exception)
+
+
+
 - SubCapture doesn't work, obscures errors from compilation
 - Compilation doesn't work
 
