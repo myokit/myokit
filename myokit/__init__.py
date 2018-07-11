@@ -299,7 +299,7 @@ from ._err import ( # noqa
 #  import an error creates a hard to debug bug (something needs to go wrong
 #  before the interpreter reaches the code raising the error and notices it's
 #  not there).
-from . import _err
+from . import _err  # noqa
 import inspect  # noqa
 _globals = globals()
 ex, name, clas = None, None, None
