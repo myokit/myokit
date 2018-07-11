@@ -20,6 +20,12 @@ import myokit.lib.markov as markov
 
 from shared import DIR_DATA
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class EvaluatorTest(unittest.TestCase):
     """
@@ -114,7 +120,7 @@ class EvaluatorTest(unittest.TestCase):
 
         e = fit.ParallelEvaluator(ioerror_on_five)
 
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'in subprocess', e.evaluate, range(10))
 
     def test_worker(self):

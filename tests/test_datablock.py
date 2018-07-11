@@ -19,6 +19,12 @@ import myokit
 from shared import TemporaryDirectory, DIR_DATA, DIR_IO
 from shared import TestReporter, CancellingReporter
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class DataBlock1dTest(unittest.TestCase):
     """
@@ -340,49 +346,49 @@ class DataBlock1dTest(unittest.TestCase):
         """
         # Not enough files
         path = os.path.join(DIR_IO, 'bad1d-1-not-enough-files.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Not enough files',
             myokit.DataBlock1d.load, path)
 
         # No header file
         path = os.path.join(DIR_IO, 'bad1d-2-no-header.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Header not found',
             myokit.DataBlock1d.load, path)
 
         # No data file
         path = os.path.join(DIR_IO, 'bad1d-3-no-data.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Data not found',
             myokit.DataBlock1d.load, path)
 
         # Not a zip
         path = os.path.join(DIR_IO, 'bad1d-4-not-a-zip.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Bad zip',
             myokit.DataBlock1d.load, path)
 
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad1d-5-bad-data-type.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Unrecognized data type',
             myokit.DataBlock1d.load, path)
 
         # Not enough data: detected at time level
         path = os.path.join(DIR_IO, 'bad1d-6-time-too-short.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'larger data',
             myokit.DataBlock1d.load, path)
 
         # Not enoug data: detected at 0d level
         path = os.path.join(DIR_IO, 'bad1d-7-0d-too-short.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'larger data',
             myokit.DataBlock1d.load, path)
 
         # Not enough data: detected at 1d level
         path = os.path.join(DIR_IO, 'bad1d-8-1d-too-short.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'larger data',
             myokit.DataBlock1d.load, path)
 
@@ -1052,49 +1058,49 @@ class DataBlock2dTest(unittest.TestCase):
         """
         # Not enough files
         path = os.path.join(DIR_IO, 'bad2d-1-not-enough-files.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Not enough files',
             myokit.DataBlock2d.load, path)
 
         # No header file
         path = os.path.join(DIR_IO, 'bad2d-2-no-header.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Header not found',
             myokit.DataBlock2d.load, path)
 
         # No data file
         path = os.path.join(DIR_IO, 'bad2d-3-no-data.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Data not found',
             myokit.DataBlock2d.load, path)
 
         # Not a zip
         path = os.path.join(DIR_IO, 'bad2d-4-not-a-zip.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Bad zip',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-5-bad-data-type.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'Unrecognized data type',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-6-time-too-short.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'larger data',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-7-0d-too-short.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'larger data',
             myokit.DataBlock2d.load, path)
 
         # Unknown data type in data
         path = os.path.join(DIR_IO, 'bad2d-8-2d-too-short.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataBlockReadError, 'larger data',
             myokit.DataBlock2d.load, path)
 

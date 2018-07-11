@@ -15,6 +15,12 @@ import numpy as np
 
 import myokit
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class RhsBenchmarkerTest(unittest.TestCase):
     """
@@ -82,7 +88,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
         d['c.time'] = np.zeros(10)
         #d['c.V'] = np.linspace(-80.0, 50.0, 10)
         d['c.W'] = np.linspace(0.0, 10.0, 10)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'State variable <c.V> not found', b.bench_full, d, 1)
 
         # Different size log entries
@@ -90,7 +96,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
         d['c.time'] = np.zeros(1000)
         d['c.V'] = np.linspace(-80.0, 50.0, 10)
         d['c.W'] = np.linspace(0.0, 10.0, 11)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'same length', b.bench_full, d, 1)
 
     def test_creation(self):
@@ -120,11 +126,11 @@ class RhsBenchmarkerTest(unittest.TestCase):
         myokit.RhsBenchmarker(m, ['c.x'])
 
         # Cannot create with constants
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'constant', myokit.RhsBenchmarker, m, [y])
 
         # Cannot create with bound variables
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'bound', myokit.RhsBenchmarker, m, [t])
 
 

@@ -17,6 +17,12 @@ import myokit
 
 from shared import DIR_DATA, CancellingReporter
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class Simulation1dTest(unittest.TestCase):
     """
@@ -57,20 +63,20 @@ class Simulation1dTest(unittest.TestCase):
         self.assertRaises(ValueError, s.run, -1)
 
         # Number of cells must be >0
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'number of cells', myokit.Simulation1d, m, p, 0)
 
         # Model must have a membrane potential
         v = m.get('membrane.V')
         v.set_label(None)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'membrane_potential', myokit.Simulation1d, m, p, 5)
         v.set_label('membrane_potential')
 
         # Model must have a diffusion current
         d = m.binding('diffusion_current')
         d.set_binding(None)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'diffusion_current', myokit.Simulation1d, m, p, 5)
 
         # Test setting conductance
@@ -104,7 +110,7 @@ class Simulation1dTest(unittest.TestCase):
         self.assertTrue(len(c) > 0)
 
         # Not a progress reporter
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'ProgressReporter', s.run, 5, progress=12)
 
         # Cancel from reporter

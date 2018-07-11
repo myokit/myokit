@@ -18,6 +18,12 @@ import myokit.lib.multi as multi
 
 from shared import DIR_DATA
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 DIR_MULTI = os.path.join(DIR_DATA, 'multi')
 
 
@@ -59,7 +65,7 @@ class LibMultiTest(unittest.TestCase):
         # Path must be a directory
         path = os.path.join(DIR_MULTI, 'lr-1991.mmt')
         i = multi.iterdir(path)
-        self.assertRaisesRegexp(ValueError, 'not a directory', next, i)
+        self.assertRaisesRegex(ValueError, 'not a directory', next, i)
 
     def test_scandir(self):
         """

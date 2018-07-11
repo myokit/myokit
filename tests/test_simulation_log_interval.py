@@ -18,6 +18,12 @@ import myokit
 
 from shared import DIR_DATA
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 # Extra output
 debug = False
 
@@ -236,11 +242,11 @@ class SimulationTest(PeriodicTest):
 
         # Don't allow decreasing values
         times = [1, 2, 1]
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'non-decreasing', s.run, 5, log_times=times)
 
         # Can't use together with a log interval
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'simultaneously', s.run, 5, log_interval=1,
             log_times=[1, 2, 3])
 

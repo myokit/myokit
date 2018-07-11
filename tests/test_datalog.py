@@ -19,6 +19,11 @@ import myokit
 from shared import DIR_DATA, DIR_IO, TemporaryDirectory
 from shared import TestReporter, CancellingReporter
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
 
 # Extra output
 debug = False
@@ -570,81 +575,81 @@ class DataLogTest(unittest.TestCase):
         #
 
         # Disallowed variable types, and explicitly specified variables
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'support constants', prepare_log, ['cell.Na_o'], m)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'support state', prepare_log, ['membrane.V'], m,
             allowed_classes=myokit.LOG_BOUND)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'support bound', prepare_log, ['engine.pace'], m,
             allowed_classes=myokit.LOG_STATE)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'support intermediary', prepare_log, ['ina.INa'], m,
             allowed_classes=myokit.LOG_STATE)
 
         # Empty log argument, but bad `if-empty` argument
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'if_empty', prepare_log, None, m,
             if_empty=myokit.LOG_STATE, allowed_classes=myokit.LOG_BOUND)
 
         # Disallowed variable types, and integer flags for variables
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'support state', prepare_log, myokit.LOG_STATE, m,
             allowed_classes=myokit.LOG_BOUND)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'support bound', prepare_log, myokit.LOG_BOUND, m,
             allowed_classes=myokit.LOG_STATE)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'support intermediary', prepare_log, myokit.LOG_INTER,
             m, allowed_classes=myokit.LOG_STATE)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'support time-derivatives', prepare_log,
             myokit.LOG_DERIV, m, allowed_classes=myokit.LOG_STATE)
 
         # Unknown integer flags
-        self.assertRaisesRegexp(ValueError, 'unknown flag', prepare_log, -1, m)
+        self.assertRaisesRegex(ValueError, 'unknown flag', prepare_log, -1, m)
 
         # Unknown variable in log/dict
         d = myokit.DataLog()
         d['bert.bert'] = []
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown variable', prepare_log, d, m)
 
         # Unsupported time-derivative in log/dict
         d = myokit.DataLog()
         d['dot(membrane.V)'] = []
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'derivatives', prepare_log, d, m,
             allowed_classes=myokit.LOG_STATE)
 
         # Time-derivative of non-state in log/dict
         d = myokit.DataLog()
         d['dot(ina.INa)'] = []
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'derivative of non-state', prepare_log, d, m)
 
         # Log given with objects that we can't append to
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'support the append', prepare_log,
             {'membrane.V': 'hi'}, m)
 
         # Argument `log` doesn't match any of the options
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'unexpected type', prepare_log, IOError, m)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'String passed', prepare_log, 'membrane.V', m)
 
         # Unknown variable in list
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown variable', prepare_log, ['bert.bert'], m)
 
         # Unsupported time-derivative in list
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'derivatives', prepare_log, ['dot(membrane.V)'], m,
             allowed_classes=myokit.LOG_STATE)
 
         # Time-derivative of non-state in list
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'derivative of non-state', prepare_log,
             ['dot(ina.INa)'], m)
 
@@ -1100,37 +1105,37 @@ class DataLogTest(unittest.TestCase):
         #
 
         # Unknown global variable
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown variable specified in global', prepare_log,
             myokit.LOG_NONE, m, (2, 1), global_vars=['michael'])
 
         # State passed as global variable
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'State cannot be global', prepare_log, myokit.LOG_NONE,
             m, (2, 1), global_vars=['membrane.V'])
 
         # Index specified for global variable in log/dict
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'index for global', prepare_log,
             {'0.0.engine.time': []}, m, (2, 1), global_vars=['engine.time'])
 
         # Invalid index for variable in log/dict
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Invalid index', prepare_log, {'3.3.membrane.V': []},
             m, (2, 1))
 
         # No index for variable that needs it, in log/dict
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'non-indexed entry', prepare_log, {'membrane.V': []},
             m, (2, 1))
 
         # Index specified for global variable in list
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'index for global', prepare_log,
             ['0.0.engine.time'], m, (2, 1), global_vars=['engine.time'])
 
         # Invalid index for variable in list
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Invalid index', prepare_log, ['3.3.membrane.V'], m,
             (2, 1))
 
@@ -1197,42 +1202,42 @@ class DataLogTest(unittest.TestCase):
         """
         # Missing data file
         path = os.path.join(DIR_IO, 'badlog-1-no-data.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
             path)
 
         # Missing structure file
         path = os.path.join(DIR_IO, 'badlog-2-no-structure.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'log file format', myokit.DataLog.load,
             path)
 
         # Not a zip
         path = os.path.join(DIR_IO, 'badlog-3-not-a-zip.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'bad zip file', myokit.DataLog.load, path)
 
         # Wrong number of fields
         path = os.path.join(DIR_IO, 'badlog-4-invalid-n-fields.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'number of fields', myokit.DataLog.load,
             path)
 
         # Negative data size
         path = os.path.join(DIR_IO, 'badlog-5-invalid-data-size.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'Invalid data size', myokit.DataLog.load,
             path)
 
         # Unknown data type
         path = os.path.join(DIR_IO, 'badlog-6-bad-data-type.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'Invalid data type', myokit.DataLog.load,
             path)
 
         # Not enough data
         path = os.path.join(DIR_IO, 'badlog-7-not-enough-data.zip')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'larger data', myokit.DataLog.load, path)
 
     def test_load_with_progress(self):
@@ -1413,7 +1418,7 @@ class DataLogTest(unittest.TestCase):
 
         # Test unterminated string
         path = os.path.join(DIR_IO, 'datalog-6-open-string.csv')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'inside quoted', myokit.DataLog.load_csv,
             path)
 
@@ -1450,37 +1455,37 @@ class DataLogTest(unittest.TestCase):
 
         # Test header "abc"x"adc"
         path = os.path.join(DIR_IO, 'datalog-12-bad-header.csv')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'Expecting double quote',
             myokit.DataLog.load_csv, path)
 
         # Test empty field "" in header
         path = os.path.join(DIR_IO, 'datalog-13-header-with-empty-1.csv')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test empty field "x",,"y" in header
         path = os.path.join(DIR_IO, 'datalog-14-header-with-empty-2.csv')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test empty field "time","v", in header
         path = os.path.join(DIR_IO, 'datalog-15-header-with-empty-3.csv')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'Empty field', myokit.DataLog.load_csv,
             path)
 
         # Test wrong field count in data
         path = os.path.join(DIR_IO, 'datalog-16-wrong-columns-in-data.csv')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'Wrong number of columns',
             myokit.DataLog.load_csv, path)
 
         # Test non-float data
         path = os.path.join(DIR_IO, 'datalog-17-non-float-data.csv')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DataLogReadError, 'Unable to convert',
             myokit.DataLog.load_csv, path)
 
@@ -2141,12 +2146,12 @@ class DataLogTest(unittest.TestCase):
 
         # Test non-existing time key
         d = myokit.DataLog(time='t')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidDataLogError, 'Invalid key', d.time)
 
         # Test no time key
         d = myokit.DataLog()
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidDataLogError, 'No time', d.time)
 
     def test_variable_info_errors(self):
@@ -2158,7 +2163,7 @@ class DataLogTest(unittest.TestCase):
         d['t'] = [1, 2, 3, 4]
         d['0.v'] = [1, 2, 3, 4]
         d['1.1.v'] = [1, 2, 3, 4]
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             RuntimeError, 'Different dimensions', d.variable_info)
         # Note: Valid log, so not an InvalidDataLogError
 
@@ -2169,7 +2174,7 @@ class DataLogTest(unittest.TestCase):
         d['0.2.v'] = [1, 2, 3, 4]
         d['1.0.v'] = [1, 2, 3, 4]
         d['1.1.v'] = [1, 2, 3, 4]
-        self.assertRaisesRegexp(RuntimeError, 'Irregular', d.variable_info)
+        self.assertRaisesRegex(RuntimeError, 'Irregular', d.variable_info)
         # Note: Valid log, so not an InvalidDataLogError
 
     def test_variable_info(self):

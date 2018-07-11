@@ -19,6 +19,12 @@ import myokit.formats.axon as axon
 
 from shared import TemporaryDirectory, DIR_FORMATS
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class AbfTest(unittest.TestCase):
     """
@@ -147,24 +153,24 @@ class AtfTest(unittest.TestCase):
 
             # Time must be regularly spaced
             log['time'][-1] *= 2
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 ValueError, 'regularly spaced', axon.save_atf, log, path)
 
             # Field names can't contain quotes
             log['time'] = np.arange(100)
             log['si"nt'] = log['sint']
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 ValueError, 'double quotes', axon.save_atf, log, path)
 
             # Field names can't have newlines
             del(log['si"nt'])
             log['si\nnt'] = log['sint']
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 ValueError, 'newlines', axon.save_atf, log, path)
 
             # Fields in `fields` must exist
             del(log['si\nnt'])
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 ValueError, 'not found', axon.save_atf, log, path,
                 fields=['time', 'sint', 'hi'])
 

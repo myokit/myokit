@@ -17,6 +17,12 @@ import myokit
 import myokit.formats.mathml
 from myokit.mxml import dom_child
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class ContentMathMLTest(unittest.TestCase):
     """ Tests expression writing and parsing of content MathML. """
@@ -313,7 +319,7 @@ class ContentMathMLTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.mathml.MathMLExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
     def test_parse_mathml(self):
@@ -349,12 +355,12 @@ class ContentMathMLTest(unittest.TestCase):
         me = myokit.formats.mathml.MathMLError
 
         # No operands
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             me, 'at least one operand', test,
             '<apply><times /></apply>')
 
         # Only one operand
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             me, 'at least two operands', test,
             '<apply><times /><cn>1.0</cn></apply>')
 
@@ -471,7 +477,7 @@ class ContentMathMLTest(unittest.TestCase):
         )
 
         # Test with degree element other than 1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             me, 'degree one', test,
             '<apply>'
             '  <diff/>'
@@ -484,7 +490,7 @@ class ContentMathMLTest(unittest.TestCase):
         )
 
         # Derivative of an expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             me, 'Derivative of an expression', test,
             '<apply>'
             '  <diff/>'
@@ -702,7 +708,7 @@ class ContentMathMLTest(unittest.TestCase):
         self.assertIn('Converted 16 / 4', log.text())
 
         # Unknown type
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             me, 'Unsupported <cn> type', test, '<cn type="special">1</cn>')
 
 
@@ -907,7 +913,7 @@ class PresentationMathMLTest(unittest.TestCase):
         self.assertIsInstance(w, myokit.formats.mathml.MathMLExpressionWriter)
 
         # Test without a Myokit expression
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
 

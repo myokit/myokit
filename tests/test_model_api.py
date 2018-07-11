@@ -23,7 +23,7 @@ from shared import TemporaryDirectory
 # Strings in Python2 and Python3
 try:
     basestring
-except NameError:
+except NameError:   # pragma: no cover
     basestring = str
 
 # Further model API tests are found in:
@@ -583,7 +583,7 @@ class VarOwnerTest(unittest.TestCase):
 
         # State variables can't be made nested
         w.promote(0)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'State variables', c.move_variable, w, v)
 
     def test_remove_variable(self):
@@ -911,27 +911,27 @@ class ModelTest(unittest.TestCase):
         # Test duplicate name
         # Different number of arguments is allowed:
         m.add_function('f', ('a', 'b'), 'a + b')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DuplicateFunctionName, 'already defined', m.add_function,
             'f', ('a', 'b'), 'a - b')
 
         # Test duplicate argument name
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.DuplicateFunctionArgument, 'already in use',
             m.add_function, 'g', ('a', 'a'), 'a + a')
 
         # Dot operator is not allowed
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidFunction, 'dot\(\) operator',
             m.add_function, 'fdot', ('a', ), 'dot(a)')
 
         # Unused argument
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidFunction, 'never used', m.add_function, 'fun',
             ('a', 'b'), 'a')
 
         # Unspecified variable
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidFunction, 'never declared',
             m.add_function, 'fun', ('a', ), 'a + b')
 
@@ -959,17 +959,17 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(list(m.states()), [v, w])
 
         # Wrong number of states
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'number of entries', m.reorder_state, [v])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'number of entries', m.reorder_state, [v, w, v])
 
         # Duplicate entries
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Duplicate', m.reorder_state, [v, v])
 
         # Not a state
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must all be', m.reorder_state, [v, t])
 
     def test_name(self):
@@ -1003,16 +1003,16 @@ class ModelTest(unittest.TestCase):
 
         # Check units before any rhs or units set
         s = myokit.UNIT_STRICT
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'No RHS set', model.check_units)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'No RHS set', model.check_units, s)
 
         # Check units before any rhs set
         t.set_unit('s')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'No RHS set', model.check_units)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IntegrityError, 'No RHS set', model.check_units, s)
 
         # Check mini model with rhs and units, no states
@@ -1179,7 +1179,7 @@ class ModelTest(unittest.TestCase):
         y = c.add_variable('y')
         x.set_rhs('y')
         y.set_rhs('x')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'Failed to solve', m.expressions_for, 'c.x')
 
     def test_format_state(self):
@@ -1213,7 +1213,7 @@ class ModelTest(unittest.TestCase):
         )
 
         # Test with invalid state argument
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'list of \(8\)', m.format_state, [1, 2, 3])
 
         # Test with second state argument
@@ -1230,7 +1230,7 @@ class ModelTest(unittest.TestCase):
         )
 
         # Test with invalid second state argument
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'list of \(8\)', m.format_state,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
@@ -1267,7 +1267,7 @@ class ModelTest(unittest.TestCase):
         )
 
         # Test with invalid state argument
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'list of \(8\)', m.format_state_derivatives, [1, 2, 3])
 
         # Test with derivs argument
@@ -1285,7 +1285,7 @@ class ModelTest(unittest.TestCase):
         )
 
         # Test with invalid derivs argument
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'list of \(8\)', m.format_state_derivatives,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
@@ -1402,24 +1402,24 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(bindings[0][1], t)
 
         # Can't have two labels
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidBindingError, 'already bound to', t.set_binding,
             'bert')
 
         # No two variables can have the same label
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidBindingError, 'Duplicate binding', v.set_binding,
             'time')
 
         # Binding can't overlap with label
         v.set_label('membrane_potential')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidBindingError, 'in use as a label', w.set_binding,
             'membrane_potential')
 
         # State variables can't be bound
         v.promote(0)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidBindingError, 'State variables', v.set_binding, 'x')
 
     def test_labels(self):
@@ -1445,17 +1445,17 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(labels[0][1], v)
 
         # Can't have two labels
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidLabelError, 'already has a label', v.set_label,
             'bert')
 
         # No two variables can have the same label
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidLabelError, 'already in use', w.set_label,
             'membrane_potential')
 
         # Labels can't overlap with bindings
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.InvalidLabelError, 'in use as a binding', w.set_label,
             'time')
 
@@ -1498,7 +1498,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(x, [1.0, 2.0])
 
         # Wrong size list
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Wrong number', m.map_to_state, [1, 2, 3])
 
         # String not tested, handled by parse_state.
@@ -1512,7 +1512,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(x, [2.0, 3.0])
 
         # Missing state
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Missing state', m.map_to_state, {v: 2})
 
     def test_resolve_interdependent_components(self):
@@ -1827,15 +1827,15 @@ class ComponentTest(unittest.TestCase):
 
         # Alias for a nested variable
         c.add_alias('not_a_problem', y)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IllegalAliasError, 'whose parent', c.add_alias, 'xyz', z)
 
         # Alias for a variable in the same component
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IllegalAliasError, 'same component', c.add_alias, 'zz', x)
 
         # Alias for a component
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IllegalAliasError, 'for variables', c.add_alias, 'zz', c)
 
 
@@ -1904,12 +1904,12 @@ class VariableTest(unittest.TestCase):
 
         # Test errors
         v.promote(3)
-        self.assertRaisesRegexp(Exception, 'already', v.promote, 4)
+        self.assertRaisesRegex(Exception, 'already', v.promote, 4)
         v.demote()
         v.set_binding('time')
-        self.assertRaisesRegexp(Exception, 'cannot be bound', v.promote, 4)
+        self.assertRaisesRegex(Exception, 'cannot be bound', v.promote, 4)
         w = v.add_variable('w')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'only be added to Components', w.promote, 4)
 
         # Test we can't demote a variable with references to its derivative
@@ -1920,7 +1920,7 @@ class VariableTest(unittest.TestCase):
         x.promote()
         y = c.add_variable('y')
         y.set_rhs('1 + dot(x)')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'references to its derivative', x.demote)
         y.set_rhs('1 + x')
         x.demote()
@@ -2208,9 +2208,9 @@ class VariableTest(unittest.TestCase):
 
         # Only states have this option
         v.demote()
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'Only state variables', v.set_state_value, 3)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             Exception, 'Only state variables', w.set_state_value, 3)
 
         # State values must be literals
@@ -2237,7 +2237,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(v.unit(), myokit.parse_unit('kg/ms'))
 
         # Set to a non unit
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             TypeError, 'expects a myokit.Unit', v.set_unit, 12)
 
     def test_validate(self):
@@ -2301,10 +2301,10 @@ class UserFunctionTest(unittest.TestCase):
 
         # Call with wrong arguments
         del(args[myokit.Name('a')])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Wrong number', f.convert, args)
         args[myokit.Name('c')] = myokit.Number(100)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Missing input argument', f.convert, args)
 
 

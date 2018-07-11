@@ -18,6 +18,12 @@ import myokit
 
 from shared import DIR_DATA, CancellingReporter
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class SimulationTest(unittest.TestCase):
     """
@@ -59,7 +65,7 @@ class SimulationTest(unittest.TestCase):
             self.assertEqual(n, len(v))
 
         # Can't do negative times
-        self.assertRaisesRegexp(ValueError, 'negative', self.sim.run, -1)
+        self.assertRaisesRegex(ValueError, 'negative', self.sim.run, -1)
 
         # Negative log interval is set to zero
         self.sim.reset()
@@ -116,13 +122,13 @@ class SimulationTest(unittest.TestCase):
         self.assertNotEqual(list(d['engine.pace']), [0] * n)
 
         # Invalid protocols
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'no times', self.sim.set_fixed_form_protocol,
             values=pace)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'no values', self.sim.set_fixed_form_protocol,
             times=time)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'same size', self.sim.set_fixed_form_protocol,
             time, pace[:-1])
 
@@ -161,7 +167,7 @@ class SimulationTest(unittest.TestCase):
             c[1], '[0.0 minutes] 100.0 % done, estimated 0 seconds remaining')
 
         # Not a progress reporter
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'ProgressReporter', self.sim.run, 5, progress=12)
 
         # Cancel from reporter
@@ -176,12 +182,12 @@ class SimulationTest(unittest.TestCase):
         # More testing is done in test_datalog.py!
 
         # Apd var is not a state
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must be a state', myokit.Simulation, self.model,
             self.protocol, apd_var='ina.INa')
 
         # No apd var given, but threshold provided
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'without apd_var', self.sim.run, 1, apd_threshold=12)
 
     def test_last_state(self):
@@ -197,7 +203,7 @@ class SimulationTest(unittest.TestCase):
         self.assertIsNone(s.last_state())
         s.set_constant('membrane.i_stim.stim_amplitude', 0)
         s.reset()
-        self.assertRaisesRegexp(myokit.SimulationError, "at t = 0", s.run, 5)
+        self.assertRaisesRegex(myokit.SimulationError, "at t = 0", s.run, 5)
         self.assertEqual(len(s.last_state()), len(s.state()))
         self.assertEqual(s.last_state(), s.state())
 
@@ -233,9 +239,9 @@ class SimulationTest(unittest.TestCase):
         """
         Tests :meth:`Simulation.set_tolerance()`.
         """
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Absolute', self.sim.set_tolerance, abs_tol=0)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Relative', self.sim.set_tolerance, rel_tol=0)
         self.sim.set_tolerance(1e-6, 1e-4)
 
@@ -285,7 +291,7 @@ class SimulationTest(unittest.TestCase):
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
 
         # Calculated constant
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'not a literal', self.sim.set_constant, 'ina.ENa', 11)
 
     def test_simulation_error(self):

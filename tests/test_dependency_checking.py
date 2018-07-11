@@ -18,6 +18,11 @@ import myokit
 
 from shared import DIR_DATA
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
 
 # Extra output
 debug = False
@@ -1377,7 +1382,7 @@ class SolvableOrderTest(DepTest):
 
         # Test with cycles
         self.m.get('ina.j').demote()
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             RuntimeError, 'Equation ordering failed.', self.m.solvable_order)
         del(self.m)
 
@@ -1505,16 +1510,16 @@ class SolvableOrderTest(DepTest):
 
         # Arguments must be strings, LhsExpressions pointing to variables,
         # or variables
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must be LhsExpression', self.m.solvable_subset,
             12)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must be LhsExpression', self.m.solvable_subset,
             'membrane')
 
         # Cyclical dependencies
         self.m.get('ina.m').demote()
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             RuntimeError, 'Equation ordering failed.', self.m.solvable_subset,
             'ina.m.alpha')
 

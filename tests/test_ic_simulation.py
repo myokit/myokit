@@ -18,6 +18,12 @@ import myokit
 
 from shared import DIR_DATA, CancellingReporter
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class ICSimulationTest(unittest.TestCase):
     """
@@ -51,10 +57,10 @@ class ICSimulationTest(unittest.TestCase):
         # Log with missing time value
         d2 = d.clone()
         del(d2['engine.time'])
-        self.assertRaisesRegexp(ValueError, 'time', s.block, d2, e)
+        self.assertRaisesRegex(ValueError, 'time', s.block, d2, e)
 
         # Wrong size derivatives array
-        self.assertRaisesRegexp(ValueError, 'shape', s.block, d, e[:-1])
+        self.assertRaisesRegex(ValueError, 'shape', s.block, d, e[:-1])
 
         # Time can't be negative
         self.assertRaises(ValueError, s.run, -1)
@@ -81,7 +87,7 @@ class ICSimulationTest(unittest.TestCase):
         self.assertTrue(len(c) > 0)
 
         # Not a progress reporter
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'ProgressReporter', s.run, 5, progress=12)
 
         # Cancel from reporter

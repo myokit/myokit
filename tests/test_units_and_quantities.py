@@ -14,6 +14,12 @@ import unittest
 
 import myokit
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class MyokitUnitTest(unittest.TestCase):
 
@@ -67,16 +73,16 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertEqual(myokit.Unit.convert(1, '1', None), 1)
         self.assertEqual(myokit.Unit.convert(1, 'V', V), 1)
         self.assertEqual(myokit.Unit.convert(1, V, 'V'), 1)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'from',
             myokit.Unit.convert, 1, V, 'A')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'from',
             myokit.Unit.convert, 1, 'A', V)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'given object',
             myokit.Unit.convert, 1, V, 'Alf')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'given object',
             myokit.Unit.convert, 1, 'Alf', V)
 
@@ -144,16 +150,16 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertEqual(myokit.Unit.parse_simple('mV'), myokit.units.mV)
 
         # Bad quantifier
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             KeyError, 'Unknown quantifier', myokit.Unit.parse_simple, 'jV')
 
         # Not a quantifiable unit
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             KeyError, 'cannot have quantifier', myokit.Unit.parse_simple,
             'mNewton')
 
         # Unknown unit
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             KeyError, 'Unknown unit', myokit.Unit.parse_simple, 'Frog')
 
     def test_register_errors(self):
@@ -203,20 +209,20 @@ class QuantityTest(unittest.TestCase):
         # Creation from a myokit Number
         x = myokit.Number(2)
         a = Q(x)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Cannot specify', Q, x, myokit.Unit())
 
         # Creation with string value
         x = myokit.Quantity('2')
         x = myokit.Quantity('2 [mV]')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'could not be converted', myokit.Quantity, int)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Failed to parse', myokit.Quantity, 'wolf')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Failed to parse', myokit.Quantity, 'a [mV]')
         x = myokit.Quantity('2', 'mV')
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Two units', myokit.Quantity, '2 [mV]', 'mV')
 
         # Test hash
