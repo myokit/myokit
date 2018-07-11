@@ -15,11 +15,11 @@ import numpy as np
 
 import myokit
 
-# Strings in Python2 and Python3
+# Unit testing in Python 2 and 3
 try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class RhsBenchmarkerTest(unittest.TestCase):

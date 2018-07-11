@@ -18,12 +18,13 @@ import myokit.lib.multi as multi
 
 from shared import DIR_DATA
 
-# Strings in Python2 and Python3
+# Unit testing in Python 2 and 3
 try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
+# Path to multi-model testing files
 DIR_MULTI = os.path.join(DIR_DATA, 'multi')
 
 

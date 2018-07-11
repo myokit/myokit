@@ -18,11 +18,11 @@ import myokit
 from ansic_event_based_pacing import AnsicEventBasedPacing
 from ansic_fixed_form_pacing import AnsicFixedFormPacing
 
-# Strings in Python2 and Python3
+# Unit testing in Python 2 and 3
 try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
 class PacingTest(unittest.TestCase):
@@ -91,7 +91,7 @@ class PacingTest(unittest.TestCase):
         def sim(p, start, duration, period=0, multiplier=0, clash=0):
             with self.assertRaises(myokit.SimultaneousProtocolEventError) as e:
                 p.schedule(2, start, duration, period, multiplier)
-            m = str(e)
+            m = str(e.exception)
             t = m[2 + m.index('t='):-1]
             self.assertEqual(float(t), clash)
         sim(p, 1, 0.5, clash=1)
@@ -236,7 +236,7 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(t, 2000)
         with self.assertRaises(myokit.SimultaneousProtocolEventError) as e:
             s.advance(t)
-        m = str(e)
+        m = str(e.exception)
         self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
 
     def test_create_log_for_times(self):

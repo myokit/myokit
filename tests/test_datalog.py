@@ -19,11 +19,11 @@ import myokit
 from shared import DIR_DATA, DIR_IO, TemporaryDirectory
 from shared import TestReporter, CancellingReporter
 
-# Strings in Python2 and Python3
+# Unit testing in Python 2 and 3
 try:
-    basestring
-except NameError:   # pragma: no cover
-    basestring = str
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:  # pragma: no cover
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 # Extra output
 debug = False

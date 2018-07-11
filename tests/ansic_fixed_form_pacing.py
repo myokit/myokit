@@ -15,7 +15,6 @@ import myokit
 
 from shared import DIR_TEST
 
-
 # Location of C template
 SOURCE_FILE = 'ansic_fixed_form_pacing.c'
 
