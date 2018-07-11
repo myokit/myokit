@@ -125,7 +125,7 @@ class CModule(object):
             with myokit.SubCapture() as s:
                 # TODO
                 import sys
-                if sys.hexversion >= 0x03000000:
+                if sys.hexversion >= 0x03000000:    # pragma: no cover
                     s.disable()
                 # TODO
                 try:
@@ -144,7 +144,7 @@ class CModule(object):
                     t = [
                         'Unable to compile.',
                         'Error message:',
-                        '    ' + e.message,
+                        '    ' + str(e),
                         'Error traceback',
                         traceback.format_exc(),
                         'Compiler output:',

@@ -307,7 +307,7 @@ class SimulationTest(unittest.TestCase):
         s = myokit.Simulation(m, self.protocol)
         with self.assertRaises(myokit.SimulationError) as e:
             s.run(5000)
-        self.assertIn('CV_ERR_FAILURE', e.exception.message)
+        self.assertIn('CV_ERR_FAILURE', str(e.exception))
 
 
 class RuntimeSimulationTest(unittest.TestCase):

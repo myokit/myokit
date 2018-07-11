@@ -466,8 +466,8 @@ def parse_model_from_stream(stream, syntax_only=False):
         t = e.token()
         if t:
             raise ParseError(
-                'IntegrityError', t[2], t[3], e.message, cause=e)
-        raise ParseError('IntegrityError', 0, 0, e.message, cause=e)
+                'IntegrityError', t[2], t[3], str(e), cause=e)
+        raise ParseError('IntegrityError', 0, 0, str(e), cause=e)
 
     # Return
     return model
@@ -503,7 +503,7 @@ def parse_user_function(stream, info):
             myokit.InvalidNameError,
             myokit.InvalidFunction) as e:
         raise ParseError(
-            'Invalid function declaration', line, char, e.message, cause=e)
+            'Invalid function declaration', line, char, str(e), cause=e)
 
 
 def parse_component(stream, info=None):
@@ -525,10 +525,10 @@ def parse_component(stream, info=None):
         component = info.model.add_component(name)
     except myokit.DuplicateName as e1:
         raise ParseError(
-            'Duplicate component name', line, char, e1.message, cause=e1)
+            'Duplicate component name', line, char, str(e1), cause=e1)
     except myokit.InvalidNameError as e2:
         raise ParseError(
-            'Illegal component name', line, char, e2.message, cause=e2)
+            'Illegal component name', line, char, str(e2), cause=e2)
     reg_token(info, token, component)
 
     # Add alias map
@@ -660,10 +660,10 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
         var = parent.add_variable(name)
     except myokit.DuplicateName as e1:
         raise ParseError(
-            'Duplicate variable name', line, char, e1.message, cause=e1)
+            'Duplicate variable name', line, char, str(e1), cause=e1)
     except myokit.InvalidNameError as e2:
         raise ParseError(
-            'Illegal variable name', line, char, e2.message, cause=e2)
+            'Illegal variable name', line, char, str(e2), cause=e2)
 
     # Register tokens
     for token in toreg:
@@ -682,7 +682,7 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
         except myokit.NonLiteralValueError as e:
             t = state_value._token
             raise ParseError(
-                'Illegal state value', t[2], t[3], e.message, cause=e)
+                'Illegal state value', t[2], t[3], str(e), cause=e)
         del(info.initial_values[var.qname()])
 
     # Parse definition, quick unit, bind, label and description syntax
@@ -791,7 +791,7 @@ def parse_binding(stream, info, var):
     try:
         var.set_binding(label)
     except myokit.InvalidBindingError as e:
-        raise ParseError('Illegal binding', line, char, e.message, cause=e)
+        raise ParseError('Illegal binding', line, char, str(e), cause=e)
 
 
 def parse_label(stream, info, var):
@@ -805,7 +805,7 @@ def parse_label(stream, info, var):
     try:
         var.set_label(label)
     except myokit.InvalidLabelError as e:
-        raise ParseError('Illegal label', line, char, e.message, cause=e)
+        raise ParseError('Illegal label', line, char, str(e), cause=e)
 
 
 def resolve_alias_map_names(info):
@@ -831,11 +831,11 @@ def resolve_alias_map_names(info):
             except myokit.DuplicateName as e:
                 raise ParseError(
                     'Duplicate name error',
-                    t_comp[2], t_comp[3], e.message, cause=e)
+                    t_comp[2], t_comp[3], str(e), cause=e)
             except myokit.InvalidNameError as e2:
                 raise ParseError(
                     'Illegal alias name',
-                    t_comp[2], t_comp[3], e2.message, cause=e)
+                    t_comp[2], t_comp[3], str(e2), cause=e)
 
 
 def parse_unit(stream):
@@ -849,7 +849,7 @@ def parse_unit(stream):
             unit = myokit.Unit.parse_simple(token[1])
         except KeyError as ke:
             raise ParseError(
-                'Unit not recognized', token[2], token[3], ke.message,
+                'Unit not recognized', token[2], token[3], kstr(e),
                 cause=ke)
         if stream.peek()[0] == POWER:
             stream.next()
@@ -873,7 +873,7 @@ def parse_unit(stream):
             part = myokit.Unit.parse_simple(token[1])
         except KeyError as ke:
             raise ParseError(
-                'Unit not recognized', token[2], token[3], ke.message,
+                'Unit not recognized', token[2], token[3], kstr(e),
                 cause=ke)
         if stream.peek()[0] == POWER:
             stream.next()
@@ -1021,7 +1021,7 @@ def parse_protocol_from_stream(stream):
             protocol.schedule(v, t, d, p, r)
         except myokit.ProtocolEventError as e:
             raise ProtocolParseError(
-                'Invalid event specification', n[2], 0, e.message)
+                'Invalid event specification', n[2], 0, str(e))
         n = stream.peek()
     return protocol
 
@@ -1911,7 +1911,7 @@ def convert_proto_expression(e, context=None, info=None):
                 e = myokit.Name(context._resolve(ops[0]))
             except myokit.UnresolvedReferenceError as e:
                 a, b = tokens[0][2:4] if tokens else (0, 0)
-                m = e.message
+                m = str(e)
                 raise ParseError('Unresolved reference', a, b, m, cause=e)
         elif isinstance(element, myokit.UserFunction):
             # Handle user function
@@ -1928,7 +1928,7 @@ def convert_proto_expression(e, context=None, info=None):
             except myokit.IntegrityError as e:
                 line, char = tokens[0][2:4] if tokens else (0, 0)
                 raise ParseError(
-                    'Syntax error', line, char, e.message, cause=e)
+                    'Syntax error', line, char, str(e), cause=e)
         # Register tokens
         if info:
             for token in tokens:

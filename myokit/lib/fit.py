@@ -1606,7 +1606,7 @@ def quadfit_minimum(A, B, C):
         np.linalg.cholesky(C)
         return True
     except np.linalg.LinAlgError as e:
-        if 'not positive definite' in e.message:
+        if 'not positive definite' in str(e):
             return False
         raise
 

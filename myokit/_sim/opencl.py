@@ -59,7 +59,7 @@ class OpenCL(myokit.CModule):
                 mname, fname, args, libs, libd, incd)
         except myokit.CompilationError as e:
             OpenCL._instance = False
-            OpenCL._message = e.message
+            OpenCL._message = str(e)
 
     @staticmethod
     def info(formatted=False):

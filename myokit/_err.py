@@ -27,7 +27,6 @@ class MyokitError(Exception):
     """
     def __init__(self, message):
         super(MyokitError, self).__init__(message)
-        self.message = str(message)
 
 
 class IntegrityError(MyokitError):
@@ -170,10 +169,10 @@ class IllegalReferenceError(IntegrityError):
     accessible from the owning variable ``owner``'s scope.
     """
     def __init__(self, reference, owner):
-        self.message = 'Illegal reference: The referenced variable <' \
-            + reference.qname() + '> is outside the scope of <' \
-            + owner.qname() + '>.'
-        super(IllegalReferenceError, self).__init__(self.message)
+        super(IllegalReferenceError, self).__init__(
+            'Illegal reference: The referenced variable <' + reference.qname()
+            + '> is outside the scope of <' + owner.qname() + '>.'
+        )
 
 
 class ImportError(MyokitError):
@@ -390,10 +389,10 @@ class UnresolvedReferenceError(IntegrityError):
     Raised when a reference to a variable cannot be resolved.
     """
     def __init__(self, reference, extra_message=None):
-        self.message = 'Unknown variable: <' + reference + '>.'
-        if extra_message:
-            self.message += ' ' + extra_message
-        super(UnresolvedReferenceError, self).__init__(self.message)
+        super(UnresolvedReferenceError, self).__init__(
+            'Unknown variable: <' + reference + '>.'
+            + ((' ' + extra_message) if extra_message else '')
+        )
 
 
 class UnusedVariableError(IntegrityError):

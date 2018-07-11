@@ -393,7 +393,7 @@ class ChannelMLImporter(formats.Importer):
         try:
             myokit.check_name(name)
         except myokit.InvalidNameError as e:
-            self.logger().warn('Invalid name: ' + e.message)
+            self.logger().warn('Invalid name: ' + str(e))
             self.generated_name_index += 1
             name = 'generated_name_' + str(self.generated_name_index)
         return name

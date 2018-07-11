@@ -83,15 +83,11 @@ class PacingTest(unittest.TestCase):
 
         # Invalid event: starts simultaneously
         def sim(p, start, duration, period=0, multiplier=0, clash=0):
-            self.assertRaises(
-                myokit.SimultaneousProtocolEventError,
-                p.schedule, 2, start, duration, period, multiplier)
-            try:
+            with self.assertRaises(myokit.SimultaneousProtocolEventError) as e:
                 p.schedule(2, start, duration, period, multiplier)
-            except myokit.SimultaneousProtocolEventError as e:
-                m = e.message
-                t = m[2 + m.index('t='):-1]
-                self.assertEqual(float(t), clash)
+            m = str(e)
+            t = m[2 + m.index('t='):-1]
+            self.assertEqual(float(t), clash)
         sim(p, 1, 0.5, clash=1)
         sim(p, 10, 0.5, clash=10)
         sim(p, 100, 0.5, clash=100)
@@ -232,12 +228,10 @@ class PacingTest(unittest.TestCase):
         s.advance(t)
         t = s.next_time()
         self.assertEqual(t, 2000)
-        self.assertRaises(myokit.SimultaneousProtocolEventError, s.advance, t)
-        try:
+        with self.assertRaises(myokit.SimultaneousProtocolEventError) as e:
             s.advance(t)
-        except myokit.SimultaneousProtocolEventError as e:
-            m = e.message
-            self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
+        m = str(e)
+        self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
 
     def test_create_log_for_times(self):
         """

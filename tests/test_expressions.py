@@ -112,7 +112,7 @@ class ExpressionTest(unittest.TestCase):
         z.set_rhs('(1 + 2 * (3 + sin(1 / (2 * x + (0 / 0)))))')
         with self.assertRaises(myokit.NumericalError) as e:
             z.eval()
-        m = e.exception.message.splitlines()
+        m = str(e.exception).splitlines()
         self.assertEqual(len(m), 7)
         self.assertEqual(m[2], '  1 + 2 * (3 + sin(1 / (2 * c.x + 0 / 0)))')
         self.assertEqual(m[3], '                                  ~~~~~')
@@ -121,7 +121,7 @@ class ExpressionTest(unittest.TestCase):
         y.set_rhs('3 * z')
         with self.assertRaises(myokit.NumericalError) as e:
             y.eval()
-        m = e.exception.message.splitlines()
+        m = str(e.exception).splitlines()
         self.assertEqual(len(m), 10)
         self.assertEqual(m[1], 'Encountered when evaluating')
         self.assertEqual(m[2], '  3 * c.z')
@@ -148,7 +148,7 @@ class ExpressionTest(unittest.TestCase):
         x = myokit.parse_expression('1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
         with self.assertRaises(myokit.IncompatibleUnitError) as e:
             x.eval_unit()
-        m = e.exception.message.splitlines()
+        m = str(e.exception).splitlines()
         self.assertEqual(len(m), 4)
         self.assertEqual(m[2], '  1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
         self.assertEqual(m[3], '                    ~~~~~~~~~~~~~~')

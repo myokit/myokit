@@ -242,7 +242,6 @@ class PypeError(Exception):
 
     An error thrown by the :class:`TemplateEngine`
     """
-    def __init__(self, msg):
-        super(PypeError, self).__init__()
-        self.message = msg
+    def __init__(self, message):
+        super(PypeError, self).__init__(message)
 

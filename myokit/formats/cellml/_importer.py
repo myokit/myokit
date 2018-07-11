@@ -83,7 +83,7 @@ class CellMLImporter(myokit.formats.Importer):
         try:
             model.validate()
         except myokit.IntegrityError as e:
-            log.warn('Integrity error found in model: ' + e.message)
+            log.warn('Integrity error found in model: ' + str(e))
         except Exception:
             import traceback
             log.warn(
@@ -751,7 +751,7 @@ class CellMLImporter(myokit.formats.Importer):
             try:
                 return self._generated_names[name]
             except KeyError:
-                self.logger().warn('Invalid name: ' + e.message)
+                self.logger().warn('Invalid name: ' + str(e))
                 clean = 'generated_name_' + str(1 + len(self._generated_names))
                 self._generated_names[name] = clean
                 return clean

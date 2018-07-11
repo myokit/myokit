@@ -1435,7 +1435,7 @@ class Model(ObjectWithMeta, VarProvider):
         f = ' ({:' + str(1 + int(math.log10(len(self._warnings)))) + '}) '
         for w in self._warnings:
             i += 1
-            m = w.message if isinstance(w, myokit.MyokitError) else str(w)
+            m = str(w)
             out.append(f.format(i) + m)
         return pre + ':\n' + '\n'.join(out)
 

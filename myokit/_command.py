@@ -838,7 +838,7 @@ def step(source, ref, ini, raw):
         n = line_width - len(e) - 2
         print('-' * int(n / 2) + ' ' + e + ' ' + '-' * (n - int(n / 2)))
         print('A numerical error occurred:')
-        print(ee.message)
+        print(str(ee))
 
 
 def add_step_parser(subparsers):
@@ -1229,7 +1229,7 @@ def video(src, key, dst, fps, colormap):
     try:
         data = myokit.DataBlock2d.load(src, progress=reporter)
     except myokit.DataBlockReadError as e:
-        print('DataBlock reading failed\n: ' + e.message)
+        print('DataBlock reading failed\n: ' + str(e))
         sys.exit(1)
     finally:
         del(reporter)

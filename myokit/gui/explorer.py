@@ -183,7 +183,7 @@ class Explorer(QtWidgets.QDialog):
         except myokit.SimulationCancelledError:
             return
         except myokit.MyokitError as e:
-            self._stream.write(e.message)
+            self._stream.write(str(e))
             return
         except Exception as e:
             self._stream.write(str(e))

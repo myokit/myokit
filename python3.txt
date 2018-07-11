@@ -1,19 +1,25 @@
 Python3 issues
+==============
 
-- Exceptions no longer have a .message. Instead, we should use str(exception)
+- [ ] str, unicode, bytes
 
+- [x] Exceptions no longer have a message attribute.
+      Instead, we should use str(exception)
 
+- [ ] assertRaisesRegexp is now assertRaisesRegex
 
-- SubCapture doesn't work, obscures errors from compilation
-- Compilation doesn't work
+- [ ] SubCapture doesn't work, obscures errors from compilation
 
-- C stuff:
+C stuff
+-------
 
-    - Integers are now longs
-        http://python3porting.com/cextensions.html#changes-in-python
+- [ ] Stuff doesn't compile
 
-    - Modules are now intialised differently
-        http://python3porting.com/cextensions.html#module-initialization
+- [ ] Integers are now longs
+      http://python3porting.com/cextensions.html#changes-in-python
 
-    - PyString_AsString
-        This gave access to string buffer, no longer possible with unicode!
+- [ ] Modules are now intialised differently
+      http://python3porting.com/cextensions.html#module-initialization
+
+- [ ] PyString_AsString
+      This gave access to string buffer, no longer possible with unicode!
