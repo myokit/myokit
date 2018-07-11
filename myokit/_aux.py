@@ -28,6 +28,12 @@ except ImportError:
     # Python3
     from io import StringIO
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:
+    basestring = str
+
 import myokit
 
 # Globally shared numpy expression writer
@@ -1276,7 +1282,7 @@ def strfloat(number):
     Turns the given number into a string, without losing accuracy.
     """
     # Pass through strings
-    if type(number) in [str, unicode]:
+    if isinstance(number, basestring):
         return number
 
     # Handle myokit.Numbers

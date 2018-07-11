@@ -205,13 +205,13 @@ def _load():
     if config.has_option('time', 'date_format'):
         x = config.get('time', 'date_format')
         if x:
-            myokit.DATE_FORMAT = unicode(x)
+            myokit.DATE_FORMAT = str(x)
 
     # Time format
     if config.has_option('time', 'time_format'):
         x = config.get('time', 'time_format')
         if x:
-            myokit.TIME_FORMAT = unicode(x)
+            myokit.TIME_FORMAT = str(x)
 
     # Add line numbers to debug output of simulations
     if config.has_option('debug', 'line_numbers'):

@@ -16,6 +16,12 @@ from collections import OrderedDict
 import myokit
 from myokit import ParseError, ProtocolParseError
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:
+    basestring = str
+
 
 def parse(source):
     """
@@ -29,7 +35,7 @@ def parse(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in (str, unicode):
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -74,7 +80,7 @@ def parse_model(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in (str, unicode):
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -99,7 +105,7 @@ def parse_protocol(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in (str, unicode):
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -123,7 +129,7 @@ def parse_script(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in (str, unicode):
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -165,7 +171,7 @@ def parse_state(state):
     """
     # Get raw stream
     raw = state
-    if type(raw) in (str, unicode):
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -209,7 +215,7 @@ def split(source):
     """
     # Get raw stream
     raw = source
-    if type(raw) in (str, unicode):
+    if isinstance(raw, basestring):
         raw = raw.splitlines()
     try:
         raw.next
@@ -309,7 +315,7 @@ def unexpected_token(token, expected):
     if code not in hide:
         got += ' "' + text + '"'
     # Parse expected token(s) or string
-    if type(expected) not in [unicode, str, bytes]:
+    if not isinstance(expected, basestring):
         if len(expected) > 2:
             expected = 'one of [ ' \
                 + ', '.join([token_str[i] for i in expected]) + ' ]'
@@ -1048,7 +1054,7 @@ def strip_expression_units(model_text, skip_literals=True):
     This method will raise a :class:`myokit.ParseError` if the given code
     cannot be parsed to a valid model.
     """
-    if type(model_text) in (str, unicode):
+    if isinstance(model_text, basestring):
         lines = model_text.splitlines()
     else:
         lines = model_text
@@ -1288,7 +1294,7 @@ class Tokenizer:
         self._catchers = {}
         self._catcheri = 0
         # String given instead of stream of lines? Convert
-        if type(stream_of_lines) in (str, unicode):
+        if isinstance(stream_of_lines, basestring):
             stream_of_lines = iter(stream_of_lines.splitlines())
         # Create tokenizer
         self._tokenizer = self._tizer(stream_of_lines, check_indenting)
@@ -1946,7 +1952,7 @@ def format_parse_error(ex, source=None):
     out.append('On line ' + str(ex.line) + ' character ' + str(ex.char))
     line = None
     if ex.line > 0 and source is not None:
-        if isinstance(source, (str, unicode)) and os.path.isfile(source):
+        if isinstance(source, basestring) and os.path.isfile(source):
             # Re-open file, find line
             f = open(source, 'r')
             for i in range(0, ex.line):

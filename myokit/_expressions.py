@@ -23,6 +23,12 @@ except ImportError:
     # Python3
     from io import StringIO
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:
+    basestring = str
+
 # Expression precedence levels
 FUNCTION_CALL = 70
 POWER = 60
@@ -555,7 +561,7 @@ class Number(Expression):
             self._value = float(value) if value else 0.0
             if unit is None or isinstance(unit, myokit.Unit):
                 self._unit = unit
-            elif type(unit) in [str, unicode]:
+            elif isinstance(unit, basestring):
                 self._unit = myokit.parse_unit(unit)
             else:
                 raise ValueError(
@@ -687,7 +693,7 @@ class Name(LhsExpression):
     def __init__(self, value):
         super(Name, self).__init__()
         if not isinstance(value, myokit.Variable):
-            if type(value) not in (str, unicode):
+            if not isinstance(value, basestring):
                 raise ValueError(
                     'myokit.Name objects must have a value that is a'
                     ' myokit.Variable (or, when debugging, a string).')
@@ -713,7 +719,7 @@ class Name(LhsExpression):
         return Name(self._value)
 
     def _code(self, b, c):
-        if type(self._value) in [str, unicode]:
+        if isinstance(self._value, basestring):
             # Allow an exception for strings (used in function templates and
             # debugging).
             b.write('str:' + str(self._value))
@@ -756,7 +762,7 @@ class Name(LhsExpression):
         return self._value.is_state()
 
     def _polishb(self, b):
-        if type(self._value) in [str, unicode]:
+        if isinstance(self._value, basestring):
             # Allow an exception for strings
             b.write('str:')
             b.write(self._value)
@@ -2656,7 +2662,7 @@ class Unit(object):
             preferred representation format.
 
         """
-        if not (isinstance(name, unicode) or isinstance(name, str)):
+        if not isinstance(name, basestring):
             raise TypeError('Given name must be a string.')
         if not isinstance(unit, Unit):
             raise TypeError('Given unit must be myokit.Unit')

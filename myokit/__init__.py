@@ -299,6 +299,7 @@ from ._err import ( # noqa
 #  import an error creates a hard to debug bug (something needs to go wrong
 #  before the interpreter reaches the code raising the error and notices it's
 #  not there).
+from . import _err
 import inspect  # noqa
 _globals = globals()
 ex, name, clas = None, None, None
@@ -308,6 +309,7 @@ for ex in inspect.getmembers(_err):
         if name not in _globals:
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
+del(_err)
 
 # Model api
 from ._model_api import ( # noqa
