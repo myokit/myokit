@@ -296,6 +296,16 @@ class Expression(object):
         if self._cached_hash is None:
             self._cached_hash = hash(self._polish())
         return self._cached_hash
+        # Note for Python3:
+        #   In Python3, anything that has an __eq__ stops inheriting this hash
+        #   method!
+        # From: https://docs.python.org/3.1/reference/datamodel.html
+        # > If a class that overrides __eq__() needs to retain the
+        #   implementation of __hash__() from a parent class, the interpreter
+        #   must be told this explicitly by setting
+        #   __hash__ = <ParentClass>.__hash__. Otherwise the inheritance of
+        #   __hash__() will be blocked, just as if __hash__ had been explicitly
+        #   set to None.
 
     def __int__(self):
         return int(self.eval())
@@ -689,6 +699,7 @@ class Name(LhsExpression):
     Represents a reference to a variable.
     """
     _rbp = LITERAL
+    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
 
     def __init__(self, value):
         super(Name, self).__init__()
@@ -807,6 +818,7 @@ class Derivative(LhsExpression):
     """
     _rbp = FUNCTION_CALL
     _nargs = [1]    # Allows parsing as a function
+    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
 
     def __init__(self, op):
         super(Derivative, self).__init__((op,))
