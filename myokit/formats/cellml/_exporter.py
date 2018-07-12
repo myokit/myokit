@@ -242,17 +242,18 @@ class CellMLExporter(myokit.formats.Exporter):
             unit_map[unit] = name
 
         # Add components
-        #TODO: Order to components
+        #TODO: Order components
         # Components can correspond to Myokit components or variables with
         # children!
         ecomps = {}     # Components/Variables: elements (tags)
         cnames = {}     # Components/Variables: names (strings)
+        unames = set()  # Unique name check
 
         def uname(name):
             # Create a unique component name
             i = 1
-            r = name + '-'
-            while name in cnames:
+            r = name + '_'
+            while name in unames:
                 i += 1
                 name = r + str(i)
             return name
@@ -261,6 +262,7 @@ class CellMLExporter(myokit.formats.Exporter):
             # Create unique component name
             cname = uname(parent_name + '_' + var.uname())
             cnames[var] = cname
+            unames.add(cname)
             # Create element
             ecomp = et.SubElement(emodel, 'component')
             ecomp.attrib['name'] = cname
@@ -274,6 +276,7 @@ class CellMLExporter(myokit.formats.Exporter):
             # Create unique name
             cname = uname(comp.name())
             cnames[comp] = cname
+            unames.add(cname)
             # Create element
             ecomp = et.SubElement(emodel, 'component')
             ecomp.attrib['name'] = cname

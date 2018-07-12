@@ -393,10 +393,47 @@ class CellMLExporterTest(unittest.TestCase):
             path = d.path('model.cellml')
             e.model(path, model)
 
-            # Import model and check added stimulus works
+            # Import model and check units
             m2 = i.model(path)
             self.assertEqual(m2.get('engine.three').eval(), 3)
             self.assertEqual(m2.get('engine.time').unit(), mad_unit)
+
+    def test_component_name_clashes(self):
+        """
+        Tests if name clashes in components (due to nested variables parents
+        becoming components) are resolved.
+        """
+        # Start creating model
+        model = myokit.Model()
+        engine = model.add_component('x')
+        time = engine.add_variable('time')
+        time.set_rhs(0)
+        time.set_binding('time')
+        y = engine.add_variable('y')
+        y.set_rhs(1)
+        yc = y.add_variable('yc')
+        yc.set_rhs(2)
+
+        comp = model.add_component('x_y')
+        z = comp.add_variable('z')
+        z.set_rhs(2)
+
+        # The model now has a component `x_y` and a variable `x.y` that will be
+        # converted to a component `x_y`
+
+        # Create exporter and importer
+        e = myokit.formats.cellml.CellMLExporter()
+        i = myokit.formats.cellml.CellMLImporter()
+
+        # Export
+        with TemporaryDirectory() as d:
+            path = d.path('model.cellml')
+            e.model(path, model)
+
+            # Import model and check presence of renamed component
+            m2 = i.model(path)
+            self.assertIn('x_y', m2)
+            self.assertIn('x_y_2', m2)
 
 
 if __name__ == '__main__':
