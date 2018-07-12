@@ -2,7 +2,7 @@
 # Configuration for travis-ci testing
 # This tests ubuntu by default, but can also be made to test on osx
 #
-sudo: false
+sudo: required
 
 # Test on Ubuntu 14
 dist: trusty
@@ -31,7 +31,7 @@ matrix:
         #    - MYOKIT_UNIT=true
         #- python: "3.6"
         #  env:
-        #    - MYOKIT_UNIT=true     
+        #    - MYOKIT_UNIT=true
         # Style, cover, and docs (latest version only)
         - python: "2.7"
           env:

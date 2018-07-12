@@ -6,11 +6,11 @@ Python3 issues
 - [x] Exceptions no longer have a message attribute.
       Instead, we should use str(exception)
 
-- [ ] assertRaisesRegexp is now assertRaisesRegex
+- [x] assertRaisesRegexp is now assertRaisesRegex
 
 - [ ] SubCapture doesn't work, obscures errors from compilation
 
-- [ ] __nonzero__ is now called __bool__
+- [x] __nonzero__ is now called __bool__
 
 C stuff
 -------
