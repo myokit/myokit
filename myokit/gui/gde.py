@@ -236,6 +236,12 @@ class DocumentNode(QtCore.QObject):
         action = DA_AddVariable(self, vtype, name, value)
         return self.get_document()._perform(action)
 
+    def __bool__(self):
+        """
+        Python 3 equivalent of :meth:`__nonzero__()`.
+        """
+        return True
+
     def can_drag(self):
         """
         Returns True if this item is draggable / droppable.
@@ -403,8 +409,10 @@ class DocumentNode(QtCore.QObject):
 
     def __nonzero__(self):
         """
-        Used when writing ``if node:``, without overloading this, the
-        value of ``__len__`` would be used in these cases.
+        Used when writing ``if node:``, without overloading this, the value of
+        ``__len__`` would be used in these cases.
+
+        In Python 3, this was renamed __bool__.
         """
         return True
 

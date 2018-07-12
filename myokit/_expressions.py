@@ -74,6 +74,10 @@ class Expression(object):
         for op in self._operands:
             self._references |= op._references
 
+    def __bool__(self):
+        """ Python 3 method to determine the outcome of "if expression". """
+        return True
+
     def bracket(self, op=None):
         """
         Checks if the given operand (which should be an operand of this
@@ -353,6 +357,7 @@ class Expression(object):
         return not self.__eq__(other)
 
     def __nonzero__(self):
+        """ Python 2 method to determine the outcome of "if expression". """
         return True
 
     def operator_rep(self):

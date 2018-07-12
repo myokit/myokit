@@ -999,14 +999,18 @@ class Model(ObjectWithMeta, VarProvider):
         Returns a deep clone of this model.
         """
         clone = Model()
+
         # Copy meta data
         self._clone_metadata(clone)
+
         # Clone component/variable structure
         for c in self._components.values():
             c._clone1(clone)
+
         # Clone state
         for k, v in enumerate(self._state):
             clone.get(v.qname()).promote(self._current_state[k])
+
         # Create mapping of old var references to new references
         lhsmap = {}
         for v in self.variables(deep=True):
@@ -1014,9 +1018,11 @@ class Model(ObjectWithMeta, VarProvider):
         for v in self.states():
             lhsmap[myokit.Derivative(myokit.Name(v))] = myokit.Derivative(
                 myokit.Name(clone.get(v.qname())))
+
         # Clone component/variable contents (equations, references)
         for k, c in self._components.items():
             c._clone2(clone[k], lhsmap)
+
         # Copy unique names
         clone.reserve_unique_names(*iter(self._reserved_unames))
         return clone
@@ -2910,10 +2916,12 @@ class Component(VarOwner):
         :class:`LhsExpression` objects their equivalents in the new model.
         """
         model = component.model()
-        # Clone alias map
+
+        # Clone aliases
         for k, v in self._alias_map.items():
             component.add_alias(k, model.get(v.qname()))
-        # Clone equations
+
+        # Clone variable equations
         for v in self.variables():
             v._clone2(component[v.name()], lhsmap)
 
@@ -3155,16 +3163,20 @@ class Variable(VarOwner):
         # _binding
         if self._binding:
             v.set_binding(self._binding)
+
         # _label
         if self._label:
             v.set_label(self._label)
+
         # _unit (Units are immutable, no need to clone)
         v._unit = self._unit
+
         # Cached values are updated automatically.
         # Cached references are set by set_rhs
         # Set RHS
         if self._rhs:
             v.set_rhs(self._rhs.clone(subst=lhsmap))
+
         # Clone child variables
         for k in self.variables():
             k._clone2(v[k.name()], lhsmap)
@@ -3175,8 +3187,8 @@ class Variable(VarOwner):
         """
         # Create header line
         c = self.parent(Component)
-        lhs = self._lhs.code(c) if self._lhs is not None else 'UNNAMED'
-        rhs = self._rhs.code(c) if self._rhs is not None else 'UNDEFINED'
+        lhs = self._lhs.code(c) if self._lhs else 'UNNAMED'
+        rhs = self._rhs.code(c) if self._rhs else 'UNDEFINED'
         head = lhs + ' = ' + rhs
 
         # Get description from meta data

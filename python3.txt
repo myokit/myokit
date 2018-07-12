@@ -10,6 +10,8 @@ Python3 issues
 
 - [ ] SubCapture doesn't work, obscures errors from compilation
 
+- [ ] __nonzero__ is now called __bool__
+
 C stuff
 -------
 
