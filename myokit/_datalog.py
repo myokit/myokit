@@ -1550,7 +1550,9 @@ def prepare_log(
     be specified using the ``precision`` argument.
     """
     # Typecode dependent on precision
-    typecode = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
+    # Note: Cast to str() here makes it work with older versions of 2.7.x,
+    # where unicode isn't accepted (Python 3 of course doesn't accept bytes)
+    typecode = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
 
     # Get all options for dimensionality
     if dims is None:
