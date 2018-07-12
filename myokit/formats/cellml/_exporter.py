@@ -290,10 +290,12 @@ class CellMLExporter(myokit.formats.Exporter):
                 evar = et.SubElement(eparent, 'variable')
                 evars[var] = evar
                 evar.attrib['name'] = var.uname()
+
                 # Add units
                 unit = var.unit()
                 unit = unit_map[unit] if unit else 'dimensionless'
                 evar.attrib['units'] = unit
+
                 # Add initial value
                 init = None
                 if var.is_literal():
@@ -380,7 +382,7 @@ class CellMLExporter(myokit.formats.Exporter):
             maths = et.SubElement(ecomp, 'math')
             maths.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
             for var in parent.variables():
-                if var.is_literal() or var == time:
+                if var.is_literal():
                     continue
                 writer.eq(var.eq(), maths)
                 add_child_equations(var)

@@ -222,6 +222,7 @@ class CellMLImporter(myokit.formats.Importer):
         interfaces = {}  # Dict (component name, (var name,(pub, pri, unit)))
         variables = {}   # Dict (component name, (var name, variable))
         values = {}      # Dict (component name, (var name, variable value))
+
         for ctag in model_tag.getElementsByTagName('component'):
             cname = ctag.getAttribute('name')
             comp = components[cname]
@@ -229,8 +230,10 @@ class CellMLImporter(myokit.formats.Importer):
             interfaces[cname] = ifs = {}
             variables[cname] = vrs = {}
             values[cname] = vls = {}
+
             for vtag in ctag.getElementsByTagName('variable'):
                 vname = vtag.getAttribute('name')
+
                 # Get public and private interface
                 pub = vtag.getAttribute('public_interface')
                 pri = vtag.getAttribute('private_interface')
@@ -238,8 +241,10 @@ class CellMLImporter(myokit.formats.Importer):
                     pub = None
                 if pri not in ('in', 'out'):
                     pri = None
+
                 # Get unit
                 unit = convert_unit(vtag.getAttribute('units'))
+
                 # Native variable? Then create
                 if not (pub == 'in' or pri == 'in'):
                     name = self._sanitise_name(vname)
@@ -249,21 +254,26 @@ class CellMLImporter(myokit.formats.Importer):
                     init = str(vtag.getAttribute('initial_value'))
                     if init != '':
                         vls[vname] = init
+
                     # Set unit
                     if type(unit) == str:
                         var.meta['cellml_unit'] = unit
                     else:
                         var.set_unit(unit)
+
                     # Add resolved reference
                     rfs[vname] = var
+
                 else:
                     # Otherwise, store as unresolved reference
                     rfs[vname] = None
+
                 # Store reference information
                 ifs[vname] = (pub, pri, unit)
 
         # Parse connections
         for tag in model_tag.getElementsByTagName('connection'):
+
             # Find linked components
             map_components = tag.getElementsByTagName('map_components')[0]
             cname1 = map_components.getAttribute('component_1')
@@ -275,6 +285,7 @@ class CellMLImporter(myokit.formats.Importer):
                         + '>.')
             comp1 = components[cname1]
             comp2 = components[cname2]
+
             # If component is encapsulated, find parent
             try:
                 par1 = parents[comp1]
@@ -284,15 +295,18 @@ class CellMLImporter(myokit.formats.Importer):
                 par2 = parents[comp2]
             except KeyError:
                 par2 = None
+
             # Get relevant lists for components
             ifs1 = interfaces[cname1]
             ifs2 = interfaces[cname2]
             rfs1 = references[cname1]
             rfs2 = references[cname2]
+
             # Find all references
             for pair in tag.getElementsByTagName('map_variables'):
                 ref1 = pair.getAttribute('variable_1')
                 ref2 = pair.getAttribute('variable_2')
+
                 # Check interfaces
                 try:
                     int1 = ifs1[ref1]
@@ -308,6 +322,7 @@ class CellMLImporter(myokit.formats.Importer):
                         'No interface found for variable <' + str(ref2)
                         + '>, unable to resolve connection.')
                     break
+
                 # Determine direction of reference
                 ref_to_one = None
                 if int2[0] == 'in' and (par1 == par2 or par2 == comp1):
@@ -330,12 +345,14 @@ class CellMLImporter(myokit.formats.Importer):
                         + str(ref2) + '> in ' + str(comp2) + '('
                         + str(int2[0]) + ', ' + str(int2[1]) + ').')
                     continue
+
                 # Check units
                 if int1[2] != int2[2]:
                     self.logger().warn(
                         'Unit mismatch between <' + str(ref1) + '> in '
                         + str(int1[2]) + ' and <' + str(ref2) + '> given in '
                         + str(int2[2]) + '.')
+
                 # Now point reference at variable or reference in other comp
                 try:
                     ref = rfs1[ref1] if ref_to_one else rfs2[ref2]
@@ -429,15 +446,18 @@ class CellMLImporter(myokit.formats.Importer):
                         raise CellMLError(
                             'Unexpected tag in expression: <' + tag.tagName
                             + '>, expecting <apply>.')
+
                     # First child of tag should be <eq />
                     eq = dom_child(tag, 'eq')
                     if not eq:
                         raise CellMLError(
                             'Unexpected content in math of component <'
                             + cname + '>.')
+
                     # Get lhs and rhs tags
                     lhs_tag = dom_next(eq)
                     rhs_tag = dom_next(lhs_tag)
+
                     # Check for partial derivatives
                     if lhs_tag.tagName == 'apply':
                         if dom_child(lhs_tag) == 'partialdiff':
@@ -445,6 +465,7 @@ class CellMLImporter(myokit.formats.Importer):
                                 'Unexpected tag in expression: expecting'
                                 ' <diff>, found <partialdiff>. Partial'
                                 ' derivatives are not supported.')
+
                     # Parse lhs
                     lhs = mathml(lhs_tag, rfs)
                     if not isinstance(lhs, myokit.LhsExpression):
@@ -453,12 +474,14 @@ class CellMLImporter(myokit.formats.Importer):
                             ' after <eq> in "' + cname + '", got <'
                             + str(lhs_tag.tagName) + '> instead. Differential'
                             ' algebraic equations are not supported).')
+
                     # Check variable
                     var = lhs.var()
                     if var not in vrs.values():
                         raise CellMLError(
                             'Error: Equation found for unknown variable <'
                             + str(var) + '>.')
+
                     # Check derivatives
                     if lhs.is_derivative():
                         # Get CellML variable name
@@ -474,11 +497,14 @@ class CellMLImporter(myokit.formats.Importer):
                                 + '>.')
                             i = 0
                         var.promote(i)
+
                     # Parse rhs
                     var.set_rhs(mathml(rhs_tag, rfs))
+
                     # Continue
                     tag = dom_next(tag)
                     n += 1
+
             self.logger().log(
                 'Found ' + str(n) + ' equations in ' + cname + '.')
 

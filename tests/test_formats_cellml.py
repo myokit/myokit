@@ -351,6 +351,53 @@ class CellMLExporterTest(unittest.TestCase):
             # Check child variables are gone (and pace lives in stimulus now)
             self.assertEqual(len(m2.get('stimulus.pace')), 0)
 
+        # Test name is adapted if stimulus is already a component
+        model.add_component('stimulus')
+        model.add_component('stimulus_2')
+        with TemporaryDirectory() as d:
+            path = d.path('model.cellml')
+            e.model(path, model)
+
+            # Import model and check added stimulus works
+            m2 = i.model(path)
+            m2.get('engine.time').set_binding('time')
+            self.assertIn('stimulus_3', m2)
+            self.assertEqual(m2.get('stimulus_3.ctime').eval(), 0)
+
+    def test_unit_export(self):
+        """
+        Tests exporting units.
+        """
+        # Start creating model
+        model = myokit.Model()
+        engine = model.add_component('engine')
+        time = engine.add_variable('time')
+        time.set_rhs(0)
+        time.set_binding('time')
+        three = engine.add_variable('three')
+        three.set_rhs(3)
+
+        mad_unit = myokit.Unit()
+        mad_unit *= 1.234
+        mad_unit *= myokit.units.m
+        mad_unit /= myokit.units.s
+        mad_unit *= myokit.units.A
+        time.set_unit(mad_unit)
+
+        # Create exporter and importer
+        e = myokit.formats.cellml.CellMLExporter()
+        i = myokit.formats.cellml.CellMLImporter()
+
+        # Export
+        with TemporaryDirectory() as d:
+            path = d.path('model.cellml')
+            e.model(path, model)
+
+            # Import model and check added stimulus works
+            m2 = i.model(path)
+            self.assertEqual(m2.get('engine.three').eval(), 3)
+            self.assertEqual(m2.get('engine.time').unit(), mad_unit)
+
 
 if __name__ == '__main__':
     unittest.main()
