@@ -384,6 +384,10 @@ class CellMLExporterTest(unittest.TestCase):
         mad_unit *= myokit.units.A
         time.set_unit(mad_unit)
 
+        pure_multiplier = myokit.Unit()
+        pure_multiplier *= 1001
+        three.set_unit(pure_multiplier)
+
         # Create exporter and importer
         e = myokit.formats.cellml.CellMLExporter()
         i = myokit.formats.cellml.CellMLImporter()
@@ -396,6 +400,7 @@ class CellMLExporterTest(unittest.TestCase):
             # Import model and check units
             m2 = i.model(path)
             self.assertEqual(m2.get('engine.three').eval(), 3)
+            self.assertEqual(m2.get('engine.three').unit(), pure_multiplier)
             self.assertEqual(m2.get('engine.time').unit(), mad_unit)
 
     def test_component_name_clashes(self):
@@ -434,6 +439,48 @@ class CellMLExporterTest(unittest.TestCase):
             m2 = i.model(path)
             self.assertIn('x_y', m2)
             self.assertIn('x_y_2', m2)
+
+    def test_nested_variables(self):
+        """
+        Tests export of deep nesting structures.
+        """
+        # Start creating model
+        model = myokit.Model()
+        engine = model.add_component('x')
+        time = engine.add_variable('time')
+        time.set_rhs(0)
+        time.set_binding('time')
+
+        def add(parent, name, rhs=0):
+            var = parent.add_variable(name)
+            var.set_rhs(rhs)
+            return var
+
+        p1 = add(engine, 'p1', 1)
+        p2 = add(p1, 'p2', 2)
+        p3 = add(p2, 'p3', 3)
+        p4 = add(p3, 'p4', 4)
+        p5 = add(p4, 'p5', 5)
+        add(p5, 'p6', 6)
+
+        # Create exporter and importer
+        e = myokit.formats.cellml.CellMLExporter()
+        i = myokit.formats.cellml.CellMLImporter()
+
+        # Export
+        with TemporaryDirectory() as d:
+            path = d.path('model.cellml')
+            e.model(path, model)
+
+            # Import model and check presence of renamed component
+            m2 = i.model(path)
+            self.assertIn('x', m2)
+            self.assertIn('x_p1', m2)
+            self.assertIn('x_p1_p2', m2)
+            self.assertIn('x_p1_p2_p3', m2)
+            self.assertIn('x_p1_p2_p3_p4', m2)
+            self.assertIn('x_p1_p2_p3_p4_p5', m2)
+            self.assertNotIn('x_p1_p2_p3_p4_p5_p6', m2)
 
 
 if __name__ == '__main__':
