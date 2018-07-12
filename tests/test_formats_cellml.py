@@ -30,7 +30,6 @@ class CellMLImporterTest(unittest.TestCase):
     """
     Tests the CellML importer.
     """
-
     def test_capability_reporting(self):
         """ Tests if the right capabilities are reported. """
         i = formats.importer('cellml')
@@ -41,27 +40,48 @@ class CellMLImporterTest(unittest.TestCase):
     def test_model_simple(self):
         # Beeler-Reuter is a simple model
         i = formats.importer('cellml')
-        self.assertTrue(i.supports_model())
         m = i.model(os.path.join(DIR_FORMATS, 'br-1977.cellml'))
         m.validate()
 
     def test_model_dot(self):
         # This is beeler-reuter but with a dot() in an expression
         i = formats.importer('cellml')
-        self.assertTrue(i.supports_model())
         m = i.model(os.path.join(DIR_FORMATS, 'br-1977-dot.cellml'))
         m.validate()
 
     def test_model_nesting(self):
         # The corrias model has multiple levels of nesting (encapsulation)
         i = formats.importer('cellml')
-        self.assertTrue(i.supports_model())
         m = i.model(os.path.join(DIR_FORMATS, 'corrias.cellml'))
         m.validate()
 
     def test_info(self):
         i = formats.importer('cellml')
         self.assertIn(type(i.info()), [str, unicode])
+
+    def test_import(self):
+        # Imports should raise an error
+        i = formats.importer('cellml')
+        self.assertRaisesRegex(
+            myokit.formats.cellml.CellMLError, '<import>',
+            i.model, os.path.join(DIR_FORMATS, 'cellml-1-import.cellml'))
+
+    def test_reaction(self):
+        # Reaction elements should raise an error
+        i = formats.importer('cellml')
+        self.assertRaisesRegex(
+            myokit.formats.cellml.CellMLError, '<reaction>',
+            i.model, os.path.join(DIR_FORMATS, 'cellml-2-reaction.cellml'))
+
+    def test_factorial(self):
+        # Factorial elements should trigger a warning
+        i = formats.importer('cellml')
+        i.model(os.path.join(
+            DIR_FORMATS, 'cellml-3-factorial-partialdiff-sum.cellml'))
+        w = '\n'.join(i.logger().warnings())
+        self.assertIn('<factorial>', w)
+        self.assertIn('<partialdiff>', w)
+        self.assertIn('<sum>', w)
 
 
 class CellMLExpressionWriterTest(unittest.TestCase):

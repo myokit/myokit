@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  FILE :  saucerman_model_2008.xml -->
+
+<model
+    name="saucerman_bers_2008"
+    cmeta:id="saucerman_bers_2008"
+    xmlns="http://www.cellml.org/cellml/1.1#"
+    xmlns:cellml="http://www.cellml.org/cellml/1.1#"
+    xmlns:cmeta="http://www.cellml.org/metadata/1.0#"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+    xmlns:bqs="http://www.cellml.org/bqs/1.0#" 
+    xmlns:dcterms="http://purl.org/dc/terms/"
+    xmlns:vCard="http://www.w3.org/2001/vcard-rdf/3.0#"  >
+
+<documentation xmlns="http://cellml.org/tmp-documentation">
+<article>
+  <articleinfo>
+  <title>Calmodulin mediates differential sensitivity of CaMKII and calcineurin to local Ca2+ in cardiac myocytes</title>
+  <author>
+    <firstname>Catherine</firstname>
+          <surname>Lloyd</surname>
+    <affiliation>
+      <shortaffil>Auckland Bioengineering Institute, The University of Auckland</shortaffil>
+    </affiliation>
+  </author>
+</articleinfo>
+  <section id="sec_status">
+    <title>Model Status</title>
+    <para>
+         This CellML model is known to run PCEnv. Because the model is in a CellML 1.1 format (as opposed to CellML 1.0) COR is unable to run the model. Where possible unit checking was carried out and to our knowledge they are consistent. 
+          </para>
+          <para>
+          It should be noted that the paper does not provide values for [K], [Mg], and [Ca]. Correspondence with the author of the publication has provided values for these variables, namely; 135mM, 1mM and a value for Ca which is predicted dynamically from the Shannon et al. model (also in the CellML Model Respository). Unfortunately, the Ca concentration was calculated using a procedural command in the original Matlab code.  We are currently working on a solution to this in the CellML model.  
+</para>
+
+  </section>
+  <sect1 id="sec_structure">
+<title>Model Structure</title>
+
+<para>
+ABSTRACT: Calmodulin (CaM) mediates Ca-dependent regulation of numerous pathways in the heart including calmodulin-dependent kinase (CaMKII) and calcineurin (CaN), yet the local Ca(2+) signals responsible for their selective activation are unclear. To assess when and where CaM, CaMKII and CaN may be activated in the cardiac myocyte, we integrated new mechanistic computational models of CaM, CaMKII and CaN with the Shannon-Bers model of excitation-contraction coupling in the rabbit ventricular myocyte. These models are validated with independent in vitro data. In the intact myocyte, model simulations predict that CaM is highly activated in the dyadic cleft during each beat, but not appreciably in the cytosol. CaMKII-deltaC was almost insensitive to cytosolic Ca due to relatively low CaM affinity. Dyadic cleft CaMKII exhibits dynamic frequency-dependent responses to Ca yet autophosphorylates only when local phosphatases are suppressed. In contrast, dyadic cleft CaN in beating myocytes is predicted to be constitutively active, while the extremely high CaN affinity for CaM allows gradual integration of small cytosolic CaM signals. Reversing CaM affinities for CaMKII and CaN also reverses their characteristic local responses. Deactivation of both CaMKII and CaN seems dominated by Ca dissociation from the complex (vs. Ca-CaM dissociation from the target). In summary, the different affinities of CaM for CaMKII and CaN determine their sensitivity to local Ca signals in cardiac myocytes.
+</para>
+
+<informalfigure float="0" id="fig_reaction_diagram">
+<mediaobject>
+  <imageobject>
+    <objectinfo>
+      <title>model diagram</title>
+    </objectinfo>
+    <imagedata fileref="saucerman_2008a.png"/>
+  </imageobject>
+</mediaobject>
+<caption>Compartmental model schematic of cardiac myocyte EC coupling incorporating CaM, CaMKII, and CaN signalling in the dyadic cleft and cytosol.</caption>
+</informalfigure>
+
+<informalfigure float="0" id="fig_reaction_diagram">
+<mediaobject>
+  <imageobject>
+    <objectinfo>
+      <title>model diagram</title>
+    </objectinfo>
+    <imagedata fileref="saucerman_2008b.png"/>
+  </imageobject>
+</mediaobject>
+<caption>Reaction map for cooperative Ca binding of 2 Ca to CaM sequentially to the C-terminal and then N-terminal EF hands, along with binding of CaM buffers.</caption>
+</informalfigure>
+
+<informalfigure float="0" id="fig_reaction_diagram">
+<mediaobject>
+  <imageobject>
+    <objectinfo>
+      <title>model diagram</title>
+    </objectinfo>
+    <imagedata fileref="saucerman_2008c.png"/>
+  </imageobject>
+</mediaobject>
+<caption>Probabilistic model of CaMKIIδ subunit switching between inactive (Pi), inactive Ca2CaM bound (Pb2), active Ca4CaM-bound (Pb), Thr287 autophosphorylated with Ca4CaM trapped (Pt), and Thr287 autophosphorylated but CaM-autonomous (P) or CaCaM bound (P) states.</caption>
+</informalfigure>
+
+<informalfigure float="0" id="fig_reaction_diagram">
+<mediaobject>
+  <imageobject>
+    <objectinfo>
+      <title>model diagram</title>
+    </objectinfo>
+    <imagedata fileref="saucerman_2008d.png"/>
+  </imageobject>
+</mediaobject>
+<caption>Reaction map for reversible binding of CaM, CaCaM, and CaCaM to CaN.</caption>
+</informalfigure>
+
+<para>
+The original paper reference is cited below:
+</para>
+
+<para>
+Calmodulin mediates differential sensitivity of CaMKII and calcineurin to local Ca2+ in cardiac myocytes, Saucerman JJ, Bers DM, 2009, <emphasis>Biophysical Journal</emphasis>, 95, 4597-4612.  <ulink url="http://www.ncbi.nlm.nih.gov/pubmed/18689454">PubMed ID: 18689454</ulink>
+</para>
+
+</sect1>
+</article>
+</documentation>
+
+
+  <import xlink:href="saucerman_2008_dyadic_cleft.cellml">
+    <component name="dyadic_cleft" component_ref="dyadic_cleft" />
+  </import>
+  
+  <connection>
+    <map_components component_1="dyadic_cleft" component_2="JCaM_DYAD_SL" />
+    <map_variables variable_1="CaM" variable_2="CaM_DYAD" />
+    <map_variables variable_1="B" variable_2="B_DYAD" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="dyadic_cleft" component_2="JCa2CaM_DYAD_SL" />
+    <map_variables variable_1="Ca2CaM" variable_2="Ca2CaM_DYAD" />
+    <map_variables variable_1="B" variable_2="B_DYAD" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="dyadic_cleft" component_2="JCa4CaM_DYAD_SL" />
+    <map_variables variable_1="Ca4CaM" variable_2="Ca4CaM_DYAD" />
+    <map_variables variable_1="B" variable_2="B_DYAD" />
+  </connection>
+
+  <connection>
+    <map_components component_1="dyadic_cleft" component_2="environment" />
+    <map_variables variable_1="time" variable_2="time" />
+  </connection>
+  
+  <import xlink:href="saucerman_2008_sarcolemma.cellml">
+    <component name="sarcolemma" component_ref="sarcolemma" />
+  </import>
+  
+  <connection>
+    <map_components component_1="sarcolemma" component_2="JCaM_DYAD_SL" />
+    <map_variables variable_1="CaM" variable_2="CaM_SL" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="sarcolemma" component_2="JCa2CaM_DYAD_SL" />
+    <map_variables variable_1="Ca2CaM" variable_2="Ca2CaM_SL" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="sarcolemma" component_2="JCa4CaM_DYAD_SL" />
+    <map_variables variable_1="Ca4CaM" variable_2="Ca4CaM_SL" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="sarcolemma" component_2="JCaM_SL_CYT" />
+    <map_variables variable_1="CaM" variable_2="CaM_SL" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="sarcolemma" component_2="JCa2CaM_SL_CYT" />
+    <map_variables variable_1="Ca2CaM" variable_2="Ca2CaM_SL" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="sarcolemma" component_2="JCa4CaM_SL_CYT" />
+    <map_variables variable_1="Ca4CaM" variable_2="Ca4CaM_SL" />
+  </connection>
+
+  <connection>
+    <map_components component_1="sarcolemma" component_2="environment" />
+    <map_variables variable_1="time" variable_2="time" />
+  </connection>
+  
+  <import xlink:href="saucerman_2008_cytosol.cellml">
+    <component name="cytosol" component_ref="cytosol" />
+  </import>
+  
+  <connection>
+    <map_components component_1="cytosol" component_2="JCaM_SL_CYT" />
+    <map_variables variable_1="CaM" variable_2="CaM_CYT" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="cytosol" component_2="JCa2CaM_SL_CYT" />
+    <map_variables variable_1="Ca2CaM" variable_2="Ca2CaM_CYT" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="cytosol" component_2="JCa4CaM_SL_CYT" />
+    <map_variables variable_1="Ca4CaM" variable_2="Ca4CaM_CYT" />
+  </connection>
+
+  <connection>
+    <map_components component_1="cytosol" component_2="environment" />
+    <map_variables variable_1="time" variable_2="time" />
+  </connection>
+  
+  <!-- units -->
+
+  <units name="micromolar">
+    <unit units="mole" prefix="micro"/>
+    <unit units="litre" exponent="-1"/>
+  </units>
+  
+  <units name="flux">
+    <unit units="micromolar" />
+    <unit units="second" exponent="-1"/>
+  </units>
+
+  <units name="first_order_rate_constant">
+    <unit units="second" exponent="-1"/>
+  </units>
+
+  <units name="second_order_rate_constant">
+    <unit units="micromolar" exponent="-1"/>
+    <unit units="second" exponent="-1"/>
+  </units>
+  
+  <units name="third_order_rate_constant">
+    <unit units="micromolar" exponent="-2"/>
+    <unit units="second" exponent="-1"/>
+  </units>
+  
+  <units name="micromolar2">
+    <unit units="micromolar" exponent="2"/>
+  </units>
+  
+  <units name="micromole_per_second">
+    <unit units="mole" prefix="micro" />
+	<unit units="second" exponent="-1"/>
+  </units>
+  
+  <units name="litre_per_second">
+    <unit units="litre" />
+    <unit units="second" exponent="-1"/>
+  </units>
+  
+  
+  <component name="environment">
+    <variable units="second" public_interface="out" name="time"/>
+  </component>
+
+  <!-- CaM transport -->
+  
+  <component name="JCaM_DYAD_SL" cmeta:id="JCaM_DYAD_SL">
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/0P/PP-rdf-syntax-ns#">
+      <rdf:Description rdf:about="JCaM_DYAD_SL">
+        <dc:title>JCaM_DYAD_SL</dc:title>
+        <dcterms:alternative>CaM transport between the dyadic space and the sarcolemma</dcterms:alternative>  
+      </rdf:Description>
+    </rdf:RDF>  
+    <variable units="flux" name="JCaM_DYAD_SL" />
+	
+	<variable units="second_order_rate_constant" initial_value="0.007" name="k0B_on"/>
+    <variable units="first_order_rate_constant" initial_value="0.0014" name="k0B_off"/>
+
+    <variable units="micromolar" public_interface="in" name="CaM_DYAD"/>
+    <variable units="micromolar" public_interface="in" name="B_DYAD"/>
+	<variable units="micromolar" public_interface="in" name="CaM_SL"/>
+    
+    <math xmlns="http://www.w3.org/1998/Math/MathML" id="15"> 
+      <apply><eq/> 
+        <ci> JCaM_DYAD_SL </ci>
+        <apply><minus/>
+	      <apply><times/>
+            <ci> k0B_off </ci>
+			<ci> CaM_DYAD </ci>
+	      </apply>
+		  <apply><times/>
+            <ci> k0B_on </ci>
+			<ci> B_DYAD </ci>
+			<ci> CaM_SL </ci>
+	      </apply>
+	    </apply>
+      </apply>
+    </math>
+  </component>
+  
+  <component name="JCa2CaM_DYAD_SL" cmeta:id="JCa2CaM_DYAD_SL">
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/0P/PP-rdf-syntax-ns#">
+      <rdf:Description rdf:about="JCa2CaM_DYAD_SL">
+        <dc:title>JCa2CaM_DYAD_SL</dc:title>
+        <dcterms:alternative>Ca2CaM transport between the dyadic space and the sarcolemma</dcterms:alternative>  
+      </rdf:Description>
+    </rdf:RDF>  
+    <variable units="flux" name="JCa2CaM_DYAD_SL" />
+	
+	<variable units="second_order_rate_constant" initial_value="0.007" name="k2B_on"/>
+    <variable units="first_order_rate_constant" initial_value="0.000014" name="k2B_off"/>
+
+    <variable units="micromolar" public_interface="in" name="Ca2CaM_DYAD"/>
+    <variable units="micromolar" public_interface="in" name="B_DYAD"/>
+	<variable units="micromolar" public_interface="in" name="Ca2CaM_SL"/>
+    
+    <math xmlns="http://www.w3.org/1998/Math/MathML" id="16"> 
+      <apply><eq/> 
+        <ci> JCa2CaM_DYAD_SL </ci>
+        <apply><minus/>
+	      <apply><times/>
+            <ci> k2B_off </ci>
+			<ci> Ca2CaM_DYAD </ci>
+	      </apply>
+		  <apply><times/>
+            <ci> k2B_on </ci>
+			<ci> B_DYAD </ci>
+			<ci> Ca2CaM_SL </ci>
+	      </apply>
+	    </apply>
+      </apply>
+    </math>
+  </component>
+  
+  <component name="JCa4CaM_DYAD_SL" cmeta:id="JCa4CaM_DYAD_SL">
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/0P/PP-rdf-syntax-ns#">
+      <rdf:Description rdf:about="JCa2CaM_DYAD_SL">
+        <dc:title>JCa4CaM_DYAD_SL</dc:title>
+        <dcterms:alternative>Ca4CaM transport between the dyadic space and the sarcolemma</dcterms:alternative>  
+      </rdf:Description>
+    </rdf:RDF>  
+    <variable units="flux" name="JCa4CaM_DYAD_SL" />
+	
+	<variable units="second_order_rate_constant" initial_value="0.007" name="k4B_on"/>
+    <variable units="first_order_rate_constant" initial_value="0.000014" name="k4B_off"/>
+
+    <variable units="micromolar" public_interface="in" name="Ca4CaM_DYAD"/>
+    <variable units="micromolar" public_interface="in" name="B_DYAD"/>
+	<variable units="micromolar" public_interface="in" name="Ca4CaM_SL"/>
+    
+    <math xmlns="http://www.w3.org/1998/Math/MathML" id="17"> 
+      <apply><eq/> 
+        <ci> JCa4CaM_DYAD_SL </ci>
+        <apply><minus/>
+	      <apply><times/>
+            <ci> k4B_off </ci>
+			<ci> Ca4CaM_DYAD </ci>
+	      </apply>
+		  <apply><times/>
+            <ci> k4B_on </ci>
+			<ci> B_DYAD </ci>
+			<ci> Ca4CaM_SL </ci>
+	      </apply>
+	    </apply>
+      </apply>
+    </math>
+  </component>
+  
+  <component name="JCaM_SL_CYT" cmeta:id="JCaM_SL_CYT">
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/0P/PP-rdf-syntax-ns#">
+      <rdf:Description rdf:about="JCaM_SL_CYT">
+        <dc:title>JCaM_SL_CYT</dc:title>
+        <dcterms:alternative>CaM transport between the sarcolemma and the cytosol</dcterms:alternative>  
+      </rdf:Description>
+    </rdf:RDF>  
+    <variable units="micromole_per_second" name="JCaM_SL_CYT" />
+	
+	<variable units="litre_per_second" public_interface="in" name="kSLCYT"/>
+    <variable units="micromolar" public_interface="in" name="CaM_SL"/>
+    <variable units="micromolar" public_interface="in" name="CaM_CYT"/>
+    
+    <math xmlns="http://www.w3.org/1998/Math/MathML" id="18"> 
+      <apply><eq/> 
+        <ci> JCaM_SL_CYT </ci>
+        <apply><times/>
+		  <ci> kSLCYT </ci>
+	      <apply><minus/>
+            <ci> CaM_SL </ci>
+			<ci> CaM_CYT </ci>
+	      </apply>
+		</apply>
+      </apply>
+    </math>
+  </component>
+  
+  <component name="JCa2CaM_SL_CYT" cmeta:id="JCa2CaM_SL_CYT">
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/0P/PP-rdf-syntax-ns#">
+      <rdf:Description rdf:about="JCa2CaM_SL_CYT">
+        <dc:title>JCa2CaM_SL_CYT</dc:title>
+        <dcterms:alternative>Ca2CaM transport between the sarcolemma and the cytosol</dcterms:alternative>  
+      </rdf:Description>
+    </rdf:RDF>  
+    <variable units="micromole_per_second" name="JCa2CaM_SL_CYT" />
+	
+	<variable units="litre_per_second" public_interface="in" name="kSLCYT"/>
+    <variable units="micromolar" public_interface="in" name="Ca2CaM_SL"/>
+    <variable units="micromolar" public_interface="in" name="Ca2CaM_CYT"/>
+    
+    <math xmlns="http://www.w3.org/1998/Math/MathML" id="19"> 
+      <apply><eq/> 
+        <ci> JCa2CaM_SL_CYT </ci>
+        <apply><times/>
+		  <ci> kSLCYT </ci>
+	      <apply><minus/>
+            <ci> Ca2CaM_SL </ci>
+			<ci> Ca2CaM_CYT </ci>
+	      </apply>
+		</apply>
+      </apply>
+    </math>
+  </component>
+  
+  <component name="JCa4CaM_SL_CYT" cmeta:id="JCa4CaM_SL_CYT">
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/0P/PP-rdf-syntax-ns#">
+      <rdf:Description rdf:about="JCa4CaM_SL_CYT">
+        <dc:title>JCa4CaM_SL_CYT</dc:title>
+        <dcterms:alternative>Ca4CaM transport between the sarcolemma and the cytosol</dcterms:alternative>  
+      </rdf:Description>
+    </rdf:RDF>  
+    <variable units="micromole_per_second" name="JCa4CaM_SL_CYT" />
+	
+	<variable units="litre_per_second" public_interface="in" name="kSLCYT"/>
+    <variable units="micromolar" public_interface="in" name="Ca4CaM_SL"/>
+    <variable units="micromolar" public_interface="in" name="Ca4CaM_CYT"/>
+    
+    <math xmlns="http://www.w3.org/1998/Math/MathML" id="20"> 
+      <apply><eq/> 
+        <ci> JCa4CaM_SL_CYT </ci>
+        <apply><times/>
+		  <ci> kSLCYT </ci>
+	      <apply><minus/>
+            <ci> Ca4CaM_SL </ci>
+			<ci> Ca4CaM_CYT </ci>
+	      </apply>
+		</apply>
+      </apply>
+    </math>
+  </component>
+  
+  <component name="model_parameters">
+    <variable units="litre_per_second" initial_value="8.59E-12" public_interface="out" name="kSLCYT" />
+  </component>
+  
+  <!-- connections -->
+  
+  <connection>
+    <map_components component_1="JCaM_SL_CYT" component_2="model_parameters" />
+    <map_variables variable_1="kSLCYT" variable_2="kSLCYT" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="JCa2CaM_SL_CYT" component_2="model_parameters" />
+    <map_variables variable_1="kSLCYT" variable_2="kSLCYT" />
+  </connection>
+  
+  <connection>
+    <map_components component_1="JCa4CaM_SL_CYT" component_2="model_parameters" />
+    <map_variables variable_1="kSLCYT" variable_2="kSLCYT" />
+  </connection>
+  
+<rdf:RDF>
+  <rdf:Seq rdf:about="rdf:#b0ad3cba-f0f5-4670-9c1f-3c21f3800c2a">
+    <rdf:li rdf:resource="rdf:#967570b4-180d-4f7a-8514-438118b43963"/>
+    <rdf:li rdf:resource="rdf:#59e45663-df2e-4957-948a-85a9a18403a6"/>
+  </rdf:Seq>
+  <rdf:Description rdf:about="rdf:#656a2e1d-9048-4c63-ab81-e3b90b5bbe6b">
+    <vCard:Orgname>The University of Auckland</vCard:Orgname>
+    <vCard:Orgunit>Auckland Bioengineering Institute</vCard:Orgunit>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#74f03ef4-2d0f-4be1-9084-5ff4a19bef4e">
+    <vCard:FN/>
+  </rdf:Description>
+  <rdf:Description rdf:about="#saucerman_bers_2008">
+    <bqs:reference rdf:resource="rdf:#6fded817-0ef6-4b28-b1d8-4bd12ddb87e8"/>
+<bqs:reference rdf:parseType="Resource">
+  <dc:subject rdf:parseType="Resource">
+    <bqs:subject_type>keyword</bqs:subject_type>
+    <rdf:value>
+      <rdf:Bag>
+        <rdf:li>electrophysiology</rdf:li>
+		<rdf:li>cardiac</rdf:li>
+		<rdf:li>myocyte</rdf:li>
+		<rdf:li>calcium dynamics</rdf:li>
+      </rdf:Bag>
+    </rdf:value>
+  </dc:subject>
+</bqs:reference>
+    <cmeta:comment rdf:resource="rdf:#d51f67f9-03e0-42f7-98cf-8ef88dc1ed94"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="">
+    <dc:publisher>Auckland Bioengineering Institute</dc:publisher>
+    <cmeta:comment rdf:resource="rdf:#209744ab-0565-4a20-84c4-5bede0b1c2ee"/>
+    <dcterms:created rdf:resource="rdf:#3ddc968c-c602-45cb-ac44-626b86b970e4"/>
+    <dc:creator rdf:resource="rdf:#612a8408-da7f-4cc7-9089-7b4a0840edc2"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#d51f67f9-03e0-42f7-98cf-8ef88dc1ed94">
+    <dc:creator rdf:resource="rdf:#74f03ef4-2d0f-4be1-9084-5ff4a19bef4e"/>
+    <rdf:value/>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#b2a6d3da-3963-4e1d-8fd5-77eb8c169b1e">
+    <dcterms:W3CDTF>2008-11-15 00:00</dcterms:W3CDTF>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#967570b4-180d-4f7a-8514-438118b43963">
+    <rdf:type rdf:resource="http://www.cellml.org/bqs/1.0#Person"/>
+    <vCard:N rdf:resource="rdf:#52de14b2-f41d-4dfd-bbcf-8589a6e28a5d"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#3ddc968c-c602-45cb-ac44-626b86b970e4">
+    <dcterms:W3CDTF>2008-09-22T00:00:00+12:00</dcterms:W3CDTF>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#366943c1-7328-4ae2-af0b-ee4c8fc98e9d">
+    <dc:title>Biophysical Journal</dc:title>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#6fded817-0ef6-4b28-b1d8-4bd12ddb87e8">
+    <bqs:Pubmed_id>18689454</bqs:Pubmed_id>
+    <bqs:JournalArticle rdf:resource="rdf:#5ef4ffc1-403b-4726-bdad-7277222ba451"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#52de14b2-f41d-4dfd-bbcf-8589a6e28a5d">
+    <vCard:Given>Jeffery</vCard:Given>
+    <vCard:Family>Saucerman</vCard:Family>
+    <vCard:Other>J</vCard:Other>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#209744ab-0565-4a20-84c4-5bede0b1c2ee">
+    <dc:creator rdf:resource="rdf:#e54828f3-d2f8-4385-8d13-399e14ef5864"/>
+    <rdf:value/>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#5ef4ffc1-403b-4726-bdad-7277222ba451">
+    <dc:creator rdf:resource="rdf:#b0ad3cba-f0f5-4670-9c1f-3c21f3800c2a"/>
+    <dc:title>Calmodulin Mediates Differential Sensitivity of CAMKII and Calcineurin to Local Ca2+ in Cardiac Myocytes</dc:title>
+    <bqs:volume>95</bqs:volume>
+    <bqs:first_page>4597</bqs:first_page>
+    <bqs:Journal rdf:resource="rdf:#366943c1-7328-4ae2-af0b-ee4c8fc98e9d"/>
+    <dcterms:issued rdf:resource="rdf:#b2a6d3da-3963-4e1d-8fd5-77eb8c169b1e"/>
+    <bqs:last_page>4612</bqs:last_page>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#59e45663-df2e-4957-948a-85a9a18403a6">
+    <rdf:type rdf:resource="http://www.cellml.org/bqs/1.0#Person"/>
+    <vCard:N rdf:resource="rdf:#7157472f-8662-42d9-9137-7ca03eee535e"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#e54828f3-d2f8-4385-8d13-399e14ef5864">
+    <vCard:FN/>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#612a8408-da7f-4cc7-9089-7b4a0840edc2">
+    <vCard:ORG rdf:resource="rdf:#656a2e1d-9048-4c63-ab81-e3b90b5bbe6b"/>
+    <vCard:EMAIL rdf:resource="rdf:#90b28182-3121-4175-b19a-eedca5c7f586"/>
+    <vCard:N rdf:resource="rdf:#e663725c-d056-413e-822d-f3869c01d9ab"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#7157472f-8662-42d9-9137-7ca03eee535e">
+    <vCard:Given>Donald</vCard:Given>
+    <vCard:Family>Bers</vCard:Family>
+    <vCard:Other>M</vCard:Other>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#e663725c-d056-413e-822d-f3869c01d9ab">
+    <vCard:Given>Catherine</vCard:Given>
+    <vCard:Family>Lloyd</vCard:Family>
+    <vCard:Other>May</vCard:Other>
+  </rdf:Description>
+  <rdf:Description rdf:about="rdf:#90b28182-3121-4175-b19a-eedca5c7f586">
+    <rdf:type rdf:resource="http://imc.org/vCard/3.0#internet"/>
+    <rdf:value>c.lloyd@auckland.ac.nz</rdf:value>
+  </rdf:Description>
+</rdf:RDF>
+
+</model>
+

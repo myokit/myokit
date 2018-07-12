@@ -84,7 +84,8 @@ class CellMLImporter(myokit.formats.Importer):
             model.validate()
         except myokit.IntegrityError as e:
             log.warn('Integrity error found in model: ' + str(e))
-        except Exception:
+        except Exception:  # pragma: no cover
+            # Cover pragma: This really shouldn't happen!
             import traceback
             log.warn(
                 'Exception occurred when validating model. '
@@ -113,9 +114,9 @@ class CellMLImporter(myokit.formats.Importer):
         if model_tag.getElementsByTagName('import'):
             raise CellMLError('The CellML <import> tag is not supported.')
 
-        # Check for <reaction> (allowed in any CellML)
-        if model_tag.getElementsByTagName('import'):
-            raise CellMLError('The CellML <import> tag is not supported.')
+        # Check for <reaction> (allowed in CellML 1.0 and 1.1)
+        if model_tag.getElementsByTagName('reaction'):
+            raise CellMLError('The CellML <reaction> tag is not supported.')
 
         # Check for <factorial> (allowed in all CellML, but why?)
         if model_tag.getElementsByTagName('factorial'):
