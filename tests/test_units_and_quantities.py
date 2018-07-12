@@ -44,6 +44,15 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertFalse(myokit.Unit.can_convert(
             myokit.units.volt, myokit.units.ampere))
 
+    def test_conversion_factor(self):
+        """
+        Test :meth:`Unit.conversion_factor()`.
+        """
+        self.assertEqual(myokit.Unit.conversion_factor('m', 'km'), 0.001)
+        self.assertEqual(myokit.Unit.conversion_factor('km', 'm'), 1000)
+        self.assertEqual(myokit.Unit.conversion_factor('hm', 'm'), 100)
+        self.assertEqual(myokit.Unit.conversion_factor('inches', 'cm'), 2.54)
+
     def test_convert(self):
         """
         Test :meth:`Unit.convert()`.

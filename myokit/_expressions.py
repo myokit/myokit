@@ -2457,14 +2457,13 @@ class Unit(object):
         return unit1._x == unit2._x
 
     @staticmethod
-    def convert(amount, unit1, unit2):
+    def conversion_factor(unit1, unit2):
         """
-        Converts a number ``amount`` in units ``unit1`` to a new amount in
-        units ``unit2``.
+        Returns the number ``c`` such that ``1 [unit1] = c [unit2]``.
 
             >>> import myokit
-            >>> myokit.Unit.convert(3000, 'm', 'km')
-            3.0
+            >>> myokit.Unit.conversion_factor('m', 'km')
+            0.001
 
         """
         if not isinstance(unit1, myokit.Unit):
@@ -2477,6 +2476,7 @@ class Unit(object):
                     raise myokit.IncompatibleUnitError(
                         'Cannot convert given object ' + repr(unit1)
                         + ' to unit.')
+
         if not isinstance(unit2, myokit.Unit):
             if unit2 is None:
                 unit2 = myokit.units.dimensionless
@@ -2487,14 +2487,26 @@ class Unit(object):
                     raise myokit.IncompatibleUnitError(
                         'Cannot convert given object ' + repr(unit2)
                         + ' to unit.')
+
         if unit1._x != unit2._x:
             raise myokit.IncompatibleUnitError(
                 'Cannot convert from ' + str(unit1) + ' to ' + str(unit2)
                 + '.')
-        if unit1._m == unit2._m:
-            return amount
-        else:
-            return amount * 10**(unit1._m - unit2._m)
+
+        return 1 if unit1._m == unit2._m else 10**(unit1._m - unit2._m)
+
+    @staticmethod
+    def convert(amount, unit1, unit2):
+        """
+        Converts a number ``amount`` in units ``unit1`` to a new amount in
+        units ``unit2``.
+
+            >>> import myokit
+            >>> myokit.Unit.convert(3000, 'm', 'km')
+            3.0
+
+        """
+        return amount * Unit.conversion_factor(unit1, unit2)
 
     def __div__(self, other):
         """
