@@ -465,8 +465,7 @@ def parse_model_from_stream(stream, syntax_only=False):
     except myokit.IntegrityError as e:
         t = e.token()
         if t:
-            raise ParseError(
-                'IntegrityError', t[2], t[3], str(e), cause=e)
+            raise ParseError('IntegrityError', t[2], t[3], str(e), cause=e)
         raise ParseError('IntegrityError', 0, 0, str(e), cause=e)
 
     # Return
@@ -835,7 +834,7 @@ def resolve_alias_map_names(info):
             except myokit.InvalidNameError as e2:
                 raise ParseError(
                     'Illegal alias name',
-                    t_comp[2], t_comp[3], str(e2), cause=e)
+                    t_comp[2], t_comp[3], str(e2), cause=e2)
 
 
 def parse_unit(stream):
@@ -849,8 +848,7 @@ def parse_unit(stream):
             unit = myokit.Unit.parse_simple(token[1])
         except KeyError as ke:
             raise ParseError(
-                'Unit not recognized', token[2], token[3], kstr(e),
-                cause=ke)
+                'Unit not recognized', token[2], token[3], str(ke), cause=ke)
         if stream.peek()[0] == POWER:
             stream.next()
             expo = expect(stream.next(), (INTEGER, FLOAT, MINUS))[1]
@@ -873,8 +871,7 @@ def parse_unit(stream):
             part = myokit.Unit.parse_simple(token[1])
         except KeyError as ke:
             raise ParseError(
-                'Unit not recognized', token[2], token[3], kstr(e),
-                cause=ke)
+                'Unit not recognized', token[2], token[3], str(ke), cause=ke)
         if stream.peek()[0] == POWER:
             stream.next()
             expo = expect(stream.next(), (INTEGER, FLOAT, MINUS))[1]
@@ -1911,8 +1908,7 @@ def convert_proto_expression(e, context=None, info=None):
                 e = myokit.Name(context._resolve(ops[0]))
             except myokit.UnresolvedReferenceError as e:
                 a, b = tokens[0][2:4] if tokens else (0, 0)
-                m = str(e)
-                raise ParseError('Unresolved reference', a, b, m, cause=e)
+                raise ParseError('Unresolved reference', a, b, str(e), cause=e)
         elif isinstance(element, myokit.UserFunction):
             # Handle user function
             # Get mapping of function argument names to input values
@@ -1927,8 +1923,7 @@ def convert_proto_expression(e, context=None, info=None):
                 e = element(*ops)
             except myokit.IntegrityError as e:
                 line, char = tokens[0][2:4] if tokens else (0, 0)
-                raise ParseError(
-                    'Syntax error', line, char, str(e), cause=e)
+                raise ParseError('Syntax error', line, char, str(e), cause=e)
         # Register tokens
         if info:
             for token in tokens:
