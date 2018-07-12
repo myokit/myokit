@@ -236,7 +236,7 @@ class DocumentNode(QtCore.QObject):
         action = DA_AddVariable(self, vtype, name, value)
         return self.get_document()._perform(action)
 
-    def __bool__(self):
+    def __bool__(self):     # pragma: no py2 cover
         """
         Python 3 equivalent of :meth:`__nonzero__()`.
         """

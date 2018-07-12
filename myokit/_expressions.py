@@ -74,7 +74,7 @@ class Expression(object):
         for op in self._operands:
             self._references |= op._references
 
-    def __bool__(self):
+    def __bool__(self):     # pragma: no py2 cover
         """ Python 3 method to determine the outcome of "if expression". """
         return True
 
