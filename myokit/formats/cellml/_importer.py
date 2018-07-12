@@ -662,7 +662,7 @@ class CellMLImporter(myokit.formats.Importer):
                 units.append(parse(unit))
 
         # Order units (units can refer to each other in a DAG form)
-        def order(units, global_units=None):
+        def order(units):
             """
             Orders a list of (name, parts) tuples so that none of the parts
             refer to a unit defined later in the list. Returns an odict mapping
@@ -672,9 +672,6 @@ class CellMLImporter(myokit.formats.Importer):
             units = odict()
             # List units that can already be referenced at this point
             okay = si_units.keys()
-            if global_units:
-                for name, unit in global_units:
-                    okay.append(name)
             # Run through todo list
             while todo:
                 done = []
