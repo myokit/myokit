@@ -44,42 +44,6 @@ class ImporterTest(unittest.TestCase):
             KeyError, 'Importer not found', myokit.formats.importer, 'blip')
 
 
-class CellMLTest(unittest.TestCase):
-    """ Tests the CellML importer. """
-
-    def test_capability_reporting(self):
-        """ Tests if the right capabilities are reported. """
-        i = formats.importer('cellml')
-        self.assertFalse(i.supports_component())
-        self.assertTrue(i.supports_model())
-        self.assertFalse(i.supports_protocol())
-
-    def test_model_simple(self):
-        # Beeler-Reuter is a simple model
-        i = formats.importer('cellml')
-        self.assertTrue(i.supports_model())
-        m = i.model(os.path.join(DIR_FORMATS, 'br-1977.cellml'))
-        m.validate()
-
-    def test_model_dot(self):
-        # This is beeler-reuter but with a dot() in an expression
-        i = formats.importer('cellml')
-        self.assertTrue(i.supports_model())
-        m = i.model(os.path.join(DIR_FORMATS, 'br-1977-dot.cellml'))
-        m.validate()
-
-    def test_model_nesting(self):
-        # The corrias model has multiple levels of nesting (encapsulation)
-        i = formats.importer('cellml')
-        self.assertTrue(i.supports_model())
-        m = i.model(os.path.join(DIR_FORMATS, 'corrias.cellml'))
-        m.validate()
-
-    def test_info(self):
-        i = formats.importer('cellml')
-        self.assertIn(type(i.info()), [str, unicode])
-
-
 class SBMLTest(unittest.TestCase):
     """ Tests SBML import. """
 

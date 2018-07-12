@@ -91,35 +91,44 @@ class CellMLExporter(myokit.formats.Exporter):
         path = os.path.abspath(os.path.expanduser(path))
         import myokit.formats.cellml as cellml
 
+        # Clear log
+        self.logger().clear()
+
         # Replace the pacing variable with a hardcoded stimulus protocol
         if add_hardcoded_pacing:
+
             # Check for pacing variable
             if model.binding('pace') is None:
                 self.logger().warn(
                     'No variable bound to "pace", unable to add hardcoded'
                     ' stimulus protocol.')
             else:
-                # Clone model before changes
+                # Clone model before making changes
                 model = model.clone()
-                # Get pacing variable and time
-                time = model.time()
+
+                # Get pacing variable
                 pace = model.binding('pace')
+
                 # Set basic properties for pace
                 pace.set_unit(myokit.units.dimensionless)
                 pace.set_rhs(0)
                 pace.set_binding(None)
                 pace.set_label(None)    # Should already be true...
+
+                # Get time variable of cloned model
+                time = model.time()
+
                 # Get time unit
-                time_unit = time.unit()
-                if time_unit is None:
-                    time_unit = myokit.units.ms
-                # Scale if seconds are used, in all other cases, assume ms
-                time_factor = 1
-                if time_unit == myokit.units.s:
-                    time_factor = 0.001
-                # Remove any child variables pace might have
-                for kid in pace.variables():
-                    pace.remove_variable(kid, recursive=True)
+                time_unit = time.unit(mode=myokit.UNIT_STRICT)
+
+                # Get correction factor if using anything other than
+                # milliseconds (hardcoded below)
+                try:
+                    time_factor = myokit.Unit.conversion_factor(
+                        'ms', time_unit)
+                except myokit.IncompatibleUnitError:
+                    time_factor = 1
+
                 # Create new component for the pacing variables
                 component = 'stimulus'
                 if model.has_component(component):
@@ -129,11 +138,13 @@ class CellMLExporter(myokit.formats.Exporter):
                         number += 1
                         component = root + '_' + str(number)
                 component = model.add_component(component)
+
                 # Move pace. This will be ok any references: since pace was
                 # bound it cannot be a nested variable.
                 # While moving, update its name to avoid conflicts with the
                 # hardcoded names.
                 pace.parent().move_variable(pace, component, new_name='pace')
+
                 # Add variables defining pacing protocol
                 period = component.add_variable('period')
                 period.set_unit(time_unit)
@@ -144,12 +155,19 @@ class CellMLExporter(myokit.formats.Exporter):
                 duration = component.add_variable('duration')
                 duration.set_unit(time_unit)
                 duration.set_rhs(str(2 * time_factor) + ' ' + str(time_unit))
+
                 # Add corrected time variable
                 ctime = component.add_variable('ctime')
                 ctime.set_unit(time_unit)
                 ctime.set_rhs(
                     time.qname() + ' - floor(' + time.qname()
                     + ' / period) * period')
+
+                # Remove any child variables pace might have before changing
+                # its RHS (which needs to refer to them).
+                for kid in pace.variables():
+                    pace.remove_variable(kid, recursive=True)
+
                 # Set new RHS for pace
                 pace.set_rhs(
                     'if(ctime >= offset and ctime < offset + duration, 1, 0)')
