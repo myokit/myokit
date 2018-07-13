@@ -539,6 +539,9 @@ class DiscreteSimulationTest(unittest.TestCase):
         s = markov.DiscreteSimulation(m)
         s.run(1)
 
+        # Rest running for a very short time doesn't cause crash
+        s.run(0)
+
         # Create protocol
 
         # Protocol times: prep, step, post, full
