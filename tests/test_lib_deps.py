@@ -15,6 +15,12 @@ import unittest
 import myokit
 import myokit.lib.deps as deps
 
+# Unit testing in Python 2 and 3
+try:
+    unittest.TestCase.assertRaisesRegex
+except AttributeError:
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
 
 class LibDepsTest(unittest.TestCase):
 
@@ -54,6 +60,9 @@ class LibDepsTest(unittest.TestCase):
             [0, 0, 0, 0, 0, 0, 1, 0],  # x
             [0, 0, 0, 0, 1, 1, 0, 1],  # Cai depends on d and f
         ])
+        self.assertRaisesRegexp(
+            ValueError, 'must be states', deps.create_state_dependency_matrix,
+            model, direct=True, knockout=['ina.INa'])
 
         # Test indirect version
         matrix = deps.create_state_dependency_matrix(model, direct=False)
@@ -121,6 +130,57 @@ class LibDepsTest(unittest.TestCase):
 
         # Create plot
         deps.plot_variable_dependency_graph(model)
+
+
+class DiGraphTest(unittest.TestCase):
+    """
+    Tests parts of :class:`myokit.lib.deps.DiGraph`.
+    """
+
+    def test_basic(self):
+        """ Tests basic DiGraph functions. """
+
+        # Create empty graph
+        d = deps.DiGraph()
+        self.assertEqual(len(d), 0)
+        d.add_node(1)
+        self.assertEqual(len(d), 1)
+        d.add_node(2)
+        self.assertEqual(len(d), 2)
+        d.add_node(3)
+        self.assertEqual(len(d), 3)
+        d.add_edge(1, 2)
+        self.assertEqual(len(d), 3)
+        d.add_edge(2, 3)
+        d.add_edge(3, 1)
+
+        # Node errors
+        self.assertRaisesRegex(ValueError, 'Duplicate', d.add_node, 3)
+        dwrong = deps.DiGraph()
+        xwrong = dwrong.add_node(99)
+        self.assertRaisesRegex(ValueError, 'another graph', d.add_node, xwrong)
+        self.assertRaisesRegex(
+            ValueError, 'another graph', d.uid_or_node, xwrong)
+
+        # Edge errors
+        self.assertRaisesRegex(ValueError, 'Node not found', d.add_edge, 1, 4)
+
+        # Test text
+        self.assertEquals(
+            d.text(), 'Node "1"\n  > Node "2"\nNode "2"\n  > Node "3"\n'
+            'Node "3"\n  > Node "1"')
+
+        # Test cloning
+        d2 = deps.DiGraph(d)
+        self.assertEqual(len(d2), 3)
+        self.assertEqual(d.text(), d2.text())
+
+        # Test build from matrix: Doesn't copy labels
+        d3 = deps.DiGraph(d.matrix())
+        self.assertEqual(len(d3), 3)
+        self.assertEquals(
+            d3.text(), 'Node "0"\n  > Node "1"\nNode "1"\n  > Node "2"\n'
+            'Node "2"\n  > Node "0"')
 
 
 if __name__ == '__main__':

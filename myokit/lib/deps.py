@@ -236,10 +236,10 @@ class DiGraph(object):
             node = Node(node)
         uid = node.uid
         if uid in self.nodes:
-            raise Exception('Duplicate node id: "' + node.label() + '"')
+            raise ValueError('Duplicate node id: "' + str(node) + '"')
         if node.graph is not None and node.graph != self:
-            raise Exception(
-                'Node already in another graph: "' + node.label() + '"')
+            raise ValueError(
+                'Node already in another graph: "' + str(node) + '"')
         self.nodes[uid] = node
         node.graph = self
         return node
@@ -400,7 +400,7 @@ class DiGraph(object):
         Returns the node with this id
         """
         if uid not in self.nodes:
-            raise IndexError('Node not found: "' + str(uid) + '"')
+            raise ValueError('Node not found: "' + str(uid) + '"')
         return self.nodes[uid]
 
     def path_matrix(self):
@@ -434,9 +434,9 @@ class DiGraph(object):
             if self.nodes:
                 out = []
                 for node in self.nodes.values():
-                    out.append('Node "' + node.label() + '"')
+                    out.append('Node "' + str(node) + '"')
                     for edge in node.edgo:
-                        out.append('  > Node "' + edge.label() + '"')
+                        out.append('  > Node "' + str(edge) + '"')
                     #out.append('')
                 return '\n'.join(out)
             else:
@@ -533,13 +533,8 @@ class DiGraph(object):
         if not isinstance(test, Node):
             return self.node(test)
         if test.graph != self:
-            raise Exception('Node from other graph: "' + test.label() + '"')
-        if test.uid not in self.nodes:
-            raise IndexError('Node not in graph: "' + test.label() + '"')
-        if self.nodes[test.uid] != test:
-            raise Exception(
-                'Different node found at the same id for: "' + test.label()
-                + '"')
+            raise ValueError('Node from another graph: "' + str(test) + '"')
+        assert(test.uid in self.nodes and self.nodes[test.uid] == test)
         return test
 
 
@@ -584,40 +579,12 @@ class Node(object):
         """
         return str(self.uid)
 
-    def outgoing(self):
-        """
-        Returns a list of nodes pointed at by this one
-        """
-        return list(self.edgo)
-
-    def uid(self):
-        """
-        Returns this node's unique identifier
-        """
-        return self.uid
-
-    def has_edge_from(self, test):
-        """
-        Returns true if test points at this node
-        """
-        test = self.graph.uid_or_node(test)
-        return test in self.edgi
-
     def has_edge_to(self, test):
         """
         Returns true if this node points at test
         """
         test = self.graph.uid_or_node(test)
         return test in self.edgo
-
-    def remove_edge_to(self, node):
-        """
-        Removes the edge from this node to the given node. An error is given
-        if no such edge exists.
-        """
-        node = self.graph.uid_or_node(node)
-        node.edgi.remove(self)
-        self.edgo.remove(node)
 
     def __str__(self):
         return str(self.uid)
