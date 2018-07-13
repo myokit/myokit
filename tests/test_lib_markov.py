@@ -235,8 +235,8 @@ class LinearModelTest(unittest.TestCase):
         markov.LinearModel.from_component(model.get('ina'))
 
         # Test deprecated MarkovModel class
-        m2 = markov.MarkovModel.from_component(model.get('ina'))
-        self.assertEqual(type(m2), markov.AnalyticalSimulation)
+        m = markov.MarkovModel.from_component(model.get('ina'))
+        self.assertEqual(type(m), markov.AnalyticalSimulation)
 
         # Test partially automatic creation
         states = [
@@ -263,6 +263,29 @@ class LinearModelTest(unittest.TestCase):
 
         markov.LinearModel.from_component(
             model.get('ina'), current=model.get(current))
+
+        # No current --> This is allowed
+        m2 = model.clone()
+        m2.get('ina').remove_variable(m2.get('ina.i'))
+        m = markov.LinearModel.from_component(model.get('ina'))
+
+        # Two currents
+        m2 = model.clone()
+        v = m2.get('ina').add_variable('i2')
+        v.set_rhs(m2.get('ina.i').rhs().clone())
+        self.assertRaisesRegex(
+            markov.LinearModelError,
+            'more than one variable that could be a current',
+            markov.LinearModel.from_component, m2.get('ina'))
+
+        # Explict vm
+        m2 = model.clone()
+        m2.get('membrane.V').set_label(None)
+        markov.LinearModel.from_component(model.get('ina'), vm='membrane.V')
+        self.assertRaisesRegex(
+            markov.LinearModelError,
+            'labeled as "membrane_potential"',
+            markov.LinearModel.from_component, m2.get('ina'))
 
     def test_linear_model_matrices(self):
         """

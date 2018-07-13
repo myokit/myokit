@@ -532,7 +532,7 @@ class LinearModel(object):
             try:
                 current = currents[0]
             except IndexError:
-                raise LinearModelError('No current variable found.')
+                pass
 
         # Get membrane potential
         if vm is None:
