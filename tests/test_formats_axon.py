@@ -69,6 +69,8 @@ class AbfTest(unittest.TestCase):
         sweep = abf[0]
         self.assertEqual(len(sweep), 1)     # 1 channel in sweep
         channel = sweep[0]
+        self.assertIsInstance(channel.number(), int)
+        self.assertIn('Channel', str(channel))
         self.assertEqual(len(abf) * len(channel.times()), len(z.time()))
         self.assertEqual(len(abf) * len(channel.values()), len(z.time()))
 

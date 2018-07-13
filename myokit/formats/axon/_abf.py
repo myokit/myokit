@@ -276,7 +276,7 @@ class AbfFile(object):
         Each vector is returned as a numpy array.
         """
         data = []
-        if len(self._sweeps) == 0:
+        if len(self._sweeps) == 0:  # pragma: no cover
             return data
         data.append(np.array(self._sweeps[0][channel].times()))
         for sweep in self._sweeps:
@@ -293,7 +293,7 @@ class AbfFile(object):
         """
         import myokit
         log = myokit.DataLog()
-        if len(self._sweeps) == 0:
+        if len(self._sweeps) == 0:  # pragma: no cover
             return log
         log.set_time_key('time')
         log['time'] = np.array(self._sweeps[0][channel].times())
@@ -351,7 +351,7 @@ class AbfFile(object):
                 '     and ' + str(self._sweepsPerRun)
                 + ' sweeps per run, measuring ' + str(self._sweepStartToStart)
                 + ' s start-to-start.')
-        else:
+        else:   # pragma: no cover
             out.append('Protocol data could not be determined.')
         out.append('Sampling rate: ' + str(self._rate) + ' Hz')
 
@@ -761,7 +761,8 @@ class AbfFile(object):
 
             # Read UserList section
             userlists = []
-            for i in range(sections['UserList']['length']):
+            for i in range(sections['UserList']['length']):  # pragma: no cover
+                # Cover pragma: User lists are not supported
                 fid.seek(offs + size * i)
                 UserList = OrderedDict()
                 for key, format in UserListFields:
@@ -1019,7 +1020,8 @@ class AbfFile(object):
             size = sdata[j]['len']
 
             # Calculate the correct size for variable-length event mode
-            if self._mode == ACMODE_VARIABLE_LENGTH_EVENTS:
+            if self._mode == ACMODE_VARIABLE_LENGTH_EVENTS:  # pragma: no cover
+                # Cover pragma: Only episodic stimulus is supported.
                 if version < 2:
                     f = float(header['fSynchTimeUnit'])
                 else:
@@ -1194,7 +1196,7 @@ class Sweep(object):
     def __init__(self, n):
         super(Sweep, self).__init__()
         n = int(n)
-        if n < 0:
+        if n < 0:   # pragma: no cover
             raise ValueError('Number channels cannot be negative.')
         self._nc = n    # Number of channels
         self._channels = [None] * n
