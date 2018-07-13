@@ -31,6 +31,10 @@ import collections
 import xml.dom.minidom as minidom
 import xml.etree.cElementTree as et
 
+import myokit.gui
+from myokit.gui import Qt, QtCore, QtGui, QtWidgets
+
+# ConfigParser in Python 2 and 3
 try:
     # Python2
     from ConfigParser import ConfigParser
@@ -38,8 +42,11 @@ except ImportError:
     # Python 3
     from configparser import RawConfigParser as ConfigParser
 
-import myokit.gui
-from myokit.gui import Qt, QtCore, QtGui, QtWidgets
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
 
 
 # Application title
@@ -708,7 +715,7 @@ class DocumentVariable(QtCore.QObject):
         self._node = node
         self._vtype = vtype
         self._name = name
-        if type(value) in (str, unicode):
+        if isinstance(value, basestring):
             self._value = self._value_from_string(value)
         else:
             self._value = value
@@ -747,7 +754,7 @@ class DocumentVariable(QtCore.QObject):
         """
         Changes this variable's value.
         """
-        if type(value) in (str, unicode):
+        if isinstance(value, basestring):
             value = self._value_from_string(value)
         action = DA_ChangeVariable(self, value)
         return self.get_node().get_document()._perform(action)
@@ -767,7 +774,7 @@ class DocumentVariable(QtCore.QObject):
         Changes this variable's data type, without using actions or sending
         signals.
         """
-        if type(value) in (str, unicode):
+        if isinstance(value, basestring):
             value = self._value_from_string(value)
         self._value = value
 

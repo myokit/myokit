@@ -60,7 +60,7 @@ class LibDepsTest(unittest.TestCase):
             [0, 0, 0, 0, 0, 0, 1, 0],  # x
             [0, 0, 0, 0, 1, 1, 0, 1],  # Cai depends on d and f
         ])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must be states', deps.create_state_dependency_matrix,
             model, direct=True, knockout=['ina.INa'])
 
@@ -175,10 +175,10 @@ class DiGraphTest(unittest.TestCase):
         self.assertRaisesRegex(ValueError, 'Node not found', d.add_edge, 1, 4)
 
         # Test text
-        self.assertEquals(
+        self.assertEqual(
             d.text(), 'Node "1"\n  > Node "2"\nNode "2"\n  > Node "3"\n'
             'Node "3"\n  > Node "1"')
-        self.assertEquals(
+        self.assertEqual(
             d.text(True), '0, 1, 0\n0, 0, 1\n1, 0, 0')
 
         # Test cloning
@@ -190,16 +190,16 @@ class DiGraphTest(unittest.TestCase):
         matrix = d.matrix()
         d3 = deps.DiGraph(matrix)
         self.assertEqual(len(d3), 3)
-        self.assertEquals(
+        self.assertEqual(
             d3.text(), 'Node "0"\n  > Node "1"\nNode "1"\n  > Node "2"\n'
             'Node "2"\n  > Node "0"')
         d3.build_from_matrix(matrix)
-        self.assertEquals(
+        self.assertEqual(
             d3.text(), 'Node "0"\n  > Node "1"\nNode "1"\n  > Node "2"\n'
             'Node "2"\n  > Node "0"')
         d3.build_from_matrix(matrix, edges_only=True)
         self.assertRaises(ValueError, deps.DiGraph, matrix[:-1])
-        self.assertEquals(
+        self.assertEqual(
             d3.text(), 'Node "0"\n  > Node "1"\nNode "1"\n  > Node "2"\n'
             'Node "2"\n  > Node "0"')
         self.assertRaises(ValueError, d.build_from_matrix, matrix[:-1])

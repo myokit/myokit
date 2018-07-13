@@ -272,7 +272,7 @@ class DiGraph(object):
             for i in range(n):
                 self.add_node(i)
         # Add edges
-        nodes = self.nodes.values()
+        nodes = list(self.nodes.values())
         for i, row in enumerate(matrix):
             for j, edge in enumerate(row):
                 if edge:
@@ -384,7 +384,7 @@ class DiGraph(object):
         """
         Returns a connectivity matrix for this graph.
         """
-        nodes = self.nodes.values()
+        nodes = list(self.nodes.values())
         n = len(nodes)
         m = [0] * n
         for i, node in enumerate(nodes):

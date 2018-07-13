@@ -14,6 +14,13 @@ import timeit
 import myokit
 import platform
 
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
+
 # Location of C source file
 SOURCE_FILE = 'rhs.c'
 
@@ -202,7 +209,7 @@ class RhsBenchmarker(myokit.CModule):
         else:
             self._variables = set()
             for var in variables:
-                if type(var) in (str, unicode):
+                if isinstance(var, basestring):
                     # String? Then get variable from model
                     var = self._model.get(var)
                 else:

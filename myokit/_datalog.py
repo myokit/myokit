@@ -17,6 +17,12 @@ import numpy as np
 from collections import OrderedDict
 import myokit
 
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 # Function to split keys into dimension-key,qname-key pairs
 ID_NAME_PATTERN = re.compile(r'(\d+.)+')
@@ -1786,7 +1792,7 @@ def prepare_log(
             'Argument `log` has unexpected type. Expecting None, integer flag,'
             ' sequence of names, dict or DataLog.')
 
-    if isinstance(log, str) or isinstance(log, unicode):
+    if isinstance(log, basestring):
         raise ValueError(
             'String passed in as `log` argument, should be list'
             ' or other sequence containing strings.')

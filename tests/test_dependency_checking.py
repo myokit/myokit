@@ -24,6 +24,13 @@ try:
 except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
+
 # Extra output
 debug = False
 
@@ -54,7 +61,7 @@ class DepTest(unittest.TestCase):
         """
         # If a string lhs is given, interpret it as a variable name and get
         # the lhs of its defining equation
-        if type(key) in (str, unicode):
+        if isinstance(key, basestring):
             key = self.m.get(key)
             if isinstance(key, myokit.Variable):
                 key = key.lhs()
@@ -63,7 +70,7 @@ class DepTest(unittest.TestCase):
         # convert it to a Name. Ensure no duplicates are given.
         deps = list(set(deps))
         for k, dep in enumerate(deps):
-            if type(dep) in (str, unicode):
+            if isinstance(dep, basestring):
                 deps[k] = self.n(dep)
 
         # Get dep map
@@ -428,7 +435,7 @@ class DeepDepTest(DepTest):
             return self.has_lhs(depmap, lhs, *deps)
 
         def nhas(lhs):
-            if type(lhs) in (str, unicode):
+            if isinstance(lhs, basestring):
                 lhs = self.m.get(lhs).lhs()
             self.assertNotIn(lhs, depmap)
 
@@ -566,7 +573,7 @@ class DeepDepTest(DepTest):
             return self.has_lhs(depmap, lhs, *deps)
 
         def nhas(lhs):
-            if type(lhs) in (str, unicode):
+            if isinstance(lhs, basestring):
                 lhs = self.m.get(lhs).lhs()
             self.assertNotIn(lhs, depmap)
 
@@ -1255,10 +1262,10 @@ class SolvableOrderTest(DepTest):
 
         def before(lhs1, *lhs2s):
             """ Asserts lhs1 comes before lhs2 in the current component """
-            if type(lhs1) in (str, unicode):
+            if isinstance(lhs1, basestring):
                 lhs1 = self.m.get(self.ccomp + '.' + lhs1).lhs()
             for lhs2 in lhs2s:
-                if type(lhs2) in (str, unicode):
+                if isinstance(lhs2, basestring):
                     lhs2 = self.m.get(self.ccomp + '.' + lhs2).lhs()
                 i1 = i2 = None
                 for i, eq in enumerate(self.order[self.ccomp]):
@@ -1403,10 +1410,10 @@ class SolvableOrderTest(DepTest):
 
         def before(lhs1, *lhs2s):
             """ Asserts lhs1 comes before lhs2 in the current component """
-            if type(lhs1) in (str, unicode):
+            if isinstance(lhs1, basestring):
                 lhs1 = self.m.get(lhs1).lhs()
             for lhs2 in lhs2s:
-                if type(lhs2) in (str, unicode):
+                if isinstance(lhs2, basestring):
                     lhs2 = self.m.get(lhs2).lhs()
                 i1 = i2 = None
                 for i, eq in enumerate(self.order):

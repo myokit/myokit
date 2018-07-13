@@ -16,14 +16,13 @@ import numpy
 import myokit
 from myokit import IntegrityError
 
+# StringIO in Python 2 and 3
 try:
-    # Python 2
     from cStringIO import StringIO
 except ImportError:
-    # Python3
     from io import StringIO
 
-# Strings in Python2 and Python3
+# Strings in Python 2 and 3
 try:
     basestring
 except NameError:   # pragma: no cover
