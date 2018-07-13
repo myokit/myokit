@@ -42,17 +42,21 @@ class AbfTest(unittest.TestCase):
 
         # Check version info
         self.assertIn('version 1.65', abf.info())
-        self.assertEqual(abf.info(),    # noqa
-'''Axon Binary File: abf-v1.abf
-ABF Format version 1.65
-Recorded on: 2014-11-14 12:52:29.389999
-Acquisition mode: 5: Episodic stimulation mode
-Protocol set for 1 trials, measuring 0.0s start-to-start.
-    with 1 runs per trial, measuring 0.0s start-to-start.
-     and 9 sweeps per run, measuring 0.5 s start-to-start
-Sampling rate: 10000.0 Hz
-Channel 0: "IN 0      "
-  Unit: pA''')
+        self.assertEqual(
+            abf.info(),
+            'Axon Binary File: abf-v1.abf\n'
+            'ABF Format version 1.65\n'
+            'Recorded on: 2014-11-14 12:52:29.389999\n'
+            'Acquisition mode: 5: Episodic stimulation mode\n'
+            'Protocol set for 1 trials, measuring 0.0s start-to-start.\n'
+            '    with 1 runs per trial, measuring 0.0s start-to-start.\n'
+            '     and 9 sweeps per run, measuring 0.5 s start-to-start.\n'
+            'Sampling rate: 10000.0 Hz\n'
+            'Channel 0: "IN 0      "\n'
+            '  Unit: pA'
+        )
+        # Test getting full header runs without crashing
+        abf.info(True)
 
         # Test data access
         self.assertEqual(abf.data_channels(), 1)    # 1 data channel
@@ -62,6 +66,11 @@ Channel 0: "IN 0      "
         self.assertEqual(len(y), 1 + len(abf))      # sweeps + time
         z = abf.myokit_log()
         self.assertEqual(len(z), 6)     # time + channel + 4 protocol channels
+        sweep = abf[0]
+        self.assertEqual(len(sweep), 1)     # 1 channel in sweep
+        channel = sweep[0]
+        self.assertEqual(len(abf) * len(channel.times()), len(z.time()))
+        self.assertEqual(len(abf) * len(channel.values()), len(z.time()))
 
         # Test protocol extraction
         self.assertEqual(abf.protocol_channels(), 4)    # 4 protocol channels
@@ -81,19 +90,22 @@ Channel 0: "IN 0      "
 
         # Check version info
         self.assertIn('version 2.0', abf.info())
-        self.assertEqual(abf.info(),    # noqa
-'''Axon Binary File: abf-v2.abf
-ABF Format version 2.0
-Recorded on: 2014-10-01 14:03:55.980999
-Acquisition mode: 5: Episodic stimulation mode
-Protocol set for 1 trials, measuring 0.0s start-to-start.
-    with 1 runs per trial, measuring 0.0s start-to-start.
-     and 1 sweeps per run, measuring 5.0 s start-to-start
-Sampling rate: 10000.0 Hz
-Channel 0: "IN 0"
-  Unit: pA
-  Low-pass filter: 10000.0 Hz
-  Cm (telegraphed): 6.34765625 pF''')
+        self.assertEqual(
+            abf.info(),
+            'Axon Binary File: abf-v2.abf\n'
+            'ABF Format version 2.0\n'
+            'Recorded on: 2014-10-01 14:03:55.980999\n'
+            'Acquisition mode: 5: Episodic stimulation mode\n'
+            'Protocol set for 1 trials, measuring 0.0s start-to-start.\n'
+            '    with 1 runs per trial, measuring 0.0s start-to-start.\n'
+            '     and 1 sweeps per run, measuring 5.0 s start-to-start.\n'
+            'Sampling rate: 10000.0 Hz\n'
+            'Channel 0: "IN 0"\n'
+            '  Unit: pA\n'
+            '  Low-pass filter: 10000.0 Hz\n'
+            '  Cm (telegraphed): 6.34765625 pF')
+        # Test getting full header runs without crashing
+        abf.info(True)
 
         # Test data access
         self.assertEqual(abf.data_channels(), 1)    # 1 data channel
@@ -103,6 +115,11 @@ Channel 0: "IN 0"
         self.assertEqual(len(y), 1 + len(abf))      # sweeps + time
         z = abf.myokit_log()
         self.assertEqual(len(z), 6)     # time + channel + 4 protocol channels
+        sweep = abf[0]
+        self.assertEqual(len(sweep), 1)     # 1 channel in sweep
+        channel = sweep[0]
+        self.assertEqual(len(abf) * len(channel.times()), len(z.time()))
+        self.assertEqual(len(abf) * len(channel.values()), len(z.time()))
 
         # Test protocol extraction
         self.assertEqual(abf.protocol_channels(), 4)    # 4 protocol channels
@@ -122,15 +139,19 @@ Channel 0: "IN 0"
 
         # Check version info
         self.assertIn('version 1.65', abf.info())
-        self.assertEqual(abf.info(),    # noqa
-'''Axon Protocol File: abf-protocol.pro
-ABF Format version 1.65
-Recorded on: 2005-06-17 14:33:02.160000
-Acquisition mode: 5: Episodic stimulation mode
-Protocol set for 1 trials, measuring 0.0s start-to-start.
-    with 1 runs per trial, measuring 0.0s start-to-start.
-     and 30 sweeps per run, measuring 5.0 s start-to-start
-Sampling rate: 20000.0 Hz''')
+        self.assertEqual(
+            abf.info(),
+            'Axon Protocol File: abf-protocol.pro\n'
+            'ABF Format version 1.65\n'
+            'Recorded on: 2005-06-17 14:33:02.160000\n'
+            'Acquisition mode: 5: Episodic stimulation mode\n'
+            'Protocol set for 1 trials, measuring 0.0s start-to-start.\n'
+            '    with 1 runs per trial, measuring 0.0s start-to-start.\n'
+            '     and 30 sweeps per run, measuring 5.0 s start-to-start.\n'
+            'Sampling rate: 20000.0 Hz'
+        )
+        # Test getting full header runs without crashing
+        abf.info(True)
 
         # Load, force as protocol
         path = os.path.join(DIR_FORMATS, 'abf-protocol.pro')
@@ -143,6 +164,15 @@ Sampling rate: 20000.0 Hz''')
         # Test protocol extraction
         p = abf.myokit_protocol()
         self.assertEqual(len(p), 60)
+
+    def test_matplotlib_figure(self):
+        """ Tests figure drawing method (doesn't inspect output). """
+        # Select matplotlib backend that doesn't require a screen
+        import matplotlib
+        matplotlib.use('template')
+        path = os.path.join(DIR_FORMATS, 'abf-v1.abf')
+        abf = axon.AbfFile(path)
+        abf.matplotlib_figure()
 
 
 class AtfTest(unittest.TestCase):

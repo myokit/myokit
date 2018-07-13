@@ -350,7 +350,7 @@ class AbfFile(object):
             out.append(
                 '     and ' + str(self._sweepsPerRun)
                 + ' sweeps per run, measuring ' + str(self._sweepStartToStart)
-                + ' s start-to-start')
+                + ' s start-to-start.')
         else:
             out.append('Protocol data could not be determined.')
         out.append('Sampling rate: ' + str(self._rate) + ' Hz')
