@@ -53,7 +53,7 @@ http://www.CellML.org/
         <unit units="second" prefix="bert"/>
       </units>
       <!-- unit with non-integer prefix -->
-      <units name="bad_prefix">
+      <units name="bad_prefix_2">
         <unit units="second" prefix="1.5"/>
       </units>
       <!-- unit with bad multiplier -->

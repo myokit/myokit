@@ -109,6 +109,7 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertIn('Unknown base unit', w)
 
         # Unknown prefix
+        # Non-integer prefix
         self.assertIn('Unknown prefix', w)
 
         # Non-integer exponent

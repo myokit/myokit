@@ -695,9 +695,6 @@ class CellMLImporter(myokit.formats.Importer):
                 done = []
                 for unit in todo:
                     ok = True
-                    if unit is None:
-                        ok = False
-                        break
                     for part in unit.parts:
                         if part.base not in okay:
                             ok = False
@@ -745,10 +742,9 @@ class CellMLImporter(myokit.formats.Importer):
                         unit *= si_prefixes[part.prefix]
                     except KeyError:
                         try:
-                            if str(part.prefix) == str(int(part.prefix)):
-                                unit *= 10**int(part.prefix)
-                            else:
-                                raise ValueError
+                            # String such as 1.5 will raise ValueError
+                            # As will string with text
+                            unit *= 10**int(str(part.prefix))
                         except ValueError:
                             self.logger().warn(
                                 'Unknown prefix in unit specification: "'
