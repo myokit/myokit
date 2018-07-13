@@ -22,7 +22,7 @@ from shared import DIR_DATA
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
-except AttributeError:  # pragma: no cover
+except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
@@ -296,8 +296,14 @@ class LinearModelTest(unittest.TestCase):
         for i in range(len(ss)):
             self.assertAlmostEqual(0, derivs[i])
 
-    def test_analytical_simulation(self):
-        """ Tests the AnalyticalSimulation class. """
+
+class AnalyticalSimulationTest(unittest.TestCase):
+    """
+    Tests :class:`myokit.lib.markov.AnalyticalSimulation`.
+    """
+
+    def test_create_and_run(self):
+        """ Test basics """
 
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -321,6 +327,9 @@ class LinearModelTest(unittest.TestCase):
         # Solve shouldn't change the state
         self.assertEqual(state, s.state())
         self.assertEqual(dstate, s.default_state())
+
+        # Calculate current for a particular state
+        self.assertIsInstance(s.current(s.state()), float)
 
         # Create protocol
 
@@ -404,7 +413,13 @@ class LinearModelTest(unittest.TestCase):
         s.set_default_state(dstate)
         self.assertEqual(list(dstate), list(s.default_state()))
 
-    def test_discrete_simulation(self):
+
+class DiscreteSimulationTest(unittest.TestCase):
+    """
+    Tests :class:`myokit.lib.markov.DiscreteSimulationTest`.
+    """
+
+    def test_basics(self):
         """ Tests the DiscreteSimulation class, running, resetting etc.. """
 
         # Create a simulation

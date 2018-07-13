@@ -21,7 +21,7 @@ from shared import DIR_DATA, TemporaryDirectory
 # Strings in Python 2 and 3
 try:
     basestring
-except NameError:   # pragma: no cover
+except NameError:
     basestring = str
 
 

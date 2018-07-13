@@ -1531,7 +1531,6 @@ def _find_factor(expression, original):
                 'Unable to write expression as linear combination of states'
                 ' (state multiplied by non-constant): '
                 + str(original))
-
         if ac:
             a, b = b, a
 

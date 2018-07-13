@@ -22,7 +22,7 @@ from shared import TestReporter, CancellingReporter
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
-except AttributeError:  # pragma: no cover
+except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 # Extra output

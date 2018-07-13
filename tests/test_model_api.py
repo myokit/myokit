@@ -23,13 +23,13 @@ from shared import TemporaryDirectory
 # Strings in Python 2 and 3
 try:
     basestring
-except NameError:   # pragma: no cover
+except NameError:
     basestring = str
 
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
-except AttributeError:  # pragma: no cover
+except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 # Further model API tests are found in:
