@@ -114,6 +114,14 @@ class LibDepsTest(unittest.TestCase):
         matplotlib.use('template')
 
         # Create plot
+        self.assertFalse(model.has_interdependent_components())
+        deps.plot_component_dependency_graph(model)
+
+        # Add cyclical component dependencies, plot again
+        # This time, the acylical plotting code can't be used.
+        v = model.get('ina').add_variable('ion')
+        v.set_rhs('membrane.i_ion')
+        self.assertTrue(model.has_interdependent_components())
         deps.plot_component_dependency_graph(model)
 
     def test_variable_dependency_graph(self):
@@ -143,6 +151,7 @@ class DiGraphTest(unittest.TestCase):
         # Create empty graph
         d = deps.DiGraph()
         self.assertEqual(len(d), 0)
+        self.assertEqual(d.text(), 'Empty graph')
         d.add_node(1)
         self.assertEqual(len(d), 1)
         d.add_node(2)
@@ -169,6 +178,8 @@ class DiGraphTest(unittest.TestCase):
         self.assertEquals(
             d.text(), 'Node "1"\n  > Node "2"\nNode "2"\n  > Node "3"\n'
             'Node "3"\n  > Node "1"')
+        self.assertEquals(
+            d.text(True), '0, 1, 0\n0, 0, 1\n1, 0, 0')
 
         # Test cloning
         d2 = deps.DiGraph(d)

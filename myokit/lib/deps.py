@@ -440,7 +440,7 @@ class DiGraph(object):
                     #out.append('')
                 return '\n'.join(out)
             else:
-                return '(empty graph)'
+                return 'Empty graph'
 
     def layout_layered(self):
         """
@@ -572,12 +572,6 @@ class Node(object):
         for node in self.edgo:
             node.edgi.remove(self)
         self.edgo.clear()
-
-    def label(self):
-        """
-        Returns a label derived from this node
-        """
-        return str(self.uid)
 
     def has_edge_to(self, test):
         """
