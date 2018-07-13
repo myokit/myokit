@@ -394,6 +394,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
         s2 = markov.AnalyticalSimulation(m2)
         self.assertRaisesRegex(
             Exception, 'did not specify a current', s2.current, s2.state())
+        # But simulation still works
+        self.assertIsInstance(s2.run(10), myokit.DataLog)
         del(model2, m2, s2)
 
         # Create protocol

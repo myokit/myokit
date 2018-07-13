@@ -958,7 +958,10 @@ class AnalyticalSimulation(object):
         # list of logged times, and should not, if you want to be able to
         # append logs without creating duplicate points).
         times = np.array([duration])
-        states, currents = self.solve(times)
+        if self._has_current:
+            states, currents = self.solve(times)
+        else:
+            states = self.solve(times)
 
         # Update simulation state
         self._state = np.array(states[:, -1], copy=True)
@@ -1039,11 +1042,7 @@ class AnalyticalSimulation(object):
         # Check for cached partial solution
         if self._cached_solution is None:
             # Get matrices
-            if self._has_current:
-                A, B = self._matrices()
-            else:
-                A = self._matrices()
-                B = None
+            A, B = self._matrices()
             # Get eigenvalues, matrix of eigenvectors
             E, P = np.linalg.eig(A)
             E = E.reshape((n, 1))
@@ -1052,12 +1051,16 @@ class AnalyticalSimulation(object):
             self._cached_solution = (E, P, PI, B)
         else:
             E, P, PI, B = self._cached_solution
+
         # Calculate transform of initial state
         y0 = PI.dot(self._state.reshape((n, 1)))
+
         # Reshape times array
         times = np.array(times, copy=False).reshape((len(times),))
+
         # Calculate state
         x = P.dot(y0 * np.exp(times * E))
+
         # Calculate current and/or return
         if self._has_current:
             return x, B.dot(x)
