@@ -176,11 +176,30 @@ class DiGraphTest(unittest.TestCase):
         self.assertEqual(d.text(), d2.text())
 
         # Test build from matrix: Doesn't copy labels
-        d3 = deps.DiGraph(d.matrix())
+        matrix = d.matrix()
+        d3 = deps.DiGraph(matrix)
         self.assertEqual(len(d3), 3)
         self.assertEquals(
             d3.text(), 'Node "0"\n  > Node "1"\nNode "1"\n  > Node "2"\n'
             'Node "2"\n  > Node "0"')
+        d3.build_from_matrix(matrix)
+        self.assertEquals(
+            d3.text(), 'Node "0"\n  > Node "1"\nNode "1"\n  > Node "2"\n'
+            'Node "2"\n  > Node "0"')
+        d3.build_from_matrix(matrix, edges_only=True)
+        self.assertRaises(ValueError, deps.DiGraph, matrix[:-1])
+        self.assertEquals(
+            d3.text(), 'Node "0"\n  > Node "1"\nNode "1"\n  > Node "2"\n'
+            'Node "2"\n  > Node "0"')
+        self.assertRaises(ValueError, d.build_from_matrix, matrix[:-1])
+        matrix = [x[:-1] for x in matrix[:-1]]
+        self.assertRaises(
+            ValueError, d.build_from_matrix, matrix, edges_only=True)
+
+        # Test that megs and layering fail on cyclical graph
+        self.assertRaisesRegex(Exception, 'cyclical', d.cg_layers_dag)
+        d.add_edge(1, 1)
+        self.assertRaisesRegex(Exception, 'self-referencing', d.meg_dag)
 
 
 if __name__ == '__main__':

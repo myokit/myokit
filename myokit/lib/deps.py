@@ -359,7 +359,7 @@ class DiGraph(object):
         Finds a Minimal Equivalent Graph (MEG) of a Directed Acyclic Graph
         (DAG) using the algorithm by Harry Hsu [1].
 
-        Will raise an exception if this digraph has cycles.
+        Will raise an exception if this digraph has self-referencing nodes.
 
         [1] An algorithm for finding a minimal equivalent graph of a digraph.
             Harry T. Hsu (1975) Journal of the Assoclatlon for Computing
@@ -369,7 +369,7 @@ class DiGraph(object):
         n = len(m)
         for i in range(n):
             if m[i][i]:
-                raise Exception('Graph is not acyclical.')
+                raise Exception('Graph has self-referencing nodes.')
         for j in range(n):
             for i in range(n):
                 if m[i][j]:
