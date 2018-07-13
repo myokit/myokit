@@ -93,6 +93,7 @@ class CellMLExporter(myokit.formats.Exporter):
 
         # Clear log
         self.logger().clear()
+        self.logger().clear_warnings()
 
         # Replace the pacing variable with a hardcoded stimulus protocol
         if add_hardcoded_pacing:

@@ -20,6 +20,12 @@ import myokit.units
 from myokit.mxml import dom_child, dom_next
 from myokit.formats.mathml import parse_mathml_rhs
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class CellMLError(myokit.ImportError):
     """
@@ -68,6 +74,10 @@ class CellMLImporter(myokit.formats.Importer):
         """
         Reads a CellML file and returns a:class:`myokit.Model`.
         """
+        log = self.logger()
+        log.clear()
+        log.clear_warnings()
+
         # Reset list of generated names
         self._generated_names = {}
 
@@ -79,7 +89,6 @@ class CellMLImporter(myokit.formats.Importer):
         model = self._parse_model(dom)
 
         # Run model validation, order variables etc
-        log = self.logger()
         try:
             model.validate()
         except myokit.IntegrityError as e:
@@ -136,8 +145,8 @@ class CellMLImporter(myokit.formats.Importer):
 
         def convert_unit(unit):
             """
-            Parses a CellML unit (string) and returns a:class:`myokit.Unit` or
-            ``None`` if successful, returns a string if conversion failed.
+            Resolves a CellML unit (string) and returns a:class:`myokit.Unit`
+            or ``None`` if successful, returns a string if conversion failed.
             """
             if unit:
                 if str(unit) in si_units:
@@ -183,18 +192,23 @@ class CellMLImporter(myokit.formats.Importer):
                     raise CellMLError(
                         'Group registered for unknown component: '
                         + kid.getAttribute('component'))
+
                 # Log relationship
                 self.logger().log(
                     'Component <' + comp.qname() + '> is encapsulated in <'
                     + pcomp.qname() + '>.')
+
                 # Add relationship
                 parents[comp] = pcomp
+
                 # Scan kid for children
                 scan_encapsulated_children(kid, comp)
+
                 # Move to next kid
                 kid = dom_next(kid, 'component_ref')
 
         for group in model_tag.getElementsByTagName('group'):
+
             # Filter out encapsulation groups
             is_encapsulation = False
             for ref in group.getElementsByTagName('relationship_ref'):
@@ -203,6 +217,7 @@ class CellMLImporter(myokit.formats.Importer):
                     break
             if not is_encapsulation:
                 continue
+
             # Parse and store relationships
             parent = dom_child(group, 'component_ref')
             while parent is not None:
@@ -257,7 +272,7 @@ class CellMLImporter(myokit.formats.Importer):
                         vls[vname] = init
 
                     # Set unit
-                    if type(unit) == str:
+                    if isinstance(unit, basestring):
                         var.meta['cellml_unit'] = unit
                     else:
                         var.set_unit(unit)
@@ -357,7 +372,8 @@ class CellMLImporter(myokit.formats.Importer):
                 # Now point reference at variable or reference in other comp
                 try:
                     ref = rfs1[ref1] if ref_to_one else rfs2[ref2]
-                except KeyError:
+                except KeyError:    # pragma: no cover
+                    # Cover pragma: This should already have been caught
                     a, b = ref2, ref1 if ref_to_one else ref1, ref2
                     self.logger().warn(
                         'Unable to resolve reference of ' + str(a) + ' to '
@@ -403,7 +419,7 @@ class CellMLImporter(myokit.formats.Importer):
         # MathML number post-processor to extract unit
         def npp(node, number):
             unit = convert_unit(node.getAttribute('cellml:units'))
-            if unit:
+            if isinstance(unit, myokit.Unit):
                 return myokit.Number(number.eval(), unit)
             else:
                 return number
@@ -452,20 +468,12 @@ class CellMLImporter(myokit.formats.Importer):
                     eq = dom_child(tag, 'eq')
                     if not eq:
                         raise CellMLError(
-                            'Unexpected content in math of component <'
-                            + cname + '>.')
+                            'Unexpected content in <math><apply>, expecting'
+                            ' <eq> but got <' + cname + '>.')
 
                     # Get lhs and rhs tags
                     lhs_tag = dom_next(eq)
                     rhs_tag = dom_next(lhs_tag)
-
-                    # Check for partial derivatives
-                    if lhs_tag.tagName == 'apply':
-                        if dom_child(lhs_tag) == 'partialdiff':
-                            raise CellMLError(
-                                'Unexpected tag in expression: expecting'
-                                ' <diff>, found <partialdiff>. Partial'
-                                ' derivatives are not supported.')
 
                     # Parse lhs
                     lhs = mathml(lhs_tag, rfs)
@@ -500,7 +508,14 @@ class CellMLImporter(myokit.formats.Importer):
                         var.promote(i)
 
                     # Parse rhs
-                    var.set_rhs(mathml(rhs_tag, rfs))
+                    rhs = mathml(rhs_tag, rfs)
+                    try:
+                        rhs.validate()
+                        var.set_rhs(rhs)
+                    except myokit.IntegrityError:
+                        self.logger().warn(
+                            'Unable to resolve RHS for "' + str(var) + '": '
+                            + str(rhs))
 
                     # Continue
                     tag = dom_next(tag)
@@ -524,18 +539,10 @@ class CellMLImporter(myokit.formats.Importer):
         no_rhs = [v for v in model.variables(deep=True) if v.rhs() is None]
         no_rhs = set(no_rhs)
         for var in no_rhs:
-            refs = set([x for x in var.refs_by()])
-            if len(refs) == 0 or refs in no_rhs:
-                self.logger().warn(
-                    'No expression for variable <' + var.qname() + '> is'
-                    ' defined and no other variables reference it. The'
-                    ' variable will be removed.')
-                var.parent().remove_variable(var)
-            else:
-                self.logger().warn(
-                    'No expression for variable <' + var.qname() + '> is'
-                    ' defined. This variable will be set to zero.')
-                var.set_rhs(myokit.Number(0))
+            self.logger().warn(
+                'No expression for variable <' + var.qname() + '> is'
+                ' defined. This variable will be set to zero.')
+            var.set_rhs(myokit.Number(0))
         return model
 
     def _parse_units(self, model_tag):
@@ -641,10 +648,20 @@ class CellMLImporter(myokit.formats.Importer):
                     p.prefix = str(x)
                 x = part.getAttribute('multiplier')
                 if x != '':
-                    p.multiplier = float(x)
+                    try:
+                        p.multiplier = float(x)
+                    except (TypeError, ValueError):
+                        self.logger().warn(
+                            'Unable to parse multiplier for <unit> tag:'
+                            + str(p.exponent))
                 x = part.getAttribute('exponent')
                 if x != '':
-                    p.exponent = float(x)
+                    try:
+                        p.exponent = float(x)
+                    except (TypeError, ValueError):
+                        self.logger().warn(
+                            'Unable to parse exponent for <unit> tag:'
+                            + str(p.exponent))
                 unit.parts.append(p)
             return unit
 
@@ -678,6 +695,9 @@ class CellMLImporter(myokit.formats.Importer):
                 done = []
                 for unit in todo:
                     ok = True
+                    if unit is None:
+                        ok = False
+                        break
                     for part in unit.parts:
                         if part.base not in okay:
                             ok = False
@@ -709,13 +729,14 @@ class CellMLImporter(myokit.formats.Importer):
             base = myokit.units.dimensionless
             for part in obj.parts:
                 # Get simple unit
+                unit = None
                 if str(part.base) in si_units:
                     unit = si_units[part.base]
                 elif part.base in munits:
                     unit = munits[part.base]
                 elif local_map and part.base in local_map:
                     unit = local_map[part.base]
-                else:
+                if unit is None:
                     self.logger().warn('Unknown base unit: ' + str(part.base))
                     return None
                 # Add prefix
@@ -736,7 +757,7 @@ class CellMLImporter(myokit.formats.Importer):
                 # Exponent (prefix part is exponentiated, multiplier is not)
                 if part.exponent is not None:
                     e = int(part.exponent)
-                    if e - part.exponent > 1e-15:
+                    if abs(e - part.exponent) > 1e-15:
                         self.logger().warn(
                             'Non-integer exponents in unit specification are'
                             ' not supported: ' + str(part.exponent))

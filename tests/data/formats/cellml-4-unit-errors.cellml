@@ -1,0 +1,118 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+This CellML file was generated on 01/04/2005 at 14:28:13 using:
+
+COR (0.9.31.48)
+Copyright 2002-2005 Oxford Cardiac Electrophysiology Group
+http://COR.physiol.ox.ac.uk/ - COR@physiol.ox.ac.uk
+
+CellML 1.0 was used to generate this cellular model
+http://www.CellML.org/
+-->
+
+<model xmlns="http://www.cellml.org/cellml/1.0#" xmlns:cmeta="http://www.cellml.org/metadata/1.0#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bqs="http://www.cellml.org/bqs/1.0#" xmlns:cellml="http://www.cellml.org/cellml/1.0#" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:vCard="http://www.w3.org/2001/vcard-rdf/3.0#" cmeta:id="vanderpol_vandermark_1928_version01" name="vanderpol_vandermark_1928_version01">
+   <units name="per_second">
+      <unit units="second" exponent="-1"/>
+   </units>
+   <component name="Main">
+      <variable units="second" name="time"/>
+      <variable units="per_second_in_component" name="x" initial_value="-2"/>
+      <variable units="undefined_unit" name="y" initial_value="0"/>
+      <variable units="dimensionless" name="epsilon" initial_value="1"/>
+
+      <!-- component unit -->
+      <units name="per_second_in_component">
+        <unit units="second" exponent="-1" multiplier="1000"/>
+      </units>
+      <!-- unused component unit -->
+      <units name="nobody_likes_me">
+        <unit units="second" exponent="-1"/>
+      </units>
+      <!-- unit referring to other unit -->
+      <units name="mickey">
+       <unit units="float_exponent" multiplier="2" prefix="centi" exponent="-1" />
+      </units>
+      <!-- unit referring to non-existent unit -->
+      <units name="unit_with_bad_referral">
+       <unit units="bowser" />
+      </units>
+      <!-- unit with non-integer exponent -->
+      <units name="float_exponent">
+        <unit units="second" exponent="-1.5"/>
+      </units>
+      <!-- unit with offset -->
+      <units name="unit_with_offset">
+       <unit units="second" offset="13" />
+      </units>
+      <!-- unit with bad exponent -->
+      <units name="bad_exponent">
+        <unit units="second" exponent="bert"/>
+      </units>
+      <!-- unit with bad prefix -->
+      <units name="bad_prefix">
+        <unit units="second" prefix="bert"/>
+      </units>
+      <!-- unit with non-integer prefix -->
+      <units name="bad_prefix">
+        <unit units="second" prefix="1.5"/>
+      </units>
+      <!-- unit with bad multiplier -->
+      <units name="bad_multiplier">
+        <unit units="second" multiplier="bert"/>
+      </units>
+
+      <math xmlns="http://www.w3.org/1998/Math/MathML">
+         <apply>
+            <eq/>
+            <apply>
+               <diff/>
+               <bvar>
+                  <ci>time</ci>
+               </bvar>
+               <ci>x</ci>
+            </apply>
+            <apply>
+              <times/>
+              <ci>y</ci>
+              <!-- use of component unit -->
+              <cn cellml:units="per_second_in_component">1</cn>
+            </apply>
+         </apply>
+         <apply>
+            <eq/>
+            <apply>
+               <diff/>
+               <bvar>
+                  <ci>time</ci>
+               </bvar>
+               <ci>y</ci>
+            </apply>
+            <apply>
+               <divide/>
+               <apply>
+                 <minus/>
+                 <apply>
+                    <times/>
+                    <cn cellml:units="unit_with_offset">4</cn>
+                    <apply>
+                       <minus/>
+                       <apply>
+                        <!-- Undefined unit -->
+                        <cn cellml:units="undefined_unit">1</cn>
+                       </apply>
+                       <apply>
+                          <power/>
+                          <ci>x</ci>
+                          <cn cellml:units="mickey">2</cn>
+                       </apply>
+                    </apply>
+                    <ci>y</ci>
+                 </apply>
+                 <ci>x</ci>
+               </apply>
+               <cn cellml:units="second">1</cn>
+            </apply>
+         </apply>
+      </math>
+   </component>
+</model>
