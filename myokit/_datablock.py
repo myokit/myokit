@@ -1522,21 +1522,6 @@ class DataBlock2d(object):
         return self._2d[variable][:, y, x]
 
 
-class ColorMapMeta(type):
-    """
-    Meta-class for colormap interface.
-    """
-    def __init__(cls, name, bases, dct):
-        if not hasattr(cls, '_colormaps'):
-            # Base class. Create empty dict.
-            cls._colormaps = {}
-        else:
-            # Derived class. Add to dict.
-            mapname = name[8:].lower()
-            cls._colormaps[mapname] = cls
-        super(ColorMapMeta, cls).__init__(name, bases, dct)
-
-
 class ColorMap(object):
     """
     *Abstract class*
@@ -1572,7 +1557,7 @@ class ColorMap(object):
     three) bytes describe the first float, the next four (or three) describe
     the second float and so on.
     """
-    __metaclass__ = ColorMapMeta
+    _colormaps = {}
 
     def __call__(floats, lower=None, upper=None, alpha=True, rgb=None):
         raise NotImplementedError
@@ -1767,3 +1752,9 @@ class ColorMapTraditional(ColorMap):
         out[m + 1::n] = g
         out[m + 2::n] = b if rgb else r
         return out
+
+
+ColorMap._colormaps['blue'] = ColorMapBlue
+ColorMap._colormaps['green'] = ColorMapGreen
+ColorMap._colormaps['red'] = ColorMapRed
+ColorMap._colormaps['traditional'] = ColorMapTraditional

@@ -1165,7 +1165,7 @@ class DataBlock2dTest(unittest.TestCase):
             path = d.path('test.csv')
             b.save_frame_csv(path, 'x', 0)
             with open(path, 'r') as f:
-                lines = [unicode(x) for x in f.readlines()]
+                lines = [str(x) for x in f.readlines()]
             self.assertEqual(lines[0], '"x","y","value"\n')
             self.assertEqual(lines[1], '0,0,0\n')
             self.assertEqual(lines[2], '1,0,1\n')
@@ -1200,7 +1200,7 @@ class DataBlock2dTest(unittest.TestCase):
             path = d.path('test.csv')
             b.save_frame_grid(path, 'x', 0)
             with open(path, 'r') as f:
-                lines = [unicode(x) for x in f.readlines()]
+                lines = [str(x) for x in f.readlines()]
             self.assertEqual(lines[0], '0 1\n')
             self.assertEqual(lines[1], '2 3\n')
             self.assertEqual(lines[2], '4 5')

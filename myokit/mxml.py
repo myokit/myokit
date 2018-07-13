@@ -184,7 +184,7 @@ def html2ascii(html, width=79, indent='  '):
                 if limode == 'ul':
                     self.line.append('* ')
                 else:
-                    self.line.append(unicode(1 + licount) + ' ')
+                    self.line.append(str(1 + licount) + u' ')
 
             elif tag == 'em' or tag == 'i':
                 self.line.append(' *')

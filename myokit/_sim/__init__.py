@@ -40,6 +40,7 @@ if platform.system() == 'Windows':  # pragma: no linux cover
 # Setuptools has a load of patches/fixes for distutils, but causes errors
 # with the current code.
 from distutils.core import setup, Extension  # noqa
+#from setuptools import setup, Extension  # noqa
 
 # Myokit imports
 import myokit  # noqa
@@ -134,9 +135,9 @@ class CModule(object):
                         description='Temporary module',
                         ext_modules=[ext],
                         script_args=[
-                            b'build',
+                            str('build'),
                             str('--build-base=' + d_build),
-                            b'install',
+                            str('install'),
                             str('--install-lib=' + d_modul),
                         ])
                 except (Exception, SystemExit) as e:
