@@ -174,6 +174,92 @@ class AtfTest(unittest.TestCase):
                 ValueError, 'not found', axon.save_atf, log, path,
                 fields=['time', 'sint', 'hi'])
 
+            # Try using on other formats
+            log.save_csv(path)
+            self.assertRaisesRegex(Exception, 'file type', axon.load_atf, path)
+
+            # Try reading raw meta data (no key-value pairs)
+            with open(path, 'w') as f:
+                f.write('ATF\t1.0\n')
+                f.write('1\t3\n')
+                f.write('"Hello! This is raw meta data"\n')
+                f.write('"time"\t"sint"\t"cost"\n')
+                f.write('0\t0.0\t1.0\n')
+                f.write('1\t10\t20\n')
+                f.write('2\t30\t40\n')
+            log2 = axon.load_atf(path)
+
+            # Test invalid header detection
+            with open(path, 'w') as f:
+                f.write('ATF\t1.0\n')
+                f.write('1\t3\n')
+                f.write('Hello! This is raw meta data\n')
+                f.write('"time"\t"sint"\t"cost"\n')
+                f.write('0\t0.0\t1.0\n')
+                f.write('1\t10\t20\n')
+                f.write('2\t30\t40\n')
+            self.assertRaisesRegex(
+                Exception, 'double quotation', axon.load_atf, path)
+
+            # Bad column headers
+            with open(path, 'w') as f:
+                f.write('ATF\t1.0\n')
+                f.write('1\t3\n')
+                f.write('"Hello! This is raw meta data"\n')
+                f.write('Bonjou\t"time"\t"sint"\t"cost"\n')
+                f.write('0\t0.0\t1.0\n')
+                f.write('1\t10\t20\n')
+                f.write('2\t30\t40\n')
+            self.assertRaisesRegex(
+                Exception, 'column headers', axon.load_atf, path)
+
+            # Too many headers
+            with open(path, 'w') as f:
+                f.write('ATF\t1.0\n')
+                f.write('1\t3\n')
+                f.write('"Hello! This is raw meta data"\n')
+                f.write('"Bonjour"\t"time"\t"sint"\t"cost"\n')
+                f.write('0\t0.0\t1.0\n')
+                f.write('1\t10\t20\n')
+                f.write('2\t30\t40\n')
+            self.assertRaisesRegex(
+                Exception, 'found 4', axon.load_atf, path)
+
+            # Commas as delimiter are ok
+            with open(path, 'w') as f:
+                f.write('ATF\t1.0\n')
+                f.write('1\t3\n')
+                f.write('"Hello! This is raw meta data"\n')
+                f.write('"time","sint","cost"\n')
+                f.write('0,0.0,1.0\n')
+                f.write('1,10,20\n')
+                f.write('2,30,40\n')
+            axon.load_atf(path)
+
+            # But can't mix them
+            with open(path, 'w') as f:
+                f.write('ATF\t1.0\n')
+                f.write('1\t3\n')
+                f.write('"Hello! This is raw meta data"\n')
+                f.write('"time"\t"sint","cost"\n')
+                f.write('0,0.0,1.0\n')
+                f.write('1,10,20\n')
+                f.write('2,30,40\n')
+            self.assertRaisesRegex(
+                Exception, 'Mixed delimiters', axon.load_atf, path)
+
+            # Too many columns
+            with open(path, 'w') as f:
+                f.write('ATF\t1.0\n')
+                f.write('1\t3\n')
+                f.write('"Hello! This is raw meta data"\n')
+                f.write('"time"\t"sint"\t"cost"\n')
+                f.write('0\t0.0\t1.0\n')
+                f.write('1\t10\t20\t100\n')
+                f.write('2\t30\t40\n')
+            self.assertRaisesRegex(
+                Exception, 'Invalid data', axon.load_atf, path)
+
     def test_accessors(self):
         """ Tests various accessor methods of :class:`AtfFile`. """
         with TemporaryDirectory() as d:
