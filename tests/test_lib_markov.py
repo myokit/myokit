@@ -267,7 +267,7 @@ class LinearModelTest(unittest.TestCase):
         # No current --> This is allowed
         m2 = model.clone()
         m2.get('ina').remove_variable(m2.get('ina.i'))
-        m = markov.LinearModel.from_component(model.get('ina'))
+        m = markov.LinearModel.from_component(m2.get('ina'))
 
         # Two currents
         m2 = model.clone()
@@ -318,6 +318,28 @@ class LinearModelTest(unittest.TestCase):
         derivs = model.eval_state_derivatives()
         for i in range(len(ss)):
             self.assertAlmostEqual(0, derivs[i])
+
+        # Try with awful parameters
+        self.assertRaisesRegex(
+            markov.LinearModelError, 'positive eigenvalues',
+            m.steady_state, parameters=[-1] * 21)
+
+    def test_rates(self):
+        """ Create a linear model from a component. """
+
+        # Load model
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(fname)
+
+        # Create a markov model
+        m = markov.LinearModel.from_component(model.get('ina'))
+
+        # Test rates method
+        self.assertEqual(len(m.rates()), 12)
+        m.rates(parameters=[0.01] * 21)
+        self.assertRaisesRegex(
+            ValueError, 'Illegal parameter vector size',
+            m.rates, parameters=[0.01] * 22)
 
 
 class AnalyticalSimulationTest(unittest.TestCase):

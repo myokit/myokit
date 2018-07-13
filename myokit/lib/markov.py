@@ -617,7 +617,7 @@ class LinearModel(object):
                 raise ValueError(
                     'Illegal parameter vector size: '
                     + str(len(self._parameters)) + ' required, '
-                    + str(len(paramaters)) + ' provided.')
+                    + str(len(parameters)) + ' provided.')
             inputs[:-1] = [float(x) for x in parameters]
         return self._rate_list_function(*inputs)
 
