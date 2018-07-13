@@ -976,6 +976,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
+        if np.any(state < 0):
+            raise ValueError(
+                'The fraction of channels in a state cannot be negative.')
         if np.abs(np.sum(state) - 1) > 1e-6:
             raise ValueError('The values in `state` must sum to 1.')
         self._default_state = state
@@ -986,7 +989,7 @@ class AnalyticalSimulation(object):
         """
         if self._protocol:
             raise Exception(
-                'Membrane potential can not be set if a protocol is used.')
+                'Membrane potential cannot be set if a protocol is used.')
         self._membrane_potential = float(v)
         self._cached_matrices = None
         self._cached_solution = None
@@ -1012,6 +1015,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
+        if np.any(state < 0):
+            raise ValueError(
+                'The fraction of channels in a state cannot be negative.')
         if np.abs(np.sum(state) - 1) > 1e-6:
             raise ValueError('The values in `state` must sum to 1.')
         self._state = state
@@ -1446,6 +1452,10 @@ class DiscreteSimulation(object):
         Changes the default state used in the simulation.
         """
         state = np.asarray(state, dtype=int)
+        if len(state) != len(self._state):
+            raise ValueError(
+                'Wrong size state vector, expecing (' + str(len(self._state))
+                + ') values.')
         if np.min(state) < 0:
             raise ValueError(
                 'The number of channels in a markov model state can not be'
@@ -1462,7 +1472,7 @@ class DiscreteSimulation(object):
         """
         if self._protocol:
             raise Exception(
-                'Membrane potential can not be set if a protocol is used.')
+                'Membrane potential cannot be set if a protocol is used.')
         self._membrane_potential = float(v)
         self._cached_rates = None
 
@@ -1483,6 +1493,10 @@ class DiscreteSimulation(object):
         channels in every markov model state).
         """
         state = np.asarray(state, dtype=int)
+        if len(state) != len(self._state):
+            raise ValueError(
+                'Wrong size state vector, expecing (' + str(len(self._state))
+                + ') values.')
         if np.min(state) < 0:
             raise ValueError(
                 'The state must be given as a list of non-negative integers.')

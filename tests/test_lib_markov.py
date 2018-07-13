@@ -417,6 +417,10 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Create simulation with protocol (set_protocol is not supported)
         s = markov.AnalyticalSimulation(m, p)
 
+        # Membrane potential and protocol can't be used simultaneously
+        self.assertRaisesRegex(
+            Exception, 'cannot be set if', s.set_membrane_potential, -80)
+
         # Pre should change the state and default state
         state = s.state()
         dstate = s.default_state()
@@ -480,6 +484,15 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
         self.assertEqual(list(state), list(s.state()))
+        self.assertRaisesRegexp(
+            ValueError, 'Wrong size', s.set_state, state[:-1])
+        state[0] += 0.1
+        self.assertRaisesRegexp(
+            ValueError, 'sum to 1', s.set_state, state)
+        state[0] = -.1
+        state[1] = 1.1
+        self.assertRaisesRegexp(
+            ValueError, 'negative', s.set_state, state)
 
         # Default state
         dstate = np.zeros(len(s.default_state()))
@@ -488,6 +501,15 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(dstate), list(s.default_state()))
         s.set_default_state(dstate)
         self.assertEqual(list(dstate), list(s.default_state()))
+        self.assertRaisesRegexp(
+            ValueError, 'Wrong size', s.set_default_state, dstate[:-1])
+        dstate[0] += 0.1
+        self.assertRaisesRegexp(
+            ValueError, 'sum to 1', s.set_default_state, dstate)
+        dstate[0] = -.1
+        dstate[1] = 1.1
+        self.assertRaisesRegexp(
+            ValueError, 'negative', s.set_default_state, dstate)
 
 
 class DiscreteSimulationTest(unittest.TestCase):
@@ -502,6 +524,10 @@ class DiscreteSimulationTest(unittest.TestCase):
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
         model = myokit.load_model(fname)
         m = markov.LinearModel.from_component(model.get('ina'))
+
+        # Test running without a protocol
+        s = markov.DiscreteSimulation(m)
+        s.run(1)
 
         # Create protocol
 
@@ -579,6 +605,15 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
         self.assertEqual(list(state), list(s.state()))
+        self.assertRaisesRegexp(
+            ValueError, 'Wrong size', s.set_state, state[:-1])
+        state[0] += 1
+        self.assertRaisesRegexp(
+            ValueError, 'must equal', s.set_state, state)
+        state[0] = -1
+        state[1] = 51
+        self.assertRaisesRegexp(
+            ValueError, 'negative', s.set_state, state)
 
         # Default state
         dstate = np.zeros(len(s.default_state()))
@@ -587,6 +622,15 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(dstate), list(s.default_state()))
         s.set_default_state(dstate)
         self.assertEqual(list(dstate), list(s.default_state()))
+        self.assertRaisesRegexp(
+            ValueError, 'Wrong size', s.set_default_state, dstate[:-1])
+        dstate[0] += 1
+        self.assertRaisesRegexp(
+            ValueError, 'must equal', s.set_default_state, dstate)
+        dstate[0] = -1
+        dstate[1] = 51
+        self.assertRaisesRegexp(
+            ValueError, 'negative', s.set_default_state, dstate)
 
 
 if __name__ == '__main__':
