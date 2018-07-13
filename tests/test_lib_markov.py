@@ -476,6 +476,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertNotEqual(p, s.parameters())
         s.set_parameters(p)
         self.assertEqual(p, s.parameters())
+        self.assertRaises(ValueError, s.set_parameters, p[:-1])
 
         # State
         state = np.zeros(len(s.state()))
@@ -525,6 +526,15 @@ class DiscreteSimulationTest(unittest.TestCase):
         model = myokit.load_model(fname)
         m = markov.LinearModel.from_component(model.get('ina'))
 
+        # Bad constructors
+        self.assertRaisesRegex(
+            ValueError, 'LinearModel', markov.DiscreteSimulation, 1)
+        self.assertRaisesRegex(
+            ValueError, 'Protocol', markov.DiscreteSimulation, m, 1)
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            markov.DiscreteSimulation, m, nchannels=0)
+
         # Test running without a protocol
         s = markov.DiscreteSimulation(m)
         s.run(1)
@@ -548,30 +558,41 @@ class DiscreteSimulationTest(unittest.TestCase):
         np.random.seed(1)
         s = markov.DiscreteSimulation(m, p)
 
+        # Membrane potential and protocol can't be used simultaneously
+        self.assertRaisesRegex(
+            Exception, 'cannot be set if', s.set_membrane_potential, -80)
+
         # Pre should change the state and default state
         state = s.state()
         dstate = s.default_state()
         s.pre(tprep + tstep)
         self.assertNotEqual(state, s.state())
         self.assertNotEqual(dstate, s.default_state())
+        self.assertRaisesRegex(ValueError, 'negative', s.pre, -1)
 
         # Run should change the state, not the default state
         state = s.state()
         dstate = s.default_state()
-        s.run(15)
+        d = s.run(15)
         self.assertNotEqual(state, s.state())
         self.assertEqual(dstate, s.default_state())
+        self.assertRaisesRegex(ValueError, 'negative', s.run, -1)
 
         # Reset should reset the state
         s.reset()
         self.assertEqual(state, s.state())
 
         # Run can append to log
-        d = s.run(10)
         n = len(d['engine.time'])
         e = s.run(1, log=d)
         self.assertIs(d, e)
         self.assertTrue(len(d['engine.time']) > n)
+        d2 = d.clone()
+        del(d2[next(iter(d2.keys()))])
+        self.assertRaisesRegexp(ValueError, 'missing', s.run, 1, log=d2)
+        d2 = d.clone()
+        d2['hello'] = [1, 2, 3]
+        self.assertRaisesRegexp(ValueError, 'extra', s.run, 1, log=d2)
 
     def test_discrete_simulation_properties(self):
         """
@@ -597,6 +618,7 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertNotEqual(p, s.parameters())
         s.set_parameters(p)
         self.assertEqual(p, s.parameters())
+        self.assertRaises(ValueError, s.set_parameters, p[:-1])
 
         # State
         state = np.zeros(len(s.state()))
@@ -631,6 +653,11 @@ class DiscreteSimulationTest(unittest.TestCase):
         dstate[1] = 51
         self.assertRaisesRegexp(
             ValueError, 'negative', s.set_default_state, dstate)
+
+        # Discretize state
+        self.assertEqual(s.discretize_state([0.4, 0.6]), [20, 30])
+        self.assertRaisesRegex(
+            ValueError, 'must equal 1', s.discretize_state, [0.5, 0.6])
 
 
 if __name__ == '__main__':

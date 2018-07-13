@@ -1204,7 +1204,7 @@ class DiscreteSimulation(object):
         """
         x = np.array(x, copy=False, dtype=float)
         if (np.abs(1 - np.sum(x))) > 1e-6:
-            raise LinearModelError(
+            raise ValueError(
                 'The sum of fractions in the state to be discretized must'
                 ' equal 1.')
         y = np.round(x * self._nchannels)
