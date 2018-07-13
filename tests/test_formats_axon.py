@@ -213,6 +213,18 @@ class AtfTest(unittest.TestCase):
             self.assertRaisesRegex(
                 Exception, 'column headers', axon.load_atf, path)
 
+            # Bad column headers
+            with open(path, 'w') as f:
+                f.write('ATF\t1.0\n')
+                f.write('1\t3\n')
+                f.write('"Hello! This is raw meta data"\n')
+                f.write('time"\t"sint"\t"cost"\n')
+                f.write('0\t0.0\t1.0\n')
+                f.write('1\t10\t20\n')
+                f.write('2\t30\t40\n')
+            self.assertRaisesRegex(
+                Exception, 'column headers', axon.load_atf, path)
+
             # Too many headers
             with open(path, 'w') as f:
                 f.write('ATF\t1.0\n')

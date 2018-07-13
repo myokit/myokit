@@ -176,7 +176,8 @@ class AtfFile(object):
             keys = []
             try:
                 a, b = 0, 0
-                if line[a] != '"':
+                if line[a] != '"':  # pragma: no cover
+                    # This should have triggered an earlier error
                     raise Exception('Unable to parse columns headers.')
                 for i in range(nf):
                     b = line.index('"', a + 1)
@@ -184,7 +185,8 @@ class AtfFile(object):
                     a = line.index('"', b + 1)
             except ValueError:
                 pass
-            if len(keys) != nf:
+            if len(keys) != nf:     # pragma: no cover
+                # This should have been picked up above
                 raise Exception(
                     'Unable to parse column headers: Expected ' + str(nf)
                     + ' headers, found ' + str(len(keys)) + '.')
