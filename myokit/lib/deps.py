@@ -694,9 +694,6 @@ def create_component_dependency_graph(
         p = 0.1
         dy = (1 - 2 * p) / (nOrder - 1) if nOrder > 1 else 0
         y = p
-        if False:
-            dy = -dy
-            y = 1 - y
         for key in sorted(order.keys()):
             level = order[key]
             nLevel = len(level)
