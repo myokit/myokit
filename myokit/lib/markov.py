@@ -137,12 +137,12 @@ class LinearModel(object):
             try:
                 state = self._model.get(str(state), myokit.Variable)
             except KeyError:
-                raise ValueError('Unknown state: <' + str(state) + '>.')
+                raise LinearModelError('Unknown state: <' + str(state) + '>.')
             if not state.is_state():
-                raise ValueError(
+                raise LinearModelError(
                     'Variable <' + state.qname() + '> is not a state.')
             if state in self._states:
-                raise ValueError(
+                raise LinearModelError(
                     'State <' + state.qname() + '> was added twice.')
             self._states.append(state)
         del(states)
@@ -158,13 +158,13 @@ class LinearModel(object):
             try:
                 parameter = self._model.get(parameter, myokit.Variable)
             except KeyError:
-                raise ValueError(
+                raise LinearModelError(
                     'Unknown parameter: <' + str(parameter) + '>.')
             if not parameter.is_literal():
-                raise ValueError(
+                raise LinearModelError(
                     'Unsuitable parameter: <' + str(parameter) + '>.')
             if parameter in unique:
-                raise ValueError(
+                raise LinearModelError(
                     'Parameter listed twice: <' + str(parameter) + '>.')
             unique.add(parameter)
             self._parameters.append(parameter)
@@ -177,7 +177,7 @@ class LinearModel(object):
                 current = current.qname()
             current = self._model.get(current, myokit.Variable)
             if current.is_state():
-                raise ValueError('Current variable can not be a state.')
+                raise LinearModelError('Current variable can not be a state.')
         self._current = current
         del(current)
 
@@ -185,22 +185,22 @@ class LinearModel(object):
         if vm is None:
             vm = self._model.label('membrane_potential')
         if vm is None:
-            raise ValueError(
+            raise LinearModelError(
                 'A membrane potential must be specified as `vm` or using the'
                 ' label `membrane_potential`.')
         if isinstance(vm, myokit.Variable):
             vm = vm.qname()
         self._membrane_potential = self._model.get(vm)
         if self._membrane_potential in self._parameters:
-            raise ValueError(
+            raise LinearModelError(
                 'Membrane potential should not be included in the list of'
                 ' parameters.')
         if self._membrane_potential in self._states:
-            raise ValueError(
+            raise LinearModelError(
                 'The membrane potential should not be included in the list of'
                 ' states.')
         if self._membrane_potential == self._current:
-            raise ValueError(
+            raise LinearModelError(
                 'The membrane potential should not be the current variable.')
         del(vm)
 
@@ -227,7 +227,7 @@ class LinearModel(object):
         # Check if current variable depends on selected states
         # (At this point, anything not dependent on the states is a constant)
         if self._current is not None and self._current.is_constant():
-            raise ValueError(
+            raise LinearModelError(
                 'Current must be a function of the markov model\'s state'
                 ' variables.')
 
@@ -260,7 +260,7 @@ class LinearModel(object):
         for s in self._states:
             for d in s.refs_to(state_refs=True):
                 if s not in d.refs_to(state_refs=True):
-                    raise Exception(
+                    raise LinearModelError(
                         'State <' + s.qname() + '> depends on <' + d.qname()
                         + '> but not vice versa.')
 
@@ -268,13 +268,14 @@ class LinearModel(object):
         tolerance = 1e-8
         x = np.sum(self._default_state)
         if np.abs(x - 1) > tolerance:
-            raise Exception('The sum of states is not equal to 1: ' + str(x))
+            raise LinearModelError(
+                'The sum of states is not equal to 1: ' + str(x))
 
         # Check the sum of all derivatives per column
         A, B = self.matrices()
         for k, x in enumerate(np.sum(A, axis=0)):
             if abs(x) > tolerance:
-                raise Exception(
+                raise LinearModelError(
                     'Derivatives in column ' + str(1 + k) + ' sum to non-zero'
                     ' value: ' + str(x) + '.')
 
@@ -329,11 +330,16 @@ class LinearModel(object):
                 for ref in term.references():
                     if ref.var().is_state():
                         if state is not None:
-                            raise Exception(
+                            raise LinearModelError(
                                 'Unable to write expression as linear'
-                                ' combination of states (found term without'
-                                ' state dependency): ' + str(e))
+                                ' combination of states (found term with'
+                                ' multiple state dependencies): ' + str(e))
                         state = ref.var()
+                if state is None:
+                    raise LinearModelError(
+                        'Unable to write expression as linear combination of'
+                        ' states (found term without state dependency): '
+                        + str(e))
 
                 # Get factor
                 state, factor = _find_factor(term, e)
@@ -357,12 +363,18 @@ class LinearModel(object):
                 for ref in term.references():
                     if ref.var().is_state():
                         if state is not None:
-                            # Should already have been caught!
-                            raise ValueError(  # pragma: no cover
+                            raise LinearModelError(
                                 'Unable to write expression for current as'
-                                ' linear combination of states: '
+                                ' linear combination of states (found term'
+                                ' with multiple state dependencies): '
                                 + str(current_expression))
                         state = ref.var()
+                if state is None:
+                    raise LinearModelError(
+                        'Unable to write expression for current as linear'
+                        ' combination of states (found term without state'
+                        ' dependency): ' + str(e))
+
                 state, factor = _find_factor(term, current_expression)
                 col = state_indices[state]
                 cur = B[col]
@@ -512,7 +524,7 @@ class LinearModel(object):
                         currents.append(x)
                         break
             if len(currents) > 1:
-                raise ValueError(
+                raise LinearModelError(
                     'The given component has more than one variable that could'
                     ' be a current: '
                     + ', '.join(['<' + x.qname() + '>' for x in currents])
@@ -520,13 +532,13 @@ class LinearModel(object):
             try:
                 current = currents[0]
             except IndexError:
-                raise ValueError('No current variable found.')
+                raise LinearModelError('No current variable found.')
 
         # Get membrane potential
         if vm is None:
             vm = model.label('membrane_potential')
             if vm is None:
-                raise ValueError(
+                raise LinearModelError(
                     'The model must define a variable labeled as'
                     ' "membrane_potential".')
 
@@ -637,7 +649,7 @@ class LinearModel(object):
         A = A[:-1, :-1] - B
         # Check eigenvalues
         if np.max(np.linalg.eigvals(A) >= 0):
-            raise Exception(
+            raise LinearModelError(
                 'System has positive eigenvalues: won\'t converge to steady'
                 ' state!')
         # Solve system Ax + B = 0 --> Ax = -B
@@ -753,7 +765,7 @@ class AnalyticalSimulation(object):
         Calculates the current for a given state.
         """
         if not self._has_current:
-            raise ValueError(
+            raise Exception(
                 'The used model did not specify a current variable.')
         A, B = self._matrices()
         return B.dot(state)
@@ -1168,7 +1180,7 @@ class DiscreteSimulation(object):
         """
         x = np.array(x, copy=False, dtype=float)
         if (np.abs(1 - np.sum(x))) > 1e-6:
-            raise ValueError(
+            raise LinearModelError(
                 'The sum of fractions in the state to be discretized must'
                 ' equal 1.')
         y = np.round(x * self._nchannels)
@@ -1497,8 +1509,8 @@ def _find_factor(expression, original):
 
     if t == myokit.Name:
         var = expression.var()
-        if not var.is_state():
-            raise ValueError(
+        if not var.is_state():  # pragma: no cover
+            raise LinearModelError(
                 'Unable to write expression as linear combination of states'
                 ' (non-state reference found): '
                 + str(original))
@@ -1515,10 +1527,11 @@ def _find_factor(expression, original):
         # Check if a contains a state and b is constant
         ac, bc = a.is_constant(), b.is_constant()
         if (ac and bc) or not (ac or bc):
-            raise ValueError(
+            raise LinearModelError(  # pragma: no cover
                 'Unable to write expression as linear combination of states'
                 ' (state multiplied by non-constant): '
                 + str(original))
+
         if ac:
             a, b = b, a
 
@@ -1531,7 +1544,7 @@ def _find_factor(expression, original):
             factor = myokit.Multiply(factor, b)
             return state, factor
     else:
-        raise ValueError(
+        raise LinearModelError(
             'Unable to write expression as linear combination of states'
             ' (term that is not Multiply or Name found): ' + str(t) +
             ' in ' + str(original))
@@ -1557,3 +1570,10 @@ class MarkovModel(object):
     def __new__(self, model, states, parameters=None, current=None, vm=None):
         return AnalyticalSimulation(LinearModel(
             model, states, parameters, current, vm))
+
+
+class LinearModelError(myokit.MyokitError):
+    """
+    Raised for issues with constructing or using a :class:`LinearModel`.
+    """
+
