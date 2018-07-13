@@ -354,6 +354,14 @@ class AnalyticalSimulationTest(unittest.TestCase):
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
         model = myokit.load_model(fname)
         m = markov.LinearModel.from_component(model.get('ina'))
+
+        # Bad constructors
+        self.assertRaisesRegex(
+            ValueError, 'LinearModel', markov.AnalyticalSimulation, 1)
+        self.assertRaisesRegex(
+            ValueError, 'Protocol', markov.AnalyticalSimulation, m, 1)
+
+        # Create properly
         s = markov.AnalyticalSimulation(m)
 
         # Times to evaluate at
@@ -373,8 +381,20 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertEqual(state, s.state())
         self.assertEqual(dstate, s.default_state())
 
+        # Run for a bit
+        self.assertIsInstance(s.run(10), myokit.DataLog)
+
         # Calculate current for a particular state
         self.assertIsInstance(s.current(s.state()), float)
+
+        # No current variable? Then current can't be calculated
+        model2 = model.clone()
+        model2.get('ina').remove_variable(model2.get('ina.i'))
+        m2 = markov.LinearModel.from_component(model2.get('ina'))
+        s2 = markov.AnalyticalSimulation(m2)
+        self.assertRaisesRegex(
+            Exception, 'did not specify a current', s2.current, s2.state())
+        del(model2, m2, s2)
 
         # Create protocol
 
@@ -401,13 +421,22 @@ class AnalyticalSimulationTest(unittest.TestCase):
         s.pre(tprep + tstep)
         self.assertNotEqual(state, s.state())
         self.assertNotEqual(dstate, s.default_state())
+        self.assertRaises(ValueError, s.pre, -1)
 
         # Run should change the state, not the default state
         state = s.state()
         dstate = s.default_state()
-        s.run(t)
+        d = s.run(t)
         self.assertNotEqual(state, s.state())
         self.assertEqual(dstate, s.default_state())
+        self.assertRaisesRegex(ValueError, 'Duration', s.run, -1)
+        self.assertRaisesRegex(
+            ValueError, 'Log interval', s.run, 1, log_interval=-1)
+        d['hello'] = [1, 2, 3]
+        self.assertRaisesRegex(ValueError, 'extra keys', s.run, 1, log=d)
+        del(d['hello'])
+        del(d[next(iter(d.keys()))])
+        self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d)
 
         # Reset should reset the state
         s.reset()
