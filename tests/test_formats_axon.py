@@ -38,6 +38,7 @@ class AbfTest(unittest.TestCase):
         # Load file
         path = os.path.join(DIR_FORMATS, 'abf-v1.abf')
         abf = axon.AbfFile(path)
+        self.assertEqual(abf.filename(), path)
 
         # Check version info
         self.assertIn('version 1.65', abf.info())
@@ -53,8 +54,21 @@ Sampling rate: 10000.0 Hz
 Channel 0: "IN 0      "
   Unit: pA''')
 
+        # Test data access
+        self.assertEqual(abf.data_channels(), 1)    # 1 data channel
+        x = abf.extract_channel(0)
+        self.assertEqual(len(x), 1 + len(abf))      # sweeps + time
+        y = abf.extract_channel_as_myokit_log(0)
+        self.assertEqual(len(y), 1 + len(abf))      # sweeps + time
+        z = abf.myokit_log()
+        self.assertEqual(len(z), 6)     # time + channel + 4 protocol channels
+
         # Test protocol extraction
+        self.assertEqual(abf.protocol_channels(), 4)    # 4 protocol channels
         p = abf.myokit_protocol()
+        self.assertEqual(len(p), 18)    # 18 steps in this protocol
+        self.assertEqual(abf.protocol_holding_level(0), 0)
+        p = abf.myokit_protocol(0)
         self.assertEqual(len(p), 18)
 
     def test_read_v2(self):
@@ -81,8 +95,21 @@ Channel 0: "IN 0"
   Low-pass filter: 10000.0 Hz
   Cm (telegraphed): 6.34765625 pF''')
 
+        # Test data access
+        self.assertEqual(abf.data_channels(), 1)    # 1 data channel
+        x = abf.extract_channel(0)
+        self.assertEqual(len(x), 1 + len(abf))      # sweeps + time
+        y = abf.extract_channel_as_myokit_log(0)
+        self.assertEqual(len(y), 1 + len(abf))      # sweeps + time
+        z = abf.myokit_log()
+        self.assertEqual(len(z), 6)     # time + channel + 4 protocol channels
+
         # Test protocol extraction
+        self.assertEqual(abf.protocol_channels(), 4)    # 4 protocol channels
         p = abf.myokit_protocol()
+        self.assertEqual(len(p), 2)     # 2 steps in this protocol
+        self.assertEqual(abf.protocol_holding_level(0), -120)
+        p = abf.myokit_protocol(0)
         self.assertEqual(len(p), 2)
 
     def test_read_protocol_v1(self):
