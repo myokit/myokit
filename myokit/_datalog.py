@@ -872,26 +872,29 @@ class DataLog(OrderedDict):
 
         # Create data strings
         head_str = []
-        body_str = []
+        body_str = []   # Will be filled with bytes
 
         # Number of fields, length of data arrays, data type, time, fields
-        head_str.append(bytes(len(self)))
-        head_str.append(bytes(len(next(iter(self.values())))))
+        head_str.append(str(len(self)))
+        head_str.append(str(len(next(iter(self.values())))))
         head_str.append(dtype)
 
         # Note: the time field might not be present in the log!
         head_str.append(self._time if self._time else '')
 
         # Write field names and data
+        enc = 'utf8'
         for k, v in self.items():
             head_str.append(k)
             # Create array, ensure it's litte-endian
             ar = array.array(dtype, v)
             if sys.byteorder == 'big':  # pragma: no cover
                 ar.byteswap()
-            body_str.append(ar.tostring())
-
-        head_str = b'\n'.join(head_str)
+            try:
+                body_str.append(ar.tobytes())
+            except AttributeError:   # pragma: no cover
+                body_str.append(ar.tostring())
+        head_str = '\n'.join(head_str)
         body_str = b''.join(body_str)
 
         # Write
@@ -903,8 +906,8 @@ class DataLog(OrderedDict):
         read.compress_type = zipfile.ZIP_DEFLATED
         with zipfile.ZipFile(filename, 'w') as f:
             f.writestr(body, body_str)
-            f.writestr(head, head_str)
-            f.writestr(read, README_SAVE_BIN)
+            f.writestr(head, head_str.encode(enc))
+            f.writestr(read, README_SAVE_BIN.encode(enc))
 
     def save_csv(
             self, filename, precision=myokit.DOUBLE_PRECISION, order=None,
