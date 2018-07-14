@@ -10,14 +10,13 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import re
+import sys
 import xml.dom
 import textwrap
 
 try:
-    # Python2
-    import HTMLParser
+    from HTMLParser import HTMLParser
 except ImportError:
-    # Python 3
     from html.parser import HTMLParser
 
 
@@ -76,17 +75,18 @@ def html2ascii(html, width=79, indent='  '):
     The output will be text-wrapped after ``width`` characters. Each new level
     of nesting will be indented with the text given as ``indent``.
     """
-    class Asciifier(HTMLParser.HTMLParser):
+    class Asciifier(HTMLParser):
         INDENT = 1
         DEDENT = -1
         WHITE = [' ', '\t', '\f', '\r', '\n']
 
         def __init__(self, line_width=79, indent='  '):
-            # Create HTMLParser with old-school constructor
-            # Python 2:
-            HTMLParser.HTMLParser.__init__(self)
-            # Python 3:
-            #TODO Add argument convert_charrefs=False
+            if sys.hexversion < 0x03000000:
+                # Create HTMLParser with old-school constructor
+                HTMLParser.__init__(self)
+            else:
+                # Python 3:
+                super(Asciifier, self).__init__(convert_charrefs=False)
 
             # In <head> yes/no
             self.inhead = False
@@ -267,7 +267,7 @@ def html2ascii(html, width=79, indent='  '):
             if data:
                 self.line.append(data)
 
-        def gettext(self):
+        def get_text(self):
             self.endline()
             buf = []
             pre = ''
@@ -301,7 +301,7 @@ def html2ascii(html, width=79, indent='  '):
     f = Asciifier(width, indent)
     f.feed(html)
     f.close()
-    return f.gettext()
+    return f.get_text()
 
 
 def write_mathml(expression, presentation):
