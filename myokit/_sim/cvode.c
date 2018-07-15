@@ -362,8 +362,9 @@ sim_set_min_step_size(PyObject *self, PyObject *args)
 static int
 log_add(PyObject* log_dict, PyObject** logs, realtype** vars, int i, const char* name, const realtype* var)
 {
+    // See first use of log_add for notes on unicode
     int added = 0;
-    PyObject* key = PyString_FromString(name);
+    PyObject* key = PyUnicode_FromString(name);
     if (PyDict_Contains(log_dict, key)) {
         logs[i] = PyDict_GetItem(log_dict, key);
         vars[i] = (realtype*)var;
@@ -422,8 +423,8 @@ int n_vars;                 // Number of logging variables
 int log_bound;              // True if logging bound variables
 int log_inter;              // True if logging intermediary variables
 int log_deriv;              // True if logging derivatives
-PyObject* list_update_str;  // PyString, used to call "append" method
-unsigned long ilog;         // Periodic/point-list logging: Index of next point
+PyObject* list_update_str;  // PyUnicode, used to call "append" method
+Py_ssize_t ilog;             // Periodic/point-list logging: Index of next point
 double tlog;                // Periodic/point-list logging: Next point
 
 /*
@@ -681,13 +682,21 @@ sim_init(PyObject *self, PyObject *args)
     vars = (realtype**)malloc(sizeof(realtype*)*n_vars);
     i = 0;
 
-    // Check states
+    /* Note: The variable names are all ascii compatible
+       In Python2, they are stored in logs as either unicode or bytes
+       In Python3, they are stored exclusively as unicode
+       However, in Python2 b'name' matches u'name' so this is ok (in Python it
+        does not, but we always use unicode so it's ok).
+       The strategy here will be to convert these C-strings to unicode
+        inside log_add, before the comparison. */
+
+    /* Check states */
 <?
 for var in model.states():
     print(tab + 'i += log_add(log_dict, logs, vars, i, "' + var.qname() + '", &NV_Ith_S(y_log, ' + str(var.indice())  + '));')
 ?>
 
-    // Check derivatives
+    /* Check derivatives */
     j = i;
 <?
 for var in model.states():
@@ -695,7 +704,7 @@ for var in model.states():
 ?>
     log_deriv = (i > j);
 
-    // Check bound variables
+    /* Check bound variables */
     j = i;
 <?
 for var, internal in bound_variables.items():
@@ -703,8 +712,8 @@ for var, internal in bound_variables.items():
 ?>
     log_bound = (i > j);
 
-    // Remaining variables will require an extra rhs() call to evaluate their
-    // values at every log point
+    /* Remaining variables will require an extra rhs() call to evaluate their
+       values at every log point */
     j = i;
 <?
 for var in model.variables(deep=True, state=False, bound=False, const=False):
@@ -712,13 +721,13 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
 ?>
     log_inter = (i > j);
 
-    // Check if log contained extra variables
+    /* Check if log contained extra variables */
     if (i != n_vars) {
         PyErr_SetString(PyExc_Exception, "Unknown variables found in logging dictionary.");
         return sim_clean();
     }
 
-    // Set up event-based pacing
+    /* Set up event-based pacing */
     if (eprotocol != Py_None) {
         epacing = ESys_Create(&flag_epacing);
         if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
@@ -732,9 +741,9 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         tnext = tmax;
     }
 
-    // Set up fixed-form pacing
+    /* Set up fixed-form pacing */
     if (eprotocol == Py_None && fprotocol != Py_None) {
-        // Check 'protocol' is tuple (times, values)
+        /* Check 'protocol' is tuple (times, values) */
         if (!PyTuple_Check(fprotocol)) {
             PyErr_SetString(PyExc_Exception, "Fixed-form pacing protocol should be tuple or None.");
             return sim_clean();
@@ -743,7 +752,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
             PyErr_SetString(PyExc_Exception, "Fixed-form pacing protocol tuple should have size 2.");
             return sim_clean();
         }
-        // Create fixed-form pacing object and populate
+        /* Create fixed-form pacing object and populate */
         fpacing = FSys_Create(&flag_fpacing);
         if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
         flag_fpacing = FSys_Populate(fpacing,
@@ -752,7 +761,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
     }
 
-    // Set simulation starting time
+    /* Set simulation starting time */
     engine_time = tmin;
 
     /* Create solver
@@ -805,7 +814,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     }
 
     // Set string for updating lists/arrays using Python interface.
-    list_update_str = PyString_FromString("append");
+    list_update_str = PyUnicode_FromString("append");
 
     // Set logging points
     if (log_interval > 0) {
@@ -985,7 +994,7 @@ sim_step(PyObject *self, PyObject *args)
                 if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
                 flt = PyTuple_New(2);
                 PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); // Steals reference, so this is ok
-                PyTuple_SetItem(flt, 1, PyInt_FromLong(rootsfound[0]));
+                PyTuple_SetItem(flt, 1, PyLong_FromLong(rootsfound[0]));
                 ret = PyObject_CallMethodObjArgs(root_list, list_update_str, flt, NULL);
                 Py_DECREF(flt); flt = NULL;
                 Py_XDECREF(ret);
@@ -1311,7 +1320,7 @@ for var in model.variables(const=True, deep=True):
 static PyObject*
 sim_steps(PyObject *self, PyObject *args)
 {
-    return PyInt_FromLong(engine_steps);
+    return PyLong_FromLong(engine_steps);
 }
 
 /*
@@ -1320,7 +1329,7 @@ sim_steps(PyObject *self, PyObject *args)
 static PyObject*
 sim_evals(PyObject *self, PyObject *args)
 {
-    return PyInt_FromLong(engine_evaluations);
+    return PyLong_FromLong(engine_evaluations);
 }
 
 /*
@@ -1344,6 +1353,7 @@ static PyMethodDef SimMethods[] = {
  * Module definition
  */
 #if PY_MAJOR_VERSION >= 3
+
     static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
         "<?= module_name ?>",       /* m_name */
@@ -1357,7 +1367,7 @@ static PyMethodDef SimMethods[] = {
     };
 
     PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
-        PyModule_Create(&moduledef);
+        return PyModule_Create(&moduledef);
     }
 
 #else

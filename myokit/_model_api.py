@@ -34,9 +34,10 @@ META = re.compile(r'^[a-zA-Z]\w*(:[a-zA-Z]\w*)*$')
 def check_name(name):
     """
     Tests if the given name is a valid myokit name and raises a
-    :class:`myokit.InvalidNameError` if it isn't. Names are returned converted
-    to ``str``.
+    :class:`myokit.InvalidNameError` if it isn't.
     """
+    # Note: Names are stored as str (so unicode in Python3)
+    # But the regex restriction means their format is compatible with ascii.
     # Check str compatibility
     name = str(name)
     # Check name syntax
