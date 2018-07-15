@@ -33,12 +33,10 @@ from myokit.gui import matplotlib_backend as backend
 # Numpy
 import numpy as np
 
-# Config parser
+# ConfigParser in Python 2 and 3
 try:
-    # Python2
     from ConfigParser import ConfigParser
 except ImportError:
-    # Python 3
     from configparser import RawConfigParser as ConfigParser
 
 

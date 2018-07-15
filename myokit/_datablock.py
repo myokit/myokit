@@ -47,6 +47,7 @@ header, and little-endian:
   - All 1d entries, reshaped using numpy order='C'
 
 """.strip()
+
 README_SAVE_2D = """
 Myokit DataBlock2d Binary File
 ==============================
@@ -79,6 +80,9 @@ header, and little-endian:
   - All 2d entries, reshaped using numpy order='C'
 
 """.strip()
+
+# Encoding used for text portions of datablock files
+ENC = 'utf-8'
 
 
 class DataBlock1d(object):
@@ -460,10 +464,16 @@ class DataBlock1d(object):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Get size of single and double types on this machine
-        dsize = {
-            'd': len(array.array('d', [1]).tostring()),
-            'f': len(array.array('f', [1]).tostring()),
-        }
+        try:
+            dsize = {
+                'd': len(array.array('d', [1]).tobytes()),
+                'f': len(array.array('f', [1]).tobytes()),
+            }
+        except AttributeError:  # pragma: no python 3 cover
+            dsize = {
+                'd': len(array.array('d', [1]).tostring()),
+                'f': len(array.array('f', [1]).tostring()),
+            }
 
         # Read data from file
         try:
@@ -489,7 +499,7 @@ class DataBlock1d(object):
                     'Invalid DataBlock1d file format: Data not found.')
 
             # Read head and body into memory (let's assume it fits...)
-            head = f.read(info[head])
+            head = f.read(info[head]).decode(ENC)
             body = f.read(info[body])
 
         except zipfile.BadZipfile:
@@ -520,7 +530,7 @@ class DataBlock1d(object):
             head = iter(head)
             nt = int(next(head))
             nx = int(next(head))
-            dtype = str(next(head))[1:-1]
+            dtype = next(head)[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
                     'Unable to read DataBlock1d: Unrecognized data type "'
@@ -548,7 +558,10 @@ class DataBlock1d(object):
                     'Unable to read DataBlock1d: Header indicates larger data'
                     ' than found in the body.')
             data = array.array(dtype)
-            data.fromstring(body[start:end])
+            try:
+                data.frombytes(body[start:end])
+            except AttributeError:  # pragma: no python 2 cover
+                data.fromstring(body[start:end])
             if sys.byteorder == 'big':  # pragma: no cover
                 data.byteswap()
             data = np.array(data)
@@ -569,7 +582,10 @@ class DataBlock1d(object):
                         'Unable to read DataBlock1d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
-                data.fromstring(body[start:end])
+                try:
+                    data.frombytes(body[start:end])
+                except AttributeError:  # pragma: no python 3 cover
+                    data.fromstring(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data)
@@ -588,7 +604,10 @@ class DataBlock1d(object):
                         'Unable to read DataBlock1d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
-                data.fromstring(body[start:end])
+                try:
+                    data.frombytes(body[start:end])
+                except AttributeError:  # pragma: no python 3 cover
+                    data.fromstring(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data).reshape(nt, nx, order='C')
@@ -642,8 +661,8 @@ class DataBlock1d(object):
 
         # Create header
         head_str = []
-        head_str.append(bytes(self._nt))
-        head_str.append(bytes(self._nx))
+        head_str.append(str(self._nt))
+        head_str.append(str(self._nx))
         head_str.append('"' + dtype + '"')
         for name in self._0d:
             head_str.append('"' + name + '"')
@@ -663,7 +682,10 @@ class DataBlock1d(object):
         if sys.byteorder == 'big':  # pragma: no cover
             for ar in body_str:
                 ar.byteswap()
-        body_str = b''.join([ar.tostring() for ar in body_str])
+        try:
+            body_str = b''.join([ar.tobytes() for ar in body_str])
+        except AttributeError:  # pragma: no python 3 cover
+            body_str = b''.join([ar.tostring() for ar in body_str])
 
         # Write
         head = zipfile.ZipInfo('header_block1d.txt')
@@ -673,9 +695,9 @@ class DataBlock1d(object):
         read = zipfile.ZipInfo('readme.txt')
         read.compress_type = zipfile.ZIP_DEFLATED
         with zipfile.ZipFile(filename, 'w') as f:
-            f.writestr(head, head_str)
+            f.writestr(head, head_str.encode(ENC))
             f.writestr(body, body_str)
-            f.writestr(read, README_SAVE_1D)
+            f.writestr(read, README_SAVE_1D.encode(ENC))
 
     def set0d(self, name, data, copy=True):
         """
@@ -1178,10 +1200,16 @@ class DataBlock2d(object):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Get size of single and double types on this machine
-        dsize = {
-            'd': len(array.array('d', [1]).tostring()),
-            'f': len(array.array('f', [1]).tostring()),
-        }
+        try:
+            dsize = {
+                'd': len(array.array('d', [1]).tobytes()),
+                'f': len(array.array('f', [1]).tobytes()),
+            }
+        except AttributeError:  # pragma: no python 3 cover
+            dsize = {
+                'd': len(array.array('d', [1]).tostring()),
+                'f': len(array.array('f', [1]).tostring()),
+            }
 
         # Read data from file
         try:
@@ -1217,7 +1245,7 @@ class DataBlock2d(object):
                     'Invalid DataBlock2d file format: Data not found.')
 
             # Read head and body into memory (let's assume it fits...)
-            head = f.read(info[head])
+            head = f.read(info[head]).decode(ENC)
             body = f.read(info[body])
 
         except zipfile.BadZipfile:
@@ -1279,7 +1307,10 @@ class DataBlock2d(object):
                     ' than found in the body.')
 
             data = array.array(dtype)
-            data.fromstring(body[start:end])
+            try:
+                data.frombytes(body[start:end])
+            except AttributeError:  # pragma: no python 3 cover
+                data.fromstring(body[start:end])
             if sys.byteorder == 'big':  # pragma: no cover
                 data.byteswap()
             data = np.array(data)
@@ -1300,7 +1331,10 @@ class DataBlock2d(object):
                         'Unable to read DataBlock2d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
-                data.fromstring(body[start:end])
+                try:
+                    data.frombytes(body[start:end])
+                except AttributeError:  # pragma: no python 3 cover
+                    data.fromstring(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data)
@@ -1319,7 +1353,10 @@ class DataBlock2d(object):
                         'Unable to read DataBlock2d: Header indicates larger'
                         ' data than found in the body.')
                 data = array.array(dtype)
-                data.fromstring(body[start:end])
+                try:
+                    data.frombytes(body[start:end])
+                except AttributeError:  # pragma: no python 3 cover
+                    data.fromstring(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     data.byteswap()
                 data = np.array(data).reshape(nt, ny, nx, order='C')
@@ -1378,9 +1415,9 @@ class DataBlock2d(object):
 
         # Create header
         head_str = []
-        head_str.append(bytes(self._nt))
-        head_str.append(bytes(self._ny))
-        head_str.append(bytes(self._nx))
+        head_str.append(str(self._nt))
+        head_str.append(str(self._ny))
+        head_str.append(str(self._nx))
         head_str.append('"' + dtype + '"')
         for name in self._0d:
             head_str.append('"' + name + '"')
@@ -1400,7 +1437,10 @@ class DataBlock2d(object):
         if sys.byteorder == 'big':  # pragma: no cover
             for ar in body_str:
                 ar.byteswap()
-        body_str = b''.join([ar.tostring() for ar in body_str])
+        try:
+            body_str = b''.join([ar.tobytes() for ar in body_str])
+        except AttributeError:  # pragma: no python 3 cover
+            body_str = b''.join([ar.tostring() for ar in body_str])
 
         # Write
         head = zipfile.ZipInfo('header_block2d.txt')
@@ -1410,9 +1450,9 @@ class DataBlock2d(object):
         read = zipfile.ZipInfo('readme.txt')
         read.compress_type = zipfile.ZIP_DEFLATED
         with zipfile.ZipFile(filename, 'w') as f:
-            f.writestr(head, head_str)
+            f.writestr(head, head_str.encode(ENC))
             f.writestr(body, body_str)
-            f.writestr(read, README_SAVE_2D)
+            f.writestr(read, README_SAVE_2D.encode(ENC))
 
     def save_frame_csv(
             self, filename, name, frame, xname='x', yname='y', zname='value'):

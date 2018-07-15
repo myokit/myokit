@@ -12,8 +12,13 @@ Python3 issues
 
 - [x] __nonzero__ is now called __bool__
 
-- [ ] raw_input is now input
+- [x] raw_input is now input
 
+- [ ] array.array.from/tobytes is now from/tostring
+
+- [ ] ConfigParser has moved
+
+- [ ] HTMLParser has moved
 
 C stuff
 -------

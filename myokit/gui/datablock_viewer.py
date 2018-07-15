@@ -13,11 +13,17 @@ import os
 import numpy as np
 import traceback
 import collections
-import ConfigParser
 
 import myokit
 import myokit.gui
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
+
+# ConfigParser in Python 2 and 3
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import RawConfigParser as ConfigParser
+
 
 # Application title
 TITLE = 'Myokit DataBlock Viewer'
@@ -646,7 +652,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         inifile = os.path.expanduser(SETTINGS_FILE)
         if not os.path.isfile(inifile):
             return
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         config.read(inifile)
 
         # Window dimensions and location
@@ -832,7 +838,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         Saves the user configuration to an ini file.
         """
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         # Window dimensions and location
         config.add_section('window')
         g = self.geometry()

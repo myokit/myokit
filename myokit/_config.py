@@ -20,11 +20,10 @@ import myokit
 import os
 import platform
 
+# ConfigParser in Python 2 and 3
 try:
-    # Python2
     from ConfigParser import ConfigParser
 except ImportError:
-    # Python 3
     from configparser import RawConfigParser as ConfigParser
 
 
@@ -173,7 +172,7 @@ def _create(path):
 
     # Write ini file
     try:
-        with open(path, 'wb') as configfile:
+        with open(path, 'w') as configfile:
             config.write(configfile)
     except IOError:     # pragma: no cover
         import logging

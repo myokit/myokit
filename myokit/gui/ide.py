@@ -14,7 +14,6 @@ from __future__ import print_function, unicode_literals
 import gc
 import os
 import traceback
-import ConfigParser
 
 # Myokit
 import myokit
@@ -36,6 +35,13 @@ from . import vargrapher
 import matplotlib
 matplotlib.interactive(True)        # Allows plt.show()
 import matplotlib.pyplot as plt     # noqa -- Make flake8 ignore this line
+
+# ConfigParser in Python 2 and 3
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import RawConfigParser as ConfigParser
+
 
 # Application title
 TITLE = 'Myokit IDE'
@@ -1710,7 +1716,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         inifile = os.path.expanduser(SETTINGS_FILE)
         if not os.path.isfile(inifile):
             return
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         config.read(inifile)
 
         def getor(section, name, alt):
@@ -1979,7 +1985,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Saves the user configuration to an ini file.
         """
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         # Window dimensions and location
         config.add_section('window')
         g = self.geometry()
