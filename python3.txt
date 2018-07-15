@@ -8,14 +8,15 @@ Python3 issues
 
 - [x] assertRaisesRegexp is now assertRaisesRegex
 
-- [ ] SubCapture doesn't work, obscures errors from compilation
+- [x] SubCapture doesn't work, obscures errors from compilation
 
 - [x] __nonzero__ is now called __bool__
 
+- [ ] raw_input is now input
+
+
 C stuff
 -------
-
-- [ ] Stuff doesn't compile
 
 - [ ] Integers are now longs
       http://python3porting.com/cextensions.html#changes-in-python

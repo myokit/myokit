@@ -45,7 +45,29 @@ static PyMethodDef SimMethods[] = {
 /*
  * Module definition
  */
-PyMODINIT_FUNC
-init<?=module_name?>(void) {
-    (void) Py_InitModule("<?= module_name ?>", SimMethods);
-}
+#if PY_MAJOR_VERSION >= 3
+
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "<?= module_name ?>",       /* m_name */
+        "Generated OpenCL info module",   /* m_doc */
+        -1,                         /* m_size */
+        SimMethods,                 /* m_methods */
+        NULL,                       /* m_reload */
+        NULL,                       /* m_traverse */
+        NULL,                       /* m_clear */
+        NULL,                       /* m_free */
+    };
+
+    PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
+        return PyModule_Create(&moduledef);
+    }
+
+#else
+
+    PyMODINIT_FUNC
+    init<?=module_name?>(void) {
+        (void) Py_InitModule("<?= module_name ?>", SimMethods);
+    }
+
+#endif

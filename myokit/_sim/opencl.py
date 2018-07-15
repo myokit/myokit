@@ -102,7 +102,10 @@ class OpenCL(myokit.CModule):
         inifile = os.path.expanduser(SETTINGS_FILE)
         if os.path.isfile(inifile):
             config = ConfigParser()
-            config.read(inifile)
+            try:
+                config.read(inifile, encoding='ascii')  # Python 3
+            except TypeError:
+                config.read(inifile)
 
             def get(section, option):
                 x = None
@@ -116,6 +119,12 @@ class OpenCL(myokit.CModule):
             platform = get('selection', 'platform')
             device = get('selection', 'device')
 
+        # Ensure platform and device are ascii compatible
+        if platform:
+            platform = platform.encode('ascii').decode('ascii')
+        if device:
+            device = device.encode('ascii').decode('ascii')
+
         return platform, device
 
     @staticmethod
@@ -125,6 +134,12 @@ class OpenCL(myokit.CModule):
 
         Both platform and device are identified by their names.
         """
+        # Make sure platform and device can be stored as ascii
+        if platform:
+            platform = platform.encode('ascii').decode('ascii')
+        if device:
+            device = device.encode('ascii').decode('ascii')
+
         # Create configuration
         config = ConfigParser()
         config.add_section('selection')
@@ -132,9 +147,10 @@ class OpenCL(myokit.CModule):
             config.set('selection', 'platform', platform)
         if device:
             config.set('selection', 'device', device)
+
         # Write configuration to ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
-        with open(inifile, 'wb') as configfile:
+        with open(inifile, 'w') as configfile:
             config.write(configfile)
 
     @staticmethod

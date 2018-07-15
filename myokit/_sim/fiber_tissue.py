@@ -821,8 +821,8 @@ class FiberTissueSimulation(myokit.CModule):
             state_outf = list(state_inf)
             state_outt = list(state_int)
             self._sim.sim_init(
-                platform,
-                device,
+                platform.encode('ascii'),
+                device.encode('ascii'),
                 kernelf,
                 kernelt,
                 self._ncellsf[0],

@@ -780,8 +780,8 @@ class SimulationOpenCL(myokit.CModule):
             state_in = self._state
             state_out = list(state_in)
             self._sim.sim_init(
-                platform,
-                device,
+                platform.encode('ascii'),
+                device.encode('ascii'),
                 kernel,
                 self._nx,
                 self._ny,

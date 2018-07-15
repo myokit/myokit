@@ -30,11 +30,6 @@
 // Show debug output
 //#define MYOKIT_DEBUG
 
-// Python 2/3 compatibility
-#if PY_MAJOR_VERSION >= 3
-    #define PyInt_FromLong PyLong_FromLong
-#endif
-
 // Maximum number of platforms/devices to check for.
 #define MCL_MAX_PLATFORMS 255
 #define MCL_MAX_DEVICES 255
@@ -261,6 +256,8 @@ int mcl_select_device(
             return 1;
         }
         pname = PyBytes_AsString(platform);
+    } else {
+        pname = "";
     }
     if (device != Py_None) {
         if (!PyBytes_Check(device)) {
@@ -268,6 +265,8 @@ int mcl_select_device(
             return 1;
         }
         dname = PyBytes_AsString(device);
+    } else {
+        dname = "";
     }
 
     #ifdef MYOKIT_DEBUG
@@ -309,7 +308,7 @@ int mcl_select_device(
             // Find any device on any platform, prefer GPU
             cl_device_id device_ids[1];
             cl_uint n_devices = 0;
-            int i;
+            cl_uint i;
             for (i=0; i<n_platforms; i++) {
                 flag = clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_GPU, 1, device_ids, &n_devices);
                 if(flag == CL_SUCCESS) {
@@ -343,7 +342,7 @@ int mcl_select_device(
             // Find specified device on any platform
             cl_device_id device_ids[MCL_MAX_DEVICES];
             cl_uint n_devices = 0;
-            int i, j;
+            cl_uint i, j;
             for (i=0; i<n_platforms; i++) {
                 flag = clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_ALL, MCL_MAX_DEVICES, device_ids, &n_devices);
                 if(flag == CL_SUCCESS) {
@@ -371,7 +370,7 @@ int mcl_select_device(
     } else {
 
         // Find platform id
-        int i;
+        cl_uint i;
         int found = 0;
         for (i=0; i<n_platforms; i++) {
             flag = clGetPlatformInfo(platform_ids[i], CL_PLATFORM_NAME, sizeof(name), name, NULL);
@@ -424,7 +423,7 @@ int mcl_select_device(
             // Find specified platform/device combo
             cl_device_id device_ids[MCL_MAX_DEVICES];
             cl_uint n_devices = 0;
-            int j;
+            cl_uint j;
             flag = clGetDeviceIDs(*pid, CL_DEVICE_TYPE_ALL, MCL_MAX_DEVICES, device_ids, &n_devices);
             if(flag == CL_SUCCESS) {
                 for (j=0; j<n_devices; j++) {
@@ -451,7 +450,7 @@ int mcl_select_device(
 /*
  * Rounds up to the nearest multiple of ws_size.
  */
-static int
+int
 mcl_round_total_size(const int ws_size, const int total_size)
 {
     int size = (total_size / ws_size) * ws_size;
@@ -559,7 +558,7 @@ mcl_device_info()
     char buffer[65536];
 
     // Check all platforms
-    int i, j, k;
+    cl_uint i, j, k;
     for (i=0; i<n_platforms; i++) {
         // Create platform dict
         platform = PyDict_New();
@@ -643,49 +642,49 @@ mcl_device_info()
             // Clock speed (MHz)
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyInt_FromLong(buf_uint);
+            val = PyLong_FromLong(buf_uint);
             PyDict_SetItemString(device, "clock", val);
             Py_DECREF(val); val = NULL;
 
             // Global memory (bytes)
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyInt_FromLong(buf_ulong);
+            val = PyLong_FromLong(buf_ulong);
             PyDict_SetItemString(device, "global", val);
             Py_DECREF(val); val = NULL;
 
             // Local memory (bytes)
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyInt_FromLong(buf_ulong);
+            val = PyLong_FromLong(buf_ulong);
             PyDict_SetItemString(device, "local", val);
             Py_DECREF(val); val = NULL;
 
             // Const memory (bytes)
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(buf_ulong), &buf_ulong, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyInt_FromLong(buf_ulong);
+            val = PyLong_FromLong(buf_ulong);
             PyDict_SetItemString(device, "const", val);
             Py_DECREF(val); val = NULL;
 
             // Computing units
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyInt_FromLong(buf_uint);
+            val = PyLong_FromLong(buf_uint);
             PyDict_SetItemString(device, "units", val);
             Py_DECREF(val); val = NULL;
 
             // Max workgroup size
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(wgroup_size), &wgroup_size, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyInt_FromLong(wgroup_size);
+            val = PyLong_FromLong(wgroup_size);
             PyDict_SetItemString(device, "groups", val);
             Py_DECREF(val); val = NULL;
 
             // Max workitem sizes
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(buf_uint), &buf_uint, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyInt_FromLong(buf_uint);
+            val = PyLong_FromLong(buf_uint);
             PyDict_SetItemString(device, "dimensions", val);
             Py_DECREF(val); val = NULL;
 
@@ -694,7 +693,7 @@ mcl_device_info()
             if(mcl_flag(flag)) return mcl_device_info_clean();
             items = PyTuple_New((size_t)buf_uint);
             for (k=0; k<buf_uint; k++) {
-                PyTuple_SetItem(items, k, PyInt_FromLong(work_item_sizes[k]));
+                PyTuple_SetItem(items, k, PyLong_FromLong(work_item_sizes[k]));
             }
             free(work_item_sizes); work_item_sizes = NULL;
             PyDict_SetItemString(device, "items", items);
@@ -703,7 +702,7 @@ mcl_device_info()
             // Maximum size of a kernel parameter
             flag = clGetDeviceInfo(device_ids[j], CL_DEVICE_MAX_PARAMETER_SIZE, sizeof(max_param), &max_param, NULL);
             if(mcl_flag(flag)) return mcl_device_info_clean();
-            val = PyInt_FromLong(max_param);
+            val = PyLong_FromLong(max_param);
             PyDict_SetItemString(device, "param", val);
             Py_DECREF(val); val = NULL;
 

@@ -590,7 +590,11 @@ def opencl_select():
 
     try:
         while True:
-            x = raw_input('Select device: ')
+            x = 'Select device: '
+            try:
+                x = raw_input(x)
+            except NameError:   # pragma: no python 2 cover
+                x = input(x)
             x = x.strip()
             if x == '':
                 x = None
@@ -647,7 +651,11 @@ def reset(force=False):
     if force:
         remove = True
     else:
-        yesno = raw_input('Remove all Myokit settings files? ')
+        yesno = 'Remove all Myokit settings files? '
+        try:
+            yesno = raw_input(yesno)
+        except NameError:   # pragma: no python 2 cover
+            yesno = input(yesno)
         yesno = yesno.strip().lower()
         remove = (yesno[:1] == 'y')
     if remove:

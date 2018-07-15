@@ -378,7 +378,11 @@ if __name__ == '__main__':
             done = True
         except ArithmeticError as e:
             print('Arithmetic error occurred')
-            y = raw_input('Continue with smaller stepsize? (y/n): ')
+            y = 'Continue with smaller stepsize? (y/n): '
+            try:
+                y = raw_input(y)    # Python 2
+            except NameError:
+                y = input(y)        # Python 3
             if y.lower()[0:1] == 'y':
                 small /= 2
                 large /= 2
