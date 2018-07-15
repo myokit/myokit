@@ -697,8 +697,10 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
                 self.action_set_colormap(cmap)
             if config.has_option('video', 'interval'):
                 ival = config.get('video', 'interval')
-                if ival > 0:
-                    self._timer_interval = int(ival)
+                if ival:
+                    ival = int(ival)
+                    if ival > 0:
+                        self._timer_interval = ival
 
     def load_data_file(self, fname):
         """
@@ -862,7 +864,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         config.set('video', 'interval', self._timer_interval)
         # Write configuration to ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
-        with open(inifile, 'wb') as configfile:
+        with open(inifile, 'w') as configfile:
             config.write(configfile)
 
     def update_recent_files_menu(self):
