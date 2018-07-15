@@ -60,7 +60,15 @@ class SimulationOpenCL1dTest(unittest.TestCase):
 
         m, p, x = myokit.load('example')
         s = myokit.SimulationOpenCL(m, p, 20)
-        s.run(1, log=['engine.time', 'membrane.V'])
+
+        # Run, log state and intermediary variable (separate logging code!)
+        d = s.run(1, log=['engine.time', 'membrane.V', 'ina.INa'])
+        self.assertIn('engine.time', d)
+        self.assertIn('0.membrane.V', d)
+        self.assertIn('19.membrane.V', d)
+        self.assertIn('0.ina.INa', d)
+        self.assertIn('19.ina.INa', d)
+        self.assertEqual(len(d), 41)
 
 
 class SimulationOpenCL2dTest(unittest.TestCase):
@@ -76,7 +84,15 @@ class SimulationOpenCL2dTest(unittest.TestCase):
         n = (8, 8)
         s = myokit.SimulationOpenCL(m, p, n)
         s.set_paced_cells(4, 4)
-        s.run(1, log=['engine.time', 'membrane.V'])
+
+        # Run, log state and intermediary variable (separate logging code!)
+        d = s.run(1, log=['engine.time', 'membrane.V', 'ina.INa'])
+        self.assertEqual(len(d), 129)
+        self.assertIn('engine.time', d)
+        self.assertIn('0.0.membrane.V', d)
+        self.assertIn('7.7.membrane.V', d)
+        self.assertIn('0.0.ina.INa', d)
+        self.assertIn('7.7.ina.INa', d)
 
 
 class FiberTissueSimulationTest(unittest.TestCase):
@@ -101,7 +117,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         nfx = 8
         nfy = 4
         ntx = 8
-        nty = 8
+        nty = 6
         # Create simulation
         s = myokit.FiberTissueSimulation(
             mf,
@@ -129,6 +145,21 @@ class FiberTissueSimulationTest(unittest.TestCase):
         # Run simulation
         with myokit.PyCapture():
             logf, logt = s.run(run, logf=logf, logt=logt, log_interval=0.01)
+
+        self.assertEqual(len(logf), 1 + 2 * nfx * nfy)
+        self.assertIn('engine.time', logf)
+        self.assertIn('0.0.membrane.V', logf)
+        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.membrane.V', logf)
+        self.assertIn('0.0.isi.isiCa', logf)
+        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.isi.isiCa', logf)
+
+        self.assertEqual(len(logt), 3 * ntx * nty)
+        self.assertIn('0.0.membrane.V', logt)
+        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.membrane.V', logt)
+        self.assertIn('0.0.ica.Ca_i', logt)
+        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.Ca_i', logt)
+        self.assertIn('0.0.ica.ICa', logt)
+        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.ICa', logt)
 
 
 if __name__ == '__main__':
