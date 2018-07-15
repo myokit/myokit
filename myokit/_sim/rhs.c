@@ -53,7 +53,6 @@ tab = '    '
 # internal names
 bound_variables = model.prepare_bindings({
     'time' : 'engine_time',
-    'pace' : 'engine_pace',
     })
 
 # Get equations
@@ -66,7 +65,6 @@ equations = model.solvable_order()
 
 /* Declare variables */
 static double engine_time = 0;
-static double engine_pace = 0;
 <?
 for var in model.variables(deep=True):
     if var.is_literal():
@@ -136,7 +134,7 @@ static int
 log_extract(PyObject* data, const char* name, const int position, double* var)
 {
     // Get sequence from dict
-    PyObject* key = PyString_FromString(name);
+    PyObject* key = PyUnicode_FromString(name);
     if (!PyDict_Contains(data, key)) {
         Py_DECREF(key);
         // Raise exception
@@ -149,7 +147,7 @@ log_extract(PyObject* data, const char* name, const int position, double* var)
     Py_DECREF(key);
 
     // Get float from sequence
-    key = PyInt_FromLong(position);
+    key = PyLong_FromLong(position);
     PyObject* item = PySequence_GetItem(list, position); // New reference, decref
     if (item == NULL) {
         Py_DECREF(key);
@@ -366,7 +364,29 @@ static PyMethodDef SimMethods[] = {
 /*
  * Module definition
  */
-PyMODINIT_FUNC
-init<?=module_name?>(void) {
-    (void) Py_InitModule("<?= module_name ?>", SimMethods);
-}
+#if PY_MAJOR_VERSION >= 3
+
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "<?= module_name ?>",       /* m_name */
+        "Generated RHS Benchmarker module",   /* m_doc */
+        -1,                         /* m_size */
+        SimMethods,                 /* m_methods */
+        NULL,                       /* m_reload */
+        NULL,                       /* m_traverse */
+        NULL,                       /* m_clear */
+        NULL,                       /* m_free */
+    };
+
+    PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
+        return PyModule_Create(&moduledef);
+    }
+
+#else
+
+    PyMODINIT_FUNC
+    init<?=module_name?>(void) {
+        (void) Py_InitModule("<?= module_name ?>", SimMethods);
+    }
+
+#endif
