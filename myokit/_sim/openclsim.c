@@ -51,7 +51,7 @@ typedef <?= ('float' if precision == myokit.SINGLE_PRECISION else 'double') ?> R
 static int log_add(PyObject* log_dict, PyObject** logs, Real** vars, int i, char* name, const Real* var)
 {
     int added = 0;
-    PyObject* key = PyString_FromString(name);
+    PyObject* key = PyUnicode_FromString(name);
     if(PyDict_Contains(log_dict, key)) {
         logs[i] = PyDict_GetItem(log_dict, key);
         vars[i] = (Real*)var;
@@ -175,7 +175,7 @@ int n_field_data;       // The number of floats in the field data
 // (Unless you got it through PyList_GetItem or PyTuble_GetItem)
 PyObject* flt = NULL;               // PyFloat, various uses
 PyObject* ret = NULL;               // PyFloat, used as return value
-PyObject* list_update_str = NULL;   // PyString, used to call "append" method
+PyObject* list_update_str = NULL;   // PyUnicode, used to call "append" method
 
 /*
  * Cleans up after a simulation
@@ -847,7 +847,7 @@ print(4*tab + '}')
     #endif
 
     // Log update method:
-    list_update_str = PyString_FromString("append");
+    list_update_str = PyUnicode_FromString("append");
 
     // Store initial position in logs
     // Skipping!

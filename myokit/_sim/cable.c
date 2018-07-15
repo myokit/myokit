@@ -104,7 +104,7 @@ for var in model.variables(const=True, bound=False, deep=True):
 static int log_add(PyObject* data, PyObject** logs, double** vars, int i, char* name, const double* var)
 {
     int added = 0;
-    PyObject* key = PyString_FromString(name);
+    PyObject* key = PyUnicode_FromString(name);
     if (PyDict_Contains(data, key) == 1) {
         logs[i] = PyDict_GetItem(data, key); /* Borrowed reference */
         vars[i] = (double*)var;
@@ -155,7 +155,7 @@ ESys pacing;            /* Pacing system */
    (Unless you got it through PyList_GetItem or PyTuble_GetItem) */
 PyObject *flt;              /* PyFloat, various uses */
 PyObject *ret;              /* PyFloat, used as return value from python calls */
-PyObject *list_update_str;  /* PyString, ssed to call "append" method */
+PyObject *list_update_str;  /* PyUnicode, ssed to call "append" method */
 
 /*
  * Given a current state, this method calculates all diffusion currents, sets
@@ -368,7 +368,7 @@ sim_init(PyObject *self, PyObject *args)
     dt_min = 1e-2 * default_dt;
 
     /* Set up logging */
-    list_update_str = PyString_FromString("append");
+    list_update_str = PyUnicode_FromString("append");
     if (!PyDict_Check(log_dict)) {
         PyErr_SetString(PyExc_Exception, "Log argument must be a dict.");
         return sim_clean();

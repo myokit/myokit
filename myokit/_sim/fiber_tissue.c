@@ -59,7 +59,7 @@ void pyprint(const char* text)
     r = PyObject_CallMethod(o, "write", "s", text);
     Py_XDECREF(r);
     Py_XDECREF(o);
-    Py_XDECREF(s);    
+    Py_XDECREF(s);
 }
 
 /*
@@ -77,7 +77,7 @@ void pyprint(const char* text)
 static int log_add(PyObject* log_dict, PyObject** logs, Real** vars, int i, char* name, const Real* var)
 {
     int added = 0;
-    PyObject* key = PyString_FromString(name);
+    PyObject* key = PyUnicode_FromString(name);
     if(PyDict_Contains(log_dict, key)) {
         logs[i] = PyDict_GetItem(log_dict, key);
         vars[i] = (Real*)var;
@@ -174,7 +174,7 @@ double engine_pace = 0;
 
 // OpenCL work group sizes
 size_t local_work_size_f[2];
-size_t local_work_size_t[2];  
+size_t local_work_size_t[2];
 // Total number of work items rounded up to a multiple of the local size
 size_t global_work_size_f[2];
 size_t global_work_size_t[2];
@@ -214,7 +214,7 @@ int n_inter_t;          // The number of unique intermediary variables logged
 // (Unless you got it through PyList_GetItem or PyTuble_GetItem)
 PyObject* flt;              // PyFloat, various uses
 PyObject* ret;              // PyFloat, used as return value
-PyObject* list_update_str;  // PyString, used to call "append" method
+PyObject* list_update_str;  // PyUnicode, used to call "append" method
 
 /*
  * Cleans up after a simulation
@@ -227,11 +227,11 @@ sim_clean()
         #ifdef MYOKIT_DEBUG
         printf("Cleaning.\n");
         #endif
-        
-        // Wait for any remaining commands to finish        
+
+        // Wait for any remaining commands to finish
         clFlush(command_queue);
         clFinish(command_queue);
-    
+
         // Decref all opencl objects (ignore errors due to null pointers)
         clReleaseMemObject(mbuf_state_f); mbuf_state_f = NULL;
         clReleaseMemObject(mbuf_state_t); mbuf_state_t = NULL;
@@ -248,10 +248,10 @@ sim_clean()
         clReleaseProgram(program_t); program_t = NULL;
         clReleaseCommandQueue(command_queue); command_queue = NULL;
         clReleaseContext(context); context = NULL;
-        
+
         // Free pacing system memory
         ESys_Destroy(pacing); pacing = NULL;
-        
+
         // Free dynamically allocated arrays
         free(rvec_state_f); rvec_state_f = NULL;
         free(rvec_state_t); rvec_state_t = NULL;
@@ -263,10 +263,10 @@ sim_clean()
         free(logs_t); logs_t = NULL;
         free(vars_f); vars_f = NULL;
         free(vars_t); vars_t = NULL;
-        
+
         // No longer need update string
         Py_XDECREF(list_update_str); list_update_str = NULL;
-        
+
         // No longer running
         running = 0;
     }
@@ -275,7 +275,7 @@ sim_clean()
         printf("Skipping cleaning: not running!");
     }
     #endif
-    
+
     // Return 0, allowing the construct
     //  PyErr_SetString(PyExc_Exception, "Oh noes!");
     //  return sim_clean()
@@ -310,7 +310,7 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "Simulation already initialized.");
         return 0;
     }
-    
+
     // Set all pointers used by sim_clean to null
     list_update_str = NULL;
     command_queue = NULL;
@@ -373,7 +373,7 @@ sim_init(PyObject* self, PyObject* args)
             &log_interval,
             &inter_log_f,
             &inter_log_t
-            )) {           
+            )) {
         PyErr_SetString(PyExc_Exception, "Wrong number of arguments.");
         // Nothing allocated yet, no pyobjects _created_, return directly
         return 0;
@@ -401,20 +401,20 @@ sim_init(PyObject* self, PyObject* args)
         sprintf(buffer2, "Using device: %s\n", buffer);
         pyprint(buffer2);
     */
-        
+
     // Now officialy running :)
     running = 1;
-    
+
     ///////////////////////////////////////////////////////////////////////////
     //
     // From this point on, use "return sim_clean()" to abort.
     //
     //
-    
+
     int i, j, k;
-    
+
     //
-    // Check state in and out lists 
+    // Check state in and out lists
     //
     if(!PyList_Check(state_in_f)) {
         PyErr_SetString(PyExc_Exception, "'state_in_f' must be a list.");
@@ -431,15 +431,15 @@ sim_init(PyObject* self, PyObject* args)
     if(!PyList_Check(state_out_t)) {
         PyErr_SetString(PyExc_Exception, "'state_out_t' must be a list.");
         return sim_clean();
-    }    
+    }
     if(PyList_Size(state_in_f) != nfx * nfy * n_state_f) {
         PyErr_SetString(PyExc_Exception, "'state_in_f' must have size nfx * nfy * n_states_f.");
         return sim_clean();
-    }    
+    }
     if(PyList_Size(state_in_t) != ntx * nty * n_state_t) {
         PyErr_SetString(PyExc_Exception, "'state_in_t' must have size ntx * nty * n_states_t.");
         return sim_clean();
-    }    
+    }
     if(PyList_Size(state_out_f) != nfx * nfy * n_state_f) {
         PyErr_SetString(PyExc_Exception, "'state_out_f' must have size nfx * nfy * n_states_f.");
         return sim_clean();
@@ -448,7 +448,7 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "'state_out_t' must have size ntx * nty * n_states_t.");
         return sim_clean();
     }
-    
+
     //
     // Check inter_log lists of intermediary variables to log
     //
@@ -462,7 +462,7 @@ sim_init(PyObject* self, PyObject* args)
         return sim_clean();
     }
     n_inter_t = PyList_Size(inter_log_t);
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Checked input and output states.\n");
     #endif
@@ -480,13 +480,13 @@ sim_init(PyObject* self, PyObject* args)
     tnext_pace = ESys_GetNextTime(pacing, NULL);
     engine_pace = ESys_GetLevel(pacing, NULL);
     arg_pace = (Real)engine_pace;
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Set up pacing system.\n");
     #endif
-    
+
     //
-    // Set simulation starting time 
+    // Set simulation starting time
     //
     engine_time = tmin;
     arg_time = (Real)engine_time;
@@ -494,7 +494,7 @@ sim_init(PyObject* self, PyObject* args)
     //
     // Create opencl environment
     //
-    
+
     // Work group size and total number of items
     // TODO: Check against CL_DEVICE_MAX_WORK_GROUP_SIZE in clDeviceGetInfo
     local_work_size_f[0] = nfx < 8 ? nfx : 8;
@@ -507,16 +507,16 @@ sim_init(PyObject* self, PyObject* args)
     global_work_size_t[1] = mcl_round_total_size(local_work_size_t[1], nty);
     local_work_size_ft = nfy < 8 ? nfy : 8;
     global_work_size_ft = mcl_round_total_size(local_work_size_ft, nfy);
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Local and global work sizes set.\n");
     #endif
-    
+
     // Create state vectors, set initial values
     dsize_state_f = nfx * nfy * n_state_f * sizeof(Real);
-    rvec_state_f = (Real*)malloc(dsize_state_f);    
+    rvec_state_f = (Real*)malloc(dsize_state_f);
     for(i=0; i < nfx * nfy * n_state_f; i++) {
-        flt = PyList_GetItem(state_in_f, i);    // Don't decref! 
+        flt = PyList_GetItem(state_in_f, i);    // Don't decref!
         if(!PyFloat_Check(flt)) {
             char errstr[200];
             sprintf(errstr, "Item %d in fiber state vector is not a float.", i);
@@ -528,9 +528,9 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG
     printf("Created fiber state vector, set initial values.\n");
     #endif
-    
+
     dsize_state_t = ntx * nty * n_state_t * sizeof(Real);
-    rvec_state_t = (Real*)malloc(dsize_state_t);    
+    rvec_state_t = (Real*)malloc(dsize_state_t);
     for(i=0; i < ntx * nty * n_state_t; i++) {
         flt = PyList_GetItem(state_in_t, i);
         if(!PyFloat_Check(flt)) {
@@ -544,7 +544,7 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG
     printf("Created tissue state vector, set initial values.\n");
     #endif
-    
+
     // Create diffusion current vectors, set initial values
     dsize_idiff_f = nfx * nfy * sizeof(Real);
     dsize_idiff_t = ntx * nty * sizeof(Real);
@@ -552,11 +552,11 @@ sim_init(PyObject* self, PyObject* args)
     rvec_idiff_t = (Real*)malloc(dsize_idiff_t);
     for(i=0; i < nfx * nfy; i++) rvec_idiff_f[i] = 0.0;
     for(i=0; i < ntx * nty; i++) rvec_idiff_t[i] = 0.0;
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Created diffusion vectors.\n");
     #endif
-    
+
     // Create intermediary variable logging vectors
     dsize_inter_log_f = nfx * nfy * n_inter_f * sizeof(Real);
     dsize_inter_log_t = ntx * nty * n_inter_t * sizeof(Real);
@@ -567,10 +567,10 @@ sim_init(PyObject* self, PyObject* args)
     rvec_inter_log_t = (Real*)malloc(dsize_inter_log_t);
     for(i=0; i < nfx * nfy * n_inter_f; i++) rvec_inter_log_f[i] = 0.0;
     for(i=0; i < ntx * nty * n_inter_t; i++) rvec_inter_log_t[i] = 0.0;
-    
+
     // Unused heterogeneity vector
     dsize_field_data = sizeof(Real);
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Created intermediary variable logging vectors.\n");
     #endif
@@ -605,7 +605,7 @@ sim_init(PyObject* self, PyObject* args)
         #ifdef MYOKIT_DEBUG
         printf("Creating context with context_properties\n");
         #endif
-        cl_context_properties context_properties[] = 
+        cl_context_properties context_properties[] =
             { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0};
         context = clCreateContext(context_properties, 1, &device_id, NULL, NULL, &flag);
     } else {
@@ -621,8 +621,8 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(flag)) return sim_clean();
     #ifdef MYOKIT_DEBUG
     printf("Created command queue.\n");
-    #endif  
-        
+    #endif
+
     // Create memory buffers on the device
     mbuf_state_f = clCreateBuffer(context, CL_MEM_READ_WRITE, dsize_state_f, NULL, &flag);
     if(mcl_flag(flag)) return sim_clean();
@@ -640,7 +640,7 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(flag)) return sim_clean();
     #ifdef MYOKIT_DEBUG
     printf("Created buffers.\n");
-    #endif  
+    #endif
 
     // Copy data into buffers
     flag = clEnqueueWriteBuffer(command_queue, mbuf_state_f, CL_TRUE, 0, dsize_state_f, rvec_state_f, 0, NULL, NULL);
@@ -658,7 +658,7 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG
     printf("Enqueued copying of data into buffers.\n");
     #endif
-    
+
     // Load and compile the tissue kernel
     #ifdef MYOKIT_DEBUG
     printf("Building fiber program on device...");
@@ -683,7 +683,7 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG
     printf("done\n");
     #endif
-    
+
     // Repeat for tissue program
     #ifdef MYOKIT_DEBUG
     printf("Building tissue program on device...");
@@ -708,7 +708,7 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG
     printf("done\n");
     #endif
-    
+
     // Create the kernels
     kernel_cell_f = clCreateKernel(program_f, "cell_step", &flag);
     if(mcl_flag(flag)) return sim_clean();
@@ -742,8 +742,8 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_diff_f, i++, sizeof(arg_gfx), &arg_gfx))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_f, i++, sizeof(arg_gfy), &arg_gfy))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_f, i++, sizeof(mbuf_state_f), &mbuf_state_f))) return sim_clean();
-    if(mcl_flag(clSetKernelArg(kernel_diff_f, i++, sizeof(mbuf_idiff_f), &mbuf_idiff_f))) return sim_clean();    
-    
+    if(mcl_flag(clSetKernelArg(kernel_diff_f, i++, sizeof(mbuf_idiff_f), &mbuf_idiff_f))) return sim_clean();
+
     i = 0;
     if(mcl_flag(clSetKernelArg(kernel_cell_t, i++, sizeof(ntx), &ntx))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_cell_t, i++, sizeof(nty), &nty))) return sim_clean();
@@ -762,7 +762,7 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_diff_t, i++, sizeof(arg_gty), &arg_gty))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_t, i++, sizeof(mbuf_state_t), &mbuf_state_t))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_t, i++, sizeof(mbuf_idiff_t), &mbuf_idiff_t))) return sim_clean();
-    
+
     // Set indices of coupled cell indexes in state and diff vectors
     int nsf = n_state_f;
     int nst = n_state_t;
@@ -780,11 +780,11 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_diff_ft, 11, sizeof(mbuf_state_t), &mbuf_state_t))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_ft, 12, sizeof(mbuf_idiff_f), &mbuf_idiff_f))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_ft, 13, sizeof(mbuf_idiff_t), &mbuf_idiff_t))) return sim_clean();
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Arguments passed into kernels.\n");
     #endif
-    
+
     //
     // Set up logging system
     //
@@ -800,9 +800,9 @@ sim_init(PyObject* self, PyObject* args)
     n_vars_f = PyDict_Size(log_dict_f);
     n_vars_t = PyDict_Size(log_dict_t);
     logs_f = (PyObject**)malloc(sizeof(PyObject*)*n_vars_f); // Pointers to logging lists
-    logs_t = (PyObject**)malloc(sizeof(PyObject*)*n_vars_t); 
+    logs_t = (PyObject**)malloc(sizeof(PyObject*)*n_vars_t);
     vars_f = (Real**)malloc(sizeof(Real*)*n_vars_f); // Pointers to variables to log
-    vars_t = (Real**)malloc(sizeof(Real*)*n_vars_t); 
+    vars_t = (Real**)malloc(sizeof(Real*)*n_vars_t);
 
     char log_var_name[1023];    // Variable names
     int k_vars = 0;             // Counting number of variables in log
@@ -831,7 +831,7 @@ if var is not None:
 ?>
         }
     }
-    
+
     // States (fiber)
     logging_states_f = 0;
     for(i=0; i<nfy; i++) {
@@ -846,7 +846,7 @@ for var in modelf.states():
 ?>
         }
     }
-    
+
     // Intermediary variables (fiber)
     logging_inters_f = 0;
     for(i=0; i<nfy; i++) {
@@ -870,14 +870,14 @@ print(4*tab + '}')
         PyErr_SetString(PyExc_Exception, "Unknown variables found in fiber logging dictionary.");
         return sim_clean();
     }
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Created log for %d fiber variables.\n", n_vars_f);
     #endif
-    
+
     // Now set up tissue logging
     k_vars = 0;
-    
+
     // Time and pacing are set globally (tissue)
 <?
 var = modelt.time()
@@ -902,7 +902,7 @@ if var is not None:
 ?>
         }
     }
-    
+
     // States (tissue)
     logging_states_t = 0;
     for(i=0; i<nty; i++) {
@@ -917,7 +917,7 @@ for var in modelt.states():
 ?>
         }
     }
-    
+
     // Intermediary variables (tissue)
     logging_inters_t = 0;
     for(i=0; i<nty; i++) {
@@ -941,17 +941,17 @@ print(4*tab + '}')
         PyErr_SetString(PyExc_Exception, "Unknown variables found in tissue logging dictionary.");
         return sim_clean();
     }
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Created log for %d tissue variables.\n", n_vars_t);
-    #endif  
+    #endif
 
     // Log update method:
-    list_update_str = PyString_FromString("append");
-    
+    list_update_str = PyUnicode_FromString("append");
+
     // Store initial position in logs
     // Skipping!
-    
+
     // Next logging position: current time
     inext_log = 0;
     tnext_log = tmin;
@@ -961,10 +961,10 @@ print(4*tab + '}')
     //
     #ifdef MYOKIT_DEBUG
     printf("Finished initialization.\n");
-    #endif    
+    #endif
     Py_RETURN_NONE;
 }
-    
+
 /*
  * Takes the next steps in a simulation run
  */
@@ -977,9 +977,9 @@ sim_step(PyObject *self, PyObject *args)
     cl_int flag;
     int i;
     double d = 0;
-    
+
     while(1) {
-        
+
         // Determine next timestep
         // Ensure next pacing event is simulated
         dt = default_dt;
@@ -987,7 +987,7 @@ sim_step(PyObject *self, PyObject *args)
         d = tnext_pace - engine_time; if(d > dt_min && d < dt) dt = d;
         d = tnext_log - engine_time; if(d > dt_min && d < dt) dt = d;
         arg_dt = (Real)dt;
-    
+
         // Update cells, advancing them to t+dt
         if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff_f, 2, NULL, global_work_size_f, local_work_size_f, 0, NULL, NULL))) return sim_clean();
         if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff_t, 2, NULL, global_work_size_t, local_work_size_t, 0, NULL, NULL))) return sim_clean();
@@ -1000,11 +1000,11 @@ sim_step(PyObject *self, PyObject *args)
         if(mcl_flag(clSetKernelArg(kernel_cell_t, 3, sizeof(Real), &arg_dt))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cell_t, 4, sizeof(Real), &arg_pace))) return sim_clean();
         if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_cell_t, 2, NULL, global_work_size_t, local_work_size_t, 0, NULL, NULL))) return sim_clean();
-        
+
         // Update time, advancing it to t+dt
         engine_time += dt;
         arg_time = (Real)engine_time;
-        
+
         // Advance pacing mechanism, advancing it to t+dt
         flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
         if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
@@ -1015,14 +1015,14 @@ sim_step(PyObject *self, PyObject *args)
         // Check if we're finished
         // Do this *before* logging (half-open interval rule)
         if(engine_time >= tmax || halt_sim) break;
-        
+
         // Log new situation at t+dt
         if(engine_time >= tnext_log) {
             if(logging_states_f) {
                 flag = clEnqueueReadBuffer(command_queue, mbuf_state_f, CL_TRUE, 0, dsize_state_f, rvec_state_f, 0, NULL, NULL);
                 if(mcl_flag(flag)) return sim_clean();
                 if(isnan(rvec_state_f[0])) { halt_sim = 1; }
-            }   
+            }
             if(logging_states_t) {
                 flag = clEnqueueReadBuffer(command_queue, mbuf_state_t, CL_TRUE, 0, dsize_state_t, rvec_state_t, 0, NULL, NULL);
                 if(mcl_flag(flag)) return sim_clean();
@@ -1067,7 +1067,7 @@ sim_step(PyObject *self, PyObject *args)
                 }
             }
             ret = NULL;
-            
+
             // Set next logging point
             inext_log++;
             tnext_log = tmin + (double)inext_log * log_interval;
@@ -1077,7 +1077,7 @@ sim_step(PyObject *self, PyObject *args)
                 return sim_clean();
             }
         }
-                
+
         // Report back to python
         if(--steps_left_in_run == 0) {
             // Clear some memory
@@ -1103,18 +1103,18 @@ sim_step(PyObject *self, PyObject *args)
     for(i=0; i<ntx*nty*n_state_t; i++) {
         PyList_SetItem(state_out_t, i, PyFloat_FromDouble(rvec_state_t[i]));
     }
-    
+
     #ifdef MYOKIT_DEBUG
     printf("Final state copied.\n");
     printf("Tyding up...\n");
-    #endif  
+    #endif
 
     // Finish any remaining commands (shouldn't happen)
     clFlush(command_queue);
     clFinish(command_queue);
 
     sim_clean();    // Ignore return value
-    
+
     if (halt_sim) {
         #ifdef MYOKIT_DEBUG
         printf("Finished tidiying up, ending simulation with nan.\n");
@@ -1123,7 +1123,7 @@ sim_step(PyObject *self, PyObject *args)
     } else {
         #ifdef MYOKIT_DEBUG
         printf("Finished tidiying up, ending simulation.\n");
-        #endif  
+        #endif
         return PyFloat_FromDouble(engine_time);
     }
 }
