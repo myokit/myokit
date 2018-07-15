@@ -14,6 +14,7 @@ import sys
 import xml.dom
 import textwrap
 
+# HTML Parser in Python 2 and 3
 try:
     from HTMLParser import HTMLParser
 except ImportError:
@@ -84,7 +85,7 @@ def html2ascii(html, width=79, indent='  '):
             if sys.hexversion < 0x03000000:
                 # Create HTMLParser with old-school constructor
                 HTMLParser.__init__(self)
-            else:
+            else:   # pragma: no python 2 cover
                 # Python 3:
                 super(Asciifier, self).__init__(convert_charrefs=False)
 

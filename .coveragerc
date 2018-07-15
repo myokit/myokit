@@ -14,7 +14,7 @@ omit =
 exclude_lines =
     pragma: no cover
     pragma: no linux cover
-    pragma: no py2 cover
+    pragma: no python 2 cover
     def __repr__
     raise AssertionError
     raise NotImplementedError

@@ -36,16 +36,14 @@ from myokit.gui import Qt, QtCore, QtGui, QtWidgets
 
 # ConfigParser in Python 2 and 3
 try:
-    # Python2
     from ConfigParser import ConfigParser
 except ImportError:
-    # Python 3
     from configparser import RawConfigParser as ConfigParser
 
 # Strings in Python 2 and 3
 try:
     basestring
-except NameError:   # pragma: no cover
+except NameError:   # pragma: no python 2 cover
     basestring = str
 
 
@@ -243,7 +241,7 @@ class DocumentNode(QtCore.QObject):
         action = DA_AddVariable(self, vtype, name, value)
         return self.get_document()._perform(action)
 
-    def __bool__(self):     # pragma: no py2 cover
+    def __bool__(self):     # pragma: no python 2 cover
         """
         Python 3 equivalent of :meth:`__nonzero__()`.
         """

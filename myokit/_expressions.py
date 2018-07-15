@@ -25,7 +25,7 @@ except ImportError:
 # Strings in Python 2 and 3
 try:
     basestring
-except NameError:   # pragma: no cover
+except NameError:   # pragma: no python 2 cover
     basestring = str
 
 # Expression precedence levels
@@ -73,7 +73,7 @@ class Expression(object):
         for op in self._operands:
             self._references |= op._references
 
-    def __bool__(self):     # pragma: no py2 cover
+    def __bool__(self):     # pragma: no python 2 cover
         """ Python 3 method to determine the outcome of "if expression". """
         return True
 
