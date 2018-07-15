@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 
 # Library imports
 import os
+import sys
 import imp
 import shutil
 import platform
@@ -125,7 +126,6 @@ class CModule(object):
             #TODO
             with myokit.SubCapture() as s:
                 # TODO
-                import sys
                 if sys.hexversion >= 0x03000000:    # pragma: no cover
                     s.disable()
                 # TODO
@@ -142,14 +142,11 @@ class CModule(object):
                         ])
                 except (Exception, SystemExit) as e:
                     s.disable()
-                    t = [
-                        'Unable to compile.',
-                        'Error message:',
-                        '    ' + str(e),
-                        'Error traceback',
-                        traceback.format_exc(),
-                        'Compiler output:',
-                    ]
+                    t = ['Unable to compile.', 'Error message:']
+                    t.append(str(e))
+                    t.append('Error traceback')
+                    t.append(traceback.format_exc())
+                    t.append('Compiler output:')
                     captured = s.text().strip()
                     t.extend(['    ' + x for x in captured.splitlines()])
                     raise myokit.CompilationError('\n'.join(t))

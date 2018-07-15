@@ -92,9 +92,9 @@ equations = model.solvable_order()
 
 #define N_STATE <?= model.count_states() ?>
 
-// Pacing
-ESys epacing;               // Event-based pacing system
-FSys fpacing;               // Fixed-form pacing system
+/* Pacing */
+ESys epacing;               /* Event-based pacing system */
+FSys fpacing;               /* Fixed-form pacing system */
 
 /*
  * Check sundials flags, set python error
@@ -109,13 +109,13 @@ static int
 check_cvode_flag(void *flagvalue, char *funcname, int opt)
 {
     if (opt == 0 && flagvalue == NULL) {
-        // Check if sundials function returned null pointer
+        /* Check if sundials function returned null pointer */
         char str[200];
         sprintf(str, "%s() failed - returned NULL pointer", funcname);
         PyErr_SetString(PyExc_Exception, str);
         return 1;
     } else if (opt == 1) {
-        // Check if flag < 0
+        /* Check if flag < 0 */
         int flag = *((int*)flagvalue);
         if (flag < 0) {
             if (strcmp(funcname, "CVode") == 0) {
@@ -181,8 +181,8 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -27 CV_TOO_CLOSE: The output and initial times are too close to each other.");
                     break;
                 default: {
-                     // Note: Brackets are required here, default: should be followed by
-                     // a _statement_ and char str[200]; is technically not a statement...
+                     /* Note: Brackets are required here, default: should be followed by
+                        a _statement_ and char str[200]; is technically not a statement... */
                     char str[200];
                     sprintf(str, "Function CVode() failed with unknown flag = %d", flag);
                     PyErr_SetString(PyExc_Exception, str);
@@ -201,8 +201,8 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
 /*
  * Declare intermediary, temporary and system variables
  */
-static realtype engine_time = 0;        // Engine time
-static realtype engine_time_last = 0;   // Previous engine time
+static realtype engine_time = 0;        /* Engine time */
+static realtype engine_time_last = 0;   /* Previous engine time */
 static realtype engine_pace = 0;
 static realtype engine_realtime = 0;
 static realtype engine_starttime = 0;
@@ -235,19 +235,19 @@ for label, eqs in equations.items():
 static int
 rhs(realtype t, N_Vector y, N_Vector ydot, void *f_data)
 {
-    // Fixed-form pacing? Then look-up correct value of pacing variable!
+    /* Fixed-form pacing? Then look-up correct value of pacing variable! */
     FSys_Flag flag_fpacing;
     if (fpacing != NULL) {
         engine_pace = FSys_GetLevel(fpacing, t, &flag_fpacing);
-        if (flag_fpacing != FSys_OK) { // This should never happen
+        if (flag_fpacing != FSys_OK) { /* This should never happen */
             FSys_SetPyErr(flag_fpacing);
-            return -1;  // Negative value signals irrecoverable error to CVODE
+            return -1;  /* Negative value signals irrecoverable error to CVODE */
         }
     }
 <?
 for label, eqs in equations.items():
     if eqs.has_equations(const=False):
-        print(tab + '// ' + label)
+        print(tab + '/* ' + label + ' */')
         for eq in eqs.equations(const=False):
             var = eq.lhs.var()
             try:
@@ -302,10 +302,10 @@ root_finding(realtype t, N_Vector y, realtype *gout, void *f_data)
 /*
  * Settings
  */
-static double abs_tol = 1e-6; // The absolute tolerance
-static double rel_tol = 1e-4; // The relative tolerance
-static double dt_max = 0;     // The maximum step size (0.0 for none)
-static double dt_min = 0;     // The minimum step size (0.0 for none)
+static double abs_tol = 1e-6; /* The absolute tolerance */
+static double rel_tol = 1e-4; /* The relative tolerance */
+static double dt_max = 0;     /* The maximum step size (0.0 for none) */
+static double dt_min = 0;     /* The minimum step size (0.0 for none) */
 
 /*
  * Change the tolerance settings
@@ -313,7 +313,7 @@ static double dt_min = 0;     // The minimum step size (0.0 for none)
 static PyObject*
 sim_set_tolerance(PyObject *self, PyObject *args)
 {
-    // Check input arguments
+    /* Check input arguments */
     double tabs, trel;
     if (!PyArg_ParseTuple(args, "dd", &tabs, &trel)) {
         PyErr_SetString(PyExc_Exception, "Expected input arguments: abs_tol(float), rel_tol(float).");
@@ -330,7 +330,7 @@ sim_set_tolerance(PyObject *self, PyObject *args)
 static PyObject*
 sim_set_max_step_size(PyObject *self, PyObject *args)
 {
-    // Check input arguments
+    /* Check input arguments */
     double tmax;
     if (!PyArg_ParseTuple(args, "d", &tmax)) {
         PyErr_SetString(PyExc_Exception, "Expected input argument: tmax(float).");
@@ -346,7 +346,7 @@ sim_set_max_step_size(PyObject *self, PyObject *args)
 static PyObject*
 sim_set_min_step_size(PyObject *self, PyObject *args)
 {
-    // Check input arguments
+    /* Check input arguments */
     double tmin;
     if (!PyArg_ParseTuple(args, "d", &tmin)) {
         PyErr_SetString(PyExc_Exception, "Expected input argument: tmin(float).");
@@ -362,7 +362,7 @@ sim_set_min_step_size(PyObject *self, PyObject *args)
 static int
 log_add(PyObject* log_dict, PyObject** logs, realtype** vars, int i, const char* name, const realtype* var)
 {
-    // See first use of log_add for notes on unicode
+    /* See first use of log_add for notes on unicode */
     int added = 0;
     PyObject* key = PyUnicode_FromString(name);
     if (PyDict_Contains(log_dict, key)) {
@@ -378,54 +378,54 @@ log_add(PyObject* log_dict, PyObject** logs, realtype** vars, int i, const char*
  * Simulation variables
  */
 
-int running = 0;        // Running yes or no
+int running = 0;        /* Running yes or no */
 
-// Input arguments
-double tmin;            // The initial simulation time
-double tmax;            // The final simulation time
-PyObject* state_in;     // The initial state
-PyObject* state_out;    // The final state
-PyObject* inputs;       // A vector used to return the binding inputs` values
-PyObject* eprotocol;    // An event-based pacing protocol
-PyObject* fprotocol;    // A fixed-form pacing protocol
-PyObject* log_dict;     // The log dict
-double log_interval;    // Periodic logging: The log interval (0 to disable)
-PyObject* log_times;    // Point-list logging: List of points (None to disable)
-PyObject* root_list;    // Empty list if root finding should be used
-double root_threshold;  // Threshold to use for root finding
-PyObject* benchtime;    // Callable time() function or None
+/* Input arguments */
+double tmin;            /* The initial simulation time */
+double tmax;            /* The final simulation time */
+PyObject* state_in;     /* The initial state */
+PyObject* state_out;    /* The final state */
+PyObject* inputs;       /* A vector used to return the binding inputs` values */
+PyObject* eprotocol;    /* An event-based pacing protocol */
+PyObject* fprotocol;    /* A fixed-form pacing protocol */
+PyObject* log_dict;     /* The log dict */
+double log_interval;    /* Periodic logging: The log interval (0 to disable) */
+PyObject* log_times;    /* Point-list logging: List of points (None to disable) */
+PyObject* root_list;    /* Empty list if root finding should be used */
+double root_threshold;  /* Threshold to use for root finding */
+PyObject* benchtime;    /* Callable time() function or None */
 
-// Next simulation halting point
+/* Next simulation halting point */
 double tnext;
 
-// Checking for repeated zero size steps
+/* Checking for repeated zero size steps */
 int zero_step_count;
-int max_zero_step_count = 500;   // Increased this from 50
+int max_zero_step_count = 500;   /* Increased this from 50 */
 
-// CVode objects
-void *cvode_mem;     // The memory used by the solver
-N_Vector y;          // Stores the current position y
-N_Vector y_log;      // Used to store y when logging
-N_Vector dy_log;     // Used to store dy when logging
-N_Vector y_last;     // Used to store previous value of y for error handling
+/* CVode objects */
+void *cvode_mem;     /* The memory used by the solver */
+N_Vector y;          /* Stores the current position y */
+N_Vector y_log;      /* Used to store y when logging */
+N_Vector dy_log;     /* Used to store dy when logging */
+N_Vector y_last;     /* Used to store previous value of y for error handling */
 #if MYOKIT_SUNDIALS_VERSION >= 30000
 SUNMatrix sundense_matrix;          /* Dense matrix for linear solves */
 SUNLinearSolver sundense_solver;    /* Linear solver object */
 #endif
 
-// Root finding
-int* rootsfound;     // Used to store found roots
+/* Root finding */
+int* rootsfound;     /* Used to store found roots */
 
-// Logging
-PyObject** logs;            // An array of pointers to a PyObject
-realtype** vars;            // An array of pointers to realtype
-int n_vars;                 // Number of logging variables
-int log_bound;              // True if logging bound variables
-int log_inter;              // True if logging intermediary variables
-int log_deriv;              // True if logging derivatives
-PyObject* list_update_str;  // PyUnicode, used to call "append" method
-Py_ssize_t ilog;             // Periodic/point-list logging: Index of next point
-double tlog;                // Periodic/point-list logging: Next point
+/* Logging */
+PyObject** logs;            /* An array of pointers to a PyObject */
+realtype** vars;            /* An array of pointers to realtype */
+int n_vars;                 /* Number of logging variables */
+int log_bound;              /* True if logging bound variables */
+int log_inter;              /* True if logging intermediary variables */
+int log_deriv;              /* True if logging derivatives */
+PyObject* list_update_str;  /* PyUnicode, used to call "append" method */
+Py_ssize_t ilog;            /* Periodic/point-list logging: Index of next point */
+double tlog;                /* Periodic/point-list logging: Next point */
 
 /*
  * Cleans up after a simulation
@@ -434,15 +434,15 @@ static PyObject*
 sim_clean()
 {
     if (running != 0) {
-        // Done with str="append", decref it
+        /* Done with str="append", decref it */
         Py_XDECREF(list_update_str); list_update_str = NULL;
 
-        // Free allocated space
+        /* Free allocated space */
         free(vars); vars = NULL;
         free(logs); logs = NULL;
         free(rootsfound); rootsfound = NULL;
 
-        // Free CVode space
+        /* Free CVode space */
         N_VDestroy_Serial(y); y = NULL;
         N_VDestroy_Serial(dy_log); dy_log = NULL;
         if (log_interval > 0 || log_times != Py_None) {
@@ -455,18 +455,18 @@ sim_clean()
         SUNMatDestroy(sundense_matrix); sundense_matrix = NULL;
         #endif
 
-        // Free pacing system space
+        /* Free pacing system space */
         ESys_Destroy(epacing); epacing = NULL;
         FSys_Destroy(fpacing); fpacing = NULL;
 
-        // No longer running
+        /* No longer running */
         running = 0;
     }
 
-    // Return 0, allowing the construct
-    //  PyErr_SetString(PyExc_Exception, "Oh noes!");
-    //  return sim_clean()
-    // to terminate a python function.
+    /* Return 0, allowing the construct
+        PyErr_SetString(PyExc_Exception, "Oh noes!");
+        return sim_clean()
+       to terminate a python function. */
     return 0;
 }
 static PyObject*
@@ -495,17 +495,17 @@ sim_init(PyObject *self, PyObject *args)
 
     #ifndef SUNDIALS_DOUBLE_PRECISION
     PyErr_SetString(PyExc_Exception, "Sundials must be compiled with double precision.");
-    // No memory freeing is needed here, return directly
+    /* No memory freeing is needed here, return directly */
     return 0;
     #endif
 
-    // Check if already running
+    /* Check if already running */
     if (running != 0) {
         PyErr_SetString(PyExc_Exception, "Simulation already initialized.");
         return 0;
     }
 
-    // Set all pointers used in sim_clean to null
+    /* Set all pointers used in sim_clean to null */
     list_update_str = NULL;
     vars = NULL;
     logs = NULL;
@@ -518,7 +518,7 @@ sim_init(PyObject *self, PyObject *args)
     fpacing = NULL;
     log_times = NULL;
 
-    // Check input arguments
+    /* Check input arguments */
     if (!PyArg_ParseTuple(args, "ddOOOOOOdOOdO",
             &tmin,
             &tmax,
@@ -534,11 +534,11 @@ sim_init(PyObject *self, PyObject *args)
             &root_threshold,
             &benchtime)) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
-        // Nothing allocated yet, no pyobjects _created_, return directly
+        /* Nothing allocated yet, no pyobjects _created_, return directly */
         return 0;
     }
 
-    // Now officialy running :)
+    /* Now officialy running :) */
     running = 1;
 
     /*************************************************************************
@@ -590,30 +590,30 @@ sim_init(PyObject *self, PyObject *args)
        steals ownership: No need to decref.
     */
 
-    // Create state vector
+    /* Create state vector */
     y = N_VNew_Serial(N_STATE);
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         return sim_clean();
     }
 
-    // Create state vector copy for error handling
+    /* Create state vector copy for error handling */
     y_last = N_VNew_Serial(N_STATE);
     if (check_cvode_flag((void*)y_last, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create last-state vector.");
         return sim_clean();
     }
 
-    // Create state vector for logging
+    /* Create state vector for logging */
     if (log_interval > 0 || log_times != Py_None) {
-        // Logging at fixed points: Keep y_log as a separate N_Vector
+        /* Logging at fixed points: Keep y_log as a separate N_Vector */
         y_log = N_VNew_Serial(N_STATE);
         if (check_cvode_flag((void*)y_log, "N_VNew_Serial", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to create logging state vector.");
             return sim_clean();
         }
     } else {
-        // Dynamic logging: Let y_log point to y
+        /* Dynamic logging: Let y_log point to y */
         y_log = y;
     }
     dy_log = N_VNew_Serial(N_STATE);
@@ -622,16 +622,16 @@ sim_init(PyObject *self, PyObject *args)
         return sim_clean();
     }
 
-    // Set calculated constants
+    /* Set calculated constants */
     updateConstants();
 
-    // Set initial values
+    /* Set initial values */
     if (!PyList_Check(state_in)) {
         PyErr_SetString(PyExc_Exception, "'state_in' must be a list.");
         return sim_clean();
     }
     for(i=0; i<N_STATE; i++) {
-        flt = PyList_GetItem(state_in, i);    // Don't decref!
+        flt = PyList_GetItem(state_in, i);    /* Don't decref! */
         if (!PyFloat_Check(flt)) {
             char errstr[200];
             sprintf(errstr, "Item %d in state vector is not a float.", i);
@@ -642,31 +642,31 @@ sim_init(PyObject *self, PyObject *args)
         NV_Ith_S(y_last, i) = NV_Ith_S(y, i);
     }
     if (log_interval > 0 || log_times != Py_None) {
-        // Periodic or point-list logging? Then set init state in y_log as well
+        /* Periodic or point-list logging? Then set init state in y_log as well */
         for(i=0; i<N_STATE; i++) {
             NV_Ith_S(y_log, i) = NV_Ith_S(y, i);
         }
     }
 
-    // Root finding list of integers (only contains 1 int...)
+    /* Root finding list of integers (only contains 1 int...) */
     rootsfound = (int*)malloc(sizeof(int)*1);
 
-    // Reset evaluation count
+    /* Reset evaluation count */
     engine_evaluations = 0;
 
-    // Reset step count
+    /* Reset step count */
     engine_steps = 0;
 
-    // Zero step tracking
+    /* Zero step tracking */
     zero_step_count = 0;
 
-    // Check output list
+    /* Check output list */
     if (!PyList_Check(state_out)) {
         PyErr_SetString(PyExc_Exception, "'state_out' must be a list.");
         return sim_clean();
     }
 
-    // Check for loss-of-precision issue in periodic logging
+    /* Check for loss-of-precision issue in periodic logging */
     if (log_interval > 0) {
         if (tmax + log_interval == tmax) {
             PyErr_SetString(PyExc_Exception, "Log interval is too small compared to tmax; issue with numerical precision: float(tmax + log_interval) = float(tmax).");
@@ -674,7 +674,7 @@ sim_init(PyObject *self, PyObject *args)
         }
     }
 
-    // Set up logging
+    /* Set up logging */
     log_inter = 0;
     log_bound = 0;
     n_vars = PyDict_Size(log_dict);
@@ -756,7 +756,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         fpacing = FSys_Create(&flag_fpacing);
         if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
         flag_fpacing = FSys_Populate(fpacing,
-            PyTuple_GetItem(fprotocol, 0),  // Borrowed, no decref
+            PyTuple_GetItem(fprotocol, 0),  /* Borrowed, no decref */
             PyTuple_GetItem(fprotocol, 1));
         if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
     }
@@ -777,12 +777,12 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
     if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
 
-    // Set a maximum step size (or 0.0 for none)
+    /* Set a maximum step size (or 0.0 for none) */
     if (dt_max < 0) dt_max = 0.0;
     flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
     if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
 
-    // Set a minimum step size (or 0.0 for none)
+    /* Set a minimum step size (or 0.0 for none) */
     if (dt_min < 0) dt_min = 0.0;
     flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
     if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();

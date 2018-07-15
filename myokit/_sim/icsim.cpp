@@ -374,10 +374,10 @@ for var in model.variables(deep=True, const=False):
             return sim_clean();
         }
 
-        // Always store initial position in logs
+        /* Always store initial position in logs */
         list_update_str = PyUnicode_FromString("append");
 
-        // Log variables
+        /* Log variables */
         for(i=0; i<n_vars; i++) {
             flt = PyFloat_FromDouble(vars[i]->value()); // Append doesn't steal
             ret = PyObject_CallMethodObjArgs(logs[i], list_update_str, flt, NULL);
@@ -390,7 +390,7 @@ for var in model.variables(deep=True, const=False):
         }
         ret = NULL;
 
-        // Log partial derivatives
+        /* Log partial derivatives */
         list = PyList_New(N_MATRIX);
         if (list == NULL) return sim_clean();
         for(i=0; i<N_STATE; i++) {

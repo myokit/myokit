@@ -139,10 +139,12 @@ class PyCapture(object):
     """
     def __init__(self, enabled=True):
         super(PyCapture, self).__init__()
-        # Genetic properties
+
+        # Generic properties
         self._enabled = enabled     # True if enabled
         self._capturing = False     # True if currently capturing
         self._captured = []         # Array to store captured strings in
+
         # Python specific properties
         self._stdout = None     # Original stdout
         self._stderr = None     # Original stderr
@@ -197,15 +199,19 @@ class PyCapture(object):
                 sys.stderr.flush()
             except AttributeError:  # pragma: no cover
                 pass
+
             # Save current sys stdout / stderr redirects, if any
             self._stdout = sys.stdout
             self._stderr = sys.stderr
+
             # Create temporary buffers
             self._dupout = StringIO()
             self._duperr = StringIO()
+
             # Re-route
             sys.stdout = self._dupout
             sys.stderr = self._duperr
+
             # Now we're capturing!
             self._capturing = True
 
@@ -218,14 +224,18 @@ class PyCapture(object):
             # Flush any remaining output to streams
             sys.stdout.flush()
             sys.stderr.flush()
+
             # Restore original stdout and stderr
             sys.stdout = self._stdout
             sys.stderr = self._stderr
+
             # Get captured output
             self._captured.append(self._dupout.getvalue())
             self._captured.append(self._duperr.getvalue())
+
             # Delete buffers
             self._dupout = self._duperr = None
+
             # No longer capturing
             self._capturing = False
 
@@ -236,7 +246,14 @@ class PyCapture(object):
         capturing = self._capturing
         if capturing:
             self._stop_capturing()
-        text = ''.join(self._captured)
+
+        if sys.hexversion >= 0x03000000:    # pragma: no cover
+            text = ''.join(self._captured)
+        else:   # pragma: no cover
+            # In Python 2, this needs to be decoded from ascii
+            text = ''.join(
+                [x.decode('ascii', 'ignore') for x in self._captured])
+
         if capturing:
             self._start_capturing()
         return text
@@ -272,24 +289,32 @@ class SubCapture(PyCapture):
                 sys.stderr.flush()
             except AttributeError:  # pragma: no cover
                 pass
+
             # Save any redirected output / error streams
             self._stdout = sys.stdout
             self._stderr = sys.stderr
+
             # Get file descriptors used for output and errors
             self._stdout_fd = sys.__stdout__.fileno()
             self._stderr_fd = sys.__stderr__.fileno()
+
             # If they're proper streams (so if not pythonw.exe), flush them
             if self._stdout_fd >= 0:
                 sys.stdout.flush()
             if self._stderr_fd >= 0:
                 sys.stderr.flush()
+
             # Create temporary files
-            self._file_out = tempfile.TemporaryFile()
-            self._file_err = tempfile.TemporaryFile()
+            # Make sure this isn't opened in binary mode, and specify +
+            # for reading and writing.
+            self._file_out = tempfile.TemporaryFile(mode='w+')
+            self._file_err = tempfile.TemporaryFile(mode='w+')
+
             # Redirect python-level output to temporary files
             # (Doing this is required to make this work on windows)
             sys.stdout = self._file_out
             sys.stderr = self._file_err
+
             # If possible, pipe the original output and errors to files
             # On windows, the order is important: First dup both stdout and
             # stderr, then dup2 the new descriptors in. This prevents a weird
@@ -304,6 +329,7 @@ class SubCapture(PyCapture):
                 os.dup2(self._file_out.fileno(), self._stdout_fd)
             if self._stderr_fd >= 0:
                 os.dup2(self._file_err.fileno(), self._stderr_fd)
+
             # Now we're capturing!
             self._capturing = True
 

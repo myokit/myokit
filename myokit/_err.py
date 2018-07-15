@@ -325,9 +325,6 @@ class ParseError(MyokitError):
         self.cause = cause
         super(ParseError, self).__init__(self.value)
 
-    def __str__(self):
-        return self.value
-
 
 class ProtocolEventError(MyokitError):
     """
