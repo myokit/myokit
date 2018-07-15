@@ -854,7 +854,7 @@ for var in modelf.states():
             for(k=0; k<n_inter_f; k++) {
                 ret = PyList_GetItem(inter_log_f, k); // Don't decref
 <?
-print(4*tab + 'sprintf(log_var_name, "%d.%d.%s", j, i, PyString_AsString(ret));')
+print(4*tab + 'sprintf(log_var_name, "%d.%d.%s", j, i, PyBytes_AsString(ret));')
 print(4*tab + 'if(log_add(log_dict_f, logs_f, vars_f, k_vars, log_var_name, &rvec_inter_log_f[(i*nfx+j)*n_inter_f+k])) {')
 print(5*tab + 'logging_inters_f = 1;')
 print(5*tab + 'k_vars++;')
@@ -925,7 +925,7 @@ for var in modelt.states():
             for(k=0; k<n_inter_t; k++) {
                 ret = PyList_GetItem(inter_log_t, k); // Don't decref
 <?
-print(4*tab + 'sprintf(log_var_name, "%d.%d.%s", j, i, PyString_AsString(ret));')
+print(4*tab + 'sprintf(log_var_name, "%d.%d.%s", j, i, PyBytes_AsString(ret));')
 print(4*tab + 'if(log_add(log_dict_t, logs_t, vars_t, k_vars, log_var_name, &rvec_inter_log_t[(i*ntx+j)*n_inter_t+k])) {')
 print(5*tab + 'logging_inters_t = 1;')
 print(5*tab + 'k_vars++;')
@@ -1141,7 +1141,29 @@ static PyMethodDef SimMethods[] = {
 /*
  * Module definition
  */
-PyMODINIT_FUNC
-init<?=module_name?>(void) {
-    (void) Py_InitModule("<?= module_name ?>", SimMethods);
-}
+#if PY_MAJOR_VERSION >= 3
+
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "<?= module_name ?>",       /* m_name */
+        "Generated OpenCL FiberTissue sim module",   /* m_doc */
+        -1,                         /* m_size */
+        SimMethods,                 /* m_methods */
+        NULL,                       /* m_reload */
+        NULL,                       /* m_traverse */
+        NULL,                       /* m_clear */
+        NULL,                       /* m_free */
+    };
+
+    PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
+        return PyModule_Create(&moduledef);
+    }
+
+#else
+
+    PyMODINIT_FUNC
+    init<?=module_name?>(void) {
+        (void) Py_InitModule("<?= module_name ?>", SimMethods);
+    }
+
+#endif

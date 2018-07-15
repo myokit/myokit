@@ -108,16 +108,16 @@ Real *rvec_state = NULL;
 Real *rvec_idiff = NULL;
 Real *rvec_inter_log = NULL;
 Real *rvec_field_data = NULL;
-int *rvec_conn1 = NULL;
-int *rvec_conn2 = NULL;
+long *rvec_conn1 = NULL;
+long *rvec_conn2 = NULL;
 Real *rvec_conn3 = NULL;
 size_t dsize_state;
 size_t dsize_idiff;
 size_t dsize_inter_log;
 size_t dsize_field_data;
-size_t dsize_conn1 = NULL;
-size_t dsize_conn2 = NULL;
-size_t dsize_conn3 = NULL;
+size_t dsize_conn1 = 0;
+size_t dsize_conn2 = 0;
+size_t dsize_conn3 = 0;
 
 // Timing
 double engine_time;     // The current simulation time
@@ -173,8 +173,8 @@ int n_field_data;       // The number of floats in the field data
 
 // Temporary objects: decref before re-using for another var
 // (Unless you got it through PyList_GetItem or PyTuble_GetItem)
-PyObject* flt = NULL;               // PyFloat, various uses
-PyObject* ret = NULL;               // PyFloat, used as return value
+PyObject* flt = NULL;               // PyObject, various uses
+PyObject* ret = NULL;               // PyObject, used as return value
 PyObject* list_update_str = NULL;   // PyUnicode, used to call "append" method
 
 /*
@@ -493,8 +493,8 @@ sim_init(PyObject* self, PyObject* args)
         dsize_conn1 = n_connections * sizeof(int);
         dsize_conn2 = dsize_conn1;
         dsize_conn3 = n_connections * sizeof(Real);
-        rvec_conn1 = (int*)malloc(dsize_conn1);
-        rvec_conn2 = (int*)malloc(dsize_conn2);
+        rvec_conn1 = (long*)malloc(dsize_conn1);
+        rvec_conn2 = (long*)malloc(dsize_conn2);
         rvec_conn3 = (Real*)malloc(dsize_conn3);
         for(i=0; i<n_connections; i++) {
             flt = PyList_GetItem(connections, i);   // Borrowed reference
@@ -507,17 +507,17 @@ sim_init(PyObject* self, PyObject* args)
                 return sim_clean();
             }
             ret = PyTuple_GetItem(flt, 0);  // Borrowed reference
-            if(!PyInt_Check(ret)) {
+            if(!PyLong_Check(ret)) {
                 PyErr_SetString(PyExc_Exception, "First item in each connection tuple must be int");
                 return sim_clean();
             }
-            rvec_conn1[i] = (int)PyInt_AsLong(ret);
+            rvec_conn1[i] = (long)PyLong_AsLong(ret);
             ret = PyTuple_GetItem(flt, 1);  // Borrowed reference
-            if(!PyInt_Check(ret)) {
+            if(!PyLong_Check(ret)) {
                 PyErr_SetString(PyExc_Exception, "Second item in each connection tuple must be int");
                 return sim_clean();
             }
-            rvec_conn2[i] = (int)PyInt_AsLong(ret);
+            rvec_conn2[i] = (long)PyLong_AsLong(ret);
             ret = PyTuple_GetItem(flt, 2);  // Borrowed reference
             if(!PyFloat_Check(ret)) {
                 PyErr_SetString(PyExc_Exception, "Third item in each connection tuple must be float");
@@ -822,9 +822,9 @@ for var in model.states():
                 ret = PyList_GetItem(inter_log, k); // Don't decref
 <?
 if dims == 1:
-    print(4*tab + 'sprintf(log_var_name, "%d.%s", j, PyString_AsString(ret));')
+    print(4*tab + 'sprintf(log_var_name, "%d.%s", j, PyBytes_AsString(ret));')
 else:
-    print(4*tab + 'sprintf(log_var_name, "%d.%d.%s", j, i, PyString_AsString(ret));')
+    print(4*tab + 'sprintf(log_var_name, "%d.%d.%s", j, i, PyBytes_AsString(ret));')
 
 print(4*tab + 'if(log_add(log_dict, logs, vars, k_vars, log_var_name, &rvec_inter_log[(i*nx+j)*n_inter+k])) {')
 print(5*tab + 'logging_inters = 1;')
@@ -1024,7 +1024,29 @@ static PyMethodDef SimMethods[] = {
 /*
  * Module definition
  */
-PyMODINIT_FUNC
-init<?=module_name?>(void) {
-    (void) Py_InitModule("<?= module_name ?>", SimMethods);
-}
+#if PY_MAJOR_VERSION >= 3
+
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "<?= module_name ?>",       /* m_name */
+        "Generated OpenCL sim module",   /* m_doc */
+        -1,                         /* m_size */
+        SimMethods,                 /* m_methods */
+        NULL,                       /* m_reload */
+        NULL,                       /* m_traverse */
+        NULL,                       /* m_clear */
+        NULL,                       /* m_free */
+    };
+
+    PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
+        return PyModule_Create(&moduledef);
+    }
+
+#else
+
+    PyMODINIT_FUNC
+    init<?=module_name?>(void) {
+        (void) Py_InitModule("<?= module_name ?>", SimMethods);
+    }
+
+#endif

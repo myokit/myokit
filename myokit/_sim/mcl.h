@@ -470,7 +470,7 @@ static size_t* work_item_sizes;     // Temporary array of work item sizes
 /*
  * Tidies up if an error occurs in mcl_device_info
  */
-static PyObject*
+PyObject*
 mcl_device_info_clean()
 {
     Py_XDECREF(platforms); platforms = NULL;
@@ -516,7 +516,7 @@ mcl_device_info_clean()
  *          ...
  *     )
  */
-static PyObject*
+PyObject*
 mcl_device_info()
 {
     // Set all pointers used by clean() to null

@@ -850,8 +850,8 @@ class FiberTissueSimulation(myokit.CModule):
                 logf,
                 logt,
                 log_interval,
-                [x.qname() for x in inter_logf],
-                [x.qname() for x in inter_logt],
+                [x.qname().encode('ascii') for x in inter_logf],
+                [x.qname().encode('ascii') for x in inter_logt],
             )
             try:
                 t = tmin

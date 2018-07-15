@@ -797,7 +797,7 @@ class SimulationOpenCL(myokit.CModule):
                 self._protocol,
                 log,
                 log_interval,
-                [x.qname() for x in inter_log],
+                [x.qname().encode('ascii') for x in inter_log],
                 field_data,
             )
             t = tmin
