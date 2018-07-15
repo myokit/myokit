@@ -1,6 +1,6 @@
 /*
  * differential.hpp
- * 
+ *
  * Defines a type FirstDifferential, that can replace a double in
  * computations and calculates derivatives along with the main value.
  *
@@ -12,10 +12,10 @@
  *
  * would yield x = 13. If we want to know the derivatives of x with respect to
  * a and b, we can use the FirstDifferential class to calculate them:
- *   
+ *
  *   // Shortcut to a FirstDifferential object:
  *   typedef FirstDifferential Diff
- *   
+ *
  *   // Create a and b as differentials. Both have derivative 1 with respect to
  *   // themselves. This can be indicated explicitly or, as in this example,
  *   // using the constructor arguments (value, indice) where indice is the
@@ -23,12 +23,12 @@
  *   Diff a = Diff(2, 0);
  *   Diff b = Diff(3, 1);
  *   Diff x = 5 * a + pow(b, 2);
- *   
+ *
  * Now x->value or (double)x will return 13, while x[0] = 5 and x[1] = b.
  *
  * N.B.: The functions fabs, floor, ceil and fmod are implemented, but will
  * yield "nan" for the derivatives.
- * 
+ *
  * This file is part of Myokit
  *  Copyright 2011-2018 Maastricht University, University of Oxford
  *  Licensed under the GNU General Public License v3.0
@@ -60,7 +60,7 @@
 /*
  * Requires two macros to be set:
  *  N_DIFFS     Specifying the size of each differential
- *  Real        Specifying a real number type (i.e. double)        
+ *  Real        Specifying a real number type (i.e. double)
  */
 
 /*
@@ -77,13 +77,13 @@ public:
     {
         for(size_t i=0; i<N_DIFFS; i++) this->data[i] = 0;
     }
-    
+
     /*
      * Access or change an element of the covector.
      */
     Real& operator[] (size_t i) { return this->data[i]; }
     Real const& operator[] (size_t i) const { return this->data[i]; }
-    
+
     /*
      * Comparison operators
      */
@@ -112,11 +112,11 @@ public:
      * Addition with covectors
      */
     void operator+=(const Covector &other)
-    { 
+    {
         for(size_t i=0; i<N_DIFFS; i++) this->data[i] += other.data[i];
     }
     void operator-=(const Covector &other)
-    { 
+    {
         for(size_t i=0; i<N_DIFFS; i++) this->data[i] -= other.data[i];
     }
     Covector operator+(const Covector &x) const
@@ -143,17 +143,17 @@ public:
         for(size_t i=0; i<N_DIFFS; i++) z.data[i] = -this->data[i];
         return z;
     }
-    
+
     /*
      * Scalar multiplication. (Operation Real * Covector is implemented
      * externally).
      */
     void operator*=(const Real x)
-    { 
+    {
         for(size_t i=0; i<N_DIFFS; i++) this->data[i] *= x;
     }
     void operator/=(Real x)
-    { 
+    {
         x = 1./x;
         for(size_t i=0; i<N_DIFFS; i++) this->data[i] *= x;
     }
@@ -170,7 +170,7 @@ public:
         for(size_t i=0; i<N_DIFFS; i++) z.data[i] = this->data[i] * x;
         return z;
     }
-    
+
     /*
      * Reciprocal of a Covector
      */
@@ -179,12 +179,12 @@ public:
         Covector z = Covector();
         for(size_t i=0; i<N_DIFFS; i++) z.data[i] = 1. / this->data[i];
         return z;
-    }   
+    }
 };
 
 /*
  * Multipliciation of a scalar by a covector.
- */ 
+ */
 Covector operator*(const Real s, const Covector &v)
 {
     return v * s;
@@ -195,7 +195,7 @@ Covector operator/(const Real s, const Covector &v)
     x *= s;
     return x;
 }
-    
+
 /*
  * Numeric type for automatic integration: stores a value and a list of
  * derivatives.
@@ -216,8 +216,8 @@ class FirstDifferential
     {
         // Value is fine, gradient automatically fills itself with zeros.
     }
-    
-    /* 
+
+    /*
      * Constructs a differential with a value.
      * This is the only constructor allowed not to be explicit!
      */
@@ -228,7 +228,7 @@ class FirstDifferential
      */
     explicit FirstDifferential(const Real v, const Covector g)
         : v(v), d(g) {}
-    
+
     /*
      * Constructs a differential with value v, and an all-zero derivative
      * vector except for a 1 at position i.
@@ -239,7 +239,7 @@ class FirstDifferential
         assert(0 <= i);
         assert(i < N_DIFFS);
         this->d[i] = 1;
-    }       
+    }
 
     /*
      * Read-access to the values of this differential.
@@ -253,12 +253,12 @@ class FirstDifferential
     {
         return this->d;
     }
-     
+
     const Real& operator[](size_t i) const
     {
         return this->d[i];
     }
-    
+
     /*
      * Write access
      */
@@ -266,13 +266,13 @@ class FirstDifferential
     {
         this->v = v;
     }
-    
+
     Real& operator[](const size_t i)
     {
         // Returning a reference to this value allows a new value to be assigned!
         return this->d[i];
     }
-    
+
     /*
      * Comparison operators
      */
@@ -328,7 +328,7 @@ class FirstDifferential
     {
         return this->v <= y;
     }
-    
+
     /*
      * Addition
      */
@@ -382,7 +382,7 @@ class FirstDifferential
         z -= x;
         return z;
     }
-    
+
     /*
      * Multiplication
      */
@@ -432,7 +432,7 @@ class FirstDifferential
         z /= x;
         return z;
     }
-    
+
     /*
      * Reciprocal of a first differential
      */

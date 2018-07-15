@@ -134,7 +134,7 @@ static int
 log_add(PyObject* log_dict, PyObject** logs, Diff** vars, int i, const char* name, const Diff* var)
 {
     int added = 0;
-    PyObject* key = PyString_FromString(name);
+    PyObject* key = PyUnicode_FromString(name);
     if (PyDict_Contains(log_dict, key)) {
         logs[i] = PyDict_GetItem(log_dict, key);
         vars[i] = (Diff*)var;
@@ -185,7 +185,7 @@ double tpace;               // Time of next event
 // Temporary python objects
 PyObject* flt = NULL;               // PyFloat, various uses
 PyObject* ret = NULL;               // PyFloat, used as return value
-PyObject* list_update_str = NULL;   // PyString, used to call "append" method
+PyObject* list_update_str = NULL;   // PyUnicode, used to call "append" method
 PyObject* list = NULL;              // A new list, created to hold derivatives
 
 // Python callable methods
@@ -375,7 +375,7 @@ for var in model.variables(deep=True, const=False):
         }
 
         // Always store initial position in logs
-        list_update_str = PyString_FromString("append");
+        list_update_str = PyUnicode_FromString("append");
 
         // Log variables
         for(i=0; i<n_vars; i++) {
@@ -422,18 +422,18 @@ for var in model.variables(deep=True, const=False):
     {
         ESys_Flag flag_pacing;
         int i, j;
-        int steps_taken = 0;    // Steps taken during this call
+        int steps_taken = 0;    /* Steps taken during this call */
         double d;
 
         while(1) {
 
-            // Calculate next step size
+            /* Calculate next step size */
             dt = default_dt;
             d = tpace - engine_time; if (d > dt_min && d < dt) dt = d;
             d = tmax - engine_time; if (d > dt_min && d < dt) dt = d;
             d = tlog - engine_time; if (d > dt_min && d < dt) dt = d;
 
-            // Advance to next time step
+            /* Advance to next time step */
             for(i=0; i<N_STATE; i++) state[i] += deriv[i] * dt;
             engine_time += dt;
             flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
@@ -442,14 +442,14 @@ for var in model.variables(deep=True, const=False):
             engine_pace = ESys_GetLevel(pacing, NULL);
             rhs(state, deriv);
 
-            // Check if we're finished
-            // Do this *before* logging (half-open interval rule)
+            /* Check if we're finished
+               Do this *before* logging (half-open interval rule) */
             if (engine_time >= tmax) break;
 
-            // Logging
+            /* Logging */
             if (engine_time >= tlog) {
 
-                // Log variables
+                /* Log variables */
                 for(i=0; i<n_vars; i++) {
                     flt = PyFloat_FromDouble(vars[i]->value());
                     ret = PyObject_CallMethodObjArgs(logs[i], list_update_str, flt, NULL);
@@ -462,7 +462,7 @@ for var in model.variables(deep=True, const=False):
                 }
                 ret = NULL;
 
-                // Log partial derivatives
+                /* Log partial derivatives */
                 list = PyList_New(N_MATRIX);
                 if (list == NULL) return sim_clean();
                 for(i=0; i<N_STATE; i++) {
@@ -476,33 +476,35 @@ for var in model.variables(deep=True, const=False):
                 }
                 Py_DECREF(list); list = NULL;
 
-                // Calculate next logging point
+                /* Calculate next logging point */
                 ilog++;
                 tlog = tmin + (double)ilog * log_interval;
             }
 
-            // Report back to python after every x steps
+            /* Report back to python after every x steps */
             steps_taken++;
             if (steps_taken >= 20) {
                 return PyFloat_FromDouble(engine_time);
             }
         }
 
-        // Set final state & partial derivatives
+        /* Set final state & partial derivatives */
         for(i=0; i<N_STATE; i++) {
             PyList_SetItem(state_out, i, PyFloat_FromDouble(state[i].value()));
-            // PyList_SetItem steals a reference: no need to decref the Float!
+            /* PyList_SetItem steals a reference: no need to decref the Float! */
             for(j=0; j<N_STATE; j++) {
                 PyList_SetItem(deriv_out, i*N_STATE+j, PyFloat_FromDouble(state[i][j]));
             }
         }
 
-        // Clean up and return
+        /* Clean up and return */
         sim_clean();
         return PyFloat_FromDouble(engine_time);
     }
 
-    // Methods in this module
+    /*
+     * Methods in this module
+     */
     static PyMethodDef SimMethods[] = {
         {"sim_init", sim_init, METH_VARARGS, "Initialize the simulation."},
         {"sim_step", sim_step, METH_VARARGS, "Perform the next step in the simulation."},
@@ -510,14 +512,40 @@ for var in model.variables(deep=True, const=False):
         {NULL},
     };
 
-    // Module definition
-    PyMODINIT_FUNC
-    init<?=module_name?>(void) {
-        (void) Py_InitModule("<?= module_name ?>", SimMethods);
-    }
+    /*
+     * Module definition
+     */
+    #if PY_MAJOR_VERSION >= 3
+
+        static struct PyModuleDef moduledef = {
+            PyModuleDef_HEAD_INIT,
+            "<?= module_name ?>",       /* m_name */
+            "Generated ICSIM module",   /* m_doc */
+            -1,                         /* m_size */
+            SimMethods,                 /* m_methods */
+            NULL,                       /* m_reload */
+            NULL,                       /* m_traverse */
+            NULL,                       /* m_clear */
+            NULL,                       /* m_free */
+        };
+
+        PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
+            return PyModule_Create(&moduledef);
+        }
+
+    #else
+
+        PyMODINIT_FUNC
+        init<?=module_name?>(void) {
+            (void) Py_InitModule("<?= module_name ?>", SimMethods);
+        }
+
+    #endif
 }
 
-// Remove aliases of states, bound variables, constants
+/*
+ * Remove aliases of states, bound variables, constants
+ */
 <?
 for var in model.states():
     print('#undef ' + v(var.lhs()))
