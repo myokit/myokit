@@ -228,14 +228,40 @@ extern "C" {
         {NULL},
     };
 
-    // Module definition
-    PyMODINIT_FUNC
-    init<?=module_name?>(void) {
-        (void) Py_InitModule("<?= module_name ?>", SimMethods);
-    }
+    /*
+     * Module definition
+     */
+    #if PY_MAJOR_VERSION >= 3
+
+        static struct PyModuleDef moduledef = {
+            PyModuleDef_HEAD_INIT,
+            "<?= module_name ?>",       /* m_name */
+            "Generated Jacobian module",   /* m_doc */
+            -1,                         /* m_size */
+            SimMethods,                 /* m_methods */
+            NULL,                       /* m_reload */
+            NULL,                       /* m_traverse */
+            NULL,                       /* m_clear */
+            NULL,                       /* m_free */
+        };
+
+        PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
+            return PyModule_Create(&moduledef);
+        }
+
+    #else
+
+        PyMODINIT_FUNC
+        init<?=module_name?>(void) {
+            (void) Py_InitModule("<?= module_name ?>", SimMethods);
+        }
+
+    #endif
 }
 
-// Remove aliases of states, input variables, constants
+/*
+ * Remove aliases of states, input variables, constants
+ */
 <?
 for var in model.states():
     print('#undef ' + v(var.lhs()))
