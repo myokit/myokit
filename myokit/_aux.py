@@ -1304,7 +1304,7 @@ def strfloat(number):
     Turns the given number into a string, without losing accuracy.
     """
     # Pass through strings
-    if isinstance(number, basestring):
+    if isinstance(number, str):
         return number
 
     # Handle myokit.Numbers

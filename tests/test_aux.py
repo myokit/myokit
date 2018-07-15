@@ -264,8 +264,15 @@ class AuxTest(unittest.TestCase):
             '  ' + str(len(differences)) + ' differences found',
         ]
 
-        self.assertEqual(capture.text(), '\n'.join(live) + '\n')
-        self.assertEqual(c.text(), '\n'.join(differences))
+        # Show massive diff messages
+        self.maxDiff = None
+
+        caught_differences = set(capture.text().splitlines())
+        live = set(live)
+        self.assertEqual(live, caught_differences)
+        differences = set(differences)
+        caught_differences = set(c.text().splitlines())
+        self.assertEqual(differences, caught_differences)
 
         # Test equality method
         self.assertFalse(c.equal())
@@ -526,10 +533,8 @@ class AuxTest(unittest.TestCase):
             myokit.strfloat(-0.12432656245e12), '-1.24326562450000000e+11')
 
         # Strings are not converted
-        x = u'1.234'
-        self.assertIs(x, myokit.strfloat(x))
-        x = b'1.234'
-        self.assertIs(x, myokit.strfloat(x))
+        x = '1.234'
+        self.assertEqual(x, myokit.strfloat(x))
 
         # Myokit Numbers are converted
         x = myokit.Number(1.23)
