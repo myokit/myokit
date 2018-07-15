@@ -1043,7 +1043,7 @@ class AbfFile(object):
                     part[:, i] += offset
 
             # Create channel
-            if self._mode != ACMODE_EPISODIC_STIMULATION:
+            if self._mode != ACMODE_EPISODIC_STIMULATION:  # pragma: no cover
                 # All modes except episodic stimulation
                 start = sdata[j]['offset'] / rate
 
