@@ -891,13 +891,13 @@ def pack_snapshot(path, overwrite=True):
     # Create zipfile at temporary location
     tf = tempfile.mkstemp()
     try:
-        zf = zipfile.ZipFile(os.fdopen(tf[0], 'w'), 'w', compression=zmod)
+        zf = zipfile.ZipFile(os.fdopen(tf[0], 'wb'), 'w', compression=zmod)
         try:
             # Add myokit module
             walk('myokit', myokit.DIR_MYOKIT)
 
             # Add license file
-            license = bytes(myokit.LICENSE)
+            license = myokit.LICENSE.encode('utf-8')
             zf.writestr('LICENSE', license, zmod)
         finally:
             zf.close()
