@@ -452,7 +452,7 @@ class PacingTest(unittest.TestCase):
         # Test with small lists
         values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         times = [0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 5, 7]
-        values = range(len(times))
+        values = list(range(len(times)))
         pacing = AnsicFixedFormPacing(times, values)
 
         def test(value, index):

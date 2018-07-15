@@ -18,16 +18,16 @@ Python3 issues
 
 - [ ] ConfigParser has moved
 
-- [ ] HTMLParser has moved
+- [x] HTMLParser has moved
 
 C stuff
 -------
 
-- [ ] Integers are now longs
+- [x] Integers are now longs
       http://python3porting.com/cextensions.html#changes-in-python
 
-- [ ] Modules are now intialised differently
+- [x] Modules are now intialised differently
       http://python3porting.com/cextensions.html#module-initialization
 
-- [ ] PyString_AsString
+- [x] PyString_AsString
       This gave access to string buffer, no longer possible with unicode!

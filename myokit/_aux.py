@@ -535,7 +535,10 @@ def load_state_bin(filename):
 
         # Create array, read bytes into array
         ar = array.array(code)
-        ar.fromstring(f.read(info))
+        try:
+            ar.frombytes(f.read(info))
+        except AttributeError:  # pragma: no python 3 cover
+            ar.fromstring(f.read(info))
 
         # Always store as little endian
         if sys.byteorder == 'big':  # pragma: no cover

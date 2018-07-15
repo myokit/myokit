@@ -16,6 +16,7 @@ import numpy as np
 import myokit
 
 
+# Readme file for DataBlock1d binary files
 README_SAVE_1D = """
 Myokit DataBlock1d Binary File
 ==============================
@@ -48,6 +49,7 @@ header, and little-endian:
 
 """.strip()
 
+# Readme file for DataBlock2d binary files
 README_SAVE_2D = """
 Myokit DataBlock2d Binary File
 ==============================
@@ -81,7 +83,7 @@ header, and little-endian:
 
 """.strip()
 
-# Encoding used for text portions of datablock files
+# Encoding used for text portions of zip files
 ENC = 'utf-8'
 
 

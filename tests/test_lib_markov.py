@@ -472,7 +472,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertEqual(s.membrane_potential(), 10)
 
         # Parameter values
-        p = range(len(s.parameters()))
+        p = list(range(len(s.parameters())))
         self.assertNotEqual(p, s.parameters())
         s.set_parameters(p)
         self.assertEqual(p, s.parameters())
@@ -617,7 +617,7 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertEqual(s.number_of_channels(), 50)
 
         # Parameter values
-        p = range(len(s.parameters()))
+        p = list(range(len(s.parameters())))
         self.assertNotEqual(p, s.parameters())
         s.set_parameters(p)
         self.assertEqual(p, s.parameters())

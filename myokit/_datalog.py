@@ -42,6 +42,9 @@ its data occurs in the binary data file "data.bin". All data is stored
 little-endian.
 """.strip()
 
+# Encoding used for text portions of zip files
+ENC = 'utf-8'
+
 
 class DataLog(OrderedDict):
     """
@@ -479,10 +482,16 @@ class DataLog(OrderedDict):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Get size of single and double types on this machine
-        dsize = {
-            'd': len(array.array('d', [1]).tostring()),
-            'f': len(array.array('f', [1]).tostring()),
-        }
+        try:
+            dsize = {
+                'd': len(array.array('d', [1]).tobytes()),
+                'f': len(array.array('f', [1]).tobytes()),
+            }
+        except AttributeError:  # pragma: no python 3 cover
+            dsize = {
+                'd': len(array.array('d', [1]).tostring()),
+                'f': len(array.array('f', [1]).tostring()),
+            }
 
         # Read data
         try:
@@ -498,7 +507,7 @@ class DataLog(OrderedDict):
             except KeyError:
                 raise myokit.DataLogReadError('Invalid log file format.')
             # Read file contents
-            head = f.read(head)
+            head = f.read(head).decode(ENC)
             body = f.read(body)
         except zipfile.BadZipfile:
             raise myokit.DataLogReadError('Unable to read log: bad zip file.')
@@ -559,7 +568,10 @@ class DataLog(OrderedDict):
 
                 # Read data
                 ar = array.array(data_type)
-                ar.fromstring(body[start:end])
+                try:
+                    ar.frombytes(body[start:end])
+                except AttributeError:  # pragma: no python 3 cover
+                    ar.fromstring(body[start:end])
                 if sys.byteorder == 'big':  # pragma: no cover
                     ar.byteswap()
                 log[field] = ar
@@ -598,9 +610,16 @@ class DataLog(OrderedDict):
                 'Syntax error on line ' + str(line) + ', character '
                 + str(1 + char) + ': ' + msg)
 
+        def uopen(filename):
+            # Open a filename in 'universal newline' mode, python 2 and 3
+            try:
+                return open(filename, 'r', newline=None)
+            except TypeError:
+                return open(filename, 'U')
+
         quote = '"'
         delim = ','
-        with open(filename, 'U') as f:
+        with uopen(filename) as f:
             # Read header
             keys = []   # The log keys, in order of appearance
 
@@ -892,10 +911,12 @@ class DataLog(OrderedDict):
                 ar.byteswap()
             try:
                 body_str.append(ar.tobytes())
-            except AttributeError:   # pragma: no cover
+            except AttributeError:   # pragma: no python 3 cover
                 body_str.append(ar.tostring())
         head_str = '\n'.join(head_str)
         body_str = b''.join(body_str)
+
+        # 2018-07-15: Wondering why I chose body-head-readme ordering now...
 
         # Write
         head = zipfile.ZipInfo('structure.txt')
@@ -978,7 +999,7 @@ class DataLog(OrderedDict):
         eol = '\r\n'
         quote = '"'
         escape = '""'
-        with open(filename, 'wb') as f:
+        with open(filename, 'w') as f:
             # Convert dict structure to ordered sequences
             if order:
                 order = [str(x) for x in order]

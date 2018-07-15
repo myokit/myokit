@@ -2062,7 +2062,7 @@ class DataLogTest(unittest.TestCase):
         Tests the fold() method.
         """
         d = myokit.DataLog(time='time')
-        d['time'] = range(100)
+        d['time'] = list(range(100))
         d['x'] = list(np.arange(100) * 3)
 
         # Test without discarding remainder
@@ -2090,7 +2090,7 @@ class DataLogTest(unittest.TestCase):
         field is NaN.
         """
         d = myokit.DataLog(time='time')
-        d['time'] = range(100)
+        d['time'] = list(range(100))
         d['x'] = list(np.arange(100) * 3)
         d['y'] = list(np.arange(100) * 3)
         d['z'] = list(np.arange(100) * 3)
