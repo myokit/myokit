@@ -520,6 +520,9 @@ class AuxTest(unittest.TestCase):
         """
         Test float to string conversion.
         """
+        # String should be passed through
+        self.assertEqual(myokit.strfloat('123'), '123')
+
         # Simple numbers
         self.assertEqual(myokit.strfloat(0), '0')
         self.assertEqual(myokit.strfloat(0.0000), '0.0')
