@@ -894,16 +894,15 @@ def pack_snapshot(path, overwrite=True):
     # Create zipfile at temporary location
     tf = tempfile.mkstemp()
     try:
-        zf = zipfile.ZipFile(os.fdopen(tf[0], 'wb'), 'w', compression=zmod)
-        try:
-            # Add myokit module
-            walk('myokit', myokit.DIR_MYOKIT)
+        with os.fdopen(tf[0], 'wb') as f:
+            with zipfile.ZipFile(f, 'w', compression=zmod) as zf:
+                # Add myokit module
+                walk('myokit', myokit.DIR_MYOKIT)
 
-            # Add license file
-            license = myokit.LICENSE.encode('utf-8')
-            zf.writestr('LICENSE', license, zmod)
-        finally:
-            zf.close()
+                # Add license file
+                license = myokit.LICENSE.encode('utf-8')
+                zf.writestr('LICENSE', license, zmod)
+
         shutil.copy(tf[1], path)
     finally:
         if os.path.isfile(tf[1]):
