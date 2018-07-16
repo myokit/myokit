@@ -29,7 +29,7 @@
  *  2. Populate it using two Python lists via FSys_Populate
  *  3. Obtain the pacing value for any time using FSys_GetLevel
  *  4. Tidy up using FSys_Destroy
- * 
+ *
  * This file is part of Myokit
  *  Copyright 2011-2018 Maastricht University, University of Oxford
  *  Licensed under the GNU General Public License v3.0
@@ -104,7 +104,7 @@ ESys_SetPyErr(ESys_Flag flag)
         break;
     case ESys_POPULATE_MISSING_ATTR:
         PyErr_SetString(PyExc_Exception, "E-Pacing error: Missing event attribute.");
-        break;        
+        break;
     case ESys_POPULATE_INVALID_ATTR:
         PyErr_SetString(PyExc_Exception, "E-Pacing error: Failed to convert event attribute to Float.");
         break;
@@ -134,7 +134,7 @@ ESys_SetPyErr(ESys_Flag flag)
 
 /*
  * Pacing event
- * 
+ *
  * Pacing event structs hold the information about a single pacing event. Using
  * the Event_Schedule function, pacing events can be ordered into an
  * event queue. Each event may appear only once in such a queue.
@@ -154,7 +154,7 @@ ESys_SetPyErr(ESys_Flag flag)
 struct EventMem {
     double level;       // The stimulus level (non-zero, dimensionless, normal range [0,1])
     double duration;    // The stimulus duration
-    double start;       // The time this stimulus starts    
+    double start;       // The time this stimulus starts
     double period;      // The period with which it repeats (or 0 if it doesn't)
     double multiplier;  // The number of times this period occurs (or 0 if it doesn't)
     double ostart;      // The event start set when the event was created
@@ -199,7 +199,7 @@ ESys_ScheduleEvent(Event head, Event add, ESys_Flag* flag)
 }
 
 /*
- * Pacing system 
+ * Pacing system
  */
 struct ESys_Mem {
     double time;    // The current time
@@ -229,7 +229,7 @@ ESys_Create(ESys_Flag* flag)
         if(flag != 0) *flag = ESys_OUT_OF_MEMORY;
         return 0;
     }
-    
+
     sys->time = 0;
     sys->n_events = -1; // Used to indicate unpopulated system
     sys->events = NULL;
@@ -238,7 +238,7 @@ ESys_Create(ESys_Flag* flag)
     sys->tnext = 0;
     sys->tdown = 0;
     sys->level = 0;
-    
+
     if(flag != 0) *flag = ESys_OK;
     return sys;
 }
@@ -278,7 +278,7 @@ ESys_Reset(ESys sys)
     Event head;
     int i;
     ESys_Flag flag;
-    
+
     if(sys == 0) return ESys_INVALID_SYSTEM;
     if(sys->n_events < 0) return ESys_UNPOPULATED_SYSTEM;
 
@@ -298,7 +298,7 @@ ESys_Reset(ESys sys)
         head = ESys_ScheduleEvent(head, next++, &flag);
         if (flag != ESys_OK) { return flag; }
     }
-    
+
     // Reset the properties of the event system
     sys->time = 0;
     sys->head = head;
@@ -306,7 +306,7 @@ ESys_Reset(ESys sys)
     sys->tnext = 0;
     sys->tdown = 0;
     sys->level = 0;
-    
+
     return ESys_OK;
 }
 
@@ -327,16 +327,16 @@ ESys_Populate(ESys sys, PyObject* protocol)
     int n;
     Event events;
     Event e;
-    
+
     if(sys == 0) return ESys_INVALID_SYSTEM;
     if (sys->n_events != -1) return ESys_POPULATED_SYSTEM;
 
-    // Default values    
+    // Default values
     n = 0;
     events = 0;
-    
+
     if (protocol != Py_None) {
-    
+
         // Get PyList from protocol
         // Cast to (char*) happens because CallMethod accepts a mutable char*
         // This should have been const char* and has been fixed in python 3
@@ -344,12 +344,12 @@ ESys_Populate(ESys sys, PyObject* protocol)
         if(list == NULL) return ESys_POPULATE_INVALID_PROTOCOL;
         if(!PyList_Check(list)) return ESys_POPULATE_INVALID_PROTOCOL;
         n = (int)PyList_Size(list);
-        
+
         // Translate python pacing events
         // Note: A lot of the tests here shouldn't really make a difference,
         // since they are tested by the Python code already!
         if(n > 0) {
-            PyObject *item, *attr;        
+            PyObject *item, *attr;
             events = (Event)malloc(n*sizeof(struct EventMem));
             e = events;
             for(i=0; i<n; i++) {
@@ -401,7 +401,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
                 Py_DECREF(attr); attr = NULL;
                 if (PyErr_Occurred() != NULL) {
                     free(events); Py_DECREF(list);
-                    return ESys_POPULATE_INVALID_ATTR; 
+                    return ESys_POPULATE_INVALID_ATTR;
                 }
                 // multiplier
                 attr = PyObject_GetAttrString(item, "_multiplier");
@@ -436,7 +436,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
             }
         }
     }
-    
+
     // Add the events to the system
     sys->n_events = n;
     sys->events = events;
@@ -463,11 +463,11 @@ ESys_AdvanceTime(ESys sys, double new_time, double max_time)
     if(sys == 0) return ESys_INVALID_SYSTEM;
     if(sys->n_events < 0) return ESys_UNPOPULATED_SYSTEM;
     if(sys->time > new_time) return ESys_NEGATIVE_TIME_INCREMENT;
-    
+
     // Update internal time
     sys->time = new_time;
     if (new_time > max_time) max_time = new_time;
-    
+
     // Advance
     while (sys->tnext <= sys->time && sys->tnext < max_time) {
         // Active event finished
@@ -622,7 +622,7 @@ FSys_SetPyErr(FSys_Flag flag)
         break;
     case FSys_POPULATE_DECREASING_TIMES_DATA:
         PyErr_SetString(PyExc_Exception, "F-Pacing error: Times array must be non-decreasing.");
-        break;        
+        break;
     // Unknown
     default:
     {
@@ -662,12 +662,12 @@ FSys_Create(FSys_Flag* flag)
         if(flag != 0) *flag = FSys_OUT_OF_MEMORY;
         return 0;
     }
-    
+
     sys->n_points = -1;
     sys->times = NULL;
     sys->values = NULL;
     sys->last_index = 0;
-        
+
     if(flag != 0) *flag = FSys_OK;
     return sys;
 }
@@ -717,14 +717,14 @@ FSys_Populate(FSys sys, PyObject* times_list, PyObject* values_list)
     // Check ESys
     if(sys == 0) return FSys_INVALID_SYSTEM;
     if (sys->n_points != -1) return FSys_POPULATED_SYSTEM;
-    
+
     // Check input lists
     if(!PyList_Check(times_list)) return FSys_POPULATE_INVALID_TIMES;
     if(!PyList_Check(values_list)) return FSys_POPULATE_INVALID_VALUES;
     n = PyList_Size(times_list);
     if (n != PyList_Size(values_list)) return FSys_POPULATE_SIZE_MISMATCH;
     if (n < 2) return FSys_POPULATE_NOT_ENOUGH_DATA;
-    
+
     // Convert and check times list
     sys->times = (double*)malloc(n*sizeof(double));
     for(i=0; i<n; i++) {
@@ -741,7 +741,7 @@ FSys_Populate(FSys sys, PyObject* times_list, PyObject* values_list)
             return FSys_POPULATE_DECREASING_TIMES_DATA;
         }
     }
-    
+
     // Convert values list
     sys->values = (double*)malloc(n*sizeof(double));
     for(i=0; i<n; i++) {
@@ -753,7 +753,7 @@ FSys_Populate(FSys sys, PyObject* times_list, PyObject* values_list)
         free(sys->values); sys->values = NULL;
         return FSys_POPULATE_INVALID_VALUES_DATA;
     }
-    
+
     // Update pacing system and return
     sys->n_points = n;
     sys->last_index = 0;
@@ -789,7 +789,7 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
         if(flag != 0) *flag = FSys_UNPOPULATED_SYSTEM;
         return -1;
     }
-    
+
     // Find the highest index `i` of sorted array `times` such that
     // `times[i] <= time`, or `-1` if no such indice can be found.
     // A guess can be given, which will be used to speed things up
@@ -802,7 +802,7 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
         if(flag != 0) *flag = FSys_OK;
         return sys->values[ileft];
     }
-    
+
     // Get right point, check value
     iright = sys->n_points - 1;
     tright = sys->times[iright];
@@ -811,7 +811,7 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
         if(flag != 0) *flag = FSys_OK;
         return sys->values[iright];
     }
-    
+
     // Have a quick guess at better boundaries, using last
     iguess = sys->last_index - 1; // -1 is heuristic! Could be smaller
     if (iguess > ileft) {
@@ -829,23 +829,23 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
             tright = tguess;
         }
     }
-    
+
     // Start bisection
     imid = ileft + (iright - ileft) / 2;
     while (ileft != imid) {
         tmid = sys->times[imid];
         if (tmid < time) {
             ileft = imid;
-            tleft = tmid;      
+            tleft = tmid;
         } else {
             iright = imid;
             tright = tmid;
         }
         imid = ileft + (iright - ileft) / 2;
     }
-    
+
     // At this stage, tleft < time <= tright
-    
+
     // Handle special case of time == tright
     // (Because otherwise it can happen that tleft == tright, which would give
     //  a divide-by-zero in the interpolateion)
@@ -854,7 +854,7 @@ FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
         sys->last_index = iright;
         return sys->values[iright];
     }
-    
+
     // Find the correct value using linear interpolation
     if(flag != 0) *flag = FSys_OK;
     sys->last_index = ileft;

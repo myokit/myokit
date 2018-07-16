@@ -2354,113 +2354,192 @@ class Model(ObjectWithMeta, VarProvider):
         will be empty.
         """
         # TODO: Cache this!
+
         # Get components in solvable order
+        # Any components with interdependencies will _not_ be added to this
+        # list.
         solvable_comps = []
         cdeps = self.map_component_dependencies()
         while True:
-            new = []
+            # Find all components that can be solved
+            newly_solvable = []
             for comp, deps in cdeps.items():
-                if comp not in solvable_comps and len(deps) == 0:
+                if len(deps) == 0:
                     solvable_comps.append(comp)
-                    new.append(comp)
-            if len(new) == 0:
+                    newly_solvable.append(comp)
+
+            if len(newly_solvable) == 0:
+                # No more solvable components? Then stop.
+                # Note that cdeps will not be empty at this point if there are
+                # components with interdependencies. This is ok!
                 break
-            for comp in new:
+
+            # Remove the components that are now solvable from everybody's
+            # dependency lists
+            for comp in newly_solvable:
                 for deps in cdeps.values():
                     if comp in deps:
                         deps.remove(comp)
 
+            # Remove the solvable components from the component dependency list
+            for comp in newly_solvable:
+                del(cdeps[comp])
+
+        # At this point, we've created a list `solvable_comps`, that contains
+        # all independent components, in a solvable order.
+        # The components with interdependencies are not in `solvable_comps`,
+        # but are listed in `cdeps`.
+
         # Create component output dict and todo list
-        # Important: both should be created simultaneously to ensure they're
-        #  in the same order!
-        out = OrderedDict()     # Final output dict (comp.qname:EquationList)
-        todo = OrderedDict()    # Todo dict (comp:dict)
+        # Both are created here, so that their order will match
+        # `solvable_comps`.
+        out = OrderedDict()     # Final output dict (comp.name:EquationList)
+        todo = OrderedDict()    # Todo dict (comp:{lhs: equation})
+
+        # Add solvable components in the solvable order
         for comp in solvable_comps:
             out[comp.name()] = EquationList()
             todo[comp] = {}
-        for comp in self.components():
+        del(solvable_comps)
+
+        # Add interdependent components in any order
+        for comp in cdeps.keys():
             out[comp.name()] = EquationList()
             todo[comp] = {}
+        del(cdeps)
+
+        # At this point, we have created an ordered dict `out` that contains
+        # all components in solvable order, and maps them to (currently empty)
+        # equation lists.
+        # The next lines create a to-do list of equations that will need to be
+        # added to `out`.
 
         # Populate component todo lists
-        for lhs, rhs in self.equations(deep=True):
-            comp = lhs.var().parent(Component)
-            todo[comp][lhs] = Equation(lhs, rhs)
+        for eq in self.equations(deep=True):
+            comp = eq.lhs.var().parent(Component)
+            todo[comp][eq.lhs] = eq
 
-        # Get map of shallow dependencies, use as to-do list
+        # Get a map of shallow dependencies: {lhs: [lhs1, lhs2, lhs3, ...]}
+        # Use this map like cmaps, by removing all 'solved' variables from the
+        # lists, so that an lhs is solvable as soon as its dependency list is
+        # empty.
         deps = self.map_shallow_dependencies()
 
-        # Nested variable grouping: nested variables aren't added to the list
-        # directly but stored until their parent variable is added. This does
-        # not interfere with the ordering since only parent and sibling
-        # variables are allowed to depend on them.
-        nested = OrderedDict()  # Nested variable equations (var:eq)
+        # To get nicer output, nested variables are grouped with their parent.
+        # Note: This isn't necessary for solvability, but makes for much more
+        # readable exported code.
 
-        def expand(par):
-            expd = []
+        # The dict below maps nested variables to their defining equations
+        # {var: eq}. When scanning or solvable equations, nested variables will
+        # be added to this dict, and then kept until their parent is
+        # encountered, at which point they'll be added to `out`.
+        nested = OrderedDict()
+
+        def add_nested_equations(eq_list, parent, done=None):
+            """
+            Recursively adds equations for all children of a given `parent` to
+            the output `eq_list`.
+            The list `done` is updated to contain all variables whose equation
+            was added in this call.
+            """
+            if done is None:
+                done = []
             for var, eq in nested.items():
-                if var._parent == par:
-                    expand(var)
+                if var._parent == parent:
+                    add_nested_equations(eq_list, var, done)
                     eq_list.append(eq)
-                    expd.append(var)
-            for var in expd:
-                del(nested[var])
+                    done.append(var)
+            return done
 
-        def addeq(lhs, eq, done):
+        def add_equation(eq_list, done, eq):
             """
-            Adds eq to eq_list, removes it from done
+            Adds the equation `eq` to the equation list `eq_list` or, if the
+            equation is for a nested variable, stores it in the global dict
+            `nested`.
+            If a variable with children is encountered, all its children will
+            be added to `eq_list` too.
+            The list `done` is updated to contain all `lhs` expressions whose
+            equation was added to `eq_list` in this call.
             """
-            var = lhs.var()
+            var = eq.lhs.var()
             if var.is_nested():
+                # Nested variable: Store in `nested` to add to `eq_list` later
                 nested[var] = eq
-                done.append(lhs)
-            else:
-                expand(var)
-                eq_list.append(eq)
-                done.append(lhs)
 
-        # Now handle each component, as far as we get
+            else:
+
+                # Non-nested variable
+                # Add any descendants, and remove them from nested
+                for kid in add_nested_equations(eq_list, var):
+                    del(nested[kid])
+                # Add the variable itself
+                eq_list.append(eq)
+
+            # Mark this lhs as done
+            done.append(eq.lhs)
+
+        # Scan over all components
         for comp, eqs in todo.items():
+            # For each component, add solvable equations to the `out` list and
+            # remove them from `todo`
             eq_list = out[comp.name()]
             while True:
-                done = []
+                # Add all equations that can be added
+                newly_solvable = []
                 for lhs, eq in eqs.items():
                     if len(deps[lhs]) == 0:
-                        addeq(lhs, eq, done)
-                if len(done) == 0:
+                        add_equation(eq_list, newly_solvable, eq)
+
+                # Can't add any more? Then stop
+                if len(newly_solvable) == 0:
                     break
-                for lhs in done:
-                    # Remove from todo list, remove all deps on done lhs's
+
+                # Remove all added equations from todo list
+                # Remove all dependencies on newly solved equations
+                for lhs in newly_solvable:
+                    # Remove from eqs (which is in `todo`)
                     del eqs[lhs]
+                    # Remove lhs from dependency map
                     del deps[lhs]
+                    # Remove dependency on lhs from dependency lists in map
                     for dps in deps.values():
                         if lhs in dps:
                             dps.remove(lhs)
 
-        # Get remaining equations
-        todd = todo
-        todo = {}
-        for comp, eqs in todd.items():
+        # Get remaining, unsolved equations as {lhs: eq} map.
+        unsolved = {}
+        for comp, eqs in todo.items():
             for lhs, eq in eqs.items():
-                todo[lhs] = eq
-        del(todd)   # Bye todd!
+                unsolved[lhs] = eq
+        del(todo)
 
-        # Add remaining equations in one big chunk
-        out['*remaining*'] = eq_list = EquationList()
+        # Add remaining equations
+        remaining = out['*remaining*'] = EquationList()
         while True:
-            done = []
-            for lhs, eq in todo.items():
+            # Add all equations that can be added
+            newly_solvable = []
+            for lhs, eq in unsolved.items():
                 if len(deps[lhs]) == 0:
-                    addeq(lhs, eq, done)
-            if len(done) == 0:
+                    add_equation(remaining, newly_solvable, eq)
+
+            # Can't add any more? Then stop
+            if len(newly_solvable) == 0:
                 break
-            for lhs in done:
-                del todo[lhs]
+
+            # Remove all added equations from todo list (`unsolved`)
+            # Remove all dependencies on newly solved equations
+            for lhs in newly_solvable:
+                del unsolved[lhs]
+                # Remove lhs from dependency map
                 del deps[lhs]
+                # Remove dependency on lhs from dependency lists in map
                 for dps in deps.values():
                     if lhs in dps:
                         dps.remove(lhs)
-        if len(todo):
+
+        # Any unsolved equations left? Then the equations can't be ordered!
+        # In normal use, this should have been picked up already in validation.
+        if unsolved:
             raise RuntimeError('Equation ordering failed.')
 
         # Return

@@ -1430,6 +1430,11 @@ class SolvableOrderTest(DepTest):
                         print(lhs1, 'occurs before', lhs2)
                     else:
                         print(lhs1, 'does NOT occur before', lhs2)
+                if i1 is None or i2 is None:
+                    raise Exception(
+                        'Error in test, one or more requested variables does'
+                        ' not appear in the given list: ' + lhs1.var().qname()
+                        + ', ' + lhs2.var().qname())
                 self.assertLess(i1, i2)
 
         def cbefore(c1, *c2s):
@@ -1486,7 +1491,6 @@ class SolvableOrderTest(DepTest):
         self.head('Testing with constants cell.K_o and cell.RTF.R')
         self.order = self.m.solvable_subset('cell.K_o', 'cell.RTF.R')
         self.assertEqual(len(self.order), 13)
-        before('cell.RTF.R', 'cell.RTF')
         before('cell.RTF', 'ik.E', 'ik1.E', 'ina.ENa')
         before('ina.ENa', 'ina.INa')
         before('ina.INa', 'membrane.V')
