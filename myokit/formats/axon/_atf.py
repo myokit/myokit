@@ -15,7 +15,8 @@ import os
 import re
 
 
-_FIELDS = re.compile(r'["]{1}[^"]*["]{1}')
+# Format used for any text
+_ENC = 'ascii'
 
 
 class AtfFile(object):
@@ -102,16 +103,16 @@ class AtfFile(object):
         """
         Reads the data in the file.
         """
-        with open(self._file, 'r') as f:
+        with open(self._file, 'rb') as f:
             # Check version
-            line = f.readline()
+            line = f.readline().decode(_ENC)
             line_index = 1
             if line[:3] != 'ATF':
                 raise Exception('Unrecognised file type.')
             self._version = line[3:].strip()
 
             # Read number of header lines, number of fields
-            line = f.readline()
+            line = f.readline().decode(_ENC)
             line_index += 1
             nh, nf = [int(x) for x in line.split()]
 
@@ -123,7 +124,7 @@ class AtfFile(object):
             raw = []    # Fallback
             key_value_pairs = True
             for i in range(nh):
-                line = f.readline().strip()
+                line = f.readline().decode(_ENC).strip()
                 line_index += 1
                 if line[0] != '"' or line[-1] != '"':
                     raise Exception(
@@ -152,11 +153,12 @@ class AtfFile(object):
 
             # Read time-series data
             self._data = OrderedDict()
-            line = f.readline().strip()
+            line = f.readline().decode(_ENC).strip()
             line_index += 1
 
             # Test if comma separated or space/tab separated
-            delims = _FIELDS.split(line)
+            delims = re.compile(r'["]{1}[^"]*["]{1}')
+            delims = delims.split(line)
 
             # First and last delim must be empty (i.e. line starts and ends
             # with '"')
@@ -200,7 +202,7 @@ class AtfFile(object):
             sep = ',' if commas else None
             for line in f:
                 line_index += 1
-                line = line.strip()
+                line = line.decode(_ENC).strip()
                 vals = line.split(sep)
                 if len(vals) != nf:
                     raise Exception(
@@ -298,17 +300,19 @@ def save_atf(log, filename, fields=None):
     # Write file
     with open(filename, 'wb') as f:
         # Write version number
-        f.write('ATF 1.0' + eol)
+        f.write(('ATF 1.0' + eol).encode(_ENC))
 
         # Write number of header lines, number of fields
-        f.write(str(nh) + delim + str(nf) + eol)
+        f.write((str(nh) + delim + str(nf) + eol).encode(_ENC))
         for k, v in header:
-            f.write('"' + str(k) + '=' + str(v) + '"' + eol)
+            f.write(('"' + str(k) + '=' + str(v) + '"' + eol).encode(_ENC))
 
         # Write field names
-        f.write(delim.join(['"' + k + '"' for k in keys]) + eol)
+        f.write((delim.join(['"' + k + '"' for k in keys]) + eol).encode(_ENC))
 
         # Write data
         for i in range(nd):
-            f.write(
-                delim.join([myokit.strfloat(next(d)) for d in data]) + eol)
+            f.write((
+                delim.join([myokit.strfloat(next(d)) for d in data]) + eol
+            ).encode(_ENC))
+

@@ -153,6 +153,10 @@ import struct
 import os
 
 
+# Encoding for text parts of files
+_ENC = 'ascii'
+
+
 class AbfFile(object):
     """
     Represents a read-only Axon Binary Format file (``.abf``), stored at the
@@ -609,188 +613,203 @@ class AbfFile(object):
         """
         Reads the file's header.
         """
-        class struct_file(file):
+
+        def read_f(f, form, offset=None):
             """
-            Struct wrapper around file
+            Read and unpack a file section using the given format ``form``.
             """
-            def read_f(self, format, offset=None):
-                """
-                Read and unpack a file section using the given format.
-                """
-                if offset is not None:
-                    self.seek(offset)
-                return struct.unpack(
-                    format, self.read(struct.calcsize(format)))
+            if offset is not None:
+                f.seek(offset)
+            return struct.unpack(form, f.read(struct.calcsize(form)))
 
         def ups(val):
             """
-            Unpack a single value or, if the given value isn't singular, leave
-            it alone.
+            Parses tuples, unpacking single values:
+
+            1. Tuples with a single entry are converted to that entry (e.g.
+               ``(5, )`` gets turned into ``5``.
+            2. Any bytes objects are converted to string.
+            3. Strings containing only \\x00 are replaced by ``None``
+
             """
-            if len(val) != 1:
-                return val
-            val = val[0]
-            if type(val) == str and len(val) > 0 and ord(val[0]) == 0:
-                return None
-            return val
+            # Convert bytes
+            values = [0] * len(val)
+            for i, v in enumerate(val):
+                if isinstance(v, bytes):
+                    v = v.decode(_ENC)
+                    # Handle long \x00 lists
+                    if v and ord(v[0]) == 0:
+                        return None
+                values[i] = v
+            del(val)
 
-        fid = struct_file(self._filepath, 'rb')
+            # Unpack single
+            if len(values) == 1:
+                return values[0]
+            return values
 
-        # Get ABF Format version (pClamp < 10 is version 1, after is version 2)
-        sig = fid.read(4)
-        if sig == 'ABF ':
-            version = 1
-        elif sig == 'ABF2':
-            version = 2
-        else:
-            raise NotImplementedError('Unknown ABF Format "' + str(sig) + '".')
+        with open(self._filepath, 'rb') as f:
 
-        # Gather header fields
-        header = OrderedDict()
-        for key, offset, format in headerFields[version]:
-            header[key] = ups(fid.read_f(format, offset))
+            # Get ABF Format version (pClamp < 10 is version 1, after is
+            # version 2)
+            sig = f.read(4).decode(_ENC)
+            if sig == 'ABF ':
+                version = 1
+            elif sig == 'ABF2':
+                version = 2
+            else:
+                raise NotImplementedError(
+                    'Unknown ABF Format "' + str(sig) + '".')
 
-        # Get uniform file version number
-        if version < 2:
-            self._version = np.round(header['fFileVersionNumber'] * 100) / 100
-        else:
-            n = header['fFileVersionNumber']
-            self._version = n[3] + 0.1 * n[2] + 0.01 * n[1] + 0.001 * n[0]
-        #self._version = version = header['fFileVersionNumber']
+            # Gather header fields
+            header = OrderedDict()
+            for key, offset, form in headerFields[version]:
+                header[key] = ups(read_f(f, form, offset))
 
-        # Get file start time in seconds
-        if version < 2:
-            header['lFileStartTime'] += header['nFileStartMillisecs'] / 1000
-        else:
-            header['lFileStartTime'] = header['uFileStartTimeMS'] / 1000
+            # Get uniform file version number
+            if version < 2:
+                self._version = (
+                    np.round(header['fFileVersionNumber'] * 100) / 100)
+            else:
+                n = header['fFileVersionNumber']
+                self._version = n[3] + 0.1 * n[2] + 0.01 * n[1] + 0.001 * n[0]
 
-        if version < 2:
+            # Get file start time in seconds
+            if version < 2:
+                header['lFileStartTime'] += (
+                    header['nFileStartMillisecs'] / 1000)
+            else:
+                header['lFileStartTime'] = header['uFileStartTimeMS'] / 1000
 
-            # Version 1: Only read tags
-            tags = []
-            for i in range(header['lNumTagEntries']):
-                fid.seek(header['lTagSectionPtr'] + i * 64)
-                tag = OrderedDict()
-                for key, format in TagInfoDescription:
-                    tag[key] = ups(fid.read_f(format))
-                tags.append(tag)
-            header['tags'] = tags
-            self.strings = []
+            if version < 2:
 
-        else:
+                # Version 1: Only read tags
+                tags = []
+                for i in range(header['lNumTagEntries']):
+                    f.seek(header['lTagSectionPtr'] + i * 64)
+                    tag = OrderedDict()
+                    for key, form in TagInfoDescription:
+                        tag[key] = ups(read_f(f, form))
+                    tags.append(tag)
+                header['tags'] = tags
+                self.strings = []
 
-            # Version 2
-            # Find location of file sections
-            sections = OrderedDict()
-            for i, s in enumerate(abf2FileSections):
-                index, data, length = fid.read_f('IIl', 76 + i * 16)
-                sections[s] = OrderedDict()
-                sections[s]['index'] = index
-                sections[s]['data'] = data
-                sections[s]['length'] = length
-            header['sections'] = sections
+            else:
 
-            # String section contains channel names and units
-            fid.seek(sections['Strings']['index'] * BLOCKSIZE)
-            strings = fid.read(sections['Strings']['data'])
+                # Version 2
+                # Find location of file sections
+                sections = OrderedDict()
+                for i, s in enumerate(abf2FileSections):
+                    index, data, length = read_f(f, 'IIl', 76 + i * 16)
+                    sections[s] = OrderedDict()
+                    sections[s]['index'] = index
+                    sections[s]['data'] = data
+                    sections[s]['length'] = length
+                header['sections'] = sections
 
-            # Starts with header we need to skip
-            # DWORD dwSignature;    4 bytes
-            # DWORD dwVersion;      4 bytes
-            # UINT  uNumStrings;    4 bytes
-            # UINT  uMaxSize;       4 bytes
-            # ABFLONG  lTotalBytes; 4 bytes
-            # UINT  uUnused[6];     24 bytes
-            # Total: 44 bytes
-            strings = strings[44:]
+                # String section contains channel names and units
+                f.seek(sections['Strings']['index'] * BLOCKSIZE)
+                strings = f.read(sections['Strings']['data'])
 
-            # C-style string termination
-            strings = strings.split('\x00')
-            self.strings = strings
+                # Starts with header we need to skip
+                # DWORD dwSignature;    4 bytes
+                # DWORD dwVersion;      4 bytes
+                # UINT  uNumStrings;    4 bytes
+                # UINT  uMaxSize;       4 bytes
+                # ABFLONG  lTotalBytes; 4 bytes
+                # UINT  uUnused[6];     24 bytes
+                # Total: 44 bytes
+                strings = strings[44:]
 
-            # Read tag section
-            tags = []
-            offs = sections['Tag']['index'] * BLOCKSIZE
-            size = sections['Tag']['data']
-            for i in range(sections['Tag']['length']):
-                fid.seek(offs + i * size)
-                tag = OrderedDict()
-                for key, format in TagInfoDescription:
-                    tag[key] = ups(fid.read_f(format))
-                tags.append(tag)
-            header['tags'] = tags
+                # C-style string termination
+                strings = strings.split(b'\x00')
+                strings = [s.decode(_ENC) for s in strings]
+                self.strings = strings
 
-            # Read protocol section
-            protocol = OrderedDict()
-            offs = sections['Protocol']['index'] * BLOCKSIZE
-            fid.seek(offs)
-            for key, format in protocolFields:
-                protocol[key] = ups(fid.read_f(format))
-            header['protocol'] = protocol
+                # Read tag section
+                tags = []
+                offs = sections['Tag']['index'] * BLOCKSIZE
+                size = sections['Tag']['data']
+                for i in range(sections['Tag']['length']):
+                    f.seek(offs + i * size)
+                    tag = OrderedDict()
+                    for key, form in TagInfoDescription:
+                        tag[key] = ups(read_f(f, form))
+                    tags.append(tag)
+                header['tags'] = tags
 
-            # Read analog-digital conversion sections
-            adc = []
-            offs = sections['ADC']['index'] * BLOCKSIZE
-            size = sections['ADC']['data']
-            for i in range(sections['ADC']['length']):
-                ADC = OrderedDict()
-                fid.seek(offs + i * size)
-                for key, format in ADCFields:
-                    ADC[key] = ups(fid.read_f(format))
-                # Get channel name and unit
-                ADC['ADCChNames'] = strings[ADC['lADCChannelNameIndex'] - 1]
-                ADC['ADCChUnits'] = strings[ADC['lADCUnitsIndex'] - 1]
-                adc.append(ADC)
-            header['listADCInfo'] = adc
+                # Read protocol section
+                protocol = OrderedDict()
+                offs = sections['Protocol']['index'] * BLOCKSIZE
+                f.seek(offs)
+                for key, form in protocolFields:
+                    protocol[key] = ups(read_f(f, form))
+                header['protocol'] = protocol
 
-            # Read DAC section
-            dac = []
-            offs = sections['DAC']['index'] * BLOCKSIZE
-            size = sections['DAC']['data']
-            for i in range(sections['DAC']['length']):
-                fid.seek(offs + size * i)
-                DAC = OrderedDict()
-                for key, format in DACFields:
-                    DAC[key] = ups(fid.read_f(format))
-                DAC['sDACChannelName'] = \
-                    strings[DAC['lDACChannelNameIndex'] - 1]
-                DAC['sDACChannelUnits'] = \
-                    strings[DAC['lDACChannelUnitsIndex'] - 1]
-                dac.append(DAC)
-            header['listDACInfo'] = dac
+                # Read analog-digital conversion sections
+                adc = []
+                offs = sections['ADC']['index'] * BLOCKSIZE
+                size = sections['ADC']['data']
+                for i in range(sections['ADC']['length']):
+                    ADC = OrderedDict()
+                    f.seek(offs + i * size)
+                    for key, form in ADCFields:
+                        ADC[key] = ups(read_f(f, form))
+                    # Get channel name and unit
+                    ADC['ADCChNames'] = (
+                        strings[ADC['lADCChannelNameIndex'] - 1])
+                    ADC['ADCChUnits'] = strings[ADC['lADCUnitsIndex'] - 1]
+                    adc.append(ADC)
+                header['listADCInfo'] = adc
 
-            # Read UserList section
-            userlists = []
-            for i in range(sections['UserList']['length']):  # pragma: no cover
-                # Cover pragma: User lists are not supported
-                fid.seek(offs + size * i)
-                UserList = OrderedDict()
-                for key, format in UserListFields:
-                    UserList[key] = ups(fid.read_f(format))
-                userlists.append(DAC)
-            header['listUserListInfo'] = userlists
+                # Read DAC section
+                dac = []
+                offs = sections['DAC']['index'] * BLOCKSIZE
+                size = sections['DAC']['data']
+                for i in range(sections['DAC']['length']):
+                    f.seek(offs + size * i)
+                    DAC = OrderedDict()
+                    for key, form in DACFields:
+                        DAC[key] = ups(read_f(f, form))
+                    DAC['sDACChannelName'] = \
+                        strings[DAC['lDACChannelNameIndex'] - 1]
+                    DAC['sDACChannelUnits'] = \
+                        strings[DAC['lDACChannelUnitsIndex'] - 1]
+                    dac.append(DAC)
+                header['listDACInfo'] = dac
 
-            # Read epoch-per-DAC section
-            # The resulting OrderedDict has the following structure:
-            #  - the first index is the DAC number
-            #  - the second index is the epoch number
-            header['epochInfoPerDAC'] = OrderedDict()
-            offs = sections['EpochPerDAC']['index'] * BLOCKSIZE
-            size = sections['EpochPerDAC']['data']
-            info = OrderedDict()
-            for i in range(sections['EpochPerDAC']['length']):
-                fid.seek(offs + size * i)
-                einf = OrderedDict()
-                for key, format in EpochInfoPerDACFields:
-                    einf[key] = ups(fid.read_f(format))
-                DACNum = einf['nDACNum']
-                EpochNum = einf['nEpochNum']
-                if DACNum not in info:
-                    info[DACNum] = OrderedDict()
-                info[DACNum][EpochNum] = einf
-            header['epochInfoPerDAC'] = info
+                # Read UserList section
+                userlists = []
+                r = range(sections['UserList']['length'])
+                for i in r:  # pragma: no cover
+                    # Cover pragma: User lists are not supported
+                    f.seek(offs + size * i)
+                    UserList = OrderedDict()
+                    for key, form in UserListFields:
+                        UserList[key] = ups(read_f(f, form))
+                    userlists.append(DAC)
+                header['listUserListInfo'] = userlists
 
-        fid.close()
+                # Read epoch-per-DAC section
+                # The resulting OrderedDict has the following structure:
+                #  - the first index is the DAC number
+                #  - the second index is the epoch number
+                header['epochInfoPerDAC'] = OrderedDict()
+                offs = sections['EpochPerDAC']['index'] * BLOCKSIZE
+                size = sections['EpochPerDAC']['data']
+                info = OrderedDict()
+                for i in range(sections['EpochPerDAC']['length']):
+                    f.seek(offs + size * i)
+                    einf = OrderedDict()
+                    for key, form in EpochInfoPerDACFields:
+                        einf[key] = ups(read_f(f, form))
+                    DACNum = einf['nDACNum']
+                    EpochNum = einf['nEpochNum']
+                    if DACNum not in info:
+                        info[DACNum] = OrderedDict()
+                    info[DACNum][EpochNum] = einf
+                header['epochInfoPerDAC'] = info
+
         return header
 
     def _read_protocol(self):
@@ -996,7 +1015,7 @@ class AbfFile(object):
             n = header['sections']['SynchArray']['length']
             o = header['sections']['SynchArray']['index'] * BLOCKSIZE
         if n > 0:
-            dt = [(b'offset', b'i4'), (b'len', b'i4')]
+            dt = [(str('offset'), str('i4')), (str('len'), str('i4'))]
             sdata = np.memmap(self._filepath, dt, 'r', shape=(n), offset=o)
         else:
             sdata = np.empty((1), dt)

@@ -202,7 +202,7 @@ class AtfTest(unittest.TestCase):
             log2 = axon.load_atf(path)
             self.assertEqual(len(log), len(log2))
             self.assertEqual(set(log.keys()), set(log2.keys()))
-            for k, v in log.iteritems():
+            for k, v in log.items():
                 self.assertTrue(np.all(v == log2[k]))
 
             # Write selected fields
