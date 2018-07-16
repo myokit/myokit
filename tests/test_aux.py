@@ -521,7 +521,8 @@ class AuxTest(unittest.TestCase):
         Test float to string conversion.
         """
         # String should be passed through
-        self.assertEqual(myokit.strfloat('123'), '123')
+        # Note: convert to str() to test in python 2 and 3.
+        self.assertEqual(myokit.strfloat('123'), str('123'))
 
         # Simple numbers
         self.assertEqual(myokit.strfloat(0), '0')
