@@ -83,11 +83,14 @@ def html2ascii(html, width=79, indent='  '):
 
         def __init__(self, line_width=79, indent='  '):
             if sys.hexversion < 0x03000000:
-                # Create HTMLParser with old-school constructor
+                # HTMLParser requires old-school constructor
                 HTMLParser.__init__(self)
             else:   # pragma: no python 2 cover
-                # Python 3:
                 super(Asciifier, self).__init__(convert_charrefs=False)
+
+                # Unescape method is deprecated
+                import html
+                self.unescape = html.unescape
 
             # In <head> yes/no
             self.inhead = False
@@ -132,8 +135,8 @@ def html2ascii(html, width=79, indent='  '):
             if self.inhead:
                 return
 
-            # Convert to ascii, if possible
-            data = data.encode('ascii', 'ignore')
+            # Convert to ascii and back to remove all non-ascii content
+            data = data.encode('ascii', 'ignore').decode('ascii')
 
             # Non-empty? Then add to line
             if data:
@@ -261,8 +264,8 @@ def html2ascii(html, width=79, indent='  '):
             # Convert html characters
             data = self.unescape('&' + name + ';')
 
-            # Convert to ascii, if possible
-            data = data.encode('ascii', 'ignore')
+            # Convert to ascii and back to strip out non-ascii content
+            data = data.encode('ascii', 'ignore').decode('ascii')
 
             # Non-empty? Then add to line
             if data:
