@@ -243,7 +243,7 @@ class DataBlock1d(object):
 
         # Use linear least squares to find the conduction velocity
         A = np.vstack([t, np.ones(len(t))]).T
-        cv = np.linalg.lstsq(A, x)[0][0]
+        cv = np.linalg.lstsq(A, x, rcond=None)[0][0]
 
         # Return
         return cv
