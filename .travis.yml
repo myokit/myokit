@@ -39,9 +39,9 @@ matrix:
         - python: "2.7"
           env:
             - MYOKIT_STYLE=true
-        #- python: "3.6"
-        #  env:
-        #    - MYOKIT_DOC=true
+        - python: "3.6"
+          env:
+            - MYOKIT_DOC=true
 
 # Install C dependencies
 before_install:
