@@ -21,8 +21,14 @@ from shared import DIR_FORMATS
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
-except AttributeError:
+except AttributeError:  # pragma: no python 3 cover
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no python 2 cover
+    basestring = str
 
 
 class ImporterTest(unittest.TestCase):
@@ -33,7 +39,7 @@ class ImporterTest(unittest.TestCase):
         ims = myokit.formats.importers()
         self.assertTrue(len(ims) > 0)
         for i in ims:
-            self.assertIn(type(i), [str, unicode])
+            self.assertIsInstance(i, basestring)
             i = myokit.formats.importer(i)
             self.assertTrue(isinstance(i, myokit.formats.Importer))
 
@@ -80,7 +86,7 @@ class SBMLTest(unittest.TestCase):
 
     def test_info(self):
         i = formats.importer('sbml')
-        self.assertIn(type(i.info()), [str, unicode])
+        self.assertIsInstance(i.info(), basestring)
 
 
 class AxonTest(unittest.TestCase):
@@ -100,7 +106,7 @@ class AxonTest(unittest.TestCase):
 
     def test_info(self):
         i = formats.importer('abf')
-        self.assertIn(type(i.info()), [str, unicode])
+        self.assertIsInstance(i.info(), basestring)
 
 
 if __name__ == '__main__':
