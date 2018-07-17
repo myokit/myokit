@@ -15,6 +15,9 @@ import numpy as np
 
 import myokit
 
+# Encoding of text portions of wcp file
+_ENC = 'ascii'
+
 
 class WcpFile(object):
     """
@@ -48,11 +51,11 @@ class WcpFile(object):
         # Time signal
         self._time = None
 
-        # Open the file, extract its contents
+        # Read the file
         with open(filepath, 'rb') as f:
-            self._(f)
+            self._read(f)
 
-    def _(self, f):
+    def _read(self, f):
         """
         Reads the file header & data.
         """
@@ -62,27 +65,27 @@ class WcpFile(object):
         # Read first part of header, determine version and number of channels
         # in the file
         data = f.read(1024)
-        h = [x.strip().split('=') for x in data.split('\n')]
+        h = [x.strip().split(b'=') for x in data.split(b'\n')]
         h = dict([(x[0].lower(), x[1]) for x in h if len(x) == 2])
-        if int(h['ver']) != 9:
+        if int(h[b'ver']) != 9:
             raise NotImplementedError(
                 'Only able to read format version 9. Given file is in format'
-                ' version ' + str(h['ver']))
+                ' version ' + str(h[b'ver']))
 
         # Get header size
         try:
             # Get number of 512 byte sectors in header
-            #header_size = 512 * int(h['nbh'])
+            #header_size = 512 * int(h[b'nbh'])
             # Seems to be size in bytes!
-            header_size = int(h['nbh'])
+            header_size = int(h[b'nbh'])
         except KeyError:    # pragma: no cover
             # Calculate header size based on number of channels
-            header_size = (int((int(h['nc']) - 1) / 8) + 1) * 1024
+            header_size = (int((int(h[b'nc']) - 1) / 8) + 1) * 1024
 
         # Read remaining header data
         if header_size > 1024:  # pragma: no cover
             data += f.read(header_size - 1024)
-            h = [x.strip().split('=') for x in data.split('\n')]
+            h = [x.strip().split(b'=') for x in data.split(b'\n')]
             h = dict([(x[0].lower(), x[1]) for x in h if len(x) == 2])
 
         # Tidy up read data
@@ -94,7 +97,7 @@ class WcpFile(object):
                 t = HEADER_FIELDS[k]
                 if t == float:
                     # Allow for windows locale stuff
-                    v = v.replace(',', '.')
+                    v = v.replace(b',', b'.')
                 header[k] = t(v)
             except KeyError:
                 header_raw[k] = v
@@ -102,46 +105,46 @@ class WcpFile(object):
         # Convert time
         # No, don't. It's in different formats depending on... the version?
         # if 'ctime' in header:
-        #    print(header['ctime'])
-        #    ctime = time.strptime(header['ctime'], "%d/%m/%Y %H:%M:%S")
-        #    header['ctime'] = time.strftime('%Y-%m-%d %H:%M:%S', ctime)
+        #    print(header[b'ctime'])
+        #    ctime = time.strptime(header[b'ctime'], "%d/%m/%Y %H:%M:%S")
+        #    header[b'ctime'] = time.strftime('%Y-%m-%d %H:%M:%S', ctime)
 
         # Get vital fields from header
         # Records in file
-        self._nr = header['nr']
+        self._nr = header[b'nr']
 
         # Channels per record
-        self._nc = header['nc']
+        self._nc = header[b'nc']
         try:
             # Samples per channel
-            self._np = header['np']
+            self._np = header[b'np']
         except KeyError:
-            self._np = (header['nbd'] * 512) // (2 * self._nc)
+            self._np = (header[b'nbd'] * 512) // (2 * self._nc)
 
         # Get channel specific fields
         channel_headers = []
         self._channel_names = []
         for i in range(self._nc):
-            j = str(i)
+            j = str(i).encode(_ENC)
             c = {}
             for k, t in HEADER_CHANNEL_FIELDS.items():
                 c[k] = t(h[k + j])
             channel_headers.append(c)
-            self._channel_names.append(c['yn'])
+            self._channel_names.append(c[b'yn'].decode(_ENC))
 
         # Analysis block size and data block size
         # Data is stored as 16 bit integers (little-endian)
         try:
-            rab_size = 512 * header['nba']
+            rab_size = 512 * header[b'nba']
         except KeyError:    # pragma: no cover
             rab_size = header_size
         try:
-            rdb_size = 512 * header['nbd']
+            rdb_size = 512 * header[b'nbd']
         except KeyError:    # pragma: no cover
             rdb_size = 2 * self._nc * self._np
 
         # Maximum A/D sample value at vmax
-        adcmax = header['adcmax']
+        adcmax = header[b'adcmax']
 
         # Read data records
         records = []
@@ -163,7 +166,7 @@ class WcpFile(object):
             rtime = struct.unpack('<f', f.read(4))[0]
 
             # Sampling interval: pretty sure this should be the same as the
-            # file wide one in header['dt']
+            # file wide one in header[b'dt']
             rint = struct.unpack('<f', f.read(4))[0]
 
             # Maximum positive limit of A/D converter voltage range
@@ -189,8 +192,8 @@ class WcpFile(object):
             record = []
             for j in range(self._nc):
                 h = channel_headers[j]
-                s = float(vmax[j]) / float(adcmax) / float(h['yg'])
-                d = np.array(data[:, h['yo']].astype('f4') * s)
+                s = float(vmax[j]) / float(adcmax) / float(h[b'yg'])
+                d = np.array(data[:, h[b'yo']].astype('f4') * s)
                 record.append(d)
             records.append(record)
 
@@ -200,7 +203,7 @@ class WcpFile(object):
         self._records = records
 
         # Create time signal
-        self._time = np.arange(self._np) * header['dt']
+        self._time = np.arange(self._np) * header[b'dt']
 
     def channels(self):
         """
@@ -282,29 +285,29 @@ class WcpFile(object):
 
 
 HEADER_FIELDS = {
-    'ver': int,        # WCP data file format version number
-    'ctime': str,      # Create date/time
-    'nc': int,         # No. of channels per record
-    'nr': int,         # No. of records in the file.
-    'nbh': int,        # No. of 512 byte sectors in file header block
-    'nba': int,        # No. of 512 byte sectors in a record analysis block
-    'nbd': int,        # No. of 512 byte sectors in a record data block
-    'ad': float,       # A/D converter input voltage range (V)
-    'adcmax': int,     # Maximum A/D sample value
-    'np': int,         # No. of A/D samples per channel
-    'dt': float,       # A/D sampling interval (s)
-    'nz': int,         # No. of samples averaged to calculate a zero level.
-    'tu': str,         # Time units
-    'id': str,         # Experiment identification line
+    b'ver': int,        # WCP data file format version number
+    b'ctime': bytes,    # Create date/time
+    b'nc': int,         # No. of channels per record
+    b'nr': int,         # No. of records in the file.
+    b'nbh': int,        # No. of 512 byte sectors in file header block
+    b'nba': int,        # No. of 512 byte sectors in a record analysis block
+    b'nbd': int,        # No. of 512 byte sectors in a record data block
+    b'ad': float,       # A/D converter input voltage range (V)
+    b'adcmax': int,     # Maximum A/D sample value
+    b'np': int,         # No. of A/D samples per channel
+    b'dt': float,       # A/D sampling interval (s)
+    b'nz': int,         # No. of samples averaged to calculate a zero level.
+    b'tu': bytes,       # Time units
+    b'id': bytes,       # Experiment identification line
 }
 
 
 HEADER_CHANNEL_FIELDS = {
-    'yn': str,         # Channel name
-    'yu': str,         # Channel units
-    'yg': float,       # Channel gain factor mV/units
-    'yz': int,         # Channel zero level (A/D bits)
-    'yo': int,         # Channel offset into sample group in data block
-    'yr': int,         # ADCZeroAt, probably for old files
+    b'yn': bytes,       # Channel name
+    b'yu': bytes,       # Channel units
+    b'yg': float,       # Channel gain factor mV/units
+    b'yz': int,         # Channel zero level (A/D bits)
+    b'yo': int,         # Channel offset into sample group in data block
+    b'yr': int,         # ADCZeroAt, probably for old files
 }
 #TODO: Find out if we need to do something with yz and yg
