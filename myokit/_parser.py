@@ -37,10 +37,7 @@ def parse(source):
     raw = source
     if isinstance(raw, basestring):
         raw = raw.splitlines()
-    try:
-        raw.next
-    except AttributeError:
-        raw = iter(raw)
+    raw = iter(raw)
 
     # Create tokenizer
     stream = Tokenizer(raw)
@@ -68,7 +65,7 @@ def parse(source):
                     'Expecting [[script]]')
         script = parse_script_from_stream(stream, raw)
     else:
-        expect(stream.next(), EOF)
+        expect(next(stream), EOF)
 
     # Return
     return (model, protocol, script)
@@ -82,10 +79,7 @@ def parse_model(source):
     raw = source
     if isinstance(raw, basestring):
         raw = raw.splitlines()
-    try:
-        raw.next
-    except AttributeError:
-        raw = iter(raw)
+    raw = iter(raw)
 
     # Parse and return
     stream = Tokenizer(raw)
@@ -95,7 +89,7 @@ def parse_model(source):
             'Invalid segment header', token[2], token[3],
             'Expecting [[model]]')
     model = parse_model_from_stream(stream)
-    expect(stream.next(), EOF)
+    expect(next(stream), EOF)
     return model
 
 
@@ -107,10 +101,7 @@ def parse_protocol(source):
     raw = source
     if isinstance(raw, basestring):
         raw = raw.splitlines()
-    try:
-        raw.next
-    except AttributeError:
-        raw = iter(raw)
+    raw = iter(raw)
     # Parse and return
     stream = Tokenizer(raw)
     token = expect(stream.peek(), SEGMENT_HEADER)
@@ -119,7 +110,7 @@ def parse_protocol(source):
             'Invalid segment header', token[2], token[3],
             'Expecting [[protocol]]')
     protocol = parse_protocol_from_stream(stream)
-    expect(stream.next(), EOF)
+    expect(next(stream), EOF)
     return protocol
 
 
@@ -131,10 +122,7 @@ def parse_script(source):
     raw = source
     if isinstance(raw, basestring):
         raw = raw.splitlines()
-    try:
-        raw.next
-    except AttributeError:
-        raw = iter(raw)
+    raw = iter(raw)
     # Parse and return
     stream = Tokenizer(raw)
     token = expect(stream.peek(), SEGMENT_HEADER)
@@ -143,7 +131,7 @@ def parse_script(source):
             'Invalid segment header', token[2], token[3],
             'Expecting [[script]]')
     script = parse_script_from_stream(stream)
-    expect(stream.next(), EOF)
+    expect(next(stream), EOF)
     return script
 
 
@@ -173,10 +161,7 @@ def parse_state(state):
     raw = state
     if isinstance(raw, basestring):
         raw = raw.splitlines()
-    try:
-        raw.next
-    except AttributeError:
-        raw = iter(raw)
+    raw = iter(raw)
     # Create tokenizer
     stream = Tokenizer(raw, check_indenting=False)
     # Start parsing
@@ -184,17 +169,17 @@ def parse_state(state):
         # Parse name = value format
         pairs = {}
         while stream.peek()[0] != EOF:
-            name = expect(stream.next(), NAME)[1]
+            name = expect(next(stream), NAME)[1]
             t = stream.peek()
             if t[0] != DOT:
                 raise ParseError(
                     'Unexpected token, expecting "."', t[2], t[3],
                     'All variable names must be fully qualified: comp.var')
-            expect(stream.next(), DOT)
-            name += '.' + expect(stream.next(), NAME)[1]
-            expect(stream.next(), EQUAL)
+            expect(next(stream), DOT)
+            name += '.' + expect(next(stream), NAME)[1]
+            expect(next(stream), EQUAL)
             pairs[name] = parse_expression_stream(stream).eval()
-            t = expect(stream.next(), EOL)
+            t = expect(next(stream), EOL)
         return pairs
     else:
         # Parse list-of-floats format
@@ -202,7 +187,7 @@ def parse_state(state):
         state = []
         while True:
             while stream.peek()[0] not in expr:
-                stream.next()
+                next(stream)
             if stream.peek()[0] == EOF:
                 return state
             state.append(parse_expression_stream(stream).eval())
@@ -217,10 +202,7 @@ def split(source):
     raw = source
     if isinstance(raw, basestring):
         raw = raw.splitlines()
-    try:
-        raw.next
-    except AttributeError:
-        raw = iter(raw)
+    raw = iter(raw)
     segments = ['', '', '']
     prot_or_script = ('[[protocol]]', '[[script]]')
     # Gather lines in stream
@@ -237,7 +219,7 @@ def split(source):
     try:
         stream = Tokenizer(iter(lines))
         while stream.peek()[0] == EOL:
-            stream.next()
+            next(stream)
         token = stream.peek()
         if token[0] == SEGMENT_HEADER and token[1] == '[[model]]':
             parse_model_from_stream(stream, syntax_only=True)
@@ -263,7 +245,7 @@ def split(source):
     # Try parsing protocol
     try:
         while stream.peek()[0] == EOL:
-            stream.next()
+            next(stream)
         token = stream.peek()
         if token[0] == SEGMENT_HEADER and token[1] == '[[protocol]]':
             parse_protocol_from_stream(stream)
@@ -368,12 +350,12 @@ def parse_model_from_stream(stream, syntax_only=False):
     info = ParseInfo()
 
     # Parse header definition
-    token = expect(stream.next(), SEGMENT_HEADER)
+    token = expect(next(stream), SEGMENT_HEADER)
     if token[1][2:-2] != 'model':
         raise ParseError(
             'Invalid segment header', token[2], token[3],
             'Expecting [[model]]')
-    expect(stream.next(), EOL)
+    expect(next(stream), EOL)
 
     # Create model
     model = info.model = myokit.Model()
@@ -387,33 +369,33 @@ def parse_model_from_stream(stream, syntax_only=False):
             parse_user_function(stream, info)
         elif token[0] == META_NAME:
             # Meta data
-            t = stream.next()
+            t = next(stream)
             meta_key = t[1].strip()
             if meta_key in model.meta:
                 raise ParseError(
                     'Duplicate meta-data property', t[2], t[3],
                     'The meta-data property "' + meta_key + '" was already'
                     ' specified for this model.')
-            expect(stream.next(), COLON)
-            next = expect(stream.next(), [TEXT, EOL])
+            expect(next(stream), COLON)
+            t_next = expect(next(stream), [TEXT, EOL])
             meta_val = ''
-            if next[0] == TEXT:
-                meta_val = next[1].strip()
-                expect(stream.next(), EOL)
+            if t_next[0] == TEXT:
+                meta_val = t_next[1].strip()
+                expect(next(stream), EOL)
             model.meta[meta_key] = meta_val
         else:
             # Initial value
-            t0 = stream.next()
-            t1 = expect(stream.next(), DOT)
-            t2 = expect(stream.next(), NAME)
+            t0 = next(stream)
+            t1 = expect(next(stream), DOT)
+            t2 = expect(next(stream), NAME)
             name = t0[1] + t1[1] + t2[1]
             if name in info.initial_values:
                 raise ParseError(
                     'Duplicate initial value', t0[2], t0[3],
                     'A value for <' + name + '> was already specified.')
-            expect(stream.next(), EQUAL)
+            expect(next(stream), EQUAL)
             expr = parse_expression_stream(stream)
-            expect(stream.next(), EOL)
+            expect(next(stream), EOL)
             info.initial_values[name] = expr
             reg_token(info, t0, expr)
         token = stream.peek()
@@ -477,22 +459,22 @@ def parse_user_function(stream, info):
     Parses a user function.
     """
     # Parse name
-    token, name, line, char = expect(stream.next(), FUNC_NAME)
+    token, name, line, char = expect(next(stream), FUNC_NAME)
 
     # Parse argument list
     args = []
-    expect(stream.next(), PAREN_OPEN)
-    token = expect(stream.next(), [PAREN_CLOSE, NAME])
+    expect(next(stream), PAREN_OPEN)
+    token = expect(next(stream), [PAREN_CLOSE, NAME])
     while token[0] == NAME:
         args.append(token[1])
-        token = expect(stream.next(), [COMMA, PAREN_CLOSE])
+        token = expect(next(stream), [COMMA, PAREN_CLOSE])
         if token[0] == COMMA:
-            token = expect(stream.next(), NAME)
+            token = expect(next(stream), NAME)
 
     # Parse template
-    expect(stream.next(), EQUAL)
+    expect(next(stream), EQUAL)
     expr = convert_proto_expression(parse_proto_expression(stream, info))
-    expect(stream.next(), EOL)
+    expect(next(stream), EOL)
 
     # Create user function
     try:
@@ -515,10 +497,10 @@ def parse_component(stream, info=None):
             ' ParseInfo.')
 
     # Parse component declaration
-    expect(stream.next(), BRACKET_OPEN)
-    token = expect(stream.next(), NAME)
-    expect(stream.next(), BRACKET_CLOSE)
-    expect(stream.next(), EOL)
+    expect(next(stream), BRACKET_OPEN)
+    token = expect(next(stream), NAME)
+    expect(next(stream), BRACKET_CLOSE)
+    expect(next(stream), EOL)
     code, name, line, char = token
     try:
         component = info.model.add_component(name)
@@ -541,19 +523,19 @@ def parse_component(stream, info=None):
             parse_alias(stream, info, component)
         elif token[0] == META_NAME:
             # Meta data
-            t = stream.next()
+            t = next(stream)
             meta_key = t[1].strip()
             if meta_key in component.meta:
                 raise ParseError(
                     'Duplicate meta-data property', t[2], t[3],
                     'The meta-data property "' + meta_key + '" was already'
                     ' specified for this component.')
-            expect(stream.next(), COLON)
-            next = expect(stream.next(), [TEXT, EOL])
+            expect(next(stream), COLON)
+            t_next = expect(next(stream), [TEXT, EOL])
             meta_val = ''
-            if next[0] == TEXT:
-                meta_val = next[1].strip()
-                expect(stream.next(), EOL)
+            if t_next[0] == TEXT:
+                meta_val = t_next[1].strip()
+                expect(next(stream), EOL)
             component.meta[meta_key] = meta_val
         else:
             # Variable
@@ -580,22 +562,22 @@ def parse_alias(stream, info, component):
         amap = info.alias_map[component] = {}
 
     # Parse
-    token = expect(stream.next(), [USE])
+    token = expect(next(stream), [USE])
     while True:
         # Get referenced variable
-        token_c = expect(stream.next(), NAME)   # component
-        token_v = stream.next()                 # dot
+        token_c = expect(next(stream), NAME)   # component
+        token_v = next(stream)                 # dot
         if token_v[0] != DOT:
             raise ParseError(
                 'Invalid reference', token_v[2], token_v[3],
                 'Aliassed variables must be specified using their fully'
                 ' qualified name (component.variable)')
-        token_v = expect(stream.next(), NAME)   # variable
+        token_v = expect(next(stream), NAME)   # variable
 
         # Get reference name
         if stream.peek()[0] == AS:
-            expect(stream.next(), AS)
-            code, name, line, char = expect(stream.next(), NAME)
+            expect(next(stream), AS)
+            code, name, line, char = expect(next(stream), NAME)
         else:
             code, name, line, char = token_v
 
@@ -603,8 +585,8 @@ def parse_alias(stream, info, component):
         amap[name] = (token, token_c, token_v)
 
         # Expecting end of line or next alias
-        next = expect(stream.next(), [COMMA, EOL])
-        if next[0] == EOL:
+        t_next = expect(next(stream), [COMMA, EOL])
+        if t_next[0] == EOL:
             break
 
 
@@ -626,7 +608,7 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
     toreg = []
 
     # Parse variable declaration
-    token = expect(stream.next(), [NAME, FUNC_NAME])
+    token = expect(next(stream), [NAME, FUNC_NAME])
     toreg.append(token)
     code, name, line, char = token
 
@@ -640,9 +622,9 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
             raise ParseError(
                 'Illegal variable declaration', line, char,
                 'State variable declarations may not be nested.')
-        toreg.append(expect(stream.next(), PAREN_OPEN))
-        token = expect(stream.next(), NAME)
-        toreg.append(expect(stream.next(), PAREN_CLOSE))
+        toreg.append(expect(next(stream), PAREN_OPEN))
+        token = expect(next(stream), NAME)
+        toreg.append(expect(next(stream), PAREN_CLOSE))
         toreg.append(token)
         code, name, line, char = token
         is_state = True
@@ -690,7 +672,7 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
     token = expect(stream.peek(), (EQUAL, IN, BIND, LABEL, COLON, EOL))
     if token[0] == EQUAL:
         # Parse variable definition
-        stream.next()
+        next(stream)
         # Save proto-expression for right-hand side
         var._proto_rhs = parse_proto_expression(stream, info)
         # Get rest of line
@@ -700,7 +682,7 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
         var._proto_rhs = None
     if token[0] == IN:
         # Parse variable unit
-        stream.next()
+        next(stream)
         unit = parse_bracketed_unit(stream)
         token = expect(stream.peek(), (BIND, LABEL, COLON, EOL))
     if token[0] == BIND:
@@ -713,14 +695,14 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
         token = expect(stream.peek(), (COLON, EOL))
     if token[0] == COLON:
         # Colon found, rest of line is description
-        stream.next()
-        desc = expect(stream.next(), TEXT)[1].strip()
+        next(stream)
+        desc = expect(next(stream), TEXT)[1].strip()
         var.meta['desc'] = desc
-    expect(stream.next(), EOL)
+    expect(next(stream), EOL)
 
     # Parse indented fields (temp vars, meta or unit)
     if stream.peek()[0] == INDENT:
-        stream.next()
+        next(stream)
         while stream.peek()[0] != DEDENT:
             token = expect(stream.peek(), [NAME, META_NAME, IN, BIND, LABEL])
             code, name, line, char = token
@@ -735,13 +717,13 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
                         'Duplicate meta-data property', line, char,
                         'The meta-data property "' + meta_key + '" was already'
                         ' specified for this variable.')
-                stream.next()
-                expect(stream.next(), COLON)
-                next = expect(stream.next(), [TEXT, EOL])
+                next(stream)
+                expect(next(stream), COLON)
+                tnext = expect(next(stream), [TEXT, EOL])
                 meta_val = ''
-                if next[0] == TEXT:
-                    meta_val = next[1].strip()
-                    expect(stream.next(), EOL)
+                if tnext[0] == TEXT:
+                    meta_val = tnext[1].strip()
+                    expect(next(stream), EOL)
                 var.meta[meta_key] = meta_val
             elif token[0] == IN:
                 if unit:
@@ -749,22 +731,22 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
                         'Duplicate variable unit', line, char,
                         'Unit already specified for this variable.')
                 # Variable unit
-                stream.next()
+                next(stream)
                 unit = parse_bracketed_unit(stream)
-                expect(stream.next(), EOL)
+                expect(next(stream), EOL)
             elif token[0] == BIND:
                 # Binding to external value
                 parse_binding(stream, info, var)
-                expect(stream.next(), EOL)
+                expect(next(stream), EOL)
             elif token[0] == LABEL:
                 # Labelled as unique value
                 parse_label(stream, info, var)
-                expect(stream.next(), EOL)
+                expect(next(stream), EOL)
             else:
                 raise Exception('Unhandled case.')
             # Next line
             token = stream.peek()[0]
-        expect(stream.next(), DEDENT)
+        expect(next(stream), DEDENT)
 
     # Set unit
     var.set_unit(unit)
@@ -781,10 +763,10 @@ def parse_binding(stream, info, var):
     """
     Parses the "bind" part of a variable definition.
     """
-    token, name, line, char = expect(stream.next(), BIND)
+    token, name, line, char = expect(next(stream), BIND)
 
     # Get binding label
-    label = expect(stream.next(), NAME)[1]
+    label = expect(next(stream), NAME)[1]
 
     # Bind variable
     try:
@@ -797,9 +779,9 @@ def parse_label(stream, info, var):
     """
     Parses the "label" part of a variable definition.
     """
-    token, name, line, char = expect(stream.next(), LABEL)
+    token, name, line, char = expect(next(stream), LABEL)
     # Get label
-    label = expect(stream.next(), NAME)[1]
+    label = expect(next(stream), NAME)[1]
     # Register label
     try:
         var.set_label(label)
@@ -842,7 +824,7 @@ def parse_unit(stream):
     Parses a unit expression and returns a Unit object.
     """
     # Parse first unit in unit expression
-    token = expect(stream.next(), [NAME, INTEGER])
+    token = expect(next(stream), [NAME, INTEGER])
     if token[0] == NAME:
         try:
             unit = myokit.Unit.parse_simple(token[1])
@@ -850,10 +832,10 @@ def parse_unit(stream):
             raise ParseError(
                 'Unit not recognized', token[2], token[3], str(ke), cause=ke)
         if stream.peek()[0] == POWER:
-            stream.next()
-            expo = expect(stream.next(), (INTEGER, FLOAT, MINUS))[1]
+            next(stream)
+            expo = expect(next(stream), (INTEGER, FLOAT, MINUS))[1]
             if expo == '-':
-                unit **= -float(expect(stream.next(), (INTEGER, FLOAT))[1])
+                unit **= -float(expect(next(stream), (INTEGER, FLOAT))[1])
             else:
                 unit **= float(expo)
     else:
@@ -865,18 +847,18 @@ def parse_unit(stream):
         unit = myokit.Unit.parse_simple('1')
     # Parse remaining units (* or /)
     while stream.peek()[0] in [STAR, SLASH]:
-        op = stream.next()[0]
-        token = expect(stream.next(), NAME)
+        op = next(stream)[0]
+        token = expect(next(stream), NAME)
         try:
             part = myokit.Unit.parse_simple(token[1])
         except KeyError as ke:
             raise ParseError(
                 'Unit not recognized', token[2], token[3], str(ke), cause=ke)
         if stream.peek()[0] == POWER:
-            stream.next()
-            expo = expect(stream.next(), (INTEGER, FLOAT, MINUS))[1]
+            next(stream)
+            expo = expect(next(stream), (INTEGER, FLOAT, MINUS))[1]
             if expo == '-':
-                part **= -float(expect(stream.next(), (INTEGER, FLOAT))[1])
+                part **= -float(expect(next(stream), (INTEGER, FLOAT))[1])
             else:
                 part **= float(expo)
         if op == STAR:
@@ -885,7 +867,7 @@ def parse_unit(stream):
             unit /= part
     # Parse multiplier
     if stream.peek()[0] == PAREN_OPEN:
-        stream.next()
+        next(stream)
         token = stream.peek()
         e = parse_expression_stream(stream)
         if not e.is_literal():
@@ -893,7 +875,7 @@ def parse_unit(stream):
                 'Invalid unit multiplier', token[2], token[3],
                 'Unit multipliers cannot contain variables.')
         unit *= e.eval()
-        expect(stream.next(), PAREN_CLOSE)
+        expect(next(stream), PAREN_CLOSE)
     return unit
 
 
@@ -903,10 +885,10 @@ def parse_unit_string(string):
     """
     s = Tokenizer(string)
     e = parse_unit(s)
-    expect(s.next(), EOL)
-    expect(s.next(), EOF)
+    expect(next(s), EOL)
+    expect(next(s), EOF)
     try:
-        s.next()
+        next(s)
         raise ParseError(
             'Unused tokens', 0, 0,
             'Expecting a string containing only a single unit expression.')
@@ -920,9 +902,9 @@ def parse_bracketed_unit(stream):
     UNIT token to the unit, allowing later maniplation.
     """
     unit_text = stream.start_catching()
-    token = expect(stream.next(), BRACKET_OPEN)
+    token = expect(next(stream), BRACKET_OPEN)
     unit = parse_unit(stream)
-    expect(stream.next(), BRACKET_CLOSE)
+    expect(next(stream), BRACKET_CLOSE)
     unit_text = stream.stop_catching(unit_text)
     unit._token = (UNIT, unit_text, token[2], token[3])
     return unit
@@ -943,12 +925,12 @@ def parse_protocol_from_stream(stream):
         return e.eval()
     # Check segment header
     if stream.peek()[0] == SEGMENT_HEADER:
-        token = stream.next()
+        token = next(stream)
         if token[1][2:-2] != 'protocol':
             raise ParseError(
                 'Invalid segment header', token[2], token[3],
                 'Expecting [[protocol]]')
-        expect(stream.next(), EOL)
+        expect(next(stream), EOL)
     # Create protocol
     protocol = myokit.Protocol()
     # Parse lines
@@ -961,7 +943,7 @@ def parse_protocol_from_stream(stream):
         # Parse starting time
         # Allow 'next' to mean "after the previous event ends"
         if stream.peek()[1] == 'next':
-            stream.next()
+            next(stream)
             if t_next is None:
                 raise ProtocolParseError(
                     'Invalid next', n[2], n[3],
@@ -1012,7 +994,7 @@ def parse_protocol_from_stream(stream):
         else:
             t_next = None
         # Parse end of line
-        expect(stream.next(), EOL)
+        expect(next(stream), EOL)
         # Schedule event
         try:
             protocol.schedule(v, t, d, p, r)
@@ -1027,7 +1009,7 @@ def parse_script_from_stream(stream, raw_stream):
     """
     Parses a script segment
     """
-    token = expect(stream.next(), SEGMENT_HEADER)
+    token = expect(next(stream), SEGMENT_HEADER)
     if token[1][2:-2] != 'script':
         raise ParseError(
             'Invalid segment header', token[2], token[3],
@@ -1078,7 +1060,7 @@ def strip_expression_units(model_text, skip_literals=True):
         stripped = []
         cuts.sort()
         cuts = iter(cuts)
-        cut = cuts.next()
+        cut = cutnext(s)
         for k, line in enumerate(lines):
             if cut and cut[0] == k:
                 # Gather non-unit parts of line
@@ -1097,7 +1079,7 @@ def strip_expression_units(model_text, skip_literals=True):
                     line2 += line[offset:char1]
                     offset = char2
                     try:
-                        cut = cuts.next()
+                        cut = cutnext(s)
                     except StopIteration:
                         cut = None
                 line = line2 + line[offset:]
@@ -1249,7 +1231,7 @@ _COMPEQ_MAP = [EQEQUAL, NOTEQUAL, MOREEQUAL, LESSEQUAL]
 _TEXT_OP = {'and': AND, 'or': OR, 'not': NOT}
 
 
-class Tokenizer:
+class Tokenizer(object):
     """
     Takes a stream of lines as input and provides a stream interface returning
     tokens.
@@ -1331,6 +1313,9 @@ class Tokenizer:
             raise StopIteration
         self._advance()
         return self._next
+
+    def __next__(self):
+        return self.next()
 
     def peek(self):
         """
@@ -1848,10 +1833,10 @@ def parse_expression_string(string, context=None):
     e = parse_proto_expression(s, info=info)
 
     # Check for eol, eof, then nothing else
-    expect(s.next(), EOL)
-    expect(s.next(), EOF)
+    expect(next(s), EOL)
+    expect(next(s), EOF)
     try:
-        s.next()
+        next(s)
         raise ParseError(
             'Unused tokens', 0, 0,
             'Expecting a string containing only a single expression.')
@@ -1869,10 +1854,10 @@ def parse_number_string(string):
     s = Tokenizer(string)
     p = NumberParser()
     e = p.parse(s, ParseInfo())
-    expect(s.next(), EOL)
-    expect(s.next(), EOF)
+    expect(next(s), EOL)
+    expect(next(s), EOF)
     try:
-        s.next()
+        next(s)
         raise ParseError(
             'Unused tokens', 0, 0, 'Expecting a string containing only a'
             ' single number.')
@@ -1951,7 +1936,7 @@ def format_parse_error(ex, source=None):
             # Re-open file, find line
             f = open(source, 'r')
             for i in range(0, ex.line):
-                line = f.next()
+                line = next(f)
             line = line.rstrip()
         else:
             i = 0
@@ -2014,7 +1999,7 @@ class NumberParser(NudParser):
     Parser for numeric literals.
     """
     def parse(self, stream, info):
-        token = stream.next()
+        token = next(stream)
         unit = None
         if stream.peek()[0] == BRACKET_OPEN:
             unit = parse_bracketed_unit(stream)
@@ -2026,12 +2011,12 @@ class NameParser(NudParser):
     Parser for names.
     """
     def parse(self, stream, info):
-        t1 = stream.next()
+        t1 = next(stream)
         t2 = t3 = t4 = None
         name = t1[1]
         if stream.peek()[0] == DOT:
-            t2 = stream.next()
-            t3 = expect(stream.next(), NAME)
+            t2 = next(stream)
+            t3 = expect(next(stream), NAME)
             name += '.' + t3[1]
         return (myokit.Name, (name, ), (t1, t2, t3, t4))
 
@@ -2041,7 +2026,7 @@ class PrefixParser(NudParser):
     Parser for prefix (single operand) operators.
     """
     def parse(self, stream, info):
-        token = stream.next()
+        token = next(stream)
         arg = parse_proto_expression(stream, info, self._rbp)
         return (self.element, (arg, ), (token,))
 
@@ -2051,9 +2036,9 @@ class GroupingParser(NudParser):
     Parser for grouping IE parentheses; as in 5 * (2 + 3).
     """
     def parse(self, stream, info):
-        stream.next()
+        next(stream)
         expr = parse_proto_expression(stream, info, self._rbp)
-        expect(stream.next(), PAREN_CLOSE)
+        expect(next(stream), PAREN_CLOSE)
         return expr
 
 
@@ -2066,12 +2051,12 @@ class FunctionParser(NudParser):
         self._rbp = myokit.Function._rbp
 
     def parse(self, stream, info):
-        name = stream.next()
+        name = next(stream)
         ops = []
-        token = stream.next()
+        token = next(stream)
         while token[0] != PAREN_CLOSE:
             ops.append(parse_proto_expression(stream, info))
-            token = expect(stream.next(), [COMMA, PAREN_CLOSE])
+            token = expect(next(stream), [COMMA, PAREN_CLOSE])
         if name[1] in functions:
             # Predefined function
             func = functions[name[1]]
@@ -2127,7 +2112,7 @@ class InfixParser(LedParser):
     Parser for infix operators.
     """
     def parse(self, left, stream, info):
-        token = stream.next()
+        token = next(stream)
         right = parse_proto_expression(stream, info, self._rbp)
         return (self.element, (left, right), (token,))
 
