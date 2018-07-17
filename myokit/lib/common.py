@@ -15,6 +15,12 @@ from __future__ import print_function, unicode_literals
 import numpy as np
 import myokit
 
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no python 2 cover
+    basestring = str
+
 
 #
 # This module is deprecated!
@@ -36,7 +42,7 @@ class StepProtocol(object):
         self._model = model.clone()
         # Get variable names
         self._vars = []
-        if type(var) in [str, unicode] or isinstance(var, myokit.Variable):
+        if isinstance(var, (basestring, myokit.Variable)):
             var = [var]
         for v in var:
             if isinstance(v, myokit.Variable):
@@ -485,7 +491,7 @@ class Recovery(object):
         self._tvar = self._model.time()
         # Check conductance variables
         self._vars = []
-        if type(var) in [str, unicode] or isinstance(var, myokit.Variable):
+        if isinstance(var, (basestring, myokit.Variable)):
             var = [var]
         for v in var:
             if isinstance(v, myokit.Variable):
