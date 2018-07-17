@@ -789,7 +789,8 @@ class CellMLImporter(myokit.formats.Importer):
         """
         Tests if a name is a valid myokit name. Adapts it if it isn't.
         """
-        name = str(name.encode('ascii', errors='replace'))
+        # Convert to and from ascii to get rid of special characters
+        name = name.encode('ascii', errors='replace').decode('ascii')
         try:
             myokit.check_name(name)
             return name

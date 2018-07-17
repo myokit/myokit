@@ -166,7 +166,8 @@ class CellMLExporter(myokit.formats.Exporter):
 
                 # Remove any child variables pace might have before changing
                 # its RHS (which needs to refer to them).
-                for kid in pace.variables():
+                pace_kids = list(pace.variables())
+                for kid in pace_kids:
                     pace.remove_variable(kid, recursive=True)
 
                 # Set new RHS for pace
