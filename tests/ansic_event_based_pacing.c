@@ -39,7 +39,7 @@ static PyObject*
 pacing_clean()
 {
     if (initialized != 0) {
-        
+
         // Free pacing system space
         ESys_Destroy(pacing); pacing = NULL;
     }
@@ -65,13 +65,13 @@ static PyObject*
 pacing_init(PyObject *self, PyObject *args)
 {
     ESys_Flag flag;
-    
+
     // Check if already initialized
     if (initialized != 0) {
         PyErr_SetString(PyExc_Exception, "Pacing system already initialized.");
         return 0;
     }
-    
+
     // Set all pointers used in pacing_clean to null
     pacing = NULL;
 
@@ -81,12 +81,12 @@ pacing_init(PyObject *self, PyObject *args)
         // Nothing allocated yet, no pyobjects _created_, return directly
         return 0;
     }
-    
+
     // Now officialy running :)
     initialized = 1;
 
     // From this point on, no more direct returning! Use pacing_clean()
-    
+
     // Set initial time
     t = 0;
 
@@ -95,7 +95,7 @@ pacing_init(PyObject *self, PyObject *args)
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
     flag = ESys_Populate(pacing, protocol);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
-    
+
     // Done!
     Py_RETURN_NONE;
 }
@@ -156,7 +156,7 @@ pacing_advance(PyObject *self, PyObject *args)
     flag = ESys_AdvanceTime(pacing, tadvance, maxtime);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
     t = tadvance;
-    
+
     // Get new pacing value
     double pace = ESys_GetLevel(pacing, &flag);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
@@ -180,7 +180,29 @@ static PyMethodDef PacingMethods[] = {
 /*
  * Module definition
  */
-PyMODINIT_FUNC
-init<?=module_name?>(void) {
-    (void) Py_InitModule("<?= module_name ?>", PacingMethods);
-}
+#if PY_MAJOR_VERSION >= 3
+
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "<?= module_name ?>",       /* m_name */
+        "Event based pacing test",  /* m_doc */
+        -1,                         /* m_size */
+        PacingMethods,              /* m_methods */
+        NULL,                       /* m_reload */
+        NULL,                       /* m_traverse */
+        NULL,                       /* m_clear */
+        NULL,                       /* m_free */
+    };
+
+    PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
+        return PyModule_Create(&moduledef);
+    }
+
+#else
+
+    PyMODINIT_FUNC
+    init<?=module_name?>(void) {
+        (void) Py_InitModule("<?= module_name ?>", PacingMethods);
+    }
+
+#endif

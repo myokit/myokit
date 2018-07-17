@@ -62,13 +62,13 @@ fpacing_init(PyObject *self, PyObject *args)
     PyObject* values;
 
     FSys_Flag flag;
-    
+
     // Check if already initialized
     if (initialized != 0) {
         PyErr_SetString(PyExc_Exception, "Fixed-form pacing system already initialized.");
         return 0;
     }
-   
+
     // Set all pointers used in pacing_clean to null
     pacing = NULL;
 
@@ -89,7 +89,7 @@ fpacing_init(PyObject *self, PyObject *args)
     if (flag != FSys_OK) { FSys_SetPyErr(flag); return fpacing_clean(); }
     flag = FSys_Populate(pacing, times, values);
     if (flag != FSys_OK) { FSys_SetPyErr(flag); return fpacing_clean(); }
-    
+
     // Done!
     Py_RETURN_NONE;
 }
@@ -129,7 +129,29 @@ static PyMethodDef FPacingMethods[] = {
 /*
  * Module definition
  */
-PyMODINIT_FUNC
-init<?=module_name?>(void) {
-    (void) Py_InitModule("<?= module_name ?>", FPacingMethods);
-}
+#if PY_MAJOR_VERSION >= 3
+
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "<?= module_name ?>",       /* m_name */
+        "Fixed-form pacing test",   /* m_doc */
+        -1,                         /* m_size */
+        FPacingMethods,             /* m_methods */
+        NULL,                       /* m_reload */
+        NULL,                       /* m_traverse */
+        NULL,                       /* m_clear */
+        NULL,                       /* m_free */
+    };
+
+    PyMODINIT_FUNC PyInit_<?=module_name?>(void) {
+        return PyModule_Create(&moduledef);
+    }
+
+#else
+
+    PyMODINIT_FUNC
+    init<?=module_name?>(void) {
+        (void) Py_InitModule("<?= module_name ?>", FPacingMethods);
+    }
+
+#endif
