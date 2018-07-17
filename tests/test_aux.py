@@ -14,11 +14,10 @@ import os
 import sys
 import unittest
 
+# StringIO in Python 2 and 3
 try:
-    # Python 2
     from cStringIO import StringIO
-except ImportError:
-    # Python3
+except ImportError:  # pragma: no python 2 cover
     from io import StringIO
 
 import myokit
@@ -530,7 +529,7 @@ class AuxTest(unittest.TestCase):
         """
         # String should be passed through
         # Note: convert to str() to test in python 2 and 3.
-        self.assertEqual(myokit.strfloat('123'), str('123'))
+        self.assertEqual(myokit.strfloat(str('123')), '123')
 
         # Simple numbers
         self.assertEqual(myokit.strfloat(0), '0')
