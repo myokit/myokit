@@ -25,12 +25,14 @@ try:
 except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
+
 # Universal newline mode in Python 2 and 3
 def uopen(filename):
     try:
         return open(filename, 'r', newline=None)
     except TypeError:
         return open(filename, 'U')
+
 
 # Extra output
 debug = False
