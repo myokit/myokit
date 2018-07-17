@@ -29,10 +29,15 @@ import gc
 import os
 import sys
 import time
-import Queue
 import traceback
 import multiprocessing
 import numpy as np
+
+# Queue in Python 2 and 3
+try:
+    import queue
+except ImportError:  # pragma: no python 3 cover
+    import Queue as queue
 
 
 #
@@ -901,7 +906,7 @@ multiprocessing.html#all-platforms>`_ for details).
                         i, f = self._results.get(block=False)
                         results[i] = f
                         m += 1
-                except Queue.Empty:
+                except queue.Empty:
                     pass
 
                 # Clean dead workers
@@ -960,12 +965,12 @@ multiprocessing.html#all-platforms>`_ for details).
         gc.collect()
 
         # Clear queues
-        def clear(queue):
+        def clear(q):
             items = []
             try:
                 while True:
-                    items.append(queue.get(timeout=0.1))
-            except (Queue.Empty, IOError, EOFError):
+                    items.append(q.get(timeout=0.1))
+            except (queue.Empty, IOError, EOFError):
                 pass
             return items
         clear(self._tasks)
