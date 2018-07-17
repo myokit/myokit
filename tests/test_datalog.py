@@ -25,6 +25,13 @@ try:
 except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
+# Universal newline mode in Python 2 and 3
+def uopen(filename):
+    try:
+        return open(filename, 'r', newline=None)
+    except TypeError:
+        return open(filename, 'U')
+
 # Extra output
 debug = False
 
@@ -1351,12 +1358,12 @@ class DataLogTest(unittest.TestCase):
         with TemporaryDirectory() as td:
             fname = td.path('test.csv')
             d.save_csv(fname, order=['a.b', 'c.d', 'e.f'])
-            with open(fname, 'U') as f:
+            with uopen(fname) as f:
                 header = f.readline()
             self.assertEqual(header, '"a.b","c.d","e.f"\n')
 
             d.save_csv(fname, order=['e.f', 'a.b', 'c.d'])
-            with open(fname, 'U') as f:
+            with uopen(fname) as f:
                 header = f.readline()
             self.assertEqual(header, '"e.f","a.b","c.d"\n')
 
