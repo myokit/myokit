@@ -12,7 +12,6 @@ from __future__ import print_function, unicode_literals
 
 # Library imports
 import os
-import imp
 import shutil
 import platform
 import tempfile
@@ -45,6 +44,23 @@ from distutils.core import setup, Extension  # noqa
 # Myokit imports
 import myokit  # noqa
 import myokit.pype as pype  # noqa
+
+# Dynamic module finding and loading in Python 2 and 3
+try:
+    import importlib.machinery
+    import importlib
+
+    def load_module(name, path):
+        spec = importlib.machinery.PathFinder.find_spec(name, [path])
+        module = importlib.util.module_from_spec(spec)
+        return module
+
+except ImportError:  # pragma: no python 3 cover
+    import imp
+
+    def load_module(name, path):
+        (f, pathname, description) = imp.find_module(name, [path])
+        return imp.load_dynamic(name, pathname)
 
 
 class CModule(object):
@@ -146,8 +162,7 @@ class CModule(object):
                     raise myokit.CompilationError('\n'.join(t))
 
             # Include module (and refresh in case 2nd model is loaded)
-            (f, pathname, description) = imp.find_module(name, [d_modul])
-            return imp.load_dynamic(name, pathname)
+            return load_module(name, d_modul)
 
         finally:
             try:
