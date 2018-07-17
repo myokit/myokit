@@ -13,14 +13,14 @@ from __future__ import print_function, unicode_literals
 import os
 import textwrap
 import xml.dom.minidom
-from collections import OrderedDict as odict
+from collections import OrderedDict
 
 import myokit
 import myokit.units
 from myokit.mxml import dom_child, dom_next
 from myokit.formats.mathml import parse_mathml_rhs
 
-# Strings in Python2 and Python3
+# Strings in Python 2 and 3
 try:
     basestring
 except NameError:   # pragma: no cover
@@ -679,17 +679,19 @@ class CellMLImporter(myokit.formats.Importer):
             for unit in tag.getElementsByTagName('units'):
                 units.append(parse(unit))
 
-        # Order units (units can refer to each other in a DAG form)
+        # Method to order units
         def order(units):
             """
             Orders a list of (name, parts) tuples so that none of the parts
-            refer to a unit defined later in the list. Returns an odict mapping
-            names to (name, parts) tuples.
+            refer to a unit defined later in the list. Returns an OrderedDict
+            mapping names to (name, parts) tuples.
             """
             todo = units
-            units = odict()
+            units = OrderedDict()
+
             # List units that can already be referenced at this point
-            okay = si_units.keys()
+            okay = set(si_units.keys())
+
             # Run through todo list
             while todo:
                 done = []
@@ -701,19 +703,22 @@ class CellMLImporter(myokit.formats.Importer):
                             break
                     if ok:
                         done.append(unit)
-                        okay.append(unit.name)
+                        okay.add(unit.name)
                 for unit in done:
                     units[unit.name] = unit
                     todo.remove(unit)
                 if len(done) == 0:
                     break
+
+            # Unable to resolve all units?
             if todo:
-                # Unable to resolve all units
                 for unit in todo:
                     self.logger().warn(
                         'Unable to resolve unit: ' + str(unit.name))
                     units[unit.name] = unit
             return units
+
+        # Order units (units can refer to each other in a DAG form)
         munits = order(munits)
         for name, units in cunits.items():
             cunits[name] = order(units)

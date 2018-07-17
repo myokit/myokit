@@ -25,6 +25,12 @@ try:
 except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 
 class CellMLImporterTest(unittest.TestCase):
     """
@@ -58,7 +64,7 @@ class CellMLImporterTest(unittest.TestCase):
 
     def test_info(self):
         i = formats.importer('cellml')
-        self.assertIn(type(i.info()), [str, unicode])
+        self.assertIsInstance(i.info(), basestring)
 
     def test_import(self):
         # Imports should raise an error

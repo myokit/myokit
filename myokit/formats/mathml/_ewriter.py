@@ -107,8 +107,12 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             self.ex(eq.lhs, t)
             self.ex(eq.rhs, t)
         if element is None:
-            enc = 'utf-8'
-            return ''.join([self._et.tostring(kid, enc) for kid in tag])
+            # By default et.tostring() will use ascii enconding. This is good,
+            # because it creates XML entities (numeric character reference) for
+            # special characters.
+            enc = 'us-ascii'
+            encoded = b''.join([self._et.tostring(kid, enc) for kid in tag])
+            return encoded.decode(enc)
 
     def ex(self, e, element=None):
         """
@@ -125,9 +129,12 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             tag = element
         self._ex(e, tag)
         if element is None:
-            #enc = 'utf-8'
-            #return ''.join([self._et.tostring(kid, enc) for kid in tag])
-            return ''.join([self._et.tostring(kid) for kid in tag])
+            # By default et.tostring() will use ascii enconding. This is good,
+            # because it creates XML entities (numeric character reference) for
+            # special characters.
+            enc = 'us-ascii'
+            encoded = b''.join([self._et.tostring(kid, enc) for kid in tag])
+            return encoded.decode(enc)
 
     def _ex(self, e, t):
         """

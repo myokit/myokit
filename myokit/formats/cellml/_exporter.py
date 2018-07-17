@@ -400,7 +400,7 @@ class CellMLExporter(myokit.formats.Exporter):
             # Create pretty XML
             import xml.dom.minidom as m
             xml = m.parse(path)
-            with open(path, 'w') as f:
+            with open(path, 'wb') as f:
                 f.write(xml.toprettyxml(encoding='utf-8'))
 
         # Log any generated warnings
