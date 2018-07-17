@@ -11,6 +11,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import unittest
+import re
 import time
 
 import myokit
@@ -21,20 +22,30 @@ class ProgressPrinterTests(unittest.TestCase):
     Tests the :class:`ProgressPrinter`.
     """
     def test_progress_printer(self):
+        """ Test basic functionality. """
 
         # Zero call
         with myokit.PyCapture() as c:
             p = myokit.ProgressPrinter()
             self.assertTrue(p.update(0))
-        self.assertEqual(c.text(), '[0.0 minutes] 0.0 % done\n')
+        pattern1 = re.compile(
+            '\[[0-9]{1}\.[0-9]{1} minutes\] [0-9]+(.[0-9])? % done')
+        lines = c.text().splitlines()
+        self.assertTrue(len(lines) > 0)
+        for line in lines:
+            self.assertTrue(pattern1.match(line))
 
         # Normal call
         with myokit.PyCapture() as c:
             p = myokit.ProgressPrinter()
             self.assertTrue(p.update(0.49))
-        self.assertEqual(
-            c.text(),
-            '[0.0 minutes] 49.0 % done, estimated 0 seconds remaining\n')
+        pattern2 = re.compile(
+            '\[[0-9]{1}\.[0-9]{1} minutes] [0-9]+(.[0-9])? % done,'
+            ' estimated [0-9]{1} seconds remaining')
+        lines = c.text().splitlines()
+        self.assertTrue(len(lines) > 0)
+        for line in lines:
+            self.assertTrue(pattern2.match(line))
 
         # Call that will take minutes
         with myokit.PyCapture() as c:
@@ -50,12 +61,16 @@ class ProgressPrinterTests(unittest.TestCase):
         with myokit.PyCapture() as c:
             p = myokit.ProgressPrinter(digits=-1)
             self.assertTrue(p.update(0))
-            self.assertIn('0.0 %', c.text())
-            c.clear()
             self.assertTrue(p.update(0.08))
-            self.assertEqual(c.text(), '')
             self.assertTrue(p.update(0.18))
-            self.assertIn(c.text(), '10.0 %')
+            self.assertTrue(p.update(0.19))
+            self.assertTrue(p.update(0.199))
+            self.assertTrue(p.update(1))
+        lines = c.text().splitlines()
+        self.assertTrue(len(lines), 3)
+        self.assertTrue(pattern1.match(lines[0]))
+        self.assertTrue(pattern2.match(lines[1]))
+        self.assertTrue(pattern2.match(lines[2]))
 
 
 if __name__ == '__main__':

@@ -129,7 +129,7 @@ class ProgressPrinter(ProgressReporter):
         See: :meth:`ProgressReporter.update()`.
         """
         if self._d < 0:
-            f = 10 * round(10 * f, 0)
+            f = 10 * int(10 * f)
         else:
             f = round(100 * f, self._d)
         if f != self._f:
