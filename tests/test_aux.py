@@ -130,6 +130,14 @@ class AuxTest(unittest.TestCase):
             print('Ha')
             self.assertEqual(c.text(), 'Ha\n')
 
+        # Bug: Test clear method _without_ calling text() before clear()
+        with myokit.PyCapture() as c:
+            print('Hi')
+            print('Ho')
+            c.clear()
+            print('Ha')
+            self.assertEqual(c.text(), 'Ha\n')
+
     def test_examplify(self):
         """ Test examplify. """
         self.assertEqual(myokit._aux._examplify('test.txt'), 'test.txt')

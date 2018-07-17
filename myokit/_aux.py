@@ -155,7 +155,12 @@ class PyCapture(object):
         """
         Deletes all captured text.
         """
+        capturing = self._capturing
+        if capturing:
+            self._stop_capturing()
         self._captured = []
+        if capturing:
+            self._start_capturing()
 
     def disable(self):
         """
