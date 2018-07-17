@@ -25,8 +25,14 @@ import myokit.formats.stan
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
-except AttributeError:
+except AttributeError:  # pragma: no python 3 cover
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no python 2 cover
+    basestring = str
 
 
 class ExpressionWriterTest(unittest.TestCase):
@@ -37,7 +43,7 @@ class ExpressionWriterTest(unittest.TestCase):
         es = myokit.formats.ewriters()
         self.assertTrue(len(es) > 0)
         for e in es:
-            self.assertIn(type(e), [str, unicode])
+            self.assertIsInstance(e, basestring)
             e = myokit.formats.ewriter(e)
             self.assertTrue(isinstance(e, myokit.formats.ExpressionWriter))
 

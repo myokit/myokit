@@ -21,8 +21,14 @@ from shared import TemporaryDirectory
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
-except AttributeError:
+except AttributeError:  # pragma: no python 3 cover
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no python 2 cover
+    basestring = str
 
 
 class ExportTest(unittest.TestCase):
@@ -35,7 +41,7 @@ class ExportTest(unittest.TestCase):
         Test a given exporter `e`.
         """
         # Test info method.
-        self.assertIn(type(e.info()), [str, unicode])
+        self.assertIsInstance(e.info(), basestring)
 
         # Load model, protocol
         m, p, x = myokit.load('example')

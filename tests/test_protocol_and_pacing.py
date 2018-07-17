@@ -456,7 +456,7 @@ class PacingTest(unittest.TestCase):
         pacing = AnsicFixedFormPacing(times, values)
 
         def test(value, index):
-            self.assertEquals(pacing.pace(value), index)
+            self.assertEqual(pacing.pace(value), index)
 
         test(-1, 0)
         test(0, 1)

@@ -28,7 +28,7 @@ except AttributeError:
 # Strings in Python 2 and 3
 try:
     basestring
-except NameError:   # pragma: no cover
+except NameError:   # pragma: no python 2 cover
     basestring = str
 
 

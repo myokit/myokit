@@ -22,8 +22,14 @@ from shared import DIR_FORMATS
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
-except AttributeError:
+except AttributeError:  # pragma: no python 3 cover
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no python 2 cover
+    basestring = str
 
 
 class ChannelMLTest(unittest.TestCase):
@@ -60,7 +66,7 @@ class ChannelMLTest(unittest.TestCase):
     def test_info(self):
         """ Tests :meth:`ChannelMLImporter.info()`. """
         i = myokit.formats.importer('channelml')
-        self.assertIn(type(i.info()), [str, unicode])
+        self.assertIsInstance(i.info(), basestring)
 
     def test_error_handling(self):
         """
@@ -133,7 +139,7 @@ class ChannelMLTest(unittest.TestCase):
         self.assertIn('expression for closed-to-open', warnings[0])
 
         # > Unparsed expression should be in meta-data
-        self.assertEquals('bort', m.get('Nav1_3.m.alpha').meta['expression'])
+        self.assertEqual('bort', m.get('Nav1_3.m.alpha').meta['expression'])
 
         # Unreadable open-to-closed expression
         i.logger().clear_warnings()
@@ -144,7 +150,7 @@ class ChannelMLTest(unittest.TestCase):
         warnings = list(i.logger().warnings())
         self.assertEqual(len(warnings), 1)
         self.assertIn('expression for open-to-closed', warnings[0])
-        self.assertEquals('bort', m.get('Nav1_3.m.beta').meta['expression'])
+        self.assertEqual('bort', m.get('Nav1_3.m.beta').meta['expression'])
 
         # No transitions or steady-state/time-course for a gate
         self.assertRaisesRegex(
@@ -163,7 +169,7 @@ class ChannelMLTest(unittest.TestCase):
         warnings = list(i.logger().warnings())
         self.assertEqual(len(warnings), 1)
         self.assertIn('expression for steady state', warnings[0])
-        self.assertEquals('mill', m.get('Nav1_3.h.inf').meta['expression'])
+        self.assertEqual('mill', m.get('Nav1_3.h.inf').meta['expression'])
 
         # Unreadable time-constant expression
         i.logger().clear_warnings()
@@ -174,7 +180,7 @@ class ChannelMLTest(unittest.TestCase):
         warnings = list(i.logger().warnings())
         self.assertEqual(len(warnings), 1)
         self.assertIn('expression for time course', warnings[0])
-        self.assertEquals('house', m.get('Nav1_3.h.tau').meta['expression'])
+        self.assertEqual('house', m.get('Nav1_3.h.tau').meta['expression'])
 
         # No gates
         self.assertRaisesRegex(
