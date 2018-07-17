@@ -32,25 +32,30 @@ class XMLExporter(myokit.formats.Exporter):
         Export the model to an xml document.
         """
         path = os.path.abspath(os.path.expanduser(path))
+
         # Create model xml element
         root = et.Element('math')
         root.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
+
         # Create expression writer
         writer = MathMLExpressionWriter()
         writer.set_element_tree_class(et)
         writer.set_mode(presentation=False)
         writer.set_time_variable(model.time())
+
         # Write equations
         for var in model.variables(deep=True):
             writer.eq(var.eq(), root)
+
         # Write xml to file
         doc = et.ElementTree(root)
         doc.write(path, encoding='utf-8', method='xml')
+
+        # Pretty output
         if True:
-            # Pretty output
             import xml.dom.minidom as m
             xml = m.parse(path)
-            with open(path, 'w') as f:
+            with open(path, 'wb') as f:
                 f.write(xml.toprettyxml(encoding='utf-8'))
 
     def supports_model(self):
@@ -80,6 +85,7 @@ class HTMLExporter(myokit.formats.Exporter):
             name = model.meta['name']
         except KeyError:
             name = 'Generated model'
+
         # Create model html element
         html = et.Element('html')
         head = et.SubElement(html, 'head')
@@ -88,11 +94,13 @@ class HTMLExporter(myokit.formats.Exporter):
         body = et.SubElement(html, 'body')
         heading = et.SubElement(body, 'h1')
         heading.text = name
+
         # Create expression writer
         writer = MathMLExpressionWriter()
         writer.set_element_tree_class(et)
         writer.set_mode(presentation=True)
         writer.set_time_variable(model.time())
+
         # Write equations, per component
         for component in model.components():
             div = et.SubElement(body, 'div')
@@ -105,14 +113,16 @@ class HTMLExporter(myokit.formats.Exporter):
                 math = et.SubElement(div2, 'math')
                 math.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
                 writer.eq(var.eq(), math)
+
         # Write xml to file
         doc = et.ElementTree(html)
         doc.write(path, encoding='utf-8', method='xml')
+
+        # Pretty output
         if True:
-            # Pretty output
             import xml.dom.minidom as m
             xml = m.parse(path)
-            with open(path, 'w') as f:
+            with open(path, 'wb') as f:
                 f.write(xml.toprettyxml(encoding='utf-8'))
 
     def supports_model(self):

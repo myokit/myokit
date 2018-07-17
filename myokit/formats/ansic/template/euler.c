@@ -40,7 +40,8 @@ bound_variables = model.prepare_bindings({
 equations = model.solvable_order()
 
 # Get component order
-comp_order = equations.keys()[:-1] # Strip *remaining*, guaranteed empty
+comp_order = list(equations.keys())
+comp_order = comp_order[:-1] # Strip *remaining*, guaranteed empty
 comp_order = [model.get(c) for c in comp_order]
 
 # Get component inputs/output arguments
@@ -80,6 +81,7 @@ else:
 w = ansic.AnsiCExpressionWriter()
 
 # Define var/lhs function
+global pointerize
 pointerize = [] # Set of lhs arguments to write as pointers
 def v(var):
     """
@@ -147,7 +149,6 @@ for comp, ilist in comp_in.items():
         continue
 
     # Tell v() to pointerize the pointer outputs
-    global pointerize
     pointerize_backup = pointerize
     pointerize = list(olist)
 
@@ -232,7 +233,7 @@ for var in model.states():
         iterate(time, dt, state);
         time = dt * steps;
         if (steps % 100 == 0) {
-            printf("%4.3f     %14.6le\n", time, <?= v(next(model.states())) ?>);
+            printf("%4.3f,%14.6le\n", time, <?= v(next(model.states())) ?>);
         }
         steps += 1;
     }

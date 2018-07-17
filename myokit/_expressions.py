@@ -290,7 +290,9 @@ class Expression(object):
         raise NotImplementedError
 
     def __float__(self):
-        return self.eval()
+        # Cast to float is required in Python 3: numpy float etc. are ok, but
+        # this is deprecated.
+        return float(self.eval())
 
     def __getitem__(self, key):
         return self._operands[key]
