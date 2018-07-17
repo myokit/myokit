@@ -12,7 +12,6 @@ from __future__ import print_function, unicode_literals
 
 # Library imports
 import os
-import sys
 import imp
 import shutil
 import platform
@@ -123,12 +122,7 @@ class CModule(object):
             )
 
             # Compile, catch output
-            #TODO
             with myokit.SubCapture() as s:
-                # TODO
-                if sys.hexversion >= 0x03000000:    # pragma: no cover
-                    s.disable()
-                # TODO
                 try:
                     setup(
                         name=name,

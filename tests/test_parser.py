@@ -316,14 +316,17 @@ class ModelParseTest(unittest.TestCase):
             y = x
             """
         self.assertRaises(myokit.ParseError, myokit.parse, code)
-        try:
+        with self.assertRaises(myokit.ParseError) as e:
             myokit.parse(code)
-        except myokit.ParseError as e:
-            self.assertIsInstance(e.cause, myokit.IntegrityError)
-            self.assertIsInstance(e.cause, myokit.CyclicalDependencyError)
-            self.assertEqual(e.line, 9)
-            self.assertEqual(e.char, 12)
-            from myokit._parser import NAME
+        e = e.exception
+        self.assertIsInstance(e.cause, myokit.IntegrityError)
+        self.assertIsInstance(e.cause, myokit.CyclicalDependencyError)
+        self.assertIn(e.line, [8, 9])
+        self.assertEqual(e.char, 12)
+        from myokit._parser import NAME
+        if e.line == 8:
+            self.assertEqual(e.cause.token(), (NAME, 'x', 8, 12))
+        else:
             self.assertEqual(e.cause.token(), (NAME, 'y', 9, 12))
 
     def test_piecewise(self):
