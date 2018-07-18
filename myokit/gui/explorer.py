@@ -135,7 +135,7 @@ class Explorer(QtWidgets.QDialog):
             return
         x = self._select_x.currentText()
         y = self._select_y.currentText()
-        if x < 0 or y < 0:
+        if x == '' or y == '':
             return
         if self._axes is None:
             # Create new axes
