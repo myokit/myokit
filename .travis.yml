@@ -33,7 +33,7 @@ matrix:
           env:
             - MYOKIT_UNIT=true
         # Cover checking
-        - python: "2.7"
+        - python: "3.6"
           env:
             - MYOKIT_COVER=true
         # Style checking
