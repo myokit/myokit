@@ -107,7 +107,6 @@ myokit
 - :class:`myokit.ParseError`
 - :meth:`myokit.parse_expression`
 - :meth:`myokit.parse_model`
-- :meth:`myokit.parse_number`
 - :meth:`myokit.parse_protocol`
 - :meth:`myokit.parse_state`
 - :meth:`myokit.parse_unit`
