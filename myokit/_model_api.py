@@ -988,7 +988,7 @@ class Model(ObjectWithMeta, VarProvider):
             e = e.eval_unit(mode)
 
             # Rhs unit from a state? Then multiply by time to get var's unit
-            if e is not None and var.is_state():
+            if t is not None and e is not None and var.is_state():
                 e *= t
 
             if v != e and v is not None and e is not None:
