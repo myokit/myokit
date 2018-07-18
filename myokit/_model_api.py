@@ -1131,14 +1131,16 @@ class Model(ObjectWithMeta, VarProvider):
             # No cycle detected, append to trail
             trail.append(comp)
 
-            # Follow all
-            for comp2 in compdeps[comp]:
+            # Follow all (see note about sorting)
+            for comp2 in sorted(compdeps[comp], key=lambda x: x.name()):
                 follow(comp2, trail)
             trail.pop()
             followed.add(comp)
 
         # Start following
-        for comp in self.components():
+        # Note: Order seems to be important here to avoid listing cycles more
+        # than once.
+        for comp in sorted(self.components(), key=lambda x: x.name()):
             if comp not in followed:
                 follow(comp, [])
 
