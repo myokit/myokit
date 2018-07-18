@@ -1175,7 +1175,7 @@ class Model(ObjectWithMeta, VarProvider):
            the first integer which doesn't result in clashing names.
         """
         # Gather disputed names
-        allnames = self._reserved_unames.copy()
+        allnames = set(self._reserved_unames)
         disputed = set()
         for comp in self.components():
             name = comp._name
@@ -1217,7 +1217,8 @@ class Model(ObjectWithMeta, VarProvider):
                         i = 1
                         root = name + '_'
                         name = root + str(i)
-                        while name in allnames:
+                        while name in allnames:  # pragma: no cover
+                            # Not sure if this is reachable!
                             i += 1
                             name = root + str(i)
                     allnames.add(name)
