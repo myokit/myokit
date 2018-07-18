@@ -385,17 +385,21 @@ def parse_model_from_stream(stream, syntax_only=False):
     # Parse header data
     token = stream.peek()
     while token[0] in (NAME, FUNC_NAME, META_NAME):
+
         if token[0] == FUNC_NAME:
+
             # User function
             parse_user_function(stream, info)
+
         elif token[0] == META_NAME:
+
             # Meta data
             t = next(stream)
             meta_key = t[1].strip()
             if meta_key in model.meta:
                 raise ParseError(
-                    'Duplicate meta-data property', t[2], t[3],
-                    'The meta-data property "' + meta_key + '" was already'
+                    'Duplicate meta-data key', t[2], t[3],
+                    'The meta-data key "' + meta_key + '" was already'
                     ' specified for this model.')
             expect(next(stream), COLON)
             t_next = expect(next(stream), [TEXT, EOL])
@@ -404,7 +408,9 @@ def parse_model_from_stream(stream, syntax_only=False):
                 meta_val = t_next[1].strip()
                 expect(next(stream), EOL)
             model.meta[meta_key] = meta_val
+
         else:
+
             # Initial value
             t0 = next(stream)
             t1 = expect(next(stream), DOT)
@@ -419,6 +425,7 @@ def parse_model_from_stream(stream, syntax_only=False):
             expect(next(stream), EOL)
             info.initial_values[name] = expr
             reg_token(info, t0, expr)
+
         token = stream.peek()
 
     # Save order of state variables

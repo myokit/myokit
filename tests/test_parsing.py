@@ -139,6 +139,60 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Expecting \[\[model]]', parse_model, code)
 
+    def test_parse_model_from_stream_error(self):
+        """ Quick error testing for :meth:`parse_model_from_stream`. """
+        from myokit._parsing import parse_model_from_stream
+        from myokit._parsing import Tokenizer
+
+        def p(code):
+            return parse_model_from_stream(Tokenizer(iter(code)))
+
+        code = (
+            '[[model]]',
+            '[c]',
+            't = 0 bind time',
+        )
+        model = p(code)
+        self.assertIsInstance(model, myokit.Model)
+
+        # Not a model
+        code = (
+            '[[muddle]]',
+            '[c]',
+            't = 0 bind time',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Expecting \[\[model]]', p, code)
+
+        # Double meta-data value
+        code = (
+            '[[model]]',
+            'ax: 1',
+            'ax: 1',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Duplicate meta-data key', p, code)
+
+        # Double initial values
+        code = (
+            '[[model]]',
+            'a.x = 1',
+            'a.x = 1',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Duplicate initial value', p, code)
+
+        # Unused initial values
+        code = (
+            '[[model]]',
+            'a.x = 1',
+            '[c]',
+            't = 0 bind time',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unused initial value', p, code)
+
+
     def test_parse_protocol(self):
         """ Tests :meth:`parse_protocol()`. """
         from myokit._parsing import parse_protocol
