@@ -251,6 +251,34 @@ class PhasedParseTest(unittest.TestCase):
         self.assertEqual(m, '\n'.join(code[:8]))
         self.assertEqual(p, '\n'.join(code[8:-1]))
 
+    def test_unexpected_token(self):
+        """ Tests :meth:`unexpected_token`. """
+        import myokit._parsing as p
+
+        # code, text, line, char
+        token = p.AND, 'and', 10, 5
+
+        # Test with string expectation
+        self.assertRaisesRegex(
+            myokit.ParseError, 'expecting the spanish inquisition',
+            p.unexpected_token, token, 'the spanish inquisition')
+
+        # Test with one expected type
+        self.assertRaisesRegex(
+            myokit.ParseError, 'expecting End of line',
+            p.unexpected_token, token, p.EOL)
+
+        # Test with two expected type
+        self.assertRaisesRegex(
+            myokit.ParseError, 'expecting End of line or End of file',
+            p.unexpected_token, token, [p.EOL, p.EOF])
+
+        # Test with many expected type
+        self.assertRaisesRegex(
+            myokit.ParseError,
+            'expecting one of \[Plus "\+", Minus "-", Star "\*"]',
+            p.unexpected_token, token, [p.PLUS, p.MINUS, p.STAR])
+
     def test_parse_expression(self):
         """
         Test parse_expression()

@@ -213,9 +213,7 @@ def split(source):
     prot_or_script = ('[[protocol]]', '[[script]]')
 
     # Gather lines in stream
-    lines = []
-    for line in raw:
-        lines.append(line)
+    lines = [line for line in raw]
 
     # Create glue string for joining up lines again
     glue = ''
@@ -228,8 +226,8 @@ def split(source):
     # Try parsing model
     try:
         stream = Tokenizer(iter(lines))
-        while stream.peek()[0] == EOL:
-            next(stream)
+        #while stream.peek()[0] == EOL: # tokenizer ignores blank lines
+        #    next(stream)
         token = stream.peek()
         if token[0] == SEGMENT_HEADER and token[1] == '[[model]]':
             parse_model_from_stream(stream, syntax_only=True)
@@ -260,8 +258,8 @@ def split(source):
 
     # Try parsing protocol
     try:
-        while stream.peek()[0] == EOL:
-            next(stream)
+        #while stream.peek()[0] == EOL: # tokenizer ignores blank lines
+        #    next(stream)
         token = stream.peek()
         if token[0] == SEGMENT_HEADER and token[1] == '[[protocol]]':
             parse_protocol_from_stream(stream)
@@ -270,7 +268,9 @@ def split(source):
             segments[1] = glue.join(lines[:line])
             lines = lines[line:]
             stream = Tokenizer(iter(lines))
+
     except ParseError as e:
+
         # Reasonable guess: the protocol extends at least until e.line
         # Try finding [[script]]
         i = e.line
@@ -308,16 +308,20 @@ def unexpected_token(token, expected):
     Raises a formatted unexpected token error (ParseError).
     """
     code, text, line, char = token
-    # Parse gotten token
+
+    # Parse received token
     got = token_map[code]
     hide = [EOL, EOF, INDENT, DEDENT, AND, OR, NOT]
     if code not in hide:
         got += ' "' + text + '"'
+
     # Parse expected token(s) or string
+    if type(expected) == int:
+        expected = [expected]
     if not isinstance(expected, basestring):
         if len(expected) > 2:
-            expected = 'one of [ ' \
-                + ', '.join([token_str[i] for i in expected]) + ' ]'
+            expected = 'one of [' \
+                + ', '.join([token_str[i] for i in expected]) + ']'
         elif len(expected) == 2:
             expected = token_str[expected[0]] + ' or ' + token_str[expected[1]]
         else:
