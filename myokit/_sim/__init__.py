@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 
 # Library imports
 import os
+import sys
 import shutil
 import platform
 import tempfile
@@ -45,8 +46,8 @@ from distutils.core import setup, Extension  # noqa
 import myokit  # noqa
 import myokit.pype as pype  # noqa
 
-# Dynamic module finding and loading in Python 2 and 3
-try:
+# Dynamic module finding and loading in Python 3.5+ and younger
+if sys.hexversion >= 0x03050000:
     import importlib.machinery
     import importlib
 
@@ -55,7 +56,7 @@ try:
         module = importlib.util.module_from_spec(spec)
         return module
 
-except ImportError:  # pragma: no python 3 cover
+else:  # pragma: no python 3 cover
     import imp
 
     def load_module(name, path):
