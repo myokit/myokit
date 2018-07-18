@@ -54,8 +54,6 @@ Parsing expressions
 
 .. autofunction:: parse_expression
 
-.. autofunction:: parse_number
-
 Parsing units
 =============
 
