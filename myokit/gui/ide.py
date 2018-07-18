@@ -13,6 +13,7 @@ from __future__ import print_function, unicode_literals
 # Standard library imports
 import gc
 import os
+import sys
 import traceback
 
 # Myokit
@@ -62,9 +63,11 @@ ABOUT = '<h1>' + TITLE + '</h1>' + """
     <a href="http://myokit.org">http://myokit.org</a>
 </p>
 <p>
-    (Currently running on the BACKEND backend.)
+    System info:
+    <br />Python: PYTHON
+    <br />Using the BACKEND GUI backend.
 </p>
-""".replace('BACKEND', myokit.gui.backend)
+""".replace('BACKEND', myokit.gui.backend).replace('PYTHON', sys.version)
 
 # File filters
 # Note: Using the special filter MMT_SAVE with only one extension specified,
