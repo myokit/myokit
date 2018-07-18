@@ -1060,7 +1060,7 @@ def strip_expression_units(model_text, skip_literals=True):
         stripped = []
         cuts.sort()
         cuts = iter(cuts)
-        cut = cutnext(s)
+        cut = next(cuts)
         for k, line in enumerate(lines):
             if cut and cut[0] == k:
                 # Gather non-unit parts of line
@@ -1079,7 +1079,7 @@ def strip_expression_units(model_text, skip_literals=True):
                     line2 += line[offset:char1]
                     offset = char2
                     try:
-                        cut = cutnext(s)
+                        cut = next(cuts)
                     except StopIteration:
                         cut = None
                 line = line2 + line[offset:]
