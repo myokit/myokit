@@ -2017,7 +2017,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             str(self._tool_view_navigator.isChecked()))
         # Write configuration to ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
-        with open(inifile, 'wb') as configfile:
+        with open(inifile, 'w') as configfile:
             config.write(configfile)
 
     def save_file(self, save_as=False):

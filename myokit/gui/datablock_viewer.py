@@ -10,6 +10,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import sys
 import numpy as np
 import traceback
 import collections
@@ -48,9 +49,11 @@ ABOUT = '<h1>' + TITLE + '</h1>' + """
     select a cell, click anywhere in the animation.
 </p>
 <p>
-    (Currently running on the BACKEND backend.)
+    System info:
+    <br />Python: PYTHON
+    <br />Using the BACKEND GUI backend.
 </p>
-""".replace('BACKEND', myokit.gui.backend)
+""".replace('BACKEND', myokit.gui.backend).replace('PYTHON', sys.version)
 
 # License
 LICENSE = myokit.LICENSE_HTML

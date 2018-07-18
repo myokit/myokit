@@ -23,6 +23,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import sys
 import math
 import os.path
 import traceback
@@ -137,9 +138,11 @@ ABOUT = '<h1>' + TITLE + ' ' + myokit.VERSION + '</h1>' + """
     </li>
 </ol>
 <p>
-    (Currently running on the BACKEND backend.)
+    System info:
+    <br />Python: PYTHON
+    <br />Using the BACKEND GUI backend.
 </p>
-""".replace('BACKEND', myokit.gui.backend)
+""".replace('BACKEND', myokit.gui.backend).replace('PYTHON', sys.version)
 
 
 # Application icon
@@ -2450,7 +2453,7 @@ class GraphDataExtractor(myokit.gui.MyokitApplication):
             config.set('files', 'recent_' + str(k), filename)
         # Write configuration to ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
-        with open(inifile, 'wb') as configfile:
+        with open(inifile, 'w') as configfile:
             config.write(configfile)
 
     def set_filename(self, filename=None):

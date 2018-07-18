@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 # Standard library imports
 import gc
 import os
+import sys
 import traceback
 
 # Qt imports
@@ -73,9 +74,11 @@ ABOUT = '<h1>' + TITLE + '</h1>' + """
     At the moment, exclusively WinWCP, ABF and CSV files.
 </p>
 <p>
-    (Currently running on the BACKEND backend.)
+    System info:
+    <br />Python: PYTHON
+    <br />Using the BACKEND GUI backend.
 </p>
-""".replace('BACKEND', myokit.gui.backend)
+""".replace('BACKEND', myokit.gui.backend).replace('PYTHON', sys.version)
 
 # License
 LICENSE = myokit.LICENSE_HTML
@@ -374,7 +377,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         config.set('files', 'path', self._path)
         # Write configuration to ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
-        with open(inifile, 'wb') as configfile:
+        with open(inifile, 'w') as configfile:
             config.write(configfile)
 
     def show(self):
