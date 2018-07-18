@@ -866,6 +866,24 @@ class ModelParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'named variables', myokit.parse, code)
 
+    def test_strip_expression_units(self):
+        """
+        Tests :meth:`strip_expression_units`.
+        """
+        from myokit._parsing import parse_model, strip_expression_units
+
+        m1 = myokit.load_model('example')
+        m2 = parse_model(m1.code())
+        self.assertEqual(m1.code(), m2.code())
+
+        m2 = parse_model(strip_expression_units(m1.code()))
+        c1 = m1.code()
+        c2 = m2.code()
+        self.assertNotEqual(c1, c2)
+        self.assertTrue(len(c2) < len(c1))
+        self.assertEqual(
+            m1.eval_state_derivatives(), m2.eval_state_derivatives())
+
 
 #TODO: Add tests for protocol parsing. Found a bug when parsing this:
 #

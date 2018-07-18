@@ -581,12 +581,7 @@ def parse_alias(stream, info, component):
 
     """
     # Ensure valid parse info and alias map
-    if info is None:
-        info = ParseInfo()
-    try:
-        amap = info.alias_map[component]
-    except KeyError:
-        amap = info.alias_map[component] = {}
+    amap = info.alias_map[component]
 
     # Parse
     token = expect(next(stream), [USE])
