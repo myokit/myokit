@@ -28,6 +28,7 @@ analysis code.
 ================
 
 .. autoclass:: Model
+   :inherited-members:
 
 ``myokit.ModelPart``
 ====================

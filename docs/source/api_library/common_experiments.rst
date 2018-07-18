@@ -16,8 +16,10 @@ Step protocol experiments
 -------------------------
 
 .. autoclass:: Activation
+    :inherited-members:
 
 .. autoclass:: Inactivation
+    :inherited-members:
 
 .. autoclass:: Recovery
 

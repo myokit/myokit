@@ -7,4 +7,4 @@
 .. module:: myokit
 .. autoclass:: Component
    :undoc-members:
-
+   :inherited-members:

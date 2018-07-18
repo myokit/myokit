@@ -26,6 +26,7 @@ provided:
 .. autofunction:: ewriters
 
 .. autoclass:: SymPyExpressionWriter
+    :inherited-members:
 
 .. autoclass:: SymPyExpressionReader
 

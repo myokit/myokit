@@ -157,14 +157,17 @@ The standard interfaces for importing and exporting are provided:
 .. autofunction:: importers
 
 .. autoclass:: CellMLImporter
+    :inherited-members:
 
 .. autofunction:: exporters
 
 .. autoclass:: CellMLExporter
+    :inherited-members:
 
 .. autofunction:: ewriters
 
 .. autoclass:: CellMLExpressionWriter
+    :inherited-members:
 
 .. autoclass:: CellMLError
 

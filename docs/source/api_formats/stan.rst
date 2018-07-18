@@ -20,4 +20,5 @@ The standard exporting API is provided:
 .. autofunction:: ewriters
 
 .. autoclass:: StanExpressionWriter
+    :inherited-members:
 

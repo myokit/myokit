@@ -7,4 +7,4 @@
 .. module:: myokit
 .. autoclass:: Variable
    :undoc-members:
-
+   :inherited-members:

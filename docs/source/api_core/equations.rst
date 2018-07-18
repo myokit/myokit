@@ -11,6 +11,7 @@ equations are usually in the form of an :class:`Equation` object.
 
 .. autoclass:: myokit.Equation
    :undoc-members:
+   :inherited-members:
 
 Equation lists
 ---------------
@@ -20,4 +21,4 @@ extends the python ``list`` type with a number of specialized iterators.
 
 .. autoclass:: EquationList
    :undoc-members:
-
+   :inherited-members:

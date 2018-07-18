@@ -26,4 +26,4 @@ provided:
 .. autofunction:: ewriters
 
 .. autoclass:: CudaExpressionWriter
-
+    :inherited-members:

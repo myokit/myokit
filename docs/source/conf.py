@@ -38,7 +38,7 @@ extensions = [
 # Autodoc defaults
 autodoc_default_flags = [
     'members',
-    'inherited-members',
+    #'inherited-members',	# Also drags in all PyQt docstrings etc.
     # 'show-inheritance',
 ]
 

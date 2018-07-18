@@ -32,4 +32,4 @@ provided:
 .. autofunction:: ewriters
 
 .. autoclass:: AnsiCExpressionWriter
-
+    :inherited-members:

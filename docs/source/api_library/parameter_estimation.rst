@@ -85,8 +85,10 @@ parameter space.
 .. autoclass:: Evaluator
 
 .. autoclass:: SequentialEvaluator
+    :inherited-members:
 
 .. autoclass:: ParallelEvaluator
+    :inherited-members:
 
 -------------------------------
 Loss surface visualisation (2d)

@@ -20,12 +20,15 @@ API
 .. autofunction:: exporters
 
 .. autoclass:: HTMLExporter
+    :inherited-members:
 
 .. autoclass:: XMLExporter
+    :inherited-members:
 
 .. autofunction:: ewriters
 
 .. autoclass:: MathMLExpressionWriter
+    :inherited-members:
 
 .. autoclass:: MathMLError
 

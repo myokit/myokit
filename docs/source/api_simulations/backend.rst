@@ -13,15 +13,19 @@ Back-end classes
 
 .. autoclass:: CModule
     :private-members:
+    :inherited-members:
 
 .. autoclass:: CppModule
     :private-members:
+    :inherited-members:
 
 .. autoclass:: PyCapture
     :private-members:
+    :inherited-members:
 
 .. autoclass:: SubCapture
     :private-members:
+    :inherited-members:
 
 
 Templating engine

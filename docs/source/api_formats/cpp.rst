@@ -22,4 +22,4 @@ provided:
 .. autofunction:: ewriters
 
 .. autoclass:: CppExpressionWriter
-
+    :inherited-members:

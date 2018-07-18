@@ -29,4 +29,4 @@ provided:
 .. autofunction:: ewriters
 
 .. autoclass:: OpenCLExpressionWriter
-
+    :inherited-members:

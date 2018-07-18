@@ -26,4 +26,4 @@ The standard exporting API is provided:
 .. autofunction:: ewriters
 
 .. autoclass:: LatexExpressionWriter
-
+    :inherited-members:
