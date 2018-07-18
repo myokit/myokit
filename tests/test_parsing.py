@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the parser
+# Tests the parsing module.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -26,9 +26,16 @@ except AttributeError:
 
 
 class TokenizerTest(unittest.TestCase):
+    """
+    Tests the tokenizer class.
+    """
+
     def test_tokenizer(self):
-        import myokit._parse as p
-        from myokit._parse import Tokenizer
+        """
+        Tests basic Tokenizer functionality.
+        """
+        import myokit._parsing as p
+        from myokit._parsing import Tokenizer
         s = Tokenizer('5')
         self.assertEqual(next(s), (p.INTEGER, '5', 1, 0))
         s = Tokenizer('3.0')
@@ -42,6 +49,120 @@ class TokenizerTest(unittest.TestCase):
 
 
 class PhasedParseTest(unittest.TestCase):
+    """
+    Tests several phases of parsing.
+    """
+    def test_segment_parsing(self):
+        """
+        Tests parsing of the main segments.
+        """
+        from myokit._parsing import parse
+
+        # Empty code --> error
+        code = ''
+        self.assertRaisesRegex(
+            myokit.ParseError,
+            'expecting Segment header "\[\[segment_name]]"',
+            parse, code)
+
+        # Unexpected before model
+        code = (
+            '[[bert]]\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError,
+            'Expecting \[\[model]] or \[\[protocol]] or \[\[script]]',
+            parse, code)
+
+        # Unexpected before protocol
+        code = (
+            '[[model]]\n',
+            '[c]\n',
+            't = 0 bind time\n',
+            '[[bert]]\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError,
+            'Expecting \[\[protocol]] or \[\[script]]',
+            parse, code)
+
+        # Unexpected before script
+        code = (
+            '[[model]]\n',
+            '[c]\n',
+            't = 0 bind time\n',
+            '[[protocol]]\n',
+            '[[bert]]\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError,
+            'Expecting \[\[script]]',
+            parse, code)
+
+        # Bad segment order (same as unexpected after protocol)
+        code = (
+            '[[protocol]]\n',
+            '[[model]]\n',
+            '[c]\n',
+            't = 0 bind time\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Expecting \[\[script]]', parse, code)
+
+    def test_parse_model(self):
+        """
+        Tests the parse_model method.
+        """
+        from myokit._parsing import parse_model
+
+        # Test simple
+        code = (
+            '[[model]]\n',
+            '[c]\n',
+            't = 0 bind time\n',
+        )
+        model = parse_model(code)
+        self.assertIsInstance(model, myokit.Model)
+
+        # Not a model
+        code = (
+            '[[muddle]]\n',
+            '[c]\n',
+            't = 0 bind time\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Expecting \[\[model]]', parse_model, code)
+
+    def test_parse_protocol(self):
+        """
+        Tests the parse_protocol method.
+        """
+        from myokit._parsing import parse_protocol
+
+        # Test simple
+        # Level   Start   Length  Period  Multiplier
+        code = (
+            '[[protocol]]\n',
+        )
+        protocol = parse_protocol(code)
+        self.assertIsInstance(protocol, myokit.Protocol)
+
+        code = (
+            '[[protocol]]\n',
+            '0 0 1 0 0\n',
+        )
+        protocol = parse_protocol(code)
+        self.assertIsInstance(protocol, myokit.Protocol)
+
+        # Not a protocol
+        code = (
+            '[[protcle]]\n',
+            '0 0 1 0 0\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Expecting \[\[protocol]]',
+            parse_protocol, code)
+
     def test_parse_expression(self):
         """
         Test parse_expression()
@@ -108,8 +229,8 @@ class PhasedParseTest(unittest.TestCase):
         """
         Tests parse_variable(), uses parse_expression()
         """
-        from myokit._parse import parse_variable
-        from myokit._parse import Tokenizer
+        from myokit._parsing import parse_variable
+        from myokit._parsing import Tokenizer
         m = myokit.Model('test_model')
         c = m.add_component('test_component')
 
@@ -169,9 +290,9 @@ class PhasedParseTest(unittest.TestCase):
         """
         Test parse_component(), uses parse_variable
         """
-        from myokit._parse import parse_component as pc
-        from myokit._parse import ParseInfo
-        from myokit._parse import Tokenizer
+        from myokit._parsing import parse_component as pc
+        from myokit._parsing import ParseInfo
+        from myokit._parsing import Tokenizer
         info = ParseInfo()
         info.model = m = myokit.Model('test_model')
 
@@ -323,7 +444,7 @@ class ModelParseTest(unittest.TestCase):
         self.assertIsInstance(e.cause, myokit.CyclicalDependencyError)
         self.assertIn(e.line, [8, 9])
         self.assertEqual(e.char, 12)
-        from myokit._parse import NAME
+        from myokit._parsing import NAME
         if e.line == 8:
             self.assertEqual(e.cause.token(), (NAME, 'x', 8, 12))
         else:

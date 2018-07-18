@@ -47,25 +47,27 @@ def parse(source):
 
     # Get segments
     token = expect(stream.peek(), SEGMENT_HEADER)
-    if token[1][2:-2] not in ['protocol', 'script']:
+    if token[1][2:-2] == 'model':
         model = parse_model_from_stream(stream)
         token = expect(stream.peek(), [SEGMENT_HEADER, EOF])
     if token[0] == SEGMENT_HEADER and token[1][2:-2] == 'protocol':
         protocol = parse_protocol_from_stream(stream)
         token = expect(stream.peek(), [SEGMENT_HEADER, EOF])
-    if token[0] == SEGMENT_HEADER:
-        if token[1][2:-2] != 'script':
-            if protocol is None:
-                raise ParseError(
-                    'Invalid segment header', token[2], token[3],
-                    'Expecting [[protocol]] or [[script]]')
-            else:
-                raise ParseError(
-                    'Invalid segment header', token[2], token[3],
-                    'Expecting [[script]]')
+    if token[0] == SEGMENT_HEADER and token[1][2:-2] == 'script':
         script = parse_script_from_stream(stream, raw)
-    else:
-        expect(next(stream), EOF)
+        token = expect(stream.peek(), [EOF])
+    if token[0] == SEGMENT_HEADER:
+        expecting = ''
+        if script is None:
+            expecting = '[[script]]'
+            if protocol is None:
+                expecting = '[[protocol]] or ' + expecting
+                if model is None:
+                    expecting = '[[model]] or ' + expecting
+        raise ParseError(
+            'Invalid segment header', token[2], token[3],
+            'Expecting ' + expecting)
+    expect(next(stream), EOF)
 
     # Return
     return (model, protocol, script)
