@@ -519,10 +519,8 @@ def parse_component(stream, info=None):
     """
     Parses a component
     """
-    if info is None or info.model is None:
-        raise Exception(
-            'parse_component requires at least a model to be present in its'
-            ' ParseInfo.')
+    # Info should have model
+    assert(not(info is None or info.model is None))
 
     # Parse component declaration
     expect(next(stream), BRACKET_OPEN)
@@ -770,7 +768,7 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
                 # Labelled as unique value
                 parse_label(stream, info, var)
                 expect(next(stream), EOL)
-            else:
+            else:   # pragma: no cover
                 raise Exception('Unhandled case.')
             # Next line
             token = stream.peek()[0]
@@ -1078,8 +1076,7 @@ def strip_expression_units(model_text, skip_literals=True):
         for e in rhs.walk(allowed_types=myokit.Number):
             u = e.unit()
             if u is not None:
-                if not u._token:
-                    raise Exception('Token not set for number.')
+                assert(u._token is not None)
                 token, text, line, char = u._token
                 toks.append(u._token)
                 # Lines start at 1, chars start at 0...
@@ -1789,7 +1786,7 @@ class Tokenizer(object):
                         column = (1 + column // tabsize) * tabsize
                     elif line[pos] == '\f':
                         column = 0
-                    else:
+                    else:   # pragma: no cover
                         raise Exception(
                             'Unexpected character in multi-line string\'s'
                             ' whitespace: "' + line[pos] + '"')
