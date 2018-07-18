@@ -82,7 +82,7 @@ def html2ascii(html, width=79, indent='  '):
         WHITE = [' ', '\t', '\f', '\r', '\n']
 
         def __init__(self, line_width=79, indent='  '):
-            if sys.hexversion < 0x03000000:
+            if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
                 # HTMLParser requires old-school constructor
                 HTMLParser.__init__(self)
             else:   # pragma: no python 2 cover
