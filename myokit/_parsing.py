@@ -211,16 +211,20 @@ def split(source):
     raw = iter(raw)
     segments = ['', '', '']
     prot_or_script = ('[[protocol]]', '[[script]]')
+
     # Gather lines in stream
     lines = []
     for line in raw:
         lines.append(line)
+
     # Create glue string for joining up lines again
     glue = ''
     if lines:
-        glue = '' if lines[0][-1] == '\n' else '\n'
+        glue = '' if lines[0][-1:] == '\n' else '\n'
+
     # Create stream of lines
     i = 0
+
     # Try parsing model
     try:
         stream = Tokenizer(iter(lines))
@@ -231,6 +235,7 @@ def split(source):
             parse_model_from_stream(stream, syntax_only=True)
     except ParseError:
         pass
+
     # Next up should be a protocol or script, anything else is junk that will
     #  be added to the model code
     if stream:
@@ -239,15 +244,20 @@ def split(source):
         if line.strip() in prot_or_script:
             break
         i += 1
+
     # Get model code
     segments[0] = glue.join(lines[:i])
+
     # Nothing found? Then everything is model code. Return
     if i == len(lines):
         return tuple(segments)
+
     # Chop off first part, continue hopeful parsing
     lines = lines[i:]
+
     # This will work because the next line is [[protocol]] or [[script]]
     stream = Tokenizer(iter(lines))
+
     # Try parsing protocol
     try:
         while stream.peek()[0] == EOL:
@@ -272,6 +282,7 @@ def split(source):
         if i == len(lines):
             return tuple(segments)
         lines = lines[i:]
+
     # Remainder is script
     segments[2] = glue.join(lines)
     return tuple(segments)

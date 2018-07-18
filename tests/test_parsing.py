@@ -210,6 +210,47 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Expecting \[\[script]]', parse_script, code)
 
+    def test_split(self):
+        """
+        Test split(), uses parse()
+        """
+        from myokit._parsing import split
+
+        # Test horrible scenario
+        code = [
+            '',
+            '',
+            '[[model]]',
+            '',
+            'Bad model',
+            '',
+            '',
+            '',
+            '[[protocol]]',
+            '',
+            '',
+            '1 1 1 1 1',
+            '',
+            '',
+            '4 4 4 4 4',
+            'no'
+            '',
+            '',
+            '[[script]]',
+            '',
+            '',
+        ]
+        m, p, x = split('\n'.join(code))
+        self.assertEqual(m, '\n'.join(code[:8]))
+        self.assertEqual(p, '\n'.join(code[8:17]))
+        self.assertEqual(x, '\n'.join(code[17:-1]))
+
+        # Scenario 2
+        code[17] = '[[scrubbed]]'
+        m, p, x = split('\n'.join(code))
+        self.assertEqual(m, '\n'.join(code[:8]))
+        self.assertEqual(p, '\n'.join(code[8:-1]))
+
     def test_parse_expression(self):
         """
         Test parse_expression()
@@ -395,18 +436,6 @@ class PhasedParseTest(unittest.TestCase):
         self.assertIn('desc', c.meta)
         self.assertEqual(c.meta['desc'], 'This is a test component.')
         pass
-
-    def test_parse(self):
-        """
-        Test parse()
-        """
-        pass    # TODO
-
-    def test_split(self):
-        """
-        Test split(), uses parse()
-        """
-        pass    # TODO
 
 
 class ModelParseTest(unittest.TestCase):
