@@ -1332,8 +1332,8 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(ax11.uname(), 'a_x_1_1')
         self.assertEqual(b.uname(), 'b')
         self.assertEqual(bx.uname(), 'b_x_1')
-        self.assertEqual(bx11.uname(), 'b_x_1_1')
-        self.assertEqual(bx1.uname(), 'b_x_1_2')
+        self.assertEqual(bx11.uname(), 'b_x_1_1_1')
+        self.assertEqual(bx1.uname(), 'b_x_1_1')
 
         # Disputed component name
         m = myokit.Model()

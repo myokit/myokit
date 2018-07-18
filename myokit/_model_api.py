@@ -1193,7 +1193,7 @@ class Model(ObjectWithMeta, VarProvider):
                         allnames.add(name)
 
         # Set unique names
-        for comp in self.components():
+        for comp in sorted(self.components(), key=lambda x: x.name()):
 
             # Set names for component
             name = comp._name
@@ -1208,7 +1208,8 @@ class Model(ObjectWithMeta, VarProvider):
             comp._uname = name
 
             # Set names for variables
-            for var in comp.variables(deep=True):
+            for var in sorted(comp.variables(deep=True),
+                              key=lambda x: x.qname()):
                 name = var._name
                 if name in disputed:
                     name = var.qname().replace('.', '_')
