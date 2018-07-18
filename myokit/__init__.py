@@ -344,7 +344,7 @@ from ._parsing import ( # noqa
     parse, split, format_parse_error,
     parse_model, parse_protocol, parse_state,
     parse_unit_string as parse_unit,
-    parse_number_string as parse_number,
+    #parse_number_string as parse_number,
     parse_expression_string as parse_expression,
     strip_expression_units,
 )

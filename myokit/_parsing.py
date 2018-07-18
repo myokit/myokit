@@ -1865,22 +1865,22 @@ def parse_expression_string(string, context=None):
     return convert_proto_expression(e, context, info)
 
 
-def parse_number_string(string):
-    """
-    Parses string data into a :class:`myokit.Number`.
-    """
-    s = Tokenizer(string)
-    p = NumberParser()
-    e = p.parse(s, ParseInfo())
-    expect(next(s), EOL)
-    expect(next(s), EOF)
-    try:
-        next(s)
-        raise ParseError(
-            'Unused tokens', 0, 0, 'Expecting a string containing only a'
-            ' single number.')
-    except StopIteration:
-        return convert_proto_expression(e)
+#def parse_number_string(string):
+#    """
+#    Parses string data into a :class:`myokit.Number`.
+#    """
+#    s = Tokenizer(string)
+#    p = NumberParser()
+#    e = p.parse(s, ParseInfo())
+#    expect(next(s), EOL)
+#    expect(next(s), EOF)
+#    try:
+#        next(s)
+#        raise ParseError(
+#            'Unused tokens', 0, 0, 'Expecting a string containing only a'
+#            ' single number.')
+#    except StopIteration:
+#        return convert_proto_expression(e)
 
 
 def convert_proto_expression(e, context=None, info=None):
