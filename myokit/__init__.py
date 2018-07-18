@@ -54,7 +54,7 @@ elif sys.hexversion >= 0x03040000:
     import logging      # noqa
     logging.basicConfig()
     log = logging.getLogger(__name__)
-    log.warning('Myokit support for Python3 is still (very) experimental.')
+    log.warning('Myokit support for Python3 is still experimental.')
     del(logging, log)
 
 # Don't expose standard libraries as part of Myokit
