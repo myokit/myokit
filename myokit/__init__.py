@@ -339,7 +339,7 @@ from ._protocol import ( # noqa
 )
 
 # Parser functions
-from ._parser import ( # noqa
+from ._parse import ( # noqa
     KEYWORDS,
     parse, split, format_parse_error,
     parse_model, parse_protocol, parse_state,
