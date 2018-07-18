@@ -52,6 +52,7 @@ myokit.lib.markov
 - :class:`myokit.lib.markov.AnalyticalSimulation`
 - :class:`myokit.lib.markov.DiscreteSimulation`
 - :class:`myokit.lib.markov.LinearModel`
+- :class:`myokit.lib.markov.LinearModelError`
 - :class:`myokit.lib.markov.MarkovModel` (Deprecated)
 
 myokit.lib.multi

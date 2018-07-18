@@ -26,6 +26,8 @@ Discrete, stochastic simulations can be performed using the
 
 .. autoclass:: LinearModel
 
+.. autoclass:: LinearModelError
+
 .. autoclass:: AnalyticalSimulation
 
 .. autoclass:: DiscreteSimulation

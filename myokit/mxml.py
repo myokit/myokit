@@ -14,12 +14,6 @@ import sys
 import xml.dom
 import textwrap
 
-# HTML Parser in Python 2 and 3
-try:
-    from HTMLParser import HTMLParser
-except ImportError:
-    from html.parser import HTMLParser
-
 
 def dom_child(node, selector=None):
     """
@@ -76,6 +70,12 @@ def html2ascii(html, width=79, indent='  '):
     The output will be text-wrapped after ``width`` characters. Each new level
     of nesting will be indented with the text given as ``indent``.
     """
+    # HTML Parser in Python 2 and 3
+    try:
+        from HTMLParser import HTMLParser
+    except ImportError:
+        from html.parser import HTMLParser
+
     class Asciifier(HTMLParser):
         INDENT = 1
         DEDENT = -1
@@ -319,3 +319,4 @@ def write_mathml(expression, presentation):
     w = MathMLExpressionWriter()
     w.set_mode(presentation=presentation)
     return w.ex(expression)
+
