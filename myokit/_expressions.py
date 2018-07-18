@@ -485,7 +485,7 @@ class Expression(object):
             if not isinstance(op, Expression):
                 raise IntegrityError(
                     'Expression operands must be other Expression objects.'
-                    ' Found: ' + str(type(op)) + '.')
+                    ' Found: ' + str(type(op)) + '.', self._token)
             op._validate(trail2)
         # Cache validation status
         self._cached_validation = True
@@ -830,7 +830,8 @@ class Derivative(LhsExpression):
         super(Derivative, self).__init__((op,))
         if not isinstance(op, Name):
             raise IntegrityError(
-                'The dot() operator can only be used on named variables.')
+                'The dot() operator can only be used on named variables.',
+                self._token)
         self._op = op
         self._references = set([self])
 
@@ -1361,7 +1362,8 @@ class Function(Expression):
                 raise IntegrityError(
                     'Function (' + str(self._fname) + ') created with wrong'
                     ' number of arguments (' + str(len(ops)) + ', expecting '
-                    + ' or '.join([str(x) for x in self._nargs]) + ').')
+                    + ' or '.join([str(x) for x in self._nargs]) + ').',
+                    self._token)
 
     def bracket(self, op=None):
         if op not in self._operands:
@@ -1895,10 +1897,11 @@ class Piecewise(Function):
         if n % 2 == 0:
             raise IntegrityError(
                 'Piecewise function must have odd number of arguments:'
-                ' ([condition, value]+, else_value).')
+                ' ([condition, value]+, else_value).', self._token)
         if n < 3:
             raise IntegrityError(
-                'Piecewise function must have 3 or more arguments.')
+                'Piecewise function must have 3 or more arguments.',
+                self._token)
 
         # Check arguments
         m = n // 2

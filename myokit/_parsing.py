@@ -476,7 +476,8 @@ def parse_model_from_stream(stream, syntax_only=False):
         t = e.token()
         if t:
             raise ParseError('IntegrityError', t[2], t[3], str(e), cause=e)
-        raise ParseError('IntegrityError', 0, 0, str(e), cause=e)
+        else:   # pragma: no cover
+            raise ParseError('IntegrityError', 0, 0, str(e), cause=e)
 
     # Return
     return model

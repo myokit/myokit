@@ -192,7 +192,6 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Unused initial value', p, code)
 
-
     def test_parse_protocol(self):
         """ Tests :meth:`parse_protocol()`. """
         from myokit._parsing import parse_protocol
