@@ -27,8 +27,8 @@ except AttributeError:
 
 class TokenizerTest(unittest.TestCase):
     def test_tokenizer(self):
-        import myokit._parser as p
-        from myokit._parser import Tokenizer
+        import myokit._parse as p
+        from myokit._parse import Tokenizer
         s = Tokenizer('5')
         self.assertEqual(next(s), (p.INTEGER, '5', 1, 0))
         s = Tokenizer('3.0')
@@ -108,8 +108,8 @@ class PhasedParseTest(unittest.TestCase):
         """
         Tests parse_variable(), uses parse_expression()
         """
-        from myokit._parser import parse_variable
-        from myokit._parser import Tokenizer
+        from myokit._parse import parse_variable
+        from myokit._parse import Tokenizer
         m = myokit.Model('test_model')
         c = m.add_component('test_component')
 
@@ -169,9 +169,9 @@ class PhasedParseTest(unittest.TestCase):
         """
         Test parse_component(), uses parse_variable
         """
-        from myokit._parser import parse_component as pc
-        from myokit._parser import ParseInfo
-        from myokit._parser import Tokenizer
+        from myokit._parse import parse_component as pc
+        from myokit._parse import ParseInfo
+        from myokit._parse import Tokenizer
         info = ParseInfo()
         info.model = m = myokit.Model('test_model')
 
@@ -323,7 +323,7 @@ class ModelParseTest(unittest.TestCase):
         self.assertIsInstance(e.cause, myokit.CyclicalDependencyError)
         self.assertIn(e.line, [8, 9])
         self.assertEqual(e.char, 12)
-        from myokit._parser import NAME
+        from myokit._parse import NAME
         if e.line == 8:
             self.assertEqual(e.cause.token(), (NAME, 'x', 8, 12))
         else:
