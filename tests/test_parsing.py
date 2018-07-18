@@ -24,6 +24,12 @@ try:
 except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no python 2 cover
+    basestring = str
+
 
 class TokenizerTest(unittest.TestCase):
     """
@@ -53,9 +59,7 @@ class PhasedParseTest(unittest.TestCase):
     Tests several phases of parsing.
     """
     def test_segment_parsing(self):
-        """
-        Tests parsing of the main segments.
-        """
+        """ Tests :meth:`parse_model()`. """
         from myokit._parsing import parse
 
         # Empty code --> error
@@ -109,34 +113,8 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Expecting \[\[script]]', parse, code)
 
-    def test_parse_model(self):
-        """
-        Tests the parse_model method.
-        """
-        from myokit._parsing import parse_model
-
-        # Test simple
-        code = (
-            '[[model]]\n',
-            '[c]\n',
-            't = 0 bind time\n',
-        )
-        model = parse_model(code)
-        self.assertIsInstance(model, myokit.Model)
-
-        # Not a model
-        code = (
-            '[[muddle]]\n',
-            '[c]\n',
-            't = 0 bind time\n',
-        )
-        self.assertRaisesRegex(
-            myokit.ParseError, 'Expecting \[\[model]]', parse_model, code)
-
     def test_parse_protocol(self):
-        """
-        Tests the parse_protocol method.
-        """
+        """ Tests :meth:`parse_protocol()`. """
         from myokit._parsing import parse_protocol
 
         # Test simple
@@ -162,6 +140,37 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Expecting \[\[protocol]]',
             parse_protocol, code)
+
+    def test_parse_script(self):
+        """ Tests :meth:`parse_script()`. """
+        from myokit._parsing import parse_script
+
+        # Test simple
+        code = (
+            '[[script]]',
+        )
+        script = parse_script(code)
+        self.assertIsInstance(script, basestring)
+
+        code = (
+            '[[script]]\n',
+        )
+        script = parse_script(code)
+        self.assertIsInstance(script, basestring)
+
+        code = (
+            '[[script]]\n',
+            'print("hi")',
+        )
+        script = parse_script(code)
+        self.assertIsInstance(script, basestring)
+
+        code = (
+            '[[script]]\n',
+            'print("hi")\n',
+        )
+        script = parse_script(code)
+        self.assertIsInstance(script, basestring)
 
     def test_parse_expression(self):
         """

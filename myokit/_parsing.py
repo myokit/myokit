@@ -104,6 +104,7 @@ def parse_protocol(source):
     if isinstance(raw, basestring):
         raw = raw.splitlines()
     raw = iter(raw)
+
     # Parse and return
     stream = Tokenizer(raw)
     token = expect(stream.peek(), SEGMENT_HEADER)
@@ -125,6 +126,7 @@ def parse_script(source):
     if isinstance(raw, basestring):
         raw = raw.splitlines()
     raw = iter(raw)
+
     # Parse and return
     stream = Tokenizer(raw)
     token = expect(stream.peek(), SEGMENT_HEADER)
@@ -132,7 +134,7 @@ def parse_script(source):
         raise ParseError(
             'Invalid segment header', token[2], token[3],
             'Expecting [[script]]')
-    script = parse_script_from_stream(stream)
+    script = parse_script_from_stream(stream, raw)
     expect(next(stream), EOF)
     return script
 
@@ -1020,6 +1022,7 @@ def parse_script_from_stream(stream, raw_stream):
     raw = []
     for line in raw_stream:
         raw.append(line)
+    expect(next(stream), EOL)
     return ''.join(raw)
 
 
