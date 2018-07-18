@@ -166,8 +166,10 @@ def parse_state(state):
     if isinstance(raw, basestring):
         raw = raw.splitlines()
     raw = iter(raw)
+
     # Create tokenizer
     stream = Tokenizer(raw, check_indenting=False)
+
     # Start parsing
     if stream.peek()[0] == NAME:
         # Parse name = value format

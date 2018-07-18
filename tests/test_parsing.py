@@ -113,6 +113,32 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Expecting \[\[script]]', parse, code)
 
+    def test_parse_model(self):
+        """
+        Tests the parse_model method.
+        """
+        from myokit._parsing import parse_model
+
+        # Test simple
+        code = (
+            '[[model]]\n',
+            '[c]\n',
+            't = 0 bind time\n',
+        )
+        model = parse_model(code)
+        self.assertIsInstance(model, myokit.Model)
+        model = parse_model(''.join(code))
+        self.assertIsInstance(model, myokit.Model)
+
+        # Not a model
+        code = (
+            '[[muddle]]\n',
+            '[c]\n',
+            't = 0 bind time\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Expecting \[\[model]]', parse_model, code)
+
     def test_parse_protocol(self):
         """ Tests :meth:`parse_protocol()`. """
         from myokit._parsing import parse_protocol
@@ -123,6 +149,8 @@ class PhasedParseTest(unittest.TestCase):
             '[[protocol]]\n',
         )
         protocol = parse_protocol(code)
+        self.assertIsInstance(protocol, myokit.Protocol)
+        protocol = parse_protocol(''.join(code))
         self.assertIsInstance(protocol, myokit.Protocol)
 
         code = (
@@ -151,6 +179,8 @@ class PhasedParseTest(unittest.TestCase):
         )
         script = parse_script(code)
         self.assertIsInstance(script, basestring)
+        script = parse_script(''.join(code))
+        self.assertIsInstance(script, basestring)
 
         code = (
             '[[script]]\n',
@@ -171,6 +201,14 @@ class PhasedParseTest(unittest.TestCase):
         )
         script = parse_script(code)
         self.assertIsInstance(script, basestring)
+
+        # Not a script
+        code = (
+            '[[hello]]\n',
+            'print("hi")\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Expecting \[\[script]]', parse_script, code)
 
     def test_parse_expression(self):
         """
@@ -230,9 +268,42 @@ class PhasedParseTest(unittest.TestCase):
 
     def test_parse_state(self):
         """
-        Test parse_state(), uses parse_expression()
+        Test parse_state()
         """
-        pass    # TODO
+        # Further tests in test_loadsave
+
+        # Test basic
+        from myokit._parsing import parse_state
+        self.assertEqual(parse_state(''), [])
+
+        code = (
+            '1.23\n',
+        )
+        self.assertEqual(parse_state(code), [1.23])
+
+        code = (
+            '1.23\n',
+            '5.67',
+        )
+        self.assertEqual(parse_state(code), [1.23, 5.67])
+
+        code = (
+            'x.y = 1.23\n',
+        )
+        self.assertEqual(parse_state(code), {'x.y': 1.23})
+
+        code = (
+            'x.y = 1.23\n',
+            'x.z = 2.34',
+        )
+        self.assertEqual(parse_state(code), {'x.y': 1.23, 'x.z': 2.34})
+
+        # Must use fully qualified names
+        code = (
+            'x = 5',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'must be fully qualified', parse_state, code)
 
     def test_parse_variable(self):
         """
