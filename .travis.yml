@@ -32,13 +32,15 @@ matrix:
         - python: "3.6"
           env:
             - MYOKIT_UNIT=true
-        # Style, cover, and docs (latest version only)
+        # Cover checking
         - python: "2.7"
           env:
             - MYOKIT_COVER=true
-        - python: "2.7"
+        # Style checking
+        - python: "3.6"
           env:
             - MYOKIT_STYLE=true
+        # Doctests
         - python: "3.6"
           env:
             - MYOKIT_DOC=true
