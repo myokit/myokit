@@ -262,7 +262,7 @@ class DocumentNode(QtCore.QObject):
 
         **Required to work with DocumentModel.**
         """
-        return self._kids[self._kids.keys()[k]]
+        return self._kids[list(self._kids.keys())[k]]
 
     def clear_selection(self):
         """
@@ -388,7 +388,7 @@ class DocumentNode(QtCore.QObject):
         """
         if self._parent is None:
             return 0
-        return self._parent._kids.values().index(self)
+        return list(self._parent._kids.values()).index(self)
 
     def is_selected(self):
         """
@@ -691,7 +691,7 @@ class Document(DocumentNode):
         xml = et.tostring(e, encoding='utf-8')
         xml = minidom.parseString(xml)
         try:
-            f = open(filename, 'w')
+            f = open(filename, 'wb')
             f.write(xml.toprettyxml(encoding='utf-8'))
             self._changed = False
         finally:
@@ -1062,7 +1062,12 @@ class GdeDocument(Document):
             self.filename = filename
             doc = None
             if filename is not None:
-                doc = et.parse(filename)
+                try:
+                    doc = et.parse(filename)
+                except et.ParseError:
+                    #TODO: Show a warning dialog!
+                    print('Warning: Unable to read file ' + str(filename))
+
             # Add version
             if doc:
                 doctag = doc.getroot()
@@ -1179,7 +1184,7 @@ class GdeDocument(Document):
                         else:
                             name = z.attrib['name']
                             label = name
-                            x = z.find(T_VARIABLE, 'label')
+                            x = z.find(T_VARIABLE)
                             if x is not None:
                                 label = str(x.attrib['value'])
 
@@ -2434,7 +2439,7 @@ class GraphDataExtractor(myokit.gui.MyokitApplication):
         """
         Saves the user configuration to an ini file.
         """
-        config = configparser.ConfigParser()
+        config = ConfigParser()
         # Window dimensions and location
         config.add_section('window')
         #if (self.IsFullScreen() or self.IsMaximized()):
