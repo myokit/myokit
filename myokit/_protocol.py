@@ -654,9 +654,9 @@ class PacingSystem(object):
 
     A pacing system is created by passing in a protocol:
 
-    >>> import myokit
-    ... p = myokit.load_protocol('example')
-    ... s = myokit.PacingSystem(p)
+        import myokit
+        p = myokit.load_protocol('example')
+        s = myokit.PacingSystem(p)
 
     The given protocol will be cloned internally before use.
 
@@ -670,11 +670,11 @@ class PacingSystem(object):
     at different times:
 
     >>> import myokit
-    ... p = myokit.load_protocol('example')
-    ... s = myokit.PacingSystem(p)
-    ... import numpy as np
-    ... time = np.linspace(0, 1000, 10001)
-    ... pace = np.array([s.advance(t) for t in time])
+    >>> p = myokit.load_protocol('example')
+    >>> s = myokit.PacingSystem(p)
+    >>> import numpy as np
+    >>> time = np.linspace(0, 1000, 10001)
+    >>> pace = np.array([s.advance(t) for t in time])
 
     """
     def __init__(self, protocol):

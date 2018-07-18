@@ -585,10 +585,13 @@ class VarOwner(ModelPart, VarProvider):
         we expect the following results
 
             >>> import myokit
-            ... m = myokit.load_model('example')
-            ... c = m.get('ina')        # Retrieves the component <ina>
-            ... h = c.get('h')          # Retrieves the variable <ina.h>
-            ... x = c.get('ina.h')      # Searches for <ina.ina.h>: KeyError!
+            >>> m = myokit.load_model('example')
+            >>> c = m.get('ina')        # Retrieves the component <ina>
+            >>> h = c.get('h')          # Retrieves the variable <ina.h>
+            >>> x = c.get('ina.h')      # Searches for <ina.ina.h>: KeyError!
+            Traceback (most recent call last):
+              File "<stdin>", line 1, in <module>
+            KeyError: 'ina'
 
         """
         # Return model part immediatly
