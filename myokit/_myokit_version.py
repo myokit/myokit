@@ -25,5 +25,5 @@ if not RELEASE:
     VERSION += '.dev'
 
 # Don't expose x on Python2
-if not sys.hexversion > 0x03000000:
+if not sys.hexversion > 0x03000000:  # pragma: no python 3 cover
     del(x)

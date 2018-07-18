@@ -566,7 +566,7 @@ class DataBlock1d(object):
             data = array.array(dtype)
             try:
                 data.frombytes(body[start:end])
-            except AttributeError:  # pragma: no python 2 cover
+            except AttributeError:  # pragma: no python 3 cover
                 data.fromstring(body[start:end])
             if sys.byteorder == 'big':  # pragma: no cover
                 data.byteswap()

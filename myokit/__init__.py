@@ -37,7 +37,7 @@ from __future__ import print_function, unicode_literals
 # Check python version
 #
 import sys
-if sys.hexversion < 0x02070000:
+if sys.hexversion < 0x02070000:     # pragma: no python 3 cover
     print('-- ERROR --')
     print('Myokit requires Python version 2.7.0 or higher.')
     print('Detected Python version: ')

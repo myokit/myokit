@@ -412,7 +412,7 @@ class DocumentNode(QtCore.QObject):
         """
         return len(self._kids)
 
-    def __nonzero__(self):
+    def __nonzero__(self):  # pragma: no python 3 cover
         """
         Used when writing ``if node:``, without overloading this, the value of
         ``__len__`` would be used in these cases.

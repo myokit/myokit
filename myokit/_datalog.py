@@ -20,7 +20,7 @@ import myokit
 # Strings in Python 2 and 3
 try:
     basestring
-except NameError:   # pragma: no cover
+except NameError:   # pragma: no python 2 cover
     basestring = str
 
 
@@ -614,7 +614,7 @@ class DataLog(OrderedDict):
             # Open a filename in 'universal newline' mode, python 2 and 3
             try:
                 return open(filename, 'r', newline=None)
-            except TypeError:
+            except TypeError:   # pragma: no python 3 cover
                 return open(filename, 'U')
 
         quote = '"'

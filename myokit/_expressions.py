@@ -357,7 +357,7 @@ class Expression(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def __nonzero__(self):
+    def __nonzero__(self):  # pragma: no python 3 cover
         """ Python 2 method to determine the outcome of "if expression". """
         return True
 
