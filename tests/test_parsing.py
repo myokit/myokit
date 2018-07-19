@@ -192,6 +192,42 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Unused initial value', p, code)
 
+    def test_block_comments(self):
+        """ Test block comments in model. """
+        from myokit._parsing import parse_model_from_stream
+        from myokit._parsing import Tokenizer
+
+        def p(code):
+            return parse_model_from_stream(Tokenizer(iter(code)))
+
+        # Block comments
+        c1 = (
+            '[[model]]',
+            '[c]',
+            't = 0 bind time',
+        )
+        m1 = p(c1)
+        c2 = (
+            '[[model]]',
+            '"""This is a comment"""',
+            '[c]',
+            't = 0 bind time',
+        )
+        m2 = p(c2)
+        c3 = (
+            '[[model]]',
+            '"""'
+            'This is a long',
+            'long',
+            'long',
+            'comment',
+            '"""',
+            '[c]',
+            't = 0 bind time',
+        )
+        m3 = p(c3)
+        self.assertEqual(m1.code(), m2.code(), m3.code())
+
     def test_parse_protocol(self):
         """ Tests :meth:`parse_protocol()`. """
         from myokit._parsing import parse_protocol
