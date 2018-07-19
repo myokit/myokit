@@ -192,6 +192,41 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.ParseError, 'Unused initial value', p, code)
 
+    def test_parse_user_function(self):
+        """ Tests :meth:`parse_user_function()`. """
+        from myokit._parsing import parse_model as p
+
+        # Test basics
+        code = (
+            '[[model]]',
+            'michael(x) = 1 + sin(x)',
+            '[c]',
+            't = 0 bind time',
+            'x = michael(12)',
+        )
+        p(code)
+
+        code = (
+            '[[model]]',
+            'michael(x, y, z) = x + y / z',
+            '[c]',
+            't = 0 bind time',
+            'x = michael(1,2,3)',
+        )
+        p(code)
+
+        # Duplicate name
+        code = (
+            '[[model]]',
+            'michael(x, y, z) = x + y / z',
+            'michael(x, y, z) = x - y - z',
+            '[c]',
+            't = 0 bind time',
+            'x = michael(1,2,3)',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'already defined', p, code)
+
     def test_block_comments(self):
         """ Test block comments in model. """
         from myokit._parsing import parse_model_from_stream
@@ -227,6 +262,268 @@ class PhasedParseTest(unittest.TestCase):
         )
         m3 = p(c3)
         self.assertEqual(m1.code(), m2.code(), m3.code())
+
+    def test_parse_component(self):
+        """
+        Test parse_component(), uses parse_variable
+        """
+        from myokit._parsing import parse_model as p
+
+        # Test basics
+        code = (
+            '[[model]]',
+            '[test]',
+            't = 0',
+            '    bind time',
+            'x = 5 + b',
+            '    b = 13',
+            '    in [mV]',
+            'desc: \"""',
+            'This is a test component.',
+            '\"""',
+        )
+        m = p(code)
+        self.assertIn('test', m)
+        self.assertEqual(
+            m.get('test').meta['desc'], 'This is a test component.')
+
+        # Test duplicate name
+        code = (
+            '[[model]]',
+            '[test]',
+            't = 0',
+            '    bind time',
+            '[test]',
+            'x = 2',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Duplicate component name', p, code)
+
+        # Test invalid name --> Handled by tokenizer
+
+        # Test duplicate meta data key
+        code = (
+            '[[model]]',
+            '[test]',
+            'yes: no',
+            't = 0',
+            '    bind time',
+            'yes: yes',
+            '[test]',
+            'x = 2',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Duplicate meta-data key', p, code)
+
+    def test_parse_alias(self):
+        """ Tests :meth:`parse_alias()`. """
+        from myokit._parsing import parse_model as p
+
+        # Test basics
+        code = (
+            '[[model]]',
+            '[a]',
+            't = 10',
+            '    bind time',
+            '[b]',
+            'use a.t as time',
+            'b = time',
+            '\"""',
+        )
+        m = p(code)
+        self.assertEqual(m.get('b.b').eval(), 10)
+
+        # Test bad name
+        code = (
+            '[[model]]',
+            '[a]',
+            't = 10',
+            '    bind time',
+            '[b]',
+            'use t as time',
+            'b = time',
+            '\"""',
+        )
+        self.assertRaisesRegex(myokit.ParseError, 'fully qualified', p, code)
+
+    def test_parse_variable(self):
+        """
+        Tests parse_variable(), uses parse_expression()
+        """
+        from myokit._parsing import parse_model as p
+
+        # Test basics
+        s = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+        )
+        t = p(s).get('x.t')
+        self.assertEqual(t.name(), 't')
+        self.assertEqual(t.qname(), 'x.t')
+        self.assertEqual(t.unit(), None)
+        self.assertEqual(t.binding(), 'time')
+
+        s = (
+            '[[model]]',
+            '[x]',
+            't = 0',
+            '    bind time',
+        )
+        t = p(s).get('x.t')
+        self.assertEqual(t.name(), 't')
+        self.assertEqual(t.qname(), 'x.t')
+        self.assertEqual(t.unit(), None)
+        self.assertEqual(t.binding(), 'time')
+
+        s = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'x1 = 5'
+        )
+        v = p(s).get('x.x1')
+        self.assertIsInstance(v, myokit.Variable)
+        self.assertTrue(v.is_constant())
+        self.assertTrue(v.is_literal())
+        self.assertFalse(v.is_state())
+        self.assertFalse(v.is_intermediary())
+        self.assertEqual(v.unit(), None)
+        self.assertEqual(v.rhs().unit(), None)
+
+        s = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'x2 = 5 [mV]'
+        )
+        v = p(s).get('x.x2')
+        self.assertIsInstance(v, myokit.Variable)
+        self.assertTrue(v.is_constant())
+        self.assertTrue(v.is_literal())
+        self.assertFalse(v.is_state())
+        self.assertFalse(v.is_intermediary())
+        self.assertEqual(v.unit(), None)
+        self.assertEqual(v.rhs().unit(), myokit.parse_unit('mV'))
+
+        s = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'x3 = 5',
+            '    in [mV]',
+        )
+        v = p(s).get('x.x3')
+        self.assertIsInstance(v, myokit.Variable)
+        self.assertTrue(v.is_constant())
+        self.assertTrue(v.is_literal())
+        self.assertFalse(v.is_state())
+        self.assertFalse(v.is_intermediary())
+        self.assertEqual(v.unit(), myokit.parse_unit('mV'))
+        self.assertEqual(v.rhs().unit(), None)
+
+        s = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'x3 = 5 in [mV]',
+        )
+        v = p(s).get('x.x3')
+        self.assertIsInstance(v, myokit.Variable)
+        self.assertTrue(v.is_constant())
+        self.assertTrue(v.is_literal())
+        self.assertFalse(v.is_state())
+        self.assertFalse(v.is_intermediary())
+        self.assertEqual(v.unit(), myokit.parse_unit('mV'))
+        self.assertEqual(v.rhs().unit(), None)
+
+        s = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'x4 = 5 [V] : This is x4',
+        )
+        v = p(s).get('x.x4')
+        self.assertIsInstance(v, myokit.Variable)
+        self.assertTrue(v.is_constant())
+        self.assertTrue(v.is_literal())
+        self.assertFalse(v.is_state())
+        self.assertFalse(v.is_intermediary())
+        self.assertEqual(v.unit(), None)
+        self.assertEqual(v.rhs().unit(), myokit.units.V)
+        self.assertEqual(v.meta['desc'], 'This is x4')
+
+        code = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'x = 5 label vvv',
+        )
+        x = p(code).get('x.x')
+        self.assertIsInstance(x, myokit.Variable)
+        self.assertEqual(x.label(), 'vvv')
+
+        s = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'x = 5',
+            '    label vvv',
+        )
+        x = p(code).get('x.x')
+        self.assertIsInstance(x, myokit.Variable)
+        self.assertEqual(x.label(), 'vvv')
+
+        # Illegal lhs
+        code = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'sin(x) = 5',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'variable names or the dot', p, code)
+
+        # Duplicate name
+        code = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'x = 5',
+            'x = 5',
+        )
+        self.assertRaisesRegex(myokit.ParseError, 'Duplicate var', p, code)
+
+        # Missing initial value
+        code = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            'dot(x) = 5',
+        )
+        self.assertRaisesRegex(myokit.ParseError, 'Missing initial', p, code)
+
+        # Duplicate meta
+        code = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            '    yes: really',
+            '    yes: no',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Duplicate meta-data key', p, code)
+
+        # Duplicate unit
+        code = (
+            '[[model]]',
+            '[x]',
+            't = 0 bind time',
+            '    in [s]',
+            '    in [s]',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Duplicate variable unit', p, code)
 
     def test_parse_protocol(self):
         """ Tests :meth:`parse_protocol()`. """
@@ -462,97 +759,6 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ParseError, 'must be fully qualified', parse_state, code)
-
-    def test_parse_variable(self):
-        """
-        Tests parse_variable(), uses parse_expression()
-        """
-        from myokit._parsing import parse_variable
-        from myokit._parsing import Tokenizer
-        m = myokit.Model('test_model')
-        c = m.add_component('test_component')
-
-        def p(s, name=None):
-            parse_variable(Tokenizer(s), None, c, convert_proto_rhs=True)
-            if name:
-                return c.var(name)
-
-        s = """
-            x1 = 5
-            """
-        v = p(s, 'x1')
-        self.assertIsInstance(v, myokit.Variable)
-        self.assertTrue(v.is_constant())
-        self.assertTrue(v.is_literal())
-        self.assertFalse(v.is_state())
-        self.assertFalse(v.is_intermediary())
-        self.assertEqual(v.unit(), None)
-        self.assertEqual(v.rhs().unit(), None)
-        s = """
-            x2 = 5 [mV]
-            """
-        v = p(s, 'x2')
-        self.assertIsInstance(v, myokit.Variable)
-        self.assertTrue(v.is_constant())
-        self.assertTrue(v.is_literal())
-        self.assertFalse(v.is_state())
-        self.assertFalse(v.is_intermediary())
-        self.assertEqual(v.unit(), None)
-        self.assertEqual(v.rhs().unit(), myokit.parse_unit('mV'))
-        s = """
-            x3 = 5
-                in [mV]
-            """
-        v = p(s, 'x3')
-        self.assertIsInstance(v, myokit.Variable)
-        self.assertTrue(v.is_constant())
-        self.assertTrue(v.is_literal())
-        self.assertFalse(v.is_state())
-        self.assertFalse(v.is_intermediary())
-        self.assertEqual(v.unit(), myokit.parse_unit('mV'))
-        self.assertEqual(v.rhs().unit(), None)
-        s = """
-            x4 = 5 [V] : This is x4
-            """
-        v = p(s, 'x4')
-        self.assertIsInstance(v, myokit.Variable)
-        self.assertTrue(v.is_constant())
-        self.assertTrue(v.is_literal())
-        self.assertFalse(v.is_state())
-        self.assertFalse(v.is_intermediary())
-        self.assertEqual(v.unit(), None)
-        self.assertEqual(v.rhs().unit(), myokit.units.V)
-        self.assertEqual(v.meta['desc'], 'This is x4')
-
-    def test_parse_component(self):
-        """
-        Test parse_component(), uses parse_variable
-        """
-        from myokit._parsing import parse_component as pc
-        from myokit._parsing import ParseInfo
-        from myokit._parsing import Tokenizer
-        info = ParseInfo()
-        info.model = m = myokit.Model('test_model')
-
-        def p(s, name=None):
-            pc(Tokenizer(s), info)
-            if name:
-                return m[name]
-
-        s = """
-            [test_component]
-            x = 5 + b
-                b = 13
-                in [mV]
-            desc: \"""
-            This is a test component.
-            \"""
-            """
-        c = p(s, 'test_component')
-        self.assertEqual(len(c), 1)
-        self.assertIn('desc', c.meta)
-        self.assertEqual(c.meta['desc'], 'This is a test component.')
-        pass
 
 
 class ModelParseTest(unittest.TestCase):

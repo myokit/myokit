@@ -534,7 +534,8 @@ def parse_component(stream, info=None):
     except myokit.DuplicateName as e1:
         raise ParseError(
             'Duplicate component name', line, char, str(e1), cause=e1)
-    except myokit.InvalidNameError as e2:
+    except myokit.InvalidNameError as e2:  # pragma: no cover
+        # Already caught by tokenizer
         raise ParseError(
             'Illegal component name', line, char, str(e2), cause=e2)
     reg_token(info, token, component)
@@ -554,8 +555,8 @@ def parse_component(stream, info=None):
             meta_key = t[1].strip()
             if meta_key in component.meta:
                 raise ParseError(
-                    'Duplicate meta-data property', t[2], t[3],
-                    'The meta-data property "' + meta_key + '" was already'
+                    'Duplicate meta-data key', t[2], t[3],
+                    'The meta-data key "' + meta_key + '" was already'
                     ' specified for this component.')
             expect(next(stream), COLON)
             t_next = expect(next(stream), [TEXT, EOL])
@@ -640,7 +641,8 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
             raise ParseError(
                 'Illegal lhs', line, char, 'Only variable names or the dot()'
                 ' function may appear on the left-hand side of an equation.')
-        if type(parent) != myokit.Component:
+        if type(parent) != myokit.Component:  # pragma: no cover
+            # Cover pragma: Already caught by tokenizer
             raise ParseError(
                 'Illegal variable declaration', line, char,
                 'State variable declarations may not be nested.')
@@ -664,7 +666,8 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
     except myokit.DuplicateName as e1:
         raise ParseError(
             'Duplicate variable name', line, char, str(e1), cause=e1)
-    except myokit.InvalidNameError as e2:
+    except myokit.InvalidNameError as e2:  # pragma: no cover
+        # Cover pragma: already caught by tokenizer
         raise ParseError(
             'Illegal variable name', line, char, str(e2), cause=e2)
 
@@ -699,8 +702,8 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
         var._proto_rhs = parse_proto_expression(stream, info)
         # Get rest of line
         token = expect(stream.peek(), (IN, BIND, LABEL, COLON, EOL))
-    else:
-        # No right hand side set!
+    else:  # pragma: no cover
+        # No right hand side set! <-- Caught by parser
         var._proto_rhs = None
     if token[0] == IN:
         # Parse variable unit
@@ -736,8 +739,8 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
                 meta_key = name.strip()
                 if meta_key in var.meta:
                     raise ParseError(
-                        'Duplicate meta-data property', line, char,
-                        'The meta-data property "' + meta_key + '" was already'
+                        'Duplicate meta-data key', line, char,
+                        'The meta-data key "' + meta_key + '" was already'
                         ' specified for this variable.')
                 next(stream)
                 expect(next(stream), COLON)
