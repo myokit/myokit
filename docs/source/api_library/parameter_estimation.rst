@@ -55,22 +55,6 @@ in SymPy (http://sympy.org).
 
 .. autofunction:: powell
 
----------------
-Checking minima
----------------
-
-The following function can be used to investigate if points in the parameter
-space are (local) minima.
-Unfortunately, they often fail in complex search spaces.
-
-.. autofunction:: quadfit
-
-.. autofunction:: quadfit_count
-
-.. autofunction:: quadfit_crit
-
-.. autofunction:: quadfit_minimum
-
 ---------------------------
 Parameter space exploration
 ---------------------------
