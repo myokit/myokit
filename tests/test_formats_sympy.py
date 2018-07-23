@@ -34,6 +34,7 @@ class SymPyReadWriteTest(unittest.TestCase):
         """
         Tests exporting and importing of all Myokit expression types.
         """
+        import sympy
 
         model = myokit.Model()
         component = model.add_component('c')
