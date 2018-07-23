@@ -30,7 +30,7 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
         try:
             import sympy # noqa
         except ImportError:
-            raise RuntimeError('This class requires SymPy to be installed.')
+            raise ImportError('This class requires SymPy to be installed.')
 
         self._flhs = None
         self.set_lhs_function(lambda lhs: str(lhs))

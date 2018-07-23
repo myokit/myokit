@@ -22,20 +22,18 @@ from test_simulation_log_interval import PeriodicTest
 debug = False
 
 
+@unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
 class SimulationOpenCLTest(PeriodicTest):
     """
     Tests myokit.SimulationOpenCL for consistent log entry timing.
     """
     def test_periodic(self):
-        if not OpenCL_FOUND:
-            print('OpenCL support not found, skipping test.')
-            return
-
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.SimulationOpenCL(m, p, ncells=1)
         self.periodic(s)
 
 
+@unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
 class FiberTissueSimulationTest(unittest.TestCase):
     """
     Tests myokit.FiberTissueSimulation for consistent log entry timing.
@@ -44,10 +42,6 @@ class FiberTissueSimulationTest(unittest.TestCase):
         """
         Test periodic logging.
         """
-        if not OpenCL_FOUND:
-            print('OpenCL support not found, skipping test.')
-            return
-
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.FiberTissueSimulation(
             m, m, p, ncells_fiber=(1, 1), ncells_tissue=(1, 1))

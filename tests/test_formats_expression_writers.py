@@ -22,6 +22,8 @@ import myokit.formats.opencl
 import myokit.formats.python
 import myokit.formats.stan
 
+from shared import SymPy_FOUND
+
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
@@ -44,6 +46,8 @@ class ExpressionWriterTest(unittest.TestCase):
         self.assertTrue(len(es) > 0)
         for e in es:
             self.assertIsInstance(e, basestring)
+            if not SymPy_FOUND and e == 'sympy':
+                continue
             e = myokit.formats.ewriter(e)
             self.assertTrue(isinstance(e, myokit.formats.ExpressionWriter))
 

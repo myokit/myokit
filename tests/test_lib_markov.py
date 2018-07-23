@@ -17,7 +17,7 @@ import numpy as np
 import myokit
 import myokit.lib.markov as markov
 
-from shared import DIR_DATA
+from shared import DIR_DATA, SymPy_FOUND
 
 # Unit testing in Python 2 and 3
 try:
@@ -26,6 +26,7 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
+@unittest.skipIf(not SymPy_FOUND, 'SymPy not found on this system.')
 class LinearModelTest(unittest.TestCase):
     """
     Tests the linear model class.
@@ -342,6 +343,7 @@ class LinearModelTest(unittest.TestCase):
             m.rates, parameters=[0.01] * 22)
 
 
+@unittest.skipIf(not SymPy_FOUND, 'SymPy not found on this system.')
 class AnalyticalSimulationTest(unittest.TestCase):
     """
     Tests :class:`myokit.lib.markov.AnalyticalSimulation`.
@@ -513,6 +515,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
             ValueError, 'negative', s.set_default_state, dstate)
 
 
+@unittest.skipIf(not SymPy_FOUND, 'SymPy not found on this system.')
 class DiscreteSimulationTest(unittest.TestCase):
     """
     Tests :class:`myokit.lib.markov.DiscreteSimulationTest`.

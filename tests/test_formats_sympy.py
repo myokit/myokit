@@ -15,6 +15,8 @@ import unittest
 import myokit
 import myokit.formats.sympy
 
+from shared import SymPy_FOUND
+
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
@@ -22,6 +24,7 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
+@unittest.skipIf(not SymPy_FOUND, 'SymPy not found on this system.')
 class SymPyReadWriteTest(unittest.TestCase):
     """
     Tests the SymPy ewriter and ereader classes.
@@ -31,12 +34,6 @@ class SymPyReadWriteTest(unittest.TestCase):
         """
         Tests exporting and importing of all Myokit expression types.
         """
-
-        try:
-            import sympy
-        except ImportError:
-            print('SymPy not found, skipping test.')
-            return
 
         model = myokit.Model()
         component = model.add_component('c')
@@ -308,6 +305,7 @@ class SymPyReadWriteTest(unittest.TestCase):
         """
         Tests fetching using formats.ewriter.
         """
+
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('sympy')
         self.assertIsInstance(w, myokit.formats.sympy.SymPyExpressionWriter)

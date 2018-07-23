@@ -35,6 +35,13 @@ DIR_FORMATS = os.path.join(DIR_DATA, 'formats')
 # OpenCL support
 OpenCL_FOUND = myokit.OpenCL.supported()
 
+# SymPy support
+try:
+    import sympy  # noqa
+    SymPy_FOUND = True
+except ImportError:
+    SymPy_FOUND = False
+
 
 class TemporaryDirectory(object):
     """

@@ -18,7 +18,7 @@ import myokit
 import myokit.lib.fit as fit
 import myokit.lib.markov as markov
 
-from shared import DIR_DATA
+from shared import DIR_DATA, SymPy_FOUND
 
 # Unit testing in Python 2 and 3
 try:
@@ -263,12 +263,12 @@ class QuadFitTest(unittest.TestCase):
         self.assertTrue(np.all(np.abs(C - CC) < e))
 
 
+@unittest.skipIf(not SymPy_FOUND, 'SymPy not found on this system.')
 class FittingTest(unittest.TestCase):
     """
     Performs very basic tests of fitting methods (e.g., do they run).
     """
-    def __init__(self, name):
-        super(FittingTest, self).__init__(name)
+    def setUp(self):
         # Load model, simulation etc. only once
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
         model = myokit.load_model(fname)

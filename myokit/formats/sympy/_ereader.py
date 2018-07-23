@@ -42,6 +42,11 @@ class SymPyExpressionReader(object):
     given, string names will be used instead of myokit Variable objects.
     """
     def __init__(self, model=None):
+        try:
+            import sympy # noqa
+        except ImportError:
+            raise ImportError('This class requires SymPy to be installed.')
+
         self._model = model
         self._op_map = self._build_op_map()
 

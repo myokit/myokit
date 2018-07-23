@@ -71,15 +71,12 @@ class SimulationOpenCL1dTest(unittest.TestCase):
         self.assertEqual(len(d), 41)
 
 
+@unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
 class SimulationOpenCL2dTest(unittest.TestCase):
     """
     Tests the OpenCL simulation in 2d mode.
     """
     def test_sim(self):
-        if not OpenCL_FOUND:
-            print('OpenCL support not found, skipping test.')
-            return
-
         m, p, x = myokit.load('example')
         n = (8, 8)
         s = myokit.SimulationOpenCL(m, p, n)
@@ -95,29 +92,30 @@ class SimulationOpenCL2dTest(unittest.TestCase):
         self.assertIn('7.7.ina.INa', d)
 
 
+@unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
 class FiberTissueSimulationTest(unittest.TestCase):
     """
     Tests the fiber-tissue simulation.
     """
     def test_simple(self):
-        if not OpenCL_FOUND:
-            print('OpenCL support not found, skipping test.')
-            return
-
         # Load models
         mf = os.path.join(DIR_DATA, 'dn-1985-normalised.mmt')
         mt = os.path.join(DIR_DATA, 'lr-1991.mmt')
         mf = myokit.load_model(mf)
         mt = myokit.load_model(mt)
+
         # Run times
         run = .1
+
         # Create pacing protocol
         p = myokit.pacing.blocktrain(1000, 2.0, offset=.01)
+
         # Fiber/Tissue sizes
         nfx = 8
         nfy = 4
         ntx = 8
         nty = 6
+
         # Create simulation
         s = myokit.FiberTissueSimulation(
             mf,
