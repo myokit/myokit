@@ -726,7 +726,7 @@ class SimulationOpenCL(myokit.CModule):
                 inter_log.append(var)
 
         # Get preferred platform/device combo from configuration file
-        platform, device = myokit.OpenCL.load_selection()
+        platform, device = myokit.OpenCL.load_selection_bytes()
 
         # Compile template into string with kernel code
         kernel_file = os.path.join(myokit.DIR_CFUNC, KERNEL_FILE)
@@ -780,8 +780,8 @@ class SimulationOpenCL(myokit.CModule):
             state_in = self._state
             state_out = list(state_in)
             self._sim.sim_init(
-                platform.encode('ascii'),
-                device.encode('ascii'),
+                platform,
+                device,
                 kernel,
                 self._nx,
                 self._ny,

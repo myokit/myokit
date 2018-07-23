@@ -760,7 +760,7 @@ class FiberTissueSimulation(myokit.CModule):
                 inter_logt.append(var)
 
         # Get preferred platform/device combo from configuration file
-        platform, device = myokit.OpenCL.load_selection()
+        platform, device = myokit.OpenCL.load_selection_bytes()
 
         # Generate kernels
         kernel_file = os.path.join(myokit.DIR_CFUNC, KERNEL_FILE)
@@ -821,8 +821,8 @@ class FiberTissueSimulation(myokit.CModule):
             state_outf = list(state_inf)
             state_outt = list(state_int)
             self._sim.sim_init(
-                platform.encode('ascii'),
-                device.encode('ascii'),
+                platform,
+                device,
                 kernelf,
                 kernelt,
                 self._ncellsf[0],

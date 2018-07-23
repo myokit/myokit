@@ -96,6 +96,19 @@ class OpenCL(myokit.CModule):
         ``(platform, device)``. Each entry in the tuple is either a string
         with the platform/device name, or ``None`` if no preference was set.
         """
+        platform, device = OpenCL.load_selection_bytes()
+        if platform:
+            platform = platform.decode('ascii')
+        if device:
+            device = platform.decode('device')
+
+    @staticmethod
+    def load_selection_bytes():
+        """
+        Loads a platform/device selection from disk and returns a tuple
+        ``(platform, device)``. Each entry in the tuple is either a string
+        with the platform/device name, or ``None`` if no preference was set.
+        """
         platform = device = None
 
         # Read ini file
@@ -119,11 +132,11 @@ class OpenCL(myokit.CModule):
             platform = get('selection', 'platform')
             device = get('selection', 'device')
 
-        # Ensure platform and device are ascii compatible
+        # Ensure platform and device are ascii compatible byte strings, or None
         if platform:
-            platform = platform.encode('ascii').decode('ascii')
+            platform = platform.encode('ascii')
         if device:
-            device = device.encode('ascii').decode('ascii')
+            device = device.encode('ascii')
 
         return platform, device
 
