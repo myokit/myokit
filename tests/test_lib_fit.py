@@ -194,14 +194,15 @@ class FittingTest(unittest.TestCase):
     """
     Performs very basic tests of fitting methods (e.g., do they run).
     """
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         # Load model, simulation etc. only once
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
         model = myokit.load_model(fname)
 
         # Extract the Markov model of INa
         parameters = ['ina.p1', 'ina.p2']
-        self._boundaries = [[1e-3, 10], [1e-3, 10]]
+        cls._boundaries = [[1e-3, 10], [1e-3, 10]]
         markov_model = markov.LinearModel.from_component(
             model.get('ina'),
             parameters=parameters,
@@ -209,42 +210,43 @@ class FittingTest(unittest.TestCase):
         )
 
         # Create an analytical markov model simulation
-        self._sim = markov.AnalyticalSimulation(markov_model)
+        cls._sim = markov.AnalyticalSimulation(markov_model)
 
         # Voltages to test at
         r = 10
-        self._voltages = np.arange(-70, -10 + r, r)
+        cls._voltages = np.arange(-70, -10 + r, r)
 
         # Times to evaluate at
         times = np.concatenate((np.linspace(0, 4, 100), np.linspace(4, 8, 20)))
 
         # Generate reference traces
-        self._references = []
-        for v in self._voltages:
-            self._sim.set_membrane_potential(v)
-            x, i = self._sim.solve(times)
-            self._references.append(i)
-
-        # Define function to optimize
-        def score(guess):
-            try:
-                error = 0
-                self._sim.set_parameters(guess)
-                for k, v in enumerate(self._voltages):
-                    self._sim.set_membrane_potential(v)
-                    x, i = self._sim.solve(times)
-                    r = self._references[k]
-                    rmax = np.max(np.abs(r))
-                    error += np.sqrt(np.sum(((i - r) / rmax) ** 2))
-                return error / len(self._voltages)
-            except Exception:
-                return float('inf')
-        self._score = score
+        cls._references = []
+        for v in cls._voltages:
+            cls._sim.set_membrane_potential(v)
+            x, i = cls._sim.solve(times)
+            cls._references.append(i)
 
         # Give a hint
         # p1 = 0.1027 / 3.802 ~ 0.0270
         # p2 = 0.20 / 3.802 ~ 0.0526
-        self._hint = [0.0269, 0.052]
+        cls._hint = [0.0269, 0.052]
+
+        print('I have been run')
+
+    @staticmethod
+    def _score(guess):
+        try:
+            error = 0
+            cls._sim.set_parameters(guess)
+            for k, v in enumerate(cls._voltages):
+                cls._sim.set_membrane_potential(v)
+                x, i = cls._sim.solve(times)
+                r = cls._references[k]
+                rmax = np.max(np.abs(r))
+                error += np.sqrt(np.sum(((i - r) / rmax) ** 2))
+            return error / len(cls._voltages)
+        except Exception:
+            return float('inf')
 
     def test_cmaes(self):
         """
@@ -260,8 +262,8 @@ class FittingTest(unittest.TestCase):
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.cmaes(
-                self._score, self._boundaries, hint=self._hint, parallel=False,
-                target=1)
+                FittingTest._score, self._boundaries, hint=self._hint,
+                parallel=False, target=1)
 
     def test_pso(self):
         """
@@ -270,7 +272,7 @@ class FittingTest(unittest.TestCase):
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.pso(
-                self._score, self._boundaries, hints=[self._hint],
+                FittingTest._score, self._boundaries, hints=[self._hint],
                 parallel=False, max_iter=50)
 
     def test_snes(self):
@@ -280,8 +282,8 @@ class FittingTest(unittest.TestCase):
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.snes(
-                self._score, self._boundaries, hint=self._hint, parallel=False,
-                max_iter=50)
+                FittingTest._score, self._boundaries, hint=self._hint,
+                parallel=False, max_iter=50)
 
     def test_xnes(self):
         """
@@ -290,8 +292,8 @@ class FittingTest(unittest.TestCase):
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.xnes(
-                self._score, self._boundaries, hint=self._hint, parallel=False,
-                max_iter=50)
+                FittingTest._score, self._boundaries, hint=self._hint,
+                parallel=False, max_iter=50)
 
 
 if __name__ == '__main__':

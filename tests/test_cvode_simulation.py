@@ -30,14 +30,14 @@ class SimulationTest(unittest.TestCase):
     Tests the CVode simulation class.
     """
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         """
         Test simulation creation.
         """
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        self.model = m
-        self.protocol = p
-        self.sim = myokit.Simulation(self.model, self.protocol)
+        cls.model = m
+        cls.protocol = p
+        cls.sim = myokit.Simulation(cls.model, cls.protocol)
 
     def test_pre(self):
         """

@@ -40,13 +40,9 @@ class DepTest(unittest.TestCase):
     General dependency test. Loads model and destroys it
     """
     @classmethod
-    def setUpClass(self):
-        self.m = myokit.load_model(
+    def setUpClass(cls):
+        cls.m = myokit.load_model(
             os.path.join(DIR_DATA, 'lr-1991-dep.mmt'))
-
-    @classmethod
-    def tearDownClass(self):
-        del(self.m)
 
     def d(self, name):
         return myokit.Derivative(myokit.Name(self.m.get(name)))
