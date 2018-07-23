@@ -613,20 +613,14 @@ def parse_alias(stream, info, component):
             break
 
 
-def parse_variable(stream, info, parent, convert_proto_rhs=False):
+def parse_variable(stream, info, parent):
     """
     Parses a variable.
 
     In normal operation (when parsing models) the variable's expression is
     stored in Variable._proto_rhs until the full model has been parsed. This
-    allows the rhs to be set with a fully resolved expression. For debugging
-    purposes, it might be necessary to convert the proto_rhs immediatly. To do
-    so, set ``convert_proto_rhs`` to ``True``.
+    allows the rhs to be set with a fully resolved expression.
     """
-    # Ensure valid parse info and alias map
-    if info is None:
-        info = ParseInfo()
-
     # List of tokens to register with the final variable
     toreg = []
 
@@ -779,9 +773,8 @@ def parse_variable(stream, info, parent, convert_proto_rhs=False):
     # Normal operation is to leave the ._proto_rhs untouched until the full
     # model has been parsed and variables have been resolved. For debugging, it
     # may be nice to resolve at this point already.
-    if convert_proto_rhs:
-        var.set_rhs(convert_proto_expression(var._proto_rhs))
-        del(var._proto_rhs)
+    #var.set_rhs(convert_proto_expression(var._proto_rhs))
+    #del(var._proto_rhs)
 
 
 def parse_binding(stream, info, var):
@@ -796,7 +789,8 @@ def parse_binding(stream, info, var):
     # Bind variable
     try:
         var.set_binding(label)
-    except myokit.InvalidBindingError as e:
+    except myokit.InvalidBindingError as e:  # pragma: no cover
+        # Cover pragma: This is already caught when parsing the variable
         raise ParseError('Illegal binding', line, char, str(e), cause=e)
 
 
@@ -810,7 +804,8 @@ def parse_label(stream, info, var):
     # Register label
     try:
         var.set_label(label)
-    except myokit.InvalidLabelError as e:
+    except myokit.InvalidLabelError as e:  # pragma: no cover
+        # Cover pragma: This is already caught when parsing the variable
         raise ParseError('Illegal label', line, char, str(e), cause=e)
 
 
@@ -838,7 +833,8 @@ def resolve_alias_map_names(info):
                 raise ParseError(
                     'Duplicate name error',
                     t_comp[2], t_comp[3], str(e), cause=e)
-            except myokit.InvalidNameError as e2:
+            except myokit.InvalidNameError as e2:  # pragma: no cover
+                # Cover pragma: Already caught by the tokenizer
                 raise ParseError(
                     'Illegal alias name',
                     t_comp[2], t_comp[3], str(e2), cause=e2)
@@ -870,6 +866,7 @@ def parse_unit(stream):
                 'Invalid unit specification', token[2], token[3],
                 'Unit specification must start with unit name or "1"')
         unit = myokit.Unit.parse_simple('1')
+
     # Parse remaining units (* or /)
     while stream.peek()[0] in [STAR, SLASH]:
         op = next(stream)[0]
@@ -890,6 +887,7 @@ def parse_unit(stream):
             unit *= part
         else:
             unit /= part
+
     # Parse multiplier
     if stream.peek()[0] == PAREN_OPEN:
         next(stream)
@@ -901,6 +899,7 @@ def parse_unit(stream):
                 'Unit multipliers cannot contain variables.')
         unit *= e.eval()
         expect(next(stream), PAREN_CLOSE)
+
     return unit
 
 
@@ -912,13 +911,10 @@ def parse_unit_string(string):
     e = parse_unit(s)
     expect(next(s), EOL)
     expect(next(s), EOF)
-    try:
-        next(s)
-        raise ParseError(
-            'Unused tokens', 0, 0,
-            'Expecting a string containing only a single unit expression.')
-    except StopIteration:
-        return e
+    # Note: EOF is a python thing, not an actual character, so checking that
+    # an EOF is next is equivalent to checking that there are no further
+    # characters.
+    return e
 
 
 def parse_bracketed_unit(stream):

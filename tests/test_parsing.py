@@ -333,7 +333,7 @@ class PhasedParseTest(unittest.TestCase):
         m = p(code)
         self.assertEqual(m.get('b.b').eval(), 10)
 
-        # Test bad name
+        # Test bad variable name
         code = (
             '[[model]]',
             '[a]',
@@ -345,6 +345,33 @@ class PhasedParseTest(unittest.TestCase):
             '\"""',
         )
         self.assertRaisesRegex(myokit.ParseError, 'fully qualified', p, code)
+
+        # Test bad alias name
+        code = (
+            '[[model]]',
+            '[a]',
+            't = 10',
+            '    bind time',
+            '[b]',
+            'use a.t as _flbt12',
+            'b = time',
+            '\"""',
+        )
+        self.assertRaisesRegex(myokit.ParseError, 'invalid token', p, code)
+
+        # Unknown variable
+        code = (
+            '[[model]]',
+            '[a]',
+            't = 10',
+            '    bind time',
+            '[b]',
+            'use a.x as time',
+            'b = time',
+            '\"""',
+        )
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Variable not found', p, code)
 
     def test_parse_variable(self):
         """
@@ -524,6 +551,48 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ParseError, 'Duplicate variable unit', p, code)
+
+    def test_parse_unit(self):
+        """ Tests :meth:`parse_unit` and :meth:`parse_unit_string`. """
+        from myokit._parsing import parse_unit_string as p
+
+        # Test dimensionless
+        self.assertEqual(p('1'), myokit.units.dimensionless)
+
+        # Test bare unit
+        self.assertEqual(p('V'), myokit.units.Volt)
+
+        # Test unit with quantifier
+        self.assertEqual(p('mV'), myokit.units.Volt / 1000)
+
+        # Test multiplied units
+        self.assertEqual(p('V*A'), myokit.units.Volt * myokit.units.Ampere)
+        self.assertEqual(p('J/s'), myokit.units.Watt)
+        self.assertEqual(p('1/s'), 1 / myokit.units.second)
+
+        # Test units with exponents (first unit)
+        self.assertEqual(p('m^2'), myokit.units.meter ** 2)
+        self.assertEqual(p('m^-1'), 1 / myokit.units.meter)
+        # Exponents on remaining units
+        self.assertEqual(
+            p('s*m^2'), myokit.units.second * myokit.units.meter ** 2)
+        self.assertEqual(
+            p('s*m^-1'), myokit.units.second / myokit.units.meter)
+
+        # Test units with multipliers
+        self.assertEqual(p('m (123)'), myokit.units.meter * 123)
+
+        # Test bad unit
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unit not recognized', p, 'michael')
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unit not recognized', p, 'kg/michael')
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unexpected token', p, '*2')
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Invalid unit specification', p, '2')
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Invalid unit multiplier', p, 'm (x)')
 
     def test_parse_protocol(self):
         """ Tests :meth:`parse_protocol()`. """
