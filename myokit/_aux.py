@@ -21,17 +21,16 @@ import fnmatch
 import zipfile
 import tempfile
 
+# StringIO in Python 2 and 3
 try:
-    # Python 2
     from cStringIO import StringIO
-except ImportError:
-    # Python3
+except ImportError:  # pragma: no python 2 cover
     from io import StringIO
 
-# Strings in Python2 and Python3
+# String types in Python 2 and 3
 try:
     basestring
-except NameError:   # pragma: no cover
+except NameError:   # pragma: no python 2 cover
     basestring = str
 
 import myokit
