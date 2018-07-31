@@ -11,8 +11,9 @@ from __future__ import print_function, unicode_literals
 
 import os
 import re
-import unicodedata
+#import unicodedata
 from collections import OrderedDict
+
 import myokit
 from myokit import ParseError, ProtocolParseError
 
@@ -1316,8 +1317,8 @@ class Tokenizer(object):
         # Grab first token
         self._advance()
 
-    def __iter__(self):
-        return self
+    #def __iter__(self):
+    #    return self
 
     def _advance(self):
         """
@@ -1335,11 +1336,11 @@ class Tokenizer(object):
         except StopIteration:
             self._has_last_value = True
 
-    def current(self):
-        """
-        Returns the current token.
-        """
-        return self._next
+    #def current(self):
+    #    """
+    #    Returns the current token.
+    #    """
+    #    return self._next
 
     def next(self):
         """
@@ -1414,10 +1415,9 @@ class Tokenizer(object):
             # First line number is 1
             numb += 1
 
-            # Unicode conversion
-            if type(line) != str:
-                line = unicodedata.normalize('NFKD', line).encode(
-                    'ascii', 'ignore')
+            # Not sure this is necessary anymore!
+            #if not isinstance(line, bytes):
+            #    line = unicodedata.normalize('NFKD', line)
 
             # Handle multi-line meta-property strings
             if in_multi_string:

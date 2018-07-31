@@ -53,6 +53,34 @@ class TokenizerTest(unittest.TestCase):
         s = Tokenizer('.30')
         self.assertEqual(next(s), (p.FLOAT, '.30', 1, 0))
 
+        # Finished? Then should get a StopIteration
+        self.assertEqual(s.peek()[0], p.EOL)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(s.peek()[0], p.EOF)
+        self.assertEqual(next(s)[0], p.EOF)
+        self.assertRaises(IndexError, s.peek)
+        self.assertRaises(StopIteration, next, s)
+
+        # Unknown token
+        self.assertRaisesRegex(
+            myokit.ParseError, 'invalid token', Tokenizer, '@')
+
+        # Block-comment
+        s = Tokenizer('"""Hello"""')
+        self.assertEqual(next(s)[0], p.EOF)
+
+        # Multi-line string
+        s = Tokenizer('x: """Hello\nWorld"""')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertEqual(next(s)[0], p.COLON)
+        self.assertEqual(s.peek()[0], p.TEXT)
+        self.assertEqual(next(s)[1], 'Hello\nWorld')
+        self.assertEqual(next(s)[0], p.EOL)
+        s = Tokenizer('x: """Hello"""World')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'after closing of multi-line string', next, s)
+
 
 class PhasedParseTest(unittest.TestCase):
     """
@@ -1311,6 +1339,14 @@ class ModelParseTest(unittest.TestCase):
         self.assertEqual(m1.code(), m2.code())
 
         m2 = parse_model(strip_expression_units(m1.code()))
+        c1 = m1.code()
+        c2 = m2.code()
+        self.assertNotEqual(c1, c2)
+        self.assertTrue(len(c2) < len(c1))
+        self.assertEqual(
+            m1.eval_state_derivatives(), m2.eval_state_derivatives())
+
+        m2 = parse_model(strip_expression_units(m1.code().splitlines()))
         c1 = m1.code()
         c2 = m2.code()
         self.assertNotEqual(c1, c2)
