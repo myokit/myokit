@@ -1032,7 +1032,8 @@ def parse_protocol_from_stream(stream):
         # Schedule event
         try:
             protocol.schedule(v, t, d, p, r)
-        except myokit.ProtocolEventError as e:
+        except myokit.ProtocolEventError as e:  # pragma: no cover
+            # Cover pragma: This should already have been caught!
             raise ProtocolParseError(
                 'Invalid event specification', n[2], 0, str(e))
         n = stream.peek()

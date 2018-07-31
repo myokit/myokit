@@ -718,11 +718,26 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ProtocolParseError, 'Negative period',
             parse_protocol, code)
 
+        # Negative multiplier
+        # Multiplier for non-periodic event
+        code = ('[[protocol]]\n', '0 10 1 100 -1\n')
+        self.assertRaisesRegex(
+            myokit.ProtocolParseError, 'Negative multiplier',
+            parse_protocol, code)
+
         # Multiplier for non-periodic event
         code = ('[[protocol]]\n', '0 10 1 0 1\n')
         self.assertRaisesRegex(
             myokit.ProtocolParseError, 'Invalid multiplier',
             parse_protocol, code)
+
+        # Found a bug when parsing this
+        code = (
+            '[[protocol]]\n',
+            '-80     next    300     0       0\n',
+            '-120    3196.0  50.0    0       0\n',
+        )
+        parse_protocol(code)
 
     def test_parse_script(self):
         """ Tests :meth:`parse_script()`. """
@@ -764,6 +779,14 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ParseError, 'Expecting \[\[script]]', parse_script, code)
+
+        # Not a script, parsing from stream
+        from myokit._parsing import Tokenizer, parse_script_from_stream
+        raw = iter(code)
+        stream = Tokenizer(raw)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Expecting \[\[script]]',
+            parse_script_from_stream, stream, raw)
 
     def test_split(self):
         """
@@ -1294,14 +1317,6 @@ class ModelParseTest(unittest.TestCase):
         self.assertTrue(len(c2) < len(c1))
         self.assertEqual(
             m1.eval_state_derivatives(), m2.eval_state_derivatives())
-
-
-#TODO: Add tests for protocol parsing. Found a bug when parsing this:
-#
-#  [[protocol]]
-#   -80     next    300     0
-#   -120    3196.0  50.0    0       0
-#
 
 
 if __name__ == '__main__':
