@@ -615,6 +615,26 @@ class PhasedParseTest(unittest.TestCase):
         protocol = parse_protocol(code)
         self.assertIsInstance(protocol, myokit.Protocol)
 
+        # Funny numbers
+        code = ('[[protocol]]\n', '-1 0 1 0 0\n')
+        protocol = parse_protocol(code)
+        self.assertIsInstance(protocol, myokit.Protocol)
+        code = ('[[protocol]]\n', '-1 0 1e3 0 0\n')
+        protocol = parse_protocol(code)
+        self.assertIsInstance(protocol, myokit.Protocol)
+        code = ('[[protocol]]\n', '-1 0 1e3 1000 +3\n')
+        protocol = parse_protocol(code)
+        self.assertIsInstance(protocol, myokit.Protocol)
+        code = ('[[protocol]]\n', '0.1 0 1 0 0\n')
+        protocol = parse_protocol(code)
+        self.assertIsInstance(protocol, myokit.Protocol)
+        code = ('[[protocol]]\n', '0.1e-2 0 1 0 0\n')
+        protocol = parse_protocol(code)
+        self.assertIsInstance(protocol, myokit.Protocol)
+        code = ('[[protocol]]\n', '.1e-2 0 1 0 0\n')
+        protocol = parse_protocol(code)
+        self.assertIsInstance(protocol, myokit.Protocol)
+
         # Not a protocol
         code = (
             '[[protcle]]\n',
@@ -681,6 +701,28 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ProtocolParseError, 'chronological', parse_protocol, code)
+
+        # Duration <= 0
+        code = ('[[protocol]]\n', '0 10 -1 0 0\n')
+        self.assertRaisesRegex(
+            myokit.ProtocolParseError, 'Invalid duration',
+            parse_protocol, code)
+        code = ('[[protocol]]\n', '0 10 0 0 0\n')
+        self.assertRaisesRegex(
+            myokit.ProtocolParseError, 'Invalid duration',
+            parse_protocol, code)
+
+        # Negative period
+        code = ('[[protocol]]\n', '0 10 1 -1 0\n')
+        self.assertRaisesRegex(
+            myokit.ProtocolParseError, 'Negative period',
+            parse_protocol, code)
+
+        # Multiplier for non-periodic event
+        code = ('[[protocol]]\n', '0 10 1 0 1\n')
+        self.assertRaisesRegex(
+            myokit.ProtocolParseError, 'Invalid multiplier',
+            parse_protocol, code)
 
     def test_parse_script(self):
         """ Tests :meth:`parse_script()`. """

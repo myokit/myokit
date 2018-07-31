@@ -937,13 +937,15 @@ def parse_protocol_from_stream(stream):
     """
     # Number parsing function
     def parse_number(stream):
-        t = stream.peek()
-        e = parse_expression_stream(stream)
-        if not e.is_literal():
-            raise ProtocolParseError(
-                'Invalid expression', t[2], t[3],
-                'Protocol expressions cannot contain variables.')
-        return e.eval()
+        negative = False
+        t = expect(next(stream), (PLUS, MINUS, INTEGER, FLOAT))
+        if t[0] == PLUS:
+            t = expect(next(stream), (INTEGER, FLOAT))
+        elif t[0] == MINUS:
+            negative = True
+            t = expect(next(stream), (INTEGER, FLOAT))
+        number = int(t[1]) if t[0] == INTEGER else float(t[1])
+        return -number if negative else number
 
     # Check segment header
     if stream.peek()[0] == SEGMENT_HEADER:
@@ -987,36 +989,36 @@ def parse_protocol_from_stream(stream):
             elif t == t_last:
                 raise ProtocolParseError(
                     'Simultaneous stimuli', n[2], n[3],
-                    'Stimuli may not occur at the same time')
+                    'Stimuli may not occur at the same time.')
             else:
                 raise ProtocolParseError(
                     'Non-consecutive stimuli', n[2], n[3],
-                    'Stimuli must be listed in chronological order')
+                    'Stimuli must be listed in chronological order.')
 
         # Parse duration
         d = parse_number(stream)
         if d <= 0:
             raise ProtocolParseError(
-                'Non-positive duration', n[2], n[3],
-                'The duration of a stimulus must be strictly positive')
+                'Invalid duration', n[2], n[3],
+                'The duration of a stimulus must be greater than zero.')
 
         # Parse period
         p = parse_number(stream)
         if p < 0:
             raise ProtocolParseError(
                 'Negative period', n[2], n[3],
-                'Stimuli cannot occur with a negative period')
+                'Stimulus cannot occur with a negative period.')
 
         # Parse multiplier
         r = int(parse_number(stream))
         if r < 0:
             raise ProtocolParseError(
                 'Negative multiplier', n[2], n[3],
-                'Stimulus cannot occur a negative number of times')
+                'Stimulus cannot occur a negative number of times.')
         elif r > 0 and p == 0:
             raise ProtocolParseError(
                 'Invalid multiplier', n[2], n[3],
-                'Non-periodic event cannot occur more than once')
+                'Non-periodic event cannot occur more than once.')
 
         # Determine next event end
         if p == 0:
