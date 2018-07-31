@@ -624,6 +624,64 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Expecting \[\[protocol]]',
             parse_protocol, code)
 
+        # Not a protocol (in stream)
+        from myokit._parsing import parse_protocol_from_stream, Tokenizer
+        stream = Tokenizer(iter(code))
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Expecting \[\[protocol]]',
+            parse_protocol_from_stream, stream)
+
+        # Test using 'next'
+        code = (
+            '[[protocol]]\n',
+            '00 0 100 0 0\n',
+            '10 next 100 0 0\n',
+            '20 next 100 0 0\n',
+        )
+        p1 = parse_protocol(code)
+        code = (
+            '[[protocol]]\n',
+            '00 0 100 0 0\n',
+            '10 100 100 0 0\n',
+            '20 200 100 0 0\n',
+        )
+        p2 = parse_protocol(code)
+        self.assertEqual(p1.code(), p2.code())
+
+        # Test invalid use of next (after periodic event)
+        code = (
+            '[[protocol]]\n',
+            '00 0 100 1000 0\n',
+            '10 next 100 0 0\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ProtocolParseError, 'Invalid next', parse_protocol, code)
+
+        # Simultaneous events
+        code = (
+            '[[protocol]]\n',
+            '00 0 100 0 0\n',
+            '10 0 100 0 0\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ProtocolParseError, 'same time', parse_protocol, code)
+        code = (
+            '[[protocol]]\n',
+            '00 0 100 1000 0\n',
+            '10 0 1100 0 0\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ProtocolParseError, 'same time', parse_protocol, code)
+
+        # Wrong order
+        code = (
+            '[[protocol]]\n',
+            '0 10 1 0 0\n',
+            '1 0  1 0 0\n',
+        )
+        self.assertRaisesRegex(
+            myokit.ProtocolParseError, 'chronological', parse_protocol, code)
+
     def test_parse_script(self):
         """ Tests :meth:`parse_script()`. """
         from myokit._parsing import parse_script

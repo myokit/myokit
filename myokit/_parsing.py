@@ -944,6 +944,7 @@ def parse_protocol_from_stream(stream):
                 'Invalid expression', t[2], t[3],
                 'Protocol expressions cannot contain variables.')
         return e.eval()
+
     # Check segment header
     if stream.peek()[0] == SEGMENT_HEADER:
         token = next(stream)
@@ -952,15 +953,19 @@ def parse_protocol_from_stream(stream):
                 'Invalid segment header', token[2], token[3],
                 'Expecting [[protocol]]')
         expect(next(stream), EOL)
+
     # Create protocol
     protocol = myokit.Protocol()
+
     # Parse lines
     t_last = None
     t_next = 0
     n = stream.peek()
     while(n[0] not in (EOF, SEGMENT_HEADER)):
+
         # Parse level
         v = parse_number(stream)
+
         # Parse starting time
         # Allow 'next' to mean "after the previous event ends"
         if stream.peek()[1] == 'next':
@@ -975,7 +980,7 @@ def parse_protocol_from_stream(stream):
         else:
             t = parse_number(stream)
         if t_last is None:
-            t_last == t
+            t_last = t
         else:
             if t > t_last:
                 t_last = t
@@ -987,18 +992,21 @@ def parse_protocol_from_stream(stream):
                 raise ProtocolParseError(
                     'Non-consecutive stimuli', n[2], n[3],
                     'Stimuli must be listed in chronological order')
+
         # Parse duration
         d = parse_number(stream)
         if d <= 0:
             raise ProtocolParseError(
                 'Non-positive duration', n[2], n[3],
                 'The duration of a stimulus must be strictly positive')
+
         # Parse period
         p = parse_number(stream)
         if p < 0:
             raise ProtocolParseError(
                 'Negative period', n[2], n[3],
                 'Stimuli cannot occur with a negative period')
+
         # Parse multiplier
         r = int(parse_number(stream))
         if r < 0:
@@ -1009,13 +1017,16 @@ def parse_protocol_from_stream(stream):
             raise ProtocolParseError(
                 'Invalid multiplier', n[2], n[3],
                 'Non-periodic event cannot occur more than once')
+
         # Determine next event end
         if p == 0:
             t_next = t + d
         else:
             t_next = None
+
         # Parse end of line
         expect(next(stream), EOL)
+
         # Schedule event
         try:
             protocol.schedule(v, t, d, p, r)
@@ -1023,6 +1034,7 @@ def parse_protocol_from_stream(stream):
             raise ProtocolParseError(
                 'Invalid event specification', n[2], 0, str(e))
         n = stream.peek()
+
     return protocol
 
 
