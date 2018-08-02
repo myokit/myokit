@@ -202,8 +202,8 @@ ESys_ScheduleEvent(Event head, Event add, ESys_Flag* flag)
  * Pacing system
  */
 struct ESys_Mem {
-    double time;    // The current time
-    int n_events;   // The number of events in this system
+    Py_ssize_t n_events;   // The number of events in this system
+    double time;    // The current time    
     Event events;   // The events, stored as an array
     Event head;     // The head of the event queue
     Event fire;     // The currently active event
@@ -324,7 +324,7 @@ ESys_Flag
 ESys_Populate(ESys sys, PyObject* protocol)
 {
     int i;
-    int n;
+    Py_ssize_t n;
     Event events;
     Event e;
 
@@ -343,7 +343,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
         PyObject* list = PyObject_CallMethod(protocol, (char*)"events", NULL);
         if(list == NULL) return ESys_POPULATE_INVALID_PROTOCOL;
         if(!PyList_Check(list)) return ESys_POPULATE_INVALID_PROTOCOL;
-        n = (int)PyList_Size(list);
+        n = PyList_Size(list);
 
         // Translate python pacing events
         // Note: A lot of the tests here shouldn't really make a difference,
@@ -638,10 +638,10 @@ FSys_SetPyErr(FSys_Flag flag)
  * Fixed-form pacing system
  */
 struct FSys_Mem {
-    int n_points;   // The number of entries in the time and pace arrays
+    Py_ssize_t n_points;   // The number of entries in the time and pace arrays
     double* times;  // The time array
     double* values; // The values array
-    int last_index; // The index of the most recently returned value
+    Py_ssize_t last_index; // The index of the most recently returned value
     //double level;   // The current output value
 };
 typedef struct FSys_Mem* FSys;
@@ -712,7 +712,7 @@ FSys_Flag
 FSys_Populate(FSys sys, PyObject* times_list, PyObject* values_list)
 {
     int i;
-    int n;
+    Py_ssize_t n;
 
     // Check ESys
     if(sys == 0) return FSys_INVALID_SYSTEM;
@@ -776,7 +776,7 @@ double
 FSys_GetLevel(FSys sys, double time, FSys_Flag* flag)
 {
     // Index and time at left, mid and right point, plus guessed point
-    int    ileft, imid, iright, iguess;
+    Py_ssize_t ileft, imid, iright, iguess;
     double tleft, tmid, tright, tguess;
     double vleft;
 

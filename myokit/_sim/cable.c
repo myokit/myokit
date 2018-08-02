@@ -282,6 +282,9 @@ sim_init(PyObject *self, PyObject *args)
 
     int icell;
     Cell* cell;
+    int i_state;
+    char log_var_name[1000];
+    ESys_Flag flag_pacing;
 
     /* Check if already running */
     if (running != 0) {
@@ -353,7 +356,6 @@ sim_init(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "'state_out' must have size ncells * n_states.");
         return sim_clean();
     }
-    int i_state;
     for(i_state=0; i_state<ncells * N_STATE; i_state++) {
         flt = PyList_GetItem(state_in, i_state);    /* Borrowed reference */
         if (!PyFloat_Check(flt)) {
@@ -377,8 +379,7 @@ sim_init(PyObject *self, PyObject *args)
     logs = (PyObject**)malloc(sizeof(PyObject*)*nvars); /* Pointers to logging lists */
     vars = (double**)malloc(sizeof(double*)*nvars); /* Pointers to variables to log */
 
-    ivars = 0;
-    char log_var_name[1000];
+    ivars = 0;    
     cell = cells;
 <?
 # Time is set globally, use only the value from the first cell
@@ -401,7 +402,6 @@ for var in model.variables(deep=True, const=False):
     }
 
     /* Set up pacing */
-    ESys_Flag flag_pacing;
     pacing = ESys_Create(&flag_pacing);
     if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_Populate(pacing, protocol);

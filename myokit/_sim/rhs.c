@@ -87,7 +87,7 @@ for label, eqs in equations.items():
 ?>}
 
 /* Full right-hand-side  */
-static inline void
+static void
 rhs(void)
 {
 <?
@@ -105,7 +105,7 @@ for label, eqs in equations.items():
 }
 
 // Partial right-hand-side
-static inline void
+static void
 partial_rhs(void)
 {
 <?
@@ -133,26 +133,29 @@ for label, eqs in equations.items():
 static int
 log_extract(PyObject* data, const char* name, const int position, double* var)
 {
+    PyObject* key;
+    PyObject* list;
+    PyObject* item;
+    char errstr[1000];
+    
     // Get sequence from dict
-    PyObject* key = PyUnicode_FromString(name);
+    key = PyUnicode_FromString(name);
     if (!PyDict_Contains(data, key)) {
         Py_DECREF(key);
         // Raise exception
-        char errstr[1000];
         sprintf(errstr, "Variable %s not found in log.", name);
         PyErr_SetString(PyExc_Exception, errstr);
         return 0;
     }
-    PyObject *list = PyDict_GetItem(data, key); // Borrowed ref, don't decref
+    list = PyDict_GetItem(data, key); // Borrowed ref, don't decref
     Py_DECREF(key);
 
     // Get float from sequence
     key = PyLong_FromLong(position);
-    PyObject* item = PySequence_GetItem(list, position); // New reference, decref
+    item = PySequence_GetItem(list, position); // New reference, decref
     if (item == NULL) {
         Py_DECREF(key);
         // Raise exception
-        char errstr[1000];
         sprintf(errstr, "No item found at position %i of log for %s.", position, name);
         PyErr_SetString(PyExc_Exception, errstr);
         return 0;
@@ -163,7 +166,6 @@ log_extract(PyObject* data, const char* name, const int position, double* var)
     if (!PyFloat_Check(item)) {
         Py_XDECREF(item);
         // Raise exception
-        char errstr[1000];
         sprintf(errstr, "Log for %s can only contain floats (error at index %i).", name, position);
         PyErr_SetString(PyExc_Exception, errstr);
         return 0;
@@ -208,6 +210,10 @@ bench(PyObject* self, PyObject* args, void (*fnc)(void))
     int repeats;        // The number of evaluations to run
     int fastest;        // Set to 1 to get the fastest repeat, 0 for the sum
                         // of repeats.
+    int n_positions;                    
+    int ok;
+    int i, j, k;
+    PyObject* times;
 
     PyObject* f1;  // Re-usable float objects
     PyObject* f2;
@@ -239,7 +245,7 @@ bench(PyObject* self, PyObject* args, void (*fnc)(void))
     Py_DECREF(f1); f1 = NULL;
 
     // Test given times
-    int n_positions = stop - start;
+    n_positions = stop - start;
     if (n_positions < 1) {
         PyErr_SetString(PyExc_Exception, "Invalid log position selection: At least 1 position in the logs must be checked.");
         return 0;
@@ -253,12 +259,11 @@ bench(PyObject* self, PyObject* args, void (*fnc)(void))
     // ALLOCATING MEMORY, FROM THIS POINT ON, USE GOTO ERROR INSTEAD OF RETURN 0
     //
     // Create list for logged results
-    int ok = 0;
-    PyObject* times = PyList_New(n_positions);
+    ok = 0;
+    times = PyList_New(n_positions);
 
     // Dummy run on first position. Without doing this, the first run always
     // takes longer than the others...
-    int i, j, k;
     if (set_state_and_bound(data, start) == 0) goto error;
     rhs();
     for(j = 0; j<repeats; j++) {

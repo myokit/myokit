@@ -58,6 +58,11 @@ tab = '    '
 #include <Python.h>
 #include "pacing.h"
 
+/* C89 Doesn't have isnan */
+#ifndef isnan
+    #define isnan(arg) (arg != arg)
+#endif
+
 /* Number of states, variables, parameters */
 #define NS <?= model.count_states() ?>
 #define NV <?= len(variables) ?>
@@ -202,7 +207,7 @@ int running;
 /* Logging */
 PyObject** logs = NULL;     /* An array of lists to log into */
 Diff** vars = NULL;         /* An array of pointers to variables to log */
-int n_vars;                 /* Number of logging variables */
+Py_ssize_t n_vars;          /* Number of logging variables */
 unsigned long ilog;         /* Index of next logging point */
 double tlog;                /* Time of next logging point */
 

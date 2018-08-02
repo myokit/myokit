@@ -63,6 +63,14 @@
  *  Real        Specifying a real number type (i.e. double)
  */
 
+/* C89 doesn't have NAN */
+/* https://stackoverflow.com/questions/4399641 */
+#ifndef NAN
+    static const unsigned long __nan[2] = {0xffffffff, 0x7fffffff};
+    #define NAN (*(const float *) __nan)
+#endif
+ 
+ 
 /*
  * Covector. A tiny, fixed size array class that allows addition and scalar
  * multiplication.
