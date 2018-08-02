@@ -18,6 +18,7 @@ import platform
 import tempfile
 import traceback
 
+
 # Windows fix: On win7 with MinGW, when running distutils from Qt the
 # (deprecated) os.popen command fails. The docs suggest to replace calls to
 # popen with subprocess.Popen. The following wrapper implements this
@@ -36,15 +37,15 @@ if platform.system() == 'Windows':  # pragma: no linux cover
             ).stdin
     os.popen = _ospop
 
-# Distutils imports
-# Setuptools has a load of patches/fixes for distutils, but causes errors
-# with the current code.
-from distutils.core import setup, Extension  # noqa
-#from setuptools import setup, Extension  # noqa
+
+# Setuptools imports
+from setuptools import setup, Extension  # noqa
+
 
 # Myokit imports
 import myokit  # noqa
 import myokit.pype as pype  # noqa
+
 
 # Dynamic module finding and loading in Python 3.5+ and younger
 if sys.hexversion >= 0x03050000:
@@ -150,6 +151,7 @@ class CModule(object):
                             str('--build-base=' + d_build),
                             str('install'),
                             str('--install-lib=' + d_modul),
+                            str('--old-and-unmanageable'),
                         ])
                 except (Exception, SystemExit) as e:
                     s.disable()
