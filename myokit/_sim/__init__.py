@@ -126,7 +126,15 @@ class CModule(object):
             # Add runtime_library_dirs (to prevent LD_LIBRARY_PATH) errors on
             # unconventional linux sundials installations, but not on windows
             # as this can lead to a weird error in setuptools
-            runtime = None if platform.system() == 'Windows' else libd
+            runtime = libd
+            if platform.system() == 'Windows' and libd is not None:
+                runtime = None
+
+                # Instead, add libd to path on windows
+                path = os.environ['path']
+                to_add = [x for x in libd if x not in path]
+                if to_add:
+                    os.environ['path'] = os.pathsep.join([path] + to_add)
 
             # Create extension
             ext = Extension(
