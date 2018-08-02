@@ -80,16 +80,13 @@ def _create(path):
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
-        # All windowses
-        # First, try finding local sundials install
-        sundials_win = os.path.join(
-            myokit.DIR_MYOKIT, '..', 'tools', 'sundials')
-        sundials_win = os.path.abspath(sundials_win)
-        # Now, set library path
+        # Windows
+        sundials_win = os.path.abspath(
+            os.path.join(myokit.DIR_DATA, 'sundials-win-vs'))
         config.set('sundials', 'lib', ';'.join([
             os.path.join(sundials_win, 'lib'),
-            'C:\\Program Files\\sundials\\lib',
-            'C:\\Program Files (x86)\\sundials\\lib',
+            #'C:\\Program Files\\sundials\\lib',
+            #'C:\\Program Files (x86)\\sundials\\lib',
         ]))
     else:
         # Linux and OS/X
@@ -104,11 +101,11 @@ def _create(path):
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
-        # All windowses
+        # Windows
         config.set('sundials', 'inc', ';'.join([
             os.path.join(sundials_win, 'include'),
-            'C:\\Program Files\\sundials\\include',
-            'C:\\Program Files (x86)\\sundials\\include',
+            #'C:\\Program Files\\sundials\\include',
+            #'C:\\Program Files (x86)\\sundials\\include',
         ]))
     else:
         # Linux and OS/X
