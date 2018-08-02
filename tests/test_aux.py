@@ -29,6 +29,7 @@ class AuxTest(unittest.TestCase):
     """
     Tests various methods from myokit._aux.
     """
+
     def test_date(self):
         """ Test date formatting method. """
         import time
@@ -153,32 +154,42 @@ class AuxTest(unittest.TestCase):
 
     def test_format_path(self):
         """ Tests format_path(). """
+
         # Normal use
         self.assertEqual(
-            myokit.format_path(os.path.join('a', 'b', 'c')), 'a/b/c')
+            myokit.format_path(os.path.join('a', 'b', 'c')),
+            os.path.join('a', 'b', 'c'))
+
         # No trailing slash
         self.assertEqual(
-            myokit.format_path('a/'), 'a')
+            myokit.format_path('a'), 'a')
         self.assertEqual(
-            myokit.format_path('a/b/'), 'a/b')
+            myokit.format_path('a/b/'), os.path.join('a', 'b'))
+
         # Use with custom root
         root = os.path.join(os.path.abspath('.'), 'a')
         self.assertEqual(
-            myokit.format_path(os.path.join(root, 'b', 'c'), root), 'b/c')
+            myokit.format_path(os.path.join(root, 'b', 'c'), root),
+            os.path.join('b', 'c'))
+
         # Empty path
         self.assertEqual(
-            myokit.format_path(''), './')
+            myokit.format_path(''), '.')
         self.assertEqual(
-            myokit.format_path('.'), './')
+            myokit.format_path('.'), '.')
+
         # Filesystem root
         self.assertEqual(
-            myokit.format_path('/', root='/'), './')
+            myokit.format_path('/'), os.path.abspath('/'))
+        self.assertEqual(
+            myokit.format_path('/', root='/'), '.')
+
         # Path outside of root
         self.assertEqual(
             myokit.format_path(
-                os.path.abspath('/test'),
-                os.path.abspath('/test/tost')),
-            '/test')
+                os.path.abspath('test'),
+                os.path.abspath('test/tost')),
+            os.path.abspath('test'))
 
     def test_pack_snapshot(self):
         """ Tests if the pack_snapshot method runs without exceptions. """

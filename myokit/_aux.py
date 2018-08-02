@@ -398,7 +398,7 @@ def format_float_dict(d):
         [k + ' ' * (n - len(k)) + ' = ' + strfloat(d[k]) for k in keys])
 
 
-def format_path(path, root=None):
+def format_path(path, root='.'):
     """
     Formats a path for use in user messages. If the given path is a
     subdirectory of the current directory this part is chopped off.
@@ -410,15 +410,11 @@ def format_path(path, root=None):
     *outside* the root: In these cases relpath returns a relative path such as
     '../../' while this function returns an absolute path.
     """
-    if root is None:
-        root = os.path.abspath('./')
-    path = os.path.abspath(path)
-    if path[0:len(root)] == root:
-        path = path[len(root):]
-        if path == '':
-            return './'
-        if path[0] == '/':
-            path = path[1:]
+    if path == '':
+        path = '.'
+    path = os.path.relpath(path, root)
+    if '..' in path:
+        path = os.path.abspath(os.path.join(root, path))
     return path
 
 
