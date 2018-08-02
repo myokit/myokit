@@ -256,8 +256,12 @@ class JacobianCalculator(myokit.CppModule):
             import sys
             sys.exit(1)
 
+        # Define libraries
+        libs = []
+        if platform.system() != 'Windows':  # pragma: no windows cover
+            libs.append('m')
+
         # Compile extension
-        libs = ['m']
         libd = []
         incd = [myokit.DIR_CFUNC]
         self._ext = self._compile(module_name, fname, args, libs, libd, incd)
