@@ -163,6 +163,10 @@ class CModule(object):
                     captured = s.text().strip()
                     t.extend(['    ' + x for x in captured.splitlines()])
                     raise myokit.CompilationError('\n'.join(t))
+                finally:
+                    egg = name + '.egg-info'
+                    if os.path.exists(egg):
+                        shutil.rmtree(egg)
 
             # Include module (and refresh in case 2nd model is loaded)
             return load_module(name, d_modul)
