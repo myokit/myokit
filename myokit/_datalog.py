@@ -634,14 +634,8 @@ class DataLog(OrderedDict):
             if line == '':
                 return log
 
-            # Trim end of line (Python takes care of windows format)
-            eol = 1
-            line = line[:-1]
-
-            # Trim ; at end of line if given
-            if line[-1:] == ';':
-                eol += 1
-                line = line[:-1]
+            # Trim end of line
+            line = line.rstrip(' \r\n\f;')
 
             # Get enumerated iterator over characters
             line = enumerate(line)
@@ -669,7 +663,7 @@ class DataLog(OrderedDict):
                 # Read!
                 if c == quote:
 
-                    # Read quoted field + delimiter or eol
+                    # Read quoted field + delimiter
                     run2 = True
                     while run2:
                         try:
@@ -694,7 +688,7 @@ class DataLog(OrderedDict):
                             text.append(c)
                 else:
 
-                    # Read unquoted field + delimiter or eol
+                    # Read unquoted field + delimiter
                     while run1 and c != delim:
                         try:
                             text.append(c)
@@ -732,13 +726,21 @@ class DataLog(OrderedDict):
 
                 # Stop if a blank line is returned: indicates EOF!
                 # (Empty line in file still has line ending)
-                if row.strip() == '':
+                if row == '':
                     break
 
-                # Ignore lines commented with #
-                if row.lstrip()[:1] == '#':
+                # Strip leading and/or trailing whitespace
+                row = row.lstrip().rstrip(' \r\n\f;')
+
+                # Skip blank lines
+                if row == '':
                     continue
-                row = row[:-eol]
+
+                # Ignore lines commented with #
+                if row[:1] == '#':
+                    continue
+
+                # Split row into cells
                 row = row.split(delim)
                 n += 1
                 if len(row) != m:
@@ -999,7 +1001,7 @@ class DataLog(OrderedDict):
         eol = '\r\n'
         quote = '"'
         escape = '""'
-        with open(filename, 'w') as f:
+        with open(filename, 'wb') as f:
             # Convert dict structure to ordered sequences
             if order:
                 order = [str(x) for x in order]
@@ -1040,7 +1042,7 @@ class DataLog(OrderedDict):
                 for key in keys:
                     # Escape quotes within strings
                     line.append(quote + key.replace(quote, escape) + quote)
-                f.write(delimiter.join(line) + eol)
+                f.write((delimiter.join(line) + eol).encode('ascii'))
 
             # Write data
             data = [iter(x) for x in data]
@@ -1048,7 +1050,7 @@ class DataLog(OrderedDict):
                 line = []
                 for d in data:
                     line.append(fmat(next(d)))
-                f.write(delimiter.join(line) + eol)
+                f.write((delimiter.join(line) + eol).encode('ascii'))
 
     def set_time_key(self, key):
         """

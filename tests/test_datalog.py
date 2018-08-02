@@ -47,6 +47,7 @@ class DataLogTest(unittest.TestCase):
         """
         Tests the extend function.
         """
+
         d1 = myokit.DataLog(time='time')
         v1 = [10, 9, 10, -1, -1, -1]
         v2 = [12, 2, 43, 31, 2, 7]
@@ -1433,10 +1434,10 @@ class DataLogTest(unittest.TestCase):
 
         # Test empty lines between data
         path = os.path.join(DIR_IO, 'datalog-7-empty-lines-2.csv')
-        d = myokit.DataLog.load_csv(path).npview()
+        d = myokit.DataLog.load_csv(path)
         self.assertEqual(set(d.keys()), set(['time', 'v']))
-        self.assertTrue(np.all(d['time'] == (1 + np.arange(2))))
-        self.assertTrue(np.all(d['v'] == 10 * (1 + np.arange(2))))
+        self.assertTrue(np.all(d['time'] == np.arange(1, 7)))
+        self.assertTrue(np.all(d['v'] == 10 * (np.arange(1, 7))))
 
         # Test unquoted field names
         path = os.path.join(DIR_IO, 'datalog-8-unquoted-header.csv')
