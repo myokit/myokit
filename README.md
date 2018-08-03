@@ -23,7 +23,7 @@ After installation, to quickly test if Myokit works, open a terminal or command 
     
 To open an IDE window, type
 
-    python myo
+    python myo ide
     
 To see what else the `myo` script can do, type
 
