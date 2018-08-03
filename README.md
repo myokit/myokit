@@ -17,17 +17,22 @@ To install Myokit, use `pip install myokit`, or follow the [guidelines on the do
 
 ## Quick-start guide
 
-After installation, to quickly test if Myokit works, open a command window, navigate to the myokit directory and type
+After installation, to quickly test if Myokit works, type
 
-    python myo run example
+    python -m myokit run example
+    
+or simply
+
+    myokit run example
     
 To open an IDE window, type
 
-    python myo ide
+    myokit ide
     
-To see what else the `myo` script can do, type
+To see what else Myokit can do, type
 
-    python myo -h
+    myokit -h
+
 
 ## Adding icons etc.
 If you're a Gnome or KDE user, you may wish to install a Myokit icon to your menu, add the mime-type information for Myokit `.mmt` files or add syntax highlighting for gtksourceview (Gedit). Scripts to do this are located in
