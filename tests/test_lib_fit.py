@@ -34,12 +34,6 @@ class EvaluatorTest(unittest.TestCase):
     def test_evaluators(self):
 
         # Test basic sequential/parallel evaluation
-        # Create test data
-        def f(x):
-            if x == 0:
-                raise Exception('Everything is terrible')
-            return 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / x
-
         x = 1 + np.random.random(100)
 
         # Simple run: sequential and parallel
@@ -48,28 +42,18 @@ class EvaluatorTest(unittest.TestCase):
         # Note: the overhead is almost 100% of the run-time of this test
         fit.evaluate(f, x, parallel=True)
 
-        # Test object with args
-        def g(x, y, z):
-            self.assertEqual(y, 10)
-            self.assertEqual(z, 20)
-
-        e = fit.SequentialEvaluator(g, [10, 20])
-        e.evaluate([1])
+        e = fit.SequentialEvaluator(f_args, [10, 20])
+        self.assertEqual(e.evaluate([1])[0], 1)
 
         # Argument must be callable
         self.assertRaises(ValueError, fit.SequentialEvaluator, 1)
 
         # Args must be a sequence
-        self.assertRaises(ValueError, fit.SequentialEvaluator, g, 1)
+        self.assertRaises(ValueError, fit.SequentialEvaluator, f_args, 1)
 
     def test_parallel_evaluator(self):
-        # Test parallel execution
-        # Create test data
-        def f(x):
-            if x == 0:
-                raise Exception('Everything is terrible')
-            return 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / x
 
+        # Test parallel execution
         e = fit.ParallelEvaluator(f, max_tasks_per_worker=9)
 
         # Test 1
@@ -92,31 +76,20 @@ class EvaluatorTest(unittest.TestCase):
         x = 1 + np.random.random(16)
         e.evaluate(x)
 
-        # Test object with args
-        def g(x, y, z):
-            self.assertEqual(y, 10)
-            self.assertEqual(z, 20)
-
-        e = fit.ParallelEvaluator(g, args=[10, 20])
-        e.evaluate([1])
+        e = fit.ParallelEvaluator(f_args, args=[10, 20])
+        self.assertEqual(e.evaluate([1])[0], 1)
 
         # Argument must be callable
         self.assertRaises(ValueError, fit.ParallelEvaluator, 1)
 
         # Args must be a sequence
-        self.assertRaises(ValueError, fit.ParallelEvaluator, g, args=1)
+        self.assertRaises(ValueError, fit.ParallelEvaluator, f_args, args=1)
 
         # n-workers must be >0
         self.assertRaises(ValueError, fit.ParallelEvaluator, f, 0)
 
         # max tasks must be >0
         self.assertRaises(ValueError, fit.ParallelEvaluator, f, 1, 0)
-
-        # Exceptions in called method should trigger halt, cause new exception
-        def ioerror_on_five(x):
-            if x == 5:
-                raise IOError
-            return x
 
         e = fit.ParallelEvaluator(ioerror_on_five)
 
@@ -129,12 +102,6 @@ class EvaluatorTest(unittest.TestCase):
         """
         from myokit.lib.fit import _Worker as Worker
 
-        # Define function
-        def f(x):
-            if x == 30:
-                raise KeyboardInterrupt
-            return 2 * x
-
         # Create queues for worker
         import multiprocessing
         tasks = multiprocessing.Queue()
@@ -146,7 +113,7 @@ class EvaluatorTest(unittest.TestCase):
         tasks.put((2, 3))
         max_tasks = 3
 
-        w = Worker(f, (), tasks, results, max_tasks, errors, error)
+        w = Worker(h, (), tasks, results, max_tasks, errors, error)
         w.run()
 
         self.assertEqual(results.get(timeout=0.01), (0, 2))
@@ -164,7 +131,7 @@ class EvaluatorTest(unittest.TestCase):
         tasks.put((2, 3))
         error.set()
 
-        w = Worker(f, (), tasks, results, max_tasks, errors, error)
+        w = Worker(h, (), tasks, results, max_tasks, errors, error)
         w.run()
 
         self.assertEqual(results.get(timeout=0.01), (0, 2))
@@ -179,7 +146,7 @@ class EvaluatorTest(unittest.TestCase):
         tasks.put((1, 30))
         tasks.put((2, 3))
 
-        w = Worker(f, (), tasks, results, max_tasks, errors, error)
+        w = Worker(h, (), tasks, results, max_tasks, errors, error)
         w.run()
 
         self.assertEqual(results.get(timeout=0.01), (0, 2))
@@ -294,6 +261,31 @@ class FittingTest(unittest.TestCase):
             x, f = fit.xnes(
                 FittingTest._score, self._boundaries, hint=self._hint,
                 parallel=False, max_iter=50)
+
+
+# Globally defined test functions (for windows)
+def f(x):
+    if x == 0:
+        raise Exception('Everything is terrible')
+    return 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / 1 / x
+
+
+# Test function with args
+def f_args(x, y, z):
+    return 1 if (y == 10 and z == 20) else 0
+
+
+# Exceptions in called method should trigger halt, cause new exception
+def ioerror_on_five(x):
+    if x == 5:
+        raise IOError
+    return x
+
+
+def h(x):
+    if x == 30:
+        raise KeyboardInterrupt
+    return 2 * x
 
 
 if __name__ == '__main__':

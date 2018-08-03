@@ -174,7 +174,7 @@ int running;
 // Logging
 PyObject** logs = NULL;     // An array of lists to log into
 Diff** vars = NULL;         // An array of pointers to variables to log
-int n_vars;                 // Number of logging variables
+Py_ssize_t n_vars;          // Number of logging variables
 unsigned long ilog;         // Index of next logging point
 double tlog;                // Time of next logging point
 

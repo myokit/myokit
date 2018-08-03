@@ -46,6 +46,7 @@ class AnsicEventBasedPacing(myokit.CModule):
         libs = []
         libd = []
         incd = [DIR_TEST, myokit.DIR_CFUNC]
+        self._sys = None
         self._sys = self._compile(module_name, fname, args, libs, libd, incd)
         # Initialize
         self._sys.init(protocol.clone())
@@ -53,7 +54,8 @@ class AnsicEventBasedPacing(myokit.CModule):
 
     def __del__(self):
         # Free the memory used by the pacing system
-        self._sys.clean()
+        if self._sys is not None:
+            self._sys.clean()
 
     def advance(self, new_time, max_time=None):
         """

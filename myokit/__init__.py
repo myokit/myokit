@@ -173,6 +173,9 @@ finally:
 # Binary data files
 DIR_DATA = os.path.join(DIR_MYOKIT, '_bin')
 
+# Windows data files
+DIR_WIN = os.path.join(DIR_MYOKIT, '_win')
+
 # C header files
 DIR_CFUNC = os.path.join(DIR_MYOKIT, '_sim')
 

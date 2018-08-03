@@ -116,7 +116,8 @@ static PyObject*
 pacing_pace(PyObject *self, PyObject *args)
 {
     ESys_Flag flag;
-    double pace = ESys_GetLevel(pacing, &flag);
+    double pace;
+    pace = ESys_GetLevel(pacing, &flag);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
     return PyFloat_FromDouble(pace);
 }
@@ -128,7 +129,8 @@ static PyObject*
 pacing_next_time(PyObject *self, PyObject *args)
 {
     ESys_Flag flag;
-    double tnext = ESys_GetNextTime(pacing, &flag);
+    double tnext;
+    tnext = ESys_GetNextTime(pacing, &flag);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
     return PyFloat_FromDouble(tnext);
 }
@@ -141,10 +143,12 @@ pacing_next_time(PyObject *self, PyObject *args)
 static PyObject*
 pacing_advance(PyObject *self, PyObject *args)
 {
+    double tadvance;
+    double maxtime;   
+    ESys_Flag flag;
+    double pace;
 
     // Check input arguments
-    double tadvance;
-    double maxtime;
     if (!PyArg_ParseTuple(args, "dd", &tadvance, &maxtime)) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         // Nothing allocated yet, no pyobjects _created_, return directly
@@ -152,13 +156,12 @@ pacing_advance(PyObject *self, PyObject *args)
     }
 
     // Advance
-    ESys_Flag flag;
     flag = ESys_AdvanceTime(pacing, tadvance, maxtime);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
     t = tadvance;
 
     // Get new pacing value
-    double pace = ESys_GetLevel(pacing, &flag);
+    pace = ESys_GetLevel(pacing, &flag);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
 
     return PyFloat_FromDouble(pace);
