@@ -16,7 +16,7 @@ RELEASE = False
 #  - Changes to minor indicate new features, possible slight backwards
 #    incompatibility
 #  - Changes to revision indicate bugfixes, tiny new features
-VERSION_INT = 1, 27, 1
+VERSION_INT = 1, 27, 2
 
 # String version of the version number
 VERSION = '.'.join([str(x) for x in VERSION_INT])
