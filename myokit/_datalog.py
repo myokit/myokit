@@ -654,11 +654,10 @@ class DataLog(OrderedDict):
                 text = []
 
                 # Skip whitespace
-                try:
-                    while c in whitespace:
-                        i, c = next(line)
-                except StopIteration:
-                    break
+                # (Note: rtrim above and check below mean this will never
+                #  raise a StopIteration)
+                while c in whitespace:
+                    i, c = next(line)
 
                 # Read!
                 if c == quote:
