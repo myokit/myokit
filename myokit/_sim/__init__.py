@@ -62,6 +62,7 @@ else:  # pragma: no python 3 cover
 
     def load_module(name, path):
         (f, pathname, description) = imp.find_module(name, [path])
+        f.close()
         return imp.load_dynamic(name, pathname)
 
 
