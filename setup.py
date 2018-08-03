@@ -36,6 +36,7 @@ setup(
     description='A simple interface to cardiac cellular electrophysiology',
 
     long_description=readme,
+    long_description_content_type='text/markdown',
 
     license='GNU General Public License version 3',
 
