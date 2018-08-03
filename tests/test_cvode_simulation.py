@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
+import platform
 import numpy as np
 
 import myokit
@@ -294,10 +295,8 @@ class SimulationTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'not a literal', self.sim.set_constant, 'ina.ENa', 11)
 
-    def test_simulation_error(self):
-        """
-        Tests for simulation error detection.
-        """
+    def test_simulation_error_1(self):
+        """ Tests for simulation error detection: massive stimulus. """
         # Silly protocol
         p = myokit.Protocol()
         p.schedule(level=1000, start=1, duration=1)
@@ -306,6 +305,11 @@ class SimulationTest(unittest.TestCase):
         self.assertRaises(myokit.SimulationError, self.sim.run, 10)
         self.sim.set_protocol(self.protocol)
 
+    @unittest.skipIf(platform.system() == 'Windows', 'Cvode error tests')
+    def test_simulation_error_2(self):
+        """
+        Tests for simulation error detection: failure occurred too often.
+        """
         # Cvode error (test failure occurred too many times)
         m = self.model.clone()
         v = m.get('membrane.V')
