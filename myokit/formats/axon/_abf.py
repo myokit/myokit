@@ -568,6 +568,54 @@ class AbfFile(object):
         dinfo, einfo_exists, einfo = self._epoch_functions
         return dinfo(channel, 'fDACHoldingLevel')
 
+    def protocol_steps(self, channel=0):
+        """
+        For a stepped protocol, this function returns a tuple of lists of the
+        successive values (not including the holding value).
+
+        For example, for a protocol that has holding value ``-120mV`` and
+        performs steps to ``-100mV``, ``-80mV``, and ``-40mV`` the returned
+        output will be::
+
+            ([-100, -80, -40])
+
+        For a more complicated protocol, where each step is followed by a step
+        down to ``-140mV``, the output would be::
+
+            ([-100, -80, -40], [-140, -140, -140])
+
+
+        """
+        # Get epoch functions set by _read_protocol
+        dinfo, einfo_exists, einfo = self._epoch_functions
+        if not einfo_exists(channel):  # pragma: no cover
+            # Not sure if this can happen, if so need to update code.
+            raise Exception('Missing protocol data')
+
+        # Create list of step lists
+        levels = []
+        for e in einfo(channel):
+            kind = e['type']
+            if kind not in epoch_types:
+                raise NotImplementedError('Unknown epoch type: ' + str(kind))
+            if kind == EPOCH_DISABLED:
+                continue
+            elif kind == EPOCH_STEPPED:
+                levels.append([])
+            else:
+                raise NotImplementedError(
+                    'Unsupported epoch type: ' + epoch_types(kind))
+
+        # Gather steps
+        levels = tuple(levels)
+        for i in range(self._sweepsPerRun):
+            j = 0
+            for e in einfo(channel):
+                if e['type'] == EPOCH_STEPPED:
+                    levels[j].append(e['init_level'] + e['level_inc'] * i)
+                    j += 1
+        return levels
+
     def __iter__(self):
         """
         Returns an iterator over all sweeps

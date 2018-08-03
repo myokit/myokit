@@ -167,6 +167,11 @@ class AbfTest(unittest.TestCase):
         p = abf.myokit_protocol()
         self.assertEqual(len(p), 60)
 
+        # Test step extraction
+        p = abf.protocol_steps()
+        self.assertEqual(len(p), 1)
+        self.assertEqual(len(p[0]), 30)
+
     def test_matplotlib_figure(self):
         """ Tests figure drawing method (doesn't inspect output). """
         # Select matplotlib backend that doesn't require a screen
