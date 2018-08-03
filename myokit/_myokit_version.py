@@ -9,7 +9,7 @@
 import sys
 
 # True if this is a release, False for a development version
-RELEASE = True
+RELEASE = False
 
 # Version as a tuple (major, minor, revision)
 #  - Changes to major are rare
