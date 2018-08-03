@@ -127,7 +127,8 @@ class CModule(object):
             # unconventional linux sundials installations, but not on windows
             # as this can lead to a weird error in setuptools
             runtime = libd
-            if platform.system() == 'Windows' and libd is not None:
+            if (platform.system() == 'Windows'  # pragma: no linux cover
+                    and libd is not None):
                 runtime = None
 
                 # Instead, add libd to path on windows
