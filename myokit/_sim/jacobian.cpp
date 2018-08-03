@@ -57,7 +57,7 @@ tab = '    '
 #define N_INPUT <?= len(inputs) ?>
 
 // Define numerical type
-typedef long double Real;
+typedef double Real;
 
 // Number of derivatives in each derivative vector
 #define N_DIFFS <?= model.count_states() ?>
