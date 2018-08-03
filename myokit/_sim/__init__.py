@@ -132,7 +132,10 @@ class CModule(object):
                 runtime = None
 
                 # Instead, add libd to path on windows
-                path = os.environ['path']
+                try:
+                    path = os.environ['path']
+                except KeyError:
+                    path = ''
                 to_add = [x for x in libd if x not in path]
                 if to_add:
                     os.environ['path'] = os.pathsep.join([path] + to_add)
