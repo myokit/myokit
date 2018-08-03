@@ -13,7 +13,8 @@ For the latest documentation, see [myokit.readthedocs.io](https://myokit.readthe
 
 ## Installation
 
-To install Myokit, use `pip install myokit`, or follow the [guidelines on the download pages](http://myokit.org/download).
+To install Myokit, follow the [guidelines on the download pages](http://myokit.org/download) to make sure you have [CVODE](https://computation.llnl.gov/projects/sundials/sundials-software) installed, and a suitable compiler.
+Then, use `pip install myokit`.
 
 ## Quick-start guide
 
