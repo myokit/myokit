@@ -82,7 +82,7 @@ def _create(path):
     if system == 'Windows':     # pragma: no linux cover
         # Windows
         sundials_win = os.path.abspath(
-            os.path.join(myokit.DIR_DATA, 'sundials-win-vs'))
+            os.path.join(myokit.DIR_WIN, 'sundials-vs'))
         config.set('sundials', 'lib', ';'.join([
             os.path.join(sundials_win, 'lib'),
             #'C:\\Program Files\\sundials\\lib',
