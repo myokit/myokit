@@ -1,9 +1,9 @@
-![Myokit](http://myokit.org/static/img/logo.png)
-
 [![travis](https://travis-ci.org/MichaelClerx/myokit.svg?branch=master)](https://travis-ci.org/MichaelClerx/myokit)
 [![appveyor](https://ci.appveyor.com/api/projects/status/u2e6bc6tklgxyyra?svg=true)](https://ci.appveyor.com/project/MichaelClerx/myokit)
 [![codecov](https://codecov.io/gh/MichaelClerx/myokit/branch/master/graph/badge.svg)](https://codecov.io/gh/MichaelClerx/myokit)
 [![Documentation Status](https://readthedocs.org/projects/myokit/badge/?version=latest)](https://myokit.readthedocs.io/?badge=latest)
+
+![Myokit](http://myokit.org/static/img/logo.png)
 
 [Myokit](http://myokit.org) is an [open-source](https://github.com/MichaelClerx/myokit/blob/master/LICENSE.txt) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
 It's hosted on [GitHub](https://github.com/MichaelClerx/myokit/) and available on [PyPi](https://pypi.org/project/myokit/).
