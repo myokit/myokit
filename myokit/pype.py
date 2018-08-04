@@ -136,6 +136,7 @@ class TemplateEngine(object):
                     msg.append(sep)
                     msg.append(msg[0])
                 self.error = '\n'.join(msg)
+                print(self.error)
                 raise PypeError('Error during template execution step.')
 
         finally:
