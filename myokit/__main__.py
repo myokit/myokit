@@ -10,6 +10,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+from ._command import main
+
 if __name__ == '__main__':
-    from ._command import main
     main()
