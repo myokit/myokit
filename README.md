@@ -3,20 +3,29 @@
 [![codecov](https://codecov.io/gh/MichaelClerx/myokit/branch/master/graph/badge.svg)](https://codecov.io/gh/MichaelClerx/myokit)
 [![Documentation Status](https://readthedocs.org/projects/myokit/badge/?version=latest)](https://myokit.readthedocs.io/?badge=latest)
 
-# Myokit
+![Myokit](http://myokit.org/static/img/logo.png)
 
-Myokit is an [open-source](https://github.com/MichaelClerx/myokit/blob/master/LICENSE.txt) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
+[Myokit](http://myokit.org) is an [open-source](https://github.com/MichaelClerx/myokit/blob/master/LICENSE.txt) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
 It's hosted on [GitHub](https://github.com/MichaelClerx/myokit/) and available on [PyPi](https://pypi.org/project/myokit/).
-
-For details, examples, and installation instructions, see [myokit.org](http://myokit.org)
-
 For the latest documentation, see [myokit.readthedocs.io](https://myokit.readthedocs.io/)
 
-## Installation
+More information, including examples and an installation guide, is available on [myokit.org](http://myokit.org).
 
-To install Myokit, follow the [guidelines on the download pages](http://myokit.org/download) to make sure you have [CVODE](https://computation.llnl.gov/projects/sundials/sundials-software) installed, and a suitable compiler.
 
-Then, use `pip install myokit`.
+## Install
+
+To install Myokit, run
+
+    pip install myokit
+
+On linux and windows, start menu icons can then be added by running
+
+    python -m myokit icons
+
+To run single-cell simulations, [CVODE](https://computation.llnl.gov/projects/sundials/sundials-software) must be installed (windows binaries are included in the pip install).
+In addition, Myokit needs a working C/C++ compiler to be present on the system.
+
+For full details, see [http://myokit.org/install](http://myokit.org/install).
 
 ## Quick-start guide
 
@@ -36,10 +45,3 @@ To see what else Myokit can do, type
 
     myokit -h
 
-
-## Adding icons etc.
-If you're a Gnome or KDE user, you may wish to install a Myokit icon to your menu, add the mime-type information for Myokit `.mmt` files or add syntax highlighting for gtksourceview (Gedit). Scripts to do this are located in
-    
-    ./install/gnome-kde
-
-Options for windows users are coming soon!

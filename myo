@@ -2,5 +2,5 @@
 #
 # Runs Myokit.
 #
-from myokit._command import main
+from myokit.__main__ import main
 main()

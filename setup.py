@@ -54,7 +54,7 @@ setup(
 
     # Register myokit as a shell script
     entry_points={
-        'console_scripts': ['myokit = myokit._command:main']
+        'console_scripts': ['myokit = myokit.__main__:main']
     },
 
     # List of dependencies
@@ -63,7 +63,7 @@ setup(
         'scipy',
         'matplotlib>=1.5',
         'configparser',
-        'future'
+        'setuptools',
         # PyQT or PySide?
         # (PySide is pip installable, Travis can get PyQt from apt)
     ],

@@ -5,6 +5,6 @@ Encoding=UTF-8
 Name=DataBlock Viewer
 Name[en_US]=DataBlock Viewer
 Comment=Viewer for Myokit DataBlock files
-Exec=$(myokit)/myo block %f
-Icon=$(myokit)/myokit/_bin/gui/icon-datablock-viewer.png
+Exec=python -m myokit block %f
+Icon=<?=icons?>/icon-datablock-viewer.png
 #MimeType=
