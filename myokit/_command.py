@@ -42,6 +42,7 @@ def main():
     add_eval_parser(subparsers)             # Evaluate an expression
     add_export_parser(subparsers)           # Export an mmt file
     add_gde_parser(subparsers)              # Launch the graph data extractor
+    add_icon_parser(subparsers)             # Install icons
     add_ide_parser(subparsers)              # Launch the IDE
     add_import_parser(subparsers)           # Import a file to mmt
     add_log_parser(subparsers)              # Launch the DataLog viewer
@@ -346,6 +347,183 @@ def add_gde_parser(subparsers):
         help='The gde file to open (optional).',
     )
     gde_parser.set_defaults(func=gde)
+
+
+def install():
+    """
+    Installs icons.
+    """
+    import platform
+
+    plat = platform.system()
+    if plat == 'Linux':
+        yesno = \
+            'Install launcher icons and file type associations for Gnome/KDE? '
+        try:
+            yesno = raw_input(yesno)
+        except NameError:   # pragma: no python 2 cover
+            yesno = input(yesno)
+        yesno = (yesno.strip().lower())[:1] == 'y'
+
+        if yesno:
+            install_gnome_kde()
+
+    elif plat == 'Windows':
+        yesno = 'Install start menu shortcuts? '
+        try:
+            yesno = raw_input(yesno)
+        except NameError:   # pragma: no python 2 cover
+            yesno = input(yesno)
+        yesno = (yesno.strip().lower())[:1] == 'y'
+
+        if yesno:
+            install_windows()
+
+    elif plat == 'Darwin':
+        print(
+            'Icons for OS/X are not available (yet). See '
+            'https://github.com/MichaelClerx/myokit/issues/38')
+
+    else:
+        print('Unknown platform: ' + plat)
+        print('Icons not available.')
+
+
+def install_gnome_kde():
+    """
+    Installs launchers and associates file types for gnome/kde systems.
+    """
+    import os
+    import sys
+    import shutil
+    import myokit
+
+    # Get user home dir
+    home = os.path.expanduser('~')
+
+    # Get template directory
+    dir_templates = os.path.join(myokit.DIR_DATA, 'install-lin')
+
+    # Get icon directory
+    dir_icons = os.path.join(myokit.DIR_DATA, 'gui')
+
+    # Copies file and creates directory structure
+    def place_file(path, name, template=False):
+        print('Placing ' + str(name) + ' in ' + str(path))
+
+        orig = os.path.join(dir_templates, name)
+        dest = os.path.join(path, name)
+        if not os.path.exists(orig):
+            print('Error: file not found ' + orig)
+            sys.exit(1)
+        if os.path.exists(path):
+            if not os.path.isdir(path):
+                print(
+                    'Error: Cannot create output directory. A file exists at '
+                    + path)
+                sys.exit(1)
+        else:
+            print('  Creating directory structure: ' + path)
+            os.makedirs(path)
+
+        if template:
+            # Process templates, create files
+            p = myokit.pype.TemplateEngine()
+            varmap = {'icons': dir_icons}
+            with open(dest, 'w') as f:
+                p.set_output_stream(f)
+                p.process(orig, varmap)
+        else:
+            shutil.copyfile(orig, dest)
+
+    # Desktop files
+    print('Installing desktop files...')
+    path = os.path.join(home, '.local', 'share', 'applications')
+    place_file(path, 'myokit-ide.desktop', True)
+    place_file(path, 'myokit-datalog-viewer.desktop', True)
+    place_file(path, 'myokit-datablock-viewer.desktop', True)
+    place_file(path, 'myokit-gde.desktop', True)
+
+    # Mime-type file
+    print('Installing mmt mime-type...')
+    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
+    name = 'x-myokit.xml'
+    place_file(path, name)
+    print('Installing gde mime-type...')
+    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
+    name = 'x-gde.xml'
+    place_file(path, name)
+    print('Installing abf mime-type...')
+    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
+    name = 'x-abf.xml'
+    place_file(path, name)
+    print('Installing wcp mime-type...')
+    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
+    name = 'x-wcp.xml'
+    place_file(path, name)
+    # Reload mime database
+    print('Reloading mime database')
+    path = home + '/.local/share/mime/'
+    from subprocess import call
+    call(['update-mime-database', path])
+
+    # GtkSourceView file
+    print('Installing gtksourceview file for mmt syntax highlighting...')
+    path = os.path.join(
+        home, '.local', 'share', 'gtksourceview-3.0', 'language-specs')
+    name = 'myokit.lang'
+    place_file(path, name)
+
+    print('Done')
+
+
+def install_windows():
+    """
+    Install start-menu icons on windows systems.
+    """
+    import platform
+    if platform.system() != 'Windows':
+        raise Exception('Not a windows machine.')
+
+    import os
+    #import shutil
+    import tempfile
+
+    import myokit
+    import myokit.pype
+    import menuinst
+
+    # Process template to get icon directory
+    tdir = tempfile.mkdtemp()
+    try:
+        p = myokit.pype.TemplateEngine()
+        source = os.path.join(myokit.DIR_DATA, 'install-win', 'menu.json')
+        varmap = {'icons': os.path.join(myokit.DIR_DATA, 'gui')}
+        output = os.path.join(tdir, 'menu.json')
+        with open(output, 'w') as f:
+            p.set_output_stream(f)
+            p.process(source, varmap)
+        del(p)
+
+        # Install
+        menuinst.install(output)
+        print('Done')
+
+    finally:
+        #shutil.rmtree(tdir)
+        pass
+
+
+def add_icon_parser(subparsers):
+    """
+    Adds a subcommand parser for the `gde` command.
+    """
+    icon_parser = subparsers.add_parser(
+        'icons',
+        description='Installs launchers / start menu shortcuts for Myokit.',
+        help='Installs launchers / start menu shortcuts for Myokit.',
+    )
+    icon_parser.set_defaults(func=install)
 
 
 def ide(filename, pyqt4=False, pyqt5=False, pyside=False):
