@@ -5,7 +5,6 @@ omit =
     myokit/_sim/opencl.py
     myokit/_sim/openclsim.py
     myokit/_sim/fiber_tissue.py
-    myokit/_command.py
     myokit/__main__.py
     myokit/lib/common.py
     myokit/lib/fit.py
