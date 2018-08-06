@@ -99,7 +99,7 @@ def _create(path):
 
     if system == 'Windows':     # pragma: no linux cover
         # Windows: Don't set (see load())
-        config.set('sundials', 'inc', ';'.join([
+        config.set('sundials', '#inc', ';'.join([
             'C:\\Program Files\\sundials\\include',
             'C:\\Program Files (x86)\\sundials\\include',
         ]))
