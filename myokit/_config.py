@@ -80,13 +80,10 @@ def _create(path):
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
-        # Windows
-        sundials_win = os.path.abspath(
-            os.path.join(myokit.DIR_WIN, 'sundials-vs'))
-        config.set('sundials', 'lib', ';'.join([
-            os.path.join(sundials_win, 'lib'),
-            #'C:\\Program Files\\sundials\\lib',
-            #'C:\\Program Files (x86)\\sundials\\lib',
+        # Windows: Don't set (see load())
+        config.set('sundials', '#lib', ';'.join([
+            'C:\\Program Files\\sundials\\lib',
+            'C:\\Program Files (x86)\\sundials\\lib',
         ]))
     else:
         # Linux and OS/X
@@ -101,11 +98,10 @@ def _create(path):
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
-        # Windows
+        # Windows: Don't set (see load())
         config.set('sundials', 'inc', ';'.join([
-            os.path.join(sundials_win, 'include'),
-            #'C:\\Program Files\\sundials\\include',
-            #'C:\\Program Files (x86)\\sundials\\include',
+            'C:\\Program Files\\sundials\\include',
+            'C:\\Program Files (x86)\\sundials\\include',
         ]))
     else:
         # Linux and OS/X
@@ -235,7 +231,7 @@ def _load():
         #else:
         # If empty or invalid, don't adjust the settings!
 
-    # Sundial libraries, header files, and version
+    # Sundials libraries, header files, and version
     if config.has_option('sundials', 'lib'):
         for x in config.get('sundials', 'lib').split(';'):
             myokit.SUNDIALS_LIB.append(x.strip())
@@ -244,6 +240,20 @@ def _load():
             myokit.SUNDIALS_INC.append(x.strip())
     if config.has_option('sundials', 'version'):
         myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
+
+    # On windows, sundials binaries are packaged with Myokit
+    # Instead of storing this location in the config file (which could cause
+    # issues if a user reinstall anaconda to a different location, or used
+    # multiple conda installs), set it dynamically.
+    # This is only done _if_ the user doesn't set an explicit path (i.e. allow
+    # override).
+    if platform.system() == 'Windows':
+        sundials_win = os.path.abspath(
+            os.path.join(myokit.DIR_WIN, 'sundials-vs'))
+        if len(myokit.SUNDIALS_LIB) == 0:
+            myokit.SUNDIALS_LIB.append(os.path.join(sundials_win, 'lib'))
+        if len(myokit.SUNDIALS_INC) == 0:
+            myokit.SUNDIALS_INC.append(os.path.join(sundials_win, 'include'))
 
     # OpenCL libraries and header files
     if config.has_option('opencl', 'lib'):
