@@ -78,7 +78,6 @@ setup(
         ],
         'optional': [
             'cma',                      # Used in lib.fit
-            'matplotlib>=1.5',          # Used in lib.deps, lib.plots
             'sympy',                    # Used in formats.sympy
         ],
         'gui': [
