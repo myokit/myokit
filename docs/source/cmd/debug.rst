@@ -6,7 +6,7 @@ Displays the calculation of a single variable from a model.
 
 Example::
 
-    $ python myo debug example.mmt v
+    $ myokit debug example.mmt v
     Variable not found, assuming "membrane.V"
     Showing membrane.V  (State variable)
     ------------------------------------------------------------
@@ -26,7 +26,7 @@ Example::
     dot(membrane.V) = membrane.i_stim - (ina.INa + ik.IK + ib.Ib + ikp.IKp
                         + ik1.IK1 + ica.ICa)
                     = -5.68008003799787276e-02
-                    
+
 For the full syntax, see::
 
-    $ python myo debug --help
+    $ myokit debug --help

@@ -1210,9 +1210,9 @@ def add_video_parser(subparsers):
                     ' extension of the output file.',
         help='Creates video files from DataBlocks.',
         usage='\nCreate video files:'
-              '\n  myo video datablock.zip membrane.V -dst movie.mp4'
+              '\n  myokit video datablock.zip membrane.V -dst movie.mp4'
               '\nMore options:'
-              '\n  myo -h',
+              '\n  myokit -h',
     )
     video_parser.add_argument(
         'src',

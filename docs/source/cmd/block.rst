@@ -6,12 +6,12 @@ Launches the :ref:`DataBlock Viewer <gui/datablock_viewer>`.
 
 Example::
 
-    $ python myo block
-    
+    $ myokit block
+
 Viewing a file::
 
-    $ python myo block results.zip
-    
+    $ myokit block results.zip
+
 For the full syntax, see::
 
-    $ python myo block --help
+    $ myokit block --help
