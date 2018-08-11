@@ -60,6 +60,7 @@ before_install:
     fi
   # OS/X
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew cask uninstall oclint;
       brew install sundials;
     fi
 
