@@ -409,7 +409,7 @@ from ._datablock import (   # noqa
 from ._sim import ( # noqa
     CModule, CppModule,
 )
-from ._sim.cvode import Simulation          # noqa
+from ._sim.cvodesim import Simulation       # noqa
 from ._sim.cable import Simulation1d        # noqa
 from ._sim.rhs import RhsBenchmarker        # noqa
 from ._sim.icsim import ICSimulation        # noqa
