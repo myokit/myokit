@@ -20,10 +20,10 @@ VERSION_INT = 1, 27, 3
 
 # String version of the version number
 VERSION = '.'.join([str(x) for x in VERSION_INT])
-if not RELEASE:
+if not RELEASE:  # pragma: no cover
     VERSION_INT += ('dev', )
     VERSION += '.dev'
 
 # Don't expose x on Python2
-if not sys.hexversion > 0x03000000:  # pragma: no python 3 cover
+if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
     del(x)
