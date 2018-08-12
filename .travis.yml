@@ -31,7 +31,6 @@ matrix:
             - MYOKIT_UNIT=true
         # Unit tests on OS/X
         - os: osx
-          language: generic
           env:
             - MYOKIT_UNIT=true
         # Cover checking
