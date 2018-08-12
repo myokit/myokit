@@ -26,5 +26,5 @@ The standard exporting API is provided:
 .. autoclass:: PythonExpressionWriter
     :inherited-members:
 
-.. autoclass:: NumpyExpressionWriter
+.. autoclass:: NumPyExpressionWriter
     :inherited-members:

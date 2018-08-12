@@ -17,7 +17,7 @@ import myokit
 # Qt imports
 from myokit.gui import QtGui, QtWidgets
 
-# Numpy
+# NumPy
 import numpy as np
 
 # GUI components

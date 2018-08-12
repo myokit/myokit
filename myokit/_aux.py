@@ -814,8 +814,8 @@ def numpy_writer():
     """
     global _numpywriter_
     if _numpywriter_ is None:
-        from .formats.python import NumpyExpressionWriter
-        _numpywriter_ = NumpyExpressionWriter()
+        from .formats.python import NumPyExpressionWriter
+        _numpywriter_ = NumPyExpressionWriter()
 
         def name(x):
             u = x.var()
