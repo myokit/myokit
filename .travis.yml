@@ -9,60 +9,67 @@ dist: trusty
 
 language: python
 
-env:
-  - MYOKIT_UNIT=true
-    MYOKIT_COVER=false
-    MYOKIT_STYLE=false
-    MYOKIT_DOC=false
-
-
 matrix:
     # Always put true env variable first, for nicer overview on travis website
     include:
-        # Unit tests
-        - python: "2.7"
+        # Unit tests (Ubuntu)
+        - os: linux
+          python: "2.7"
           env:
             - MYOKIT_UNIT=true
-        - python: "3.4"
+        - os: linux
+          python: "3.4"
           env:
             - MYOKIT_UNIT=true
-        - python: "3.5"
+        - os: linux
+          python: "3.5"
           env:
             - MYOKIT_UNIT=true
-        - python: "3.6"
+        - os: linux
+          python: "3.6"
+          env:
+            - MYOKIT_UNIT=true
+        # Unit tests on OS/X
+        - os: osx
+          language: generic
           env:
             - MYOKIT_UNIT=true
         # Cover checking
-        - python: "3.6"
+        - os: linux
+          python: "3.6"
           env:
             - MYOKIT_COVER=true
         # Style checking
-        - python: "3.6"
+        - os: linux
+          python: "3.6"
           env:
             - MYOKIT_STYLE=true
         # Doctests
-        - python: "3.6"
+        - os: linux
+          python: "3.6"
           env:
             - MYOKIT_DOC=true
 
-# Install C dependencies
+# Install CVODE dependencies
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y libsundials-serial-dev
-  # Note: Python packages loaded here are not pulled into the virtualenv,
-  # so won't be importable.
+  # Ubuntu
+  # Python packages can be installed here but won't work (tests run in virtualenv)
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      sudo apt-get -qq update;
+      sudo apt-get install -y libsundials-serial-dev;
+    fi
+  # OS/X
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew cask uninstall oclint;
+      brew install sundials;
+    fi
 
-# Install Python dependencies
+# Install Myokit and extra testing dependencies
 install:
-  # Install Myokit with extra dependencies
   - pip install -e .[dev,optional]
-  # Install cover checking libraries
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
-  # Install style checking code
   - if [[ $MYOKIT_STYLE == true ]]; then pip install flake8; fi;
-  # Install doc building code
   - if [[ $MYOKIT_DOC == true ]]; then pip install sphinx; fi;
-  # Install GUI libraries
   - if [[ $MYOKIT_DOC == true ]]; then pip3 install pyqt5; fi;
 
 # Show Python version

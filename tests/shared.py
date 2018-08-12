@@ -54,7 +54,7 @@ class TemporaryDirectory(object):
         self._dir = None
 
     def __enter__(self):
-        self._dir = tempfile.mkdtemp()
+        self._dir = os.path.realpath(tempfile.mkdtemp())
         return self
 
     def path(self, path=None):
@@ -83,7 +83,7 @@ class TemporaryDirectory(object):
         if path[0:len(self._dir)] != self._dir:
             raise ValueError(
                 'Relative path specified to location outside of temporary'
-                ' directory.')
+                ' directory: ' + path)
 
         return path
 

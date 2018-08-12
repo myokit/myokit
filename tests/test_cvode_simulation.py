@@ -305,7 +305,7 @@ class SimulationTest(unittest.TestCase):
         self.assertRaises(myokit.SimulationError, self.sim.run, 10)
         self.sim.set_protocol(self.protocol)
 
-    @unittest.skipIf(platform.system() == 'Windows', 'Cvode error tests')
+    @unittest.skipIf(platform.system() != 'Linux', 'Cvode error tests')
     def test_simulation_error_2(self):
         """
         Tests for simulation error detection: failure occurred too often.

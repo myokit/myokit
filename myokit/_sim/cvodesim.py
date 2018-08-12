@@ -14,7 +14,7 @@ import myokit
 import platform
 
 # Location of C template
-SOURCE_FILE = 'cvode.c'
+SOURCE_FILE = 'cvodesim.c'
 
 
 class Simulation(myokit.CModule):
