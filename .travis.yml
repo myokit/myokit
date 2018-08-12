@@ -12,7 +12,7 @@ language: python
 matrix:
     # Always put true env variable first, for nicer overview on travis website
     include:
-         Unit tests (Ubuntu)
+        # Unit tests (Ubuntu)
         - os: linux
           python: "2.7"
           env:
