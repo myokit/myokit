@@ -251,9 +251,9 @@ elif platform == 'Darwin':  # pragma: no linux cover
 # Stand alone applications
 class MyokitApplication(QtWidgets.QMainWindow):
     """
-    *Extends*: ``QtWidgets.QMainWindow``.
-
     Base class for Myokit applications.
+
+    *Extends*: ``QtWidgets.QMainWindow``.
     """
 
 

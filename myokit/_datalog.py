@@ -1139,7 +1139,7 @@ class DataLog(OrderedDict):
             # Select sections of log and append
             for k, v in self.items():
                 d = self[k][imin:imax]
-                # Numpy? Then copy data
+                # NumPy? Then copy data
                 if isinstance(d, np.ndarray):
                     d = np.array(d, copy=True, dtype=float)
                 log[k] = d
@@ -1158,7 +1158,7 @@ class DataLog(OrderedDict):
         # Select sections of log and append
         for k, v in self.items():
             d = self[k][imin:imax]
-            # Numpy? Then copy data
+            # NumPy? Then copy data
             if isinstance(d, np.ndarray):
                 d = np.array(d, copy=True, dtype=float)
             log[k] = d

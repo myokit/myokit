@@ -31,7 +31,7 @@ import matplotlib
 import matplotlib.figure
 from myokit.gui import matplotlib_backend as backend
 
-# Numpy
+# NumPy
 import numpy as np
 
 # ConfigParser in Python 2 and 3

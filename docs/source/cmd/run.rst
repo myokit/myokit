@@ -7,8 +7,8 @@ a default script is run using the file's model and/or protocol.
 
 Typical use::
 
-    $ python myo run lr1991.mmt
-    
+    $ myokit run lr1991.mmt
+
 For the full syntax, see::
 
-    $ python myo run --help
+    $ myokit run --help

@@ -752,8 +752,6 @@ class _ParameterTransformWrapper(object):
 
 class ParallelEvaluator(Evaluator):
     """
-    *Extends:* :class:`Evaluator`
-
     Evaluates a single-valued function object for any set of input values
     given, using all available cores.
 
@@ -803,6 +801,8 @@ multiprocessing.html#all-platforms>`_ for details).
     Note that while this class uses multiprocessing, it is not thread/process
     safe itself: It should not be used by more than a single thread/process at
     a time.
+
+    *Extends:* :class:`Evaluator`
     """
     def __init__(
             self, function, nworkers=None, max_tasks_per_worker=500,
@@ -1414,8 +1414,6 @@ def pso(
 
 class SequentialEvaluator(Evaluator):
     """
-    *Extends:* :class:`Evaluator`
-
     Evaluates a function (or callable object) for a list of input values.
 
     Runs sequentially, but shares an interface with the
@@ -1430,6 +1428,8 @@ class SequentialEvaluator(Evaluator):
         specified, ``f`` will be called as ``f(x, *args)``.
 
     Returns a list containing the calculated function evaluations.
+
+    *Extends:* :class:`Evaluator`
     """
     def __init__(self, function, args=None):
         super(SequentialEvaluator, self).__init__(function, args)
@@ -1982,8 +1982,6 @@ def voronoi_regions(x, y, f, xlim, ylim):
 #
 class _Worker(multiprocessing.Process):
     """
-    *Extends:* ``multiprocessing.Process``
-
     Worker class for use with :class:`ParallelEvaluator`.
 
     Evaluates a single-valued function for every point in a ``tasks`` queue
@@ -2015,6 +2013,7 @@ class _Worker(multiprocessing.Process):
         This flag will be set by the worker whenever it encounters an
         error.
 
+    *Extends:* ``multiprocessing.Process``
     """
 
     def __init__(

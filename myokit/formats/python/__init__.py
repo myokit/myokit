@@ -10,7 +10,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 from ._exporter import PythonExporter
-from ._ewriter import PythonExpressionWriter, NumpyExpressionWriter
+from ._ewriter import PythonExpressionWriter, NumPyExpressionWriter
 
 # Importers
 # Exporters
@@ -30,7 +30,7 @@ def exporters():
 # Expression writers
 _ewriters = {
     'python': PythonExpressionWriter,
-    'numpy': NumpyExpressionWriter,
+    'numpy': NumPyExpressionWriter,
 }
 
 

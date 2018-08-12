@@ -41,8 +41,6 @@ LITERAL = 0
 
 class Expression(object):
     """
-    *Abstract class*
-
     Myokit's most generic interface for expressions. All expressions extend
     this class.
 
@@ -52,6 +50,8 @@ class Expression(object):
     binding power* (myokit uses a top-down operator precedence parsing scheme)
     and an optional ``_token`` property that may contain the text token this
     expression object was originally parsed from.
+
+    *Abstract class*
     """
     _rbp = None     # Right-binding power (see parser).
     _rep = ''       # Mmt representation
@@ -536,8 +536,6 @@ class Expression(object):
 
 class Number(Expression):
     """
-    *Extends:* :class:`Expression`
-
     Represents a number with an optional unit for use in Myokit expressions.
     All numbers used in Myokit expressions are floating point.
 
@@ -559,6 +557,7 @@ class Number(Expression):
         A unit to associate with this number. If no unit is specified the
         number's unit will be left undefined.
 
+    *Extends:* :class:`Expression`
     """
     _rbp = LITERAL
 
@@ -656,14 +655,14 @@ class Number(Expression):
 
 class LhsExpression(Expression):
     """
-    *Abstract class, extends:* :class:`Expression`
-
     An expression referring to the left-hand side of an equation.
 
     Running :func:`eval() <Expression.eval>` on an `LhsExpression` returns the
     evaluation of the associated right-hand side. This may result in errors if
     no right-hand side is defined. In other words, this will only work if the
     expression is embedded in a variable's defining equation.
+
+    *Abstract class, extends:* :class:`Expression`
     """
     def _eval(self, subst, precision):
         if subst and self in subst:
@@ -700,9 +699,9 @@ class LhsExpression(Expression):
 
 class Name(LhsExpression):
     """
-    *Extends:* :class:`LhsExpression`
-
     Represents a reference to a variable.
+
+    *Extends:* :class:`LhsExpression`
     """
     _rbp = LITERAL
     __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
@@ -818,9 +817,9 @@ class Name(LhsExpression):
 
 class Derivative(LhsExpression):
     """
-    *Extends:* :class:`LhsExpression`
-
     Represents a reference to the time-derivative of a variable.
+
+    *Extends:* :class:`LhsExpression`
     """
     _rbp = FUNCTION_CALL
     _nargs = [1]    # Allows parsing as a function
@@ -905,9 +904,9 @@ class Derivative(LhsExpression):
 
 class PrefixExpression(Expression):
     """
-    *Abstract class, extends:* :class:`Expression`
-
     Base class for prefix expressions: expressions with a single operand.
+
+    *Abstract class, extends:* :class:`Expression`
     """
     _rbp = PREFIX
     _rep = None
@@ -945,14 +944,14 @@ class PrefixExpression(Expression):
 
 class PrefixPlus(PrefixExpression):
     """
-    *Extends:* :class:`PrefixExpression`
-
     Prefixed plus. Indicates a positive number ``+op``.
 
     >>> from myokit import *
     >>> x = PrefixPlus(Number(10))
     >>> print(x.eval())
     10.0
+
+    *Extends:* :class:`PrefixExpression`
     """
     _rep = '+'
 
@@ -968,14 +967,14 @@ class PrefixPlus(PrefixExpression):
 
 class PrefixMinus(PrefixExpression):
     """
-    *Extends:* :class:`PrefixExpression`
-
     Prefixed minus. Indicates a negative number ``-op``.
 
     >>> from myokit import *
     >>> x = PrefixMinus(Number(10))
     >>> print(x.eval())
     -10.0
+
+    *Extends:* :class:`PrefixExpression`
     """
     _rep = '-'
 
@@ -992,12 +991,12 @@ class PrefixMinus(PrefixExpression):
 
 class InfixExpression(Expression):
     """
-    *Abstract class, extends:* :class:`Expression`
-
     Base class for for infix expressions: ``<left> operator <right>``.
 
     The order of the operands may matter, so that ``<left> operator <right>``
     is not always equal to ``<right> operator <left>``.
+
+    *Abstract class, extends:* :class:`Expression`
     """
     _rep = None      # Operator representation (+, *, et)
 
@@ -1054,14 +1053,14 @@ class InfixExpression(Expression):
 
 class Plus(InfixExpression):
     """
-    *Extends:* :class:`InfixExpression`
-
     Represents the addition of two operands: ``left + right``.
 
     >>> from myokit import *
     >>> x = parse_expression('5 + 2')
     >>> print(x.eval())
     7.0
+
+    *Extends:* :class:`InfixExpression`
     """
     _rbp = SUM
     _rep = '+'
@@ -1093,14 +1092,14 @@ class Plus(InfixExpression):
 
 class Minus(InfixExpression):
     """
-    *Extends:* :class:`InfixExpression`
-
     Represents subtraction: ``left - right``.
 
     >>> from myokit import *
     >>> x = parse_expression('5 - 2')
     >>> print(x.eval())
     3.0
+
+    *Extends:* :class:`InfixExpression`
     """
     _rbp = SUM
     _rep = '-'
@@ -1132,14 +1131,14 @@ class Minus(InfixExpression):
 
 class Multiply(InfixExpression):
     """
-    *Extends:* :class:`InfixExpression`
-
     Represents multiplication: ``left * right``.
 
     >>> from myokit import *
     >>> x = parse_expression('5 * 2')
     >>> print(x.eval())
     10.0
+
+    *Extends:* :class:`InfixExpression`
     """
     _rbp = PRODUCT
     _rep = '*'
@@ -1166,14 +1165,14 @@ class Multiply(InfixExpression):
 
 class Divide(InfixExpression):
     """
-    *Extends:* :class:`InfixExpression`
-
     Represents division: ``left / right``.
 
     >>> from myokit import *
     >>> x = parse_expression('5 / 2')
     >>> print(x.eval())
     2.5
+
+    *Extends:* :class:`InfixExpression`
     """
     _rbp = PRODUCT
     _rep = '/'
@@ -1201,8 +1200,6 @@ class Divide(InfixExpression):
 
 class Quotient(InfixExpression):
     """
-    *Extends:* :class:`InfixExpression`
-
     Represents the quotient (integer division) of a division ``left // right``.
 
     >>> import myokit
@@ -1224,6 +1221,8 @@ class Quotient(InfixExpression):
 
     See: https://python-history.blogspot.co.uk/2010/08/
     And: https://en.wikipedia.org/wiki/Modulo_operation
+
+    *Extends:* :class:`InfixExpression`
     """
     _rbp = PRODUCT
     _rep = '//'
@@ -1250,8 +1249,6 @@ class Quotient(InfixExpression):
 
 class Remainder(InfixExpression):
     """
-    *Extends:* :class:`InfixExpression`
-
     Represents the remainder of a division (the "modulo"), expressed in ``mmt``
     syntax as ``left % right``.
 
@@ -1281,6 +1278,7 @@ class Remainder(InfixExpression):
     >>> print(myokit.parse_expression('5 % -3').eval())
     -1.0
 
+    *Extends:* :class:`InfixExpression`
     """
     _rbp = PRODUCT
     _rep = '%'
@@ -1302,14 +1300,14 @@ class Remainder(InfixExpression):
 
 class Power(InfixExpression):
     """
-    *Extends:* :class:`InfixExpression`
-
     Represents exponentiation: ``left ^ right``.
 
     >>> import myokit
     >>> x = myokit.parse_expression('5 ^ 2')
     >>> print(x.eval())
     25.0
+
+    *Extends:* :class:`InfixExpression`
     """
     _rbp = POWER
     _rep = '^'
@@ -1338,8 +1336,6 @@ class Power(InfixExpression):
 
 class Function(Expression):
     """
-    *Abstract class, extends:* :class:`Expression`
-
     Base class for built-in functions.
 
     Functions have a ``name``, which must be set to a human readable function
@@ -1350,6 +1346,8 @@ class Function(Expression):
     ``Log`` can be called with either ``1`` or ``2`` arguments.
 
     If errors occur when creating a function, an IntegrityError may be thrown.
+
+    *Abstract class, extends:* :class:`Expression`
     """
     _nargs = [1]
     _fname = None
@@ -1404,9 +1402,9 @@ class Function(Expression):
 
 class UnaryDimensionlessFunction(Function):
     """
-    *Abstract class, extends:* :class:`Function`
-
     Function with a single operand that has dimensionless input and output.
+
+    *Abstract class, extends:* :class:`Function`
     """
     def _eval_unit(self, mode):
         unit = self._operands[0]._eval_unit(mode)
@@ -1442,14 +1440,14 @@ class UnsupportedFunction(Function):
 
 class Sqrt(Function):
     """
-    *Extends:* :class:`Function`
-
     Represents the square root ``sqrt(x)``.
 
     >>> import myokit
     >>> x = myokit.parse_expression('sqrt(25)')
     >>> print(x.eval())
     5.0
+
+    *Extends:* :class:`Function`
     """
     _fname = 'sqrt'
 
@@ -1471,8 +1469,6 @@ class Sqrt(Function):
 
 class Sin(UnaryDimensionlessFunction):
     """
-    *Extends:* :class:`UnaryDimensionlessFunction`
-
     Represents the sine function ``sin(x)``.
 
     >>> from myokit import *
@@ -1482,6 +1478,8 @@ class Sin(UnaryDimensionlessFunction):
     >>> x = Sin(Number(3.1415 / 2.0))
     >>> print(round(x.eval(), 1))
     1.0
+
+    *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'sin'
 
@@ -1494,8 +1492,6 @@ class Sin(UnaryDimensionlessFunction):
 
 class Cos(UnaryDimensionlessFunction):
     """
-    *Extends:* :class:`UnaryDimensionlessFunction`
-
     Represents the cosine function ``cos(x)``.
 
     >>> from myokit import *
@@ -1505,6 +1501,8 @@ class Cos(UnaryDimensionlessFunction):
     >>> x = Cos(Number(3.1415 / 2.0))
     >>> print(round(x.eval(), 1))
     0.0
+
+    *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'cos'
 
@@ -1517,14 +1515,14 @@ class Cos(UnaryDimensionlessFunction):
 
 class Tan(UnaryDimensionlessFunction):
     """
-    *Extends:* :class:`UnaryDimensionlessFunction`
-
     Represents the tangent function ``tan(x)``.
 
     >>> from myokit import *
     >>> x = Tan(Number(3.1415 / 4.0))
     >>> print(round(x.eval(), 1))
     1.0
+
+    *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'tan'
 
@@ -1537,14 +1535,14 @@ class Tan(UnaryDimensionlessFunction):
 
 class ASin(UnaryDimensionlessFunction):
     """
-    *Extends:* :class:`UnaryDimensionlessFunction`
-
     Represents the inverse sine function ``asin(x)``.
 
     >>> from myokit import *
     >>> x = ASin(Sin(Number(1)))
     >>> print(round(x.eval(), 1))
     1.0
+
+    *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'asin'
 
@@ -1557,14 +1555,14 @@ class ASin(UnaryDimensionlessFunction):
 
 class ACos(UnaryDimensionlessFunction):
     """
-    *Extends:* :class:`UnaryDimensionlessFunction`
-
     Represents the inverse cosine ``acos(x)``.
 
     >>> from myokit import *
     >>> x = ACos(Cos(Number(3)))
     >>> print(round(x.eval(), 1))
     3.0
+
+    *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'acos'
 
@@ -1577,8 +1575,6 @@ class ACos(UnaryDimensionlessFunction):
 
 class ATan(UnaryDimensionlessFunction):
     """
-    *Extends:* :class:`UnaryDimensionlessFunction`
-
     Represents the inverse tangent function ``atan(x)``.
 
     >>> from myokit import *
@@ -1590,6 +1586,8 @@ class ATan(UnaryDimensionlessFunction):
     point (x, y) and the function returns this point's angle with the
     (positive) x-axis. In this case, the returned value will be in the range
     (-pi, pi].
+
+    *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'atan'
 
@@ -1602,14 +1600,14 @@ class ATan(UnaryDimensionlessFunction):
 
 class Exp(UnaryDimensionlessFunction):
     """
-    *Extends:* :class:`UnaryDimensionlessFunction`
-
     Represents a power of *e*. Written ``exp(x)`` in ``.mmt`` syntax.
 
     >>> from myokit import *
     >>> x = Exp(Number(1))
     >>> print(round(x.eval(), 4))
     2.7183
+
+    *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'exp'
 
@@ -1622,8 +1620,6 @@ class Exp(UnaryDimensionlessFunction):
 
 class Log(Function):
     """
-    *Extends:* :class:`Function`
-
     With one argument ``log(x)`` represents the natural logarithm.
     With two arguments ``log(x, k)`` is taken to be the base ``k`` logarithm of
     ``x``.
@@ -1638,6 +1634,8 @@ class Log(Function):
     >>> x = Log(Number(256), Number(2))
     >>> print(round(x.eval(), 1))
     8.0
+
+    *Extends:* :class:`Function`
     """
     _fname = 'log'
     _nargs = [1, 2]
@@ -1686,14 +1684,14 @@ class Log(Function):
 
 class Log10(UnaryDimensionlessFunction):
     """
-    *Extends:* :class:`UnaryDimensionlessFunction`
-
     Represents the base-10 logarithm ``log10(x)``.
 
     >>> from myokit import *
     >>> x = Log10(Number(100))
     >>> print(round(x.eval(), 1))
     2.0
+
+    *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'log10'
 
@@ -1706,8 +1704,6 @@ class Log10(UnaryDimensionlessFunction):
 
 class Floor(Function):
     """
-    *Extends:* :class:`Function`
-
     Represents a rounding towards minus infinity ``floor(x)``.
 
     >>> from myokit import *
@@ -1717,6 +1713,8 @@ class Floor(Function):
     >>> x = Floor(Number(-5.2))
     >>> print(x.eval())
     -6.0
+
+    *Extends:* :class:`Function`
     """
     _fname = 'floor'
 
@@ -1732,8 +1730,6 @@ class Floor(Function):
 
 class Ceil(Function):
     """
-    *Extends:* :class:`Function`
-
     Represents a rounding towards positve infinity ``ceil(x)``.
 
     >>> from myokit import *
@@ -1743,6 +1739,8 @@ class Ceil(Function):
     >>> x = Ceil(Number(-5.2))
     >>> print(x.eval())
     -5.0
+
+    *Extends:* :class:`Function`
     """
     _fname = 'ceil'
 
@@ -1758,8 +1756,6 @@ class Ceil(Function):
 
 class Abs(Function):
     """
-    *Extends:* :class:`Function`
-
     Returns the absolute value of a number ``abs(x)``.
 
     >>> from myokit import *
@@ -1769,6 +1765,8 @@ class Abs(Function):
     >>> x = parse_expression('abs(-5)')
     >>> print(x.eval())
     5.0
+
+    *Extends:* :class:`Function`
     """
     _fname = 'abs'
 
@@ -1784,8 +1782,6 @@ class Abs(Function):
 
 class If(Function):
     """
-    *Extends:* :class:`Function`
-
     Allows conditional functions to be defined using an if-then-else structure.
 
     The first argument to an ``If`` function must be a condition, followed
@@ -1796,6 +1792,8 @@ class If(Function):
     A simple example in ``.mmt`` syntax::
 
         x = if(V < 10, 5 * V + 100, 6 * V)
+
+    *Extends:* :class:`Function`
     """
     _nargs = [3]
     _fname = 'if'
@@ -1859,8 +1857,6 @@ class If(Function):
 
 class Piecewise(Function):
     """
-    *Extends:* :class:`Function`
-
     Allows piecewise functions to be defined.
 
     The first argument to a ``Piecewise`` function must be a condition,
@@ -1885,6 +1881,8 @@ class Piecewise(Function):
     This will return ``5 * V + 100`` for any value smaller than 10, ``6 * V``
     for any value greater or equal to 10 but smaller than 20, and ``7 * V`` for
     any values greather than or equal to 20.
+
+    *Extends:* :class:`Function`
     """
     _nargs = None
     _fname = 'piecewise'
@@ -1966,16 +1964,14 @@ class Condition(object):
 
 class PrefixCondition(Condition, PrefixExpression):
     """
-    *Abstract class, extends:* :class:`Condition`, :class:`PrefixExpression`
-
     Interface for prefix conditions.
+
+    *Abstract class, extends:* :class:`Condition`, :class:`PrefixExpression`
     """
 
 
 class Not(PrefixCondition):
     """
-    *Extends:* :class:`PrefixCondition`
-
     Negates a condition. Written as ``not x``.
 
     >>> from myokit import *
@@ -1988,6 +1984,8 @@ class Not(PrefixCondition):
     >>> x = parse_expression('(2 == 2) and not (1 > 2)')
     >>> print(x.eval())
     True
+
+    *Extends:* :class:`PrefixCondition`
     """
     _rep = 'not'
 
@@ -2020,18 +2018,18 @@ class Not(PrefixCondition):
 
 class InfixCondition(Condition, InfixExpression):
     """
-    *Abstract class, extends:* :class:`Condition`, :class:`InfixExpression`
-
     Base class for infix expressions.
+
+    *Abstract class, extends:* :class:`Condition`, :class:`InfixExpression`
     """
     _rbp = CONDITIONAL
 
 
 class BinaryComparison(InfixCondition):
     """
-    *Abstract class, extends:* :class:`InfixCondition`
-
     Base class for infix comparisons of two entities.
+
+    *Abstract class, extends:* :class:`InfixCondition`
     """
     def _eval_unit(self, mode):
         unit1 = self._op1._eval_unit(mode)
@@ -2053,8 +2051,6 @@ class BinaryComparison(InfixCondition):
 
 class Equal(BinaryComparison):
     """
-    *Extends:* :class:`InfixCondition`
-
     Represents an equality check ``x == y``.
 
     >>> from myokit import *
@@ -2062,6 +2058,8 @@ class Equal(BinaryComparison):
     False
     >>> print(parse_expression('1 == 1').eval())
     True
+
+    *Extends:* :class:`InfixCondition`
     """
     _rep = '=='
 
@@ -2076,8 +2074,6 @@ class Equal(BinaryComparison):
 
 class NotEqual(BinaryComparison):
     """
-    *Extends:* :class:`InfixCondition`
-
     Represents an inequality check ``x != y``.
 
     >>> from myokit import *
@@ -2085,6 +2081,8 @@ class NotEqual(BinaryComparison):
     True
     >>> print(parse_expression('1 != 1').eval())
     False
+
+    *Extends:* :class:`InfixCondition`
     """
     _rep = '!='
 
@@ -2099,13 +2097,13 @@ class NotEqual(BinaryComparison):
 
 class More(BinaryComparison):
     """
-    *Extends:* :class:`InfixCondition`
-
     Represents an is-more-than check ``x > y``.
 
     >>> from myokit import *
     >>> print(parse_expression('5 > 2').eval())
     True
+
+    *Extends:* :class:`InfixCondition`
     """
     _rep = '>'
 
@@ -2120,13 +2118,13 @@ class More(BinaryComparison):
 
 class Less(BinaryComparison):
     """
-    *Extends:* :class:`InfixCondition`
-
     Represents an is-less-than check ``x < y``.
 
     >>> from myokit import *
     >>> print(parse_expression('5 < 2').eval())
     False
+
+    *Extends:* :class:`InfixCondition`
     """
     _rep = '<'
 
@@ -2141,13 +2139,13 @@ class Less(BinaryComparison):
 
 class MoreEqual(BinaryComparison):
     """
-    *Extends:* :class:`InfixCondition`
-
     Represents an is-more-than-or-equal check ``x > y``.
 
     >>> from myokit import *
     >>> print(parse_expression('2 >= 2').eval())
     True
+
+    *Extends:* :class:`InfixCondition`
     """
     _rep = '>='
 
@@ -2162,13 +2160,13 @@ class MoreEqual(BinaryComparison):
 
 class LessEqual(BinaryComparison):
     """
-    *Extends:* :class:`InfixCondition`
-
     Represents an is-less-than-or-equal check ``x <= y``.
 
     >>> from myokit import *
     >>> print(parse_expression('2 <= 2').eval())
     True
+
+    *Extends:* :class:`InfixCondition`
     """
     _rep = '<='
 
@@ -2183,8 +2181,6 @@ class LessEqual(BinaryComparison):
 
 class And(InfixCondition):
     """
-    *Extends:* :class:`InfixCondition`
-
     True if two conditions are true: ``x and y``.
 
     >>> from myokit import *
@@ -2192,6 +2188,8 @@ class And(InfixCondition):
     False
     >>> print(parse_expression('1 == 1 and 4 == 4').eval())
     True
+
+    *Extends:* :class:`InfixCondition`
     """
     _rbp = CONDITION_AND
     _rep = 'and'
@@ -2224,13 +2222,13 @@ class And(InfixCondition):
 
 class Or(InfixCondition):
     """
-    *Extends:* :class:`InfixCondition`
-
     True if at least one of two conditions is true: ``x or y``.
 
     >>> from myokit import *
     >>> print(parse_expression('1 == 1 or 2 == 4').eval())
     True
+
+    *Extends:* :class:`InfixCondition`
     """
     _rbp = CONDITION_AND
     _rep = 'or'
@@ -2263,8 +2261,6 @@ class Or(InfixCondition):
 
 class EvalError(Exception):
     """
-    *Extends:* ``Exception``
-
     Used internally when an error is encountered during an ``eval()``
     operation. Is replaced by a ``myokit.NumericalError`` which is then sent
     to the caller.
@@ -2277,6 +2273,8 @@ class EvalError(Exception):
         Any substitutions given to the eval function
     ``err``
         The exception that triggered the error or an error message
+
+    *Extends:* ``Exception``
     """
     def __init__(self, expr, subst, err):
         self.expr = expr
@@ -2285,8 +2283,6 @@ class EvalError(Exception):
 
 class EvalUnitError(Exception):
     """
-    *Extends:* ``Exception``
-
     Used internally when an error is encountered during an ``eval_unit()``
     operation. Is replaced by a :class:`myokit.IncompatibleUnitError` which is
     then sent to the caller.
@@ -2295,6 +2291,8 @@ class EvalUnitError(Exception):
         The expression that generated the error
     ``err``
         The exception that triggered the error or an error message
+
+    *Extends:* ``Exception``
     """
     def __init__(self, expr, err):
         self.expr = expr

@@ -181,14 +181,14 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
         return s
 
 
-class NumpyExpressionWriter(PythonExpressionWriter):
+class NumPyExpressionWriter(PythonExpressionWriter):
     """
     This :class:`ExpressionWriter <myokit.formats.ExpressionWriter>` translates
     Myokit :class:`expressions <myokit.Expression>` to Python expressions
     intended for use in NumPy arrays.
     """
     def __init__(self):
-        super(NumpyExpressionWriter, self).__init__()
+        super(NumPyExpressionWriter, self).__init__()
         self._function_prefix = 'numpy.'
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):

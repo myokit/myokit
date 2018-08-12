@@ -15,14 +15,14 @@ Getting started
 
 There are two main ways of running simulations with myokit:
 
-  1. Using the GUI or ``myo run`` script to run the plot script embedded in an
+  1. Using the GUI or ``myokit run`` to run the plot script embedded in an
      ``mmt`` file.
   2. Using an independent python script that loads a model and protocol and
      creates a Simulation.
 
 In the first scenario, you use the magic methods ``get_model()`` and
-``get_protocol()`` to obtain the model and protocol from the GUI or the
-``myo run`` script::
+``get_protocol()`` to obtain the model and protocol from the other sections of
+the ``mmt`` file::
 
     # Get model and protocol using magic methods
     m = get_model()

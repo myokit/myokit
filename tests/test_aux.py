@@ -323,7 +323,7 @@ class AuxTest(unittest.TestCase):
         w = myokit.numpy_writer()
         import myokit.formats
         import myokit.formats.python
-        self.assertIsInstance(w, myokit.formats.python.NumpyExpressionWriter)
+        self.assertIsInstance(w, myokit.formats.python.NumPyExpressionWriter)
 
         # Test custom name method for this writer
         e = myokit.parse_expression('5 + 3 * x')

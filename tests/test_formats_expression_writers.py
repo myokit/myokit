@@ -855,11 +855,11 @@ class MatlabExpressionWriterTest(unittest.TestCase):
             ValueError, 'Unknown expression type', w.ex, 7)
 
 
-class NumpyExpressionWriterTest(unittest.TestCase):
-    """ Tests the Numpy ewriter class. """
+class NumPyExpressionWriterTest(unittest.TestCase):
+    """ Tests the NumPy ewriter class. """
 
     def test_all(self):
-        w = myokit.formats.python.NumpyExpressionWriter()
+        w = myokit.formats.python.NumPyExpressionWriter()
 
         model = myokit.Model()
         component = model.add_component('c')
@@ -991,7 +991,7 @@ class NumpyExpressionWriterTest(unittest.TestCase):
 
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('numpy')
-        self.assertIsInstance(w, myokit.formats.python.NumpyExpressionWriter)
+        self.assertIsInstance(w, myokit.formats.python.NumPyExpressionWriter)
 
         # Test without a Myokit expression
         self.assertRaisesRegex(

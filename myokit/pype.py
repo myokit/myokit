@@ -239,9 +239,9 @@ class TemplateEngine(object):
 
 class PypeError(Exception):
     """
-    *Extends:* Exception
-
     An error thrown by the :class:`TemplateEngine`
+
+    *Extends:* Exception
     """
     def __init__(self, message):
         super(PypeError, self).__init__(message)

@@ -34,9 +34,17 @@ from __future__ import print_function, unicode_literals
 
 
 #
+# Configure logging
+#
+import logging  # noqa  (not at top of file)
+logging.basicConfig()
+del(logging)
+
+
+#
 # Check python version
 #
-import sys
+import sys  # noqa
 if sys.hexversion < 0x02070000:     # pragma: no python 3 cover
     print('-- ERROR --')
     print('Myokit requires Python version 2.7.0 or higher.')
@@ -49,15 +57,6 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
     print('Python 3.0 to 3.3 are not supported.')
     print()
     sys.exit(1)
-elif sys.hexversion >= 0x03040000:
-    # Don't exit, allow testing with Python 3.4+
-    import logging      # noqa
-    logging.basicConfig()
-    log = logging.getLogger(__name__)
-    log.warning('Myokit support for Python3 is still experimental.')
-    del(logging, log)
-
-# Don't expose standard libraries as part of Myokit
 del(sys)
 
 
@@ -83,8 +82,7 @@ def version(raw=False):
 
 
 # Warn about development version
-import logging      # noqa
-logging.basicConfig()
+import logging  # noqa
 log = logging.getLogger(__name__)
 log.info('Loading Myokit version ' + VERSION)
 if not RELEASE:
@@ -92,7 +90,7 @@ if not RELEASE:
         'Using development version of Myokit. This may contain untested'
         ' features and bugs. Please see http://myokit.org for the latest'
         ' stable release.')
-del(logging, log)
+del(log, logging)
 
 
 #
@@ -173,15 +171,23 @@ finally:
 # Binary data files
 DIR_DATA = os.path.join(DIR_MYOKIT, '_bin')
 
-# Windows data files
-DIR_WIN = os.path.join(DIR_MYOKIT, '_win')
-
 # C header files
 DIR_CFUNC = os.path.join(DIR_MYOKIT, '_sim')
 
-# Location of myokit user info
-DIR_USER = os.path.join(os.path.expanduser('~'), '.myokit')
-if os.path.exists(DIR_USER):
+# Location of myokit user config
+DIR_USER = os.path.join(os.path.expanduser('~'), '.config', 'myokit')
+
+# Old user config location: Move if possible
+DIR_USER_OLD = os.path.join(os.path.expanduser('~'), '.myokit')
+
+if os.path.exists(DIR_USER_OLD):    # pragma: no cover
+    if not os.path.exists(DIR_USER):
+        import shutil  # noqa
+        shutil.move(DIR_USER_OLD, DIR_USER)
+        del(shutil)
+
+# Ensure the user config directory exists and is writable
+if os.path.exists(DIR_USER):    # pragma: no cover
     if not os.path.isdir(DIR_USER):
         raise Exception(
             'File or link found in place of user directory: ' + str(DIR_USER))
@@ -259,8 +265,8 @@ SUNDIALS_LIB = []
 # Location of the Sundials (CVODE) header files (.h)
 SUNDIALS_INC = []
 
-# Sundials major version number. Defaults to 26000.
-SUNDIALS_VERSION = 26000
+# Sundials version number. Defaults to 0.
+SUNDIALS_VERSION = 0
 
 # Location of the OpenCL shared library objects (.dll or .so)
 OPENCL_LIB = []
@@ -268,17 +274,13 @@ OPENCL_LIB = []
 # Location of the OpenCL header files (.h)
 OPENCL_INC = []
 
-# Load settings
-from . import _config   # noqa
-del(_config)
-
 
 #
 # Imports
 #
 
 # Exceptions
-from ._err import ( # noqa
+from ._err import (  # noqa
     MyokitError,
     IntegrityError, InvalidBindingError, InvalidLabelError,
     DuplicateName, InvalidNameError, IllegalAliasError,
@@ -323,7 +325,7 @@ from ._model_api import ( # noqa
 )
 
 # Expressions and units
-from ._expressions import ( # noqa
+from ._expressions import (  # noqa
     Expression, LhsExpression, Derivative, Name, Number,
     PrefixExpression, PrefixPlus, PrefixMinus,
     InfixExpression, Plus, Minus, Multiply, Divide,
@@ -337,12 +339,12 @@ from ._expressions import ( # noqa
 )
 
 # Pacing protocol
-from ._protocol import ( # noqa
+from ._protocol import (  # noqa
     Protocol, ProtocolEvent, PacingSystem,
 )
 
 # Parser functions
-from ._parsing import ( # noqa
+from ._parsing import (  # noqa
     KEYWORDS,
     parse, split, format_parse_error,
     parse_model, parse_protocol, parse_state,
@@ -353,7 +355,7 @@ from ._parsing import ( # noqa
 )
 
 # Auxillary functions
-from ._aux import ( # noqa
+from ._aux import (  # noqa
     # Global date and time formats
     date, time,
 
@@ -374,7 +376,7 @@ from ._aux import ( # noqa
     # Sorting
     natural_sort_key,
 
-    # Dyanmic generation of Python/Numpy expressions
+    # Dyanmic generation of Python/NumPy expressions
     python_writer, numpy_writer,
 
     # Model comparison
@@ -406,23 +408,26 @@ from ._datablock import (   # noqa
 
 
 # Simulations
-from ._sim import ( # noqa
+from ._sim import (  # noqa
     CModule, CppModule,
 )
-from ._sim.cvode import Simulation          # noqa
-from ._sim.cable import Simulation1d        # noqa
-from ._sim.rhs import RhsBenchmarker        # noqa
-from ._sim.icsim import ICSimulation        # noqa
-from ._sim.psim import PSimulation          # noqa
-from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
-# from ._sim.openmp import SimulationOpenMP
-from ._sim.opencl import ( # noqa
+from ._sim.sundials import (  # noqa
+    Sundials,
+)
+from ._sim.opencl import (  # noqa
     OpenCL,
     OpenCLInfo,
     OpenCLPlatformInfo,
     OpenCLDeviceInfo,
 )
-from ._sim.openclsim import SimulationOpenCL    # noqa
+from ._sim.cvodesim import Simulation       # noqa
+from ._sim.cable import Simulation1d        # noqa
+from ._sim.rhs import RhsBenchmarker        # noqa
+from ._sim.icsim import ICSimulation        # noqa
+from ._sim.psim import PSimulation          # noqa
+from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
+#from ._sim.openmp import SimulationOpenMP                       # noqa
+from ._sim.openclsim import SimulationOpenCL                    # noqa
 from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
 
 # Import whole modules
@@ -440,6 +445,13 @@ from . import ( # noqa
 # Globally shared progress reporter
 #
 _Simulation_progress = None
+
+
+#
+# Load settings
+#
+from . import _config   # noqa
+del(_config)
 
 
 #

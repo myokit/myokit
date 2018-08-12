@@ -102,7 +102,7 @@ myokit.formats.python
 - :meth:`myokit.formats.python.ewriters`
 - :class:`myokit.formats.python.PythonExporter`
 - :class:`myokit.formats.python.PythonExpressionWriter`
-- :class:`myokit.formats.python.NumpyExpressionWriter`
+- :class:`myokit.formats.python.NumPyExpressionWriter`
 
 myokit.formats.sbml
 -------------------

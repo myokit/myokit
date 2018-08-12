@@ -11,8 +11,8 @@ information about platforms and devices.
 
 Example::
 
-    $ python myo opencl-select
-    
+    $ myokit opencl-select
+
 Example output::
 
     Loading Myokit...
@@ -32,7 +32,7 @@ Example output::
     ----------------------------------------------------------------------
     Please select an OpenCL device by typing 1 or 2
     Leave blank to keep current selection.
-    Select device: 
+    Select device:
 
 If you have multiple OpenCL devices, this will allow a preference to be set.
 If no preferred device of platform is set, Myokit is will pick the first

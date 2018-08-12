@@ -153,6 +153,7 @@ myokit
 - :meth:`myokit.strfloat`
 - :meth:`myokit.strip_expression_units`
 - :class:`myokit.SubCapture`
+- :class:`myokit.Sundials`
 - :class:`myokit.Tan`
 - :meth:`myokit.time`
 - :class:`myokit.Unit`

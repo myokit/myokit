@@ -9,17 +9,17 @@ script can be used to generate movies from
 
 The syntax is
 
-    $ python myo video <inputfile> <variable> -dst <outputfile>
-    
+    $ myokit video <inputfile> <variable> -dst <outputfile>
+
 Here, `<inputfile>` should be the name of a DataBlock1d or 2d file. The
 variable to visualized should be given as `<variable>` and the output file
 should be given as `<outputfile>`. Supported outut formats are `flv`, `gif`,
 `mp4`, `mpeg` and `wmv`.
-    
+
 Example::
 
-    $ python myo video results.zip membrane.V -dst movie.mp4
-    
+    $ myokit video results.zip membrane.V -dst movie.mp4
+
 For the full syntax, use::
 
-    $ python myo video --help
+    $ myokit video --help

@@ -31,8 +31,6 @@ from myokit.gui import matplotlib_backend as backend
 # Classes & methods
 class Explorer(QtWidgets.QDialog):
     """
-    *Extends:* ``QtWidgets.QDialog``
-
     Runs simulations with a model and allows all variables to be graphed.
 
     Arguments:
@@ -45,6 +43,7 @@ class Explorer(QtWidgets.QDialog):
     ``output_stream``
         Something with a write() method.
 
+    *Extends:* ``QtWidgets.QDialog``
     """
     def __init__(self, parent, sim_method, output_stream, duration=1000):
         super(Explorer, self).__init__(parent)
