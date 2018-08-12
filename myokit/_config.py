@@ -26,7 +26,6 @@ try:
 except ImportError:
     from configparser import RawConfigParser as ConfigParser
 
-
 def _create(path):
     """
     Attempts to guess the best settings and stores them in a new configuration
@@ -113,7 +112,6 @@ def _create(path):
         ]))
 
     # Set sundials version, try to auto-detect
-    from ._sim.sundials import Sundials
     sundials = myokit.Sundials.version_int()
     if sundials is None:    # pragma: no cover
         import logging
