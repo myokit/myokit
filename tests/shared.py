@@ -83,7 +83,7 @@ class TemporaryDirectory(object):
         if path[0:len(self._dir)] != self._dir:
             raise ValueError(
                 'Relative path specified to location outside of temporary'
-                ' directory.')
+                ' directory: ' + path)
 
         return path
 
