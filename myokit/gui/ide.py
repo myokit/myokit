@@ -2181,10 +2181,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
 class Console(QtWidgets.QPlainTextEdit):
     """
-    *Extends*: ``QtWidgets.QPlainTextEdit``
-
     Console window used to write plain text output to in the IDE. Shows model
     parsing states and output of running explorations / scripts.
+
+    *Extends*: ``QtWidgets.QPlainTextEdit``
     """
     def __init__(self, parent=None):
         super(Console, self).__init__(parent)

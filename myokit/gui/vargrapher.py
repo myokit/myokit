@@ -34,8 +34,6 @@ from mpl_toolkits.mplot3d import axes3d     # noqa
 # Classes & methods
 class VarGrapher(QtWidgets.QDialog):
     """
-    *Extends:* ``QtWidgets.QDialog``
-
     This widget is used to display graphs of model variables.
 
     Arguments:
@@ -51,7 +49,7 @@ class VarGrapher(QtWidgets.QDialog):
     ``args``
         The arguments to func, i.e. the LhsExpressions that ``var`` depends on.
 
-
+    *Extends:* ``QtWidgets.QDialog``
     """
     def __init__(self, parent, title, var, func, args):
         super(VarGrapher, self).__init__(parent)
