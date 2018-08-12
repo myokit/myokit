@@ -30,10 +30,10 @@ matrix:
           env:
             - MYOKIT_UNIT=true
         # Unit tests on OS/X
-        #- os: osx
-        #  language: generic
-        #  env:
-        #    - MYOKIT_UNIT=true
+        - os: osx
+          language: generic
+          env:
+            - MYOKIT_UNIT=true
         # Cover checking
         - os: linux
           python: "3.6"
