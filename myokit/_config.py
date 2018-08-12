@@ -257,7 +257,7 @@ def _load():
     # multiple conda installs), set it dynamically.
     # This is only done _if_ the user doesn't set an explicit path (i.e. allow
     # override).
-    if platform.system() == 'Windows':
+    if platform.system() == 'Windows':  # pragma: no linux cover
         sundials_win = os.path.abspath(
             os.path.join(myokit.DIR_DATA, 'sundials-win-vs'))
         if len(myokit.SUNDIALS_LIB) == 0:
