@@ -51,7 +51,7 @@ class Sundials(myokit.CModule):
         try:
             Sundials._instance = self._compile(
                 mname, fname, args, libs, libd, incd)
-        except myokit.CompilationError as e:
+        except myokit.CompilationError as e:  # pragma: no cover
             Sundials._instance = False
             Sundials._message = str(e)
 
@@ -66,22 +66,22 @@ class Sundials(myokit.CModule):
             Sundials()
 
         # Instance creation failed, raise exception
-        if Sundials._instance is False:
+        if Sundials._instance is False:  # pragma: no cover
             raise NoSundialsError(
                 'Sundials support not found.\n' + Sundials._message)
         # Return instance
         return Sundials._instance
 
-    @staticmethod
-    def supported():
-        """
-        Returns ``True`` if Sundials support has been detected on this system.
-        """
-        try:
-            Sundials._get_instance()
-            return True
-        except NoSundialsError:
-            return False
+    #@staticmethod
+    #def supported():
+    #    """
+    #    Returns ``True`` if Sundials support has been detected on this system.
+    #    """
+    #    try:
+    #        Sundials._get_instance()
+    #        return True
+    #    except NoSundialsError:
+    #        return False
 
     @staticmethod
     def version():
@@ -91,7 +91,7 @@ class Sundials(myokit.CModule):
         """
         try:
             return Sundials._get_instance().sundials_version()
-        except NoSundialsError:
+        except NoSundialsError:  # pragma: no cover
             return None
 
     @staticmethod
