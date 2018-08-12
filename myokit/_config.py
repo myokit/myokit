@@ -26,7 +26,6 @@ try:
 except ImportError:
     from configparser import RawConfigParser as ConfigParser
 
-
 def _create(path):
     """
     Attempts to guess the best settings and stores them in a new configuration
@@ -112,7 +111,14 @@ def _create(path):
             '/opt/local/include',
         ]))
 
-    config.set('sundials', 'version', myokit.SUNDIALS_VERSION)
+    # Set sundials version, try to auto-detect
+    sundials = myokit.Sundials.version_int()
+    if sundials is None:    # pragma: no cover
+        import logging
+        log = logging.getLogger(__name__)
+        log.warning('Unable to auto-detect Sundials version.')
+    else:
+        config.set('sundials', 'version', sundials)
 
     # Locations of OpenCL libraries
     config.add_section('opencl')
@@ -239,7 +245,10 @@ def _load():
         for x in config.get('sundials', 'inc').split(';'):
             myokit.SUNDIALS_INC.append(x.strip())
     if config.has_option('sundials', 'version'):
-        myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
+        try:
+            myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
+        except ValueError:  # pragma: no cover
+            pass
 
     # On windows, sundials binaries are packaged with Myokit
     # Instead of storing this location in the config file (which could cause
@@ -249,7 +258,7 @@ def _load():
     # override).
     if platform.system() == 'Windows':
         sundials_win = os.path.abspath(
-            os.path.join(myokit.DIR_WIN, 'sundials-vs'))
+            os.path.join(myokit.DIR_DATA, 'sundials-win-vs'))
         if len(myokit.SUNDIALS_LIB) == 0:
             myokit.SUNDIALS_LIB.append(os.path.join(sundials_win, 'lib'))
         if len(myokit.SUNDIALS_INC) == 0:

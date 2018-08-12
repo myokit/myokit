@@ -414,8 +414,8 @@ run::
     plt.show()
 
 The resulting file can now be saved as a plain-text ``.mmt`` file and run
-using the GUI or the ``myo run`` script. This example can be downloaded from
-here: `br-1977.mmt <../_static/guide/br-1977.mmt>`_
+using the GUI or ``myokit run``. This example can be downloaded from here:
+`br-1977.mmt <../_static/guide/br-1977.mmt>`_
 
 .. figure:: /_static/guide/br-1977.png
     :align: center

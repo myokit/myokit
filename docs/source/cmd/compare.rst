@@ -6,8 +6,8 @@ Allows you to compare two Myokit models
 
 Example::
 
-    $ python myo compare model1.mmt model2.mmt
-    
+    $ myokit compare model1.mmt model2.mmt
+
 Example output::
 
     Comparing:
@@ -20,4 +20,4 @@ Example output::
 
 For the full syntax, see::
 
-    $ python myo compare --help
+    $ myokit compare --help

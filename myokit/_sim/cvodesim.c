@@ -1,5 +1,5 @@
 <?
-# simulation.c
+# cvodesim.c
 #
 # A pype template for a single cell CVODE-based simulation.
 #

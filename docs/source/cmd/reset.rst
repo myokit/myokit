@@ -8,9 +8,9 @@ is run.
 
 Typical use::
 
-    $ python myo reset
-    
+    $ myokit reset
+
 This will prompt you to confirm (by typing "yes" or "y") the reset. To bypass
 the reset, use::
 
-    $ python myo reset --force
+    $ myokit reset --force

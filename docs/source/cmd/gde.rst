@@ -6,8 +6,8 @@ Loads the :ref:`Graph Data Extractor <gui/gde>`.
 
 Example::
 
-    $ python myo gde
-    
+    $ myokit gde
+
 For the full syntax, see::
 
-    $ python myo gde --help
+    $ myokit gde --help

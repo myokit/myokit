@@ -4,8 +4,8 @@
 
 Displays the current Myokit version.
 
-    $ python myo version
-    
+    $ myokit version
+
 Example output::
 
      Myokit version 1.21.0         |/\
@@ -13,9 +13,9 @@ Example output::
 
 To leave out the decorations, use::
 
-    $ python myo version --raw
+    $ myokit version --raw
 
 which returns::
 
     1.21.0
-    
+

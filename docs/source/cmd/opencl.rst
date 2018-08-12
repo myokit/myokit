@@ -11,8 +11,8 @@ preferred device.
 
 Example::
 
-    $ python myo opencl
-    
+    $ myokit opencl
+
 Example output::
 
     Platform 0
@@ -39,4 +39,4 @@ Example output::
 
 For the full syntax, see::
 
-    $ python myo opencl --help
+    $ myokit opencl --help

@@ -5,7 +5,7 @@
 Loads a model  and evaluates the derivatives of the state variables at the
 initial time::
 
-    $ python myo step example.mmt
+    $ myokit step example.mmt
     ---------------------------------------------------------------------------
     Single test step
     Reading model from example.mmt...
@@ -27,12 +27,12 @@ initial time::
 The results can be compared to a file containing reference values using
 ::
 
-    $ python myo step example.mmt -ref ref_step.txt
+    $ myokit step example.mmt -ref ref_step.txt
 
 To test with different initial values, another file can be included::
 
-    $ python myo step example.mmt -ref ref_step.txt -ini ref_init.txt
-    
+    $ myokit step example.mmt -ref ref_step.txt -ini ref_init.txt
+
 For the full syntax, see::
 
-    $ python myo step --help
+    $ myokit step --help

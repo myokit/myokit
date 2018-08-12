@@ -7,7 +7,7 @@
 
 [Myokit](http://myokit.org) is an [open-source](https://github.com/MichaelClerx/myokit/blob/master/LICENSE.txt) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
 It's hosted on [GitHub](https://github.com/MichaelClerx/myokit/) and available on [PyPi](https://pypi.org/project/myokit/).
-For the latest documentation, see [myokit.readthedocs.io](https://myokit.readthedocs.io/)
+For the latest documentation, see [myokit.readthedocs.io](https://myokit.readthedocs.io/).
 
 More information, including examples and an installation guide, is available on [myokit.org](http://myokit.org).
 
