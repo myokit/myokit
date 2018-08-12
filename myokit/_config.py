@@ -247,7 +247,7 @@ def _load():
     if config.has_option('sundials', 'version'):
         try:
             myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
-        except ValueError:
+        except ValueError:  # pragma: no cover
             pass
 
     # On windows, sundials binaries are packaged with Myokit
