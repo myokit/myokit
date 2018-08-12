@@ -174,9 +174,20 @@ DIR_DATA = os.path.join(DIR_MYOKIT, '_bin')
 # C header files
 DIR_CFUNC = os.path.join(DIR_MYOKIT, '_sim')
 
-# Location of myokit user info
-DIR_USER = os.path.join(os.path.expanduser('~'), '.myokit')
-if os.path.exists(DIR_USER):
+# Location of myokit user config
+DIR_USER = os.path.join(os.path.expanduser('~'), '.config', 'myokit')
+
+# Old user config location: Move if possible
+DIR_USER_OLD = os.path.join(os.path.expanduser('~'), '.myokit')
+
+if os.path.exists(DIR_USER_OLD):    # pragma: no cover
+    if not os.path.exists(DIR_USER):
+        import shutil  # noqa
+        shutil.move(DIR_USER_OLD, DIR_USER)
+        del(shutil)
+
+# Ensure the user config directory exists and is writable
+if os.path.exists(DIR_USER):    # pragma: no cover
     if not os.path.isdir(DIR_USER):
         raise Exception(
             'File or link found in place of user directory: ' + str(DIR_USER))
