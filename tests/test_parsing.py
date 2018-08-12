@@ -80,6 +80,40 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(next(s)[0], p.META_NAME)
         self.assertRaisesRegex(
             myokit.ParseError, 'after closing of multi-line string', next, s)
+        s = Tokenizer('x: """He\nll\no"""World')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'after closing of multi-line string', next, s)
+
+        # Empty lines
+        s = Tokenizer('\n\n\nx: """Hello\nWorld"""\n\n\n')
+        next(s)
+        next(s)
+        self.assertEqual(next(s)[1], 'Hello\nWorld')
+        s = Tokenizer('\n\n\nx: """Hello\n\n\nWorld"""\n\n\n')
+        next(s)
+        next(s)
+        self.assertEqual(next(s)[1], 'Hello\n\n\nWorld')
+
+        # Line continuation
+        s = Tokenizer('x: this is \\\nthe value of x')
+        next(s)
+        next(s)
+        self.assertEqual(next(s)[1], 'this is the value of x')
+
+        # Comment doesn't end line continuation
+        s = Tokenizer('x: this is \\\n#Hi mike\nthe value of x')
+        next(s)
+        next(s)
+        self.assertEqual(next(s)[1], 'this is the value of x')
+
+        # Brackets
+        s = Tokenizer('x = (\n1 + \n\n2 + (\n3\n\n)\n\n) + 4')
+        next(s)
+        next(s)
+        from myokit._parsing import parse_expression_stream
+        e = parse_expression_stream(s)
+        self.assertEqual(e.code(), '1 + 2 + 3 + 4')
 
 
 class PhasedParseTest(unittest.TestCase):
