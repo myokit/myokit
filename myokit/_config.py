@@ -113,7 +113,15 @@ def _create(path):
         ]))
 
     # Set sundials version, try to auto-detect
-    sundials = myokit.Sundials.version_int()
+    try:
+        sundials = myokit.Sundials.version_int()
+    except IOError:  # pragma: no cover
+        # This is an annoying read-the-docs error. It seems to install myokit,
+        # but then run a different version for the docs? As a result, it can't
+        # find sundials.c and the build fails.
+        # Eventually, this try-except block should be removed.
+        sundials = None
+
     if sundials is None:    # pragma: no cover
         import logging
         log = logging.getLogger(__name__)
