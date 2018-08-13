@@ -16,7 +16,7 @@ import unittest
 import myokit
 import myokit.units
 
-from shared import DIR_DATA
+from shared import DIR_DATA, TemporaryDirectory
 
 # Unit testing in Python 2 and 3
 try:
@@ -1055,6 +1055,89 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ParseError, 'must be fully qualified', parse_state, code)
+
+    def test_format_parse_error(self):
+        """
+        Tests format_parse_error.
+        """
+        # Test basic formatting, with and without source
+        bad = '    5 + / 2'
+        try:
+            myokit.parse_expression(bad)
+        except myokit.ParseError as e:
+
+            # No source
+            self.assertEqual(
+                myokit.format_parse_error(e),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                ])
+            )
+
+            # List-of-strings source
+            self.assertEqual(
+                myokit.format_parse_error(e, source=[bad]),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                    '  5 + / 2',
+                    '      ^'
+                ])
+            )
+
+            # File source
+            with TemporaryDirectory() as d:
+                path = d.path('mmt')
+                with open(path, 'w') as f:
+                    f.write(bad + '\n')
+                myokit.format_parse_error(e, source=path),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                    '  5 + / 2',
+                    '      ^'
+                ])
+
+            # Line doesn't exist in source
+            self.assertEqual(
+                myokit.format_parse_error(e, source=[]),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                ])
+            )
+
+            # Char doesn't exist in source
+            self.assertEqual(
+                myokit.format_parse_error(e, source=['x']),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                ])
+            )
+
+            # Very long line
+        bad = '    1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 100 + 1000 + 11'
+        bad += ' + 12 + 13 + 14 + 15 + / 16 + 17 + 18 + 19 + 20 + 21 + 22'
+        bad += ' + 23 + 24 + 25 + 26 + 27 + 28 + 29 + 30 + 31'
+        error = '\n'.join([
+            'Syntax error',
+            '  Unexpected token SLASH "/" expecting expression',
+            'On line 1 character 83',
+            '  ..+ 12 + 13 + 14 + 15 + / 16 + 17 + 18 + 19 + 20 + 21 + 22..',
+            '                          ^'
+        ])
+
+        try:
+            myokit.parse_expression(bad)
+        except myokit.ParseError as e:
+            self.assertEqual(myokit.format_parse_error(e, source=[bad]), error)
 
 
 class ModelParseTest(unittest.TestCase):

@@ -1967,6 +1967,7 @@ def format_parse_error(ex, source=None):
         out.append('  ' + ex.desc)
     out.append('On line ' + str(ex.line) + ' character ' + str(ex.char))
     line = None
+
     if ex.line > 0 and source is not None:
         if isinstance(source, basestring) and os.path.isfile(source):
             # Re-open file, find line
@@ -1982,7 +1983,8 @@ def format_parse_error(ex, source=None):
                     break
             if i != ex.line:
                 line = None
-    if line is not None:
+
+    if line is not None and len(line) > ex.char:
         # Skip initial whitespace
         pos = 0
         _sWHITE = ' \t'
@@ -1990,6 +1992,7 @@ def format_parse_error(ex, source=None):
             if char not in _sWHITE:
                 break
             pos += 1
+
         # Add line
         line = line[pos:].expandtabs(tabsize)
         char = ex.char - pos
@@ -2009,8 +2012,10 @@ def format_parse_error(ex, source=None):
             if p2 < n:
                 line += '..'
         out.append('  ' + line)
+
         # Add error indication
         out.append(' ' * (2 + char) + '^')
+
     return '\n'.join(out)
 
 
