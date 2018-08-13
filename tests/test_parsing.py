@@ -120,6 +120,18 @@ class TokenizerTest(unittest.TestCase):
         next(s)
         self.assertEqual(next(s)[1], 'this is the value of x')
 
+        # Line continuation must be last character on line
+        s = Tokenizer('1 + \\3')
+        next(s)
+        self.assertRaisesRegex(
+            myokit.ParseError, ' Backslash must be last', s.next)
+
+        # But backslash is allowed in text (only seen as line cont. if last)
+        s = Tokenizer('x: Hello\\michael\nHow are you')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertEqual(next(s)[0], p.COLON)
+        self.assertEqual(next(s)[1], 'Hello\\michael')
+
         # Brackets
         s = Tokenizer('x = (\n1 + \n\n2 + (\n3\n\n)\n\n) + 4')
         next(s)
@@ -128,7 +140,25 @@ class TokenizerTest(unittest.TestCase):
         e = parse_expression_stream(s)
         self.assertEqual(e.code(), '1 + 2 + 3 + 4')
 
-        # Tabs count as 8 spaces
+        # Mismatched brackets
+        s = Tokenizer('x = (1 + 2')
+        self.assertEqual(next(s)[0], p.NAME)
+        self.assertEqual(next(s)[0], p.EQUAL)
+        self.assertEqual(next(s)[0], p.PAREN_OPEN)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.PLUS)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Parentheses mismatch', s.next)
+
+        s = Tokenizer('x = 1 + 2)')
+        self.assertEqual(next(s)[0], p.NAME)
+        self.assertEqual(next(s)[0], p.EQUAL)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.PLUS)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Parentheses mismatch', s.next)
+
+        # Test indenting (Tabs count as 8 spaces)
         s = '\n'.join([
             '1',
             '        2',
@@ -149,6 +179,20 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(next(s)[0], p.DEDENT)
         self.assertEqual(next(s)[0], p.INTEGER)
         self.assertEqual(next(s)[0], p.EOL)
+
+        # Test indenting error
+        s = Tokenizer('\n'.join([
+            '1',
+            '    2',
+            '  3',
+        ]))
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INDENT)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unexpected indenting level', s.next)
 
         # Line feed counts as a newline
         s = Tokenizer('123\f456')
