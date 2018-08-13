@@ -1618,6 +1618,55 @@ class ModelParseTest(unittest.TestCase):
         self.assertEqual(
             m1.eval_state_derivatives(), m2.eval_state_derivatives())
 
+    def test_function_parsing(self):
+        """
+        Test parsing of functions.
+        """
+        # Test simple function
+        m = """
+            [[model]]
+
+            [c]
+            t = 0 bind time
+            x = asin(sin(1))
+            """
+        m = myokit.parse_model(m)
+        self.assertAlmostEqual(m.get('c.x').eval(), 1)
+
+        # Test function with multiple arguments
+        m = """
+            [[model]]
+
+            [c]
+            t = 0 bind time
+            x = log(8, 2)
+            """
+        m = myokit.parse_model(m)
+        self.assertAlmostEqual(m.get('c.x').eval(), 3)
+
+        # Unknown function
+        m = """
+            [[model]]
+
+            [c]
+            t = 0 bind time
+            x = blog(8, 2)
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unknown function', myokit.parse_model, m)
+
+        # Wrong number of arguments
+        m = """
+            [[model]]
+
+            [c]
+            t = 0 bind time
+            x = sin(8, 2)
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Wrong number of arguments', myokit.parse_model,
+            m)
+
 
 if __name__ == '__main__':
     unittest.main()
