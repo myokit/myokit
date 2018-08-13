@@ -1247,7 +1247,6 @@ _rTOKEN = re.compile('|'.join([
 # further handling: https://en.wikipedia.org/wiki/Newline#Unicode
 _sWHITE = ' \t'
 _rWHITE = re.compile(r'[ \t]*')
-_rSPACE = re.compile(r'[ \t]{1}')
 
 # Recognizable characters
 _sEOL = '\n'
@@ -1700,12 +1699,9 @@ class Tokenizer(object):
                         continue
 
                 else:
+                    # No token matched
 
-                    m = _rSPACE.search(line, pos)
-                    if not m:
-                        token = line[pos:]
-                    else:
-                        token = line[pos:m.start()]
+                    token = line[pos:]
                     raise ParseError(
                         'Unknown or invalid token', numb, pos,
                         'Unrecognized token: ' + token)
@@ -1727,7 +1723,7 @@ class Tokenizer(object):
         if in_multi_string:
             raise ParseError(
                 'Unclosed multi-line string', text_start[0], text_start[1] - 3,
-                'Comment opened but never closed')
+                'Multi-line string opened but never closed')
 
         # De-dent at end of file
         if check_indenting:
@@ -1769,9 +1765,11 @@ class Tokenizer(object):
                         column = (1 + column // tabsize) * tabsize
                 if ind is None or column < ind:
                     ind = column
+
         # No indentation? Then return as is
         if ind == 0 or ind is None or ind == 'first':
             return '\n'.join(text_buffer)
+
         # Strip initial ``ind`` characters from lines
         text = []
         first = True

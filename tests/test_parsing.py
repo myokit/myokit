@@ -64,17 +64,20 @@ class TokenizerTest(unittest.TestCase):
         # Unknown token
         self.assertRaisesRegex(
             myokit.ParseError, 'invalid token', Tokenizer, '@')
+        s = Tokenizer('x  @')
+        self.assertRaisesRegex(
+            myokit.ParseError, 'invalid token', s.next)
 
         # Block-comment
         s = Tokenizer('"""Hello"""')
         self.assertEqual(next(s)[0], p.EOF)
 
         # Multi-line string
-        s = Tokenizer('x: """Hello\nWorld"""')
+        s = Tokenizer('x: """Hello\nWo\trld"""')
         self.assertEqual(next(s)[0], p.META_NAME)
         self.assertEqual(next(s)[0], p.COLON)
         self.assertEqual(s.peek()[0], p.TEXT)
-        self.assertEqual(next(s)[1], 'Hello\nWorld')
+        self.assertEqual(next(s)[1], 'Hello\nWo\trld')
         self.assertEqual(next(s)[0], p.EOL)
         s = Tokenizer('x: """Hello"""World')
         self.assertEqual(next(s)[0], p.META_NAME)
@@ -84,6 +87,22 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(next(s)[0], p.META_NAME)
         self.assertRaisesRegex(
             myokit.ParseError, 'after closing of multi-line string', next, s)
+        s = Tokenizer('x: """Hello\n')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unclosed multi-line', s.next)
+
+        # Indented is removed from multi-line string
+        s = Tokenizer('    x: """Hello \n    world"""')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertEqual(next(s)[0], p.COLON)
+        self.assertEqual(s.peek()[0], p.TEXT)
+        self.assertEqual(s.peek()[1], 'Hello\nworld')
+        s = Tokenizer('\tx: """Hello \n\tworld"""')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertEqual(next(s)[0], p.COLON)
+        self.assertEqual(s.peek()[0], p.TEXT)
+        self.assertEqual(s.peek()[1], 'Hello\nworld')
 
         # Empty lines
         s = Tokenizer('\n\n\nx: """Hello\nWorld"""\n\n\n')
@@ -1166,22 +1185,50 @@ class PhasedParseTest(unittest.TestCase):
                 ])
             )
 
-            # Very long line
+        # Very long lines
         bad = '    1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 100 + 1000 + 11'
-        bad += ' + 12 + 13 + 14 + 15 + / 16 + 17 + 18 + 19 + 20 + 21 + 22'
+        bad += ' + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20 + 21 + 22'
         bad += ' + 23 + 24 + 25 + 26 + 27 + 28 + 29 + 30 + 31'
+
+        # Error near start
+        error = '\n'.join([
+            'Syntax error',
+            '  Unexpected token SLASH "/" expecting expression',
+            'On line 1 character 12',
+            '  1 + 2 + / 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 100 + 1000 + ..',
+            '          ^',
+        ])
+        b = bad[:12] + '/ ' + bad[12:]
+        try:
+            myokit.parse_expression(b)
+        except myokit.ParseError as e:
+            self.assertEqual(myokit.format_parse_error(e, source=[b]), error)
+
         error = '\n'.join([
             'Syntax error',
             '  Unexpected token SLASH "/" expecting expression',
             'On line 1 character 83',
             '  ..+ 12 + 13 + 14 + 15 + / 16 + 17 + 18 + 19 + 20 + 21 + 22..',
-            '                          ^'
+            '                          ^',
         ])
-
+        b = bad[:83] + '/ ' + bad[83:]
         try:
-            myokit.parse_expression(bad)
+            myokit.parse_expression(b)
         except myokit.ParseError as e:
-            self.assertEqual(myokit.format_parse_error(e, source=[bad]), error)
+            self.assertEqual(myokit.format_parse_error(e, source=[b]), error)
+
+        error = '\n'.join([
+            'Syntax error',
+            '  Unexpected token SLASH "/" expecting expression',
+            'On line 1 character 133',
+            '  ..+ 21 + 22 + 23 + 24 + 25 + / 26 + 27 + 28 + 29 + 30 + 31',
+            '                               ^',
+        ])
+        b = bad[:133] + '/ ' + bad[133:]
+        try:
+            myokit.parse_expression(b)
+        except myokit.ParseError as e:
+            self.assertEqual(myokit.format_parse_error(e, source=[b]), error)
 
 
 class ModelParseTest(unittest.TestCase):
