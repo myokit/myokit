@@ -1267,9 +1267,6 @@ _SINGLE_MAP = [
 _COMPEQ = '=!><'
 _COMPEQ_MAP = [EQEQUAL, NOTEQUAL, MOREEQUAL, LESSEQUAL]
 
-# Textual operators
-_TEXT_OP = {'and': AND, 'or': OR, 'not': NOT}
-
 
 class Tokenizer(object):
     """
@@ -1684,11 +1681,7 @@ class Tokenizer(object):
                         # Function opening
                         # Yield function name, then back up to yield PAREN_OPEN
                         # on next pass
-                        fnc = token[:-1]
-                        if fnc in _TEXT_OP:
-                            yield _TEXT_OP[fnc], fnc, numb, start
-                        else:
-                            yield FUNC_NAME, fnc, numb, start
+                        yield FUNC_NAME, token[:-1], numb, start
                         pos -= 1
                         continue
                     elif token[-1] == ':':
