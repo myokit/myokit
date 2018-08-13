@@ -1080,6 +1080,20 @@ class PhasedParseTest(unittest.TestCase):
         # Test bad value
         self.assertRaises(myokit.ParseError, p, '5 beans')
 
+    def test_parse_expression_string(self):
+        """
+        Test :meth:`parse_expression_string()`.
+        """
+        from myokit._parsing import parse_expression_string
+        e = parse_expression_string('5 --- 2')
+        self.assertIsInstance(e, myokit.Minus)
+        self.assertEqual(e.eval(), 3)
+
+        # Only a single expression can be given
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unexpected token INTEGER',
+            parse_expression_string, '5 + 2 3 * 7')
+
     def test_parse_state(self):
         """
         Test parse_state()

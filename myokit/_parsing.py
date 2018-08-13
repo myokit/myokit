@@ -1862,13 +1862,6 @@ def parse_expression_string(string, context=None):
     # Check for eol, eof, then nothing else
     expect(next(s), EOL)
     expect(next(s), EOF)
-    try:
-        next(s)
-        raise ParseError(
-            'Unused tokens', 0, 0,
-            'Expecting a string containing only a single expression.')
-    except StopIteration:
-        pass
 
     # Convert proto expression and return
     return convert_proto_expression(e, context, info)
