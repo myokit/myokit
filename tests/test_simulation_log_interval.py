@@ -321,7 +321,7 @@ class SimulationTest(PeriodicTest):
 
     def test_point_list_2(self):
         """
-        Tests how the point-list logging performs when some of the logging
+        Test how the point-list logging performs when some of the logging
         points overlap with protocol change points.
         """
         # Load model

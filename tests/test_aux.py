@@ -27,7 +27,7 @@ from shared import DIR_DATA, TemporaryDirectory
 
 class AuxTest(unittest.TestCase):
     """
-    Tests various methods from myokit._aux.
+    Test various methods from myokit._aux.
     """
 
     def test_date(self):
@@ -61,7 +61,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(a, b)
 
     def test_benchmarker(self):
-        """ Tests the benchmarker. """
+        """ Test the benchmarker. """
         b = myokit.Benchmarker()
         t0 = b.time()
         self.assertTrue(t0 >= 0)
@@ -88,7 +88,7 @@ class AuxTest(unittest.TestCase):
             '1 week, 0 days, 0 hours, 0 minutes, 0 seconds')
 
     def test_py_capture(self):
-        """ Tests the PyCapture method. """
+        """ Test the PyCapture method. """
         # Test basic use
         with myokit.PyCapture() as c:
             print('Hello')
@@ -144,7 +144,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(myokit._aux._examplify('example'), myokit.EXAMPLE)
 
     def test_format_float_dict(self):
-        """ Tests myokit.format_float_dict. """
+        """ Test myokit.format_float_dict. """
         d = {'one': 1, 'Definitely two': 2, 'Three-ish': 3.1234567}
         x = myokit.format_float_dict(d).splitlines()
         self.assertEqual(len(x), 3)
@@ -153,7 +153,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(x[2], 'one            = 1')
 
     def test_format_path(self):
-        """ Tests format_path(). """
+        """ Test format_path(). """
 
         # Normal use
         self.assertEqual(
@@ -192,7 +192,7 @@ class AuxTest(unittest.TestCase):
             os.path.abspath('test'))
 
     def test_pack_snapshot(self):
-        """ Tests if the pack_snapshot method runs without exceptions. """
+        """ Test if the pack_snapshot method runs without exceptions. """
         with TemporaryDirectory() as d:
             # Run!
             path = d.path('pack.zip')
@@ -221,7 +221,7 @@ class AuxTest(unittest.TestCase):
             myokit.pack_snapshot(path, overwrite=True)
 
     def test_levenshtein_distance(self):
-        """ Tests the levenshtein distance method. """
+        """ Test the levenshtein distance method. """
         self.assertEqual(myokit.lvsd('kitten', 'sitting'), 3)
         self.assertEqual(myokit.lvsd('sitting', 'kitten'), 3)
         self.assertEqual(myokit.lvsd('saturday', 'sunday'), 3)
@@ -233,7 +233,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(myokit.lvsd('', ''), 0)
 
     def test_model_comparison(self):
-        """ Tests the model comparison class. """
+        """ Test the model comparison class. """
 
         m1 = os.path.join(DIR_DATA, 'beeler-1977-model.mmt')
         m2 = os.path.join(DIR_DATA, 'beeler-1977-model-different.mmt')
@@ -380,7 +380,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(s.getvalue(), 'Hi there\n')
 
     def test_step(self):
-        """ Tests the step() method. """
+        """ Test the step() method. """
         m1 = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
 
         # Test simple output

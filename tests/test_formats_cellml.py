@@ -38,7 +38,7 @@ class CellMLImporterTest(unittest.TestCase):
     """
 
     def test_capability_reporting(self):
-        """ Tests if the right capabilities are reported. """
+        """ Test if the right capabilities are reported. """
         i = formats.importer('cellml')
         self.assertFalse(i.supports_component())
         self.assertTrue(i.supports_model())
@@ -82,7 +82,7 @@ class CellMLImporterTest(unittest.TestCase):
 
     def test_factorial(self):
         """
-        Tests if factorial, partialdiff, and sum elements trigger a warning.
+        Test if factorial, partialdiff, and sum elements trigger a warning.
         """
         i = formats.importer('cellml')
         i.model(os.path.join(
@@ -94,7 +94,7 @@ class CellMLImporterTest(unittest.TestCase):
 
     def test_unit_errors(self):
         """
-        Tests if warnings to do with units are raised.
+        Test if warnings to do with units are raised.
         """
         i = formats.importer('cellml')
         m = i.model(os.path.join(
@@ -126,7 +126,7 @@ class CellMLImporterTest(unittest.TestCase):
 
     def test_group_errors(self):
         """
-        Tests if warnings related to groups are raised.
+        Test if warnings related to groups are raised.
         """
         i = formats.importer('cellml')
         self.assertRaisesRegex(
@@ -143,7 +143,7 @@ class CellMLImporterTest(unittest.TestCase):
 
     def test_connection_errors(self):
         """
-        Tests if warnings related to connections are raised.
+        Test if warnings related to connections are raised.
         """
         # Connection fo component that doesn't exist
         i = formats.importer('cellml')
@@ -176,7 +176,7 @@ class CellMLImporterTest(unittest.TestCase):
 
     def test_equation_errors(self):
         """
-        Tests warnings raised in equation handling.
+        Test warnings raised in equation handling.
         """
         i = formats.importer('cellml')
 
@@ -222,7 +222,7 @@ class CellMLImporterTest(unittest.TestCase):
 
     def test_name_errors(self):
         """
-        Tests warnings raised in name handling.
+        Test warnings raised in name handling.
         """
         i = formats.importer('cellml')
         i.model(
@@ -433,7 +433,7 @@ class CellMLExporterTest(unittest.TestCase):
 
     def test_stimulus_generation(self):
         """
-        Tests generation of a default stimulus current.
+        Test generation of a default stimulus current.
         """
         # Start creating model
         model = myokit.Model()
@@ -533,7 +533,7 @@ class CellMLExporterTest(unittest.TestCase):
 
     def test_unit_export(self):
         """
-        Tests exporting units.
+        Test exporting units.
         """
         # Start creating model
         model = myokit.Model()
@@ -572,7 +572,7 @@ class CellMLExporterTest(unittest.TestCase):
 
     def test_component_name_clashes(self):
         """
-        Tests if name clashes in components (due to nested variables parents
+        Test if name clashes in components (due to nested variables parents
         becoming components) are resolved.
         """
         # Start creating model
@@ -609,7 +609,7 @@ class CellMLExporterTest(unittest.TestCase):
 
     def test_nested_variables(self):
         """
-        Tests export of deep nesting structures.
+        Test export of deep nesting structures.
         """
         # Start creating model
         model = myokit.Model()

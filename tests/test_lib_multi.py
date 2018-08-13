@@ -35,7 +35,7 @@ class LibMultiTest(unittest.TestCase):
 
     def test_iterdir(self):
         """
-        Tests the iterdir() method that iterators over model, protocol tuples.
+        Test the iterdir() method that iterators over model, protocol tuples.
         """
 
         # Get all found tuples (model, protocol)
@@ -70,7 +70,7 @@ class LibMultiTest(unittest.TestCase):
 
     def test_scandir(self):
         """
-        Tests the scandir() method that returns a models list and a protocols
+        Test the scandir() method that returns a models list and a protocols
         list.
         """
 
@@ -91,7 +91,7 @@ class LibMultiTest(unittest.TestCase):
 
     def test_time(self):
         """
-        Tests the time() method that returns the time variable.
+        Test the time() method that returns the time variable.
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -104,7 +104,7 @@ class LibMultiTest(unittest.TestCase):
 
     def test_label(self):
         """
-        Tests the label() method that returns a labelled variable.
+        Test the label() method that returns a labelled variable.
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -117,7 +117,7 @@ class LibMultiTest(unittest.TestCase):
 
     def test_binding(self):
         """
-        Tests the binding() method that returns a bound variable.
+        Test the binding() method that returns a bound variable.
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -130,7 +130,7 @@ class LibMultiTest(unittest.TestCase):
 
     def test_unit(self):
         """
-        Tests the unit() method that returns a unit conversion factor.
+        Test the unit() method that returns a unit conversion factor.
         """
         m = myokit.Model()
         c = m.add_component('c')

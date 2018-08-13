@@ -31,7 +31,7 @@ class LoadSaveTest(unittest.TestCase):
     """
     def test_multiline_string_indent(self):
         """
-        Tests what happens when you load save a string that gets auto-indented.
+        Test what happens when you load save a string that gets auto-indented.
         """
         # Create model with multi-line meta-data property
         d1 = 'First line\n\nSecond line'
@@ -86,7 +86,7 @@ class LoadSaveTest(unittest.TestCase):
 
     def test_save_model(self):
         """
-        Tests if the correct parts are saved/loaded from disk using the
+        Test if the correct parts are saved/loaded from disk using the
         ``save_model()`` method.
         """
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
@@ -112,7 +112,7 @@ class LoadSaveTest(unittest.TestCase):
 
     def test_save_protocol(self):
         """
-        Tests if the correct parts are saved/loaded from disk using the
+        Test if the correct parts are saved/loaded from disk using the
         ``save_protocol()`` method.
         """
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
@@ -138,7 +138,7 @@ class LoadSaveTest(unittest.TestCase):
 
     def test_save_script(self):
         """
-        Tests if the correct parts are saved/loaded from disk using the
+        Test if the correct parts are saved/loaded from disk using the
         ``save_script()`` method.
         """
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
@@ -164,7 +164,7 @@ class LoadSaveTest(unittest.TestCase):
 
     def test_save(self):
         """
-        Tests if the correct parts are saved/loaded from disk using the
+        Test if the correct parts are saved/loaded from disk using the
         ``save()`` method.
         """
         # Test example loading

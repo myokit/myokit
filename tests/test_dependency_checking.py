@@ -137,7 +137,7 @@ class BasicReferenceTest(DepTest):
     """
     def test_references(self):
         """
-        Tests the list_reference() method.
+        Test the list_reference() method.
         """
         # Test if derivative returns correct reference
         y = myokit.Name('y')
@@ -166,7 +166,7 @@ class ShallowDepTest(DepTest):
     """
     def test_shallow(self):
         """
-        Tests the basic shallow depmap
+        Test the basic shallow depmap
         """
         # Easy access to methods
         m = self.m
@@ -277,7 +277,7 @@ class DeepDepTest(DepTest):
     """
     def test_deep(self):
         """
-        Tests with::
+        Test with::
 
             omit_states=False
 
@@ -798,7 +798,7 @@ class DeepDepTest(DepTest):
 
     def test_deep_cyles(self):
         """
-        Tests if the deep test finds cyclical dependencies.
+        Test if the deep test finds cyclical dependencies.
         """
         m = self.m.clone()
         m.get('cell.Na_i').set_rhs('3 * ina.INa')
@@ -812,7 +812,7 @@ class ComponentDepTest(DepTest):
     """
     def test_map_component_dependencies(self):
         """
-        Tests the method ``map_component_dependencies
+        Test the method ``map_component_dependencies
         """
         depmap = self.m.map_component_dependencies(
             omit_states=False, omit_constants=False)
@@ -878,7 +878,7 @@ class ComponentDepTest(DepTest):
 
     def test_map_component_io(self):
         """
-        Tests the method ``map_component_io
+        Test the method ``map_component_io
         """
         d1, d2 = self.m.map_component_io()
 
@@ -1141,7 +1141,7 @@ class ComponentDepTest(DepTest):
 
     def test_component_cycles(self):
         """
-        Tests Model.component_cycles().
+        Test Model.component_cycles().
         """
         # Create structure:
         #
@@ -1536,7 +1536,7 @@ class SolvableOrderTest(DepTest):
 
     def test_has_interdependent_components(self):
         """
-        Tests Model.has_interdependent_components().
+        Test Model.has_interdependent_components().
         """
         m = myokit.Model()
         c = m.add_component('c')

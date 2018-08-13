@@ -290,7 +290,7 @@ class LinearModelTest(unittest.TestCase):
 
     def test_linear_model_matrices(self):
         """
-        Tests the LinearModel.matrices() method.
+        Test the LinearModel.matrices() method.
         """
 
         # Create model
@@ -307,7 +307,7 @@ class LinearModelTest(unittest.TestCase):
         self.assertRaises(ValueError, m.matrices, -20, range(3))
 
     def test_linear_model_steady_state(self):
-        """ Tests the method LinearModel.steady_state(). """
+        """ Test the method LinearModel.steady_state(). """
 
         # Create model
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -459,7 +459,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
     def test_analytical_simulation_properties(self):
         """
-        Tests basic get/set methods of analytical simulation.
+        Test basic get/set methods of analytical simulation.
         """
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -522,7 +522,7 @@ class DiscreteSimulationTest(unittest.TestCase):
     """
 
     def test_basics(self):
-        """ Tests the DiscreteSimulation class, running, resetting etc.. """
+        """ Test the DiscreteSimulation class, running, resetting etc.. """
 
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -602,7 +602,7 @@ class DiscreteSimulationTest(unittest.TestCase):
 
     def test_discrete_simulation_properties(self):
         """
-        Tests basic get/set methods of discrete simulation.
+        Test basic get/set methods of discrete simulation.
         """
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')

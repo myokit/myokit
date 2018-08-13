@@ -111,7 +111,7 @@ class ExportTest(unittest.TestCase):
 
     def test_runnable_exporter_shared(self):
         """
-        Tests shared functionality of the TemplatedRunnableExporters.
+        Test shared functionality of the TemplatedRunnableExporters.
         """
         e = myokit.formats.exporter('ansic')
 
@@ -244,7 +244,7 @@ class ExportTest(unittest.TestCase):
 
     def test_completeness(self):
         """
-        Tests that all exporters have a test (so meta!).
+        Test that all exporters have a test (so meta!).
         """
         methods = [x for x in dir(self) if x[:5] == 'test_']
         for name in myokit.formats.exporters():
@@ -254,7 +254,7 @@ class ExportTest(unittest.TestCase):
 
     def test_unknown_exporter(self):
         """
-        Tests the error handling for requesting an unknown exporter.
+        Test the error handling for requesting an unknown exporter.
         """
         self.assertRaisesRegex(
             KeyError, 'Exporter not found', myokit.formats.exporter, 'elvish')

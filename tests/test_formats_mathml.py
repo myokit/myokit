@@ -25,7 +25,7 @@ except AttributeError:
 
 
 class ContentMathMLTest(unittest.TestCase):
-    """ Tests expression writing and parsing of content MathML. """
+    """ Test expression writing and parsing of content MathML. """
 
     def test_content(self):
         """ Test writing and reading of content MathML. """
@@ -282,7 +282,7 @@ class ContentMathMLTest(unittest.TestCase):
         self.assertEqual(r(cx), x)
 
     def test_writer(self):
-        """ Tests special cases for the expression writer. """
+        """ Test special cases for the expression writer. """
         # Create mini model
         model = myokit.Model()
         component = model.add_component('c')
@@ -324,7 +324,7 @@ class ContentMathMLTest(unittest.TestCase):
 
     def test_parse_mathml(self):
         """
-        Tests :meth:`myokit.formats.mathml.parse_mathml()`.
+        Test :meth:`myokit.formats.mathml.parse_mathml()`.
         """
         mathml = (
             '<math xmlns="http://www.w3.org/1998/Math/MathML">'
@@ -336,7 +336,7 @@ class ContentMathMLTest(unittest.TestCase):
 
     def test_parsing_bad_mathml(self):
         """
-        Tests the parser on various invalid bits of mathml.
+        Test the parser on various invalid bits of mathml.
         """
         def test(s):
             """ Try parsing a bit of mathml. """
@@ -444,7 +444,7 @@ class ContentMathMLTest(unittest.TestCase):
         self.assertIn('Unknown element', w[0])
 
     def test_parsing_derivatives(self):
-        """ Tests parsing of derivatives with degree elements. """
+        """ Test parsing of derivatives with degree elements. """
 
         def test(s):
             tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
@@ -502,7 +502,7 @@ class ContentMathMLTest(unittest.TestCase):
         )
 
     def test_parsing_roots(self):
-        """ Tests parsing of roots other than square root. """
+        """ Test parsing of roots other than square root. """
 
         def test(s):
             tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
@@ -539,7 +539,7 @@ class ContentMathMLTest(unittest.TestCase):
         self.assertEqual(x, myokit.parse_expression('27^(1/3)'))
 
     def test_parsing_extra_trig(self):
-        """ Tests parsing of the annoying trig functions. """
+        """ Test parsing of the annoying trig functions. """
 
         def test(s):
             tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
@@ -637,7 +637,7 @@ class ContentMathMLTest(unittest.TestCase):
         self.assertEqual(x, y)
 
     def test_parsing_constants(self):
-        """ Tests parsing of MathML special constants. """
+        """ Test parsing of MathML special constants. """
 
         def test(s):
             tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
@@ -719,7 +719,7 @@ class PresentationMathMLTest(unittest.TestCase):
 
     def test_presentation(self):
         """
-        Tests the presentation MathML expression writer.
+        Test the presentation MathML expression writer.
         """
         w = myokit.formats.mathml.MathMLExpressionWriter()
         w.set_mode(presentation=True)

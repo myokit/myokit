@@ -38,10 +38,10 @@ except NameError:   # pragma: no python 2 cover
 
 
 class ExpressionWriterTest(unittest.TestCase):
-    """ Tests shared expression writer functionality. """
+    """ Test shared expression writer functionality. """
 
     def test_ewriter_interface(self):
-        """ Tests listing and creating expression writers. """
+        """ Test listing and creating expression writers. """
         es = myokit.formats.ewriters()
         self.assertTrue(len(es) > 0)
         for e in es:
@@ -52,7 +52,7 @@ class ExpressionWriterTest(unittest.TestCase):
             self.assertTrue(isinstance(e, myokit.formats.ExpressionWriter))
 
     def test_unknown(self):
-        """ Tests requesting an unknown expression writer. """
+        """ Test requesting an unknown expression writer. """
         # Test fetching using ewriter method
         self.assertRaisesRegex(
             KeyError, 'Expression writer not found', myokit.formats.ewriter,
@@ -60,7 +60,7 @@ class ExpressionWriterTest(unittest.TestCase):
 
 
 class AnsicExpressionWriterTest(unittest.TestCase):
-    """ Tests the Ansi C ewriter class. """
+    """ Test the Ansi C ewriter class. """
 
     def test_all(self):
         w = myokit.formats.ansic.AnsiCExpressionWriter()
@@ -213,7 +213,7 @@ class AnsicExpressionWriterTest(unittest.TestCase):
 
 
 class CppExpressionWriterTest(unittest.TestCase):
-    """ Tests the C++ ewriter class. """
+    """ Test the C++ ewriter class. """
 
     def test_all(self):
         w = myokit.formats.cpp.CppExpressionWriter()
@@ -355,7 +355,7 @@ class CppExpressionWriterTest(unittest.TestCase):
 
 
 class CudaExpressionWriterTest(unittest.TestCase):
-    """ Tests the CUDA ewriter class. """
+    """ Test the CUDA ewriter class. """
 
     def test_all(self):
         # Single and double precision
@@ -545,7 +545,7 @@ class CudaExpressionWriterTest(unittest.TestCase):
 
 
 class LatexExpressionWriterTest(unittest.TestCase):
-    """ Tests the Latex ewriter class. """
+    """ Test the Latex ewriter class. """
 
     def test_all(self):
         w = myokit.formats.latex.LatexExpressionWriter()
@@ -713,7 +713,7 @@ class LatexExpressionWriterTest(unittest.TestCase):
 
 
 class MatlabExpressionWriterTest(unittest.TestCase):
-    """ Tests the Matlab ewriter class. """
+    """ Test the Matlab ewriter class. """
 
     def test_all(self):
         w = myokit.formats.matlab.MatlabExpressionWriter()
@@ -856,7 +856,7 @@ class MatlabExpressionWriterTest(unittest.TestCase):
 
 
 class NumPyExpressionWriterTest(unittest.TestCase):
-    """ Tests the NumPy ewriter class. """
+    """ Test the NumPy ewriter class. """
 
     def test_all(self):
         w = myokit.formats.python.NumPyExpressionWriter()
@@ -999,9 +999,13 @@ class NumPyExpressionWriterTest(unittest.TestCase):
 
 
 class OpenCLExpressionWriterTest(unittest.TestCase):
-    """ Tests the OpenCL ewriter class. """
+    """ Test the OpenCL ewriter class. """
 
     def test_all(self):
+        """
+        Test the OpenCL expression writer.
+        """
+
         # Single and double precision
         ws = myokit.formats.opencl.OpenCLExpressionWriter()
         wd = myokit.formats.opencl.OpenCLExpressionWriter(
@@ -1231,7 +1235,7 @@ class OpenCLExpressionWriterTest(unittest.TestCase):
 
 
 class PythonExpressionWriterTest(unittest.TestCase):
-    """ Tests the Python ewriter class. """
+    """ Test the Python ewriter class. """
 
     def test_all(self):
         w = myokit.formats.python.PythonExpressionWriter()
@@ -1377,7 +1381,7 @@ class PythonExpressionWriterTest(unittest.TestCase):
 
 
 class StanExpressionWriterTest(unittest.TestCase):
-    """ Tests the Stan ewriter class. """
+    """ Test the Stan ewriter class. """
 
     def test_all(self):
         w = myokit.formats.stan.StanExpressionWriter()

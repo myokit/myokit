@@ -366,7 +366,7 @@ class ModelBuildTest(unittest.TestCase):
 
     def test_resolve(self):
         """
-        Tests if an error is raised when a variable can't be resolved.
+        Test if an error is raised when a variable can't be resolved.
         """
         m = myokit.Model('Resolve')
         c = m.add_component('c')
@@ -377,7 +377,7 @@ class ModelBuildTest(unittest.TestCase):
 
     def test_scope(self):
         """
-        Tests if illegal references are detected.
+        Test if illegal references are detected.
         """
         m = myokit.Model('Scope')
         c = m.add_component('c')
@@ -392,7 +392,7 @@ class ModelBuildTest(unittest.TestCase):
 
     def test_invalid_names(self):
         """
-        Tests if invalid or duplicate names are detected.
+        Test if invalid or duplicate names are detected.
         """
         m = myokit.Model('Duplicates')
         c0 = m.add_component('c0')
@@ -506,7 +506,7 @@ class VarOwnerTest(unittest.TestCase):
     """
     def test_move_variable(self):
         """
-        Tests the method to move component variables to another component.
+        Test the method to move component variables to another component.
         """
         # Create a model
         m = myokit.Model('LotkaVolterra')
@@ -594,7 +594,7 @@ class VarOwnerTest(unittest.TestCase):
 
     def test_remove_variable(self):
         """
-        Tests the removal of a variable.
+        Test the removal of a variable.
         """
         # Create a model
         m = myokit.Model('LotkaVolterra')
@@ -682,7 +682,7 @@ class VarOwnerTest(unittest.TestCase):
 
     def test_varowner_get(self):
         """
-        Tests VarOwner.get().
+        Test VarOwner.get().
         """
         # Test basics
         m = myokit.Model('test')
@@ -713,7 +713,7 @@ class VarOwnerTest(unittest.TestCase):
 
     def test_add_variable_allow_renaming(self):
         """
-        Tests the ``VarProvider.add_variable_allow_renaming`` method.
+        Test the ``VarProvider.add_variable_allow_renaming`` method.
         """
         m = myokit.Model('test')
         c = m.add_component('c')
@@ -739,7 +739,7 @@ class ModelTest(unittest.TestCase):
     """
     def test_remove_component(self):
         """
-        Tests the removal of a component.
+        Test the removal of a component.
         """
         # Create model
         m = myokit.Model('LotkaVolterra')
@@ -789,7 +789,7 @@ class ModelTest(unittest.TestCase):
 
     def test_remove_with_alias(self):
         """
-        Tests cloning after an add / remove event.
+        Test cloning after an add / remove event.
         """
         m = myokit.Model('AddRemoveClone')
         c = m.add_component('c')
@@ -815,7 +815,7 @@ class ModelTest(unittest.TestCase):
 
     def test_no_rhs_error(self):
         """
-        Tests an exception is raised when a variable is missing an rhs.
+        Test an exception is raised when a variable is missing an rhs.
         """
         m = myokit.Model('LotkaVolterra')
         c0 = m.add_component('c0')
@@ -836,7 +836,7 @@ class ModelTest(unittest.TestCase):
 
     def test_no_time_variable(self):
         """
-        Tests an exception is raised if nothing is bound to time.
+        Test an exception is raised if nothing is bound to time.
         """
         m = myokit.Model('LotkaVolterra')
         c0 = m.add_component('c0')
@@ -846,7 +846,7 @@ class ModelTest(unittest.TestCase):
 
     def test_add_component_allow_renamining(self):
         """
-        Tests the ``Model.add_component_allow_renaming`` method.
+        Test the ``Model.add_component_allow_renaming`` method.
         """
         m = myokit.Model('test')
         c = m.add_component('c')
@@ -866,7 +866,7 @@ class ModelTest(unittest.TestCase):
 
     def test_model_get(self):
         """
-        Tests Model.get().
+        Test Model.get().
         """
         m = myokit.load_model('example')
 
@@ -903,7 +903,7 @@ class ModelTest(unittest.TestCase):
 
     def test_add_function(self):
         """
-        Tests the ``Model.add_function`` method.
+        Test the ``Model.add_function`` method.
         """
         m = myokit.Model('m')
         c = m.add_component('c')
@@ -943,7 +943,7 @@ class ModelTest(unittest.TestCase):
 
     def test_reorder_state(self):
         """
-        Tests :meth:`Model.reorder_state()`.
+        Test :meth:`Model.reorder_state()`.
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -980,7 +980,7 @@ class ModelTest(unittest.TestCase):
 
     def test_name(self):
         """
-        Tests :meth:`Model.set_name(name)`.
+        Test :meth:`Model.set_name(name)`.
         """
         m = myokit.Model()
         self.assertIsNone(m.name())
@@ -1000,7 +1000,7 @@ class ModelTest(unittest.TestCase):
 
     def test_check_units(self):
         """
-        Tests the ``model.check_units`` method.
+        Test the ``model.check_units`` method.
         """
         model = myokit.Model('m')
         component = model.add_component('c')
@@ -1079,7 +1079,7 @@ class ModelTest(unittest.TestCase):
         self.assertRaises(myokit.IncompatibleUnitError, model.check_units, s)
 
     def test_code(self):
-        """ Tests :meth:`Model.code()`. """
+        """ Test :meth:`Model.code()`. """
         model = myokit.Model('m')
         component = model.add_component('comp1')
         a = component.add_variable('a')
@@ -1164,7 +1164,7 @@ class ModelTest(unittest.TestCase):
         self.assertNotEqual(nan, nan)   # x != x is a nan test...
 
     def test_expressions_for(self):
-        """ Tests Model.expressions_for(). """
+        """ Test Model.expressions_for(). """
         m = myokit.load_model('example')
 
         # Simple test
@@ -1189,7 +1189,7 @@ class ModelTest(unittest.TestCase):
             Exception, 'Failed to solve', m.expressions_for, 'c.x')
 
     def test_format_state(self):
-        """ Tests Model.format_state() """
+        """ Test Model.format_state() """
         m = myokit.load_model('example')
 
         # Test without state argument
@@ -1242,7 +1242,7 @@ class ModelTest(unittest.TestCase):
 
     def test_format_state_derivatives(self):
         """
-        Tests Model.format_state_derivatives().
+        Test Model.format_state_derivatives().
         """
         m = myokit.load_model('example')
 
@@ -1296,7 +1296,7 @@ class ModelTest(unittest.TestCase):
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
     def test_unique_names(self):
-        """ Tests Model.create_unique_names. """
+        """ Test Model.create_unique_names. """
         # Heavily disputed variable names
         m = myokit.Model()
         a = m.add_component('a')
@@ -1357,7 +1357,7 @@ class ModelTest(unittest.TestCase):
 
     def test_warnings(self):
         """
-        Tests Model.has_warnings(), model.warnings() and
+        Test Model.has_warnings(), model.warnings() and
         Model.format_warnings().
         """
         # Test model without warnings
@@ -1388,7 +1388,7 @@ class ModelTest(unittest.TestCase):
 
     def test_bindings(self):
         """
-        Tests setting bindings and :meth:`Model.bindings()`.
+        Test setting bindings and :meth:`Model.bindings()`.
         """
         # Test set_binding() and bindings()
         m = myokit.Model()
@@ -1428,7 +1428,7 @@ class ModelTest(unittest.TestCase):
 
     def test_labels(self):
         """
-        Tests setting labels and :meth:`Model.labels()`.
+        Test setting labels and :meth:`Model.labels()`.
         """
         # Test set_label() and labels()
         m = myokit.Model()
@@ -1465,7 +1465,7 @@ class ModelTest(unittest.TestCase):
 
     def test_load_save_state(self):
         """
-        Tests :meth:`Model.save_state()` and :meth:`Model.load_state()`.
+        Test :meth:`Model.save_state()` and :meth:`Model.load_state()`.
         """
         m = myokit.load_model('example')
         s1 = m.state()
@@ -1482,7 +1482,7 @@ class ModelTest(unittest.TestCase):
 
     def test_map_to_state(self):
         """
-        Tests :meth:`Model.map_to_state()`.
+        Test :meth:`Model.map_to_state()`.
         """
         # Create test model
         m = myokit.Model()
@@ -1521,7 +1521,7 @@ class ModelTest(unittest.TestCase):
 
     def test_resolve_interdependent_components(self):
         """
-        Tests :meth:`Model.resolve_interdependent_components()`.
+        Test :meth:`Model.resolve_interdependent_components()`.
         """
         # Create test model
         m = myokit.Model()
@@ -1585,7 +1585,7 @@ class ModelTest(unittest.TestCase):
 
     def test_show_evaluation_of(self):
         """
-        Tests :meth:`Model.show_evaluation_of(variable)`.
+        Test :meth:`Model.show_evaluation_of(variable)`.
 
         Depends mostly on `references()`, and `code()` methods.
         """
@@ -1628,7 +1628,7 @@ class ModelTest(unittest.TestCase):
 
     def test_show_expressions_for(self):
         """
-        Tests :meth:`Model.show_expressions_for(variable)`.
+        Test :meth:`Model.show_expressions_for(variable)`.
         """
         m = myokit.load_model('example')
         e = m.show_expressions_for(m.get('ina.INa'))
@@ -1637,7 +1637,7 @@ class ModelTest(unittest.TestCase):
 
     def test_show_line_of(self):
         """
-        Tests :meth:`Model.show_line_of(variable)`.
+        Test :meth:`Model.show_line_of(variable)`.
         """
         m = myokit.load_model('example')
         e = m.show_line_of(m.get('ina.INa'))
@@ -1650,7 +1650,7 @@ class ModelTest(unittest.TestCase):
 
     def test_suggest(self):
         """
-        Tests :meth:`Model.suggest(variable_name)`.
+        Test :meth:`Model.suggest(variable_name)`.
         """
         m = myokit.Model()
         c1 = m.add_component('c1')
@@ -1687,7 +1687,7 @@ class ModelTest(unittest.TestCase):
 
     def test_validate_and_remove_unused_variables(self):
         """
-        Tests :class:`Model.validate` with ``remove_unused_variables=True``.
+        Test :class:`Model.validate` with ``remove_unused_variables=True``.
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -1716,7 +1716,7 @@ class ModelTest(unittest.TestCase):
 
     def test_value(self):
         """
-        Tests :meth:`Model.value()`.
+        Test :meth:`Model.value()`.
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -1727,7 +1727,7 @@ class ModelTest(unittest.TestCase):
 
     def test_item_at_text_position(self):
         """
-        Tests :meth:`Model.item_at_text_position()`.
+        Test :meth:`Model.item_at_text_position()`.
         """
         text = [
             '[[model]]',        # 1
@@ -1784,7 +1784,7 @@ class ComponentTest(unittest.TestCase):
     Tests parts of :class:`myokit.Component`.
     """
     def test_alias_methods(self):
-        """ Tests various methods to do with aliases. """
+        """ Test various methods to do with aliases. """
 
         # Proper use of add_alias
         m = myokit.Model()
@@ -1817,7 +1817,7 @@ class ComponentTest(unittest.TestCase):
         self.assertFalse(c2.has_alias_for(a))
 
     def test_add_alias_errors(self):
-        """ Tests error handling in :meth:`Component.add_alias()`. """
+        """ Test error handling in :meth:`Component.add_alias()`. """
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
@@ -1848,7 +1848,7 @@ class VariableTest(unittest.TestCase):
     Tests parts of :class:`myokit.Variable`.
     """
     def test_unit(self):
-        """ Tests :meth:`Variable.unit()`. """
+        """ Test :meth:`Variable.unit()`. """
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
@@ -1871,7 +1871,7 @@ class VariableTest(unittest.TestCase):
 
     def test_promote_demote(self):
         """
-        Tests variable promotion and demotion.
+        Test variable promotion and demotion.
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -1931,7 +1931,7 @@ class VariableTest(unittest.TestCase):
 
     def test_labelling(self):
         """
-        Tests variable labelling.
+        Test variable labelling.
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -1948,7 +1948,7 @@ class VariableTest(unittest.TestCase):
         self.assertIsNone(v.label())
 
     def test_is_referenced(self):
-        """ Tests :meth:`Variable.is_referenced(). """
+        """ Test :meth:`Variable.is_referenced(). """
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
@@ -1975,7 +1975,7 @@ class VariableTest(unittest.TestCase):
         self.assertFalse(v.is_referenced())
 
     def test_refs_by_and_to(self):
-        """ Tests :meth:`Variable.is_referenced(). """
+        """ Test :meth:`Variable.is_referenced(). """
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
@@ -2137,7 +2137,7 @@ class VariableTest(unittest.TestCase):
         self.assertRaises(myokit.CyclicalDependencyError, m.validate)
 
     def test_pyfunc(self):
-        """ Tests :meth:`Variable.pyfunc(). """
+        """ Test :meth:`Variable.pyfunc(). """
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
@@ -2187,7 +2187,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(args, (myokit.Name(x), myokit.Name(y)))
 
     def test_rename(self):
-        """ Tests :meth:`Variable.rename(). """
+        """ Test :meth:`Variable.rename(). """
         # The functional part of this is done by Component.move_variable, so no
         # extensive testing is required
         m = myokit.Model()
@@ -2198,7 +2198,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(v.qname(), 'c.w')
 
     def test_set_state_value(self):
-        """ Tests :meth:`Variable.set_state_value()`. """
+        """ Test :meth:`Variable.set_state_value()`. """
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
@@ -2223,7 +2223,7 @@ class VariableTest(unittest.TestCase):
             myokit.NonLiteralValueError, v.set_state_value, w.lhs())
 
     def test_set_unit(self):
-        """ Tests :meth:`Variable.set_unit()`. """
+        """ Test :meth:`Variable.set_unit()`. """
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
@@ -2245,7 +2245,7 @@ class VariableTest(unittest.TestCase):
             TypeError, 'expects a myokit.Unit', v.set_unit, 12)
 
     def test_validate(self):
-        """ Tests some edge cases for validation. """
+        """ Test some edge cases for validation. """
 
         # Test scope rule:
         # Variables are allowed access all children of their ancestors
@@ -2264,7 +2264,7 @@ class VariableTest(unittest.TestCase):
         self.assertRaises(myokit.IllegalReferenceError, p121.validate)
 
     def test_value(self):
-        """ Tests :meth:`Variable.value()`. """
+        """ Test :meth:`Variable.value()`. """
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
@@ -2277,7 +2277,7 @@ class UserFunctionTest(unittest.TestCase):
     Tests :class:`UserFunction`.
     """
     def test_user_function(self):
-        """ Tests :class:`UserFunction` creation and methods. """
+        """ Test :class:`UserFunction` creation and methods. """
 
         # Create without arguments
         f = myokit.UserFunction('bert', [], myokit.Number(12))
@@ -2317,13 +2317,13 @@ class EquationTest(unittest.TestCase):
     Tests :class:`myokit.Equation`.
     """
     def test_creation(self):
-        """ Tests creation of equations. """
+        """ Test creation of equations. """
         lhs = myokit.Name('x')
         rhs = myokit.Number('3')
         myokit.Equation(lhs, rhs)
 
     def test_eq(self):
-        """ Tests equality checking. """
+        """ Test equality checking. """
         eq1 = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
         eq2 = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
         self.assertEqual(eq1, eq2)
@@ -2348,18 +2348,18 @@ class EquationTest(unittest.TestCase):
         self.assertNotEqual(eq2, eq1)
 
     def test_code(self):
-        """ Tests :meth:`Equation.code()`. """
+        """ Test :meth:`Equation.code()`. """
         eq = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
         self.assertEqual(eq.code(), 'str:x = 3')
         self.assertEqual(eq.code(), str(eq))
 
     def test_hash(self):
-        """ Tests that equations can be hashed. """
+        """ Test that equations can be hashed. """
         # No exception = pass
         hash(myokit.Equation(myokit.Name('x'), myokit.Number('3')))
 
     def test_iter(self):
-        """ Tests iteration over an equation. """
+        """ Test iteration over an equation. """
         lhs = myokit.Name('x')
         rhs = myokit.Number('3')
         eq = myokit.Equation(lhs, rhs)

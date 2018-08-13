@@ -28,7 +28,7 @@ class LibPlotTest(unittest.TestCase):
 
     def test_simulation_times(self):
         """
-        Tests the simulation times() plots (has several modes).
+        Test the simulation times() plots (has several modes).
         """
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
@@ -89,7 +89,7 @@ class LibPlotTest(unittest.TestCase):
 
     def test_current_arrows(self):
         """
-        Tests the current arrows plot.
+        Test the current arrows plot.
         """
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
@@ -122,7 +122,7 @@ class LibPlotTest(unittest.TestCase):
 
     def test_cumulative_current(self):
         """
-        Tests the cumulative current plot.
+        Test the cumulative current plot.
         """
         # Select matplotlib backend that doesn't require a screen
         import matplotlib

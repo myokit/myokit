@@ -44,7 +44,7 @@ class WcpTest(unittest.TestCase):
 
     def test_data_log_conversion(self):
         """
-        Tests conversion to a data log.
+        Test conversion to a data log.
         """
         w = wcp.WcpFile(os.path.join(DIR_FORMATS, 'wcp-file.wcp'))
         d = w.myokit_log()
@@ -58,7 +58,7 @@ class WcpTest(unittest.TestCase):
 
     def test_plot_method(self):
         """
-        Tests the plot method.
+        Test the plot method.
         """
         # Select matplotlib backend that doesn't require a screen
         import matplotlib

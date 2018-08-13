@@ -69,7 +69,7 @@ class TestConfig(unittest.TestCase):
 
     def test_create(self):
         """
-        Tests if the `_create` method works.
+        Test if the `_create` method works.
         """
         # Import hidden _config module
         path = sys.path
@@ -88,7 +88,7 @@ class TestConfig(unittest.TestCase):
 
     def test_load_read(self):
         """
-        Tests if the `_load` method works, when a config file exists.
+        Test if the `_load` method works, when a config file exists.
         """
         # Import hidden _config module
         path = sys.path

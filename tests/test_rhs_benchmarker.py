@@ -27,7 +27,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
     Tests :class:`RhsBenchmarker`.
     """
     def test_simple(self):
-        """ Tests basic functionality. """
+        """ Test basic functionality. """
 
         # Create test model
         m = myokit.Model('test')
@@ -62,7 +62,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
         mean, std = b.mean_std(t)
 
     def test_bad_log(self):
-        """ Tests error handling when unsuitable log is used. """
+        """ Test error handling when unsuitable log is used. """
 
         # Create test model
         m = myokit.Model('test')
@@ -100,7 +100,7 @@ class RhsBenchmarkerTest(unittest.TestCase):
             ValueError, 'same length', b.bench_full, d, 1)
 
     def test_creation(self):
-        """ Tests Benchmarker creation. """
+        """ Test Benchmarker creation. """
         # Create test model
         m = myokit.Model('test')
         c = m.add_component('c')

@@ -33,7 +33,7 @@ class PacingTest(unittest.TestCase):
 
     def test_event_creation(self):
         """
-        Tests the basics of creating events.
+        Test the basics of creating events.
         """
         # Invalid event specifications
         def create(start, duration, period=0, multiplier=0):
@@ -57,7 +57,7 @@ class PacingTest(unittest.TestCase):
 
     def test_protocol_creation(self):
         """
-        Tests the basics of creating a protocol
+        Test the basics of creating a protocol
         """
         p = myokit.Protocol()
         self.assertIsNone(p.head())
@@ -100,7 +100,7 @@ class PacingTest(unittest.TestCase):
 
     def test_characteristic_time(self):
         """
-        Tests characteristic_time determination.
+        Test characteristic_time determination.
         """
         # Singular event
         e = myokit.ProtocolEvent(1, 100, 0.5, 0, 0)
@@ -140,7 +140,7 @@ class PacingTest(unittest.TestCase):
 
     def test_pacing_system(self):
         """
-        Tests if the pacing systems works correctly.
+        Test if the pacing systems works correctly.
         """
         # Test basics
         p = myokit.Protocol()
@@ -241,7 +241,7 @@ class PacingTest(unittest.TestCase):
 
     def test_create_log_for_times(self):
         """
-        Tests the method Protocol.create_log_for_times()
+        Test the method Protocol.create_log_for_times()
         """
         p = myokit.Protocol()
         #          level, self.characteristic_time(), duration
@@ -272,7 +272,7 @@ class PacingTest(unittest.TestCase):
 
     def test_in_words(self):
         """
-        Tests :meth:`Protocol.in_words()`.
+        Test :meth:`Protocol.in_words()`.
         """
         p = myokit.Protocol()
         self.assertEqual(p.in_words(), 'Empty protocol.')
@@ -314,7 +314,7 @@ class PacingTest(unittest.TestCase):
 
     def test_event_based_pacing_ansic(self):
         """
-        Tests the Ansi-C event-based pacing system.
+        Test the Ansi-C event-based pacing system.
         """
         # Test basics
         p = myokit.Protocol()
@@ -403,7 +403,7 @@ class PacingTest(unittest.TestCase):
 
     def test_fixed_form_pacing_ansic(self):
         """
-        Tests the Ansi-C fixed-form pacing system.
+        Test the Ansi-C fixed-form pacing system.
         """
         if False:
             # Graphical test, just for playing with the pacing system
@@ -473,7 +473,7 @@ class PacingTest(unittest.TestCase):
         test(5.5, 10.25)
 
     def test_is_infinite(self):
-        """ Tests :meth:`Protocol.is_infinite(). """
+        """ Test :meth:`Protocol.is_infinite(). """
         p = myokit.Protocol()
         self.assertFalse(p.is_infinite())
 
@@ -487,7 +487,7 @@ class PacingTest(unittest.TestCase):
         self.assertTrue(p.is_infinite())
 
     def test_is_sequence(self):
-        """ Tests :meth:`Protocol.is_sequence(). """
+        """ Test :meth:`Protocol.is_sequence(). """
         p = myokit.Protocol()
         self.assertTrue(p.is_sequence())
         self.assertTrue(p.is_sequence(True))
@@ -560,7 +560,7 @@ class PacingTest(unittest.TestCase):
         self.assertTrue(p.is_unbroken_sequence(True))
 
     def test_levels(self):
-        """ Tests :meth:`Protocol.levels(). """
+        """ Test :meth:`Protocol.levels(). """
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 0, 0)
         p.schedule(3, 110, 310, 0, 0)
@@ -569,7 +569,7 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(p.levels(), [2, 3, 1])
 
     def test_range(self):
-        """ Tests :meth:`Protocol.range(). """
+        """ Test :meth:`Protocol.range(). """
         p = myokit.Protocol()
         self.assertEqual(p.range(), (0, 0))
 
@@ -588,7 +588,7 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(p.range(), (1, 3))
 
     def test_protocol_to_string(self):
-        """ Tests str(protocol). """
+        """ Test str(protocol). """
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 0, 0)
         p.schedule(3, 110, 310, 0, 0)
@@ -597,7 +597,7 @@ class PacingTest(unittest.TestCase):
 
     def test_tail(self):
         """
-        Tests :meth:`Protocol.tail()`, which returns the final protocol event.
+        Test :meth:`Protocol.tail()`, which returns the final protocol event.
         """
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 0, 0)

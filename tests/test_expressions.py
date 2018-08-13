@@ -32,7 +32,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_contains_type(self):
         """
-        Tests :meth:`Expression.contains_type`.
+        Test :meth:`Expression.contains_type`.
         """
         self.assertTrue(myokit.Name('x').contains_type(myokit.Name))
         self.assertFalse(myokit.Name('x').contains_type(myokit.Number))
@@ -53,7 +53,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_eval(self):
         """
-        Tests :meth:`Expression.eval()`.
+        Test :meth:`Expression.eval()`.
         """
         # Test basic use
         e = myokit.parse_expression('1 + 1 + 1')
@@ -143,7 +143,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_eval_unit_error(self):
         """
-        Tests error handling for eval_unit.
+        Test error handling for eval_unit.
         """
         x = myokit.parse_expression('1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
         with self.assertRaises(myokit.IncompatibleUnitError) as e:
@@ -155,7 +155,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_int_conversion(self):
         """
-        Tests conversion of expressions to int.
+        Test conversion of expressions to int.
         """
         x = myokit.parse_expression('1 + 2 + 3')
         self.assertEqual(int(x), 6)
@@ -164,7 +164,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_float_conversion(self):
         """
-        Tests conversion of expressions to float.
+        Test conversion of expressions to float.
         """
         x = myokit.parse_expression('1 + 2 + 3')
         self.assertEqual(int(x), 6)
@@ -173,7 +173,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_is_conditional(self):
         """
-        Tests :meth:`Expression.is_conditional().`.
+        Test :meth:`Expression.is_conditional().`.
         """
         pe = myokit.parse_expression
         self.assertFalse(pe('1 + 2 + 3').is_conditional())
@@ -182,7 +182,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_pyfunc(self):
         """
-        Tests the pyfunc() method.
+        Test the pyfunc() method.
         """
         # Note: Extensive testing happens in pywriter / numpywriter tests!
         x = myokit.parse_expression('3 * sqrt(v)')
@@ -198,7 +198,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_pystr(self):
         """
-        Tests the pystr() method.
+        Test the pystr() method.
         """
         # Note: Extensive testing happens in pywriter / numpywriter tests!
         x = myokit.parse_expression('3 * sqrt(v)')
@@ -207,7 +207,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_tree_str(self):
         """
-        Tests :meth:`Expression.tree_str()`.
+        Test :meth:`Expression.tree_str()`.
         More extensive testing of this method should happen in the individual
         expression tests.
         """
@@ -225,7 +225,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_validation(self):
         """
-        Tests :meth:`Expression.validate()`.
+        Test :meth:`Expression.validate()`.
         """
         e = myokit.parse_expression('5 + 2 * exp(3 / (1 + 2))')
         e.validate()
@@ -245,7 +245,7 @@ class ExpressionTest(unittest.TestCase):
 
     def test_walk(self):
         """
-        Tests :meth:`Expression.walk().
+        Test :meth:`Expression.walk().
         """
         e = myokit.parse_expression('1 / (2 + exp(3 + sqrt(4)))')
         w = list(e.walk())
@@ -281,7 +281,7 @@ class NumberTest(unittest.TestCase):
 
     def test_basic(self):
         """
-        Tests construction, other basics.
+        Test construction, other basics.
         """
         # Test myokit.Number creation and representation
         x = myokit.Number(-4.0)
@@ -340,7 +340,7 @@ class NumberTest(unittest.TestCase):
         self.assertRaisesRegex(ValueError, 'unit', myokit.Number, q, 'kg')
 
     def test_bracket(self):
-        """ Tests Number.bracket(). """
+        """ Test Number.bracket(). """
         # Never needs a bracket
         x = myokit.Number(2)
         self.assertFalse(x.bracket())
@@ -349,7 +349,7 @@ class NumberTest(unittest.TestCase):
         self.assertRaises(ValueError, x.bracket, myokit.Number(2))
 
     def test_clone(self):
-        """ Tests Number.clone(). """
+        """ Test Number.clone(). """
         x = myokit.Number(2)
         y = x.clone()
         self.assertIsNot(x, y)
@@ -362,7 +362,7 @@ class NumberTest(unittest.TestCase):
 
     def test_eval(self):
         """
-        Tests evaluation (with single precision).
+        Test evaluation (with single precision).
         """
         x = myokit.Number(2)
         self.assertEqual(type(x.eval()), float)
@@ -371,7 +371,7 @@ class NumberTest(unittest.TestCase):
 
     def test_eval_unit(self):
         """
-        Tests Number eval_unit.
+        Test Number eval_unit.
         """
         # Test in tolerant mode
         x = myokit.Number(3)
@@ -385,7 +385,7 @@ class NumberTest(unittest.TestCase):
         self.assertEqual(y.eval_unit(myokit.UNIT_STRICT), myokit.units.ampere)
 
     def test_tree_str(self):
-        """ Tests Number.tree_str() """
+        """ Test Number.tree_str() """
         # Test simple
         x = myokit.Number(1)
         self.assertEqual(x.tree_str(), '1\n')
@@ -402,7 +402,7 @@ class NameTest(unittest.TestCase):
 
     def test_basics(self):
         """
-        Tests creation, representation,
+        Test creation, representation,
         """
         model = myokit.Model()
         component = model.add_component('c')
@@ -473,7 +473,7 @@ class NameTest(unittest.TestCase):
         self.assertFalse(y.is_state_value())
 
     def test_bracket(self):
-        """ Tests Name.bracket(). """
+        """ Test Name.bracket(). """
         # Never needs a bracket
         x = myokit.Name('hi')
         self.assertFalse(x.bracket())
@@ -482,7 +482,7 @@ class NameTest(unittest.TestCase):
         self.assertRaises(ValueError, x.bracket, myokit.Number(2))
 
     def test_clone(self):
-        """ Tests Name.clone(). """
+        """ Test Name.clone(). """
         m = myokit.Model()
         c = m.add_component('c')
         vx = c.add_variable('x')
@@ -529,7 +529,7 @@ class NameTest(unittest.TestCase):
 
     def test_eval_unit(self):
         """
-        Tests Name eval_unit.
+        Test Name eval_unit.
         """
         # Mini model
         m = myokit.Model()
@@ -568,7 +568,7 @@ class NameTest(unittest.TestCase):
 
     def test_rhs(self):
         """
-        Tests Name.rhs().
+        Test Name.rhs().
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -579,7 +579,7 @@ class NameTest(unittest.TestCase):
         self.assertEqual(x.rhs().eval(), 5)
 
     def test_tree_str(self):
-        """ Tests Name.tree_str() """
+        """ Test Name.tree_str() """
         # Test simple
         x = myokit.Name('y')
         self.assertEqual(x.tree_str(), 'y\n')
@@ -595,7 +595,7 @@ class DerivativeTest(unittest.TestCase):
     """
     def test_basic(self):
         """
-        Tests creation.
+        Test creation.
         """
         m = myokit.Model()
         c = m.add_component('c')
@@ -621,13 +621,13 @@ class DerivativeTest(unittest.TestCase):
             myokit.Number(1))
 
     def test_bracket(self):
-        """ Tests Derivative.bracket() """
+        """ Test Derivative.bracket() """
         x = myokit.Derivative(myokit.Name('x'))
         self.assertFalse(x.bracket(myokit.Name('x')))
         self.assertRaises(ValueError, x.bracket, myokit.Number(1))
 
     def test_clone(self):
-        """ Tests Derivative.clone(). """
+        """ Test Derivative.clone(). """
         x = myokit.Derivative(myokit.Name('x'))
         y = x.clone()
         self.assertIsNot(y, x)
@@ -649,7 +649,7 @@ class DerivativeTest(unittest.TestCase):
         self.assertEqual(y, myokit.Derivative(j))
 
     def test_eval_unit(self):
-        """ Tests Derivative.eval_unit() """
+        """ Test Derivative.eval_unit() """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -687,7 +687,7 @@ class DerivativeTest(unittest.TestCase):
         self.assertEqual(d.eval_unit(s), myokit.units.volt)
 
     def test_rhs(self):
-        """ Tests Derivative.rhs() """
+        """ Test Derivative.rhs() """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -700,7 +700,7 @@ class DerivativeTest(unittest.TestCase):
         self.assertEqual(d.rhs(), x.rhs())
 
     def test_tree_str(self):
-        """ Tests Derivative.tree_str() """
+        """ Test Derivative.tree_str() """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -724,7 +724,7 @@ class PrefixPlusTest(unittest.TestCase):
     Tests myokit.PrefixPlus.
     """
     def test_clone(self):
-        """ Tests PrefixPlus.clone(). """
+        """ Test PrefixPlus.clone(). """
         x = myokit.PrefixPlus(myokit.Number(3))
         y = x.clone()
         self.assertIsNot(y, x)
@@ -746,7 +746,7 @@ class PrefixPlusTest(unittest.TestCase):
         self.assertEqual(y, myokit.PrefixPlus(j))
 
     def test_bracket(self):
-        """ Tests PrefixPlus.bracket(). """
+        """ Test PrefixPlus.bracket(). """
         i = myokit.Number(1)
         x = myokit.PrefixPlus(i)
         self.assertFalse(x.bracket(i))
@@ -757,14 +757,14 @@ class PrefixPlusTest(unittest.TestCase):
 
     def test_eval(self):
         """
-        Tests PrefixPlus evaluation.
+        Test PrefixPlus evaluation.
         """
         x = myokit.PrefixPlus(myokit.Number(2))
         self.assertEqual(x.eval(), 2)
 
     def test_eval_unit(self):
         """
-        Tests PrefixPlus.eval_unit().
+        Test PrefixPlus.eval_unit().
         """
         # Mini model
         m = myokit.Model()
@@ -785,7 +785,7 @@ class PrefixPlusTest(unittest.TestCase):
             y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
-        """ Tests PrefixPlus.tree_str() """
+        """ Test PrefixPlus.tree_str() """
         # Test simple
         x = myokit.PrefixPlus(myokit.Number(1))
         self.assertEqual(x.tree_str(), '+\n  1\n')
@@ -802,7 +802,7 @@ class PrefixMinusTest(unittest.TestCase):
     Tests myokit.PrefixMinus.
     """
     def test_clone(self):
-        """ Tests PrefixMinus.clone(). """
+        """ Test PrefixMinus.clone(). """
         x = myokit.PrefixMinus(myokit.Number(3))
         y = x.clone()
         self.assertIsNot(y, x)
@@ -824,7 +824,7 @@ class PrefixMinusTest(unittest.TestCase):
         self.assertEqual(y, myokit.PrefixMinus(j))
 
     def test_bracket(self):
-        """ Tests PrefixMinus.bracket(). """
+        """ Test PrefixMinus.bracket(). """
         i = myokit.Number(1)
         x = myokit.PrefixMinus(i)
         self.assertFalse(x.bracket(i))
@@ -835,14 +835,14 @@ class PrefixMinusTest(unittest.TestCase):
 
     def test_eval(self):
         """
-        Tests PrefixMinus evaluation.
+        Test PrefixMinus evaluation.
         """
         x = myokit.PrefixMinus(myokit.Number(2))
         self.assertEqual(x.eval(), -2)
 
     def test_eval_unit(self):
         """
-        Tests PrefixMinus.eval_unit().
+        Test PrefixMinus.eval_unit().
         """
         # Mini model
         m = myokit.Model()
@@ -863,7 +863,7 @@ class PrefixMinusTest(unittest.TestCase):
             y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
-        """ Tests PrefixMinus.tree_str() """
+        """ Test PrefixMinus.tree_str() """
         # Test simple
         x = myokit.PrefixMinus(myokit.Number(1))
         self.assertEqual(x.tree_str(), '-\n  1\n')
@@ -880,7 +880,7 @@ class PlusTest(unittest.TestCase):
     Tests myokit.Plus.
     """
     def test_clone(self):
-        """ Tests Plus.clone(). """
+        """ Test Plus.clone(). """
         i = myokit.Number(3)
         j = myokit.Number(4)
         x = myokit.Plus(i, j)
@@ -905,7 +905,7 @@ class PlusTest(unittest.TestCase):
         self.assertEqual(y, myokit.Plus(i, i))
 
     def test_bracket(self):
-        """ Tests Plus.bracket(). """
+        """ Test Plus.bracket(). """
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
         x = myokit.Plus(i, j)
@@ -915,7 +915,7 @@ class PlusTest(unittest.TestCase):
 
     def test_eval(self):
         """
-        Tests Plus evaluation.
+        Test Plus evaluation.
         """
         x = myokit.Plus(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.eval(), 3)
@@ -923,7 +923,7 @@ class PlusTest(unittest.TestCase):
         self.assertEqual(x.eval(), -1)
 
     def test_eval_unit(self):
-        """ Tests Plus.eval_unit(). """
+        """ Test Plus.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -964,7 +964,7 @@ class PlusTest(unittest.TestCase):
             z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Plus.tree_str(). """
+        """ Test Plus.tree_str(). """
         # Test simple
         x = myokit.Plus(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '+\n  1\n  2\n')
@@ -982,13 +982,13 @@ class MinusTest(unittest.TestCase):
     """
     def test_eval(self):
         """
-        Tests Minus evaluation.
+        Test Minus evaluation.
         """
         x = myokit.Minus(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.eval(), -1)
 
     def test_eval_unit(self):
-        """ Tests Minus.eval_unit(). """
+        """ Test Minus.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -1029,7 +1029,7 @@ class MinusTest(unittest.TestCase):
             z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Minus.tree_str(). """
+        """ Test Minus.tree_str(). """
         # Test simple
         x = myokit.Minus(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '-\n  1\n  2\n')
@@ -1047,13 +1047,13 @@ class MultiplyTest(unittest.TestCase):
     """
     def test_eval(self):
         """
-        Tests Multiply evaluation.
+        Test Multiply evaluation.
         """
         x = myokit.Multiply(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.eval(), 2)
 
     def test_eval_unit(self):
-        """ Tests Multiply.eval_unit(). """
+        """ Test Multiply.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -1095,7 +1095,7 @@ class MultiplyTest(unittest.TestCase):
             z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Multiply.tree_str(). """
+        """ Test Multiply.tree_str(). """
         # Test simple
         x = myokit.Multiply(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '*\n  1\n  2\n')
@@ -1112,7 +1112,7 @@ class DivideTest(unittest.TestCase):
     Tests myokit.Divide.
     """
     def test_tree_str(self):
-        """ Tests Divide.tree_str(). """
+        """ Test Divide.tree_str(). """
         # Test simple
         x = myokit.Divide(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '/\n  1\n  2\n')
@@ -1125,13 +1125,13 @@ class DivideTest(unittest.TestCase):
 
     def test_eval(self):
         """
-        Tests Divide evaluation.
+        Test Divide evaluation.
         """
         x = myokit.Divide(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.eval(), 0.5)
 
     def test_eval_unit(self):
-        """ Tests Divide.eval_unit(). """
+        """ Test Divide.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -1179,13 +1179,13 @@ class QuotientTest(unittest.TestCase):
     """
     def test_eval(self):
         """
-        Tests Quotient evaluation.
+        Test Quotient evaluation.
         """
         x = myokit.Quotient(myokit.Number(7), myokit.Number(2))
         self.assertEqual(x.eval(), 3.0)
 
     def test_eval_unit(self):
-        """ Tests Quotient.eval_unit(). """
+        """ Test Quotient.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -1227,7 +1227,7 @@ class QuotientTest(unittest.TestCase):
             z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Quotient.tree_str(). """
+        """ Test Quotient.tree_str(). """
         # Test simple
         x = myokit.Quotient(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '//\n  1\n  2\n')
@@ -1245,13 +1245,13 @@ class RemainderTest(unittest.TestCase):
     """
     def test_eval(self):
         """
-        Tests Divide evaluation.
+        Test Divide evaluation.
         """
         x = myokit.Remainder(myokit.Number(7), myokit.Number(4))
         self.assertEqual(x.eval(), 3.0)
 
     def test_eval_unit(self):
-        """ Tests Remainder.eval_unit(). """
+        """ Test Remainder.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -1293,7 +1293,7 @@ class RemainderTest(unittest.TestCase):
             z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Remainder.tree_str(). """
+        """ Test Remainder.tree_str(). """
         # Test simple
         x = myokit.Remainder(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '%\n  1\n  2\n')
@@ -1310,7 +1310,7 @@ class PowerTest(unittest.TestCase):
     Tests myokit.Power.
     """
     def test_clone(self):
-        """ Tests Power.clone(). """
+        """ Test Power.clone(). """
         i = myokit.Number(3)
         j = myokit.Number(4)
         x = myokit.Power(i, j)
@@ -1335,7 +1335,7 @@ class PowerTest(unittest.TestCase):
         self.assertEqual(y, myokit.Power(i, i))
 
     def test_bracket(self):
-        """ Tests Power.bracket(). """
+        """ Test Power.bracket(). """
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
         x = myokit.Power(i, j)
@@ -1345,7 +1345,7 @@ class PowerTest(unittest.TestCase):
 
     def test_eval(self):
         """
-        Tests Power evaluation.
+        Test Power evaluation.
         """
         x = myokit.Power(myokit.Number(2), myokit.Number(3))
         self.assertEqual(x.eval(), 8)
@@ -1354,7 +1354,7 @@ class PowerTest(unittest.TestCase):
         self.assertEqual(x.eval(), 0.5)
 
     def test_eval_unit(self):
-        """ Tests Power.eval_unit(). """
+        """ Test Power.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -1394,7 +1394,7 @@ class PowerTest(unittest.TestCase):
             z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Power.tree_str(). """
+        """ Test Power.tree_str(). """
         # Test simple
         x = myokit.Power(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '^\n  1\n  2\n')
@@ -1411,14 +1411,14 @@ class SqrtTest(unittest.TestCase):
     Tests myokit.Sqrt.
     """
     def test_creation(self):
-        """ Tests Sqrt creation. """
+        """ Test Sqrt creation. """
         myokit.Sqrt(myokit.Number(1))
         self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Sqrt,
             myokit.Number(1), myokit.Number(2))
 
     def test_clone(self):
-        """ Tests Sqrt.clone(). """
+        """ Test Sqrt.clone(). """
         i = myokit.Number(3)
         j = myokit.Number(10)
         x = myokit.Sqrt(i)
@@ -1439,7 +1439,7 @@ class SqrtTest(unittest.TestCase):
         self.assertEqual(y, z)
 
     def test_bracket(self):
-        """ Tests Sqrt.bracket(). """
+        """ Test Sqrt.bracket(). """
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
         x = myokit.Sqrt(i)
@@ -1450,13 +1450,13 @@ class SqrtTest(unittest.TestCase):
 
     def test_eval(self):
         """
-        Tests Sqrt evaluation.
+        Test Sqrt evaluation.
         """
         x = myokit.Sqrt(myokit.Number(9))
         self.assertEqual(x.eval(), 3)
 
     def test_eval_unit(self):
-        """ Tests Sqrt.eval_unit(). """
+        """ Test Sqrt.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -1489,7 +1489,7 @@ class SqrtTest(unittest.TestCase):
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Sqrt.tree_str(). """
+        """ Test Sqrt.tree_str(). """
         # Test simple
         x = myokit.Sqrt(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'sqrt\n  2\n')
@@ -1506,14 +1506,14 @@ class ExpTest(unittest.TestCase):
     Tests myokit.Exp.
     """
     def test_creation(self):
-        """ Tests Exp creation. """
+        """ Test Exp creation. """
         myokit.Exp(myokit.Number(1))
         self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Exp,
             myokit.Number(1), myokit.Number(2))
 
     def test_clone(self):
-        """ Tests Exp.clone(). """
+        """ Test Exp.clone(). """
         i = myokit.Number(3)
         j = myokit.Number(10)
         x = myokit.Exp(i)
@@ -1534,7 +1534,7 @@ class ExpTest(unittest.TestCase):
         self.assertEqual(y, z)
 
     def test_bracket(self):
-        """ Tests Exp.bracket(). """
+        """ Test Exp.bracket(). """
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
         x = myokit.Exp(i)
@@ -1544,12 +1544,12 @@ class ExpTest(unittest.TestCase):
         self.assertRaises(ValueError, x.bracket, myokit.Number(3))
 
     def test_eval(self):
-        """ Tests Exp.eval(). """
+        """ Test Exp.eval(). """
         x = myokit.Exp(myokit.Number(9))
         self.assertEqual(x.eval(), np.exp(9))
 
     def test_eval_unit(self):
-        """ Tests Exp.eval_unit(). """
+        """ Test Exp.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -1576,7 +1576,7 @@ class ExpTest(unittest.TestCase):
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Exp.tree_str(). """
+        """ Test Exp.tree_str(). """
         # Test simple
         x = myokit.Exp(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'exp\n  2\n')
@@ -1593,7 +1593,7 @@ class LogTest(unittest.TestCase):
     Tests myokit.Log.
     """
     def test_creation(self):
-        """ Tests Log creation. """
+        """ Test Log creation. """
         myokit.Log(myokit.Number(1))
         myokit.Log(myokit.Number(1), myokit.Number(2))
         self.assertRaisesRegex(
@@ -1601,7 +1601,7 @@ class LogTest(unittest.TestCase):
             myokit.Number(1), myokit.Number(2), myokit.Number(3))
 
     def test_clone(self):
-        """ Tests Log.clone(). """
+        """ Test Log.clone(). """
         # Test with one operand
         i = myokit.Number(3)
         j = myokit.Number(10)
@@ -1645,7 +1645,7 @@ class LogTest(unittest.TestCase):
         self.assertEqual(y, myokit.Log(i, i))
 
     def test_bracket(self):
-        """ Tests Log.bracket(). """
+        """ Test Log.bracket(). """
         i = myokit.Number(1)
         j = myokit.parse_expression('1 + 2')
 
@@ -1663,7 +1663,7 @@ class LogTest(unittest.TestCase):
         self.assertRaises(ValueError, x.bracket, myokit.Number(3))
 
     def test_eval(self):
-        """ Tests Exp.eval(). """
+        """ Test Exp.eval(). """
         # One argument
         x = myokit.Log(myokit.Number(9))
         self.assertEqual(x.eval(), np.log(9))
@@ -1673,7 +1673,7 @@ class LogTest(unittest.TestCase):
         self.assertEqual(x.eval(), np.log(9) / np.log(5))
 
     def test_eval_unit(self):
-        """ Tests Log.eval_unit(). """
+        """ Test Log.eval_unit(). """
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -1736,7 +1736,7 @@ class LogTest(unittest.TestCase):
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Log.tree_str(). """
+        """ Test Log.tree_str(). """
         # Test simple
         x = myokit.Log(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'log\n  2\n')
@@ -1753,12 +1753,12 @@ class Log10Test(unittest.TestCase):
     Tests myokit.Log10.
     """
     def test_eval(self):
-        """ Tests Log10.eval(). """
+        """ Test Log10.eval(). """
         x = myokit.Log10(myokit.Number(9))
         self.assertEqual(x.eval(), np.log10(9))
 
     def test_tree_str(self):
-        """ Tests Log10.tree_str(). """
+        """ Test Log10.tree_str(). """
         x = myokit.Log10(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'log10\n  2\n')
 
@@ -1768,12 +1768,12 @@ class SinTest(unittest.TestCase):
     Tests myokit.Sin.
     """
     def test_eval(self):
-        """ Tests Sin.eval(). """
+        """ Test Sin.eval(). """
         x = myokit.Sin(myokit.Number(9))
         self.assertEqual(x.eval(), np.sin(9))
 
     def test_tree_str(self):
-        """ Tests Sin.tree_str(). """
+        """ Test Sin.tree_str(). """
         x = myokit.Sin(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'sin\n  2\n')
 
@@ -1783,12 +1783,12 @@ class CosTest(unittest.TestCase):
     Tests myokit.Cos.
     """
     def test_eval(self):
-        """ Tests Cos.eval(). """
+        """ Test Cos.eval(). """
         x = myokit.Cos(myokit.Number(9))
         self.assertEqual(x.eval(), np.cos(9))
 
     def test_tree_str(self):
-        """ Tests Cos.tree_str(). """
+        """ Test Cos.tree_str(). """
         x = myokit.Cos(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'cos\n  2\n')
 
@@ -1798,12 +1798,12 @@ class TanTest(unittest.TestCase):
     Tests myokit.Tan.
     """
     def test_eval(self):
-        """ Tests Tan.eval(). """
+        """ Test Tan.eval(). """
         x = myokit.Tan(myokit.Number(9))
         self.assertEqual(x.eval(), np.tan(9))
 
     def test_tree_str(self):
-        """ Tests Tan.tree_str(). """
+        """ Test Tan.tree_str(). """
         x = myokit.Tan(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'tan\n  2\n')
 
@@ -1813,12 +1813,12 @@ class ASinTest(unittest.TestCase):
     Tests myokit.ASin.
     """
     def test_eval(self):
-        """ Tests ASin.eval(). """
+        """ Test ASin.eval(). """
         x = myokit.ASin(myokit.Number(0.9))
         self.assertEqual(x.eval(), np.arcsin(0.9))
 
     def test_tree_str(self):
-        """ Tests ASin.tree_str(). """
+        """ Test ASin.tree_str(). """
         x = myokit.ASin(myokit.Number(0.5))
         self.assertEqual(x.tree_str(), 'asin\n  0.5\n')
 
@@ -1828,12 +1828,12 @@ class ACosTest(unittest.TestCase):
     Tests myokit.ACos.
     """
     def test_eval(self):
-        """ Tests ACos.eval(). """
+        """ Test ACos.eval(). """
         x = myokit.ACos(myokit.Number(0.9))
         self.assertEqual(x.eval(), np.arccos(0.9))
 
     def test_tree_str(self):
-        """ Tests ACos.tree_str(). """
+        """ Test ACos.tree_str(). """
         x = myokit.ACos(myokit.Number(0.5))
         self.assertEqual(x.tree_str(), 'acos\n  0.5\n')
 
@@ -1843,12 +1843,12 @@ class ATanTest(unittest.TestCase):
     Tests myokit.ATan.
     """
     def test_eval(self):
-        """ Tests ATan.eval(). """
+        """ Test ATan.eval(). """
         x = myokit.ATan(myokit.Number(0.9))
         self.assertEqual(x.eval(), np.arctan(0.9))
 
     def test_tree_str(self):
-        """ Tests ATan.tree_str(). """
+        """ Test ATan.tree_str(). """
         x = myokit.ATan(myokit.Number(0.5))
         self.assertEqual(x.tree_str(), 'atan\n  0.5\n')
 
@@ -1858,13 +1858,13 @@ class FloorTest(unittest.TestCase):
     Tests myokit.Floor.
     """
     def test_eval(self):
-        """ Tests Floor.eval(). """
+        """ Test Floor.eval(). """
         x = myokit.Floor(myokit.Number(0.9))
         self.assertEqual(x.eval(), 0)
 
     def test_eval_unit(self):
         """
-        Tests Floor.eval_unit().
+        Test Floor.eval_unit().
         """
         # Mini model
         m = myokit.Model()
@@ -1885,7 +1885,7 @@ class FloorTest(unittest.TestCase):
             y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
-        """ Tests Floor.tree_str(). """
+        """ Test Floor.tree_str(). """
         x = myokit.Floor(myokit.Number(0.5))
         self.assertEqual(x.tree_str(), 'floor\n  0.5\n')
 
@@ -1895,13 +1895,13 @@ class CeilTest(unittest.TestCase):
     Tests myokit.Ceil.
     """
     def test_eval(self):
-        """ Tests Ceil.eval(). """
+        """ Test Ceil.eval(). """
         x = myokit.Ceil(myokit.Number(0.9))
         self.assertEqual(x.eval(), 1)
 
     def test_eval_unit(self):
         """
-        Tests Ceil.eval_unit().
+        Test Ceil.eval_unit().
         """
         # Mini model
         m = myokit.Model()
@@ -1922,7 +1922,7 @@ class CeilTest(unittest.TestCase):
             y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
-        """ Tests Ceil.tree_str(). """
+        """ Test Ceil.tree_str(). """
         x = myokit.Ceil(myokit.Number(0.5))
         self.assertEqual(x.tree_str(), 'ceil\n  0.5\n')
 
@@ -1932,7 +1932,7 @@ class AbsTest(unittest.TestCase):
     Tests myokit.Abs.
     """
     def test_eval(self):
-        """ Tests Abs.eval(). """
+        """ Test Abs.eval(). """
         x = myokit.Abs(myokit.Number(0.9))
         self.assertEqual(x.eval(), 0.9)
         x = myokit.Abs(myokit.Number(-0.9))
@@ -1940,7 +1940,7 @@ class AbsTest(unittest.TestCase):
 
     def test_eval_unit(self):
         """
-        Tests Abs.eval_unit().
+        Test Abs.eval_unit().
         """
         # Mini model
         m = myokit.Model()
@@ -1961,7 +1961,7 @@ class AbsTest(unittest.TestCase):
             y.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.Newton)
 
     def test_tree_str(self):
-        """ Tests Abs.tree_str(). """
+        """ Test Abs.tree_str(). """
         x = myokit.Abs(myokit.Number(0.5))
         self.assertEqual(x.tree_str(), 'abs\n  0.5\n')
 
@@ -1971,7 +1971,7 @@ class EqualTest(unittest.TestCase):
     Tests myokit.Equal.
     """
     def test_eval(self):
-        """ Tests Equal.eval(). """
+        """ Test Equal.eval(). """
         x = myokit.Equal(myokit.Number(1), myokit.Number(1))
         self.assertTrue(x.eval())
         x = myokit.Equal(myokit.Number(1), myokit.Number(2))
@@ -1979,7 +1979,7 @@ class EqualTest(unittest.TestCase):
 
     def test_eval_unit(self):
         """
-        Tests Equal.eval_unit().
+        Test Equal.eval_unit().
         """
         # Mini model
         m = myokit.Model()
@@ -2023,7 +2023,7 @@ class EqualTest(unittest.TestCase):
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Equal.tree_str(). """
+        """ Test Equal.tree_str(). """
         x = myokit.Equal(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '==\n  1\n  2\n')
         x = myokit.Plus(myokit.Number(3), x)
@@ -2035,14 +2035,14 @@ class NotEqualTest(unittest.TestCase):
     Tests myokit.NotEqual.
     """
     def test_eval(self):
-        """ Tests NotEqual.eval(). """
+        """ Test NotEqual.eval(). """
         x = myokit.NotEqual(myokit.Number(1), myokit.Number(1))
         self.assertFalse(x.eval())
         x = myokit.NotEqual(myokit.Number(1), myokit.Number(2))
         self.assertTrue(x.eval())
 
     def test_tree_str(self):
-        """ Tests NotEqual.tree_str(). """
+        """ Test NotEqual.tree_str(). """
         x = myokit.NotEqual(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '!=\n  1\n  2\n')
         x = myokit.Plus(myokit.Number(3), x)
@@ -2054,14 +2054,14 @@ class MoreTest(unittest.TestCase):
     Tests myokit.More.
     """
     def test_eval(self):
-        """ Tests More.eval(). """
+        """ Test More.eval(). """
         x = myokit.More(myokit.Number(1), myokit.Number(1))
         self.assertFalse(x.eval())
         x = myokit.More(myokit.Number(3), myokit.Number(2))
         self.assertTrue(x.eval())
 
     def test_tree_str(self):
-        """ Tests More.tree_str(). """
+        """ Test More.tree_str(). """
         x = myokit.More(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '>\n  1\n  2\n')
         x = myokit.Plus(myokit.Number(3), x)
@@ -2073,14 +2073,14 @@ class LessTest(unittest.TestCase):
     Tests myokit.Less.
     """
     def test_eval(self):
-        """ Tests Less.eval(). """
+        """ Test Less.eval(). """
         x = myokit.Less(myokit.Number(1), myokit.Number(1))
         self.assertFalse(x.eval())
         x = myokit.Less(myokit.Number(1), myokit.Number(2))
         self.assertTrue(x.eval())
 
     def test_tree_str(self):
-        """ Tests Less.tree_str(). """
+        """ Test Less.tree_str(). """
         x = myokit.Less(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '<\n  1\n  2\n')
         x = myokit.Plus(myokit.Number(3), x)
@@ -2092,7 +2092,7 @@ class MoreEqualTest(unittest.TestCase):
     Tests myokit.MoreEqual.
     """
     def test_eval(self):
-        """ Tests MoreEqual.eval(). """
+        """ Test MoreEqual.eval(). """
         x = myokit.MoreEqual(myokit.Number(1), myokit.Number(1))
         self.assertTrue(x.eval())
         x = myokit.MoreEqual(myokit.Number(3), myokit.Number(2))
@@ -2101,7 +2101,7 @@ class MoreEqualTest(unittest.TestCase):
         self.assertFalse(x.eval())
 
     def test_tree_str(self):
-        """ Tests MoreEqual.tree_str(). """
+        """ Test MoreEqual.tree_str(). """
         x = myokit.MoreEqual(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '>=\n  1\n  2\n')
         x = myokit.Plus(myokit.Number(3), x)
@@ -2113,7 +2113,7 @@ class LessEqualTest(unittest.TestCase):
     Tests myokit.LessEqual.
     """
     def test_eval(self):
-        """ Tests LessEqual.eval(). """
+        """ Test LessEqual.eval(). """
         x = myokit.LessEqual(myokit.Number(1), myokit.Number(1))
         self.assertTrue(x.eval())
         x = myokit.LessEqual(myokit.Number(1), myokit.Number(2))
@@ -2122,7 +2122,7 @@ class LessEqualTest(unittest.TestCase):
         self.assertFalse(x.eval())
 
     def test_tree_str(self):
-        """ Tests LessEqual.tree_str(). """
+        """ Test LessEqual.tree_str(). """
         x = myokit.LessEqual(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), '<=\n  1\n  2\n')
         x = myokit.Plus(myokit.Number(3), x)
@@ -2134,7 +2134,7 @@ class AndTest(unittest.TestCase):
     Tests myokit.And.
     """
     def test_eval(self):
-        """ Tests And.eval(). """
+        """ Test And.eval(). """
         x = myokit.And(myokit.Number(1), myokit.Number(1))
         self.assertTrue(x.eval())
         x = myokit.And(myokit.Number(0), myokit.Number(2))
@@ -2142,7 +2142,7 @@ class AndTest(unittest.TestCase):
 
     def test_eval_unit(self):
         """
-        Tests And.eval_unit().
+        Test And.eval_unit().
         """
         # Mini model
         m = myokit.Model()
@@ -2192,7 +2192,7 @@ class AndTest(unittest.TestCase):
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests And.tree_str(). """
+        """ Test And.tree_str(). """
         x = myokit.And(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), 'and\n  1\n  2\n')
         x = myokit.Plus(myokit.Number(3), x)
@@ -2204,7 +2204,7 @@ class OrTest(unittest.TestCase):
     Tests myokit.Or.
     """
     def test_eval(self):
-        """ Tests Or.eval(). """
+        """ Test Or.eval(). """
         x = myokit.Or(myokit.Number(1), myokit.Number(1))
         self.assertTrue(x.eval())
         x = myokit.Or(myokit.Number(0), myokit.Number(2))
@@ -2214,7 +2214,7 @@ class OrTest(unittest.TestCase):
 
     def test_eval_unit(self):
         """
-        Tests Or.eval_unit().
+        Test Or.eval_unit().
         """
         # Mini model
         m = myokit.Model()
@@ -2264,7 +2264,7 @@ class OrTest(unittest.TestCase):
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_tree_str(self):
-        """ Tests Or.tree_str(). """
+        """ Test Or.tree_str(). """
         x = myokit.Or(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.tree_str(), 'or\n  1\n  2\n')
         x = myokit.Plus(myokit.Number(3), x)
@@ -2276,14 +2276,14 @@ class NotTest(unittest.TestCase):
     Tests myokit.Not.
     """
     def test_code(self):
-        """ Tests Not.code(). """
+        """ Test Not.code(). """
         x = myokit.Not(myokit.Number(1))
         self.assertEqual(x.code(), 'not 1')
         x = myokit.Not(myokit.Equal(myokit.Number(1), myokit.Number(1)))
         self.assertEqual(x.code(), 'not (1 == 1)')
 
     def test_eval(self):
-        """ Tests Not.eval(). """
+        """ Test Not.eval(). """
         x = myokit.Not(myokit.Number(1))
         self.assertFalse(x.eval())
         x = myokit.Not(myokit.Number(0))
@@ -2291,7 +2291,7 @@ class NotTest(unittest.TestCase):
 
     def test_eval_unit(self):
         """
-        Tests Not.eval_unit().
+        Test Not.eval_unit().
         """
         # Mini model
         m = myokit.Model()
@@ -2323,7 +2323,7 @@ class NotTest(unittest.TestCase):
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
 
     def test_polish(self):
-        """ Tests Not._polish(). """
+        """ Test Not._polish(). """
         x = myokit.Not(myokit.Number(1))
         self.assertEqual(x._polish(), 'not 1')
         x = myokit.Not(myokit.Equal(myokit.Number(1), myokit.Number(1)))
@@ -2336,7 +2336,7 @@ class IfTest(unittest.TestCase):
     """
     def test_creation(self):
         """
-        Tests creation plus some accessor methods.
+        Test creation plus some accessor methods.
         """
         cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
         then = myokit.Number(10)
@@ -2350,7 +2350,7 @@ class IfTest(unittest.TestCase):
         self.assertTrue(if_.is_conditional())
 
     def test_eval(self):
-        """ Tests If.eval(). """
+        """ Test If.eval(). """
         cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
         then = myokit.Number(10)
         else_ = myokit.Number(20)
@@ -2362,7 +2362,7 @@ class IfTest(unittest.TestCase):
         self.assertEqual(if_.eval(), 20)
 
     def test_eval_unit(self):
-        """ Tests If.eval_unit(). """
+        """ Test If.eval_unit(). """
         # Mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -2400,7 +2400,7 @@ class IfTest(unittest.TestCase):
         self.assertEqual(z.eval_unit(s), myokit.units.dimensionless)
 
     def test_piecewise_conversion(self):
-        """ Tests If.piecewise(). """
+        """ Test If.piecewise(). """
         cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
         then = myokit.Number(10)
         else_ = myokit.Number(20)
@@ -2414,7 +2414,7 @@ class IfTest(unittest.TestCase):
         self.assertEqual(if_.eval(), pw.eval())
 
     def test_value(self):
-        """ Tests If.value(). """
+        """ Test If.value(). """
         cond = myokit.Equal(myokit.Number(1), myokit.Number(1))
         then = myokit.Number(10)
         else_ = myokit.Number(20)
@@ -2429,7 +2429,7 @@ class PiecewiseTest(unittest.TestCase):
     """
     def test_creation(self):
         """
-        Tests Piecewise creation plus some accessor methods.
+        Test Piecewise creation plus some accessor methods.
         """
         # Like an if
         cond1 = myokit.Equal(myokit.Number(1), myokit.Number(1))
@@ -2489,7 +2489,7 @@ class PiecewiseTest(unittest.TestCase):
             myokit.IntegrityError, '3 or more', myokit.Piecewise, cond1)
 
     def test_eval(self):
-        """ Tests Piecewise.eval(). """
+        """ Test Piecewise.eval(). """
         ct = myokit.Equal(myokit.Number(1), myokit.Number(1))
         cf = myokit.Equal(myokit.Number(1), myokit.Number(2))
         then1 = myokit.Number(1)
@@ -2515,7 +2515,7 @@ class PiecewiseTest(unittest.TestCase):
         self.assertEqual(pw.eval(), 99)
 
     def test_eval_unit(self):
-        """ Tests Piecewise.eval_unit(). """
+        """ Test Piecewise.eval_unit(). """
         # Mini model
         m = myokit.Model()
         comp = m.add_component('comp')
@@ -2585,7 +2585,7 @@ class UnsupportedFunctionTest(unittest.TestCase):
     Tests the myokit.UnsupportedFunction placeholder class.
     """
     def test_validation(self):
-        """ Tests UnsupportedFunction.validate(). """
+        """ Test UnsupportedFunction.validate(). """
         x = myokit.UnsupportedFunction('test', [myokit.Number(1)])
         self.assertRaises(myokit.IntegrityError, x.validate)
 

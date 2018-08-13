@@ -110,7 +110,7 @@ class DataBlock1dTest(unittest.TestCase):
 
     def test_bad_constructor(self):
         """
-        Tests bad arguments to a DataBlock1d raise ValueErrors.
+        Test bad arguments to a DataBlock1d raise ValueErrors.
         """
         # Test valid constructor
         w = 2
@@ -128,7 +128,7 @@ class DataBlock1dTest(unittest.TestCase):
 
     def test_block2d(self):
         """
-        Tests conversion to 2d.
+        Test conversion to 2d.
         """
         w = 2
         time = [1, 2, 3]
@@ -144,7 +144,7 @@ class DataBlock1dTest(unittest.TestCase):
 
     def test_cv(self):
         """
-        Tests the CV method.
+        Test the CV method.
         """
         b = os.path.join(DIR_DATA, 'cv1d.zip')
         b = myokit.DataBlock1d.load(b)
@@ -201,7 +201,7 @@ class DataBlock1dTest(unittest.TestCase):
 
     def test_from_data_log(self):
         """
-        Tests some edge cases of `DataBlock1d.from_DataLog`.
+        Test some edge cases of `DataBlock1d.from_DataLog`.
         """
         # Test valid construction
         d = myokit.DataLog()
@@ -241,7 +241,7 @@ class DataBlock1dTest(unittest.TestCase):
 
     def test_grids(self):
         """
-        Tests conversion of the DataBlock1d to a 2d grid.
+        Test conversion of the DataBlock1d to a 2d grid.
         """
         # Create simulation log with 1d data
         log = myokit.DataLog()
@@ -342,7 +342,7 @@ class DataBlock1dTest(unittest.TestCase):
 
     def test_load_bad_file(self):
         """
-        Tests loading errors.
+        Test loading errors.
         """
         # Not enough files
         path = os.path.join(DIR_IO, 'bad1d-1-not-enough-files.zip')
@@ -420,7 +420,7 @@ class DataBlock1dTest(unittest.TestCase):
 
     def test_set0d(self):
         """
-        Tests set0d().
+        Test set0d().
         """
         w = 2
         time = [1, 2, 3]
@@ -446,7 +446,7 @@ class DataBlock1dTest(unittest.TestCase):
 
     def test_set1d(self):
         """
-        Tests set1d().
+        Test set1d().
         """
         w = 2
         time = [1, 2, 3]
@@ -472,7 +472,7 @@ class DataBlock1dTest(unittest.TestCase):
 
     def test_keys(self):
         """
-        Tests the keys0d() and keys1d() methods.
+        Test the keys0d() and keys1d() methods.
         """
         w = 2
         time = [1, 2, 3]
@@ -514,7 +514,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_bad_constructor(self):
         """
-        Tests bad arguments to a DataBlock2d raise ValueErrors.
+        Test bad arguments to a DataBlock2d raise ValueErrors.
         """
         # Test valid constructor
         w = 2
@@ -534,7 +534,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_colors(self):
         """
-        Tests conversion to colors using different color maps.
+        Test conversion to colors using different color maps.
         """
         w, h = 2, 3
         time = [1, 2, 3]
@@ -666,7 +666,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_combined(self):
         """
-        Tests loading, saving, conversion from data log.
+        Test loading, saving, conversion from data log.
         """
         # Create simulation log with 1d data
         log = myokit.DataLog()
@@ -743,7 +743,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_combine(self):
         """
-        Tests the combine() method.
+        Test the combine() method.
         """
         # Create first data block
         w1, h1 = 2, 3
@@ -860,7 +860,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_from_data_log(self):
         """
-        Tests some edge cases of `DataBlock1d.from_DataLog`.
+        Test some edge cases of `DataBlock1d.from_DataLog`.
         """
         # Test valid construction
         d = myokit.DataLog()
@@ -915,7 +915,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_images(self):
         """
-        Tests the images() method.
+        Test the images() method.
         """
         w, h = 2, 2
         time = [1, 2]
@@ -944,7 +944,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_is_square(self):
         """
-        Tests the is_square method.
+        Test the is_square method.
         """
         b = myokit.DataBlock2d(1, 1, [1, 2, 3])
         self.assertTrue(b.is_square())
@@ -955,7 +955,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_keys_and_items(self):
         """
-        Tests the keys0d and keys2d methods, plus the items methods.
+        Test the keys0d and keys2d methods, plus the items methods.
         """
         w = 2
         h = 3
@@ -993,7 +993,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_dominant_eigenvalues(self):
         """
-        Tests the dominant_eigenvalues method.
+        Test the dominant_eigenvalues method.
         """
         # Won't work on non-square matrix
         b = myokit.DataBlock2d(1, 2, [1])
@@ -1014,7 +1014,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_eigenvalues(self):
         """
-        Tests the eigenvalues method.
+        Test the eigenvalues method.
         """
         # Won't work on non-square matrix
         b = myokit.DataBlock2d(1, 2, [1])
@@ -1054,7 +1054,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_load_bad_file(self):
         """
-        Tests loading errors.
+        Test loading errors.
         """
         # Not enough files
         path = os.path.join(DIR_IO, 'bad2d-1-not-enough-files.zip')
@@ -1141,7 +1141,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_save_frame_csv(self):
         """
-        Tests the save_frame_csv() method.
+        Test the save_frame_csv() method.
         """
         w, h = 2, 3
         time = [1, 2, 3]
@@ -1176,7 +1176,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_save_frame_grid(self):
         """
-        Tests the save_frame_grid() method.
+        Test the save_frame_grid() method.
         """
         w, h = 2, 3
         time = [1, 2, 3]
@@ -1207,7 +1207,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_set0d(self):
         """
-        Tests set0d().
+        Test set0d().
         """
         w = 2
         h = 3
@@ -1234,7 +1234,7 @@ class DataBlock2dTest(unittest.TestCase):
 
     def test_set2d(self):
         """
-        Tests set2d().
+        Test set2d().
         """
         w = 2
         h = 3
@@ -1300,7 +1300,7 @@ class ColorMapTest(unittest.TestCase):
 
     def test_image(self):
         """
-        Tests the image() method, that returns a colormap representation
+        Test the image() method, that returns a colormap representation
         """
         # Red colormap
         m = np.array([  # Like colors, but strided together (ARGB32)
