@@ -100,6 +100,19 @@ class TokenizerTest(unittest.TestCase):
         next(s)
         next(s)
         self.assertEqual(next(s)[1], 'this is the value of x')
+        self.assertEqual(next(s)[0], p.EOL)
+
+        s = Tokenizer('x: this is \\\nthe\\\n\n\n value of x')
+        next(s)
+        next(s)
+        self.assertEqual(next(s)[1], 'this is the')
+        self.assertEqual(next(s)[0], p.EOL)
+
+        s = Tokenizer('x: this is \\\nthe\\\n\n\n value of x')
+        next(s)
+        next(s)
+        self.assertEqual(next(s)[1], 'this is the')
+        self.assertEqual(next(s)[0], p.EOL)
 
         # Comment doesn't end line continuation
         s = Tokenizer('x: this is \\\n#Hi mike\nthe value of x')
@@ -114,6 +127,35 @@ class TokenizerTest(unittest.TestCase):
         from myokit._parsing import parse_expression_stream
         e = parse_expression_stream(s)
         self.assertEqual(e.code(), '1 + 2 + 3 + 4')
+
+        # Tabs count as 8 spaces
+        s = '\n'.join([
+            '1',
+            '        2',
+            '\t3',
+            '        4',
+            '5',
+        ])
+        s = Tokenizer(s)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INDENT)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.DEDENT)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+
+        # Line feed counts as a newline
+        s = Tokenizer('123\f456')
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
 
 
 class PhasedParseTest(unittest.TestCase):

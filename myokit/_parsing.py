@@ -1210,7 +1210,7 @@ tabsize = 8
 # The syntax r'' is used for raw strings
 _rTOKEN = re.compile('|'.join([
     # Whitespace
-    r'[ \f\t]+',
+    r'[ \t]+',
     # Function opening (must come before name in list)
     r'[a-zA-Z]\w*\(',
     # Meta property name (must come before name in list)
@@ -1242,9 +1242,12 @@ _rTOKEN = re.compile('|'.join([
 ]))
 
 # White space
-_sWHITE = ' \f\t'
-_rWHITE = re.compile(r'[ \f\t]*')
-_rSPACE = re.compile(r'[ \f\t]{1}')
+# Note: In unicode, a line feed (\f) is treated as a newline. This means \f
+# characters will be stripped out by splitlines(), just like \n, and don't need
+# further handling: https://en.wikipedia.org/wiki/Newline#Unicode
+_sWHITE = ' \t'
+_rWHITE = re.compile(r'[ \t]*')
+_rSPACE = re.compile(r'[ \t]{1}')
 
 # Recognizable characters
 _sEOL = '\n'
@@ -1304,16 +1307,21 @@ class Tokenizer(object):
         # Set next value and peek value
         self._next = None
         self._peek = None
+
         # At end of stream?
         self._has_last_value = False
+
         # Catchers and catcher handle index
         self._catchers = {}
         self._catcheri = 0
+
         # String given instead of stream of lines? Convert
         if isinstance(stream_of_lines, basestring):
             stream_of_lines = iter(stream_of_lines.splitlines())
+
         # Create tokenizer
         self._tokenizer = self._tizer(stream_of_lines, check_indenting)
+
         # Grab first token
         self._advance()
 
@@ -1535,10 +1543,6 @@ class Tokenizer(object):
                                     column += 1
                                 elif char == '\t':
                                     column = (1 + column // tabsize) * tabsize
-                                elif char == '\f':
-                                    # Form-feed aka page-down, used by emacs,
-                                    #  apparently
-                                    column = 0
                             continue
 
                         else:
@@ -1570,7 +1574,7 @@ class Tokenizer(object):
                             countColumns = False
 
                     # Ignore whitespace between tokens
-                    if char == ' ' or char == '\t' or char == '\f':
+                    if char == ' ' or char == '\t':
                         yield WHITESPACE, token, numb, start
                         continue
 
@@ -1770,8 +1774,6 @@ class Tokenizer(object):
                         column += 1
                     elif char == '\t':
                         column = (1 + column // tabsize) * tabsize
-                    elif char == '\f':
-                        column = 0
                 if ind is None or column < ind:
                     ind = column
         # No indentation? Then return as is
@@ -1794,8 +1796,6 @@ class Tokenizer(object):
                         column += 1
                     elif line[pos] == '\t':
                         column = (1 + column // tabsize) * tabsize
-                    elif line[pos] == '\f':
-                        column = 0
                     else:   # pragma: no cover
                         raise Exception(
                             'Unexpected character in multi-line string\'s'
@@ -1985,7 +1985,7 @@ def format_parse_error(ex, source=None):
     if line is not None:
         # Skip initial whitespace
         pos = 0
-        _sWHITE = ' \t\f'
+        _sWHITE = ' \t'
         for char in line[0:ex.char]:
             if char not in _sWHITE:
                 break
