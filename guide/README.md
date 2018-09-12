@@ -53,7 +53,11 @@ Please note this is very much a work in progress, and many of the items on the l
 - PSim
 - ICSim etc.
 
-### Appendix
+### Appendix A: Installation guides
+- Easy installation: Links to(?) linux, windows, os/x install
+- Advanced installation: How it works, requirements, compilers, etc.
+
+### Appendix B: External packages
 - Matplotlib basics (see current docs)
 - NumPy basics (and log.npview())
 
