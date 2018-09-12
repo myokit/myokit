@@ -5,7 +5,7 @@ On this page, you'll find links to "guides" covering a variety of topics, rangin
 
 Please note this is very much a work in progress, and many of the items on the list are yet to be filled in.
 
-Getting started
+### Getting started
 - Links to installation guides
 - Running an example from the website
 - Model, protocol, and script (link to syntax document)
