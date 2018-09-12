@@ -6,7 +6,7 @@ On this page, you'll find links to "guides" covering a variety of topics, rangin
 Please note this is very much a work in progress, and many of the items on the list are yet to be filled in.
 
 ### Getting started
-- Links to installation guides
+- Installation (covers: installation basics, details in appendix)
 - Running an example from the website
 - Model, protocol, and script (link to syntax document)
 - Using the explorer
@@ -18,7 +18,7 @@ Please note this is very much a work in progress, and many of the items on the l
 - Graph component dependencies
 - Graph "state dependency matrix"
 
-### Simulation scripts
+### Using scripts
 - running a simulation without pre-pacing (using the IDE)
 - logging and plotting (link to numpy/matplotlib bits)
 - pre-pacing, resetting
@@ -54,10 +54,15 @@ Please note this is very much a work in progress, and many of the items on the l
 - ICSim etc.
 
 ### Appendix A: Installation guides
-- Easy installation: Links to(?) linux, windows, os/x install
-- Advanced installation: How it works, requirements, compilers, etc.
+- Easy Linux installation
+- Easy Windows installation
+- Easy OX/S installation
+- Installation on any platform
+- Configuration files (covers: location of config files, changing them manually, `myokit reset`)
+- Installing CVODE (covers: CVODE install, testing for CVODE support)
+- Installing OpenCL (covers: OpenCL, testing for OpenCL support, selecting OpenCL device)
 
-### Appendix B: External packages
+### Appendix B: Working with external packages
 - Matplotlib basics (see current docs)
 - NumPy basics (and log.npview())
 
