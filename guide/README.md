@@ -11,14 +11,14 @@ Please note this is very much a work in progress, and many of the items on the l
 - Model, protocol, and script (link to syntax document)
 - Using the explorer
 
-Using the IDE
+### Using the IDE
 - Graphing variables
 - Show variable info / evaluation
 - Show variable users and dependencies
 - Graph component dependencies
 - Graph "state dependency matrix"
 
-Simulation scripts
+### Simulation scripts
 - running a simulation without pre-pacing (using the IDE)
 - logging and plotting (link to numpy/matplotlib bits)
 - pre-pacing, resetting
@@ -29,31 +29,31 @@ Simulation scripts
 - Accessing and changing model variables
 - Graphing variables using pyfunc
 
-Converting formats
+### Converting formats
 - Exporting for presentations: latex / html
 - Exporting runnables: matlab, C, cuda
 - Importing from CellML (and converting protocols)
 - Importing protocols from ABF
 
-Separating script and models
+### Separating script and models
 - Writing scripts without a model in the IDE
 - Writing scripts without a model in Python
 
-Ion channels
+### Ion channels
 - Creating a step protocol (pacing factory)
 - Markov models (including single-channel sim)
 - Estimating ion channel parameters
 
-Multi-cellular simulation
+### Multi-cellular simulation
 - Cable sim
 - OpenCL simulation
 - FiberTissue simulation
 
-Advanced simulation types
+### Advanced simulation types
 - PSim
 - ICSim etc.
 
-Appendix
+### Appendix
 - Matplotlib basics (see current docs)
 - NumPy basics (and log.npview())
 
