@@ -89,7 +89,7 @@ def system(live_printing=False):
         del(QT_VERSION_STR)
     except ImportError:
         out.append('PyQt4: Not found')
-    except RuntimeError:
+    except RuntimeError:    # pragma: no cover
         # Happens if PyQt5 was also found
         out.append('PyQt4: OK')
 
