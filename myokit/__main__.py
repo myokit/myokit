@@ -49,6 +49,7 @@ def main():
     add_reset_parser(subparsers)            # Reset config files
     add_run_parser(subparsers)              # Run an mmt file
     add_step_parser(subparsers)             # Load a model, perform 1 step
+    add_sundials_parser(subparsers)         # Show Sundials support
     add_version_parser(subparsers)          # Show version info
     add_video_parser(subparsers)            # Convert a DataBlock to video
 
@@ -1063,6 +1064,30 @@ def add_step_parser(subparsers):
         help='Display the calculated state, without further formatting.',
     )
     step_parser.set_defaults(func=step)
+
+
+def sundials():
+    """
+    Queries for Sundials support.
+    """
+    import myokit
+    version = myokit.Sundials.version()
+    if version is None:
+        print('Sundials not found or compilation failed.')
+    else:
+        print('Found Sundials version ' + version)
+
+
+def add_sundials_parser(subparsers):
+    """
+    Adds a subcommand parser for the `sundials` command.
+    """
+    sundials_parser = subparsers.add_parser(
+        'sundials',
+        description='Checks for Sundials support.',
+        help='Prints information about Sundials support.',
+    )
+    sundials_parser.set_defaults(func=sundials)
 
 
 def version(raw=False):
