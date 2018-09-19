@@ -769,7 +769,7 @@ def opencl_select():
             try:
                 x = raw_input(x)
             except NameError:   # pragma: no python 2 cover
-                x = input(x)
+                x = input(x)    # lgtm [py/use-of-input]
             x = x.strip()
             if x == '':
                 x = None
@@ -829,8 +829,8 @@ def reset(force=False):
         yesno = 'Remove all Myokit settings files? '
         try:
             yesno = raw_input(yesno)
-        except NameError:   # pragma: no python 2 cover
-            yesno = input(yesno)
+        except NameError:           # pragma: no python 2 cover
+            yesno = input(yesno)    # lgtm [py/use-of-input]
         yesno = yesno.strip().lower()
         remove = (yesno[:1] == 'y')
     if remove:
