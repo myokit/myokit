@@ -102,6 +102,8 @@ class OpenCL(myokit.CModule):
         if device:
             device = platform.decode('device')
 
+        return platform, device
+
     @staticmethod
     def load_selection_bytes():
         """
