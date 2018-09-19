@@ -51,6 +51,7 @@ def main():
     add_run_parser(subparsers)              # Run an mmt file
     add_step_parser(subparsers)             # Load a model, perform 1 step
     add_sundials_parser(subparsers)         # Show Sundials support
+    add_system_parser(subparsers)           # Show system information
     add_version_parser(subparsers)          # Show version info
     add_video_parser(subparsers)            # Convert a DataBlock to video
 
@@ -1113,6 +1114,26 @@ def add_sundials_parser(subparsers):
         help='Prints information about Sundials support.',
     )
     sundials_parser.set_defaults(func=sundials)
+
+
+def system():
+    """
+    Displays system information.
+    """
+    import myokit
+    myokit.system(live_printing=True)
+
+
+def add_system_parser(subparsers):
+    """
+    Adds a subcommand parser for the `system` command.
+    """
+    sundials_parser = subparsers.add_parser(
+        'system',
+        description='Show system information.',
+        help='Prints information about the current system.',
+    )
+    sundials_parser.set_defaults(func=system)
 
 
 def version(raw=False):
