@@ -344,7 +344,7 @@ def cmaes(
             candidates = es.ask()
             es.tell(candidates, evaluator.evaluate(candidates))
             if callback is not None:
-                r = es.result()
+                r = es.result
                 callback(np.array(r[0], copy=True), r[1])
             if verbose:
                 es.disp()

@@ -15,5 +15,6 @@ install:
 build: off
 
 test_script:
+  - "%PYTHON%\\python.exe -m myokit compiler"
   - "%PYTHON%\\python.exe test --unit"
 

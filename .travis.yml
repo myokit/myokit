@@ -75,6 +75,8 @@ install:
 # Show Python version
 before_script:
 - python --version
+- python -m myokit compiler
+# Todo: Change ^this to myokit system
 
 # Run tests
 script:
