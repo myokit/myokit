@@ -112,7 +112,7 @@ def system(live_printing=False):
         out.append('OpenCL: Compiler not found')
     else:
         out.append('Compiler: ' + compiler)
-        out.append('Sundials: ' + myokit.Sundials.version() or 'Not found')
+        out.append('Sundials: ' + (myokit.Sundials.version() or 'Not found'))
 
         opencl = myokit.OpenCL()
         if not opencl.supported():
