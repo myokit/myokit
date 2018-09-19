@@ -53,6 +53,7 @@ class ProgressBarReporter(myokit.ProgressReporter):
     """
 
     def __init__(self, pd):
+        super(ProgressBarReporter, self).__init__()
         self._pd = pd
 
     def enter(self, msg=None):
