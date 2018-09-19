@@ -125,7 +125,7 @@ def system(live_printing=False):
             out.append('OpenCL: ' + str(len(devices)) + ' device(s) found')
             for d in devices:
                 out.append('  ' + d)
-        out.append('  Use `python -m myokit opencl` for more information.')
+            out.append('  Use `python -m myokit opencl` for more information.')
 
     if not live_printing:
         return '\n'.join(out)
@@ -134,14 +134,14 @@ def system(live_printing=False):
 def _module_version(module):
     """
     Checks if the given ``module`` is present, and attempts to return a string
-    containing its version. If the module can't be found 'not found' is
+    containing its version. If the module can't be found 'Not found' is
     returned. If the module is found, but the  version can't be detected, 'OK'
     is returned.
     """
     try:
         m = importlib.import_module(module)
     except ImportError:     # pragma: no cover
-        return 'not found'
+        return 'Not found'
 
     # NumPy, SciPy, SymPy
     try:
