@@ -31,35 +31,45 @@ compiler(PyObject *self, PyObject *args)
     #elif defined __clang__
         sprintf(str, "Clang %d.%d.%d", __clang_major__, __clang_minor__, __clang_patchlevel__);
     #elif defined _MSC_VER
-        sprintf(str, "Microsoft Visual Studio %d", _MSC_VER);
-        /*
-        Version     _MSC_VER        _MSC_FULL_VER
-        1.0 	800
-        3.0 	900
-        4.0 	1000
-        4.2 	1020
-        5.0 	1100
-        6.0 	1200
-        6.0 SP6 	1200 	12008804
-        7.0 	1300 	13009466
-        7.1 (2003) 	1310 	13103077
-        8.0 (2005) 	1400 	140050727
-        9.0 (2008) 	1500 	150021022
-        9.0 SP1 	1500 	150030729
-        10.0 (2010) 	1600 	160030319
-        10.0 (2010) SP1 	1600 	160040219
-        11.0 (2012) 	1700 	170050727
-        12.0 (2013) 	1800 	180021005
-        14.0 (2015) 	1900 	190023026
-        14.0 (2015 Update 1) 	1900 	190023506
-        14.0 (2015 Update 2) 	1900 	190023918
-        14.0 (2015 Update 3) 	1900 	190024210
-        15.0 (2017) 	1910 	191025017
-        */
+        #if _MSC_VER >= 1910
+            sprintf(str, "Microsoft Visual Studio 15.0 (2017) - %d", _MSC_FULL_VER);
+        #elif _MSC_VER >= 1900
+            sprintf(str, "Microsoft Visual Studio 14.0 (2015) - %d", _MSC_FULL_VER);
+        #elif _MSC_VER >= 1800
+            sprintf(str, "Microsoft Visual Studio 12.0 (2013) - %d", _MSC_FULL_VER);
+        #elif _MSC_VER >= 1700
+            sprintf(str, "Microsoft Visual Studio 11.0 (2012) - %d", _MSC_FULL_VER);
+        #elif _MSC_VER >= 1600
+            sprintf(str, "Microsoft Visual Studio 10.0 (2010) - %d", _MSC_FULL_VER);
+        #elif _MSC_VER >= 1500
+            sprintf(str, "Microsoft Visual Studio 9.0 (2008) - %d", _MSC_FULL_VER);
+        #elif _MSC_VER >= 1400
+            sprintf(str, "Microsoft Visual Studio 8.0 (2005) - %d", _MSC_FULL_VER);
+        #elif _MSC_VER >= 1310
+            sprintf(str, "Microsoft Visual Studio 7.1 (2003) - %d", _MSC_FULL_VER);
+        #elif _MSC_VER >= 1300
+            sprintf(str, "Microsoft Visual Studio 7.0 - %d", _MSC_FULL_VER);
+        #elif _MSC_VER >= 1200
+            sprintf(str, "Microsoft Visual Studio 6.0 : %d", _MSC_VER);
+        #elif _MSC_VER >= 1100
+            sprintf(str, "Microsoft Visual Studio 5.0 : %d", _MSC_VER);
+        #elif _MSC_VER >= 1020
+            sprintf(str, "Microsoft Visual Studio 4.2 : %d", _MSC_VER);
+        #elif _MSC_VER >= 1000
+            sprintf(str, "Microsoft Visual Studio 4.0 : %d", _MSC_VER);
+        #elif _MSC_VER >= 900
+            sprintf(str, "Microsoft Visual Studio 3.0 : %d", _MSC_VER);
+        #elif _MSC_VER >= 800
+            sprintf(str, "Microsoft Visual Studio 1.0 : %d", _MSC_VER);
+        #else
+            sprintf(str, "Microsoft Visual Studio : %d", _MSC_VER);
+        #endif
     #elif defined __MINGW64__
         sprintf(str, "MinGW-w64 64 bit");
     #elif defined __MINGW32__
         sprintf(str, "MinGW 32 bit");
+    #elif defined __GNUC_PATCHLEVEL__
+        sprintf(str, "GCC %d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
     #elif defined __GNUC__
         sprintf(str, "GCC %d.%d", __GNUC__, __GNUC_MINOR__);
     #else
