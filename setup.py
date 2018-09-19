@@ -61,7 +61,7 @@ setup(
     install_requires=[
         'numpy',
         'scipy',
-        'matplotlib>=1.5',
+        'matplotlib>=1.5, <3',
         'configparser',
         'setuptools',
         # PyQT or PySide?
