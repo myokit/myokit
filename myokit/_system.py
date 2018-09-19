@@ -65,7 +65,7 @@ def system(live_printing=False):
     ver = _module_version('cma')
     try:
         ver = ver[:ver.index('$')].strip()
-    except IndexError:
+    except IndexError:  # pragma: no cover
         pass
     out.append('CMAES: ' + ver)
     out.append('MoviePy: ' + _module_version('moviepy'))
@@ -74,7 +74,7 @@ def system(live_printing=False):
     # GUI toolkits
     out.append('== GUI ==')
 
-    try:
+    try:    # pragma: no cover
         from PyQt5.QtCore import QT_VERSION_STR
         out.append('PyQt5: ' + QT_VERSION_STR)
         out.append('  Sip: ' + _module_version('sip'))
@@ -82,7 +82,7 @@ def system(live_printing=False):
     except ImportError:
         out.append('PyQt5: Not found')
 
-    try:
+    try:    # pragma: no cover
         from PyQt4.QtCore import QT_VERSION_STR
         out.append('PyQt4: ' + QT_VERSION_STR)
         out.append('  Sip: ' + _module_version('sip'))
@@ -146,19 +146,19 @@ def _module_version(module):
     # NumPy, SciPy, SymPy
     try:
         return str(m.version.version)
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         pass
 
     # Matplotlib & others
     try:
         return str(m.__version__)
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         pass
 
     # Setuptools
     try:
         return str(m.version.__version__)
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         pass
 
     # Not found
