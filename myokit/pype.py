@@ -208,19 +208,19 @@ class TemplateEngine(object):
             else:
                 # Non-python code, just print
                 # Triple quoted strings should be handled separately
-                for part in rQuot.split(part):
-                    if part == '"""':
+                for part2 in rQuot.split(part):
+                    if part2 == '"""':
                         out.append(indent + 'sys.stdout.write(\'"""\')')
                         continue
 
                     # If part ends in a ", this will cause problems, so...
                     nQuotes = 0
-                    while part[-1:] == '"':
-                        part = part[0:-1]
+                    while part2[-1:] == '"':
+                        part2 = part2[0:-1]
                         nQuotes += 1
 
                     out.append(
-                        indent + 'sys.stdout.write(r"""' + part + '""")')
+                        indent + 'sys.stdout.write(r"""' + part2 + '""")')
 
                     if nQuotes > 0:
                         out.append(

@@ -1139,7 +1139,7 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
                 elif s1 >= 0:
                     current = 1
                     start = s1
-                elif s2 >= 0:
+                else:   # (s2 >= 0)
                     current = 2
                     start = s2
                 next = start + 3

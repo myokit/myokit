@@ -299,7 +299,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             self._ex(e[0], r)
         else:
             a = self._et.SubElement(t, 'apply')
-            x = self._et.SubElement(a, 'exp')
+            self._et.SubElement(a, 'exp')
             self._ex(e[0], a)
 
     def _ex_log(self, e, t):
@@ -324,11 +324,11 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         else:
             if len(e) == 1:
                 a = self._et.SubElement(t, 'apply')
-                x = self._et.SubElement(a, 'ln')
+                self._et.SubElement(a, 'ln')
                 self._ex(e[0], a)
             else:
                 a = self._et.SubElement(t, 'apply')
-                x = self._et.SubElement(a, 'log')
+                self._et.SubElement(a, 'log')
                 x = self._et.SubElement(a, 'logbase')
                 self._ex(e[1], x)
                 self._ex(e[0], a)
