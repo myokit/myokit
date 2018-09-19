@@ -374,7 +374,7 @@ class CellMLImporter(myokit.formats.Importer):
                     ref = rfs1[ref1] if ref_to_one else rfs2[ref2]
                 except KeyError:    # pragma: no cover
                     # Cover pragma: This should already have been caught
-                    a, b = ref2, ref1 if ref_to_one else ref1, ref2
+                    a, b = (ref2, ref1) if ref_to_one else (ref1, ref2)
                     self.logger().warn(
                         'Unable to resolve reference of ' + str(a) + ' to '
                         + str(b) + '.')
