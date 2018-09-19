@@ -411,6 +411,9 @@ from ._datablock import (   # noqa
 from ._sim import (  # noqa
     CModule, CppModule,
 )
+from ._sim.compiler import (  # noqa
+    Compiler,
+)
 from ._sim.sundials import (  # noqa
     Sundials,
 )

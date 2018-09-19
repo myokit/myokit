@@ -36,6 +36,7 @@ def main():
     # Add subparsers
     add_block_parser(subparsers)            # Launch the DataBlock viewer
     add_compare_parser(subparsers)          # Compare models
+    add_compiler_parser(subparsers)         # Show compiler
     add_debug_parser(subparsers)            # Debug an RHS equation
     add_eval_parser(subparsers)             # Evaluate an expression
     add_export_parser(subparsers)           # Export an mmt file
@@ -163,6 +164,30 @@ def add_compare_parser(subparsers):
         help='The model to compare with.',
     )
     compare_parser.set_defaults(func=compare)
+
+
+def compiler():
+    """
+    Tests for C compilation support.
+    """
+    import myokit
+    compiler = myokit.Compiler.info()
+    if compiler is None:
+        print('Compilation with distutils/setuptools failed.')
+    else:
+        print('Compilation successful. Found: ' + compiler)
+
+
+def add_compiler_parser(subparsers):
+    """
+    Adds a subcommand parser for the ``compiler`` command.
+    """
+    compiler_parser = subparsers.add_parser(
+        'compiler',
+        description='Checks for C compilation support.',
+        help='Prints information about C compilation support.',
+    )
+    compiler_parser.set_defaults(func=compiler)
 
 
 def debug(source, variable, deps=False):
