@@ -65,7 +65,7 @@ def system(live_printing=False):
     ver = _module_version('cma')
     try:
         ver = ver[:ver.index('$')].strip()
-    except IndexError:  # pragma: no cover
+    except ValueError:  # pragma: no cover
         pass
     out.append('CMAES: ' + ver)
     out.append('MoviePy: ' + _module_version('moviepy'))
