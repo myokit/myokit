@@ -146,7 +146,7 @@ Next, open a browser, and navigate to your local Myokit directory (by typing the
 ## Infrastructure & configuration files
 
 - Installation happens using `setup.py`, but also information from `MANIFEST.in`
-- Users can find the license in `LICENSE.txt` and a citable reference in `CITATION` (see [here](https://www.software.ac.uk/blog/2016-10-06-encouraging-citation-software-introducing-citation-files))
+- Users can find the license in `LICENSE.txt` and a citable reference in `CITATION` ([syntax](https://www.software.ac.uk/blog/2016-10-06-encouraging-citation-software-introducing-citation-files))
 - Linux and OS/X tests are run using [travis](https://travis-ci.com/) and published [here](https://travis-ci.org/MichaelClerx/myokit). Configuration file `.travis.yml` ([syntax](https://docs.travis-ci.com/))
 - Windows tests are run using [appveyor](http://appveyor.com/), with results [published here](https://ci.appveyor.com/project/MichaelClerx/myokit). Configuration file `.appveyor.yml` ([syntax](https://www.appveyor.com/docs/appveyor-yml/))
 - Coverage is tested using [codecov.io](https://docs.codecov.io/docs) which builds on [coverage](https://coverage.readthedocs.io/). Configuration file: `.coveragerc` ([syntax](https://coverage.readthedocs.io/en/latest/config.html))
