@@ -27,6 +27,8 @@ Back-end classes
     :private-members:
     :inherited-members:
 
+.. autoclass:: Compiler
+
 
 Templating engine
 -----------------
