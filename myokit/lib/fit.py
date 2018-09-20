@@ -39,6 +39,12 @@ try:
 except ImportError:  # pragma: no python 3 cover
     import Queue as queue
 
+# String types in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no python 2 cover
+    basestring = str
+
 
 #
 # This module is deprecated!
@@ -240,7 +246,7 @@ def cmaes(
     # Check hint
     if hint is None:
         hint = lower + 0.5 * (upper - lower)
-    elif hint == 'random':
+    elif isinstance(hint, basestring) and hint == 'random':
         hint = lower + np.random.uniform(0, 1, d) * (upper - lower)
     else:
         hint = np.array(hint, copy=True)
@@ -324,7 +330,7 @@ def cmaes(
     # If no seed is given, CMAES reseeds. So to get consistent results always
     # pass in a seed. This can be random generated (because then you can still
     # seed np.random to get consistent output).
-    options.set('seed', np.random.randint(2**32))
+    options.set('seed', np.random.randint(2**31))
 
     # Start one or multiple runs
     for i in range(1 + ipop):
@@ -344,7 +350,7 @@ def cmaes(
             candidates = es.ask()
             es.tell(candidates, evaluator.evaluate(candidates))
             if callback is not None:
-                r = es.result()
+                r = es.result
                 callback(np.array(r[0], copy=True), r[1])
             if verbose:
                 es.disp()
@@ -1549,7 +1555,7 @@ def snes(
     # Check hint
     if hint is None:
         hint = lower + 0.5 * (upper - lower)
-    elif hint == 'random':
+    elif isinstance(hint, basestring) and hint == 'random':
         hint = lower + np.random.uniform(0, 1, d) * (upper - lower)
     else:
         hint = np.array(hint, copy=True)
@@ -2167,7 +2173,7 @@ def xnes(
     # Check hint
     if hint is None:
         hint = lower + 0.5 * (upper - lower)
-    elif hint == 'random':
+    elif isinstance(hint, basestring) and hint == 'random':
         hint = lower + np.random.uniform(0, 1, d) * (upper - lower)
     else:
         hint = np.array(hint, copy=True)

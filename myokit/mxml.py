@@ -86,7 +86,8 @@ def html2ascii(html, width=79, indent='  '):
                 # HTMLParser requires old-school constructor
                 HTMLParser.__init__(self)
             else:   # pragma: no python 2 cover
-                super(Asciifier, self).__init__(convert_charrefs=False)
+                super(Asciifier, self).__init__(
+                    convert_charrefs=False)  # lgtm [py/super-in-old-style]
 
                 # Unescape method is deprecated
                 import html

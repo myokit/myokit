@@ -26,7 +26,7 @@ class LibDepsTest(unittest.TestCase):
 
     def test_state_dependency_matrix(self):
         """
-        Tests create_ and plot_ state dependency matrix method, to create
+        Test create_ and plot_ state dependency matrix method, to create
         matrix plot of state interdependencies.
         """
         # Load model
@@ -103,7 +103,7 @@ class LibDepsTest(unittest.TestCase):
 
     def test_component_dependency_graph(self):
         """
-        Tests create_ and plot_ component dependency graph method, to show
+        Test create_ and plot_ component dependency graph method, to show
         digraph plot of variable dependencies.
         """
         # Load model
@@ -126,7 +126,7 @@ class LibDepsTest(unittest.TestCase):
 
     def test_variable_dependency_graph(self):
         """
-        Tests create_ and plot_ variable dependency graph method, to show
+        Test create_ and plot_ variable dependency graph method, to show
         digraph plot of variable dependencies.
         """
         # Load model
@@ -146,7 +146,7 @@ class DiGraphTest(unittest.TestCase):
     """
 
     def test_basic(self):
-        """ Tests basic DiGraph functions. """
+        """ Test basic DiGraph functions. """
 
         # Create empty graph
         d = deps.DiGraph()

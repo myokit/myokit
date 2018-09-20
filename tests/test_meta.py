@@ -19,7 +19,7 @@ class MetaTest(unittest.TestCase):
 
     def test_basic(self):
         """
-        Tests the basic meta-data functionality
+        Test the basic meta-data functionality
         """
         # Test assignment with simple and namespaced names
         m = myokit.Model()
@@ -52,7 +52,7 @@ class MetaTest(unittest.TestCase):
 
     def test_parser(self):
         """
-        Tests basic meta-data parsing
+        Test basic meta-data parsing
         """
         # Parse simple model without meta data
         lines = [

@@ -14,6 +14,7 @@ myokit
 - :class:`myokit.CModule`
 - :class:`myokit.ColorMap`
 - :class:`myokit.CompilationError`
+- :class:`myokit.Compiler`
 - :class:`myokit.Component`
 - :class:`myokit.Condition`
 - :class:`myokit.Cos`
@@ -154,6 +155,7 @@ myokit
 - :meth:`myokit.strip_expression_units`
 - :class:`myokit.SubCapture`
 - :class:`myokit.Sundials`
+- :meth:`myokit.system`
 - :class:`myokit.Tan`
 - :meth:`myokit.time`
 - :class:`myokit.Unit`

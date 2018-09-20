@@ -229,7 +229,7 @@ class CellMLExporter(myokit.formats.Exporter):
                 tag.attrib['units'] = si_units[myokit.units.dimensionless]
                 tag.attrib['exponent'] = str(1)
                 tag.attrib['multiplier'] = str(m)
-                m = 1
+                # m = 1
             # Add the new unit to the list
             unit_map[unit] = name
 

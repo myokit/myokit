@@ -217,7 +217,7 @@ class FittingTest(unittest.TestCase):
 
     def test_cmaes(self):
         """
-        Tests if a CMA-ES routine runs without errors.
+        Test if a CMA-ES routine runs without errors.
         """
         try:
             import cma
@@ -234,7 +234,7 @@ class FittingTest(unittest.TestCase):
 
     def test_pso(self):
         """
-        Tests if a PSO routine runs without errors.
+        Test if a PSO routine runs without errors.
         """
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
@@ -244,7 +244,7 @@ class FittingTest(unittest.TestCase):
 
     def test_snes(self):
         """
-        Tests if a SNES routine runs without errors.
+        Test if a SNES routine runs without errors.
         """
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
@@ -254,7 +254,7 @@ class FittingTest(unittest.TestCase):
 
     def test_xnes(self):
         """
-        Tests if a xNES routine runs without errors.
+        Test if a xNES routine runs without errors.
         """
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings

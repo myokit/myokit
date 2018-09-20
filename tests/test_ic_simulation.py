@@ -30,7 +30,7 @@ class ICSimulationTest(unittest.TestCase):
     Tests the :class:`ICSimulation`.
     """
     def test_basic(self):
-        """ Tests basic usage. """
+        """ Test basic usage. """
         # Load model
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         n = m.count_states()
@@ -96,7 +96,7 @@ class ICSimulationTest(unittest.TestCase):
             progress=CancellingReporter(0))
 
     def test_invalid_model(self):
-        """ Tests running with an invalid model. """
+        """ Test running with an invalid model. """
         m = myokit.Model()
         self.assertRaises(
             myokit.MissingTimeVariableError, myokit.ICSimulation, m)

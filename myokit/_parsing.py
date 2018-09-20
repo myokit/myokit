@@ -1210,7 +1210,7 @@ tabsize = 8
 # The syntax r'' is used for raw strings
 _rTOKEN = re.compile('|'.join([
     # Whitespace
-    r'[ \f\t]+',
+    r'[ \t]+',
     # Function opening (must come before name in list)
     r'[a-zA-Z]\w*\(',
     # Meta property name (must come before name in list)
@@ -1242,9 +1242,11 @@ _rTOKEN = re.compile('|'.join([
 ]))
 
 # White space
-_sWHITE = ' \f\t'
-_rWHITE = re.compile(r'[ \f\t]*')
-_rSPACE = re.compile(r'[ \f\t]{1}')
+# Note: In unicode, a line feed (\f) is treated as a newline. This means \f
+# characters will be stripped out by splitlines(), just like \n, and don't need
+# further handling: https://en.wikipedia.org/wiki/Newline#Unicode
+_sWHITE = ' \t'
+_rWHITE = re.compile(r'[ \t]*')
 
 # Recognizable characters
 _sEOL = '\n'
@@ -1263,9 +1265,6 @@ _SINGLE_MAP = [
 # Map of equals-comparators (==, !=, >=, <=)
 _COMPEQ = '=!><'
 _COMPEQ_MAP = [EQEQUAL, NOTEQUAL, MOREEQUAL, LESSEQUAL]
-
-# Textual operators
-_TEXT_OP = {'and': AND, 'or': OR, 'not': NOT}
 
 
 class Tokenizer(object):
@@ -1304,16 +1303,21 @@ class Tokenizer(object):
         # Set next value and peek value
         self._next = None
         self._peek = None
+
         # At end of stream?
         self._has_last_value = False
+
         # Catchers and catcher handle index
         self._catchers = {}
         self._catcheri = 0
+
         # String given instead of stream of lines? Convert
         if isinstance(stream_of_lines, basestring):
             stream_of_lines = iter(stream_of_lines.splitlines())
+
         # Create tokenizer
         self._tokenizer = self._tizer(stream_of_lines, check_indenting)
+
         # Grab first token
         self._advance()
 
@@ -1535,10 +1539,6 @@ class Tokenizer(object):
                                     column += 1
                                 elif char == '\t':
                                     column = (1 + column // tabsize) * tabsize
-                                elif char == '\f':
-                                    # Form-feed aka page-down, used by emacs,
-                                    #  apparently
-                                    column = 0
                             continue
 
                         else:
@@ -1570,7 +1570,7 @@ class Tokenizer(object):
                             countColumns = False
 
                     # Ignore whitespace between tokens
-                    if char == ' ' or char == '\t' or char == '\f':
+                    if char == ' ' or char == '\t':
                         yield WHITESPACE, token, numb, start
                         continue
 
@@ -1680,11 +1680,7 @@ class Tokenizer(object):
                         # Function opening
                         # Yield function name, then back up to yield PAREN_OPEN
                         # on next pass
-                        fnc = token[:-1]
-                        if fnc in _TEXT_OP:
-                            yield _TEXT_OP[fnc], fnc, numb, start
-                        else:
-                            yield FUNC_NAME, fnc, numb, start
+                        yield FUNC_NAME, token[:-1], numb, start
                         pos -= 1
                         continue
                     elif token[-1] == ':':
@@ -1703,12 +1699,9 @@ class Tokenizer(object):
                         continue
 
                 else:
+                    # No token matched
 
-                    m = _rSPACE.search(line, pos)
-                    if not m:
-                        token = line[pos:]
-                    else:
-                        token = line[pos:m.start()]
+                    token = line[pos:]
                     raise ParseError(
                         'Unknown or invalid token', numb, pos,
                         'Unrecognized token: ' + token)
@@ -1730,7 +1723,7 @@ class Tokenizer(object):
         if in_multi_string:
             raise ParseError(
                 'Unclosed multi-line string', text_start[0], text_start[1] - 3,
-                'Comment opened but never closed')
+                'Multi-line string opened but never closed')
 
         # De-dent at end of file
         if check_indenting:
@@ -1770,13 +1763,13 @@ class Tokenizer(object):
                         column += 1
                     elif char == '\t':
                         column = (1 + column // tabsize) * tabsize
-                    elif char == '\f':
-                        column = 0
                 if ind is None or column < ind:
                     ind = column
+
         # No indentation? Then return as is
         if ind == 0 or ind is None or ind == 'first':
             return '\n'.join(text_buffer)
+
         # Strip initial ``ind`` characters from lines
         text = []
         first = True
@@ -1794,8 +1787,6 @@ class Tokenizer(object):
                         column += 1
                     elif line[pos] == '\t':
                         column = (1 + column // tabsize) * tabsize
-                    elif line[pos] == '\f':
-                        column = 0
                     else:   # pragma: no cover
                         raise Exception(
                             'Unexpected character in multi-line string\'s'
@@ -1871,13 +1862,6 @@ def parse_expression_string(string, context=None):
     # Check for eol, eof, then nothing else
     expect(next(s), EOL)
     expect(next(s), EOF)
-    try:
-        next(s)
-        raise ParseError(
-            'Unused tokens', 0, 0,
-            'Expecting a string containing only a single expression.')
-    except StopIteration:
-        pass
 
     # Convert proto expression and return
     return convert_proto_expression(e, context, info)
@@ -1967,6 +1951,7 @@ def format_parse_error(ex, source=None):
         out.append('  ' + ex.desc)
     out.append('On line ' + str(ex.line) + ' character ' + str(ex.char))
     line = None
+
     if ex.line > 0 and source is not None:
         if isinstance(source, basestring) and os.path.isfile(source):
             # Re-open file, find line
@@ -1982,14 +1967,16 @@ def format_parse_error(ex, source=None):
                     break
             if i != ex.line:
                 line = None
-    if line is not None:
+
+    if line is not None and len(line) > ex.char:
         # Skip initial whitespace
         pos = 0
-        _sWHITE = ' \t\f'
+        _sWHITE = ' \t'
         for char in line[0:ex.char]:
             if char not in _sWHITE:
                 break
             pos += 1
+
         # Add line
         line = line[pos:].expandtabs(tabsize)
         char = ex.char - pos
@@ -2009,8 +1996,10 @@ def format_parse_error(ex, source=None):
             if p2 < n:
                 line += '..'
         out.append('  ' + line)
+
         # Add error indication
         out.append(' ' * (2 + char) + '^')
+
     return '\n'.join(out)
 
 

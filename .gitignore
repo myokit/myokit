@@ -7,3 +7,6 @@ __pycache__
 
 # Ignore installation files
 *.egg-info
+
+# Jupyter notebooks
+.ipynb_checkpoints

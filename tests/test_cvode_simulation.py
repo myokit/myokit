@@ -89,7 +89,7 @@ class SimulationTest(unittest.TestCase):
 
     def test_fixed_form_protocol(self):
         """
-        Tests running with a fixed form protocol.
+        Test running with a fixed form protocol.
         """
         n = 10
         time = list(range(n))
@@ -178,7 +178,7 @@ class SimulationTest(unittest.TestCase):
 
     def test_apd_tracking(self):
         """
-        Tests the APD calculation method.
+        Test the APD calculation method.
         """
         # More testing is done in test_datalog.py!
 
@@ -210,7 +210,7 @@ class SimulationTest(unittest.TestCase):
 
     def test_last_evaluations_and_steps(self):
         """
-        Tests :meth:`Simulation.last_number_of_evaluations()` and
+        Test :meth:`Simulation.last_number_of_evaluations()` and
         :meth:`Simulation.last_number_of_steps()`
         """
         s = myokit.Simulation(self.model, self.protocol)
@@ -224,7 +224,7 @@ class SimulationTest(unittest.TestCase):
 
     def test_eval_derivatives(self):
         """
-        Tests :meth:`Simulation.eval_derivatives()`.
+        Test :meth:`Simulation.eval_derivatives()`.
         """
         self.sim.reset()
         s1 = self.sim.state()
@@ -238,7 +238,7 @@ class SimulationTest(unittest.TestCase):
 
     def test_set_tolerance(self):
         """
-        Tests :meth:`Simulation.set_tolerance()`.
+        Test :meth:`Simulation.set_tolerance()`.
         """
         self.assertRaisesRegex(
             ValueError, 'Absolute', self.sim.set_tolerance, abs_tol=0)
@@ -248,7 +248,7 @@ class SimulationTest(unittest.TestCase):
 
     def test_set_step_size(self):
         """
-        Tests :meth:`Simulation.set_min_step_size()` and
+        Test :meth:`Simulation.set_min_step_size()` and
         :meth:`Simulation.set_max_step_size()`.
         """
         # Minimum: set, unset, allow negative value to unset
@@ -263,7 +263,7 @@ class SimulationTest(unittest.TestCase):
 
     def test_set_state(self):
         """
-        Tests :meth:`Simulation.set_state()` and
+        Test :meth:`Simulation.set_state()` and
         :meth:`Simulation.set_default_state()`.
         """
         # Get state and default state, both different from current
@@ -285,7 +285,7 @@ class SimulationTest(unittest.TestCase):
 
     def test_set_constant(self):
         """
-        Tests :meth:`Simulation.set_constant()`.
+        Test :meth:`Simulation.set_constant()`.
         """
         # Literal
         self.sim.set_constant('cell.Na_i', 11)
@@ -296,7 +296,7 @@ class SimulationTest(unittest.TestCase):
             ValueError, 'not a literal', self.sim.set_constant, 'ina.ENa', 11)
 
     def test_simulation_error_1(self):
-        """ Tests for simulation error detection: massive stimulus. """
+        """ Test for simulation error detection: massive stimulus. """
         # Silly protocol
         p = myokit.Protocol()
         p.schedule(level=1000, start=1, duration=1)
@@ -308,7 +308,7 @@ class SimulationTest(unittest.TestCase):
     @unittest.skipIf(platform.system() != 'Linux', 'Cvode error tests')
     def test_simulation_error_2(self):
         """
-        Tests for simulation error detection: failure occurred too often.
+        Test for simulation error detection: failure occurred too often.
         """
         # Cvode error (test failure occurred too many times)
         m = self.model.clone()

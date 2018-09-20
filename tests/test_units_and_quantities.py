@@ -37,7 +37,7 @@ class MyokitUnitTest(unittest.TestCase):
 
     def test_can_convert(self):
         """
-        Tests :meth:`Unit.can_convert()`.
+        Test :meth:`Unit.can_convert()`.
         """
         self.assertTrue(myokit.Unit.can_convert(
             myokit.units.volt, myokit.units.mV))
@@ -96,7 +96,7 @@ class MyokitUnitTest(unittest.TestCase):
             myokit.Unit.convert, 1, 'Alf', V)
 
     def test_float(self):
-        """ Tests :meth:`Unit.__float__()`. """
+        """ Test :meth:`Unit.__float__()`. """
         x = myokit.Unit()
         x *= 123
         self.assertAlmostEqual(float(x), 123)
@@ -106,7 +106,7 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertRaises(TypeError, float, x)
 
     def test_operators(self):
-        """ Tests overloaded unit operators. """
+        """ Test overloaded unit operators. """
         # Test div
         d = myokit.Unit()
         self.assertEqual(d._x, [0] * 7)
@@ -153,7 +153,7 @@ class MyokitUnitTest(unittest.TestCase):
 
     def test_parse_simple(self):
         """
-        Tests edge cases for :meth:`Unit.parse_simple()`.
+        Test edge cases for :meth:`Unit.parse_simple()`.
         """
         # Easy case
         self.assertEqual(myokit.Unit.parse_simple('mV'), myokit.units.mV)
@@ -172,7 +172,7 @@ class MyokitUnitTest(unittest.TestCase):
             KeyError, 'Unknown unit', myokit.Unit.parse_simple, 'Frog')
 
     def test_register_errors(self):
-        """ Tests errors for Unit.register (rest is already used a lot). """
+        """ Test errors for Unit.register (rest is already used a lot). """
         self.assertRaises(TypeError, myokit.Unit.register, 4, myokit.Unit())
         self.assertRaises(TypeError, myokit.Unit.register, 'hi', 4)
 
@@ -195,7 +195,7 @@ class QuantityTest(unittest.TestCase):
     Tests the Quantity class for unit arithmetic.
     """
     def test_creation_and_str(self):
-        """ Tests Quanity creation and :meth:`Quantity.__str__()`. """
+        """ Test Quanity creation and :meth:`Quantity.__str__()`. """
         from myokit import Quantity as Q
 
         # Creation and string representation
@@ -238,7 +238,7 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(str(x), x.__hash__())
 
     def test_number_conversion(self):
-        """ Tests Quantity conversion from and to number. """
+        """ Test Quantity conversion from and to number. """
         from myokit import Quantity as Q
         from myokit import Number as N
 

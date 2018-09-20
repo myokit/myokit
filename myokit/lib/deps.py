@@ -162,8 +162,6 @@ def plot_state_dependency_matrix(
     a.set_xticks([i + 0.5 for i in range(0, n)])
     a.set_xticklabels(names)
 
-    from matplotlib.transforms import Affine2D
-    r = Affine2D.identity()
     a.set_yticks([i + 0.5 for i in range(0, n)])
     rnames = list(names)
     rnames.reverse()
@@ -278,7 +276,7 @@ class DiGraph(object):
                 if edge:
                     self.add_edge(nodes[i], nodes[j])
 
-    def cg_layers_dag(graph):
+    def cg_layers_dag(self):
         """
         Returns a layering according to the Coffman-Graham ordering scheme.
 
@@ -288,8 +286,7 @@ class DiGraph(object):
         Will raise an exception if this digraph has cycles.
         """
         # Get minimal equivalent graph
-        original = graph
-        graph = graph.meg_dag()
+        graph = self.meg_dag()
 
         # Number of nodes
         n = len(graph)
@@ -343,10 +340,10 @@ class DiGraph(object):
         for node in sorted(P, key=P.get):
             if not node.edgo.issubset(D):
                 D = D.union(E)
-                L.append([original[x.uid] for x in E])
+                L.append([self[x.uid] for x in E])
                 E.clear()
             E.add(node)
-        L.append([original[x.uid] for x in E])
+        L.append([self[x.uid] for x in E])
 
         # Convert to lists
         layers = []

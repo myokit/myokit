@@ -1309,6 +1309,9 @@ class Point2D(object):
             return self.x == other.x and self.y == other.y
         return False
 
+    def __hash__(self):
+        return hash((self.x, self.y))
+
     def __ne__(self, other):
         if isinstance(other, Point2D):
             return self.x != other.x or self.y != other.y

@@ -32,7 +32,7 @@ class SymPyReadWriteTest(unittest.TestCase):
 
     def test_all(self):
         """
-        Tests exporting and importing of all Myokit expression types.
+        Test exporting and importing of all Myokit expression types.
         """
         import sympy
 
@@ -304,7 +304,7 @@ class SymPyReadWriteTest(unittest.TestCase):
 
     def test_access_via_myokit_formats(self):
         """
-        Tests fetching using formats.ewriter.
+        Test fetching using formats.ewriter.
         """
 
         # Test fetching using ewriter method

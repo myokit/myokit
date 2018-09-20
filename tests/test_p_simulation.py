@@ -136,7 +136,7 @@ class PSimulationTest(unittest.TestCase):
 
     def test_block(self):
         """
-        Tests :meth:`PSimulation.block()`.
+        Test :meth:`PSimulation.block()`.
         """
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.PSimulation(
@@ -159,7 +159,7 @@ class PSimulationTest(unittest.TestCase):
 
     def test_set_constant(self):
         """
-        Tests :meth:`PSimulation.set_constant()` and
+        Test :meth:`PSimulation.set_constant()` and
         :meth:`PSimulation.set_parameters()`
         """
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))

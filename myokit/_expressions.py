@@ -2664,7 +2664,7 @@ class Unit(object):
         """
         Evaluates ``other / self``, where other is not a unit
         """
-        return self.__rtruediv__(self, other)
+        return self.__rtruediv__(other)
 
     @staticmethod
     def register(name, unit, quantifiable=False, output=False):

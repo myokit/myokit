@@ -73,7 +73,7 @@ class ChannelMLImporter(formats.Importer):
         v.set_rhs('-80')
         v.set_label('membrane_potential')
         # Add the channel component
-        c = self._parse(path, model)
+        self._parse(path, model)
         # Return
         return model
 

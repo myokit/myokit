@@ -16,7 +16,7 @@ import unittest
 import myokit
 import myokit.units
 
-from shared import DIR_DATA
+from shared import DIR_DATA, TemporaryDirectory
 
 # Unit testing in Python 2 and 3
 try:
@@ -38,7 +38,7 @@ class TokenizerTest(unittest.TestCase):
 
     def test_tokenizer(self):
         """
-        Tests basic Tokenizer functionality.
+        Test basic Tokenizer functionality.
         """
         import myokit._parsing as p
         from myokit._parsing import Tokenizer
@@ -64,17 +64,20 @@ class TokenizerTest(unittest.TestCase):
         # Unknown token
         self.assertRaisesRegex(
             myokit.ParseError, 'invalid token', Tokenizer, '@')
+        s = Tokenizer('x  @')
+        self.assertRaisesRegex(
+            myokit.ParseError, 'invalid token', s.next)
 
         # Block-comment
         s = Tokenizer('"""Hello"""')
         self.assertEqual(next(s)[0], p.EOF)
 
         # Multi-line string
-        s = Tokenizer('x: """Hello\nWorld"""')
+        s = Tokenizer('x: """Hello\nWo\trld"""')
         self.assertEqual(next(s)[0], p.META_NAME)
         self.assertEqual(next(s)[0], p.COLON)
         self.assertEqual(s.peek()[0], p.TEXT)
-        self.assertEqual(next(s)[1], 'Hello\nWorld')
+        self.assertEqual(next(s)[1], 'Hello\nWo\trld')
         self.assertEqual(next(s)[0], p.EOL)
         s = Tokenizer('x: """Hello"""World')
         self.assertEqual(next(s)[0], p.META_NAME)
@@ -84,6 +87,22 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(next(s)[0], p.META_NAME)
         self.assertRaisesRegex(
             myokit.ParseError, 'after closing of multi-line string', next, s)
+        s = Tokenizer('x: """Hello\n')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unclosed multi-line', s.next)
+
+        # Indented is removed from multi-line string
+        s = Tokenizer('    x: """Hello \n    world"""')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertEqual(next(s)[0], p.COLON)
+        self.assertEqual(s.peek()[0], p.TEXT)
+        self.assertEqual(s.peek()[1], 'Hello\nworld')
+        s = Tokenizer('\tx: """Hello \n\tworld"""')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertEqual(next(s)[0], p.COLON)
+        self.assertEqual(s.peek()[0], p.TEXT)
+        self.assertEqual(s.peek()[1], 'Hello\nworld')
 
         # Empty lines
         s = Tokenizer('\n\n\nx: """Hello\nWorld"""\n\n\n')
@@ -100,12 +119,37 @@ class TokenizerTest(unittest.TestCase):
         next(s)
         next(s)
         self.assertEqual(next(s)[1], 'this is the value of x')
+        self.assertEqual(next(s)[0], p.EOL)
+
+        s = Tokenizer('x: this is \\\nthe\\\n\n\n value of x')
+        next(s)
+        next(s)
+        self.assertEqual(next(s)[1], 'this is the')
+        self.assertEqual(next(s)[0], p.EOL)
+
+        s = Tokenizer('x: this is \\\nthe\\\n\n\n value of x')
+        next(s)
+        next(s)
+        self.assertEqual(next(s)[1], 'this is the')
+        self.assertEqual(next(s)[0], p.EOL)
 
         # Comment doesn't end line continuation
         s = Tokenizer('x: this is \\\n#Hi mike\nthe value of x')
         next(s)
         next(s)
         self.assertEqual(next(s)[1], 'this is the value of x')
+
+        # Line continuation must be last character on line
+        s = Tokenizer('1 + \\3')
+        next(s)
+        self.assertRaisesRegex(
+            myokit.ParseError, ' Backslash must be last', s.next)
+
+        # But backslash is allowed in text (only seen as line cont. if last)
+        s = Tokenizer('x: Hello\\michael\nHow are you')
+        self.assertEqual(next(s)[0], p.META_NAME)
+        self.assertEqual(next(s)[0], p.COLON)
+        self.assertEqual(next(s)[1], 'Hello\\michael')
 
         # Brackets
         s = Tokenizer('x = (\n1 + \n\n2 + (\n3\n\n)\n\n) + 4')
@@ -115,13 +159,74 @@ class TokenizerTest(unittest.TestCase):
         e = parse_expression_stream(s)
         self.assertEqual(e.code(), '1 + 2 + 3 + 4')
 
+        # Mismatched brackets
+        s = Tokenizer('x = (1 + 2')
+        self.assertEqual(next(s)[0], p.NAME)
+        self.assertEqual(next(s)[0], p.EQUAL)
+        self.assertEqual(next(s)[0], p.PAREN_OPEN)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.PLUS)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Parentheses mismatch', s.next)
+
+        s = Tokenizer('x = 1 + 2)')
+        self.assertEqual(next(s)[0], p.NAME)
+        self.assertEqual(next(s)[0], p.EQUAL)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.PLUS)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Parentheses mismatch', s.next)
+
+        # Test indenting (Tabs count as 8 spaces)
+        s = '\n'.join([
+            '1',
+            '        2',
+            '\t3',
+            '        4',
+            '5',
+        ])
+        s = Tokenizer(s)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INDENT)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.DEDENT)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+
+        # Test indenting error
+        s = Tokenizer('\n'.join([
+            '1',
+            '    2',
+            '  3',
+        ]))
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INDENT)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unexpected indenting level', s.next)
+
+        # Line feed counts as a newline
+        s = Tokenizer('123\f456')
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+        self.assertEqual(next(s)[0], p.INTEGER)
+        self.assertEqual(next(s)[0], p.EOL)
+
 
 class PhasedParseTest(unittest.TestCase):
     """
     Tests several phases of parsing.
     """
     def test_segment_parsing(self):
-        """ Tests :meth:`parse_model()`. """
+        """ Test :meth:`parse_model()`. """
         from myokit._parsing import parse
 
         # Empty code --> error
@@ -177,7 +282,7 @@ class PhasedParseTest(unittest.TestCase):
 
     def test_parse_model(self):
         """
-        Tests the parse_model method.
+        Test the parse_model method.
         """
         from myokit._parsing import parse_model
 
@@ -255,7 +360,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Unused initial value', p, code)
 
     def test_parse_user_function(self):
-        """ Tests :meth:`parse_user_function()`. """
+        """ Test :meth:`parse_user_function()`. """
         from myokit._parsing import parse_model as p
 
         # Test basics
@@ -378,7 +483,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Duplicate meta-data key', p, code)
 
     def test_parse_alias(self):
-        """ Tests :meth:`parse_alias()`. """
+        """ Test :meth:`parse_alias()`. """
         from myokit._parsing import parse_model as p
 
         # Test basics
@@ -437,7 +542,7 @@ class PhasedParseTest(unittest.TestCase):
 
     def test_parse_variable(self):
         """
-        Tests parse_variable(), uses parse_expression()
+        Test parse_variable(), uses parse_expression()
         """
         from myokit._parsing import parse_model as p
 
@@ -615,7 +720,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Duplicate variable unit', p, code)
 
     def test_parse_unit(self):
-        """ Tests :meth:`parse_unit` and :meth:`parse_unit_string`. """
+        """ Test :meth:`parse_unit` and :meth:`parse_unit_string`. """
         from myokit._parsing import parse_unit_string as p
 
         # Test dimensionless
@@ -657,7 +762,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Invalid unit multiplier', p, 'm (x)')
 
     def test_parse_protocol(self):
-        """ Tests :meth:`parse_protocol()`. """
+        """ Test :meth:`parse_protocol()`. """
         from myokit._parsing import parse_protocol
 
         # Test simple
@@ -802,7 +907,7 @@ class PhasedParseTest(unittest.TestCase):
         parse_protocol(code)
 
     def test_parse_script(self):
-        """ Tests :meth:`parse_script()`. """
+        """ Test :meth:`parse_script()`. """
         from myokit._parsing import parse_script
 
         # Test simple
@@ -892,7 +997,7 @@ class PhasedParseTest(unittest.TestCase):
         self.assertEqual(p, '\n'.join(code[8:-1]))
 
     def test_unexpected_token(self):
-        """ Tests :meth:`unexpected_token`. """
+        """ Test :meth:`unexpected_token`. """
         import myokit._parsing as p
 
         # code, text, line, char
@@ -975,6 +1080,20 @@ class PhasedParseTest(unittest.TestCase):
         # Test bad value
         self.assertRaises(myokit.ParseError, p, '5 beans')
 
+    def test_parse_expression_string(self):
+        """
+        Test :meth:`parse_expression_string()`.
+        """
+        from myokit._parsing import parse_expression_string
+        e = parse_expression_string('5 --- 2')
+        self.assertIsInstance(e, myokit.Minus)
+        self.assertEqual(e.eval(), 3)
+
+        # Only a single expression can be given
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unexpected token INTEGER',
+            parse_expression_string, '5 + 2 3 * 7')
+
     def test_parse_state(self):
         """
         Test parse_state()
@@ -1013,6 +1132,117 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ParseError, 'must be fully qualified', parse_state, code)
+
+    def test_format_parse_error(self):
+        """
+        Test format_parse_error.
+        """
+        # Test basic formatting, with and without source
+        bad = '    5 + / 2'
+        try:
+            myokit.parse_expression(bad)
+        except myokit.ParseError as e:
+
+            # No source
+            self.assertEqual(
+                myokit.format_parse_error(e),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                ])
+            )
+
+            # List-of-strings source
+            self.assertEqual(
+                myokit.format_parse_error(e, source=[bad]),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                    '  5 + / 2',
+                    '      ^'
+                ])
+            )
+
+            # File source
+            with TemporaryDirectory() as d:
+                path = d.path('mmt')
+                with open(path, 'w') as f:
+                    f.write(bad + '\n')
+                myokit.format_parse_error(e, source=path),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                    '  5 + / 2',
+                    '      ^'
+                ])
+
+            # Line doesn't exist in source
+            self.assertEqual(
+                myokit.format_parse_error(e, source=[]),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                ])
+            )
+
+            # Char doesn't exist in source
+            self.assertEqual(
+                myokit.format_parse_error(e, source=['x']),
+                '\n'.join([
+                    'Syntax error',
+                    '  Unexpected token SLASH "/" expecting expression',
+                    'On line 1 character 8',
+                ])
+            )
+
+        # Very long lines
+        bad = '    1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 100 + 1000 + 11'
+        bad += ' + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20 + 21 + 22'
+        bad += ' + 23 + 24 + 25 + 26 + 27 + 28 + 29 + 30 + 31'
+
+        # Error near start
+        error = '\n'.join([
+            'Syntax error',
+            '  Unexpected token SLASH "/" expecting expression',
+            'On line 1 character 12',
+            '  1 + 2 + / 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 100 + 1000 + ..',
+            '          ^',
+        ])
+        b = bad[:12] + '/ ' + bad[12:]
+        try:
+            myokit.parse_expression(b)
+        except myokit.ParseError as e:
+            self.assertEqual(myokit.format_parse_error(e, source=[b]), error)
+
+        error = '\n'.join([
+            'Syntax error',
+            '  Unexpected token SLASH "/" expecting expression',
+            'On line 1 character 83',
+            '  ..+ 12 + 13 + 14 + 15 + / 16 + 17 + 18 + 19 + 20 + 21 + 22..',
+            '                          ^',
+        ])
+        b = bad[:83] + '/ ' + bad[83:]
+        try:
+            myokit.parse_expression(b)
+        except myokit.ParseError as e:
+            self.assertEqual(myokit.format_parse_error(e, source=[b]), error)
+
+        error = '\n'.join([
+            'Syntax error',
+            '  Unexpected token SLASH "/" expecting expression',
+            'On line 1 character 133',
+            '  ..+ 21 + 22 + 23 + 24 + 25 + / 26 + 27 + 28 + 29 + 30 + 31',
+            '                               ^',
+        ])
+        b = bad[:133] + '/ ' + bad[133:]
+        try:
+            myokit.parse_expression(b)
+        except myokit.ParseError as e:
+            self.assertEqual(myokit.format_parse_error(e, source=[b]), error)
 
 
 class ModelParseTest(unittest.TestCase):
@@ -1083,7 +1313,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_unresolved_reference_error(self):
         """
-        Tests unresolved reference errors.
+        Test unresolved reference errors.
         """
         code = """
             [[model]]
@@ -1110,7 +1340,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_cyclical_reference_error(self):
         """
-        Tests cyclical reference errors.
+        Test cyclical reference errors.
         """
         code = """
             [[model]]
@@ -1138,7 +1368,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_piecewise(self):
         """
-        Tests a model with a piecewise statement
+        Test a model with a piecewise statement
         """
         m = myokit.load_model(
             os.path.join(DIR_DATA, 'conditional.mmt'))
@@ -1165,7 +1395,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_initial_values(self):
         """
-        Tests if expressions for initial values are handled correctly.
+        Test if expressions for initial values are handled correctly.
         """
         code = """
             [[model]]
@@ -1270,7 +1500,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_clone_code_parse(self):
         """
-        Tests the cloning, code and parse() by exporting models and
+        Test the cloning, code and parse() by exporting models and
         reading them in again.
         """
         models = [
@@ -1288,7 +1518,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_advanced_units(self):
         """
-        Tests the new unit syntax where literals have units.
+        Test the new unit syntax where literals have units.
         """
         model = 'br-1977-units.mmt'
         m = myokit.load_model(os.path.join(DIR_DATA, model))
@@ -1296,7 +1526,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_unresolved_references(self):
         """
-        Tests parsing models with unresolved references.
+        Test parsing models with unresolved references.
         """
         m = """
             [[model]]
@@ -1345,7 +1575,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_invalid_dot_in_rhs(self):
         """
-        Tests parsing a model with an invalid dot() in a variable's RHS.
+        Test parsing a model with an invalid dot() in a variable's RHS.
         """
         # This model has dot(1 - x), which is not allowed!
         code = """
@@ -1364,7 +1594,7 @@ class ModelParseTest(unittest.TestCase):
 
     def test_strip_expression_units(self):
         """
-        Tests :meth:`strip_expression_units`.
+        Test :meth:`strip_expression_units`.
         """
         from myokit._parsing import parse_model, strip_expression_units
 
@@ -1387,6 +1617,55 @@ class ModelParseTest(unittest.TestCase):
         self.assertTrue(len(c2) < len(c1))
         self.assertEqual(
             m1.eval_state_derivatives(), m2.eval_state_derivatives())
+
+    def test_function_parsing(self):
+        """
+        Test parsing of functions.
+        """
+        # Test simple function
+        m = """
+            [[model]]
+
+            [c]
+            t = 0 bind time
+            x = asin(sin(1))
+            """
+        m = myokit.parse_model(m)
+        self.assertAlmostEqual(m.get('c.x').eval(), 1)
+
+        # Test function with multiple arguments
+        m = """
+            [[model]]
+
+            [c]
+            t = 0 bind time
+            x = log(8, 2)
+            """
+        m = myokit.parse_model(m)
+        self.assertAlmostEqual(m.get('c.x').eval(), 3)
+
+        # Unknown function
+        m = """
+            [[model]]
+
+            [c]
+            t = 0 bind time
+            x = blog(8, 2)
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Unknown function', myokit.parse_model, m)
+
+        # Wrong number of arguments
+        m = """
+            [[model]]
+
+            [c]
+            t = 0 bind time
+            x = sin(8, 2)
+            """
+        self.assertRaisesRegex(
+            myokit.ParseError, 'Wrong number of arguments', myokit.parse_model,
+            m)
 
 
 if __name__ == '__main__':

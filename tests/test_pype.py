@@ -28,7 +28,7 @@ class PypeTest(unittest.TestCase):
 
     def test_process_errors(self):
         """
-        Tests error handling in the ``process`` method.
+        Test error handling in the ``process`` method.
         """
 
         # Process method takes a dict

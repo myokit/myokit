@@ -79,7 +79,7 @@ class Exporter(object):
         """
         raise NotImplementedError
 
-    def runnable(self, path, model, protocol=None):
+    def runnable(self, path, model, protocol=None, *args):
         """
         Exports a :class:`myokit.Model` and optionally a
         :class:`myokit.Protocol` to something that can be run or compiled.

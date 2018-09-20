@@ -36,6 +36,7 @@ def main():
     # Add subparsers
     add_block_parser(subparsers)            # Launch the DataBlock viewer
     add_compare_parser(subparsers)          # Compare models
+    add_compiler_parser(subparsers)         # Show compiler
     add_debug_parser(subparsers)            # Debug an RHS equation
     add_eval_parser(subparsers)             # Evaluate an expression
     add_export_parser(subparsers)           # Export an mmt file
@@ -49,6 +50,8 @@ def main():
     add_reset_parser(subparsers)            # Reset config files
     add_run_parser(subparsers)              # Run an mmt file
     add_step_parser(subparsers)             # Load a model, perform 1 step
+    add_sundials_parser(subparsers)         # Show Sundials support
+    add_system_parser(subparsers)           # Show system information
     add_version_parser(subparsers)          # Show version info
     add_video_parser(subparsers)            # Convert a DataBlock to video
 
@@ -162,6 +165,30 @@ def add_compare_parser(subparsers):
         help='The model to compare with.',
     )
     compare_parser.set_defaults(func=compare)
+
+
+def compiler():
+    """
+    Tests for C compilation support.
+    """
+    import myokit
+    compiler = myokit.Compiler.info()
+    if compiler is None:
+        print('Compilation with distutils/setuptools failed.')
+    else:
+        print('Compilation successful. Found: ' + compiler)
+
+
+def add_compiler_parser(subparsers):
+    """
+    Adds a subcommand parser for the ``compiler`` command.
+    """
+    compiler_parser = subparsers.add_parser(
+        'compiler',
+        description='Checks for C compilation support.',
+        help='Prints information about C compilation support.',
+    )
+    compiler_parser.set_defaults(func=compiler)
 
 
 def debug(source, variable, deps=False):
@@ -769,7 +796,7 @@ def opencl_select():
             try:
                 x = raw_input(x)
             except NameError:   # pragma: no python 2 cover
-                x = input(x)
+                x = input(x)    # lgtm [py/use-of-input]
             x = x.strip()
             if x == '':
                 x = None
@@ -829,8 +856,8 @@ def reset(force=False):
         yesno = 'Remove all Myokit settings files? '
         try:
             yesno = raw_input(yesno)
-        except NameError:   # pragma: no python 2 cover
-            yesno = input(yesno)
+        except NameError:           # pragma: no python 2 cover
+            yesno = input(yesno)    # lgtm [py/use-of-input]
         yesno = yesno.strip().lower()
         remove = (yesno[:1] == 'y')
     if remove:
@@ -1063,6 +1090,50 @@ def add_step_parser(subparsers):
         help='Display the calculated state, without further formatting.',
     )
     step_parser.set_defaults(func=step)
+
+
+def sundials():
+    """
+    Queries for Sundials support.
+    """
+    import myokit
+    version = myokit.Sundials.version()
+    if version is None:
+        print('Sundials not found or compilation failed.')
+    else:
+        print('Found Sundials version ' + version)
+
+
+def add_sundials_parser(subparsers):
+    """
+    Adds a subcommand parser for the `sundials` command.
+    """
+    sundials_parser = subparsers.add_parser(
+        'sundials',
+        description='Checks for Sundials support.',
+        help='Prints information about Sundials support.',
+    )
+    sundials_parser.set_defaults(func=sundials)
+
+
+def system():
+    """
+    Displays system information.
+    """
+    import myokit
+    myokit.system(live_printing=True)
+
+
+def add_system_parser(subparsers):
+    """
+    Adds a subcommand parser for the `system` command.
+    """
+    sundials_parser = subparsers.add_parser(
+        'system',
+        description='Show system information.',
+        help='Prints information about the current system.',
+    )
+    sundials_parser.set_defaults(func=system)
 
 
 def version(raw=False):

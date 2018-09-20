@@ -392,6 +392,10 @@ from ._aux import (  # noqa
     pack_snapshot,
 )
 
+# System information
+from ._system import (      # noqa
+    system,
+)
 
 # Progress reporting
 from ._progress import (    # noqa
@@ -410,6 +414,9 @@ from ._datablock import (   # noqa
 # Simulations
 from ._sim import (  # noqa
     CModule, CppModule,
+)
+from ._sim.compiler import (  # noqa
+    Compiler,
 )
 from ._sim.sundials import (  # noqa
     Sundials,

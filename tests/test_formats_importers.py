@@ -32,10 +32,10 @@ except NameError:   # pragma: no python 2 cover
 
 
 class ImporterTest(unittest.TestCase):
-    """ Tests shared importer functionality. """
+    """ Test shared importer functionality. """
 
     def test_importer_interface(self):
-        """ Tests listing and creating importers. """
+        """ Test listing and creating importers. """
         ims = myokit.formats.importers()
         self.assertTrue(len(ims) > 0)
         for i in ims:
@@ -44,17 +44,17 @@ class ImporterTest(unittest.TestCase):
             self.assertTrue(isinstance(i, myokit.formats.Importer))
 
     def test_unknown(self):
-        """ Tests requesting an unknown importer. """
+        """ Test requesting an unknown importer. """
         # Test fetching using importer method
         self.assertRaisesRegex(
             KeyError, 'Importer not found', myokit.formats.importer, 'blip')
 
 
 class SBMLTest(unittest.TestCase):
-    """ Tests SBML import. """
+    """ Test SBML import. """
 
     def test_capability_reporting(self):
-        """ Tests if the right capabilities are reported. """
+        """ Test if the right capabilities are reported. """
         i = formats.importer('sbml')
         self.assertFalse(i.supports_component())
         self.assertTrue(i.supports_model())
@@ -93,7 +93,7 @@ class AxonTest(unittest.TestCase):
     """ Partially tests Axon formats importing. """
 
     def test_capability_reporting(self):
-        """ Tests if the right capabilities are reported. """
+        """ Test if the right capabilities are reported. """
         i = formats.importer('abf')
         self.assertFalse(i.supports_component())
         self.assertFalse(i.supports_model())

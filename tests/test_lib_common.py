@@ -23,7 +23,7 @@ from shared import DIR_DATA
 class CommonTest(unittest.TestCase):
     def test_activation(self):
         """
-        Tests the activation experiment class.
+        Test the activation experiment class.
         """
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
@@ -49,7 +49,7 @@ class CommonTest(unittest.TestCase):
 
     def test_inactivation(self):
         """
-        Tests the inactivation experiment class.
+        Test the inactivation experiment class.
         """
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
@@ -69,7 +69,7 @@ class CommonTest(unittest.TestCase):
 
     def test_recovery(self):
         """
-        Tests the recovery experiment class.
+        Test the recovery experiment class.
         """
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
@@ -96,7 +96,7 @@ class CommonTest(unittest.TestCase):
 
     def test_restitution(self):
         """
-        Tests the restitution experiment class.
+        Test the restitution experiment class.
         """
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
@@ -109,7 +109,7 @@ class CommonTest(unittest.TestCase):
 
     def test_strength_duration(self):
         """
-        Tests the strength-duration experiment class.
+        Test the strength-duration experiment class.
         """
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')

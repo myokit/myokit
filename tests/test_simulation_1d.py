@@ -26,10 +26,10 @@ except AttributeError:
 
 class Simulation1dTest(unittest.TestCase):
     """
-    Tests the non-parallel 1d simulation.
+    Test the non-parallel 1d simulation.
     """
     def test_basic(self):
-        """ Tests basic usage. """
+        """ Test basic usage. """
         # Load model
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
 
@@ -119,7 +119,7 @@ class Simulation1dTest(unittest.TestCase):
             progress=CancellingReporter(0))
 
     def test_set_state(self):
-        """ Tests :meth:`Simulation1d.set_state()`. """
+        """ Test :meth:`Simulation1d.set_state()`. """
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         n = 4
 
@@ -156,7 +156,7 @@ class Simulation1dTest(unittest.TestCase):
         self.assertRaises(ValueError, s.state, n)
 
     def test_set_default_state(self):
-        """ Tests :meth:`Simulation1d.set_default_state()`. """
+        """ Test :meth:`Simulation1d.set_default_state()`. """
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         n = 4
 

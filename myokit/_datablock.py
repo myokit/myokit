@@ -268,9 +268,7 @@ class DataBlock1d(object):
         infos = log.variable_info()
 
         # Check time variable
-        try:
-            info = infos[time]
-        except KeyError:
+        if time not in infos:
             # Already checked time variable exists, so if not found now must
             # be multi-dimensional
             raise ValueError('Time variable must be 0-dimensional.')
@@ -1032,9 +1030,7 @@ class DataBlock2d(object):
         infos = log.variable_info()
 
         # Check time variable
-        try:
-            info = infos[time]
-        except KeyError:
+        if time not in infos:
             # Already checked time variable exists, so if not found now must
             # be multi-dimensional
             raise ValueError('Time variable must be 0-dimensional.')
@@ -1234,7 +1230,7 @@ class DataBlock2d(object):
             except ValueError:
                 # Attempt reading as DataBlock1d
                 try:
-                    head = names.index('header_block1d.txt')
+                    names.index('header_block1d.txt')
                 except ValueError:
                     raise myokit.DataBlockReadError(
                         'Invalid DataBlock2d file format: Header not found.')
@@ -1605,7 +1601,7 @@ class ColorMap(object):
     """
     _colormaps = {}
 
-    def __call__(floats, lower=None, upper=None, alpha=True, rgb=None):
+    def __call__(self, floats, lower=None, upper=None, alpha=True, rgb=None):
         raise NotImplementedError
 
     @staticmethod

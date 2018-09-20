@@ -45,7 +45,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_extend(self):
         """
-        Tests the extend function.
+        Test the extend function.
         """
 
         d1 = myokit.DataLog(time='time')
@@ -119,7 +119,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_find_time(self):
         """
-        Tests the find function.
+        Test the find function.
         """
         x = myokit.DataLog({
             'engine.time': [0, 5, 10, 15, 20],
@@ -153,7 +153,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_indexing(self):
         """
-        Tests the indexing overrides in the simulation log.
+        Test the indexing overrides in the simulation log.
         """
         d = myokit.DataLog()
         d['x'] = 'y'
@@ -181,7 +181,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_integrate(self):
         """
-        Tests the integrate method.
+        Test the integrate method.
         """
         # Create an irregular time array
         from random import random
@@ -225,7 +225,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_itrim(self):
         """
-        Tests the itrim() method.
+        Test the itrim() method.
         """
         d = myokit.DataLog()
         d.set_time_key('t')
@@ -259,7 +259,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_itrim_left(self):
         """
-        Tests the itrim_left() method.
+        Test the itrim_left() method.
         """
         d = myokit.DataLog()
         d.set_time_key('t')
@@ -291,7 +291,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_itrim_right(self):
         """
-        Tests the itrim_right() method.
+        Test the itrim_right() method.
         """
         d = myokit.DataLog()
         d.set_time_key('t')
@@ -323,7 +323,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_keys_like(self):
         """
-        Tests the keys_like(query) method.
+        Test the keys_like(query) method.
         """
         d = myokit.DataLog()
         d.set_time_key('t')
@@ -358,7 +358,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_prepare_log_0d(self):
         """
-        Tests the `prepare_log` method for single-cell simulations.
+        Test the `prepare_log` method for single-cell simulations.
         """
         # Test multi-cell log preparing
         from myokit import prepare_log
@@ -665,7 +665,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_prepare_log_2d(self):
         """
-        Tests the `prepare_log` method for 2-dimensional logs.
+        Test the `prepare_log` method for 2-dimensional logs.
         """
         # Test multi-cell log preparing
         from myokit import prepare_log
@@ -1151,7 +1151,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_save(self):
         """
-        Tests saving in binary format.
+        Test saving in binary format.
         """
         d = myokit.DataLog()
         d['a.b'] = np.arange(0, 100, dtype=np.float32)
@@ -1208,7 +1208,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_load_errors(self):
         """
-        Tests if the correct load errors are raised.
+        Test if the correct load errors are raised.
         """
         # Missing data file
         path = os.path.join(DIR_IO, 'badlog-1-no-data.zip')
@@ -1252,7 +1252,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_load_with_progress(self):
         """
-        Tests loading with a progress reporter.
+        Test loading with a progress reporter.
         """
         p = TestReporter()
         path = os.path.join(DIR_IO, 'goodlog.zip')
@@ -1271,7 +1271,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_save_csv(self):
         """
-        Tests saving as csv.
+        Test saving as csv.
         """
         d = myokit.DataLog()
 
@@ -1384,7 +1384,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_load_csv_errors(self):
         """
-        Tests for errors during csv loading.
+        Test for errors during csv loading.
         """
         # Test errory file, with comments etc., should work fine!
         path = os.path.join(DIR_IO, 'datalog.csv')
@@ -1501,7 +1501,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_split(self):
         """
-        Tests the split function.
+        Test the split function.
         """
         var1 = 'engine.toom'
         var2 = 'membrane.V'
@@ -1581,7 +1581,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_split_periodic(self):
         """
-        Tests the split_periodic() function.
+        Test the split_periodic() function.
         """
         tvar = 'engine.toime'
         vvar = 'membrane.V'
@@ -1734,7 +1734,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_trim(self):
         """
-        Tests the trim() method.
+        Test the trim() method.
         """
         d = myokit.DataLog()
         d.set_time_key('t')
@@ -1799,7 +1799,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_trim_left(self):
         """
-        Tests the trim_left function.
+        Test the trim_left function.
         """
         var1 = 'engine.toom'
         var2 = 'membrane.V'
@@ -1928,7 +1928,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_trim_right(self):
         """
-        Tests the cut_right function.
+        Test the cut_right function.
         """
         var1 = 'engine.toom'
         var2 = 'membrane.V'
@@ -1980,7 +1980,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_validate(self):
         """
-        Tests the validate() method.
+        Test the validate() method.
         """
         d = myokit.DataLog()
         d.validate()
@@ -2009,7 +2009,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_apd(self):
         """
-        Tests the apd method.
+        Test the apd method.
         """
         # Very coarse check
         d = myokit.DataLog(time='time')
@@ -2043,7 +2043,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_clone(self):
         """
-        Tests data log cloning.
+        Test data log cloning.
         """
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.Simulation(m, p)
@@ -2069,7 +2069,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_fold(self):
         """
-        Tests the fold() method.
+        Test the fold() method.
         """
         d = myokit.DataLog(time='time')
         d['time'] = list(range(100))
@@ -2096,7 +2096,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_has_nan(self):
         """
-        Tests the has_nan() method, which checks if the _final_ value in any
+        Test the has_nan() method, which checks if the _final_ value in any
         field is NaN.
         """
         d = myokit.DataLog(time='time')
@@ -2114,7 +2114,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_length(self):
         """
-        Tests the lenght() method, that counts the length of the log's entries.
+        Test the lenght() method, that counts the length of the log's entries.
         """
         d = myokit.DataLog(time='time')
         self.assertEqual(d.length(), 0)
@@ -2125,7 +2125,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_regularize(self):
         """
-        Tests the regularize() method.
+        Test the regularize() method.
         """
         d = myokit.DataLog(time='time')
         d['time'] = np.log(np.linspace(1, 25, 100))
@@ -2147,7 +2147,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_time(self):
         """
-        Tests the time() method.
+        Test the time() method.
         """
         d = myokit.DataLog(time='t')
         t = [1, 2, 3]
@@ -2166,7 +2166,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_variable_info_errors(self):
         """
-        Tests errors raised during variable info checking.
+        Test errors raised during variable info checking.
         """
         # Test mismatched dimensions (1d versus 2d)
         d = myokit.DataLog(time='t')
@@ -2189,7 +2189,7 @@ class DataLogTest(unittest.TestCase):
 
     def test_variable_info(self):
         """
-        Tests if correct variable info is returned.
+        Test if correct variable info is returned.
         """
         d = myokit.DataLog(time='t')
         # Odd grid

@@ -26,12 +26,12 @@ except AttributeError:
 
 class FormatsTest(unittest.TestCase):
     """
-    Tests infrastructure (e.g. the text logger) from the formats module.
+    Test infrastructure (e.g. the text logger) from the formats module.
     """
 
     def test_text_logger(self):
         """
-        Tests myokit.formats.TextLogger().
+        Test myokit.formats.TextLogger().
         """
 
         # Test basic methods
@@ -157,7 +157,7 @@ class ExporterTest(unittest.TestCase):
     """
     def test_writable_dir(self):
         """
-        Tests :meth:`_test_writable_dir` for existing paths.
+        Test :meth:`_test_writable_dir` for existing paths.
         """
         m, p, x = myokit.load('example')
         e = myokit.formats.exporter('ansic')
