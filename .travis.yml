@@ -72,11 +72,9 @@ install:
   - if [[ $MYOKIT_DOC == true ]]; then pip install sphinx; fi;
   - if [[ $MYOKIT_DOC == true ]]; then pip3 install pyqt5; fi;
 
-# Show Python version
+# Show system information
 before_script:
-- python --version
-- python -m myokit compiler
-# Todo: Change ^this to myokit system
+- python -m myokit system
 
 # Run tests
 script:

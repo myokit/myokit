@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the Compiler detection class.
+# Tests the system() method
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -26,9 +26,11 @@ class CompilerDetectionTest(unittest.TestCase):
     """
     Tests the compiler detection.
     """
-    def test_compiler(self):
+    def test_system_info(self):
         """ Test the compiler detection. """
-        self.assertIsInstance(myokit.Compiler.info(), basestring)
+        self.assertIsInstance(myokit.system(), basestring)
+        with myokit.PyCapture():
+            myokit.system(live_printing=True)
 
 
 if __name__ == '__main__':

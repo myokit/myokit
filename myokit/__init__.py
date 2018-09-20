@@ -392,6 +392,10 @@ from ._aux import (  # noqa
     pack_snapshot,
 )
 
+# System information
+from ._system import (      # noqa
+    system,
+)
 
 # Progress reporting
 from ._progress import (    # noqa
