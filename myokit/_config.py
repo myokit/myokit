@@ -18,6 +18,7 @@ import myokit
 
 # Load libraries
 import os
+import logging
 import platform
 
 # ConfigParser in Python 2 and 3
@@ -113,19 +114,11 @@ def _create(path):
         ]))
 
     # Set sundials version, try to auto-detect
-    try:
-        sundials = myokit.Sundials.version_int()
-    except IOError:  # pragma: no cover
-        # This is an annoying read-the-docs error. It seems to install myokit,
-        # but then run a different version for the docs? As a result, it can't
-        # find sundials.c and the build fails.
-        # Eventually, this try-except block should be removed.
-        sundials = None
-
+    sundials = myokit.Sundials.version_int()
     if sundials is None:    # pragma: no cover
-        import logging
         log = logging.getLogger(__name__)
         log.warning('Unable to auto-detect Sundials version.')
+        config.set('sundials', '#version', 30100)
     else:
         config.set('sundials', 'version', sundials)
 
@@ -272,6 +265,22 @@ def _load():
             myokit.SUNDIALS_LIB.append(os.path.join(sundials_win, 'lib'))
         if len(myokit.SUNDIALS_INC) == 0:
             myokit.SUNDIALS_INC.append(os.path.join(sundials_win, 'include'))
+
+    # If needed, attempt auto-detection of Sundials version
+    if myokit.SUNDIALS_VERSION == 0:    # pragma: no cover
+        sundials = myokit.Sundials.version_int()
+        log = logging.getLogger(__name__)
+        if sundials is None:
+            log.warning(
+                'Sundials version not set in myokit.ini and version'
+                ' auto-detection failed.'
+            )
+        else:
+            myokit.SUNDIALS_VERSION = sundials
+            log.warning(
+                'Sundials version not set in myokit.ini. Continuing with'
+                ' detected version (' + str(sundials) + '). For a tiny'
+                ' performance boost, please set this version in ' + path)
 
     # OpenCL libraries and header files
     if config.has_option('opencl', 'lib'):

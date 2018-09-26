@@ -93,6 +93,11 @@ class Sundials(myokit.CModule):
             return Sundials._get_instance().sundials_version()
         except NoSundialsError:  # pragma: no cover
             return None
+        except IOError:  # pragma: no cover
+            # This is an annoying read-the-docs error. It seems to install
+            # myokit, but then run a different version for the docs? As a
+            # result, it can't find sundials.c and the build fails.
+            return None
 
     @staticmethod
     def version_int():
