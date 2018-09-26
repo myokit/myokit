@@ -176,7 +176,6 @@ def _create(path):
         with open(path, 'w') as configfile:
             config.write(configfile)
     except IOError:     # pragma: no cover
-        import logging
         logger = logging.getLogger('myokit')
         logger.warning('Warning: Unable to write settings to ' + str(path))
 
