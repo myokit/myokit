@@ -2156,8 +2156,8 @@ class Model(ObjectWithMeta, VarProvider):
         Reserves one or more names that won't be used in unique names (unames).
 
         This function can be used to add keywords to a model before exporting.
-        After reserving one or more keywords, use :meth:`set_unique_names` to
-        reset the model's unames.
+        After reserving one or more keywords, use :meth:`create_unique_names`
+        to reset the model's unames.
 
         Adding new names does _not_ clear the previously reserved names.
         """
