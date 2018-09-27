@@ -40,7 +40,9 @@ or simply
 To open an IDE window, type
 
     myokit ide
-    
+
+Note that you'll need to have either PyQt4, PyQt5, or PySide installed for the IDE to work.
+
 To see what else Myokit can do, type
 
     myokit -h
