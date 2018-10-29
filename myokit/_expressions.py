@@ -152,6 +152,8 @@ class Expression(object):
         """
         Returns True if this :class:`Expression` depends on the given
         :class:`LhsExpresion`.
+
+        Only dependencies appearing directly in the expression are checked.
         """
         return lhs in self._references
 
@@ -472,10 +474,12 @@ class Expression(object):
         """
         if self._cached_validation:
             return
+
         # Check for cyclical dependency
         if id(self) in trail:
             raise IntegrityError('Cyclical expression found', self._token)
         trail2 = trail + [id(self)]
+
         # It's okay to do this check with id's. Even if there are multiple
         # objects that are equal, if they're cyclical you'll get back round to
         # the same ones eventually. Doing this with the value requires hash()
@@ -487,6 +491,7 @@ class Expression(object):
                     'Expression operands must be other Expression objects.'
                     ' Found: ' + str(type(op)) + '.', self._token)
             op._validate(trail2)
+
         # Cache validation status
         self._cached_validation = True
 
