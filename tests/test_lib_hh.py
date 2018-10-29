@@ -31,9 +31,11 @@ MODEL = """
 membrane.V = -80
 ikr.a = 4.5e-4
 ikr.r = 0.15
+ina.r = 0.15
 
 [engine]
 time = 0 bind time
+pace = 0 bind pace
 
 [membrane]
 dot(V) = 0
@@ -52,6 +54,12 @@ dot(r) = alpha * (1 - r) - beta * r
     beta = 5e-3 * exp(-1e-2 * V)
 g = 3
 EK = -85
+
+[ina]
+use membrane.V as V
+dot(r) = alpha * (1 - r) - beta * r
+    alpha = 8e-2 * exp(+3e-3 * V)
+    beta = 5e-3 * exp(-1e-2 * V)
 """
 
 
@@ -174,6 +182,22 @@ class HHDetectionTest(unittest.TestCase):
         m3 = hh.convert_hh_states_to_inf_tau_form(m2)
         self.assertEqual(m2.code(), m3.code())
 
+        # First argument must be a myokit model
+        self.assertRaisesRegex(
+            ValueError, 'must be a myokit.Model',
+            hh.convert_hh_states_to_inf_tau_form, [])
+
+        # Membrane potential must be known somehow
+        m2 = m1.clone()
+        v = m2.get('membrane.V')
+        v.set_label(None)
+        m3 = hh.convert_hh_states_to_inf_tau_form(m2, v)
+        self.assertNotEqual(m2.code(), m3.code())
+        # Note: the next methods are called with v from m2, not v from m3! But
+        # this should still work as variables are .get() from the model.
+        self.assertTrue(hh.has_inf_tau_form(m3.get('ikr.a'), v))
+        self.assertTrue(hh.has_inf_tau_form(m3.get('ikr.r'), v))
+
     def test_rush_larsen_conversion(self):
         # Tests methods for writing RL state updates
         m1 = myokit.parse_model(MODEL)
@@ -245,6 +269,10 @@ class HHModelTest(unittest.TestCase):
         parameters[2] = parameters[2].qname()
         for p in m.parameters():
             self.assertIn(p, parameters)
+
+        # First argument not a model
+        self.assertRaisesRegex(
+            ValueError, 'must be a myokit.Model', hh.HHModel, 1, states)
 
         # State doesn't exist
         self.assertRaisesRegex(
@@ -365,7 +393,7 @@ class HHModelTest(unittest.TestCase):
         # No current --> This is allowed
         m2 = model.clone()
         m2.get('ina').remove_variable(m2.get('ina.INa'))
-        m = hh.HHModel.from_component(m2.get('ina'))
+        hh.HHModel.from_component(m2.get('ina'))
 
         # Two currents
         m2 = model.clone()
@@ -397,17 +425,16 @@ class HHModelTest(unittest.TestCase):
         ss = list(m.steady_state())
 
         # Test if derivatives are zero
-        m = model.get('ina.m')
-        m.set_state_value(ss[0])
-        self.assertAlmostEqual(m.eval(), 0)
+        for k, x in enumerate(['ina.m', 'ina.h', 'ina.j']):
+            x = model.get(x)
+            x.set_state_value(ss[k])
+            self.assertAlmostEqual(x.eval(), 0)
 
-        h = model.get('ina.h')
-        h.set_state_value(ss[1])
-        self.assertAlmostEqual(h.eval(), 0)
-
-        j = model.get('ina.j')
-        j.set_state_value(ss[2])
-        self.assertAlmostEqual(j.eval(), 0)
+        # Test arguments
+        m.steady_state(-20, m.default_parameters())
+        self.assertRaisesRegex(
+            ValueError, 'parameter vector size',
+            m.steady_state, -20, [1])
 
 
 class AnalyticalSimulationTest(unittest.TestCase):

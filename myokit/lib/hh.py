@@ -100,6 +100,8 @@ class HHModel(object):
         #
         # Check input
         #
+        if not isinstance(model, myokit.Model):
+            raise ValueError('First argument must be a myokit.Model.')
 
         # Check membrane potential variable is known, and is a qname
         if vm is None:
@@ -113,8 +115,6 @@ class HHModel(object):
 
         # Ensure all HH-states in the model are written in inf-tau form
         # This returns a clone of the original model
-        if not isinstance(model, myokit.Model):
-            raise ValueError('First argument must be a myokit.Model.')
         self._model = convert_hh_states_to_inf_tau_form(model, vm)
         del(model)
 
@@ -219,7 +219,7 @@ class HHModel(object):
                     ' "alpha-beta form". See'
                     ' `myokit.lib.hh.has_inf_tau_form()` and'
                     ' `myokit.lib.hh.has_alpha_beta_form()`.'
-                    )
+                )
 
         # Validate modified model
         self._model.validate()
@@ -846,8 +846,6 @@ class AnalyticalSimulation(object):
 
         For models without a current variable, only ``state`` is returned.
         """
-        y0 = self._state
-
         states, current = self._function(
             self._state,
             times,
@@ -901,11 +899,14 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
     # Check membrane potential variable is known.
     if v is None:
         v = model.label('membrane_potential')
-    if v is None:
-        raise ValueError(
-            'Membrane potential must be given as `v` or by setting the label'
-            ' `membrane_potential` in the model.')
-    if not isinstance(v, myokit.Variable):
+        if v is None:
+            raise ValueError(
+                'Membrane potential must be given as `v` or by setting the'
+                ' label `membrane_potential` in the model.')
+    else:
+        # Ensure v is a variable, and from the cloned model
+        if isinstance(v, myokit.Variable):
+            v = v.qname()
         v = model.get(v)
 
     # Loop over states
@@ -1008,14 +1009,17 @@ def get_alpha_and_beta(x, v=None):
     # Get model from state varible
     model = x.model()
 
-    # Ensure that v is set and is a variable
+    # Check membrane potential variable is known.
     if v is None:
         v = model.label('membrane_potential')
-    if v is None:
-        raise ValueError(
-            'Membrane potential must be given as `v` or by setting the label'
-            ' `membrane_potential` in the model.')
-    if not isinstance(v, myokit.Variable):
+        if v is None:
+            raise ValueError(
+                'Membrane potential must be given as `v` or by setting the'
+                ' label `membrane_potential` in the model.')
+    else:
+        # Ensure v is a variable, and from the cloned model
+        if isinstance(v, myokit.Variable):
+            v = v.qname()
         v = model.get(v)
 
     # Check alpha and beta
@@ -1101,14 +1105,17 @@ def get_inf_and_tau(x, v=None):
     # Get model from state varible
     model = x.model()
 
-    # Ensure that v is set and is a variable
+    # Check membrane potential variable is known.
     if v is None:
         v = model.label('membrane_potential')
-    if v is None:
-        raise ValueError(
-            'Membrane potential must be given as `v` or by setting the label'
-            ' `membrane_potential` in the model.')
-    if not isinstance(v, myokit.Variable):
+        if v is None:
+            raise ValueError(
+                'Membrane potential must be given as `v` or by setting the'
+                ' label `membrane_potential` in the model.')
+    else:
+        # Ensure v is a variable, and from the cloned model
+        if isinstance(v, myokit.Variable):
+            v = v.qname()
         v = model.get(v)
 
     # Check xinf and xtau
