@@ -1,0 +1,93 @@
+[[model]]
+name: Luo-Rudy 1991
+desc: """
+Implementation of the Luo-Rudy model I for the ventricular myocyte.
+Based on an updated formulation downloaded from http://rudylab.wustl.edu
+and licensed under a GNU GPL license version 2.
+"""
+# Initial conditions
+ina.m      = 0.0017
+ina.h      = 0.9832
+ina.j      = 0.995484
+
+[engine]
+time = 0 bind time
+
+[membrane]
+V = -85
+    label membrane_potential
+
+# Fast Sodium current
+[ina]
+use membrane.V as V
+ENa = cell.RTF * log(cell.Na_o / cell.Na_i)
+    desc: Nernst potential of Na
+    in [mV]
+a = 1 - 1 / (1 + exp(-(V + 40 [mV]) / 0.24 [mV]))
+    desc: Used instead of if statement.
+p1 = 0.32 [1/ms/mV]
+p2 = 47.13 [mV]
+p3 = -0.1 [1/mV]
+p4 = 0.08 [1/ms]
+p5 = 11 [mV]
+p6 = 0.135 [1/ms]
+p7 = 80 [mV]
+p8 = -6.8 [mV]
+p9 = 3.56 [1/ms]
+p10 = 0.079 [1/mV]
+p11 = 3.1e5 [1/ms]
+p12 = 0.35 [1/mV]
+p13 = 0.13 [ms]
+p14 = 10.66 [mV]
+p15 = -11.1 [mV]
+p16 = -127140 [1/ms/mV]
+p17 = 0.2444 [1/mV]
+p18 = 3.474e-5 [1/ms/mV]
+p19 = -0.04391 [1/mV]
+p20 = 37.78 [mV]
+p21 = 0.311 [1/mV]
+p22 = 79.23 [mV]
+p23 = 0.1212 [1/ms]
+p24 = -0.01052 [1/mV]
+p25 = -0.1378 [1/mV]
+p26 = 40.14 [mV]
+p27 = 0.3 [1/ms]
+p28 = -2.535e-7 [1/mV]
+p29 = -0.1 [1/mV]
+p30 = 32 [mV]
+dot(m) =  alpha * (1 - m) - beta * m
+    alpha = p1 * (V + p2) / (1 - exp(p3 * (V + p2)))
+        in [1/ms]
+    beta  = p4 * exp(-V / p5)
+        in [1/ms]
+dot(h) =  alpha * (1 - h) - beta * h
+    alpha = a * p6 * exp((p7 + V) / p8)
+        in [1/ms]
+    beta  = a * (p9 * exp(p10 * V) + p11 * exp(p12 * V)) \
+          + (1 - a) / (p13 * (1 + exp((V + p14) / p15)))
+        in [1/ms]
+dot(j) =  alpha * (1 - j) - beta * j
+    alpha = a * ( p16 * exp(p17 * V) - p18 * exp(p19 * V)) \
+              * (V + p20) / (1 + exp(p21 * (V + p22)))
+        in [1/ms]
+    beta  = a * (p23 * exp(p24 * V) / (1 + exp(p25 * (V + p26)))) \
+          + (1 - a) * (p27 * exp(p28 * V) / (1 + exp(p29 * (V + p30))))
+        in [1/ms]
+gNa = 16 [mS/cm^2]
+INa = gNa * m^3 * h * j * (V - ENa)
+    desc: Fast sodium current
+    in [uA/cm^2]
+
+# Cell parameters (ventricular mammalian cell)
+[cell]
+desc: Contains a list of cell constants
+K_o = 5.4 [mM]
+K_i = 145 [mM]
+Na_o = 140 [mM]
+Na_i = 10 [mM]
+Ca_o = 1.8 [mM]
+RTF = R*T/F
+    R = 8314 [mJ/mol/K] : Gas constant
+    T = 310 [K] : Absolute temperature
+    F = 96500 [C/mol] : Faraday constant (Value used in LR model)
+
