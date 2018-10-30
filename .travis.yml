@@ -86,7 +86,10 @@ before_script:
 script:
   - if [[ $MYOKIT_UNIT == true ]]; then python test --unit; fi;
   - if [[ $MYOKIT_COVER == true ]]; then coverage run test --nosub; fi;
-  - if [[ $MYOKIT_STYLE == true ]]; then python -m flake8; fi;
+  - if [[ $MYOKIT_STYLE == true ]]; then
+        python -m flake8 --version;
+        python -m flake8;
+    fi;
   - if [[ $MYOKIT_DOC == true ]]; then python test --doctest; fi;
 
 # Compile coverage report
