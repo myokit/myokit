@@ -473,7 +473,7 @@ class DataBlock1d(object):
                 'd': len(array.array('d', [1]).tobytes()),
                 'f': len(array.array('f', [1]).tobytes()),
             }
-        except AttributeError:  # pragma: no python 3 cover
+        except (AttributeError, TypeError):  # pragma: no python 3 cover
             # List dtype as str for Python 2.7.10 (see #225)
             dsize = {
                 b'd': len(array.array(b'd', [1]).tostring()),
@@ -1211,7 +1211,7 @@ class DataBlock2d(object):
                 'd': len(array.array('d', [1]).tobytes()),
                 'f': len(array.array('f', [1]).tobytes()),
             }
-        except AttributeError:  # pragma: no python 3 cover
+        except (AttributeError, TypeError):  # pragma: no python 3 cover
             # List dtype as str for Python 2.7.10 (see #225)
             dsize = {
                 b'd': len(array.array(b'd', [1]).tostring()),
