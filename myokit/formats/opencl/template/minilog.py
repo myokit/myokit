@@ -7,7 +7,7 @@
 #  See: http://myokit.org
 #
 import os
-from array import array
+import array
 from collections import OrderedDict
 
 
@@ -146,7 +146,7 @@ class DataLog(OrderedDict):
             log = DataLog()
             lists = []
             for key in keys:
-                x = array('d')
+                x = array.array('d')
                 lists.append(x)
                 log[key] = x
             # Read remaining data
