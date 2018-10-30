@@ -36,3 +36,10 @@ ignore=
     # This is now advised in pep8
     W503,
 
+    # Line break after binary operator
+    W504,
+
+    # Invalid escape sequence
+    # This is fine.
+    W605,
+
