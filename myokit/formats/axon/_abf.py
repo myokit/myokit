@@ -666,6 +666,8 @@ class AbfFile(object):
             """
             Read and unpack a file section using the given format ``form``.
             """
+            # Form must be a str (so bytes on Python 2)
+            form = str(form)
             if offset is not None:
                 f.seek(offset)
             return struct.unpack(form, f.read(struct.calcsize(form)))
