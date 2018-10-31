@@ -6,5 +6,12 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-def execf(script, globals=None, locals=None):
+
+
+def _exec(script, globals=None, locals=None):
+    """
+    Wrapper around the built-in function ``exec`` on Python versions 2.7.9 and
+    higher 2.7.9, or a function calling the ``exec`` statement on earlier
+    versions.
+    """
     exec script in globals, locals

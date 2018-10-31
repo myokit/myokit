@@ -6,6 +6,7 @@ exclude=
     ./dev,
     ./.git,
     ./myokit.egg-info,
+    ./myokit/_exec_old.py,
     ./myokit/formats/python/template,
 ignore=
     # Block comment should start with '# '

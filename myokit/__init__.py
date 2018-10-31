@@ -60,10 +60,9 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
 
 # Exec() that works with Python 2 versions before 2.7.9
 if sys.hexversion < 0x020709F0:
-    from ._old_exec import execf
+    from ._exec_old import _exec    # noqa
 else:
-    def execf(script, globals=None, locals=None):
-        exec(script, globals, locals)
+    from ._exec_new import _exec    # noqa
 del(sys)
 
 

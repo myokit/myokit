@@ -86,7 +86,7 @@ class TemplateEngine(object):
                 syserr = sys.stderr
                 sys.stdout = stdout
                 sys.stderr = stderr
-                myokit.execf(script, variables)
+                myokit._exec(script, variables)
             except Exception:
                 error = sys.exc_info()
             finally:
