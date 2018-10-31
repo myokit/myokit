@@ -18,10 +18,13 @@ matrix:
           env:
             - MYOKIT_UNIT=true
         - os: linux
+          python: "2.7.6"
+          env:
+            - MYOKIT_UNIT=true
+        - os: linux
           python: "2.7.10"
           env:
             - MYOKIT_UNIT=true
-            - MYOKIT_OLD_MATPLOTLIB=true
         - os: linux
           python: "3.4"
           env:
@@ -71,7 +74,7 @@ before_install:
 
 # Install Myokit and extra testing dependencies
 install:
-  - if [[ $MYOKIT_OLD_MATPLOTLIB == true ]]; then pip install "matplotlib<3"; fi;
+  - pip install --upgrade pip;
   - pip install -e .[dev,optional];
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then pip install flake8; fi;

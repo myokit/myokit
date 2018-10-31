@@ -57,6 +57,13 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
     print('Python 3.0 to 3.3 are not supported.')
     print()
     sys.exit(1)
+
+# Exec() that works with Python 2 versions before 2.7.9
+if sys.hexversion < 0x020709F0:
+    from ._old_exec import execf
+else:
+    def execf(script, globals=None, locals=None):
+        exec(script, globals, locals)
 del(sys)
 
 

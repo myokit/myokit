@@ -14,6 +14,7 @@ import re
 import sys
 import parser
 import traceback
+import myokit
 
 try:
     # Python 2
@@ -85,7 +86,7 @@ class TemplateEngine(object):
                 syserr = sys.stderr
                 sys.stdout = stdout
                 sys.stderr = stderr
-                exec(script, variables)
+                myokit.execf(script, variables)
             except Exception:
                 error = sys.exc_info()
             finally:
