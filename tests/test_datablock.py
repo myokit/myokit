@@ -1014,7 +1014,7 @@ class DataBlock2dTest(unittest.TestCase):
         x = [[0.8, -0.6, 0], [0.6, 0.8, 0], [1, 2, 2]]
         b.set2d('x', [x])
         self.assertAlmostEqual(
-            b.dominant_eigenvalues('x')[0], 2+0j)
+            b.dominant_eigenvalues('x')[0], 2 + 0j)
 
     def test_eigenvalues(self):
         """
