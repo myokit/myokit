@@ -1006,11 +1006,15 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertEqual(b.dominant_eigenvalues('x')[0], 11)
 
         # Complex values
+        # Note: This example has complex eigenvalues, but they're not the
+        # dominant ones. If they were, they'd have the same magnitude so the
+        # dominant one would be undefined (and so implementation dependent,
+        # which causes issues for this test. See #230).
         b = myokit.DataBlock2d(3, 3, [1])
-        x = [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
+        x = [[0.8, -0.6, 0], [0.6, 0.8, 0], [1, 2, 2]]
         b.set2d('x', [x])
         self.assertAlmostEqual(
-            b.dominant_eigenvalues('x')[0], -0.5 - np.sqrt(3) / 2j)
+            b.dominant_eigenvalues('x')[0], 2+0j)
 
     def test_eigenvalues(self):
         """
