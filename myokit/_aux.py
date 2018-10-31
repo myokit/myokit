@@ -528,8 +528,6 @@ def load_state_bin(filename):
         code = parts[1]
         if code not in ['d', 'f']:  # pragma: no cover
             raise Exception('Invalid state file format [40].')
-        # Convert code to str for Python 2.7.10 (see #225)
-        code = str(code)
 
         size = int(parts[2])
         if size < 0:    # pragma: no cover
@@ -1165,8 +1163,7 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
             'This method requires the `zlib` module to be installed.')
 
     # Data type
-    # Convert code to str for Python 2.7.10 (see #225)
-    code = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
+    code = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
 
     # Create array, ensure it's little-endian
     ar = array.array(code, state)

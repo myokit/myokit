@@ -473,11 +473,10 @@ class DataBlock1d(object):
                 'd': len(array.array('d', [1]).tobytes()),
                 'f': len(array.array('f', [1]).tobytes()),
             }
-        except (AttributeError, TypeError):  # pragma: no python 3 cover
-            # List dtype as str for Python 2.7.10 (see #225)
+        except AttributeError:  # pragma: no python 3 cover
             dsize = {
-                b'd': len(array.array(b'd', [1]).tostring()),
-                b'f': len(array.array(b'f', [1]).tostring()),
+                'd': len(array.array('d', [1]).tostring()),
+                'f': len(array.array('f', [1]).tostring()),
             }
 
         # Read data from file
@@ -536,12 +535,10 @@ class DataBlock1d(object):
             nt = int(next(head))
             nx = int(next(head))
             dtype = next(head)[1:-1]
-            # Convert dtype to str for Python 2.7.10 (see #225)
-            dtype = str(dtype)
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
                     'Unable to read DataBlock1d: Unrecognized data type "'
-                    + dtype + '".')
+                    + str(dtype) + '".')
             names_0d = []
             names_1d = []
             name = next(head)
@@ -664,8 +661,7 @@ class DataBlock1d(object):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Data type
-        # Create dtype as str for Python 2.7.10 (see #225)
-        dtype = str('d')     # Only supporting doubles right now
+        dtype = 'd'     # Only supporting doubles right now
 
         # Create header
         head_str = []
@@ -1211,11 +1207,10 @@ class DataBlock2d(object):
                 'd': len(array.array('d', [1]).tobytes()),
                 'f': len(array.array('f', [1]).tobytes()),
             }
-        except (AttributeError, TypeError):  # pragma: no python 3 cover
-            # List dtype as str for Python 2.7.10 (see #225)
+        except AttributeError:  # pragma: no python 3 cover
             dsize = {
-                b'd': len(array.array(b'd', [1]).tostring()),
-                b'f': len(array.array(b'f', [1]).tostring()),
+                'd': len(array.array('d', [1]).tostring()),
+                'f': len(array.array('f', [1]).tostring()),
             }
 
         # Read data from file
@@ -1284,8 +1279,6 @@ class DataBlock2d(object):
             ny = int(next(head))
             nx = int(next(head))
 
-            # Get dtype
-            # Convert dtype to str for Python 2.7.10 (see #225)
             dtype = str(next(head))[1:-1]
             if dtype not in dsize:
                 raise myokit.DataBlockReadError(
@@ -1420,8 +1413,7 @@ class DataBlock2d(object):
                 'This method requires the ``zlib`` module to be installed.')
 
         # Data type
-        # Create dtype as str for Python 2.7.10 (see #225)
-        dtype = str('d')  # Only supporting doubles right now
+        dtype = 'd'     # Only supporting doubles right now
 
         # Create header
         head_str = []
