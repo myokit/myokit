@@ -487,10 +487,11 @@ class DataLog(OrderedDict):
                 'd': len(array.array('d', [1]).tobytes()),
                 'f': len(array.array('f', [1]).tobytes()),
             }
-        except AttributeError:  # pragma: no python 3 cover
+        except (AttributeError, TypeError):  # pragma: no python 3 cover
+            # List dtype as str for Python 2.7.10 (see #225)
             dsize = {
-                'd': len(array.array('d', [1]).tostring()),
-                'f': len(array.array('f', [1]).tostring()),
+                b'd': len(array.array(b'd', [1]).tostring()),
+                b'f': len(array.array(b'f', [1]).tostring()),
             }
 
         # Read data
@@ -527,7 +528,7 @@ class DataLog(OrderedDict):
         head = iter(head.splitlines())
         n = int(next(head))
         data_size = int(next(head))
-        data_type = next(head)
+        data_type = str(next(head))  # Cast to str for Python 2.7.10 (see #225)
         time = next(head)
         if time:
             # Note, this field doesn't have to be present in the log!
@@ -602,7 +603,8 @@ class DataLog(OrderedDict):
         filename = os.path.expanduser(filename)
 
         # Typecode dependent on precision
-        typecode = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
+        # Typecode must be str for Python 2.7.10 (see #225)
+        typecode = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
 
         # Error raising function
         def e(line, char, msg):
@@ -888,7 +890,8 @@ class DataLog(OrderedDict):
                 'This method requires the `zlib` module to be installed.')
 
         # Data type
-        dtype = 'd' if precision == myokit.DOUBLE_PRECISION else 'f'
+        # dtype must be str for Python 2.7.10 (see #225)
+        dtype = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
 
         # Create data strings
         head_str = []

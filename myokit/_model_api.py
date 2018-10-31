@@ -194,7 +194,7 @@ class ModelPart(ObjectWithMeta):
 
     def model(self):
         """
-        Returns the model this object belongs to (if set).
+        Returns the :class:`myokit.Model` this object belongs to (if set).
         """
         if self._model is None:
             self._model = self.parent(Model)

@@ -18,6 +18,11 @@ matrix:
           env:
             - MYOKIT_UNIT=true
         - os: linux
+          python: "2.7.10"
+          env:
+            - MYOKIT_UNIT=true
+            - MYOKIT_OLD_MATPLOTLIB=true
+        - os: linux
           python: "3.4"
           env:
             - MYOKIT_UNIT=true
@@ -57,16 +62,17 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       sudo apt-get -qq update;
       sudo apt-get install -y libsundials-serial-dev;
-    fi
+    fi;
   # OS/X
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew cask uninstall oclint;
       brew install sundials;
-    fi
+    fi;
 
 # Install Myokit and extra testing dependencies
 install:
-  - pip install -e .[dev,optional]
+  - if [[ $MYOKIT_OLD_MATPLOTLIB == true ]]; then pip install "matplotlib<3"; fi;
+  - pip install -e .[dev,optional];
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then pip install flake8; fi;
   - if [[ $MYOKIT_DOC == true ]]; then pip install sphinx; fi;
@@ -80,7 +86,10 @@ before_script:
 script:
   - if [[ $MYOKIT_UNIT == true ]]; then python test --unit; fi;
   - if [[ $MYOKIT_COVER == true ]]; then coverage run test --nosub; fi;
-  - if [[ $MYOKIT_STYLE == true ]]; then python -m flake8; fi;
+  - if [[ $MYOKIT_STYLE == true ]]; then
+        python -m flake8 --version;
+        python -m flake8;
+    fi;
   - if [[ $MYOKIT_DOC == true ]]; then python test --doctest; fi;
 
 # Compile coverage report
