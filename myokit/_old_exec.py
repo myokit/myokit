@@ -6,5 +6,5 @@
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
-def execf(script, globals=None, locals=None)
+def execf(script, globals=None, locals=None):
     exec script in globals, locals
