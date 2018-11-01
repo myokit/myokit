@@ -3660,9 +3660,9 @@ class Variable(VarOwner):
         # Create function
         local = {}
         if use_numpy:
-            exec(func, {'numpy': numpy}, local)
+            myokit._exec(func, {'numpy': numpy}, local)
         else:
-            exec(func, {'math': math}, local)
+            myokit._exec(func, {'math': math}, local)
         handle = local['var_pyfunc_generated']
 
         # Return

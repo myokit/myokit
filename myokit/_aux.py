@@ -1020,7 +1020,7 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
                     'get_model': get_model,
                     'get_protocol': get_protocol,
                 }
-                exec(self.script, environment)
+                myokit._exec(self.script, environment)
             finally:
                 if oldstdout is not None:
                     sys.stdout = oldstdout

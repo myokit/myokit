@@ -160,17 +160,20 @@ class WcpFile(object):
             rtype = f.read(4)
 
             # Group number (float set by the user)
-            group_number = struct.unpack('<f', f.read(4))[0]
+            # Note: First argument to struct.unpack must be a str (so bytes on
+            # Python 2).
+            group_number = struct.unpack(str('<f'), f.read(4))[0]
 
             # Time of recording, as float, not sure how to interpret
-            rtime = struct.unpack('<f', f.read(4))[0]
+            rtime = struct.unpack(str('<f'), f.read(4))[0]
 
             # Sampling interval: pretty sure this should be the same as the
             # file wide one in header[b'dt']
-            rint = struct.unpack('<f', f.read(4))[0]
+            rint = struct.unpack(str('<f'), f.read(4))[0]
 
             # Maximum positive limit of A/D converter voltage range
-            vmax = struct.unpack('<' + 'f' * self._nc, f.read(4 * self._nc))
+            vmax = struct.unpack(
+                str('<' + 'f' * self._nc), f.read(4 * self._nc))
 
             # String marker set by user
             marker = f.read(16)

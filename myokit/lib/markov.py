@@ -417,7 +417,7 @@ class LinearModel(object):
         globl = {'numpy': np, 'n': n}
         local = {}
 
-        exec(code, globl, local)
+        myokit._exec(code, globl, local)
         self._matrix_function = local['matrix_function']
 
         #
@@ -436,7 +436,7 @@ class LinearModel(object):
         code = head + '\n' + '\n'.join(['    ' + line for line in body])
         globl = {'numpy': np}
         local = {}
-        exec(code, globl, local)
+        myokit._exec(code, globl, local)
         self._rate_list_function = local['rate_list_function']
 
     def current(self):

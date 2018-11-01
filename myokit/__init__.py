@@ -57,6 +57,12 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
     print('Python 3.0 to 3.3 are not supported.')
     print()
     sys.exit(1)
+
+# Exec() that works with Python 2 versions before 2.7.9
+if sys.hexversion < 0x020709F0:
+    from ._exec_old import _exec    # noqa
+else:
+    from ._exec_new import _exec    # noqa
 del(sys)
 
 

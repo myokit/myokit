@@ -9,6 +9,15 @@ dist: trusty
 
 language: python
 
+# Python version choices:
+#
+# 2.7.0 --> Released 2010-07-03, not tested!
+# 2.7.6 --> Released 2013-11-10, earliest version testable on Travis
+#       --> Version shipped with Ubuntu LTS 14.04 (supported until 2019)
+# 2.7   --> Latest 2.7 version. At the moment 2.7.14 on travis (2018-10-31)
+# 3.0-3.3 --> Bad initial versions of Python 3; Not supported
+# 3.4-3.6 --> Works
+
 matrix:
     # Always put true env variable first, for nicer overview on travis website
     include:
@@ -18,10 +27,9 @@ matrix:
           env:
             - MYOKIT_UNIT=true
         - os: linux
-          python: "2.7.10"
+          python: "2.7.6"
           env:
             - MYOKIT_UNIT=true
-            - MYOKIT_OLD_MATPLOTLIB=true
         - os: linux
           python: "3.4"
           env:
@@ -71,7 +79,7 @@ before_install:
 
 # Install Myokit and extra testing dependencies
 install:
-  - if [[ $MYOKIT_OLD_MATPLOTLIB == true ]]; then pip install "matplotlib<3"; fi;
+  - pip install --upgrade pip;
   - pip install -e .[dev,optional];
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then pip install flake8; fi;

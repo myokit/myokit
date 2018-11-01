@@ -413,9 +413,9 @@ class Expression(object):
         # Create function
         local = {}
         if use_numpy:
-            exec(c, {'numpy': numpy}, local)
+            myokit._exec(c, {'numpy': numpy}, local)
         else:
-            exec(c, {'math': math}, local)
+            myokit._exec(c, {'math': math}, local)
 
         # Return
         return local['ex_pyfunc_generated']
