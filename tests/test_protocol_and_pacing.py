@@ -138,10 +138,9 @@ class PacingTest(unittest.TestCase):
         p.schedule(1, 300, 300)
         self.assertEqual(p.characteristic_time(), 600)
 
-    def test_pacing_system(self):
-        """
-        Test if the pacing systems works correctly.
-        """
+    def test_event_based_pacing_python(self):
+        # Test if the pacing systems works correctly.
+
         # Test basics
         p = myokit.Protocol()
         p.schedule(2, 0, 1, 10, 0)
@@ -313,9 +312,8 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(p.characteristic_time(), p.guess_duration())
 
     def test_event_based_pacing_ansic(self):
-        """
-        Test the Ansi-C event-based pacing system.
-        """
+        # Test if the C-based pacing.h works correctly
+
         # Test basics
         p = myokit.Protocol()
         p.schedule(2, 0, 1, 10, 0)
@@ -360,6 +358,15 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.next_time(), float('inf'))
         self.assertEqual(s.pace(), 0)
+
+        # Test max time
+        p = myokit.Protocol()
+        s = AnsicEventBasedPacing(p)
+        s.advance(20, max_time=13)
+        self.assertEqual(s.time(), 13)
+        #self.assertEqual(s.next_time(), 13)
+        #self.assertEqual(s.pace(), 0)
+
         # Test basic use + log creation methods
         p = myokit.Protocol()
         p.schedule(1, 10, 1, 1000, 0)
@@ -376,6 +383,7 @@ class PacingTest(unittest.TestCase):
         d = AnsicEventBasedPacing.create_log_for_interval(
             p, 0, 2000, for_drawing=True)
         self.assertEqual(d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000])
+
         # Test raising of errors on rescheduled events
         p = myokit.Protocol()
         p.schedule(1, 0, 1, 1000)
