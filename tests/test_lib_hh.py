@@ -621,20 +621,40 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'negative', s.set_default_state, dstate)
 
-    '''
-    def compare_hh_with_cvode(self):
-        # Runs a short simulation and compares the result with cvode
+    def test_against_cvode(self):
+        # Validate against a cvode sim.
 
-        # Set up a model and protocol
+        # Get a model
         fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
         model = myokit.load_model(fname)
+        model.get('membrane.V').set_binding('pace')
+
+        # Create a protocol
+        vs = [-30, -20, -10]
+        p = myokit.pacing.steptrain(
+            vsteps=vs,
+            vhold=-120,
+            tpre=8,
+            tstep=2,
+            tpost=0)
+        t = p.characteristic_time()
+
+        # Run an analytical simulation
         m = hh.HHModel.from_component(model.get('ina'))
-        p = myokit.pacing
+        s1 = hh.AnalyticalSimulation(m, p)
+        d1 = s1.run(t, log_interval=0.1).npview()
 
+        s2 = myokit.Simulation(model, p)
+        s2.set_tolerance(1e-8, 1e-8)
+        d2 = s2.run(t, log_interval=0.1).npview()
 
+        # Test protocol output is the same
+        e = np.abs(d1['membrane.V'] - d2['membrane.V'])
+        self.assertEqual(np.max(e), 0)
 
-        s = hh.AnalyticalSimulation(m)
-    '''
+        # Test current output is very similar
+        e = np.abs(d1['ina.INa'] - d2['ina.INa'])
+        self.assertLess(np.max(e), 2e-4)
 
 
 if __name__ == '__main__':
