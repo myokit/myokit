@@ -559,12 +559,6 @@ class AnalyticalSimulation(object):
         # Time variable
         self._time = 0
 
-        # If protocol was given, create pacing system, update vm
-        self._pacing = None
-        if self._protocol:
-            self._pacing = myokit.PacingSystem(self._protocol)
-            self._membrane_potential = self._pacing.advance(self._time)
-
         # Check if we have a current variable
         self._has_current = self._model.current() is not None
 
@@ -584,6 +578,12 @@ class AnalyticalSimulation(object):
 
         # Get function
         self._function = self._model.function()
+
+        # If protocol was given, create pacing system, update vm
+        self._pacing = None
+        if self._protocol:
+            self._pacing = myokit.PacingSystem(self._protocol)
+            self._membrane_potential = self._pacing.advance(self._time)
 
     def default_state(self):
         """
