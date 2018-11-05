@@ -28,8 +28,6 @@ PyObject* protocol;
 
 // Pacing
 ESys pacing;
-double t;
-double TMAX = 1e50;
 
 
 /*
@@ -87,9 +85,6 @@ pacing_init(PyObject *self, PyObject *args)
 
     // From this point on, no more direct returning! Use pacing_clean()
 
-    // Set initial time
-    t = 0;
-
     // Set up pacing
     pacing = ESys_Create(&flag);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
@@ -106,7 +101,7 @@ pacing_init(PyObject *self, PyObject *args)
 static PyObject*
 pacing_time(PyObject *self, PyObject *args)
 {
-    return PyFloat_FromDouble(t);
+    return PyFloat_FromDouble(pacing->time);
 }
 
 /*
@@ -144,7 +139,7 @@ static PyObject*
 pacing_advance(PyObject *self, PyObject *args)
 {
     double tadvance;
-    double maxtime;   
+    double maxtime;
     ESys_Flag flag;
     double pace;
 
@@ -158,7 +153,6 @@ pacing_advance(PyObject *self, PyObject *args)
     // Advance
     flag = ESys_AdvanceTime(pacing, tadvance, maxtime);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
-    t = tadvance;
 
     // Get new pacing value
     pace = ESys_GetLevel(pacing, &flag);
