@@ -993,6 +993,10 @@ def get_alpha_and_beta(x, v=None):
     else:
         return None
 
+    # Check that alpha and beta are variable references
+    if not (isinstance(alpha, myokit.Name) and isinstance(beta, myokit.Name)):
+        return None
+
     # Check that alpha and beta are not states
     alpha = alpha.var()
     beta = beta.var()

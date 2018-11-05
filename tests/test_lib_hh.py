@@ -137,6 +137,29 @@ class HHDetectionTest(unittest.TestCase):
         good('(1 - r) * alpha - r * beta')
         good('alpha * (1 - r) - beta * r')
 
+        # But the correct terms are required
+        bad('alpha * (2 - r) - beta * r')
+        bad('alpha^2 * (1 - r) - beta * r')
+        bad('alpha * (1 - r) - beta * r^2')
+        bad('alpha * (1 - r) - beta^2 * r')
+
+        # Alpha and beta can't depend on other states than v
+        c = m.add_component('ccc')
+        x = c.add_variable('vvv')
+        x.set_rhs(1)
+        x.promote(0)
+        ralph = m.get('ikr.r.alpha').rhs()
+        self.assertTrue(hh.has_alpha_beta_form(r, v))
+        m.get('ikr.r.alpha').set_rhs('3 * ccc.vvv')
+        self.assertFalse(hh.has_alpha_beta_form(r, v))
+        m.get('ikr.r.alpha').set_rhs(ralph)
+        self.assertTrue(hh.has_alpha_beta_form(r, v))
+        ralph = m.get('ikr.r.beta').rhs()
+        m.get('ikr.r.beta').set_rhs('2 + ccc.vvv')
+        self.assertFalse(hh.has_alpha_beta_form(r, v))
+        m.get('ikr.r.beta').set_rhs(ralph)
+        self.assertTrue(hh.has_alpha_beta_form(r, v))
+
     def test_inf_tau_form(self):
         # Test methods for working with inf-tau form
         m = myokit.parse_model(MODEL)
