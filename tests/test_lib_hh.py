@@ -359,6 +359,25 @@ class HHModelTest(unittest.TestCase):
             hh.HHModelError, 'urrent must be a function of',
             hh.HHModel, m2, states, parameters, current)
 
+        # Check states corresponds to input
+        states[1] = states[1].qname()
+        for s in m.states():
+            self.assertIn(s, states)
+
+        # Unlisted states are clamped
+        v = model.get('ina').add_variable('xyz')
+        v.promote(1.23)
+        v.set_rhs(10)
+        m = hh.HHModel(model, states, parameters, current)
+        for s in m.states():
+            self.assertIn(s, states)
+
+        # All bindings other than time are removed
+        # (e.g. this works without errors)
+        i = model.get(current)
+        i.set_binding('hello')
+        m = hh.HHModel(model, states, parameters, current)
+
     def test_automatic_creation(self):
         """ Create a linear model from a component. """
 

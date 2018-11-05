@@ -9,6 +9,7 @@ print('Markov')
 
 fname = os.path.join('tests', 'data', 'clancy-1999-fitting.mmt')
 model = myokit.load_model(fname)
+#model.get('membrane.V').set_rhs(-120)
 m = markov.LinearModel.from_component(model.get('ina'))
 
 b = myokit.Benchmarker()
@@ -38,11 +39,13 @@ if True:
     d2 = d2.fold(10).trim_left(8, adjust=True)
 
     plt.figure()
-    plt.plot(d1.time(), d1['ina.i', 0], 'x-', color='tab:blue')
+    plt.title('Clancy 99 Markov INa model')
+    plt.plot(d1.time(), d1['ina.i', 0], 'x-', color='tab:blue', label='analytical')
     plt.plot(d1.time(), d1['ina.i', 1], 'x-', color='tab:orange')
     plt.plot(d1.time(), d1['ina.i', 2], 'x-', color='tab:green')
-    plt.plot(d2.time(), d2['ina.i', 0], '+--', color='tab:blue')
+    plt.plot(d2.time(), d2['ina.i', 0], '+--', color='tab:blue', label='cvode')
     plt.plot(d2.time(), d2['ina.i', 1], '+--', color='tab:orange')
     plt.plot(d1.time(), d2['ina.i', 2], '+--', color='tab:green')
+    plt.legend()
     plt.show()
 
