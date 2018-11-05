@@ -32,9 +32,8 @@ class PacingTest(unittest.TestCase):
     """
 
     def test_event_creation(self):
-        """
-        Test the basics of creating events.
-        """
+        # Test the basics of creating events.
+
         # Invalid event specifications
         def create(start, duration, period=0, multiplier=0):
             myokit.ProtocolEvent(1, start, duration, period, multiplier)
@@ -56,9 +55,7 @@ class PacingTest(unittest.TestCase):
         self.assertRaises(myokit.ProtocolEventError, create, 0, 2, 1, 1)
 
     def test_protocol_creation(self):
-        """
-        Test the basics of creating a protocol
-        """
+        # Test the basics of creating a protocol
         p = myokit.Protocol()
         self.assertIsNone(p.head())
         p.schedule(1, 10, 0.5, 0, 0)
@@ -99,9 +96,8 @@ class PacingTest(unittest.TestCase):
         sim(p, 100, 0.5, clash=100)
 
     def test_characteristic_time(self):
-        """
-        Test characteristic_time determination.
-        """
+        # Test characteristic_time determination.
+
         # Singular event
         e = myokit.ProtocolEvent(1, 100, 0.5, 0, 0)
         self.assertEqual(e.characteristic_time(), 100.5)
@@ -142,7 +138,10 @@ class PacingTest(unittest.TestCase):
         # Test if the pacing systems works correctly.
 
         # Test basics
+
+        # Test with event starting at t=0
         p = myokit.Protocol()
+        # schedule(level, start, duration, period, multiplier)
         p.schedule(2, 0, 1, 10, 0)
         s = myokit.PacingSystem(p)
         self.assertEqual(s.time(), 0)
@@ -182,6 +181,7 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(s.next_time(), 13)
         self.assertEqual(s.pace(), 0)
 
+        # Test with event starting at t=1
         p = myokit.Protocol()
         p.schedule(2, 1, 1, 10, 0)
         s = myokit.PacingSystem(p)
