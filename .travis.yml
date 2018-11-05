@@ -80,11 +80,10 @@ before_install:
 # Install Myokit and extra testing dependencies
 install:
   - pip install --upgrade pip;
-  - pip install -e .[dev,optional];
+  - pip install -e .[optional];
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
-  - if [[ $MYOKIT_STYLE == true ]]; then pip install flake8; fi;
-  - if [[ $MYOKIT_DOC == true ]]; then pip install sphinx; fi;
-  - if [[ $MYOKIT_DOC == true ]]; then pip3 install pyqt5; fi;
+  - if [[ $MYOKIT_STYLE == true ]]; then pip install -e .[dev]; fi;
+  - if [[ $MYOKIT_DOC == true ]]; then pip install -e .[docs,gui]; fi;
 
 # Show system information
 before_script:
