@@ -968,7 +968,6 @@ def get_alpha_and_beta(x, v=None):
         return None
 
     # Check shape of RHS is (1 - x) * alpha - beta * x
-    xname = myokit.Name(x)
     rhs = x.rhs()
     if not isinstance(rhs, myokit.Minus):
         return None
@@ -976,11 +975,8 @@ def get_alpha_and_beta(x, v=None):
     if not (isinstance(a, myokit.Multiply) and isinstance(b, myokit.Multiply)):
         return None
 
-    # One of the terms should have a term `x`. This should be the b term.
-    if xname not in b:
-        a, b = b, a
-
-    # Now test the terms, isolating alpha
+    # Test alpha
+    xname = myokit.Name(x)
     xconv = myokit.Minus(myokit.Number(1), xname)
     if a[0] == xconv:
         alpha = a[1]

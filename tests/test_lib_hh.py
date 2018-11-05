@@ -83,7 +83,11 @@ class HHDetectionTest(unittest.TestCase):
         self.assertFalse(hh.has_alpha_beta_form(a))
         self.assertIsNone(hh.get_alpha_and_beta(a))
 
-        # Test with v as a state
+        # Test with v as a state, without a label
+        v.set_label(None)
+        self.assertRaisesRegex(
+            ValueError, 'Membrane potential must be given',
+            hh.has_alpha_beta_form, r)
         self.assertTrue(hh.has_alpha_beta_form(r, v))
         alph, beta = hh.get_alpha_and_beta(r, v)
         self.assertEqual(alph, m.get('ikr.r.alpha'))
@@ -92,19 +96,46 @@ class HHDetectionTest(unittest.TestCase):
         self.assertIsNone(hh.get_alpha_and_beta(a, v))
 
         # Test with v as a constant
-        m = m.clone()
-        v = m.get('membrane.V')
-        a = m.get('ikr.a')
-        r = m.get('ikr.r')
         v.demote()
         v.set_rhs(-80)
-
         self.assertTrue(hh.has_alpha_beta_form(r, v))
         alph, beta = hh.get_alpha_and_beta(r, v)
         self.assertEqual(alph, m.get('ikr.r.alpha'))
         self.assertEqual(beta, m.get('ikr.r.beta'))
         self.assertFalse(hh.has_alpha_beta_form(a, v))
         self.assertIsNone(hh.get_alpha_and_beta(a, v))
+
+        # Almost correct forms / different ways to fail
+        def bad(e):
+            r.set_rhs(e)
+            self.assertFalse(hh.has_alpha_beta_form(r, v))
+            r.set_rhs('alpha * (1 - r) - beta * r')
+            self.assertTrue(hh.has_alpha_beta_form(r, v))
+
+        def good(e):
+            r.set_rhs(e)
+            self.assertTrue(hh.has_alpha_beta_form(r, v))
+
+        # r is not a state
+        self.assertTrue(hh.has_alpha_beta_form(r, v))
+        r.demote()
+        self.assertFalse(hh.has_alpha_beta_form(r, v))
+        r.promote(0)
+        self.assertTrue(hh.has_alpha_beta_form(r, v))
+
+        # 'alpha * (1 - r) - beta * r'
+
+        # Not a minus
+        bad('alpha * (1 - r) + beta * r')
+
+        # Minus, but terms aren't multiplies
+        bad('alpha / (1 - r) - beta * r')
+        bad('alpha * (1 - r) - beta / r')
+
+        # Terms in multiplications can be switched
+        good('(1 - r) * alpha - beta * r')
+        good('(1 - r) * alpha - r * beta')
+        good('alpha * (1 - r) - beta * r')
 
     def test_inf_tau_form(self):
         # Test methods for working with inf-tau form
@@ -122,7 +153,11 @@ class HHDetectionTest(unittest.TestCase):
         self.assertFalse(hh.has_inf_tau_form(r))
         self.assertIsNone(hh.get_inf_and_tau(r))
 
-        # Test with v argument
+        # Test with v argument, no label
+        v.set_label(None)
+        self.assertRaisesRegex(
+            ValueError, 'Membrane potential must be given',
+            hh.has_inf_tau_form, a)
         self.assertTrue(hh.has_inf_tau_form(a, v))
         inf, tau = hh.get_inf_and_tau(a, v)
         self.assertEqual(inf, m.get('ikr.a.inf'))
@@ -131,13 +166,8 @@ class HHDetectionTest(unittest.TestCase):
         self.assertIsNone(hh.get_inf_and_tau(r, v))
 
         # Test with v as a constant
-        m = m.clone()
-        v = m.get('membrane.V')
-        a = m.get('ikr.a')
-        r = m.get('ikr.r')
         v.demote()
         v.set_rhs(-80)
-
         self.assertTrue(hh.has_inf_tau_form(a, v))
         inf, tau = hh.get_inf_and_tau(a, v)
         self.assertEqual(inf, m.get('ikr.a.inf'))
@@ -187,7 +217,7 @@ class HHDetectionTest(unittest.TestCase):
             ValueError, 'must be a myokit.Model',
             hh.convert_hh_states_to_inf_tau_form, [])
 
-        # Membrane potential must be known somehow
+        # Membrane potential given explicitly (not as label)
         m2 = m1.clone()
         v = m2.get('membrane.V')
         v.set_label(None)
@@ -197,6 +227,11 @@ class HHDetectionTest(unittest.TestCase):
         # this should still work as variables are .get() from the model.
         self.assertTrue(hh.has_inf_tau_form(m3.get('ikr.a'), v))
         self.assertTrue(hh.has_inf_tau_form(m3.get('ikr.r'), v))
+
+        # Unknown membrane potential
+        self.assertRaisesRegex(
+            ValueError, 'Membrane potential must be given',
+            hh.convert_hh_states_to_inf_tau_form, m2)
 
     def test_rush_larsen_conversion(self):
         # Tests methods for writing RL state updates
