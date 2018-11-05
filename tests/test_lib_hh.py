@@ -123,8 +123,6 @@ class HHDetectionTest(unittest.TestCase):
         r.promote(0)
         self.assertTrue(hh.has_alpha_beta_form(r, v))
 
-        # 'alpha * (1 - r) - beta * r'
-
         # Not a minus
         bad('alpha * (1 - r) + beta * r')
 
@@ -143,6 +141,20 @@ class HHDetectionTest(unittest.TestCase):
         bad('alpha * (1 - r) - beta * r^2')
         bad('alpha * (1 - r) - beta^2 * r')
 
+        # Alpha and beta can't be states
+        m2 = m.clone()
+        m2.get('membrane.V').set_label('membrane_potential')
+        m2.get('ikr.r').move_variable(
+            m2.get('ikr.r.alpha'), m2.get('ikr'), 'ralpha')
+        self.assertTrue(hh.has_alpha_beta_form(m2.get('ikr.r')))
+        m2.get('ikr.ralpha').promote(1)
+        self.assertFalse(hh.has_alpha_beta_form(m2.get('ikr.r')))
+        m2.get('ikr.ralpha').demote()
+        m2.get('ikr.r').move_variable(
+            m2.get('ikr.r.beta'), m2.get('ikr'), 'rbeta')
+        self.assertTrue(hh.has_alpha_beta_form(m2.get('ikr.r')))
+        m2.get('ikr.rbeta').promote(1)
+
         # Alpha and beta can't depend on other states than v
         c = m.add_component('ccc')
         x = c.add_variable('vvv')
@@ -150,12 +162,12 @@ class HHDetectionTest(unittest.TestCase):
         x.promote(0)
         ralph = m.get('ikr.r.alpha').rhs()
         self.assertTrue(hh.has_alpha_beta_form(r, v))
-        m.get('ikr.r.alpha').set_rhs('3 * ccc.vvv')
+        m.get('ikr.r.alpha').set_rhs('3 * ccc.vvv + V')
         self.assertFalse(hh.has_alpha_beta_form(r, v))
         m.get('ikr.r.alpha').set_rhs(ralph)
         self.assertTrue(hh.has_alpha_beta_form(r, v))
         ralph = m.get('ikr.r.beta').rhs()
-        m.get('ikr.r.beta').set_rhs('2 + ccc.vvv')
+        m.get('ikr.r.beta').set_rhs('2 + ccc.vvv - V')
         self.assertFalse(hh.has_alpha_beta_form(r, v))
         m.get('ikr.r.beta').set_rhs(ralph)
         self.assertTrue(hh.has_alpha_beta_form(r, v))
@@ -197,6 +209,70 @@ class HHDetectionTest(unittest.TestCase):
         self.assertEqual(tau, m.get('ikr.a.tau'))
         self.assertFalse(hh.has_inf_tau_form(r, v))
         self.assertIsNone(hh.get_inf_and_tau(r, v))
+        del(r)
+
+        # a is not a state
+        self.assertTrue(hh.has_inf_tau_form(a, v))
+        a.demote()
+        self.assertFalse(hh.has_inf_tau_form(a, v))
+        a.promote(0)
+        self.assertTrue(hh.has_inf_tau_form(a, v))
+
+        # Almost correct forms / different ways to fail
+        def bad(e):
+            a.set_rhs(e)
+            self.assertFalse(hh.has_inf_tau_form(a, v))
+            a.set_rhs('(inf - a) / tau')
+            self.assertTrue(hh.has_inf_tau_form(a, v))
+
+        def good(e):
+            a.set_rhs(e)
+            self.assertTrue(hh.has_inf_tau_form(a, v))
+
+        bad('(inf - a) / (1 + tau)')
+        bad('(inf + a) / tau')
+        bad('(inf - 1) / tau')
+        bad('(1 - inf) / tau')
+        bad('(inf - r) / tau')
+
+        # Inf and tau can't be states
+        m.get('ikr.a').move_variable(m.get('ikr.a.inf'), m.get('ikr'), 'ainf')
+        m.get('ikr.a').move_variable(m.get('ikr.a.tau'), m.get('ikr'), 'atau')
+        self.assertTrue(hh.has_inf_tau_form(a, v))
+        m.get('ikr.ainf').promote(1)
+        self.assertFalse(hh.has_inf_tau_form(a, v))
+        m.get('ikr.ainf').demote()
+        self.assertTrue(hh.has_inf_tau_form(a, v))
+        m.get('ikr.atau').promote(1)
+        self.assertFalse(hh.has_inf_tau_form(a, v))
+        m.get('ikr.atau').demote()
+        self.assertTrue(hh.has_inf_tau_form(a, v))
+
+        # Inf and tau can't depend on other states than v
+        c = m.add_component('ccc')
+        x = c.add_variable('vvv')
+        x.set_rhs(1)
+        x.promote(0)
+        ainf = m.get('ikr.ainf').rhs()
+        m.get('ikr.ainf').set_rhs('2 + ccc.vvv * V')
+        self.assertFalse(hh.has_inf_tau_form(a, v))
+        m.get('ikr.ainf').set_rhs(ainf)
+        self.assertTrue(hh.has_inf_tau_form(a, v))
+        atau = m.get('ikr.atau').rhs()
+        m.get('ikr.atau').set_rhs('3 * ccc.vvv * V')
+        self.assertFalse(hh.has_inf_tau_form(a, v))
+        m.get('ikr.atau').set_rhs(atau)
+        self.assertTrue(hh.has_inf_tau_form(a, v))
+
+        # Inf and tau must depend on V
+        m.get('ikr.ainf').set_rhs('5 + 2')
+        self.assertFalse(hh.has_inf_tau_form(a, v))
+        m.get('ikr.ainf').set_rhs(ainf)
+        self.assertTrue(hh.has_inf_tau_form(a, v))
+        m.get('ikr.atau').set_rhs('2 / 7')
+        self.assertFalse(hh.has_inf_tau_form(a, v))
+        m.get('ikr.atau').set_rhs(atau)
+        self.assertTrue(hh.has_inf_tau_form(a, v))
 
     def test_convert_hh_states_to_inf_tau_form(self):
         # Tests conversion to inf-tau form
