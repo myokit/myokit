@@ -602,6 +602,21 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'negative', s.set_default_state, dstate)
 
+    '''
+    def compare_hh_with_cvode(self):
+        # Runs a short simulation and compares the result with cvode
+
+        # Set up a model and protocol
+        fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
+        model = myokit.load_model(fname)
+        m = hh.HHModel.from_component(model.get('ina'))
+        p = myokit.pacing
+
+
+
+        s = hh.AnalyticalSimulation(m)
+    '''
+
 
 if __name__ == '__main__':
     unittest.main()

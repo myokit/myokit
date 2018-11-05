@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+import myokit
+import myokit.lib.markov as markov
+
+import os
+import matplotlib.pyplot as plt
+
+print('Markov')
+
+fname = os.path.join('tests', 'data', 'clancy-1999-fitting.mmt')
+model = myokit.load_model(fname)
+m = markov.LinearModel.from_component(model.get('ina'))
+
+b = myokit.Benchmarker()
+
+vs = [-30, -20, -10]
+p = myokit.pacing.steptrain(
+    vsteps=vs,
+    vhold=-120,
+    tpre=8,
+    tstep=2,
+    tpost=0)
+t = p.characteristic_time()
+
+s1 = markov.AnalyticalSimulation(m, p)
+b.reset()
+d1 = s1.run(t, log_interval=0.1)
+print(b.time())
+
+s2 = myokit.Simulation(model, p)
+s2.set_tolerance(1e-8, 1e-8)
+b.reset()
+d2 = s2.run(t, log_interval=0.1)
+print(b.time())
+
+if True:
+    d1 = d1.fold(10).trim_left(8, adjust=True)
+    d2 = d2.fold(10).trim_left(8, adjust=True)
+
+    plt.figure()
+    plt.plot(d1.time(), d1['ina.i', 0], 'x-', color='tab:blue')
+    plt.plot(d1.time(), d1['ina.i', 1], 'x-', color='tab:orange')
+    plt.plot(d1.time(), d1['ina.i', 2], 'x-', color='tab:green')
+    plt.plot(d2.time(), d2['ina.i', 0], '+--', color='tab:blue')
+    plt.plot(d2.time(), d2['ina.i', 1], '+--', color='tab:orange')
+    plt.plot(d1.time(), d2['ina.i', 2], '+--', color='tab:green')
+    plt.show()
+
