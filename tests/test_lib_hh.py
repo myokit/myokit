@@ -364,6 +364,15 @@ class HHDetectionTest(unittest.TestCase):
         r2 = r.state_value() + dt.eval() * r.rhs().eval()
         self.assertAlmostEqual(r1, r2)
 
+        # Dt must be an expression
+        self.assertRaisesRegex(
+            ValueError, 'must be a myokit.Expression',
+            hh.get_rl_expression, a, 'dt')
+
+        # Returns None if not in inf-tau form
+        self.assertIsNone(hh.get_rl_expression(
+            m1.get('ikr.r'), myokit.Name(dt)))
+
 
 class HHModelTest(unittest.TestCase):
     """
