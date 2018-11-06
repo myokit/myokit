@@ -186,7 +186,7 @@ class HHModel(object):
         del(vm)
 
         #
-        # Demote unnecessary states, remove bindings and validate model.
+        # Demote unnecessary states and remove bindings
         #
         # Get values of all states
         # Note: Do this _before_ changing the model!
@@ -221,6 +221,32 @@ class HHModel(object):
                     ' `myokit.lib.hh.has_alpha_beta_form()`.'
                 )
 
+        #
+        # Remove unused variables from internal model, and evaluate any
+        # literals.
+        #
+        # 1. Make sure that current variable is maintained by temporarily
+        #    setting it as a state variable.
+        # 2. Similarly, make sure parameters and membrane potential are not
+        #    evaluated and/or removed
+        #
+        self._membrane_potential.promote(0)
+        if self._current is not None:
+            self._current.promote(0)
+        for p in self._parameters:
+            p.promote(0)
+
+        # Evaluate all constants and remove unused variables
+        for var in self._model.variables(deep=True, const=True):
+            var.set_rhs(var.rhs().eval())
+        self._model.validate(remove_unused_variables=True)
+
+        self._membrane_potential.demote()
+        for p in self._parameters:
+            p.demote()
+        if self._current is not None:
+            self._current.demote()
+
         # Validate modified model
         self._model.validate()
 
@@ -234,7 +260,8 @@ class HHModel(object):
         # Get the default values for all inputs
         self._default_inputs = np.array([v.eval() for v in self._inputs])
 
-        # Create lambda function that calculates the states analytically
+        #
+        # Create a function that calculates the states analytically
         #
         # The created self._function has signature _f(_y0, _t, v, params*)
         # and returns a tuple (states, current). If _t is a scalar, states is a
@@ -248,55 +275,58 @@ class HHModel(object):
         f.append('def _f(' + ', '.join(args) + '):')
         f.append('_y = [0]*' + str(len(self._states)))
 
-        # Function to calculate steady states
+        # Add equations to calculate all infs and taus
+        w = myokit.numpy_writer()
+        order = self._model.solvable_order()
+        ignore = set(self._inputs + self._states + [self._model.time()])
+        for group in order.values():
+            for eq in group:
+                var = eq.lhs.var()
+                if var in ignore or var == self._current:
+                    continue
+                f.append(w.eq(eq))
+
+        # Add equations to calculate updated state
+        for k, state in enumerate(self._states):
+            inf, tau = get_inf_and_tau(state, self._membrane_potential)
+            inf = w.ex(myokit.Name(inf))
+            tau = w.ex(myokit.Name(tau))
+            k = str(k)
+            f.append(
+                '_y[' + k + '] = ' + state.uname() + ' = '
+                + inf + ' + (_y0[' + k + '] - ' + inf
+                + ') * numpy.exp(-_t / ' + tau + ')')
+
+        # Add current calculation
+        if self._current is not None:
+            f.append('_i = ' + w.ex(self._current.rhs()))
+        else:
+            f.append('_i = None')
+
+        # Add return statement and create python function from f
+        f.append('return _y, _i')
+        for i in range(1, len(f)):
+            f[i] = '    ' + f[i]
+        f = '\n'.join(f)
+        #print(f)
+        local = {}
+        exec(f, {'numpy': np}, local)
+        self._function = local['_f']
+
+        #
+        #
+        # Create a function that calculates the steady states
+        #
+        #
         g = []
         args = [i.uname() for i in self._inputs]
         g.append('def _g(' + ', '.join(args) + '):')
         g.append('_y = [0]*' + str(len(self._states)))
-
-        # Add function bodies
-        w = myokit.numpy_writer()
         for k, state in enumerate(self._states):
-            inf, tau = get_inf_and_tau(state, self._membrane_potential)
-
-            # Add calculation of inf to f
-            inf = inf.rhs().clone(expand=True, retain=self._inputs)
-            f.append('_inf = ' + w.ex(inf))
-
-            # Add calculation of tau to f
-            tau = tau.rhs().clone(expand=True, retain=self._inputs)
-            f.append('_tau = ' + w.ex(tau))
-
-            # Add calculation of result to f
             k = str(k)
-            f.append(
-                '_y[' + k + '] ='
-                ' _inf + (_y0[' + k + '] - _inf) * numpy.exp(-_t / _tau)')
-
-            # Add calculation of inf to g
+            inf, tau = get_inf_and_tau(state, self._membrane_potential)
+            inf = inf.rhs().clone(expand=True, retain=self._inputs)
             g.append('_y[' + str(k) + '] = ' + w.ex(inf))
-
-        # Add current calculation and/or return statement
-        if self._current is not None:
-            # Unpack state variables
-            for k, state in enumerate(self._states):
-                f.append(state.uname() + ' = _y[' + str(k) + ']')
-
-            # Add current calculation
-            cur = self._model.get(self._current)
-            cur = cur.rhs().clone(expand=True, retain=self._inputs)
-            f.append('_i = ' + w.ex(cur))
-            f.append('return _y, _i')
-        else:
-            f.append('return _y, None')
-
-        # Create python function from f
-        for i in range(1, len(f)):
-            f[i] = '    ' + f[i]
-        f = '\n'.join(f)
-        local = {}
-        exec(f, {'numpy': np}, local)
-        self._function = local['_f']
 
         # Create python function from g
         g.append('return _y')
@@ -463,6 +493,13 @@ class HHModel(object):
                     + str(len(parameters)) + ' provided.')
             inputs[1:] = [float(x) for x in parameters]
         return inputs
+
+    def reduced_model(self):
+        """
+        Returns a reduced :class:`myokit.Model`, containing only the parts
+        necessary to calculate the specified states and current.
+        """
+        return self._model.clone()
 
     def states(self):
         """
