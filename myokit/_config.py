@@ -282,7 +282,7 @@ def _load():
             myokit.OPENCL_INC.append(x.strip())
 
 
-def _dynamically_add_embedded_sundials_win():
+def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
     """
     On windows, sundials binaries are packaged with Myokit. Storing this
     location in the config file could cause issues, for example if a user moves
