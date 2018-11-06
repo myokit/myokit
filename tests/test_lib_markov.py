@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the lib.makov module.
+# Tests the lib.markov module.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
