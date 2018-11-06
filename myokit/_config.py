@@ -114,6 +114,8 @@ def _create(path):
         ]))
 
     # Set sundials version, try to auto-detect
+    if platform.system() == 'Windows':  # pragma: no linux cover
+        _dynamically_add_embedded_sundials_win()
     sundials = myokit.Sundials.version_int()
     if sundials is None:    # pragma: no cover
         log = logging.getLogger(__name__)
@@ -251,19 +253,9 @@ def _load():
         except ValueError:  # pragma: no cover
             pass
 
-    # On windows, sundials binaries are packaged with Myokit
-    # Instead of storing this location in the config file (which could cause
-    # issues if a user reinstall anaconda to a different location, or used
-    # multiple conda installs), set it dynamically.
-    # This is only done _if_ the user doesn't set an explicit path (i.e. allow
-    # override).
+    # Dynamically add embedded sundials paths for windows
     if platform.system() == 'Windows':  # pragma: no linux cover
-        sundials_win = os.path.abspath(
-            os.path.join(myokit.DIR_DATA, 'sundials-win-vs'))
-        if len(myokit.SUNDIALS_LIB) == 0:
-            myokit.SUNDIALS_LIB.append(os.path.join(sundials_win, 'lib'))
-        if len(myokit.SUNDIALS_INC) == 0:
-            myokit.SUNDIALS_INC.append(os.path.join(sundials_win, 'include'))
+        _dynamically_add_embedded_sundials_win()
 
     # If needed, attempt auto-detection of Sundials version
     if myokit.SUNDIALS_VERSION == 0:    # pragma: no cover
@@ -288,6 +280,24 @@ def _load():
     if config.has_option('opencl', 'inc'):
         for x in config.get('opencl', 'inc').split(';'):
             myokit.OPENCL_INC.append(x.strip())
+
+
+def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
+    """
+    On windows, sundials binaries are packaged with Myokit. Storing this
+    location in the config file could cause issues, for example if a user moves
+    a Myokit installation, reinstalls e.g. Anaconda to a different path, uses
+    multiple Myokits or Python distros etc. So instead of storing this location
+    in the config file, it is added dynamically.
+    This is only done _if_ the user doesn't set an explicit path (i.e. we allow
+    user overrides).
+    """
+    sundials_win = os.path.abspath(
+        os.path.join(myokit.DIR_DATA, 'sundials-win-vs'))
+    if len(myokit.SUNDIALS_LIB) == 0:
+        myokit.SUNDIALS_LIB.append(os.path.join(sundials_win, 'lib'))
+    if len(myokit.SUNDIALS_INC) == 0:
+        myokit.SUNDIALS_INC.append(os.path.join(sundials_win, 'include'))
 
 
 # Load settings

@@ -19,7 +19,7 @@
 #include <sundials/sundials_config.h>
 
 /*
- * Returns None.
+ * Returns the detected sundials version.
  */
 static PyObject*
 sundials_version(PyObject *self, PyObject *args)
@@ -35,7 +35,7 @@ sundials_version(PyObject *self, PyObject *args)
  * Methods in this module
  */
 static PyMethodDef SimMethods[] = {
-    {"sundials_version", sundials_version, METH_VARARGS, "Return None."},
+    {"sundials_version", sundials_version, METH_VARARGS, "Return the detected sundials version."},
     {NULL},
 };
 

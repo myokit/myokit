@@ -19,7 +19,7 @@
 #include <Python.h>
 
 /*
- * Returns None.
+ * Returns the detected compiler.
  */
 static PyObject*
 compiler(PyObject *self, PyObject *args)
@@ -83,7 +83,7 @@ compiler(PyObject *self, PyObject *args)
  * Methods in this module
  */
 static PyMethodDef SimMethods[] = {
-    {"compiler", compiler, METH_VARARGS, "Return None."},
+    {"compiler", compiler, METH_VARARGS, "Return the detected compiler."},
     {NULL},
 };
 
