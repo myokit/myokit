@@ -140,6 +140,8 @@ int running = 0;        /* Running yes/no */
 double dt;              /* The next step size to use */
 double dt_min;          /* The minimum step size to use */
 double tnext;           /* The next forced time (event or end of sim) */
+unsigned long istep;    /* The index of the current step */
+int intermediary_step;  /* True if an intermediary step is being taken */
 
 /* Logging */
 PyObject **logs;        /* An array of pointers to a PyObject */
@@ -446,21 +448,11 @@ if var is not None:
     /* Calculate rhs at initial time */
     rhs();
 
-    /* Always log the first step */
-    for(ivars = 0; ivars<nvars; ivars++) {
-        flt = PyFloat_FromDouble(*vars[ivars]);
-        ret = PyObject_CallMethodObjArgs(logs[ivars], list_update_str, flt, NULL);
-        Py_DECREF(flt); flt = NULL;
-        Py_XDECREF(ret);
-        if (ret == NULL) {
-            PyErr_SetString(PyExc_Exception, "Call to append() failed on logging list.");
-            return sim_clean();
-        }
-    }
-    ret = NULL;
+    /* Set first point to step to */
+    istep = 1;
 
     /* Set first logging point */
-    ilog = 1;
+    ilog = 0;
     tlog = tmin + (double)ilog * log_interval;
 
     /* Done! */
@@ -486,14 +478,38 @@ sim_step(PyObject *self, PyObject *args)
     /* Start simulation */
     while(1) {
 
+        /* Log if we've reached or passed a logging point */
+        if (engine_time >= tlog) {
+            for(ivars = 0; ivars<nvars; ivars++) {
+                flt = PyFloat_FromDouble(*vars[ivars]);
+                ret = PyObject_CallMethodObjArgs(logs[ivars], list_update_str, flt, NULL);
+                Py_DECREF(flt); flt = NULL;
+                Py_XDECREF(ret);
+                if (ret == NULL) {
+                    PyErr_SetString(PyExc_Exception, "Call to append() failed on logging list.");
+                    return sim_clean();
+                }
+            }
+            ret = NULL;
+
+            /* Set next logging point */
+            ilog++;
+            tlog = tmin + (double)ilog * log_interval;
+        }
+
         /* Determine appropriate time step */
-        dt = default_dt;
-        d = tpace - engine_time; if (d > dt_min && d < dt) dt = d;
-        d = tmax - engine_time; if (d > dt_min && d < dt) dt = d;
-        d = tlog - engine_time; if (d > dt_min && d < dt) dt = d;
+        dt = tmin + (double)istep * default_dt - engine_time;
+        intermediary_step = 0;
+        d = tpace - engine_time; if (d > dt_min && d < dt) {dt = d; intermediary_step = 1; }
+        d = tmax - engine_time; if (d > dt_min && d < dt) {dt = d; intermediary_step = 1; }
+        d = tlog - engine_time; if (d > dt_min && d < dt) {dt = d; intermediary_step = 1; }
+        if (!intermediary_step) istep++;
 
         /* Move to next time (1) Update the time variable */
         engine_time += dt;
+        #ifdef MYOKIT_DEBUG
+        printf("t=%f, dt=%f\n", engine_time, dt);
+        #endif
 
         /* Move to next time (2) Update the pacing variable */
         flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
@@ -519,29 +535,15 @@ for var in model.states():
         /* Move to next time (4) Calculate the derivatives, intermediaries etc. */
         rhs();
 
-        /* Are we done?
-           Check this *before* logging: Last point reached should not be
-           logged (half-open convention for fixed interval logging!) */
+        /* 
+         * Are we done?
+         * Check this *before* logging: Last point reached should not be
+         * logged (half-open convention for fixed interval logging!)
+         */
+        #ifdef MYOKIT_DEBUG
+        printf("t=%f, tmax=%f, t>=tmax %d\n", engine_time, tmax, engine_time>=tmax);
+        #endif
         if (engine_time >= tmax) break;
-
-        /* Log if we've passed a logging point */
-        if (engine_time > tlog) {
-            for(ivars = 0; ivars<nvars; ivars++) {
-                flt = PyFloat_FromDouble(*vars[ivars]);
-                ret = PyObject_CallMethodObjArgs(logs[ivars], list_update_str, flt, NULL);
-                Py_DECREF(flt); flt = NULL;
-                Py_XDECREF(ret);
-                if (ret == NULL) {
-                    PyErr_SetString(PyExc_Exception, "Call to append() failed on logging list.");
-                    return sim_clean();
-                }
-            }
-            ret = NULL;
-
-            /* Set next logging point */
-            ilog++;
-            tlog = tmin + (double)ilog * log_interval;
-        }
 
         /* Report back to python after every x steps */
         steps_taken++;

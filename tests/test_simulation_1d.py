@@ -33,7 +33,6 @@ class Simulation1dTest(unittest.TestCase):
     """
     Test the non-parallel 1d simulation.
     """
-    '''
     def test_basic(self):
         # Test basic usage.
 
@@ -43,6 +42,7 @@ class Simulation1dTest(unittest.TestCase):
         # Run a simulation
         ncells = 5
         s = myokit.Simulation1d(m, p, ncells=ncells)
+        s.set_step_size(0.05)
 
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.state(0), m.state())
@@ -111,6 +111,7 @@ class Simulation1dTest(unittest.TestCase):
 
         # Test using a progress reporter
         s = myokit.Simulation1d(m, p, ncells=5)
+        s.set_step_size(0.05)
         with myokit.PyCapture() as c:
             s.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
@@ -198,56 +199,268 @@ class Simulation1dTest(unittest.TestCase):
         self.assertRaises(ValueError, s.set_default_state, sx, n)
         self.assertRaises(ValueError, s.default_state, -1)
         self.assertRaises(ValueError, s.default_state, n)
-    '''
 
     def test_against_cvode(self):
         # Compare the Simulation1d output with CVODE output
+
+        # Load model and event with appropriate level/duration
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-
-        # Make protocol to compare t=0 event implementations
         e = p.head()
-        p = myokit.Protocol()
-        p.schedule(level=e.level(), duration=e.duration(), start=0)
 
-        dt = 0.02
-        tmax = 3000
+        #
+        # Make protocol to compare t=0 event implementations
+        #
+        dt = 0.1    # Note: this is too big to be very accurate
+        tmax = 1300
+        p = myokit.Protocol()
+        p.schedule(level=e.level(), duration=e.duration(), period=600, start=0)
         logvars = ['engine.time', 'membrane.V', 'engine.pace']
+
         s1 = myokit.Simulation1d(m, p, ncells=1, rl=True)
         s1.set_step_size(dt)
         d1 = s1.run(tmax, logvars, log_interval=dt).npview()
+
         s2 = myokit.Simulation(m, p)
-        s2.set_max_step_size(dt)
         s2.set_tolerance(1e-8, 1e-8)
         d2 = s2.run(tmax, logvars, log_interval=dt).npview()
 
         # Check implementation of logging point selection
-        print(d1.time()[:7])
-        print(d2.time()[:7])
-        print(d1.time()[-7:])
-        print(d2.time()[-7:])
         e0 = np.max(np.abs(d1.time() - d2.time()))
-        self.assertLess(e0, 1e-14)
 
-        # Check implementation of events (esp. ones that start at t=0)
-        e1 = d1['engine.pace', 0] - d2['engine.pace']
-        e1 = np.sum(e1**2)
-        print(e1)
+        # Check implementation of pacing
+        r1 = d1['engine.pace', 0] - d2['engine.pace']
+        e1 = np.sum(r1**2)
 
+        # Check membrane potential (will have some error!)
+        # Using MRMS from Marsh, Ziaratgahi, Spiteri 2012
+        r2 = d1['membrane.V', 0] - d2['membrane.V']
+        r2 /= (1 + np.abs(d2['membrane.V']))
+        e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
         if debug:
             import matplotlib.pyplot as plt
+            print('Event at t=0')
+
             plt.figure()
+            plt.suptitle('Time points')
+            plt.plot(d1.time(), label='Euler')
+            plt.plot(d1.time(), label='CVODE')
+            plt.legend()
+            print(d1.time()[:7])
+            print(d2.time()[:7])
+            print(d1.time()[-7:])
+            print(d2.time()[-7:])
+            print(e0)
+
+            plt.figure()
+            plt.suptitle('Pacing signals')
+            plt.subplot(2, 1, 1)
             plt.plot(d1.time(), d1['engine.pace', 0], label='Euler')
             plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
             plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r1)
+            print(e1)
 
             plt.figure()
-            plt.plot(d1.time(), d1['engine.pace', 0] - d2['engine.pace'])
+            plt.suptitle('Membrane potential')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['membrane.V', 0], label='Euler')
+            plt.plot(d2.time(), d2['membrane.V'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r2)
+            print(e2)
 
-            plt.figure()
-            plt.plot(d1.time(), d1.time())
-            plt.plot(d1.time(), d2.time())
             plt.show()
+
+        self.assertLess(e0, 1e-14)
+        self.assertLess(e1, 1e-14)
+        self.assertLess(e2, 0.1)   # Note: The step size is really too big here
+
+        #
+        # Make protocol to compare with event at step-size multiple
+        #
+        dt = 0.1   # Note: this is too big to be very accurate
+        tmax = 1300
+        p = myokit.Protocol()
+        p.schedule(
+            level=e.level(),
+            duration=e.duration(),
+            period=600,
+            start=10)
+
+        logvars = ['engine.time', 'membrane.V', 'engine.pace']
+
+        s1.reset()
+        s1.set_protocol(p)
+        s1.set_step_size(dt)
+        d1 = s1.run(tmax, logvars, log_interval=dt).npview()
+
+        s2.reset()
+        s2.set_protocol(p)
+        s2.set_tolerance(1e-8, 1e-8)
+        d2 = s2.run(tmax, logvars, log_interval=dt).npview()
+
+        # Check implementation of logging point selection
+        e0 = np.max(np.abs(d1.time() - d2.time()))
+
+        # Check implementation of pacing
+        r1 = d1['engine.pace', 0] - d2['engine.pace']
+        e1 = np.sum(r1**2)
+
+        # Check membrane potential (will have some error!)
+        # Using MRMS from Marsh, Ziaratgahi, Spiteri 2012
+        r2 = d1['membrane.V', 0] - d2['membrane.V']
+        r2 /= (1 + np.abs(d2['membrane.V']))
+        e2 = np.sqrt(np.sum(r2**2) / len(r2))
+
+        if debug:
+            import matplotlib.pyplot as plt
+            print('Event at t=0')
+
+            plt.figure()
+            plt.suptitle('Time points')
+            plt.plot(d1.time(), label='Euler')
+            plt.plot(d1.time(), label='CVODE')
+            plt.legend()
+            print(d1.time()[:7])
+            print(d2.time()[:7])
+            print(d1.time()[-7:])
+            print(d2.time()[-7:])
+            print(e0)
+
+            plt.figure()
+            plt.suptitle('Pacing signals')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['engine.pace', 0], label='Euler')
+            plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r1)
+            print(e1)
+
+            plt.figure()
+            plt.suptitle('Membrane potential')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['membrane.V', 0], label='Euler')
+            plt.plot(d2.time(), d2['membrane.V'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r2)
+            print(e2)
+
+            plt.show()
+
+        self.assertLess(e0, 1e-14)
+        self.assertLess(e1, 1e-14)
+        self.assertLess(e2, 0.1)   # Note: The step size is really too big here
+
+        #
+        # Make protocol to compare with event NOT at step-size multiple
+        #
+        dt = 0.1   # Note: this is too big to be very accurate
+        tmax = 1300
+        p = myokit.Protocol()
+        p.schedule(
+            level=e.level(),
+            duration=e.duration(),
+            period=600,
+            start=1.05)
+
+        logvars = ['engine.time', 'membrane.V', 'engine.pace']
+
+        s1.reset()
+        s1.set_protocol(p)
+        s1.set_step_size(dt)
+        d1 = s1.run(tmax, logvars, log_interval=dt).npview()
+
+        s2.reset()
+        s2.set_protocol(p)
+        s2.set_tolerance(1e-8, 1e-8)
+        d2 = s2.run(tmax, logvars, log_interval=dt).npview()
+
+        # Check implementation of logging point selection
+        e0 = np.max(np.abs(d1.time() - d2.time()))
+
+        # Check implementation of pacing
+        r1 = d1['engine.pace', 0] - d2['engine.pace']
+        e1 = np.sum(r1**2)
+
+        # Check membrane potential (will have some error!)
+        # Using MRMS from Marsh, Ziaratgahi, Spiteri 2012
+        r2 = d1['membrane.V', 0] - d2['membrane.V']
+        r2 /= (1 + np.abs(d2['membrane.V']))
+        e2 = np.sqrt(np.sum(r2**2) / len(r2))
+
+        if debug:
+            import matplotlib.pyplot as plt
+            print('Event at t=0')
+
+            plt.figure()
+            plt.suptitle('Time points')
+            plt.plot(d1.time(), label='Euler')
+            plt.plot(d1.time(), label='CVODE')
+            plt.legend()
+            print(d1.time()[:7])
+            print(d2.time()[:7])
+            print(d1.time()[-7:])
+            print(d2.time()[-7:])
+            print(e0)
+
+            plt.figure()
+            plt.suptitle('Pacing signals')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['engine.pace', 0], label='Euler')
+            plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r1)
+            print(e1)
+
+            plt.figure()
+            plt.suptitle('Membrane potential')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['membrane.V', 0], label='Euler')
+            plt.plot(d2.time(), d2['membrane.V'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r2)
+            print(e2)
+
+            plt.show()
+
+        self.assertLess(e0, 1e-14)
+        self.assertLess(e1, 1e-14)
+        self.assertLess(e2, 0.2)   # Note: The step size is really too big here
+
+        #
+        # Test again, with event at step multiple, but now without Rush-Larsen
+        #
+        dt = 0.01   # Note: this is too big to be very accurate
+        tmax = 200
+        p = myokit.Protocol()
+        p.schedule(
+            level=e.level(),
+            duration=e.duration(),
+            period=600,
+            start=10)
+
+        logvars = ['engine.time', 'membrane.V', 'engine.pace']
+        s1 = myokit.Simulation1d(m, p, ncells=1, rl=False)
+        s1.set_step_size(dt)
+        d1 = s1.run(tmax, logvars, log_interval=dt).npview()
+        s2.reset()
+        s2.set_protocol(p)
+        s2.set_tolerance(1e-8, 1e-8)
+        d2 = s2.run(tmax, logvars, log_interval=dt).npview()
+
+        # Check membrane potential (will have some error!)
+        # Using MRMS from Marsh, Ziaratgahi, Spiteri 2012
+        r2 = d1['membrane.V', 0] - d2['membrane.V']
+        r2 /= (1 + np.abs(d2['membrane.V']))
+        e2 = np.sqrt(np.sum(r2**2) / len(r2))
+        self.assertLess(e2, 0.05)  # Note: The step size is really too big here
 
 
 if __name__ == '__main__':
