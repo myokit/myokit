@@ -30,6 +30,9 @@ class Simulation1d(myokit.CModule):
         start of the cable.
     ``ncells``
         The number of cells in the cable
+    ``rl``
+        Use Rush-Larsen updates instead of forward-Euler for any Hodgkin-Huxley
+        gating variables.
 
     This simulation provides the following inputs variables can bind to:
 
@@ -80,15 +83,11 @@ class Simulation1d(myokit.CModule):
     """
     _index = 0      # Unique id for generated module
 
-    def __init__(self, model, protocol=None, ncells=50):
+    def __init__(self, model, protocol=None, ncells=50, rl=True):
         super(Simulation1d, self).__init__()
 
         # Require a valid model
         model.validate()
-
-        # Clone model, store
-        model = model.clone()
-        self._model = model
 
         # Set protocol
         self.set_protocol(protocol)
@@ -98,6 +97,38 @@ class Simulation1d(myokit.CModule):
         if ncells < 1:
             raise ValueError('The number of cells must be at least 1.')
         self._ncells = ncells
+
+        # Set rush-larsen mode
+        self._rl = bool(rl)
+
+        # Get membrane potential variable
+        vm = model.label('membrane_potential')
+        if vm is None:
+            raise ValueError(
+                'This simulation requires the membrane potential'
+                ' variable to be labelled as "membrane_potential".')
+
+        # Prepare for Rush-Larsen updates, and/or clone model
+        rl_states = {}
+        if self._rl:
+            import myokit.lib.hh as hh
+
+            # Convert alpha-beta formulations to inf-tau forms, cloning model
+            self._model = hh.convert_hh_states_to_inf_tau_form(model, vm)
+            self._vm = self._model.get(vm.qname())
+            del(model, vm)
+
+            # Get (inf, tau) tuple for every Rush-Larsen state
+            for state in self._model.states():
+                res = hh.get_inf_and_tau(state, self._vm)
+                if res is not None:
+                    rl_states[state] = res
+
+        else:
+            # Clone model, store
+            self._model = model.clone()
+            self._vm = self._model.get(vm.qname())
+            del(model, vm)
 
         # Set number of cells paced
         self.set_paced_cells()
@@ -113,14 +144,14 @@ class Simulation1d(myokit.CModule):
         self._nstate = self._model.count_states()
 
         # Get membrane potential variable
-        self._vm = model.label('membrane_potential')
+        self._vm = self._model.label('membrane_potential')
         if self._vm is None:
             raise ValueError(
                 'This simulation requires the membrane potential'
                 ' variable to be labelled as "membrane_potential".')
 
         # Check for binding to diffusion_current
-        if model.binding('diffusion_current') is None:
+        if self._model.binding('diffusion_current') is None:
             raise ValueError(
                 'This simulation requires a variable to be bound to'
                 ' "diffusion_current" to pass current from one cell to the'
@@ -140,6 +171,7 @@ class Simulation1d(myokit.CModule):
             'model': self._model,
             'vmvar': self._vm,
             'ncells': self._ncells,
+            'rl_states': rl_states,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
 

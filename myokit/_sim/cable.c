@@ -8,6 +8,8 @@
 # module_name   A module name
 # model         A myokit model
 # vmvar         The membrane potential variable
+# ncells        The number of cells
+# rl_states     A map {state : (inf, tau)}
 # ----------------------------------------------
 #
 # This file is part of Myokit
@@ -379,7 +381,7 @@ sim_init(PyObject *self, PyObject *args)
     logs = (PyObject**)malloc(sizeof(PyObject*)*nvars); /* Pointers to logging lists */
     vars = (double**)malloc(sizeof(double*)*nvars); /* Pointers to variables to log */
 
-    ivars = 0;    
+    ivars = 0;
     cell = cells;
 <?
 # Time is set globally, use only the value from the first cell
@@ -504,7 +506,12 @@ sim_step(PyObject *self, PyObject *args)
         for(icell=0; icell<ncells; icell++) {
 <?
 for var in model.states():
-    print(tab*3 + v(var) + ' += dt * ' + v(var.lhs()) + ';')
+    if var in rl_states:
+        inf, tau = rl_states[var]
+        inf, tau, var = v(inf), v(tau), v(var)
+        print(tab*3 + var + ' = ' + inf + ' - (' + inf + ' - ' + var + ') * exp(-dt / ' + tau + ');')
+    else:
+        print(tab*3 + v(var) + ' += dt * ' + v(var.lhs()) + ';')
 ?>
             cell++;
         }
