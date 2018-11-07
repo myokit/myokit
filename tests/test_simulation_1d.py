@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
+import numpy as np
 
 import myokit
 
@@ -24,12 +25,18 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
+# Show simulation output
+debug = False
+
+
 class Simulation1dTest(unittest.TestCase):
     """
     Test the non-parallel 1d simulation.
     """
+    '''
     def test_basic(self):
-        """ Test basic usage. """
+        # Test basic usage.
+
         # Load model
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
 
@@ -98,8 +105,8 @@ class Simulation1dTest(unittest.TestCase):
         s.set_time(100)
         self.assertEqual(s.time(), 100)
 
-    def test_progress_reporter(self):
-        """ Test running with a progress reporter. """
+    def test_with_progress_reporter(self):
+        # Test running with a progress reporter.
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
 
         # Test using a progress reporter
@@ -119,7 +126,7 @@ class Simulation1dTest(unittest.TestCase):
             progress=CancellingReporter(0))
 
     def test_set_state(self):
-        """ Test :meth:`Simulation1d.set_state()`. """
+        # Test :meth:`Simulation1d.set_state()`.
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         n = 4
 
@@ -156,7 +163,7 @@ class Simulation1dTest(unittest.TestCase):
         self.assertRaises(ValueError, s.state, n)
 
     def test_set_default_state(self):
-        """ Test :meth:`Simulation1d.set_default_state()`. """
+        # Test :meth:`Simulation1d.set_default_state()`.
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         n = 4
 
@@ -191,7 +198,63 @@ class Simulation1dTest(unittest.TestCase):
         self.assertRaises(ValueError, s.set_default_state, sx, n)
         self.assertRaises(ValueError, s.default_state, -1)
         self.assertRaises(ValueError, s.default_state, n)
+    '''
+
+    def test_against_cvode(self):
+        # Compare the Simulation1d output with CVODE output
+        m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+
+        # Make protocol to compare t=0 event implementations
+        e = p.head()
+        p = myokit.Protocol()
+        p.schedule(level=e.level(), duration=e.duration(), start=0)
+
+        dt = 0.02
+        tmax = 3000
+        logvars = ['engine.time', 'membrane.V', 'engine.pace']
+        s1 = myokit.Simulation1d(m, p, ncells=1, rl=True)
+        s1.set_step_size(dt)
+        d1 = s1.run(tmax, logvars, log_interval=dt).npview()
+        s2 = myokit.Simulation(m, p)
+        s2.set_max_step_size(dt)
+        s2.set_tolerance(1e-8, 1e-8)
+        d2 = s2.run(tmax, logvars, log_interval=dt).npview()
+
+        # Check implementation of logging point selection
+        print(d1.time()[:7])
+        print(d2.time()[:7])
+        print(d1.time()[-7:])
+        print(d2.time()[-7:])
+        e0 = np.max(np.abs(d1.time() - d2.time()))
+        self.assertLess(e0, 1e-14)
+
+        # Check implementation of events (esp. ones that start at t=0)
+        e1 = d1['engine.pace', 0] - d2['engine.pace']
+        e1 = np.sum(e1**2)
+        print(e1)
+
+
+        if debug:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(d1.time(), d1['engine.pace', 0], label='Euler')
+            plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
+            plt.legend()
+
+            plt.figure()
+            plt.plot(d1.time(), d1['engine.pace', 0] - d2['engine.pace'])
+
+            plt.figure()
+            plt.plot(d1.time(), d1.time())
+            plt.plot(d1.time(), d2.time())
+            plt.show()
 
 
 if __name__ == '__main__':
+    import sys
+    if '-v' in sys.argv:
+        print('Running in debug/verbose mode')
+        debug = True
+    else:
+        print('Add -v for more debug output')
     unittest.main()
