@@ -521,6 +521,11 @@ class HHModelTest(unittest.TestCase):
         i.set_binding('hello')
         m = hh.HHModel(model, states, parameters, current)
 
+        # Returned reduced model is shorter than input model
+        model2 = m.reduced_model()
+        self.assertIsInstance(model2, myokit.Model)
+        self.assertTrue(len(model2.code()) < len(model.code()))
+
     def test_automatic_creation(self):
         """ Create a linear model from a component. """
 
