@@ -7,6 +7,7 @@
 # Required variables
 #-------------------
 # model    A model
+# use_rl   A boolean (use Rush-Larsen yes/no)
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -23,8 +24,31 @@ import myokit.formats.cuda as cuda
 # Double or single precision?
 precision = myokit.SINGLE_PRECISION
 
-# Clone model
-model = model.clone()
+# Check if model has diffusion_current binding
+if model.binding('diffusion_current') is None:
+    raise ValueError('Model should have a variable with binding `diffusion_current`.')
+
+# Clone model, and adapt to inf-tau form if in RL mode
+rl_states = {}
+if use_rl:
+    # Check vm is known
+    if model.label('membrane_potential') is None:
+        raise ValueError('Model should have a variable with label `membrane_potential`.')
+
+    # Convert model to inf-tau form (returns clone) and get vm
+    import myokit.lib.hh as hh
+    model = hh.convert_hh_states_to_inf_tau_form(model)
+    vm = model.label('membrane_potential')
+
+    # Get (inf, tau) tuple for every Rush-Larsen state
+    for state in model.states():
+        res = hh.get_inf_and_tau(state, vm)
+        if res is not None:
+            rl_states[state] = res
+
+else:
+    # Clone model
+    model = model.clone()
 
 # Merge interdepdent components
 model.resolve_interdependent_components()
@@ -64,10 +88,11 @@ comp_order = [model.get(c) for c in comp_order]
 
 # Get component inputs/output arguments
 comp_in, comp_out = model.map_component_io(
-    omit_states = True,
-    omit_derivatives = False,
-    omit_constants = True,
-    )
+    omit_states=True,
+    omit_derivatives=False,
+    omit_constants=True,
+    rl_states=rl_states,
+)
 
 # Bound variables will be passed in to every function as needed, so they can be
 # removed from the input/output lists
@@ -119,15 +144,14 @@ tab = '    '
 last_component = comp_order[-1]
 
 
+export = 'CUDA export' + (' with RL updates' if use_rl else '')
+print('/*')
+print(' * CUDA kernel for ' + model.name())
+print(' *')
+print(' * Generated on ' + myokit.date() + ' by Myokit ' + export)
+print(' */')
 
-?>/*
-CUDA kernel for <?= model.name() ?>
 
-Generated on <?= myokit.date() ?> by myokit cuda export
-
-*/
-
-<?
 if precision == myokit.SINGLE_PRECISION:
     print('#include <float.h>')
 
@@ -199,9 +223,12 @@ for comp, ilist in comp_in.items():
         var = eq.lhs.var()
         pre = tab
         if not (eq.lhs in ilist or eq.lhs in olist):
+            if var in rl_states:
+                continue            
             pre += 'Real '
-        if var not in bound_variables:
-            print(pre + w.eq(eq) + ';')
+        if var in bound_variables:
+            continue
+        print(pre + w.eq(eq) + ';')
 
     print('}')
     print('')
@@ -254,7 +281,12 @@ if last_component:
     /* Perform update */
 <?
 for var in model.states():
-    print(tab + v(var) + ' += dt * ' + v(var.lhs()) + ';')
+    if var in rl_states:
+        inf, tau = rl_states[var]
+        inf, tau, var = v(inf), v(tau), v(var)
+        print(tab + var + ' = ' + inf + ' - (' + inf + ' - ' + var + ') * exp(-dt / ' + tau + ');')
+    else:
+        print(tab + v(var) + ' += dt * ' + v(var.lhs()) + ';')
 ?>
 
     return 0;

@@ -193,6 +193,9 @@ class ExportTest(unittest.TestCase):
     def test_cuda_kernel_exporter(self):
         self._test(myokit.formats.exporter('cuda-kernel'))
 
+    def test_cuda_kernel_rl_exporter(self):
+        self._test(myokit.formats.exporter('cuda-kernel-rl'))
+
     def test_latex_article_exporter(self):
         self._test(myokit.formats.exporter('latex-article'))
 
