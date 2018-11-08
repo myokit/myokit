@@ -1620,10 +1620,13 @@ class Model(ObjectWithMeta, VarProvider):
         # Map shallow dependencies
         shallow = self.map_shallow_dependencies(
             omit_states=omit_states, omit_constants=omit_constants)
+
         # Create output structure
-        deps = {}
+        # Use ordered dict to get consistent output
+        deps = OrderedDict()
         for comp in self.components():
             deps[comp] = set()
+
         # Gather dependencies per component
         for lhs, dps in shallow.items():
             c1 = lhs.var().parent(Component)
@@ -1631,9 +1634,12 @@ class Model(ObjectWithMeta, VarProvider):
                 c2 = dep.var().parent(Component)
                 if c2 != c1:
                     deps[c1].add(c2)
-        # Convert sets to lists
+
+        # Convert sets to sorted lists
         for comp, dps in deps.items():
             deps[comp] = list(dps)
+            deps[comp].sort(key=lambda x: x.name())
+
         # Return
         return deps
 
@@ -1739,7 +1745,7 @@ class Model(ObjectWithMeta, VarProvider):
                     di[c_user].add(usee)
                     do[c_usee].add(usee)
 
-        # Convert sets to sorted
+        # Convert sets to sorted lists
         def sortkey(lhs):
             key = lhs.var().uname()
             return '_' + key if lhs.is_derivative() else key
@@ -2408,7 +2414,7 @@ class Model(ObjectWithMeta, VarProvider):
         while True:
             # Find all components that can be solved
             newly_solvable = []
-            for comp, deps in sorted(cdeps.items()):
+            for comp, deps in cdeps.items():
                 if len(deps) == 0:
                     solvable_comps.append(comp)
                     newly_solvable.append(comp)
@@ -2422,7 +2428,7 @@ class Model(ObjectWithMeta, VarProvider):
             # Remove the components that are now solvable from everybody's
             # dependency lists
             for comp in newly_solvable:
-                for deps in sorted(cdeps.values()):
+                for deps in cdeps.values():
                     if comp in deps:
                         deps.remove(comp)
 
@@ -2448,7 +2454,7 @@ class Model(ObjectWithMeta, VarProvider):
         del(solvable_comps)
 
         # Add interdependent components in any (consistent) order
-        for comp in sorted(cdeps.keys()):
+        for comp in cdeps.keys():
             out[comp.name()] = EquationList()
             todo[comp] = OrderedDict()
         del(cdeps)
@@ -2460,7 +2466,7 @@ class Model(ObjectWithMeta, VarProvider):
         # added to `out`.
 
         # Populate component todo lists
-        for eq in sorted(self.equations(deep=True)):
+        for eq in sorted(self.equations(deep=True), key=lambda x: str(x)):
             comp = eq.lhs.var().parent(Component)
             todo[comp][eq.lhs] = eq
 
