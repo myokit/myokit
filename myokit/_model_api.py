@@ -1737,10 +1737,16 @@ class Model(ObjectWithMeta, VarProvider):
                     di[c_user].add(usee)
                     do[c_usee].add(usee)
 
-        # Convert sets to lists
+        # Convert sets to sorted
+        def sortkey(lhs):
+            key = lhs.var().uname()
+            return '_' + key if lhs.is_derivative() else key
+
         for comp in self.components():
             di[comp] = list(di[comp])
             do[comp] = list(do[comp])
+            di[comp].sort(key=sortkey)
+            do[comp].sort(key=sortkey)
 
         # Return
         return (di, do)
