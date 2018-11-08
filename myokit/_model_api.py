@@ -1695,8 +1695,10 @@ class Model(ObjectWithMeta, VarProvider):
             omit_states=omit_states, omit_constants=omit_constants)
 
         # Create output structure
-        di = {}  # Inputs to each component (dependencies)
-        do = {}  # Outputs from each component
+        # Using OrderedDict to get consistent results when generating code from
+        # this output
+        di = OrderedDict()  # Inputs to each component (dependencies)
+        do = OrderedDict()  # Outputs from each component
         for comp in self.components():
             di[comp] = set()
             do[comp] = set()
@@ -2406,7 +2408,7 @@ class Model(ObjectWithMeta, VarProvider):
         while True:
             # Find all components that can be solved
             newly_solvable = []
-            for comp, deps in cdeps.items():
+            for comp, deps in sorted(cdeps.items()):
                 if len(deps) == 0:
                     solvable_comps.append(comp)
                     newly_solvable.append(comp)
@@ -2420,7 +2422,7 @@ class Model(ObjectWithMeta, VarProvider):
             # Remove the components that are now solvable from everybody's
             # dependency lists
             for comp in newly_solvable:
-                for deps in cdeps.values():
+                for deps in sorted(cdeps.values()):
                     if comp in deps:
                         deps.remove(comp)
 
@@ -2442,13 +2444,13 @@ class Model(ObjectWithMeta, VarProvider):
         # Add solvable components in the solvable order
         for comp in solvable_comps:
             out[comp.name()] = EquationList()
-            todo[comp] = {}
+            todo[comp] = OrderedDict()
         del(solvable_comps)
 
-        # Add interdependent components in any order
-        for comp in cdeps.keys():
+        # Add interdependent components in any (consistent) order
+        for comp in sorted(cdeps.keys()):
             out[comp.name()] = EquationList()
-            todo[comp] = {}
+            todo[comp] = OrderedDict()
         del(cdeps)
 
         # At this point, we have created an ordered dict `out` that contains
@@ -2458,7 +2460,7 @@ class Model(ObjectWithMeta, VarProvider):
         # added to `out`.
 
         # Populate component todo lists
-        for eq in self.equations(deep=True):
+        for eq in sorted(self.equations(deep=True)):
             comp = eq.lhs.var().parent(Component)
             todo[comp][eq.lhs] = eq
 
@@ -2550,7 +2552,7 @@ class Model(ObjectWithMeta, VarProvider):
                             dps.remove(lhs)
 
         # Get remaining, unsolved equations as {lhs: eq} map.
-        unsolved = {}
+        unsolved = OrderedDict()
         for comp, eqs in todo.items():
             for lhs, eq in eqs.items():
                 unsolved[lhs] = eq
@@ -2600,6 +2602,12 @@ class Model(ObjectWithMeta, VarProvider):
         The input arguments can be given as :class:`LhsExpression` objects or
         string names of variables.
         """
+        # DEPRECATED
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning('The method `solvable_subset` is deprecated.')
+
         # 1. Get set of root lhs objects
         msg = 'All input arguments to solvable_subset must be' \
               ' LhsExpression objects or string names of variables'
