@@ -63,12 +63,16 @@ class AuxTest(unittest.TestCase):
     def test_benchmarker(self):
         """ Test the benchmarker. """
         b = myokit.Benchmarker()
+        x = [0]*1000
         t0 = b.time()
         self.assertTrue(t0 >= 0)
+        x = [0]*1000
         t1 = b.time()
         self.assertTrue(t1 >= t0)
+        x = [0]*1000
         t2 = b.time()
         self.assertTrue(t2 >= t1)
+        x = [0]*1000
         t3 = b.time()
         self.assertTrue(t3 >= t2)
         b.reset()
