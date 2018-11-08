@@ -45,16 +45,18 @@ x = 3 * dot(ina.m)
 use membrane.V as V
 a = 1 - 1 / (1 + exp(-(V + 40) / 0.24))
     desc: Used instead of if statement.
-dot(m) =  alpha * (1 - m) - beta * m
+dot(m) = (inf - m) / tau
     alpha = 0.32 * (V + 47.13) / (1 - exp(-0.1 * (V + 47.13)))
     beta  = 0.08 * exp(-V / 11)
         desc: """
-
+            This is beta
         """
+    tau = 1 / (alpha + beta)
+    inf = alpha * tau
 x = 5 * dot(m) + z
 y = dot(h) + 3 * x
 z = 0.4 * cell.K_o
-dot(h) =  alpha * (1 - h) - beta * h
+dot(h) = (inf - h) / tau
     desc: """ Triple quoted single line """
     alpha = a * 0.135 * exp((80 + V) / -6.8)
         desc: """    """
@@ -65,6 +67,8 @@ dot(h) =  alpha * (1 - h) - beta * h
 
         lalala
         """
+    tau = 1 / (alpha + beta)
+    inf = alpha * tau
 dot(j) =  alpha * (1 - j) - beta * j + x + y
     desc: """"""
     alpha = a * ( -127140 * exp(0.2444 * V) - 3.474e-5 * exp(-0.04391 * V)) \
@@ -85,9 +89,11 @@ The fast sodium current.
 # Time-dependent Potassium current
 [ik]
 use membrane.V as V
-dot(x) = alpha * (1 - x) - beta * x
+dot(x) = (inf - x) / tau
     alpha = 0.0005 * exp(0.083 * (V + 50)) / (1 + exp(0.057 * (V + 50)))
     beta  = 0.0013 * exp(-0.06 * (V + 20)) / (1 + exp(-0.04 * (V + 20)))
+    tau = 1 / (alpha + beta)
+    inf = alpha * tau
 PNa_K = 0.01833 : Permability ratio of Na to K
 E = cell.RTF * log((cell.K_o + PNa_K * cell.Na_o) / (cell.K_i + PNa_K * cell.Na_i))
     in [mV]
@@ -98,6 +104,7 @@ gK = 0.282 * sqrt(cell.K_o / 5.4)
     in [mS/uF]
 IK = gK * xi * x * (V - E)
     desc: Time-dependent Potassium current
+abc = dot(ina.m) * dot(ina.h)
 
 # Plateau Potassium current
 [ikp]
@@ -122,9 +129,11 @@ dot(d) =  alpha * (1 - d) - beta * d
         vc = 22 + vd
             vd = 22 + V
                 in [mV]
-dot(f) =  alpha * (1-f) - beta * f
+dot(f) = (inf - f) / tau
     alpha = 0.012 * sig(V, -28, 0.008, -0.15)
     beta = 0.0065 * sig(V, -30, 0.02, 0.2)
+    tau = 1 / (alpha + beta)
+    inf = alpha * tau
 gCa = 0.09
 ICa = nest1 * (V - E)
     nest1 = gCa * d * nest2
