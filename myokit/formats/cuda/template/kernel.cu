@@ -226,9 +226,8 @@ for comp, ilist in comp_in.items():
             if var in rl_states:
                 continue            
             pre += 'Real '
-        if var in bound_variables:
-            continue
-        print(pre + w.eq(eq) + ';')
+        if var not in bound_variables:
+            print(pre + w.eq(eq) + ';')
 
     print('}')
     print('')

@@ -9,6 +9,8 @@
 # model             A myokit model, cloned with independent components
 # precision         A myokit precision constant
 # dims              The number of dimensions, either 1 or 2
+# rl_states         A map {state: (inf, tau)} of states for which to use Rush-
+#                   Larsen updates instead of forward Euler
 # -----------------------------------------------------------------------------
 #
 # This file is part of Myokit
