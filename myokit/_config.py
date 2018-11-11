@@ -136,6 +136,7 @@ def _create(path):
         c64 = 'C:\\Program Files (x86)\\'
         config.set('opencl', 'lib', ';'.join([
             # Note: Intel's 7.0 is the SDK version currently used in Myokit's
+            # Note: Must keep this list in sync with the list below
             # .appveyor.ps1 install script
             c32 + 'Intel\\OpenCL SDK\\7.0\\lib\\x86',
             c64 + 'Intel\\OpenCL SDK\\7.0\\lib\\x86',
@@ -164,8 +165,8 @@ def _create(path):
         c64 = 'C:\\Program Files (x86)\\'
         config.set('opencl', 'inc', ';'.join([
             # Enable for Intel OpenCL drivers
-            c32 + 'Intel\\OpenCL SDK\\6.3\\include',
-            c64 + 'Intel\\OpenCL SDK\\6.3\\include',
+            c32 + 'Intel\\OpenCL SDK\\7.0\\include',
+            c64 + 'Intel\\OpenCL SDK\\7.0\\include',
             c32 + 'AMD APP SDK\\2.9\\include',
             c64 + 'AMD APP SDK\\2.9\\include',
             c32 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v7.0\\include',
