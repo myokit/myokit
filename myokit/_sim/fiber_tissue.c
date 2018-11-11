@@ -642,7 +642,8 @@ sim_init(PyObject* self, PyObject* args)
     printf("Created buffers.\n");
     #endif
 
-    // Copy data into buffers
+    /* Copy data into buffers */
+    /* Notice: Using blocking writes here */
     flag = clEnqueueWriteBuffer(command_queue, mbuf_state_f, CL_TRUE, 0, dsize_state_f, rvec_state_f, 0, NULL, NULL);
     if(mcl_flag(flag)) return sim_clean();
     flag = clEnqueueWriteBuffer(command_queue, mbuf_state_t, CL_TRUE, 0, dsize_state_t, rvec_state_t, 0, NULL, NULL);
@@ -656,10 +657,10 @@ sim_init(PyObject* self, PyObject* args)
     flag = clEnqueueWriteBuffer(command_queue, mbuf_inter_log_t, CL_TRUE, 0, dsize_inter_log_t, rvec_inter_log_t, 0, NULL, NULL);
     if(mcl_flag(flag)) return sim_clean();
     #ifdef MYOKIT_DEBUG
-    printf("Enqueued copying of data into buffers.\n");
+    printf("Copied data into buffers.\n");
     #endif
 
-    // Load and compile the tissue kernel
+    /* Load and compile the tissue kernel */
     #ifdef MYOKIT_DEBUG
     printf("Building fiber program on device...");
     #endif
@@ -667,7 +668,7 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(flag)) return sim_clean();
     flag = clBuildProgram(program_f, 1, &device_id, NULL, NULL, NULL);
     if(flag == CL_BUILD_PROGRAM_FAILURE) {
-        // Build failed, extract log
+        /* Build failed, extract log */
         size_t blog_size;
         clGetProgramBuildInfo(program_f, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &blog_size);
         char *blog = (char*)malloc(blog_size);
