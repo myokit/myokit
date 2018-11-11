@@ -12,6 +12,7 @@ environment:
     - PYTHON: "C:\\Python36-x64"
 
 install:
+  - powershell -Command .appveyor.ps1
   - "%PYTHON%\\python.exe -c \"import sys; print(sys.version)\""
   - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools wheel"
   - "%PYTHON%\\python.exe -m pip install ."
@@ -21,4 +22,9 @@ build: off
 test_script:
   - "%PYTHON%\\python.exe -m myokit system"
   - "%PYTHON%\\python.exe test unit"
+
+# Cache files downloaded by .appveyor.ps1 (dependent on ps1 file)
+cache:
+- intel_sdk_for_opencl_setup_6.0.0.1049.exe -> .appveyor.ps1
+- opencl_runtime_16.1.1_x64_setup.msi -> .appveyor.ps1
 
