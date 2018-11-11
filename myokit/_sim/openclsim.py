@@ -46,8 +46,8 @@ class SimulationOpenCL(myokit.CModule):
         Can be set to ``myokit.SINGLE_PRECISION`` (default) or
         ``myokit.DOUBLE_PRECISION`` if the used device supports it.
     ``rl``
-        Use Rush-Larsen updates instead of forward-Euler for any Hodgkin-Huxley
-        gating variables (default=``True``).
+        Use Rush-Larsen updates instead of forward Euler for any Hodgkin-Huxley
+        gating variables (default=``False``).
 
     The simulation provides the following inputs variables can bind to:
 
@@ -100,19 +100,43 @@ class SimulationOpenCL(myokit.CModule):
 
         i = sum[g * (V - V_j)]
 
-    Where the sum is taken over all neighbouring cells j.
+    Where the sum is taken over all connected cells ``j`` (see [1]).
 
     Models used with this simulation need to have independent components: it
     should be possible to evaluate the model's equations one component at a
     time. A model's suitability can be tested using
     :meth:`has_interdependent_components
     <myokit.Model.has_interdependent_components>`.
+
+    Simulations are performed using a forward Euler (FE) method with a fixed
+    time step (see :meth:`set_step_size()`). Using smaller step sizes is
+    computationally demanding, but gives more accurate results. Using too large
+    a step size can also cause a simulation to become unstable, but please note
+    that stability does imply accuracy, and always double-check important
+    results by re-running with a reduced step size.
+
+    If the optional parameter ``rl`` is set to ``True``, state variables
+    written in a Hodgkin-Huxley form will be updated using a Rush-Larsen (RL)
+    instead of a forward Euler step (see [2]). This provides greater stability
+    (so that the step size can be increased) but not necessarily greater
+    accuracy (see [3]), so that care must be taken when using this method.
+
+    [1] Myokit: A simple interface to cardiac cellular electrophysiology.
+    Clerx, Collins, de Lange, Volders (2016) Progress in Biophysics and
+    Molecular Biology.
+
+    [2] A practical algorithm for solving dynamic membrane equations.
+    Rush, Larsen (1978) IEEE Transactions on Biomedical Engineering
+
+    [3] Cellular cardiac electrophysiology modelling with Chaste and CellML
+    Cooper, Spiteri, Mirams (2015) Frontiers in Physiology
+
     """
     _index = 0  # Unique id for the generated module
 
     def __init__(
             self, model, protocol=None, ncells=256, diffusion=True,
-            precision=myokit.SINGLE_PRECISION, rl=True):
+            precision=myokit.SINGLE_PRECISION, rl=False):
         super(SimulationOpenCL, self).__init__()
 
         # Require a valid model

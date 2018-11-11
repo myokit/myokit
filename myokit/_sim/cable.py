@@ -32,7 +32,7 @@ class Simulation1d(myokit.CModule):
         The number of cells in the cable
     ``rl``
         Use Rush-Larsen updates instead of forward-Euler for any Hodgkin-Huxley
-        gating variables.
+        gating variables (default=False).
 
     This simulation provides the following inputs variables can bind to:
 
@@ -79,11 +79,30 @@ class Simulation1d(myokit.CModule):
 
         i = sum[g * (V - V_j)]
 
-    Where the sum is taken over all neighbouring cells j.
+    Where the sum is taken over all neighbouring cells j (see [1]).
+
+    The resulting ODE system is solved using a forward Euler (FE) method with
+    fixed step sizes. Smaller step sizes lead to more accurate results, and it
+    is recommended any important results are double-checked by re-running with
+    a reduced step size. Any states written in a Hodgkin-Huxley form can be
+    updated using Rush-Larsen steps (see [2]), by setting ``rl=True``. This
+    often increases stability (allowing for larger step sizes) but can reduce
+    accuracy (see [3]) so that care must be taken when using this method.
+
+    [1] Myokit: A simple interface to cardiac cellular electrophysiology.
+    Clerx, Collins, de Lange, Volders (2016) Progress in Biophysics and
+    Molecular Biology.
+
+    [2] A practical algorithm for solving dynamic membrane equations.
+    Rush, Larsen (1978) IEEE Transactions on Biomedical Engineering
+
+    [3] Cellular cardiac electrophysiology modelling with Chaste and CellML
+    Cooper, Spiteri, Mirams (2015) Frontiers in Physiology
+
     """
     _index = 0      # Unique id for generated module
 
-    def __init__(self, model, protocol=None, ncells=50, rl=True):
+    def __init__(self, model, protocol=None, ncells=50, rl=False):
         super(Simulation1d, self).__init__()
 
         # Require a valid model
