@@ -769,6 +769,7 @@ class FiberTissueSimulation(myokit.CModule):
             'native_math': self._native_math,
             'diffusion': True,
             'fields': [],
+            'rl_states': {},
         }
         args['model'] = self._modelf
         args['vmvar'] = self._vmf

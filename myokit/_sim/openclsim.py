@@ -282,7 +282,6 @@ class SimulationOpenCL(myokit.CModule):
             'model': self._model,
             'precision': self._precision,
             'dims': len(self._dims),
-            'rl_states': self._rl_states,
         }
 
         # Debug

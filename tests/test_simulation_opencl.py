@@ -27,7 +27,6 @@ class SimulationOpenCL1dTest(unittest.TestCase):
     """
     Tests the OpenCL simulation in 1d mode.
     """
-    '''
     def test_set_state(self):
         if not OpenCL_FOUND:
             print('OpenCL support not found, skipping test.')
@@ -164,7 +163,6 @@ class FiberTissueSimulationTest(unittest.TestCase):
         self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.Ca_i', logt)
         self.assertIn('0.0.ica.ICa', logt)
         self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.ICa', logt)
-    '''
 
     def test_against_cvode(self):
         # Compare the SimulationOpenCL output with CVODE output
