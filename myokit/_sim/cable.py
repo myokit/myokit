@@ -164,10 +164,11 @@ class Simulation1d(myokit.CModule):
 
         # Get membrane potential variable
         self._vm = self._model.label('membrane_potential')
-        if self._vm is None:
-            raise ValueError(
-                'This simulation requires the membrane potential'
-                ' variable to be labelled as "membrane_potential".')
+        # Already checked this above
+        # if self._vm is None:
+        #    raise ValueError(
+        #        'This simulation requires the membrane potential'
+        #        ' variable to be labelled as "membrane_potential".')
 
         # Check for binding to diffusion_current
         if self._model.binding('diffusion_current') is None:

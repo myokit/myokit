@@ -36,7 +36,7 @@ class ExportTest(unittest.TestCase):
     Tests various exporters.
     """
 
-    def _test(self, e):
+    def _test(self, e, model=None, protocol=None):
         """
         Test a given exporter `e`.
         """
@@ -44,7 +44,11 @@ class ExportTest(unittest.TestCase):
         self.assertIsInstance(e.info(), basestring)
 
         # Load model, protocol
-        m, p, x = myokit.load('example')
+        m, p = model, protocol
+        if m is None:
+            m = myokit.load_model('example')
+        if p is None:
+            p = myokit.load_protocol('example')
 
         with TemporaryDirectory() as d:
             path = d.path()
@@ -247,6 +251,22 @@ class ExportTest(unittest.TestCase):
             self.assertIsNone(ret)
             self.assertTrue(os.path.isdir(dpath))
             self.assertTrue(len(os.listdir(dpath)) > 0)
+
+    def test_opencl_exporter_errors(self):
+        # Checks the errors raised by the OpenCL exporter.
+        e = myokit.formats.exporter('opencl')
+
+        # Label membrane_potential must be set
+        m = myokit.load_model('example')
+        m.label('membrane_potential').set_label(None)
+        self.assertRaisesRegex(
+            ValueError, 'membrane_potential', self._test, e, m)
+
+        # Binding diffusion_current must be set
+        m = myokit.load_model('example')
+        m.binding('diffusion_current').set_binding(None)
+        self.assertRaisesRegex(
+            ValueError, 'diffusion_current', self._test, e, m)
 
     def test_completeness(self):
         """
