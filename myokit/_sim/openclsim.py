@@ -712,16 +712,6 @@ class SimulationOpenCL(myokit.CModule):
         entries will be made, but the value of any logged time variable is
         guaranteed to be accurate.
 
-        Intermediary variables can be logged, but with one small drawback: for
-        performance reasons the logged values of states and bound variables
-        will always be one time step ``dt`` ahead of the intermediary
-        variables. For example if running the simulation with a step size
-        ``dt=0.001`` the entry for a current ``IKr`` stored at ``t=1`` will be
-        ``IKr(0.999)``, while the entry for state ``V`` will be ``V(1)``. If
-        exact intermediary variables are needed it's best to log only states
-        and bound variables and re-calculate the intermediary variables from
-        these manually.
-
         If numerical errors during the simulation lead to NaNs appearing in the
         result, the ``find_nan`` method will be used to pinpoint their
         location. Next, a call to the model's rhs will be evaluated in python

@@ -180,7 +180,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         tmax = 1300
         p = myokit.Protocol()
         p.schedule(level=e.level(), duration=e.duration(), period=600, start=0)
-        logvars = ['engine.time', 'membrane.V', 'engine.pace']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
 
         s1 = myokit.SimulationOpenCL(
             m, p, ncells=1, rl=True, precision=myokit.DOUBLE_PRECISION)
@@ -203,6 +203,11 @@ class FiberTissueSimulationTest(unittest.TestCase):
         r2 = d1['membrane.V', 0] - d2['membrane.V']
         r2 /= (1 + np.abs(d2['membrane.V']))
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
+
+        # Check logging of intermediary variables
+        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
+        r3 /= (1 + np.abs(d2['ica.ICa']))
+        e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
             import matplotlib.pyplot as plt
@@ -239,11 +244,22 @@ class FiberTissueSimulationTest(unittest.TestCase):
             plt.plot(d1.time(), r2)
             print(e2)
 
+            plt.figure()
+            plt.suptitle('Calcium current')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['ica.ICa', 0], label='OpenCL')
+            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r2)
+            print(e3)
+
             plt.show()
 
         self.assertLess(e0, 1e-14)
         self.assertLess(e1, 1e-14)
         self.assertLess(e2, 0.1)   # Note: The step size is really too big here
+        self.assertLess(e3, 0.05)
 
         #
         # Make protocol to compare with event at step-size multiple
@@ -256,8 +272,6 @@ class FiberTissueSimulationTest(unittest.TestCase):
             duration=e.duration(),
             period=600,
             start=10)
-
-        logvars = ['engine.time', 'membrane.V', 'engine.pace']
 
         s1.reset()
         s1.set_protocol(p)
@@ -273,7 +287,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         e0 = np.max(np.abs(d1.time() - d2.time()))
 
         # Check implementation of pacing
-        r1 = d1['engine.pace', 0] - d2['engine.pace']
+        r1 = d1['engine.pace'] - d2['engine.pace']
         e1 = np.sum(r1**2)
 
         # Check membrane potential (will have some error!)
@@ -281,6 +295,11 @@ class FiberTissueSimulationTest(unittest.TestCase):
         r2 = d1['membrane.V', 0] - d2['membrane.V']
         r2 /= (1 + np.abs(d2['membrane.V']))
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
+
+        # Check logging of intermediary variables
+        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
+        r3 /= (1 + np.abs(d2['ica.ICa']))
+        e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
             import matplotlib.pyplot as plt
@@ -300,7 +319,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Pacing signals')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['engine.pace', 0], label='OpenCL')
+            plt.plot(d1.time(), d1['engine.pace'], label='OpenCL')
             plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
@@ -317,11 +336,22 @@ class FiberTissueSimulationTest(unittest.TestCase):
             plt.plot(d1.time(), r2)
             print(e2)
 
+            plt.figure()
+            plt.suptitle('Calcium current')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['ica.ICa', 0], label='OpenCL')
+            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r2)
+            print(e3)
+
             plt.show()
 
         self.assertLess(e0, 1e-14)
         self.assertLess(e1, 1e-14)
         self.assertLess(e2, 0.1)   # Note: The step size is really too big here
+        self.assertLess(e3, 0.05)
 
         #
         # Make protocol to compare with event NOT at step-size multiple
@@ -334,8 +364,6 @@ class FiberTissueSimulationTest(unittest.TestCase):
             duration=e.duration(),
             period=600,
             start=1.05)
-
-        logvars = ['engine.time', 'membrane.V', 'engine.pace']
 
         s1.reset()
         s1.set_protocol(p)
@@ -351,7 +379,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         e0 = np.max(np.abs(d1.time() - d2.time()))
 
         # Check implementation of pacing
-        r1 = d1['engine.pace', 0] - d2['engine.pace']
+        r1 = d1['engine.pace'] - d2['engine.pace']
         e1 = np.sum(r1**2)
 
         # Check membrane potential (will have some error!)
@@ -359,6 +387,11 @@ class FiberTissueSimulationTest(unittest.TestCase):
         r2 = d1['membrane.V', 0] - d2['membrane.V']
         r2 /= (1 + np.abs(d2['membrane.V']))
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
+
+        # Check logging of intermediary variables
+        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
+        r3 /= (1 + np.abs(d2['ica.ICa']))
+        e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
             import matplotlib.pyplot as plt
@@ -378,7 +411,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Pacing signals')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['engine.pace', 0], label='Euler')
+            plt.plot(d1.time(), d1['engine.pace'], label='Euler')
             plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
@@ -395,11 +428,22 @@ class FiberTissueSimulationTest(unittest.TestCase):
             plt.plot(d1.time(), r2)
             print(e2)
 
+            plt.figure()
+            plt.suptitle('Calcium current')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['ica.ICa', 0], label='OpenCL')
+            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r2)
+            print(e3)
+
             plt.show()
 
         self.assertLess(e0, 1e-14)
         self.assertLess(e1, 1e-14)
         self.assertLess(e2, 0.2)   # Note: The step size is really too big here
+        self.assertLess(e3, 0.05)
 
         #
         # Test again, with event at step multiple, but now without Rush-Larsen
@@ -413,7 +457,6 @@ class FiberTissueSimulationTest(unittest.TestCase):
             period=600,
             start=10)
 
-        logvars = ['engine.time', 'membrane.V', 'engine.pace']
         s1 = myokit.SimulationOpenCL(
             m, p, ncells=1, rl=False, precision=myokit.DOUBLE_PRECISION)
         s1.set_step_size(dt)
@@ -430,6 +473,11 @@ class FiberTissueSimulationTest(unittest.TestCase):
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
         self.assertLess(e2, 0.05)  # Note: The step size is really too big here
 
+        # Check logging of intermediary variables
+        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
+        r3 /= (1 + np.abs(d2['ica.ICa']))
+        e3 = np.sqrt(np.sum(r3**2) / len(r3))
+        self.assertLess(e3, 0.01)
 
 
 if __name__ == '__main__':
