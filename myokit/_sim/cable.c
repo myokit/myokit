@@ -479,6 +479,7 @@ sim_step(PyObject *self, PyObject *args)
     while(1) {
 
         /* Log if we've reached or passed a logging point */
+        /* Note: rhs has already been calculated by init or previous step */
         if (engine_time >= tlog) {
             for(ivars = 0; ivars<nvars; ivars++) {
                 flt = PyFloat_FromDouble(*vars[ivars]);
@@ -532,10 +533,10 @@ for var in model.states():
             cell++;
         }
 
-        /* Move to next time (4) Calculate the derivatives, intermediaries etc. */
+        /* Move to next time (4) Calculate the new derivatives, intermediaries etc. */
         rhs();
 
-        /* 
+        /*
          * Are we done?
          * Check this *before* logging: Last point reached should not be
          * logged (half-open convention for fixed interval logging!)

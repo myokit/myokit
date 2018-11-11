@@ -214,7 +214,7 @@ class Simulation1dTest(unittest.TestCase):
         tmax = 1300
         p = myokit.Protocol()
         p.schedule(level=e.level(), duration=e.duration(), period=600, start=0)
-        logvars = ['engine.time', 'membrane.V', 'engine.pace']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
 
         s1 = myokit.Simulation1d(m, p, ncells=1, rl=True)
         s1.set_step_size(dt)
@@ -237,6 +237,11 @@ class Simulation1dTest(unittest.TestCase):
         r2 /= (1 + np.abs(d2['membrane.V']))
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
 
+        # Check logging of intermediary variables
+        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
+        r3 /= (1 + np.abs(d2['ica.ICa']))
+        e3 = np.sqrt(np.sum(r3**2) / len(r3))
+
         if debug:
             import matplotlib.pyplot as plt
             print('Event at t=0')
@@ -272,11 +277,22 @@ class Simulation1dTest(unittest.TestCase):
             plt.plot(d1.time(), r2)
             print(e2)
 
+            plt.figure()
+            plt.suptitle('Calcium current')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['ica.ICa', 0], label='Euler')
+            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r2)
+            print(e3)
+
             plt.show()
 
         self.assertLess(e0, 1e-14)
         self.assertLess(e1, 1e-14)
         self.assertLess(e2, 0.1)   # Note: The step size is really too big here
+        self.assertLess(e3, 0.1)
 
         #
         # Make protocol to compare with event at step-size multiple
@@ -290,7 +306,7 @@ class Simulation1dTest(unittest.TestCase):
             period=600,
             start=10)
 
-        logvars = ['engine.time', 'membrane.V', 'engine.pace']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
 
         s1.reset()
         s1.set_protocol(p)
@@ -314,6 +330,11 @@ class Simulation1dTest(unittest.TestCase):
         r2 = d1['membrane.V', 0] - d2['membrane.V']
         r2 /= (1 + np.abs(d2['membrane.V']))
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
+
+        # Check logging of intermediary variables
+        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
+        r3 /= (1 + np.abs(d2['ica.ICa']))
+        e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
             import matplotlib.pyplot as plt
@@ -350,11 +371,22 @@ class Simulation1dTest(unittest.TestCase):
             plt.plot(d1.time(), r2)
             print(e2)
 
+            plt.figure()
+            plt.suptitle('Calcium current')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['ica.ICa', 0], label='Euler')
+            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r2)
+            print(e3)
+
             plt.show()
 
         self.assertLess(e0, 1e-14)
         self.assertLess(e1, 1e-14)
         self.assertLess(e2, 0.1)   # Note: The step size is really too big here
+        self.assertLess(e3, 0.1)
 
         #
         # Make protocol to compare with event NOT at step-size multiple
@@ -368,7 +400,7 @@ class Simulation1dTest(unittest.TestCase):
             period=600,
             start=1.05)
 
-        logvars = ['engine.time', 'membrane.V', 'engine.pace']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
 
         s1.reset()
         s1.set_protocol(p)
@@ -392,6 +424,11 @@ class Simulation1dTest(unittest.TestCase):
         r2 = d1['membrane.V', 0] - d2['membrane.V']
         r2 /= (1 + np.abs(d2['membrane.V']))
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
+
+        # Check logging of intermediary variables
+        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
+        r3 /= (1 + np.abs(d2['ica.ICa']))
+        e3 = np.sqrt(np.sum(r3**2) / len(r3))
 
         if debug:
             import matplotlib.pyplot as plt
@@ -428,11 +465,22 @@ class Simulation1dTest(unittest.TestCase):
             plt.plot(d1.time(), r2)
             print(e2)
 
+            plt.figure()
+            plt.suptitle('Calcium current')
+            plt.subplot(2, 1, 1)
+            plt.plot(d1.time(), d1['ica.ICa', 0], label='Euler')
+            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.legend()
+            plt.subplot(2, 1, 2)
+            plt.plot(d1.time(), r2)
+            print(e3)
+
             plt.show()
 
         self.assertLess(e0, 1e-14)
         self.assertLess(e1, 1e-14)
         self.assertLess(e2, 0.2)   # Note: The step size is really too big here
+        self.assertLess(e3, 0.2)
 
         #
         # Test again, with event at step multiple, but now without Rush-Larsen
@@ -446,7 +494,7 @@ class Simulation1dTest(unittest.TestCase):
             period=600,
             start=10)
 
-        logvars = ['engine.time', 'membrane.V', 'engine.pace']
+        logvars = ['engine.time', 'membrane.V', 'engine.pace', 'ica.ICa']
         s1 = myokit.Simulation1d(m, p, ncells=1, rl=False)
         s1.set_step_size(dt)
         d1 = s1.run(tmax, logvars, log_interval=dt).npview()
@@ -461,6 +509,12 @@ class Simulation1dTest(unittest.TestCase):
         r2 /= (1 + np.abs(d2['membrane.V']))
         e2 = np.sqrt(np.sum(r2**2) / len(r2))
         self.assertLess(e2, 0.05)  # Note: The step size is really too big here
+
+        # Check logging of intermediary variables
+        r3 = d1['ica.ICa', 0] - d2['ica.ICa']
+        r3 /= (1 + np.abs(d2['ica.ICa']))
+        e3 = np.sqrt(np.sum(r3**2) / len(r3))
+        self.assertLess(e3, 0.05)
 
 
 if __name__ == '__main__':
