@@ -9,7 +9,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-from ._exporter import OpenCLExporter
+from ._exporter import OpenCLExporter, OpenCLRLExporter
 from ._ewriter import OpenCLExpressionWriter
 from myokit.formats import ansic
 
@@ -18,6 +18,7 @@ from myokit.formats import ansic
 # Exporters
 _exporters = {
     'opencl': OpenCLExporter,
+    'opencl-rl': OpenCLRLExporter,
 }
 
 

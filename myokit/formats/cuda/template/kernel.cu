@@ -224,7 +224,7 @@ for comp, ilist in comp_in.items():
         pre = tab
         if not (eq.lhs in ilist or eq.lhs in olist):
             if var in rl_states:
-                continue            
+                continue
             pre += 'Real '
         if var not in bound_variables:
             print(pre + w.eq(eq) + ';')

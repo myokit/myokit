@@ -214,6 +214,9 @@ class ExportTest(unittest.TestCase):
     def test_opencl_exporter(self):
         self._test(myokit.formats.exporter('opencl'))
 
+    def test_opencl_rl_exporter(self):
+        self._test(myokit.formats.exporter('opencl-rl'))
+
     def test_python_exporter(self):
         self._test(myokit.formats.exporter('python'))
 
