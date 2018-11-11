@@ -160,7 +160,6 @@ Real arg_gy;
 PyObject** logs = NULL; // An array of pointers to a PyObject
 Real** vars = NULL;     // An array of pointers to values to log
 int n_vars;             // Number of logging variables
-double tlog;            // Time of next logging point (for periodic logging)
 double tnext_log;       // The next logging point
 unsigned long inext_log;// The number of logged steps
 int logging_diffusion;  // True if diffusion current is being logged.
