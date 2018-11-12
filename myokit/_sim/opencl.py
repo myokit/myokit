@@ -61,7 +61,6 @@ class OpenCL(myokit.CModule):
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
 
-        import os
         for f in incd:
             print()
             print(f)
@@ -69,6 +68,7 @@ class OpenCL(myokit.CModule):
             if os.path.exists(f):
                 for g in os.listdir(f):
                     print('  ' + str(g))
+                print(os.listdir(f))
             print()
 
         try:
