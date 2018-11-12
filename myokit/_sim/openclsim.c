@@ -120,10 +120,10 @@ size_t dsize_conn2 = 0;
 size_t dsize_conn3 = 0;
 
 /* Timing */
-double engine_time;     // The current simulation time
-double dt;              // The next step size
-double dt_min;          // The minimal time increase
-double tnext_pace;      // The next pacing event start/stop
+double engine_time;     /* The current simulation time */
+double dt;              /* The next step size */
+double tnext_pace;      /* The next pacing event start/stop */
+double dt_min;          /* The minimal time increase */
 unsigned long istep;    /* The index of the current step */
 int intermediary_step;  /* True if an intermediary step is being taken */
 
@@ -156,27 +156,27 @@ Real arg_dt;
 Real arg_gx;
 Real arg_gy;
 
-// Logging
-PyObject** logs = NULL; // An array of pointers to a PyObject
-Real** vars = NULL;     // An array of pointers to values to log
-int n_vars;             // Number of logging variables
-double tnext_log;       // The next logging point
-unsigned long inext_log;// The number of logged steps
-int logging_diffusion;  // True if diffusion current is being logged.
-int logging_states;     // True if any states are being logged
-int logging_inters;     // True if any intermediary variables are being logged.
-int n_inter;            // The number of intermediary variables to log
-// The relationship between n_inter and logging_inters isn't straightforward:
-// n_inter is the number of different model variables (so membrane.V, not
-// 1.2.membrane.V) being logged, while logging_inters is 1 if at least one
-// simulation variable (1.2.membrane.V) is listed in the given log.
-int n_field_data;       // The number of floats in the field data
+/* Logging */
+PyObject** logs = NULL; /* An array of pointers to a PyObject */
+Real** vars = NULL;     /* An array of pointers to values to log */
+int n_vars;             /* Number of logging variables */
+double tnext_log;       /* The next logging point */
+unsigned long inext_log;/* The number of logged steps */
+int logging_diffusion;  /* True if diffusion current is being logged. */
+int logging_states;     /* True if any states are being logged */
+int logging_inters;     /* True if any intermediary variables are being logged. */
+int n_inter;            /* The number of intermediary variables to log */
+/* The relationship between n_inter and logging_inters isn't straightforward: */
+/* n_inter is the number of different model variables (so membrane.V, not */
+/* 1.2.membrane.V) being logged, while logging_inters is 1 if at least one */
+/* simulation variable (1.2.membrane.V) is listed in the given log. */
+int n_field_data;       /* The number of floats in the field data */
 
-// Temporary objects: decref before re-using for another var
-// (Unless you got it through PyList_GetItem or PyTuble_GetItem)
-PyObject* flt = NULL;               // PyObject, various uses
-PyObject* ret = NULL;               // PyObject, used as return value
-PyObject* list_update_str = NULL;   // PyUnicode, used to call "append" method
+/* Temporary objects: decref before re-using for another var */
+/* (Unless you got it through PyList_GetItem or PyTuble_GetItem) */
+PyObject* flt = NULL;               /* PyObject, various uses */
+PyObject* ret = NULL;               /* PyObject, used as return value */
+PyObject* list_update_str = NULL;   /* PyUnicode, used to call "append" method */
 
 /*
  * Cleans up after a simulation
@@ -339,7 +339,7 @@ sim_init(PyObject* self, PyObject* args)
         return 0;
     }
     dt = default_dt;
-    dt_min = dt * 1e-2;
+    dt_min = 0; /*dt * 1e-2; Not sure why this was >0. Causes issues with timing sometimes. */
     arg_dt = (Real)dt;
     arg_gx = (Real)gx;
     arg_gy = (Real)gy;
@@ -963,8 +963,10 @@ sim_step(PyObject *self, PyObject *args)
             /* Set next logging point */
             inext_log++;
             tnext_log = tmin + (double)inext_log * log_interval;
+
+            /* Check for overflow in inext_log */
+            /* Note: Unsigned int wraps around instead of overflowing, becomes zero again */
             if (inext_log == 0) {
-                /* Unsigned int wraps around instead of overflowing, becomes zero again */
                 PyErr_SetString(PyExc_Exception, "Overflow in logged step count: Simulation too long!");
                 return sim_clean();
             }
@@ -981,15 +983,16 @@ sim_step(PyObject *self, PyObject *args)
         engine_pace = ESys_GetLevel(pacing, NULL);
         arg_pace = (Real)engine_pace;
 
-        // Check if we're finished
-        // Do this before logging, to ensure we don't log the final time position!
-        // Logging with fixed time steps should always be half-open: including the
-        // first but not the last point in time.
+        /* Check if we're finished
+         * Do this before logging, to ensure we don't log the final time position!
+         * Logging with fixed time steps should always be half-open: including the
+         * first but not the last point in time.
+         */
         if(engine_time >= tmax || halt_sim) break;
 
-        // Report back to python
+        /* Report back to python */
         if(--steps_left_in_run == 0) {
-            // For some reason, this clears memory
+            /* For some reason, this clears memory */
             clFlush(command_queue);
             clFinish(command_queue);
             return PyFloat_FromDouble(engine_time);
