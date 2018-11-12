@@ -23,6 +23,8 @@ provided:
 
 .. autoclass:: CudaKernelExporter
 
+.. autoclass:: CudaKernelRLExporter
+
 .. autofunction:: ewriters
 
 .. autoclass:: CudaExpressionWriter

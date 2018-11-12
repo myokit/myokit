@@ -59,6 +59,7 @@ myokit.formats.cpp
 myokit.formats.cuda
 -------------------
 - :class:`myokit.formats.cuda.CudaKernelExporter`
+- :class:`myokit.formats.cuda.CudaKernelRLExporter`
 - :class:`myokit.formats.cuda.CudaExpressionWriter`
 - :meth:`myokit.formats.cuda.exporters`
 - :meth:`myokit.formats.cuda.ewriters`
@@ -94,6 +95,7 @@ myokit.formats.opencl
 - :meth:`myokit.formats.opencl.exporters`
 - :meth:`myokit.formats.opencl.ewriters`
 - :class:`myokit.formats.opencl.OpenCLExporter`
+- :class:`myokit.formats.opencl.OpenCLRLExporter`
 - :class:`myokit.formats.opencl.OpenCLExpressionWriter`
 
 myokit.formats.python

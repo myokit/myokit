@@ -26,6 +26,8 @@ provided:
 
 .. autoclass:: OpenCLExporter
 
+.. autoclass:: OpenCLRLExporter
+
 .. autofunction:: ewriters
 
 .. autoclass:: OpenCLExpressionWriter

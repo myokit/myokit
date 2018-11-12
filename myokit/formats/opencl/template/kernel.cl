@@ -10,6 +10,7 @@
 # native_math     True or False
 # precision       A myokit precision constant
 # bound_variables
+# rl_states       A mapping {state : (inf, tau)} of HH states to update with RL
 # -------------------------------------------------------------
 #
 # This file is part of Myokit
@@ -19,7 +20,7 @@
 #
 import myokit
 import myokit.formats.opencl as opencl
-   
+
 # Get equations
 equations = model.solvable_order()
 
@@ -32,10 +33,11 @@ comp_order = [model.get(c) for c in comp_order]
 
 # Get component inputs/output arguments
 comp_in, comp_out = model.map_component_io(
-    omit_states = True,
-    omit_derivatives = False,
-    omit_constants = True,
-    )
+    omit_states=True,
+    omit_derivatives=False,
+    omit_constants=True,
+    rl_states=rl_states,
+)
 
 # Bound variables will be passed in to every function as needed, so they can be
 # removed from the input/output lists
@@ -101,15 +103,21 @@ tab = '    '
 #last_component = None
 last_component = comp_order[-1]
 
-?>/*
-OpenCL kernel for <?= model.name() ?>
+#
+# Start writing
+#
 
-Generated on <?= myokit.date() ?> by myokit opencl export
+print('/*')
+print(' * OpenCL kernel for ' + model.name())
+print(' *')
+print(' * Generated on ' + myokit.date() + ' by Myokit OpenCL export')
+print(' *' + (' Using RL updates for HH states' if rl_states else ''))
+print(' */')
+print('')
 
-*/
-#define n_state <?=str(model.count_states())?>
+print('#define n_state ' + str(model.count_states()))
+print('')
 
-<?
 if precision == myokit.SINGLE_PRECISION:
     print('/* Using single precision floats */')
     print('typedef float Real;')
@@ -165,6 +173,8 @@ for comp, ilist in comp_in.items():
         var = eq.lhs.var()
         pre = tab
         if not (eq.lhs in ilist or eq.lhs in olist):
+            if var in rl_states:
+                continue
             pre += 'Real '
         if var not in bound_variables:
             print(pre + w.eq(eq) + ';')
@@ -235,7 +245,14 @@ if last_component:
     /* Perform update */
 <?
 for var in model.states():
-    print(tab + v(var) + ' += dt * ' + v(var.lhs()) + ';')
+    if var in rl_states:
+        inf, tau = rl_states[var]
+        inf, tau, var = v(inf), v(tau), v(var)
+        print(tab + var + ' = ' + inf + ' - (' + inf + ' - ' + var + ') * exp(-dt / ' + tau + ');')
+    else:
+        print(tab + v(var) + ' += dt * ' + v(var.lhs()) + ';')
+
+
 ?>
 }
 

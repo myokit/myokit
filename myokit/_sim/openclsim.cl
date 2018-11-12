@@ -14,6 +14,8 @@
 # diffusion         True if diffusion currents are enabled
 # fields            A list of variables to use as scalar fields
 # paced_cells       A list of cell id's to pace or a tuple (nx, ny, x, y)
+# rl_states         A map {state: (inf, tau)} of states for which to use Rush-
+#                   Larsen updates instead of forward Euler
 # ----------------------------------------------------------------------------
 #
 # This file is part of Myokit
@@ -37,10 +39,11 @@ comp_order = [model.get(c) for c in comp_order]
 
 # Get component inputs/output arguments
 comp_in, comp_out = model.map_component_io(
-    omit_states = True,
-    omit_derivatives = False,
-    omit_constants = True,
-    )
+    omit_states=True,
+    omit_derivatives=False,
+    omit_constants=True,
+    rl_states=rl_states,
+)
 
 # Logged intermediary variables and variables with a scalar field are accessed
 # from a vector, so can be removed from both lists.
@@ -227,6 +230,8 @@ for comp, ilist in comp_in.items():
         var = eq.lhs.var()
         pre = tab
         if not (eq.lhs in ilist or eq.lhs in olist or eq.lhs in inter_log_lhs):
+            if var in rl_states:
+                continue
             pre += 'Real '
         if var not in bound_variables:
             print(pre + w.eq(eq) + ';')
@@ -339,8 +344,13 @@ for comp in comp_order:
     /* Perform update */
 <?
 for var in model.states():
-    print(tab + v(var) + ' += dt * ' + v(var.lhs()) + ';')
-    
+    if var in rl_states:
+        inf, tau = rl_states[var]
+        inf, tau, var = v(inf), v(tau), v(var)
+        print(tab + var + ' = ' + inf + ' - (' + inf + ' - ' + var + ') * exp(-dt / ' + tau + ');')
+    else:
+        print(tab + v(var) + ' += dt * ' + v(var.lhs()) + ';')
+
 ?>
 }
 

@@ -8,6 +8,8 @@
 # module_name   A module name
 # model         A myokit model
 # vmvar         The membrane potential variable
+# ncells        The number of cells
+# rl_states     A map {state : (inf, tau)}
 # ----------------------------------------------
 #
 # This file is part of Myokit
@@ -138,6 +140,8 @@ int running = 0;        /* Running yes/no */
 double dt;              /* The next step size to use */
 double dt_min;          /* The minimum step size to use */
 double tnext;           /* The next forced time (event or end of sim) */
+unsigned long istep;    /* The index of the current step */
+int intermediary_step;  /* True if an intermediary step is being taken */
 
 /* Logging */
 PyObject **logs;        /* An array of pointers to a PyObject */
@@ -379,7 +383,7 @@ sim_init(PyObject *self, PyObject *args)
     logs = (PyObject**)malloc(sizeof(PyObject*)*nvars); /* Pointers to logging lists */
     vars = (double**)malloc(sizeof(double*)*nvars); /* Pointers to variables to log */
 
-    ivars = 0;    
+    ivars = 0;
     cell = cells;
 <?
 # Time is set globally, use only the value from the first cell
@@ -444,21 +448,11 @@ if var is not None:
     /* Calculate rhs at initial time */
     rhs();
 
-    /* Always log the first step */
-    for(ivars = 0; ivars<nvars; ivars++) {
-        flt = PyFloat_FromDouble(*vars[ivars]);
-        ret = PyObject_CallMethodObjArgs(logs[ivars], list_update_str, flt, NULL);
-        Py_DECREF(flt); flt = NULL;
-        Py_XDECREF(ret);
-        if (ret == NULL) {
-            PyErr_SetString(PyExc_Exception, "Call to append() failed on logging list.");
-            return sim_clean();
-        }
-    }
-    ret = NULL;
+    /* Set first point to step to */
+    istep = 1;
 
     /* Set first logging point */
-    ilog = 1;
+    ilog = 0;
     tlog = tmin + (double)ilog * log_interval;
 
     /* Done! */
@@ -484,41 +478,9 @@ sim_step(PyObject *self, PyObject *args)
     /* Start simulation */
     while(1) {
 
-        /* Determine appropriate time step */
-        dt = default_dt;
-        d = tpace - engine_time; if (d > dt_min && d < dt) dt = d;
-        d = tmax - engine_time; if (d > dt_min && d < dt) dt = d;
-        d = tlog - engine_time; if (d > dt_min && d < dt) dt = d;
-
-        /* Move to next time (1) Update the time variable */
-        engine_time += dt;
-
-        /* Move to next time (2) Update the pacing variable */
-        flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
-        if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
-        tpace = ESys_GetNextTime(pacing, NULL);
-        engine_pace = ESys_GetLevel(pacing, NULL);
-
-        /* Move to next time (3) Update the states */
-        cell = cells;
-        for(icell=0; icell<ncells; icell++) {
-<?
-for var in model.states():
-    print(tab*3 + v(var) + ' += dt * ' + v(var.lhs()) + ';')
-?>
-            cell++;
-        }
-
-        /* Move to next time (4) Calculate the derivatives, intermediaries etc. */
-        rhs();
-
-        /* Are we done?
-           Check this *before* logging: Last point reached should not be
-           logged (half-open convention for fixed interval logging!) */
-        if (engine_time >= tmax) break;
-
-        /* Log if we've passed a logging point */
-        if (engine_time > tlog) {
+        /* Log if we've reached or passed a logging point */
+        /* Note: rhs has already been calculated by init or previous step */
+        if (engine_time >= tlog) {
             for(ivars = 0; ivars<nvars; ivars++) {
                 flt = PyFloat_FromDouble(*vars[ivars]);
                 ret = PyObject_CallMethodObjArgs(logs[ivars], list_update_str, flt, NULL);
@@ -535,6 +497,54 @@ for var in model.states():
             ilog++;
             tlog = tmin + (double)ilog * log_interval;
         }
+
+        /* Determine appropriate time step */
+        dt = tmin + (double)istep * default_dt - engine_time;
+        intermediary_step = 0;
+        d = tpace - engine_time; if (d > dt_min && d < dt) {dt = d; intermediary_step = 1; }
+        d = tmax - engine_time; if (d > dt_min && d < dt) {dt = d; intermediary_step = 1; }
+        d = tlog - engine_time; if (d > dt_min && d < dt) {dt = d; intermediary_step = 1; }
+        if (!intermediary_step) istep++;
+
+        /* Move to next time (1) Update the time variable */
+        engine_time += dt;
+        #ifdef MYOKIT_DEBUG
+        printf("t=%f, dt=%f\n", engine_time, dt);
+        #endif
+
+        /* Move to next time (2) Update the pacing variable */
+        flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
+        if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
+        tpace = ESys_GetNextTime(pacing, NULL);
+        engine_pace = ESys_GetLevel(pacing, NULL);
+
+        /* Move to next time (3) Update the states */
+        cell = cells;
+        for(icell=0; icell<ncells; icell++) {
+<?
+for var in model.states():
+    if var in rl_states:
+        inf, tau = rl_states[var]
+        inf, tau, var = v(inf), v(tau), v(var)
+        print(tab*3 + var + ' = ' + inf + ' - (' + inf + ' - ' + var + ') * exp(-dt / ' + tau + ');')
+    else:
+        print(tab*3 + v(var) + ' += dt * ' + v(var.lhs()) + ';')
+?>
+            cell++;
+        }
+
+        /* Move to next time (4) Calculate the new derivatives, intermediaries etc. */
+        rhs();
+
+        /*
+         * Are we done?
+         * Check this *before* logging: Last point reached should not be
+         * logged (half-open convention for fixed interval logging!)
+         */
+        #ifdef MYOKIT_DEBUG
+        printf("t=%f, tmax=%f, t>=tmax %d\n", engine_time, tmax, engine_time>=tmax);
+        #endif
+        if (engine_time >= tmax) break;
 
         /* Report back to python after every x steps */
         steps_taken++;

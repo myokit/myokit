@@ -1620,10 +1620,13 @@ class Model(ObjectWithMeta, VarProvider):
         # Map shallow dependencies
         shallow = self.map_shallow_dependencies(
             omit_states=omit_states, omit_constants=omit_constants)
+
         # Create output structure
-        deps = {}
+        # Use ordered dict to get consistent output
+        deps = OrderedDict()
         for comp in self.components():
             deps[comp] = set()
+
         # Gather dependencies per component
         for lhs, dps in shallow.items():
             c1 = lhs.var().parent(Component)
@@ -1631,9 +1634,12 @@ class Model(ObjectWithMeta, VarProvider):
                 c2 = dep.var().parent(Component)
                 if c2 != c1:
                     deps[c1].add(c2)
-        # Convert sets to lists
+
+        # Convert sets to sorted lists
         for comp, dps in deps.items():
             deps[comp] = list(dps)
+            deps[comp].sort(key=lambda x: x.name())
+
         # Return
         return deps
 
@@ -1641,7 +1647,8 @@ class Model(ObjectWithMeta, VarProvider):
             self,
             omit_states=False,
             omit_derivatives=False,
-            omit_constants=False):
+            omit_constants=False,
+            rl_states=None):
         """
         Scans all equations and creates a list of input and output variables
         for each component.
@@ -1652,18 +1659,28 @@ class Model(ObjectWithMeta, VarProvider):
 
         *Output variables* are taken to be any values calculated by this
         component but used outside it. This includes the derivatives of the
-        state variables it calculates.
+        state variables it calculates. State variables are never given as
+        outputs, as it is assumed these are updated by an ODE solver.
 
         The output can be customized using the following arguments:
 
-        ``include_states``
-            Determines whether or not state variables (including the
-            component's own ones) should be present in the input lists.
-        ``include_derivatives``
-            Determines if state variable derivatives should appear in the lists
-            of inputs and outputs.
-        ``include_constants``
-            Determines if constants should appear in the lists of inputs.
+        ``omit_states``
+            Set to ``True`` to omit state values from the input lists. This can
+            be useful in cases where the state is stored in a vector.
+        ``omit_derivatives``
+            Set to ``True`` to omit derivatives from the input and output
+            lists. This can be useful if derivatives are stored in a vector.
+        ``omit_constants``
+            Set to ``True`` to omit constants from the input and output lists.
+            This can be useful if constants are stored globally, e.g. as
+            C macros.
+        ``rl_states``
+            A map ``{state_variable : {inf_variable, tau_variable}`` can be
+            passed in to enable mapping for Rush-Larsen schemes. In this case,
+            all variables listed as ``inf`` or ``tau_variable`` will be
+            included in component output lists, and the derivatives of each
+            ``state_variable`` in the mapping will only be added to the output
+            list if there are other variables that depend on it.
 
         The result is a tuple containing two ``OrderedDict`` objects, each of
         the following structure::
@@ -1684,16 +1701,30 @@ class Model(ObjectWithMeta, VarProvider):
             omit_states=omit_states, omit_constants=omit_constants)
 
         # Create output structure
-        di = {}  # Inputs to each component (dependencies)
-        do = {}  # Outputs from each component
+        # Using OrderedDict to get consistent results when generating code from
+        # this output
+        di = OrderedDict()  # Inputs to each component (dependencies)
+        do = OrderedDict()  # Outputs from each component
         for comp in self.components():
             di[comp] = set()
             do[comp] = set()
 
-        # Add own derivatives, even if not explicitely used
+        # Process Rush-Larsen info
+        if rl_states:
+            # Add infs and taus to the component output lists
+            for inf, tau in rl_states.values():
+                do[inf.parent(Component)].add(inf.lhs())
+                do[tau.parent(Component)].add(tau.lhs())
+        else:
+            rl_states = {}
+
+        # Add own derivatives, even if not explicitly used
         if not omit_derivatives:
             for var in self.states():
-                do[var.parent(Component)].add(var.lhs())
+                # Don't add RL-state derivatives (they might still be added
+                # below, if some variables depend on them)
+                if var not in rl_states:
+                    do[var.parent(Component)].add(var.lhs())
 
         # Add inputs and outputs
         for user, deps in shallow.items():
@@ -1702,19 +1733,28 @@ class Model(ObjectWithMeta, VarProvider):
                 c_usee = usee.var().parent(Component)
                 is_deriv = usee.is_derivative()
                 is_state = (not is_deriv) and usee.var().is_state()
+
                 # States should be inputs, regardless of their component
-                # All others? Check parents
+                # States are never outputs (the ODE solver sets them)
                 if is_state:
                     if not omit_states:
-                        di[c_user].add(usee)    # States are never outputs
+                        di[c_user].add(usee)
+
+                # All others? Check parents
                 elif c_user != c_usee and not (is_deriv and omit_derivatives):
                     di[c_user].add(usee)
                     do[c_usee].add(usee)
 
-        # Convert sets to lists
+        # Convert sets to sorted lists
+        def sortkey(lhs):
+            key = lhs.var().uname()
+            return '_' + key if lhs.is_derivative() else key
+
         for comp in self.components():
             di[comp] = list(di[comp])
             do[comp] = list(do[comp])
+            di[comp].sort(key=sortkey)
+            do[comp].sort(key=sortkey)
 
         # Return
         return (di, do)
@@ -1894,7 +1934,8 @@ class Model(ObjectWithMeta, VarProvider):
 
         By default, dependencies on state variables' current values are
         omitted. This behaviour can be changed by setting ``omit_states`` to
-        ``False``.
+        ``False``. Dependencies on constants are included by default, but this
+        can be changed by setting ``omit_constants`` to ``True``.
         """
         # Find dependencies for every stored equation
         out = {}
@@ -1913,6 +1954,7 @@ class Model(ObjectWithMeta, VarProvider):
                     continue
                 else:
                     deps.add(dep)
+
         # Collapse nested variables
         if collapse:
             nested = []
@@ -1931,11 +1973,13 @@ class Model(ObjectWithMeta, VarProvider):
                         y.remove(x)
             for x in nested:
                 del out[x]
+
         # Add empty mappings for state variables
         if inc:
             # State vars are never nested, deep search not needed
             for var in self.states():
                 out[myokit.Name(var)] = set()
+
         # Return
         return out
 
@@ -2406,13 +2450,13 @@ class Model(ObjectWithMeta, VarProvider):
         # Add solvable components in the solvable order
         for comp in solvable_comps:
             out[comp.name()] = EquationList()
-            todo[comp] = {}
+            todo[comp] = OrderedDict()
         del(solvable_comps)
 
-        # Add interdependent components in any order
+        # Add interdependent components in any (consistent) order
         for comp in cdeps.keys():
             out[comp.name()] = EquationList()
-            todo[comp] = {}
+            todo[comp] = OrderedDict()
         del(cdeps)
 
         # At this point, we have created an ordered dict `out` that contains
@@ -2422,7 +2466,7 @@ class Model(ObjectWithMeta, VarProvider):
         # added to `out`.
 
         # Populate component todo lists
-        for eq in self.equations(deep=True):
+        for eq in sorted(self.equations(deep=True), key=lambda x: str(x)):
             comp = eq.lhs.var().parent(Component)
             todo[comp][eq.lhs] = eq
 
@@ -2514,7 +2558,7 @@ class Model(ObjectWithMeta, VarProvider):
                             dps.remove(lhs)
 
         # Get remaining, unsolved equations as {lhs: eq} map.
-        unsolved = {}
+        unsolved = OrderedDict()
         for comp, eqs in todo.items():
             for lhs, eq in eqs.items():
                 unsolved[lhs] = eq
@@ -2564,6 +2608,12 @@ class Model(ObjectWithMeta, VarProvider):
         The input arguments can be given as :class:`LhsExpression` objects or
         string names of variables.
         """
+        # DEPRECATED
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning('The method `solvable_subset` is deprecated.')
+
         # 1. Get set of root lhs objects
         msg = 'All input arguments to solvable_subset must be' \
               ' LhsExpression objects or string names of variables'

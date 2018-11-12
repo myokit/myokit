@@ -45,6 +45,9 @@ class SimulationOpenCL(myokit.CModule):
     ``precision``
         Can be set to ``myokit.SINGLE_PRECISION`` (default) or
         ``myokit.DOUBLE_PRECISION`` if the used device supports it.
+    ``rl``
+        Use Rush-Larsen updates instead of forward Euler for any Hodgkin-Huxley
+        gating variables (default=``False``).
 
     The simulation provides the following inputs variables can bind to:
 
@@ -97,19 +100,43 @@ class SimulationOpenCL(myokit.CModule):
 
         i = sum[g * (V - V_j)]
 
-    Where the sum is taken over all neighbouring cells j.
+    Where the sum is taken over all connected cells ``j`` (see [1]).
 
     Models used with this simulation need to have independent components: it
     should be possible to evaluate the model's equations one component at a
     time. A model's suitability can be tested using
     :meth:`has_interdependent_components
     <myokit.Model.has_interdependent_components>`.
+
+    Simulations are performed using a forward Euler (FE) method with a fixed
+    time step (see :meth:`set_step_size()`). Using smaller step sizes is
+    computationally demanding, but gives more accurate results. Using too large
+    a step size can also cause a simulation to become unstable, but please note
+    that stability does imply accuracy, and always double-check important
+    results by re-running with a reduced step size.
+
+    If the optional parameter ``rl`` is set to ``True``, state variables
+    written in a Hodgkin-Huxley form will be updated using a Rush-Larsen (RL)
+    instead of a forward Euler step (see [2]). This provides greater stability
+    (so that the step size can be increased) but not necessarily greater
+    accuracy (see [3]), so that care must be taken when using this method.
+
+    [1] Myokit: A simple interface to cardiac cellular electrophysiology.
+    Clerx, Collins, de Lange, Volders (2016) Progress in Biophysics and
+    Molecular Biology.
+
+    [2] A practical algorithm for solving dynamic membrane equations.
+    Rush, Larsen (1978) IEEE Transactions on Biomedical Engineering
+
+    [3] Cellular cardiac electrophysiology modelling with Chaste and CellML
+    Cooper, Spiteri, Mirams (2015) Frontiers in Physiology
+
     """
     _index = 0  # Unique id for the generated module
 
     def __init__(
             self, model, protocol=None, ncells=256, diffusion=True,
-            precision=myokit.SINGLE_PRECISION):
+            precision=myokit.SINGLE_PRECISION, rl=False):
         super(SimulationOpenCL, self).__init__()
 
         # Require a valid model
@@ -124,27 +151,9 @@ class SimulationOpenCL(myokit.CModule):
                 'This simulation requires models without interdependent'
                 ' components. Please restructure the model and re-run.'
                 '\nCycles:\n' + cycles)
-        # Clone model, store
-        model = model.clone()
-        self._model = model
 
         # Set protocol
         self.set_protocol(protocol)
-
-        # Get membrane potential variable
-        self._vm = model.label('membrane_potential')
-        if self._vm is None:
-            raise ValueError(
-                'This simulation requires the membrane potential'
-                ' variable to be labelled as "membrane_potential".')
-        if not self._vm.is_state():
-            raise ValueError(
-                'The variable labelled as membrane potential must'
-                ' be a state variable.')
-
-        #if self._vm.is_referenced():
-        #  raise ValueError('This simulation requires that no other variables'
-        #      ' depend on the time-derivative of the membrane potential.')
 
         # Check dimensionality, number of cells
         try:
@@ -164,13 +173,53 @@ class SimulationOpenCL(myokit.CModule):
                 'The number of cells in any direction must be at least 1.')
         self._ntotal = self._nx * self._ny
 
+        # Set diffusion mode
+        self._diffusion_enabled = True if diffusion else False
+
         # Set precision
         if precision not in (myokit.SINGLE_PRECISION, myokit.DOUBLE_PRECISION):
             raise ValueError('Only single and double precision are supported.')
         self._precision = precision
 
-        # Set diffusion mode
-        self._diffusion_enabled = True if diffusion else False
+        # Set rush-larsen mode
+        self._rl = bool(rl)
+
+        # Get membrane potential variable (from pre-cloned model!)
+        vm = model.label('membrane_potential')
+        if vm is None:
+            raise ValueError(
+                'This simulation requires the membrane potential'
+                ' variable to be labelled as "membrane_potential".')
+        if not vm.is_state():
+            raise ValueError(
+                'The variable labelled as membrane potential must'
+                ' be a state variable.')
+
+        #if vm.is_referenced():
+        #  raise ValueError('This simulation requires that no other variables'
+        #      ' depend on the time-derivative of the membrane potential.')
+
+        # Prepare for Rush-Larsen updates, and/or clone model
+        self._rl_states = {}
+        if self._rl:
+            import myokit.lib.hh as hh
+
+            # Convert alpha-beta formulations to inf-tau forms, cloning model
+            self._model = hh.convert_hh_states_to_inf_tau_form(model, vm)
+            self._vm = self._model.get(vm.qname())
+            del(model, vm)
+
+            # Get (inf, tau) tuple for every Rush-Larsen state
+            for state in self._model.states():
+                res = hh.get_inf_and_tau(state, self._vm)
+                if res is not None:
+                    self._rl_states[state] = res
+
+        else:
+            # Clone model, store
+            self._model = model.clone()
+            self._vm = self._model.get(vm.qname())
+            del(model, vm)
 
         # Set default conductance values
         self.set_conductance()
@@ -212,17 +261,17 @@ class SimulationOpenCL(myokit.CModule):
         inputs = {'time': 'time', 'pace': 'pace'}
         if self._diffusion_enabled:
             inputs['diffusion_current'] = 'idiff'
-        self._bound_variables = model.prepare_bindings(inputs)
+        self._bound_variables = self._model.prepare_bindings(inputs)
 
         # Reserve keywords
         from myokit.formats import opencl
-        model.reserve_unique_names(*opencl.keywords)
-        model.reserve_unique_names(
-            *['calc_' + c.name() for c in model.components()])
-        model.reserve_unique_names(
-            *['D_' + c.uname() for c in model.states()])
-        model.reserve_unique_names(*KEYWORDS)
-        model.create_unique_names()
+        self._model.reserve_unique_names(*opencl.keywords)
+        self._model.reserve_unique_names(
+            *['calc_' + c.name() for c in self._model.components()])
+        self._model.reserve_unique_names(
+            *['D_' + c.uname() for c in self._model.states()])
+        self._model.reserve_unique_names(*KEYWORDS)
+        self._model.create_unique_names()
 
         # Create back-end
         SimulationOpenCL._index += 1
@@ -239,8 +288,8 @@ class SimulationOpenCL(myokit.CModule):
         if myokit.DEBUG:
             print(self._code(
                 fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
+            #import sys
+            #sys.exit(1)
 
         # Define libraries
         libs = ['OpenCL']
@@ -662,16 +711,6 @@ class SimulationOpenCL(myokit.CModule):
         entries will be made, but the value of any logged time variable is
         guaranteed to be accurate.
 
-        Intermediary variables can be logged, but with one small drawback: for
-        performance reasons the logged values of states and bound variables
-        will always be one time step ``dt`` ahead of the intermediary
-        variables. For example if running the simulation with a step size
-        ``dt=0.001`` the entry for a current ``IKr`` stored at ``t=1`` will be
-        ``IKr(0.999)``, while the entry for state ``V`` will be ``V(1)``. If
-        exact intermediary variables are needed it's best to log only states
-        and bound variables and re-calculate the intermediary variables from
-        these manually.
-
         If numerical errors during the simulation lead to NaNs appearing in the
         result, the ``find_nan`` method will be used to pinpoint their
         location. Next, a call to the model's rhs will be evaluated in python
@@ -739,6 +778,7 @@ class SimulationOpenCL(myokit.CModule):
             'diffusion': self._diffusion_enabled,
             'fields': self._fields.keys(),
             'paced_cells': self._paced_cells,
+            'rl_states': self._rl_states,
         }
         if myokit.DEBUG:
             print('-' * 79)
