@@ -59,7 +59,7 @@ class OpenCL(myokit.CModule):
         # Add include / linker paths
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)
-        incd.append(myokit.DIR_CFUNC)
+        #incd.append(myokit.DIR_CFUNC)
 
         for f in incd:
             print()
@@ -70,6 +70,13 @@ class OpenCL(myokit.CModule):
                     print('  ' + str(g))
                 print(os.listdir(f))
             print()
+
+        f = 'C:\\output.log'
+        print(f)
+        print(os.path.exists(f))
+        if os.path.exists(f):
+            with open(f, 'r') as f:
+                print(f.read())
 
         try:
             OpenCL._message = None
