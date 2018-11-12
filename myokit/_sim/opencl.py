@@ -61,6 +61,16 @@ class OpenCL(myokit.CModule):
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
 
+        import os
+        for f in incd:
+            print()
+            print(f)
+            print(os.path.exists(f))
+            if os.path.exists(f):
+                for g in os.listdir(f):
+                    print('  ' + str(g))
+            print()
+
         try:
             OpenCL._message = None
             OpenCL._instance = self._compile(
