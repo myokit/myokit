@@ -59,7 +59,7 @@ class OpenCL(myokit.CModule):
         # Add include / linker paths
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)
-        #incd.append(myokit.DIR_CFUNC)
+        incd.append(myokit.DIR_CFUNC)
 
         for f in incd:
             print()
