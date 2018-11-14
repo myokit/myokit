@@ -43,6 +43,18 @@ myokit.lib.fit
 - :meth:`myokit.lib.fit.voronoi_regions`
 - :meth:`myokit.lib.fit.xnes`
 
+myokit.lib.hh
+-------------
+- :class:`myokit.lib.hh.AnalyticalSimulation`
+- :class:`myokit.lib.hh.HHModel`
+- :class:`myokit.lib.hh.HHModelError`
+- :meth:`myokit.lib.hh.convert_hh_states_to_inf_tau_form`
+- :meth:`myokit.lib.hh.has_alpha_beta_form`
+- :meth:`myokit.lib.hh.has_inf_tau_form`
+- :meth:`myokit.lib.hh.get_alpha_and_beta`
+- :meth:`myokit.lib.hh.get_inf_and_tau`
+- :meth:`myokit.lib.hh.get_rl_expression`
+
 myokit.lib.markov
 -----------------
 - :class:`myokit.lib.markov.AnalyticalSimulation`

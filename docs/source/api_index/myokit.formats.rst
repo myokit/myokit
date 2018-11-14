@@ -112,6 +112,13 @@ myokit.formats.sbml
 - :class:`myokit.formats.sbml.SBMLError`
 - :class:`myokit.formats.sbml.SBMLImporter`
 
+myokit.formats.stan
+-------------------
+- :meth:`myokit.formats.stan.exporters`
+- :meth:`myokit.formats.stan.ewriters`
+- :class:`myokit.formats.stan.StanExporter`
+- :class:`myokit.formats.stan.StanExpressionWriter`
+
 myokit.formats.sympy
 --------------------
 - :meth:`myokit.formats.sympy.ewriters`

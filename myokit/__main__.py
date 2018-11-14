@@ -541,7 +541,7 @@ def install_windows():
 
 def add_icon_parser(subparsers):
     """
-    Adds a subcommand parser for the `gde` command.
+    Adds a subcommand parser for the ``icons`` command.
     """
     icon_parser = subparsers.add_parser(
         'icons',
