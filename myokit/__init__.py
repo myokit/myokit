@@ -9,7 +9,7 @@
 """
 Myokit: The Maastricht Modeling Toolkit
 
-This module provides a gateway to the main myokit components. For example, to
+This module provides a gateway to the main Myokit components. For example, to
 load a model use myokit.load_model('filename.mmt'), create a myokit.Protocol
 and then a myokit.Simulation which you can .run() to obtain simulated results.
 """
