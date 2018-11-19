@@ -80,10 +80,10 @@ before_install:
 # Install Myokit and extra testing dependencies
 install:
   - pip install --upgrade pip;
-  - pip install -e .[optional];
+  - pip install .[optional];
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
-  - if [[ $MYOKIT_STYLE == true ]]; then pip install -e .[dev]; fi;
-  - if [[ $MYOKIT_DOC == true ]]; then pip install -e .[docs,gui]; fi;
+  - if [[ $MYOKIT_STYLE == true ]]; then pip install .[dev]; fi;
+  - if [[ $MYOKIT_DOC == true ]]; then pip install .[docs,gui]; fi;
 
 # Show system information
 before_script:
