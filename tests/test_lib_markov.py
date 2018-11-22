@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the lib.makov module.
+# Tests the lib.markov module.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -33,7 +33,6 @@ class LinearModelTest(unittest.TestCase):
     """
 
     def test_manual_creation(self):
-        """ Manually create a linear model """
 
         # Load model
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -225,8 +224,7 @@ class LinearModelTest(unittest.TestCase):
             markov.LinearModelError, 'without state dependency',
             markov.LinearModel, m2, states, parameters, current)
 
-    def test_automatic_creation(self):
-        """ Create a linear model from a component. """
+    def test_linear_model_from_component(self):
 
         # Load model
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -289,9 +287,6 @@ class LinearModelTest(unittest.TestCase):
             markov.LinearModel.from_component, m2.get('ina'))
 
     def test_linear_model_matrices(self):
-        """
-        Test the LinearModel.matrices() method.
-        """
 
         # Create model
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -307,7 +302,6 @@ class LinearModelTest(unittest.TestCase):
         self.assertRaises(ValueError, m.matrices, -20, range(3))
 
     def test_linear_model_steady_state(self):
-        """ Test the method LinearModel.steady_state(). """
 
         # Create model
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -326,7 +320,6 @@ class LinearModelTest(unittest.TestCase):
             m.steady_state, parameters=[-1] * 21)
 
     def test_rates(self):
-        """ Create a linear model from a component. """
 
         # Load model
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -513,6 +506,54 @@ class AnalyticalSimulationTest(unittest.TestCase):
         dstate[1] = 1.1
         self.assertRaisesRegexp(
             ValueError, 'negative', s.set_default_state, dstate)
+
+    def test_against_cvode(self):
+        # Validate against a cvode sim.
+
+        # Get a model
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(fname)
+
+        # Create a protocol
+        vs = [-30, -20, -10]
+        p = myokit.pacing.steptrain(
+            vsteps=vs,
+            vhold=-120,
+            tpre=8,
+            tstep=2,
+            tpost=0)
+        t = p.characteristic_time()
+
+        # Run an analytical simulation
+        m = markov.LinearModel.from_component(model.get('ina'))
+        s1 = markov.AnalyticalSimulation(m, p)
+        d1 = s1.run(t, log_interval=0.1).npview()
+
+        s2 = myokit.Simulation(model, p)
+        s2.set_tolerance(1e-8, 1e-8)
+        d2 = s2.run(t, log_interval=0.1).npview()
+
+        # Test protocol output is the same
+        e = np.abs(d1['membrane.V'] - d2['membrane.V'])
+        if False:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(d1['membrane.V'])
+            plt.plot(d2['membrane.V'])
+            plt.show()
+        self.assertEqual(np.max(e), 0)
+
+        # Test current output is very similar
+        e = np.abs(d1['ina.i'] - d2['ina.i'])
+        if False:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(d1['ina.i'])
+            plt.plot(d2['ina.i'])
+            plt.figure()
+            plt.plot(d1['ina.i'] - d2['ina.i'])
+            plt.show()
+        self.assertLess(np.max(e), 1e-4)
 
 
 @unittest.skipIf(not SymPy_FOUND, 'SymPy not found on this system.')

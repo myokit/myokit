@@ -23,8 +23,8 @@ import myokit
 import myokit.gui
 
 # Myokit components
-from myokit.formats.axon import AbfFile
-from myokit.formats.wcp import WcpFile
+import myokit.formats.axon
+import myokit.formats.wcp
 
 # Matplotlib (must be imported _after_ gui has had chance to set backend)
 import matplotlib
@@ -292,7 +292,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         Loads an abf file.
         """
         try:
-            abf = AbfFile(filename)
+            abf = myokit.formats.axon.AbfFile(filename)
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)
@@ -352,7 +352,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         Loads a wcp file.
         """
         try:
-            wcp = WcpFile(filename)
+            wcp = myokit.formats.wcp.WcpFile(filename)
         except Exception:
             e = traceback.format_exc()
             QtWidgets.QMessageBox.critical(self, TITLE, e)

@@ -154,7 +154,7 @@ import os
 
 
 # Encoding for text parts of files
-_ENC = 'ascii'
+_ENC = 'latin-1'
 
 
 class AbfFile(object):
@@ -363,14 +363,16 @@ class AbfFile(object):
         if self._sweeps:
             for i, c in enumerate(self._sweeps[0]._channels):
                 out.append('Channel ' + str(i) + ': "' + c._name + '"')
-                if c._type:
+                if c._type:  # pragma: no cover
+                    # Cover pragma: Don't have appropriate test file
                     out.append('  Type: ' + type_mode_names[c._type])
                 out.append('  Unit: ' + c._unit.strip())
                 if c._lopass:
                     out.append('  Low-pass filter: ' + str(c._lopass) + ' Hz')
                 if c._cm:
                     out.append('  Cm (telegraphed): ' + str(c._cm) + ' pF')
-                if c._rs:
+                if c._rs:   # pragma: no cover
+                    # Cover pragma: Don't have appropriate test file
                     out.append('  Rs (telegraphed): ' + str(c._rs))
 
         # Methods
@@ -393,7 +395,8 @@ class AbfFile(object):
                 n = name + '[' + str(index) + ']'
                 if type(item) == OrderedDict:
                     show_dict(n, item, tab)
-                elif type(item) == list:
+                elif type(item) == list:    # pragma: no cover
+                    # Cover pragma: Don't have appropriate test file
                     show_list(n, item, tab)
                 else:
                     out.append(tab + n + ': ' + str(item))
@@ -453,15 +456,20 @@ class AbfFile(object):
                 ad_channels.append([])
             for i in range(self.protocol_channels()):
                 da_channels.append([])
+
+            # Add ad channels
             for sweep in self:
                 for channel in sweep:
                     time.append(channel.times())
                     break
                 for i, channel in enumerate(sweep):
                     ad_channels[i].append(channel.values())
+
+            # Add da channels
             for sweep in self.protocol():
                 for i, channel in enumerate(sweep):
                     da_channels[i].append(channel.values())
+
             # Combine into time series, store in log
             log['time'] = np.concatenate(time)
             log.set_time_key('time')
@@ -469,6 +477,7 @@ class AbfFile(object):
                 log['ad', i] = np.concatenate(channel)
             for i, channel in enumerate(da_channels):
                 log['da', i] = np.concatenate(channel)
+
         return log
 
     def myokit_protocol(self, channel=None, ms=True):
@@ -500,7 +509,9 @@ class AbfFile(object):
                 raise NotImplementedError('User lists are not supported.')
         else:   # pragma: no cover
             for userlist in self._header['listUserListInfo']:
-                if userlist['nULEnable']:
+                en1 = 'nULEnable' in userlist and userlist['nULEnable']
+                en2 = 'nConditEnable' in userlist and userlist['nConditEnable']
+                if en1 or en2:
                     raise NotImplementedError('User lists are not supported.')
 
         # Create protocol
@@ -735,7 +746,8 @@ class AbfFile(object):
 
                 # Version 1: Only read tags
                 tags = []
-                for i in range(header['lNumTagEntries']):
+                for i in range(header['lNumTagEntries']):  # pragma: no cover
+                    # Cover pragma: Don't have appropriate test file
                     f.seek(header['lTagSectionPtr'] + i * 64)
                     tag = OrderedDict()
                     for key, form in TagInfoDescription:
@@ -780,7 +792,8 @@ class AbfFile(object):
                 tags = []
                 offs = sections['Tag']['index'] * BLOCKSIZE
                 size = sections['Tag']['data']
-                for i in range(sections['Tag']['length']):
+                for i in range(sections['Tag']['length']):  # pragma: no cover
+                    # Cover pragma: Don't have appropriate test file
                     f.seek(offs + i * size)
                     tag = OrderedDict()
                     for key, form in TagInfoDescription:
@@ -957,7 +970,9 @@ class AbfFile(object):
                 return []
         else:   # pragma: no cover
             for userlist in self._header['listUserListInfo']:
-                if userlist['nULEnable']:
+                if 'nULEnable' in userlist and userlist['nULEnable']:
+                    return []
+                if 'nConditEnable' in userlist and userlist['nConditEnable']:
                     return []
         sweeps = []
 
@@ -1067,7 +1082,8 @@ class AbfFile(object):
         if n > 0:
             dt = [(str('offset'), str('i4')), (str('len'), str('i4'))]
             sdata = np.memmap(self._filepath, dt, 'r', shape=(n), offset=o)
-        else:
+        else:   # pragma: no cover
+            # Cover pragma: Don't have appropriate test file
             sdata = np.empty((1), dt)
             sdata[0]['len'] = data.size
             sdata[0]['offset'] = 0
@@ -1138,7 +1154,8 @@ class AbfFile(object):
                         c._lopass = get('fTelegraphFilter')
 
                     # Updated low-pass cutoff
-                    if header['nSignalType'] != 0:
+                    if header['nSignalType'] != 0:  # pragma: no cover
+                        # Cover pragma: Don't have appropriate test file
                         # If a signal conditioner is used, the cutoff frequency
                         # is an undescribed "complex function" of both low-pass
                         # settings...
@@ -1163,7 +1180,8 @@ class AbfFile(object):
                             header['listADCInfo'][i]['fTelegraphFilter'])
 
                     # Updated low-pass cutoff
-                    if 'nSignalType' in header['protocol']:
+                    if 'nSignalType' in header['protocol']:  # pragma: no cover
+                        # Cover pragma: Don't have appropriate test file
                         if header['protocol']['nSignalType'] != 0:
                             # If a signal conditioner is used, the cutoff
                             # frequency is an undescribed "complex function" of
@@ -1200,7 +1218,8 @@ class AbfFile(object):
                     / h['fADCRange'])
 
                 # Signal conditioner used?
-                if h['nSignalType'] != 0:
+                if h['nSignalType'] != 0:   # pragma: no cover
+                    # Cover pragma: Don't have appropriate test file
                     f *= h['fSignalGain'][i]
 
                 # Additional gain?
@@ -1214,7 +1233,8 @@ class AbfFile(object):
                 s = h['fInstrumentOffset'][i]
 
                 # Signal conditioner used?
-                if h['nSignalType'] != 0:
+                if h['nSignalType'] != 0:   # pragma: no cover
+                    # Cover pragma: Don't have appropriate test file
                     s -= h['fSignalOffset'][i]
 
                 # Set final offset
@@ -1233,7 +1253,8 @@ class AbfFile(object):
                     / p['fADCRange'])
 
                 # Signal conditioner used?
-                if 'nSignalType' in h:
+                if 'nSignalType' in h:  # pragma: no cover
+                    # Cover pragma: Don't have appropriate test file
                     if h['nSignalType'] != 0:
                         f *= a[i]['fSignalGain']
 
@@ -1248,7 +1269,8 @@ class AbfFile(object):
                 s = a[i]['fInstrumentOffset']
 
                 # Signal conditioner used?
-                if 'nSignalType' in h:
+                if 'nSignalType' in h:  # pragma: no cover
+                    # Cover pragma: Don't have appropriate test file
                     if h['nSignalType'] != 0:
                         s -= a[i]['fSignalOffset']
 

@@ -203,7 +203,7 @@ ESys_ScheduleEvent(Event head, Event add, ESys_Flag* flag)
  */
 struct ESys_Mem {
     Py_ssize_t n_events;   // The number of events in this system
-    double time;    // The current time    
+    double time;    // The current time
     Event events;   // The events, stored as an array
     Event head;     // The head of the event queue
     Event fire;     // The currently active event
@@ -462,11 +462,13 @@ ESys_AdvanceTime(ESys sys, double new_time, double max_time)
     ESys_Flag flag;     // Need to be declared here for C89 Visual C
     if(sys == 0) return ESys_INVALID_SYSTEM;
     if(sys->n_events < 0) return ESys_UNPOPULATED_SYSTEM;
-    if(sys->time > new_time) return ESys_NEGATIVE_TIME_INCREMENT;
+
+    // Check new time doesn't exceed max time
+    if (new_time > max_time) new_time = max_time;
 
     // Update internal time
+    if(sys->time > new_time) return ESys_NEGATIVE_TIME_INCREMENT;
     sys->time = new_time;
-    if (new_time > max_time) max_time = new_time;
 
     // Advance
     while (sys->tnext <= sys->time && sys->tnext < max_time) {

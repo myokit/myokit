@@ -155,8 +155,8 @@ class BasicReferenceTest(DepTest):
             depmap = {lhs: lhs.rhs().references()}
             return self.has_lhs(depmap, lhs, *deps)
 
-        has('ina.m', 'ina.m.alpha', 'ina.m.beta', 'ina.m')
-        has('ina.h', 'ina.h.alpha', 'ina.h.beta', 'ina.h')
+        has('ina.m', 'ina.m.inf', 'ina.m.tau', 'ina.m')
+        has('ina.h', 'ina.h.inf', 'ina.h.tau', 'ina.h')
         has('ina.x', 'ina.z', d('ina.m'))
 
 
@@ -217,7 +217,9 @@ class ShallowDepTest(DepTest):
         has(n('ica.d'))
         has('ica.f.alpha', 'membrane.V')
         has('ica.f.beta', 'membrane.V')
-        has('ica.f', 'ica.f', 'ica.f.alpha', 'ica.f.beta')
+        has('ica.f.tau', 'ica.f.alpha', 'ica.f.beta')
+        has('ica.f.inf', 'ica.f.alpha', 'ica.f.tau')
+        has('ica.f', 'ica.f', 'ica.f.inf', 'ica.f.tau')
         has(n('ica.f'))
         has('ica.ICa', 'ica.ICa.nest1', 'ica.E', 'membrane.V')
         has('ica.ICa.nest1', 'ica.gCa', 'ica.d', 'ica.ICa.nest2')
@@ -233,19 +235,26 @@ class ShallowDepTest(DepTest):
         has('ik.xi', 'membrane.V')
         has('ik.x.alpha', 'membrane.V')
         has('ik.x.beta', 'membrane.V')
-        has('ik.x', 'ik.x.alpha', 'ik.x.beta', 'ik.x')
+        has('ik.x.tau', 'ik.x.alpha', 'ik.x.beta')
+        has('ik.x.inf', 'ik.x.alpha', 'ik.x.tau')
+        has('ik.x', 'ik.x.inf', 'ik.x.tau', 'ik.x')
         has(n('ik.x'))
         has('ik.IK', 'ik.gK', 'ik.xi', 'ik.x', 'membrane.V', 'ik.E')
+        has('ik.abc', d('ina.m'), d('ina.h'))
         head('Testing ina component')
         has('ina.ENa', 'cell.RTF', 'cell.Na_o', 'cell.Na_i')
         has('ina.a', 'membrane.V')
         has('ina.m.alpha', 'membrane.V')
         has('ina.m.beta', 'membrane.V')
-        has('ina.m', 'ina.m.alpha', 'ina.m.beta', 'ina.m')
+        has('ina.m.tau', 'ina.m.alpha', 'ina.m.beta')
+        has('ina.m.inf', 'ina.m.alpha', 'ina.m.tau')
+        has('ina.m', 'ina.m.inf', 'ina.m.tau', 'ina.m')
         has(n('ina.m'))
         has('ina.h.alpha', 'membrane.V', 'ina.a')
         has('ina.h.beta', 'membrane.V', 'ina.a')
-        has('ina.h', 'ina.h.alpha', 'ina.h.beta', 'ina.h')
+        has('ina.h.tau', 'ina.h.alpha', 'ina.h.beta')
+        has('ina.h.inf', 'ina.h.alpha', 'ina.h.tau')
+        has('ina.h', 'ina.h.inf', 'ina.h.tau', 'ina.h')
         has(n('ina.h'))
         has('ina.j.alpha', 'membrane.V', 'ina.a')
         has('ina.j.beta', 'membrane.V', 'ina.a')
@@ -338,7 +347,11 @@ class DeepDepTest(DepTest):
         has(n('ica.d'))
         has('ica.f.alpha', 'membrane.V')
         has('ica.f.beta', 'membrane.V')
-        has('ica.f', 'ica.f', 'ica.f.alpha', 'ica.f.beta', 'membrane.V')
+        has('ica.f.tau', 'ica.f.alpha', 'ica.f.beta', 'membrane.V')
+        has('ica.f.inf', 'ica.f.tau', 'ica.f.alpha', 'ica.f.beta',
+            'membrane.V')
+        has('ica.f', 'ica.f', 'ica.f.inf', 'ica.f.tau', 'ica.f.alpha',
+            'ica.f.beta', 'membrane.V')
         has(n('ica.f'))
         has('ica.ICa.nest1', 'ica.gCa', 'ica.d', 'ica.f', 'ica.ICa.nest2')
         has('ica.ICa.nest2', 'ica.f')
@@ -359,10 +372,16 @@ class DeepDepTest(DepTest):
             'ik.E', 'cell.K_o', 'ik.PNa_K', 'cell.Na_o', 'cell.K_i',
             'cell.Na_i') + RTF
         has(*E)
+        has('ik.abc', d('ina.m'), 'ina.m', 'ina.m.inf', 'ina.m.tau',
+            'ina.m.alpha', 'ina.m.beta', 'ina.a', 'membrane.V', d('ina.h'),
+            'ina.h', 'ina.h.inf', 'ina.h.tau', 'ina.h.alpha', 'ina.h.beta')
         has('ik.xi', 'membrane.V')
         has('ik.x.alpha', 'membrane.V')
         has('ik.x.beta', 'membrane.V')
-        has('ik.x', 'ik.x.alpha', 'ik.x.beta', 'ik.x', 'membrane.V')
+        has('ik.x.tau', 'ik.x.alpha', 'ik.x.beta', 'membrane.V')
+        has('ik.x.inf', 'ik.x.tau', 'ik.x.alpha', 'ik.x.beta', 'membrane.V')
+        has('ik.x', 'ik.x.inf', 'ik.x.tau', 'ik.x.alpha', 'ik.x.beta', 'ik.x',
+            'membrane.V')
         has(n('ik.x'))
         IK = ('ik.IK', 'ik.gK', 'ik.xi', 'ik.x', 'membrane.V') + E
         has(*IK)
@@ -372,25 +391,29 @@ class DeepDepTest(DepTest):
         has('ina.a', 'membrane.V')
         has('ina.m.alpha', 'membrane.V')
         has('ina.m.beta', 'membrane.V')
-        has('ina.m', 'ina.m.alpha', 'ina.m.beta', 'ina.m', 'membrane.V')
+        has('ina.m', 'ina.m.inf', 'ina.m.tau', 'ina.m.alpha', 'ina.m.beta',
+            'ina.m', 'membrane.V')
         has(n('ina.m'))
         has('ina.h.alpha', 'membrane.V', 'ina.a')
         has('ina.h.beta', 'membrane.V', 'ina.a')
-        has('ina.h', 'ina.h.alpha', 'ina.h.beta', 'ina.h', 'ina.a',
-            'membrane.V')
+        has('ina.h', 'ina.h.inf', 'ina.h.tau', 'ina.h.alpha', 'ina.h.beta',
+            'ina.h', 'ina.a', 'membrane.V')
         has(n('ina.h'))
         has('ina.j.alpha', 'membrane.V', 'ina.a')
         has('ina.j.beta', 'membrane.V', 'ina.a')
         has('ina.j', 'ina.j.alpha', 'ina.j.beta', 'ina.j', 'ina.a',
             'ina.x', d('ina.m'), 'ina.m.alpha', 'ina.m.beta', 'ina.m',
+            'ina.m.inf', 'ina.m.tau',
             'ina.y', d('ina.h'), 'ina.h.alpha', 'ina.h.beta', 'ina.h',
+            'ina.h.inf', 'ina.h.tau',
             'ina.z', 'cell.K_o', 'membrane.V',)
         has(n('ina.j'))
         has('ina.x', d('ina.m'), 'ina.m.alpha', 'ina.m.beta', 'ina.m',
-            'membrane.V', 'ina.z', 'cell.K_o')
-        has('ina.y', 'ina.x', d('ina.m'), 'ina.m.alpha', 'ina.m.beta', 'ina.m',
-            'membrane.V', 'ina.z', 'cell.K_o',
-            d('ina.h'), 'ina.h.alpha', 'ina.h.beta', 'ina.h', 'ina.a')
+            'ina.m.inf', 'ina.m.tau', 'membrane.V', 'ina.z', 'cell.K_o')
+        has('ina.y', 'ina.x', d('ina.m'), 'ina.m.alpha', 'ina.m.beta',
+            'ina.m.tau', 'ina.m.inf', 'ina.m', 'membrane.V', 'ina.z',
+            'cell.K_o', d('ina.h'), 'ina.h.alpha', 'ina.h.beta', 'ina.h',
+            'ina.h.inf', 'ina.h.tau', 'ina.a')
         has('ina.z', 'cell.K_o')
         has('ina.gNa')
         INa = (
@@ -403,8 +426,8 @@ class DeepDepTest(DepTest):
         I = INa + IK + Ib + IKp + IK1 + ICa + Istim
         has('membrane.V', *I)
         has(n('membrane.V'))
-        has('membrane.x', d('ina.m'), 'ina.m.alpha', 'ina.m.beta', 'ina.m',
-            'membrane.V')
+        has('membrane.x', d('ina.m'), 'ina.m.inf', 'ina.m.tau', 'ina.m.alpha',
+            'ina.m.beta', 'ina.m', 'membrane.V')
         head('Testing dot() test component')
         has('test.t1', d('membrane.V'), *I)
         has('test.inter', d('test.t1'), d('membrane.V'), *I)
@@ -480,7 +503,9 @@ class DeepDepTest(DepTest):
         nhas(n('ica.d'))
         has('ica.f.alpha')
         has('ica.f.beta')
-        has('ica.f', 'ica.f.alpha', 'ica.f.beta')
+        has('ica.f.tau', 'ica.f.alpha', 'ica.f.beta')
+        has('ica.f.inf', 'ica.f.tau', 'ica.f.alpha', 'ica.f.beta')
+        has('ica.f', 'ica.f.inf', 'ica.f.tau', 'ica.f.alpha', 'ica.f.beta')
         nhas(n('ica.f'))
         has('ica.ICa.nest1', 'ica.gCa', 'ica.ICa.nest2')
         has('ica.ICa.nest2')
@@ -502,7 +527,7 @@ class DeepDepTest(DepTest):
         has('ik.xi')
         has('ik.x.alpha')
         has('ik.x.beta')
-        has('ik.x', 'ik.x.alpha', 'ik.x.beta')
+        has('ik.x', 'ik.x.inf', 'ik.x.tau', 'ik.x.alpha', 'ik.x.beta')
         nhas(n('ik.x'))
         IK = ('ik.IK', 'ik.gK', 'ik.xi') + E
         has(*IK)
@@ -512,23 +537,27 @@ class DeepDepTest(DepTest):
         has('ina.a')
         has('ina.m.alpha')
         has('ina.m.beta')
-        has('ina.m', 'ina.m.alpha', 'ina.m.beta')
+        M = ('ina.m.alpha', 'ina.m.beta', 'ina.m.inf', 'ina.m.tau')
+        has('ina.m', *M)
         nhas(n('ina.m'))
         has('ina.h.alpha', 'ina.a')
         has('ina.h.beta', 'ina.a')
-        has('ina.h', 'ina.h.alpha', 'ina.h.beta', 'ina.a')
+        H = ('ina.h.alpha', 'ina.h.beta', 'ina.a', 'ina.h.inf', 'ina.h.tau')
+        has('ina.h', *H)
         nhas(n('ina.m'))
+        has('ik.abc', d('ina.m'), d('ina.h'), *(M + H))
         has('ina.j.alpha', 'ina.a')
         has('ina.j.beta', 'ina.a')
         has('ina.j', 'ina.j.alpha', 'ina.j.beta', 'ina.a', d('ina.m'),
-            d('ina.h'), 'cell.K_o', 'ina.m.alpha', 'ina.m.beta',
-            'ina.h.alpha', 'ina.h.beta', 'ina.x', 'ina.y', 'ina.z')
+            d('ina.h'), 'cell.K_o', 'ina.m.alpha', 'ina.m.beta', 'ina.m.inf',
+            'ina.m.tau', 'ina.h.alpha', 'ina.h.beta', 'ina.h.inf', 'ina.h.tau',
+            'ina.x', 'ina.y', 'ina.z')
         nhas(n('ina.m'))
         has('ina.x', d('ina.m'), 'ina.z', 'cell.K_o',
-            'ina.m.alpha', 'ina.m.beta')
+            'ina.m.alpha', 'ina.m.beta', 'ina.m.inf', 'ina.m.tau')
         has('ina.y', 'ina.x', 'ina.z', d('ina.h'), d('ina.m'), 'ina.a',
             'ina.h.alpha', 'ina.h.beta', 'ina.m.alpha', 'ina.m.beta',
-            'cell.K_o')
+            'ina.m.inf', 'ina.m.tau', 'ina.h.inf', 'ina.h.tau', 'cell.K_o')
         has('ina.z', 'cell.K_o')
         has('ina.gNa')
         INa = ('ina.INa', 'ina.gNa') + E
@@ -540,7 +569,8 @@ class DeepDepTest(DepTest):
         I = INa + IK + Ib + IKp + IK1 + ICa + Istim
         has('membrane.V', *I)
         nhas(n('membrane.V'))
-        has('membrane.x', d('ina.m'), 'ina.m.alpha', 'ina.m.beta')
+        has('membrane.x', d('ina.m'), 'ina.m.alpha', 'ina.m.beta', 'ina.m.inf',
+            'ina.m.tau')
         head('Testing dot() test component')
         has('test.t1', d('membrane.V'), *I)
         has('test.inter', d('test.t1'), d('membrane.V'), *I)
@@ -633,6 +663,8 @@ class DeepDepTest(DepTest):
             'ik.E', 'cell.K_o', 'ik.PNa_K', 'cell.Na_o', 'cell.K_i',
             'cell.Na_i') + RTF
         has(*E)
+        has('ik.abc', d('ina.m'), d('ina.h'), 'ina.m', 'ina.h', 'membrane.V',
+            'ina.a')
         has('ik.xi', 'membrane.V')
         nhas('ik.x.alpha')
         nhas('ik.x.beta')
@@ -758,6 +790,7 @@ class DeepDepTest(DepTest):
         has('ik.x', 'ik.x', 'membrane.V')
         has(n('ik.x'))
         has('ik.IK', 'ik.x', 'membrane.V')
+        has('ik.abc', 'ina.m', 'ina.h', 'membrane.V')
         head('Testing ina component')
         has('ina.ENa')
         has('ina.a', 'membrane.V')
@@ -825,7 +858,7 @@ class ComponentDepTest(DepTest):
         head('omit_states=False, omit_constants=False')
         has('membrane', 'ina', 'ik', 'ib', 'ikp', 'ik1', 'ica', 'engine')
         has('ina', 'membrane', 'cell')
-        has('ik', 'membrane', 'cell')
+        has('ik', 'membrane', 'cell', 'ina')
         has('ikp', 'membrane')
         has('ica', 'membrane', 'cell')
         has('ik1', 'membrane', 'cell')
@@ -839,7 +872,7 @@ class ComponentDepTest(DepTest):
             omit_states=True, omit_constants=False)
         has('membrane', 'ina', 'ik', 'ib', 'ikp', 'ik1', 'ica', 'engine')
         has('ina', 'cell')
-        has('ik', 'cell')
+        has('ik', 'cell', 'ina')
         has('ikp')
         has('ica', 'cell')
         has('ik1', 'cell')
@@ -853,7 +886,7 @@ class ComponentDepTest(DepTest):
             omit_states=False, omit_constants=True)
         has('membrane', 'ina', 'ik', 'ib', 'ikp', 'ik1', 'ica', 'engine')
         has('ina', 'membrane')
-        has('ik', 'membrane')
+        has('ik', 'membrane', 'ina')
         has('ikp', 'membrane')
         has('ica', 'membrane')
         has('ik1', 'membrane')
@@ -867,7 +900,7 @@ class ComponentDepTest(DepTest):
             omit_states=True, omit_constants=True)
         has('membrane', 'ina', 'ik', 'ib', 'ikp', 'ik1', 'ica', 'engine')
         has('ina')
-        has('ik')
+        has('ik', 'ina')
         has('ikp')
         has('ica')
         has('ik1')
@@ -912,7 +945,7 @@ class ComponentDepTest(DepTest):
             'cell.Na_o', 'membrane.V', 'cell.K_o')
         out('ina', 'ina.INa', d('ina.m'), d('ina.h'), d('ina.j'))
         inn('ik', 'ik.x', 'cell.K_o', 'cell.Na_o', 'cell.K_i', 'cell.Na_i',
-            'cell.RTF', 'membrane.V')
+            'cell.RTF', 'membrane.V', d('ina.m'), d('ina.h'))
         out('ik', d('ik.x'), 'ik.IK')
         inn('ikp', 'membrane.V')
         out('ikp', 'ikp.IKp')
@@ -942,7 +975,7 @@ class ComponentDepTest(DepTest):
         out('membrane', d('membrane.V'))
         inn('ina', 'ina.m', 'ina.h', 'ina.j', 'membrane.V')
         out('ina', 'ina.INa', d('ina.m'), d('ina.h'), d('ina.j'))
-        inn('ik', 'ik.x', 'membrane.V')
+        inn('ik', 'ik.x', 'membrane.V', d('ina.m'), d('ina.h'))
         out('ik', d('ik.x'), 'ik.IK')
         inn('ikp', 'membrane.V')
         out('ikp', 'ikp.IKp')
@@ -1032,7 +1065,8 @@ class ComponentDepTest(DepTest):
         out('membrane', d('membrane.V'))
         inn('ina', 'cell.RTF', 'cell.Na_i', 'cell.Na_o', 'cell.K_o')
         out('ina', 'ina.INa', d('ina.m'), d('ina.h'), d('ina.j'))
-        inn('ik', 'cell.K_o', 'cell.Na_o', 'cell.K_i', 'cell.Na_i', 'cell.RTF')
+        inn('ik', 'cell.K_o', 'cell.Na_o', 'cell.K_i', 'cell.Na_i', 'cell.RTF',
+            d('ina.m'), d('ina.h'))
         out('ik', d('ik.x'), 'ik.IK')
         inn('ikp')
         out('ikp', 'ikp.IKp')
@@ -1063,7 +1097,7 @@ class ComponentDepTest(DepTest):
         out('membrane', d('membrane.V'))
         inn('ina')
         out('ina', 'ina.INa', d('ina.m'), d('ina.h'), d('ina.j'))
-        inn('ik')
+        inn('ik', d('ina.m'), d('ina.h'))
         out('ik', d('ik.x'), 'ik.IK')
         inn('ikp')
         out('ikp', 'ikp.IKp')
@@ -1138,6 +1172,42 @@ class ComponentDepTest(DepTest):
         out('engine', 'engine.pace')
         inn('test')
         out('test')
+
+        # A TFT-RL: No states, Derivatives, No Constants, in RL mode
+        rl_states = {}
+        for state in ['ina.m', 'ina.h', 'ik.x', 'ica.f']:
+            rl_states[self.m.get(state)] = (
+                self.m.get(state + '.inf'), self.m.get(state + '.tau'))
+        d1, d2 = self.m.map_component_io(
+            omit_states=True,
+            omit_derivatives=False,
+            omit_constants=True,
+            rl_states=rl_states,
+        )
+        head('A TFT-RL: No states, Derivatives, No constants in RL mode')
+        inn('membrane', 'ina.INa', 'ik.IK', 'ib.Ib', 'ikp.IKp',
+            'ik1.IK1', 'ica.ICa', 'engine.pace', d('ina.m'))
+        out('membrane', d('membrane.V'))
+        inn('ina')
+        out('ina', 'ina.INa', d('ina.m'), d('ina.h'), d('ina.j'),
+            'ina.m.inf', 'ina.m.tau', 'ina.h.inf', 'ina.h.tau')
+        inn('ik', d('ina.m'), d('ina.h'))
+        out('ik', 'ik.x.inf', 'ik.x.tau', 'ik.IK')
+        inn('ikp')
+        out('ikp', 'ikp.IKp')
+        inn('ica')
+        out('ica', d('ica.Ca_i'), d('ica.d'), 'ica.f.inf', 'ica.f.tau',
+            'ica.ICa')
+        inn('ik1')
+        out('ik1', 'ik1.IK1')
+        inn('ib')
+        out('ib', 'ib.Ib')
+        inn('cell')
+        out('cell')
+        inn('engine')
+        out('engine', 'engine.pace')
+        inn('test', d('membrane.V'))
+        out('test', d('test.t1'), d('test.t2'))
 
     def test_component_cycles(self):
         """

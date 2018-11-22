@@ -44,4 +44,33 @@ class CudaKernelExporter(myokit.formats.TemplatedRunnableExporter):
         return {'kernel.cu': 'kernel.cu'}
 
     def _vars(self, model, protocol):
-        return {'model': model}
+        return {
+            'model': model,
+            'use_rl': False,
+        }
+
+
+class CudaKernelRLExporter(myokit.formats.TemplatedRunnableExporter):
+    """
+    Like :class:`CudaKernelExporter` but uses a Rush-Larsen update step where
+    applicable.
+
+    For this exporter to work, the model's membrane potential variable must be
+    labelled as ``membrane_potential``, and a value must be bound to
+    ``diffusion_current`` (see :class:`CudaKernelExporter` for details).
+    """
+    def info(self):
+        import inspect
+        return inspect.getdoc(self)
+
+    def _dir(self, root):
+        return os.path.join(root, 'cuda', 'template')
+
+    def _dict(self):
+        return {'kernel.cu': 'kernel.cu'}
+
+    def _vars(self, model, protocol):
+        return {
+            'model': model,
+            'use_rl': True,
+        }

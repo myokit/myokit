@@ -19,8 +19,9 @@ SOURCE_FILE = 'cvodesim.c'
 
 class Simulation(myokit.CModule):
     """
-    Runs single cell simulations using a CVODE backed. CVODE uses an implicit
-    multi-step method to achieve high stability with adaptive step sizes.
+    Runs single cell simulations using the CVODE solver (see [1]); CVODE uses
+    an implicit multi-step method to achieve high accuracy and stability with
+    adaptive step sizes.
 
     The model passed to the simulation is cloned and stored internally, so
     changes to the original model object will not affect the simulation. A
@@ -72,6 +73,11 @@ class Simulation(myokit.CModule):
         This input provides the elapsed system time at each logged point.
 
     No variable labels are required for this simulation type.
+
+    [1] SUNDIALS: Suite of nonlinear and differential/algebraic equation
+    solvers. Hindmarsh, Brown, Woodward, et al. (2005) ACM Transactions on
+    Mathematical Software.
+
     """
     _index = 0  # Simulation id
 

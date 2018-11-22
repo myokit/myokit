@@ -1,5 +1,5 @@
 #
-# Tools for working with Markov models
+# Tools for working with Markov ion channel models
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -28,7 +28,11 @@ class LinearModel(object):
     derivative ``dot(x)`` and a current ``I``.
 
     ``A`` and ``B`` can contain non-linear functions, but should be simple
-    scalar matrices when evaluated for a fixed ``V`` and ``p``.
+    scalar matrices when evaluated for a fixed ``V`` and ``p``. For example,
+    the current equation ``I = g * O * (V - E)`` would have ``p = [g, E]``, so
+    that for fixed ``p`` and ``V`` this would resolve to
+    ``I = (g * (V - E)) * O``, such that ``g * (V - E)`` is a constant that can
+    be included in ``B``.
 
     The model variables to treat as parameter are specified by the user when
     the model is created. Any other variables, for example state variables such
@@ -295,20 +299,23 @@ class LinearModel(object):
             state_indices[state] = k
 
         # Extract expressions for state & current variables:
-        #  1. Get expanded equation
+        #  1. Get expanded equation (with all references to variables replaced
+        #     by inlined expressions)
         #  2. Convert to sympy
         #  3. Simplify / attempt to rewrite as linear combination
-        #  4. Import from sympy
+        #  4. Re-import from sympy
         expressions = []
         for state in self._states:
             e = state.rhs().clone(expand=True, retain=self._inputs)
             e = sympy.write(e)
-            e = sympy.read(e.expand(), self._model)
+            e = e.expand()
+            e = sympy.read(e, self._model)
             expressions.append(e)
         if self._current is not None:
             e = self._current.rhs().clone(expand=True, retain=self._inputs)
             e = sympy.write(e)
-            current_expression = sympy.read(e.expand(), self._model)
+            e = e.expand()
+            current_expression = sympy.read(e, self._model)
 
         # Create parametrisable matrices to evaluate the state & current
         #  1. For each expression, get the terms. This works because Sympy
@@ -731,12 +738,6 @@ class AnalyticalSimulation(object):
         # Time variable
         self._time = 0
 
-        # If protocol was given, create pacing system, update vm
-        self._pacing = None
-        if self._protocol:
-            self._pacing = myokit.PacingSystem(self._protocol)
-            self._membrane_potential = self._pacing.advance(self._time)
-
         # Check if we have a current variable
         self._has_current = self._model.current() is not None
 
@@ -759,6 +760,12 @@ class AnalyticalSimulation(object):
 
         # Cached partial solution (eigenvalue decomposition etc.)
         self._cached_solution = None
+
+        # If protocol was given, create pacing system, update vm
+        self._pacing = None
+        if self._protocol:
+            self._pacing = myokit.PacingSystem(self._protocol)
+            self._membrane_potential = self._pacing.advance(self._time)
 
     def current(self, state):
         """

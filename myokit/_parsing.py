@@ -1812,6 +1812,7 @@ def parse_proto_expression(stream, info=None, rbp=0):
     """
     if info is None:
         info = ParseInfo()
+
     # Parse first token using null denomination
     code, text, line, char = stream.peek()
     try:
@@ -1819,6 +1820,7 @@ def parse_proto_expression(stream, info=None, rbp=0):
     except KeyError:
         unexpected_token(stream.peek(), 'expression')
     expr = parser.parse(stream, info)
+
     # Parse follow up tokens
     code, text, line, char = stream.peek()
     while True:
@@ -1887,7 +1889,7 @@ def parse_expression_string(string, context=None):
 
 def convert_proto_expression(e, context=None, info=None):
     """
-    Resolves a proto-expression into a :class:`myokit.Expression`. Requires a
+    Converts a proto-expression to a :class:`myokit.Expression`. Requires a
     :class:`myokit.Variable` object ``context`` if any references are to be
     resolved. If a :class:`ParseInfo` object ``info`` is passed in it will be
     used to register tokens.
@@ -1895,10 +1897,12 @@ def convert_proto_expression(e, context=None, info=None):
     def convert(x):
         # Unpack proto expression
         element, ops, tokens = x
+
         # Create expression
         if element == myokit.Number:
             # Handle Numbers
             e = myokit.Number(*ops)
+
         elif element == myokit.Name:
             # Handle Names, resolve references
             if context is None:
@@ -1906,6 +1910,7 @@ def convert_proto_expression(e, context=None, info=None):
                 # with, return a string-based name for function templates (used
                 # for user functions) and debugging.
                 return myokit.Name(*ops)
+
             # Resolve reference
             # Note: I tried caching resolved references per variable, but it
             # didn't speed-up or slow down execution time.
@@ -1914,6 +1919,7 @@ def convert_proto_expression(e, context=None, info=None):
             except myokit.UnresolvedReferenceError as e:
                 a, b = tokens[0][2:4] if tokens else (0, 0)
                 raise ParseError('Unresolved reference', a, b, str(e), cause=e)
+
         elif isinstance(element, myokit.UserFunction):
             # Handle user function
             # Get mapping of function argument names to input values
@@ -1921,6 +1927,7 @@ def convert_proto_expression(e, context=None, info=None):
             for k, p in enumerate(element.arguments()):
                 args[p] = convert_proto_expression(ops[k], context, info)
             e = element.convert(args)
+
         else:
             # Handle other types
             ops = [convert(op) for op in ops]
@@ -1929,12 +1936,14 @@ def convert_proto_expression(e, context=None, info=None):
             except myokit.IntegrityError as e:
                 line, char = tokens[0][2:4] if tokens else (0, 0)
                 raise ParseError('Syntax error', line, char, str(e), cause=e)
+
         # Register tokens
         if info:
             for token in tokens:
                 if token:
                     reg_token(info, token, e)
         return e
+
     return convert(e)
 
 

@@ -119,16 +119,18 @@ size_t dsize_conn1 = 0;
 size_t dsize_conn2 = 0;
 size_t dsize_conn3 = 0;
 
-// Timing
-double engine_time;     // The current simulation time
-double dt;              // The next step size
-double dt_min;          // The minimal time increase
-double tnext_pace;      // The next pacing event start/stop
+/* Timing */
+double engine_time;     /* The current simulation time */
+double dt;              /* The next step size */
+double tnext_pace;      /* The next pacing event start/stop */
+double dt_min;          /* The minimal time increase */
+unsigned long istep;    /* The index of the current step */
+int intermediary_step;  /* True if an intermediary step is being taken */
 
-// Halt on NaN
+/* Halt on NaN */
 int halt_sim;
 
-// Pacing
+/* Pacing */
 ESys pacing = NULL;
 double engine_pace = 0;
 
@@ -154,28 +156,27 @@ Real arg_dt;
 Real arg_gx;
 Real arg_gy;
 
-// Logging
-PyObject** logs = NULL; // An array of pointers to a PyObject
-Real** vars = NULL;     // An array of pointers to values to log
-int n_vars;             // Number of logging variables
-double tlog;            // Time of next logging point (for periodic logging)
-double tnext_log;       // The next logging point
-unsigned long inext_log;// The number of logged steps
-int logging_diffusion;  // True if diffusion current is being logged.
-int logging_states;     // True if any states are being logged
-int logging_inters;     // True if any intermediary variables are being logged.
-int n_inter;            // The number of intermediary variables to log
-// The relationship between n_inter and logging_inters isn't straightforward:
-// n_inter is the number of different model variables (so membrane.V, not
-// 1.2.membrane.V) being logged, while logging_inters is 1 if at least one
-// simulation variable (1.2.membrane.V) is listed in the given log.
-int n_field_data;       // The number of floats in the field data
+/* Logging */
+PyObject** logs = NULL; /* An array of pointers to a PyObject */
+Real** vars = NULL;     /* An array of pointers to values to log */
+int n_vars;             /* Number of logging variables */
+double tnext_log;       /* The next logging point */
+unsigned long inext_log;/* The number of logged steps */
+int logging_diffusion;  /* True if diffusion current is being logged. */
+int logging_states;     /* True if any states are being logged */
+int logging_inters;     /* True if any intermediary variables are being logged. */
+int n_inter;            /* The number of intermediary variables to log */
+/* The relationship between n_inter and logging_inters isn't straightforward: */
+/* n_inter is the number of different model variables (so membrane.V, not */
+/* 1.2.membrane.V) being logged, while logging_inters is 1 if at least one */
+/* simulation variable (1.2.membrane.V) is listed in the given log. */
+int n_field_data;       /* The number of floats in the field data */
 
-// Temporary objects: decref before re-using for another var
-// (Unless you got it through PyList_GetItem or PyTuble_GetItem)
-PyObject* flt = NULL;               // PyObject, various uses
-PyObject* ret = NULL;               // PyObject, used as return value
-PyObject* list_update_str = NULL;   // PyUnicode, used to call "append" method
+/* Temporary objects: decref before re-using for another var */
+/* (Unless you got it through PyList_GetItem or PyTuble_GetItem) */
+PyObject* flt = NULL;               /* PyObject, various uses */
+PyObject* ret = NULL;               /* PyObject, used as return value */
+PyObject* list_update_str = NULL;   /* PyUnicode, used to call "append" method */
 
 /*
  * Cleans up after a simulation
@@ -338,7 +339,7 @@ sim_init(PyObject* self, PyObject* args)
         return 0;
     }
     dt = default_dt;
-    dt_min = dt * 1e-2;
+    dt_min = 0; /*dt * 1e-2; Not sure why this was >0. Causes issues with timing sometimes. */
     arg_dt = (Real)dt;
     arg_gx = (Real)gx;
     arg_gy = (Real)gy;
@@ -484,7 +485,7 @@ sim_init(PyObject* self, PyObject* args)
     }
 
     // Set up arbitrary-geometry diffusion
-    if(connections != Py_None) { // Actually preferred way of checking!
+    if(connections != Py_None) {
         if(!PyList_Check(connections)) {
             PyErr_SetString(PyExc_Exception, "Connections should be None or a list");
             return sim_clean();
@@ -624,28 +625,29 @@ sim_init(PyObject* self, PyObject* args)
     printf("Connections-3 buffer size:%d.\n", dsize_conn3);
     #endif
 
-    // Copy data into buffers
-    flag = clEnqueueWriteBuffer(command_queue, mbuf_state, CL_TRUE, 0, dsize_state, rvec_state, 0, NULL, NULL);
+    /* Copy data into buffers */
+    /* Note: using non-blocking writes here, and then waiting for it below (manual queue flush/finish) */
+    flag = clEnqueueWriteBuffer(command_queue, mbuf_state, CL_FALSE, 0, dsize_state, rvec_state, 0, NULL, NULL);
     if(mcl_flag(flag)) return sim_clean();
-    flag = clEnqueueWriteBuffer(command_queue, mbuf_idiff, CL_TRUE, 0, dsize_idiff, rvec_idiff, 0, NULL, NULL);
+    flag = clEnqueueWriteBuffer(command_queue, mbuf_idiff, CL_FALSE, 0, dsize_idiff, rvec_idiff, 0, NULL, NULL);
     if(mcl_flag(flag)) return sim_clean();
-    flag = clEnqueueWriteBuffer(command_queue, mbuf_inter_log, CL_TRUE, 0, dsize_inter_log, rvec_inter_log, 0, NULL, NULL);
+    flag = clEnqueueWriteBuffer(command_queue, mbuf_inter_log, CL_FALSE, 0, dsize_inter_log, rvec_inter_log, 0, NULL, NULL);
     if(mcl_flag(flag)) return sim_clean();
-    flag = clEnqueueWriteBuffer(command_queue, mbuf_field_data, CL_TRUE, 0, dsize_field_data, rvec_field_data, 0, NULL, NULL);
+    flag = clEnqueueWriteBuffer(command_queue, mbuf_field_data, CL_FALSE, 0, dsize_field_data, rvec_field_data, 0, NULL, NULL);
     if(mcl_flag(flag)) return sim_clean();
     if(connections != Py_None) {
-        flag = clEnqueueWriteBuffer(command_queue, mbuf_conn1, CL_TRUE, 0, dsize_conn1, rvec_conn1, 0, NULL, NULL);
+        flag = clEnqueueWriteBuffer(command_queue, mbuf_conn1, CL_FALSE, 0, dsize_conn1, rvec_conn1, 0, NULL, NULL);
         if(mcl_flag(flag)) return sim_clean();
-        flag = clEnqueueWriteBuffer(command_queue, mbuf_conn2, CL_TRUE, 0, dsize_conn2, rvec_conn2, 0, NULL, NULL);
+        flag = clEnqueueWriteBuffer(command_queue, mbuf_conn2, CL_FALSE, 0, dsize_conn2, rvec_conn2, 0, NULL, NULL);
         if(mcl_flag(flag)) return sim_clean();
-        flag = clEnqueueWriteBuffer(command_queue, mbuf_conn3, CL_TRUE, 0, dsize_conn3, rvec_conn3, 0, NULL, NULL);
+        flag = clEnqueueWriteBuffer(command_queue, mbuf_conn3, CL_FALSE, 0, dsize_conn3, rvec_conn3, 0, NULL, NULL);
         if(mcl_flag(flag)) return sim_clean();
     }
     #ifdef MYOKIT_DEBUG
     printf("Enqueued copying of data into buffers.\n");
     #endif
 
-    // Wait for copy to be finished
+    // Wait for copying to be finished
     clFlush(command_queue);
     clFinish(command_queue);
     #ifdef MYOKIT_DEBUG
@@ -722,13 +724,11 @@ sim_init(PyObject* self, PyObject* args)
             if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(arg_gy), &arg_gy))) return sim_clean();
             if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
             if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-            if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL))) return sim_clean();
         } else {
             // Arbitrary geometry
             i = 0;
             if(mcl_flag(clSetKernelArg(kernel_dif2, i++, sizeof(nx), &nx))) return sim_clean();
             if(mcl_flag(clSetKernelArg(kernel_dif2, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-            if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_dif2, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL))) return sim_clean();
             i = 0;
             if(mcl_flag(clSetKernelArg(kernel_dif3, i++, sizeof(n_connections), &n_connections))) return sim_clean();
             if(mcl_flag(clSetKernelArg(kernel_dif3, i++, sizeof(mbuf_conn1), &mbuf_conn1))) return sim_clean();
@@ -736,7 +736,6 @@ sim_init(PyObject* self, PyObject* args)
             if(mcl_flag(clSetKernelArg(kernel_dif3, i++, sizeof(mbuf_conn3), &mbuf_conn3))) return sim_clean();
             if(mcl_flag(clSetKernelArg(kernel_dif3, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
             if(mcl_flag(clSetKernelArg(kernel_dif3, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-            if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_dif3, 1, NULL, global_work_size_conn, local_work_size_conn, 0, NULL, NULL))) return sim_clean();
         }
     }
 
@@ -836,7 +835,7 @@ print(4*tab + '}')
     }
     ret = NULL;
 
-    // Check if log contained extra variables
+    /* Check if log contained extra variables */
     if(k_vars != n_vars) {
         PyErr_SetString(PyExc_Exception, "Unknown variables found in logging dictionary.");
         return sim_clean();
@@ -846,19 +845,19 @@ print(4*tab + '}')
     printf("Created log for %d variables.\n", n_vars);
     #endif
 
-    // Log update method:
+    /* Log update method: */
     list_update_str = PyUnicode_FromString("append");
 
-    // Store initial position in logs
-    // Skipping!
+    /* First point to step to */
+    istep = 1;
 
-    // Next logging position: current time
+    /* Next logging position: current time */
     inext_log = 0;
     tnext_log = tmin;
 
-    //
-    // Done!
-    //
+    /*
+     * Done!
+     */
     #ifdef MYOKIT_DEBUG
     printf("Finished initialization.\n");
     #endif
@@ -877,72 +876,78 @@ sim_step(PyObject *self, PyObject *args)
     cl_int flag;
     int i;
     double d = 0;
+    int logging_condition = 0;
 
     while(1) {
 
-        // Determine next timestep
-        // Ensure next pacing event is simulated
-        dt = default_dt;
-        d = tmax - engine_time; if(d > dt_min && d < dt) dt = d;
-        d = tnext_pace - engine_time; if(d > dt_min && d < dt) dt = d;
-        d = tnext_log - engine_time; if(d > dt_min && d < dt) dt = d;
+        /* Check if we need to log at this point in time */
+        logging_condition = (engine_time >= tnext_log);
+
+        /* Determine next timestep, ensuring next event is simulated */
+        intermediary_step = 0;
+        dt = tmin + (double)istep * default_dt - engine_time;
+        d = tmax - engine_time; if (d > dt_min && d < dt) {dt = d; intermediary_step = 1; }
+        d = tnext_pace - engine_time; if (d > dt_min && d < dt) {dt = d; intermediary_step = 1; }
+        d = tnext_log - engine_time; if (d > dt_min && d < dt) {dt = d; intermediary_step = 1; }
+        if (!intermediary_step) istep++;
         arg_dt = (Real)dt;
 
-        // Update states, advancing them to t+dt
-        if(mcl_flag(clSetKernelArg(kernel_cell, 2, sizeof(Real), &arg_time))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cell, 3, sizeof(Real), &arg_dt))) return sim_clean();
-        if(mcl_flag(clSetKernelArg(kernel_cell, 4, sizeof(Real), &arg_pace))) return sim_clean();
-        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_cell, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL))) return sim_clean();
-
-        // Update time, advancing it to t+dt
-        engine_time += dt;
-        arg_time = (Real)engine_time;
-
-        // Advance pacing mechanism, advancing it to t+dt
-        flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
-        if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
-        tnext_pace = ESys_GetNextTime(pacing, NULL);
-        engine_pace = ESys_GetLevel(pacing, NULL);
-        arg_pace = (Real)engine_pace;
-
-        // Update diffusion current, calculating it for time t+dt
+        /* Update diffusion current, calculating it for time t */
         if (diffusion) {
-            // Calculate initial diffusion current
             if(connections == Py_None) {
-                // Rectangular diffusion
+                /* Rectangular diffusion */
                 if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL))) return sim_clean();
             } else {
-                // Arbitrary geometry
+                /* Arbitrary geometry */
                 if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_dif2, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL))) return sim_clean();
                 if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_dif3, 1, NULL, global_work_size_conn, local_work_size_conn, 0, NULL, NULL))) return sim_clean();
             }
         }
 
-        // Check if we're finished
-        // Do this before logging, to ensure we don't log the final time position!
-        // Logging with fixed time steps should always be half-open: including the
-        // first but not the last point in time.
-        if(engine_time >= tmax || halt_sim) break;
+        /* Logging at time t? Then download the state from the device */
+        if(logging_condition && logging_states) {
+            /* Note the 3d argument CL_TRUE ensures this is a "blocking_read" */
+            /* i.e. the call doesn't return until the copying has completed, */
+            /* we don't need to manually flush/finish the command queue */
+            flag = clEnqueueReadBuffer(command_queue, mbuf_state, CL_TRUE, 0, dsize_state, rvec_state, 0, NULL, NULL);
+            if(mcl_flag(flag)) return sim_clean();
 
-        // Log new situation at t+dt
-        // Note: states, time, pacing and diffusion are now at t+dt, however,
-        // intermediary variables are still at time t.
-        if(engine_time >= tnext_log) {
+            /* Check for NaNs in the state */
+            if(isnan(rvec_state[0])) {
+                halt_sim = 1;
+            }
+        }
+
+        /* Calculate intermediary variables at t, update device states to t+dt */
+        if(mcl_flag(clSetKernelArg(kernel_cell, 2, sizeof(Real), &arg_time))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cell, 3, sizeof(Real), &arg_dt))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cell, 4, sizeof(Real), &arg_pace))) return sim_clean();
+        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_cell, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL))) return sim_clean();
+
+        /* At this point, we have
+         *  - engine_time  : the time t
+         *  - engine_pace  : the pacing signal at t
+         *  - rvec_state   : The state at t
+         *  - device state : The state at t+dt
+         *  - device inter : The intermediary variables at t
+         *  - device diff  : The diffusion currents at t
+         */
+
+        /* Log situation at time t */
+        if(logging_condition) {
+            /* Download diffusion at time t from device */
             if(logging_diffusion) {
                 flag = clEnqueueReadBuffer(command_queue, mbuf_idiff, CL_TRUE, 0, dsize_idiff, rvec_idiff, 0, NULL, NULL);
                 if(mcl_flag(flag)) return sim_clean();
             }
-            if(logging_states) {
-                flag = clEnqueueReadBuffer(command_queue, mbuf_state, CL_TRUE, 0, dsize_state, rvec_state, 0, NULL, NULL);
-                if(mcl_flag(flag)) return sim_clean();
-                if(isnan(rvec_state[0])) {
-                    halt_sim = 1;
-                }
-            }
+
+            /* Download intermediary variables at time t from device */
             if(logging_inters) {
                 flag = clEnqueueReadBuffer(command_queue, mbuf_inter_log, CL_TRUE, 0, dsize_inter_log, rvec_inter_log, 0, NULL, NULL);
                 if(mcl_flag(flag)) return sim_clean();
             }
+
+            /* Write everything to the log */
             for(i=0; i<n_vars; i++) {
                 flt = PyFloat_FromDouble(*vars[i]);
                 ret = PyObject_CallMethodObjArgs(logs[i], list_update_str, flt, NULL);
@@ -955,19 +960,39 @@ sim_step(PyObject *self, PyObject *args)
             }
             ret = NULL;
 
-            // Set next logging point
+            /* Set next logging point */
             inext_log++;
             tnext_log = tmin + (double)inext_log * log_interval;
+
+            /* Check for overflow in inext_log */
+            /* Note: Unsigned int wraps around instead of overflowing, becomes zero again */
             if (inext_log == 0) {
-                // Unsigned int wraps around instead of overflowing, becomes zero again
                 PyErr_SetString(PyExc_Exception, "Overflow in logged step count: Simulation too long!");
                 return sim_clean();
             }
         }
 
-        // Report back to python
+        /* Update time, advancing it to t+dt */
+        engine_time += dt;
+        arg_time = (Real)engine_time;
+
+        /* Update pacing system, advancing it to t+dt */
+        flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
+        if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
+        tnext_pace = ESys_GetNextTime(pacing, NULL);
+        engine_pace = ESys_GetLevel(pacing, NULL);
+        arg_pace = (Real)engine_pace;
+
+        /* Check if we're finished
+         * Do this before logging, to ensure we don't log the final time position!
+         * Logging with fixed time steps should always be half-open: including the
+         * first but not the last point in time.
+         */
+        if(engine_time >= tmax || halt_sim) break;
+
+        /* Report back to python */
         if(--steps_left_in_run == 0) {
-            // For some reason, this clears memory
+            /* For some reason, this clears memory */
             clFlush(command_queue);
             clFinish(command_queue);
             return PyFloat_FromDouble(engine_time);
@@ -978,12 +1003,12 @@ sim_step(PyObject *self, PyObject *args)
     printf("Simulation finished.\n");
     #endif
 
-    // Set final state
+    /* Set final state (at engine_time) --> blocking read */
     flag = clEnqueueReadBuffer(command_queue, mbuf_state, CL_TRUE, 0, dsize_state, rvec_state, 0, NULL, NULL);
     if(mcl_flag(flag)) return sim_clean();
     for(i=0; i<n_state*nx*ny; i++) {
         PyList_SetItem(state_out, i, PyFloat_FromDouble(rvec_state[i]));
-        // PyList_SetItem steals a reference: no need to decref the double!
+        /* PyList_SetItem steals a reference: no need to decref the double! */
     }
 
     #ifdef MYOKIT_DEBUG
@@ -991,11 +1016,7 @@ sim_step(PyObject *self, PyObject *args)
     printf("Tyding up...\n");
     #endif
 
-    // Finish any remaining commands (shouldn't happen)
-    clFlush(command_queue);
-    clFinish(command_queue);
-
-    sim_clean();    // Ignore return value
+    sim_clean();    /* Ignore return value */
 
     if (halt_sim) {
         #ifdef MYOKIT_DEBUG

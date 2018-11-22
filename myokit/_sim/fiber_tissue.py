@@ -53,10 +53,9 @@ class FiberTissueSimulation(myokit.CModule):
         The fiber-cell to tissue-cell conductance at the junction (a scalar).
     ``dt``
         The time step to use in the forward-Euler integration scheme.
-    ``double_precision``
-        Set this to True if your OpenCL device supports double precision. This
-        will greatly reduce the chance of a divide-by-zero or other numerical
-        error introducing NaNs into the simulation.
+    ``precision``
+        Can be set to ``myokit.SINGLE_PRECISION`` (default) or
+        ``myokit.DOUBLE_PRECISION`` if the used device supports it.
 
     The simulation provides the following inputs variables can bind to:
 
@@ -126,7 +125,7 @@ class FiberTissueSimulation(myokit.CModule):
             self, fiber_model, tissue_model, protocol=None,
             ncells_fiber=(128, 2), ncells_tissue=(128, 128), nx_paced=5,
             g_fiber=(9, 6), g_tissue=(9, 6), g_fiber_tissue=9,
-            dt=0.005, double_precision=False):
+            dt=0.005, precision=myokit.SINGLE_PRECISION):
         super(FiberTissueSimulation, self).__init__()
 
         # List of globally logged inputs
@@ -216,9 +215,10 @@ class FiberTissueSimulation(myokit.CModule):
             raise ValueError('The step size must be greater than zero.')
         self._step_size = dt
 
-        # Check precision, set native math flag
-        self._precision = myokit.DOUBLE_PRECISION if double_precision else \
-            myokit.SINGLE_PRECISION
+        # Set precision
+        if precision not in (myokit.SINGLE_PRECISION, myokit.DOUBLE_PRECISION):
+            raise ValueError('Only single and double precision are supported.')
+        self._precision = precision
 
         # Always use native maths
         self._native_math = True
@@ -769,6 +769,7 @@ class FiberTissueSimulation(myokit.CModule):
             'native_math': self._native_math,
             'diffusion': True,
             'fields': [],
+            'rl_states': {},
         }
         args['model'] = self._modelf
         args['vmvar'] = self._vmf

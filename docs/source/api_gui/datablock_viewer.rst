@@ -4,8 +4,10 @@
 DataBlock Viewer
 ****************
 
-Prototype of a viewer for files that can be read as a DataLog (e.g. csv files
-or patch-clamp data).
+Viewer for :class:`myokit.DataBlock1d` or :class:`myokit.DataBlock2d` objects.
+Allows loading blocks from disk, and then visualising as interactive movies.
+Any point in the movie can be clicked to obtain the local action potential (or
+other variables).
 
 .. module:: myokit.gui.datablock_viewer
 

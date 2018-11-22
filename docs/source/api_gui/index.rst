@@ -18,6 +18,7 @@ Myokit comes equipeed with a number of graphical user interface components:
     :hidden:
 
     datablock_viewer
+    datalog_viewer
     explorer
     gde
     ide

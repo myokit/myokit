@@ -59,6 +59,7 @@ myokit.formats.cpp
 myokit.formats.cuda
 -------------------
 - :class:`myokit.formats.cuda.CudaKernelExporter`
+- :class:`myokit.formats.cuda.CudaKernelRLExporter`
 - :class:`myokit.formats.cuda.CudaExpressionWriter`
 - :meth:`myokit.formats.cuda.exporters`
 - :meth:`myokit.formats.cuda.ewriters`
@@ -94,6 +95,7 @@ myokit.formats.opencl
 - :meth:`myokit.formats.opencl.exporters`
 - :meth:`myokit.formats.opencl.ewriters`
 - :class:`myokit.formats.opencl.OpenCLExporter`
+- :class:`myokit.formats.opencl.OpenCLRLExporter`
 - :class:`myokit.formats.opencl.OpenCLExpressionWriter`
 
 myokit.formats.python
@@ -109,6 +111,13 @@ myokit.formats.sbml
 - :meth:`myokit.formats.sbml.importers`
 - :class:`myokit.formats.sbml.SBMLError`
 - :class:`myokit.formats.sbml.SBMLImporter`
+
+myokit.formats.stan
+-------------------
+- :meth:`myokit.formats.stan.exporters`
+- :meth:`myokit.formats.stan.ewriters`
+- :class:`myokit.formats.stan.StanExporter`
+- :class:`myokit.formats.stan.StanExpressionWriter`
 
 myokit.formats.sympy
 --------------------
