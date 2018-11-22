@@ -154,7 +154,7 @@ import os
 
 
 # Encoding for text parts of files
-_ENC = 'ascii'
+_ENC = 'latin-1'
 
 
 class AbfFile(object):
@@ -456,15 +456,20 @@ class AbfFile(object):
                 ad_channels.append([])
             for i in range(self.protocol_channels()):
                 da_channels.append([])
+
+            # Add ad channels
             for sweep in self:
                 for channel in sweep:
                     time.append(channel.times())
                     break
                 for i, channel in enumerate(sweep):
                     ad_channels[i].append(channel.values())
+
+            # Add da channels
             for sweep in self.protocol():
                 for i, channel in enumerate(sweep):
                     da_channels[i].append(channel.values())
+
             # Combine into time series, store in log
             log['time'] = np.concatenate(time)
             log.set_time_key('time')
@@ -472,6 +477,7 @@ class AbfFile(object):
                 log['ad', i] = np.concatenate(channel)
             for i, channel in enumerate(da_channels):
                 log['da', i] = np.concatenate(channel)
+
         return log
 
     def myokit_protocol(self, channel=None, ms=True):
@@ -503,7 +509,9 @@ class AbfFile(object):
                 raise NotImplementedError('User lists are not supported.')
         else:   # pragma: no cover
             for userlist in self._header['listUserListInfo']:
-                if userlist['nULEnable']:
+                en1 = 'nULEnable' in userlist and userlist['nULEnable']
+                en2 = 'nConditEnable' in userlist and userlist['nConditEnable']
+                if en1 or en2:
                     raise NotImplementedError('User lists are not supported.')
 
         # Create protocol
@@ -962,7 +970,9 @@ class AbfFile(object):
                 return []
         else:   # pragma: no cover
             for userlist in self._header['listUserListInfo']:
-                if userlist['nULEnable']:
+                if 'nULEnable' in userlist and userlist['nULEnable']:
+                    return []
+                if 'nConditEnable' in userlist and userlist['nConditEnable']:
                     return []
         sweeps = []
 
