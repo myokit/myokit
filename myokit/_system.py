@@ -61,7 +61,7 @@ def system(live_printing=False):
 
     # Python extras
     out.append('== Python extras ==')
-    out.append('SymPy: ' + _module_version('configparser'))
+    out.append('SymPy: ' + _module_version('sympy'))
     ver = _module_version('cma')
     try:
         ver = ver[:ver.index('$')].strip()
