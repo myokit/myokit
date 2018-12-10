@@ -405,7 +405,9 @@ from ._system import (      # noqa
 
 # Progress reporting
 from ._progress import (    # noqa
-    ProgressReporter, ProgressPrinter,
+    ProgressPrinter,
+    ProgressReporter,
+    Timeout,
 )
 
 # Data logging

@@ -16,6 +16,11 @@ the :class:`ProgressReporter` interface. In the GUI, this allows a progress bar
 to be displayed. Running from the console, a :class:`ProgressPrinter` can be
 used to periodically provide status updates.
 
+A special reporter :class:`Timeout` is provided that doesn't provide feedback,
+but will cancel a simulation after a given time limit is reached.
+
 .. autoclass:: ProgressReporter
 
 .. autoclass:: ProgressPrinter
+
+.. autoclass:: Timeout

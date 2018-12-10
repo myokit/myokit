@@ -9,6 +9,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import timeit
 import sys
 
 import myokit
@@ -28,7 +29,7 @@ class ProgressReporter(object):
     multi-threading/multi-processing or jobs nested within jobs) is undefined.
 
     An optional description of the job to run can be passed in at construction
-    time as `msg`.
+    time as ``msg``.
     """
     def __init__(self, msg=None):
         # If any output should be written, write it here
@@ -40,20 +41,20 @@ class ProgressReporter(object):
         is started.
 
         An optional description of the job to run can be passed in at
-        construction time as `msg`.
+        construction time as ``msg``.
         """
-        raise NotImplementedError
+        pass
 
     def exit(self):
         """
         Called when a job is finished and the progress reports should stop.
         """
-        raise NotImplementedError
+        pass
 
     def job(self, msg=None):
         """
         Returns a context manager that will enter and exit this
-        ProgressReporter using the `with` statement.
+        ProgressReporter using the ``with`` statement.
         """
         return ProgressReporter._Job(self, msg)
 
@@ -67,11 +68,11 @@ class ProgressReporter(object):
         type supports it). Return ``True`` to keep going, ``False`` to cancel
         the job.
         """
-        raise NotImplementedError
+        pass
 
     def _set_output_stream(self, stream):
         """
-        Set an output stream to use, for reporters that wan't to write to
+        Set an output stream to use, for reporters that want to write to
         stdout but bypass any capturing mechanisms.
         """
         self._output_stream = stream
@@ -121,9 +122,6 @@ class ProgressPrinter(ProgressReporter):
         self._b.reset()
         self._f = None
 
-    def exit(self):
-        pass
-
     def update(self, f):
         """
         See: :meth:`ProgressReporter.update()`.
@@ -150,3 +148,19 @@ class ProgressPrinter(ProgressReporter):
                 '[' + t + ' minutes] ' + str(f) + ' % done' + p + '\n')
             self._output_stream.flush()
         return True
+
+
+class Timeout(ProgressReporter):
+    """
+    Progress reporter that cancels a simulation after ``timeout`` seconds.
+    """
+    def __init__(self, timeout):
+        super(Timeout, self).__init__()
+        self._timeout = float(timeout)
+
+    def enter(self, msg=None):
+        self._max_time = timeit.default_timer() + self._timeout
+
+    def update(self, progress):
+        return timeit.default_timer() < self._max_time
+
