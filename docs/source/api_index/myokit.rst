@@ -158,6 +158,7 @@ myokit
 - :meth:`myokit.system`
 - :class:`myokit.Tan`
 - :meth:`myokit.time`
+- :class:`myokit.Timeout`
 - :class:`myokit.Unit`
 - :class:`myokit.UnresolvedReferenceError`
 - :class:`myokit.UnsupportedFunction`

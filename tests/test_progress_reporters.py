@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the PSimulation class.
+# Tests some of the ProgressReporter classes.
 #
 # This file is part of Myokit
 #  Copyright 2011-2018 Maastricht University, University of Oxford
@@ -71,6 +71,22 @@ class ProgressPrinterTests(unittest.TestCase):
         self.assertTrue(pattern1.match(lines[0]))
         self.assertTrue(pattern2.match(lines[1]))
         self.assertTrue(pattern2.match(lines[2]))
+
+
+class TimeoutTest(unittest.TestCase):
+    """
+    Tests cancelling a simulation with the ``Timeout`` class.
+    """
+    def test_timeout_progress_reporter(self):
+
+        m, p, x = myokit.load('example')
+        s = myokit.Simulation(m, p)
+        t = myokit.Timeout(0.1)
+        with self.assertRaises(myokit.SimulationCancelledError):
+            s.run(100000, progress=t)
+
+        t = myokit.Timeout(3600)
+        s.run(100, progress=t)
 
 
 if __name__ == '__main__':

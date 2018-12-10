@@ -17,6 +17,7 @@ exclude_lines =
     def __repr__
     raise AssertionError
     raise NotImplementedError
+    pass
     except ImportError:
     if False:
     if __name__ == .__main__.:
