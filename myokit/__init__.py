@@ -408,29 +408,45 @@ from ._expressions import (  # noqa
 
 # Pacing protocol
 from ._protocol import (  # noqa
-    Protocol, ProtocolEvent, PacingSystem,
+    PacingSystem,
+    Protocol,
+    ProtocolEvent,
 )
 
 # Parser functions
 from ._parsing import (  # noqa
+    format_parse_error,
     KEYWORDS,
-    parse, split, format_parse_error,
-    parse_model, parse_protocol, parse_state,
-    parse_unit_string as parse_unit,
-    #parse_number_string as parse_number,
+    parse,
     parse_expression_string as parse_expression,
+    parse_model,
+    #parse_number_string as parse_number,
+    parse_protocol,
+    parse_state,
+    parse_unit_string as parse_unit,
+    split,
     strip_expression_units,
 )
 
 # Auxillary functions
 from ._aux import (  # noqa
     # Global date and time formats
-    date, time,
+    date,
+    time,
 
     # Reading, writing
-    load, load_model, load_protocol, load_script,
-    save, save_model, save_protocol, save_script,
-    load_state, save_state, load_state_bin, save_state_bin,
+    load,
+    load_model,
+    load_protocol,
+    load_script,
+    save,
+    save_model,
+    save_protocol,
+    save_script,
+    load_state,
+    save_state,
+    load_state_bin,
+    save_state_bin,
 
     # Running scripts
     run,
@@ -439,13 +455,15 @@ from ._aux import (  # noqa
     step,
 
     # Output masking
-    PyCapture, SubCapture,
+    PyCapture,
+    SubCapture,
 
     # Sorting
     natural_sort_key,
 
     # Dyanmic generation of Python/NumPy expressions
-    python_writer, numpy_writer,
+    python_writer,
+    numpy_writer,
 
     # Model comparison
     ModelComparison,
@@ -454,7 +472,10 @@ from ._aux import (  # noqa
     Benchmarker,
 
     # Misc
-    lvsd, format_path, strfloat, format_float_dict,
+    lvsd,
+    format_path,
+    strfloat,
+    format_float_dict,
 
     # Snapshot creation for replicability
     pack_snapshot,
@@ -474,16 +495,23 @@ from ._progress import (    # noqa
 
 # Data logging
 from ._datalog import (     # noqa
-    DataLog, LoggedVariableInfo, dimco, split_key, prepare_log,
+    DataLog,
+    dimco,
+    LoggedVariableInfo,
+    prepare_log,
+    split_key,
 )
 from ._datablock import (   # noqa
-    DataBlock1d, DataBlock2d, ColorMap,
+    ColorMap,
+    DataBlock1d,
+    DataBlock2d,
 )
 
 
 # Simulations
 from ._sim import (  # noqa
-    CModule, CppModule,
+    CModule,
+    CppModule,
 )
 from ._sim.compiler import (  # noqa
     Compiler,
@@ -493,9 +521,9 @@ from ._sim.sundials import (  # noqa
 )
 from ._sim.opencl import (  # noqa
     OpenCL,
+    OpenCLDeviceInfo,
     OpenCLInfo,
     OpenCLPlatformInfo,
-    OpenCLDeviceInfo,
 )
 from ._sim.cvodesim import Simulation       # noqa
 from ._sim.cable import Simulation1d        # noqa
