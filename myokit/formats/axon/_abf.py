@@ -238,7 +238,8 @@ class AbfFile(object):
             self._rate = 1e6 / self._header['protocol']['fADCSequenceInterval']
             self._mode = self._header['protocol']['nOperationMode']
         if self._mode not in acquisition_modes:
-            raise NotImplementedError('Unknown mode: ' + str(mode))
+            raise NotImplementedError(
+                'Unknown acquisition mode: ' + str(mode))
 
         # Conversion factors for integer data in the channels
         self._adc_factors = None
@@ -249,7 +250,10 @@ class AbfFile(object):
         try:
             self._protocol = self._read_protocol()
         except Exception:   # pragma: no cover
-            # If this happens, we need to update the code!
+            # This is not something we _want_ to happen, so if we have test
+            # cases that trigger this error they should be resolved. At the
+            # same time, if it happens to a user we want it to "sort-of work"
+            # (an experimental rather than a production setting)
             logging.basicConfig()
             log = logging.getLogger(__name__)
             log.warning('Unable to read protocol from ' + self._filepath)
@@ -345,16 +349,16 @@ class AbfFile(object):
         if self._numberOfTrials:
             out.append(
                 'Protocol set for ' + str(self._numberOfTrials)
-                + ' trials, measuring ' + str(self._trialStartToStart)
-                + 's start-to-start.')
+                + ' trials, spaced ' + str(self._trialStartToStart)
+                + 's apart.')
             out.append(
                 '    with ' + str(self._runsPerTrial)
-                + ' runs per trial, measuring ' + str(self._runStartToStart)
-                + 's start-to-start.')
+                + ' runs per trial, spaced ' + str(self._runStartToStart)
+                + 's apart.')
             out.append(
                 '     and ' + str(self._sweepsPerRun)
-                + ' sweeps per run, measuring ' + str(self._sweepStartToStart)
-                + ' s start-to-start.')
+                + ' sweeps per run, spaced ' + str(self._sweepStartToStart)
+                + 's apart.')
         else:   # pragma: no cover
             out.append('Protocol data could not be determined.')
         out.append('Sampling rate: ' + str(self._rate) + ' Hz')
@@ -961,6 +965,10 @@ class AbfFile(object):
                         'level_inc': e['fEpochLevelInc'],
                     }
             self._epoch_functions = (dinfo, einfo_exists, einfo)
+
+        # If sweepStartToStart == 0, we set it to the duration of a sweep
+        if self._sweepStartToStart == 0:
+            self._sweepStartToStart = nSam / self._rate
 
         # Step 2: Generate analog signals corresponding to the waveforms
         # suggested by the 'epochs' in the protocol
@@ -1590,27 +1598,27 @@ TagInfoDescription = [
 
 # ABF2 Fields in the protocol section
 protocolFields = [
-    ('nOperationMode', 'h'),
-    ('fADCSequenceInterval', 'f'),
-    ('bEnableFileCompression', 'b'),
-    ('sUnused1', '3s'),
-    ('uFileCompressionRatio', 'I'),
-    ('fSynchTimeUnit', 'f'),
-    ('fSecondsPerRun', 'f'),
-    ('lNumSamplesPerEpisode', 'i'),
-    ('lPreTriggerSamples', 'i'),
-    ('lSweepsPerRun', 'i'),
-    ('lRunsPerTrial', 'i'),
-    ('lNumberOfTrials', 'i'),
-    ('nAveragingMode', 'h'),
-    ('nUndoRunCount', 'h'),
-    ('nFirstEpisodeInRun', 'h'),
-    ('fTriggerThreshold', 'f'),
-    ('nTriggerSource', 'h'),
-    ('nTriggerAction', 'h'),
-    ('nTriggerPolarity', 'h'),
-    ('fScopeOutputInterval', 'f'),
-    ('fSweepStartToStart', 'f'),
+    ('nOperationMode', 'h'),                # 0
+    ('fADCSequenceInterval', 'f'),          # 2
+    ('bEnableFileCompression', 'b'),        # 6
+    ('sUnused1', '3s'),                     # 7
+    ('uFileCompressionRatio', 'I'),         # 10
+    ('fSynchTimeUnit', 'f'),                # 14
+    ('fSecondsPerRun', 'f'),                # 18
+    ('lNumSamplesPerEpisode', 'i'),         # 22
+    ('lPreTriggerSamples', 'i'),            # 26
+    ('lSweepsPerRun', 'i'),                 # 30
+    ('lRunsPerTrial', 'i'),                 # 34
+    ('lNumberOfTrials', 'i'),               # 38
+    ('nAveragingMode', 'h'),                # 42
+    ('nUndoRunCount', 'h'),                 # 44
+    ('nFirstEpisodeInRun', 'h'),            # 46
+    ('fTriggerThreshold', 'f'),             # 48
+    ('nTriggerSource', 'h'),                # 52
+    ('nTriggerAction', 'h'),                # 54
+    ('nTriggerPolarity', 'h'),              # 56
+    ('fScopeOutputInterval', 'f'),          # 58
+    ('fSweepStartToStart', 'f'),            # 62
     ('fRunStartToStart', 'f'),
     ('lAverageCount', 'i'),
     ('fTrialStartToStart', 'f'),
