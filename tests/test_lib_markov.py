@@ -634,6 +634,33 @@ class DiscreteSimulationTest(unittest.TestCase):
         e = s.run(1, log=d)
         self.assertIs(d, e)
         self.assertTrue(len(d['engine.time']) > n)
+        self.assertEqual(len(d['engine.time']), len(d['membrane.V']))
+        self.assertEqual(len(d['engine.time']), len(d['ina.i']))
+        self.assertEqual(len(d['engine.time']), len(d['ina.O']))
+        d2 = d.clone()
+        del(d2[next(iter(d2.keys()))])
+        self.assertRaisesRegexp(ValueError, 'missing', s.run, 1, log=d2)
+        d2 = d.clone()
+        d2['hello'] = [1, 2, 3]
+        self.assertRaisesRegexp(ValueError, 'extra', s.run, 1, log=d2)
+
+        #
+        # Test without current variable
+        #
+        model.get('ina').remove_variable(model.get('ina.i'))
+        m = markov.LinearModel.from_component(model.get('ina'))
+
+        # Create simulation with protocol (set_protocol is not supported)
+        np.random.seed(1)
+        s = markov.DiscreteSimulation(m, p)
+        d = s.run(10)
+        n = len(d['engine.time'])
+        e = s.run(1, log=d)
+        self.assertIs(d, e)
+        self.assertTrue(len(d['engine.time']) > n)
+        self.assertEqual(len(d['engine.time']), len(d['membrane.V']))
+        self.assertEqual(len(d['engine.time']), len(d['ina.O']))
+        self.assertNotIn('ina.i', d)
         d2 = d.clone()
         del(d2[next(iter(d2.keys()))])
         self.assertRaisesRegexp(ValueError, 'missing', s.run, 1, log=d2)

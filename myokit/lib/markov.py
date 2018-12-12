@@ -1179,8 +1179,9 @@ class DiscreteSimulation(object):
         self._parameters = np.array(
             self._model.default_parameters(), copy=True, dtype=float)
 
-        # Cached transition rate list
+        # Cached transition rate list & current matrix
         self._cached_rates = None
+        self._cached_matrix = None
 
         # Set simulation time
         self._time = 0
@@ -1274,6 +1275,15 @@ class DiscreteSimulation(object):
             self._pacing = myokit.PacingSystem(self._protocol)
             self._membrane_potential = self._pacing.advance(self._time)
 
+    def _current_matrix(self):
+        """
+        Returns the (cached or regenerated) current matrix B.
+        """
+        if self._cached_matrix is None:
+            self._cached_matrix = self._model.matrices(
+                self._membrane_potential, self._parameters)[1]
+        return self._cached_matrix
+
     def _rates(self):
         """
         Returns the (cached or regenerated) transition rate list.
@@ -1323,23 +1333,26 @@ class DiscreteSimulation(object):
 
         # Set up logging
         time_key = self._model._model.time().qname()
-        vm_key = self._model._membrane_potential
+        log_vars = [time_key, self._model._membrane_potential]
+        log_vars.extend(self._model.states())
+        cur_key = self._model.current()
+        if cur_key is not None:
+            log_vars.append(cur_key)
+
         if log is None:
             # Create new log
             log = myokit.DataLog()
-            log[time_key] = []
             log.set_time_key(time_key)
-            log[vm_key] = []
-            for key in self._model.states():
-                log[key] = []
+            for var in log_vars:
+                log[var] = []
 
         else:
 
             # Check existing log
-            if len(log.keys()) > 2 + len(self._state):
+            if len(log.keys()) > len(log_vars):
                 raise ValueError('Invalid log: contains extra keys.')
             try:
-                for key in [vm_key, time_key] + self._model.states():
+                for key in log_vars:
                     log[key]
             except KeyError:
                 raise ValueError(
@@ -1360,6 +1373,7 @@ class DiscreteSimulation(object):
                 # Update pacing
                 self._membrane_potential = self._pacing.advance(tnext, tfinal)
                 self._cached_rates = None
+                self._cached_matrix = None
 
         # Return
         return log
@@ -1374,7 +1388,7 @@ class DiscreteSimulation(object):
         for key in self._model.states():
             log_states.append(log[key])
 
-        # Get current time and state
+        # Get current, time and state
         t = self._time
         state = np.array(self._state, copy=True, dtype=int)
 
@@ -1450,6 +1464,16 @@ class DiscreteSimulation(object):
         vm_key = self._model._membrane_potential
         log[vm_key].extend([self._membrane_potential] * n_steps)
 
+        # Add current to log
+        c = self._model.current()
+        if c is not None:
+            B = self._current_matrix()
+            x = np.vstack([
+                np.array(log_states[i][-n_steps:], dtype=float)
+                for i in range(len(state))])
+            x /= self._nchannels
+            log[c].extend(B.dot(x))
+
         # Update current state and time
         self._state = list(state)
         self._time += duration
@@ -1482,6 +1506,7 @@ class DiscreteSimulation(object):
                 'Membrane potential cannot be set if a protocol is used.')
         self._membrane_potential = float(v)
         self._cached_rates = None
+        self._cached_matrix = None
 
     def set_parameters(self, parameters):
         """
@@ -1493,6 +1518,7 @@ class DiscreteSimulation(object):
                 + str(len(self._parameters)) + ') values.')
         self._parameters = np.array(parameters, copy=True, dtype=float)
         self._cached_rates = None
+        self._cached_matrix = None
 
     def set_state(self, state):
         """
