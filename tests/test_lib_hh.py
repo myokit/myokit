@@ -646,6 +646,19 @@ class AnalyticalSimulationTest(unittest.TestCase):
         # Run for a bit
         self.assertIsInstance(s.run(10), myokit.DataLog)
 
+        # Run can append to log
+        d = s.run(10)
+        n = len(d['engine.time'])
+        e = s.run(1, log=d)
+        self.assertIs(d, e)
+        self.assertTrue(len(d['engine.time']) > n)
+
+        # Run for zero duration
+        d = s.run(0)
+        self.assertEqual(len(d.time()), 0)
+        d = s.run(0)
+        self.assertEqual(len(d.time()), 0)
+
         # No current variable? Then current can't be calculated
         model2 = model.clone()
         model2.get('ina').remove_variable(model2.get('ina.INa'))
@@ -711,6 +724,12 @@ class AnalyticalSimulationTest(unittest.TestCase):
         e = s.run(1, log=d)
         self.assertIs(d, e)
         self.assertTrue(len(d['engine.time']) > n)
+
+        # Run for zero duration
+        d = s.run(0)
+        self.assertEqual(len(d.time()), 0)
+        d = s.run(0)
+        self.assertEqual(len(d.time()), 0)
 
     def test_analytical_simulation_properties(self):
         """

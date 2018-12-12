@@ -688,7 +688,7 @@ class AnalyticalSimulation(object):
             self._pacing = myokit.PacingSystem(self._protocol)
             self._membrane_potential = self._pacing.advance(self._time)
 
-    def run(self, duration, log=None, log_interval=0.01):
+    def run(self, duration, log=None, log_interval=0.01, log_times=None):
         """
         Runs a simulation for ``duration`` time units.
 
@@ -706,6 +706,9 @@ class AnalyticalSimulation(object):
             results will be appended to this one.
         ``log_interval``
             The time between logged points.
+        ``log_times``
+            A pre-defined sequence of times to log at. If set, ``log_interval``
+            will be ignored.
 
         Returns a :class:`myokit.DataLog` with the simulation results.
         """
@@ -716,6 +719,10 @@ class AnalyticalSimulation(object):
         log_interval = float(log_interval)
         if log_interval <= 0:
             raise ValueError('Log interval must be greater than zero.')
+
+        # Check log_times
+        if log_times is None:
+            log_times = self._time + np.arange(0, duration, log_interval)
 
         # Set up logging
         vm_key = self._model._membrane_potential
@@ -754,7 +761,7 @@ class AnalyticalSimulation(object):
         if self._protocol is None:
 
             # User defined membrane potential
-            self._run(duration, log, log_interval)
+            self._run(log, log_times, self._time + duration)
 
         else:
 
@@ -763,7 +770,9 @@ class AnalyticalSimulation(object):
             while self._time < tfinal:
                 # Run simulation
                 tnext = min(tfinal, self._pacing.next_time())
-                self._run(tnext - self._time, log, log_interval)
+                times = log_times[np.logical_and(
+                    log_times >= self._time, log_times < tnext)]
+                self._run(log, times, tnext)
 
                 # Update pacing
                 self._membrane_potential = self._pacing.advance(tnext, tfinal)
@@ -773,17 +782,25 @@ class AnalyticalSimulation(object):
         # Return
         return log
 
-    def _run(self, duration, log, log_interval):
+    def _run(self, log, times, tnext):
         """
         Runs a simulation with the current membrane potential.
+
+        Arguments:
+
+        ``log``
+            The log to append to.
+        ``times``
+            The times to evaluate at.
+        ``tnext``
+            The final time to move to.
+
         """
         # Simulate with fixed V
-        times = np.arange(0, duration, log_interval)
         if self._has_current:
-            states, currents = self.solve(times)
+            states, currents = self.solve(times - self._time)
         else:
-            states = self.solve(times)
-        times += self._time
+            states = self.solve(times - self._time)
 
         # Log results
         key = log.time_key()
@@ -800,7 +817,7 @@ class AnalyticalSimulation(object):
         # Now run simulation for final time (which might not be included in the
         # list of logged times, and should not, if you want to be able to
         # append logs without creating duplicate points).
-        times = np.array([duration])
+        times = np.array([tnext - self._time])
         if self._has_current:
             states, currents = self.solve(times)
         else:
@@ -808,7 +825,7 @@ class AnalyticalSimulation(object):
 
         # Update simulation state
         self._state = np.array(states[:, -1], copy=True)
-        self._time += duration
+        self._time = tnext
 
     def set_default_state(self, state):
         """
