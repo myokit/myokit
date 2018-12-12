@@ -272,24 +272,39 @@ class AbfFile(object):
         """
         return len(self._sweeps[0])
 
-    def extract_channel(self, channel=0):
+    def extract_channel(self, channel=0, join=False):
         """
-        Extracts the given data channel and returns it as a list containg:
+        Extracts a selected data ``channel`` and returns its data in a tuple
+        containing::
 
-             A time vector
-             The first sweep
-             The second sweep
+             A numpy array representing time
+             A numpy array representing the first sweep
+             A numpy array representing the second sweep
              ...
 
-        Each vector is returned as a numpy array.
+        An optional argument ``join=True`` can be set to join all sweeps
+        together and return just two arrays, one for time and one for data.
+
+        If no data is available, ``None`` is returned.
         """
-        data = []
         if len(self._sweeps) == 0:  # pragma: no cover
-            return data
+            return None
+
+        # Join all sweeps
+        if join:
+            time, data = [], []
+            t = np.array(self._sweeps[0][channel].times())
+            for i, sweep in enumerate(self._sweeps):
+                time.append(t + i * self._sweepStartToStart)
+                data.append(np.array(sweep[channel].values()))
+            return (np.concatenate(time), np.concatenate(data))
+
+        # Standard reading
+        data = []
         data.append(np.array(self._sweeps[0][channel].times()))
         for sweep in self._sweeps:
             data.append(np.array(sweep[channel].values()))
-        return data
+        return tuple(data)
 
     def extract_channel_as_myokit_log(self, channel=0):
         """

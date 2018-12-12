@@ -58,10 +58,22 @@ class AbfTest(unittest.TestCase):
         # Test getting full header runs without crashing
         abf.info(True)
 
+        # Test len returns number of sweeps
+        self.assertEqual(len(abf), 9)
+
         # Test data access
         self.assertEqual(abf.data_channels(), 1)    # 1 data channel
         x = abf.extract_channel(0)
         self.assertEqual(len(x), 1 + len(abf))      # sweeps + time
+        self.assertEqual(len(x[0]), len(x[1]))
+        self.assertEqual(len(x[0]), len(x[2]))
+        self.assertEqual(len(x[0]), len(x[3]))
+        self.assertEqual(len(x[0]), len(x[4]))
+        self.assertEqual(len(x[0]), len(x[5]))
+        self.assertEqual(len(x[0]), len(x[6]))
+        self.assertEqual(len(x[0]), len(x[7]))
+        self.assertEqual(len(x[0]), len(x[8]))
+        self.assertEqual(len(x[0]), len(x[9]))
         y = abf.extract_channel_as_myokit_log(0)
         self.assertEqual(len(y), 1 + len(abf))      # sweeps + time
         z = abf.myokit_log()
@@ -73,6 +85,13 @@ class AbfTest(unittest.TestCase):
         self.assertIn('Channel', str(channel))
         self.assertEqual(len(abf) * len(channel.times()), len(z.time()))
         self.assertEqual(len(abf) * len(channel.values()), len(z.time()))
+
+        # Test reading of sweeps as one long array
+        x, y = abf.extract_channel(0, join=True)
+        z = abf.extract_channel(0)
+        self.assertEqual(len(x), len(y))
+        self.assertEqual(len(x), len(abf) * len(z[0]))
+        self.assertTrue(np.all(x[1:] > x[:-1]))
 
         # Test protocol extraction
         self.assertEqual(abf.protocol_channels(), 4)    # 4 protocol channels
@@ -109,10 +128,14 @@ class AbfTest(unittest.TestCase):
         # Test getting full header runs without crashing
         abf.info(True)
 
+        # Test len returns number of sweeps
+        self.assertEqual(len(abf), 1)
+
         # Test data access
         self.assertEqual(abf.data_channels(), 1)    # 1 data channel
         x = abf.extract_channel(0)
         self.assertEqual(len(x), 1 + len(abf))      # sweeps + time
+        self.assertEqual(len(x[0]), len(x[1]))
         y = abf.extract_channel_as_myokit_log(0)
         self.assertEqual(len(y), 1 + len(abf))      # sweeps + time
         z = abf.myokit_log()
