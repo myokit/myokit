@@ -967,7 +967,7 @@ class AbfFile(object):
             self._epoch_functions = (dinfo, einfo_exists, einfo)
 
         # If sweepStartToStart == 0, we set it to the duration of a sweep
-        if self._sweepStartToStart == 0:
+        if self._sweepStartToStart == 0:    # pragma: no cover
             self._sweepStartToStart = nSam / self._rate
 
         # Step 2: Generate analog signals corresponding to the waveforms
