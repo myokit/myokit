@@ -275,6 +275,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         root, ext = os.path.splitext(os.path.basename(filename))
         actions = {
             '.abf': self.load_abf_file,
+            '.atf': self.load_atf_file,
             '.csv': self.load_csv_file,
             '.mat': self.load_mat_file,
             '.pro': self.load_abf_file,
@@ -301,6 +302,19 @@ class DataLogViewer(myokit.gui.MyokitApplication):
             return
         self._path = os.path.dirname(filename)
         self._tabs.addTab(AbfTab(self, abf), os.path.basename(filename))
+
+    def load_atf_file(self, filename):
+        """
+        Loads an ATF file.
+        """
+        try:
+            atf = myokit.formats.axon.AtfFile(filename)
+        except Exception:
+            e = traceback.format_exc()
+            QtWidgets.QMessageBox.critical(self, TITLE, e)
+            return
+        self._path = os.path.dirname(filename)
+        self._tabs.addTab(AtfTab(self, atf), os.path.basename(filename))
 
     def load_csv_file(self, filename):
         """
@@ -490,6 +504,77 @@ class AbfTab(QtWidgets.QTabWidget):
         del(self._figures, self._axes)
         gc.collect()
         super(AbfTab, self).deleteLater()
+
+
+class AtfTab(QtWidgets.QTabWidget):
+    """
+    A widget displaying an AGF file.
+    """
+    def __init__(self, parent, atf):
+        super(AtfTab, self).__init__(parent)
+        self._atf = atf
+
+        self.setTabsClosable(False)
+        self.setTabPosition(self.East)
+
+        self._figures = []
+        self._axes = []
+        keys = list(self._atf.keys())
+        if len(keys) > 1:
+            time = keys[0]  # Time is always first (and regularly sampled)
+            for key in keys[1:]:
+                self.addTab(self.create_graph_tab(time, key), key)
+        self.addTab(self.create_info_tab(), 'Info')
+        del(self._atf)
+
+    def create_graph_tab(self, time, key):
+        """
+        Creates a widget displaying a graph.
+        """
+        widget = QtWidgets.QWidget(self)
+
+        # Create figure
+        figure = matplotlib.figure.Figure()
+        figure.suptitle(self._atf.filename())
+        canvas = backend.FigureCanvasQTAgg(figure)
+        canvas.setParent(widget)
+        axes = figure.add_subplot(1, 1, 1)
+        toolbar = backend.NavigationToolbar2QT(canvas, widget)
+
+        # Draw lines
+        axes.plot(self._atf[time], self._atf[key])
+
+        # Create a layout
+        vbox = QtWidgets.QVBoxLayout()
+        vbox.addWidget(canvas)
+        vbox.addWidget(toolbar)
+        widget.setLayout(vbox)
+        self._figures.append(figure)
+        self._axes.append(axes)
+
+        # Return widget
+        return widget
+
+    def create_info_tab(self):
+        """
+        Creates a tab displaying information about the file.
+        """
+        widget = QtWidgets.QTextEdit(self)
+        widget.setText(self._atf.info())
+        widget.setReadOnly(True)
+        return widget
+
+    def deleteLater(self):
+        """
+        Deletes this tab (later).
+        """
+        for figure in self._figures:
+            figure.clear()
+        for axes in self._axes:
+            axes.cla()
+        del(self._figures, self._axes)
+        gc.collect()
+        super(AtfTab, self).deleteLater()
 
 
 class CsvTab(QtWidgets.QTabWidget):
