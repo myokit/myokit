@@ -36,10 +36,16 @@ class AtfFile(object):
         self._file = os.path.abspath(filename)
         self._filename = os.path.basename(filename)
 
-        # Read data
+        # A version string
         self._version = None
+
+        # A (multi-line) string containing meta-data found in this file
         self._meta = None
+
+        # An ordered dict with key-value pairs. The first key is time.
         self._data = None
+
+        # Read data
         self._read()
 
     def filename(self):
@@ -215,7 +221,7 @@ class AtfFile(object):
 
     def version(self):
         """
-        Returns the file type version of this ATF file.
+        Returns the file type version of this ATF file (as a string).
         """
         return self._version
 
