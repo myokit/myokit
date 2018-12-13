@@ -270,6 +270,8 @@ class AbfFile(object):
         """
         Returns the number of channels in this file's sweeps.
         """
+        if len(self._sweeps) == 0:  # pragma: no cover
+            return 0
         return len(self._sweeps[0])
 
     def extract_channel(self, channel=0, join=False):

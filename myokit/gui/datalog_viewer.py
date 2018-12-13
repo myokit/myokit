@@ -84,13 +84,14 @@ ABOUT = '<h1>' + TITLE + '</h1>' + """
 LICENSE = myokit.LICENSE_HTML
 
 # File filters
-FILTER_ABF = 'ABF files (*.abf)'
+FILTER_ABF = 'ABF files (*.abf *.pro)'
+FILTER_ATF = 'ATF files (*.atf)'
 FILTER_CSV = 'CSV files (*.csv)'
 FILTER_MAT = 'MAT files (*.mat)'
 FILTER_TXT = 'TXT files (*.txt)'
 FILTER_WCP = 'WCP files (*.wcp)'
 FILTER_ANY = 'All files (*.*)'
-FILTER_ALL = 'Data files (*.abf *.csv *.mat *.txt *.wcp)'
+FILTER_ALL = 'Data files (*.abf *.csv *.mat *.pro *.txt *.wcp)'
 FILTER_LIST = ';;'.join([
     FILTER_ALL,
     FILTER_ABF,
@@ -276,6 +277,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
             '.abf': self.load_abf_file,
             '.csv': self.load_csv_file,
             '.mat': self.load_mat_file,
+            '.pro': self.load_abf_file,
             '.txt': self.load_txt_file,
             '.wcp': self.load_wcp_file,
         }
