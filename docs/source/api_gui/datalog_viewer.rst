@@ -21,6 +21,8 @@ Widgets
 
 .. autoclass:: AbfTab
 
+.. autoclass:: AtfTab
+
 .. autoclass:: CsvTab
 
 .. autoclass:: MatTab
