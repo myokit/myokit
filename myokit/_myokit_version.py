@@ -9,20 +9,20 @@
 import sys
 
 # True if this is a release, False for a development version
-RELEASE = False
+__release__ = False
 
 # Version as a tuple (major, minor, revision)
 #  - Changes to major are rare
 #  - Changes to minor indicate new features, possible slight backwards
 #    incompatibility
 #  - Changes to revision indicate bugfixes, tiny new features
-VERSION_INT = 1, 28, 1
+__version_tuple__ = 1, 28, 1
 
 # String version of the version number
-VERSION = '.'.join([str(x) for x in VERSION_INT])
-if not RELEASE:  # pragma: no cover
-    VERSION_INT += ('dev', )
-    VERSION += '.dev'
+__version__ = '.'.join([str(x) for x in __version_tuple__])
+if not __release__:  # pragma: no cover
+    __version_tuple__ += ('dev', )
+    __version__ += '.dev'
 
 # Don't expose x on Python2
 if sys.hexversion < 0x03000000:  # pragma: no python 3 cover

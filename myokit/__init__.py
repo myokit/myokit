@@ -69,7 +69,11 @@ del(sys)
 #
 # Version information
 #
-from ._myokit_version import RELEASE, VERSION_INT, VERSION  # noqa
+from ._myokit_version import (  # noqa
+    __release__,
+    __version__,
+    __version_tuple__,
+)
 
 
 # Myokit version
@@ -78,9 +82,9 @@ def version(raw=False):
     Returns the current Myokit version.
     """
     if raw:
-        return VERSION
+        return __version__
     else:
-        t1 = ' Myokit ' + VERSION + ' '
+        t1 = ' Myokit ' + __version__ + ' '
         t2 = '_' * len(t1)
         t1 += '|/\\'
         t2 += '|  |' + '_' * 5
@@ -90,8 +94,8 @@ def version(raw=False):
 # Warn about development version
 import logging  # noqa
 log = logging.getLogger(__name__)
-log.info('Loading Myokit version ' + VERSION)
-if not RELEASE:
+log.info('Loading Myokit version ' + __version__)
+if not __release__:
     log.warning(
         'Using development version of Myokit. This may contain untested'
         ' features and bugs. Please see http://myokit.org for the latest'

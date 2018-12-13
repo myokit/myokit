@@ -855,7 +855,7 @@ def pack_snapshot(path, overwrite=True):
                 raise IOError('File already exists at given path.')
         else:
             path = os.path.join(
-                path, 'myokit_' + myokit.VERSION + '_snapshot.zip')
+                path, 'myokit_' + myokit.__version__ + '_snapshot.zip')
             if os.path.isfile(path) and not overwrite:
                 raise IOError('File already exists as given path.')
 

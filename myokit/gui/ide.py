@@ -2171,7 +2171,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Sets this window's title based on the current state.
         """
-        title = TITLE + ' ' + myokit.VERSION
+        title = TITLE + ' ' + myokit.__version__
         if self._file:
             title = os.path.basename(self._file) + ' - ' + title
             if self._have_changes:
