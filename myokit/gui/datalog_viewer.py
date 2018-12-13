@@ -109,7 +109,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
     def __init__(self, *filenames):
         super(DataLogViewer, self).__init__()
         # Set Title, icon
-        self.setWindowTitle(TITLE + ' ' + myokit.VERSION)
+        self.setWindowTitle(TITLE + ' ' + myokit.__version__)
         # Set size, center
         self.resize(800, 600)
         qr = self.frameGeometry()

@@ -86,7 +86,7 @@ SETTINGS_FILE = '~/.gde.ini'
 N_RECENT_FILES = 5
 
 # About
-ABOUT = '<h1>' + TITLE + ' ' + myokit.VERSION + '</h1>' + """
+ABOUT = '<h1>' + TITLE + '</h1>' + """
 <p>
     Myokit Graph Data Extractor (GDE) is an application for extracting raw
     data points from an image file.
@@ -2493,7 +2493,7 @@ class GraphDataExtractor(myokit.gui.MyokitApplication):
         """
         Sets this window's title based on the current state.
         """
-        title = TITLE + ' ' + myokit.VERSION
+        title = TITLE + ' ' + myokit.__version__
         if self._file:
             title = os.path.basename(self._file) + ' - ' + title
         self.setWindowTitle(title)
