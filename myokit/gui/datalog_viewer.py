@@ -36,9 +36,9 @@ import numpy as np
 
 # ConfigParser in Python 2 and 3
 try:
-    from ConfigParser import ConfigParser
+    import ConfigParser as configparser
 except ImportError:
-    from configparser import RawConfigParser as ConfigParser
+    import configparser
 
 
 # Application title
@@ -240,11 +240,12 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         Loads the user configuration from an ini file.
         """
         # Read ini file
-        inifile = os.path.expanduser(SETTINGS_FILE)
-        if not os.path.isfile(inifile):
-            return
-        config = ConfigParser()
-        config.read(inifile)
+        config = configparser.RawConfigParser()
+        try:
+            config.read(os.path.expanduser(SETTINGS_FILE))
+        except configparser.ParsingError:
+            # Partially read config causes all sorts of errors, so discard
+            config = configparser.RawConfigParser()
 
         # Window dimensions and location
         if config.has_section('window'):
@@ -380,7 +381,8 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         """
         Saves the user configuration to an ini file.
         """
-        config = ConfigParser()
+        config = configparser.RawConfigParser()
+
         # Window dimensions and location
         config.add_section('window')
         g = self.geometry()
@@ -388,9 +390,11 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         config.set('window', 'y', str(g.y()))
         config.set('window', 'w', str(g.width()))
         config.set('window', 'h', str(g.height()))
+
         # Current files, directory, etc
         config.add_section('files')
         config.set('files', 'path', self._path)
+
         # Write configuration to ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
         with open(inifile, 'w') as configfile:

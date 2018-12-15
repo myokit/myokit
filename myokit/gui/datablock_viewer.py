@@ -21,9 +21,9 @@ from myokit.gui import QtWidgets, QtGui, QtCore, Qt
 
 # ConfigParser in Python 2 and 3
 try:
-    from ConfigParser import ConfigParser
+    import ConfigParser as configparser
 except ImportError:
-    from configparser import RawConfigParser as ConfigParser
+    import configparser
 
 
 # Application title
@@ -652,11 +652,12 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         Loads the user configuration from an ini file.
         """
         # Read ini file
-        inifile = os.path.expanduser(SETTINGS_FILE)
-        if not os.path.isfile(inifile):
-            return
-        config = ConfigParser()
-        config.read(inifile)
+        config = configparser.RawConfigParser()
+        try:
+            config.read(os.path.expanduser(SETTINGS_FILE))
+        except configparser.ParsingError:
+            # Partially read config causes all sorts of errors, so discard
+            config = configparser.RawConfigParser()
 
         # Window dimensions and location
         if config.has_section('window'):
@@ -843,7 +844,8 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         Saves the user configuration to an ini file.
         """
-        config = ConfigParser()
+        config = configparser.RawConfigParser()
+
         # Window dimensions and location
         config.add_section('window')
         g = self.geometry()
@@ -851,20 +853,24 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         config.set('window', 'y', str(g.y()))
         config.set('window', 'w', str(g.width()))
         config.set('window', 'h', str(g.height()))
+
         # Splitter position
         config.add_section('splitter')
         s = self._central_widget.sizes()
         config.set('splitter', 's1', str(s[0]))
         config.set('splitter', 's2', str(s[1]))
+
         # Current files, directory, etc
         config.add_section('files')
         config.set('files', 'path', self._path)
         for k, fname in enumerate(self._recent_files):
             config.set('files', 'recent_' + str(k), fname)
+
         # Current control values
         config.add_section('video')
         config.set('video', 'color_map', self._colormap)
         config.set('video', 'interval', self._timer_interval)
+
         # Write configuration to ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
         with open(inifile, 'w') as configfile:
