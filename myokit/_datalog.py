@@ -1519,7 +1519,6 @@ def prepare_log(
     Returns a :class:`DataLog` for simulation classes based on a ``log``
     argument passed in by the user. The model the simulations will be based on
     should be passed in as ``model``.
-    as
 
     The ``log`` argument can take on one of four forms:
 
@@ -1595,7 +1594,7 @@ def prepare_log(
     if ndims == 0:
         dcombos = ['']
     else:
-        dcombos = ['.'.join([str(y) for y in x]) + '.' for x in dimco(*dims)]
+        dcombos = ['.'.join([str(y) for y in x]) + '.' for x in _dimco(*dims)]
 
     # Check given list of global variables
     if global_vars is None:
@@ -1904,7 +1903,7 @@ def prepare_log(
     return log
 
 
-def dimco(*dims):
+def _dimco(*dims):
     """
     Generates all the combinations of a certain set of integer dimensions. For
     example given ``dims=(2, 3)`` it returns::

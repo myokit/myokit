@@ -57,7 +57,7 @@ class AuxTest(unittest.TestCase):
         self.assertNotEqual(a, b)
         a.sort()
         self.assertNotEqual(a, b)
-        a.sort(key=lambda x: myokit.natural_sort_key(x))
+        a.sort(key=lambda x: myokit._natural_sort_key(x))
         self.assertEqual(a, b)
 
     def test_benchmarker(self):
@@ -226,15 +226,15 @@ class AuxTest(unittest.TestCase):
 
     def test_levenshtein_distance(self):
         """ Test the levenshtein distance method. """
-        self.assertEqual(myokit.lvsd('kitten', 'sitting'), 3)
-        self.assertEqual(myokit.lvsd('sitting', 'kitten'), 3)
-        self.assertEqual(myokit.lvsd('saturday', 'sunday'), 3)
-        self.assertEqual(myokit.lvsd('sunday', 'saturday'), 3)
-        self.assertEqual(myokit.lvsd('michael', 'jennifer'), 7)
-        self.assertEqual(myokit.lvsd('jennifer', 'michael'), 7)
-        self.assertEqual(myokit.lvsd('jennifer', ''), 8)
-        self.assertEqual(myokit.lvsd('', 'jennifer'), 8)
-        self.assertEqual(myokit.lvsd('', ''), 0)
+        self.assertEqual(myokit._lvsd('kitten', 'sitting'), 3)
+        self.assertEqual(myokit._lvsd('sitting', 'kitten'), 3)
+        self.assertEqual(myokit._lvsd('saturday', 'sunday'), 3)
+        self.assertEqual(myokit._lvsd('sunday', 'saturday'), 3)
+        self.assertEqual(myokit._lvsd('michael', 'jennifer'), 7)
+        self.assertEqual(myokit._lvsd('jennifer', 'michael'), 7)
+        self.assertEqual(myokit._lvsd('jennifer', ''), 8)
+        self.assertEqual(myokit._lvsd('', 'jennifer'), 8)
+        self.assertEqual(myokit._lvsd('', ''), 0)
 
     def test_model_comparison(self):
         """ Test the model comparison class. """

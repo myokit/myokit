@@ -2745,10 +2745,10 @@ class Model(ObjectWithMeta, VarProvider):
         for v in self.variables(deep=True):
             n1 = v.name()
             n2 = v.qname()
-            d = min(myokit.lvsd(name, n1),
-                    myokit.lvsd(qname, n2),
-                    myokit.lvsd(name_low, n1.lower()),
-                    myokit.lvsd(qname_low, n2.lower()))
+            d = min(myokit._lvsd(name, n1),
+                    myokit._lvsd(qname, n2),
+                    myokit._lvsd(name_low, n1.lower()),
+                    myokit._lvsd(qname_low, n2.lower()))
             if d < mn:
                 mn = d
                 sg = v

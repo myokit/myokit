@@ -463,7 +463,7 @@ from ._aux import (  # noqa
     SubCapture,
 
     # Sorting
-    natural_sort_key,
+    _natural_sort_key,
 
     # Dyanmic generation of Python/NumPy expressions
     python_writer,
@@ -476,7 +476,7 @@ from ._aux import (  # noqa
     Benchmarker,
 
     # Misc
-    lvsd,
+    _lvsd,
     format_path,
     strfloat,
     format_float_dict,
@@ -500,7 +500,7 @@ from ._progress import (    # noqa
 # Data logging
 from ._datalog import (     # noqa
     DataLog,
-    dimco,
+    _dimco,
     LoggedVariableInfo,
     prepare_log,
     split_key,

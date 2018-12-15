@@ -498,11 +498,11 @@ class FiberTissueSimulation(myokit.CModule):
             # Get last logged states before error
             statef = []
             statet = []
-            for dims in myokit.dimco(*self._ncellsf):
+            for dims in myokit._dimco(*self._ncellsf):
                 pre = '.'.join([str(x) for x in dims]) + '.'
                 for s in self._modelf.states():
                     statef.append(_logf[pre + s.qname()][istart])
-            for dims in myokit.dimco(*self._ncellst):
+            for dims in myokit._dimco(*self._ncellst):
                 pre = '.'.join([str(x) for x in dims]) + '.'
                 for s in self._modelt.states():
                     statet.append(_logt[pre + s.qname()][istart])
