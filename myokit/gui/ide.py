@@ -178,6 +178,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._model_editor.redoAvailable.connect(self.change_redo_model)
         self._protocol_editor.redoAvailable.connect(self.change_redo_protocol)
         self._script_editor.redoAvailable.connect(self.change_redo_script)
+        self._model_editor.copyAvailable.connect(self.change_copy_model)
+        self._protocol_editor.copyAvailable.connect(self.change_copy_protocol)
+        self._script_editor.copyAvailable.connect(self.change_copy_script)
 
         # Create console
         self._console = Console()
@@ -371,6 +374,18 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             plt.show()
         except Exception:
             self.show_exception()
+
+    def action_copy(self):
+        """
+        Copy text in editor (when triggered from menu).
+        """
+        self._editor_tabs.currentWidget().copy()
+
+    def action_cut(self):
+        """
+        Cut text in editor (when triggered from menu).
+        """
+        self._editor_tabs.currentWidget().cut()
 
     def action_explore(self):
         """
@@ -716,6 +731,12 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except Exception:
             self.statusBar().showMessage('"Open recent file" failed')
             self.show_exception()
+
+    def action_paste(self):
+        """
+        Paste text in editor (when triggered from menu).
+        """
+        self._editor_tabs.currentWidget().paste()
 
     def action_preview_protocol(self):
         """
@@ -1123,18 +1144,50 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._recent_files = self._recent_files[:N_RECENT_FILES]
         self.update_recent_files_menu()
 
+    def change_copy_model(self, enabled):
+        """
+        Qt slot: CopyAvailable state of model editor changed.
+        """
+        if self._editor_tabs.currentWidget() == self._model_editor:
+            self._tool_copy.setEnabled(enabled)
+            self._tool_cut.setEnabled(enabled)
+
+    def change_copy_protocol(self, enabled):
+        """
+        Qt slot: CopyAvailable state of protocol editor changed.
+        """
+        if self._editor_tabs.currentWidget() == self._protocol_editor:
+            self._tool_copy.setEnabled(enabled)
+            self._tool_cut.setEnabled(enabled)
+
+    def change_copy_script(self, enabled):
+        """
+        Qt slot: CopyAvailable state of script editor changed.
+        """
+        if self._editor_tabs.currentWidget() == self._script_editor:
+            self._tool_copy.setEnabled(enabled)
+            self._tool_cut.setEnabled(enabled)
+
     def change_editor_tab(self, index):
         """
         Qt slot: Called when the editor tab is changed.
         """
+        # Update copy/cut
+        w = self._editor_tabs.currentWidget()
+        e = w.textCursor().hasSelection()
+        self._tool_copy.setEnabled(e)
+        self._tool_cut.setEnabled(e)
+
         # Update undo/redo
-        d = self._editor_tabs.currentWidget().document()
+        d = w.document()
         self._tool_undo.setEnabled(d.isUndoAvailable())
         self._tool_redo.setEnabled(d.isRedoAvailable())
+
         # Hide find/replace dialogs
         es = (self._model_editor, self._protocol_editor, self._script_editor)
         for editor in es:
             editor.hide_find_dialog()
+
         # Show/hide model navigator
         if index == 0:
             self._tool_view_navigator.setEnabled(True)
@@ -1356,6 +1409,34 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_redo.triggered.connect(self.action_redo)
         self._tool_redo.setEnabled(False)
         self._menu_edit.addAction(self._tool_redo)
+        # Edit > ----
+        self._menu_edit.addSeparator()
+        # Edit > Cut
+        self._tool_cut = QtWidgets.QAction('&Cut', self)
+        self._tool_cut.setShortcut('Ctrl+X')
+        self._tool_cut.setStatusTip(
+            'Cut the selected text and copy it to the clipboard.')
+        #self._tool_cut.setIcon(myokit.gui.icon('edit-cut'))
+        self._tool_cut.triggered.connect(self.action_cut)
+        self._tool_cut.setEnabled(False)
+        self._menu_edit.addAction(self._tool_cut)
+        # Edit > Copy
+        self._tool_copy = QtWidgets.QAction('&Copy', self)
+        self._tool_copy.setShortcut('Ctrl+C')
+        self._tool_copy.setStatusTip(
+            'Copy the selected text to the clipboard.')
+        #self._tool_copy.setIcon(myokit.gui.icon('edit-copy'))
+        self._tool_copy.triggered.connect(self.action_copy)
+        self._tool_copy.setEnabled(False)
+        self._menu_edit.addAction(self._tool_copy)
+        # Edit > Paste
+        self._tool_paste = QtWidgets.QAction('&Paste', self)
+        self._tool_paste.setShortcut('Ctrl+V')
+        self._tool_paste.setStatusTip(
+            'Paste text from the clipboard into the editor.')
+        #self._tool_paste.setIcon(myokit.gui.icon('edit-paste'))
+        self._tool_paste.triggered.connect(self.action_paste)
+        self._menu_edit.addAction(self._tool_paste)
         # Edit > ----
         self._menu_edit.addSeparator()
         # Edit > Find and replace
