@@ -39,9 +39,9 @@ import matplotlib.pyplot as plt     # noqa -- Make flake8 ignore this line
 
 # ConfigParser in Python 2 and 3
 try:
-    from ConfigParser import ConfigParser
+    import ConfigParser as configparser
 except ImportError:
-    from configparser import RawConfigParser as ConfigParser
+    import configparser
 
 
 # Application title
@@ -1716,11 +1716,12 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         Loads the user configuration from an ini file.
         """
         # Read ini file
-        inifile = os.path.expanduser(SETTINGS_FILE)
-        if not os.path.isfile(inifile):
-            return
-        config = ConfigParser()
-        config.read(inifile)
+        config = configparser.RawConfigParser()
+        try:
+            config.read(os.path.expanduser(SETTINGS_FILE))
+        except configparser.ParsingError:
+            # Partially read config causes all sorts of errors, so discard
+            config = configparser.RawConfigParser()
 
         def getor(section, name, alt):
             """ Get or use alternative """
@@ -1988,7 +1989,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Saves the user configuration to an ini file.
         """
-        config = ConfigParser()
+        config = configparser.RawConfigParser()
+
         # Window dimensions and location
         config.add_section('window')
         g = self.geometry()
@@ -1996,25 +1998,30 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         config.set('window', 'y', str(g.y()))
         config.set('window', 'w', str(g.width()))
         config.set('window', 'h', str(g.height()))
+
         # Central splitter
         config.add_section('splitter')
         a, b = self._central_splitter.sizes()
         config.set('splitter', 'top', str(a))
         config.set('splitter', 'bottom', str(b))
+
         # Current and recent files
         config.add_section('files')
         config.set('files', 'file', self._file)
         for k, filename in enumerate(self._recent_files):
             config.set('files', 'recent_' + str(k), filename)
+
         # Source editors
         self._model_editor.save_config(config, 'model_editor')
         self._protocol_editor.save_config(config, 'protocol_editor')
         self._script_editor.save_config(config, 'script_editor')
+
         # Model navigator visibility
         config.add_section('model_navigator')
         config.set(
             'model_navigator', 'visible',
             str(self._tool_view_navigator.isChecked()))
+
         # Write configuration to ini file
         inifile = os.path.expanduser(SETTINGS_FILE)
         with open(inifile, 'w') as configfile:
