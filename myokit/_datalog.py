@@ -1614,16 +1614,23 @@ def prepare_log(
     # Function to check if variable is allowed (doesn't handle derivatives)
     def check_if_allowed_class(var):
         if var.is_constant():
-            raise ValueError('This log does not support constants.')
+            raise ValueError(
+                'This log does not support constants, got <'
+                + str(var) + '>.')
         elif var.is_state():
             if not myokit.LOG_STATE & allowed_classes:
-                raise ValueError('This log does not support state variables.')
+                raise ValueError(
+                    'This log does not support state variables, got <'
+                    + str(var) + '>.')
         elif var.is_bound():
             if not myokit.LOG_BOUND & allowed_classes:
-                raise ValueError('This log does not support bound variables.')
+                raise ValueError(
+                    'This log does not support bound variables, got <'
+                    + str(var) + '>.')
         elif not myokit.LOG_INTER & allowed_classes:
             raise ValueError(
-                'This log does not support intermediary variables.')
+                'This log does not support intermediary variables, got <'
+                + str(var) + '>.')
 
     #
     # First option, no log argument given, use the "if_empty" option
@@ -1765,7 +1772,9 @@ def prepare_log(
             # Check if in class of allowed variables
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
-                    raise ValueError('This log does not support derivatives.')
+                    raise ValueError(
+                        'This log does not support derivatives, got <'
+                        + key + '>.')
                 if not var.is_state():
                     raise ValueError(
                         'Cannot log time derivative of non-state <'
@@ -1859,7 +1868,9 @@ def prepare_log(
             if deriv:
                 if not myokit.LOG_DERIV & allowed_classes:
                     raise ValueError(
-                        'This log does not support derivatives.')
+                        'This log does not support derivatives, got <'
+                        + key + '>.')
+
                 if not var.is_state():
                     raise ValueError(
                         'Cannot log time derivative of non-state <'
