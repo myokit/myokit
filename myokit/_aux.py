@@ -62,13 +62,13 @@ def time():
     return t.strftime(myokit.TIME_FORMAT)
 
 
-def natural_sort_key(s):
+def _natural_sort_key(s):
     """
     Natural sort key, from: http://stackoverflow.com/questions/4836710/
 
     Usage example::
 
-        values.sort(key=lambda x: myokit.natural_sort_key(x))
+        values.sort(key=lambda x: myokit._natural_sort_key(x))
 
     """
     return [
@@ -549,7 +549,7 @@ def load_state_bin(filename):
     return list(ar)
 
 
-def lvsd(s1, s2):
+def _lvsd(s1, s2):
     """
     Calculates a Levenshtein distance, as found on wikibooks
 
@@ -558,7 +558,7 @@ def lvsd(s1, s2):
     :returns: int The distance between s1 and s2
     """
     if len(s1) < len(s2):
-        return lvsd(s2, s1)
+        return _lvsd(s2, s1)
 
     if not s1:
         return len(s2)

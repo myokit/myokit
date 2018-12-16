@@ -474,7 +474,7 @@ class SimulationOpenCL(myokit.CModule):
                 kfirst = None
                 post = '.' + watch_var.qname()
                 lower, upper = safe_range
-                for dims in myokit.dimco(*self._dims):
+                for dims in myokit._dimco(*self._dims):
                     key = '.'.join([str(x) for x in dims]) + post
                     ar = np.array(_log[key], copy=False)
                     i = np.where(
@@ -507,29 +507,36 @@ class SimulationOpenCL(myokit.CModule):
                 raise myokit.FindNanError(
                     'Unable to work with simulation logs where the error'
                     ' condition is met in the very first data point.')
+
             # Position to start deep search at
             istart = ifirst - 1
+
             # Get last logged state before error
             state = []
-            for dims in myokit.dimco(*self._dims):
+            for dims in myokit._dimco(*self._dims):
                 pre = '.'.join([str(x) for x in dims]) + '.'
                 for s in self._model.states():
                     state.append(_log[pre + s.qname()][istart])
+
             # Get last time before error
             time = _log[time_var][istart]
+
             # Save current state & time
             old_state = self._state
             old_time = self._time
             self._state = state
             self._time = time
+
             # Run until next time point, log every step
             duration = _log[time_var][ifirst] - time
             _log = self.run(
                 duration, log=myokit.LOG_BOUND + myokit.LOG_STATE,
                 log_interval=_dt, report_nan=False)
+
             # Reset simulation to original state
             self._state = old_state
             self._time = old_time
+
             # Return new log
             return _log
 

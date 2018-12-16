@@ -519,7 +519,7 @@ class LinearModel(object):
             parameters = [
                 x for x in component.variables(const=True) if x.is_literal()]
             # Sort by qname, using natural sort
-            parameters.sort(key=lambda x: myokit.natural_sort_key(x.qname()))
+            parameters.sort(key=lambda x: myokit._natural_sort_key(x.qname()))
 
         # Get current
         if current is None:

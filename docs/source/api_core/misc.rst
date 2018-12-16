@@ -42,8 +42,6 @@ String functions
 
 .. autofunction:: format_path
 
-.. autofunction:: lvsd
-
 .. autofunction:: strfloat
 
 .. autofunction:: time
@@ -58,8 +56,6 @@ Other functions
 .. autofunction:: default_script
 
 .. autofunction:: pack_snapshot
-
-.. autofunction:: natural_sort_key
 
 .. autofunction:: numpy_writer
 

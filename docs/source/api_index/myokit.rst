@@ -29,7 +29,6 @@ myokit
 - :meth:`myokit.default_protocol`
 - :meth:`myokit.default_script`
 - :class:`myokit.Derivative`
-- :meth:`myokit.dimco`
 - :class:`myokit.Divide`
 - :class:`myokit.DuplicateFunctionArgument`
 - :class:`myokit.DuplicateFunctionName`
@@ -75,7 +74,6 @@ myokit
 - :meth:`myokit.load_script`
 - :meth:`myokit.load_state`
 - :meth:`myokit.load_state_bin`
-- :meth:`myokit.lvsd`
 - :class:`myokit.Log`
 - :class:`myokit.Log10`
 - :class:`myokit.LoggedVariableInfo`
@@ -95,7 +93,6 @@ myokit
 - :class:`myokit.NotEqual`
 - :class:`myokit.Number`
 - :class:`myokit.NumericalError`
-- :meth:`myokit.natural_sort_key`
 - :meth:`myokit.numpy_writer`
 - :class:`myokit.OpenCL`
 - :class:`myokit.OpenCLDeviceInfo`
