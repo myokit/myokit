@@ -975,7 +975,7 @@ sim_step(PyObject *self, PyObject *args)
         engine_steps++;
 
         // If we got to this point without errors...
-        if (flag_cvode == CV_SUCCESS || CV_ROOT_RETURN) {
+        if ((flag_cvode == CV_SUCCESS) || (flag_cvode == CV_ROOT_RETURN)) {
 
             // Next stop time reached?
             if (engine_time > tnext) {
