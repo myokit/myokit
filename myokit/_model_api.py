@@ -2598,6 +2598,9 @@ class Model(ObjectWithMeta, VarProvider):
 
     def solvable_subset(self, *args):
         """
+        This method is deprecated and will be removed in future versions of
+        Myokit.
+
         Returns all equations dependent on one or more :class:`LhsExpression`
         objects in a solvable order. The resulting equations are stored in an
         :class:`EquationList`.
@@ -2608,11 +2611,12 @@ class Model(ObjectWithMeta, VarProvider):
         The input arguments can be given as :class:`LhsExpression` objects or
         string names of variables.
         """
-        # DEPRECATED
         import logging
         logging.basicConfig()
         log = logging.getLogger(__name__)
-        log.warning('The method `solvable_subset` is deprecated.')
+        log.warning(
+            'The method `solvable_subset` is deprecated: it will be removed in'
+            ' future versions of Myokit.')
 
         # 1. Get set of root lhs objects
         msg = 'All input arguments to solvable_subset must be' \
