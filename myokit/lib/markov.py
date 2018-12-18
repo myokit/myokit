@@ -10,7 +10,9 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import numpy as np
+
 import myokit
+from myokit.formats import sympy
 
 
 class LinearModel(object):
@@ -111,7 +113,6 @@ class LinearModel(object):
         (default) the method will search for a variable with the label
         ``membrane_potential``.
 
-    *Note: this class requires Sympy to be installed.*
     """
     # NOTE: A LinearModel must be immutable!
     # This ensures that the simulations don't have to clone it (which would be
@@ -121,10 +122,6 @@ class LinearModel(object):
     # its internal state in any way!
     def __init__(self, model, states, parameters=None, current=None, vm=None):
         super(LinearModel, self).__init__()
-
-        # Import sympy, or raise an ImportError if we can't.
-        from myokit.formats import sympy
-        del(sympy)
 
         #
         # Check input
@@ -291,8 +288,6 @@ class LinearModel(object):
         (This method is called only once, by the constructor, but it's
         complicated enough to warrant its own method...)
         """
-        from myokit.formats import sympy
-
         # Create mapping from states to index
         state_indices = {}
         for k, state in enumerate(self._states):

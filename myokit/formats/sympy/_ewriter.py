@@ -9,12 +9,9 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import myokit.formats
+import sympy as sp
 
-try:
-    import sympy as sp
-except ImportError:
-    pass
+import myokit.formats
 
 
 class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
@@ -26,11 +23,6 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
     """
     def __init__(self):
         super(SymPyExpressionWriter, self).__init__()
-
-        try:
-            import sympy # noqa
-        except ImportError:
-            raise ImportError('This class requires SymPy to be installed.')
 
         self._flhs = None
         self.set_lhs_function(lambda lhs: str(lhs))

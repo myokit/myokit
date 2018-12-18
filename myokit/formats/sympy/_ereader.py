@@ -11,27 +11,25 @@ from __future__ import print_function, unicode_literals
 
 import myokit
 import myokit.formats
-try:
-    from sympy.core.symbol import Symbol
-    from sympy.core.numbers import Number, NegativeOne
-    from sympy.core.add import Add
-    from sympy.core.mul import Mul
-    from sympy.core.mod import Mod
-    from sympy.core.power import Pow
-    from sympy.functions.elementary.trigonometric import (
-        sin, cos, tan, asin, acos, atan)
-    from sympy.functions.elementary.exponential import exp, log
-    from sympy.functions.elementary.integers import floor, ceiling
-    from sympy.functions.elementary.complexes import Abs
-    from sympy.logic.boolalg import Not
-    from sympy.core.relational import (
-        Equality, Unequality, StrictGreaterThan, StrictLessThan,
-        GreaterThan, LessThan)
-    from sympy.logic.boolalg import And, Or
-    from sympy.functions.elementary.piecewise import Piecewise
-    from sympy.logic.boolalg import BooleanTrue, BooleanFalse
-except ImportError:
-    pass
+
+from sympy.core.symbol import Symbol
+from sympy.core.numbers import Number, NegativeOne
+from sympy.core.add import Add
+from sympy.core.mul import Mul
+from sympy.core.mod import Mod
+from sympy.core.power import Pow
+from sympy.functions.elementary.trigonometric import (
+    sin, cos, tan, asin, acos, atan)
+from sympy.functions.elementary.exponential import exp, log
+from sympy.functions.elementary.integers import floor, ceiling
+from sympy.functions.elementary.complexes import Abs
+from sympy.logic.boolalg import Not
+from sympy.core.relational import (
+    Equality, Unequality, StrictGreaterThan, StrictLessThan,
+    GreaterThan, LessThan)
+from sympy.logic.boolalg import And, Or
+from sympy.functions.elementary.piecewise import Piecewise
+from sympy.logic.boolalg import BooleanTrue, BooleanFalse
 
 
 class SymPyExpressionReader(object):
@@ -42,11 +40,6 @@ class SymPyExpressionReader(object):
     given, string names will be used instead of myokit Variable objects.
     """
     def __init__(self, model=None):
-        try:
-            import sympy # noqa
-        except ImportError:
-            raise ImportError('This class requires SymPy to be installed.')
-
         self._model = model
         self._op_map = self._build_op_map()
 
