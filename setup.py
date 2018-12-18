@@ -64,6 +64,7 @@ setup(
         'matplotlib>=1.5',
         'configparser',
         'setuptools',
+        'sympy',            # Used in lib.markov
         # PyQT or PySide?
         # (PySide is pip installable, Travis can get PyQt from apt)
     ],
@@ -78,7 +79,6 @@ setup(
         ],
         'optional': [
             'cma',                      # Used in lib.fit
-            'sympy',                    # Used in formats.sympy
         ],
         'gui': [
             'pyqt5',
