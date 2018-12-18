@@ -315,7 +315,11 @@ while next:
     t = tMin;
 
     /* Create solver */
+    #if MYOKIT_SUNDIALS_VERSION >= 40000
+    cvode_mem = CVodeCreate(CV_BDF);
+    #else
     cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+    #endif
     if (check_flag((void*)cvode_mem, "CVodeCreate", 0)) goto error;
     flag = CVodeInit(cvode_mem, rhs, t, y);
     if (check_flag(&flag, "CVodeInit", 1)) goto error;
