@@ -766,7 +766,11 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
 
     /* Create solver
      * Using Backward differentiation and Newton iteration */
-    cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+    #if MYOKIT_SUNDIALS_VERSION >= 40000
+        cvode_mem = CVodeCreate(CV_BDF);
+    #else
+        cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+    #endif
     if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
 
     /* Initialise solver memory, specify the rhs */
@@ -975,7 +979,7 @@ sim_step(PyObject *self, PyObject *args)
         engine_steps++;
 
         // If we got to this point without errors...
-        if (flag_cvode == CV_SUCCESS || CV_ROOT_RETURN) {
+        if ((flag_cvode == CV_SUCCESS) || (flag_cvode == CV_ROOT_RETURN)) {
 
             // Next stop time reached?
             if (engine_time > tnext) {
