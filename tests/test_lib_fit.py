@@ -18,7 +18,7 @@ import myokit
 import myokit.lib.fit as fit
 import myokit.lib.markov as markov
 
-from shared import DIR_DATA, SymPy_FOUND
+from shared import DIR_DATA
 
 # Unit testing in Python 2 and 3
 try:
@@ -156,7 +156,6 @@ class EvaluatorTest(unittest.TestCase):
         self.assertIsNotNone(errors.get(timeout=0.01))
 
 
-@unittest.skipIf(not SymPy_FOUND, 'SymPy not found on this system.')
 class FittingTest(unittest.TestCase):
     """
     Performs very basic tests of fitting methods (e.g., do they run).
