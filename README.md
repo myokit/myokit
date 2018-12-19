@@ -25,6 +25,8 @@ On linux and windows, start menu icons can then be added by running
 To run single-cell simulations, [CVODE](https://computation.llnl.gov/projects/sundials/sundials-software) must be installed (windows binaries are included in the pip install).
 In addition, Myokit needs a working C/C++ compiler to be present on the system.
 
+For the graphical parts (such as the IDE) to work, you'll also need to have either PyQt4, PyQt5, or PySide installed (PySide2 is not yet supported).
+
 For full details, see [http://myokit.org/install](http://myokit.org/install).
 
 ## Quick-start guide
@@ -40,8 +42,6 @@ or simply
 To open an IDE window, type
 
     myokit ide
-
-Note that you'll need to have either PyQt4, PyQt5, or PySide installed for the IDE to work.
 
 To see what else Myokit can do, type
 
