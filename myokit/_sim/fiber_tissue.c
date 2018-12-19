@@ -176,13 +176,9 @@ ESys pacing = NULL;
 double engine_pace = 0;
 
 /* OpenCL work group sizes */
-size_t local_work_size_f[2];
-size_t local_work_size_t[2];
-/* Total number of work items rounded up to a multiple of the local size */
 size_t global_work_size_f[2];
 size_t global_work_size_t[2];
 /* Number of work items for the connection step */
-size_t local_work_size_ft;
 size_t global_work_size_ft;
 
 /* Kernel arguments copied into "Real" type */
@@ -500,19 +496,14 @@ sim_init(PyObject* self, PyObject* args)
 
     // Work group size and total number of items
     // TODO: Check against CL_DEVICE_MAX_WORK_GROUP_SIZE in clDeviceGetInfo
-    local_work_size_f[0] = nfx < 8 ? nfx : 8;
-    local_work_size_f[1] = nfy < 8 ? nfy : 8;
-    local_work_size_t[0] = ntx < 8 ? ntx : 8;
-    local_work_size_t[1] = nty < 8 ? nty : 8;
-    global_work_size_f[0] = mcl_round_total_size(local_work_size_f[0], nfx);
-    global_work_size_f[1] = mcl_round_total_size(local_work_size_f[1], nfy);
-    global_work_size_t[0] = mcl_round_total_size(local_work_size_t[0], ntx);
-    global_work_size_t[1] = mcl_round_total_size(local_work_size_t[1], nty);
-    local_work_size_ft = nfy < 8 ? nfy : 8;
-    global_work_size_ft = mcl_round_total_size(local_work_size_ft, nfy);
+    global_work_size_f[0] = nfx;
+    global_work_size_f[1] = nfy;
+    global_work_size_t[0] = ntx;
+    global_work_size_t[1] = nty;
+    global_work_size_ft = nfy;
 
     #ifdef MYOKIT_DEBUG
-    printf("Local and global work sizes set.\n");
+    printf("Global work sizes set.\n");
     #endif
 
     // Create state vectors, set initial values
@@ -998,9 +989,9 @@ sim_step(PyObject *self, PyObject *args)
         arg_dt = (Real)dt;
 
         /* Update diffusion current, calculating it for time t */
-        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff_f, 2, NULL, global_work_size_f, local_work_size_f, 0, NULL, NULL))) return sim_clean();
-        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff_t, 2, NULL, global_work_size_t, local_work_size_t, 0, NULL, NULL))) return sim_clean();
-        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff_ft, 1, NULL, &global_work_size_ft, &local_work_size_ft, 0, NULL, NULL))) return sim_clean();
+        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff_f, 2, NULL, global_work_size_f, NULL, 0, NULL, NULL))) return sim_clean();
+        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff_t, 2, NULL, global_work_size_t, NULL, 0, NULL, NULL))) return sim_clean();
+        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff_ft, 1, NULL, &global_work_size_ft, NULL, 0, NULL, NULL))) return sim_clean();
 
         /* Logging at time t? Then download the states from the device */
         if(logging_condition) {
@@ -1025,11 +1016,11 @@ sim_step(PyObject *self, PyObject *args)
         if(mcl_flag(clSetKernelArg(kernel_cell_f, 2, sizeof(Real), &arg_time))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cell_f, 3, sizeof(Real), &arg_dt))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cell_f, 4, sizeof(Real), &arg_pace))) return sim_clean();
-        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_cell_f, 2, NULL, global_work_size_f, local_work_size_f, 0, NULL, NULL))) return sim_clean();
+        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_cell_f, 2, NULL, global_work_size_f, NULL, 0, NULL, NULL))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cell_t, 2, sizeof(Real), &arg_time))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cell_t, 3, sizeof(Real), &arg_dt))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cell_t, 4, sizeof(Real), &arg_pace))) return sim_clean();
-        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_cell_t, 2, NULL, global_work_size_t, local_work_size_t, 0, NULL, NULL))) return sim_clean();
+        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_cell_t, 2, NULL, global_work_size_t, NULL, 0, NULL, NULL))) return sim_clean();
 
         /* Log situation at time t (so just before the last update) */
         if(logging_condition) {
