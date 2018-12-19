@@ -67,161 +67,170 @@ void trim(char *str)
  * else, returns 0.
  */
 static int
-mcl_flag2(const char* id, const cl_int flag)
+mcl_flag2(const char* msg, const cl_int flag)
 {
-    char err[1024];
+    if(flag == CL_SUCCESS) {
+        return 0;
+    }
+
+    char sub[1024];
+    if(strcmp(msg, "")) {
+        sprintf(sub, " (%s)", msg);
+    } else {
+        sprintf(sub, "");
+    }
+
+    char err[2048];
     switch(flag) {
-        case CL_SUCCESS:
-            return 0;
         case CL_DEVICE_NOT_FOUND:
-            sprintf(err, "OpenCL error (%s): CL_DEVICE_NOT_FOUND", id);
+            sprintf(err, "OpenCL error%s: CL_DEVICE_NOT_FOUND", sub);
             break;
         case CL_DEVICE_NOT_AVAILABLE:
-            sprintf(err, "OpenCL error (%s): CL_DEVICE_NOT_AVAILABLE", id);
+            sprintf(err, "OpenCL error%s: CL_DEVICE_NOT_AVAILABLE", sub);
             break;
         case CL_COMPILER_NOT_AVAILABLE:
-            sprintf(err, "OpenCL error (%s): CL_COMPILER_NOT_AVAILABLE", id);
+            sprintf(err, "OpenCL error%s: CL_COMPILER_NOT_AVAILABLE", sub);
             break;
         case CL_MEM_OBJECT_ALLOCATION_FAILURE:
-            sprintf(err, "OpenCL error (%s): CL_MEM_OBJECT_ALLOCATION_FAILURE", id);
+            sprintf(err, "OpenCL error%s: CL_MEM_OBJECT_ALLOCATION_FAILURE", sub);
             break;
         case CL_OUT_OF_RESOURCES:
-            sprintf(err, "OpenCL error (%s): CL_OUT_OF_RESOURCES", id);
+            sprintf(err, "OpenCL error%s: CL_OUT_OF_RESOURCES", sub);
             break;
         case CL_OUT_OF_HOST_MEMORY:
-            sprintf(err, "OpenCL error (%s): CL_OUT_OF_HOST_MEMORY", id);
+            sprintf(err, "OpenCL error%s: CL_OUT_OF_HOST_MEMORY", sub);
             break;
         case CL_PROFILING_INFO_NOT_AVAILABLE:
-            sprintf(err, "OpenCL error (%s): CL_PROFILING_INFO_NOT_AVAILABLE", id);
+            sprintf(err, "OpenCL error%s: CL_PROFILING_INFO_NOT_AVAILABLE", sub);
             break;
         case CL_MEM_COPY_OVERLAP:
-            sprintf(err, "OpenCL error (%s): CL_MEM_COPY_OVERLAP", id);
+            sprintf(err, "OpenCL error%s: CL_MEM_COPY_OVERLAP", sub);
             break;
         case CL_IMAGE_FORMAT_MISMATCH:
-            sprintf(err, "OpenCL error (%s): CL_IMAGE_FORMAT_MISMATCH", id);
+            sprintf(err, "OpenCL error%s: CL_IMAGE_FORMAT_MISMATCH", sub);
             break;
         case CL_IMAGE_FORMAT_NOT_SUPPORTED:
-            sprintf(err, "OpenCL error (%s): CL_IMAGE_FORMAT_NOT_SUPPORTED", id);
+            sprintf(err, "OpenCL error%s: CL_IMAGE_FORMAT_NOT_SUPPORTED", sub);
             break;
         case CL_BUILD_PROGRAM_FAILURE:
-            sprintf(err, "OpenCL error (%s): CL_BUILD_PROGRAM_FAILURE", id);
+            sprintf(err, "OpenCL error%s: CL_BUILD_PROGRAM_FAILURE", sub);
             break;
         case CL_MAP_FAILURE:
-            sprintf(err, "OpenCL error (%s): CL_MAP_FAILURE", id);
+            sprintf(err, "OpenCL error%s: CL_MAP_FAILURE", sub);
             break;
         case CL_MISALIGNED_SUB_BUFFER_OFFSET:
-            sprintf(err, "OpenCL error (%s): CL_MISALIGNED_SUB_BUFFER_OFFSET", id);
+            sprintf(err, "OpenCL error%s: CL_MISALIGNED_SUB_BUFFER_OFFSET", sub);
             break;
         case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:
-            sprintf(err, "OpenCL error (%s): CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST", id);
+            sprintf(err, "OpenCL error%s: CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST", sub);
             break;
         case CL_INVALID_VALUE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_VALUE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_VALUE", sub);
             break;
         case CL_INVALID_DEVICE_TYPE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_DEVICE_TYPE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_DEVICE_TYPE", sub);
             break;
         case CL_INVALID_PLATFORM:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_PLATFORM", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_PLATFORM", sub);
             break;
         case CL_INVALID_DEVICE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_DEVICE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_DEVICE", sub);
             break;
         case CL_INVALID_CONTEXT:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_CONTEXT", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_CONTEXT", sub);
             break;
         case CL_INVALID_QUEUE_PROPERTIES:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_QUEUE_PROPERTIES", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_QUEUE_PROPERTIES", sub);
             break;
         case CL_INVALID_COMMAND_QUEUE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_COMMAND_QUEUE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_COMMAND_QUEUE", sub);
             break;
         case CL_INVALID_HOST_PTR:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_HOST_PTR", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_HOST_PTR", sub);
             break;
         case CL_INVALID_MEM_OBJECT:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_MEM_OBJECT", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_MEM_OBJECT", sub);
             break;
         case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_IMAGE_FORMAT_DESCRIPTOR", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_IMAGE_FORMAT_DESCRIPTOR", sub);
             break;
         case CL_INVALID_IMAGE_SIZE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_IMAGE_SIZE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_IMAGE_SIZE", sub);
             break;
         case CL_INVALID_SAMPLER:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_SAMPLER", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_SAMPLER", sub);
             break;
         case CL_INVALID_BINARY:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_BINARY", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_BINARY", sub);
             break;
         case CL_INVALID_BUILD_OPTIONS:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_BUILD_OPTIONS", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_BUILD_OPTIONS", sub);
             break;
         case CL_INVALID_PROGRAM:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_PROGRAM", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_PROGRAM", sub);
             break;
         case CL_INVALID_PROGRAM_EXECUTABLE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_PROGRAM_EXECUTABLE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_PROGRAM_EXECUTABLE", sub);
             break;
         case CL_INVALID_KERNEL_NAME:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_KERNEL_NAME", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL_NAME", sub);
             break;
         case CL_INVALID_KERNEL_DEFINITION:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_KERNEL_DEFINITION", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL_DEFINITION", sub);
             break;
         case CL_INVALID_KERNEL:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_KERNEL", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL", sub);
             break;
         case CL_INVALID_ARG_INDEX:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_ARG_INDEX", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_ARG_INDEX", sub);
             break;
         case CL_INVALID_ARG_VALUE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_ARG_VALUE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_ARG_VALUE", sub);
             break;
         case CL_INVALID_ARG_SIZE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_ARG_SIZE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_ARG_SIZE", sub);
             break;
         case CL_INVALID_KERNEL_ARGS:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_KERNEL_ARGS", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL_ARGS", sub);
             break;
         case CL_INVALID_WORK_DIMENSION:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_WORK_DIMENSION", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_WORK_DIMENSION", sub);
             break;
         case CL_INVALID_WORK_GROUP_SIZE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_WORK_GROUP_SIZE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_WORK_GROUP_SIZE", sub);
             break;
         case CL_INVALID_WORK_ITEM_SIZE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_WORK_ITEM_SIZE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_WORK_ITEM_SIZE", sub);
             break;
         case CL_INVALID_GLOBAL_OFFSET:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_GLOBAL_OFFSET", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_GLOBAL_OFFSET", sub);
             break;
         case CL_INVALID_EVENT_WAIT_LIST:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_EVENT_WAIT_LIST", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_EVENT_WAIT_LIST", sub);
             break;
         case CL_INVALID_EVENT:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_EVENT", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_EVENT", sub);
             break;
         case CL_INVALID_OPERATION:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_OPERATION", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_OPERATION", sub);
             break;
         case CL_INVALID_GL_OBJECT:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_GL_OBJECT", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_GL_OBJECT", sub);
             break;
         case CL_INVALID_BUFFER_SIZE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_BUFFER_SIZE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_BUFFER_SIZE", sub);
             break;
         case CL_INVALID_MIP_LEVEL:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_MIP_LEVEL", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_MIP_LEVEL", sub);
             break;
         case CL_INVALID_GLOBAL_WORK_SIZE:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_GLOBAL_WORK_SIZE", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_GLOBAL_WORK_SIZE", sub);
             break;
         case CL_INVALID_PROPERTY:
-            sprintf(err, "OpenCL error (%s): CL_INVALID_PROPERTY", id);
+            sprintf(err, "OpenCL error%s: CL_INVALID_PROPERTY", sub);
             break;
         default:
-            sprintf(err, "Unknown OpenCL error (%s): %i", id, (int)flag);
+            sprintf(err, "Unknown OpenCL error%s: %i", sub, (int)flag);
             break;
     };
     PyErr_SetString(PyExc_Exception, err);
