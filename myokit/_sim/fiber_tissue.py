@@ -225,7 +225,8 @@ class FiberTissueSimulation(myokit.CModule):
         self._precision = precision
 
         # Always use native maths
-        self._native_math = True
+        #TODO ONLY USE IF USER ASKS
+        self._native_math = False
 
         # Set remaining properties
         self._time = 0

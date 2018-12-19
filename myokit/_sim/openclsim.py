@@ -247,7 +247,8 @@ class SimulationOpenCL(myokit.CModule):
         self._nstate = self._model.count_states()
 
         # Always use native maths
-        self._native_math = True
+        #TODO: ONLY USE NATIVE IF USER ASKS FOR IT
+        self._native_math = False
 
         # Set state and default state
         self._state = self._model.state() * self._ntotal
