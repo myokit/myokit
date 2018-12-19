@@ -292,8 +292,11 @@ class SimulationOpenCL(myokit.CModule):
             #sys.exit(1)
 
         # Define libraries
-        libs = ['OpenCL']
-        if platform.system() != 'Windows':  # pragma: no windows cover
+        libs = []
+        plat = platform.system()
+        if plat != 'Darwin':     # pragma: no osx cover
+            libs.append('OpenCL')
+        if plat != 'Windows':    # pragma: no windows cover
             libs.append('m')
 
         # Create extension
