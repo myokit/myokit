@@ -63,8 +63,10 @@ void trim(char *str)
 }
 
 /*
- * Checks for an opencl error, returns 1 if found and sets the error message,
- * else, returns 0.
+ * Checks the given flag for an opencl error, returns 1 if found and sets the
+ * error message, else, returns 0.
+ *
+ * An extra note about the error can be passed in as msg.
  */
 static int
 mcl_flag2(const char* msg, const cl_int flag)
@@ -237,12 +239,15 @@ mcl_flag2(const char* msg, const cl_int flag)
     return 1;
 }
 
+/*
+ * Checks the given flag for an opencl error, returns 1 if found and sets the
+ * error message, else, returns 0.
+ */
 static int
 mcl_flag(const cl_int flag)
 {
     return mcl_flag2("", flag);
 }
-
 
 /*
  * Searches for the preferred platform and device.
