@@ -22,7 +22,7 @@
 
 // Load the opencl libraries.
 #ifdef __APPLE__
-#include <OpenCL/opencl.h>
+#include <OpenCL/cl.h>
 #else
 #include <CL/cl.h>
 #endif
@@ -63,171 +63,190 @@ void trim(char *str)
 }
 
 /*
- * Checks for an opencl error, returns 1 if found and sets the error message,
- * else, returns 0.
+ * Checks the given flag for an opencl error, returns 1 if found and sets the
+ * error message, else, returns 0.
+ *
+ * An extra note about the error can be passed in as msg.
+ */
+static int
+mcl_flag2(const char* msg, const cl_int flag)
+{
+    if(flag == CL_SUCCESS) {
+        return 0;
+    }
+
+    char sub[1024];
+    if(strcmp(msg, "")) {
+        sprintf(sub, " (%s)", msg);
+    } else {
+        sprintf(sub, "");
+    }
+
+    char err[2048];
+    switch(flag) {
+        case CL_DEVICE_NOT_FOUND:
+            sprintf(err, "OpenCL error%s: CL_DEVICE_NOT_FOUND", sub);
+            break;
+        case CL_DEVICE_NOT_AVAILABLE:
+            sprintf(err, "OpenCL error%s: CL_DEVICE_NOT_AVAILABLE", sub);
+            break;
+        case CL_COMPILER_NOT_AVAILABLE:
+            sprintf(err, "OpenCL error%s: CL_COMPILER_NOT_AVAILABLE", sub);
+            break;
+        case CL_MEM_OBJECT_ALLOCATION_FAILURE:
+            sprintf(err, "OpenCL error%s: CL_MEM_OBJECT_ALLOCATION_FAILURE", sub);
+            break;
+        case CL_OUT_OF_RESOURCES:
+            sprintf(err, "OpenCL error%s: CL_OUT_OF_RESOURCES", sub);
+            break;
+        case CL_OUT_OF_HOST_MEMORY:
+            sprintf(err, "OpenCL error%s: CL_OUT_OF_HOST_MEMORY", sub);
+            break;
+        case CL_PROFILING_INFO_NOT_AVAILABLE:
+            sprintf(err, "OpenCL error%s: CL_PROFILING_INFO_NOT_AVAILABLE", sub);
+            break;
+        case CL_MEM_COPY_OVERLAP:
+            sprintf(err, "OpenCL error%s: CL_MEM_COPY_OVERLAP", sub);
+            break;
+        case CL_IMAGE_FORMAT_MISMATCH:
+            sprintf(err, "OpenCL error%s: CL_IMAGE_FORMAT_MISMATCH", sub);
+            break;
+        case CL_IMAGE_FORMAT_NOT_SUPPORTED:
+            sprintf(err, "OpenCL error%s: CL_IMAGE_FORMAT_NOT_SUPPORTED", sub);
+            break;
+        case CL_BUILD_PROGRAM_FAILURE:
+            sprintf(err, "OpenCL error%s: CL_BUILD_PROGRAM_FAILURE", sub);
+            break;
+        case CL_MAP_FAILURE:
+            sprintf(err, "OpenCL error%s: CL_MAP_FAILURE", sub);
+            break;
+        case CL_MISALIGNED_SUB_BUFFER_OFFSET:
+            sprintf(err, "OpenCL error%s: CL_MISALIGNED_SUB_BUFFER_OFFSET", sub);
+            break;
+        case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:
+            sprintf(err, "OpenCL error%s: CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST", sub);
+            break;
+        case CL_INVALID_VALUE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_VALUE", sub);
+            break;
+        case CL_INVALID_DEVICE_TYPE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_DEVICE_TYPE", sub);
+            break;
+        case CL_INVALID_PLATFORM:
+            sprintf(err, "OpenCL error%s: CL_INVALID_PLATFORM", sub);
+            break;
+        case CL_INVALID_DEVICE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_DEVICE", sub);
+            break;
+        case CL_INVALID_CONTEXT:
+            sprintf(err, "OpenCL error%s: CL_INVALID_CONTEXT", sub);
+            break;
+        case CL_INVALID_QUEUE_PROPERTIES:
+            sprintf(err, "OpenCL error%s: CL_INVALID_QUEUE_PROPERTIES", sub);
+            break;
+        case CL_INVALID_COMMAND_QUEUE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_COMMAND_QUEUE", sub);
+            break;
+        case CL_INVALID_HOST_PTR:
+            sprintf(err, "OpenCL error%s: CL_INVALID_HOST_PTR", sub);
+            break;
+        case CL_INVALID_MEM_OBJECT:
+            sprintf(err, "OpenCL error%s: CL_INVALID_MEM_OBJECT", sub);
+            break;
+        case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:
+            sprintf(err, "OpenCL error%s: CL_INVALID_IMAGE_FORMAT_DESCRIPTOR", sub);
+            break;
+        case CL_INVALID_IMAGE_SIZE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_IMAGE_SIZE", sub);
+            break;
+        case CL_INVALID_SAMPLER:
+            sprintf(err, "OpenCL error%s: CL_INVALID_SAMPLER", sub);
+            break;
+        case CL_INVALID_BINARY:
+            sprintf(err, "OpenCL error%s: CL_INVALID_BINARY", sub);
+            break;
+        case CL_INVALID_BUILD_OPTIONS:
+            sprintf(err, "OpenCL error%s: CL_INVALID_BUILD_OPTIONS", sub);
+            break;
+        case CL_INVALID_PROGRAM:
+            sprintf(err, "OpenCL error%s: CL_INVALID_PROGRAM", sub);
+            break;
+        case CL_INVALID_PROGRAM_EXECUTABLE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_PROGRAM_EXECUTABLE", sub);
+            break;
+        case CL_INVALID_KERNEL_NAME:
+            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL_NAME", sub);
+            break;
+        case CL_INVALID_KERNEL_DEFINITION:
+            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL_DEFINITION", sub);
+            break;
+        case CL_INVALID_KERNEL:
+            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL", sub);
+            break;
+        case CL_INVALID_ARG_INDEX:
+            sprintf(err, "OpenCL error%s: CL_INVALID_ARG_INDEX", sub);
+            break;
+        case CL_INVALID_ARG_VALUE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_ARG_VALUE", sub);
+            break;
+        case CL_INVALID_ARG_SIZE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_ARG_SIZE", sub);
+            break;
+        case CL_INVALID_KERNEL_ARGS:
+            sprintf(err, "OpenCL error%s: CL_INVALID_KERNEL_ARGS", sub);
+            break;
+        case CL_INVALID_WORK_DIMENSION:
+            sprintf(err, "OpenCL error%s: CL_INVALID_WORK_DIMENSION", sub);
+            break;
+        case CL_INVALID_WORK_GROUP_SIZE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_WORK_GROUP_SIZE", sub);
+            break;
+        case CL_INVALID_WORK_ITEM_SIZE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_WORK_ITEM_SIZE", sub);
+            break;
+        case CL_INVALID_GLOBAL_OFFSET:
+            sprintf(err, "OpenCL error%s: CL_INVALID_GLOBAL_OFFSET", sub);
+            break;
+        case CL_INVALID_EVENT_WAIT_LIST:
+            sprintf(err, "OpenCL error%s: CL_INVALID_EVENT_WAIT_LIST", sub);
+            break;
+        case CL_INVALID_EVENT:
+            sprintf(err, "OpenCL error%s: CL_INVALID_EVENT", sub);
+            break;
+        case CL_INVALID_OPERATION:
+            sprintf(err, "OpenCL error%s: CL_INVALID_OPERATION", sub);
+            break;
+        case CL_INVALID_GL_OBJECT:
+            sprintf(err, "OpenCL error%s: CL_INVALID_GL_OBJECT", sub);
+            break;
+        case CL_INVALID_BUFFER_SIZE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_BUFFER_SIZE", sub);
+            break;
+        case CL_INVALID_MIP_LEVEL:
+            sprintf(err, "OpenCL error%s: CL_INVALID_MIP_LEVEL", sub);
+            break;
+        case CL_INVALID_GLOBAL_WORK_SIZE:
+            sprintf(err, "OpenCL error%s: CL_INVALID_GLOBAL_WORK_SIZE", sub);
+            break;
+        case CL_INVALID_PROPERTY:
+            sprintf(err, "OpenCL error%s: CL_INVALID_PROPERTY", sub);
+            break;
+        default:
+            sprintf(err, "Unknown OpenCL error%s: %i", sub, (int)flag);
+            break;
+    };
+    PyErr_SetString(PyExc_Exception, err);
+    return 1;
+}
+
+/*
+ * Checks the given flag for an opencl error, returns 1 if found and sets the
+ * error message, else, returns 0.
  */
 static int
 mcl_flag(const cl_int flag)
 {
-    switch(flag) {
-        case CL_SUCCESS:
-            return 0;
-        case CL_DEVICE_NOT_FOUND:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_DEVICE_NOT_FOUND");
-            break;
-        case CL_DEVICE_NOT_AVAILABLE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_DEVICE_NOT_AVAILABLE");
-            break;
-        case CL_COMPILER_NOT_AVAILABLE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_COMPILER_NOT_AVAILABLE");
-            break;
-        case CL_MEM_OBJECT_ALLOCATION_FAILURE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_MEM_OBJECT_ALLOCATION_FAILURE");
-            break;
-        case CL_OUT_OF_RESOURCES:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_OUT_OF_RESOURCES");
-            break;
-        case CL_OUT_OF_HOST_MEMORY:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_OUT_OF_HOST_MEMORY");
-            break;
-        case CL_PROFILING_INFO_NOT_AVAILABLE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_PROFILING_INFO_NOT_AVAILABLE");
-            break;
-        case CL_MEM_COPY_OVERLAP:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_MEM_COPY_OVERLAP");
-            break;
-        case CL_IMAGE_FORMAT_MISMATCH:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_IMAGE_FORMAT_MISMATCH");
-            break;
-        case CL_IMAGE_FORMAT_NOT_SUPPORTED:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_IMAGE_FORMAT_NOT_SUPPORTED");
-            break;
-        case CL_BUILD_PROGRAM_FAILURE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_BUILD_PROGRAM_FAILURE");
-            break;
-        case CL_MAP_FAILURE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_MAP_FAILURE");
-            break;
-        case CL_MISALIGNED_SUB_BUFFER_OFFSET:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_MISALIGNED_SUB_BUFFER_OFFSET");
-            break;
-        case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST");
-            break;
-        case CL_INVALID_VALUE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_VALUE");
-            break;
-        case CL_INVALID_DEVICE_TYPE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_DEVICE_TYPE");
-            break;
-        case CL_INVALID_PLATFORM:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_PLATFORM");
-            break;
-        case CL_INVALID_DEVICE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_DEVICE");
-            break;
-        case CL_INVALID_CONTEXT:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_CONTEXT");
-            break;
-        case CL_INVALID_QUEUE_PROPERTIES:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_QUEUE_PROPERTIES");
-            break;
-        case CL_INVALID_COMMAND_QUEUE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_COMMAND_QUEUE");
-            break;
-        case CL_INVALID_HOST_PTR:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_HOST_PTR");
-            break;
-        case CL_INVALID_MEM_OBJECT:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_MEM_OBJECT");
-            break;
-        case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_IMAGE_FORMAT_DESCRIPTOR");
-            break;
-        case CL_INVALID_IMAGE_SIZE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_IMAGE_SIZE");
-            break;
-        case CL_INVALID_SAMPLER:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_SAMPLER");
-            break;
-        case CL_INVALID_BINARY:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_BINARY");
-            break;
-        case CL_INVALID_BUILD_OPTIONS:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_BUILD_OPTIONS");
-            break;
-        case CL_INVALID_PROGRAM:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_PROGRAM");
-            break;
-        case CL_INVALID_PROGRAM_EXECUTABLE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_PROGRAM_EXECUTABLE");
-            break;
-        case CL_INVALID_KERNEL_NAME:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_KERNEL_NAME");
-            break;
-        case CL_INVALID_KERNEL_DEFINITION:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_KERNEL_DEFINITION");
-            break;
-        case CL_INVALID_KERNEL:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_KERNEL");
-            break;
-        case CL_INVALID_ARG_INDEX:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_ARG_INDEX");
-            break;
-        case CL_INVALID_ARG_VALUE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_ARG_VALUE");
-            break;
-        case CL_INVALID_ARG_SIZE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_ARG_SIZE");
-            break;
-        case CL_INVALID_KERNEL_ARGS:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_KERNEL_ARGS");
-            break;
-        case CL_INVALID_WORK_DIMENSION:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_WORK_DIMENSION");
-            break;
-        case CL_INVALID_WORK_GROUP_SIZE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_WORK_GROUP_SIZE");
-            break;
-        case CL_INVALID_WORK_ITEM_SIZE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_WORK_ITEM_SIZE");
-            break;
-        case CL_INVALID_GLOBAL_OFFSET:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_GLOBAL_OFFSET");
-            break;
-        case CL_INVALID_EVENT_WAIT_LIST:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_EVENT_WAIT_LIST");
-            break;
-        case CL_INVALID_EVENT:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_EVENT");
-            break;
-        case CL_INVALID_OPERATION:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_OPERATION");
-            break;
-        case CL_INVALID_GL_OBJECT:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_GL_OBJECT");
-            break;
-        case CL_INVALID_BUFFER_SIZE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_BUFFER_SIZE");
-            break;
-        case CL_INVALID_MIP_LEVEL:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_MIP_LEVEL");
-            break;
-        case CL_INVALID_GLOBAL_WORK_SIZE:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_GLOBAL_WORK_SIZE");
-            break;
-        case CL_INVALID_PROPERTY:
-            PyErr_SetString(PyExc_Exception, "OpenCL error: CL_INVALID_PROPERTY");
-            break;
-        default:
-        {
-            char err[1024];
-            sprintf("Unknown OpenCL error: %d", err, (int)flag);
-            PyErr_SetString(PyExc_Exception, err);
-            break;
-        }
-    };
-    return 1;
+    return mcl_flag2("", flag);
 }
 
 /*

@@ -45,6 +45,9 @@ class SimulationOpenCL(myokit.CModule):
     ``precision``
         Can be set to ``myokit.SINGLE_PRECISION`` (default) or
         ``myokit.DOUBLE_PRECISION`` if the used device supports it.
+    ``native_maths``
+        On some devices, selected functions (e.g. ``exp``) can be made to run
+        faster (but possibly less accurately) by setting ``native_maths=True``.
     ``rl``
         Use Rush-Larsen updates instead of forward Euler for any Hodgkin-Huxley
         gating variables (default=``False``).
@@ -136,7 +139,7 @@ class SimulationOpenCL(myokit.CModule):
 
     def __init__(
             self, model, protocol=None, ncells=256, diffusion=True,
-            precision=myokit.SINGLE_PRECISION, rl=False):
+            precision=myokit.SINGLE_PRECISION, native_maths=False, rl=False):
         super(SimulationOpenCL, self).__init__()
 
         # Require a valid model
@@ -180,6 +183,9 @@ class SimulationOpenCL(myokit.CModule):
         if precision not in (myokit.SINGLE_PRECISION, myokit.DOUBLE_PRECISION):
             raise ValueError('Only single and double precision are supported.')
         self._precision = precision
+
+        # Set native maths
+        self._native_math = bool(native_maths)
 
         # Set rush-larsen mode
         self._rl = bool(rl)
@@ -246,9 +252,6 @@ class SimulationOpenCL(myokit.CModule):
         # Count number of states
         self._nstate = self._model.count_states()
 
-        # Always use native maths
-        self._native_math = True
-
         # Set state and default state
         self._state = self._model.state() * self._ntotal
         self._default_state = list(self._state)
@@ -292,8 +295,11 @@ class SimulationOpenCL(myokit.CModule):
             #sys.exit(1)
 
         # Define libraries
-        libs = ['OpenCL']
-        if platform.system() != 'Windows':  # pragma: no windows cover
+        libs = []
+        plat = platform.system()
+        if plat != 'Darwin':     # pragma: no osx cover
+            libs.append('OpenCL')
+        if plat != 'Windows':    # pragma: no windows cover
             libs.append('m')
 
         # Create extension

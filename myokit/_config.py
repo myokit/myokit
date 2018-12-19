@@ -144,11 +144,14 @@ def _create(path):
         ]))
     else:
         # Linux and mac
-        config.set('opencl', 'lib', ';'.join([
+        paths = [
             '/usr/lib64',
             '/usr/lib64/nvidia',
             '/usr/local/cuda/lib64',
-        ]))
+        ]
+        if system == 'Darwin':  # pragma: no linux cover
+            paths.append('/System/Library/Frameworks')
+        config.set('opencl', 'lib', ';'.join(paths))
 
     config.set('opencl', '# Location of opencl header files (.h).')
     config.set('opencl', '# Multiple paths can be set using ; as separator.')
@@ -168,10 +171,13 @@ def _create(path):
         ]))
     else:
         # Linux and mac
-        config.set('opencl', 'inc', ';'.join([
+        paths = [
             '/usr/include/CL',
             '/usr/local/cuda/include',
-        ]))
+        ]
+        if system == 'Darwin':  # pragma: no linux cover
+            paths.append('/System/Library/Frameworks')
+        config.set('opencl', 'inc', ';'.join(paths))
 
     # Write ini file
     try:

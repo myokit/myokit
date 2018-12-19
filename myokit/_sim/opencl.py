@@ -49,10 +49,18 @@ class OpenCL(myokit.CModule):
         mname = 'myokit_opencl_info_' + str(OpenCL._index)
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
-        libs = ['OpenCL']
+
+        # Define libraries
+        libs = []
+        import platform
+        if platform.system() != 'Darwin':     # pragma: no osx cover
+            libs.append('OpenCL')
+
+        # Add include / linker paths
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
+
         try:
             OpenCL._message = None
             OpenCL._instance = self._compile(

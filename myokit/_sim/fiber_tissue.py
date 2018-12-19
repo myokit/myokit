@@ -11,6 +11,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import myokit
+import platform
 
 # OpenCLSim keywords
 from .openclsim import KEYWORDS
@@ -56,6 +57,9 @@ class FiberTissueSimulation(myokit.CModule):
     ``precision``
         Can be set to ``myokit.SINGLE_PRECISION`` (default) or
         ``myokit.DOUBLE_PRECISION`` if the used device supports it.
+    ``native_maths``
+        On some devices, selected functions (e.g. ``exp``) can be made to run
+        faster (but possibly less accurately) by setting ``native_maths=True``.
 
     The simulation provides the following inputs variables can bind to:
 
@@ -125,7 +129,7 @@ class FiberTissueSimulation(myokit.CModule):
             self, fiber_model, tissue_model, protocol=None,
             ncells_fiber=(128, 2), ncells_tissue=(128, 128), nx_paced=5,
             g_fiber=(9, 6), g_tissue=(9, 6), g_fiber_tissue=9,
-            dt=0.005, precision=myokit.SINGLE_PRECISION):
+            dt=0.005, precision=myokit.SINGLE_PRECISION, native_maths=False):
         super(FiberTissueSimulation, self).__init__()
 
         # List of globally logged inputs
@@ -152,13 +156,16 @@ class FiberTissueSimulation(myokit.CModule):
                 'This simulation requires models without interdependent'
                 ' components. Please restructure the tissue model and re-run.'
                 ' Cycles:\n' + cycles)
+
         # Clone models, store
         fiber_model = fiber_model.clone()
         tissue_model = tissue_model.clone()
         self._modelf = fiber_model
         self._modelt = tissue_model
+
         # Set protocol
         self.set_protocol(protocol)
+
         # Check dimensionality, number of cells
         msg = 'The fiber size must be a tuple (nx, ny).'
         try:
@@ -220,8 +227,8 @@ class FiberTissueSimulation(myokit.CModule):
             raise ValueError('Only single and double precision are supported.')
         self._precision = precision
 
-        # Always use native maths
-        self._native_math = True
+        # Set native maths
+        self._native_math = bool(native_maths)
 
         # Set remaining properties
         self._time = 0
@@ -358,8 +365,15 @@ class FiberTissueSimulation(myokit.CModule):
             )
             return
 
+        # Define libraries
+        libs = []
+        plat = platform.system()
+        if plat != 'Darwin':     # pragma: no osx cover
+            libs.append('OpenCL')
+        if plat != 'Windows':    # pragma: no windows cover
+            libs.append('m')
+
         # Create extension
-        libs = ['OpenCL']
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)

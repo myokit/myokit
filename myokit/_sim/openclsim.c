@@ -141,12 +141,9 @@ int diffusion;
 PyObject* connections;  // List of connection tuples
 int n_connections;
 
-// OpenCL work group size
-size_t local_work_size[2];
-// Total number of work items rounded up to a multiple of the local size
+// OpenCL work group sizes
 size_t global_work_size[2];
 // Work items for arbitrary geometry diffusion step
-size_t local_work_size_conn[1];
 size_t global_work_size_conn[1];
 
 // Kernel arguments copied into "Real" type
@@ -536,13 +533,10 @@ sim_init(PyObject* self, PyObject* args)
     printf("Setting work group sizes.\n");
     #endif
     // Work group size and total number of items
-    local_work_size[0] = 8;
-    local_work_size[1] = (ny > 1) ? 8 : 1;
-    global_work_size[0] = mcl_round_total_size(local_work_size[0], nx);
-    global_work_size[1] = (ny == 1) ? 1 : mcl_round_total_size(local_work_size[1], ny);
+    global_work_size[0] = nx;
+    global_work_size[1] = ny;
     if (connections != Py_None) {
-        local_work_size_conn[0] = local_work_size[0];
-        global_work_size_conn[0] = mcl_round_total_size(local_work_size_conn[0], n_connections);
+        global_work_size_conn[0] = n_connections;
     }
     #ifdef MYOKIT_DEBUG
     printf("Work group sizes determined.\n");
@@ -584,27 +578,27 @@ sim_init(PyObject* self, PyObject* args)
     } else {
         context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &flag);
     }
-    if(mcl_flag(flag)) return sim_clean();
+    if(mcl_flag2("context", flag)) return sim_clean();
     #ifdef MYOKIT_DEBUG
     printf("Created context.\n");
     #endif
 
     // Create command queue
     command_queue = clCreateCommandQueue(context, device_id, 0, &flag);
-    if(mcl_flag(flag)) return sim_clean();
+    if(mcl_flag2("queue", flag)) return sim_clean();
     #ifdef MYOKIT_DEBUG
     printf("Created command queue.\n");
     #endif
 
     // Create memory buffers on the device
     mbuf_state = clCreateBuffer(context, CL_MEM_READ_WRITE, dsize_state, NULL, &flag);
-    if(mcl_flag(flag)) return sim_clean();
+    if(mcl_flag2("dsize_state", flag)) return sim_clean();
     mbuf_idiff = clCreateBuffer(context, CL_MEM_READ_WRITE, dsize_idiff, NULL, &flag);
-    if(mcl_flag(flag)) return sim_clean();
+    if(mcl_flag2("dsize_diff", flag)) return sim_clean();
     mbuf_inter_log = clCreateBuffer(context, CL_MEM_READ_WRITE, dsize_inter_log, NULL, &flag);
-    if(mcl_flag(flag)) return sim_clean();
+    if(mcl_flag2("dsize_inter_log", flag)) return sim_clean();
     mbuf_field_data = clCreateBuffer(context, CL_MEM_READ_ONLY, dsize_field_data, NULL, &flag);
-    if(mcl_flag(flag)) return sim_clean();
+    if(mcl_flag2("dsize_field_data", flag)) return sim_clean();
     if(connections != Py_None) {
         mbuf_conn1 = clCreateBuffer(context, CL_MEM_READ_ONLY, dsize_conn1, NULL, &flag);
         if(mcl_flag(flag)) return sim_clean();
@@ -896,11 +890,11 @@ sim_step(PyObject *self, PyObject *args)
         if (diffusion) {
             if(connections == Py_None) {
                 /* Rectangular diffusion */
-                if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_diff, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL))) return sim_clean();
+                if(mcl_flag2("kernel_diff", clEnqueueNDRangeKernel(command_queue, kernel_diff, 2, NULL, global_work_size, NULL, 0, NULL, NULL))) return sim_clean();
             } else {
                 /* Arbitrary geometry */
-                if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_dif2, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL))) return sim_clean();
-                if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_dif3, 1, NULL, global_work_size_conn, local_work_size_conn, 0, NULL, NULL))) return sim_clean();
+                if(mcl_flag2("kernel_dif2", clEnqueueNDRangeKernel(command_queue, kernel_dif2, 2, NULL, global_work_size, NULL, 0, NULL, NULL))) return sim_clean();
+                if(mcl_flag2("kernel_dif3", clEnqueueNDRangeKernel(command_queue, kernel_dif3, 1, NULL, global_work_size_conn, NULL, 0, NULL, NULL))) return sim_clean();
             }
         }
 
@@ -922,7 +916,7 @@ sim_step(PyObject *self, PyObject *args)
         if(mcl_flag(clSetKernelArg(kernel_cell, 2, sizeof(Real), &arg_time))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cell, 3, sizeof(Real), &arg_dt))) return sim_clean();
         if(mcl_flag(clSetKernelArg(kernel_cell, 4, sizeof(Real), &arg_pace))) return sim_clean();
-        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_cell, 2, NULL, global_work_size, local_work_size, 0, NULL, NULL))) return sim_clean();
+        if(mcl_flag(clEnqueueNDRangeKernel(command_queue, kernel_cell, 2, NULL, global_work_size, NULL, 0, NULL, NULL))) return sim_clean();
 
         /* At this point, we have
          *  - engine_time  : the time t
