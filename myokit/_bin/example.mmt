@@ -175,16 +175,20 @@ pace = 0 bind pace
 
 [[script]]
 import myokit
-import matplotlib.pyplot as plt
 
-# Run simulation
+# Load model and protocol
+print('Loading model and protocol...')
 m = get_model()
 p = get_protocol()
+print('Creating simulation object...')
 s = myokit.Simulation(m, p)
+print('Running simulation...')
 s.pre(1000)
 d = s.run(1000)
 
 # Show results
+print('Loading matplotlib...')
+import matplotlib.pyplot as plt
 plt.figure()
 plt.plot(d['engine.time'], d['membrane.V'])
 plt.show()
