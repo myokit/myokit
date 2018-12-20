@@ -1093,8 +1093,14 @@ sim_step(PyObject *self, PyObject *args)
         arg_pace = (Real)engine_pace;
 
         /* Check if we're finished */
-        /* Do this *before* logging (half-open interval rule) */
         if(engine_time >= tmax || halt_sim) break;
+
+        /* Perform any Python signal handling */
+        if (PyErr_CheckSignals() != 0) {
+            /* Exception (e.g. timeout or keyboard interrupt) occurred?
+               Then cancel everything! */
+            return sim_clean();
+        }
 
         /* Report back to python */
         if(--steps_left_in_run == 0) {

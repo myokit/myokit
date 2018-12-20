@@ -984,6 +984,13 @@ sim_step(PyObject *self, PyObject *args)
          */
         if(engine_time >= tmax || halt_sim) break;
 
+        /* Perform any Python signal handling */
+        if (PyErr_CheckSignals() != 0) {
+            /* Exception (e.g. timeout or keyboard interrupt) occurred?
+               Then cancel everything! */
+            return sim_clean();
+        }
+
         /* Report back to python */
         if(--steps_left_in_run == 0) {
             /* For some reason, this clears memory */
