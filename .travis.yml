@@ -1,6 +1,5 @@
 #
-# Configuration for travis-ci testing
-# This tests ubuntu by default, but can also be made to test on osx
+# Configuration for travis-ci continuous integration
 #
 sudo: required
 
@@ -21,7 +20,12 @@ language: python
 matrix:
     # Always put true env variable first, for nicer overview on travis website
     include:
-        # Unit tests (Ubuntu)
+        # Unit tests on OS/X, running first because this one's slow
+        - os: osx
+          language: generic
+          env:
+            - MYOKIT_UNIT=true
+        # Unit tests on Ubuntu
         - os: linux
           python: "2.7"
           env:
@@ -40,11 +44,6 @@ matrix:
             - MYOKIT_UNIT=true
         - os: linux
           python: "3.6"
-          env:
-            - MYOKIT_UNIT=true
-        # Unit tests on OS/X
-        - os: osx
-          language: generic
           env:
             - MYOKIT_UNIT=true
         # Cover checking
@@ -90,13 +89,13 @@ before_script:
 
 # Run tests
 script:
-  - if [[ $MYOKIT_UNIT == true ]]; then python test --unit; fi;
-  - if [[ $MYOKIT_COVER == true ]]; then coverage run test --nosub; fi;
+  - if [[ $MYOKIT_UNIT == true ]]; then python test unit; fi;
+  - if [[ $MYOKIT_COVER == true ]]; then coverage run test unit --nosub; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then
         python -m flake8 --version;
         python -m flake8;
     fi;
-  - if [[ $MYOKIT_DOC == true ]]; then python test --doctest; fi;
+  - if [[ $MYOKIT_DOC == true ]]; then python test doc; fi;
 
 # Compile coverage report
 after_success:
