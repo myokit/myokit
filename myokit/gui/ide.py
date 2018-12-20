@@ -524,6 +524,20 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 editor.hide_find_dialog()
         current.activate_find_dialog()
 
+    def action_format_protocol(self):
+        """
+        Reformat the protocol.
+        """
+        try:
+            p = self.protocol(errors_in_console=True)
+            if p is False:
+                self._console.write(
+                    'Unable to apply formatting: Errors in protocol.')
+            elif p is not None:
+                self._protocol_editor.set_text(p.code())
+        except Exception:
+            self.show_exception()
+
     def action_import_abf_protocol(self):
         """
         Imports a protocol from an abf (v2) file.
@@ -1197,6 +1211,12 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self._tool_view_navigator.setEnabled(False)
             self._navigator.hide()
 
+        # Enabled/disable protocol tools
+        if index == 1:
+            self._tool_format_protocol.setEnabled(True)
+        else:
+            self._tool_format_protocol.setEnabled(False)
+
     def change_model(self):
         """
         Qt slot: Called whenever the model is changed.
@@ -1446,6 +1466,17 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_find.setIcon(myokit.gui.icon('edit-find'))
         self._tool_find.triggered.connect(self.action_find)
         self._menu_edit.addAction(self._tool_find)
+        # Edit > ----
+        self._menu_edit.addSeparator()
+        # Edit > Format protocol
+        self._tool_format_protocol = QtWidgets.QAction(
+            'Format protocol', self)
+        self._tool_format_protocol.setStatusTip(
+            'Standardise the formatting of the protocol section.')
+        self._tool_format_protocol.setEnabled(False)
+        self._tool_format_protocol.triggered.connect(
+            self.action_format_protocol)
+        self._menu_edit.addAction(self._tool_format_protocol)
         # Edit > ----
         self._menu_edit.addSeparator()
         # Edit > Comment or uncomment
@@ -1860,36 +1891,48 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         # Close explorer, if required
         self.close_explorer()
+
         # Allow user directory and relative paths
         filename = os.path.abspath(os.path.expanduser(filename))
+
         # Set path to filename's path. Do this before we even know the file is
         # valid: if you click the wrong file by mistake you shouldn't have to
         # browse all the way back again).
         self._path = os.path.dirname(filename)
+
         # Open file, split into segments
         with open(filename, 'r') as f:
             segments = myokit.split(f)
+
         # Still here? Then set as file.
         self._file = filename
+
         # Add to recent files
         self.add_recent_file(filename)
+
         # Update model editor
         self._model_editor.set_text(segments[0].strip())
+
         # Update protocol editor
         self._protocol_editor.set_text(segments[1].strip())
+
         # Update script editor
         self._script_editor.set_text(segments[2].strip())
+
         # Don't validate model or protocol. Opening an invalid file is not an
         # error in itself.
         # Update console
         self._console.write('Opened ' + self._file)
+
         # Set working directory to file's path
         os.chdir(self._path)
+
         # Save settings file
         try:
             self.save_config()
         except Exception:
             pass
+
         # For some reason, setPlainText('') triggers a change event claiming
         # the text has changed. As a result, files with empty sections will
         # always show up as changed. This is prevented manually below:
@@ -1897,6 +1940,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._model_editor.document().setModified(False)
         self._protocol_editor.document().setModified(False)
         self._script_editor.document().setModified(False)
+
         # Update interface
         self.update_navigator()     # Avoid delay
         self.update_window_title()
@@ -2042,14 +2086,17 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if console:
                 self._console.write('No changes to protocol since last build.')
             return self._valid_protocol
+
         # Parse and validate
         protocol = None
+
         # Check for empty protocol field
         lines = self._protocol_editor.get_text()
         if lines.strip() == '':
             if console:
                 self._console.write('No protocol found.')
             return None
+
         # Validate and return
         lines = lines.splitlines()
         try:
