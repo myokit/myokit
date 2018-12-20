@@ -546,6 +546,13 @@ for var in model.states():
         #endif
         if (engine_time >= tmax) break;
 
+        /* Perform any Python signal handling */
+        if (PyErr_CheckSignals() != 0) {
+            /* Exception (e.g. timeout or keyboard interrupt) occurred?
+               Then cancel everything! */
+            return sim_clean();
+        }
+
         /* Report back to python after every x steps */
         steps_taken++;
         if (steps_taken > 100) {
