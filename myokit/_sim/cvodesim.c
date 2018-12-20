@@ -809,34 +809,34 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
     #endif
 
-    // Benchmarking? Then set engine_realtime to 0.0
+    /* Benchmarking? Then set engine_realtime to 0.0 */
     if (benchtime != Py_None) {
-        // Store initial time as 0
+        /* Store initial time as 0 */
         engine_realtime = 0.0;
-        // Tell sim_step to set engine_starttime
+        /* Tell sim_step to set engine_starttime */
         engine_starttime = -1;
     }
 
-    // Set string for updating lists/arrays using Python interface.
+    /* Set string for updating lists/arrays using Python interface. */
     list_update_str = PyUnicode_FromString("append");
 
-    // Set logging points
+    /* Set logging points */
     if (log_interval > 0) {
-        // Periodic logging
+        /* Periodic logging */
         ilog = 0;
         tlog = tmin;
     } else if (log_times != Py_None) {
-        // Point-list logging
-        // Check the log_times list
+        /* Point-list logging */
+        /* Check the log_times list */
         if (!PyList_Check(log_times)) {
             PyErr_SetString(PyExc_Exception, "'log_times' must be a list.");
             return sim_clean();
         }
-        // Read next log point off the list
+        /* Read next log point off the list */
         ilog = 0;
         tlog = engine_time - 1;
         while(ilog < PyList_Size(log_times) && tlog < engine_time) {
-            flt = PyList_GetItem(log_times, ilog); // Borrowed
+            flt = PyList_GetItem(log_times, ilog); /* Borrowed */
             if (!PyFloat_Check(flt)) {
                 PyErr_SetString(PyExc_Exception, "Entries in 'log_times' must be floats.");
                 return sim_clean();
@@ -845,31 +845,33 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
             ilog++;
             flt = NULL;
         }
-        // No points beyond engine_time? Then don't log any future points.
+        /* No points beyond engine_time? Then don't log any future points. */
         if(tlog < engine_time) {
             tlog = tmax + 1;
         }
     } else {
-        // Dynamic logging
+        /*
+         * Dynamic logging
+         *
+         * Log the first entry, but only if not appending to an existing log.
+         * This prevents points from appearing twice when a simulation with
+         * dynamic logging is stopped and started.
+         */
 
-        // Log the first entry, but only if not appending to an existing log.
-        // This prevents points from appearing twice when a simulation with
-        // dynamic logging is stopped and started.
-
-        // Check if the log is empty
+        /*  Check if the log is empty */
         log_first_point = 1;
         pos = 0;
         if(PyDict_Next(log_dict, &pos, &key, &value)) {
-            // Items found in dict, randomly selected list now in "value"
-            // Both key and value are borrowed references, no need to decref
+            /* Items found in dict, randomly selected list now in "value" */
+            /* Both key and value are borrowed references, no need to decref */
             log_first_point = (PyObject_Size(value) <= 0);
         }
 
-        // If so, log the first point!
+        /* If so, log the first point! */
         if (log_first_point) {
             rhs(engine_time, y, dy_log, 0);
-            // At this point, we have y(t), inter(t) and dy(t)
-            // We've also loaded time(t) and pace(t)
+            /* At this point, we have y(t), inter(t) and dy(t) */
+            /* We've also loaded time(t) and pace(t) */
             for(i=0; i<n_vars; i++) {
                 flt = PyFloat_FromDouble(*vars[i]);
                 ret = PyObject_CallMethodObjArgs(logs[i], list_update_str, flt, NULL);
@@ -886,16 +888,16 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         }
     }
 
-    // Root finding enabled?
+    /* Root finding enabled? */
     if (PySequence_Check(root_list)) {
-        // Set threshold
+        /* Set threshold */
         rootfinding_threshold = root_threshold;
-        // Initialize root function with 1 component
+        /* Initialize root function with 1 component */
         flag_cvode = CVodeRootInit(cvode_mem, 1, root_finding);
         if (check_cvode_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
     }
 
-    // Done!
+    /* Done! */
     Py_RETURN_NONE;
 }
 
@@ -907,15 +909,17 @@ sim_step(PyObject *self, PyObject *args)
 {
     ESys_Flag flag_epacing;
     int i;
-    int steps_taken = 0;    // Number of integration steps taken in this call
-    int flag_cvode;         // CVode flag
-    int flag_root;          // Root finding flag
-    int flag_reinit = 0;    // Set if CVODE needs to be reset during a simulation step
+    int steps_taken = 0;    /* Number of integration steps taken in this call */
+    int flag_cvode;         /* CVode flag */
+    int flag_root;          /* Root finding flag */
+    int flag_reinit = 0;    /* Set if CVODE needs to be reset during a simulation step */
     PyObject *flt, *ret;
 
-    // Benchmarking? Then make sure start time is set.
-    // This is handled here instead of in sim_init so it only includes time
-    // taken performing steps, not time initialising memory etc.
+    /*
+     * Benchmarking? Then make sure start time is set.
+     * This is handled here instead of in sim_init so it only includes time
+     * taken performing steps, not time initialising memory etc.
+     */
     if (benchtime != Py_None && engine_starttime < 0) {
         flt = PyObject_CallFunction(benchtime, "");
         if (!PyFloat_Check(flt)) {
@@ -927,33 +931,35 @@ sim_step(PyObject *self, PyObject *args)
         Py_DECREF(flt); flt = NULL;
     }
 
-    // Go!
+    /* Go! */
     while(1) {
 
-        // Back-up current y (no allocation, this is fast)
+        /* Back-up current y (no allocation, this is fast) */
         for(i=0; i<N_STATE; i++) {
             NV_Ith_S(y_last, i) = NV_Ith_S(y, i);
         }
 
-        // Store engine time before step
+        /* Store engine time before step */
         engine_time_last = engine_time;
 
-        // Advance to next time step
-        // This sets y to y(t) and time to time(t) <= tnext
-        // In rare cases, there can be two event scheduled very close together
-        // One example was and event that ended at t1 = 9161.3 + 1572.4 =
-        // 10733.699999999999 and one that started at t2 = 10733.7.
-        // In these cases CVODE will complain when asked to go from t1 to t2
-        // (CV_TOO_CLOSE). A fix seems to be to add a small extra time so that
-        // CVODE can still run.
+        /*
+         * Advance to next time step
+         * This sets y to y(t) and time to time(t) <= tnext
+         * In rare cases, there can be two event scheduled very close together
+         * One example was and event that ended at t1 = 9161.3 + 1572.4 =
+         * 10733.699999999999 and one that started at t2 = 10733.7.
+         * In these cases CVODE will complain when asked to go from t1 to t2
+         * (CV_TOO_CLOSE). A fix seems to be to add a small extra time so that
+         * CVODE can still run.
+         */
         flag_cvode = CVode(cvode_mem, tnext + 1e-10, y, &engine_time, CV_ONE_STEP);
 
-        // Check for errors
+        /* Check for errors */
         if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
-            // Something went wrong... Set outputs and return
+            /* Something went wrong... Set outputs and return */
             for(i=0; i<N_STATE; i++) {
                 PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
-                // PyList_SetItem steals a reference: no need to decref the double!
+                /* PyList_SetItem steals a reference: no need to decref the double! */
             }
             PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
             PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
@@ -962,7 +968,7 @@ sim_step(PyObject *self, PyObject *args)
             return sim_clean();
         }
 
-        // Check if progress is being made
+        /* Check if progress is being made */
         if(engine_time == engine_time_last) {
             if(++zero_step_count >= max_zero_step_count) {
                 char errstr[200];
@@ -971,33 +977,33 @@ sim_step(PyObject *self, PyObject *args)
                 return sim_clean();
             }
         } else {
-            // Only count consecutive zero steps!
+            /* Only count consecutive zero steps! */
             zero_step_count = 0;
         }
 
-        // Update step count
+        /* Update step count */
         engine_steps++;
 
-        // If we got to this point without errors...
+        /* If we got to this point without errors... */
         if ((flag_cvode == CV_SUCCESS) || (flag_cvode == CV_ROOT_RETURN)) {
 
-            // Next stop time reached?
+            /* Next stop time reached? */
             if (engine_time > tnext) {
 
-                // Go back to engine_time=tnext
+                /* Go back to engine_time=tnext */
                 flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
                 if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
                 engine_time = tnext;
-                // Require reinit (after logging)
+                /* Require reinit (after logging) */
                 flag_reinit = 1;
 
             } else if (flag_cvode == CV_ROOT_RETURN) {
 
-                // Store found roots
+                /* Store found roots */
                 flag_root = CVodeGetRootInfo(cvode_mem, rootsfound);
                 if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
                 flt = PyTuple_New(2);
-                PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); // Steals reference, so this is ok
+                PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); /* Steals reference, so this is ok */
                 PyTuple_SetItem(flt, 1, PyLong_FromLong(rootsfound[0]));
                 ret = PyObject_CallMethodObjArgs(root_list, list_update_str, flt, NULL);
                 Py_DECREF(flt); flt = NULL;
@@ -1009,23 +1015,23 @@ sim_step(PyObject *self, PyObject *args)
                 ret = NULL;
             }
 
-            // Logging
+            /* Logging */
             if (log_interval <= 0 && log_times == Py_None) {
 
-                // Dynamic logging: Log every visited point
+                /* Dynamic logging: Log every visited point */
 
-                // Ensure the logged values are correct for the new time t
+                /* Ensure the logged values are correct for the new time t */
                 if (log_deriv || log_inter) {
-                    // If logging derivatives or intermediaries, calculate the
-                    // values for the current time.
+                    /* If logging derivatives or intermediaries, calculate the
+                       values for the current time. */
                     rhs(engine_time, y, dy_log, 0);
                 } else if (log_bound) {
-                    // Logging bounds but not derivs or inters: No need to run
-                    // full rhs, just update bound variables
+                    /* Logging bounds but not derivs or inters: No need to run
+                       full rhs, just update bound variables */
                     update_bindings(engine_time, y, dy_log, 0);
                 }
 
-                // Benchmarking? Then set engine_realtime
+                /* Benchmarking? Then set engine_realtime */
                 if (benchtime != Py_None) {
                     flt = PyObject_CallFunction(benchtime, "");
                     if (!PyFloat_Check(flt)) {
@@ -1035,11 +1041,11 @@ sim_step(PyObject *self, PyObject *args)
                     }
                     engine_realtime = PyFloat_AsDouble(flt) - engine_starttime;
                     Py_DECREF(flt); flt = NULL;
-                    // Update any variables bound to realtime
+                    /* Update any variables bound to realtime */
                     update_realtime_bindings(engine_time, y, dy_log, 0);
                 }
 
-                // Write to log
+                /* Write to log */
                 for(i=0; i<n_vars; i++) {
                     flt = PyFloat_FromDouble(*vars[i]);
                     ret = PyObject_CallMethodObjArgs(logs[i], list_update_str, flt, NULL);
@@ -1054,15 +1060,15 @@ sim_step(PyObject *self, PyObject *args)
 
             } else if (engine_time > tlog) {
 
-                // Periodic logging or point-list logging
+                /* Periodic logging or point-list logging */
 
-                // Note 1: For periodic logging, the condition should be
-                // `time > tlog` so that we log half-open intervals (i.e. the
-                // final point should never be included).
-                // Note 2: For point-list logging, the final point _should_ be
-                // included if the user requests it.
+                /* Note 1: For periodic logging, the condition should be
+                   `time > tlog` so that we log half-open intervals (i.e. the
+                   final point should never be included). */
+                /* Note 2: For point-list logging, the final point _should_ be
+                   included if the user requests it. */
 
-                // Benchmarking? Then set engine_realtime
+                /* Benchmarking? Then set engine_realtime */
                 if (benchtime != Py_None) {
                     flt = PyObject_CallFunction(benchtime, "");
                     if (!PyFloat_Check(flt)) {
@@ -1072,18 +1078,18 @@ sim_step(PyObject *self, PyObject *args)
                     }
                     engine_realtime = PyFloat_AsDouble(flt) - engine_starttime;
                     Py_DECREF(flt); flt = NULL;
-                    // Update any variables bound to realtime
+                    /* Update any variables bound to realtime */
                     update_realtime_bindings(engine_time, y, dy_log, 0);
                 }
 
-                // Log points
+                /* Log points */
                 while (engine_time > tlog) {
-                    // Get interpolated y(tlog)
+                    /* Get interpolated y(tlog) */
                     flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
                     if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
-                    // Calculate intermediate variables & derivatives
+                    /* Calculate intermediate variables & derivatives */
                     rhs(tlog, y_log, dy_log, 0);
-                    // Write to log
+                    /* Write to log */
                     for(i=0; i<n_vars; i++) {
                         flt = PyFloat_FromDouble(*vars[i]);
                         ret = PyObject_CallMethodObjArgs(logs[i], list_update_str, flt, NULL);
@@ -1097,21 +1103,21 @@ sim_step(PyObject *self, PyObject *args)
                     }
                     ret = flt = NULL;
 
-                    // Get next logging point
+                    /* Get next logging point */
                     if (log_interval > 0) {
-                        // Periodic logging
+                        /* Periodic logging */
                         ilog++;
                         tlog = tmin + (double)ilog * log_interval;
                         if (ilog == 0) {
-                            // Unsigned int wraps around instead of overflowing, becomes zero again
+                            /* Unsigned int wraps around instead of overflowing, becomes zero again */
                             PyErr_SetString(PyExc_Exception, "Overflow in logged step count: Simulation too long!");
                             return sim_clean();
                         }
                     } else {
-                        // Point-list logging
-                        // Read next log point off the list
+                        /* Point-list logging */
+                        /* Read next log point off the list */
                         if (ilog < PyList_Size(log_times)) {
-                            flt = PyList_GetItem(log_times, ilog); // Borrowed
+                            flt = PyList_GetItem(log_times, ilog); /* Borrowed */
                             if (!PyFloat_Check(flt)) {
                                 PyErr_SetString(PyExc_Exception, "Entries in 'log_times' must be floats.");
                                 return sim_clean();
@@ -1126,60 +1132,57 @@ sim_step(PyObject *self, PyObject *args)
                 }
             }
 
-            // Event-based pacing
+            /* Event-based pacing */
             if (epacing != NULL) {
-                // Advance pacing mechanism to next event or tmax
-                // Do this *after* logging: otherwise the interpolated points
-                // logged with fixed step logging by calling rhs() will use the
-                // next engine_pace, which can cause weird entries in the logs.
+                /* Advance pacing mechanism to next event or tmax
+                   Do this *after* logging: otherwise the interpolated points
+                   logged with fixed step logging by calling rhs() will use the
+                   next engine_pace, which can cause weird entries in the logs. */
                 flag_epacing = ESys_AdvanceTime(epacing, engine_time, tmax);
                 if (flag_epacing!=ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 tnext = ESys_GetNextTime(epacing, NULL);
                 engine_pace = ESys_GetLevel(epacing, NULL);
             }
 
-            // Reinitialize if needed
+            /* Reinitialize if needed */
             if (flag_reinit) {
                 flag_reinit = 0;
-                // Re-init
+                /* Re-init */
                 flag_cvode = CVodeReInit(cvode_mem, engine_time, y);
                 if (check_cvode_flag(&flag_cvode, "CVodeReInit", 1)) return sim_clean();
             }
         }
 
-        // Check if we're finished
+        /* Check if we're finished */
         if (engine_time >= tmax) break;
 
-        // Perform any Python signal handling
+        /* Perform any Python signal handling */
         if (PyErr_CheckSignals() != 0) {
-            // Exception (e.g. timeout or keyboard interrupt) occurred? Then
-            // cancel everything!
+            /* Exception (e.g. timeout or keyboard interrupt) occurred?
+               Then cancel everything! */
             return sim_clean();
         }
 
-        // Report back to python after every x steps
+        /* Report back to python after every x steps */
         steps_taken++;
         if (steps_taken >= 100) {
             return PyFloat_FromDouble(engine_time);
         }
     }
 
-    // Set final state
+    /* Set final state */
     for(i=0; i<N_STATE; i++) {
         PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y, i)));
-        // PyList_SetItem steals a reference: no need to decref the double!
+        /* PyList_SetItem steals a reference: no need to decref the double! */
     }
 
-    // Set state of inputs
+    /* Set state of inputs */
     PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
     PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
     PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
     PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
 
-    // Output newline after feedback
-    //putchar('\n');
-
-    sim_clean();    // Ignore return value
+    sim_clean();    /* Ignore return value */
     return PyFloat_FromDouble(engine_time);
 }
 
@@ -1189,7 +1192,7 @@ sim_step(PyObject *self, PyObject *args)
 static PyObject*
 sim_eval_derivatives(PyObject *self, PyObject *args)
 {
-    // Declare variables here for C89 compatibility
+    /* Declare variables here for C89 compatibility */
     int i;
     int success;
     int iState;
@@ -1202,13 +1205,13 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     N_Vector y;
     N_Vector dy;
 
-    // Start
+    /* Start */
     success = 0;
 
-    // Check input arguments
+    /* Check input arguments */
     if (!PyArg_ParseTuple(args, "OOdd", &state, &deriv, &time_in, &pace_in)) {
         PyErr_SetString(PyExc_Exception, "Expecting sequence arguments 'y' and 'dy' followed by floats 'time' and 'pace'.");
-        // Nothing allocated yet, no pyobjects _created_, return directly
+        /* Nothing allocated yet, no pyobjects _created_, return directly */
         return 0;
     }
     if (!PySequence_Check(state)) {
@@ -1228,11 +1231,11 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     sundense_solver = NULL;     /* A linear solver */
     #endif
 
-    // Temporary object: decref before re-using for another var :)
-    // (Unless you get them using PyList_GetItem...)
-    flt = NULL;   // PyFloat
+    /* Temporary object: decref before re-using for another var :) */
+    /* (Unless you get them using PyList_GetItem...) */
+    flt = NULL;   /* PyFloat
 
-    // Create state vectors
+    /* Create state vectors */
     y = N_VNew_Serial(N_STATE);
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
@@ -1244,12 +1247,12 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
         goto error;
     }
 
-    // Set calculated constants
+    /* Set calculated constants */
     updateConstants();
 
-    // Set initial values
+    /* Set initial values */
     for (iState = 0; iState < N_STATE; iState++) {
-        flt = PySequence_GetItem(state, iState); // Remember to decref!
+        flt = PySequence_GetItem(state, iState); /* Remember to decref! */
         if (!PyFloat_Check(flt)) {
             Py_XDECREF(flt); flt = NULL;
             sprintf(errstr, "Item %d in state vector is not a float.", iState);
@@ -1261,14 +1264,14 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     }
     flt = NULL;
 
-    // Set simulation time and pacing variable
+    /* Set simulation time and pacing variable */
     engine_time = time_in;
     engine_pace = pace_in;
 
-    // Evaluate derivatives
+    /* Evaluate derivatives */
     rhs(engine_time, y, dy, 0);
 
-    // Set output values
+    /* Set output values */
     for(i=0; i<N_STATE; i++) {
         flt = PyFloat_FromDouble(NV_Ith_S(dy, i));
         if (flt == NULL) {
@@ -1280,14 +1283,14 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     }
     flt = NULL;
 
-    // Finished succesfully, free memory and return
+    /* Finished succesfully, free memory and return */
     success = 1;
 error:
-    // Free CVODE space
+    /* Free CVODE space */
     N_VDestroy_Serial(y);
     N_VDestroy_Serial(dy);
 
-    // Return
+    /* Return */
     if (success) {
         Py_RETURN_NONE;
     } else {
@@ -1305,10 +1308,10 @@ sim_set_constant(PyObject *self, PyObject *args)
     char* name;
     char errstr[200];
 
-    // Check input arguments
+    /* Check input arguments */
     if (!PyArg_ParseTuple(args, "sd", &name, &value)) {
         PyErr_SetString(PyExc_Exception, "Expected input arguments: name (str), value (Float).");
-        // Nothing allocated yet, no pyobjects _created_, return directly
+        /* Nothing allocated yet, no pyobjects _created_, return directly */
         return 0;
     }
 
