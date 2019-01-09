@@ -487,7 +487,7 @@ class Protocol(object):
 
         """
         # Times empty? Then return empty list
-        if not times:
+        if len(times) == 0:
             return []
 
         # Test time values are non-negative and non-decreasing
