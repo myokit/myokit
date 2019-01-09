@@ -153,75 +153,29 @@ class Protocol(object):
 
     def create_log_for_interval(self, a, b, for_drawing=False):
         """
-        Creates a :class:`myokit.DataLog` containing the entries `time`
-        and `pace` representing the value of the pacing stimulus at each point.
-
-        The time points in the log will be on the interval ``[a, b]``, such
-        that every time at which the pacing value changes is present in the
-        log.
-
-        If ``for_drawing`` is set to ``True`` each time value between ``a`` and
-        ``b`` will be listed twice, so that a vertical line can be drawn from
-        the old to the new pacing value.
+        Deprecated alias of :meth:`log_for_interval`.
         """
-        # Test the input
-        a, b = float(a), float(b)
-        if b < a:
-            raise ValueError('The argument `b` cannot be smaller than `a`')
-        # Create a simulation log
-        log = myokit.DataLog()
-        log.set_time_key('time')
-        log['time'] = time = []
-        log['pace'] = pace = []
-        # Create a pacing system
-        p = PacingSystem(self)
-        # Fill in points
-        t = a
-        v = p.advance(t, max_time=b)
-        time.append(t)
-        pace.append(v)
-        while t < b:
-            t = p.next_time()
-            if for_drawing:
-                if t != b:
-                    time.append(t)
-                    pace.append(v)
-            v = p.advance(t, max_time=b)
-            time.append(t)
-            pace.append(v)
-        return log
+        # Deprecated since 2019-01-09
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning(
+            'The method `create_log_for_interval` is deprecated.'
+            ' Please use `log_for_interval` instead.')
+        return self.log_for_interval(a, b, for_drawing)
 
     def create_log_for_times(self, times):
         """
-        Creates a :class:`myokit.DataLog` containing the entries `time`
-        and `pace` representing the value of the pacing stimulus at each point.
-
-        The time entries ``times`` must be an non-descreasing series of
-        non-negative points.
+        Deprecated alias of :meth:`log_for_times`.
         """
-        # Create empty log
-        log = myokit.DataLog()
-        log.set_time_key('time')
-        # Times empty? Then return empty log
-        if len(times) == 0:
-            log['time'] = []
-            log['pace'] = []
-            return log
-        # Test times
-        times = np.asarray(times)
-        dt = times[1:] - times[:-1]
-        if np.any(dt < 0):
-            raise ValueError(
-                'The argument `times` must contain a'
-                ' non-decreasing sequence of time points.')
-        if times[0] < 0:
-            raise ValueError('Times cannot be negative.')
-        # Create a pacing system and calculate the values
-        p = PacingSystem(self)
-        # Return log
-        log['time'] = list(times)
-        log['pace'] = [p.advance(t) for t in times]
-        return log
+        # Deprecated since 2019-01-09
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning(
+            'The method `create_log_for_times` is deprecated.'
+            ' Please use `log_for_times` instead.')
+        return self.log_for_times(times)
 
     def events(self):
         """
@@ -242,6 +196,7 @@ class Protocol(object):
 
         This method now returns the value given by :meth:`characteristic_time`.
         """
+        # Deprecated since 2016-02-06
         import logging
         logger = logging.getLogger('myokit')
         logger.warning(
@@ -396,6 +351,63 @@ class Protocol(object):
             e = e._next
         return levels
 
+    def log_for_interval(self, a, b, for_drawing=False):
+        """
+        Returns a :class:`myokit.DataLog` containing the entries ``time`` and
+        ``pace``, representing the value of the pacing stimulus at each  point
+        on the interval ``[a, b]``.
+
+        The time points in the log will be chosen such that every time at which
+        the pacing value changes is present in the log.
+
+        If ``for_drawing`` is set to ``True`` each time value between ``a`` and
+        ``b`` will be listed twice, so that a vertical line can be drawn from
+        the old to the new pacing value.
+        """
+        # Test the input
+        a, b = float(a), float(b)
+        if b < a:
+            raise ValueError('The argument `b` cannot be smaller than `a`')
+
+        # Create a simulation log
+        log = myokit.DataLog()
+        log.set_time_key('time')
+        log['time'] = time = []
+        log['pace'] = pace = []
+
+        # Create a pacing system
+        p = PacingSystem(self)
+
+        # Fill in points
+        t = a
+        v = p.advance(t, max_time=b)
+        time.append(t)
+        pace.append(v)
+        while t < b:
+            t = p.next_time()
+            if for_drawing:
+                if t != b:
+                    time.append(t)
+                    pace.append(v)
+            v = p.advance(t, max_time=b)
+            time.append(t)
+            pace.append(v)
+        return log
+
+    def log_for_times(self, times):
+        """
+        Returns a :class:`myokit.DataLog` containing the entries ``time`` and
+        ``pace`` representing the value of the pacing stimulus at each point.
+
+        The time entries ``times`` must be an non-descreasing series of
+        non-negative points.
+        """
+        log = myokit.DataLog()
+        log.set_time_key('time')
+        log['time'] = times
+        log['pace'] = self.value_at_times(times)
+        return log
+
     def pop(self):
         """
         Removes and returns the event at the head of the queue.
@@ -462,6 +474,34 @@ class Protocol(object):
         while e._next is not None:
             e = e._next
         return e
+
+    def value_at_times(self, times):
+        """
+        Returns a list containing the value of the pacing variable at each time
+        listed in ``times``.
+
+        Arguments:
+
+        ``times``
+            A (non-decreasing) sequence of (non-negative) points in time.
+
+        """
+        # Times empty? Then return empty list
+        if not times:
+            return []
+
+        # Test time values are non-negative and non-decreasing
+        times = np.asarray(times)
+        if np.any(times[1:] < times[:-1]):
+            raise ValueError(
+                'The argument `times` must contain a'
+                ' non-decreasing sequence of time points.')
+        if times[0] < 0:
+            raise ValueError('Times cannot be negative.')
+
+        # Create a pacing system, calculate the values, and return
+        p = PacingSystem(self)
+        return [p.advance(t) for t in times]
 
 
 class ProtocolEvent(object):

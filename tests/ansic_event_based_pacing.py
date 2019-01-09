@@ -87,7 +87,7 @@ class AnsicEventBasedPacing(myokit.CModule):
         return self._sys.time()
 
     @staticmethod
-    def create_log_for_interval(protocol, a, b, for_drawing=False):
+    def log_for_interval(protocol, a, b, for_drawing=False):
         """
         Creates a :class:`myokit.DataLog` containing the entries `time`
         and `pace` representing the value of the pacing stimulus at each point.
