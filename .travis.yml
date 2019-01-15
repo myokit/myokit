@@ -31,6 +31,11 @@ matrix:
           language: generic
           env:
             - MYOKIT_UNIT=true
+        # Windows unit tests
+        - os: windows
+          python: "2.7"
+          env:
+            - MYOKIT_UNIT=true
         # Unit tests on Ubuntu
         - os: linux
           python: "2.7"
