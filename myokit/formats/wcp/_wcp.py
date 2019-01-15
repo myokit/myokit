@@ -37,6 +37,8 @@ class WcpFile(object):
     """
     def __init__(self, filepath):
         # The path to the file and its basename
+        # Ensure it's a `str` for Python2/3 compatibility
+        filepath = str(filepath)
         self._filepath = os.path.abspath(filepath)
         self._filename = os.path.basename(filepath)
 
