@@ -201,6 +201,8 @@ class AbfFile(object):
     """
     def __init__(self, filepath, is_protocol_file=None):
         # The path to the file and its basename
+        # Ensure it's a `str` for Python2/3 compatibility
+        filepath = str(filepath)
         self._filepath = os.path.abspath(filepath)
         self._filename = os.path.basename(filepath)
 
