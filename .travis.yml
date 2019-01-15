@@ -1,6 +1,5 @@
 #
-# Configuration for travis-ci testing
-# This tests ubuntu by default, but can also be made to test on osx
+# Configuration for travis-ci continuous integration
 #
 sudo: required
 
@@ -8,6 +7,12 @@ sudo: required
 dist: trusty
 
 language: python
+
+# Only build master, develop and PRs
+branches:
+  only:
+    - master
+    - develop
 
 # Python version choices:
 #
@@ -21,7 +26,12 @@ language: python
 matrix:
     # Always put true env variable first, for nicer overview on travis website
     include:
-        # Unit tests (Ubuntu)
+        # Unit tests on OS/X, running first because this one's slow
+        - os: osx
+          language: generic
+          env:
+            - MYOKIT_UNIT=true
+        # Unit tests on Ubuntu
         - os: linux
           python: "2.7"
           env:
@@ -40,11 +50,6 @@ matrix:
             - MYOKIT_UNIT=true
         - os: linux
           python: "3.6"
-          env:
-            - MYOKIT_UNIT=true
-        # Unit tests on OS/X
-        - os: osx
-          language: generic
           env:
             - MYOKIT_UNIT=true
         # Cover checking
