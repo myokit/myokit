@@ -8,6 +8,12 @@ dist: trusty
 
 language: python
 
+# Only build master, develop and PRs
+branches:
+  only:
+    - master
+    - develop
+
 # Python version choices:
 #
 # 2.7.0 --> Released 2010-07-03, not tested!
