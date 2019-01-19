@@ -17,7 +17,7 @@ def printline():
 
 def main():
     """
-    Imports myokit. Gets parsing.
+    Parses command line arguments.
     """
     import sys
 
