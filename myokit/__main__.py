@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Command line tools for Myokit.
 #

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # A tiny templating engine using a php style syntax.
 #
