@@ -2036,6 +2036,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         Deprecated alias of :meth:`resolve_interdependent_components`.
         """
+        # Deprecated since 2018-05-30
         import logging
         logging.basicConfig()
         log = logging.getLogger(__name__)
@@ -2359,6 +2360,7 @@ class Model(ObjectWithMeta, VarProvider):
         """
         Deprecated alias of :meth:`show_line_of`.
         """
+        # Deprecated since 2018-05-30
         import logging
         logging.basicConfig()
         log = logging.getLogger(__name__)
@@ -2611,6 +2613,7 @@ class Model(ObjectWithMeta, VarProvider):
         The input arguments can be given as :class:`LhsExpression` objects or
         string names of variables.
         """
+        # Deprecated since 2018-11-08
         import logging
         logging.basicConfig()
         log = logging.getLogger(__name__)

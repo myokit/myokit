@@ -1119,8 +1119,15 @@ def system():
     """
     Displays system information.
     """
+    import os
     import myokit
     myokit.system(live_printing=True)
+
+    ini = os.path.join(myokit.DIR_USER, 'myokit.ini')
+    print()
+    print('= ' + ini + ' =')
+    with open(ini, 'r') as f:
+        print(f.read())
 
 
 def add_system_parser(subparsers):

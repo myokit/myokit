@@ -194,29 +194,6 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(s.next_time(), float('inf'))
         self.assertEqual(s.pace(), 0)
 
-        # Test basic use + log creation methods
-        p = myokit.Protocol()
-        p.schedule(1, 10, 1, 1000, 0)
-        d = p.create_log_for_interval(0, 3000)
-        self.assertEqual(d.time(), [0, 10, 11, 1010, 1011, 2010, 2011, 3000])
-        d = p.create_log_for_interval(0, 2000, for_drawing=True)
-        self.assertEqual(d.time(), [
-            0, 10, 10, 11, 11, 1010, 1010, 1011, 1011, 2000])
-        p = myokit.Protocol()
-        p.schedule(1, 0, 1, 1000, 0)
-        d = p.create_log_for_interval(0, 3000)
-        self.assertEqual(d.time(), [0, 1, 1000, 1001, 2000, 2001, 3000])
-        d = p.create_log_for_interval(0, 2000, for_drawing=True)
-        self.assertEqual(d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000])
-        if False:
-            import matplotlib.pyplot as plt
-            plt.figure()
-            plt.plot(d.time(), d['pace'])
-            plt.show()
-
-        # Test bad interval call
-        self.assertRaises(ValueError, p.create_log_for_interval, 100, 0)
-
         # Test raising of errors on rescheduled events
         p = myokit.Protocol()
         p.schedule(1, 0, 1, 1000)
@@ -238,18 +215,44 @@ class PacingTest(unittest.TestCase):
         m = str(e.exception)
         self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
 
-    def test_create_log_for_times(self):
-        """
-        Test the method Protocol.create_log_for_times()
-        """
+    def test_log_for_interval(self):
+        # Tests the method Protocol.log_for_interval()
+
+        # Test basic use + log creation methods
         p = myokit.Protocol()
-        #          level, self.characteristic_time(), duration
+        p.schedule(1, 10, 1, 1000, 0)
+        d = p.log_for_interval(0, 3000)
+        self.assertEqual(d.time(), [0, 10, 11, 1010, 1011, 2010, 2011, 3000])
+        d = p.log_for_interval(0, 2000, for_drawing=True)
+        self.assertEqual(d.time(), [
+            0, 10, 10, 11, 11, 1010, 1010, 1011, 1011, 2000])
+        p = myokit.Protocol()
+        p.schedule(1, 0, 1, 1000, 0)
+        d = p.log_for_interval(0, 3000)
+        self.assertEqual(d.time(), [0, 1, 1000, 1001, 2000, 2001, 3000])
+        d = p.log_for_interval(0, 2000, for_drawing=True)
+        self.assertEqual(d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000])
+        if False:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(d.time(), d['pace'])
+            plt.show()
+
+        # Test bad interval call
+        self.assertRaises(ValueError, p.log_for_interval, 100, 0)
+
+        # Test deprecated alias
+        p.create_log_for_interval(0, 2000, for_drawing=True)
+
+    def test_log_for_times(self):
+        # Test the method Protocol.log_for_times()
+        p = myokit.Protocol()
         p.schedule(2, 10, 100, 1000, 2)
 
         t = [0, 9.999, 10, 10.001, 109.999, 110, 110.001, 1000, 1009.99, 1010,
              1110, 2000, 2020]
         v = [0, 0, 2, 2, 2, 0, 0, 0, 0, 2, 0, 0, 0]
-        d = p.create_log_for_times(t)
+        d = p.log_for_times(t)
         self.assertEqual(len(d), 2)
         self.assertIn('time', d)
         self.assertIn('pace', d)
@@ -257,17 +260,34 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(d['pace'], v)
 
         # Empty times
-        d = p.create_log_for_times([])
+        d = p.log_for_times([])
         self.assertEqual(len(d.time()), 0)
         self.assertEqual(len(d['pace']), 0)
 
+        # Deprecated alias
+        p.create_log_for_times([])
+
+    def test_value_at_times(self):
+        # Test the method Protocol.value_at_times()
+
+        p = myokit.Protocol()
+        p.schedule(2, 10, 100, 1000, 2)
+        t = [0, 9.999, 10, 10.001, 109.999, 110, 110.001, 1000, 1009.99, 1010,
+             1110, 2000, 2020]
+        v = [0, 0, 2, 2, 2, 0, 0, 0, 0, 2, 0, 0, 0]
+        self.assertEqual(v, p.value_at_times(t))
+
+        # Empty times
+        d = p.log_for_times([])
+        self.assertEqual(len(p.value_at_times([])), 0)
+
         # Decreasing times
         self.assertRaisesRegex(
-            ValueError, 'non-decreasing', p.create_log_for_times, [1, 0])
+            ValueError, 'non-decreasing', p.value_at_times, [1, 0])
 
         # Negative times
         self.assertRaisesRegex(
-            ValueError, 'negative', p.create_log_for_times, [-1, 0])
+            ValueError, 'negative', p.value_at_times, [-1, 0])
 
     def test_in_words(self):
         """
@@ -370,17 +390,17 @@ class PacingTest(unittest.TestCase):
         # Test basic use + log creation methods
         p = myokit.Protocol()
         p.schedule(1, 10, 1, 1000, 0)
-        d = AnsicEventBasedPacing.create_log_for_interval(p, 0, 3000)
+        d = AnsicEventBasedPacing.log_for_interval(p, 0, 3000)
         self.assertEqual(d.time(), [0, 10, 11, 1010, 1011, 2010, 2011, 3000])
-        d = AnsicEventBasedPacing.create_log_for_interval(
+        d = AnsicEventBasedPacing.log_for_interval(
             p, 0, 2000, for_drawing=True)
         self.assertEqual(d.time(), [
             0, 10, 10, 11, 11, 1010, 1010, 1011, 1011, 2000])
         p = myokit.Protocol()
         p.schedule(1, 0, 1, 1000, 0)
-        d = AnsicEventBasedPacing.create_log_for_interval(p, 0, 3000)
+        d = AnsicEventBasedPacing.log_for_interval(p, 0, 3000)
         self.assertEqual(d.time(), [0, 1, 1000, 1001, 2000, 2001, 3000])
-        d = AnsicEventBasedPacing.create_log_for_interval(
+        d = AnsicEventBasedPacing.log_for_interval(
             p, 0, 2000, for_drawing=True)
         self.assertEqual(d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000])
 
