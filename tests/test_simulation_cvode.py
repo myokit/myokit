@@ -378,6 +378,19 @@ class SimulationTest(unittest.TestCase):
             s.run(5000)
         self.assertIn('CV_ERR_FAILURE', str(e.exception))
 
+    def test_cvode_simulation_with_zero_states(self):
+        # Tests running cvode simulations on models with no ODEs
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        v = c.add_variable('v')
+        v.set_rhs('0')
+        v.set_binding('pace')
+        s = myokit.Simulation(m)
+        d = s.run(1)
+
 
 class RuntimeSimulationTest(unittest.TestCase):
     """
