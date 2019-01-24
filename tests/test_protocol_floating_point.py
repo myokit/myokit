@@ -47,16 +47,22 @@ except AttributeError:
 
 class ProtocolFloatingPointTest(unittest.TestCase):
 
-    def test_is_sequence_and_length_floats(self):
+    def test_is_sequence_and_length_floats_1(self):
 
         # Tests how float issues are handled in characteristic_time,
         # is_sequence, and is_unbroken_sequence
 
-        # Example 1:
+        # Example 1: Sum too high
 
         # Good arithmetic: 1.2345 + 2.3454 = 3.5799
         # With doubles   :                   3.5799000000000003
         # So that        : 1.2345 + 2.3454 > 3.5799
+
+        # Absolute error :                   4.440892098500626e-16
+        # Float epsilon  : sys.float_info    2.220446049250313e-16
+        # Abs error / eps:                   2.0 = 2**1
+        # 2-log of sum   :                   [1-2]
+        # Relative error : abs error / sum   1.2405073042544837e-16
 
         p = myokit.Protocol()
         p.schedule(-80, 0, 1.2345)
@@ -67,11 +73,22 @@ class ProtocolFloatingPointTest(unittest.TestCase):
         self.assertTrue(p.is_sequence())
         self.assertTrue(p.is_unbroken_sequence())
 
-        # Example 2:
+    def test_is_sequence_and_length_floats_2(self):
+
+        # Tests how float issues are handled in characteristic_time,
+        # is_sequence, and is_unbroken_sequence
+
+        # Example 2: Sum too low
 
         # Good arithmetic: 3.3333 + 3.3331 = 6.6664
         # With doubles   :                   6.666399999999999
         # So that        : 3.3333 + 3.3331 < 6.6664
+
+        # Absolute error :                   -8.881784197001252e-16
+        # Float epsilon  : sys.float_info     2.220446049250313e-16
+        # Abs error / eps:                   -4.0 = 2**2
+        # 2-log of sum   :                    [2-3]
+        # Relative error : abs error / sum   -1.3323209223870833e-16
 
         p = myokit.Protocol()
         p.schedule(-80, 0, 3.3333)
@@ -82,8 +99,34 @@ class ProtocolFloatingPointTest(unittest.TestCase):
         self.assertTrue(p.is_sequence())
         self.assertTrue(p.is_unbroken_sequence())
 
+    def test_is_sequence_and_length_floats_3(self):
+
+        # Tests how float issues are handled in characteristic_time,
+        # is_sequence, and is_unbroken_sequence
+
+        # Example 3: The size of the numbers matters
+        #
+        # Good arithmetic: 1340.6 + 22159.6 = 23500.2
+        # With doubles   :                    23500.199999999997
+        # So that        : 1340.6 + 22159.6 < 23500.2
+
+        # Error          :                   -3.637978807091713e-12
+        # Float epsilon  : sys.float_info     2.220446049250313e-16
+        # Abs error / eps:                   -16384.0 = 2**14
+        # 2-log of sum   :                    [14-15]
+        # Relative error : abs error / sum   -1.5480629131206173e-16
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1340.6)
+        p.schedule(-70, 1340.6, 22159.6)
+        p.schedule(-60, 23500.2, 6499.8)
+
+        self.assertEqual(p.characteristic_time(), 30000)
+        self.assertTrue(p.is_sequence())
+        self.assertTrue(p.is_unbroken_sequence())
 
     def test_cvode_floating_point_protocol(self):
+
         # Tests the protocol handling in a CVODE simulation, which uses the
         # pacing.h file shared by all C/C++ simulation code.
 
