@@ -152,7 +152,7 @@ class SimulationTest(unittest.TestCase):
         self.assertNotEqual(e['engine.time'][n - 1], e['engine.time'][n])
         self.assertGreater(e['engine.time'][n], e['engine.time'][n - 1])
 
-    def test_pacing_values_at_event_transitions_dynamic(self):
+    def test_pacing_values_at_event_transitions(self):
         # Tests the value of the pacing signal at event transitions
 
         # Create a simple model
@@ -184,7 +184,7 @@ class SimulationTest(unittest.TestCase):
         if False:
             for i, t in enumerate(d.time()):
                 t = str(np.round(t, 5))
-                print(t + ' '*(10 - len(t)) + str(d['c.v'][i]))
+                print(t + ' ' * (10 - len(t)) + str(d['c.v'][i]))
 
         # Values should be
         #   t   0   1   2   3   4   5   6   7   8   9   10
