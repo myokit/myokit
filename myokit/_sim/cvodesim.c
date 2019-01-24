@@ -746,7 +746,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
         flag_epacing = ESys_Populate(epacing, eprotocol);
         if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-        flag_epacing = ESys_AdvanceTime(epacing, tmin, tmax);
+        flag_epacing = ESys_AdvanceTime(epacing, tmin);
         if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
         tnext = ESys_GetNextTime(epacing, &flag_epacing);
         engine_pace = ESys_GetLevel(epacing, &flag_epacing);
@@ -1063,8 +1063,10 @@ sim_step(PyObject *self, PyObject *args)
                     /* Get interpolated y(tlog) */
                     flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
                     if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+
                     /* Calculate intermediate variables & derivatives */
                     rhs(tlog, y_log, dy_log, 0);
+
                     /* Write to log */
                     for(i=0; i<n_vars; i++) {
                         flt = PyFloat_FromDouble(*vars[i]);
@@ -1081,6 +1083,7 @@ sim_step(PyObject *self, PyObject *args)
 
                     /* Get next logging point */
                     if (log_interval > 0) {
+
                         /* Periodic logging */
                         ilog++;
                         tlog = tmin + (double)ilog * log_interval;
@@ -1089,7 +1092,9 @@ sim_step(PyObject *self, PyObject *args)
                             PyErr_SetString(PyExc_Exception, "Overflow in logged step count: Simulation too long!");
                             return sim_clean();
                         }
+
                     } else {
+
                         /* Point-list logging */
                         /* Read next log point off the list */
                         if (ilog < PyList_Size(log_times)) {
@@ -1104,6 +1109,7 @@ sim_step(PyObject *self, PyObject *args)
                         } else {
                             tlog = tmax + 1;
                         }
+
                     }
                 }
             }
@@ -1113,10 +1119,13 @@ sim_step(PyObject *self, PyObject *args)
             /* At this point we have logged everything _before_ engine_time, so
                it's safe to update the pacing mechanism. */
             if (epacing != NULL) {
-                flag_epacing = ESys_AdvanceTime(epacing, engine_time, tmax);
+                flag_epacing = ESys_AdvanceTime(epacing, engine_time);
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 tnext = ESys_GetNextTime(epacing, NULL);
                 engine_pace = ESys_GetLevel(epacing, NULL);
+
+                /* Don't attemt to jump to DBL_MAX */
+                tnext = (tnext > tmax) ? tmax : tnext;
             }
 
             /* Dynamic logging: Log every visited point */

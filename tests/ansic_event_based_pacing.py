@@ -57,15 +57,13 @@ class AnsicEventBasedPacing(myokit.CModule):
         if self._sys is not None:
             self._sys.clean()
 
-    def advance(self, new_time, max_time=None):
+    def advance(self, new_time):
         """
         Advances the time in the pacing system to ``new_time``.
 
         Returns the current value of the pacing variable.
         """
-        if max_time is None:
-            max_time = float('inf')
-        return self._sys.advance(new_time, max_time)
+        return self._sys.advance(new_time)
 
     def next_time(self):
         """
@@ -86,43 +84,3 @@ class AnsicEventBasedPacing(myokit.CModule):
         """
         return self._sys.time()
 
-    @staticmethod
-    def log_for_interval(protocol, a, b, for_drawing=False):
-        """
-        Creates a :class:`myokit.DataLog` containing the entries `time`
-        and `pace` representing the value of the pacing stimulus at each point.
-
-        The time points in the log will be on the interval ``[a, b]``, such
-        that every time at which the pacing value changes is present in the
-        log.
-
-        If ``for_drawing`` is set to ``True`` each time value between ``a`` and
-        ``b`` will be listed twice, so that a vertical line can be drawn from
-        the old to the new pacing value.
-        """
-        # Test the input
-        a, b = float(a), float(b)
-        if b < a:
-            raise ValueError('The argument `b` cannot be smaller than `a`')
-        # Create a simulation log
-        log = myokit.DataLog()
-        log.set_time_key('time')
-        log['time'] = time = []
-        log['pace'] = pace = []
-        # Create a pacing system
-        p = AnsicEventBasedPacing(protocol)
-        # Fill in points
-        t = a
-        v = p.advance(t, max_time=b)
-        time.append(t)
-        pace.append(v)
-        while t < b:
-            t = p.next_time()
-            if for_drawing:
-                if t != b:
-                    time.append(t)
-                    pace.append(v)
-            v = p.advance(t, max_time=b)
-            time.append(t)
-            pace.append(v)
-        return log

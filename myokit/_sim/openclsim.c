@@ -408,7 +408,7 @@ sim_init(PyObject* self, PyObject* args)
     if(flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_Populate(pacing, protocol);
     if(flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
-    flag_pacing = ESys_AdvanceTime(pacing, tmin, tmax);
+    flag_pacing = ESys_AdvanceTime(pacing, tmin);
     if(flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     tnext_pace = ESys_GetNextTime(pacing, NULL);
     engine_pace = ESys_GetLevel(pacing, NULL);
@@ -971,7 +971,7 @@ sim_step(PyObject *self, PyObject *args)
         arg_time = (Real)engine_time;
 
         /* Update pacing system, advancing it to t+dt */
-        flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
+        flag_pacing = ESys_AdvanceTime(pacing, engine_time);
         if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
         tnext_pace = ESys_GetNextTime(pacing, NULL);
         engine_pace = ESys_GetLevel(pacing, NULL);

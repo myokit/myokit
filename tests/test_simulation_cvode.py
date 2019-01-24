@@ -40,7 +40,6 @@ class SimulationTest(unittest.TestCase):
         cls.protocol = p
         cls.sim = myokit.Simulation(cls.model, cls.protocol)
 
-    '''
     def test_pre(self):
         """
         Test pre-pacing.
@@ -152,7 +151,7 @@ class SimulationTest(unittest.TestCase):
         e = self.sim.run(50, log=e)
         self.assertNotEqual(e['engine.time'][n - 1], e['engine.time'][n])
         self.assertGreater(e['engine.time'][n], e['engine.time'][n - 1])
-    '''
+
     def test_pacing_values_at_event_transitions_dynamic(self):
         # Tests the value of the pacing signal at event transitions
 
@@ -204,17 +203,14 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(value[time.index(10.0) - 1], 3)
         self.assertEqual(value[time.index(10.0)], 0)
 
-
         # Simulate with fixed logging
-        #TODO
-        #s.reset()
-        #d = s.run(p.characteristic_time() + 1, log_times=d.time())
-        #for i, t in enumerate(d.time()):
-        #    t = str(np.round(t, 5))
-        #    print(t + ' '*(10 - len(t)) + str(d['c.v'][i]))
-        #print()
+        s.reset()
+        d = s.run(p.characteristic_time() + 1, log_times=d.time())
+        time2 = list(d.time())
+        value2 = list(d['c.v'])
+        self.assertEqual(time, time2)
+        self.assertEqual(value, value2)
 
-    '''
     def test_progress_reporter(self):
         """
         Test running with a progress reporter.
@@ -391,7 +387,7 @@ class RuntimeSimulationTest(unittest.TestCase):
         m, p, x = myokit.load(
             os.path.join(DIR_DATA, 'lr-1991-runtimes.mmt'))
         myokit.run(m, p, x)
-'''
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -380,7 +380,7 @@ extern "C" {
         if (flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
         flag_pacing = ESys_Populate(pacing, protocol);
         if (flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
-        flag_pacing = ESys_AdvanceTime(pacing, tmin, tmax);
+        flag_pacing = ESys_AdvanceTime(pacing, tmin);
         if (flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
 
         /* Initialize inputs */
@@ -494,7 +494,7 @@ for i, var in enumerate(variables):
                 state[i] += state_ddt[i] * dt;
             }
             engine_time += dt;
-            flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
+            flag_pacing = ESys_AdvanceTime(pacing, engine_time);
             if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
             tpace = ESys_GetNextTime(pacing, NULL);
             engine_pace = ESys_GetLevel(pacing, NULL);

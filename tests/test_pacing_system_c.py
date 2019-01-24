@@ -76,36 +76,8 @@ class EventBasedPacingAnsicTest(unittest.TestCase):
         p = myokit.Protocol()
         s = AnsicEventBasedPacing(p)
         self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), float('inf'))
+        self.assertTrue(s.next_time() > 1e123)
         self.assertEqual(s.pace(), 0)
-
-    def test_max_time(self):
-        # Test max time
-        p = myokit.Protocol()
-        s = AnsicEventBasedPacing(p)
-        s.advance(20, max_time=13)
-        self.assertEqual(s.time(), 13)
-        #self.assertEqual(s.next_time(), 13)
-        #self.assertEqual(s.pace(), 0)
-
-        # Test basic use + log creation methods
-        '''
-        p = myokit.Protocol()
-        p.schedule(1, 10, 1, 1000, 0)
-        d = AnsicEventBasedPacing.log_for_interval(p, 0, 3000)
-        self.assertEqual(d.time(), [0, 10, 11, 1010, 1011, 2010, 2011, 3000])
-        d = AnsicEventBasedPacing.log_for_interval(
-            p, 0, 2000, for_drawing=True)
-        self.assertEqual(d.time(), [
-            0, 10, 10, 11, 11, 1010, 1010, 1011, 1011, 2000])
-        p = myokit.Protocol()
-        p.schedule(1, 0, 1, 1000, 0)
-        d = AnsicEventBasedPacing.log_for_interval(p, 0, 3000)
-        self.assertEqual(d.time(), [0, 1, 1000, 1001, 2000, 2001, 3000])
-        d = AnsicEventBasedPacing.log_for_interval(
-            p, 0, 2000, for_drawing=True)
-        self.assertEqual(d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000])
-        '''
 
     def test_simultaneous_event_error(self):
         # Test raising of errors on rescheduled periodic events
