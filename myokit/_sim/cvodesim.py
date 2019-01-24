@@ -102,7 +102,7 @@ class Simulation(myokit.CModule):
             self._apd_var = self._model.get(apd_var)
             if not self._apd_var.is_state():
                 raise ValueError(
-                    'The potential variable must be a state variable.')
+                    'The `apd_var` must be a state variable.')
 
         # Get state and default state from model
         self._state = self._model.state()
