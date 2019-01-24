@@ -30,6 +30,7 @@ class SimulationTest(unittest.TestCase):
     """
     Tests the CVode simulation class.
     """
+
     @classmethod
     def setUpClass(cls):
         """
@@ -380,16 +381,76 @@ class SimulationTest(unittest.TestCase):
 
     def test_cvode_simulation_with_zero_states(self):
         # Tests running cvode simulations on models with no ODEs
-        m = myokit.Model()
-        c = m.add_component('c')
+
+        # Create a model without states
+        m1 = myokit.Model()
+        c = m1.add_component('c')
         t = c.add_variable('t')
         t.set_rhs(0)
         t.set_binding('time')
         v = c.add_variable('v')
         v.set_rhs('0')
         v.set_binding('pace')
-        s = myokit.Simulation(m)
-        d = s.run(1)
+        w = c.add_variable('w')
+        w.set_rhs('2 * v')
+
+        # Create a model with a state
+        m2 = m1.clone()
+        z = m2.get('c').add_variable('z')
+        z.set_rhs(0.1)
+        z.promote(0)
+
+        # Test without protocol and dynamic logging
+        s1 = myokit.Simulation(m1)
+        d1 = s1.run(5)
+        self.assertEqual(len(d1.time()), 2)
+        self.assertEqual(list(d1.time()), [0, 5])
+        self.assertEqual(list(d1['c.w']), [0, 0])
+        s2 = myokit.Simulation(m2)
+        d2 = s2.run(6, log_times=d1.time())
+        self.assertEqual(d1.time(), d2.time())
+        self.assertEqual(d1['c.w'], d2['c.w'])
+
+        # Test with a protocol and dynamic logging
+        p = myokit.Protocol()
+        p.schedule(0, 0, 2)
+        p.schedule(1, 2, 2)
+        p.schedule(2, 4, 4)
+        p.schedule(3, 8, 2)
+        s1.reset()
+        s1.set_protocol(p)
+        d1 = s1.run(p.characteristic_time())
+        self.assertEqual(len(d1.time()), 5)
+        self.assertEqual(list(d1.time()), [0, 2, 4, 8, 10])
+        self.assertEqual(list(d1['c.w']), [0, 2, 4, 6, 0])
+        s2.reset()
+        s2.set_protocol(p)
+        d2 = s2.run(p.characteristic_time() + 1, log_times=d1.time())
+        self.assertEqual(d1.time(), d2.time())
+        self.assertEqual(d1['c.w'], d2['c.w'])
+
+        # Test with fixed logging times
+        s1.reset()
+        d1 = s1.run(p.characteristic_time() + 1, log_times=d1['c.t'])
+        self.assertEqual(list(d1.time()), [0, 2, 4, 8, 10])
+        self.assertEqual(list(d1['c.w']), [0, 2, 4, 6, 0])
+        s2.reset()
+        d2 = s2.run(p.characteristic_time() + 1, log_times=d1.time())
+        self.assertEqual(d1.time(), d2.time())
+        self.assertEqual(d1['c.w'], d2['c.w'])
+
+        # Test appending to log
+        s1.reset()
+        d1 = s1.run(5)
+        d1 = s1.run(5, log=d1)
+        self.assertEqual(list(d1.time()), [0, 2, 4, 5, 8, 10])
+        self.assertEqual(list(d1['c.w']), [0, 2, 4, 4, 6, 0])
+
+        # Test with a log interval
+        s1.reset()
+        d1 = s1.run(11, log_interval=1)
+        self.assertEqual(list(d1.time()), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        self.assertEqual(list(d1['c.w']), [0, 0, 2, 2, 4, 4, 4, 4, 6, 6, 0])
 
 
 class RuntimeSimulationTest(unittest.TestCase):

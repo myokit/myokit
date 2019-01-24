@@ -91,6 +91,7 @@ equations = model.solvable_order()
 #include "pacing.h"
 
 #define N_STATE <?= model.count_states() ?>
+#define USE_CVODE <?= 1 if model.count_states() > 0 else 0 ?>
 
 /* Pacing */
 ESys epacing;               /* Event-based pacing system */
@@ -446,7 +447,7 @@ sim_clean()
         /* Free CVode space */
         N_VDestroy_Serial(y); y = NULL;
         N_VDestroy_Serial(dy_log); dy_log = NULL;
-        if (!dynamic_logging) {
+        if (USE_CVODE && !dynamic_logging) {
             N_VDestroy_Serial(y_log);
             y_log = NULL;
         }
@@ -613,8 +614,8 @@ sim_init(PyObject *self, PyObject *args)
     dynamic_logging = (log_interval <= 0 && log_times == Py_None);
 
     /* Create state vector for logging */
-    if (dynamic_logging) {
-        /* Dynamic logging: don't interpolate,
+    if (dynamic_logging || !USE_CVODE) {
+        /* Dynamic logging or cvode-free mode: don't interpolate,
            so let y_log point to y */
         y_log = y;
     } else {
@@ -655,11 +656,14 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /* Periodic or point-list logging? Then set init state in y_log as well */
+    #if USE_CVODE
     if (!dynamic_logging) {
         for(i=0; i<N_STATE; i++) {
             NV_Ith_S(y_log, i) = NV_Ith_S(y, i);
         }
     }
+    #endif
+    /* In cvode-free mode, y_log points to y, so no need */
 
     /* Root finding list of integers (only contains 1 int...) */
     rootsfound = (int*)malloc(sizeof(int)*1);
@@ -783,45 +787,48 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
 
     /* Create solver
      * Using Backward differentiation and Newton iteration */
-    #if MYOKIT_SUNDIALS_VERSION >= 40000
-        cvode_mem = CVodeCreate(CV_BDF);
-    #else
-        cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
-    #endif
-    if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+    #if USE_CVODE > 0
+        #if MYOKIT_SUNDIALS_VERSION >= 40000
+            cvode_mem = CVodeCreate(CV_BDF);
+        #else
+            cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+        #endif
+        if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
 
-    /* Initialise solver memory, specify the rhs */
-    flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
-    if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+        /* Initialise solver memory, specify the rhs */
+        flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
+        if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
-    /* Set absolute and relative tolerances */
-    flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
-    if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
+        /* Set absolute and relative tolerances */
+        flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
+        if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
 
-    /* Set a maximum step size (or 0.0 for none) */
-    flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
-    if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
+        /* Set a maximum step size (or 0.0 for none) */
 
-    /* Set a minimum step size (or 0.0 for none) */
-    flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
-    if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
+        flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
+        if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
 
-    #if MYOKIT_SUNDIALS_VERSION >= 30000
-        /* Create dense matrix for use in linear solves */
-        sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
-        if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+        /* Set a minimum step size (or 0.0 for none) */
+        flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
+        if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-        /* Create dense linear solver object with matrix */
-        sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
-        if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+        #if MYOKIT_SUNDIALS_VERSION >= 30000
+            /* Create dense matrix for use in linear solves */
+            sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
+            if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
 
-        /* Attach the matrix and solver to cvode */
-        flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
-        if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
-    #else
-        /* Create dense matrix for use in linear solves */
-        flag_cvode = CVDense(cvode_mem, N_STATE);
-        if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+            /* Create dense linear solver object with matrix */
+            sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
+            if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+
+            /* Attach the matrix and solver to cvode */
+            flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+            if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
+        #else
+            /* Create dense matrix for use in linear solves */
+            flag_cvode = CVDense(cvode_mem, N_STATE);
+            if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+        #endif
     #endif
 
     /* Benchmarking? Then set engine_realtime to 0.0 */
@@ -911,7 +918,8 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         }
     }
 
-    /* Root finding enabled? */
+    /* Root finding enabled? (cvode-mode only) */
+    #if USE_CVODE
     if (PySequence_Check(root_list)) {
         /* Set threshold */
         rootfinding_threshold = root_threshold;
@@ -919,6 +927,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         flag_cvode = CVodeRootInit(cvode_mem, 1, root_finding);
         if (check_cvode_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
     }
+    #endif
 
     /* Done! */
     Py_RETURN_NONE;
@@ -965,7 +974,7 @@ sim_step(PyObject *self, PyObject *args)
         /* Store engine time before step */
         engine_time_last = engine_time;
 
-        /*
+        /*TODO: REMOVE THIS
          * Advance to next time step
          * This sets y to y(t) and time to time(t) <= tnext
          * In rare cases, there can be two event scheduled very close together
@@ -975,21 +984,33 @@ sim_step(PyObject *self, PyObject *args)
          * (CV_TOO_CLOSE). A fix seems to be to add a small extra time so that
          * CVODE can still run.
          */
-        flag_cvode = CVode(cvode_mem, tnext + 1e-10, y, &engine_time, CV_ONE_STEP);
+        #if USE_CVODE
 
-        /* Check for errors */
-        if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
-            /* Something went wrong... Set outputs and return */
-            for(i=0; i<N_STATE; i++) {
-                PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
-                /* PyList_SetItem steals a reference: no need to decref the double! */
+            flag_cvode = CVode(cvode_mem, tnext + 1e-10, y, &engine_time, CV_ONE_STEP);
+
+            /* Check for errors */
+            if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+                /* Something went wrong... Set outputs and return */
+                for(i=0; i<N_STATE; i++) {
+                    PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
+                    /* PyList_SetItem steals a reference: no need to decref the double! */
+                }
+                PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
+                PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
+                PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
+                PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
+                return sim_clean();
             }
-            PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
-            PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
-            PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
-            PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
-            return sim_clean();
-        }
+
+        #else
+
+            /* Just jump to next event */
+            /* Note: To stay compatible with cvode-mode, don't jump to the
+               next log time (if tlog < tnext) */
+            engine_time = tnext;
+            flag_cvode = CV_SUCCESS;
+
+        #endif
 
         /* Check if progress is being made */
         if(engine_time == engine_time_last) {
@@ -1010,7 +1031,8 @@ sim_step(PyObject *self, PyObject *args)
         /* If we got to this point without errors... */
         if ((flag_cvode == CV_SUCCESS) || (flag_cvode == CV_ROOT_RETURN)) {
 
-            /* Next event time exceeded? */
+            /* Next event time exceeded? (Can't happen in cvode-free mode) */
+            #if USE_CVODE
             if (engine_time > tnext) {
 
                 /* Go back to engine_time=tnext */
@@ -1037,6 +1059,7 @@ sim_step(PyObject *self, PyObject *args)
                 }
                 ret = NULL;
             }
+            #endif
 
             /* Periodic logging or point-list logging */
             if (!dynamic_logging && engine_time > tlog) {
@@ -1060,9 +1083,14 @@ sim_step(PyObject *self, PyObject *args)
 
                 /* Log points */
                 while (engine_time > tlog) {
+
                     /* Get interpolated y(tlog) */
-                    flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                    #if USE_CVODE
+                        flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
+                        if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                    #endif
+                    /* If cvode-free mode, the state can't change so we don't
+                       need to do anything here */
 
                     /* Calculate intermediate variables & derivatives */
                     rhs(tlog, y_log, dy_log, 0);
@@ -1083,7 +1111,6 @@ sim_step(PyObject *self, PyObject *args)
 
                     /* Get next logging point */
                     if (log_interval > 0) {
-
                         /* Periodic logging */
                         ilog++;
                         tlog = tmin + (double)ilog * log_interval;
@@ -1092,9 +1119,7 @@ sim_step(PyObject *self, PyObject *args)
                             PyErr_SetString(PyExc_Exception, "Overflow in logged step count: Simulation too long!");
                             return sim_clean();
                         }
-
                     } else {
-
                         /* Point-list logging */
                         /* Read next log point off the list */
                         if (ilog < PyList_Size(log_times)) {
@@ -1109,7 +1134,6 @@ sim_step(PyObject *self, PyObject *args)
                         } else {
                             tlog = tmax + 1;
                         }
-
                     }
                 }
             }
@@ -1171,13 +1195,15 @@ sim_step(PyObject *self, PyObject *args)
 
             }
 
-            /* Reinitialize if needed */
+            /* Reinitialize if needed (cvode-mode only) */
+            #if USE_CVODE
             if (flag_reinit) {
                 flag_reinit = 0;
                 /* Re-init */
                 flag_cvode = CVodeReInit(cvode_mem, engine_time, y);
                 if (check_cvode_flag(&flag_cvode, "CVodeReInit", 1)) return sim_clean();
             }
+            #endif
         }
 
         /* Check if we're finished */
@@ -1398,7 +1424,7 @@ static PyMethodDef SimMethods[] = {
     static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
         "<?= module_name ?>",       /* m_name */
-        "Generated CVODE module",   /* m_doc */
+        "Generated CVODESim module",/* m_doc */
         -1,                         /* m_size */
         SimMethods,                 /* m_methods */
         NULL,                       /* m_reload */
