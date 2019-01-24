@@ -40,6 +40,7 @@ class SimulationTest(unittest.TestCase):
         cls.protocol = p
         cls.sim = myokit.Simulation(cls.model, cls.protocol)
 
+    '''
     def test_pre(self):
         """
         Test pre-pacing.
@@ -151,7 +152,69 @@ class SimulationTest(unittest.TestCase):
         e = self.sim.run(50, log=e)
         self.assertNotEqual(e['engine.time'][n - 1], e['engine.time'][n])
         self.assertGreater(e['engine.time'][n], e['engine.time'][n - 1])
+    '''
+    def test_pacing_values_at_event_transitions_dynamic(self):
+        # Tests the value of the pacing signal at event transitions
 
+        # Create a simple model
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        v = c.add_variable('v')
+        v.set_rhs('0')
+        v.set_binding('pace')
+        x = c.add_variable('x')
+        x.set_rhs(0.1)
+        x.promote(0)
+
+        # Create step protocol
+        p = myokit.Protocol()
+        p.schedule(0, 0, 2)
+        p.schedule(1, 2, 2)
+        p.schedule(2, 4, 4)
+        p.schedule(3, 8, 2)
+
+        # Simulate with dynamic logging
+        s = myokit.Simulation(m, p)
+        d = s.run(p.characteristic_time())
+        time = list(d.time())
+        value = list(d['c.v'])
+
+        if False:
+            for i, t in enumerate(d.time()):
+                t = str(np.round(t, 5))
+                print(t + ' '*(10 - len(t)) + str(d['c.v'][i]))
+
+        # Values should be
+        #   t   0   1   2   3   4   5   6   7   8   9   10
+        #   p   0   0   1   1   2   2   2   2   3   3   0
+        self.assertEqual(value[time.index(0.0)], 0)
+        self.assertEqual(value[time.index(0.0) + 1], 0)
+        self.assertEqual(value[time.index(2.0) - 1], 0)
+        self.assertEqual(value[time.index(2.0)], 1)
+        self.assertEqual(value[time.index(2.0) + 1], 1)
+        self.assertEqual(value[time.index(4.0) - 1], 1)
+        self.assertEqual(value[time.index(4.0)], 2)
+        self.assertEqual(value[time.index(4.0) + 1], 2)
+        self.assertEqual(value[time.index(8.0) - 1], 2)
+        self.assertEqual(value[time.index(8.0)], 3)
+        self.assertEqual(value[time.index(8.0) + 1], 3)
+        self.assertEqual(value[time.index(10.0) - 1], 3)
+        self.assertEqual(value[time.index(10.0)], 0)
+
+
+        # Simulate with fixed logging
+        #TODO
+        #s.reset()
+        #d = s.run(p.characteristic_time() + 1, log_times=d.time())
+        #for i, t in enumerate(d.time()):
+        #    t = str(np.round(t, 5))
+        #    print(t + ' '*(10 - len(t)) + str(d['c.v'][i]))
+        #print()
+
+    '''
     def test_progress_reporter(self):
         """
         Test running with a progress reporter.
@@ -328,7 +391,7 @@ class RuntimeSimulationTest(unittest.TestCase):
         m, p, x = myokit.load(
             os.path.join(DIR_DATA, 'lr-1991-runtimes.mmt'))
         myokit.run(m, p, x)
-
+'''
 
 if __name__ == '__main__':
     unittest.main()
