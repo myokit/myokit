@@ -47,6 +47,42 @@ except AttributeError:
 
 class ProtocolFloatingPointTest(unittest.TestCase):
 
+    def test_is_sequence_and_length_floats(self):
+
+        # Tests how float issues are handled in characteristic_time,
+        # is_sequence, and is_unbroken_sequence
+
+        # Example 1:
+
+        # Good arithmetic: 1.2345 + 2.3454 = 3.5799
+        # With doubles   :                   3.5799000000000003
+        # So that        : 1.2345 + 2.3454 > 3.5799
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1.2345)
+        p.schedule(-70, 1.2345, 2.3454)
+        p.schedule(-60, 3.5799, 1.4201)
+
+        self.assertEqual(p.characteristic_time(), 5)
+        self.assertTrue(p.is_sequence())
+        self.assertTrue(p.is_unbroken_sequence())
+
+        # Example 2:
+
+        # Good arithmetic: 3.3333 + 3.3331 = 6.6664
+        # With doubles   :                   6.666399999999999
+        # So that        : 3.3333 + 3.3331 < 6.6664
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 3.3333)
+        p.schedule(-70, 3.3333, 3.3331)
+        p.schedule(-60, 6.6664, 3.3336)
+
+        self.assertEqual(p.characteristic_time(), 10)
+        self.assertTrue(p.is_sequence())
+        self.assertTrue(p.is_unbroken_sequence())
+
+
     def test_cvode_floating_point_protocol(self):
         # Tests the protocol handling in a CVODE simulation, which uses the
         # pacing.h file shared by all C/C++ simulation code.
