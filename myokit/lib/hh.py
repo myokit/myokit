@@ -780,7 +780,7 @@ class AnalyticalSimulation(object):
                 offset += len(times)
 
                 # Update pacing
-                self._membrane_potential = self._pacing.advance(tnext, tfinal)
+                self._membrane_potential = self._pacing.advance(tnext)
                 self._cached_matrices = None
                 self._cached_solution = None
 

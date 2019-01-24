@@ -77,17 +77,6 @@ class EventBasedPacingPythonTest(unittest.TestCase):
         self.assertEqual(s.next_time(), float('inf'))
         self.assertEqual(s.pace(), 0)
 
-    def test_max_time(self):
-        # Test max time argument
-
-        p = myokit.Protocol()
-        p.schedule(2, 0, 1, 10, 0)
-        s = myokit.PacingSystem(p)
-        s.advance(20, max_time=13)
-        self.assertEqual(s.time(), 13)
-        self.assertEqual(s.next_time(), 13)
-        self.assertEqual(s.pace(), 0)
-
     def test_simultaneous_event_error(self):
         # Test raising of errors on rescheduled periodic events
 
