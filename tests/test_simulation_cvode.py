@@ -11,6 +11,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import re
 import unittest
 import platform
 import numpy as np
@@ -222,10 +223,12 @@ class SimulationTest(unittest.TestCase):
             sim.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertEqual(len(c), 2)
-        self.assertEqual(
-            c[0], '[0.0 minutes] 1.9 % done, estimated 0 seconds remaining')
-        self.assertEqual(
-            c[1], '[0.0 minutes] 100.0 % done, estimated 0 seconds remaining')
+        p = re.compile(re.escape('[0.0 minutes] 1.9 % done, estimated ') +
+                       '[0-9]+' + re.escape(' seconds remaining'))
+        self.assertIsNotNone(p.match(c[0]))
+        p = re.compile(re.escape('[0.0 minutes] 100.0 % done, estimated ') +
+                       '[0-9]+' + re.escape(' seconds remaining'))
+        self.assertIsNotNone(p.match(c[1]))
 
         # Not a progress reporter
         self.assertRaisesRegex(
