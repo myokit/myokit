@@ -410,7 +410,7 @@ for var in model.variables(deep=True, const=False):
     if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_Populate(pacing, protocol);
     if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
-    flag_pacing = ESys_AdvanceTime(pacing, tmin, tmax);
+    flag_pacing = ESys_AdvanceTime(pacing, tmin);
     if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     tpace = ESys_GetNextTime(pacing, &flag_pacing);
     engine_pace = ESys_GetLevel(pacing, &flag_pacing);
@@ -513,7 +513,7 @@ sim_step(PyObject *self, PyObject *args)
         #endif
 
         /* Move to next time (2) Update the pacing variable */
-        flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
+        flag_pacing = ESys_AdvanceTime(pacing, engine_time);
         if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
         tpace = ESys_GetNextTime(pacing, NULL);
         engine_pace = ESys_GetLevel(pacing, NULL);

@@ -41,6 +41,7 @@
 
 #include <Python.h>
 #include <stdio.h>
+#include <float.h>
 
 /*
  * Event-based pacing error flags
@@ -452,38 +453,39 @@ ESys_Populate(ESys sys, PyObject* protocol)
  *  sys      : The pacing system to advance.
  *  new_time : The time to increment the system to. Must be more than or equal
  *             to the current pacing system time.
- *  max_time : The maximum time to advance to.
  *
  * Returns a pacing error flag.
  */
 ESys_Flag
-ESys_AdvanceTime(ESys sys, double new_time, double max_time)
+ESys_AdvanceTime(ESys sys, double new_time)
 {
-    ESys_Flag flag;     // Need to be declared here for C89 Visual C
+    ESys_Flag flag;     /* Need to be declared here for C89 Visual C */
     if(sys == 0) return ESys_INVALID_SYSTEM;
     if(sys->n_events < 0) return ESys_UNPOPULATED_SYSTEM;
 
-    // Check new time doesn't exceed max time
-    if (new_time > max_time) new_time = max_time;
+    /* Check new_time isn't in the past */
+    if(new_time < sys->time) return ESys_NEGATIVE_TIME_INCREMENT;
 
-    // Update internal time
-    if(sys->time > new_time) return ESys_NEGATIVE_TIME_INCREMENT;
+    /* Update internal time */
     sys->time = new_time;
 
-    // Advance
-    while (sys->tnext <= sys->time && sys->tnext < max_time) {
-        // Active event finished
+    /* Advance */
+    while (sys->tnext <= sys->time) {
+
+        /* Active event finished */
         if (sys->fire != 0 && sys->tnext >= sys->tdown) {
             sys->fire = 0;
             sys->level = 0;
         }
-        // New event starting
+
+        /* New event starting */
         if (sys->head != 0 && sys->tnext >= sys->head->start) {
             sys->fire = sys->head;
             sys->head = sys->head->next;
             sys->tdown = sys->fire->start + sys->fire->duration;
             sys->level = sys->fire->level;
-            // Reschedule recurring event
+
+            /* Reschedule recurring event */
             if (sys->fire->period > 0) {
                 if (sys->fire->multiplier != 1) {
                     if (sys->fire->multiplier > 1) sys->fire->multiplier--;
@@ -495,13 +497,15 @@ ESys_AdvanceTime(ESys sys, double new_time, double max_time)
                 }
             }
         }
-        // Set next stopping time
-        sys->tnext = max_time;
+
+        /* Set next stopping time */
+        sys->tnext = DBL_MAX;
         if (sys->fire != 0 && sys->tnext > sys->tdown)
             sys->tnext = sys->tdown;
         if (sys->head != 0 && sys->tnext > sys->head->start)
             sys->tnext = sys->head->start;
     }
+
     return ESys_OK;
 }
 

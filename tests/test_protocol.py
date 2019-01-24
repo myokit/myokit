@@ -11,12 +11,8 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import unittest
-import numpy as np
 
 import myokit
-
-from ansic_event_based_pacing import AnsicEventBasedPacing
-from ansic_fixed_form_pacing import AnsicFixedFormPacing
 
 # Unit testing in Python 2 and 3
 try:
@@ -25,12 +21,10 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
-class PacingTest(unittest.TestCase):
+class ProtocolTest(unittest.TestCase):
     """
-    Contains tests for the Protocol class, ProtocolEvent, PacingSystem and
-    the C implementation of pacing.
+    Tests the Protocol class.
     """
-
     def test_event_creation(self):
         # Test the basics of creating events.
 
@@ -134,89 +128,9 @@ class PacingTest(unittest.TestCase):
         p.schedule(1, 300, 300)
         self.assertEqual(p.characteristic_time(), 600)
 
-    def test_event_based_pacing_python(self):
-        # Test if the pacing systems works correctly.
-
-        # Test basics
-
-        # Test with event starting at t=0
-        p = myokit.Protocol()
-        # schedule(level, start, duration, period, multiplier)
-        p.schedule(2, 0, 1, 10, 0)
-        s = myokit.PacingSystem(p)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 2)
-        s.advance(0)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 2)
-        s.advance(0)
-        s.advance(0)
-        s.advance(0)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 2)
-        s.advance(0.5)
-        self.assertEqual(s.time(), 0.5)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 2)
-        s.advance(1)
-        self.assertEqual(s.time(), 1)
-        self.assertEqual(s.next_time(), 10)
-        self.assertEqual(s.pace(), 0)
-        s.advance(2)
-        self.assertEqual(s.time(), 2)
-        self.assertEqual(s.next_time(), 10)
-        self.assertEqual(s.pace(), 0)
-        s.advance(10)
-        self.assertEqual(s.time(), 10)
-        self.assertEqual(s.next_time(), 11)
-        self.assertEqual(s.pace(), 2)
-        self.assertRaisesRegex(ValueError, 'cannot be before', s.advance, 0)
-
-        # Test max time
-        s.advance(20, max_time=13)
-        self.assertEqual(s.time(), 13)
-        self.assertEqual(s.next_time(), 13)
-        self.assertEqual(s.pace(), 0)
-
-        # Test with event starting at t=1
-        p = myokit.Protocol()
-        p.schedule(2, 1, 1, 10, 0)
-        s = myokit.PacingSystem(p)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 0)
-        p = myokit.Protocol()
-        s = myokit.PacingSystem(p)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), float('inf'))
-        self.assertEqual(s.pace(), 0)
-
-        # Test raising of errors on rescheduled events
-        p = myokit.Protocol()
-        p.schedule(1, 0, 1, 1000)
-        p.schedule(1, 3000, 1)
-        s = myokit.PacingSystem(p)
-        t = s.next_time()
-        self.assertEqual(t, 1)
-        s.advance(t)
-        t = s.next_time()
-        self.assertEqual(t, 1000)
-        s.advance(t)
-        t = s.next_time()
-        self.assertEqual(t, 1001)
-        s.advance(t)
-        t = s.next_time()
-        self.assertEqual(t, 2000)
-        with self.assertRaises(myokit.SimultaneousProtocolEventError) as e:
-            s.advance(t)
-        m = str(e.exception)
-        self.assertEqual(float(m[2 + m.index('t='):-1]), 3000)
-
     def test_log_for_interval(self):
         # Tests the method Protocol.log_for_interval()
+        # Relies on PacingSystem
 
         # Test basic use + log creation methods
         p = myokit.Protocol()
@@ -246,6 +160,8 @@ class PacingTest(unittest.TestCase):
 
     def test_log_for_times(self):
         # Test the method Protocol.log_for_times()
+        # Relies on PacingSystem
+
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 1000, 2)
 
@@ -269,6 +185,7 @@ class PacingTest(unittest.TestCase):
 
     def test_value_at_times(self):
         # Test the method Protocol.value_at_times()
+        # Relies on PacingSystem
 
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 1000, 2)
@@ -290,9 +207,8 @@ class PacingTest(unittest.TestCase):
             ValueError, 'negative', p.value_at_times, [-1, 0])
 
     def test_in_words(self):
-        """
-        Test :meth:`Protocol.in_words()`.
-        """
+        # Test :meth:`Protocol.in_words()`.
+
         p = myokit.Protocol()
         self.assertEqual(p.in_words(), 'Empty protocol.')
 
@@ -325,183 +241,14 @@ class PacingTest(unittest.TestCase):
             ' with a period of 1000.0.')
 
     def test_guess_duration(self):
-        """
-        Deprecated method.
-        """
+        # Deprecated method Protocol.guess_duration()
+
         p = myokit.Protocol()
         self.assertEqual(p.characteristic_time(), p.guess_duration())
 
-    def test_event_based_pacing_ansic(self):
-        # Test if the C-based pacing.h works correctly
-
-        # Test basics
-        p = myokit.Protocol()
-        p.schedule(2, 0, 1, 10, 0)
-        s = AnsicEventBasedPacing(p)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 2)
-        s.advance(0)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 2)
-        s.advance(0)
-        s.advance(0)
-        s.advance(0)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 2)
-        s.advance(0.5)
-        self.assertEqual(s.time(), 0.5)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 2)
-        s.advance(1)
-        self.assertEqual(s.time(), 1)
-        self.assertEqual(s.next_time(), 10)
-        self.assertEqual(s.pace(), 0)
-        s.advance(2)
-        self.assertEqual(s.time(), 2)
-        self.assertEqual(s.next_time(), 10)
-        self.assertEqual(s.pace(), 0)
-        s.advance(10)
-        self.assertEqual(s.time(), 10)
-        self.assertEqual(s.next_time(), 11)
-        self.assertEqual(s.pace(), 2)
-        p = myokit.Protocol()
-        p.schedule(2, 1, 1, 10, 0)
-        s = AnsicEventBasedPacing(p)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), 1)
-        self.assertEqual(s.pace(), 0)
-        p = myokit.Protocol()
-        s = AnsicEventBasedPacing(p)
-        self.assertEqual(s.time(), 0)
-        self.assertEqual(s.next_time(), float('inf'))
-        self.assertEqual(s.pace(), 0)
-
-        # Test max time
-        p = myokit.Protocol()
-        s = AnsicEventBasedPacing(p)
-        s.advance(20, max_time=13)
-        self.assertEqual(s.time(), 13)
-        #self.assertEqual(s.next_time(), 13)
-        #self.assertEqual(s.pace(), 0)
-
-        # Test basic use + log creation methods
-        p = myokit.Protocol()
-        p.schedule(1, 10, 1, 1000, 0)
-        d = AnsicEventBasedPacing.log_for_interval(p, 0, 3000)
-        self.assertEqual(d.time(), [0, 10, 11, 1010, 1011, 2010, 2011, 3000])
-        d = AnsicEventBasedPacing.log_for_interval(
-            p, 0, 2000, for_drawing=True)
-        self.assertEqual(d.time(), [
-            0, 10, 10, 11, 11, 1010, 1010, 1011, 1011, 2000])
-        p = myokit.Protocol()
-        p.schedule(1, 0, 1, 1000, 0)
-        d = AnsicEventBasedPacing.log_for_interval(p, 0, 3000)
-        self.assertEqual(d.time(), [0, 1, 1000, 1001, 2000, 2001, 3000])
-        d = AnsicEventBasedPacing.log_for_interval(
-            p, 0, 2000, for_drawing=True)
-        self.assertEqual(d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000])
-
-        # Test raising of errors on rescheduled events
-        p = myokit.Protocol()
-        p.schedule(1, 0, 1, 1000)
-        p.schedule(1, 3000, 1)
-        s = AnsicEventBasedPacing(p)
-        t = s.next_time()
-        self.assertEqual(t, 1)
-        s.advance(t)
-        t = s.next_time()
-        self.assertEqual(t, 1000)
-        s.advance(t)
-        t = s.next_time()
-        self.assertEqual(t, 1001)
-        s.advance(t)
-        t = s.next_time()
-        self.assertEqual(t, 2000)
-        self.assertRaises(myokit.SimultaneousProtocolEventError, s.advance, t)
-        # Test raising of errors in simulation
-        p = myokit.Protocol()
-        p.schedule(1, 0, 1, 10)
-        p.schedule(1, 30, 1)
-        m = myokit.load_model('example')
-        s = myokit.Simulation(m, p)
-        self.assertRaises(myokit.SimultaneousProtocolEventError, s.run, 40)
-
-    def test_fixed_form_pacing_ansic(self):
-        """
-        Test the Ansi-C fixed-form pacing system.
-        """
-        if False:
-            # Graphical test, just for playing with the pacing system
-            m, p, x = myokit.load('example')
-            s = myokit.Simulation(m, p)
-            d = s.run(500).npview()
-            # Get time and voltage
-            t = d.time()
-            v = d['membrane.V']
-            # Plot trace
-            import matplotlib.pyplot as plt
-            plt.figure()
-            plt.plot(t, v, 'x')
-            # Get some points halfway, 1/4 of the way, and 3/4 of the way
-            # between the known points
-            t2 = t[:-1] + 0.25 * (t[1:] - t[:-1])
-            t3 = t[:-1] + 0.5 * (t[1:] - t[:-1])
-            t4 = t[:-1] + 0.75 * (t[1:] - t[:-1])
-            t2 = np.concatenate((t2, t3, t4))
-            del(t3, t4)
-            # Get the pacing value at the points, measure how long it takes
-            pacing = AnsicFixedFormPacing(list(t), list(v))
-            b = myokit.Benchmarker()
-            v2 = [pacing.pace(x) for x in t2]
-            print(b.time())
-            # Plot the new points
-            plt.plot(t2, v2, '.', color='green')
-            plt.show()
-            # Quite
-            import sys
-            sys.exit(1)
-
-        # Test input checking
-        times = 1
-        values = [1, 2]
-        self.assertRaises(Exception, AnsicFixedFormPacing)
-        self.assertRaises(Exception, AnsicFixedFormPacing, 1)
-        self.assertRaises(Exception, AnsicFixedFormPacing, 1, 2)
-        self.assertRaises(Exception, AnsicFixedFormPacing, [1], [2])
-        self.assertRaises(
-            Exception, AnsicFixedFormPacing, [1, 2], [2])
-        self.assertRaises(
-            Exception, AnsicFixedFormPacing, [2, 1], [2, 2])
-        AnsicFixedFormPacing([1, 2], [1, 2])
-
-        # Test with small lists
-        values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-        times = [0, 0, 1, 1, 1, 2, 2, 2, 3, 4, 5, 7]
-        values = list(range(len(times)))
-        pacing = AnsicFixedFormPacing(times, values)
-
-        def test(value, index):
-            self.assertEqual(pacing.pace(value), index)
-
-        test(-1, 0)
-        test(0, 1)
-        test(1, 2)
-        test(2, 5)
-        test(3, 8)
-        test(4, 9)
-        test(5, 10)
-        test(7, 11)
-        test(8, 11)
-        test(1.5, 4.5)
-        test(1.75, 4.75)
-        test(6, 10.5)
-        test(5.5, 10.25)
-
     def test_is_infinite(self):
-        """ Test :meth:`Protocol.is_infinite(). """
+        # Tests :meth:`Protocol.is_infinite()
+
         p = myokit.Protocol()
         self.assertFalse(p.is_infinite())
 
@@ -515,7 +262,8 @@ class PacingTest(unittest.TestCase):
         self.assertTrue(p.is_infinite())
 
     def test_is_sequence(self):
-        """ Test :meth:`Protocol.is_sequence(). """
+        # Tests :meth:`Protocol.is_sequence()
+
         p = myokit.Protocol()
         self.assertTrue(p.is_sequence())
         self.assertTrue(p.is_sequence(True))
@@ -588,7 +336,8 @@ class PacingTest(unittest.TestCase):
         self.assertTrue(p.is_unbroken_sequence(True))
 
     def test_levels(self):
-        """ Test :meth:`Protocol.levels(). """
+        # Tests :meth:`Protocol.levels()
+
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 0, 0)
         p.schedule(3, 110, 310, 0, 0)
@@ -597,7 +346,7 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(p.levels(), [2, 3, 1])
 
     def test_range(self):
-        """ Test :meth:`Protocol.range(). """
+        # Tests :meth:`Protocol.range()
         p = myokit.Protocol()
         self.assertEqual(p.range(), (0, 0))
 
@@ -616,7 +365,7 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(p.range(), (1, 3))
 
     def test_protocol_to_string(self):
-        """ Test str(protocol). """
+        # Tests str(protocol)
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 0, 0)
         p.schedule(3, 110, 310, 0, 0)
@@ -624,9 +373,8 @@ class PacingTest(unittest.TestCase):
         self.assertEqual(p.code(), str(p))
 
     def test_tail(self):
-        """
-        Test :meth:`Protocol.tail()`, which returns the final protocol event.
-        """
+        # Tests Protocol.tail() which returns the final protocol event
+
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 0, 0)
         p.schedule(3, 110, 310, 0, 0)

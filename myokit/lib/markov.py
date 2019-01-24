@@ -925,7 +925,7 @@ class AnalyticalSimulation(object):
                 tnext = min(tfinal, self._pacing.next_time())
                 self._run(tnext - self._time, log, log_interval)
                 # Update pacing
-                self._membrane_potential = self._pacing.advance(tnext, tfinal)
+                self._membrane_potential = self._pacing.advance(tnext)
                 self._cached_matrices = None
                 self._cached_solution = None
 
@@ -1366,7 +1366,7 @@ class DiscreteSimulation(object):
                 tnext = min(tfinal, self._pacing.next_time())
                 self._run(tnext - self._time, log)
                 # Update pacing
-                self._membrane_potential = self._pacing.advance(tnext, tfinal)
+                self._membrane_potential = self._pacing.advance(tnext)
                 self._cached_rates = None
                 self._cached_matrix = None
 

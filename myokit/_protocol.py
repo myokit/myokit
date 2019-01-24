@@ -380,16 +380,16 @@ class Protocol(object):
 
         # Fill in points
         t = a
-        v = p.advance(t, max_time=b)
+        v = p.advance(t)
         time.append(t)
         pace.append(v)
         while t < b:
-            t = p.next_time()
+            t = min(p.next_time(), b)
             if for_drawing:
                 if t != b:
                     time.append(t)
                     pace.append(v)
-            v = p.advance(t, max_time=b)
+            v = p.advance(t)
             time.append(t)
             pace.append(v)
         return log
@@ -732,32 +732,22 @@ class PacingSystem(object):
         # Advance to time zero
         self.advance(0)
 
-    def advance(self, new_time, max_time=None):
+    def advance(self, new_time):
         """
-        Advances the time in the pacing system to ``new_time``. If ``max_time``
-        is set, the system will never go beyond ``max_time``.
+        Advances the time in the pacing system to ``new_time``.
 
         Returns the current value of the pacing variable.
         """
-        # Update time
+        # Check new_time isn't in the past
         new_time = float(new_time)
-        if self._time > new_time:
+        if new_time < self._time:
             raise ValueError('New time cannot be before the current time.')
 
-        if max_time is not None:
-            max_time = float(max_time)
-            if new_time > max_time:
-                new_time = max_time
-
+        # Set the new internal time
         self._time = new_time
 
         # Advance pacing system
         while self._tnext <= self._time:
-
-            # Stop at max_time, if given
-            if max_time is not None:
-                if self._tnext == max_time:
-                    break
 
             # Active event finished
             if self._fire and self._tnext >= self._tdown:
@@ -780,11 +770,7 @@ class PacingSystem(object):
                     self._protocol.add(e)
 
             # Next stopping time
-            if max_time is not None:
-                self._tnext = max_time
-            else:
-                self._tnext = float('inf')
-
+            self._tnext = float('inf')
             if self._fire and self._tnext > self._tdown:
                 self._tnext = self._tdown
             if e and self._tnext > e._start:

@@ -426,6 +426,7 @@ int log_deriv;              /* True if logging derivatives */
 PyObject* list_update_str;  /* PyUnicode, used to call "append" method */
 Py_ssize_t ilog;            /* Periodic/point-list logging: Index of next point */
 double tlog;                /* Periodic/point-list logging: Next point */
+int dynamic_logging;        /* True if logging every point. */
 
 /*
  * Cleans up after a simulation
@@ -445,7 +446,7 @@ sim_clean()
         /* Free CVode space */
         N_VDestroy_Serial(y); y = NULL;
         N_VDestroy_Serial(dy_log); dy_log = NULL;
-        if (log_interval > 0 || log_times != Py_None) {
+        if (!dynamic_logging) {
             N_VDestroy_Serial(y_log);
             y_log = NULL;
         }
@@ -517,6 +518,10 @@ sim_init(PyObject *self, PyObject *args)
     epacing = NULL;
     fpacing = NULL;
     log_times = NULL;
+    #if MYOKIT_SUNDIALS_VERSION >= 30000
+    sundense_matrix = NULL;
+    sundense_solver = NULL;
+    #endif
 
     /* Check input arguments */
     if (!PyArg_ParseTuple(args, "ddOOOOOOdOOdO",
@@ -604,18 +609,25 @@ sim_init(PyObject *self, PyObject *args)
         return sim_clean();
     }
 
+    /* Determine if dynamic logging is being used (or if it's periodic/point-list logging) */
+    dynamic_logging = (log_interval <= 0 && log_times == Py_None);
+
     /* Create state vector for logging */
-    if (log_interval > 0 || log_times != Py_None) {
-        /* Logging at fixed points: Keep y_log as a separate N_Vector */
+    if (dynamic_logging) {
+        /* Dynamic logging: don't interpolate,
+           so let y_log point to y */
+        y_log = y;
+    } else {
+        /* Logging at fixed points:
+           Keep y_log as a separate N_Vector for cvode interpolation */
         y_log = N_VNew_Serial(N_STATE);
         if (check_cvode_flag((void*)y_log, "N_VNew_Serial", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to create logging state vector.");
             return sim_clean();
         }
-    } else {
-        /* Dynamic logging: Let y_log point to y */
-        y_log = y;
     }
+
+    /* Create derivative vector for logging */
     dy_log = N_VNew_Serial(N_STATE);
     if (check_cvode_flag((void*)dy_log, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create logging state derivatives vector.");
@@ -641,8 +653,9 @@ sim_init(PyObject *self, PyObject *args)
         NV_Ith_S(y, i) = PyFloat_AsDouble(flt);
         NV_Ith_S(y_last, i) = NV_Ith_S(y, i);
     }
-    if (log_interval > 0 || log_times != Py_None) {
-        /* Periodic or point-list logging? Then set init state in y_log as well */
+
+    /* Periodic or point-list logging? Then set init state in y_log as well */
+    if (!dynamic_logging) {
         for(i=0; i<N_STATE; i++) {
             NV_Ith_S(y_log, i) = NV_Ith_S(y, i);
         }
@@ -733,7 +746,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
         flag_epacing = ESys_Populate(epacing, eprotocol);
         if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-        flag_epacing = ESys_AdvanceTime(epacing, tmin, tmax);
+        flag_epacing = ESys_AdvanceTime(epacing, tmin);
         if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
         tnext = ESys_GetNextTime(epacing, &flag_epacing);
         engine_pace = ESys_GetLevel(epacing, &flag_epacing);
@@ -764,6 +777,10 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     /* Set simulation starting time */
     engine_time = tmin;
 
+    /* Check dt_max and dt_min */
+    if (dt_max < 0) dt_max = 0.0;
+    if (dt_min < 0) dt_min = 0.0;
+
     /* Create solver
      * Using Backward differentiation and Newton iteration */
     #if MYOKIT_SUNDIALS_VERSION >= 40000
@@ -782,12 +799,10 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
 
     /* Set a maximum step size (or 0.0 for none) */
-    if (dt_max < 0) dt_max = 0.0;
     flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
     if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
 
     /* Set a minimum step size (or 0.0 for none) */
-    if (dt_min < 0) dt_min = 0.0;
     flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
     if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
@@ -822,16 +837,21 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
 
     /* Set logging points */
     if (log_interval > 0) {
+
         /* Periodic logging */
         ilog = 0;
         tlog = tmin;
+
     } else if (log_times != Py_None) {
+
         /* Point-list logging */
+
         /* Check the log_times list */
         if (!PyList_Check(log_times)) {
             PyErr_SetString(PyExc_Exception, "'log_times' must be a list.");
             return sim_clean();
         }
+
         /* Read next log point off the list */
         ilog = 0;
         tlog = engine_time - 1;
@@ -845,11 +865,14 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
             ilog++;
             flt = NULL;
         }
+
         /* No points beyond engine_time? Then don't log any future points. */
         if(tlog < engine_time) {
             tlog = tmax + 1;
         }
+
     } else {
+
         /*
          * Dynamic logging
          *
@@ -987,7 +1010,7 @@ sim_step(PyObject *self, PyObject *args)
         /* If we got to this point without errors... */
         if ((flag_cvode == CV_SUCCESS) || (flag_cvode == CV_ROOT_RETURN)) {
 
-            /* Next stop time reached? */
+            /* Next event time exceeded? */
             if (engine_time > tnext) {
 
                 /* Go back to engine_time=tnext */
@@ -1015,10 +1038,98 @@ sim_step(PyObject *self, PyObject *args)
                 ret = NULL;
             }
 
-            /* Logging */
-            if (log_interval <= 0 && log_times == Py_None) {
+            /* Periodic logging or point-list logging */
+            if (!dynamic_logging && engine_time > tlog) {
+                /* Note: For periodic logging, the condition should be
+                   `time > tlog` so that we log half-open intervals (i.e. the
+                   final point should never be included). */
 
-                /* Dynamic logging: Log every visited point */
+                /* Benchmarking? Then set engine_realtime */
+                if (benchtime != Py_None) {
+                    flt = PyObject_CallFunction(benchtime, "");
+                    if (!PyFloat_Check(flt)) {
+                        Py_XDECREF(flt); flt = NULL;
+                        PyErr_SetString(PyExc_Exception, "Call to benchmark time function didn't return float.");
+                        return sim_clean();
+                    }
+                    engine_realtime = PyFloat_AsDouble(flt) - engine_starttime;
+                    Py_DECREF(flt); flt = NULL;
+                    /* Update any variables bound to realtime */
+                    update_realtime_bindings(engine_time, y, dy_log, 0);
+                }
+
+                /* Log points */
+                while (engine_time > tlog) {
+                    /* Get interpolated y(tlog) */
+                    flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
+                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+
+                    /* Calculate intermediate variables & derivatives */
+                    rhs(tlog, y_log, dy_log, 0);
+
+                    /* Write to log */
+                    for(i=0; i<n_vars; i++) {
+                        flt = PyFloat_FromDouble(*vars[i]);
+                        ret = PyObject_CallMethodObjArgs(logs[i], list_update_str, flt, NULL);
+                        Py_DECREF(flt);
+                        Py_XDECREF(ret);
+                        if (ret == NULL) {
+                            flt = NULL;
+                            PyErr_SetString(PyExc_Exception, "Call to append() failed on logging list.");
+                            return sim_clean();
+                        }
+                    }
+                    ret = flt = NULL;
+
+                    /* Get next logging point */
+                    if (log_interval > 0) {
+
+                        /* Periodic logging */
+                        ilog++;
+                        tlog = tmin + (double)ilog * log_interval;
+                        if (ilog == 0) {
+                            /* Unsigned int wraps around instead of overflowing, becomes zero again */
+                            PyErr_SetString(PyExc_Exception, "Overflow in logged step count: Simulation too long!");
+                            return sim_clean();
+                        }
+
+                    } else {
+
+                        /* Point-list logging */
+                        /* Read next log point off the list */
+                        if (ilog < PyList_Size(log_times)) {
+                            flt = PyList_GetItem(log_times, ilog); /* Borrowed */
+                            if (!PyFloat_Check(flt)) {
+                                PyErr_SetString(PyExc_Exception, "Entries in 'log_times' must be floats.");
+                                return sim_clean();
+                            }
+                            tlog = PyFloat_AsDouble(flt);
+                            ilog++;
+                            flt = NULL;
+                        } else {
+                            tlog = tmax + 1;
+                        }
+
+                    }
+                }
+            }
+
+            /* Event-based pacing */
+
+            /* At this point we have logged everything _before_ engine_time, so
+               it's safe to update the pacing mechanism. */
+            if (epacing != NULL) {
+                flag_epacing = ESys_AdvanceTime(epacing, engine_time);
+                if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
+                tnext = ESys_GetNextTime(epacing, NULL);
+                engine_pace = ESys_GetLevel(epacing, NULL);
+
+                /* Don't attemt to jump to DBL_MAX */
+                tnext = (tnext > tmax) ? tmax : tnext;
+            }
+
+            /* Dynamic logging: Log every visited point */
+            if (dynamic_logging) {
 
                 /* Ensure the logged values are correct for the new time t */
                 if (log_deriv || log_inter) {
@@ -1058,90 +1169,6 @@ sim_step(PyObject *self, PyObject *args)
                     ret = NULL;
                 }
 
-            } else if (engine_time > tlog) {
-
-                /* Periodic logging or point-list logging */
-
-                /* Note 1: For periodic logging, the condition should be
-                   `time > tlog` so that we log half-open intervals (i.e. the
-                   final point should never be included). */
-                /* Note 2: For point-list logging, the final point _should_ be
-                   included if the user requests it. */
-
-                /* Benchmarking? Then set engine_realtime */
-                if (benchtime != Py_None) {
-                    flt = PyObject_CallFunction(benchtime, "");
-                    if (!PyFloat_Check(flt)) {
-                        Py_XDECREF(flt); flt = NULL;
-                        PyErr_SetString(PyExc_Exception, "Call to benchmark time function didn't return float.");
-                        return sim_clean();
-                    }
-                    engine_realtime = PyFloat_AsDouble(flt) - engine_starttime;
-                    Py_DECREF(flt); flt = NULL;
-                    /* Update any variables bound to realtime */
-                    update_realtime_bindings(engine_time, y, dy_log, 0);
-                }
-
-                /* Log points */
-                while (engine_time > tlog) {
-                    /* Get interpolated y(tlog) */
-                    flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
-                    /* Calculate intermediate variables & derivatives */
-                    rhs(tlog, y_log, dy_log, 0);
-                    /* Write to log */
-                    for(i=0; i<n_vars; i++) {
-                        flt = PyFloat_FromDouble(*vars[i]);
-                        ret = PyObject_CallMethodObjArgs(logs[i], list_update_str, flt, NULL);
-                        Py_DECREF(flt);
-                        Py_XDECREF(ret);
-                        if (ret == NULL) {
-                            flt = NULL;
-                            PyErr_SetString(PyExc_Exception, "Call to append() failed on logging list.");
-                            return sim_clean();
-                        }
-                    }
-                    ret = flt = NULL;
-
-                    /* Get next logging point */
-                    if (log_interval > 0) {
-                        /* Periodic logging */
-                        ilog++;
-                        tlog = tmin + (double)ilog * log_interval;
-                        if (ilog == 0) {
-                            /* Unsigned int wraps around instead of overflowing, becomes zero again */
-                            PyErr_SetString(PyExc_Exception, "Overflow in logged step count: Simulation too long!");
-                            return sim_clean();
-                        }
-                    } else {
-                        /* Point-list logging */
-                        /* Read next log point off the list */
-                        if (ilog < PyList_Size(log_times)) {
-                            flt = PyList_GetItem(log_times, ilog); /* Borrowed */
-                            if (!PyFloat_Check(flt)) {
-                                PyErr_SetString(PyExc_Exception, "Entries in 'log_times' must be floats.");
-                                return sim_clean();
-                            }
-                            tlog = PyFloat_AsDouble(flt);
-                            ilog++;
-                            flt = NULL;
-                        } else {
-                            tlog = tmax + 1;
-                        }
-                    }
-                }
-            }
-
-            /* Event-based pacing */
-            if (epacing != NULL) {
-                /* Advance pacing mechanism to next event or tmax
-                   Do this *after* logging: otherwise the interpolated points
-                   logged with fixed step logging by calling rhs() will use the
-                   next engine_pace, which can cause weird entries in the logs. */
-                flag_epacing = ESys_AdvanceTime(epacing, engine_time, tmax);
-                if (flag_epacing!=ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
-                tnext = ESys_GetNextTime(epacing, NULL);
-                engine_pace = ESys_GetLevel(epacing, NULL);
             }
 
             /* Reinitialize if needed */

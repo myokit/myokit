@@ -139,19 +139,18 @@ static PyObject*
 pacing_advance(PyObject *self, PyObject *args)
 {
     double tadvance;
-    double maxtime;
-    ESys_Flag flag;
+     ESys_Flag flag;
     double pace;
 
     // Check input arguments
-    if (!PyArg_ParseTuple(args, "dd", &tadvance, &maxtime)) {
+    if (!PyArg_ParseTuple(args, "d", &tadvance)) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         // Nothing allocated yet, no pyobjects _created_, return directly
         return 0;
     }
 
     // Advance
-    flag = ESys_AdvanceTime(pacing, tadvance, maxtime);
+    flag = ESys_AdvanceTime(pacing, tadvance);
     if (flag!=ESys_OK) { ESys_SetPyErr(flag); return pacing_clean(); }
 
     // Get new pacing value
