@@ -239,7 +239,7 @@ class Protocol(object):
             e = e._next
         return False
 
-    def is_sequence(self, exception=False):
+    def is_sequence(self):
         """
         Checks if this protocol is a sequence of non-periodic steps.
 
@@ -248,33 +248,38 @@ class Protocol(object):
         1. The protocol does not contain any periodic events
         2. The protocol does not contain any overlapping events
 
-        If ``exception`` is set to ``True``, the method will raise an
-        ``Exception`` instead of returning ``False``. This allows you to obtain
-        specific information about the check that failed
+        See also :meth:`is_sequence_exception`.
         """
-        def check():
-            t = 0
-            e = self._head
-            while e is not None:
-                if e._period != 0:
-                    raise Exception('Protocol contains periodic event(s).')
-                if e._start < t:
-                    raise Exception(
-                        'Event starting at t=' + str(e._start)
-                        + ' overlaps with previous event which finishes at t='
-                        + str(t) + '.')
-                t = e._start + e._duration
-                e = e._next
-            return True
-        if exception:
-            return check()
-        else:
-            try:
-                return check()
-            except Exception:
-                return False
+        try:
+            self.is_sequence_exception()
+        except Exception:
+            return False
+        return True
 
-    def is_unbroken_sequence(self, exception=False):
+    def is_sequence_exception(self):
+        """
+        Like :meth:`is_sequence()`, but raises an exception if the protocol is
+        not a sequence, providing some information about the check that failed.
+        """
+        t = 0
+        e = self._head
+        while e is not None:
+
+            if e._period != 0:
+                raise Exception('Protocol contains periodic event(s).')
+
+            if e._start < t:
+                raise Exception(
+                    'Event starting at t=' + str(e._start)
+                    + ' overlaps with previous event which finishes at t='
+                    + str(t) + '.')
+
+            t = e._start + e._duration
+            e = e._next
+
+        return True
+
+    def is_unbroken_sequence(self):
         """
         Checks if this protocol is an unbroken sequence of steps. Returns
         ``True`` only for an unbroken sequence.
@@ -285,41 +290,46 @@ class Protocol(object):
         2. The protocol does not contain any overlapping events
         3. Each new event starts where the last ended
 
-        If ``exception`` is set to ``True``, the method will raise an
-        ``Exception`` instead of returning ``False``. This allows you to obtain
-        specific information about the check that failed
+        See also :meth:`is_unbroken_sequence_exception`.
         """
-        def check():
-            e = self._head
-            if e is None:
-                return True
+        try:
+            self.is_unbroken_sequence_exception()
+        except Exception:
+            return False
+        return True
+
+    def is_unbroken_sequence_exception(self):
+        """
+        Like :meth:`is_unbroken_sequence`, but raises an exception if the
+        protocol is not an unbroken sequence, providing some information about
+        the check that failed.
+        """
+        e = self._head
+        if e is None:
+            return True
+        if e._period != 0:
+            raise Exception('Protocol contains periodic event(s).')
+
+        while e._next is not None:
+            t = e._start + e._duration
+            e = e._next
+
+            # Check for periodic events
             if e._period != 0:
                 raise Exception('Protocol contains periodic event(s).')
-            while e._next is not None:
-                t = e._start + e._duration
-                e = e._next
-                # Check for periodic events
-                if e._period != 0:
-                    raise Exception('Protocol contains periodic event(s).')
-                # Check starting time
-                if e._start < t:
-                    raise Exception(
-                        'Event starting at t=' + str(e._start)
-                        + ' overlaps with previous event which finishes at t='
-                        + str(t) + '.')
-                elif e._start > t:
-                    raise Exception(
-                        'Event starting at t=' + str(e._start)
-                        + ' does not start directly after previous event,'
-                        + ' which finishes at t=' + str(t) + '.')
-            return True
-        if exception:
-            return check()
-        else:
-            try:
-                return check()
-            except Exception:
-                return False
+
+            # Check starting time
+            if e._start < t:
+                raise Exception(
+                    'Event starting at t=' + str(e._start)
+                    + ' overlaps with previous event which finishes at t='
+                    + str(t) + '.')
+            elif e._start > t:
+                raise Exception(
+                    'Event starting at t=' + str(e._start)
+                    + ' does not start directly after previous event,'
+                    + ' which finishes at t=' + str(t) + '.')
+        return True
 
     def __iter__(self):
         """
