@@ -1304,10 +1304,14 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     return '\n'.join(log)
 
 
-def strfloat(number):
+def strfloat(number, full=False):
     """
-    Turns the given number into a string, without losing accuracy.
+    Turns the given number into a string.
     """
+    # Force full precision output
+    if full:
+        return myokit.SFDOUBLE.format(float(number))
+
     # Pass through strings
     if isinstance(number, str):
         return number
