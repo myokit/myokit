@@ -529,12 +529,15 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         Reformat the protocol.
         """
         try:
+            before = self._protocol_editor.get_text()
             p = self.protocol(errors_in_console=True)
             if p is False:
                 self._console.write(
                     'Unable to apply formatting: Errors in protocol.')
             elif p is not None:
-                self._protocol_editor.set_text(p.code())
+                after = p.code()
+                if after != before:
+                    self._protocol_editor.replace(after)
         except Exception:
             self.show_exception()
 
