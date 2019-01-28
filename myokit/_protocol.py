@@ -367,8 +367,8 @@ class Protocol(object):
         ``pace``, representing the value of the pacing stimulus at each  point
         on the interval ``[a, b]``.
 
-        The time points in the log will be chosen such that every time at which
-        the pacing value changes is present in the log.
+        The time points in the log will be ``a`` and ``b``, and any time in
+        between at which the pacing value changes.
 
         If ``for_drawing`` is set to ``True`` each time value between ``a`` and
         ``b`` will be listed twice, so that a vertical line can be drawn from

@@ -84,3 +84,34 @@ class AnsicEventBasedPacing(myokit.CModule):
         """
         return self._sys.time()
 
+    @staticmethod
+    def log_for_interval(protocol, a, b):
+        """
+        Copied from PacingSystem. This is useful for testing!
+        """
+        # Test the input
+        a, b = float(a), float(b)
+        if b < a:
+            raise ValueError('The argument `b` cannot be smaller than `a`')
+
+        # Create a simulation log
+        log = myokit.DataLog()
+        log.set_time_key('time')
+        log['time'] = time = []
+        log['pace'] = pace = []
+
+        # Create a pacing system
+        p = AnsicEventBasedPacing(protocol)
+
+        # Fill in points
+        t = a
+        v = p.advance(t)
+        time.append(t)
+        pace.append(v)
+        while t < b:
+            t = min(p.next_time(), b)
+            v = p.advance(t)
+            time.append(t)
+            pace.append(v)
+        return log
+

@@ -34,9 +34,8 @@ from __future__ import print_function, unicode_literals
 import unittest
 
 import myokit
-import myokit.pype
 
-from shared import TemporaryDirectory
+from ansic_event_based_pacing import AnsicEventBasedPacing
 
 # Unit testing in Python 2 and 3
 try:
@@ -125,7 +124,125 @@ class ProtocolFloatingPointTest(unittest.TestCase):
         self.assertTrue(p.is_sequence())
         self.assertTrue(p.is_unbroken_sequence())
 
-    def test_cvode_floating_point_protocol(self):
+
+class PacingSystemFloatingPointTest(unittest.TestCase):
+
+    def test_python_pacing_floats_1(self):
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1.2345)
+        p.schedule(-70, 1.2345, 2.3454)
+        p.schedule(-60, 3.5799, 1.4201)
+
+        # Call log_for_interval, which uses the PacingSystem
+        d = p.log_for_interval(0, 10)
+
+        # Check if the correct values are recorded
+        self.assertEqual(d['time'], [0, 1.2345, 3.5799, 5, 10])
+        self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
+
+    def test_python_pacing_floats_2(self):
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 3.3333)
+        p.schedule(-70, 3.3333, 3.3331)
+        p.schedule(-60, 6.6664, 3.3336)
+
+        # Call log_for_interval, which uses the PacingSystem
+        d = p.log_for_interval(0, 20)
+
+        # Check if the correct values are recorded
+        self.assertEqual(d['time'], [0, 3.3333, 6.6664, 10, 20])
+        self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
+
+    def test_python_pacing_floats_3(self):
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1340.6)
+        p.schedule(-70, 1340.6, 22159.6)
+        p.schedule(-60, 23500.2, 6499.8)
+
+        # Call log_for_interval, which uses the PacingSystem
+        d = p.log_for_interval(0, 40000)
+
+        # Check if the correct values are recorded
+        self.assertEqual(d['time'], [0, 1340.6, 23500.2, 30000, 40000])
+        self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
+
+
+class AnsicPacingSystemFloatingPointTest(unittest.TestCase):
+
+    def test_C_pacing_floats_1(self):
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1.2345)
+        p.schedule(-70, 1.2345, 2.3454)
+        p.schedule(-60, 3.5799, 1.4201)
+
+        # Call log_for_interval, which uses the PacingSystem
+        d = AnsicEventBasedPacing.log_for_interval(p, 0, 10)
+
+        # Check if the correct values are recorded
+        self.assertEqual(d['time'], [0, 1.2345, 3.5799, 5, 10])
+        self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
+
+    def test_C_pacing_floats_2(self):
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 3.3333)
+        p.schedule(-70, 3.3333, 3.3331)
+        p.schedule(-60, 6.6664, 3.3336)
+
+        # Call log_for_interval, which uses the PacingSystem
+        d = AnsicEventBasedPacing.log_for_interval(p, 0, 20)
+
+        # Check if the correct values are recorded
+        self.assertEqual(d['time'], [0, 3.3333, 6.6664, 10, 20])
+        self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
+
+    def test_C_pacing_floats_3(self):
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1340.6)
+        p.schedule(-70, 1340.6, 22159.6)
+        p.schedule(-60, 23500.2, 6499.8)
+
+        # Call log_for_interval, which uses the PacingSystem
+        d = AnsicEventBasedPacing.log_for_interval(p, 0, 40000)
+
+        # Check if the correct values are recorded
+        self.assertEqual(d['time'], [0, 1340.6, 23500.2, 30000, 40000])
+        self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
+
+
+class CVodeSimulationFloatingPointTest(unittest.TestCase):
+
+
+    def test_cvode_floating_point_protocol_1(self):
+
+        # Tests the protocol handling in a CVODE simulation, which uses the
+        # pacing.h file shared by all C/C++ simulation code.
+
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        v = c.add_variable('v')
+        v.set_rhs('0')
+        v.set_binding('pace')
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1.2345)
+        p.schedule(-70, 1.2345, 2.3454)
+        p.schedule(-60, 3.5799, 1.4201)
+
+        s = myokit.Simulation(m, p)
+        d = s.run(p.characteristic_time())
+
+        self.assertEqual(list(d['c.v']), [-80, -70, -60, 0])
+
+    def test_cvode_floating_point_protocol_2(self):
 
         # Tests the protocol handling in a CVODE simulation, which uses the
         # pacing.h file shared by all C/C++ simulation code.
@@ -147,9 +264,31 @@ class ProtocolFloatingPointTest(unittest.TestCase):
         s = myokit.Simulation(m, p)
         d = s.run(p.characteristic_time())
 
-        self.assertEqual(d['c.v'], [-80, -70, -60, 0])
+        self.assertEqual(list(d['c.v']), [-80, -70, -60, 0])
 
+    def test_cvode_floating_point_protocol_3(self):
 
+        # Tests the protocol handling in a CVODE simulation, which uses the
+        # pacing.h file shared by all C/C++ simulation code.
+
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        v = c.add_variable('v')
+        v.set_rhs('0')
+        v.set_binding('pace')
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1340.6)
+        p.schedule(-70, 1340.6, 22159.6)
+        p.schedule(-60, 23500.2, 6499.8)
+
+        s = myokit.Simulation(m, p)
+        d = s.run(p.characteristic_time())
+
+        self.assertEqual(list(d['c.v']), [-80, -70, -60, 0])
 
 
 
