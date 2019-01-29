@@ -116,8 +116,8 @@ class ProtocolFloatingPointTest(unittest.TestCase):
         # Relative error : abs error / sum   -1.5480629131206173e-16
 
         p = myokit.Protocol()
-        p.schedule(-80, 0, 1340.6)
-        p.schedule(-70, 1340.6, 22159.6)
+        p.schedule(-80, 0, 22159.6)
+        p.schedule(-70, 22159.6, 1340.6)
         p.schedule(-60, 23500.2, 6499.8)
 
         self.assertEqual(p.characteristic_time(), 30000)
@@ -178,15 +178,15 @@ class PacingSystemFloatingPointTest(unittest.TestCase):
     def test_python_pacing_floats_3(self):
 
         p = myokit.Protocol()
-        p.schedule(-80, 0, 1340.6)
-        p.schedule(-70, 1340.6, 22159.6)
+        p.schedule(-80, 0, 22159.6)
+        p.schedule(-70, 22159.6, 1340.6)
         p.schedule(-60, 23500.2, 6499.8)
 
         # Call log_for_interval, which uses the PacingSystem
         d = p.log_for_interval(0, 40000)
 
         # Check if the correct values are recorded
-        self.assertEqual(d['time'], [0, 1340.6, 23500.2, 30000, 40000])
+        self.assertEqual(d['time'], [0, 22159.6, 23500.2, 30000, 40000])
         self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
 
 
@@ -242,15 +242,15 @@ class AnsicPacingSystemFloatingPointTest(unittest.TestCase):
     def test_C_pacing_floats_3(self):
 
         p = myokit.Protocol()
-        p.schedule(-80, 0, 1340.6)
-        p.schedule(-70, 1340.6, 22159.6)
+        p.schedule(-80, 0, 22159.6)
+        p.schedule(-70, 22159.6, 1340.6)
         p.schedule(-60, 23500.2, 6499.8)
 
         # Call log_for_interval, which uses the PacingSystem
         d = AnsicEventBasedPacing.log_for_interval(p, 0, 40000)
 
         # Check if the correct values are recorded
-        self.assertEqual(d['time'], [0, 1340.6, 23500.2, 30000, 40000])
+        self.assertEqual(d['time'], [0, 22159.6, 23500.2, 30000, 40000])
         self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
 
 
@@ -322,8 +322,9 @@ class CVodeSimulationFloatingPointTest(unittest.TestCase):
         p.schedule(-60, 6.6664, 3.3336)
 
         s = myokit.Simulation(m, p)
-        d = s.run(p.characteristic_time())
+        d = s.run(10)
 
+        self.assertEqual(list(d['c.t']), [0, 3.3333, 6.6664, 10])
         self.assertEqual(list(d['c.v']), [-80, -70, -60, 0])
 
     def test_cvode_floating_point_protocol_3(self):
@@ -341,14 +342,31 @@ class CVodeSimulationFloatingPointTest(unittest.TestCase):
         v.set_binding('pace')
 
         p = myokit.Protocol()
-        p.schedule(-80, 0, 1340.6)
-        p.schedule(-70, 1340.6, 22159.6)
+        p.schedule(-80, 0, 22159.6)
+        p.schedule(-70, 22159.6, 1340.6)
         p.schedule(-60, 23500.2, 6499.8)
 
+        # Test without state variables, dynamic logging
         s = myokit.Simulation(m, p)
-        d = s.run(p.characteristic_time())
+        d = s.run(40000)
+        self.assertEqual(list(d['c.t']), [0, 22159.6, 23500.2, 30000, 40000])
+        self.assertEqual(list(d['c.v']), [-80, -70, -60, 0, 0])
 
-        self.assertEqual(list(d['c.v']), [-80, -70, -60, 0])
+        # Test without state variables, fixed log times
+        s.reset()
+        d = s.run(40001, log_times=d['c.t'])
+        self.assertEqual(list(d['c.t']), [0, 22159.6, 23500.2, 30000, 40000])
+        self.assertEqual(list(d['c.v']), [-80, -70, -60, 0, 0])
+
+        x = c.add_variable('x')
+        x.set_rhs('cos(t)')
+        x.promote(0)
+
+        # Test with state variables, fixed log times
+        s = myokit.Simulation(m, p)
+        d = s.run(40001, log_times=d['c.t'])
+        self.assertEqual(list(d['c.t']), [0, 22159.6, 23500.2, 30000, 40000])
+        self.assertEqual(list(d['c.v']), [-80, -70, -60, 0, 0])
 
 
 if __name__ == '__main__':
