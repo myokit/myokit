@@ -754,6 +754,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
         tnext = ESys_GetNextTime(epacing, &flag_epacing);
         engine_pace = ESys_GetLevel(epacing, &flag_epacing);
+        tnext = (tnext < tmax) ? tnext : tmax;
     } else {
         tnext = tmax;
     }
@@ -977,7 +978,7 @@ sim_step(PyObject *self, PyObject *args)
         #if USE_CVODE
 
             /* Take a single ODE step */
-            flag_cvode = CVode(cvode_mem, tmax, y, &engine_time, CV_ONE_STEP);
+            flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
 
             /* Check for errors */
             if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
@@ -1139,6 +1140,7 @@ sim_step(PyObject *self, PyObject *args)
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 tnext = ESys_GetNextTime(epacing, NULL);
                 engine_pace = ESys_GetLevel(epacing, NULL);
+                tnext = (tnext < tmax) ? tnext : tmax;
             }
 
             /* Dynamic logging: Log every visited point */
