@@ -376,7 +376,7 @@ class SimulationTest(unittest.TestCase):
         # Cvode error (test failure occurred too many times)
         m = self.model.clone()
         v = m.get('membrane.V')
-        v.set_rhs(myokit.Multiply(v.rhs(), myokit.Number(1e12)))
+        v.set_rhs(myokit.Multiply(v.rhs(), myokit.Number(1e18)))
         s = myokit.Simulation(m, self.protocol)
         with self.assertRaises(myokit.SimulationError) as e:
             s.run(5000)

@@ -49,6 +49,7 @@
 typedef int ESys_Flag;
 #define ESys_OK                              0
 #define ESys_OUT_OF_MEMORY                  -1
+#define ESys_PYTHON_INTERRUPT               -2
 // General
 #define ESys_INVALID_SYSTEM                 -10
 #define ESys_POPULATED_SYSTEM               -11
@@ -66,6 +67,22 @@ typedef int ESys_Flag;
 #define ESys_SIMULTANEOUS_EVENT             -50
 
 /*
+ * Calculates the absolute values of a and b and returns whatever's largest.
+ */
+#define ESys_scale(a, b) (fabs(a) > fabs(b) ? fabs(a) : fabs(b))
+
+/*
+ * Tests if `a` and `b` withing float rounding-error distance of each other
+ */
+#define ESys_eq(a, b) ((a == b) || (fabs(a - b) / ESys_scale(a, b) < DBL_EPSILON))
+
+/*
+ * Tests if `a > b` or if `a` and `b` are within float rounding-error distance
+ * of each other.
+ */
+#define ESys_geq(a, b) ((a >= b) || ESys_eq(a, b))
+
+/*
  * Sets a python exception based on an event-based pacing error flag.
  *
  * Arguments
@@ -80,6 +97,9 @@ ESys_SetPyErr(ESys_Flag flag)
         break;
     case ESys_OUT_OF_MEMORY:
         PyErr_SetString(PyExc_Exception, "E-Pacing error: Memory allocation failed.");
+        break;
+    case ESys_PYTHON_INTERRUPT:
+        PyErr_SetString(PyExc_Exception, "E-Pacing error: Process interrupted by Python signal.");
         break;
     // General
     case ESys_INVALID_SYSTEM:
@@ -470,16 +490,16 @@ ESys_AdvanceTime(ESys sys, double new_time)
     sys->time = new_time;
 
     /* Advance */
-    while (sys->tnext <= sys->time) {
+    while (ESys_geq(sys->time, sys->tnext)) {
 
         /* Active event finished */
-        if (sys->fire != 0 && sys->tnext >= sys->tdown) {
+        if (sys->fire != 0 && ESys_geq(sys->tnext, sys->tdown)) {
             sys->fire = 0;
             sys->level = 0;
         }
 
         /* New event starting */
-        if (sys->head != 0 && sys->tnext >= sys->head->start) {
+        if (sys->head != 0 && ESys_geq(sys->tnext, sys->head->start)) {
             sys->fire = sys->head;
             sys->head = sys->head->next;
             sys->tdown = sys->fire->start + sys->fire->duration;
@@ -489,6 +509,7 @@ ESys_AdvanceTime(ESys sys, double new_time)
             if (sys->fire->period > 0) {
                 if (sys->fire->multiplier != 1) {
                     if (sys->fire->multiplier > 1) sys->fire->multiplier--;
+                    /* TODO: Replace by int-multiplication */
                     sys->fire->start += sys->fire->period;
                     sys->head = ESys_ScheduleEvent(sys->head, sys->fire, &flag);
                     if (flag != ESys_OK) { return flag; }
@@ -496,14 +517,28 @@ ESys_AdvanceTime(ESys sys, double new_time)
                     sys->fire->period = 0;
                 }
             }
+
+            /*
+             * Check if tdown is indistinguishable from the next event start
+             * If so, then set tdown (which is always calculated) to the next
+             * event start (which may be user-specified).
+             */
+            if (sys->head != 0 && ESys_eq(sys->head->start, sys->tdown)) {
+                sys->tdown = sys->head->start;
+            }
         }
 
         /* Set next stopping time */
-        sys->tnext = DBL_MAX;
+        sys->tnext = HUGE_VAL;
         if (sys->fire != 0 && sys->tnext > sys->tdown)
             sys->tnext = sys->tdown;
         if (sys->head != 0 && sys->tnext > sys->head->start)
             sys->tnext = sys->head->start;
+
+        /* Allow interrupting if something goes wrong */
+        if (PyErr_CheckSignals() != 0) {
+            return ESys_PYTHON_INTERRUPT;
+        }
     }
 
     return ESys_OK;

@@ -266,19 +266,19 @@ class ProtocolTest(unittest.TestCase):
 
         p = myokit.Protocol()
         self.assertTrue(p.is_sequence())
-        self.assertTrue(p.is_sequence(True))
+        self.assertTrue(p.is_sequence_exception())
         self.assertTrue(p.is_unbroken_sequence())
-        self.assertTrue(p.is_unbroken_sequence(True))
+        self.assertTrue(p.is_unbroken_sequence_exception())
 
         # First event is periodic
         p = myokit.Protocol()
         p.schedule(2, 10, 100, 1000, 2)
         self.assertFalse(p.is_sequence())
         self.assertRaisesRegex(
-            Exception, 'contains periodic', p.is_sequence, True)
+            Exception, 'contains periodic', p.is_sequence_exception)
         self.assertFalse(p.is_unbroken_sequence())
         self.assertRaisesRegex(
-            Exception, 'contains periodic', p.is_unbroken_sequence, True)
+            Exception, 'contains periodic', p.is_unbroken_sequence_exception)
 
         # Second event is periodic
         p = myokit.Protocol()
@@ -286,10 +286,10 @@ class ProtocolTest(unittest.TestCase):
         p.schedule(20, 100, 100, 1000, 1000)
         self.assertFalse(p.is_sequence())
         self.assertRaisesRegex(
-            Exception, 'contains periodic', p.is_sequence, True)
+            Exception, 'contains periodic', p.is_sequence_exception)
         self.assertFalse(p.is_unbroken_sequence())
         self.assertRaisesRegex(
-            Exception, 'contains periodic', p.is_unbroken_sequence, True)
+            Exception, 'contains periodic', p.is_unbroken_sequence_exception)
 
         # Multiple periodic events
         p = myokit.Protocol()
@@ -297,10 +297,10 @@ class ProtocolTest(unittest.TestCase):
         p.schedule(2, 1, 1, 1000, 0)
         self.assertFalse(p.is_sequence())
         self.assertRaisesRegex(
-            Exception, 'contains periodic', p.is_sequence, True)
+            Exception, 'contains periodic', p.is_sequence_exception)
         self.assertFalse(p.is_unbroken_sequence())
         self.assertRaisesRegex(
-            Exception, 'contains periodic', p.is_unbroken_sequence, True)
+            Exception, 'contains periodic', p.is_unbroken_sequence_exception)
 
         # Overlapping events
         p = myokit.Protocol()
@@ -309,10 +309,10 @@ class ProtocolTest(unittest.TestCase):
         p.schedule(2, 420, 1, 0, 0)
         self.assertFalse(p.is_sequence())
         self.assertRaisesRegex(
-            Exception, 'overlap', p.is_sequence, True)
+            Exception, 'overlap', p.is_sequence_exception)
         self.assertFalse(p.is_unbroken_sequence())
         self.assertRaisesRegex(
-            Exception, 'overlap', p.is_unbroken_sequence, True)
+            Exception, 'overlap', p.is_unbroken_sequence_exception)
 
         # Non-overlapping events
         p = myokit.Protocol()
@@ -320,10 +320,10 @@ class ProtocolTest(unittest.TestCase):
         p.schedule(2, 120, 1, 0, 0)
         p.schedule(2, 420, 1, 0, 0)
         self.assertTrue(p.is_sequence())
-        self.assertTrue(p.is_sequence(True))
+        self.assertTrue(p.is_sequence_exception())
         self.assertFalse(p.is_unbroken_sequence())
         self.assertRaisesRegex(
-            Exception, 'start directly after', p.is_unbroken_sequence, True)
+            Exception, 'start directly afte', p.is_unbroken_sequence_exception)
 
         # Unbroken sequence
         p = myokit.Protocol()
@@ -331,9 +331,9 @@ class ProtocolTest(unittest.TestCase):
         p.schedule(2, 110, 310, 0, 0)
         p.schedule(2, 420, 1, 0, 0)
         self.assertTrue(p.is_sequence())
-        self.assertTrue(p.is_sequence(True))
+        self.assertTrue(p.is_sequence_exception())
         self.assertTrue(p.is_unbroken_sequence())
-        self.assertTrue(p.is_unbroken_sequence(True))
+        self.assertTrue(p.is_unbroken_sequence_exception())
 
     def test_levels(self):
         # Tests :meth:`Protocol.levels()
