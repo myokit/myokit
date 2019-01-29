@@ -974,19 +974,10 @@ sim_step(PyObject *self, PyObject *args)
         /* Store engine time before step */
         engine_time_last = engine_time;
 
-        /*TODO: REMOVE THIS
-         * Advance to next time step
-         * This sets y to y(t) and time to time(t) <= tnext
-         * In rare cases, there can be two event scheduled very close together
-         * One example was and event that ended at t1 = 9161.3 + 1572.4 =
-         * 10733.699999999999 and one that started at t2 = 10733.7.
-         * In these cases CVODE will complain when asked to go from t1 to t2
-         * (CV_TOO_CLOSE). A fix seems to be to add a small extra time so that
-         * CVODE can still run.
-         */
         #if USE_CVODE
 
-            flag_cvode = CVode(cvode_mem, tnext + 1e-10, y, &engine_time, CV_ONE_STEP);
+            /* Take a single ODE step */
+            flag_cvode = CVode(cvode_mem, tmax, y, &engine_time, CV_ONE_STEP);
 
             /* Check for errors */
             if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
@@ -1005,9 +996,10 @@ sim_step(PyObject *self, PyObject *args)
         #else
 
             /* Just jump to next event */
-            /* Note: To stay compatible with cvode-mode, don't jump to the
+            /* Note 1: To stay compatible with cvode-mode, don't jump to the
                next log time (if tlog < tnext) */
-            engine_time = tnext;
+            /* Note 2: tnext can be infinity, so don't always jump there. */
+            engine_time = (tmax > tnext) ? tnext : tmax;
             flag_cvode = CV_SUCCESS;
 
         #endif
@@ -1147,9 +1139,6 @@ sim_step(PyObject *self, PyObject *args)
                 if (flag_epacing != ESys_OK) { ESys_SetPyErr(flag_epacing); return sim_clean(); }
                 tnext = ESys_GetNextTime(epacing, NULL);
                 engine_pace = ESys_GetLevel(epacing, NULL);
-
-                /* Don't attemt to jump to DBL_MAX */
-                tnext = (tnext > tmax) ? tmax : tnext;
             }
 
             /* Dynamic logging: Log every visited point */

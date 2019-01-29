@@ -126,9 +126,14 @@ class ProtocolFloatingPointTest(unittest.TestCase):
 
 
 class PacingSystemFloatingPointTest(unittest.TestCase):
+    """
+    Test float behaviour in the Python PacingSystem implementation, using the
+    log_for_interval method.
+    """
 
     def test_python_pacing_floats_1(self):
 
+        # Test fixes for event start/end touching
         p = myokit.Protocol()
         p.schedule(-80, 0, 1.2345)
         p.schedule(-70, 1.2345, 2.3454)
@@ -140,6 +145,21 @@ class PacingSystemFloatingPointTest(unittest.TestCase):
         # Check if the correct values are recorded
         self.assertEqual(d['time'], [0, 1.2345, 3.5799, 5, 10])
         self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
+
+        # Test fixes for start/end of interval touching events
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1.2345)
+        p.schedule(-70, 1.2345, 2.3454)
+
+        # Interval end
+        d = p.log_for_interval(0, 3.5799)
+        self.assertEqual(d['time'], [0, 1.2345, 3.5799])
+        self.assertEqual(d['pace'], [-80, -70, 0])
+
+        # Interval start
+        d = p.log_for_interval(3.5799, 10)
+        self.assertEqual(d['time'], [3.5799, 10])
+        self.assertEqual(d['pace'], [0, 0])
 
     def test_python_pacing_floats_2(self):
 
@@ -171,6 +191,10 @@ class PacingSystemFloatingPointTest(unittest.TestCase):
 
 
 class AnsicPacingSystemFloatingPointTest(unittest.TestCase):
+    """
+    Test floating point behavior of C-pacing, using the Python wrapper and the
+    method log_for_interval.
+    """
 
     def test_C_pacing_floats_1(self):
 
@@ -185,6 +209,21 @@ class AnsicPacingSystemFloatingPointTest(unittest.TestCase):
         # Check if the correct values are recorded
         self.assertEqual(d['time'], [0, 1.2345, 3.5799, 5, 10])
         self.assertEqual(d['pace'], [-80, -70, -60, 0, 0])
+
+        # Test fixes for start/end of interval touching events
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1.2345)
+        p.schedule(-70, 1.2345, 2.3454)
+
+        # Interval end
+        d = p.log_for_interval(0, 3.5799)
+        self.assertEqual(d['time'], [0, 1.2345, 3.5799])
+        self.assertEqual(d['pace'], [-80, -70, 0])
+
+        # Interval start
+        d = p.log_for_interval(3.5799, 10)
+        self.assertEqual(d['time'], [3.5799, 10])
+        self.assertEqual(d['pace'], [0, 0])
 
     def test_C_pacing_floats_2(self):
 
@@ -216,13 +255,17 @@ class AnsicPacingSystemFloatingPointTest(unittest.TestCase):
 
 
 class CVodeSimulationFloatingPointTest(unittest.TestCase):
-
+    """
+    Test floating point behavior of C-pacing, using the myokit Simulation class
+    with a model without protocol (cvode-free mode).
+    """
 
     def test_cvode_floating_point_protocol_1(self):
 
         # Tests the protocol handling in a CVODE simulation, which uses the
         # pacing.h file shared by all C/C++ simulation code.
 
+        # Create model without states
         m = myokit.Model()
         c = m.add_component('c')
         t = c.add_variable('t')
@@ -232,15 +275,32 @@ class CVodeSimulationFloatingPointTest(unittest.TestCase):
         v.set_rhs('0')
         v.set_binding('pace')
 
+        # Create tricky protocol
         p = myokit.Protocol()
         p.schedule(-80, 0, 1.2345)
         p.schedule(-70, 1.2345, 2.3454)
         p.schedule(-60, 3.5799, 1.4201)
 
+        # Run & test
         s = myokit.Simulation(m, p)
         d = s.run(p.characteristic_time())
-
         self.assertEqual(list(d['c.v']), [-80, -70, -60, 0])
+
+        # Test starting/stopping at difficult points
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 1.2345)
+        p.schedule(-70, 1.2345, 2.3454)
+
+        # Interval end
+        s = myokit.Simulation(m, p)
+        d = s.run(3.5799)
+        self.assertEqual(list(d['c.t']), [0, 1.2345, 3.5799])
+        self.assertEqual(list(d['c.v']), [-80, -70, 0])
+
+        # Interval start
+        d = s.run(6.4201)
+        self.assertEqual(list(d['c.t']), [3.5799, 10])
+        self.assertEqual(list(d['c.v']), [0, 0])
 
     def test_cvode_floating_point_protocol_2(self):
 
@@ -289,17 +349,6 @@ class CVodeSimulationFloatingPointTest(unittest.TestCase):
         d = s.run(p.characteristic_time())
 
         self.assertEqual(list(d['c.v']), [-80, -70, -60, 0])
-
-
-
-
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':

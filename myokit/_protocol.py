@@ -263,8 +263,6 @@ class Protocol(object):
         Like :meth:`is_sequence()`, but raises an exception if the protocol is
         not a sequence, providing some information about the check that failed.
         """
-        epsilon = sys.float_info.epsilon
-
         t = 0
         e = self._head
         while e is not None:
@@ -283,7 +281,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if e and abs(t - e._start) / max(t, e._start) < epsilon:
+            if e and _eq(t, e._start):
                 t = e._start
 
         return True
@@ -313,8 +311,6 @@ class Protocol(object):
         protocol is not an unbroken sequence, providing some information about
         the check that failed.
         """
-        epsilon = sys.float_info.epsilon
-
         e = self._head
         if e is None:
             return True
@@ -328,7 +324,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if abs(t - e._start) / max(t, e._start) < epsilon:
+            if _eq(t, e._start):
                 t = e._start
 
             # Check for periodic events
@@ -785,16 +781,16 @@ class PacingSystem(object):
         self._time = new_time
 
         # Advance pacing system
-        while self._tnext <= self._time:
+        while _geq(new_time, self._tnext):
 
             # Active event finished
-            if self._fire and self._tnext >= self._tdown:
+            if self._fire and _geq(self._tnext, self._tdown):
                 self._fire = None
                 self._pace = 0
 
             # New event starting
             e = self._protocol._head
-            if e and self._time >= e._start:
+            if e and _geq(new_time, e._start):
                 self._protocol.pop()
                 self._fire = e
                 self._tdown = e._start + e._duration
@@ -807,15 +803,12 @@ class PacingSystem(object):
                     e._start += e._period
                     self._protocol.add(e)
 
-                # Check if tdown is indistinguishable from the next tfire
-                if self._protocol._head:
-                    diff = abs(self._tdown - self._protocol._head._start)
-                    size = max(self._tdown, self._protocol._head._start)
-                    if diff / size < epsilon:
-                        # Too close to call (or already equal). Set the
-                        # calculated value tdown the next event start, which
-                        # may be user-specified.
-                        self._tdown = self._protocol._head._start
+                # Check if tdown is indistinguishable from the next event start
+                # If so, then set tdown (which is always calculated) to the
+                # next event start (which may be user-specified).
+                x = self._protocol._head
+                if x and _eq(self._tdown, x._start):
+                    self._tdown = x._start
 
             # Next stopping time
             self._tnext = float('inf')
@@ -853,4 +846,19 @@ class NotASequenceError(myokit.MyokitError):
 class NotAnUnbrokenSequenceError(myokit.MyokitError):
     """ Error raised exclusively by is_unbroken_sequence_exception(). """
     pass
+
+
+def _eq(a, b):
+    """
+    Checks if ``a`` and ``b`` are equal, or so close to each other that the
+    difference could be a single floating point rounding error.
+    """
+    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+
+
+def _geq(a, b):
+    """
+    Checks if ``a >= b``, but using ``_eq`` instead of ``=``.
+    """
+    return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
 
