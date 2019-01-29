@@ -69,30 +69,18 @@ typedef int ESys_Flag;
 /*
  * Calculates the absolute values of a and b and returns whatever's largest.
  */
-double inline
-ESys_scale(const double a, const double b)
-{
-    return fabs(a) > fabs(b) ? fabs(a) : fabs(b);
-}
+#define ESys_scale(a, b) (fabs(a) > fabs(b) ? fabs(a) : fabs(b))
 
 /*
  * Tests if `a` and `b` withing float rounding-error distance of each other
  */
-int inline
-ESys_eq(const double a, const double b)
-{
-    return (a == b) || (fabs(a - b) / ESys_scale(a, b) < DBL_EPSILON);
-}
+#define ESys_eq(a, b) ((a == b) || (fabs(a - b) / ESys_scale(a, b) < DBL_EPSILON))
 
 /*
  * Tests if `a > b` or if `a` and `b` are within float rounding-error distance
  * of each other.
  */
-int inline
-ESys_geq(const double a, const double b)
-{
-    return (a >= b) || ESys_eq(a, b);
-}
+#define ESys_geq(a, b) ((a >= b) || ESys_eq(a, b))
 
 /*
  * Sets a python exception based on an event-based pacing error flag.
