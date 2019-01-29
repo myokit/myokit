@@ -10,6 +10,8 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
+
+import sys
 import numpy as np
 
 
@@ -252,7 +254,7 @@ class Protocol(object):
         """
         try:
             self.is_sequence_exception()
-        except Exception:
+        except NotASequenceError:
             return False
         return True
 
@@ -261,21 +263,28 @@ class Protocol(object):
         Like :meth:`is_sequence()`, but raises an exception if the protocol is
         not a sequence, providing some information about the check that failed.
         """
+        epsilon = sys.float_info.epsilon
+
         t = 0
         e = self._head
         while e is not None:
 
             if e._period != 0:
-                raise Exception('Protocol contains periodic event(s).')
+                raise NotASequenceError('Protocol contains periodic event(s).')
 
             if e._start < t:
-                raise Exception(
+                raise NotASequenceError(
                     'Event starting at t=' + str(e._start)
                     + ' overlaps with previous event which finishes at t='
                     + str(t) + '.')
 
             t = e._start + e._duration
             e = e._next
+
+            # Calculated position indistinguishable from user-specified next
+            # even start? Then jump there instead
+            if e and abs(t - e._start) / max(t, e._start) < epsilon:
+                t = e._start
 
         return True
 
@@ -294,7 +303,7 @@ class Protocol(object):
         """
         try:
             self.is_unbroken_sequence_exception()
-        except Exception:
+        except NotAnUnbrokenSequenceError:
             return False
         return True
 
@@ -304,28 +313,37 @@ class Protocol(object):
         protocol is not an unbroken sequence, providing some information about
         the check that failed.
         """
+        epsilon = sys.float_info.epsilon
+
         e = self._head
         if e is None:
             return True
         if e._period != 0:
-            raise Exception('Protocol contains periodic event(s).')
+            raise NotAnUnbrokenSequenceError(
+                'Protocol contains periodic event(s).')
 
         while e._next is not None:
             t = e._start + e._duration
             e = e._next
 
+            # Calculated position indistinguishable from user-specified next
+            # even start? Then jump there instead
+            if abs(t - e._start) / max(t, e._start) < epsilon:
+                t = e._start
+
             # Check for periodic events
             if e._period != 0:
-                raise Exception('Protocol contains periodic event(s).')
+                raise NotAnUnbrokenSequenceError(
+                    'Protocol contains periodic event(s).')
 
             # Check starting time
             if e._start < t:
-                raise Exception(
+                raise NotAnUnbrokenSequenceError(
                     'Event starting at t=' + str(e._start)
                     + ' overlaps with previous event which finishes at t='
                     + str(t) + '.')
             elif e._start > t:
-                raise Exception(
+                raise NotAnUnbrokenSequenceError(
                     'Event starting at t=' + str(e._start)
                     + ' does not start directly after previous event,'
                     + ' which finishes at t=' + str(t) + '.')
@@ -731,14 +749,21 @@ class PacingSystem(object):
         # The current time and pacing level
         self._time = 0
         self._pace = 0
+
         # Currently active event
         self._fire = None
+
         # Time the currently active event is over
         self._tdown = None
+
         # The next time the pacing variable changes
         self._tnext = 0
+
         # Create a copy of the protocol
         self._protocol = protocol.clone()
+        #TODO: For periodic events, set an _t0, and a _i, use them to calculate
+        #      the next occurence
+
         # Advance to time zero
         self.advance(0)
 
@@ -752,6 +777,9 @@ class PacingSystem(object):
         new_time = float(new_time)
         if new_time < self._time:
             raise ValueError('New time cannot be before the current time.')
+
+        # Get smallest difference from 1
+        epsilon = sys.float_info.epsilon
 
         # Set the new internal time
         self._time = new_time
@@ -779,6 +807,16 @@ class PacingSystem(object):
                     e._start += e._period
                     self._protocol.add(e)
 
+                # Check if tdown is indistinguishable from the next tfire
+                if self._protocol._head:
+                    diff = abs(self._tdown - self._protocol._head._start)
+                    size = max(self._tdown, self._protocol._head._start)
+                    if diff / size < epsilon:
+                        # Too close to call (or already equal). Set the
+                        # calculated value tdown the next event start, which
+                        # may be user-specified.
+                        self._tdown = self._protocol._head._start
+
             # Next stopping time
             self._tnext = float('inf')
             if self._fire and self._tnext > self._tdown:
@@ -805,3 +843,14 @@ class PacingSystem(object):
         Returns the current time in the pacing system.
         """
         return self._time
+
+
+class NotASequenceError(myokit.MyokitError):
+    """ Error raised exclusively by is_sequence_exception(). """
+    pass
+
+
+class NotAnUnbrokenSequenceError(myokit.MyokitError):
+    """ Error raised exclusively by is_unbroken_sequence_exception(). """
+    pass
+
