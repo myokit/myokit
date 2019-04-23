@@ -1,0 +1,9 @@
+#!/usr/bin/env python
+import myokit
+import myokit.formats.easyml
+
+m, p, _ = myokit.load('example')
+
+e = myokit.formats.easyml.EasyMLExporter()
+
+e.model('easyml.model', m)
