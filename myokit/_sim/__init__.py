@@ -124,15 +124,10 @@ class CModule(object):
             incd = None if incd is None else [str(x) for x in incd]
             libs = None if libs is None else [str(x) for x in libs]
 
-
-
-
-
-
-            # TEMP TEMP TEMP TEMP TEMP
+            # Uncomment to debug C89 issues
+            '''
             if flags is None:
                 flags = []
-
             flags.extend([
                 #'-Wall',
                 #'-Wextra',
@@ -142,12 +137,7 @@ class CModule(object):
                 #'-Werror=missing-declarations',
                 '-Werror=declaration-after-statement',
             ])
-
-
-
-
-
-
+            #'''
 
             # Add runtime_library_dirs (to prevent LD_LIBRARY_PATH) errors on
             # unconventional linux sundials installations, but not on windows
