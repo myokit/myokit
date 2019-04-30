@@ -36,34 +36,40 @@ class PypeTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'dict', e.process, 'file.txt', [])
 
-        # Test not-a-file
-        self.assertRaises(IOError, e.process, 'file.txt', {})
+        with myokit.PyCapture():
 
-        # Test simple error
-        self.e("""<?print(1/0) ?>""", {}, 'ZeroDivisionError')
+            # Test not-a-file
+            self.assertRaises(IOError, e.process, 'file.txt', {})
 
-        # Test closing without opening
-        self.e("""Hello ?>""", {}, 'without opening tag')
+            # Test simple error
+            self.e("""<?print(1/0) ?>""", {}, 'ZeroDivisionError')
 
-        # Opening without closing is allowed
-        self.e("""<?print('hi')""", {})
+            # Test closing without opening
+            self.e("""Hello ?>""", {}, 'without opening tag')
 
-        # Nested opening
-        self.e("""<?print('hi')<?print('hello')?>""", {}, 'Nested opening tag')
+            # Opening without closing is allowed
+            self.e("""<?print('hi')""", {})
 
-        # Too much inside <?=?>
-        self.e("""<?=if 1 > 2: print('hi')?>""", {}, 'contain a single')
+            # Nested opening
+            self.e(
+                """<?print('hi')<?print('hello')?>""",
+                {},
+                'Nested opening tag',
+            )
 
-        # Triple quote should be allowed
-        self.e('''Hello"""string"""yes''', {})
+            # Too much inside <?=?>
+            self.e("""<?=if 1 > 2: print('hi')?>""", {}, 'contain a single')
 
-        # OSError from inside pype
-        self.e("""Hello<?open('file.txt', 'r')?>yes""", {}, 'No such file')
+            # Triple quote should be allowed
+            self.e('''Hello"""string"""yes''', {})
+
+            # OSError from inside pype
+            self.e("""Hello<?open('file.txt', 'r')?>yes""", {}, 'No such file')
 
     def e(self, template, args, expected_error=None):
         """
         Runs a template, if an error is expected it checks if it's the right
-        one, otherwise simply raises it.
+        one.
         """
         with TemporaryDirectory() as d:
             path = d.path('template')
