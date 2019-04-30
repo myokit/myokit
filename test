@@ -304,7 +304,7 @@ def main():
     if args.nompl:
         print('Disabling matplotlib output')
         import matplotlib
-        matplotlib.use('Agg')
+        matplotlib.use('template')
     if 'func' in args:
         args.func(args)
     else:

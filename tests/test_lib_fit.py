@@ -218,6 +218,10 @@ class FittingTest(unittest.TestCase):
         """
         Test if a CMA-ES routine runs without errors.
         """
+        # Some CMAES versions import matplotlib...
+        import matplotlib
+        matplotlib.use('template')
+
         try:
             import cma
             del(cma)
