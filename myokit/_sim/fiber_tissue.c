@@ -300,6 +300,30 @@ py_sim_clean()
 static PyObject*
 sim_init(PyObject* self, PyObject* args)
 {
+    // Pacing flag
+    ESys_Flag flag_pacing;
+
+    // OpenCL flag
+    cl_int flag;
+
+    // Iteration
+    int i, j, k;
+
+    // Platform and device id
+    cl_platform_id platform_id;
+    cl_device_id device_id;
+
+    // Variable names
+    char log_var_name[1023];
+    int k_vars;
+
+    // Compilation error message
+    size_t blog_size;
+    char *blog;
+
+    // Cell coupling
+    int nsf, nst;
+
     #ifdef MYOKIT_DEBUG
     printf("Starting initialization.\n");
     #endif
@@ -410,8 +434,6 @@ sim_init(PyObject* self, PyObject* args)
     //
     //
 
-    int i, j, k;
-
     //
     // Check state in and out lists
     //
@@ -469,7 +491,7 @@ sim_init(PyObject* self, PyObject* args)
     //
     // Set up pacing system
     //
-    ESys_Flag flag_pacing;
+    flag_pacing;
     pacing = ESys_Create(&flag_pacing);
     if(flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_Populate(pacing, protocol);
@@ -570,8 +592,8 @@ sim_init(PyObject* self, PyObject* args)
     #endif
 
     // Get platform and device id
-    cl_platform_id platform_id = NULL;
-    cl_device_id device_id = NULL;
+    platform_id = NULL;
+    device_id = NULL;
     if (mcl_select_device(platform_name, device_name, &platform_id, &device_id)) {
         // Error message set by mcl_select_device
         return sim_clean();
@@ -594,7 +616,6 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG
     printf("Attempting to create OpenCL context...\n");
     #endif
-    cl_int flag;
     if (platform_id != NULL) {
         #ifdef MYOKIT_DEBUG
         printf("Creating context with context_properties\n");
@@ -663,9 +684,8 @@ sim_init(PyObject* self, PyObject* args)
     flag = clBuildProgram(program_f, 1, &device_id, NULL, NULL, NULL);
     if(flag == CL_BUILD_PROGRAM_FAILURE) {
         /* Build failed, extract log */
-        size_t blog_size;
         clGetProgramBuildInfo(program_f, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &blog_size);
-        char *blog = (char*)malloc(blog_size);
+        blog = (char*)malloc(blog_size);
         clGetProgramBuildInfo(program_f, device_id, CL_PROGRAM_BUILD_LOG, blog_size, blog, NULL);
         fprintf(stderr, "OpenCL Error: Fiber kernel failed to compile.\n");
         fprintf(stderr, "----------------------------------------");
@@ -673,6 +693,7 @@ sim_init(PyObject* self, PyObject* args)
         fprintf(stderr, "%s\n", blog);
         fprintf(stderr, "----------------------------------------");
         fprintf(stderr, "---------------------------------------\n");
+        free(blog);
     }
     if(mcl_flag(flag)) return sim_clean();
     #ifdef MYOKIT_DEBUG
@@ -688,9 +709,8 @@ sim_init(PyObject* self, PyObject* args)
     flag = clBuildProgram(program_t, 1, &device_id, NULL, NULL, NULL);
     if(flag == CL_BUILD_PROGRAM_FAILURE) {
         /* Build failed, extract log */
-        size_t blog_size;
         clGetProgramBuildInfo(program_t, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &blog_size);
-        char *blog = (char*)malloc(blog_size);
+        blog = (char*)malloc(blog_size);
         clGetProgramBuildInfo(program_t, device_id, CL_PROGRAM_BUILD_LOG, blog_size, blog, NULL);
         fprintf(stderr, "OpenCL Error: Fiber kernel failed to compile.\n");
         fprintf(stderr, "----------------------------------------");
@@ -698,6 +718,7 @@ sim_init(PyObject* self, PyObject* args)
         fprintf(stderr, "%s\n", blog);
         fprintf(stderr, "----------------------------------------");
         fprintf(stderr, "---------------------------------------\n");
+        free(blog);
     }
     if(mcl_flag(flag)) return sim_clean();
     #ifdef MYOKIT_DEBUG
@@ -759,8 +780,8 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_diff_t, i++, sizeof(mbuf_idiff_t), &mbuf_idiff_t))) return sim_clean();
 
     /* Set indices of coupled cell indexes in state and diff vectors */
-    int nsf = n_state_f;
-    int nst = n_state_t;
+    nsf = n_state_f;
+    nst = n_state_t;
     if(mcl_flag(clSetKernelArg(kernel_diff_ft,  0, sizeof(nfx), &nfx))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_ft,  1, sizeof(nfy), &nfy))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_ft,  2, sizeof(ntx), &ntx))) return sim_clean();
@@ -799,8 +820,8 @@ sim_init(PyObject* self, PyObject* args)
     vars_f = (Real**)malloc(sizeof(Real*)*n_vars_f); /* Pointers to variables to log */
     vars_t = (Real**)malloc(sizeof(Real*)*n_vars_t);
 
-    char log_var_name[1023];    /* Variable names */
-    int k_vars = 0;             /* Counting number of variables in log */
+    /* Number of variables in log */
+    k_vars = 0;
 
     /* Logging: Time and pacing are set globally (fiber) */
 <?
@@ -967,12 +988,16 @@ static PyObject*
 sim_step(PyObject *self, PyObject *args)
 {
     ESys_Flag flag_pacing;
-    long steps_left_in_run = 6e6 / (nfx * nfy + ntx * nty);
-    if(steps_left_in_run < 40) steps_left_in_run = 40;
+    long steps_left_in_run;
     cl_int flag;
     int i;
-    double d = 0;
-    int logging_condition = 0;
+    double d;
+    int logging_condition;
+
+    steps_left_in_run = 6e6 / (nfx * nfy + ntx * nty);
+    if(steps_left_in_run < 40) steps_left_in_run = 40;
+    d = 0;
+    logging_condition = 0;
 
     while(1) {
 

@@ -270,6 +270,30 @@ py_sim_clean()
 static PyObject*
 sim_init(PyObject* self, PyObject* args)
 {
+    // Pacing flag
+    ESys_Flag flag_pacing;
+
+    // OpenCL flag
+    cl_int flag;
+
+    // Iteration
+    int i, j, k;
+
+    // Platform and device id
+    cl_platform_id platform_id;
+    cl_device_id device_id;
+
+    // Compilation options
+    char options[1024];
+
+    // Variable names
+    char log_var_name[1023];
+    int k_vars;
+
+    // Compilation error message
+    size_t blog_size;
+    char *blog;
+
     #ifdef MYOKIT_DEBUG
     // Don't buffer stdout
     setbuf(stdout, NULL); // Don't buffer stdout
@@ -360,8 +384,6 @@ sim_init(PyObject* self, PyObject* args)
     printf("Checking input arguments.\n");
     #endif
 
-    int i, j, k;
-
     //
     // Check state in and out lists
     //
@@ -403,7 +425,6 @@ sim_init(PyObject* self, PyObject* args)
     //
     // Set up pacing system
     //
-    ESys_Flag flag_pacing;
     pacing = ESys_Create(&flag_pacing);
     if(flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_Populate(pacing, protocol);
@@ -543,8 +564,8 @@ sim_init(PyObject* self, PyObject* args)
     #endif
 
     // Get platform and device id
-    cl_platform_id platform_id = NULL;
-    cl_device_id device_id = NULL;
+    platform_id = NULL;
+    device_id = NULL;
     if (mcl_select_device(platform_name, device_name, &platform_id, &device_id)) {
         // Error message set by mcl_select_device
         return sim_clean();
@@ -567,7 +588,6 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG
     printf("Attempting to create OpenCL context...\n");
     #endif
-    cl_int flag;
     if (platform_id != NULL) {
         #ifdef MYOKIT_DEBUG
         printf("Creating context with context_properties\n");
@@ -654,14 +674,13 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG
     printf("Program created.\n");
     #endif
-    const char options[] = "";
-    //const char options[] = "-w"; // Suppress warnings
+    sprintf(options, "");
+    //sprintf(options, "-w"); // Suppress warnings
     flag = clBuildProgram(program, 1, &device_id, options, NULL, NULL);
     if(flag == CL_BUILD_PROGRAM_FAILURE) {
         // Build failed, extract log
-        size_t blog_size;
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &blog_size);
-        char *blog = (char*)malloc(blog_size);
+        blog = (char*)malloc(blog_size);
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, blog_size, blog, NULL);
         fprintf(stderr, "OpenCL Error: Kernel failed to compile.\n");
         fprintf(stderr, "----------------------------------------");
@@ -669,6 +688,7 @@ sim_init(PyObject* self, PyObject* args)
         fprintf(stderr, "%s\n", blog);
         fprintf(stderr, "----------------------------------------");
         fprintf(stderr, "---------------------------------------\n");
+        free(blog);
     }
     if(mcl_flag(flag)) return sim_clean();
     #ifdef MYOKIT_DEBUG
@@ -758,8 +778,8 @@ sim_init(PyObject* self, PyObject* args)
     printf("Allocated var pointers.\n");
     #endif
 
-    char log_var_name[1023];    // Variable names
-    int k_vars = 0;             // Counting number of variables in log
+    // Number of variables in log
+    k_vars = 0;
 
     // Time and pace are set globally
 <?
@@ -865,12 +885,16 @@ static PyObject*
 sim_step(PyObject *self, PyObject *args)
 {
     ESys_Flag flag_pacing;
-    long steps_left_in_run = 500 + 200000 / (nx * ny);
-    if(steps_left_in_run < 1000) steps_left_in_run = 1000;
+    long steps_left_in_run;
     cl_int flag;
     int i;
-    double d = 0;
-    int logging_condition = 0;
+    double d;
+    int logging_condition;
+
+    steps_left_in_run = 500 + 200000 / (nx * ny);
+    if(steps_left_in_run < 1000) steps_left_in_run = 1000;
+    d = 0;
+    logging_condition = 0;
 
     while(1) {
 
