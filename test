@@ -297,7 +297,7 @@ def main():
     # Web examples
     web_parser = subparsers.add_parser(
         'web', help='Run web examples.')
-    web_parser.set_defaults(func=publication_examples)
+    web_parser.set_defaults(func=web_examples)
 
     # Parse!
     args = parser.parse_args()
