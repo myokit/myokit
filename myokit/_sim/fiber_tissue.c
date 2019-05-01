@@ -36,9 +36,13 @@ tab = '    '
 #include "pacing.h"
 #include "mcl.h"
 
-
 // Show debug output
 //#define MYOKIT_DEBUG
+
+// C89 Doesn't have isnan
+#ifndef isnan
+    #define isnan(arg) (arg != arg)
+#endif
 
 #define n_state_f <?= str(modelf.count_states()) ?>
 #define n_state_t <?= str(modelt.count_states()) ?>

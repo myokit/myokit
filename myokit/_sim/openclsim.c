@@ -32,6 +32,11 @@ tab = '    '
 // Show debug output
 //#define MYOKIT_DEBUG
 
+// C89 Doesn't have isnan
+#ifndef isnan
+    #define isnan(arg) (arg != arg)
+#endif
+
 #define n_state <?= str(model.count_states()) ?>
 
 typedef <?= ('float' if precision == myokit.SINGLE_PRECISION else 'double') ?> Real;
