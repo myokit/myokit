@@ -409,11 +409,11 @@ class Protocol(object):
         pace.append(v)
         while t < b:
             t = min(p.next_time(), b)
-            if for_drawing:
-                if t != b:
-                    time.append(t)
-                    pace.append(v)
-            v = p.advance(t)
+            w = p.advance(t)
+            if for_drawing and v != w:
+                time.append(t)
+                pace.append(v)
+            v = w
             time.append(t)
             pace.append(v)
         return log

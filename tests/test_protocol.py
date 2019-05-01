@@ -132,12 +132,19 @@ class ProtocolTest(unittest.TestCase):
         # Tests the method Protocol.log_for_interval()
         # Relies on PacingSystem
 
+        debug = True
+
         # Test basic use + log creation methods
         p = myokit.Protocol()
         p.schedule(1, 10, 1, 1000, 0)
         d = p.log_for_interval(0, 3000)
         self.assertEqual(d.time(), [0, 10, 11, 1010, 1011, 2010, 2011, 3000])
         d = p.log_for_interval(0, 2000, for_drawing=True)
+        if debug:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(d.time(), d['pace'])
+            plt.show()
         self.assertEqual(d.time(), [
             0, 10, 10, 11, 11, 1010, 1010, 1011, 1011, 2000])
         p = myokit.Protocol()
@@ -145,12 +152,13 @@ class ProtocolTest(unittest.TestCase):
         d = p.log_for_interval(0, 3000)
         self.assertEqual(d.time(), [0, 1, 1000, 1001, 2000, 2001, 3000])
         d = p.log_for_interval(0, 2000, for_drawing=True)
-        self.assertEqual(d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000])
-        if False:
+        if debug:
             import matplotlib.pyplot as plt
             plt.figure()
             plt.plot(d.time(), d['pace'])
             plt.show()
+        self.assertEqual(
+            d.time(), [0, 1, 1, 1000, 1000, 1001, 1001, 2000, 2000])
 
         # Test bad interval call
         self.assertRaises(ValueError, p.log_for_interval, 100, 0)
