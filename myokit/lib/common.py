@@ -23,7 +23,7 @@ except NameError:   # pragma: no python 2 cover
 
 
 #
-# This module is deprecated!
+# Deprecated since 2018-04-16
 #
 import logging
 logger = logging.getLogger('myokit')

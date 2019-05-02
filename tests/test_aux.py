@@ -566,6 +566,10 @@ class AuxTest(unittest.TestCase):
         x = myokit.Number(1.23)
         self.assertEqual(myokit.strfloat(x), '1.23')
 
+        # Full precision override
+        self.assertEqual(
+            myokit.strfloat(1.23, True), ' 1.22999999999999998e+00')
+
 
 if __name__ == '__main__':
     unittest.main()

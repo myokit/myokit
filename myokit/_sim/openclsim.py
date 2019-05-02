@@ -445,11 +445,11 @@ class SimulationOpenCL(myokit.CModule):
                             if ifirst == 0:
                                 break
                     elif not np.isfinite(ar[ifirst - 1]):
-                            # Earlier NaN found
-                            kfirst = key
-                            ifirst = bisect(ar, 0, ifirst)
-                            if ifirst == 0:
-                                break
+                        # Earlier NaN found
+                        kfirst = key
+                        ifirst = bisect(ar, 0, ifirst)
+                        if ifirst == 0:
+                            break
                 return ifirst, kfirst
 
         else:

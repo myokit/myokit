@@ -22,12 +22,14 @@ except NameError:   # pragma: no cover
     basestring = str
 
 
-class CompilerDetectionTest(unittest.TestCase):
+class SystemInfoTest(unittest.TestCase):
     """
-    Tests the compiler detection.
+    Tests the system info method.
     """
     def test_system_info(self):
-        """ Test the compiler detection. """
+        import matplotlib
+        matplotlib.use('template')
+
         self.assertIsInstance(myokit.system(), basestring)
         with myokit.PyCapture():
             myokit.system(live_printing=True)

@@ -105,10 +105,10 @@ class OpenCL(myokit.CModule):
         with the platform/device name, or ``None`` if no preference was set.
         """
         platform, device = OpenCL.load_selection_bytes()
-        if platform:
+        if platform is not None:
             platform = platform.decode('ascii')
-        if device:
-            device = platform.decode('device')
+        if device is not None:
+            device = device.decode('ascii')
 
         return platform, device
 
@@ -143,9 +143,9 @@ class OpenCL(myokit.CModule):
             device = get('selection', 'device')
 
         # Ensure platform and device are ascii compatible byte strings, or None
-        if platform:
+        if platform is not None:
             platform = platform.encode('ascii')
-        if device:
+        if device is not None:
             device = device.encode('ascii')
 
         return platform, device

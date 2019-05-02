@@ -71,18 +71,19 @@ void trim(char *str)
 static int
 mcl_flag2(const char* msg, const cl_int flag)
 {
+    char sub[1024];
+    char err[2048];
+
     if(flag == CL_SUCCESS) {
         return 0;
     }
 
-    char sub[1024];
     if(strcmp(msg, "")) {
         sprintf(sub, " (%s)", msg);
     } else {
         sprintf(sub, "");
     }
 
-    char err[2048];
     switch(flag) {
         case CL_DEVICE_NOT_FOUND:
             sprintf(err, "OpenCL error%s: CL_DEVICE_NOT_FOUND", sub);
@@ -266,6 +267,23 @@ int mcl_select_device(
     cl_platform_id* pid,
     cl_device_id* did)
 {
+    // String containing name of platform/device
+    char name[65536];
+
+    // Array of platform ids
+    cl_uint n_platforms;
+    cl_platform_id platform_ids[MCL_MAX_PLATFORMS];
+
+    // OpenCL return
+    cl_int flag;
+
+    // Array of device ids
+    cl_device_id device_ids[MCL_MAX_DEVICES];
+    cl_uint n_devices;
+
+    // OpenCL ints for iterating
+    cl_uint i, j;
+
     // Check input
     const char* pname;
     const char* dname;
@@ -302,13 +320,9 @@ int mcl_select_device(
     }
     #endif
 
-    // String containing name of platform/device
-    char name[65536];
-
     // Get array of platform ids
-    cl_platform_id platform_ids[MCL_MAX_PLATFORMS];
-    cl_uint n_platforms = 0;
-    cl_int flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
+    n_platforms = 0;
+    flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
     if(mcl_flag(flag)) return 1;
     if (n_platforms == 0) {
         PyErr_SetString(PyExc_Exception, "No OpenCL platforms found.");
@@ -325,9 +339,6 @@ int mcl_select_device(
         if (device == Py_None) {
 
             // Find any device on any platform, prefer GPU
-            cl_device_id device_ids[1];
-            cl_uint n_devices = 0;
-            cl_uint i;
             for (i=0; i<n_platforms; i++) {
                 flag = clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_GPU, 1, device_ids, &n_devices);
                 if(flag == CL_SUCCESS) {
@@ -359,9 +370,6 @@ int mcl_select_device(
         } else {
 
             // Find specified device on any platform
-            cl_device_id device_ids[MCL_MAX_DEVICES];
-            cl_uint n_devices = 0;
-            cl_uint i, j;
             for (i=0; i<n_platforms; i++) {
                 flag = clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_ALL, MCL_MAX_DEVICES, device_ids, &n_devices);
                 if(flag == CL_SUCCESS) {
@@ -538,6 +546,29 @@ mcl_device_info_clean()
 PyObject*
 mcl_device_info()
 {
+    // Array of platform ids
+    cl_platform_id platform_ids[MCL_MAX_PLATFORMS];
+
+    // Number of platforms
+    cl_uint n_platforms;
+
+    // Return from OpenCL
+    cl_int flag;
+
+    // Devices & return values from queries
+    cl_device_id device_ids[MCL_MAX_DEVICES];
+    cl_uint n_devices;
+    cl_uint buf_uint;
+    cl_ulong buf_ulong;
+    size_t wgroup_size;
+    size_t max_param;
+
+    // String buffer
+    char buffer[65536];
+
+    // Iteration
+    cl_uint i, j, k;
+
     // Set all pointers used by clean() to null
     platforms = NULL;
     platform = NULL;
@@ -547,14 +578,9 @@ mcl_device_info()
     val = NULL;
     work_item_sizes = NULL;
 
-    // Array of platform ids
-    cl_platform_id platform_ids[MCL_MAX_PLATFORMS];
-
-    // Number of platforms
-    cl_uint n_platforms = 0;
-
     // Get platforms
-    cl_int flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
+    n_platforms = 0;
+    flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
     if(mcl_flag(flag)) return mcl_device_info_clean();
 
     // Create platforms tuple
@@ -565,19 +591,7 @@ mcl_device_info()
         return platforms;
     }
 
-    // Devices & return values from queries
-    cl_device_id device_ids[MCL_MAX_DEVICES];
-    cl_uint n_devices = 0;
-    cl_uint buf_uint;
-    cl_ulong buf_ulong;
-    size_t wgroup_size;
-    size_t max_param;
-
-    // String buffer
-    char buffer[65536];
-
     // Check all platforms
-    cl_uint i, j, k;
     for (i=0; i<n_platforms; i++) {
         // Create platform dict
         platform = PyDict_New();

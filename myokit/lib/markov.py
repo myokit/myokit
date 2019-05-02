@@ -925,7 +925,7 @@ class AnalyticalSimulation(object):
                 tnext = min(tfinal, self._pacing.next_time())
                 self._run(tnext - self._time, log, log_interval)
                 # Update pacing
-                self._membrane_potential = self._pacing.advance(tnext, tfinal)
+                self._membrane_potential = self._pacing.advance(tnext)
                 self._cached_matrices = None
                 self._cached_solution = None
 
@@ -1366,7 +1366,7 @@ class DiscreteSimulation(object):
                 tnext = min(tfinal, self._pacing.next_time())
                 self._run(tnext - self._time, log)
                 # Update pacing
-                self._membrane_potential = self._pacing.advance(tnext, tfinal)
+                self._membrane_potential = self._pacing.advance(tnext)
                 self._cached_rates = None
                 self._cached_matrix = None
 
@@ -1611,11 +1611,12 @@ def _find_factor(expression, original):
 
 class MarkovModel(object):
     """
-    **Deprecated**: Since version 1.22.0 this class has been replaced by the
-    classes :class:`LinearModel` and :class:`AnalyticalSimulation`. Please
-    update your code to use these classes instead. This class will be removed
-    in future versions of Myokit.
+    **Deprecated**: This class has been replaced by the classes
+    :class:`LinearModel` and :class:`AnalyticalSimulation`. Please update your
+    code to use these classes instead. This class will be removed in
+    future versions of Myokit.
     """
+
     @staticmethod
     def from_component(
             component, states=None, parameters=None, current=None, vm=None):
@@ -1623,10 +1624,24 @@ class MarkovModel(object):
         Creates and returns an :class:`AnalyticalSimulation` using a
         :class:`LinearModel` based on a Myokit model component.
         """
+        # Deprecated since 2016-01-25
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning(
+            'The method `MarkovModel.from_component` is deprecated.'
+            ' Please use `LinearModel.from_component` instead.')
         return AnalyticalSimulation(LinearModel.from_component(
             component, states, parameters, current, vm))
 
     def __new__(self, model, states, parameters=None, current=None, vm=None):
+        # Deprecated since 2016-01-25
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning(
+            'The `MarkovModel` class is deprecated.'
+            ' Please use the `LinearModel` class instead.')
         return AnalyticalSimulation(LinearModel(
             model, states, parameters, current, vm))
 

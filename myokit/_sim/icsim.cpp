@@ -328,7 +328,7 @@ extern "C" {
         if (flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
         flag_pacing = ESys_Populate(pacing, protocol);
         if (flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
-        flag_pacing = ESys_AdvanceTime(pacing, tmin, tmax);
+        flag_pacing = ESys_AdvanceTime(pacing, tmin);
         if (flag_pacing != ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
 
         // Initialize inputs
@@ -436,7 +436,7 @@ for var in model.variables(deep=True, const=False):
             /* Advance to next time step */
             for(i=0; i<N_STATE; i++) state[i] += deriv[i] * dt;
             engine_time += dt;
-            flag_pacing = ESys_AdvanceTime(pacing, engine_time, tmax);
+            flag_pacing = ESys_AdvanceTime(pacing, engine_time);
             if (flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
             tpace = ESys_GetNextTime(pacing, NULL);
             engine_pace = ESys_GetLevel(pacing, NULL);
@@ -479,6 +479,13 @@ for var in model.variables(deep=True, const=False):
                 /* Calculate next logging point */
                 ilog++;
                 tlog = tmin + (double)ilog * log_interval;
+            }
+
+            /* Perform any Python signal handling */
+            if (PyErr_CheckSignals() != 0) {
+                /* Exception (e.g. timeout or keyboard interrupt) occurred?
+                   Then cancel everything! */
+                return sim_clean();
             }
 
             /* Report back to python after every x steps */

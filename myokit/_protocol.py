@@ -10,6 +10,8 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
+
+import sys
 import numpy as np
 
 
@@ -153,75 +155,29 @@ class Protocol(object):
 
     def create_log_for_interval(self, a, b, for_drawing=False):
         """
-        Creates a :class:`myokit.DataLog` containing the entries `time`
-        and `pace` representing the value of the pacing stimulus at each point.
-
-        The time points in the log will be on the interval ``[a, b]``, such
-        that every time at which the pacing value changes is present in the
-        log.
-
-        If ``for_drawing`` is set to ``True`` each time value between ``a`` and
-        ``b`` will be listed twice, so that a vertical line can be drawn from
-        the old to the new pacing value.
+        Deprecated alias of :meth:`log_for_interval`.
         """
-        # Test the input
-        a, b = float(a), float(b)
-        if b < a:
-            raise ValueError('The argument `b` cannot be smaller than `a`')
-        # Create a simulation log
-        log = myokit.DataLog()
-        log.set_time_key('time')
-        log['time'] = time = []
-        log['pace'] = pace = []
-        # Create a pacing system
-        p = PacingSystem(self)
-        # Fill in points
-        t = a
-        v = p.advance(t, max_time=b)
-        time.append(t)
-        pace.append(v)
-        while t < b:
-            t = p.next_time()
-            if for_drawing:
-                if t != b:
-                    time.append(t)
-                    pace.append(v)
-            v = p.advance(t, max_time=b)
-            time.append(t)
-            pace.append(v)
-        return log
+        # Deprecated since 2019-01-09
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning(
+            'The method `create_log_for_interval` is deprecated.'
+            ' Please use `log_for_interval` instead.')
+        return self.log_for_interval(a, b, for_drawing)
 
     def create_log_for_times(self, times):
         """
-        Creates a :class:`myokit.DataLog` containing the entries `time`
-        and `pace` representing the value of the pacing stimulus at each point.
-
-        The time entries ``times`` must be an non-descreasing series of
-        non-negative points.
+        Deprecated alias of :meth:`log_for_times`.
         """
-        # Create empty log
-        log = myokit.DataLog()
-        log.set_time_key('time')
-        # Times empty? Then return empty log
-        if len(times) == 0:
-            log['time'] = []
-            log['pace'] = []
-            return log
-        # Test times
-        times = np.asarray(times)
-        dt = times[1:] - times[:-1]
-        if np.any(dt < 0):
-            raise ValueError(
-                'The argument `times` must contain a'
-                ' non-decreasing sequence of time points.')
-        if times[0] < 0:
-            raise ValueError('Times cannot be negative.')
-        # Create a pacing system and calculate the values
-        p = PacingSystem(self)
-        # Return log
-        log['time'] = list(times)
-        log['pace'] = [p.advance(t) for t in times]
-        return log
+        # Deprecated since 2019-01-09
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning(
+            'The method `create_log_for_times` is deprecated.'
+            ' Please use `log_for_times` instead.')
+        return self.log_for_times(times)
 
     def events(self):
         """
@@ -242,6 +198,7 @@ class Protocol(object):
 
         This method now returns the value given by :meth:`characteristic_time`.
         """
+        # Deprecated since 2016-02-06
         import logging
         logger = logging.getLogger('myokit')
         logger.warning(
@@ -284,7 +241,7 @@ class Protocol(object):
             e = e._next
         return False
 
-    def is_sequence(self, exception=False):
+    def is_sequence(self):
         """
         Checks if this protocol is a sequence of non-periodic steps.
 
@@ -293,33 +250,43 @@ class Protocol(object):
         1. The protocol does not contain any periodic events
         2. The protocol does not contain any overlapping events
 
-        If ``exception`` is set to ``True``, the method will raise an
-        ``Exception`` instead of returning ``False``. This allows you to obtain
-        specific information about the check that failed
+        See also :meth:`is_sequence_exception`.
         """
-        def check():
-            t = 0
-            e = self._head
-            while e is not None:
-                if e._period != 0:
-                    raise Exception('Protocol contains periodic event(s).')
-                if e._start < t:
-                    raise Exception(
-                        'Event starting at t=' + str(e._start)
-                        + ' overlaps with previous event which finishes at t='
-                        + str(t) + '.')
-                t = e._start + e._duration
-                e = e._next
-            return True
-        if exception:
-            return check()
-        else:
-            try:
-                return check()
-            except Exception:
-                return False
+        try:
+            self.is_sequence_exception()
+        except NotASequenceError:
+            return False
+        return True
 
-    def is_unbroken_sequence(self, exception=False):
+    def is_sequence_exception(self):
+        """
+        Like :meth:`is_sequence()`, but raises an exception if the protocol is
+        not a sequence, providing some information about the check that failed.
+        """
+        t = 0
+        e = self._head
+        while e is not None:
+
+            if e._period != 0:
+                raise NotASequenceError('Protocol contains periodic event(s).')
+
+            if e._start < t:
+                raise NotASequenceError(
+                    'Event starting at t=' + str(e._start)
+                    + ' overlaps with previous event which finishes at t='
+                    + str(t) + '.')
+
+            t = e._start + e._duration
+            e = e._next
+
+            # Calculated position indistinguishable from user-specified next
+            # even start? Then jump there instead
+            if e and _eq(t, e._start):
+                t = e._start
+
+        return True
+
+    def is_unbroken_sequence(self):
         """
         Checks if this protocol is an unbroken sequence of steps. Returns
         ``True`` only for an unbroken sequence.
@@ -330,41 +297,53 @@ class Protocol(object):
         2. The protocol does not contain any overlapping events
         3. Each new event starts where the last ended
 
-        If ``exception`` is set to ``True``, the method will raise an
-        ``Exception`` instead of returning ``False``. This allows you to obtain
-        specific information about the check that failed
+        See also :meth:`is_unbroken_sequence_exception`.
         """
-        def check():
-            e = self._head
-            if e is None:
-                return True
-            if e._period != 0:
-                raise Exception('Protocol contains periodic event(s).')
-            while e._next is not None:
-                t = e._start + e._duration
-                e = e._next
-                # Check for periodic events
-                if e._period != 0:
-                    raise Exception('Protocol contains periodic event(s).')
-                # Check starting time
-                if e._start < t:
-                    raise Exception(
-                        'Event starting at t=' + str(e._start)
-                        + ' overlaps with previous event which finishes at t='
-                        + str(t) + '.')
-                elif e._start > t:
-                    raise Exception(
-                        'Event starting at t=' + str(e._start)
-                        + ' does not start directly after previous event,'
-                        + ' which finishes at t=' + str(t) + '.')
+        try:
+            self.is_unbroken_sequence_exception()
+        except NotAnUnbrokenSequenceError:
+            return False
+        return True
+
+    def is_unbroken_sequence_exception(self):
+        """
+        Like :meth:`is_unbroken_sequence`, but raises an exception if the
+        protocol is not an unbroken sequence, providing some information about
+        the check that failed.
+        """
+        e = self._head
+        if e is None:
             return True
-        if exception:
-            return check()
-        else:
-            try:
-                return check()
-            except Exception:
-                return False
+        if e._period != 0:
+            raise NotAnUnbrokenSequenceError(
+                'Protocol contains periodic event(s).')
+
+        while e._next is not None:
+            t = e._start + e._duration
+            e = e._next
+
+            # Calculated position indistinguishable from user-specified next
+            # even start? Then jump there instead
+            if _eq(t, e._start):
+                t = e._start
+
+            # Check for periodic events
+            if e._period != 0:
+                raise NotAnUnbrokenSequenceError(
+                    'Protocol contains periodic event(s).')
+
+            # Check starting time
+            if e._start < t:
+                raise NotAnUnbrokenSequenceError(
+                    'Event starting at t=' + str(e._start)
+                    + ' overlaps with previous event which finishes at t='
+                    + str(t) + '.')
+            elif e._start > t:
+                raise NotAnUnbrokenSequenceError(
+                    'Event starting at t=' + str(e._start)
+                    + ' does not start directly after previous event,'
+                    + ' which finishes at t=' + str(t) + '.')
+        return True
 
     def __iter__(self):
         """
@@ -395,6 +374,63 @@ class Protocol(object):
             levels.append(e._level)
             e = e._next
         return levels
+
+    def log_for_interval(self, a, b, for_drawing=False):
+        """
+        Returns a :class:`myokit.DataLog` containing the entries ``time`` and
+        ``pace``, representing the value of the pacing stimulus at each  point
+        on the interval ``[a, b]``.
+
+        The time points in the log will be ``a`` and ``b``, and any time in
+        between at which the pacing value changes.
+
+        If ``for_drawing`` is set to ``True`` each time value between ``a`` and
+        ``b`` will be listed twice, so that a vertical line can be drawn from
+        the old to the new pacing value.
+        """
+        # Test the input
+        a, b = float(a), float(b)
+        if b < a:
+            raise ValueError('The argument `b` cannot be smaller than `a`')
+
+        # Create a simulation log
+        log = myokit.DataLog()
+        log.set_time_key('time')
+        log['time'] = time = []
+        log['pace'] = pace = []
+
+        # Create a pacing system
+        p = PacingSystem(self)
+
+        # Fill in points
+        t = a
+        v = p.advance(t)
+        time.append(t)
+        pace.append(v)
+        while t < b:
+            t = min(p.next_time(), b)
+            w = p.advance(t)
+            if for_drawing and v != w:
+                time.append(t)
+                pace.append(v)
+            v = w
+            time.append(t)
+            pace.append(v)
+        return log
+
+    def log_for_times(self, times):
+        """
+        Returns a :class:`myokit.DataLog` containing the entries ``time`` and
+        ``pace`` representing the value of the pacing stimulus at each point.
+
+        The time entries ``times`` must be an non-descreasing series of
+        non-negative points.
+        """
+        log = myokit.DataLog()
+        log.set_time_key('time')
+        log['time'] = times
+        log['pace'] = self.value_at_times(times)
+        return log
 
     def pop(self):
         """
@@ -462,6 +498,34 @@ class Protocol(object):
         while e._next is not None:
             e = e._next
         return e
+
+    def value_at_times(self, times):
+        """
+        Returns a list containing the value of the pacing variable at each time
+        listed in ``times``.
+
+        Arguments:
+
+        ``times``
+            A (non-decreasing) sequence of (non-negative) points in time.
+
+        """
+        # Times empty? Then return empty list
+        if len(times) == 0:
+            return []
+
+        # Test time values are non-negative and non-decreasing
+        times = np.asarray(times)
+        if np.any(times[1:] < times[:-1]):
+            raise ValueError(
+                'The argument `times` must contain a'
+                ' non-decreasing sequence of time points.')
+        if times[0] < 0:
+            raise ValueError('Times cannot be negative.')
+
+        # Create a pacing system, calculate the values, and return
+        p = PacingSystem(self)
+        return [p.advance(t) for t in times]
 
 
 class ProtocolEvent(object):
@@ -681,52 +745,52 @@ class PacingSystem(object):
         # The current time and pacing level
         self._time = 0
         self._pace = 0
+
         # Currently active event
         self._fire = None
+
         # Time the currently active event is over
         self._tdown = None
+
         # The next time the pacing variable changes
         self._tnext = 0
+
         # Create a copy of the protocol
         self._protocol = protocol.clone()
+        #TODO: For periodic events, set an _t0, and a _i, use them to calculate
+        #      the next occurence
+
         # Advance to time zero
         self.advance(0)
 
-    def advance(self, new_time, max_time=None):
+    def advance(self, new_time):
         """
-        Advances the time in the pacing system to ``new_time``. If ``max_time``
-        is set, the system will never go beyond ``max_time``.
+        Advances the time in the pacing system to ``new_time``.
 
         Returns the current value of the pacing variable.
         """
-        # Update time
+        # Check new_time isn't in the past
         new_time = float(new_time)
-        if self._time > new_time:
+        if new_time < self._time:
             raise ValueError('New time cannot be before the current time.')
 
-        if max_time is not None:
-            max_time = float(max_time)
-            if new_time > max_time:
-                new_time = max_time
+        # Get smallest difference from 1
+        epsilon = sys.float_info.epsilon
 
+        # Set the new internal time
         self._time = new_time
 
         # Advance pacing system
-        while self._tnext <= self._time:
-
-            # Stop at max_time, if given
-            if max_time is not None:
-                if self._tnext == max_time:
-                    break
+        while _geq(new_time, self._tnext):
 
             # Active event finished
-            if self._fire and self._tnext >= self._tdown:
+            if self._fire and _geq(self._tnext, self._tdown):
                 self._fire = None
                 self._pace = 0
 
             # New event starting
             e = self._protocol._head
-            if e and self._time >= e._start:
+            if e and _geq(new_time, e._start):
                 self._protocol.pop()
                 self._fire = e
                 self._tdown = e._start + e._duration
@@ -739,12 +803,15 @@ class PacingSystem(object):
                     e._start += e._period
                     self._protocol.add(e)
 
-            # Next stopping time
-            if max_time is not None:
-                self._tnext = max_time
-            else:
-                self._tnext = float('inf')
+                # Check if tdown is indistinguishable from the next event start
+                # If so, then set tdown (which is always calculated) to the
+                # next event start (which may be user-specified).
+                x = self._protocol._head
+                if x and _eq(self._tdown, x._start):
+                    self._tdown = x._start
 
+            # Next stopping time
+            self._tnext = float('inf')
             if self._fire and self._tnext > self._tdown:
                 self._tnext = self._tdown
             if e and self._tnext > e._start:
@@ -769,3 +836,29 @@ class PacingSystem(object):
         Returns the current time in the pacing system.
         """
         return self._time
+
+
+class NotASequenceError(myokit.MyokitError):
+    """ Error raised exclusively by is_sequence_exception(). """
+    pass
+
+
+class NotAnUnbrokenSequenceError(myokit.MyokitError):
+    """ Error raised exclusively by is_unbroken_sequence_exception(). """
+    pass
+
+
+def _eq(a, b):
+    """
+    Checks if ``a`` and ``b`` are equal, or so close to each other that the
+    difference could be a single floating point rounding error.
+    """
+    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+
+
+def _geq(a, b):
+    """
+    Checks if ``a >= b``, but using ``_eq`` instead of ``=``.
+    """
+    return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Command line tools for Myokit.
 #
@@ -18,7 +17,7 @@ def printline():
 
 def main():
     """
-    Imports myokit. Gets parsing.
+    Parses command line arguments.
     """
     import sys
 
@@ -100,34 +99,34 @@ def add_block_parser(subparsers):
     """
     Adds a subcommand parser for `block`.
     """
-    block_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'block',
         description='Runs the DataBlock Viewer.',
         help='Runs the DataBlock Viewer.',
     )
-    block_parser.add_argument(
+    parser.add_argument(
         'filename',
         default=None,
         nargs='?',
         metavar='filename',
         help='The DataBlock zip file to open (optional).',
     )
-    block_parser.add_argument(
+    parser.add_argument(
         '--pyqt5',
         action='store_true',
         help='Run the DataBlock Viewer using the PyQt5 backend.',
     )
-    block_parser.add_argument(
+    parser.add_argument(
         '--pyqt4',
         action='store_true',
         help='Run the DataBlock Viewer using the PyQt4 backend.',
     )
-    block_parser.add_argument(
+    parser.add_argument(
         '--pyside',
         action='store_true',
         help='Run the DataBlock Viewer using the PySide backend.',
     )
-    block_parser.set_defaults(func=block)
+    parser.set_defaults(func=block)
 
 
 def compare(model1, model2):
@@ -148,23 +147,23 @@ def add_compare_parser(subparsers):
     """
     Adds a subcommand parser for the `compare` command.
     """
-    compare_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'compare',
         description='Compares two models by inspecting their components,'
                     ' variables, meta-data etc.',
         help='Compares two models.',
     )
-    compare_parser.add_argument(
+    parser.add_argument(
         'model1',
         metavar='model1..mmt',
         help='One of the models to compare.',
     )
-    compare_parser.add_argument(
+    parser.add_argument(
         'model2',
         metavar='model2.mmt',
         help='The model to compare with.',
     )
-    compare_parser.set_defaults(func=compare)
+    parser.set_defaults(func=compare)
 
 
 def compiler():
@@ -183,12 +182,12 @@ def add_compiler_parser(subparsers):
     """
     Adds a subcommand parser for the ``compiler`` command.
     """
-    compiler_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'compiler',
         description='Checks for C compilation support.',
         help='Prints information about C compilation support.',
     )
-    compiler_parser.set_defaults(func=compiler)
+    parser.set_defaults(func=compiler)
 
 
 def debug(source, variable, deps=False):
@@ -211,7 +210,7 @@ def add_debug_parser(subparsers):
     """
     Adds a subcommand parser for the `debug` command.
     """
-    debug_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'debug',
         description='Shows how a single variable is calculated from the '
                     'initial conditions. The variable\'s equation and value'
@@ -219,22 +218,22 @@ def add_debug_parser(subparsers):
                     ' nested variables and the values of all dependencies.',
         help='Shows how a single variable is calculated.',
     )
-    debug_parser.add_argument(
+    parser.add_argument(
         'source',
         metavar='source_file.mmt',
         help='The source file to parse.',
     )
-    debug_parser.add_argument(
+    parser.add_argument(
         'variable',
         metavar='variable',
         help='The variable whose evaluation to display.',
     )
-    debug_parser.add_argument(
+    parser.add_argument(
         '--deps',
         action='store_true',
         help='Show dependencies instead of numerical evaluation.',
     )
-    debug_parser.set_defaults(func=debug)
+    parser.set_defaults(func=debug)
 
 
 def evaluate(expression):
@@ -254,17 +253,17 @@ def add_eval_parser(subparsers):
     """
     Adds a subcommand parser for the `eval` command.
     """
-    eval_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'eval',
         description='Evaluates an expression in myokit syntax.',
         help='Evaluates an expression in myokit syntax.',
     )
-    eval_parser.add_argument(
+    parser.add_argument(
         'expression',
         metavar='"1 + 2 / 3"',
         help='The expression to evaluate.',
     )
-    eval_parser.set_defaults(func=evaluate)
+    parser.set_defaults(func=evaluate)
 
 
 def mmt_export(exporter, source, target):
@@ -322,28 +321,28 @@ def add_export_parser(subparsers):
     import myokit
     import myokit.formats
 
-    export_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'export',
         description='Exports a Myokit model using the specified exporter.',
         help='Exports a Myokit model.',
     )
-    export_parser.add_argument(
+    parser.add_argument(
         'exporter',
         metavar='exporter',
         help='The exporter to use.',
         choices=myokit.formats.exporters(),
     )
-    export_parser.add_argument(
+    parser.add_argument(
         'source',
         metavar='source',
         help='The source file to parse.',
     )
-    export_parser.add_argument(
+    parser.add_argument(
         'target',
         metavar='target',
         help='The output file or directory.'
     )
-    export_parser.set_defaults(func=mmt_export)
+    parser.set_defaults(func=mmt_export)
 
 
 def gde(filename):
@@ -359,19 +358,19 @@ def add_gde_parser(subparsers):
     """
     Adds a subcommand parser for the `gde` command.
     """
-    gde_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'gde',
         description='Runs the graph data extractor.',
         help='Runs the graph data extractor.',
     )
-    gde_parser.add_argument(
+    parser.add_argument(
         'filename',
         default=None,
         nargs='?',
         metavar='filename',
         help='The gde file to open (optional).',
     )
-    gde_parser.set_defaults(func=gde)
+    parser.set_defaults(func=gde)
 
 
 def install():
@@ -543,12 +542,12 @@ def add_icon_parser(subparsers):
     """
     Adds a subcommand parser for the ``icons`` command.
     """
-    icon_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'icons',
         description='Installs launchers / start menu shortcuts for Myokit.',
         help='Installs launchers / start menu shortcuts for Myokit.',
     )
-    icon_parser.set_defaults(func=install)
+    parser.set_defaults(func=install)
 
 
 def ide(filename, pyqt4=False, pyqt5=False, pyside=False):
@@ -579,34 +578,34 @@ def add_ide_parser(subparsers):
     """
     Adds a subcommand parser for the `compare` command.
     """
-    ide_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'ide',
         description='Runs the Myokit IDE prototype.',
         help='Runs the Myokit IDE prototype.',
     )
-    ide_parser.add_argument(
+    parser.add_argument(
         'filename',
         default=None,
         nargs='?',
         metavar='filename',
         help='The mmt file to open (optional).',
     )
-    ide_parser.add_argument(
+    parser.add_argument(
         '--pyqt5',
         action='store_true',
         help='Run the IDE using the PyQt5 backend.',
     )
-    ide_parser.add_argument(
+    parser.add_argument(
         '--pyqt4',
         action='store_true',
         help='Run the IDE using the PyQt4 backend.',
     )
-    ide_parser.add_argument(
+    parser.add_argument(
         '--pyside',
         action='store_true',
         help='Run the IDE using the PySide backend.',
     )
-    ide_parser.set_defaults(func=ide)
+    parser.set_defaults(func=ide)
 
 
 def mmt_import(importer, source, target=None):
@@ -647,32 +646,32 @@ def add_import_parser(subparsers):
     import myokit
     import myokit.formats
 
-    import_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'import',
         description='Imports a file using any available importer. An output'
                     ' file can be specified or the resulting mmt file can be'
                     ' printed directly to screen.',
         help='Imports a file and generates an mmt file.',
     )
-    import_parser.add_argument(
+    parser.add_argument(
         'importer',
         metavar='importer',
         help='The importer to use.',
         choices=myokit.formats.importers(),
     )
-    import_parser.add_argument(
+    parser.add_argument(
         'source',
         metavar='source_file',
         help='The source file to parse.',
     )
-    import_parser.add_argument(
+    parser.add_argument(
         'target',
         default=None,
         nargs='?',  # ? = Zero or one
         metavar='target_file',
         help='The mmt file to write (optional).',
     )
-    import_parser.set_defaults(func=mmt_import)
+    parser.set_defaults(func=mmt_import)
 
 
 def log(filenames):
@@ -690,19 +689,19 @@ def add_log_parser(subparsers):
     """
     import argparse
 
-    log_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'log',
         description='Runs the DataLog Viewer (PROTOTYPE).',
         help='Runs the DataLog Viewer (PROTOTYPE).',
     )
-    log_parser.add_argument(
+    parser.add_argument(
         'filenames',
         default=None,
         nargs=argparse.REMAINDER,
         metavar='filename',
         help='The DataLog zip file to open (optional).',
     )
-    log_parser.set_defaults(func=log)
+    parser.set_defaults(func=log)
 
 
 def opencl():
@@ -717,14 +716,14 @@ def add_opencl_parser(subparsers):
     """
     Adds a subcommand parser for the `opencl` command.
     """
-    opencl_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'opencl',
         description='Checks for OpenCL support and prints some information'
                     ' about the available devices. If no support is found, an'
                     ' error message is displayed.',
         help='Prints information about OpenCL devices.',
     )
-    opencl_parser.set_defaults(func=opencl)
+    parser.set_defaults(func=opencl)
 
 
 def opencl_select():
@@ -834,12 +833,12 @@ def add_opencl_select_parser(subparsers):
     """
     Adds a subcommand parser for the `opencl_select` command.
     """
-    opencl_select_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'opencl-select',
         description='Lets you select which OpenCL device Myokit should use.',
         help='Lets you select which OpenCL device Myokit should use.',
     )
-    opencl_select_parser.set_defaults(func=opencl_select)
+    parser.set_defaults(func=opencl_select)
 
 
 def reset(force=False):
@@ -875,18 +874,18 @@ def add_reset_parser(subparsers):
     """
     Adds a subcommand parser for the `reset` command.
     """
-    reset_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'reset',
         description='Removes all Myokit settings files, resetting Myokit to'
                     ' its default configuration.',
         help='Removes all Myokit settings files.',
     )
-    reset_parser.add_argument(
+    parser.add_argument(
         '--force',
         action='store_true',
         help='Delete without prompting the user first.',
     )
-    reset_parser.set_defaults(func=reset)
+    parser.set_defaults(func=reset)
 
 
 def run(source, debug, debugfile):
@@ -969,31 +968,31 @@ def add_run_parser(subparsers):
     """
     Adds a subcommand parser for the `run` command.
     """
-    run_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'run',
         description='Runs the embedded script in an mmt file. If no embedded'
                     ' script is available a simulation with a default script'
                     ' is attempted.',
         help='Runs an mmt file.',
     )
-    run_parser.add_argument(
+    parser.add_argument(
         'source',
         metavar='source_file.mmt',
         help='The source file to parse.',
     )
-    run_parser.add_argument(
+    parser.add_argument(
         '--debug',
         action='store_true',
         help='Show the generated code instead of executing it.',
     )
-    run_parser.add_argument(
+    parser.add_argument(
         '--debugfile',
         nargs=1,
         metavar='debugfile',
         help='Write the generated code to a file instead of executing it.',
         default=None,
     )
-    run_parser.set_defaults(func=run)
+    parser.set_defaults(func=run)
 
 
 def step(source, ref, ini, raw):
@@ -1055,7 +1054,7 @@ def add_step_parser(subparsers):
     """
     Adds a subcommand parser for the `step` command.
     """
-    step_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'step',
         description='Loads a model and evaluates the state vector derivatives.'
                     ' The optional argument -ref <source_file> can be used to'
@@ -1063,12 +1062,12 @@ def add_step_parser(subparsers):
                     ' pre-calculated floats.',
         help='Evaluates a model\'s derivatives.',
     )
-    step_parser.add_argument(
+    parser.add_argument(
         'source',
         metavar='source_file',
         help='The source file to parse',
     )
-    step_parser.add_argument(
+    parser.add_argument(
         '-ref',
         nargs=1,
         metavar='ref',
@@ -1076,7 +1075,7 @@ def add_step_parser(subparsers):
              ' reference model to compare against.',
         default=None,
     )
-    step_parser.add_argument(
+    parser.add_argument(
         '-ini',
         nargs=1,
         metavar='ini',
@@ -1084,12 +1083,12 @@ def add_step_parser(subparsers):
              ' variables',
         default=None,
     )
-    step_parser.add_argument(
+    parser.add_argument(
         '--raw',
         action='store_true',
         help='Display the calculated state, without further formatting.',
     )
-    step_parser.set_defaults(func=step)
+    parser.set_defaults(func=step)
 
 
 def sundials():
@@ -1108,32 +1107,39 @@ def add_sundials_parser(subparsers):
     """
     Adds a subcommand parser for the `sundials` command.
     """
-    sundials_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'sundials',
         description='Checks for Sundials support.',
         help='Prints information about Sundials support.',
     )
-    sundials_parser.set_defaults(func=sundials)
+    parser.set_defaults(func=sundials)
 
 
 def system():
     """
     Displays system information.
     """
+    import os
     import myokit
     myokit.system(live_printing=True)
+
+    ini = os.path.join(myokit.DIR_USER, 'myokit.ini')
+    print()
+    print('= ' + ini + ' =')
+    with open(ini, 'r') as f:
+        print(f.read())
 
 
 def add_system_parser(subparsers):
     """
     Adds a subcommand parser for the `system` command.
     """
-    sundials_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'system',
         description='Show system information.',
         help='Prints information about the current system.',
     )
-    sundials_parser.set_defaults(func=system)
+    parser.set_defaults(func=system)
 
 
 def version(raw=False):
@@ -1145,17 +1151,17 @@ def add_version_parser(subparsers):
     """
     Adds a subcommand parser for the `version` command.
     """
-    version_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'version',
         description='Prints Myokit\'s version number.',
         help='Prints Myokit\'s version number.',
     )
-    version_parser.add_argument(
+    parser.add_argument(
         '--raw',
         action='store_true',
         help='Only print the version number, no other information.',
     )
-    version_parser.set_defaults(func=version)
+    parser.set_defaults(func=version)
 
 
 def video(src, key, dst, fps, colormap):
@@ -1274,7 +1280,7 @@ def add_video_parser(subparsers):
     """
     import myokit
 
-    video_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'video',
         description='Uses "moviepy" to convert a DataBlock to a video file.'
                     ' The video format to use is guessed based on the'
@@ -1285,36 +1291,36 @@ def add_video_parser(subparsers):
               '\nMore options:'
               '\n  myokit -h',
     )
-    video_parser.add_argument(
+    parser.add_argument(
         'src',
         metavar='datablock.zip',
         help='The DataBlock file to convert',
     )
-    video_parser.add_argument(
+    parser.add_argument(
         'key',
         metavar='membrane.V',
         help='The 2d time series in the DataBlock to convert to video',
     )
-    video_parser.add_argument(
+    parser.add_argument(
         '-dst',
         metavar='movie.mp4',
         help='The video file to write',
         default='movie.mp4',
     )
-    video_parser.add_argument(
+    parser.add_argument(
         '-fps',
         metavar='fps',
         help='The number of (DataBlock) frames per second',
         default=16,
     )
-    video_parser.add_argument(
+    parser.add_argument(
         '-colormap',
         metavar='colormap',
         help='The ColorMap to use when converting the DataBlock.',
         default='traditional',
         choices=myokit.ColorMap.names(),
     )
-    video_parser.set_defaults(func=video)
+    parser.set_defaults(func=video)
 
 
 if __name__ == '__main__':

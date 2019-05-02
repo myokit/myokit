@@ -22,42 +22,50 @@ import traceback
 import subprocess
 
 
-def run_unit_tests(executable=None):
+def unit(args):
     """
-    Runs unit tests, exits if they don't finish.
-
-    If an ``executable`` is given, tests are run in subprocesses using the
-    given executable (e.g. ``python2`` or ``python3``).
+    Runs unit tests, exits if anything fails.
     """
-    if executable is None:
+    # Run without using a subprocess
+    if args.nosub:
+        print('Running unit tests without a subprocess')
         suite = unittest.defaultTestLoader.discover(
             'tests', pattern='test*.py')
         unittest.TextTestRunner(verbosity=2).run(suite)
-    else:
-        print('Running unit tests with executable `' + executable + '`')
-        cmd = [executable] + [
-            '-m',
-            'unittest',
-            'discover',
-            '-v',
-            'tests',
-        ]
-        p = subprocess.Popen(cmd)
+        return
+
+    # Determine executable
+    executable = 'python'
+    if args.py2:
+        executable += '2'
+    elif args.py3:
+        executable += '3'
+    print('Running unit tests with executable `' + executable + '`')
+
+    # Run in a subprocess
+    cmd = [executable] + [
+        '-m',
+        'unittest',
+        'discover',
+        '-v',
+        'tests',
+    ]
+    p = subprocess.Popen(cmd)
+    try:
+        ret = p.wait()
+    except KeyboardInterrupt:
         try:
-            ret = p.wait()
-        except KeyboardInterrupt:
-            try:
-                p.terminate()
-            except OSError:
-                pass
-            p.wait()
-            print('')
-            sys.exit(1)
-        if ret != 0:
-            sys.exit(ret)
+            p.terminate()
+        except OSError:
+            pass
+        p.wait()
+        print('')
+        sys.exit(1)
+    if ret != 0:
+        sys.exit(ret)
 
 
-def run_flake8():
+def flake8():
     """
     Runs flake8 in a subprocess, exits if it doesn't finish.
     """
@@ -81,9 +89,10 @@ def run_flake8():
         sys.exit(ret)
 
 
-def run_doc_tests():
+def doc_tests(args):
     """
-    Checks if the documentation can be built, runs all doc tests.
+    Checks if the documentation can be built, runs all doc tests, exits if
+    anything fails.
     """
     print('Checking if docs can be built.')
     p = subprocess.Popen([
@@ -109,9 +118,10 @@ def run_doc_tests():
         sys.exit(ret)
 
 
-def run_mmt_files(path):
+def test_mmt_files(path):
     """
-    Run all the `mmt` files in a given directory `path`.
+    Run all the `mmt` files in a given directory `path`, returns 0 iff nothing
+    goes wrong.
     """
     import myokit
 
@@ -166,22 +176,22 @@ def run_mmt_files(path):
     return error
 
 
-def run_publication_examples():
+def publication_examples(args):
     """
-    Runs all publication examples.
+    Runs all publication examples, exits if one of them fails.
     """
     # Get publications directory
     path = os.path.join('tests', 'publications')
 
     # PBMB 2016. Myokit: A simple interface to cardiac cellular
     # electrophysiology
-    if run_mmt_files(os.path.join(path, 'pbmb-2016')):
+    if test_mmt_files(os.path.join(path, 'pbmb-2016')):
         sys.exit(1)
 
 
-def run_web_examples():
+def web_examples(args):
     """
-    Runs all web examples.
+    Runs all web examples, exits if one of them fails.
     """
     # Get web directory
     path = os.path.join(
@@ -198,132 +208,108 @@ def run_web_examples():
         return
 
     # Run, exit on error
-    if run_mmt_files(path):
+    if test_mmt_files(path):
         sys.exit(1)
 
 
-if __name__ == '__main__':
+def full_suite(args):
+    """
+    Runs the full test suite, exits if anything fails.
+    """
+    # Set arguments for unit()
+    args.nosub = args.py2 = args.py3 = False
+
+    flake8()
+    doc_tests(args)
+    unit(args)
+    web_examples(args)
+    publication_examples(args)
+
+
+def minimal_suite(args):
+    """
+    Runs a minimal set of tests, exits if anything fails.
+    """
+    # Set arguments for unit()
+    args.nosub = args.py2 = args.py3 = False
+
+    flake8()
+    doc_tests(args)
+    unit(args)
+
+
+def main():
     # Set up argument parsing
     parser = argparse.ArgumentParser(
         description='Run unit tests for Myokit.',
         epilog='To run individual unit tests, use e.g.'
                ' $ tests/test_parser.py',
     )
-
-    # Test combinations
-    parser.add_argument(
-        '--quick',
-        action='store_true',
-        help='Run quick checks (unit tests, flake8, docs)',
-    )
-    parser.add_argument(
-        '--full',
-        action='store_true',
-        help='Run all tests (including graphical ones)',
-    )
-
-    # Unit tests
-    parser.add_argument(
-        '--unit',
-        action='store_true',
-        help='Run all unit tests using the `python` interpreter.',
-    )
-    parser.add_argument(
-        '--unit2',
-        action='store_true',
-        help='Run all unit tests using the `python2` interpreter.',
-    )
-    parser.add_argument(
-        '--unit3',
-        action='store_true',
-        help='Run all unit tests using the `python3` interpreter.',
-    )
-    parser.add_argument(
-        '--nosub',
-        action='store_true',
-        help='Run all unit tests without starting a subprocess.',
-    )
-
-    # Doctests
-    parser.add_argument(
-        '--doctest',
-        action='store_true',
-        help='Run doctests.',
-    )
-
-    # Publications and web examples
-    parser.add_argument(
-        '--publications',
-        action='store_true',
-        help='Run publication examples.',
-    )
-    parser.add_argument(
-        '--web',
-        action='store_true',
-        help='Run web examples.',
-    )
+    subparsers = parser.add_subparsers(help='commands')
 
     # Disable matplotlib output
     parser.add_argument(
-        '--blind',
+        '--nompl',
         action='store_true',
         help='Disable matplotlib output.',
     )
 
-    # Parse arguments
-    args = parser.parse_args()
+    # Full test suite
+    full_parser = subparsers.add_parser(
+        'full', help='Run all tests (including graphical ones)')
+    full_parser.set_defaults(func=full_suite)
 
-    # Run tests
-    has_run = False
-
-    # Disable matplotlib output
-    if args.blind:
-        has_run = False
-        import matplotlib
-        matplotlib.use('Agg')
-
-    # Test combinations
-    if args.quick:
-        has_run = True
-        run_flake8()
-        run_unit_tests('python')
-        run_doc_tests()
-    if args.full:
-        has_run = True
-        run_flake8()
-        run_unit_tests('python')
-        run_doc_tests()
-        run_web_examples()
-        run_publication_examples()
+    # Minimal test suite
+    minimal_parser = subparsers.add_parser(
+        'minimal', help='Run minimal checks (unit tests, flake8, docs)')
+    minimal_parser.set_defaults(func=minimal_suite)
 
     # Unit tests
-    if args.unit:
-        has_run = True
-        run_unit_tests('python')
-    if args.unit2:
-        has_run = True
-        run_unit_tests('python2')
-    if args.unit3:
-        has_run = True
-        run_unit_tests('python3')
-    if args.nosub:
-        has_run = True
-        run_unit_tests()
+    unit_parser = subparsers.add_parser('unit', help='Run unit tests')
+    unit_parser.set_defaults(func=unit)
+    group = unit_parser.add_mutually_exclusive_group(required=False)
+    group.add_argument(
+        '--py2',
+        action='store_true',
+        help='Use the `python2` executable',
+    )
+    group.add_argument(
+        '--py3',
+        action='store_true',
+        help='Use the `python3` executable',
+    )
+    group.add_argument(
+        '--nosub',
+        action='store_true',
+        help='Run without using a subprocess',
+    )
 
     # Doctests
-    if args.doctest:
-        has_run = True
-        run_doc_tests()
+    doc_parser = subparsers.add_parser(
+        'doc', help='Test if documentation can be built, and run doc tests.')
+    doc_parser.set_defaults(func=doc_tests)
 
-    # Publication and web examples
-    if args.publications:
-        has_run = True
-        run_publication_examples()
-    if args.web:
-        has_run = True
-        run_web_examples()
+    # Publication examples
+    pub_parser = subparsers.add_parser(
+        'pub', help='Run publication examples.')
+    pub_parser.set_defaults(func=publication_examples)
 
-    # Help
-    if not has_run:
+    # Web examples
+    web_parser = subparsers.add_parser(
+        'web', help='Run web examples.')
+    web_parser.set_defaults(func=web_examples)
+
+    # Parse!
+    args = parser.parse_args()
+    if args.nompl:
+        print('Disabling matplotlib output')
+        import matplotlib
+        matplotlib.use('template')
+    if 'func' in args:
+        args.func(args)
+    else:
         parser.print_help()
 
+
+if __name__ == '__main__':
+    main()
