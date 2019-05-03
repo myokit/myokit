@@ -27,6 +27,10 @@ In addition, Myokit needs a working C/C++ compiler to be present on the system.
 
 For the graphical parts (such as the IDE) to work, you'll also need to have either PyQt4, PyQt5, or PySide installed (PySide2 is not yet supported).
 
+Existing Myokit installations can be upgraded using
+
+    pip install --upgrade myokit
+
 For full details, see [http://myokit.org/install](http://myokit.org/install).
 
 ## Quick-start guide
