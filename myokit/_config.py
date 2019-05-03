@@ -132,15 +132,11 @@ def _create(path):
 
     if system == 'Windows':     # pragma: no linux cover
         # All windowses
-        c32 = 'C:\\Program Files\\'
-        c64 = 'C:\\Program Files (x86)\\'
+        c64 = 'C:\\Program Files\\'
         config.set('opencl', 'lib', ';'.join([
-            c32 + 'Intel\\OpenCL SDK\\6.3\\lib\\x86',
-            c64 + 'Intel\\OpenCL SDK\\6.3\\lib\\x86',
-            c32 + 'AMD APP SDK\\2.9\\bin\\x86',
-            c64 + 'AMD APP SDK\\2.9\\bin\\x86',
-            c32 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v7.0\\lib\\Win32',
-            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v7.0\\lib\\Win32',
+            c64 + 'Intel\\OpenCL SDK\\6.3\\lib\\x64',
+            c64 + 'AMD APP SDK\\2.9\\bin\\x64',
+            c64 + 'NVIDIA GPU Computing Toolkit\CUDA\\v10.1\\lib\\x64',
         ]))
     else:
         # Linux and mac
@@ -158,16 +154,11 @@ def _create(path):
 
     if system == 'Windows':     # pragma: no linux cover
         # All windowses
-        c32 = 'C:\\Program Files\\'
-        c64 = 'C:\\Program Files (x86)\\'
+        c64 = 'C:\\Program Files\\'
         config.set('opencl', 'inc', ';'.join([
-            # Enable for Intel OpenCL drivers
-            c32 + 'Intel\\OpenCL SDK\\6.3\\include',
             c64 + 'Intel\\OpenCL SDK\\6.3\\include',
-            c32 + 'AMD APP SDK\\2.9\\include',
             c64 + 'AMD APP SDK\\2.9\\include',
-            c32 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v7.0\\include',
-            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v7.0\\include',
+            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\include',
         ]))
     else:
         # Linux and mac
