@@ -3,8 +3,8 @@
 #
 sudo: required
 
-# Test on Ubuntu 14
-dist: trusty
+# Test on Ubuntu 16
+dist: xenial
 
 language: python
 
