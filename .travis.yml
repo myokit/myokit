@@ -38,10 +38,6 @@ matrix:
           env:
             - MYOKIT_UNIT=true
         - os: linux
-          python: "2.7.6"
-          env:
-            - MYOKIT_UNIT=true
-        - os: linux
           python: "3.5"
           env:
             - MYOKIT_UNIT=true
