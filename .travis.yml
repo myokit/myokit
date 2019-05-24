@@ -61,7 +61,7 @@ matrix:
             - MYOKIT_STYLE=true
         # Doctests
         - os: linux
-          python: "3.6"
+          python: "3.7"
           env:
             - MYOKIT_DOC=true
 
