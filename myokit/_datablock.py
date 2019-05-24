@@ -246,7 +246,7 @@ class DataBlock1d(object):
         try:
             # Newer numpy wants rcond=None
             cv = np.linalg.lstsq(A, x, rcond=None)[0][0]
-        except TypeError:
+        except TypeError:   # pragma: no cover
             cv = np.linalg.lstsq(A, x)[0][0]
 
         # Return
