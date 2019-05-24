@@ -64,7 +64,7 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000:
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.4.0')
+        'Myokit is not tested on Python 3 versions older than 3.5.0')
     log.warning('Detected Python version: ' + sys.version)
     del(logging, log)
 
