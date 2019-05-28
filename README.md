@@ -18,8 +18,6 @@ To install Myokit, run
 
     pip install myokit
 
-(On some systems, you might need to type `python -m pip install myokit` instead).
-
 On linux and windows, start menu icons can then be added by running
 
     python -m myokit icons
