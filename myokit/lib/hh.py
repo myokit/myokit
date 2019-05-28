@@ -752,11 +752,11 @@ class AnalyticalSimulation(object):
             if len(log.keys()) > len(self._log_keys):
                 raise ValueError('Invalid log: contains extra keys.')
             try:
-                key = self._time_key
+                key = self._time_key    # Note: error msg below uses `key`
                 offset = len(log[key])
-                zeros = np.zeros(log_times.shape)
                 for key in self._log_keys:
-                    log[key] = np.concatenate((log[key], zeros))
+                    log[key] = np.concatenate((
+                        log[key], np.zeros(log_times.shape)))
             except KeyError:
                 raise ValueError(
                     'Invalid log: missing entry for <' + str(key) + '>.')
@@ -781,8 +781,6 @@ class AnalyticalSimulation(object):
 
                 # Update pacing
                 self._membrane_potential = self._pacing.advance(tnext)
-                self._cached_matrices = None
-                self._cached_solution = None
 
         # Return
         return log
@@ -799,6 +797,8 @@ class AnalyticalSimulation(object):
             The times to evaluate at.
         ``tnext``
             The final time to move to.
+        ``offset``
+            The offset in the ``times`` array to log in
 
         """
         # Simulate with fixed V
