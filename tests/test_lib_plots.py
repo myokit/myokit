@@ -168,6 +168,12 @@ class LibPlotTest(unittest.TestCase):
         plt.legend()
         plt.show()
 
+        # Normalise currents
+        plt.figure()
+        plots.cumulative_current(d, currents, normalise=True)
+        plt.legend()
+        plt.show()
+
 
 if __name__ == '__main__':
     unittest.main()

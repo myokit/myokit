@@ -62,7 +62,11 @@ if pyqt5:
     QtCore.Property = QtCore.pyqtProperty
     import matplotlib
     matplotlib.use('Qt5Agg')
-    matplotlib.rcParams['backend.qt5'] = 'PyQt5'
+    try:
+        matplotlib.rcParams['backend.qt5'] = 'PyQt5'
+    except KeyError:    # pragma: no cover
+        # This is no longer allowed / necessary in matplotlib 3.1.0
+        pass
     import matplotlib.backends.backend_qt5agg as matplotlib_backend
 
     # Set backend variables
@@ -140,7 +144,11 @@ elif pyqt4:
     # Configure Matplotlib for use with PyQt4
     import matplotlib
     matplotlib.use('Qt4Agg')
-    matplotlib.rcParams['backend.qt4'] = 'PyQt4'
+    try:
+        matplotlib.rcParams['backend.qt4'] = 'PyQt4'
+    except KeyError:    # pragma: no cover
+        # This is no longer allowed / necessary in matplotlib 3.1.0
+        pass
     import matplotlib.backends.backend_qt4agg as matplotlib_backend
 
     # Set backend variables
@@ -212,7 +220,11 @@ elif pyside:
     # Configure Matplotlib for use with PySide
     import matplotlib
     matplotlib.use('Qt4Agg')
-    matplotlib.rcParams['backend.qt4'] = 'PySide'
+    try:
+        matplotlib.rcParams['backend.qt4'] = 'PySide'
+    except KeyError:    # pragma: no cover
+        # This is no longer allowed / necessary in matplotlib 3.1.0
+        pass
     import matplotlib.backends.backend_qt4agg as matplotlib_backend  # noqa
 
     # Set backend variables

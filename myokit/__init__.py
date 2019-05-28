@@ -44,19 +44,30 @@ del(logging)
 #
 # Check python version
 #
+# Hexversion guide:
+#  0x   Hex
+#  02   PY_MAJOR_VERSION
+#  07   PY_MINOR_VERSION
+#  0F   PY_MICRO_VERSION, in hex, so 0F is 15, 10 is 16, etc.
+#  F    PY_RELEASE_LEVEL, A for alpha, B for beta, C for candidate, F for final
+#  0    PY_RELEASE_SERIAL, increments with every release
+#
 import sys  # noqa
-if sys.hexversion < 0x02070000:     # pragma: no python 3 cover
-    print('-- ERROR --')
-    print('Myokit requires Python version 2.7.0 or higher.')
-    print('Detected Python version: ')
-    print(sys.version)
-    print()
-    sys.exit(1)
-elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
-    print('-- ERROR --')
-    print('Python 3.0 to 3.3 are not supported.')
-    print()
-    sys.exit(1)
+if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
+    import logging  # noqa
+    log = logging.getLogger(__name__)
+    log.warning(
+        'Myokit is not tested on Python 2 versions older than 2.7.15')
+    log.warning('Detected Python version: ' + sys.version)
+    del(logging, log)
+elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000:
+    import logging  # noqa
+    log = logging.getLogger(__name__)
+    log.warning(
+        'Myokit is not tested on Python 3 versions older than 3.5.0')
+    log.warning('Detected Python version: ' + sys.version)
+    del(logging, log)
+
 
 # Exec() that works with Python 2 versions before 2.7.9
 if sys.hexversion < 0x020709F0:

@@ -750,6 +750,11 @@ class AnalyticalSimulation(object):
         self._parameters = np.array(
             self._model.default_parameters(), copy=True, dtype=float)
 
+        # Mapping from parameter names to index in parameter array
+        self._parameter_map = {}
+        for i, p in enumerate(self._model.parameters()):
+            self._parameter_map[p] = i
+
         # Cached matrices
         self._cached_matrices = None
 
@@ -761,6 +766,13 @@ class AnalyticalSimulation(object):
         if self._protocol:
             self._pacing = myokit.PacingSystem(self._protocol)
             self._membrane_potential = self._pacing.advance(self._time)
+
+        # Keys for logging
+        self._time_key = self._model._model.time().qname()
+        self._vm_key = self._model._membrane_potential
+        self._log_keys = [self._time_key, self._vm_key] + self._model.states()
+        if self._has_current:
+            self._log_keys.append(self._model.current())
 
     def current(self, state):
         """
@@ -848,7 +860,7 @@ class AnalyticalSimulation(object):
             self._pacing = myokit.PacingSystem(self._protocol)
             self._membrane_potential = self._pacing.advance(self._time)
 
-    def run(self, duration, log=None, log_interval=0.01):
+    def run(self, duration, log=None, log_interval=0.01, log_times=None):
         """
         Runs a simulation for ``duration`` time units.
 
@@ -866,6 +878,9 @@ class AnalyticalSimulation(object):
             results will be appended to this one.
         ``log_interval``
             The time between logged points.
+        ``log_times``
+            A pre-defined sequence of times to log at. If set, ``log_interval``
+            will be ignored.
 
         Returns a :class:`myokit.DataLog` with the simulation results.
         """
@@ -877,35 +892,31 @@ class AnalyticalSimulation(object):
         if log_interval <= 0:
             raise ValueError('Log interval must be greater than zero.')
 
+        # Check log_times
+        if log_times is None:
+            log_times = self._time + np.arange(0, duration, log_interval)
+
         # Set up logging
-        vm_key = self._model._membrane_potential
-        time_key = self._model._model.time().qname()
         if log is None:
 
             # Create new log
             log = myokit.DataLog()
-            log[time_key] = []
-            log.set_time_key(time_key)
-            log[vm_key] = []
-            for key in self._model.states():
-                log[key] = []
-            if self._has_current:
-                log[self._model.current()] = []
+            log.set_time_key(self._time_key)
+            for key in self._log_keys:
+                log[key] = np.zeros(log_times.shape)
+            offset = 0
 
         else:
 
             # Check existing log
-            n = 2 + len(self._state) + (1 if self._has_current else 0)
-            if len(log.keys()) > n:
+            if len(log.keys()) > len(self._log_keys):
                 raise ValueError('Invalid log: contains extra keys.')
-            test = self._model.states()
-            test.append(time_key)
-            test.append(vm_key)
-            if self._has_current:
-                test.append(self._model.current())
             try:
-                for key in test:
-                    log[key]
+                key = self._time_key    # Note: error msg below uses `key`
+                offset = len(log[key])
+                for key in self._log_keys:
+                    log[key] = np.concatenate((
+                        log[key], np.zeros(log_times.shape)))
             except KeyError:
                 raise ValueError(
                     'Invalid log: missing entry for <' + str(key) + '>.')
@@ -914,7 +925,7 @@ class AnalyticalSimulation(object):
         if self._protocol is None:
 
             # User defined membrane potential
-            self._run(duration, log, log_interval)
+            self._run(log, log_times, self._time + duration, offset)
 
         else:
 
@@ -923,7 +934,11 @@ class AnalyticalSimulation(object):
             while self._time < tfinal:
                 # Run simulation
                 tnext = min(tfinal, self._pacing.next_time())
-                self._run(tnext - self._time, log, log_interval)
+                times = log_times[np.logical_and(
+                    log_times >= self._time, log_times < tnext)]
+                self._run(log, times, tnext, offset)
+                offset += len(times)
+
                 # Update pacing
                 self._membrane_potential = self._pacing.advance(tnext)
                 self._cached_matrices = None
@@ -932,34 +947,45 @@ class AnalyticalSimulation(object):
         # Return
         return log
 
-    def _run(self, duration, log, log_interval):
+    def _run(self, log, times, tnext, offset):
         """
         Runs a simulation with the current membrane potential.
+
+        Arguments:
+
+        ``log``
+            The log to append to.
+        ``times``
+            The times to evaluate at.
+        ``tnext``
+            The final time to move to.
+        ``offset``
+            The offset in the ``times`` array to log in
+
         """
         # Simulate with fixed V
-        times = np.arange(0, duration, log_interval)
         if self._has_current:
-            states, currents = self.solve(times)
+            states, currents = self.solve(times - self._time)
         else:
-            states = self.solve(times)
-        times += self._time
+            states = self.solve(times - self._time)
 
         # Log results
+        lo = offset
+        hi = lo + len(times)
         key = log.time_key()
-        log[key] = np.concatenate((log[key], times))
+        log[key][lo:hi] = times
         for i, key in enumerate(self._model.states()):
-            log[key] = np.concatenate((log[key], states[i]))
+            log[key][lo:hi] = states[i]
         if self._has_current:
             key = self._model.current()
-            log[key] = np.concatenate((log[key], currents))
-        vm_key = self._model._membrane_potential
-        log[vm_key] = np.concatenate(
-            (log[vm_key], [self._membrane_potential] * len(times)))
+            log[key][lo:hi] = currents
+        key = self._model._membrane_potential
+        log[key][lo:hi] = self._membrane_potential
 
         # Now run simulation for final time (which might not be included in the
         # list of logged times, and should not, if you want to be able to
         # append logs without creating duplicate points).
-        times = np.array([duration])
+        times = np.array([tnext - self._time])
         if self._has_current:
             states, currents = self.solve(times)
         else:
@@ -967,7 +993,13 @@ class AnalyticalSimulation(object):
 
         # Update simulation state
         self._state = np.array(states[:, -1], copy=True)
-        self._time += duration
+        self._time = tnext
+
+    def set_constant(self, variable, value):
+        """
+        Updates a single parameter to a new value.
+        """
+        self._parameters[self._parameter_map[variable]] = float(value)
 
     def set_default_state(self, state):
         """
@@ -1173,6 +1205,11 @@ class DiscreteSimulation(object):
         # Set parameters
         self._parameters = np.array(
             self._model.default_parameters(), copy=True, dtype=float)
+
+        # Mapping from parameter names to index in parameter array
+        self._parameter_map = {}
+        for i, p in enumerate(self._model.parameters()):
+            self._parameter_map[p] = i
 
         # Cached transition rate list & current matrix
         self._cached_rates = None
@@ -1472,6 +1509,12 @@ class DiscreteSimulation(object):
         # Update current state and time
         self._state = list(state)
         self._time += duration
+
+    def set_constant(self, variable, value):
+        """
+        Updates a single parameter to a new value.
+        """
+        self._parameters[self._parameter_map[variable]] = float(value)
 
     def set_default_state(self, state):
         """
