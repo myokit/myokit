@@ -471,6 +471,12 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertEqual(p, s.parameters())
         self.assertRaises(ValueError, s.set_parameters, p[:-1])
 
+        # Change parameter with set_constant
+        p[3] += 1
+        self.assertNotEqual(p, s.parameters())
+        s.set_constant(m.parameters()[3], p[3])
+        self.assertEqual(p, s.parameters())
+
         # State
         state = np.zeros(len(s.state()))
         state[0] = 0.5
@@ -690,6 +696,12 @@ class DiscreteSimulationTest(unittest.TestCase):
         s.set_parameters(p)
         self.assertEqual(p, s.parameters())
         self.assertRaises(ValueError, s.set_parameters, p[:-1])
+
+        # Change parameter with set_constant
+        p[3] += 1
+        self.assertNotEqual(p, s.parameters())
+        s.set_constant(m.parameters()[3], p[3])
+        self.assertEqual(p, s.parameters())
 
         # State
         state = np.zeros(len(s.state()))
