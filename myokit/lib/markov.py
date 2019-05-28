@@ -750,6 +750,11 @@ class AnalyticalSimulation(object):
         self._parameters = np.array(
             self._model.default_parameters(), copy=True, dtype=float)
 
+        # Mapping from parameter names to index in parameter array
+        self._parameter_map = {}
+        for i, p in enumerate(self._model.parameters()):
+            self._parameter_map[p] = i
+
         # Cached matrices
         self._cached_matrices = None
 
@@ -969,6 +974,12 @@ class AnalyticalSimulation(object):
         self._state = np.array(states[:, -1], copy=True)
         self._time += duration
 
+    def set_constant(self, variable, value):
+        """
+        Updates a single parameter to a new value.
+        """
+        self._parameters[self._parameter_map[variable]] = float(value)
+
     def set_default_state(self, state):
         """
         Changes this simulation's default state.
@@ -1173,6 +1184,11 @@ class DiscreteSimulation(object):
         # Set parameters
         self._parameters = np.array(
             self._model.default_parameters(), copy=True, dtype=float)
+
+        # Mapping from parameter names to index in parameter array
+        self._parameter_map = {}
+        for i, p in enumerate(self._model.parameters()):
+            self._parameter_map[p] = i
 
         # Cached transition rate list & current matrix
         self._cached_rates = None
@@ -1472,6 +1488,12 @@ class DiscreteSimulation(object):
         # Update current state and time
         self._state = list(state)
         self._time += duration
+
+    def set_constant(self, variable, value):
+        """
+        Updates a single parameter to a new value.
+        """
+        self._parameters[self._parameter_map[variable]] = float(value)
 
     def set_default_state(self, state):
         """
