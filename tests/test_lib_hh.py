@@ -813,13 +813,14 @@ class AnalyticalSimulationTest(unittest.TestCase):
         t = p.characteristic_time()
 
         # Run an analytical simulation
+        dt = 0.01
         m = hh.HHModel.from_component(model.get('ina'))
         s1 = hh.AnalyticalSimulation(m, p)
-        d1 = s1.run(t, log_interval=0.1).npview()
+        d1 = s1.run(t, log_interval=dt).npview()
 
         s2 = myokit.Simulation(model, p)
         s2.set_tolerance(1e-8, 1e-8)
-        d2 = s2.run(t, log_interval=0.1).npview()
+        d2 = s2.run(t, log_interval=dt).npview()
 
         # Test protocol output is the same
         e = np.abs(d1['membrane.V'] - d2['membrane.V'])
