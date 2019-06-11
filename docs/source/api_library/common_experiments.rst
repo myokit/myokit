@@ -11,9 +11,6 @@ Common experiments
 The module ``myokit.lib.common`` contains implementations of some common
 experiments.
 
-*Some functions in this module require a recent version of scipy to be
-installed.*
-
 Step protocol experiments
 -------------------------
 
