@@ -3,6 +3,7 @@
 ****************
 Cable simulation
 ****************
-.. module:: myokit
+
+.. currentmodule:: myokit
 
 .. autoclass:: Simulation1d

@@ -4,7 +4,7 @@
 Examples
 ********
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 More examples of myokit models and post-processing simulation data can be found
 in the Examples_ section of the myokit website.

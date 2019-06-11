@@ -23,7 +23,7 @@ These pages contain the documentation for Myokit. This consists of
 
 For more information write to michael@myokit.org
 
-
+.. module:: myokit
 
 ..  toctree::
     :maxdepth: 2

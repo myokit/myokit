@@ -9,7 +9,7 @@ XML formats in various ways.  The ``myokit.mxml`` module provides XML tools for
 common tasks. This module is imported as part of the main ``myokit`` package.
 
 
-.. module:: myokit.mxml
+.. currentmodule:: myokit.mxml
 
 .. autofunction:: write_mathml
 

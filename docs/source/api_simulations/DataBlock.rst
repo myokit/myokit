@@ -3,7 +3,7 @@
 ***********
 Data blocks
 ***********
-.. module:: myokit
+.. currentmodule:: myokit
 
 Data blocks provide a useful representation for data logged in rectangular 1d
 or 2d simulations. They can be created from :class:`DataLog` objects containing

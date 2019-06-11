@@ -3,7 +3,8 @@
 **********************
 Single cell simulation
 **********************
-.. module:: myokit
+
+.. currentmodule:: myokit
 
 .. autoclass:: Simulation
 

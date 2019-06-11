@@ -3,7 +3,8 @@
 ***************************
 Right-hand-side evaluations
 ***************************
-.. module:: myokit
+
+.. currentmodule:: myokit
 
 .. autofunction:: step
 

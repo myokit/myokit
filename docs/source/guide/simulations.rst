@@ -4,7 +4,7 @@
 Running simulations
 *******************
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 This section of the guide covers running simulations. To troubleshoot
 configuration or installation issues, check out the installation guide on the

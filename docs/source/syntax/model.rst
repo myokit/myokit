@@ -217,7 +217,7 @@ The available quantifiers are:
 | Y | yotta | 1e21  |
 +---+-------+-------+
 
-Note the omission of "deca" (da) and the use of "u" for micro.
+Note the omission of "deca/deka" (da) and the use of "u" for micro.
 
 Some examples of valid unit declarations are::
 

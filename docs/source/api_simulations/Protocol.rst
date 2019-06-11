@@ -4,7 +4,7 @@
 Pacing protocols
 ****************
 
-.. module:: myokit
+.. currentmodule:: myokit
 .. autoclass:: Protocol
 
 .. _api/myokit.ProtocolEvent:

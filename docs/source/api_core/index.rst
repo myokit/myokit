@@ -4,7 +4,7 @@
 API :: Core
 ***********
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 The heart of Myokit's API has the following components:
 

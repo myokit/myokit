@@ -16,6 +16,6 @@ System information
 The :meth:`system()` method can be used to check if the system meets the
 requirements to use Myokit and run simulations.
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 .. autofunction:: system

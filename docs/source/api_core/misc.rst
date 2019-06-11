@@ -4,7 +4,7 @@
 Miscellaneous
 *************
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 Model comparison
 ================

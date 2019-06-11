@@ -4,7 +4,7 @@
 Reading and writing mmt files
 *****************************
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 *This page is about reading and writing the* ``mmt`` *format used by Myokit.
 For information about using Myokit with other formats, please check out the*

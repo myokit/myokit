@@ -4,7 +4,8 @@
 ``Variable``
 ************
 
-.. module:: myokit
+.. currentmodule:: myokit
+
 .. autoclass:: Variable
    :undoc-members:
    :inherited-members:

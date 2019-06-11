@@ -3,7 +3,8 @@
 *****************
 Simulation errors
 *****************
-.. module:: myokit
+
+.. currentmodule:: myokit
 
 Occasionally, a simulation will encounter a numerical error. Some simulation
 types attempt to catch these errors and raise a :class:`SimulationError`. These

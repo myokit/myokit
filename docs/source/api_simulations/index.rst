@@ -4,7 +4,7 @@
 API :: Simulations
 ******************
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 Single cell Simulations can be run using the :class:`Simulation` class. This
 wraps around a model and a protocol object and provides an interface to the
@@ -43,7 +43,7 @@ the initial state values.
     SimulationOpenCL
     Simulation1d
     Protocol
-    DataLog    
+    DataLog
     DataBlock
     Jacobians
     ICSimulation
@@ -52,5 +52,4 @@ the initial state values.
     SimulationErrors
     LongSimulations
     backend
-    
 
