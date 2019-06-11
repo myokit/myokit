@@ -53,7 +53,7 @@ import logging
 logger = logging.getLogger('myokit')
 logger.warning(
     'The module myokit.lib.fit is deprecated: it will be removed in future'
-    ' version of Myokit. Please have a look at Pints'
+    ' versions of Myokit. Please have a look at Pints'
     ' (https://github.com/pints-team/pints) instead.'
 )
 

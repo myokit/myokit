@@ -6,6 +6,10 @@ Parameter identification
 
 .. module:: myokit.lib.fit
 
+**The module myokit.lib.fit is deprecated: it will be removed in future versions of Myokit. Please have a look at** Pints_ **instead.**
+
+.. _Pints: https://github.com/pints-team/pints
+
 The module ``myokit.lib.fit`` provides tools to help with the process of
 parameter identification: Finding the parameter values for (part of) a model
 that produce the desired output.
