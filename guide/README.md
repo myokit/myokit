@@ -1,22 +1,95 @@
 # Using Myokit
 
-There are several ways to use Myokit.
-On this page, you'll find links to "guides" covering a variety of topics, ranging from cellular to sub-cellular to tissue simulations.
+This page, lists _guide notebooks_ showing how Myokit can be used in a variety of applications, ranging from cellular to sub-cellular to tissue simulations.
 
 Please note this is very much a work in progress, and many of the items on the list are yet to be filled in.
 
+
+# IDEA: The RST docs describe everything bottom-up, from a Myokit perspective.
+# These guides describe everything from an application point of view
+# Guides should link to the docs wherever needed
+
+# Guides are NOT BOTTOM-UP, can use things NOT YET EXPLAINED IN GUIDES
+
+1. Running a single cell simulation
+    - Starting/stopping
+    - Pre-pacing and resetting
+    - Different log options (names, existing log, constants, derivatives)
+    - Different timing options (free, dt, explicit times)
+
+X. Using the model API
+    - Adding variables
+    - Plotting with pyfunc
+    - Manipulating models
+
+X. Importing from CellML
+
+X. Using the IDE
+    - Graphing variables
+    - Show variable info / evaluation
+    - Show variable users and dependencies
+    - Graph component dependencies
+    - Graph "state dependency matrix"
+
+
+X. Simulating a 1d strand
+    - No OpenCL
+    - With OpenCL
+    - With different cell types
+    - With heterogeneity
+X. Simulating 2d tissue
+    - Displaying with block
+X. Simulating arbitrary shapes
+    - Connections
+
+X. Running single current simulations
+    - CVODE sim
+    - HH
+    - Markov
+    - Protocol options
+    - Data clamp
+
+
+- Creating pacing protocols
+    - MMT syntax
+    - API
+    - Factory
+    - Data clamp
+    
+- Formats
+    - Importing models
+    - Exporting models and simulations
+    - Importing/exporting patch clamp data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Getting started
-- Installation (covers: installation basics, details in appendix)
-- Running an example from the website
+
 - Model, protocol, and script (link to syntax document)
 - Using the explorer
 
 ### Using the IDE
-- Graphing variables
-- Show variable info / evaluation
-- Show variable users and dependencies
-- Graph component dependencies
-- Graph "state dependency matrix"
 
 ### Using scripts
 - running a simulation without pre-pacing (using the IDE)
@@ -53,14 +126,6 @@ Please note this is very much a work in progress, and many of the items on the l
 - PSim
 - ICSim etc.
 
-### Appendix A: Installation guides
-- Easy Linux installation
-- Easy Windows installation
-- Easy OX/S installation
-- Installation on any platform
-- Configuration files (covers: location of config files, changing them manually, `myokit reset`)
-- Installing CVODE (covers: CVODE install, testing for CVODE support)
-- Installing OpenCL (covers: OpenCL, testing for OpenCL support, selecting OpenCL device)
 
 ### Appendix B: Working with external packages
 - Matplotlib basics (see current docs)
