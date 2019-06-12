@@ -21,6 +21,7 @@ X. Using the model API
     - Adding variables
     - Plotting with pyfunc
     - Manipulating models
+    - Manipulating equations (variable, eq, lhs, rhs, derivatives, refs_by, refs_to)
 
 X. Importing from CellML
 
