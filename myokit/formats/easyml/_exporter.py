@@ -10,6 +10,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import logging
 
 import myokit.formats
 from ._ewriter import EasyMLExpressionWriter
@@ -32,16 +33,140 @@ class EasyMLExporter(myokit.formats.Exporter):
 
         A :class:`myokit.ExportError` will be raised if any errors occur.
         """
+        log = logging.getLogger(__name__)
+
+        # Clone model so that changes can be made
+        model = model.clone()
+        model.validate()
+        if not model.is_valid():
+            raise ValueError('EasyML export requires a valid model.')
+
+        # Find special variables
+        vm = None
+        time = None
+        iion = None
+        #TODO istim?
+        alphas = set()
+        betas = set()
+        taus = set()
+        infs = set()
+
+        # Run over state variables, check that none of the equations refer to
+        # derivatives
+        for var in model.states():
+            if len(list(var.refs_by())) > 0:
+                raise ValueError(
+                    'EasyML export does not support models with expressions'
+                    ' that depend on derivatives of the state variables.')
+
+        # Get time variable
+        time = model.time()
+
+        # Guess membrane potential
+        vm = model.label('membrane_potential')
+        if vm is None:
+            if model.count_states() == 0:
+                raise ValueError('EasyML export requires model with ODEs.')
+
+            # Guess Vm
+            vm = next(model.states())
+            log.warning('Membrane potential variable not annotated. Guessing '
+                        + vm.qname())
+
+        # V will be set externally, so can change its RHS to remove
+        # dependencies on i_ion, i_stim, etc.
+        vm_rhs = vm.rhs()
+        vm.set_rhs(0)
+
+        # Remove label from diffusion current, if set
+        i_diff = model.label('diffusion_current')
+        if i_diff:
+            i_diff.set_label(None)
+            #TODO: Remove current altogether?
+
+        # Guess transmembrane current variable
+        #TODO: Previously used 'cellular_current' label
+        #TODO: Make one, based on Vm ???
+
+
+
+
+        # Detect names with special meanings
+        def special_start(name):
+            if name.startswith('diff_') or name.startswith('d_'):
+                return True
+            if name.startswith('alpha_') or name.startswith('a_'):
+                return True
+            if name.startswith('beta_') or name.startswith('b_'):
+                return True
+            if name.startswith('tau_'):
+                return True
+            return False
+
+        def special_end(name):
+            return name.endswith('_init') or name.endswith('_inf')
+
+        # Create variable names
+        var_to_name = {}
+        name_to_var = {}
+        needs_renaming = {}
+        for var in model.variables(deep=True):
+            # Choose name that doesn't have a special meaning in EasyML
+            name = var.name()
+            if name in ['alpha', 'beta', 'inf', 'tau']:
+                name = var.parent().name() + '_' + name
+            if special_start(name):
+                name = var.parent().name() + '_' + name
+                if special_start(name):
+                    name = var.qname().replace('.', '_')
+                if special_start(name):
+                    name = 'var_' + name
+            if special_end(name):
+                name += '_var'
+
+            # Store (initial) name for var
+            var_to_name[var] = name
+
+            # Check for clashes, and create reverse mapping
+            if name in needs_renaming:
+                needs_renaming[name].append(var)
+            else:
+                var2 = name_to_var.get(name, None)
+                if var2:
+                    needs_renaming[name] = [var2, var]
+                else:
+                    name_to_var[name] = var
+
+        # Resolve clashes
+        for name, variables in needs_renaming:
+            # Add a number to the end of the name, increasing it until it's
+            # unique
+            i = 1
+            root = name + '_'
+            for var in variables:
+                name = root + str(i)
+                while name in name_to_var:
+                    i += 1
+                    name = root + str(i)
+                var_to_name[var] = name
+                name_to_var[name] = var
+
+        # Remove reverse mappings
+        del(name_to_var, needs_renaming)
+
+        # Create naming function
+        def lhs(e):
+            if isinstance(e, myokit.Derivative):
+                return 'd_' + var_to_name[e.var()]
+            elif isinstance(e, myokit.LhsExpression):
+                return var_to_name[e.var()]
+            elif isinstance(e, myokit.Variable):
+                return var_to_name[e]
+            raise ValueError('Not a variable or LhsExpression: ' + str(e))
+
         # Create expression writer
         e = EasyMLExpressionWriter()
-
-        #TODO: Detect special names in models, and change them or raise errors
-
-        #TODO rhs function
-
-        #TODO Find time
-
-        #TODO Find membrane potential
+        e.set_lhs_function(lhs)
 
         # Test if can write in dir (raises exception if can't)
         self._test_writable_dir(os.path.dirname(path))
