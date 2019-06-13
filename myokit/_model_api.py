@@ -899,10 +899,7 @@ class Model(ObjectWithMeta, VarProvider):
         Returns the variable with the binding label ``binding``. If no such
         variable is found, ``None`` is returned.
         """
-        try:
-            return self._bindings[binding]
-        except KeyError:
-            return None
+        return self._bindings.get(binding, None)
 
     def bindings(self):
         """
@@ -1568,10 +1565,7 @@ class Model(ObjectWithMeta, VarProvider):
         Returns the variable with the given label. If no variable is labelled
         as ``label`` it returns ``None``.
         """
-        try:
-            return self._labels[label]
-        except KeyError:
-            return None
+        return self._labels.get(label, None)
 
     def labels(self):
         """
@@ -3110,9 +3104,11 @@ class Component(VarOwner):
                 'Can not delete component <' + self.qname() + '>'
                 ' it is used by components '
                 + ' and '.join(['<' + c.qname() + '>' for c in reffers]))
+
         # No problem? Then delete all variables from component
         for var in self.variables():
             var._delete(recursive=True, whole_component=True)
+
         # Delete links to parent
         super(Component, self)._delete()
 
@@ -3417,11 +3413,13 @@ class Variable(VarOwner):
                 ' can not be removed: it has children ' + ' and '.join(
                     ['<' + v.qname() + '>' for v in kids]) + '.')
 
+
         if self._refs_by or self._srefs_by:
             refs = self._refs_by.union(self._srefs_by)
             if self in refs:
                 # Self-ref is allowed
                 refs.remove(self)
+
             if recursive:
                 # Refs from child variables are allowed
                 okay = set([x for x in refs if x.has_ancestor(self)])
@@ -3430,12 +3428,14 @@ class Variable(VarOwner):
                 # Nested variables can not be referred to by outside variables,
                 # so this action doesn't have to be repeated for the nested
                 # variables.
+
             if whole_component:
                 # Refs from within the same component are okay
                 comp = self.parent(Component)
                 okay = set([x for x in refs if x.parent(Component) == comp])
                 refs = refs.difference(okay)
                 del(okay)
+
             if refs:
                 raise myokit.IntegrityError(
                     'Variable <' + self.qname() + '>'
@@ -3456,6 +3456,10 @@ class Variable(VarOwner):
         # State variable? Then demote
         if self.is_state():
             self.demote()
+
+        # Remove any bindings or labels
+        self.set_binding(None)
+        self.set_label(None)
 
         # Delete child variables
         if recursive:

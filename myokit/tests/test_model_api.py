@@ -694,6 +694,24 @@ class VarOwnerTest(unittest.TestCase):
         self.assertRaises(myokit.IntegrityError, a.remove_variable, b, True)
         X.remove_variable(a, recursive=True)
 
+        # Test if removed from model's label and binding lists
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        x.set_rhs(0)
+        y.set_rhs(0)
+        x.set_binding('time')
+        y.set_label('membrane_potential')
+        self.assertIs(m.binding('time'), x)
+        self.assertIs(m.label('membrane_potential'), y)
+        c.remove_variable(x)
+        self.assertIs(m.binding('time'), None)
+        self.assertIs(m.label('membrane_potential'), y)
+        c.remove_variable(y)
+        self.assertIs(m.binding('time'), None)
+        self.assertIs(m.label('membrane_potential'), None)
+
     def test_varowner_get(self):
         """
         Test VarOwner.get().
