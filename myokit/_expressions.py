@@ -3,7 +3,7 @@
 # and the unit system.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #

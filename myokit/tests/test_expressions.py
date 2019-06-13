@@ -360,6 +360,23 @@ class NumberTest(unittest.TestCase):
         y = x.clone(subst={x: z})
         self.assertEqual(y, z)
 
+        # Test that substitution changes references
+        # Note: This should follow automatically from set_rhs() implementation
+        # and fact that expressions are immutable.
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs(2)
+        y = c.add_variable('y')
+        y.set_rhs('3 * x')
+        self.assertIn(x.lhs(), y.rhs().references())
+        self.assertIn(x, y.refs_to())
+        self.assertIn(y, x.refs_by())
+        y.set_rhs(y.rhs().clone(subst={x.lhs(): myokit.Number(4)}))
+        self.assertNotIn(x.lhs(), y.rhs().references())
+        self.assertNotIn(x, y.refs_to())
+        self.assertNotIn(y, x.refs_by())
+
     def test_eval(self):
         """
         Test evaluation (with single precision).

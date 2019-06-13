@@ -2,7 +2,7 @@
 # Defines the python classes that represent a Myokit model.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -899,10 +899,7 @@ class Model(ObjectWithMeta, VarProvider):
         Returns the variable with the binding label ``binding``. If no such
         variable is found, ``None`` is returned.
         """
-        try:
-            return self._bindings[binding]
-        except KeyError:
-            return None
+        return self._bindings.get(binding, None)
 
     def bindings(self):
         """
@@ -1568,10 +1565,7 @@ class Model(ObjectWithMeta, VarProvider):
         Returns the variable with the given label. If no variable is labelled
         as ``label`` it returns ``None``.
         """
-        try:
-            return self._labels[label]
-        except KeyError:
-            return None
+        return self._labels.get(label, None)
 
     def labels(self):
         """
@@ -3110,9 +3104,11 @@ class Component(VarOwner):
                 'Can not delete component <' + self.qname() + '>'
                 ' it is used by components '
                 + ' and '.join(['<' + c.qname() + '>' for c in reffers]))
+
         # No problem? Then delete all variables from component
         for var in self.variables():
             var._delete(recursive=True, whole_component=True)
+
         # Delete links to parent
         super(Component, self)._delete()
 
@@ -3422,6 +3418,7 @@ class Variable(VarOwner):
             if self in refs:
                 # Self-ref is allowed
                 refs.remove(self)
+
             if recursive:
                 # Refs from child variables are allowed
                 okay = set([x for x in refs if x.has_ancestor(self)])
@@ -3430,12 +3427,14 @@ class Variable(VarOwner):
                 # Nested variables can not be referred to by outside variables,
                 # so this action doesn't have to be repeated for the nested
                 # variables.
+
             if whole_component:
                 # Refs from within the same component are okay
                 comp = self.parent(Component)
                 okay = set([x for x in refs if x.parent(Component) == comp])
                 refs = refs.difference(okay)
                 del(okay)
+
             if refs:
                 raise myokit.IntegrityError(
                     'Variable <' + self.qname() + '>'
@@ -3456,6 +3455,10 @@ class Variable(VarOwner):
         # State variable? Then demote
         if self.is_state():
             self.demote()
+
+        # Remove any bindings or labels
+        self.set_binding(None)
+        self.set_label(None)
 
         # Delete child variables
         if recursive:
@@ -3825,15 +3828,18 @@ class Variable(VarOwner):
         if binding is not None:
             # Check name
             binding = check_name(binding)
+
             # Check for existing binding
             if self._binding is not None:
                 raise myokit.InvalidBindingError(
                     'The variable <' + self.qname() + '>'
                     ' is already bound to "' + self._binding + '".')
+
             # Check if not a state
             if self._indice is not None:
                 raise myokit.InvalidBindingError(
                     'State variables cannot be bound to an external value.')
+
         # Set binding (model checks uniqueness)
         model = self.model()
         try:
@@ -3846,6 +3852,7 @@ class Variable(VarOwner):
         finally:
             # Clear cache and cache of dependent variables
             self._reset_cache(bubble=True)
+
             # Reset model validation
             model._reset_validation()
 

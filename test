@@ -3,7 +3,7 @@
 # Runs all tests for Myokit.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -30,7 +30,7 @@ def unit(args):
     if args.nosub:
         print('Running unit tests without a subprocess')
         suite = unittest.defaultTestLoader.discover(
-            'tests', pattern='test*.py')
+            os.path.join('myokit', 'tests'), pattern='test*.py')
         unittest.TextTestRunner(verbosity=2).run(suite)
         return
 
@@ -48,7 +48,7 @@ def unit(args):
         'unittest',
         'discover',
         '-v',
-        'tests',
+        os.path.join('myokit', 'tests'),
     ]
     p = subprocess.Popen(cmd)
     try:
@@ -181,7 +181,7 @@ def publication_examples(args):
     Runs all publication examples, exits if one of them fails.
     """
     # Get publications directory
-    path = os.path.join('tests', 'publications')
+    path = os.path.join('myokit', 'tests', 'publications')
 
     # PBMB 2016. Myokit: A simple interface to cardiac cellular
     # electrophysiology

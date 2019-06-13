@@ -6,7 +6,7 @@
 #  - Tests for dependency checking in models are in `test_dependency_checking`.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -598,30 +598,37 @@ class VarOwnerTest(unittest.TestCase):
         """
         # Create a model
         m = myokit.Model('LotkaVolterra')
+
         # Add a variable 'a'
         X = m.add_component('X')
+
         # Simplest case
         a = X.add_variable('a')
         self.assertEqual(X.count_variables(), 1)
         X.remove_variable(a)
         self.assertEqual(X.count_variables(), 0)
         self.assertRaises(Exception, X.remove_variable, a)
+
         # Test re-adding
         a = X.add_variable('a')
         a.set_rhs(myokit.Number(5))
         self.assertEqual(X.count_variables(), 1)
+
         # Test deleting dependent variables
         b = X.add_variable('b')
         self.assertEqual(X.count_variables(), 2)
         b.set_rhs(myokit.Plus(myokit.Number(3), myokit.Name(a)))
+
         # Test blocking of removal
         self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
         self.assertEqual(X.count_variables(), 2)
+
         # Test removal in the right order
         X.remove_variable(b)
         self.assertEqual(X.count_variables(), 1)
         X.remove_variable(a)
         self.assertEqual(X.count_variables(), 0)
+
         # Test reference to current state variable values
         a = X.add_variable('a')
         a.set_rhs(myokit.Number(5))
@@ -632,11 +639,13 @@ class VarOwnerTest(unittest.TestCase):
         X.remove_variable(b)
         X.remove_variable(a)
         self.assertEqual(X.count_variables(), 0)
+
         # Test reference to current state variable values with "self"-ref
         a = X.add_variable('a')
         a.promote()
         a.set_rhs(myokit.Name(a))
         X.remove_variable(a)
+
         # Test it doesn't interfere with normal workings
         a = X.add_variable('a')
         a.promote()
@@ -646,6 +655,7 @@ class VarOwnerTest(unittest.TestCase):
         self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
         X.remove_variable(b)
         X.remove_variable(a)
+
         # Test reference to dot
         a = X.add_variable('a')
         a.set_rhs(myokit.Number(5))
@@ -655,8 +665,10 @@ class VarOwnerTest(unittest.TestCase):
         self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
         X.remove_variable(b)
         X.remove_variable(a)
+
         # Test if orphaned
         self.assertIsNone(b.parent())
+
         # Test deleting variable with nested variables
         a = X.add_variable('a')
         b = a.add_variable('b')
@@ -665,10 +677,12 @@ class VarOwnerTest(unittest.TestCase):
         self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
         self.assertEqual(a.count_variables(), 1)
         self.assertEqual(X.count_variables(), 1)
+
         # Test recursive deleting
         X.remove_variable(a, recursive=True)
         self.assertEqual(a.count_variables(), 0)
         self.assertEqual(X.count_variables(), 0)
+
         # Same with dot(a) = a, b = 3 * a
         a = X.add_variable('a')
         a.promote(0.123)
@@ -679,6 +693,24 @@ class VarOwnerTest(unittest.TestCase):
         self.assertRaises(myokit.IntegrityError, a.remove_variable, b)
         self.assertRaises(myokit.IntegrityError, a.remove_variable, b, True)
         X.remove_variable(a, recursive=True)
+
+        # Test if removed from model's label and binding lists
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        x.set_rhs(0)
+        y.set_rhs(0)
+        x.set_binding('time')
+        y.set_label('membrane_potential')
+        self.assertIs(m.binding('time'), x)
+        self.assertIs(m.label('membrane_potential'), y)
+        c.remove_variable(x)
+        self.assertIs(m.binding('time'), None)
+        self.assertIs(m.label('membrane_potential'), y)
+        c.remove_variable(y)
+        self.assertIs(m.binding('time'), None)
+        self.assertIs(m.label('membrane_potential'), None)
 
     def test_varowner_get(self):
         """
