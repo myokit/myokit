@@ -112,13 +112,30 @@ class EasyMLExporter(myokit.formats.Exporter):
                     ' that depend on derivatives of the state variables.')
 
         # Remove unused variables
+
         # Start by setting V's rhs to the sum of currents, so all currents
         # count as used
         rhs = myokit.Number(0)
         for v in currents:
             rhs = myokit.Plus(rhs, v.lhs())
         vm.set_rhs(rhs)
+
+        # Remove all bindings and labels (so they register as unused)
+        for b, var in model.bindings():
+            var.set_binding(None)
+        for b, var in model.labels():
+            var.set_label(None)
+
+        # And add the time variable back in
+        time = vm.parent().add_variable(time.name())
+        time.set_rhs(0)
+        time.set_binding('time')
+        ignore.add(time)
+
+        # Remove unused
+        print(model.code())
         model.validate(remove_unused_variables=True)
+        print(model.code())
 
         # Find HH state variables, infs, taus, alphas, betas
         #TODO

@@ -47,11 +47,6 @@ E = RTF * log((K_o + PNa_K * Na_o) / (K_i + PNa_K * Na_i));
 PNa_K = 0.01833;
 xi = ((V < (-100.0)) ? 1.0 : ((V == (-77.0)) ? 2.837 * 0.04 / exp(0.04 * (V + 35.0)) : 2.837 * (exp(0.04 * (V + 77.0)) - 1.0) / ((V + 77.0) * exp(0.04 * (V + 35.0)))));
 
-# membrane
-C = 1.0;
-i_stim = 0.0 * stim_amplitude;
-stim_amplitude = (-80.0);
-
 # ib
 Ib = gb * (V - Eb);
 gb = 0.03921;
@@ -72,14 +67,14 @@ m_beta = 0.08 * exp((-V) / 11.0);
 gNa = 16.0;
 INa = gNa * pow(m, 3.0) * h * j * (V - ENa);
 
-Iion = IK + INa + IKp + Ib + IK1 + ICa;
+Iion = IK + IKp + Ib + IK1 + INa + ICa;
 
 group {
   IK;
-  INa;
   IKp;
   Ib;
   IK1;
+  INa;
   ICa;
 }
 
