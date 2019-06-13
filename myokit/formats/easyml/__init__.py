@@ -62,7 +62,17 @@ special_names = [
 ]
 
 #
-# Language keywords
+# Language keywords: Not sure if these are all keywords
 #
 keywords = [
+    'acos',
+    'asin',
+    'atan',
+    'ceil',
+    'cos',
+    'fabs',
+    'floor',
+    'pow',
+    'sin',
+    'tan',
 ]

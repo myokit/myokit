@@ -41,28 +41,10 @@ class EasyMLExporter(myokit.formats.Exporter):
         if not model.is_valid():
             raise ValueError('EasyML export requires a valid model.')
 
-        # Find special variables
-        vm = None
-        time = None
-        iion = None
-        #TODO istim?
-        alphas = set()
-        betas = set()
-        taus = set()
-        infs = set()
+        # List of variables not to output
+        ignore = set()
 
-        # Run over state variables, check that none of the equations refer to
-        # derivatives
-        for var in model.states():
-            if len(list(var.refs_by())) > 0:
-                raise ValueError(
-                    'EasyML export does not support models with expressions'
-                    ' that depend on derivatives of the state variables.')
-
-        # Get time variable
-        time = model.time()
-
-        # Guess membrane potential
+        # Find membrane potential
         vm = model.label('membrane_potential')
         if vm is None:
             if model.count_states() == 0:
@@ -73,23 +55,78 @@ class EasyMLExporter(myokit.formats.Exporter):
             log.warning('Membrane potential variable not annotated. Guessing '
                         + vm.qname())
 
-        # V will be set externally, so can change its RHS to remove
-        # dependencies on i_ion, i_stim, etc.
-        vm_rhs = vm.rhs()
-        vm.set_rhs(0)
+        # Make sure vm is a state --> So that expressions depending on V are
+        # not seen as constants
+        if not vm.is_state():
+            vm.promote(-80)
 
-        # Remove label from diffusion current, if set
-        i_diff = model.label('diffusion_current')
-        if i_diff:
-            i_diff.set_label(None)
-            #TODO: Remove current altogether?
+        # Don't output vm
+        ignore.add(vm)
 
-        # Guess transmembrane current variable
-        #TODO: Previously used 'cellular_current' label
-        #TODO: Make one, based on Vm ???
+        # Get time variable
+        time = model.time()
 
+        # Find pacing variable
+        i_pace = model.binding('pace')
 
+        # Find diffusion current
+        i_diff = model.binding('diffusion_current')
 
+        # Guess transmembrane current
+        i_ion = model.label('cellular_current')
+
+        # Find expression to extract currents from
+        if i_ion is not None:
+            e_currents = i_ion.rhs()
+        else:
+            e_currents = vm.rhs()
+
+        # Remove time, pacing variable, diffusion current, and i_ion
+        for var in [time, i_pace, i_diff, i_ion]:
+            if var is None:
+                continue
+
+            refs = list(var.refs_by())
+            subst = {var.lhs(): myokit.Number(0)}
+            for ref in refs:
+                ref.set_rhs(ref.rhs().clone(subst=subst))
+            var.parent().remove_variable(var)
+
+        # Guess currents
+        # Assume that e_currents is an expression such as:
+        #  INa + ICaL + IKr + ...
+        #  i_ion + i_diff + i_stim
+        #  -1/C * (...)
+        currents = []
+        for term in e_currents.references():
+            if term.is_constant():
+                continue
+            currents.append(term.var())
+
+        # Run over state variables, check that none of the equations refer to
+        # derivatives
+        for var in model.states():
+            if len(list(var.refs_by())) > 0:
+                raise ValueError(
+                    'EasyML export does not support models with expressions'
+                    ' that depend on derivatives of the state variables.')
+
+        # Remove unused variables
+        # Start by setting V's rhs to the sum of currents, so all currents
+        # count as used
+        rhs = myokit.Number(0)
+        for v in currents:
+            rhs = myokit.Plus(rhs, v.lhs())
+        vm.set_rhs(rhs)
+        model.validate(remove_unused_variables=True)
+
+        # Find HH state variables, infs, taus, alphas, betas
+        #TODO
+        # Find special variables
+        #alphas = set()
+        #betas = set()
+        #taus = set()
+        #infs = set()
 
         # Detect names with special meanings
         def special_start(name):
@@ -107,9 +144,21 @@ class EasyMLExporter(myokit.formats.Exporter):
             return name.endswith('_init') or name.endswith('_inf')
 
         # Create variable names
+
+        # Initialise dict of name clashes with known keywords
+        from . import keywords
+        reserved = [
+            'Iion',
+        ]
+        needs_renaming = {}
+        for keyword in keywords:
+            needs_renaming[keyword] = []
+        for keyword in reserved:
+            needs_renaming[keyword] = []
+
+        # Create initial variable names
         var_to_name = {}
         name_to_var = {}
-        needs_renaming = {}
         for var in model.variables(deep=True):
             # Choose name that doesn't have a special meaning in EasyML
             name = var.name()
@@ -124,6 +173,11 @@ class EasyMLExporter(myokit.formats.Exporter):
             if special_end(name):
                 name += '_var'
 
+            # Update name to have special meaning if needed
+            #TODO: Add alpha_ for alphas etc.
+            #TODO: If an alpha var is called e.g. x_alpha, change its name to
+            #      alpha_x
+
             # Store (initial) name for var
             var_to_name[var] = name
 
@@ -137,8 +191,8 @@ class EasyMLExporter(myokit.formats.Exporter):
                 else:
                     name_to_var[name] = var
 
-        # Resolve clashes
-        for name, variables in needs_renaming:
+        # Resolve naming conflicats
+        for name, variables in needs_renaming.items():
             # Add a number to the end of the name, increasing it until it's
             # unique
             i = 1
@@ -175,11 +229,35 @@ class EasyMLExporter(myokit.formats.Exporter):
         eol = '\n'
         eos = ';\n'
         with open(path, 'w') as f:
+            # Write membrane potential
+            f.write(lhs(vm) + '; .nodal(); .external(Vm);' + eol)
+
+            # Write current
+            f.write('Iion; .nodal(); .external();' + eol)
+            f.write(eol)
+
+            # Write remaining variables
             for c in model.components():
-                f.write('# ' + c.name() + eol)
-                for v in c.variables(deep=True):
-                    f.write(e.eq(v.eq()) + eos)
-                f.write(eol)
+                todo = [v for v in c.variables(deep=True) if v not in ignore]
+                if todo:
+                    f.write('# ' + c.name() + eol)
+                    for v in todo:
+                        f.write(e.eq(v.eq()) + eos)
+                    f.write(eol)
+
+            # Write sum of currents variable
+            f.write('Iion = ')
+            f.write(' + '.join([lhs(v) for v in currents]))
+            f.write(eos)
+            f.write(eol)
+
+            # Write current group
+            f.write('group {' + eol)
+            for v in currents:
+                f.write('  ' + lhs(v) + eos)
+            f.write('}' + eol)
+            f.write(eol)
+
 
 
 
@@ -189,96 +267,3 @@ class EasyMLExporter(myokit.formats.Exporter):
         """ See :meth:`myokit.formats.Exporter.supports_model()`. """
         return True
 
-
-'''
-V; .nodal(); .external(Vm);
-Iion; .nodal(); .external();
-
-V; .lookup(-800, 800, 0.05);
-Ca_i; .lookup(0.001, 30, 0.001);
-.units(uM);
-
-V_init = -86.926861;
-
-a_m = ((V < 100)
-       ? 0.9*(V+42.65)/(1.-exp(-0.22*(V+42.65)))
-       : 890.94379*exp(.0486479163*(V-100.))/
-            (1.+5.93962526*exp(.0486479163*(V-100.)))
-       );
-
-b_m = ((V < -85)
-       ? 1.437*exp(-.085*(V+39.75))
-       : 100./(1.+.48640816*exp(.2597503577*(V+85.)))
-       );
-
-a_h = ((V>-90.)
-       ? 0.1*exp(-.193*(V+79.65))
-       : .737097507-.1422598189*(V+90.)
-       );
-
-b_h = 1.7/(1.+exp(-.095*(V+20.5)));
-
-APDshorten = 1;
-
-a_d = APDshorten*(0.095*exp(-0.01*(V-5.)))/
-  (exp(-0.072*(V-5.))+1.);
-b_d = APDshorten*(0.07*exp(-0.017*(V+44.)))/
-  (exp(0.05*(V+44.))+1.) ;
-
-a_f = APDshorten*(0.012*exp(-0.008*(V+28.)))/
-  (exp(0.15*(V+28.))+1.);
-b_f = APDshorten*(0.0065*exp(-0.02*(V+30.)))/
-  (exp(-0.2*(V+30.))+1.);
-
-a_X = ((V<400.)
-       ? (0.0005*exp(0.083*(V+50.)))/
-       (exp(0.057*(V+50.))+1.)
-       : 151.7994692*exp(.06546786198*(V-400.))/
-       (1.+1.517994692*exp(.06546786198*(V-400.)))
-       );
-
-b_X   = (0.0013*exp(-0.06*(V+20.)))/(exp(-0.04*(V+20.))+1.);
-
-xti   = 0.8*(exp(0.04*(V+77.))-1.)/exp(0.04*(V+35.));
-
-I_K = (( V != -23. )
-       ? 0.35*(4.*(exp(0.04*(V+85.))-1.)/(exp(0.08*(V+53.))+
-                                              exp(0.04*(V+53.)))-
-               0.2*(V+23.)/expm1(-0.04*(V+23.)))
-       :
-       0.35*(4.*(exp(0.04*(V+85.))-1.)/(exp(0.08*(V+53.))+
-                                            exp(0.04*(V+53.))) + 0.2/0.04 )
-       );
-
-Esi = -82.3-13.0287*log(Ca_i/1.e6);
-
-GNa = 15;
-ENa  = 40.0;
-I_Na = GNa*m*m*m*h*(V-ENa);
-Gsi = 0.09;
-I_si = Gsi*d*f*(V-Esi);
-I_X  = X*xti;
-
-Iion= I_Na+I_si+I_X+I_K;
-
-Ca_i_init = 3.e-1;
-diff_Ca_i = ((V<200.)
-             ? (-1.e-1*I_si+0.07*1.e6*(1.e-7-Ca_i/1.e6))
-             : 0
-             );
-
-group {
-  GNa;
-  Gsi;
-  APDshorten;
-}
-.param();
-
-group {
-  I_Na;
-  I_si;
-  I_X;
-  I_K;
-}
-.trace();
-'''
