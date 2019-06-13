@@ -133,9 +133,7 @@ class EasyMLExporter(myokit.formats.Exporter):
         ignore.add(time)
 
         # Remove unused
-        print(model.code())
         model.validate(remove_unused_variables=True)
-        print(model.code())
 
         # Find HH state variables, infs, taus, alphas, betas
         #TODO
@@ -181,14 +179,14 @@ class EasyMLExporter(myokit.formats.Exporter):
             name = var.name()
             if name in ['alpha', 'beta', 'inf', 'tau']:
                 name = var.parent().name() + '_' + name
+            if special_end(name):
+                name += '_var'
             if special_start(name):
                 name = var.parent().name() + '_' + name
                 if special_start(name):
                     name = var.qname().replace('.', '_')
                 if special_start(name):
                     name = 'var_' + name
-            if special_end(name):
-                name += '_var'
 
             # Update name to have special meaning if needed
             #TODO: Add alpha_ for alphas etc.
@@ -203,7 +201,7 @@ class EasyMLExporter(myokit.formats.Exporter):
                 needs_renaming[name].append(var)
             else:
                 var2 = name_to_var.get(name, None)
-                if var2:
+                if var2 is not None:
                     needs_renaming[name] = [var2, var]
                 else:
                     name_to_var[name] = var
@@ -228,7 +226,7 @@ class EasyMLExporter(myokit.formats.Exporter):
         # Create naming function
         def lhs(e):
             if isinstance(e, myokit.Derivative):
-                return 'd_' + var_to_name[e.var()]
+                return 'diff_' + var_to_name[e.var()]
             elif isinstance(e, myokit.LhsExpression):
                 return var_to_name[e.var()]
             elif isinstance(e, myokit.Variable):
@@ -249,6 +247,12 @@ class EasyMLExporter(myokit.formats.Exporter):
             # Write membrane potential
             f.write(lhs(vm) + '; .nodal(); .external(Vm);' + eol)
 
+            # Write remaining state variables
+            for v in model.states():
+                if v in ignore:
+                    continue
+                f.write(lhs(v) + eos)
+
             # Write current
             f.write('Iion; .nodal(); .external();' + eol)
             f.write(eol)
@@ -261,6 +265,12 @@ class EasyMLExporter(myokit.formats.Exporter):
                     for v in todo:
                         f.write(e.eq(v.eq()) + eos)
                     f.write(eol)
+
+            # Write initial conditions
+            for v in model.states():
+                f.write(lhs(v) + '_init = ' + myokit.strfloat(v.state_value())
+                        + eos)
+            f.write(eol)
 
             # Write sum of currents variable
             f.write('Iion = ')
