@@ -2,7 +2,7 @@
 # Defines the python classes that represent a Myokit model.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -3825,15 +3825,18 @@ class Variable(VarOwner):
         if binding is not None:
             # Check name
             binding = check_name(binding)
+
             # Check for existing binding
             if self._binding is not None:
                 raise myokit.InvalidBindingError(
                     'The variable <' + self.qname() + '>'
                     ' is already bound to "' + self._binding + '".')
+
             # Check if not a state
             if self._indice is not None:
                 raise myokit.InvalidBindingError(
                     'State variables cannot be bound to an external value.')
+
         # Set binding (model checks uniqueness)
         model = self.model()
         try:
@@ -3846,6 +3849,7 @@ class Variable(VarOwner):
         finally:
             # Clear cache and cache of dependent variables
             self._reset_cache(bubble=True)
+
             # Reset model validation
             model._reset_validation()
 
