@@ -3413,7 +3413,6 @@ class Variable(VarOwner):
                 ' can not be removed: it has children ' + ' and '.join(
                     ['<' + v.qname() + '>' for v in kids]) + '.')
 
-
         if self._refs_by or self._srefs_by:
             refs = self._refs_by.union(self._srefs_by)
             if self in refs:

@@ -361,6 +361,8 @@ class NumberTest(unittest.TestCase):
         self.assertEqual(y, z)
 
         # Test that substitution changes references
+        # Note: This should follow automatically from set_rhs() implementation
+        # and fact that expressions are immutable.
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
