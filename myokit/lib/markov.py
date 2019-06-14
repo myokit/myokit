@@ -756,9 +756,11 @@ class AnalyticalSimulation(object):
             self._parameter_map[p] = i
 
         # Cached matrices
+        #TODO: Make dict
         self._cached_matrices = None
 
         # Cached partial solution (eigenvalue decomposition etc.)
+        #TODO: Make dict
         self._cached_solution = None
 
         # If protocol was given, create pacing system, update vm
@@ -795,6 +797,8 @@ class AnalyticalSimulation(object):
         Returns the (cached or re-generated) matrices ``A`` and ``B`` if this
         simulation's model has a current variable, or just ``A`` if it doesn't.
         """
+        #TODO if self._membrane_potential not in self._cached_matrices
+
         if self._cached_matrices is None:
             self._cached_matrices = self._model.matrices(
                 self._membrane_potential, self._parameters)
@@ -941,6 +945,8 @@ class AnalyticalSimulation(object):
 
                 # Update pacing
                 self._membrane_potential = self._pacing.advance(tnext)
+
+                #TODO: Don't erase these
                 self._cached_matrices = None
                 self._cached_solution = None
 
@@ -1025,6 +1031,8 @@ class AnalyticalSimulation(object):
             raise Exception(
                 'Membrane potential cannot be set if a protocol is used.')
         self._membrane_potential = float(v)
+
+        #TODO: Don't throw away cache
         self._cached_matrices = None
         self._cached_solution = None
 
@@ -1037,6 +1045,8 @@ class AnalyticalSimulation(object):
                 'Wrong size parameter vector, expecting ('
                 + str(len(self._parameters)) + ') values.')
         self._parameters = np.array(parameters, copy=True, dtype=float)
+
+        # TODO Change cache to dicts
         self._cached_matrices = None
         self._cached_solution = None
 
@@ -1079,17 +1089,23 @@ class AnalyticalSimulation(object):
         For models without a current variable, only ``state`` is returned.
         """
         n = len(self._state)
+
         # Check for cached partial solution
+        #TODO: CHECK IN DICT
         if self._cached_solution is None:
             # Get matrices
             A, B = self._matrices()
+
             # Get eigenvalues, matrix of eigenvectors
             E, P = np.linalg.eig(A)
             E = E.reshape((n, 1))
             PI = np.linalg.inv(P)
+
             # Cache results
+            #TODO: Store in dict
             self._cached_solution = (E, P, PI, B)
         else:
+            #TODO: Store in dict
             E, P, PI, B = self._cached_solution
 
         # Calculate transform of initial state
