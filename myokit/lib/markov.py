@@ -755,11 +755,11 @@ class AnalyticalSimulation(object):
         for i, p in enumerate(self._model.parameters()):
             self._parameter_map[p] = i
 
-        # Cached matrices
-        self._cached_matrices = None
-
-        # Cached partial solution (eigenvalue decomposition etc.)
-        self._cached_solution = None
+        # Cached matrices and partial solution (eigenvalue decomposition etc.)
+        # Both stored per voltage, but will become invalidated if parameters
+        # change
+        self._cached_matrices = {}
+        self._cached_solution = {}
 
         # If protocol was given, create pacing system, update vm
         self._pacing = None
@@ -792,13 +792,18 @@ class AnalyticalSimulation(object):
 
     def _matrices(self):
         """
-        Returns the (cached or re-generated) matrices ``A`` and ``B`` if this
-        simulation's model has a current variable, or just ``A`` if it doesn't.
+        Returns the (cached or re-generated) matrices.
+
+        Returns ``(A, B)`` if this simulation's model has a current variable,
+        or just ``B`` if it doesn't.
         """
-        if self._cached_matrices is None:
-            self._cached_matrices = self._model.matrices(
+        try:
+            return self._cached_matrices[self._membrane_potential]
+        except KeyError:
+            matrices = self._model.matrices(
                 self._membrane_potential, self._parameters)
-        return self._cached_matrices
+            self._cached_matrices[self._membrane_potential] = matrices
+            return matrices
 
     def membrane_potential(self):
         """
@@ -941,8 +946,6 @@ class AnalyticalSimulation(object):
 
                 # Update pacing
                 self._membrane_potential = self._pacing.advance(tnext)
-                self._cached_matrices = None
-                self._cached_solution = None
 
         # Return
         return log
@@ -1025,8 +1028,6 @@ class AnalyticalSimulation(object):
             raise Exception(
                 'Membrane potential cannot be set if a protocol is used.')
         self._membrane_potential = float(v)
-        self._cached_matrices = None
-        self._cached_solution = None
 
     def set_parameters(self, parameters):
         """
@@ -1037,8 +1038,10 @@ class AnalyticalSimulation(object):
                 'Wrong size parameter vector, expecting ('
                 + str(len(self._parameters)) + ') values.')
         self._parameters = np.array(parameters, copy=True, dtype=float)
-        self._cached_matrices = None
-        self._cached_solution = None
+
+        # Invalidate cache
+        self._cached_matrices = {}
+        self._cached_solution = {}
 
     def set_state(self, state):
         """
@@ -1079,18 +1082,21 @@ class AnalyticalSimulation(object):
         For models without a current variable, only ``state`` is returned.
         """
         n = len(self._state)
-        # Check for cached partial solution
-        if self._cached_solution is None:
+
+        # Solve system, or get cached solution
+        try:
+            E, P, PI, B = self._cached_solution[self._membrane_potential]
+        except KeyError:
             # Get matrices
             A, B = self._matrices()
+
             # Get eigenvalues, matrix of eigenvectors
             E, P = np.linalg.eig(A)
             E = E.reshape((n, 1))
             PI = np.linalg.inv(P)
+
             # Cache results
-            self._cached_solution = (E, P, PI, B)
-        else:
-            E, P, PI, B = self._cached_solution
+            self._cached_solution[self._membrane_potential] = (E, P, PI, B)
 
         # Calculate transform of initial state
         y0 = PI.dot(self._state.reshape((n, 1)))
