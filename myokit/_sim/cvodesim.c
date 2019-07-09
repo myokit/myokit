@@ -1277,7 +1277,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
 
     /* Temporary object: decref before re-using for another var :) */
     /* (Unless you get them using PyList_GetItem...) */
-    flt = NULL;   /* PyFloat
+    flt = NULL;   /* PyFloat */
 
     /* Create state vectors */
     y = N_VNew_Serial(N_STATE);
