@@ -646,16 +646,20 @@ class LinearModel(object):
         A, B = self.matrices(membrane_potential, parameters)
         A = np.matrix(A)
         del(B)
+
         # Set up reduced system with full rank: dot(x) = Ay + B
         B = A[:-1, -1]
         A = A[:-1, :-1] - B
+
         # Check eigenvalues
         if np.max(np.linalg.eigvals(A) >= 0):
             raise LinearModelError(
                 'System has positive eigenvalues: won\'t converge to steady'
                 ' state!')
+
         # Solve system Ax + B = 0 --> Ax = -B
         x = np.linalg.solve(A, -B)
+
         # Recreate full state vector and return
         x = np.array(x).reshape((len(x),))
         x = np.concatenate((x, [1 - np.sum(x)]))
