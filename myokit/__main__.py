@@ -453,7 +453,10 @@ def install_gnome_kde():
         if template:
             # Process templates, create files
             p = myokit.pype.TemplateEngine()
-            varmap = {'icons': dir_icons}
+            varmap = {
+                'icons': dir_icons,
+                'python': sys.executable,
+            }
             with open(dest, 'w') as f:
                 p.set_output_stream(f)
                 p.process(orig, varmap)
@@ -485,6 +488,7 @@ def install_gnome_kde():
     path = os.path.join(home, '.local', 'share', 'mime', 'packages')
     name = 'x-wcp.xml'
     place_file(path, name)
+
     # Reload mime database
     print('Reloading mime database')
     path = home + '/.local/share/mime/'
