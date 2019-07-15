@@ -51,16 +51,18 @@ class CellMLImporter(myokit.formats.Importer):
                 buff = []
             if node.nodeType == node.TEXT_NODE:
                 t = node.nodeValue
+                t = t.encode('ascii', errors='replace').decode()
                 t = t.replace('\n', ' ')
                 t = t.replace('\r', ' ')
                 t = t.replace('\f', ' ')
                 t = t.strip()
                 if t != '':
-                    buff.append(str(t.encode('ascii', errors='replace')))
+                    buff.append(t)
             else:
                 for kid in node.childNodes:
                     text(kid, buff)
             return buff
+
         return textwrap.fill(
             '\n'.join(text(node)), 75, replace_whitespace=False)
 
