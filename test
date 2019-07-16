@@ -200,7 +200,6 @@ def web_examples(args):
         'html',
         'static',
         'download',
-        'data',
         'examples',
     )
     if not os.path.isdir(path):
