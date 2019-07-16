@@ -26,43 +26,11 @@ def unit(args):
     """
     Runs unit tests, exits if anything fails.
     """
-    # Run without using a subprocess
-    if args.nosub:
-        print('Running unit tests without a subprocess')
-        suite = unittest.defaultTestLoader.discover(
-            os.path.join('myokit', 'tests'), pattern='test*.py')
-        unittest.TextTestRunner(verbosity=2).run(suite)
-        return
+    print('Running tests with ' + sys.executable)
 
-    # Determine executable
-    executable = 'python'
-    if args.py2:
-        executable += '2'
-    elif args.py3:
-        executable += '3'
-    print('Running unit tests with executable `' + executable + '`')
-
-    # Run in a subprocess
-    cmd = [executable] + [
-        '-m',
-        'unittest',
-        'discover',
-        '-v',
-        os.path.join('myokit', 'tests'),
-    ]
-    p = subprocess.Popen(cmd)
-    try:
-        ret = p.wait()
-    except KeyboardInterrupt:
-        try:
-            p.terminate()
-        except OSError:
-            pass
-        p.wait()
-        print('')
-        sys.exit(1)
-    if ret != 0:
-        sys.exit(ret)
+    suite = unittest.defaultTestLoader.discover(
+        os.path.join('myokit', 'tests'), pattern='test*.py')
+    unittest.TextTestRunner(verbosity=2).run(suite)
 
 
 def flake8():
@@ -216,8 +184,6 @@ def full_suite(args):
     Runs the full test suite, exits if anything fails.
     """
     # Set arguments for unit()
-    args.nosub = args.py2 = args.py3 = False
-
     flake8()
     doc_tests(args)
     unit(args)
@@ -229,9 +195,6 @@ def minimal_suite(args):
     """
     Runs a minimal set of tests, exits if anything fails.
     """
-    # Set arguments for unit()
-    args.nosub = args.py2 = args.py3 = False
-
     flake8()
     doc_tests(args)
     unit(args)
@@ -266,22 +229,6 @@ def main():
     # Unit tests
     unit_parser = subparsers.add_parser('unit', help='Run unit tests')
     unit_parser.set_defaults(func=unit)
-    group = unit_parser.add_mutually_exclusive_group(required=False)
-    group.add_argument(
-        '--py2',
-        action='store_true',
-        help='Use the `python2` executable',
-    )
-    group.add_argument(
-        '--py3',
-        action='store_true',
-        help='Use the `python3` executable',
-    )
-    group.add_argument(
-        '--nosub',
-        action='store_true',
-        help='Run without using a subprocess',
-    )
 
     # Doctests
     doc_parser = subparsers.add_parser(
