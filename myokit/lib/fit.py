@@ -1788,7 +1788,11 @@ def voronoi_regions(x, y, f, xlim, ylim):
     *Note: This method requires SciPy to be installed.*
     """
     from scipy.spatial import Voronoi
-    from itertools import izip  # Like zip, but works as an iterator
+    try:
+        from itertools import izip  # Like zip, but works as an iterator
+    except ImportError:
+        # Python 3
+        izip = zip
 
     # Check x, y, f
     x = np.asarray(x)
