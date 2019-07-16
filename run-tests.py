@@ -30,7 +30,8 @@ def unit(args):
 
     suite = unittest.defaultTestLoader.discover(
         os.path.join('myokit', 'tests'), pattern='test*.py')
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    res = unittest.TextTestRunner(verbosity=2).run(suite)
+    sys.exit(0 if res.wasSuccessful() else 1)
 
 
 def flake8():
