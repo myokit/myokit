@@ -20,5 +20,5 @@ build: off
 
 test_script:
   - "%PYTHON%\\python.exe -m myokit system"
-  - "%PYTHON%\\python.exe test unit"
+  - "%PYTHON%\\python.exe run-tests.py unit"
 
