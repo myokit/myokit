@@ -166,12 +166,12 @@ def add_compare_parser(subparsers):
     parser.set_defaults(func=compare)
 
 
-def compiler():
+def compiler(debug):
     """
     Tests for C compilation support.
     """
     import myokit
-    compiler = myokit.Compiler.info()
+    compiler = myokit.Compiler.info(debug)
     if compiler is None:
         print('Compilation with distutils/setuptools failed.')
     else:
@@ -186,6 +186,11 @@ def add_compiler_parser(subparsers):
         'compiler',
         description='Checks for C compilation support.',
         help='Prints information about C compilation support.',
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Show error output.',
     )
     parser.set_defaults(func=compiler)
 

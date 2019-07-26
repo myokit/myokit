@@ -74,14 +74,23 @@ class Compiler(myokit.CModule):
         return Compiler._instance
 
     @staticmethod
-    def info():
+    def info(debug=False):
         """
         Returns a string with information about the compiler found on this
         system, or ``None`` if no compiler could be found.
+
+        If ``debug`` is set to ``True``, compilation errors will be printed to
+        stdout.
         """
         try:
             return Compiler._get_instance().compiler()
-        except NoCompilerError:  # pragma: no cover
+        except NoCompilerError as e:  # pragma: no cover
+            if debug:
+                print(e)
+                if Compiler._message is None:
+                    print('No further error message available.')
+                else:
+                    print(Compiler._message)
             return None
 
 
