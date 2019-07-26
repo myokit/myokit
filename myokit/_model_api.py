@@ -1791,7 +1791,7 @@ class Model(ObjectWithMeta, VarProvider):
             a = f(b)
             b = g(c)
 
-        The set returned for ``a`` will include ``b`` and ``c``. So while ``a``
+        the set returned for ``a`` will include ``b`` and ``c``. So while ``a``
         here depends on both ``b`` and ``c``, ``b``'s sole dependency on ``c``
         means ``a`` can be calculated if just ``c`` is known. To filter out the
         dependency on ``b``, set ``filter_encompassed`` to ``True``. Note that
