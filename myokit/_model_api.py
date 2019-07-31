@@ -766,29 +766,41 @@ class Model(ObjectWithMeta, VarProvider):
     """
     def __init__(self, name=None):
         super(Model, self).__init__()
+
         # A dictionary of components
         self._components = {}
+
         # The model's state variables
         self._state = []
+
         # The model's current state (list of floats)
         self._current_state = []
+
         # A dict mapping binding names to variables
         self._bindings = {}
+
         # A dict mapping label names to variables
         self._labels = {}
+
         # A set of user functions
         self._user_functions = {}
+
         # A list of warnings about the model's integrity
         self._warnings = []
+
         # A list of unique names (for easier export)
         # Some names may be taken up by system functions etc
         self._reserved_unames = set()
+        self._reserved_uname_prefixes = {}
         self.reserve_unique_names(*myokit.KEYWORDS)
+
         # A dictionary token_start : (token, object) relating some (not all!)
         #  tokens to a model. Will be filled by parser when reading a model.
         self._tokens = {}
+
         # Validation status: True, False or None (not tested)
         self._valid = None
+
         # Name meta property
         if name:
             self.meta['name'] = str(name)
@@ -1170,19 +1182,30 @@ class Model(ObjectWithMeta, VarProvider):
            variables claiming the disputed name.
         2. If problems persist, a suffix ``_i`` will be added, where ``i`` is
            the first integer which doesn't result in clashing names.
+
+        In addition, the method will avoid names listed using
+        :meth:`reserve_unique_names()` and names starting with a prefix listed
+        using :meth:`reserve_unique_prefix()`.
         """
+        # Don't suggest names started with registered prefixes
+        def prepend(name):
+            for prefix, prepend in self._reserved_uname_prefixes.items():
+                if name.startswith(prefix):
+                    return prepend + name
+            return name
+
         # Gather disputed names
         allnames = set(self._reserved_unames)
         disputed = set()
         for comp in self.components():
-            name = comp._name
+            name = prepend(comp._name)
             if name not in disputed:
                 if name in allnames:
                     disputed.add(name)
                 else:
                     allnames.add(name)
             for var in comp.variables(deep=True):
-                name = var._name
+                name = prepend(var._name)
                 if name not in disputed:
                     if name in allnames:
                         disputed.add(name)
@@ -1193,7 +1216,7 @@ class Model(ObjectWithMeta, VarProvider):
         for comp in sorted(self.components(), key=lambda x: x.name()):
 
             # Set names for component
-            name = comp._name
+            name = prepend(comp._name)
             if name in disputed:
                 i = 1
                 root = name + '_'
@@ -1207,9 +1230,9 @@ class Model(ObjectWithMeta, VarProvider):
             # Set names for variables
             for var in sorted(comp.variables(deep=True),
                               key=lambda x: x.qname()):
-                name = var._name
+                name = prepend(var._name)
                 if name in disputed:
-                    name = var.qname().replace('.', '_')
+                    name = prepend(var.qname().replace('.', '_'))
                     if name in allnames:
                         i = 1
                         root = name + '_'
@@ -2202,6 +2225,23 @@ class Model(ObjectWithMeta, VarProvider):
         """
         for name in unames:
             self._reserved_unames.add(name)
+
+    def reserve_unique_name_prefix(self, prefix, prepend):
+        """
+        Indicates a ``prefix`` that won't be used in unique names (unames).
+
+        When creating a unique name, any variable starting with ``prefix`` will
+        be prepended with the string ``prepend``.
+        """
+        prefix = str(prefix)
+        prepend = str(prepend)
+        if prefix == '':
+            raise ValueError('Unique name prefix cannot be empty.')
+        if prepend == '':
+            raise ValueError('String to prepend cannot be empty.')
+        if prepend.startswith(prefix):
+            raise ValueError('String to prepend cannot start with prefix.')
+        self._reserved_uname_prefixes[prefix] = prepend
 
     def _reset_indices(self):
         """
