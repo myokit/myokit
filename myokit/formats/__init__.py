@@ -2,7 +2,7 @@
 # Contains functions for the import and export of Myokit objects.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -109,7 +109,7 @@ def exporter(name):
     """
     name = str(name)
     if _EXPORTERS is None:  # pragma: no cover
-        _update()
+        _scan_for_internal_formats()
     try:
         return _EXPORTERS[name]()
     except KeyError:
@@ -121,7 +121,7 @@ def exporters():
     Returns a list of available exporters by name.
     """
     if _EXPORTERS is None:  # pragma: no cover
-        _update()
+        _scan_for_internal_formats()
     return sorted(_EXPORTERS.keys())
 
 
@@ -317,7 +317,7 @@ def ewriter(name):
     """
     name = str(name)
     if _EWRITERS is None:   # pragma: no cover
-        _update()
+        _scan_for_internal_formats()
     try:
         return _EWRITERS[name]()
     except KeyError:
@@ -329,7 +329,7 @@ def ewriters():
     Returns a list of available expression writers by name.
     """
     if _EWRITERS is None:   # pragma: no cover
-        _update()
+        _scan_for_internal_formats()
     return sorted(_EWRITERS.keys())
 
 
@@ -413,7 +413,7 @@ def importer(name):
     """
     name = str(name)
     if _IMPORTERS is None:  # pragma: no cover
-        _update()
+        _scan_for_internal_formats()
     try:
         return _IMPORTERS[name]()
     except KeyError:
@@ -425,7 +425,7 @@ def importers():
     Returns a list of available importers by name.
     """
     if _IMPORTERS is None:  # pragma: no cover
-        _update()
+        _scan_for_internal_formats()
     return sorted(_IMPORTERS.keys())
 
 
@@ -588,14 +588,17 @@ class TemplatedRunnableExporter(Exporter):
         raise NotImplementedError
 
 
-def _update():
+def _scan_for_internal_formats():
     """
     Scans for importers, exporters and expression writers.
     """
     global _IMPORTERS, _EXPORTERS, _EWRITERS
-    _IMPORTERS = {}
-    _EXPORTERS = {}
-    _EWRITERS = {}
+    if _IMPORTERS is None:
+        _IMPORTERS = {}
+    if _EXPORTERS is None:
+        _EXPORTERS = {}
+    if _EWRITERS is None:
+        _EWRITERS = {}
     for fname in os.listdir(DIR_FORMATS):
         d = os.path.join(DIR_FORMATS, fname)
         if not os.path.isdir(d):
@@ -639,6 +642,72 @@ def _update():
                 raise Exception(
                     'Duplicate expression writer name: "' + str(k) + '".')
             _EWRITERS[k] = v
+
+
+def register_external_importer(name, importer_class):
+    """
+    Registers an external :class:`Importer` for use with Myokit.
+
+    Arguments:
+
+    ``name``
+        A short descriptive string name.
+    ``importer_class``
+        The class to register (must be a :class:`myokit.Importer`).
+        Importers can be unregistered by passing in ``None``.
+
+    """
+    if importer_class is None:
+        if _IMPORTERS is not None and name in _IMPORTERS:
+            del(_IMPORTERS[name])
+    else:
+        if _IMPORTERS is None:  # pragma: no cover
+            _scan_for_internal_formats()
+        _IMPORTERS[name] = importer_class
+
+
+def register_external_exporter(name, exporter_class):
+    """
+    Registers an external :class:`Exporter` for use with Myokit.
+
+    Arguments:
+
+    ``name``
+        A short descriptive string name.
+    ``exporter_class``
+        The class to register (must be a :class:`myokit.Exporter`).
+        Exporters can be unregistered by passing in ``None``.
+
+    """
+    if exporter_class is None:
+        if _EXPORTERS is not None and name in _EXPORTERS:
+            del(_EXPORTERS[name])
+    else:
+        if _EXPORTERS is None:  # pragma: no cover
+            _scan_for_internal_formats()
+        _EXPORTERS[name] = exporter_class
+
+
+def register_external_ewriter(name, ewriter_class):
+    """
+    Registers an external :class:`ExpressionWriter` for use with Myokit.
+
+    Arguments:
+
+    ``name``
+        A short descriptive string name.
+    ``ewriter_class``
+        The class to register (must be a :class:`myokit.ExpressionWriter`).
+        Expression writers can be unregistered by passing in ``None``.
+
+    """
+    if ewriter_class is None:
+        if _EWRITERS is not None and name in _EWRITERS:
+            del(_EWRITERS[name])
+    else:
+        if _EWRITERS is None:  # pragma: no cover
+            _scan_for_internal_formats()
+        _EWRITERS[name] = ewriter_class
 
 
 class TextLogger(object):
