@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 #
-# Tests shared infrastructure in myokit.formats.
+# Tests infrastructure (e.g. the text logger) from the formats module.
 #
 # This file is part of Myokit
-#  Copyright 2011-2019 Maastricht University, University of Oxford
+#  Copyright 2011-2018 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -30,7 +30,9 @@ class FormatsTest(unittest.TestCase):
     """
 
     def test_text_logger(self):
-        # Tests myokit.formats.TextLogger().
+        """
+        Test myokit.formats.TextLogger().
+        """
 
         # Test basic methods
         with myokit.PyCapture() as c:
@@ -146,87 +148,6 @@ class FormatsTest(unittest.TestCase):
         for i, line in enumerate(x):
             self.assertEqual(line, y[i])
         self.assertEqual(len(x), len(y))
-
-    def test_register_external_importer(self):
-        # Tests registering an external importer.
-
-        class TestImporter(myokit.formats.Importer):
-            pass
-
-        self.assertRaisesRegex(
-            KeyError, 'Importer not found',
-            myokit.formats.importer, 'testo')
-
-        myokit.formats.register_external_importer('testo', TestImporter)
-        e = myokit.formats.importer('testo')
-        self.assertIsInstance(e, TestImporter)
-        e = myokit.formats.importer('testo')
-        self.assertIsInstance(e, TestImporter)
-
-        # Test overwriting
-        myokit.formats.register_external_importer('testo', TestImporter)
-        e = myokit.formats.importer('testo')
-        self.assertIsInstance(e, TestImporter)
-
-        # Test removing
-        myokit.formats.register_external_importer('testo', None)
-        self.assertRaisesRegex(
-            KeyError, 'Importer not found',
-            myokit.formats.importer, 'testo')
-
-    def test_register_external_exporter(self):
-        # Tests registering an external exporter.
-
-        class TestExporter(myokit.formats.Exporter):
-            pass
-
-        self.assertRaisesRegex(
-            KeyError, 'Exporter not found',
-            myokit.formats.exporter, 'testo')
-
-        myokit.formats.register_external_exporter('testo', TestExporter)
-        e = myokit.formats.exporter('testo')
-        self.assertIsInstance(e, TestExporter)
-        e = myokit.formats.exporter('testo')
-        self.assertIsInstance(e, TestExporter)
-
-        # Test overwriting
-        myokit.formats.register_external_exporter('testo', TestExporter)
-        e = myokit.formats.exporter('testo')
-        self.assertIsInstance(e, TestExporter)
-
-        # Test removing
-        myokit.formats.register_external_exporter('testo', None)
-        self.assertRaisesRegex(
-            KeyError, 'Exporter not found',
-            myokit.formats.exporter, 'testo')
-
-    def test_register_external_ewriter(self):
-        # Tests registering an external expression writer.
-
-        class TestExpressionWriter(myokit.formats.ExpressionWriter):
-            pass
-
-        self.assertRaisesRegex(
-            KeyError, 'Expression writer not found',
-            myokit.formats.ewriter, 'testo')
-
-        myokit.formats.register_external_ewriter('testo', TestExpressionWriter)
-        e = myokit.formats.ewriter('testo')
-        self.assertIsInstance(e, TestExpressionWriter)
-        e = myokit.formats.ewriter('testo')
-        self.assertIsInstance(e, TestExpressionWriter)
-
-        # Test overwriting
-        myokit.formats.register_external_ewriter('testo', TestExpressionWriter)
-        e = myokit.formats.ewriter('testo')
-        self.assertIsInstance(e, TestExpressionWriter)
-
-        # Test removing
-        myokit.formats.register_external_ewriter('testo', None)
-        self.assertRaisesRegex(
-            KeyError, 'Expression writer not found',
-            myokit.formats.ewriter, 'testo')
 
 
 class ExporterTest(unittest.TestCase):

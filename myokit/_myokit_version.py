@@ -9,14 +9,14 @@
 import sys
 
 # True if this is a release, False for a development version
-__release__ = False
+__release__ = True
 
 # Version as a tuple (major, minor, revision)
 #  - Changes to major are rare
 #  - Changes to minor indicate new features, possible slight backwards
 #    incompatibility
 #  - Changes to revision indicate bugfixes, tiny new features
-__version_tuple__ = 1, 28, 7
+__version_tuple__ = 1, 28, 6
 
 # String version of the version number
 __version__ = '.'.join([str(x) for x in __version_tuple__])
