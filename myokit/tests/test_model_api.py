@@ -1407,6 +1407,17 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(z.uname(), 'yogi_bear')
         self.assertEqual(a.uname(), 'marmelade_paddington')
 
+        # Test bad calls
+        self.assertRaisesRegex(
+            ValueError, 'prefix cannot be empty',
+            m.reserve_unique_name_prefix, '', 'x')
+        self.assertRaisesRegex(
+            ValueError, 'prepend cannot be empty',
+            m.reserve_unique_name_prefix, 'x', '')
+        self.assertRaisesRegex(
+            ValueError, 'prepend cannot start with prefix',
+            m.reserve_unique_name_prefix, 'x', 'x')
+
     def test_warnings(self):
         # Test Model.has_warnings(), model.warnings() and
         # Model.format_warnings().
