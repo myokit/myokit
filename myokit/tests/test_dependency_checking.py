@@ -1305,9 +1305,8 @@ class SolvableOrderTest(DepTest):
     Tests if the solvable order of the equations is determined correctly.
     """
     def test_solvable_order(self):
-        """
-        Test solvable_order()
-        """
+        # Test model.solvable_order()
+
         # Shared properties
         self.ccomp = None
         self.order = None
@@ -1460,9 +1459,8 @@ class SolvableOrderTest(DepTest):
         del(self.m)
 
     def test_solvable_subset(self):
-        """
-        Test solvable_subset()
-        """
+        # Test model.solvable_subset()
+
         # Shared properties
         self.order = None
 
@@ -1621,6 +1619,31 @@ class SolvableOrderTest(DepTest):
         self.assertFalse(m.has_interdependent_components())
         c2.set_rhs('d.d1')
         self.assertTrue(m.has_interdependent_components())
+
+    def test_expressions_for(self):
+        # Test Model.expressions_for().
+        m = myokit.load_model('example')
+
+        # Simple test
+        eqs, vrs = m.expressions_for('ina.m')
+        self.assertEqual(len(eqs), 3)
+        self.assertEqual(len(vrs), 2)
+        self.assertIn(myokit.Name(m.get('ina.m')), vrs)
+        self.assertIn(myokit.Name(m.get('membrane.V')), vrs)
+
+        # Massive test
+        eqs, vrs = m.expressions_for('membrane.V')
+        self.assertEqual(len(eqs), 37)
+
+        # Bad system
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = c.add_variable('y')
+        x.set_rhs('y')
+        y.set_rhs('x')
+        self.assertRaisesRegex(
+            Exception, 'Failed to solve', m.expressions_for, 'c.x')
 
 
 if __name__ == '__main__':
