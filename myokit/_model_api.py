@@ -1366,14 +1366,14 @@ class Model(ObjectWithMeta, VarProvider):
                 arguments.append(lhs)
                 return
             rhs = var.rhs()
-            dps = rhs.references()
+            dps = sorted(rhs.references(), key=str)
             shallow[lhs] = dps
             equations[lhs] = rhs
             for dep in dps:
                 add_dep(dep)
 
         for variable in variables:
-            for lhs in variable.rhs().references():
+            for lhs in sorted(variable.rhs().references(), key=str):
                 add_dep(lhs)
 
         # Filter out dependencies on arguments
@@ -1403,6 +1403,7 @@ class Model(ObjectWithMeta, VarProvider):
             eq = variable.eq()
             if eq not in eq_list:
                 eq_list.append(eq)
+        eq_list = myokit.EquationList(eq_list)
 
         return (eq_list, arguments)
 
