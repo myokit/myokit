@@ -1330,18 +1330,27 @@ class Model(ObjectWithMeta, VarProvider):
         # Return calculated state
         return out
 
-    def expressions_for(self, variable):
+    def expressions_for(self, *variables):
         """
+        Determines the expressions needed to evaluate one or more variables.
+
         Returns a tuple ``(eqs, args)`` where ``eqs`` is a list of Equation
         objects in solvable order containing the minimal set of equations
         needed to evaluate the given ``variable`` and ``args`` is a list of
         the state variables and bound variables these expressions require as
         input.
         """
-        # Get variable, expression
-        if not isinstance(variable, ModelPart):
-            variable = self.get(variable)
-        expression = variable.rhs()
+        # Make sure all variables are (locally owned) Variable objects
+        temp = []
+        for variable in variables:
+            if isinstance(variable, myokit.Variable):
+                temp.append(self.get(variable.qname()))
+            elif isinstance(variable, myokit.LhsExpression):
+                temp.append(self.get(variable.var().qname()))
+            else:
+                temp.append(self.get(variable))
+        variables = temp
+        del(temp)
 
         # Get shallow dependencies of all required equations
         shallow = {}
@@ -1352,7 +1361,7 @@ class Model(ObjectWithMeta, VarProvider):
             if lhs in shallow or lhs in arguments:
                 return
             var = lhs.var()
-            if var.is_state() or var.is_bound():
+            if var.is_bound() or (var.is_state() and not lhs.is_derivative()):
                 arguments.append(lhs)
                 return
             rhs = var.rhs()
@@ -1362,8 +1371,9 @@ class Model(ObjectWithMeta, VarProvider):
             for dep in dps:
                 add_dep(dep)
 
-        for lhs in expression.references():
-            add_dep(lhs)
+        for variable in variables:
+            for lhs in variable.rhs().references():
+                add_dep(lhs)
 
         # Filter out dependencies on arguments
         for dps in shallow.values():
@@ -1387,8 +1397,12 @@ class Model(ObjectWithMeta, VarProvider):
                     if lhs in dps:
                         dps.remove(lhs)
 
-        # Add final equation and return
-        eq_list.append(Equation(variable.lhs(), variable.rhs()))
+        # Add final equations and return
+        for variable in variables:
+            eq = variable.eq()
+            if eq not in eq_list:
+                eq_list.append(eq)
+
         return (eq_list, arguments)
 
     def format_state(self, state=None, state2=None):
@@ -2631,93 +2645,6 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Return
         return out
-
-    def solvable_subset(self, *args):
-        """
-        This method is deprecated and will be removed in future versions of
-        Myokit.
-
-        Returns all equations dependent on one or more :class:`LhsExpression`
-        objects in a solvable order. The resulting equations are stored in an
-        :class:`EquationList`.
-
-        The returned equations can be used to recalculate the model
-        expressions, given new values for the variables in ``args``.
-
-        The input arguments can be given as :class:`LhsExpression` objects or
-        string names of variables.
-        """
-        # Deprecated since 2018-11-08
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
-            'The method `solvable_subset` is deprecated: it will be removed in'
-            ' future versions of Myokit.')
-
-        # 1. Get set of root lhs objects
-        msg = 'All input arguments to solvable_subset must be' \
-              ' LhsExpression objects or string names of variables'
-        roots = set()
-        for lhs in args:
-            if isinstance(lhs, basestring):
-                lhs = self.get(lhs)
-                if not isinstance(lhs, myokit.Variable):
-                    raise ValueError(msg)
-                lhs = lhs.lhs()
-            if not isinstance(lhs, myokit.LhsExpression):
-                raise ValueError(msg)
-            roots.add(lhs)
-
-        # 2. Get subtree starting at those roots
-        def add_to_subtree(var, tree):
-            lhs = var.lhs()
-            if lhs in subtree:
-                return
-            subtree.add(lhs)
-            for kid in var.refs_by():   # Can never be state value
-                add_to_subtree(kid, tree)
-        subtree = set()
-        for lhs in roots:
-            subtree.add(lhs)
-            if lhs.is_state_value():    # Roots may contain state values
-                for var in lhs.var().refs_by(state_refs=True):
-                    add_to_subtree(var, subtree)
-                # Iterator doesn't return self rep when dot(x) = f(x)
-                # So add dot(x) manually if it references x.
-                var = lhs.var()
-                if lhs in var.rhs().references():
-                    add_to_subtree(var, subtree)
-            else:
-                for var in lhs.var().refs_by():
-                    add_to_subtree(var, subtree)
-
-        # 3. Get map of references within subtree
-        deps = {}
-        for lhs in subtree:
-            if lhs in roots:
-                continue
-            dps = set()
-            for ref in lhs.rhs().references():
-                if ref in subtree and ref not in roots:
-                    dps.add(ref)
-            deps[lhs] = dps
-
-        # 4. Get solvable list of equations
-        eqs = EquationList()
-        while deps:
-            todo = set()
-            for lhs, dps in deps.items():
-                if not dps:
-                    todo.add(lhs)
-            if not todo:
-                raise RuntimeError('Equation ordering failed.')
-            for lhs in todo:
-                del(deps[lhs])
-                eqs.append(Equation(lhs, lhs.rhs()))
-            for lhs, dps in deps.items():
-                deps[lhs] -= todo
-        return eqs
 
     def state(self):
         """
