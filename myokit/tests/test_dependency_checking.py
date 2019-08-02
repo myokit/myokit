@@ -1453,7 +1453,6 @@ class SolvableOrderTest(DepTest):
         self.m.get('ina.j').demote()
         self.assertRaisesRegex(
             RuntimeError, 'Equation ordering failed.', self.m.solvable_order)
-        del(self.m)
 
     def test_has_interdependent_components(self):
         """
