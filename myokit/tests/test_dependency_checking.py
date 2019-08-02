@@ -1310,7 +1310,6 @@ class SolvableOrderTest(DepTest):
         # Shared properties
         self.ccomp = None
         self.order = None
-        self.m = None
 
         def comp(name):
             """ Set current component """
@@ -1373,8 +1372,6 @@ class SolvableOrderTest(DepTest):
         # Run multiple times because ordering is slightly random.
         for i in range(0, 5):
             # Load model, get order
-            self.m = myokit.load_model(
-                os.path.join(DIR_DATA, 'lr-1991-dep.mmt'))
             self.order = self.m.solvable_order()
             # Start testing
             self.head('Testing cell component')
@@ -1478,20 +1475,111 @@ class SolvableOrderTest(DepTest):
 
     def test_expressions_for(self):
         # Test Model.expressions_for().
-        m = myokit.load_model('example')
+
+        def before(lhs1, *lhs2s):
+            """ Asserts lhs2 comes before lhs1 """
+            if isinstance(lhs1, basestring):
+                if lhs1.startswith('dot('):
+                    lhs1 = myokit.Derivative(myokit.Name(
+                        self.m.get(lhs1[4:-1])))
+                else:
+                    lhs1 = myokit.Name(self.m.get(lhs1))
+            for lhs2 in lhs2s:
+                if isinstance(lhs2, basestring):
+                    if lhs2.startswith('dot('):
+                        lhs2 = myokit.Derivative(myokit.Name(
+                            self.m.get(lhs2[4:-1])))
+                    else:
+                        lhs2 = myokit.Name(self.m.get(lhs2))
+                i1 = i2 = None
+                for i, eq in enumerate(self.eqs):
+                    if eq.lhs == lhs1:
+                        i1 = i
+                        if i2:
+                            break
+                    if eq.lhs == lhs2:
+                        i2 = i
+                        if i1:
+                            break
+                if debug:
+                    if i1 < i2:
+                        print(lhs1, 'occurs before', lhs2)
+                    else:
+                        print(lhs1, 'does NOT occur before', lhs2)
+                self.assertGreater(i1, i2)
 
         # Simple test
-        eqs, vrs = m.expressions_for('ina.m')
-        self.assertEqual(len(eqs), 3)
-        self.assertEqual(len(vrs), 2)
-        self.assertIn(myokit.Name(m.get('ina.m')), vrs)
-        self.assertIn(myokit.Name(m.get('membrane.V')), vrs)
+        self.eqs, self.vrs = self.m.expressions_for('ina.m')
+        self.assertEqual(len(self.eqs), 5)
+        self.assertEqual(len(self.vrs), 2)
+        self.assertIn(myokit.Name(self.m.get('ina.m')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('membrane.V')), self.vrs)
+        before('dot(ina.m)', 'ina.m.tau', 'ina.m.inf')
+        before('ina.m.inf', 'ina.m.alpha', 'ina.m.tau')
+        before('ina.m.tau', 'ina.m.alpha', 'ina.m.beta')
+        del(self.eqs, self.vrs)
 
-        # Massive test
-        eqs, vrs = m.expressions_for('membrane.V')
-        self.assertEqual(len(eqs), 37)
+        # Larger test
+        self.eqs, self.vrs = self.m.expressions_for('membrane.V')
+        self.assertEqual(len(self.vrs), 9)
+        self.assertIn(myokit.Name(self.m.get('engine.pace')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('membrane.V')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ina.m')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ina.h')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ina.j')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ik.x')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ica.d')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ica.f')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ica.Ca_i')), self.vrs)
+        self.assertEqual(len(self.eqs), 34)
+        before('dot(membrane.V)', 'membrane.i_stim', 'ina.INa', 'ik.IK',
+               'ib.Ib', 'ikp.IKp', 'ik1.IK1', 'ica.ICa')
+        before('membrane.i_stim', 'membrane.stim_amplitude')
+        before('ina.INa', 'ina.gNa', 'ina.ENa')
+        before('ina.ENa', 'cell.RTF', 'cell.Na_o', 'cell.Na_i')
+        before('cell.RTF', 'cell.R', 'cell.T', 'cell.F')
+        before('ik.IK', 'ik.gK', 'ik.xi', 'ik.E')
+        before('ik.gK', 'cell.K_o')
+        before('ik.E', 'cell.RTF', 'ik.PNa_K', 'cell.K_o', 'cell.Na_o',
+               'cell.K_i', 'cell.Na_i')
+        before('ib.Ib', 'ib.gb')
+        before('ikp.IKp', 'ikp.gKp')
+        before('ik1.IK1', 'ik1.gK1', 'ik1.E')
+        before('ik1.gK1', 'ik1.gK1.alpha', 'ik1.gK1.beta', 'cell.K_o')
+        before('ik1.gK1.alpha', 'ik1.E')
+        before('ik1.gK1.beta', 'ik1.E')
+        before('ik1.E', 'cell.RTF', 'cell.K_o', 'cell.K_i')
+        before('ica.ICa', 'ica.ICa.nest1', 'ica.E')
+        before('ica.ICa.nest1', 'ica.ICa.nest2', 'ica.gCa')
+        before('ica.E', 'cell.Ca_o')
+        del(self.eqs, self.vrs)
 
-        # Bad system
+        # Multiple variables
+        self.eqs, self.vrs = self.m.expressions_for('ina.m', 'ina.h')
+        self.assertEqual(len(self.eqs), 11)
+        self.assertEqual(len(self.vrs), 3)
+        self.assertIn(myokit.Name(self.m.get('membrane.V')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ina.m')), self.vrs)
+        self.assertIn(myokit.Name(self.m.get('ina.h')), self.vrs)
+        before('dot(ina.m)', 'ina.m.tau', 'ina.m.inf')
+        before('ina.m.inf', 'ina.m.alpha', 'ina.m.tau')
+        before('ina.m.tau', 'ina.m.alpha', 'ina.m.beta')
+        before('dot(ina.h)', 'ina.h.tau', 'ina.h.inf')
+        before('ina.h.inf', 'ina.h.alpha', 'ina.h.tau')
+        before('ina.h.tau', 'ina.h.alpha', 'ina.h.beta')
+        before('ina.h.alpha', 'ina.a')
+        before('ina.h.beta', 'ina.a')
+        del(self.eqs, self.vrs)
+
+        # Variables that depend on dot() expressions
+        self.eqs, self.vrs = self.m.expressions_for('test.t1', 'test.t2')
+        self.assertEqual(len(self.eqs), 34 + 3)
+        before('dot(test.t2)', 'test.inter')
+        before('test.inter', 'dot(test.t1)')
+        before('dot(test.t1)', 'dot(membrane.V)')
+        del(self.eqs, self.vrs)
+
+        # Unsolvable system
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')

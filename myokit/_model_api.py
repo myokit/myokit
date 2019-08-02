@@ -1330,18 +1330,27 @@ class Model(ObjectWithMeta, VarProvider):
         # Return calculated state
         return out
 
-    def expressions_for(self, variable):
+    def expressions_for(self, *variables):
         """
+        Determines the expressions needed to evaluate one or more variables.
+
         Returns a tuple ``(eqs, args)`` where ``eqs`` is a list of Equation
         objects in solvable order containing the minimal set of equations
         needed to evaluate the given ``variable`` and ``args`` is a list of
         the state variables and bound variables these expressions require as
         input.
         """
-        # Get variable, expression
-        if not isinstance(variable, ModelPart):
-            variable = self.get(variable)
-        expression = variable.rhs()
+        # Make sure all variables are (locally owned) Variable objects
+        temp = []
+        for variable in variables:
+            if isinstance(variable, myokit.Variable):
+                temp.append(self.get(variable.qname()))
+            elif isinstance(variable, myokit.LhsExpression):
+                temp.append(self.get(variable.var().qname()))
+            else:
+                temp.append(self.get(variable))
+        variables = temp
+        del(temp)
 
         # Get shallow dependencies of all required equations
         shallow = {}
@@ -1352,7 +1361,7 @@ class Model(ObjectWithMeta, VarProvider):
             if lhs in shallow or lhs in arguments:
                 return
             var = lhs.var()
-            if var.is_state() or var.is_bound():
+            if var.is_bound() or (var.is_state() and not lhs.is_derivative()):
                 arguments.append(lhs)
                 return
             rhs = var.rhs()
@@ -1362,8 +1371,9 @@ class Model(ObjectWithMeta, VarProvider):
             for dep in dps:
                 add_dep(dep)
 
-        for lhs in expression.references():
-            add_dep(lhs)
+        for variable in variables:
+            for lhs in variable.rhs().references():
+                add_dep(lhs)
 
         # Filter out dependencies on arguments
         for dps in shallow.values():
@@ -1387,8 +1397,12 @@ class Model(ObjectWithMeta, VarProvider):
                     if lhs in dps:
                         dps.remove(lhs)
 
-        # Add final equation and return
-        eq_list.append(Equation(variable.lhs(), variable.rhs()))
+        # Add final equations and return
+        for variable in variables:
+            eq = variable.eq()
+            if eq not in eq_list:
+                eq_list.append(eq)
+
         return (eq_list, arguments)
 
     def format_state(self, state=None, state2=None):
