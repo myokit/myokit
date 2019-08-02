@@ -1353,9 +1353,10 @@ class Model(ObjectWithMeta, VarProvider):
         del(temp)
 
         # Get shallow dependencies of all required equations
-        shallow = {}
+        # Use ordered dict to get consistent output
+        shallow = OrderedDict()
         arguments = []
-        equations = {}
+        equations = OrderedDict()
 
         def add_dep(lhs):
             if lhs in shallow or lhs in arguments:
