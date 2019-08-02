@@ -1518,8 +1518,9 @@ class SolvableOrderTest(DepTest):
         before('ina.m.tau', 'ina.m.alpha', 'ina.m.beta')
         del(self.eqs, self.vrs)
 
-        # Larger test
-        self.eqs, self.vrs = self.m.expressions_for('membrane.V')
+        # Larger test (and try with LhsExpression instead of string)
+        self.eqs, self.vrs = self.m.expressions_for(
+            self.m.get('membrane.V').lhs())
         self.assertEqual(len(self.vrs), 9)
         self.assertIn(myokit.Name(self.m.get('engine.pace')), self.vrs)
         self.assertIn(myokit.Name(self.m.get('membrane.V')), self.vrs)
@@ -1587,6 +1588,11 @@ class SolvableOrderTest(DepTest):
         y.set_rhs('x')
         self.assertRaisesRegex(
             Exception, 'Failed to solve', m.expressions_for, 'c.x')
+
+        # Test without arguments
+        eqs, vrs = self.m.expressions_for()
+        self.assertEqual(len(eqs), 0)
+        self.assertEqual(len(vrs), 0)
 
 
 if __name__ == '__main__':
