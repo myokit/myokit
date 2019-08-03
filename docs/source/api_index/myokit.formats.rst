@@ -12,6 +12,9 @@ myokit.formats
 - :meth:`myokit.formats.importer`
 - :class:`myokit.formats.Importer`
 - :meth:`myokit.formats.importers`
+- :meth:`myokit.formats.register_external_ewriter`
+- :meth:`myokit.formats.register_external_importer`
+- :meth:`myokit.formats.register_external_exporter`
 - :class:`myokit.formats.TemplatedRunnableExporter`
 - :class:`myokit.formats.TextLogger`
 

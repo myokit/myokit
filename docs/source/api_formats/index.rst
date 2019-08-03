@@ -109,6 +109,21 @@ base class for expression writers is described below:
 .. autoclass:: ExpressionWriter
     :private-members:
 
+Registering external formats
+============================
+
+The importers, exporters, and expression writers that are packed with Myokit
+are automatically detected at start-up. To register classes defined outside of
+the ``myokit`` module, use the functions below. After registering, you can
+obtain e.g. an :class:`Exporter` via
+``myokit.formats.exporter(my_external_exporter)``.
+
+.. autofunction:: register_external_importer
+
+.. autofunction:: register_external_exporter
+
+.. autofunction:: register_external_ewriter
+
 Logging
 =======
 
