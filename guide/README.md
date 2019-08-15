@@ -11,6 +11,8 @@ Please note this is very much a work in progress, and many of the items on the l
 
 # Guides are NOT BOTTOM-UP, can use things NOT YET EXPLAINED IN GUIDES
 
+**Important: Do simulation first, model syntax later (it's pretty self-explanatory, and most people don't write models!)**
+
 1. Running a single cell simulation
     - Starting/stopping
     - Pre-pacing and resetting
