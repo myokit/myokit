@@ -257,7 +257,7 @@ class DataLog(OrderedDict):
         # Return
         return log
 
-    def find(self, t):
+    def find(self, time):
         """
         Deprecated alias of :meth:`find_after()`.
         """
@@ -269,25 +269,25 @@ class DataLog(OrderedDict):
             'The method `find` is deprecated. Please use `find_after`'
             ' instead.')
 
-        return self.find_after(t)
+        return self.find_after(time)
 
-    def find_after(self, t):
+    def find_after(self, time):
         """
         Returns the lowest indice ``i`` such that
 
-            time[i] >= t
+            times[i] >= time
 
-        where ``time`` is the logged time.
+        where ``times`` are the times stored in this ``DataLog``.
 
         If no such value exists in the log, ``len(time)`` is returned.
         """
-        time = self[self._time]
+        times = self[self._time]
 
         # Border cases
-        n = len(time)
-        if n == 0 or t <= time[0]:
+        n = len(times)
+        if n == 0 or time <= times[0]:
             return 0
-        if t > time[-1]:
+        if time > times[-1]:
             return n
 
         # Find t
@@ -296,7 +296,7 @@ class DataLog(OrderedDict):
             if (lo + 1 == hi):
                 return lo + 1
             m = int((lo + hi) / 2)
-            if t > time[m]:
+            if time > times[m]:
                 return find(m, hi)
             else:
                 return find(lo, m)
@@ -384,6 +384,31 @@ class DataLog(OrderedDict):
         data[1:] = data[:-1] * (time[1:] - time[:-1])
         data[0] = 0
         return data.cumsum()
+
+    def interpolate_at(self, name, time):
+        """
+        Returns the value for variable ``name`` at a given ``time``, determined
+        using linear interpolation between the nearest matching times.
+        """
+        t = self[self._time]
+        v = self[name]
+
+        # Don't extrapolate
+        if time < t[0] or time > t[-1]:
+            raise ValueError(
+                'Requested time is outside of logged range, would require'
+                ' extrapolation.')
+
+        # Get first time *after or at* requested time
+        i1 = self.find_after(time)
+
+        # Return directly, if possible
+        if t[i1] == time:
+            return v[i1]
+
+        # Interpolate
+        i0 = i1 - 1
+        return v[i0] + (time - t[i0]) * (v[i1] - v[i0]) / (t[i1] - t[i0])
 
     def isplit(self, i):
         """
