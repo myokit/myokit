@@ -3,7 +3,7 @@
 # Tests the simulation classes' interpretation of log_interval
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -176,14 +176,15 @@ class SimulationTest(PeriodicTest):
         self.assertGreater(t[n], t[n - 1])
 
     def test_periodic(self):
+        # Test periodic logging
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.Simulation(m, p)
         self.periodic(s)
 
     def test_interpolation_and_pacing(self):
-        """
-        Test if interpolation results in correct pacing values.
-        """
+        # Test if interpolation results in correct pacing values.
+
         # When logging with discontinuous steps, in the adaptive time
         # CVODE sim, the value of pace must be
         #  1. The old value *before* the time of the event
@@ -192,28 +193,34 @@ class SimulationTest(PeriodicTest):
         #     (Unless it ends sooner due to a new event arriving)
         # Load model
         m = myokit.load_model('example')
+
         # Voltage-clamp V (but don't bind it directly)
         v = m.label('membrane_potential')
         v.demote()
         v.set_rhs('-80 + 10 * engine.pace')
+
         # Create protocol
         p = myokit.Protocol()
         p.schedule(level=1, start=0, duration=5, period=10)
+
         # Create simulation
         s = myokit.Simulation(m, p)
+
         # Test if this would result in multiple interpolation steps for logging
         # i.e. test if the step before each transition was at least 2 log steps
         # long
         e = s.run(30).npview()
         t = e.time()
         for x in [5, 10, 15, 20, 25]:
-            i = e.find(x)
+            i = e.find_after(x)
             if not t[i] - t[i - 1] > 0.2:
                 raise Exception('Issue with test: use longer intervals!')
         del(e, t, x, i)
+
         # Now test if correct interpolated values are returned by periodic
         # logging.
         d = s.run(30, log_interval=0.1).npview()
+
         # Test bound variable
         p = d['engine.pace']
         self.assertTrue(np.all(p[0:50] == 1))
@@ -222,6 +229,7 @@ class SimulationTest(PeriodicTest):
         self.assertTrue(np.all(p[150:200] == 0))
         self.assertTrue(np.all(p[200:250] == 1))
         self.assertTrue(np.all(p[250:300] == 0))
+
         # Test variable dependent on bound variable
         p = d['membrane.V']
         self.assertTrue(np.all(p[0:50] == -70))
