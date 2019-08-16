@@ -233,6 +233,33 @@ class DataLogTest(unittest.TestCase):
             plt.legend(loc='upper left')
             plt.show()
 
+    def test_interpolate_at(self):
+        # Test the interpolate_at method.
+
+        d = myokit.DataLog(time='t')
+        d['t'] = [0, 1, 2, 3]
+        d['v'] = [0, 10, 30, 60]
+        self.assertEqual(d.interpolate_at('v', 0), 0)
+        self.assertEqual(d.interpolate_at('v', 0.5), 5)
+        self.assertEqual(d.interpolate_at('v', 1), 10)
+        self.assertEqual(d.interpolate_at('v', 1.5), 20)
+        self.assertEqual(d.interpolate_at('v', 2), 30)
+        self.assertEqual(d.interpolate_at('v', 2.5), 45)
+        self.assertEqual(d.interpolate_at('v', 3), 60)
+
+        self.assertRaises(ValueError, d.interpolate_at, 'v', -0.5)
+        self.assertRaises(ValueError, d.interpolate_at, 'v', 3 + 1e-9)
+
+        d = myokit.DataLog(time='t')
+        d['t'] = [2, 4]
+        d['v'] = [200, 400]
+        self.assertEqual(d.interpolate_at('v', 2), 200)
+        self.assertEqual(d.interpolate_at('v', 2.4), 240)
+        self.assertEqual(d.interpolate_at('v', 4), 400)
+
+        self.assertRaises(ValueError, d.interpolate_at, 'v', 1)
+        self.assertRaises(ValueError, d.interpolate_at, 'v', 5)
+
     def test_itrim(self):
         # Test the itrim() method.
 
