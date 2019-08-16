@@ -2,7 +2,7 @@
 # Functions relating to the DataLog class for storing time series data.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -126,7 +126,7 @@ class DataLog(OrderedDict):
         :meth:`Simulation.run()` *for details.*
 
         *Note 2: This APD is defined by simply checking crossing of a threshold
-        potential, and does not look at lowest of highest voltages in a
+        potential, and does not look at lowest or highest voltages in a
         signal.*
 
         The membrane potential data should be listed in the log under the key
@@ -257,30 +257,46 @@ class DataLog(OrderedDict):
         # Return
         return log
 
-    def find(self, value):
+    def find(self, t):
         """
-        Searches for the indice of the first time where
-
-            value <= t[i]
-
-        If the given value doesn't occur in the log, ``len(t)`` is returned.
+        Deprecated alias of :meth:`find_after()`.
         """
-        time = self.time()
+        # Deprecated since 2019-08-16
+        import logging
+        logging.basicConfig()
+        log = logging.getLogger(__name__)
+        log.warning(
+            'The method `find` is deprecated. Please use `find_after`'
+            ' instead.')
+
+        return self.find_after(t)
+
+    def find_after(self, t):
+        """
+        Returns the lowest indice ``i`` such that
+
+            time[i] >= t
+
+        where ``time`` is the logged time.
+
+        If no such value exists in the log, ``len(time)`` is returned.
+        """
+        time = self[self._time]
 
         # Border cases
         n = len(time)
-        if n == 0 or value <= time[0]:
+        if n == 0 or t <= time[0]:
             return 0
-        if value > time[-1]:
+        if t > time[-1]:
             return n
 
-        # Find value
+        # Find t
         def find(lo, hi):
             # lo = first indice, hi = last indice + 1
             if (lo + 1 == hi):
                 return lo + 1
             m = int((lo + hi) / 2)
-            if value > time[m]:
+            if t > time[m]:
                 return find(m, hi)
             else:
                 return find(lo, m)
@@ -1075,7 +1091,7 @@ class DataLog(OrderedDict):
         In this example, d1 will contain all values up to, but not including,
         t=100. While d2 will contain the values from t=100 and upwards.
         """
-        return self.isplit(self.find(value))
+        return self.isplit(self.find_after(value))
 
     def split_periodic(self, period, adjust=False, closed_intervals=True):
         """
@@ -1217,7 +1233,7 @@ class DataLog(OrderedDict):
         ``a``.
         """
         self.validate()
-        log = self.itrim(self.find(a), self.find(b))
+        log = self.itrim(self.find_after(a), self.find_after(b))
         if adjust and self._time in log:
             if isinstance(log[self._time], np.ndarray):
                 log[self._time] -= a
@@ -1234,7 +1250,7 @@ class DataLog(OrderedDict):
         ``value``.
         """
         self.validate()
-        log = self.itrim_left(self.find(value))
+        log = self.itrim_left(self.find_after(value))
         if adjust and self._time in log:
             if isinstance(log[self._time], np.ndarray):
                 log[self._time] -= value
@@ -1247,7 +1263,7 @@ class DataLog(OrderedDict):
         Returns a copy of this log, with all data at times after and including
         ``value`` removed.
         """
-        return self.itrim_right(self.find(value))
+        return self.itrim_right(self.find_after(value))
 
     def validate(self):
         """

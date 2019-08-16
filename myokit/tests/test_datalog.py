@@ -3,7 +3,7 @@
 # Tests the DataLog class
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -44,9 +44,7 @@ class DataLogTest(unittest.TestCase):
     """
 
     def test_extend(self):
-        """
-        Test the extend function.
-        """
+        # Test the extend function.
 
         d1 = myokit.DataLog(time='time')
         v1 = [10, 9, 10, -1, -1, -1]
@@ -117,44 +115,57 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(list(d3['v1']), v1)
         self.assertEqual(list(d3['v2']), v2)
 
-    def test_find_time(self):
-        """
-        Test the find function.
-        """
+    def test_find(self):
+        # Tests the deprecated find() function
+
+        d = myokit.DataLog({
+            'engine.time': [0, 5, 10, 15, 20],
+            'membrane.V': [0, 50, 100, 150, 200]})
+        d.set_time_key('engine.time')
+        self.assertEqual(d.find(-5), d.find_after(-5))
+        self.assertEqual(d.find(0), d.find_after(0))
+        self.assertEqual(d.find(2), d.find_after(2))
+        self.assertEqual(d.find(5), d.find_after(5))
+        self.assertEqual(d.find(7), d.find_after(7))
+        self.assertEqual(d.find(20), d.find_after(20))
+        self.assertEqual(d.find(22), d.find_after(22))
+
+    def test_find_after(self):
+        # Test the find_after() function.
+
         x = myokit.DataLog({
             'engine.time': [0, 5, 10, 15, 20],
             'membrane.V': [0, 50, 100, 150, 200]})
         x.set_time_key('engine.time')
-        self.assertEqual(x.find(-5), 0)
-        self.assertEqual(x.find(0), 0)
-        self.assertEqual(x.find(2), 1)
-        self.assertEqual(x.find(5), 1)
-        self.assertEqual(x.find(8), 2)
-        self.assertEqual(x.find(10), 2)
-        self.assertEqual(x.find(13), 3)
-        self.assertEqual(x.find(15), 3)
-        self.assertEqual(x.find(19), 4)
-        self.assertEqual(x.find(20), 4)
-        self.assertEqual(x.find(21), 5)
+        self.assertEqual(x.find_after(-5), 0)
+        self.assertEqual(x.find_after(0), 0)
+        self.assertEqual(x.find_after(2), 1)
+        self.assertEqual(x.find_after(5), 1)
+        self.assertEqual(x.find_after(8), 2)
+        self.assertEqual(x.find_after(10), 2)
+        self.assertEqual(x.find_after(13), 3)
+        self.assertEqual(x.find_after(15), 3)
+        self.assertEqual(x.find_after(19), 4)
+        self.assertEqual(x.find_after(20), 4)
+        self.assertEqual(x.find_after(21), 5)
 
         # Now with a numpy log
         x = x.npview()
-        self.assertEqual(x.find(-5), 0)
-        self.assertEqual(x.find(0), 0)
-        self.assertEqual(x.find(2), 1)
-        self.assertEqual(x.find(5), 1)
-        self.assertEqual(x.find(8), 2)
-        self.assertEqual(x.find(10), 2)
-        self.assertEqual(x.find(13), 3)
-        self.assertEqual(x.find(15), 3)
-        self.assertEqual(x.find(19), 4)
-        self.assertEqual(x.find(20), 4)
-        self.assertEqual(x.find(21), 5)
+        self.assertEqual(x.find_after(-5), 0)
+        self.assertEqual(x.find_after(0), 0)
+        self.assertEqual(x.find_after(2), 1)
+        self.assertEqual(x.find_after(5), 1)
+        self.assertEqual(x.find_after(8), 2)
+        self.assertEqual(x.find_after(10), 2)
+        self.assertEqual(x.find_after(13), 3)
+        self.assertEqual(x.find_after(15), 3)
+        self.assertEqual(x.find_after(19), 4)
+        self.assertEqual(x.find_after(20), 4)
+        self.assertEqual(x.find_after(21), 5)
 
     def test_indexing(self):
-        """
-        Test the indexing overrides in the simulation log.
-        """
+        # Test the indexing overrides in the simulation log.
+
         d = myokit.DataLog()
         d['x'] = 'y'
         self.assertEqual(d['x'], 'y')
@@ -180,9 +191,8 @@ class DataLogTest(unittest.TestCase):
         self.assertFalse(('a', (5, 6)) in d)
 
     def test_integrate(self):
-        """
-        Test the integrate method.
-        """
+        # Test the integrate method.
+
         # Create an irregular time array
         from random import random
         t = []
@@ -224,9 +234,8 @@ class DataLogTest(unittest.TestCase):
             plt.show()
 
     def test_itrim(self):
-        """
-        Test the itrim() method.
-        """
+        # Test the itrim() method.
+
         d = myokit.DataLog()
         d.set_time_key('t')
         d['t'] = t = [0, 0.1, 0.2, 0.3, 0.4]
@@ -258,9 +267,8 @@ class DataLogTest(unittest.TestCase):
         tr(-10, 40)
 
     def test_itrim_left(self):
-        """
-        Test the itrim_left() method.
-        """
+        # Test the itrim_left() method.
+
         d = myokit.DataLog()
         d.set_time_key('t')
         d['t'] = t = [0, 0.1, 0.2, 0.3, 0.4]
@@ -290,9 +298,8 @@ class DataLogTest(unittest.TestCase):
         tr(30)
 
     def test_itrim_right(self):
-        """
-        Test the itrim_right() method.
-        """
+        # Test the itrim_right() method.
+
         d = myokit.DataLog()
         d.set_time_key('t')
         d['t'] = t = [0, 0.1, 0.2, 0.3, 0.4]
@@ -322,9 +329,8 @@ class DataLogTest(unittest.TestCase):
         tr(30)
 
     def test_keys_like(self):
-        """
-        Test the keys_like(query) method.
-        """
+        # Test the keys_like(query) method.
+
         d = myokit.DataLog()
         d.set_time_key('t')
         d['t'] = [1, 2, 3, 4]
@@ -357,9 +363,8 @@ class DataLogTest(unittest.TestCase):
             ['0.0.m.v', '0.1.m.v', '1.0.m.v', '1.1.m.v'])
 
     def test_prepare_log_0d(self):
-        """
-        Test the `prepare_log` method for single-cell simulations.
-        """
+        # Test the `prepare_log` method for single-cell simulations.
+
         # Test multi-cell log preparing
         from myokit import prepare_log
         m = myokit.load_model(
@@ -664,9 +669,8 @@ class DataLogTest(unittest.TestCase):
             ['dot(ina.INa)'], m)
 
     def test_prepare_log_2d(self):
-        """
-        Test the `prepare_log` method for 2-dimensional logs.
-        """
+        # Test the `prepare_log` method for 2-dimensional logs.
+
         # Test multi-cell log preparing
         from myokit import prepare_log
         m = myokit.load_model(
@@ -1150,9 +1154,8 @@ class DataLogTest(unittest.TestCase):
             (2, 1))
 
     def test_save(self):
-        """
-        Test saving in binary format.
-        """
+        # Test saving in binary format.
+
         d = myokit.DataLog()
         d['a.b'] = np.arange(0, 100, dtype=np.float32)
         d['c.d'] = np.sqrt(np.arange(0, 100) * 1.2)
@@ -1207,9 +1210,8 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(np.all(e.time() == d['c.d']))
 
     def test_load_errors(self):
-        """
-        Test if the correct load errors are raised.
-        """
+        # Test if the correct load errors are raised.
+
         # Missing data file
         path = os.path.join(DIR_IO, 'badlog-1-no-data.zip')
         self.assertRaisesRegex(
@@ -1251,9 +1253,8 @@ class DataLogTest(unittest.TestCase):
             myokit.DataLogReadError, 'larger data', myokit.DataLog.load, path)
 
     def test_load_with_progress(self):
-        """
-        Test loading with a progress reporter.
-        """
+        # Test loading with a progress reporter.
+
         p = TestReporter()
         path = os.path.join(DIR_IO, 'goodlog.zip')
         self.assertFalse(p.entered)
@@ -1270,9 +1271,8 @@ class DataLogTest(unittest.TestCase):
         self.assertIsNone(d)
 
     def test_save_csv(self):
-        """
-        Test saving as csv.
-        """
+        # Test saving as csv.
+
         d = myokit.DataLog()
 
         # Note: a.b and e.f are both non-decreaing, could be taken for time!
@@ -1383,9 +1383,8 @@ class DataLogTest(unittest.TestCase):
             self.assertEqual(len(e.keys()), 0)
 
     def test_load_csv_errors(self):
-        """
-        Test for errors during csv loading.
-        """
+        # Test for errors during csv loading.
+
         # Test errory file, with comments etc., should work fine!
         path = os.path.join(DIR_IO, 'datalog.csv')
         d = myokit.DataLog.load_csv(path).npview()
@@ -1500,9 +1499,8 @@ class DataLogTest(unittest.TestCase):
             myokit.DataLog.load_csv, path)
 
     def test_split(self):
-        """
-        Test the split function.
-        """
+        # Test the split function.
+
         var1 = 'engine.toom'
         var2 = 'membrane.V'
         x = myokit.DataLog({
@@ -1580,9 +1578,8 @@ class DataLogTest(unittest.TestCase):
             x = x.npview()
 
     def test_split_periodic(self):
-        """
-        Test the split_periodic() function.
-        """
+        # Test the split_periodic() function.
+
         tvar = 'engine.toime'
         vvar = 'membrane.V'
         s1 = myokit.DataLog({
@@ -1733,9 +1730,8 @@ class DataLogTest(unittest.TestCase):
         self.assertFalse(d is e)
 
     def test_trim(self):
-        """
-        Test the trim() method.
-        """
+        # Test the trim() method.
+
         d = myokit.DataLog()
         d.set_time_key('t')
         d['t'] = t = [0, 0.1, 0.2, 0.3, 0.4]
@@ -1798,9 +1794,8 @@ class DataLogTest(unittest.TestCase):
         self.assertTrue(np.all(e['v'] == [20, 30, 40]))
 
     def test_trim_left(self):
-        """
-        Test the trim_left function.
-        """
+        # Test the trim_left function.
+
         var1 = 'engine.toom'
         var2 = 'membrane.V'
         adjust = False
@@ -1927,9 +1922,8 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(v, [])
 
     def test_trim_right(self):
-        """
-        Test the cut_right function.
-        """
+        # Test the trim_right function.
+
         var1 = 'engine.toom'
         var2 = 'membrane.V'
 
@@ -1979,9 +1973,8 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(v, [1, 2, 3, 4, 5])
 
     def test_validate(self):
-        """
-        Test the validate() method.
-        """
+        # Test the validate() method.
+
         d = myokit.DataLog()
         d.validate()
         d['time'] = [1, 2, 3]
@@ -2008,9 +2001,8 @@ class DataLogTest(unittest.TestCase):
         self.assertRaises(myokit.InvalidDataLogError, d.validate)
 
     def test_apd(self):
-        """
-        Test the apd method.
-        """
+        # Test the apd method.
+
         # Very coarse check
         d = myokit.DataLog(time='time')
         d['time'] = np.linspace(0, 10, 11)
@@ -2042,9 +2034,8 @@ class DataLogTest(unittest.TestCase):
         self.assertAlmostEqual(1, apds1['duration'][1] / apds2['duration'][1])
 
     def test_clone(self):
-        """
-        Test data log cloning.
-        """
+        # Test data log cloning.
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.Simulation(m, p)
         d1 = s.run(100, log=myokit.LOG_BOUND + myokit.LOG_STATE).npview()
@@ -2068,9 +2059,8 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(type(d2[k]) == np.ndarray)
 
     def test_fold(self):
-        """
-        Test the fold() method.
-        """
+        # Test the fold() method.
+
         d = myokit.DataLog(time='time')
         d['time'] = list(range(100))
         d['x'] = list(np.arange(100) * 3)
@@ -2095,10 +2085,9 @@ class DataLogTest(unittest.TestCase):
         self.assertTrue(np.all(d2['2.x'] == d['x'][60:90]))
 
     def test_has_nan(self):
-        """
-        Test the has_nan() method, which checks if the _final_ value in any
-        field is NaN.
-        """
+        # Test the has_nan() method, which checks if the _final_ value in any
+        # field is NaN.
+
         d = myokit.DataLog(time='time')
         d['time'] = list(range(100))
         d['x'] = list(np.arange(100) * 3)
@@ -2113,9 +2102,9 @@ class DataLogTest(unittest.TestCase):
         self.assertTrue(d.has_nan())
 
     def test_length(self):
-        """
-        Test the lenght() method, that counts the length of the log's entries.
-        """
+        # Test the length() method, that counts the length of the log's
+        # entries.
+
         d = myokit.DataLog(time='time')
         self.assertEqual(d.length(), 0)
         d['time'] = list(np.arange(100) * 3)
@@ -2124,9 +2113,8 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(d.length(), 100)
 
     def test_regularize(self):
-        """
-        Test the regularize() method.
-        """
+        # Test the regularize() method.
+
         d = myokit.DataLog(time='time')
         d['time'] = np.log(np.linspace(1, 25, 100))
         d['values'] = np.linspace(1, 25, 100)
@@ -2146,9 +2134,8 @@ class DataLogTest(unittest.TestCase):
             self.assertTrue(np.abs(np.exp(y) - e['values'][i]) < 0.02)
 
     def test_time(self):
-        """
-        Test the time() method.
-        """
+        # Test the time() method.
+
         d = myokit.DataLog(time='t')
         t = [1, 2, 3]
         d['t'] = t
@@ -2165,9 +2152,8 @@ class DataLogTest(unittest.TestCase):
             myokit.InvalidDataLogError, 'No time', d.time)
 
     def test_variable_info_errors(self):
-        """
-        Test errors raised during variable info checking.
-        """
+        # Test errors raised during variable info checking.
+
         # Test mismatched dimensions (1d versus 2d)
         d = myokit.DataLog(time='t')
         d['t'] = [1, 2, 3, 4]
@@ -2188,9 +2174,8 @@ class DataLogTest(unittest.TestCase):
         # Note: Valid log, so not an InvalidDataLogError
 
     def test_variable_info(self):
-        """
-        Test if correct variable info is returned.
-        """
+        # Test if correct variable info is returned.
+
         d = myokit.DataLog(time='t')
         # Odd grid
         d['0.0.v'] = [0, 1, 2, 3]
