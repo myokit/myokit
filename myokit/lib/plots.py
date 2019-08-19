@@ -336,8 +336,8 @@ def cumulative_current(
             colors.extend(colors)
     else:
         # Colormap
-        cmap = matplotlib.cm.get_cmap(name='Spectral')
-        colors = [cmap(i) for i in np.linspace(0.9, 0.1, len(currents))]
+        cmap = matplotlib.cm.get_cmap(name='tab20')
+        colors = [cmap(i) for i in range(len(currents))]
 
     # Plot
     op = on = 0
