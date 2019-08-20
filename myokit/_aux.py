@@ -1256,10 +1256,17 @@ def step(model, initial=None, reference=None, ignore_errors=False):
             yy = fmat.format(y)
             line = g.format(y)
 
-            # Sign error: zero equals minus zero, don't count as error
-            if xx[0] != yy[0] and (xx[1:] == yy[1:] == zero):
-                log.append(line)
-                log.append(h + ' ' * 24)
+            # Sign error
+            if xx[0] != yy[0]:
+
+                # Ignore if zero
+                if (xx[1:] == yy[1:] == zero):
+                    log.append(line)
+                    log.append(h + ' ' * 24)
+                else:
+                    errors += 1
+                    log.append(line + ' X !!!')
+                    log.append(h + '^' * 24)
 
             # Different exponent, huge error
             elif xx[-4:] != yy[-4:]:
