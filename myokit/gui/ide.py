@@ -1645,6 +1645,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Analysis > Check units strict
         self._tool_units_strict = QtWidgets.QAction(
             'Check units (&strict)', self)
+        self._tool_units_strict.setShortcut('F9')
         self._tool_units_strict.setStatusTip(
             'Check this model\'s units in strict mode.')
         self._tool_units_strict.triggered.connect(
@@ -1653,6 +1654,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Analysis > Check units tolerant
         self._tool_units_tolerant = QtWidgets.QAction(
             'Check units (&tolerant)', self)
+        self._tool_units_tolerant.setShortcut('F10')
         self._tool_units_tolerant.setStatusTip(
             'Check this model\'s units in tolerant mode.')
         self._tool_units_tolerant.triggered.connect(
