@@ -460,6 +460,8 @@ class AuxTest(unittest.TestCase):
         # Add huge mismatch
         m2.get('ix1.x1').set_rhs(
             myokit.Multiply(m2.get('ix1.x1').rhs(), myokit.Number(100)))
+        # Add sign issue
+        m2.get('ina.j').set_rhs('-(' + m2.get('ina.j').rhs().code() + ')')
 
         # Test comparison against another model
         x = myokit.step(m1, reference=m2).splitlines()
@@ -481,8 +483,9 @@ class AuxTest(unittest.TestCase):
             '                                       -1.78891889478854579e-03',
             '                                                               ',
             'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
-            '                                       -3.06255006833574140e-04',
-            '                                                               ',
+            '                                        3.06255006833574140e-04'
+            ' X !!!',
+            '                                       ^^^^^^^^^^^^^^^^^^^^^^^^',
             'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
             '                                       -5.11993904291850035e-06',
             '                                                               ',
@@ -494,7 +497,7 @@ class AuxTest(unittest.TestCase):
             '                                       -3.21682814207918156e-05'
             ' X !!!',
             '                                                           ^^^^',
-            'Found (2) large mismatches between output and reference values.',
+            'Found (3) large mismatches between output and reference values.',
             'Found (1) small mismatches.',
             '-' * 79,
         ]
