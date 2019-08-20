@@ -14,6 +14,7 @@ from __future__ import print_function, unicode_literals
 import gc
 import os
 import sys
+import textwrap
 import traceback
 
 # Myokit
@@ -2263,10 +2264,18 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays the last exception.
         """
+        # Textwrap the final line
+        e1 = traceback.format_exc().splitlines()
+        e2 = e1[-1]
+        e1 = e1[:-1]
+        e2 = textwrap.wrap(e2, width=80)
+        text = '\n'.join(e1 + e2)
+
+        # Show the exception
         QtWidgets.QMessageBox.warning(
             self, TITLE,
             '<h1>An error has occurred.</h1>'
-            '<pre>' + traceback.format_exc() + '</pre>')
+            '<pre>' + text + '</pre>')
 
     def update_navigator(self):
         """
