@@ -1631,13 +1631,13 @@ class ModelTest(unittest.TestCase):
         e = m.show_evaluation_of('ina.ENa')
         self.assertIn('ina.ENa = ', e)
         self.assertIn('Calculated constant', e)
-        self.assertEqual(len(e.splitlines()), 10)
+        self.assertEqual(len(e.splitlines()), 12)
 
         # Test for intermediary variable
         e = m.show_evaluation_of('ina.INa')
         self.assertIn('ina.INa = ', e)
         self.assertIn('Intermediary variable', e)
-        self.assertEqual(len(e.splitlines()), 13)
+        self.assertEqual(len(e.splitlines()), 15)
 
         # Test for state variable (with nested variables)
         e = m.show_evaluation_of('ina.m')
@@ -1662,7 +1662,7 @@ class ModelTest(unittest.TestCase):
         m = myokit.load_model('example')
         e = m.show_expressions_for(m.get('ina.INa'))
         self.assertIn('ina.INa is a function of', e)
-        self.assertEqual(len(e.splitlines()), 20)
+        self.assertEqual(len(e.splitlines()), 22)
 
     def test_show_line_of(self):
         # Test :meth:`Model.show_line_of(variable)`.
@@ -1671,7 +1671,7 @@ class ModelTest(unittest.TestCase):
         e = m.show_line_of(m.get('ina.INa'))
         self.assertIn('Defined on line 86', e)
         self.assertIn('Intermediary variable', e)
-        self.assertEqual(len(e.splitlines()), 3)
+        self.assertEqual(len(e.splitlines()), 4)
 
         # Test deprecated alias
         m.show_line(m.get('ina.INa'))

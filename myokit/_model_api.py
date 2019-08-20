@@ -2966,10 +2966,14 @@ class Model(ObjectWithMeta, VarProvider):
         out.append('Showing: ' + var.qname() + '  (' + kind + ')')
         if spacer is not None:
             out.append(spacer)
+        unit = var.unit()
+        if unit is not None:
+            out.append('in ' + str(unit))
+            if spacer is not None:
+                out.append(spacer)
         desc = var.meta.get('desc')
         if desc is not None:
-            if desc is not None:
-                out.append('desc: ' + str(desc))
+            out.append('desc: ' + str(desc))
             if spacer is not None:
                 out.append(spacer)
         return (var, out)
