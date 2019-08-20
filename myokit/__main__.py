@@ -1035,7 +1035,7 @@ def step(source, ref, ini, raw):
             print('Reading model from ' + source + '...')
         model = myokit.load_model(source)
         if not raw:
-            print('Model ' + model.name() + ' read successfully.')
+            print('Model ' + source + ' read successfully.')
     except myokit.ParseError as ex:
         print(myokit.format_parse_error(ex, source))
         sys.exit(1)
