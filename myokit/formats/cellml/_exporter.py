@@ -16,6 +16,24 @@ import myokit
 import myokit.units
 import myokit.formats
 
+# Quoting URI strings in Python2 and Python3
+try:
+    from urllib.parse import quote
+except ImportError: # pragma: no python 3 cover
+    # Python 2
+    from urllib import quote
+
+
+# Namespaces
+NS_BQBIOL = 'http://biomodels.net/biology-qualifiers/'
+NS_CELLML_1_0 = 'http://www.cellml.org/cellml/1.0#'
+NS_CMETA = 'http://www.cellml.org/metadata/1.0#'
+NS_MATHML = 'http://www.w3.org/1998/Math/MathML'
+NS_OXMETA = 'https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#'
+NS_RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+#NS_RDFS = 'http://www.w3.org/2000/01/rdf-schema#'
+NS_TMP_DOC = 'http://cellml.org/tmp-documentation'
+
 
 class CellMLExporter(myokit.formats.Exporter):
     """
@@ -182,14 +200,14 @@ class CellMLExporter(myokit.formats.Exporter):
 
         # Create model xml element
         emodel = et.Element('model')
-        emodel.attrib['xmlns'] = 'http://www.cellml.org/cellml/1.0#'
-        emodel.attrib['xmlns:cellml'] = 'http://www.cellml.org/cellml/1.0#'
+        emodel.attrib['xmlns'] = NS_CELLML_1_0
+        emodel.attrib['xmlns:cellml'] = NS_CELLML_1_0
 
         # Add name in 'tmp-documentation' format
         emodel.attrib['name'] = 'generated_model'
         if 'name' in model.meta:
             dtag = et.SubElement(emodel, 'documentation')
-            dtag.attrib['xmlns'] = 'http://cellml.org/tmp-documentation'
+            dtag.attrib['xmlns'] = NS_TMP_DOC
             atag = et.SubElement(dtag, 'article')
             ttag = et.SubElement(atag, 'title')
             ttag.text = model.meta['name']
@@ -290,11 +308,28 @@ class CellMLExporter(myokit.formats.Exporter):
                 if var.has_variables():
                     export_nested_var(ecomp, cname, var)
 
+        # Collect oxmeta annotated variables
+        oxmeta_vars = {}
+
         # Add variables
         def add_variable(eparent, var):
             evar = et.SubElement(eparent, 'variable')
             evars[var] = evar
             evar.attrib['name'] = var.uname()
+
+            # Weblab oxmeta id given? Then add a cmeta id to reference via RDF
+            # later.
+            if 'oxmeta' in var.meta:
+                # Ensure cmeta namespace is defined
+                if 'xmlns:cmeta' not in emodel.attrib:
+                    emodel.attrib['xmlns:cmeta'] = NS_CMETA
+
+                # Add cmeta:id to variable
+                cmeta_id = var.uname()
+                evar.attrib['cmeta:id'] = cmeta_id
+
+                # Store cmeta id and annotation for later
+                oxmeta_vars[cmeta_id] = var.meta['oxmeta']
 
             # Add units
             unit = var.unit()
@@ -377,6 +412,21 @@ class CellMLExporter(myokit.formats.Exporter):
                             vtag.attrib['variable_1'] = vname
                             vtag.attrib['variable_2'] = vname
 
+        # Add RDF for oxmeta annotated variables
+        if oxmeta_vars:
+            erdf = et.SubElement(emodel, 'rdf:RDF', attrib={
+                #'xmlns:rdfs': NS_RDFS,
+                'xmlns:bqbiol': NS_BQBIOL,
+                'xmlns:oxmeta': NS_OXMETA,
+                'xmlns:rdf': NS_RDF,
+            })
+            for cmeta_id in sorted(oxmeta_vars):
+                annotation = oxmeta_vars[cmeta_id]
+                edesc = et.SubElement(erdf, 'rdf:Description')
+                edesc.attrib['rdf:about'] = '#' + cmeta_id
+                eis = et.SubElement(edesc, 'bqbiol:is')
+                eis.attrib['rdf:resource'] = NS_OXMETA + quote(annotation)
+
         # Create CellMLWriter
         writer = cellml.CellMLExpressionWriter(units=unit_map)
         writer.set_element_tree_class(et)
@@ -390,7 +440,7 @@ class CellMLExporter(myokit.formats.Exporter):
             except KeyError:
                 return
             maths = et.SubElement(ecomp, 'math')
-            maths.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
+            maths.attrib['xmlns'] = NS_MATHML
             for var in parent.variables():
                 # No equation for time variable
                 if var == time:

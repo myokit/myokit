@@ -36,7 +36,7 @@ class CellMLImporterTest(unittest.TestCase):
     """
     Tests the CellML importer.
     """
-
+    '''
     def test_capability_reporting(self):
         # Test if the right capabilities are reported.
         i = formats.importer('cellml')
@@ -681,7 +681,71 @@ class CellMLExporterTest(unittest.TestCase):
             sorted_comps = list(comps)
             sorted_comps.sort()
             self.assertTrue(comps == sorted_comps)
+    '''
+    def test_weblab_annotation_export(self):
 
+        # Create a test model
+        m = myokit.Model()
+        m.meta['name'] = 'Hello'
+
+        cc = m.add_component('C')
+        t = cc.add_variable('time')
+        t.set_rhs('0 [ms]')
+        t.set_unit('ms')
+        t.set_binding('time')
+
+        ca = m.add_component('A')
+        x = ca.add_variable('INa')
+        x.set_rhs('2 [ms]')
+        x.set_unit('ms')
+
+        cd = m.add_component('D')
+        y = cd.add_variable('y')
+        y.set_rhs('1 [ms]')
+        y.set_unit('ms')
+
+        cb = m.add_component('B')
+        z = cb.add_variable('z')
+        z.set_rhs('3 [ms]')
+        z.set_unit('ms')
+
+        # No oxmeta annotations: No cmeta namespace or RDF annotations
+        exporter = myokit.formats.cellml.CellMLExporter()
+        importer = myokit.formats.cellml.CellMLImporter()
+        with TemporaryDirectory() as d:
+            path = d.path('model.cellml')
+            exporter.model(path, m)
+            with open(path, 'r') as f:
+                xml = f.read()
+            self.assertTrue('xmlns:cmeta' not in xml)
+            self.assertTrue('cmeta:id' not in xml)
+            self.assertTrue('<rdf' not in xml)
+
+        # Add oxmeta annotations
+        t.meta['oxmeta'] = 'time'
+        x.meta['oxmeta'] = 'membrane_fast_sodium_current'
+        with TemporaryDirectory() as d:
+            path = d.path('model.cellml')
+            exporter.model(path, m)
+            time_found = ina_found = False
+            with open(path, 'r') as f:
+                lines = f.readlines()
+                for i, line in enumerate(lines):
+                    if 'rdf:about="#time"' in line:
+                        time_found = True
+                        self.assertIn('oxford-metadata#time', lines[i + 1])
+
+                    if 'rdf:about="#INa"' in line:
+                        ina_found = True
+                        self.assertIn(
+                            'oxford-metadata#membrane_fast_sodium_current',
+                            lines[i + 1])
+
+                self.assertTrue(time_found)
+                self.assertTrue(ina_found)
+
+            # Re-import, check if model can still be read
+            m2 = importer.model(path)
 
 if __name__ == '__main__':
     unittest.main()
