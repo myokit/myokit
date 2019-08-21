@@ -387,6 +387,10 @@ class CellMLExporter(myokit.formats.Exporter):
             maths = et.SubElement(ecomp, 'math')
             maths.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
             for var in parent.variables():
+                # No equation for time variable
+                if var == time:
+                    continue
+                # Literals already have an initial value
                 if var.is_literal():
                     continue
                 writer.eq(var.eq(), maths)
