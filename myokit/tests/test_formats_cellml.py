@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the CellML importer
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -38,7 +38,7 @@ class CellMLImporterTest(unittest.TestCase):
     """
 
     def test_capability_reporting(self):
-        """ Test if the right capabilities are reported. """
+        # Test if the right capabilities are reported.
         i = formats.importer('cellml')
         self.assertFalse(i.supports_component())
         self.assertTrue(i.supports_model())
@@ -81,9 +81,8 @@ class CellMLImporterTest(unittest.TestCase):
             i.model, os.path.join(DIR_FORMATS, 'cellml-2-reaction.cellml'))
 
     def test_factorial(self):
-        """
-        Test if factorial, partialdiff, and sum elements trigger a warning.
-        """
+        # Test if factorial, partialdiff, and sum elements trigger a warning.
+
         i = formats.importer('cellml')
         i.model(os.path.join(
             DIR_FORMATS, 'cellml-3-factorial-partialdiff-sum.cellml'))
@@ -93,9 +92,8 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertIn('<sum>', w)
 
     def test_unit_errors(self):
-        """
-        Test if warnings to do with units are raised.
-        """
+        # Test if warnings to do with units are raised.
+
         i = formats.importer('cellml')
         m = i.model(os.path.join(
             DIR_FORMATS, 'cellml-4-unit-errors.cellml'))
@@ -125,9 +123,8 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertIn('Unable to parse exponent', w)
 
     def test_group_errors(self):
-        """
-        Test if warnings related to groups are raised.
-        """
+        # Test if warnings related to groups are raised.
+
         i = formats.importer('cellml')
         self.assertRaisesRegex(
             myokit.formats.cellml.CellMLError,
@@ -142,9 +139,8 @@ class CellMLImporterTest(unittest.TestCase):
             os.path.join(DIR_FORMATS, 'cellml-5-group-errors-2.cellml'))
 
     def test_connection_errors(self):
-        """
-        Test if warnings related to connections are raised.
-        """
+        # Test if warnings related to connections are raised.
+
         # Connection fo component that doesn't exist
         i = formats.importer('cellml')
         self.assertRaisesRegex(
@@ -175,9 +171,8 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertIn('Unit mismatch between', w)
 
     def test_equation_errors(self):
-        """
-        Test warnings raised in equation handling.
-        """
+        # Test warnings raised in equation handling.
+
         i = formats.importer('cellml')
 
         # Two variables of integration
@@ -221,9 +216,8 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertIn('No initial value', w)
 
     def test_name_errors(self):
-        """
-        Test warnings raised in name handling.
-        """
+        # Test warnings raised in name handling.
+
         i = formats.importer('cellml')
         i.model(
             os.path.join(DIR_FORMATS, 'cellml-8-invalid-names.cellml'))
@@ -237,6 +231,7 @@ class CellMLExpressionWriterTest(unittest.TestCase):
     """
 
     def test_all(self):
+
         # CellML requires unit mapping
         units = {
             myokit.parse_unit('pF'): 'picofarad',
@@ -432,9 +427,8 @@ class CellMLExporterTest(unittest.TestCase):
     """
 
     def test_stimulus_generation(self):
-        """
-        Test generation of a default stimulus current.
-        """
+        # Test generation of a default stimulus current.
+
         # Start creating model
         model = myokit.Model()
         engine = model.add_component('engine')
@@ -532,9 +526,8 @@ class CellMLExporterTest(unittest.TestCase):
             self.assertEqual(m2.get('stimulus_3.ctime').eval(), 0)
 
     def test_unit_export(self):
-        """
-        Test exporting units.
-        """
+        # Test exporting units.
+
         # Start creating model
         model = myokit.Model()
         engine = model.add_component('engine')
@@ -571,10 +564,9 @@ class CellMLExporterTest(unittest.TestCase):
             self.assertEqual(m2.get('engine.time').unit(), mad_unit)
 
     def test_component_name_clashes(self):
-        """
-        Test if name clashes in components (due to nested variables parents
-        becoming components) are resolved.
-        """
+        # Test if name clashes in components (due to nested variables parents
+        # becoming components) are resolved.
+
         # Start creating model
         model = myokit.Model()
         engine = model.add_component('x')
@@ -608,9 +600,8 @@ class CellMLExporterTest(unittest.TestCase):
             self.assertIn('x_y_2', m2)
 
     def test_nested_variables(self):
-        """
-        Test export of deep nesting structures.
-        """
+        # Test export of deep nesting structures.
+
         # Start creating model
         model = myokit.Model()
         engine = model.add_component('x')
@@ -648,6 +639,48 @@ class CellMLExporterTest(unittest.TestCase):
             self.assertIn('x_p1_p2_p3_p4', m2)
             self.assertIn('x_p1_p2_p3_p4_p5', m2)
             self.assertNotIn('x_p1_p2_p3_p4_p5_p6', m2)
+
+    def test_component_ordering(self):
+
+        # Create quick model without any nested variables
+        m = myokit.Model()
+        m.meta['name'] = 'Hello'
+
+        c = m.add_component('C')
+        x = c.add_variable('x')
+        x.set_rhs('5 [ms]')
+        x.set_unit('ms')
+        x.set_binding('time')
+
+        a = m.add_component('A')
+        x = a.add_variable('x')
+        x.set_rhs('2 [ms]')
+        x.set_unit('ms')
+
+        d = m.add_component('D')
+        x = d.add_variable('x')
+        x.set_rhs('1 [ms]')
+        x.set_unit('ms')
+
+        b = m.add_component('B')
+        x = b.add_variable('x')
+        x.set_rhs('3 [ms]')
+        x.set_unit('ms')
+
+        e = myokit.formats.cellml.CellMLExporter()
+        with TemporaryDirectory() as d:
+            path = d.path('model.cellml')
+            e.model(path, m)
+
+            comps = []
+            with open(path, 'r') as f:
+                for line in f.readlines():
+                    line = line.strip()
+                    if line.startswith('<component name="'):
+                        comps.append(line[17:-2])
+            sorted_comps = list(comps)
+            sorted_comps.sort()
+            self.assertTrue(comps == sorted_comps)
 
 
 if __name__ == '__main__':
