@@ -598,7 +598,8 @@ class CellMLImporter(myokit.formats.Importer):
             'mega': 1e6,
             'kilo': 1e3,
             'hecto': 1e2,
-            'deka': 1e1,
+            'deka': 1e1,            # US Style, as defined in CellML 1.0
+            'deca': 1e1,            # SI prefix
             'deci': 1e-1,
             'centi': 1e-2,
             'milli': 1e-3,
