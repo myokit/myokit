@@ -184,6 +184,8 @@ class CellMLExporter(myokit.formats.Exporter):
         emodel = et.Element('model')
         emodel.attrib['xmlns'] = 'http://www.cellml.org/cellml/1.0#'
         emodel.attrib['xmlns:cellml'] = 'http://www.cellml.org/cellml/1.0#'
+
+        # Add name in 'tmp-documentation' format
         emodel.attrib['name'] = 'generated_model'
         if 'name' in model.meta:
             dtag = et.SubElement(emodel, 'documentation')
@@ -274,7 +276,7 @@ class CellMLExporter(myokit.formats.Exporter):
                 if kid.has_variables():
                     export_nested_var(ecomp, cname, kid)
 
-        for comp in model.components():
+        for comp in sorted(model.components(), key=lambda c: c.name()):
             # Create unique name
             cname = uname(comp.name())
             cnames[comp] = cname
@@ -289,26 +291,29 @@ class CellMLExporter(myokit.formats.Exporter):
                     export_nested_var(ecomp, cname, var)
 
         # Add variables
+        def add_variable(eparent, var):
+            evar = et.SubElement(eparent, 'variable')
+            evars[var] = evar
+            evar.attrib['name'] = var.uname()
+
+            # Add units
+            unit = var.unit()
+            unit = unit_map[unit] if unit else 'dimensionless'
+            evar.attrib['units'] = unit
+
+            # Add initial value
+            init = None
+            if var.is_literal():
+                init = var.rhs().eval()
+            elif var.is_state():
+                init = var.state_value()
+            if init is not None:
+                evar.attrib['initial_value'] = myokit.strfloat(init)
+
         evars = {}
         for parent, eparent in ecomps.items():
             for var in parent.variables():
-                evar = et.SubElement(eparent, 'variable')
-                evars[var] = evar
-                evar.attrib['name'] = var.uname()
-
-                # Add units
-                unit = var.unit()
-                unit = unit_map[unit] if unit else 'dimensionless'
-                evar.attrib['units'] = unit
-
-                # Add initial value
-                init = None
-                if var.is_literal():
-                    init = var.rhs().eval()
-                elif var.is_state():
-                    init = var.state_value()
-                if init is not None:
-                    evar.attrib['initial_value'] = myokit.strfloat(init)
+                add_variable(eparent, var)
 
         # Add variable interfaces, connections
         deps = model.map_shallow_dependencies(
