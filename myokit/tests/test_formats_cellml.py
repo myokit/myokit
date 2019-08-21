@@ -36,7 +36,7 @@ class CellMLImporterTest(unittest.TestCase):
     """
     Tests the CellML importer.
     """
-    '''
+
     def test_capability_reporting(self):
         # Test if the right capabilities are reported.
         i = formats.importer('cellml')
@@ -681,8 +681,9 @@ class CellMLExporterTest(unittest.TestCase):
             sorted_comps = list(comps)
             sorted_comps.sort()
             self.assertTrue(comps == sorted_comps)
-    '''
-    def test_weblab_annotation_export(self):
+
+    def test_oxmeta_annotation_export(self):
+        # Text export of weblab oxmeta annotation
 
         # Create a test model
         m = myokit.Model()
@@ -746,6 +747,7 @@ class CellMLExporterTest(unittest.TestCase):
 
             # Re-import, check if model can still be read
             m2 = importer.model(path)
+
 
 if __name__ == '__main__':
     unittest.main()

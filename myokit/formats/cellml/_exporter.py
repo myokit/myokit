@@ -104,6 +104,11 @@ class CellMLExporter(myokit.formats.Exporter):
           protocols as separate things. To generate a model file with a simple
           embbeded protocol, add the optional argument
           ``add_hardcoded_pacing=True``.
+        * Variables annotated with an ``oxmeta`` property will be annotated
+          using the oxmeta namespace in the created CellML. For example, a
+          variable with the meta-data ``oxmeta: time`` will be annotated as
+          ``https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#time`` in
+          the CellML file.
 
         """
         path = os.path.abspath(os.path.expanduser(path))
