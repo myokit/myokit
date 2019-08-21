@@ -19,7 +19,7 @@ import myokit.formats
 # Quoting URI strings in Python2 and Python3
 try:
     from urllib.parse import quote
-except ImportError: # pragma: no python 3 cover
+except ImportError:     # pragma: no python 3 cover
     # Python 2
     from urllib import quote
 
@@ -414,11 +414,11 @@ class CellMLExporter(myokit.formats.Exporter):
 
         # Add RDF for oxmeta annotated variables
         if oxmeta_vars:
-            erdf = et.SubElement(emodel, 'rdf:RDF', attrib={
-                #'xmlns:rdfs': NS_RDFS,
+            erdf = et.SubElement(emodel, 'rdf:RDF', {
                 'xmlns:bqbiol': NS_BQBIOL,
                 'xmlns:oxmeta': NS_OXMETA,
                 'xmlns:rdf': NS_RDF,
+                #'xmlns:rdfs': NS_RDFS,
             })
             for cmeta_id in sorted(oxmeta_vars):
                 annotation = oxmeta_vars[cmeta_id]
