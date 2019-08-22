@@ -258,8 +258,11 @@ class CellMLExporter(myokit.formats.Exporter):
             # Add the new unit to the list
             unit_map[unit] = name
 
+        # Sort by name
+        sortkey = lambda x: x.qname()
+
         # Add variable and expression units
-        for var in model.variables(deep=True):
+        for var in sorted(model.variables(deep=True), key=sortkey):
             add_unit(var.unit())
             for e in var.rhs().walk(myokit.Number):
                 add_unit(e.unit())
@@ -269,7 +272,6 @@ class CellMLExporter(myokit.formats.Exporter):
             unit_map[unit] = name
 
         # Add components
-        #TODO: Order components
         # Components can correspond to Myokit components or variables with
         # children!
         ecomps = {}     # Components/Variables: elements (tags)
@@ -290,26 +292,30 @@ class CellMLExporter(myokit.formats.Exporter):
             cname = uname(parent_name + '_' + var.uname())
             cnames[var] = cname
             unames.add(cname)
+
             # Create element
             ecomp = et.SubElement(emodel, 'component')
             ecomp.attrib['name'] = cname
             ecomps[var] = ecomp
+
             # Check for nested variables with children
-            for kid in var.variables():
+            for kid in sorted(var.variables(), key=sortkey):
                 if kid.has_variables():
                     export_nested_var(ecomp, cname, kid)
 
-        for comp in sorted(model.components(), key=lambda c: c.name()):
+        for comp in sorted(model.components(), key=sortkey):
             # Create unique name
             cname = uname(comp.name())
             cnames[comp] = cname
             unames.add(cname)
+
             # Create element
             ecomp = et.SubElement(emodel, 'component')
             ecomp.attrib['name'] = cname
             ecomps[comp] = ecomp
+
             # Check for variables with children
-            for var in comp.variables():
+            for var in sorted(comp.variables(), key=sortkey):
                 if var.has_variables():
                     export_nested_var(ecomp, cname, var)
 
@@ -351,22 +357,26 @@ class CellMLExporter(myokit.formats.Exporter):
                 evar.attrib['initial_value'] = myokit.strfloat(init)
 
         evars = {}
-        for parent, eparent in ecomps.items():
-            for var in parent.variables():
+        for parent in sorted(ecomps, key=sortkey):
+            eparent = ecomps[parent]
+            for var in sorted(parent.variables(), key=sortkey):
                 add_variable(eparent, var)
 
         # Add variable interfaces, connections
         deps = model.map_shallow_dependencies(
             omit_states=False, omit_constants=False)
-        for var, evar in evars.items():
+        for var in sorted(evars, key=sortkey):
+            evar = evars[var]
             # Scan all variables, iterate over the vars they depend on
             par = var.parent()
             lhs = var.lhs()
             dps = set(deps[lhs])
+
+            # Add dependency on time for state variables
             if var.is_state():
-                # States also depend on the time variable
                 dps.add(time.lhs())
-            for dls in dps:
+
+            for dls in sorted(dps, key=lambda x: x.var().qname()):
                 dep = dls.var()
                 dpa = dep.parent()
                 # Parent mismatch: requires connection
@@ -378,24 +388,29 @@ class CellMLExporter(myokit.formats.Exporter):
                         # Create variable tag
                         tag = et.SubElement(epar, 'variable')
                         tag.attrib['name'] = dep.uname()
+
                         # Add unit
                         unit = dep.unit()
                         unit = unit_map[unit] if unit else 'dimensionless'
                         tag.attrib['units'] = unit
+
                         # Set interfaces
                         tag.attrib['public_interface'] = 'in'
                         edpa = ecomps[dpa]
                         tag = edpa.find(
                             'variable[@name="' + dep.uname() + '"]')
                         tag.attrib['public_interface'] = 'out'
+
                         # Add connection for this variable
                         comp1 = cnames[par]
                         comp2 = cnames[dpa]
                         vname = dep.uname()
+
                         # Sort components in connection alphabetically to
                         # ensure uniqueness
                         if comp2 < comp1:
                             comp1, comp2 = comp2, comp1
+
                         # Find or create connection
                         ctag = None
                         for con in emodel.findall('connection'):
@@ -446,7 +461,7 @@ class CellMLExporter(myokit.formats.Exporter):
                 return
             maths = et.SubElement(ecomp, 'math')
             maths.attrib['xmlns'] = NS_MATHML
-            for var in parent.variables():
+            for var in sorted(parent.variables(), key=sortkey):
                 # No equation for time variable
                 if var == time:
                     continue
@@ -455,6 +470,7 @@ class CellMLExporter(myokit.formats.Exporter):
                     continue
                 writer.eq(var.eq(), maths)
                 add_child_equations(var)
+
         for comp in model.components():
             add_child_equations(comp)
 
