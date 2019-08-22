@@ -1,14 +1,15 @@
 [run]
 source = myokit
 omit =
-    myokit/tests/*
     myokit/gui/*
+    myokit/tests/*
+    myokit/__main__.py
+    myokit/_exec_old.py
+    myokit/lib/common.py
+    myokit/lib/fit.py
     myokit/_sim/opencl.py
     myokit/_sim/openclsim.py
     myokit/_sim/fiber_tissue.py
-    myokit/__main__.py
-    myokit/lib/common.py
-    myokit/lib/fit.py
 
 [report]
 exclude_lines =
