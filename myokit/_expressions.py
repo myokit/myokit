@@ -2302,6 +2302,10 @@ class EvalUnitError(Exception):
     def __init__(self, expr, err):
         self.expr = expr
         self.err = err
+        self.line = self.char = None
+        if expr._token is not None:
+            self.line = expr._token[2]
+            self.char = expr._token[3]
 
 
 def _expr_error_message(owner, e):
@@ -2337,7 +2341,14 @@ def _expr_error_message(owner, e):
 
     # Show there was an error
     out = []
-    out.append(str(e.err))
+    if isinstance(e, EvalUnitError):
+        msg = 'Incompatible units'
+        if owner._token is not None:
+            msg += ' on line ' + str(owner._token[2])
+        msg += ': ' + str(e.err)
+        out.append(msg)
+    else:
+        out.append(str(e.err))
     out.append('Encountered when evaluating')
     par_str = '  ' + owner.code()
     err_str = e.expr.code()
