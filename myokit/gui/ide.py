@@ -286,6 +286,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self._console.write('Units ok! (checked in tolerant mode)')
         except myokit.IncompatibleUnitError as e:
             self._console.write(str(e))
+
+            # Jump to error, if possible
+            token = e.token()
+            if token is None:
+                return
+            line, char = token[2], token[3]
+            self._editor_tabs.setCurrentWidget(self._model_editor)
+            self.statusBar().showMessage(
+                'Jumping to (' + str(line) + ',' + str(char) + ').')
+            self._model_editor.jump_to(line - 1, char)
         except Exception:
             self.show_exception()
 
@@ -301,6 +311,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self._console.write('Units ok! (checked in strict mode)')
         except myokit.IncompatibleUnitError as e:
             self._console.write(str(e))
+
+            # Jump to error, if possible
+            token = e.token()
+            if token is None:
+                return
+            line, char = token[2], token[3]
+            self._editor_tabs.setCurrentWidget(self._model_editor)
+            self.statusBar().showMessage(
+                'Jumping to (' + str(line) + ',' + str(char) + ').')
+            self._model_editor.jump_to(line - 1, char)
         except Exception:
             self.show_exception()
 
@@ -628,7 +648,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
     def action_jump_to_error(self):
         """
-        Jump tot the last error in the model tab.
+        Jump to the last error in the model tab.
         """
         try:
             # Check for error

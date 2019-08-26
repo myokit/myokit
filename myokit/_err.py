@@ -200,6 +200,16 @@ class IncompatibleUnitError(MyokitError):
 
     *Extends:* :class:`myokit.MyokitError`.
     """
+    def __init__(self, message, token=None):
+        super(MyokitError, self).__init__(message)
+        self._token = token
+
+    def token(self):
+        """
+        Returns a parser token associated with this error, or ``None`` if no
+        such token was given.
+        """
+        return self._token
 
 
 class InvalidBindingError(IntegrityError):

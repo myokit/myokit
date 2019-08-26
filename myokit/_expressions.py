@@ -283,7 +283,8 @@ class Expression(object):
         try:
             return self._eval_unit(mode)
         except EvalUnitError as e:
-            raise myokit.IncompatibleUnitError(_expr_error_message(self, e))
+            raise myokit.IncompatibleUnitError(
+                _expr_error_message(self, e), e.expr._token)
 
     def _eval_unit(self, mode):
         """
@@ -2343,8 +2344,8 @@ def _expr_error_message(owner, e):
     out = []
     if isinstance(e, EvalUnitError):
         msg = 'Incompatible units'
-        if owner._token is not None:
-            msg += ' on line ' + str(owner._token[2])
+        if e.expr._token is not None:
+            msg += ' on line ' + str(e.expr._token[2])
         msg += ': ' + str(e.err)
         out.append(msg)
     else:
