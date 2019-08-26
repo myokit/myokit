@@ -1100,6 +1100,21 @@ class ModelTest(unittest.TestCase):
         model.check_units()
         self.assertRaises(myokit.IncompatibleUnitError, model.check_units, s)
 
+        # Tokens are used in IncompatibleUnitError messages
+        m = myokit.parse_model('\n'.join([
+            '[[model]]',
+            '[a]',
+            't = 0 [ms] bind time',
+        ]))
+        try:
+            m.check_units(s)
+        except myokit.IncompatibleUnitError as e:
+            self.assertIn('on line 3', str(e))
+            token = e.token()
+            self.assertIsNotNone(token)
+            self.assertEqual(token[2], 3)
+            self.assertEqual(token[3], 0)
+
     def test_code(self):
         # Test :meth:`Model.code()`.
         model = myokit.Model('m')
