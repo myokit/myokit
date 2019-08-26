@@ -1003,10 +1003,10 @@ class Model(ObjectWithMeta, VarProvider):
             if v != e and v is not None and e is not None:
                 msg = 'Incompatible units in <' + var.qname() + '>'
                 if var._token is not None:
-                    ' on line ' + str(var._token[2])
+                    msg += ' on line ' + str(var._token[2])
                 msg += '. Variable unit ' + str(v)
                 msg += ' differs from calculated unit ' + str(e) + '.'
-                raise myokit.IncompatibleUnitError(msg)
+                raise myokit.IncompatibleUnitError(msg, var._token)
 
     def clone(self):
         """
