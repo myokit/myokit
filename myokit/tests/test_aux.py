@@ -72,7 +72,8 @@ class AuxTest(unittest.TestCase):
         x = [0] * 1000
         t2 = b.time()
         self.assertTrue(t2 >= t1)
-        x = [0] * 1000
+        for i in range(1000):
+            x = [0] * 1000
         t3 = b.time()
         self.assertTrue(t3 >= t2)
         b.reset()

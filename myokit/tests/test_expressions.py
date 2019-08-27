@@ -980,6 +980,23 @@ class PlusTest(unittest.TestCase):
         self.assertEqual(
             z.rhs().eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
+        # Tokens are used in IncompatibleUnitError messages
+        m = myokit.parse_model('\n'.join([
+            '[[model]]',
+            '[a]',
+            't = 1 [ms] + 1 [mV]',
+            '    in [ms]',
+            '    bind time',
+        ]))
+        try:
+            m.check_units(myokit.UNIT_STRICT)
+        except myokit.IncompatibleUnitError as e:
+            self.assertIn('on line 3', str(e))
+            token = e.token()
+            self.assertIsNotNone(token)
+            self.assertEqual(token[2], 3)
+            self.assertEqual(token[3], 11)
+
     def test_tree_str(self):
         """ Test Plus.tree_str(). """
         # Test simple
