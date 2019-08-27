@@ -3,7 +3,7 @@
 # Tests the unit and quantity classes
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -24,9 +24,8 @@ except AttributeError:
 class MyokitUnitTest(unittest.TestCase):
 
     def test_create(self):
-        """
-        Test basic unit creation.
-        """
+        # Test basic unit creation.
+
         myokit.Unit.parse_simple('mV')
         myokit.Unit.parse_simple('g')
         myokit.Unit.parse_simple('kg')
@@ -36,27 +35,24 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertRaises(ValueError, myokit.Unit, [0, 0, 0, 0, 0, 0, 0, 0])
 
     def test_can_convert(self):
-        """
-        Test :meth:`Unit.can_convert()`.
-        """
+        # Test :meth:`Unit.can_convert()`.
+
         self.assertTrue(myokit.Unit.can_convert(
             myokit.units.volt, myokit.units.mV))
         self.assertFalse(myokit.Unit.can_convert(
             myokit.units.volt, myokit.units.ampere))
 
     def test_conversion_factor(self):
-        """
-        Test :meth:`Unit.conversion_factor()`.
-        """
+        # Test :meth:`Unit.conversion_factor()`.
+
         self.assertEqual(myokit.Unit.conversion_factor('m', 'km'), 0.001)
         self.assertEqual(myokit.Unit.conversion_factor('km', 'm'), 1000)
         self.assertEqual(myokit.Unit.conversion_factor('hm', 'm'), 100)
         self.assertEqual(myokit.Unit.conversion_factor('inches', 'cm'), 2.54)
 
     def test_convert(self):
-        """
-        Test :meth:`Unit.convert()`.
-        """
+        # Test :meth:`Unit.convert()`.
+
         mV = myokit.units.mV
         V = myokit.units.V
         self.assertEqual(myokit.Unit.convert(2, mV, V), 0.002)
@@ -96,7 +92,7 @@ class MyokitUnitTest(unittest.TestCase):
             myokit.Unit.convert, 1, 'Alf', V)
 
     def test_float(self):
-        """ Test :meth:`Unit.__float__()`. """
+        # Test :meth:`Unit.__float__()`.
         x = myokit.Unit()
         x *= 123
         self.assertAlmostEqual(float(x), 123)
@@ -106,7 +102,8 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertRaises(TypeError, float, x)
 
     def test_operators(self):
-        """ Test overloaded unit operators. """
+        # Test overloaded unit operators.
+
         # Test div
         d = myokit.Unit()
         self.assertEqual(d._x, [0] * 7)
@@ -152,9 +149,8 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertEqual(d._m, 0)
 
     def test_parse_simple(self):
-        """
-        Test edge cases for :meth:`Unit.parse_simple()`.
-        """
+        # Test edge cases for :meth:`Unit.parse_simple()`.
+
         # Easy case
         self.assertEqual(myokit.Unit.parse_simple('mV'), myokit.units.mV)
 
@@ -172,30 +168,48 @@ class MyokitUnitTest(unittest.TestCase):
             KeyError, 'Unknown unit', myokit.Unit.parse_simple, 'Frog')
 
     def test_register_errors(self):
-        """ Test errors for Unit.register (rest is already used a lot). """
+        # Test errors for Unit.register (rest is already used a lot).
         self.assertRaises(TypeError, myokit.Unit.register, 4, myokit.Unit())
         self.assertRaises(TypeError, myokit.Unit.register, 'hi', 4)
 
-    def test_str_and_repr(self):
-        """
-        Test :meth:`Unit.str()` and :meth:`Unit.repr()`.
-        """
-        self.assertEqual(repr(myokit.units.N), '[g*m/s^2 (1000)]')
+    def test_str(self):
+        # Test :meth:`Unit.str()`
+
         # Unit with representation in alternative base
         km_per_s = myokit.Unit([0, 1, -1, 0, 0, 0, 0], 3)
+
         # Myokit doesn't know km/s, it does know m/s so this should become:
         self.assertEqual(str(km_per_s), '[m/s (1000)]')
+
         # Myokit doesn't know MA/m^2
         mam2 = myokit.parse_unit('MA/m^2')
         self.assertEqual(str(mam2), '[A/m^2 (1000000)]')
+
+    def test_repr(self):
+        # Test :meth:`Unit.repr()`.
+
+        m = myokit.parse_unit('m')
+
+        im = 1/m
+        self.assertEqual(repr(im), '[1/m]')
+
+        um = m*1e-16
+        self.assertEqual(repr(um), '[um]')
+
+        um3 = myokit.parse_unit('um^3')
+        self.assertEqual(repr(um3), '[m^3 (1e-18)]')
+
+        self.assertEqual(repr(myokit.units.N), '[g*m/s^2 (1000)]')
 
 
 class QuantityTest(unittest.TestCase):
     """
     Tests the Quantity class for unit arithmetic.
     """
+
     def test_creation_and_str(self):
-        """ Test Quanity creation and :meth:`Quantity.__str__()`. """
+        # Test Quanity creation and :meth:`Quantity.__str__()`.
+
         from myokit import Quantity as Q
 
         # Creation and string representation
@@ -238,7 +252,8 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(str(x), x.__hash__())
 
     def test_number_conversion(self):
-        """ Test Quantity conversion from and to number. """
+        # Test Quantity conversion from and to number.
+
         from myokit import Quantity as Q
         from myokit import Number as N
 
@@ -258,7 +273,7 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(b.unit(), myokit.units.mV)
 
     def test_as_rhs(self):
-        """ Test Quantity use in set_rhs. """
+        # Test Quantity use in set_rhs.
         from myokit import Quantity as Q
 
         m = myokit.Model()
@@ -270,7 +285,7 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(v.eval(), 10)
 
     def test_eq(self):
-        """ Test :meth:`Quantity.__eq__()`. """
+        # Test :meth:`Quantity.__eq__()`.
         from myokit import Quantity as Q
 
         a = Q('10 [mV]')
@@ -284,14 +299,16 @@ class QuantityTest(unittest.TestCase):
         self.assertFalse(4 == Q(4))
 
     def test_convert(self):
-        """ Test :meth:`Quantity.convert()`. """
+        # Test :meth:`Quantity.convert()`.
+
         from myokit import Quantity as Q
 
         a = Q('10 [mV]')
         self.assertEqual(a.convert('V'), Q('0.01 [V]'))
 
     def test_operators(self):
-        """ Test overloaded operators for Quantity. """
+        # Test overloaded operators for Quantity.
+
         from myokit import Quantity as Q
 
         # Addition
@@ -360,7 +377,8 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(a / 2, Q(3 / 2))
 
     def test_cast(self):
-        """ Test :meth:`Quanity.cast()`. """
+        # Test :meth:`Quanity.cast()`.
+
         from myokit import Quantity as Q
 
         a = Q('10 [uA]')
