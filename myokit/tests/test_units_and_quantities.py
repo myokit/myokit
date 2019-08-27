@@ -190,11 +190,11 @@ class MyokitUnitTest(unittest.TestCase):
 
         m = myokit.parse_unit('m')
 
-        im = 1/m
+        im = 1 / m
         self.assertEqual(repr(im), '[1/m]')
 
-        um = m*1e-16
-        self.assertEqual(repr(um), '[um]')
+        um = m * 1e-6
+        self.assertEqual(repr(um), '[m (1e-06)]')
 
         um3 = myokit.parse_unit('um^3')
         self.assertEqual(repr(um3), '[m^3 (1e-18)]')

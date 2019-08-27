@@ -2747,8 +2747,10 @@ class Unit(object):
         Returns this unit formatted in the base SI units.
         """
         if not self._repr:
+
             # SI unit names
             si = ['g', 'm', 's', 'A', 'K', 'cd', 'mol']
+
             # Get unit parts
             pos = []
             neg = []
@@ -2765,13 +2767,15 @@ class Unit(object):
             u = '*'.join(pos) if pos else '1'
             for x in neg:
                 u += '/' + str(x)
+
             # Add conversion factor
             if self._m != 0:
                 m = 10**self._m
-                if abs(m - int(m)) < 1e-15:
+                if m >= 1 and abs(m - int(m)) < 1e-15:
                     m = int(m)
                 u += ' (' + str(m) + ')'
             self._repr = '[' + u + ']'
+
         return self._repr
 
     def __rmul__(self, other):
