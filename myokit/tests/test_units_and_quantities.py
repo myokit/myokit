@@ -185,20 +185,30 @@ class MyokitUnitTest(unittest.TestCase):
         mam2 = myokit.parse_unit('MA/m^2')
         self.assertEqual(str(mam2), '[A/m^2 (1000000)]')
 
+        # Some structured testing
+        m = myokit.parse_unit('m')
+        self.assertEqual(str(m), '[m]')
+        im = 1 / m
+        self.assertEqual(str(im), '[1/m]')
+        um = m * 1e-6
+        self.assertEqual(str(um), '[um]')
+        um3 = myokit.parse_unit('um^3')
+        self.assertEqual(str(um3), '[um^3]')
+        attomol = myokit.parse_unit('amol')
+        self.assertEqual(str(attomol), '[mol (1e-18)]')
+        self.assertEqual(str(myokit.units.N), '[N]')
+
     def test_repr(self):
         # Test :meth:`Unit.repr()`.
 
         m = myokit.parse_unit('m')
-
+        self.assertEqual(repr(m), '[m]')
         im = 1 / m
         self.assertEqual(repr(im), '[1/m]')
-
         um = m * 1e-6
         self.assertEqual(repr(um), '[m (1e-06)]')
-
         um3 = myokit.parse_unit('um^3')
         self.assertEqual(repr(um3), '[m^3 (1e-18)]')
-
         self.assertEqual(repr(myokit.units.N), '[g*m/s^2 (1000)]')
 
 
