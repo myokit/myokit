@@ -2804,7 +2804,7 @@ class Unit(object):
                 u = Unit(list(self._x), m)
                 rep = Unit._preferred_representations[u]
                 m = 10**(self._m - m)
-                if abs(m - int(m)) < 1e-15:
+                if m >= 1 and abs(m - int(m)) < 1e-15:
                     m = int(m)
                 rep = '[' + rep + ' (' + str(m) + ')]'
                 Unit._preferred_representations[self] = rep[1:-1]
