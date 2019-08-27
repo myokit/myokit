@@ -1005,6 +1005,8 @@ class Model(ObjectWithMeta, VarProvider):
                 if var._token is not None:
                     msg += ' on line ' + str(var._token[2])
                 msg += '. Variable unit ' + str(v)
+                if repr(v) != str(v):
+                    msg += ' (or ' + repr(v) + ')'
                 msg += ' differs from calculated unit ' + str(e)
                 if repr(e) != str(e):
                     msg += ' (or ' + repr(e) + ')'
