@@ -1093,7 +1093,7 @@ class Plus(InfixExpression):
 
         raise EvalUnitError(
             self, 'Addition requires equal units, got '
-            + str(unit1) + ' and ' + str(unit2) + '.')
+            + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
 
 class Minus(InfixExpression):
@@ -1131,8 +1131,8 @@ class Minus(InfixExpression):
             return unit1
 
         raise EvalUnitError(
-            self, 'Subtraction requires equal units, got ' + str(unit1)
-            + ' and ' + str(unit2) + '.')
+            self, 'Subtraction requires equal units, got '
+            + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
 
 class Multiply(InfixExpression):
@@ -2475,6 +2475,33 @@ class Unit(object):
         """
         return unit1._x == unit2._x
 
+    def clarify(self):
+        """
+        Returns a string showing this unit's representation using both the
+        short syntax of ``str(unit)``, and the long syntax of ``repr(unit)``.
+
+        For example::
+
+            >>> from myokit import Unit
+            >>> print(str(myokit.units.katal))
+            [kat]
+            >>> print(repr(myokit.units.katal))
+            [mol/s]
+            >>> print(myokit.units.katal.clarify())
+            [kat] (or [mol/s])
+
+        If both representations are equal, the second part is omitted""
+
+            >>> print(myokit.units.m.clarify())
+            [m]
+
+        """
+        r1 = str(self)
+        r2 = repr(self)
+        if r1 == r2:
+            return r1
+        return r1 + '(or ' + r2 + ')'
+
     @staticmethod
     def conversion_factor(unit1, unit2):
         """
@@ -2509,8 +2536,8 @@ class Unit(object):
 
         if unit1._x != unit2._x:
             raise myokit.IncompatibleUnitError(
-                'Cannot convert from ' + str(unit1) + ' to ' + str(unit2)
-                + '.')
+                'Cannot convert from ' + unit1.clarify() + ' to '
+                + unit2.clarify() + '.')
 
         return 1 if unit1._m == unit2._m else 10**(unit1._m - unit2._m)
 
@@ -2773,7 +2800,11 @@ class Unit(object):
                 m = 10**self._m
                 if m >= 1 and abs(m - int(m)) < 1e-15:
                     m = int(m)
-                u += ' (' + str(m) + ')'
+                if m < 1e6:
+                    m = str(m)
+                else:
+                    m = '{:<1.0e}'.format(m)
+                u += ' (' + m + ')'
             self._repr = '[' + u + ']'
 
         return self._repr
@@ -2806,7 +2837,11 @@ class Unit(object):
                 m = 10**(self._m - m)
                 if m >= 1 and abs(m - int(m)) < 1e-15:
                     m = int(m)
-                rep = '[' + rep + ' (' + str(m) + ')]'
+                if m < 1e6:
+                    m = str(m)
+                else:
+                    m = '{:<1.0e}'.format(m)
+                rep = '[' + rep + ' (' + m + ')]'
                 Unit._preferred_representations[self] = rep[1:-1]
                 return rep
             except KeyError:
@@ -2953,8 +2988,8 @@ class Quantity(object):
             other = Quantity(other)
         if self._unit != other._unit:
             raise myokit.IncompatibleUnitError(
-                'Cannot add quantities with units ' + str(self._unit)
-                + ' and ' + str(other._unit) + '.')
+                'Cannot add quantities with units ' + self._unit.clarify()
+                + ' and ' + other._unit.clarify() + '.')
         return Quantity(self._value + other._value, self._unit)
 
     def cast(self, unit):
@@ -3016,8 +3051,8 @@ class Quantity(object):
             other = Quantity(other)
         if self._unit != other._unit:
             raise myokit.IncompatibleUnitError(
-                'Cannot subtract quantities with units ' + str(self._unit)
-                + ' and ' + str(other._unit) + '.')
+                'Cannot subtract quantities with units ' + self._unit.clarify()
+                + ' and ' + other._unit.clarify() + '.')
         return Quantity(self._value - other._value, self._unit)
 
     def __truediv__(self, other):

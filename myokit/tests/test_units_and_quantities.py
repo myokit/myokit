@@ -183,33 +183,56 @@ class MyokitUnitTest(unittest.TestCase):
 
         # Myokit doesn't know MA/m^2
         mam2 = myokit.parse_unit('MA/m^2')
-        self.assertEqual(str(mam2), '[A/m^2 (1000000)]')
+        self.assertEqual(str(mam2), '[A/m^2 (1e+06)]')
 
-        # Some structured testing
+        # Simple units
         m = myokit.parse_unit('m')
         self.assertEqual(str(m), '[m]')
         im = 1 / m
         self.assertEqual(str(im), '[1/m]')
+
+        # Predefined complex unit
+        self.assertEqual(str(myokit.units.N), '[N]')
+
+        # Low mulipliers
         um = m * 1e-6
         self.assertEqual(str(um), '[um]')
         um3 = myokit.parse_unit('um^3')
         self.assertEqual(str(um3), '[um^3]')
         attomol = myokit.parse_unit('amol')
         self.assertEqual(str(attomol), '[mol (1e-18)]')
-        self.assertEqual(str(myokit.units.N), '[N]')
+
+        # High multipliers
+        nn = myokit.units.N * 1e-2
+        self.assertEqual(str(nn), '[N (0.01)]')
+        nn = myokit.units.N * 1e2
+        self.assertEqual(str(nn), '[N (100)]')
+        nn = myokit.units.N * 1e7
+        self.assertEqual(str(nn), '[N (1e+07)]')
 
     def test_repr(self):
         # Test :meth:`Unit.repr()`.
 
+        # Simple units
         m = myokit.parse_unit('m')
         self.assertEqual(repr(m), '[m]')
         im = 1 / m
         self.assertEqual(repr(im), '[1/m]')
         um = m * 1e-6
+
+        # Predefined complex unit
+        self.assertEqual(repr(myokit.units.N), '[g*m/s^2 (1000)]')
+
+        # Low multipliers
         self.assertEqual(repr(um), '[m (1e-06)]')
         um3 = myokit.parse_unit('um^3')
         self.assertEqual(repr(um3), '[m^3 (1e-18)]')
-        self.assertEqual(repr(myokit.units.N), '[g*m/s^2 (1000)]')
+
+        # High multipliers
+        nn = myokit.units.N * 1e-2
+        self.assertEqual(repr(nn), '[g*m/s^2 (10)]')
+        nn = myokit.units.N * 1e7
+        self.assertEqual(repr(nn), '[g*m/s^2 (1e+10)]')
 
 
 class QuantityTest(unittest.TestCase):
