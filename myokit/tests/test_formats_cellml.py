@@ -234,6 +234,15 @@ class CellMLImporterTest(unittest.TestCase):
         w = '\n'.join(i.logger().warnings())
         self.assertIn('Invalid name', w)
 
+        # Not a valid CellML identifier: unit name
+        i = formats.importer('cellml')
+        self.assertRaisesRegex(
+            myokit.formats.cellml.CellMLError,
+            'identifier',
+            i.model,
+            os.path.join(DIR_FORMATS, 'cellml-8-invalid-names-3-unit.cellml')
+        )
+
 
 class CellMLExpressionWriterTest(unittest.TestCase):
     """
