@@ -5,10 +5,9 @@
    </units>
    <component name="Main">
       <variable units="second" name="time"/>
-      <variable units="dimensionless" name="x" initial_value="-2"/>
+      <variable units="dimensionless" name="_xi" initial_value="-1" />
       <variable units="dimensionless" name="y" initial_value="0"/>
       <variable units="dimensionless" name="epsilon" initial_value="1"/>
-      <reaction />
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
             <eq/>
@@ -17,7 +16,7 @@
                <bvar>
                   <ci>time</ci>
                </bvar>
-               <ci>x</ci>
+               <ci>_xi</ci>
             </apply>
             <apply>
               <times/>
@@ -44,18 +43,17 @@
                     <apply>
                        <minus/>
                        <apply>
-                        <factorial/>
                         <cn cellml:units="dimensionless">1</cn>
                        </apply>
                        <apply>
                           <power/>
-                          <ci>x</ci>
+                          <ci>_xi</ci>
                           <cn cellml:units="dimensionless">2</cn>
                        </apply>
                     </apply>
                     <ci>y</ci>
                  </apply>
-                 <ci>x</ci>
+                 <ci>_xi</ci>
                </apply>
                <cn cellml:units="second">1</cn>
             </apply>

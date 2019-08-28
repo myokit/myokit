@@ -218,13 +218,21 @@ class CellMLImporterTest(unittest.TestCase):
     def test_name_errors(self):
         # Test name handling raises exceptions
 
+        # Not a valid CellML identifier
         i = formats.importer('cellml')
         self.assertRaisesRegex(
             myokit.formats.cellml.CellMLError,
             'identifier',
             i.model,
-            os.path.join(DIR_FORMATS, 'cellml-8-invalid-names.cellml')
+            os.path.join(DIR_FORMATS, 'cellml-8-invalid-names-1.cellml')
         )
+
+        # Valid CellML identifier, but not valid in Myokit
+        i = formats.importer('cellml')
+        i.model(os.path.join(
+            DIR_FORMATS, 'cellml-8-invalid-names-2-fixable.cellml'))
+        w = '\n'.join(i.logger().warnings())
+        self.assertIn('Invalid name', w)
 
 
 class CellMLExpressionWriterTest(unittest.TestCase):
