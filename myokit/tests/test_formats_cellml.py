@@ -216,13 +216,15 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertIn('No initial value', w)
 
     def test_name_errors(self):
-        # Test warnings raised in name handling.
+        # Test name handling raises exceptions
 
         i = formats.importer('cellml')
-        i.model(
-            os.path.join(DIR_FORMATS, 'cellml-8-invalid-names.cellml'))
-        w = '\n'.join(i.logger().warnings())
-        self.assertIn('Invalid name', w)
+        self.assertRaisesRegex(
+            myokit.formats.cellml.CellMLError,
+            'identifier',
+            i.model,
+            os.path.join(DIR_FORMATS, 'cellml-8-invalid-names.cellml')
+        )
 
 
 class CellMLExpressionWriterTest(unittest.TestCase):

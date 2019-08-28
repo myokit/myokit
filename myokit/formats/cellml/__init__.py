@@ -65,6 +65,7 @@ _cellml_identifier = re.compile('^([_][0-9_]*)?[a-zA-Z][a-zA-Z0-9_]*$')
 # Future versions will have:
 #   - Must start with at least one letter
 
+
 def is_valid_identifier(name):
     """
     Tests if the given ``name`` is a valid CellML 1 identifier.
