@@ -11,6 +11,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import re
 import textwrap
 import xml.dom.minidom
 from collections import OrderedDict
@@ -25,6 +26,17 @@ try:
     basestring
 except NameError:   # pragma: no cover
     basestring = str
+
+
+# Valid CellML identifiers
+# Official docs allow silly things, e.g. 1e2 or 123 or _123
+# re.compile('^_*[a-zA-Z0-9][a-zA-Z0-9_]*$')
+# So let's be more strict:
+#  - At least one letter
+#  - Can't start with a number
+_cellml_identifier = re.compile('^([_][0-9_]*)?[a-zA-Z][a-zA-Z0-9_]*$')
+# Future versions will have:
+#   - Must start with at least one letter
 
 
 class CellMLError(myokit.ImportError):
@@ -630,6 +642,10 @@ class CellMLImporter(myokit.formats.Importer):
             """
             name = tag.getAttribute('name')
             self.logger().log('Parsing unit: ' + name)
+            if not self._is_valid_cellml_identifier(name):
+                raise CellMLError(
+                    'Unit name is not a valid CellML identifier: '
+                    + str(name))
             unit = Unit(name)
             for part in tag.getElementsByTagName('unit'):
                 if part.hasAttribute('offset'):
@@ -779,10 +795,21 @@ class CellMLImporter(myokit.formats.Importer):
         # Return unit maps
         return si_units, munits, cunits
 
+    def _is_valid_cellml_identifier(self, name):
+        """
+        Tests if the given ``name`` is a valid CellML 1 identifier.
+        """
+        return _cellml_identifier.match(name) is not None
+
     def _sanitise_name(self, name):
         """
-        Tests if a name is a valid myokit name. Adapts it if it isn't.
+        Tests if a name is a valid Myokit name. Adapts it if it isn't.
         """
+        # Test if valid CellML first, complain if it isn't (be strict!)
+        if not self._is_valid_cellml_identifier(name):
+            raise CellMLError(
+                'Invalid name (not a CellML identifier): ' + str(name))
+
         # Convert to and from ascii to get rid of special characters
         name = name.encode('ascii', errors='replace').decode('ascii')
         try:
