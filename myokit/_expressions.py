@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 
 import math
 import numpy
+import sys
 
 import myokit
 from myokit import IntegrityError
@@ -2703,7 +2704,7 @@ class Unit(object):
         f = float(f)
         e = [f * x for x in self._x]
         for x in e:
-            if abs(float(x) - int(x)) > 1e-15:
+            if not _eq(float(x), int(x)):
                 raise ValueError(
                     'Unit exponentiation (' + repr(self) + ') ^ '
                     + str(f) + ' failed: would result in non-integer'
@@ -2804,7 +2805,7 @@ class Unit(object):
             # Add conversion factor
             if self._m != 0:
                 m = 10**self._m
-                if m >= 1 and abs(m - int(m)) < 1e-15:
+                if m >= 1 and _eq(m, int(m)):
                     m = int(m)
                 if m < 1e6:
                     m = str(m)
@@ -2841,7 +2842,7 @@ class Unit(object):
                 u = Unit(list(self._x), m)
                 rep = Unit._preferred_representations[u]
                 m = 10**(self._m - m)
-                if m >= 1 and abs(m - int(m)) < 1e-15:
+                if m >= 1 and _eq(m, int(m)):
                     m = int(m)
                 if m < 1e6:
                     m = str(m)
@@ -3076,3 +3077,12 @@ class Quantity(object):
         Returns this Quantity's unitless value.
         """
         return self._value
+
+
+def _eq(a, b):
+    """
+    Checks if ``a`` and ``b`` are equal, or so close to each other that the
+    difference could be a single floating point rounding error.
+    """
+    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+
