@@ -16,7 +16,6 @@ import xml.etree.cElementTree as et
 import myokit
 import myokit.units
 import myokit.formats
-import myokit.formats.cellml as cellml
 
 
 # Quoting URI strings in Python2 and Python3
@@ -49,6 +48,7 @@ class CellMLExporter(myokit.formats.Exporter):
         """
         Creates an almost readable name for a custom Myokit unit.
         """
+        import myokit.formats.cellml as cellml
 
         # Get preferred name
         name = str(unit)[1:-1]
@@ -137,6 +137,8 @@ class CellMLExporter(myokit.formats.Exporter):
           the CellML file.
 
         """
+        import myokit.formats.cellml as cellml
+
         path = os.path.abspath(os.path.expanduser(path))
 
         # Clear log

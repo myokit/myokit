@@ -19,7 +19,6 @@ import myokit
 import myokit.units
 from myokit.mxml import dom_child, dom_next
 from myokit.formats.mathml import parse_mathml_rhs
-import myokit.formats.cellml as cellml
 
 
 # Strings in Python 2 and 3
@@ -630,6 +629,8 @@ class CellMLImporter(myokit.formats.Importer):
             """
             Parses <units> tags into Unit objects.
             """
+            import myokit.formats.cellml as cellml
+
             name = tag.getAttribute('name')
             self.logger().log('Parsing unit: ' + name)
             if not cellml.is_valid_identifier(name):
@@ -789,6 +790,8 @@ class CellMLImporter(myokit.formats.Importer):
         """
         Tests if a name is a valid Myokit name. Adapts it if it isn't.
         """
+        import myokit.formats.cellml as cellml
+
         # Test if valid CellML first, complain if it isn't (be strict!)
         if not cellml.is_valid_identifier(name):
             raise CellMLError(
