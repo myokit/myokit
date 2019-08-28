@@ -20,6 +20,7 @@ import myokit.units
 from myokit.mxml import dom_child, dom_next
 from myokit.formats.mathml import parse_mathml_rhs
 
+
 # Strings in Python 2 and 3
 try:
     basestring
@@ -628,8 +629,14 @@ class CellMLImporter(myokit.formats.Importer):
             """
             Parses <units> tags into Unit objects.
             """
+            import myokit.formats.cellml as cellml
+
             name = tag.getAttribute('name')
             self.logger().log('Parsing unit: ' + name)
+            if not cellml.is_valid_identifier(name):
+                raise CellMLError(
+                    'Unit name is not a valid CellML identifier: '
+                    + str(name))
             unit = Unit(name)
             for part in tag.getElementsByTagName('unit'):
                 if part.hasAttribute('offset'):
@@ -781,8 +788,15 @@ class CellMLImporter(myokit.formats.Importer):
 
     def _sanitise_name(self, name):
         """
-        Tests if a name is a valid myokit name. Adapts it if it isn't.
+        Tests if a name is a valid Myokit name. Adapts it if it isn't.
         """
+        import myokit.formats.cellml as cellml
+
+        # Test if valid CellML first, complain if it isn't (be strict!)
+        if not cellml.is_valid_identifier(name):
+            raise CellMLError(
+                'Invalid name (not a CellML identifier): ' + str(name))
+
         # Convert to and from ascii to get rid of special characters
         name = name.encode('ascii', errors='replace').decode('ascii')
         try:

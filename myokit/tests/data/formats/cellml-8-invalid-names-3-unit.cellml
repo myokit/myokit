@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<model name="test"
+        xmlns="http://www.cellml.org/cellml/1.0#"
+        xmlns:cellml="http://www.cellml.org/cellml/1.0#">
+  <units name="x i">
+    <unit unit="second" />
+  </units>
+  <component name="Main">
+    <variable units="dimensionless" name="xi" initial_value="-1" />
+    <variable units="dimensionless" name="time" />
+    <math xmlns="http://www.w3.org/1998/Math/MathML">
+      <apply>
+        <eq/>
+        <apply>
+          <diff/>
+          <bvar>
+            <ci>time</ci>
+          </bvar>
+          <ci>xi</ci>
+        </apply>
+        <apply>
+          <cn cellml:units="dimensionless">1</cn>
+        </apply>
+      </apply>
+    </math>
+  </component>
+</model>

@@ -10,11 +10,13 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import sys
 import xml.etree.cElementTree as et
 
 import myokit
 import myokit.units
 import myokit.formats
+
 
 # Quoting URI strings in Python2 and Python3
 try:
@@ -46,26 +48,50 @@ class CellMLExporter(myokit.formats.Exporter):
         """
         Creates an almost readable name for a custom Myokit unit.
         """
-        # Get name, strip brackets
+        import myokit.formats.cellml as cellml
+
+        # Get preferred name
         name = str(unit)[1:-1]
+
+        # Check if that's allowed
+        if cellml.is_valid_identifier(name):
+            return name
+
+        # Create custom name
+
         # Split unit from multiplier part
         if ' ' in name:
             name, multiplier = name.split(' ')
         else:
             name, multiplier = name, ''
+
         # Treat unit parts
         name = name.replace('^', '')
         name = name.replace('/', '_per_')
         name = name.replace('*', '_')
         if name[:2] == '1_':
+            # E.g. [1_per_mV]
             name = name[2:]
-        # Add multiplier (if any)
+        elif name == '1':
+            # E.g. [1 (1000)]
+            name = 'dimensionless'
+
+        # Treat multiplier
         if multiplier:
-            # Strip brackets
-            multiplier = multiplier[1:-1]
+            multiplier = unit.multiplier_log_10()
+
+            # If nice round int, then use e-notation
+            if _eq(multiplier, int(multiplier)):
+                multiplier = '1e' + str(int(multiplier))
+            else:
+                multiplier = str(unit.multiplier())
+
             # Remove characters not allowed in CellML identifiers
+            multiplier = multiplier.replace('+', '')
             multiplier = multiplier.replace('-', '_minus_')
+            multiplier = multiplier.replace('.', '_dot_')
             name += '_times_' + multiplier
+
         return name
 
     def info(self):
@@ -111,8 +137,9 @@ class CellMLExporter(myokit.formats.Exporter):
           the CellML file.
 
         """
-        path = os.path.abspath(os.path.expanduser(path))
         import myokit.formats.cellml as cellml
+
+        path = os.path.abspath(os.path.expanduser(path))
 
         # Clear log
         self.logger().clear()
@@ -229,11 +256,14 @@ class CellMLExporter(myokit.formats.Exporter):
             # Check if already defined
             if unit is None or unit in unit_map or unit in si_units:
                 return
+
             # Create unit name
             name = self.custom_unit_name(unit)
+
             # Create unit tag
             utag = et.SubElement(emodel, 'units')
             utag.attrib['name'] = name
+
             # Add part for each of the 7 SI units
             m = unit.multiplier()
             for k, e in enumerate(unit.exponents()):
@@ -244,6 +274,7 @@ class CellMLExporter(myokit.formats.Exporter):
                     if m != 1:
                         tag.attrib['multiplier'] = str(m)
                         m = 1
+
             # Or... if the unit doesn't contain any of those seven, it must be
             # a dimensionless unit with a multiplier. These occur in CellML
             # definitions when unit mismatches are "resolved" by adding
@@ -255,6 +286,7 @@ class CellMLExporter(myokit.formats.Exporter):
                 tag.attrib['exponent'] = str(1)
                 tag.attrib['multiplier'] = str(m)
                 # m = 1
+
             # Add the new unit to the list
             unit_map[unit] = name
 
@@ -543,3 +575,8 @@ si_exponents = {
     21: 'zetta',
     24: 'yotta',
 }
+
+
+# Comparison to within floating point precision
+def _eq(a, b):
+    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon

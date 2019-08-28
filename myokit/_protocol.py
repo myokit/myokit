@@ -774,9 +774,6 @@ class PacingSystem(object):
         if new_time < self._time:
             raise ValueError('New time cannot be before the current time.')
 
-        # Get smallest difference from 1
-        epsilon = sys.float_info.epsilon
-
         # Set the new internal time
         self._time = new_time
 
