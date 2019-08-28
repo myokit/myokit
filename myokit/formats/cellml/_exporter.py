@@ -10,11 +10,14 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import sys
 import xml.etree.cElementTree as et
 
 import myokit
 import myokit.units
 import myokit.formats
+import myokit.formats.cellml as cellml
+
 
 # Quoting URI strings in Python2 and Python3
 try:
@@ -46,26 +49,49 @@ class CellMLExporter(myokit.formats.Exporter):
         """
         Creates an almost readable name for a custom Myokit unit.
         """
-        # Get name, strip brackets
+
+        # Get preferred name
         name = str(unit)[1:-1]
+
+        # Check if that's allowed
+        if cellml.is_valid_identifier(name):
+            return name
+
+        # Create custom name
+
         # Split unit from multiplier part
         if ' ' in name:
             name, multiplier = name.split(' ')
         else:
             name, multiplier = name, ''
+
         # Treat unit parts
         name = name.replace('^', '')
         name = name.replace('/', '_per_')
         name = name.replace('*', '_')
         if name[:2] == '1_':
+            # E.g. [1_per_mV]
             name = name[2:]
-        # Add multiplier (if any)
+        elif name == '1':
+            # E.g. [1 (1000)]
+            name = 'dimensionless'
+
+        # Treat multiplier
         if multiplier:
-            # Strip brackets
-            multiplier = multiplier[1:-1]
+            multiplier = unit.multiplier_log_10()
+
+            # If nice round int, then use e-notation
+            if _eq(multiplier, int(multiplier)):
+                multiplier = '1e' + str(int(multiplier))
+            else:
+                multiplier = str(unit.multiplier())
+
             # Remove characters not allowed in CellML identifiers
+            multiplier = multiplier.replace('+', '')
             multiplier = multiplier.replace('-', '_minus_')
+            multiplier = multiplier.replace('.', '_dot_')
             name += '_times_' + multiplier
+
         return name
 
     def info(self):
@@ -112,7 +138,6 @@ class CellMLExporter(myokit.formats.Exporter):
 
         """
         path = os.path.abspath(os.path.expanduser(path))
-        import myokit.formats.cellml as cellml
 
         # Clear log
         self.logger().clear()
@@ -548,3 +573,8 @@ si_exponents = {
     21: 'zetta',
     24: 'yotta',
 }
+
+
+# Comparison to within floating point precision
+def _eq(a, b):
+    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
