@@ -229,11 +229,14 @@ class CellMLExporter(myokit.formats.Exporter):
             # Check if already defined
             if unit is None or unit in unit_map or unit in si_units:
                 return
+
             # Create unit name
             name = self.custom_unit_name(unit)
+
             # Create unit tag
             utag = et.SubElement(emodel, 'units')
             utag.attrib['name'] = name
+
             # Add part for each of the 7 SI units
             m = unit.multiplier()
             for k, e in enumerate(unit.exponents()):
@@ -244,6 +247,7 @@ class CellMLExporter(myokit.formats.Exporter):
                     if m != 1:
                         tag.attrib['multiplier'] = str(m)
                         m = 1
+
             # Or... if the unit doesn't contain any of those seven, it must be
             # a dimensionless unit with a multiplier. These occur in CellML
             # definitions when unit mismatches are "resolved" by adding
@@ -255,6 +259,7 @@ class CellMLExporter(myokit.formats.Exporter):
                 tag.attrib['exponent'] = str(1)
                 tag.attrib['multiplier'] = str(m)
                 # m = 1
+
             # Add the new unit to the list
             unit_map[unit] = name
 

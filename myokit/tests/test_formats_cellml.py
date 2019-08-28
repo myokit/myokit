@@ -545,7 +545,7 @@ class CellMLExporterTest(unittest.TestCase):
         time.set_unit(mad_unit)
 
         pure_multiplier = myokit.Unit()
-        pure_multiplier *= 1001
+        pure_multiplier *= 1000
         three.set_unit(pure_multiplier)
 
         # Create exporter and importer
@@ -746,6 +746,44 @@ class CellMLExporterTest(unittest.TestCase):
                 self.assertTrue(ina_found)
 
             # Re-import, check if model can still be read
+            m2 = importer.model(path)
+
+    def test_weird_custom_units(self):
+        # Test export of units with large/small multipliers
+
+        # Create a test model
+        m = myokit.Model()
+        m.meta['name'] = 'Hello'
+
+        cc = m.add_component('C')
+        t = cc.add_variable('time')
+        t.set_rhs('0 [ms]')
+        t.set_unit('ms')
+        t.set_binding('time')
+
+        ca = m.add_component('A')
+        x = ca.add_variable('INa')
+        x.set_rhs('2 [N (1e+12)]')
+        x.set_unit('N (1e+12)')
+
+        cd = m.add_component('D')
+        y = cd.add_variable('y')
+        y.set_rhs('1 [s (1e-13)]')
+        y.set_unit('s (1e-13)')
+
+        cb = m.add_component('B')
+        z = cb.add_variable('z')
+        z.set_rhs('3 [1 (1e+06)]')
+        z.set_unit('1 (1e+06)')
+
+        # Export and read back in again
+        exporter = myokit.formats.cellml.CellMLExporter()
+        importer = myokit.formats.cellml.CellMLImporter()
+        with TemporaryDirectory() as d:
+            path = d.path('model.cellml')
+            exporter.model(path, m)
+            with open(path, 'r') as f:
+                xml = f.read()
             m2 = importer.model(path)
 
 
