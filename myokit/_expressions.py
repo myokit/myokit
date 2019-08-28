@@ -2614,6 +2614,12 @@ class Unit(object):
         """
         return 10 ** self._m
 
+    def multiplier_log_10(self):
+        """
+        Returns the base 10 logarithm of this unit's multiplier.
+        """
+        return self._m
+
     def __mul__(self, other):
         """
         Evaluates ``self * other``

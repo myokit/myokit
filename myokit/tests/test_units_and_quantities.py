@@ -148,6 +148,14 @@ class MyokitUnitTest(unittest.TestCase):
         d = 10 * d
         self.assertEqual(d._m, 0)
 
+    def test_multiplier(self):
+        # Test :meth:`Unit.multiplier()` and :meth:`Unit.multiplier_log_10`.
+        d = myokit.Unit()
+        d *= myokit.units.meter
+        d *= 1000
+        self.assertEqual(d.multiplier(), 1000)
+        self.assertEqual(d.multiplier_log_10(), 3)
+
     def test_parse_simple(self):
         # Test edge cases for :meth:`Unit.parse_simple()`.
 
