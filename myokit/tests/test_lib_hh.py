@@ -60,6 +60,11 @@ use membrane.V as V
 dot(r) = alpha * (1 - r) - beta * r
     alpha = 8e-2 * exp(+3e-3 * V)
     beta = 5e-3 * exp(-1e-2 * V)
+
+[v_independent]
+dot(x) = alpha * (1 - x) - beta * x
+    alpha = 1e-3
+    beta = 1e-2
 """
 
 
