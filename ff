@@ -2,6 +2,12 @@
 import myokit
 import myokit.formats.easyml
 
+#TODO:
+# 1. Load CellML
+#    --> Update CellML importer to guess stimulus
+# 2. Use guessing method to annotate model
+# 3. Continue as below
+
 m, p, _ = myokit.load('example')
 
 e = myokit.formats.easyml.EasyMLExporter()
