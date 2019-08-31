@@ -42,26 +42,6 @@ def ewriters():
 
 
 #
-# Special variable names
-#
-special_names = [
-    # Differential equations
-    'diff_[\w]*',
-    'd_[\w]*_dt',
-    # Initial value
-    '[\w]*_init',
-    # Opening rates
-    'alpha_[\w]*',
-    'a_[\w]*',
-    # Closing rates
-    'beta_[\w]*',
-    'b_[\w]*',
-    # Tau and inf
-    'tau_[\w]*',
-    '[\w]*_inf',
-]
-
-#
 # Language keywords: Not sure if these are all keywords
 #
 keywords = [

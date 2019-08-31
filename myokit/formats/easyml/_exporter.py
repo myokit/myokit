@@ -13,14 +13,19 @@ import os
 import logging
 
 import myokit.formats
-from ._ewriter import EasyMLExpressionWriter
+import myokit.lib.hh as hh
 
 
 class EasyMLExporter(myokit.formats.Exporter):
     """
     This :class:`Exporter <myokit.formats.Exporter>` generates a ``.model``
-    file in the EasyML format used by CARP/CARPEntry.
-    """
+    file in the ``EasyML`` format used by CARP/CARPEntry.
+
+    For details of the language, see
+    https://carp.medunigraz.at/carputils/tutorials/tutorials/tutorials.01_EP_single_cell.05_EasyML.run.html
+    """ # noqa
+    # To test the output, you'll need `$ limpet_fe.py model_file`
+
     def info(self):
         """ See :meth:`myokit.formats.Exporter.info()`. """
         import inspect
@@ -33,6 +38,8 @@ class EasyMLExporter(myokit.formats.Exporter):
 
         A :class:`myokit.ExportError` will be raised if any errors occur.
         """
+        import myokit.formats.easyml as easyml
+
         log = logging.getLogger(__name__)
 
         # Clone model so that changes can be made
@@ -102,7 +109,9 @@ class EasyMLExporter(myokit.formats.Exporter):
             if term.is_constant():
                 continue
             currents.append(term.var())
+        currents.sort(key=lambda x: x.name())
 
+        #TODO: Allow this via #388
         # Run over state variables, check that none of the equations refer to
         # derivatives
         for var in model.states():
@@ -135,13 +144,39 @@ class EasyMLExporter(myokit.formats.Exporter):
         # Remove unused
         model.validate(remove_unused_variables=True)
 
-        # Find HH state variables, infs, taus, alphas, betas
-        #TODO
         # Find special variables
-        #alphas = set()
-        #betas = set()
-        #taus = set()
-        #infs = set()
+        hh_states = set()
+        alphas = {}
+        betas = {}
+        taus = {}
+        infs = {}
+
+        # Find HH state variables, infs, taus, alphas, betas
+        for var in model.states():
+            ret = hh.get_inf_and_tau(var, vm)
+            if ret is not None:
+                ignore.add(var)
+                hh_states.add(var)
+                infs[ret[0]] = var
+                taus[ret[1]] = var
+                continue
+            ret = hh.get_alpha_and_beta(var, vm)
+            if ret is not None:
+                ignore.add(var)
+                hh_states.add(var)
+                alphas[ret[0]] = var
+                betas[ret[1]] = var
+                continue
+
+        hh_variables = set(
+            alphas.keys() + betas.keys() + taus.keys() + infs.keys())
+
+        # Create variable names
+        # The following strategy is followed:
+        #  - HH variables are named after their state
+        #  - All other variables are checked for special names, and changed if
+        #    necessary
+        #  - Any conflicts are resolved in a final step
 
         # Detect names with special meanings
         def special_start(name):
@@ -158,9 +193,45 @@ class EasyMLExporter(myokit.formats.Exporter):
         def special_end(name):
             return name.endswith('_init') or name.endswith('_inf')
 
-        # Create variable names
+        # Create initial variable names
+        var_to_name = {}
+        for var in model.variables(deep=True):
 
-        # Initialise dict of name clashes with known keywords
+            # Delay naming of HH variables until their state has a name
+            if var in hh_variables:
+                continue
+
+            # Start from simple variable name
+            name = var.name()
+
+            # Add parent if needed
+            if name in ['alpha', 'beta', 'inf', 'tau']:
+                name = var.parent().name() + '_' + name
+
+            # Avoid names with special meaning
+            if special_end(name):
+                name += '_var'
+            if special_start(name):
+                name = var.parent().name() + '_' + name
+                if special_start(name):
+                    name = var.qname().replace('.', '_')
+                if special_start(name):
+                    name = 'var_' + name
+
+            # Store (initial) name for var
+            var_to_name[var] = name
+
+        # Create names for HH variables
+        for var, state in alphas.items():
+            var_to_name[var] = 'alpha_' + var_to_name[state]
+        for var, state in betas.items():
+            var_to_name[var] = 'beta_' + var_to_name[state]
+        for var, state in taus.items():
+            var_to_name[var] = 'tau_' + var_to_name[state]
+        for var, state in infs.items():
+            var_to_name[var] = var_to_name[state] + '_inf'
+
+        # Check for conflicts with known keywords
         from . import keywords
         reserved = [
             'Iion',
@@ -171,42 +242,23 @@ class EasyMLExporter(myokit.formats.Exporter):
         for keyword in reserved:
             needs_renaming[keyword] = []
 
-        # Create initial variable names
-        var_to_name = {}
+        # Find naming conflicts, create inverse mapping
         name_to_var = {}
-        for var in model.variables(deep=True):
-            # Choose name that doesn't have a special meaning in EasyML
-            name = var.name()
-            if name in ['alpha', 'beta', 'inf', 'tau']:
-                name = var.parent().name() + '_' + name
-            if special_end(name):
-                name += '_var'
-            if special_start(name):
-                name = var.parent().name() + '_' + name
-                if special_start(name):
-                    name = var.qname().replace('.', '_')
-                if special_start(name):
-                    name = 'var_' + name
+        for var, name in var_to_name.items():
 
-            # Update name to have special meaning if needed
-            #TODO: Add alpha_ for alphas etc.
-            #TODO: If an alpha var is called e.g. x_alpha, change its name to
-            #      alpha_x
-
-            # Store (initial) name for var
-            var_to_name[var] = name
-
-            # Check for clashes, and create reverse mapping
+            # Known conflict?
             if name in needs_renaming:
                 needs_renaming[name].append(var)
-            else:
-                var2 = name_to_var.get(name, None)
-                if var2 is not None:
-                    needs_renaming[name] = [var2, var]
-                else:
-                    name_to_var[name] = var
+                continue
 
-        # Resolve naming conflicats
+            # Test for new conflicts
+            var2 = name_to_var.get(name, None)
+            if var2 is not None:
+                needs_renaming[name] = [var2, var]
+            else:
+                name_to_var[name] = var
+
+        # Resolve naming conflicts
         for name, variables in needs_renaming.items():
             # Add a number to the end of the name, increasing it until it's
             # unique
@@ -234,7 +286,7 @@ class EasyMLExporter(myokit.formats.Exporter):
             raise ValueError('Not a variable or LhsExpression: ' + str(e))
 
         # Create expression writer
-        e = EasyMLExpressionWriter()
+        e = easyml.EasyMLExpressionWriter()
         e.set_lhs_function(lhs)
 
         # Test if can write in dir (raises exception if can't)
@@ -249,9 +301,8 @@ class EasyMLExporter(myokit.formats.Exporter):
 
             # Write remaining state variables
             for v in model.states():
-                if v in ignore:
-                    continue
-                f.write(lhs(v) + eos)
+                if v != vm:
+                    f.write(lhs(v) + eos)
 
             # Write current
             f.write('Iion; .nodal(); .external();' + eol)
@@ -284,11 +335,6 @@ class EasyMLExporter(myokit.formats.Exporter):
                 f.write('  ' + lhs(v) + eos)
             f.write('}' + eol)
             f.write(eol)
-
-
-
-
-
 
     def supports_model(self):
         """ See :meth:`myokit.formats.Exporter.supports_model()`. """
