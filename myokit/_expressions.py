@@ -2503,43 +2503,114 @@ class Unit(object):
         return r1 + ' (or ' + r2 + ')'
 
     @staticmethod
-    def conversion_factor(unit1, unit2):
+    def conversion_factor(unit1, unit2, helpers=None):
         """
-        Returns the number ``c`` such that ``1 [unit1] = c [unit2]``.
+        Returns a :class:`myokit.Quantity` ``c`` to convert from ``unit1`` to
+        ``unit2``, such that ``1 [unit1] * c = 1 [unit2]``.
+
+        For example:
 
             >>> import myokit
             >>> myokit.Unit.conversion_factor('m', 'km')
-            0.001
+            0.001 [1 (1000)]
 
+        Where::
+
+            1 [m] = 0.001 [km/m] * 1 [km]
+
+        so that ``c = 0.001 [km/m]``, and the unit ``[km/m]`` can be written as
+        ``[km/m] = [ kilo ] = [1 (1000)]``.
+
+        Conversions between incompatible units can be performed if one or
+        multiple helper :class:`Quantity` objects are passed in.
+
+        For example:
+
+            >>> import myokit
+            >>> myokit.Unit.conversion_factor(
+                    'uA/cm^2', 'uA/uF', ['1 uF/cm^2'])
+            1 [cm^2/uF]
+
+        Where::
+
+            1 [uA/cm^2] = 1 [cm^2/uF] * 1 [uA/uF]
+
+        Arguments:
+
+        ``unit1``
+            The new unit to convert from, given as a :class:`myokit.Unit` or as
+            a string that can be converted to a unit with
+            :meth:`myokit.parse_unit()`.
+        ``unit2``
+            The new unit to convert to.
+        ``helpers=None``
+            An optional list of conversion factors, which the method will
+            attempt to use if the new and old units are incompatible. Each
+            factor should be specified as a :class:`myokit.Quantity` or
+            something that can be converted to a Quantity e.g. a string
+            ``1 [uF/cm^2]``.
+
+        Returns a :class:`myokit.Quantity`.
         """
+        # Check unit1
         if not isinstance(unit1, myokit.Unit):
             if unit1 is None:
                 unit1 = myokit.units.dimensionless
             else:
-                try:
-                    unit1 = myokit.parse_unit(unit1)
-                except Exception:
-                    raise myokit.IncompatibleUnitError(
-                        'Cannot convert given object ' + repr(unit1)
-                        + ' to unit.')
+                unit1 = myokit.parse_unit(unit1)
 
+        # Check unit2
         if not isinstance(unit2, myokit.Unit):
             if unit2 is None:
                 unit2 = myokit.units.dimensionless
             else:
-                try:
-                    unit2 = myokit.parse_unit(unit2)
-                except Exception:
-                    raise myokit.IncompatibleUnitError(
-                        'Cannot convert given object ' + repr(unit2)
-                        + ' to unit.')
+                unit2 = myokit.parse_unit(unit2)
 
-        if unit1._x != unit2._x:
-            raise myokit.IncompatibleUnitError(
-                'Cannot convert from ' + unit1.clarify() + ' to '
-                + unit2.clarify() + '.')
+        # Check helper units
+        factors = []
+        if helpers is not None:
+            for factor in helpers:
+                if not isinstance(factor, myokit.Quantity):
+                    factor = myokit.Quantity(factor)
+                factors.append(factor)
+        del(helpers)
 
-        return 1 if unit1._m == unit2._m else 10**(unit1._m - unit2._m)
+        # Simplest case: units are equal
+        if unit1 == unit2:
+            return Quantity(1)
+
+        # Get conversion factor
+        fw = None
+        if unit1._x == unit2._x:
+
+            # Directly convertible
+            fw = 10**(unit1._m - unit2._m)
+
+        else:
+            # Try conversion via one of the helpers
+            for factor in factors:
+
+                unit1a = unit1 * factor.unit()
+                if unit1a._x == unit2._x:
+                    fw = 10**(unit1a._m - unit2._m) * factor.value()
+                    break
+
+                unit1a = unit1 / factor.unit()
+                if unit1a._x == unit2._x:
+                    fw = 10**(unit1a._m - unit2._m) / factor.value()
+                    break
+
+        # Unable to convert?
+        if fw is None:
+            msg = 'Unable to convert from ' + unit1.clarify()
+            msg += ' to ' + unit2.clarify()
+            if factors:
+                msg += ' (even with help of conversion factors).'
+            raise myokit.IncompatibleUnitError(msg + '.')
+
+        # Create Quantity and return
+        fw = myokit._round_if_int(fw)
+        return Quantity(fw, unit2 / unit1)
 
     @staticmethod
     def convert(amount, unit1, unit2):
@@ -2552,7 +2623,10 @@ class Unit(object):
             3.0
 
         """
-        return amount * Unit.conversion_factor(unit1, unit2)
+        factor = Unit.conversion_factor(unit1, unit2)
+        if isinstance(amount, myokit.Quantity):
+            return factor * amount
+        return factor.value() * amount
 
     def __div__(self, other):
         """
@@ -3039,6 +3113,9 @@ class Quantity(object):
 
     def __radd__(self, other):
         return self + other
+
+    def __repr__(self):
+        return '<Quantity(' + self._str + ')>'
 
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
         return Quanity(other) / self

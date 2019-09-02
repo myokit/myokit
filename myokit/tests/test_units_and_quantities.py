@@ -45,25 +45,97 @@ class MyokitUnitTest(unittest.TestCase):
     def test_conversion_factor(self):
         # Test :meth:`Unit.conversion_factor()`.
 
-        self.assertEqual(myokit.Unit.conversion_factor('m', 'km'), 0.001)
-        self.assertEqual(myokit.Unit.conversion_factor('km', 'm'), 1000)
-        self.assertEqual(myokit.Unit.conversion_factor('hm', 'm'), 100)
-        self.assertEqual(myokit.Unit.conversion_factor('inches', 'cm'), 2.54)
+        cf = myokit.Unit.conversion_factor
+        q = myokit.Quantity
+        u = myokit.parse_unit
+
+        # Same units
+        self.assertEqual(cf('V', 'V'), q(1))
+
+        # Prefixed units
+        self.assertEqual(cf('m', 'km'), q(0.001, '1 (1000)'))
+        self.assertEqual(cf('km', 'm'), q(1000, '1 (0.001)'))
+        self.assertEqual(cf('hm', 'm'), q(100, '1 (0.01)'))
+
+        # Units with a multiplier
+        cm_per_inch = cf('inches', 'cm')
+        self.assertEqual(type(cm_per_inch), myokit.Quantity)
+        self.assertEqual(cm_per_inch.value(), 2.54)
+        self.assertEqual(cm_per_inch.unit(), u('cm/inches'))
+
+        # Old unit: uA/cm^2
+        # New unit: A/cm^2
+        # To get from old to new, multiply by 1e-6 [1 (1e6)]
+        # Because uA*(A/uA) = A,
+        #   the unit for that factor is A/uA = 1/1e-6 = 1e6
+        self.assertEqual(cf('uA/cm^2', 'A/cm^2'), q(1e-6, '1 (1e6)'))
+        self.assertEqual(cf('uA/cm^2', 'A/cm^2'), q(1e-6, 'A/uA'))
+        self.assertEqual(cf('uA/cm^2', 'A/cm^2'), q('1e-6 [A/uA]'))
+
+        # Incompatible units
+        self.assertRaises(
+            myokit.IncompatibleUnitError, cf, u('g'), u('s'))
+        self.assertRaises(
+            myokit.IncompatibleUnitError, cf, u('N'), u('C'))
+
+        # Convertible via helpers
+
+        # Old unit: uA/cm^2
+        # New unit: uA/uF
+        # Helper: 2 [uF/cm^2]
+        # To get from old to new, multiply by 0.5 [cm^2/uF]
+        self.assertEqual(
+            cf('uA/cm^2', 'uA/uF', ['0.5 [cm^2/uF]']), q(0.5, u('cm^2/uF')))
+        self.assertEqual(
+            cf('uA/cm^2', 'uA/uF', ['2 [uF/cm^2]']), q(0.5, u('cm^2/uF')))
+
+        # Old unit: uA/uF = A/F = pA/pF
+        # New unit: pA
+        # Helper: 123 pF
+        # To get from old to new, multiply by 123 [pF]
+        self.assertEqual(
+            cf('uA/uF', 'pA', ['123 [pF]']), q('123 [pF]'))
+        self.assertEqual(
+            cf('uA/uF', 'nA', ['123 [pF]']), q('0.123 [nF]'))
+        self.assertEqual(
+            cf('uA/cm^2', 'uA', ['0.123 [cm^2]']), q('0.123 [cm^2]'))
+
+        # And:
+        #   uA/cm^2 * cm^2 = uA
+        #   uA/cm^2 * cm^2 * nA/uA = nA
+        # So expecting 1 [cm^2] * 1000 [nA/uA] = 1000 [1 (1e-3)]
+        # Factor in the 0.123 cm^2 to get 123 [cm^2 (1e-3)]
+        self.assertEqual(
+            cf('uA/cm^2', 'nA', ['0.123 [cm^2]']), q('123 [cm^2 (1e-3)]'))
+
+        # Multiple factors to try
+        h1 = ['123 [pF]', '0.123 [cm^2]']
+        h2 = h1[::-1]
+        self.assertEqual(cf('uA/uF', 'nA', h1), q('0.123 [nF]'))
+        self.assertEqual(cf('uA/uF', 'nA', h2), q('0.123 [nF]'))
+        self.assertEqual(cf('uA/cm^2', 'nA', h1), q('123 [cm^2 (1e-3)]'))
+        self.assertEqual(cf('uA/cm^2', 'nA', h2), q('123 [cm^2 (1e-3)]'))
 
     def test_convert(self):
         # Test :meth:`Unit.convert()`.
 
+        # Test with float and int
         mV = myokit.units.mV
         V = myokit.units.V
-        self.assertEqual(myokit.Unit.convert(2, mV, V), 0.002)
-        self.assertEqual(myokit.Unit.convert(2, V, mV), 2000)
+        cv = myokit.Unit.convert
+        self.assertEqual(cv(2, mV, V), 0.002)
+        self.assertEqual(cv(2.0, V, mV), 2000)
+
+        # Test with quantity
+        q = myokit.Quantity
+        self.assertEqual(cv(q(2, mV), mV, V), q(0.002, V))
 
         # None and dimensionless are ok
         d = myokit.units.dimensionless
-        self.assertEqual(myokit.Unit.convert(1, None, None), 1)
-        self.assertEqual(myokit.Unit.convert(1, d, None), 1)
-        self.assertEqual(myokit.Unit.convert(1, None, d), 1)
-        self.assertEqual(myokit.Unit.convert(1, d, d), 1)
+        self.assertEqual(cv(1, None, None), 1)
+        self.assertEqual(cv(1, d, None), 1)
+        self.assertEqual(cv(1, None, d), 1)
+        self.assertEqual(cv(1, d, d), 1)
         self.assertRaises(
             myokit.IncompatibleUnitError, myokit.Unit.convert, 1, d, V)
         self.assertRaises(
@@ -74,22 +146,16 @@ class MyokitUnitTest(unittest.TestCase):
             myokit.IncompatibleUnitError, myokit.Unit.convert, 1, V, None)
 
         # Strings can be parsed
-        self.assertEqual(myokit.Unit.convert(1, None, '1'), 1)
-        self.assertEqual(myokit.Unit.convert(1, '1', None), 1)
-        self.assertEqual(myokit.Unit.convert(1, 'V', V), 1)
-        self.assertEqual(myokit.Unit.convert(1, V, 'V'), 1)
+        self.assertEqual(cv(1, None, '1'), 1)
+        self.assertEqual(cv(1, '1', None), 1)
+        self.assertEqual(cv(1, 'V', V), 1)
+        self.assertEqual(cv(1, V, 'V'), 1)
         self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'from',
             myokit.Unit.convert, 1, V, 'A')
         self.assertRaisesRegex(
             myokit.IncompatibleUnitError, 'from',
             myokit.Unit.convert, 1, 'A', V)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'given object',
-            myokit.Unit.convert, 1, V, 'Alf')
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'given object',
-            myokit.Unit.convert, 1, 'Alf', V)
 
     def test_float(self):
         # Test :meth:`Unit.__float__()`.
@@ -269,6 +335,9 @@ class QuantityTest(unittest.TestCase):
         a = Q(4)
         self.assertEqual(float(a), 4)
         self.assertEqual(str(a), '4.0 [1]')
+
+        # Repr
+        self.assertEqual(repr(a), '<Quantity(4.0 [1])>')
 
         # Creation from a myokit Number
         x = myokit.Number(2)
