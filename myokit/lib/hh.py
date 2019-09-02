@@ -1102,11 +1102,6 @@ def get_alpha_and_beta(x, v=None):
             if state != v and rhs.depends_on(myokit.Name(state)):
                 return None
 
-        # Check that x_inf and tau_x depend on v (which may or may not be a
-        # state)
-        if not rhs.depends_on(myokit.Name(v)):
-            return None
-
     # Looks good!
     return (alpha, beta)
 
@@ -1197,11 +1192,6 @@ def get_inf_and_tau(x, v=None):
         for state in model.states():
             if state != v and rhs.depends_on(myokit.Name(state)):
                 return None
-
-        # Check that x_inf and tau_x depend on v (which may or may not be a
-        # state)
-        if not rhs.depends_on(myokit.Name(v)):
-            return None
 
     # Looks good!
     return xinf, xtau

@@ -3,7 +3,7 @@
 # Tests the lib.hh module.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -32,6 +32,9 @@ membrane.V = -80
 ikr.a = 4.5e-4
 ikr.r = 0.15
 ina.r = 0.15
+binding.act = 1e-4
+binding.rec = 0.56
+binding.b = 1e-4
 
 [engine]
 time = 0 bind time
@@ -61,10 +64,23 @@ dot(r) = alpha * (1 - r) - beta * r
     alpha = 8e-2 * exp(+3e-3 * V)
     beta = 5e-3 * exp(-1e-2 * V)
 
-[v_independent]
-dot(x) = alpha * (1 - x) - beta * x
-    alpha = 1e-3
-    beta = 1e-2
+[binding]
+use membrane.V
+conc = 10 [nM]
+dot(act) = k1 * (1 - act) - k2 * act
+    k1 = 2e-4 * exp(7e-2 * V)
+    k2 = 3e-5 * exp(-5e-2 * V)
+dot(rec) = k4 * (1 - rec) - k3 * rec
+    k3 = 9e-2 * exp(9e-3 * V)
+    k4 = 5e-3 * exp(-3e-2 * V)
+dot(b) = (inf - b) / tau
+    inf = (kon * conc) * tau
+    tau = 1 / (kon * conc + koff)
+kon = 1e-4 [1/nM/ms]
+koff = 1e-5 [1/ms]
+g = 3
+EK = -85
+I = g * (1 - b) * act * rec * (V - EK)
 """
 
 
@@ -72,6 +88,7 @@ class HHDetectionTest(unittest.TestCase):
     """
     Tests methods to detect HH states.
     """
+
     def test_alpha_beta_form(self):
         # Test methods for working with alpha-beta form
         m = myokit.parse_model(MODEL)
@@ -269,16 +286,6 @@ class HHDetectionTest(unittest.TestCase):
         m.get('ikr.atau').set_rhs(atau)
         self.assertTrue(hh.has_inf_tau_form(a, v))
 
-        # Inf and tau must depend on V
-        m.get('ikr.ainf').set_rhs('5 + 2')
-        self.assertFalse(hh.has_inf_tau_form(a, v))
-        m.get('ikr.ainf').set_rhs(ainf)
-        self.assertTrue(hh.has_inf_tau_form(a, v))
-        m.get('ikr.atau').set_rhs('2 / 7')
-        self.assertFalse(hh.has_inf_tau_form(a, v))
-        m.get('ikr.atau').set_rhs(atau)
-        self.assertTrue(hh.has_inf_tau_form(a, v))
-
     def test_convert_hh_states_to_inf_tau_form(self):
         # Tests conversion to inf-tau form
         m1 = myokit.parse_model(MODEL)
@@ -385,7 +392,7 @@ class HHModelTest(unittest.TestCase):
     """
 
     def test_manual_creation(self):
-        """ Test manual creation of a HHModel """
+        # Test manual creation of a HHModel.
 
         # Load model
         fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
@@ -532,7 +539,7 @@ class HHModelTest(unittest.TestCase):
         self.assertTrue(len(model2.code()) < len(model.code()))
 
     def test_automatic_creation(self):
-        """ Create a linear model from a component. """
+        # Create a linear model from a component.
 
         # Load model
         fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
@@ -586,7 +593,7 @@ class HHModelTest(unittest.TestCase):
             hh.HHModel.from_component, m2.get('ina'))
 
     def test_hh_model_steady_state(self):
-        """ Test the method HHModel.steady_state(). """
+        # Test the method HHModel.steady_state().
 
         # Create model
         fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
@@ -608,6 +615,34 @@ class HHModelTest(unittest.TestCase):
             ValueError, 'parameter vector size',
             m.steady_state, -20, [1])
 
+    def test_manual_creation_with_v_independence(self):
+        # Test with the v-independent states
+
+        # Load model
+        model = myokit.parse_model(MODEL)
+
+        # Select a number of states and parameters
+        states = ['binding.act', 'binding.rec', 'binding.b']
+        parameters = ['binding.kon', 'binding.koff']
+
+        # Create a HH model
+        m = hh.HHModel(model, states, parameters)
+
+        # Also select a current
+        current = 'binding.I'
+        m = hh.HHModel(model, states, parameters, current)
+
+        # Test steady-state calculation doesn't fail
+        m.steady_state(-80)
+
+    def test_automatic_creation_with_v_independence(self):
+        # Test with the v-independent states
+
+        model = myokit.parse_model(MODEL)
+        m = hh.HHModel.from_component(model.get('binding'))
+
+        self.assertEqual(len(m.states()), 3)
+
 
 class AnalyticalSimulationTest(unittest.TestCase):
     """
@@ -615,7 +650,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
     """
 
     def test_create_and_run(self):
-        """ Test basics """
+        # Test creating and running a simulation
 
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
@@ -737,9 +772,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertEqual(len(d.time()), 0)
 
     def test_analytical_simulation_properties(self):
-        """
-        Test basic get/set methods of analytical simulation.
-        """
+        # Test basic get/set methods of analytical simulation.
+
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
         model = myokit.load_model(fname)
@@ -833,6 +867,43 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # Test current output is very similar
         e = np.abs(d1['ina.INa'] - d2['ina.INa'])
+        self.assertLess(np.max(e), 2e-4)
+
+    def test_against_cvode_v_independent(self):
+
+        # Test with v-independent states
+        model = myokit.parse_model(MODEL)
+        model.get('membrane.V').set_rhs(-80)
+        model.get('membrane.V').demote()
+        model.binding('pace').set_binding(None)
+        model.get('membrane.V').set_binding('pace')
+
+        # Create a protocol
+        vs = [-30, -20, -10]
+        p = myokit.pacing.steptrain(
+            vsteps=vs,
+            vhold=-120,
+            tpre=8,
+            tstep=2,
+            tpost=0)
+        t = p.characteristic_time()
+
+        # Run an analytical simulation
+        dt = 0.01
+        m = hh.HHModel.from_component(model.get('binding'))
+        s1 = hh.AnalyticalSimulation(m, p)
+        d1 = s1.run(t, log_interval=dt).npview()
+
+        s2 = myokit.Simulation(model, p)
+        s2.set_tolerance(1e-8, 1e-8)
+        d2 = s2.run(t, log_interval=dt).npview()
+
+        # Test protocol output is the same
+        e = np.abs(d1['membrane.V'] - d2['membrane.V'])
+        self.assertEqual(np.max(e), 0)
+
+        # Test current output is very similar
+        e = np.abs(d1['binding.I'] - d2['binding.I'])
         self.assertLess(np.max(e), 2e-4)
 
 
