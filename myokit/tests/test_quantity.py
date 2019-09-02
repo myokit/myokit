@@ -49,7 +49,7 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(str(a), '4.0 [1]')
 
         # Repr
-        self.assertEqual(repr(a), '<Quantity(4.0 [1])>')
+        self.assertEqual(repr(a), '4.0 [1]')
 
         # Creation from a myokit Number
         x = myokit.Number(2)

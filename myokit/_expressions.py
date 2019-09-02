@@ -3107,7 +3107,7 @@ class Quantity(object):
         return self + other
 
     def __repr__(self):
-        return '<Quantity(' + self._str + ')>'
+        return self._str
 
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
         return Quantity(other) / self
