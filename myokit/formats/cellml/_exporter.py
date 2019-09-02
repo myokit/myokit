@@ -2,7 +2,7 @@
 # Exports to CellML
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -196,15 +196,18 @@ class CellMLExporter(myokit.formats.Exporter):
                 pace.parent().move_variable(pace, component, new_name='pace')
 
                 # Add variables defining pacing protocol
+                qperiod = myokit.Quantity('1000 [ms]')
+                qoffset = myokit.Quantity('100 [ms]')
+                qduration = myokit.Quantity('2 [ms]')
                 period = component.add_variable('period')
                 period.set_unit(time_unit)
-                period.set_rhs(str(1000 * time_factor) + ' ' + str(time_unit))
+                period.set_rhs(qperiod * time_factor)
                 offset = component.add_variable('offset')
                 offset.set_unit(time_unit)
-                offset.set_rhs(str(100 * time_factor) + ' ' + str(time_unit))
+                offset.set_rhs(qoffset * time_factor)
                 duration = component.add_variable('duration')
                 duration.set_unit(time_unit)
-                duration.set_rhs(str(2 * time_factor) + ' ' + str(time_unit))
+                duration.set_rhs(qduration * time_factor)
 
                 # Add corrected time variable
                 ctime = component.add_variable('ctime')
