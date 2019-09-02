@@ -12,7 +12,6 @@ from __future__ import print_function, unicode_literals
 
 import math
 import numpy
-import sys
 
 import myokit
 from myokit import IntegrityError
@@ -2702,9 +2701,9 @@ class Unit(object):
         Evaluates ``self ^ other``
         """
         f = float(f)
-        e = [f * x for x in self._x]
+        e = [myokit._round_if_int(f * x) for x in self._x]
         for x in e:
-            if not myokit._feq(float(x), int(x)):
+            if not x == int(x):
                 raise ValueError(
                     'Unit exponentiation (' + repr(self) + ') ^ '
                     + str(f) + ' failed: would result in non-integer'
@@ -2805,7 +2804,7 @@ class Unit(object):
             # Add conversion factor
             if self._m != 0:
                 m = 10**self._m
-                if m >= 1 and myokit._feq(m, int(m)):
+                if myokit._feq(m, int(m)):
                     m = int(m)
                 if m < 1e6:
                     m = str(m)

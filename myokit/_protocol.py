@@ -11,7 +11,6 @@ from __future__ import print_function, unicode_literals
 
 import myokit
 
-import sys
 import numpy as np
 
 
