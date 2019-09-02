@@ -2,7 +2,7 @@
 # Tools for working with Hodgkin-Huxley style ion channel models
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -194,11 +194,13 @@ class HHModel(object):
 
         # Freeze remaining, non-current-model states
         s = self._model.state()   # Get state values before changing anything!
-        for k, state in enumerate(self._model.states()):
+        # Note: list() cast is required so that we iterate over a static list,
+        # otherwise we can get issues because the iterator depends on the model
+        # (which we're changing).
+        for k, state in enumerate(list(self._model.states())):
             if state not in self._states:
                 state.demote()
                 state.set_rhs(s[k])
-        del(s)
 
         # Unbind everything except time
         for label, var in self._model.bindings():
@@ -1004,9 +1006,8 @@ def get_alpha_and_beta(x, v=None):
     ``beta`` if so.
 
     Here, ``alpha(v)`` and ``beta(v)`` represent the forward and backward
-    reaction rates for ``x``, and must depend on the variable ``v`` but not on
-    any state variables (with the possible exception of ``v``, which may or may
-    not be a state variable).
+    reaction rates for ``x``. Both may depend on ``v``, but not on any (other)
+    state variable.
 
     Arguments:
 
@@ -1016,7 +1017,8 @@ def get_alpha_and_beta(x, v=None):
         An optional :class:`myokit.Variable` representing the membrane
         potential. If not given, the label ``membrane_potential`` will be used
         to determine ``v``. If ``v=None`` and no membrane potential can be
-        found an error will be raised.
+        found an error will be raised. Membrane potential is typically
+        specified as a state, but this is not a requirement.
 
     Returns a tuple ``(alpha, beta)`` if successful, or ``None`` if not. Both
     ``alpha`` and ``beta`` are :class:`myokit.Variable` objects.
@@ -1078,15 +1080,15 @@ def get_alpha_and_beta(x, v=None):
     # Check membrane potential variable is known.
     if v is None:
         v = model.label('membrane_potential')
-        if v is None:
-            raise ValueError(
-                'Membrane potential must be given as `v` or by setting the'
-                ' label `membrane_potential` in the model.')
     else:
         # Ensure v is a variable, and from the cloned model
         if isinstance(v, myokit.Variable):
             v = v.qname()
         v = model.get(v)
+    if v is None:
+        raise ValueError(
+            'Membrane potential must be given as `v` or by setting the'
+            ' label `membrane_potential` in the model.')
 
     # Check alpha and beta
     for term in (alpha, beta):
@@ -1112,13 +1114,12 @@ def get_alpha_and_beta(x, v=None):
 def get_inf_and_tau(x, v=None):
     """
     Tests if the given ``x`` is a state variable with an expression of the form
-    ``(x_inf(v) - x) / tau_x(v)``, and returns the variables for ``x_inf`` and
+    ``(x_inf - x) / tau_x``, and returns the variables for ``x_inf`` and
     ``x_tau`` if so.
 
-    Here, ``x_inf(v)`` and ``tau_x(v)`` represent the steady-state and time
-    constant of ``x``, and must depend on the variable ``v`` but not on any
-    state variables (with the possible exception of ``v``, which may or may not
-    be a state variable).
+    Here, ``x_inf`` and ``tau_x`` represent the steady-state and time
+    constant of ``x``. Both may depend on ``v``, but not on any (other) state
+    variable.
 
     Arguments:
 
@@ -1128,7 +1129,8 @@ def get_inf_and_tau(x, v=None):
         An optional :class:`myokit.Variable` representing the membrane
         potential. If not given, the label ``membrane_potential`` will be used
         to determine ``v``. If ``v=None`` and no membrane potential can be
-        found an error will be raised.
+        found an error will be raised. Membrane potential is typically
+        specified as a state, but this is not a requirement.
 
     Returns:
 
@@ -1174,15 +1176,15 @@ def get_inf_and_tau(x, v=None):
     # Check membrane potential variable is known.
     if v is None:
         v = model.label('membrane_potential')
-        if v is None:
-            raise ValueError(
-                'Membrane potential must be given as `v` or by setting the'
-                ' label `membrane_potential` in the model.')
     else:
         # Ensure v is a variable, and from the cloned model
         if isinstance(v, myokit.Variable):
             v = v.qname()
         v = model.get(v)
+    if v is None:
+        raise ValueError(
+            'Membrane potential must be given as `v` or by setting the'
+            ' label `membrane_potential` in the model.')
 
     # Check xinf and xtau
     for term in (xinf, xtau):
