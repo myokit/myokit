@@ -1336,3 +1336,18 @@ def strfloat(number, full=False):
     # precision number possible
     return myokit.SFDOUBLE.format(number)
 
+
+def _feq(a, b):
+    """
+    Checks if floating point numbers ``a`` and ``b`` are equal, or so close to
+    each other that the difference could be a single rounding error.
+    """
+    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+
+
+def _fgeq(a, b):
+    """
+    Checks if ``a >= b``, but using :meth:`myokit._feq` instead of ``=``.
+    """
+    return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+

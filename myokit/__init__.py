@@ -487,10 +487,12 @@ from ._aux import (  # noqa
     Benchmarker,
 
     # Misc
-    _lvsd,
-    format_path,
-    strfloat,
+    _feq,
+    _fgeq,
     format_float_dict,
+    format_path,
+    _lvsd,
+    strfloat,
 
     # Snapshot creation for replicability
     pack_snapshot,

@@ -10,7 +10,6 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
-import sys
 import xml.etree.cElementTree as et
 
 import myokit
@@ -81,7 +80,7 @@ class CellMLExporter(myokit.formats.Exporter):
             multiplier = unit.multiplier_log_10()
 
             # If nice round int, then use e-notation
-            if _eq(multiplier, int(multiplier)):
+            if myokit._feq(multiplier, int(multiplier)):
                 multiplier = '1e' + str(int(multiplier))
             else:
                 multiplier = str(unit.multiplier())
@@ -576,7 +575,3 @@ si_exponents = {
     24: 'yotta',
 }
 
-
-# Comparison to within floating point precision
-def _eq(a, b):
-    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
