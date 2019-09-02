@@ -2875,7 +2875,7 @@ dimensionless = Unit()
 class Quantity(object):
     """
     Represents a quantity with a :class:`unit <myokit.Unit>`. Can be used to
-    perform unit-safe arithmetic with Myokit.
+    perform unit-safe arithmetic.
 
     Example::
 
