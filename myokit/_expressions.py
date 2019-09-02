@@ -2528,8 +2528,8 @@ class Unit(object):
 
             >>> import myokit
             >>> myokit.Unit.conversion_factor(
-                    'uA/cm^2', 'uA/uF', ['1 uF/cm^2'])
-            1 [cm^2/uF]
+            ...     'uA/cm^2', 'uA/uF', ['1 [uF/cm^2]'])
+            1.0 [cm^2/uF]
 
         Where::
 
