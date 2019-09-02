@@ -2629,14 +2629,7 @@ class Unit(object):
         return factor.value() * amount
 
     def __div__(self, other):
-        """
-        Evaluates ``self / other``
-        """
-        if not isinstance(other, Unit):
-            return Unit(list(self._x), self._m - math.log10(float(other)))
-        return Unit(
-            [a - b for a, b in zip(self._x, other._x)],
-            self._m - other._m)
+        return self.__truediv__(other)
 
     def __eq__(self, other):
         if not isinstance(other, Unit):
@@ -2650,9 +2643,8 @@ class Unit(object):
         return list(self._x)
 
     def __float__(self):
-        """
-        Attempts to convert this unit to a float.
-        """
+        # Attempts to convert this unit to a float.
+
         for x in self._x:
             if x != 0:
                 raise TypeError(
@@ -2660,9 +2652,8 @@ class Unit(object):
         return self.multiplier()
 
     def __hash__(self):
-        """
-        Creates a hash for this unit
-        """
+        # Creates a hash for this Unit
+
         if not self._hash:
             self._hash = hash(
                 ','.join([str(x) for x in self._x]) + 'e' + str(self._m))
@@ -2695,9 +2686,8 @@ class Unit(object):
         return self._m
 
     def __mul__(self, other):
-        """
-        Evaluates ``self * other``
-        """
+        # Evaluates ``self * other``
+
         if not isinstance(other, Unit):
             return Unit(list(self._x), self._m + math.log10(float(other)))
         return Unit(
@@ -2771,9 +2761,8 @@ class Unit(object):
                 raise KeyError('Unknown unit: "' + str(name) + '".')
 
     def __pow__(self, f):
-        """
-        Evaluates ``self ^ other``
-        """
+        # Evaluates ``self ^ other``
+
         f = float(f)
         e = [myokit._round_if_int(f * x) for x in self._x]
         for x in e:
@@ -2785,9 +2774,6 @@ class Unit(object):
         return Unit([int(x) for x in e], self._m * f)
 
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
-        """
-        Evaluates ``other / self``, where other is not a unit
-        """
         return self.__rtruediv__(other)
 
     @staticmethod
@@ -2890,16 +2876,14 @@ class Unit(object):
         return self._repr
 
     def __rmul__(self, other):
-        """
-        Evaluates ``other * self``, where other is not a Unit
-        """
+        # Evaluates ``other * self``, where other is not a Unit
+
         return Unit(list(self._x), self._m + math.log10(other))
 
     def __rtruediv__(self, other):
-        """
-        Evaluates ``other / self``, where other is not a unit when future
-        division is active.
-        """
+        # Evaluates ``other / self``, where other is not a unit when future
+        # division is active.
+
         return Unit([-a for a in self._x], math.log10(other) - self._m)
 
     def __str__(self):
@@ -2931,11 +2915,13 @@ class Unit(object):
                 return rep
 
     def __truediv__(self, other):
-        """
-        Evaluates self / other if future division is active.
-        """
-        # Only truediv is supported, so methods are equal
-        return self.__div__(other)
+        # Evaluates self / other if future division is active.
+
+        if not isinstance(other, Unit):
+            return Unit(list(self._x), self._m - math.log10(float(other)))
+        return Unit(
+            [a - b for a, b in zip(self._x, other._x)],
+            self._m - other._m)
 
 
 # Dimensionless unit, used to compare against
@@ -3090,10 +3076,8 @@ class Quantity(object):
             unit = myokit.parse_unit(unit)
         return Quantity(self._value, unit)
 
-    def __div__(self, other):
-        if not isinstance(other, Quantity):
-            other = Quantity(other)
-        return Quantity(self._value / other._value, self._unit / other._unit)
+    def __div__(self, other):   # pragma: no cover      truediv used instead
+        return self.__truediv__(other)
 
     def __eq__(self, other):
         if not isinstance(other, Quantity):
@@ -3111,6 +3095,14 @@ class Quantity(object):
             other = Quantity(other)
         return Quantity(self._value * other._value, self._unit * other._unit)
 
+    def __pow__(self, f):
+        if isinstance(f, Quantity):
+            if f.unit() != myokit.units.dimensionless:
+                raise myokit.IncompatibleUnitError(
+                    'Exponent of power must be dimensionless')
+            f = f.value()
+        return Quantity(self._value ** f, self._unit ** f)
+
     def __radd__(self, other):
         return self + other
 
@@ -3118,13 +3110,16 @@ class Quantity(object):
         return '<Quantity(' + self._str + ')>'
 
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
-        return Quanity(other) / self
+        return Quantity(other) / self
 
     def __rmul__(self, other):
         return self * other
 
     def __rsub__(self, other):
         return Quantity(other) - self
+
+    def __rtruediv__(self, other):
+        return Quantity(other) / self
 
     def __str__(self):
         return self._str
@@ -3139,8 +3134,11 @@ class Quantity(object):
         return Quantity(self._value - other._value, self._unit)
 
     def __truediv__(self, other):
-        # Only truediv is supported, so behaviour is identical to div
-        return self.__div__(other)
+        # Evaluates self / other
+
+        if not isinstance(other, Quantity):
+            other = Quantity(other)
+        return Quantity(self._value / other._value, self._unit / other._unit)
 
     def unit(self):
         """
