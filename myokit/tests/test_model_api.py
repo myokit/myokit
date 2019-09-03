@@ -1920,8 +1920,13 @@ class VariableTest(unittest.TestCase):
         """)
         m.check_units(myokit.UNIT_STRICT)
 
-        # Convert state
+        # Convert to same
+        code = m.code()
         v = m.get('membrane.V')
+        v.convert_unit('mV')
+        self.assertEqual(code, m.code())
+
+        # Convert state
         vdot = v.rhs().eval()
         self.assertNotEqual(v.unit(), myokit.units.V)
         v.convert_unit('V')
