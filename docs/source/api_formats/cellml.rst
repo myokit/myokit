@@ -154,6 +154,8 @@ The standard interfaces for importing and exporting are provided:
 
 .. module:: myokit.formats.cellml
 
+.. autofunction:: is_valid_identifier
+
 .. autofunction:: importers
 
 .. autoclass:: CellMLImporter

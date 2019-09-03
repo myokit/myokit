@@ -47,6 +47,7 @@ myokit.formats.cellml
 - :meth:`myokit.formats.cellml.ewriters`
 - :meth:`myokit.formats.cellml.exporters`
 - :meth:`myokit.formats.cellml.importers`
+- :meth:`myokit.formats.cellml.is_valid_identifier`
 
 myokit.formats.channelml
 ------------------------
