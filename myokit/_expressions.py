@@ -12,7 +12,6 @@ from __future__ import print_function, unicode_literals
 
 import math
 import numpy
-import sys
 
 import myokit
 from myokit import IntegrityError
@@ -2501,46 +2500,117 @@ class Unit(object):
         r2 = repr(self)
         if r1 == r2:
             return r1
-        return r1 + '(or ' + r2 + ')'
+        return r1 + ' (or ' + r2 + ')'
 
     @staticmethod
-    def conversion_factor(unit1, unit2):
+    def conversion_factor(unit1, unit2, helpers=None):
         """
-        Returns the number ``c`` such that ``1 [unit1] = c [unit2]``.
+        Returns a :class:`myokit.Quantity` ``c`` to convert from ``unit1`` to
+        ``unit2``, such that ``1 [unit1] * c = 1 [unit2]``.
+
+        For example:
 
             >>> import myokit
             >>> myokit.Unit.conversion_factor('m', 'km')
-            0.001
+            0.001 [1 (1000)]
 
+        Where::
+
+            1 [m] = 0.001 [km/m] * 1 [km]
+
+        so that ``c = 0.001 [km/m]``, and the unit ``[km/m]`` can be written as
+        ``[km/m] = [ kilo ] = [1 (1000)]``.
+
+        Conversions between incompatible units can be performed if one or
+        multiple helper :class:`Quantity` objects are passed in.
+
+        For example:
+
+            >>> import myokit
+            >>> myokit.Unit.conversion_factor(
+            ...     'uA/cm^2', 'uA/uF', ['1 [uF/cm^2]'])
+            1.0 [cm^2/uF]
+
+        Where::
+
+            1 [uA/cm^2] = 1 [cm^2/uF] * 1 [uA/uF]
+
+        Arguments:
+
+        ``unit1``
+            The new unit to convert from, given as a :class:`myokit.Unit` or as
+            a string that can be converted to a unit with
+            :meth:`myokit.parse_unit()`.
+        ``unit2``
+            The new unit to convert to.
+        ``helpers=None``
+            An optional list of conversion factors, which the method will
+            attempt to use if the new and old units are incompatible. Each
+            factor should be specified as a :class:`myokit.Quantity` or
+            something that can be converted to a Quantity e.g. a string
+            ``1 [uF/cm^2]``.
+
+        Returns a :class:`myokit.Quantity`.
         """
+        # Check unit1
         if not isinstance(unit1, myokit.Unit):
             if unit1 is None:
                 unit1 = myokit.units.dimensionless
             else:
-                try:
-                    unit1 = myokit.parse_unit(unit1)
-                except Exception:
-                    raise myokit.IncompatibleUnitError(
-                        'Cannot convert given object ' + repr(unit1)
-                        + ' to unit.')
+                unit1 = myokit.parse_unit(unit1)
 
+        # Check unit2
         if not isinstance(unit2, myokit.Unit):
             if unit2 is None:
                 unit2 = myokit.units.dimensionless
             else:
-                try:
-                    unit2 = myokit.parse_unit(unit2)
-                except Exception:
-                    raise myokit.IncompatibleUnitError(
-                        'Cannot convert given object ' + repr(unit2)
-                        + ' to unit.')
+                unit2 = myokit.parse_unit(unit2)
 
-        if unit1._x != unit2._x:
-            raise myokit.IncompatibleUnitError(
-                'Cannot convert from ' + unit1.clarify() + ' to '
-                + unit2.clarify() + '.')
+        # Check helper units
+        factors = []
+        if helpers is not None:
+            for factor in helpers:
+                if not isinstance(factor, myokit.Quantity):
+                    factor = myokit.Quantity(factor)
+                factors.append(factor)
+        del(helpers)
 
-        return 1 if unit1._m == unit2._m else 10**(unit1._m - unit2._m)
+        # Simplest case: units are equal
+        if unit1 == unit2:
+            return Quantity(1)
+
+        # Get conversion factor
+        fw = None
+        if unit1._x == unit2._x:
+
+            # Directly convertible
+            fw = 10**(unit1._m - unit2._m)
+
+        else:
+            # Try conversion via one of the helpers
+            for factor in factors:
+
+                unit1a = unit1 * factor.unit()
+                if unit1a._x == unit2._x:
+                    fw = 10**(unit1a._m - unit2._m) * factor.value()
+                    break
+
+                unit1a = unit1 / factor.unit()
+                if unit1a._x == unit2._x:
+                    fw = 10**(unit1a._m - unit2._m) / factor.value()
+                    break
+
+        # Unable to convert?
+        if fw is None:
+            msg = 'Unable to convert from ' + unit1.clarify()
+            msg += ' to ' + unit2.clarify()
+            if factors:
+                msg += ' (even with help of conversion factors).'
+            raise myokit.IncompatibleUnitError(msg + '.')
+
+        # Create Quantity and return
+        fw = myokit._round_if_int(fw)
+        return Quantity(fw, unit2 / unit1)
 
     @staticmethod
     def convert(amount, unit1, unit2):
@@ -2553,17 +2623,13 @@ class Unit(object):
             3.0
 
         """
-        return amount * Unit.conversion_factor(unit1, unit2)
+        factor = Unit.conversion_factor(unit1, unit2)
+        if isinstance(amount, myokit.Quantity):
+            return factor * amount
+        return factor.value() * amount
 
-    def __div__(self, other):
-        """
-        Evaluates ``self / other``
-        """
-        if not isinstance(other, Unit):
-            return Unit(list(self._x), self._m - math.log10(float(other)))
-        return Unit(
-            [a - b for a, b in zip(self._x, other._x)],
-            self._m - other._m)
+    def __div__(self, other):   # pragma: no cover      truediv used instead
+        return self.__truediv__(other)
 
     def __eq__(self, other):
         if not isinstance(other, Unit):
@@ -2577,9 +2643,8 @@ class Unit(object):
         return list(self._x)
 
     def __float__(self):
-        """
-        Attempts to convert this unit to a float.
-        """
+        # Attempts to convert this unit to a float.
+
         for x in self._x:
             if x != 0:
                 raise TypeError(
@@ -2587,9 +2652,8 @@ class Unit(object):
         return self.multiplier()
 
     def __hash__(self):
-        """
-        Creates a hash for this unit
-        """
+        # Creates a hash for this Unit
+
         if not self._hash:
             self._hash = hash(
                 ','.join([str(x) for x in self._x]) + 'e' + str(self._m))
@@ -2622,9 +2686,8 @@ class Unit(object):
         return self._m
 
     def __mul__(self, other):
-        """
-        Evaluates ``self * other``
-        """
+        # Evaluates ``self * other``
+
         if not isinstance(other, Unit):
             return Unit(list(self._x), self._m + math.log10(float(other)))
         return Unit(
@@ -2698,13 +2761,12 @@ class Unit(object):
                 raise KeyError('Unknown unit: "' + str(name) + '".')
 
     def __pow__(self, f):
-        """
-        Evaluates ``self ^ other``
-        """
+        # Evaluates ``self ^ other``
+
         f = float(f)
-        e = [f * x for x in self._x]
+        e = [myokit._round_if_int(f * x) for x in self._x]
         for x in e:
-            if not _eq(float(x), int(x)):
+            if not x == int(x):
                 raise ValueError(
                     'Unit exponentiation (' + repr(self) + ') ^ '
                     + str(f) + ' failed: would result in non-integer'
@@ -2712,9 +2774,6 @@ class Unit(object):
         return Unit([int(x) for x in e], self._m * f)
 
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
-        """
-        Evaluates ``other / self``, where other is not a unit
-        """
         return self.__rtruediv__(other)
 
     @staticmethod
@@ -2805,7 +2864,7 @@ class Unit(object):
             # Add conversion factor
             if self._m != 0:
                 m = 10**self._m
-                if m >= 1 and _eq(m, int(m)):
+                if myokit._feq(m, int(m)):
                     m = int(m)
                 if m < 1e6:
                     m = str(m)
@@ -2817,16 +2876,14 @@ class Unit(object):
         return self._repr
 
     def __rmul__(self, other):
-        """
-        Evaluates ``other * self``, where other is not a Unit
-        """
+        # Evaluates ``other * self``, where other is not a Unit
+
         return Unit(list(self._x), self._m + math.log10(other))
 
     def __rtruediv__(self, other):
-        """
-        Evaluates ``other / self``, where other is not a unit when future
-        division is active.
-        """
+        # Evaluates ``other / self``, where other is not a unit when future
+        # division is active.
+
         return Unit([-a for a in self._x], math.log10(other) - self._m)
 
     def __str__(self):
@@ -2842,7 +2899,7 @@ class Unit(object):
                 u = Unit(list(self._x), m)
                 rep = Unit._preferred_representations[u]
                 m = 10**(self._m - m)
-                if m >= 1 and _eq(m, int(m)):
+                if m >= 1 and myokit._feq(m, int(m)):
                     m = int(m)
                 if m < 1e6:
                     m = str(m)
@@ -2858,11 +2915,13 @@ class Unit(object):
                 return rep
 
     def __truediv__(self, other):
-        """
-        Evaluates self / other if future division is active.
-        """
-        # Only truediv is supported, so methods are equal
-        return self.__div__(other)
+        # Evaluates self / other if future division is active.
+
+        if not isinstance(other, Unit):
+            return Unit(list(self._x), self._m - math.log10(float(other)))
+        return Unit(
+            [a - b for a, b in zip(self._x, other._x)],
+            self._m - other._m)
 
 
 # Dimensionless unit, used to compare against
@@ -2875,7 +2934,7 @@ dimensionless = Unit()
 class Quantity(object):
     """
     Represents a quantity with a :class:`unit <myokit.Unit>`. Can be used to
-    perform unit-safe arithmetic with Myokit.
+    perform unit-safe arithmetic.
 
     Example::
 
@@ -3017,10 +3076,8 @@ class Quantity(object):
             unit = myokit.parse_unit(unit)
         return Quantity(self._value, unit)
 
-    def __div__(self, other):
-        if not isinstance(other, Quantity):
-            other = Quantity(other)
-        return Quantity(self._value / other._value, self._unit / other._unit)
+    def __div__(self, other):   # pragma: no cover      truediv used instead
+        return self.__truediv__(other)
 
     def __eq__(self, other):
         if not isinstance(other, Quantity):
@@ -3038,17 +3095,31 @@ class Quantity(object):
             other = Quantity(other)
         return Quantity(self._value * other._value, self._unit * other._unit)
 
+    def __pow__(self, f):
+        if isinstance(f, Quantity):
+            if f.unit() != myokit.units.dimensionless:
+                raise myokit.IncompatibleUnitError(
+                    'Exponent of power must be dimensionless')
+            f = f.value()
+        return Quantity(self._value ** f, self._unit ** f)
+
     def __radd__(self, other):
         return self + other
 
+    def __repr__(self):
+        return self._str
+
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
-        return Quanity(other) / self
+        return Quantity(other) / self
 
     def __rmul__(self, other):
         return self * other
 
     def __rsub__(self, other):
         return Quantity(other) - self
+
+    def __rtruediv__(self, other):
+        return Quantity(other) / self
 
     def __str__(self):
         return self._str
@@ -3063,8 +3134,11 @@ class Quantity(object):
         return Quantity(self._value - other._value, self._unit)
 
     def __truediv__(self, other):
-        # Only truediv is supported, so behaviour is identical to div
-        return self.__div__(other)
+        # Evaluates self / other
+
+        if not isinstance(other, Quantity):
+            other = Quantity(other)
+        return Quantity(self._value / other._value, self._unit / other._unit)
 
     def unit(self):
         """
@@ -3077,12 +3151,4 @@ class Quantity(object):
         Returns this Quantity's unitless value.
         """
         return self._value
-
-
-def _eq(a, b):
-    """
-    Checks if ``a`` and ``b`` are equal, or so close to each other that the
-    difference could be a single floating point rounding error.
-    """
-    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
 

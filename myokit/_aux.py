@@ -4,22 +4,22 @@
 # myokit module but don't belong to any specific hidden module.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import array
+import fnmatch
 import os
 import re
-import sys
-import array
-import timeit
 import shutil
-import fnmatch
-import zipfile
+import sys
 import tempfile
+import timeit
+import zipfile
 
 # StringIO in Python 2 and 3
 try:
@@ -1335,4 +1335,28 @@ def strfloat(number, full=False):
     # But if the number is given with lots of decimals, use the highest
     # precision number possible
     return myokit.SFDOUBLE.format(number)
+
+
+def _feq(a, b):
+    """
+    Checks if floating point numbers ``a`` and ``b`` are equal, or so close to
+    each other that the difference could be a single rounding error.
+    """
+    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+
+
+def _fgeq(a, b):
+    """
+    Checks if ``a >= b``, but using :meth:`myokit._feq` instead of ``=``.
+    """
+    return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+
+
+def _round_if_int(x):
+    """
+    Checks if a float ``x`` is within 1 rounding error of an integer, and if
+    so, rounds it to that integer.
+    """
+    ix = round(x)
+    return ix if _feq(x, ix) else x
 

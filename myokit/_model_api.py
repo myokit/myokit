@@ -3365,6 +3365,83 @@ class Variable(VarOwner):
         for var in self.variables(sort=True):
             var._code(b, t)
 
+    def convert_unit(self, new_unit, helpers=None):
+        """
+        Converts the units this variable is expressed in to ``new_unit``.
+
+        Unit conversion proceeds in the following steps:
+
+        1. A scaling factor is determined (see below).
+        2. The variable's RHS is multiplied by this factor
+        3. For state variables, the current state value is also updated.
+        4. All references to the variable in the model equations are divided
+           by the scaling factor.
+        5. If the time variable is updated, all derivative equations are
+           updated.
+
+        The scaling factor is determined using
+        :meth:`myokit.Unit.conversion_factor(old_unit, new_unit, helpers)`,
+        where ``old_unit`` is the current variable unit (as determined by
+        ``variable.unit(myokit.UNIT_STRICT)``).
+
+        For state variables, as with ordinary variables, the ``new_unit``
+        should be the unit of the variable itself (and not of its time
+        derivative).
+
+        Arguments:
+
+        ``new_unit``
+            The new unit this variable should be in. Given either as a
+            :class:`myokit.Unit` or as a string that can be converted to a unit
+            using :class:`myokit.parse_unit(new_unit)`.
+        ``helpers=None``
+            An optional list of conversion factors, which the method will
+            attempt to use if the new and old units are incompatible. Each
+            factor should be specified as a :class:`myokit.Quantity` or
+            something that can be converted to a Quantity e.g. a string
+            ``1 [uF/cm^2]``.
+
+        Note that this method will assume the expression is currently in the
+        unit returned by :meth:`Variable.unit()`. It will not check whether the
+        current RHS expression evaluates to the correct units.
+        """
+        # Check new unit
+        if not isinstance(new_unit, myokit.Unit):
+            new_unit = myokit.parse_unit(new_unit)
+
+        # Get current unit
+        old_unit = self.unit(myokit.UNIT_STRICT)
+
+        # Check if units are equal
+        if new_unit == old_unit:
+            return
+
+        # Determine scaling factor (from old to new)
+        fw = myokit.Unit.conversion_factor(old_unit, new_unit, helpers)
+        fw = myokit.Number(fw)
+
+        # Update the variable unit
+        self.set_unit(new_unit)
+
+        # Update the variable's definition
+        self.set_rhs(myokit.Multiply(self.rhs(), fw))
+
+        # For states, update the current/initial value
+        if self._is_state:
+            self.set_state_value(self.state_value() * float(fw))
+
+        # Update all references to the variable
+        old_ref = myokit.Name(self)
+        new_ref = myokit.Divide(old_ref, fw)
+        for var in self.refs_by(self._is_state):
+            var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
+
+        # For the time variable, update all state RHS's as well
+        model = self.parent(Model)
+        if self == model.time():
+            for var in model.states():
+                var.set_rhs(myokit.Divide(var.rhs(), fw))
+
     def _delete(self, recursive=False, whole_component=False):
         """
         Tells this variable that it's going to be deleted.

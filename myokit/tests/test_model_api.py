@@ -1886,32 +1886,126 @@ class VariableTest(unittest.TestCase):
     """
     Tests parts of :class:`myokit.Variable`.
     """
-    def test_unit(self):
-        """ Test :meth:`Variable.unit()`. """
+    def test_convert_unit(self):
+        # Test changing variable units
+
+        m = myokit.parse_model("""
+            [[model]]
+            membrane.V = -83
+
+            [env]
+            t = 0 [ms] bind time
+                in [ms]
+
+            [membrane]
+            dot(V) = - (ikr.i + ina.i * 1 [cm^2/uF])
+                in [mV]
+
+            [cell]
+            Cm = 0.123 [uF]
+                in [uF]
+
+            [ina]
+            i = 12 [uA/cm^2]
+                in [uA/cm^2]
+
+            [ikr]
+            use membrane.V
+            E = -81 [mV]
+                in [mV]
+            g = 23 [mS/uF]
+                in [mS/uF]
+            i = g * (V - E)
+                in [uA/uF]
+        """)
+        m.check_units(myokit.UNIT_STRICT)
+
+        # Convert to same
+        code = m.code()
+        v = m.get('membrane.V')
+        v.convert_unit('mV')
+        self.assertEqual(code, m.code())
+
+        # Convert state
+        vdot = v.rhs().eval()
+        self.assertNotEqual(v.unit(), myokit.units.V)
+        v.convert_unit('V')
+        self.assertEqual(v.unit(), myokit.units.V)
+
+        # Check dot(v) is the same, and all units are compatible
+        vdot /= 1000
+        self.assertEqual(vdot, v.rhs().eval())
+        m.check_units(myokit.UNIT_STRICT)
+
+        # Convert non-state
+        i = m.get('ina.i')
+        self.assertNotEqual(i.unit(), myokit.parse_unit('uA/uF'))
+        i.convert_unit('uA/uF', ['1 [uF/cm^2]'])
+        self.assertEqual(i.unit(), myokit.parse_unit('uA/uF'))
+
+        # Check dot(v) is the same, and all units are compatible
+        self.assertEqual(vdot, v.rhs().eval())
+        m.check_units(myokit.UNIT_STRICT)
+
+        # Convert time variable
+        t = m.time()
+        self.assertNotEqual(t.unit(), myokit.units.s)
+        t.convert_unit('s')
+        self.assertEqual(t.unit(), myokit.units.s)
+
+        # Check dot(v) is the same, and all units are compatible
+        vdot *= 1000
+        self.assertEqual(vdot, v.rhs().eval())
+        m.check_units(myokit.UNIT_STRICT)
+
+    def test_is_referenced(self):
+        # Test :meth:`Variable.is_referenced().
+
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
-        d = myokit.units.dimensionless
+        v.set_rhs(3)
+        w = c.add_variable('w')
+        w.set_rhs(4)
 
-        # Test no unit case
-        self.assertIsNone(v.unit())
-        self.assertEqual(v.unit(myokit.UNIT_STRICT), d)
+        self.assertFalse(v.is_referenced())
+        self.assertFalse(w.is_referenced())
+        v.set_rhs('3 * w')
+        self.assertFalse(v.is_referenced())
+        self.assertTrue(w.is_referenced())
+        w.set_rhs('2 * v')
+        self.assertTrue(v.is_referenced())
+        self.assertTrue(w.is_referenced())
 
-        # RHS unit is not variable unit
-        v.set_rhs('1 [ms]')
-        self.assertIsNone(v.unit())
-        self.assertEqual(v.unit(myokit.UNIT_STRICT), d)
+        z = c.add_variable('z')
+        z.set_rhs('3 * v')
+        self.assertFalse(z.is_referenced())
+        self.assertTrue(v.is_referenced())
+        w.set_rhs(1)
+        self.assertTrue(v.is_referenced())
+        z.set_rhs(2)
+        self.assertFalse(v.is_referenced())
 
-        # Test unit-set case
-        kg = myokit.units.kg
-        v.set_unit(kg)
-        self.assertEqual(v.unit(), kg)
-        self.assertEqual(v.unit(myokit.UNIT_STRICT), kg)
+    def test_labelling(self):
+        # Test variable labelling.
+
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        v.set_rhs(3)
+
+        self.assertFalse(v.is_labelled())
+        self.assertIsNone(v.label())
+        v.set_label('membrane_potential')
+        self.assertTrue(v.is_labelled())
+        self.assertEqual(v.label(), 'membrane_potential')
+        v.set_label(None)
+        self.assertFalse(v.is_labelled())
+        self.assertIsNone(v.label())
 
     def test_promote_demote(self):
-        """
-        Test variable promotion and demotion.
-        """
+        # Test variable promotion and demotion.
+
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
@@ -1968,53 +2062,60 @@ class VariableTest(unittest.TestCase):
         y.set_rhs('1 + x')
         x.demote()
 
-    def test_labelling(self):
-        """
-        Test variable labelling.
-        """
+    def test_pyfunc(self):
+        # Test :meth:`Variable.pyfunc().
+
         m = myokit.Model()
         c = m.add_component('c')
-        v = c.add_variable('v')
-        v.set_rhs(3)
-
-        self.assertFalse(v.is_labelled())
-        self.assertIsNone(v.label())
-        v.set_label('membrane_potential')
-        self.assertTrue(v.is_labelled())
-        self.assertEqual(v.label(), 'membrane_potential')
-        v.set_label(None)
-        self.assertFalse(v.is_labelled())
-        self.assertIsNone(v.label())
-
-    def test_is_referenced(self):
-        """ Test :meth:`Variable.is_referenced(). """
-        m = myokit.Model()
-        c = m.add_component('c')
-        v = c.add_variable('v')
-        v.set_rhs(3)
-        w = c.add_variable('w')
-        w.set_rhs(4)
-
-        self.assertFalse(v.is_referenced())
-        self.assertFalse(w.is_referenced())
-        v.set_rhs('3 * w')
-        self.assertFalse(v.is_referenced())
-        self.assertTrue(w.is_referenced())
-        w.set_rhs('2 * v')
-        self.assertTrue(v.is_referenced())
-        self.assertTrue(w.is_referenced())
-
+        x = c.add_variable('x')
+        x.set_rhs(3)
+        y = c.add_variable('y')
+        y.set_rhs(4)
         z = c.add_variable('z')
-        z.set_rhs('3 * v')
-        self.assertFalse(z.is_referenced())
-        self.assertTrue(v.is_referenced())
-        w.set_rhs(1)
-        self.assertTrue(v.is_referenced())
-        z.set_rhs(2)
-        self.assertFalse(v.is_referenced())
+        z.set_rhs('3 * x + y')
+
+        # No states --> No arguments
+        f = z.pyfunc(use_numpy=False)
+        self.assertEqual(f(), 13)
+        f = z.pyfunc(use_numpy=True)
+        self.assertEqual(f(), 13)
+        f, args = z.pyfunc(use_numpy=False, arguments=True)
+        self.assertEqual(args, [])
+        f, args = z.pyfunc(use_numpy=True, arguments=True)
+        self.assertEqual(args, [])
+
+        # One state
+        y.promote(3)
+        f = z.pyfunc(use_numpy=False)
+        self.assertEqual(f(1), 10)
+        f = z.pyfunc(use_numpy=True)
+        self.assertEqual(f(1), 10)
+        self.assertTrue(
+            np.all(f(np.array([1, 2, 4])) == np.array([10, 11, 13])))
+        f, args = z.pyfunc(use_numpy=False, arguments=True)
+        self.assertEqual(args, (myokit.Name(y), ))
+        f, args = z.pyfunc(use_numpy=True, arguments=True)
+        self.assertEqual(args, (myokit.Name(y), ))
+
+        # Two states (alphabetically ordered)
+        x.promote(2)
+        f = z.pyfunc(use_numpy=False)
+        self.assertEqual(f(1, 2), 5)
+        f = z.pyfunc(use_numpy=True)
+        self.assertEqual(f(1, 2), 5)
+        self.assertTrue(
+            np.all(f(
+                np.array([1, 2, 4]), np.array([3, 2, 1])
+            ) == np.array([6, 8, 13]))
+        )
+        f, args = z.pyfunc(use_numpy=False, arguments=True)
+        self.assertEqual(args, (myokit.Name(x), myokit.Name(y)))
+        f, args = z.pyfunc(use_numpy=True, arguments=True)
+        self.assertEqual(args, (myokit.Name(x), myokit.Name(y)))
 
     def test_refs_by_and_to(self):
-        """ Test :meth:`Variable.is_referenced(). """
+        # Test :meth:`Variable.is_referenced().
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
@@ -2175,58 +2276,9 @@ class VariableTest(unittest.TestCase):
         x.validate()
         self.assertRaises(myokit.CyclicalDependencyError, m.validate)
 
-    def test_pyfunc(self):
-        """ Test :meth:`Variable.pyfunc(). """
-        m = myokit.Model()
-        c = m.add_component('c')
-        x = c.add_variable('x')
-        x.set_rhs(3)
-        y = c.add_variable('y')
-        y.set_rhs(4)
-        z = c.add_variable('z')
-        z.set_rhs('3 * x + y')
-
-        # No states --> No arguments
-        f = z.pyfunc(use_numpy=False)
-        self.assertEqual(f(), 13)
-        f = z.pyfunc(use_numpy=True)
-        self.assertEqual(f(), 13)
-        f, args = z.pyfunc(use_numpy=False, arguments=True)
-        self.assertEqual(args, [])
-        f, args = z.pyfunc(use_numpy=True, arguments=True)
-        self.assertEqual(args, [])
-
-        # One state
-        y.promote(3)
-        f = z.pyfunc(use_numpy=False)
-        self.assertEqual(f(1), 10)
-        f = z.pyfunc(use_numpy=True)
-        self.assertEqual(f(1), 10)
-        self.assertTrue(
-            np.all(f(np.array([1, 2, 4])) == np.array([10, 11, 13])))
-        f, args = z.pyfunc(use_numpy=False, arguments=True)
-        self.assertEqual(args, (myokit.Name(y), ))
-        f, args = z.pyfunc(use_numpy=True, arguments=True)
-        self.assertEqual(args, (myokit.Name(y), ))
-
-        # Two states (alphabetically ordered)
-        x.promote(2)
-        f = z.pyfunc(use_numpy=False)
-        self.assertEqual(f(1, 2), 5)
-        f = z.pyfunc(use_numpy=True)
-        self.assertEqual(f(1, 2), 5)
-        self.assertTrue(
-            np.all(f(
-                np.array([1, 2, 4]), np.array([3, 2, 1])
-            ) == np.array([6, 8, 13]))
-        )
-        f, args = z.pyfunc(use_numpy=False, arguments=True)
-        self.assertEqual(args, (myokit.Name(x), myokit.Name(y)))
-        f, args = z.pyfunc(use_numpy=True, arguments=True)
-        self.assertEqual(args, (myokit.Name(x), myokit.Name(y)))
-
     def test_rename(self):
-        """ Test :meth:`Variable.rename(). """
+        # Test :meth:`Variable.rename().
+
         # The functional part of this is done by Component.move_variable, so no
         # extensive testing is required
         m = myokit.Model()
@@ -2237,7 +2289,8 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(v.qname(), 'c.w')
 
     def test_set_state_value(self):
-        """ Test :meth:`Variable.set_state_value()`. """
+        # Test :meth:`Variable.set_state_value()`.
+
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
@@ -2262,7 +2315,7 @@ class VariableTest(unittest.TestCase):
             myokit.NonLiteralValueError, v.set_state_value, w.lhs())
 
     def test_set_unit(self):
-        """ Test :meth:`Variable.set_unit()`. """
+        # Test :meth:`Variable.set_unit()`.
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
@@ -2283,8 +2336,30 @@ class VariableTest(unittest.TestCase):
         self.assertRaisesRegex(
             TypeError, 'expects a myokit.Unit', v.set_unit, 12)
 
+    def test_unit(self):
+        # Test :meth:`Variable.unit()`.
+        m = myokit.Model()
+        c = m.add_component('c')
+        v = c.add_variable('v')
+        d = myokit.units.dimensionless
+
+        # Test no unit case
+        self.assertIsNone(v.unit())
+        self.assertEqual(v.unit(myokit.UNIT_STRICT), d)
+
+        # RHS unit is not variable unit
+        v.set_rhs('1 [ms]')
+        self.assertIsNone(v.unit())
+        self.assertEqual(v.unit(myokit.UNIT_STRICT), d)
+
+        # Test unit-set case
+        kg = myokit.units.kg
+        v.set_unit(kg)
+        self.assertEqual(v.unit(), kg)
+        self.assertEqual(v.unit(myokit.UNIT_STRICT), kg)
+
     def test_validate(self):
-        """ Test some edge cases for validation. """
+        # Test some edge cases for validation.
 
         # Test scope rule:
         # Variables are allowed access all children of their ancestors
@@ -2303,7 +2378,8 @@ class VariableTest(unittest.TestCase):
         self.assertRaises(myokit.IllegalReferenceError, p121.validate)
 
     def test_value(self):
-        """ Test :meth:`Variable.value()`. """
+        # Test :meth:`Variable.value()`.
+
         m = myokit.Model()
         c = m.add_component('c')
         v = c.add_variable('v')
@@ -2316,7 +2392,7 @@ class UserFunctionTest(unittest.TestCase):
     Tests :class:`UserFunction`.
     """
     def test_user_function(self):
-        """ Test :class:`UserFunction` creation and methods. """
+        # Test :class:`UserFunction` creation and methods.
 
         # Create without arguments
         f = myokit.UserFunction('bert', [], myokit.Number(12))

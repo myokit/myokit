@@ -2,7 +2,7 @@
 # Easy access to predefined myokit units.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -279,6 +279,7 @@ _rep('pA/cm^2')
 _rep('S/F')
 _rep('uA/cm^2')
 _rep('uF/cm^2')
+_rep('cm^2/uF')
 _rep('uF/mm^2')
 _rep('uF*mol/C')
 _rep('uL')
