@@ -2628,7 +2628,7 @@ class Unit(object):
             return factor * amount
         return factor.value() * amount
 
-    def __div__(self, other):
+    def __div__(self, other):   # pragma: no cover      truediv used instead
         return self.__truediv__(other)
 
     def __eq__(self, other):

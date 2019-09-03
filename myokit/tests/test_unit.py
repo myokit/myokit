@@ -116,6 +116,10 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertEqual(cf('uA/cm^2', 'nA', h1), q('123 [cm^2 (1e-3)]'))
         self.assertEqual(cf('uA/cm^2', 'nA', h2), q('123 [cm^2 (1e-3)]'))
 
+        # No good factors to try
+        self.assertRaisesRegex(
+            myokit.IncompatibleUnitError, 'even with', cf, 'mV', 'nA', h2)
+
     def test_convert(self):
         # Test :meth:`Unit.convert()`.
 

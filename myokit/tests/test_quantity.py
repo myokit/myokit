@@ -206,6 +206,7 @@ class QuantityTest(unittest.TestCase):
         a = Q('10 [uA]')
         self.assertEqual(a ** 2, Q('100 [uA^2]'))
         self.assertEqual(a ** 3, Q('1000 [uA^3]'))
+        self.assertEqual(a ** Q(3), Q('1000 [uA^3]'))
         a = Q('10 [uA]') ** 3
         b = a ** (1 / 3)
         self.assertEqual(b.unit(), myokit.units.uA)
