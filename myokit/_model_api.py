@@ -3382,7 +3382,7 @@ class Variable(VarOwner):
         The scaling factor is determined using
         :meth:`myokit.Unit.conversion_factor(old_unit, new_unit, helpers)`,
         where ``old_unit`` is the current variable unit (as determined by
-       ``variable.unit(myokit.UNIT_STRICT)``).
+        ``variable.unit(myokit.UNIT_STRICT)``).
 
         For state variables, as with ordinary variables, the ``new_unit``
         should be the unit of the variable itself (and not of its time
@@ -3402,8 +3402,8 @@ class Variable(VarOwner):
             ``1 [uF/cm^2]``.
 
         Note that this method will assume the expression is currently in the
-        unit returned by ``:meth:`Variable.unit()`. It will not check whether
-        the current RHS expression evaluates to the correct units.
+        unit returned by :meth:`Variable.unit()`. It will not check whether the
+        current RHS expression evaluates to the correct units.
         """
         # Check new unit
         if not isinstance(new_unit, myokit.Unit):
