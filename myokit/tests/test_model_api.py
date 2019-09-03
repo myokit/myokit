@@ -1886,6 +1886,72 @@ class VariableTest(unittest.TestCase):
     """
     Tests parts of :class:`myokit.Variable`.
     """
+    def test_convert_unit(self):
+        # Test changing variable units
+
+        m = myokit.parse_model("""
+            [[model]]
+            membrane.V = -83
+
+            [env]
+            t = 0 [ms] bind time
+                in [ms]
+
+            [membrane]
+            dot(V) = - (ikr.i + ina.i * 1 [cm^2/uF])
+                in [mV]
+
+            [cell]
+            Cm = 0.123 [uF]
+                in [uF]
+
+            [ina]
+            i = 12 [uA/cm^2]
+                in [uA/cm^2]
+
+            [ikr]
+            use membrane.V
+            E = -81 [mV]
+                in [mV]
+            g = 23 [mS/uF]
+                in [mS/uF]
+            i = g * (V - E)
+                in [uA/uF]
+        """)
+        m.check_units(myokit.UNIT_STRICT)
+
+        # Convert state
+        v = m.get('membrane.V')
+        vdot = v.rhs().eval()
+        self.assertNotEqual(v.unit(), myokit.units.V)
+        v.convert_unit('V')
+        self.assertEqual(v.unit(), myokit.units.V)
+
+        # Check dot(v) is the same, and all units are compatible
+        vdot /= 1000
+        self.assertEqual(vdot, v.rhs().eval())
+        m.check_units(myokit.UNIT_STRICT)
+
+        # Convert non-state
+        i = m.get('ina.i')
+        self.assertNotEqual(i.unit(), myokit.parse_unit('uA/uF'))
+        i.convert_unit('uA/uF', ['1 [uF/cm^2]'])
+        self.assertEqual(i.unit(), myokit.parse_unit('uA/uF'))
+
+        # Check dot(v) is the same, and all units are compatible
+        self.assertEqual(vdot, v.rhs().eval())
+        m.check_units(myokit.UNIT_STRICT)
+
+        # Convert time variable
+        t = m.time()
+        self.assertNotEqual(t.unit(), myokit.units.s)
+        t.convert_unit('s')
+        self.assertEqual(t.unit(), myokit.units.s)
+
+        # Check dot(v) is the same, and all units are compatible
+        vdot *= 1000
+        self.assertEqual(vdot, v.rhs().eval())
+        m.check_units(myokit.UNIT_STRICT)
 
     def test_is_referenced(self):
         # Test :meth:`Variable.is_referenced().
