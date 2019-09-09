@@ -479,6 +479,12 @@ class PSimulation(myokit.CppModule):
             raise ValueError('Step size must be greater than zero.')
         self._dt = dt
 
+    def set_time(self, time=0):
+        """
+        Sets the current simulation time.
+        """
+        self._time = float(time)
+
     def state(self):
         """
         Returns the current state.
