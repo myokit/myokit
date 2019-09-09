@@ -3,7 +3,7 @@
 # Tests the expression classes.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -31,9 +31,8 @@ class ExpressionTest(unittest.TestCase):
     """
 
     def test_contains_type(self):
-        """
-        Test :meth:`Expression.contains_type`.
-        """
+        # Test :meth:`Expression.contains_type`.
+
         self.assertTrue(myokit.Name('x').contains_type(myokit.Name))
         self.assertFalse(myokit.Name('x').contains_type(myokit.Number))
         self.assertTrue(myokit.Number(4).contains_type(myokit.Number))
@@ -2614,6 +2613,63 @@ class PiecewiseTest(unittest.TestCase):
         self.assertRaises(myokit.IncompatibleUnitError, z.eval_unit, s)
 
 
+class EquationTest(unittest.TestCase):
+    """
+    Tests :class:`myokit.Equation`.
+    """
+    def test_creation(self):
+        """ Test creation of equations. """
+        lhs = myokit.Name('x')
+        rhs = myokit.Number('3')
+        myokit.Equation(lhs, rhs)
+
+    def test_eq(self):
+        """ Test equality checking. """
+        eq1 = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
+        eq2 = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
+        self.assertEqual(eq1, eq2)
+        self.assertEqual(eq2, eq1)
+        self.assertFalse(eq1 != eq2)
+
+        eq2 = myokit.Equation(myokit.Name('x'), myokit.Number('4'))
+        self.assertNotEqual(eq1, eq2)
+        self.assertNotEqual(eq2, eq1)
+        self.assertTrue(eq1 != eq2)
+
+        eq2 = myokit.Equation(myokit.Name('y'), myokit.Number('3'))
+        self.assertNotEqual(eq1, eq2)
+        self.assertNotEqual(eq2, eq1)
+
+        eq2 = myokit.Equal(myokit.Name('x'), myokit.Number('3'))
+        self.assertNotEqual(eq1, eq2)
+        self.assertNotEqual(eq2, eq1)
+
+        eq2 = 'hi'
+        self.assertNotEqual(eq1, eq2)
+        self.assertNotEqual(eq2, eq1)
+
+    def test_code(self):
+        """ Test :meth:`Equation.code()`. """
+        eq = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
+        self.assertEqual(eq.code(), 'str:x = 3')
+        self.assertEqual(eq.code(), str(eq))
+
+    def test_hash(self):
+        """ Test that equations can be hashed. """
+        # No exception = pass
+        hash(myokit.Equation(myokit.Name('x'), myokit.Number('3')))
+
+    def test_iter(self):
+        """ Test iteration over an equation. """
+        lhs = myokit.Name('x')
+        rhs = myokit.Number('3')
+        eq = myokit.Equation(lhs, rhs)
+        i = iter(eq)
+        self.assertEqual(next(i), lhs)
+        self.assertEqual(next(i), rhs)
+        self.assertEqual(len(list(eq)), 2)
+
+
 class UnsupportedFunctionTest(unittest.TestCase):
     """
     Tests the myokit.UnsupportedFunction placeholder class.
@@ -2622,6 +2678,46 @@ class UnsupportedFunctionTest(unittest.TestCase):
         """ Test UnsupportedFunction.validate(). """
         x = myokit.UnsupportedFunction('test', [myokit.Number(1)])
         self.assertRaises(myokit.IntegrityError, x.validate)
+
+
+class UserFunctionTest(unittest.TestCase):
+    """
+    Tests :class:`UserFunction`.
+    """
+    def test_user_function(self):
+        # Test :class:`UserFunction` creation and methods.
+
+        # Create without arguments
+        f = myokit.UserFunction('bert', [], myokit.Number(12))
+        args = list(f.arguments())
+        self.assertEqual(len(args), 0)
+        self.assertEqual(f.convert([]), myokit.Number(12))
+
+        # Create with one argument
+        f = myokit.UserFunction(
+            'x', [myokit.Name('a')], myokit.parse_expression('1 + a'))
+        self.assertEqual(len(list(f.arguments())), 1)
+        args = {myokit.Name('a'): myokit.Number(3)}
+        self.assertEqual(f.convert(args).eval(), 4)
+
+        # Create with two argument
+        f = myokit.UserFunction(
+            'x', [myokit.Name('a'), myokit.Name('b')],
+            myokit.parse_expression('a + b'))
+        self.assertEqual(len(list(f.arguments())), 2)
+        args = {
+            myokit.Name('a'): myokit.Number(3),
+            myokit.Name('b'): myokit.Number(4)
+        }
+        self.assertEqual(f.convert(args), myokit.parse_expression('3 + 4'))
+
+        # Call with wrong arguments
+        del(args[myokit.Name('a')])
+        self.assertRaisesRegex(
+            ValueError, 'Wrong number', f.convert, args)
+        args[myokit.Name('c')] = myokit.Number(100)
+        self.assertRaisesRegex(
+            ValueError, 'Missing input argument', f.convert, args)
 
 
 if __name__ == '__main__':
