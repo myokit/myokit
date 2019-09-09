@@ -3,7 +3,7 @@
 # Tests the myokit.lib.multi module.
 #
 # This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
+#  Copyright 2011-2019 Maastricht University, University of Oxford
 #  Licensed under the GNU General Public License v3.0
 #  See: http://myokit.org
 #
@@ -34,9 +34,7 @@ class LibMultiTest(unittest.TestCase):
     """
 
     def test_iterdir(self):
-        """
-        Test the iterdir() method that iterators over model, protocol tuples.
-        """
+        # Test the iterdir() method that iterators over model, protocol tuples.
 
         # Get all found tuples (model, protocol)
         tuples = [x for x in multi.iterdir(DIR_MULTI)]
@@ -69,10 +67,8 @@ class LibMultiTest(unittest.TestCase):
         self.assertRaisesRegex(ValueError, 'not a directory', next, i)
 
     def test_scandir(self):
-        """
-        Test the scandir() method that returns a models list and a protocols
-        list.
-        """
+        # Test the scandir() method that returns a models list and a protocols
+        # list.
 
         # Get list of models and protocols
         models, protocols = multi.scandir(DIR_MULTI)
@@ -90,9 +86,8 @@ class LibMultiTest(unittest.TestCase):
         self.assertIsNone(protocols[1])
 
     def test_time(self):
-        """
-        Test the time() method that returns the time variable.
-        """
+        # Test the time() method that returns the time variable.
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
@@ -103,9 +98,8 @@ class LibMultiTest(unittest.TestCase):
         self.assertEqual(x, multi.time(m))
 
     def test_label(self):
-        """
-        Test the label() method that returns a labelled variable.
-        """
+        # Test the label() method that returns a labelled variable.
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
@@ -116,9 +110,8 @@ class LibMultiTest(unittest.TestCase):
         self.assertEqual(x, multi.label(m, 'x'))
 
     def test_binding(self):
-        """
-        Test the binding() method that returns a bound variable.
-        """
+        # Test the binding() method that returns a bound variable.
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
@@ -129,9 +122,8 @@ class LibMultiTest(unittest.TestCase):
         self.assertEqual(x, multi.binding(m, 'x'))
 
     def test_unit(self):
-        """
-        Test the unit() method that returns a unit conversion factor.
-        """
+        # Test the unit() method that returns a unit conversion factor.
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')

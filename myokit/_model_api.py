@@ -921,6 +921,20 @@ class Model(ObjectWithMeta, VarProvider):
         # New dict allows removing labels using this iterator
         return dict(self._bindings).items()
 
+    def bindingx(self, binding):
+        """
+        Returns the variable with the binding label ``binding``, raising a
+        :class:`myokit.IncompatibleModelError` if no such variable is found.
+
+        See :meth:`Model.binding()`.
+        """
+        try:
+            return self._bindings[binding]
+        except KeyError:
+            raise myokit.IncompatibleModelError(
+                self.name(),
+                'No variable found with binding "' + str(binding) + '".')
+
     def check_units(self, mode=myokit.UNIT_TOLERANT):
         """
         Checks the units used in this model. Models can specify units in two
@@ -1603,8 +1617,8 @@ class Model(ObjectWithMeta, VarProvider):
 
     def label(self, label):
         """
-        Returns the variable with the given label. If no variable is labelled
-        as ``label`` it returns ``None``.
+        Returns the variable with the given ``label``, or ``None`` if no such
+        variable can be found.
         """
         return self._labels.get(label, None)
 
@@ -1614,6 +1628,20 @@ class Model(ObjectWithMeta, VarProvider):
         """
         # New dict allows removing labels using this iterator
         return dict(self._labels).items()
+
+    def labelx(self, label):
+        """
+        Returns the variable with the label ``label``, raising a
+        :class:`myokit.IncompatibleModelError` if no such variable is found.
+
+        See :meth:`Model.label()`.
+        """
+        try:
+            return self._labels[label]
+        except KeyError:
+            raise myokit.IncompatibleModelError(
+                self.name(),
+                'No variable found with label "' + str(label) + '".')
 
     def __len__(self):
         return len(self._components)
@@ -2747,6 +2775,19 @@ class Model(ObjectWithMeta, VarProvider):
             return self._bindings['time']
         except KeyError:
             return None
+
+    def timex(self):
+        """
+        Returns this model's time variable, raising a
+        :class:`myokit.IncompatibleModelError` if no time variable is found.
+
+        See :meth:`Model.time()`.
+        """
+        try:
+            return self._bindings['time']
+        except KeyError:
+            raise myokit.IncompatibleModelError(
+                self.name(), 'No time variable found.')
 
     def time_unit(self, mode=myokit.UNIT_TOLERANT):
         """
@@ -3921,13 +3962,16 @@ class Variable(VarOwner):
                 self.model()._register_label(self._label, None)
                 self._label = None
             return
+
         # Check name
         label = check_name(label)
+
         # Check for existing label or binding
         if self._label:
             raise myokit.InvalidLabelError(
                 'The variable <' + self.qname() + '>'
                 ' already has a label "' + self._label + '".')
+
         # Set label (model checks uniqueness)
         self.model()._register_label(label, self)
         self._label = label
