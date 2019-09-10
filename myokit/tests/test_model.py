@@ -30,108 +30,6 @@ class ModelTest(unittest.TestCase):
     """
     Tests parts of :class:`myokit.Model`.
     """
-    def test_remove_component(self):
-        # Test the removal of a component.
-
-        # Create model
-        m = myokit.Model('LotkaVolterra')
-        # Simplest case
-        X = m.add_component('X')
-        self.assertEqual(m.count_components(), 1)
-        m.remove_component(X)
-        self.assertEqual(m.count_components(), 0)
-        self.assertRaises(KeyError, m.remove_component, X)
-
-        # Test if orphaned
-        self.assertIsNone(X.parent())
-
-        # Re-adding
-        self.assertEqual(m.count_components(), 0)
-        X = m.add_component('X')
-        self.assertEqual(m.count_components(), 1)
-
-        # With internal variables and string name
-        a = X.add_variable('a')
-        a.set_rhs(myokit.Number(4))
-        b = X.add_variable('b')
-        b.set_rhs(myokit.Name(a))
-        m.remove_component('X')
-        self.assertEqual(m.count_components(), 0)
-
-        # With dependencies from another component
-        X = m.add_component('X')
-        a = X.add_variable('a')
-        a.set_rhs(myokit.Number(45))
-        b = X.add_variable('b')
-        b.set_rhs(myokit.Name(b))
-        Y = m.add_component('Y')
-        c = Y.add_variable('c')
-        c.set_rhs(myokit.Name(a))
-        d = Y.add_variable('d')
-        d.set_rhs(myokit.Name(c))
-        self.assertEqual(m.count_components(), 2)
-        self.assertRaises(myokit.IntegrityError, m.remove_component, X)
-        self.assertEqual(m.count_components(), 2)
-
-        # In the right order...
-        m.remove_component(Y)
-        self.assertEqual(m.count_components(), 1)
-        m.remove_component(X)
-        self.assertEqual(m.count_components(), 0)
-
-    def test_remove_with_alias(self):
-        # Test cloning after an add / remove event.
-
-        m = myokit.Model('AddRemoveClone')
-        c = m.add_component('c')
-        p = c.add_variable('p')
-        p.set_binding('time')
-        p.set_rhs(0)
-        q = c.add_variable('q')
-        q.set_rhs(12)
-        m.validate()    # Raises error if not ok
-        m.clone()       # Raises error if not ok
-        d = m.add_component('d')
-        d.add_alias('bert', p)
-        e = d.add_variable('e')
-        e.set_rhs('10 * bert')
-        m.validate()
-        m.clone()
-        d.add_alias('ernie', q)
-        m.validate()
-        m.clone()
-        c.remove_variable(q)
-        m.validate()
-        m.clone()   # Will raise error if alias isn't deleted
-
-    def test_no_rhs_error(self):
-        # Test an exception is raised when a variable is missing an rhs.
-
-        m = myokit.Model('LotkaVolterra')
-        c0 = m.add_component('c0')
-        t = c0.add_variable('time')
-        t.set_binding('time')
-        self.assertRaises(myokit.MissingRhsError, m.validate)
-        t.set_rhs(myokit.Number(0))
-        m.validate()
-        a = c0.add_variable('test')
-        self.assertRaises(myokit.MissingRhsError, m.validate)
-        a.set_rhs(myokit.Number(1))
-        m.validate()
-        b = c0.add_variable('derv')
-        b.promote(10)
-        self.assertRaises(myokit.MissingRhsError, m.validate)
-        b.set_rhs(2)
-        m.validate()
-
-    def test_no_time_variable(self):
-        # Test an exception is raised if nothing is bound to time.
-
-        m = myokit.Model('LotkaVolterra')
-        c0 = m.add_component('c0')
-        t = c0.add_variable('time')
-        t.set_rhs(myokit.Number(0))
-        self.assertRaises(myokit.MissingTimeVariableError, m.validate)
 
     def test_add_component_allow_renamining(self):
         # Test the ``Model.add_component_allow_renaming`` method.
@@ -151,42 +49,6 @@ class ModelTest(unittest.TestCase):
         for i in range(10):
             r = m.add_component_allow_renaming('r')
             self.assertEqual(r.name(), 'r_' + str(1 + i))
-
-    def test_model_get(self):
-        # Test Model.get().
-
-        m = myokit.load_model('example')
-
-        # Get by name
-        v = m.get('membrane.V')
-        self.assertEqual(v.qname(), 'membrane.V')
-        self.assertIsInstance(v, myokit.Variable)
-
-        # Get by variable ref (useful for handling unknown input type)
-        w = m.get(v)
-        self.assertIs(w, v)
-
-        # Get nested
-        a = m.get('ina.m.alpha')
-        self.assertEqual(a.qname(), 'ina.m.alpha')
-        self.assertIsInstance(a, myokit.Variable)
-
-        # Get component
-        c = m.get('membrane')
-        self.assertEqual(c.qname(), 'membrane')
-        self.assertIsInstance(c, myokit.Component)
-
-        # Get with filter
-        a = m.get('ina.m.alpha', myokit.Variable)
-        self.assertEqual(a.qname(), 'ina.m.alpha')
-        self.assertIsInstance(a, myokit.Variable)
-        self.assertRaises(KeyError, m.get, 'ina.m.alpha', myokit.Component)
-        self.assertRaises(KeyError, m.get, 'ina', myokit.Variable)
-        m.get('ina', myokit.Component)
-
-        # Get non-existent
-        self.assertRaises(KeyError, m.get, 'membrane.bert')
-        self.assertRaises(KeyError, m.get, 'bert.bert')
 
     def test_add_function(self):
         # Test the ``Model.add_function`` method.
@@ -227,9 +89,45 @@ class ModelTest(unittest.TestCase):
             myokit.InvalidFunction, 'never declared',
             m.add_function, 'fun', ('a', ), 'a + b')
 
-    def test_reorder_state(self):
-        # Test :meth:`Model.reorder_state()`.
+    def test_binding(self):
+        # Tests setting and getting of bindings
 
+        # Note that set_binding() is part of Variable, so not tested here
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_binding('hello')
+        y = c.add_variable('y')
+        y.set_binding('goodbye')
+        z = c.add_variable('z')
+        z.set_binding('x')
+
+        # Test binding()
+        self.assertEqual(m.binding('goodbye'), y)
+        self.assertEqual(m.binding('hello'), x)
+        self.assertEqual(m.binding('x'), z)
+        self.assertEqual(m.binding('y'), None)
+
+        # Test bindings()
+        bindings = dict(m.bindings())
+        self.assertEqual(bindings['goodbye'], y)
+        self.assertEqual(bindings['hello'], x)
+        self.assertEqual(bindings['x'], z)
+        self.assertFalse('y' in bindings)
+
+        # Test bindingx()
+        self.assertEqual(m.bindingx('goodbye'), y)
+        self.assertEqual(m.bindingx('hello'), x)
+        self.assertEqual(m.bindingx('x'), z)
+        self.assertRaisesRegex(
+            myokit.IncompatibleModelError,
+            'No variable found with binding "y"',
+            m.bindingx, 'y')
+
+    def test_bindings(self):
+        # Test setting bindings and :meth:`Model.bindings()`.
+
+        # Test set_binding() and bindings()
         m = myokit.Model()
         c = m.add_component('c')
         t = c.add_variable('time')
@@ -237,50 +135,33 @@ class ModelTest(unittest.TestCase):
         t.set_rhs(0)
         v = c.add_variable('v')
         v.set_rhs('3 - v')
-        v.promote(0)
         w = c.add_variable('w')
-        w.set_rhs(1)
-        w.promote(0)
-        self.assertEqual(list(m.states()), [v, w])
-        m.reorder_state([w, v])
-        self.assertEqual(list(m.states()), [w, v])
-        m.reorder_state([w, v])
-        self.assertEqual(list(m.states()), [w, v])
-        m.reorder_state([v, w])
-        self.assertEqual(list(m.states()), [v, w])
+        w.set_rhs(0)
+        bindings = list(m.bindings())
+        self.assertEqual(len(bindings), 1)
+        self.assertEqual(bindings[0][0], 'time')
+        self.assertEqual(bindings[0][1], t)
 
-        # Wrong number of states
+        # Can't have two labels
         self.assertRaisesRegex(
-            ValueError, 'number of entries', m.reorder_state, [v])
+            myokit.InvalidBindingError, 'already bound to', t.set_binding,
+            'bert')
+
+        # No two variables can have the same label
         self.assertRaisesRegex(
-            ValueError, 'number of entries', m.reorder_state, [v, w, v])
+            myokit.InvalidBindingError, 'Duplicate binding', v.set_binding,
+            'time')
 
-        # Duplicate entries
+        # Binding can't overlap with label
+        v.set_label('membrane_potential')
         self.assertRaisesRegex(
-            ValueError, 'Duplicate', m.reorder_state, [v, v])
+            myokit.InvalidBindingError, 'in use as a label', w.set_binding,
+            'membrane_potential')
 
-        # Not a state
+        # State variables can't be bound
+        v.promote(0)
         self.assertRaisesRegex(
-            ValueError, 'must all be', m.reorder_state, [v, t])
-
-    def test_name(self):
-        # Test :meth:`Model.set_name(name)`.
-
-        m = myokit.Model()
-        self.assertIsNone(m.name())
-        m.set_name('ernie')
-        self.assertEqual(m.name(), 'ernie')
-        m.set_name(None)
-        self.assertIsNone(m.name())
-        m.set_name(None)
-        self.assertIsNone(m.name())
-
-        m = myokit.Model(name='ernie')
-        self.assertEqual(m.name(), 'ernie')
-        m.set_name(None)
-        self.assertIsNone(m.name())
-        m.set_name('bert')
-        self.assertEqual(m.name(), 'bert')
+            myokit.InvalidBindingError, 'State variables', v.set_binding, 'x')
 
     def test_check_units(self):
         # Test the ``model.check_units`` method.
@@ -430,7 +311,7 @@ class ModelTest(unittest.TestCase):
             '13 d = comp1.a\n'
         )
 
-    def test_model_eval_state_derivatives(self):
+    def test_eval_state_derivatives(self):
         # Test Model.eval_state_derivatives().
         model = myokit.Model('m')
         component = model.add_component('comp1')
@@ -568,176 +449,139 @@ class ModelTest(unittest.TestCase):
             ValueError, 'list of \(8\)', m.format_state_derivatives,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
-    def test_unique_names_1(self):
-        # Test Model.create_unique_names().
+    def test_get(self):
+        # Test Model.get().
 
-        # Heavily disputed variable names
-        m = myokit.Model()
-        a = m.add_component('a')
-        ax = a.add_variable('x')
-        b = m.add_component('b')
-        bx = b.add_variable('x')
-        x = m.add_component('x')
-        xx = x.add_variable('x')
-        m.create_unique_names()
-        self.assertEqual(a.uname(), 'a')
-        self.assertEqual(ax.uname(), 'a_x')
-        self.assertEqual(b.uname(), 'b')
-        self.assertEqual(bx.uname(), 'b_x')
-        self.assertEqual(x.uname(), 'x_1')
-        self.assertEqual(xx.uname(), 'x_x')
+        m = myokit.load_model('example')
 
-        # Disputed variable name --> Generated name already exists
-        m = myokit.Model()
-        a = m.add_component('a')
-        ax = a.add_variable('x')
-        abx = a.add_variable('b_x')
-        aax = a.add_variable('a_x')
-        ax11 = a.add_variable('x_1_1')
-        b = m.add_component('b')
-        bx = b.add_variable('x')
-        bx11 = b.add_variable('x_1_1')
-        m.create_unique_names()
-        self.assertEqual(a.uname(), 'a')
-        self.assertEqual(ax.uname(), 'a_x_1')
-        self.assertEqual(abx.uname(), 'b_x')
-        self.assertEqual(aax.uname(), 'a_x')
-        self.assertEqual(ax11.uname(), 'a_x_1_1')
-        self.assertEqual(b.uname(), 'b')
-        self.assertEqual(bx.uname(), 'b_x_1')
-        self.assertEqual(bx11.uname(), 'b_x_1_1')
+        # Get by name
+        v = m.get('membrane.V')
+        self.assertEqual(v.qname(), 'membrane.V')
+        self.assertIsInstance(v, myokit.Variable)
 
-        # Disputed component name
-        m = myokit.Model()
-        a = m.add_component('a')
-        a.add_variable('x')
-        m.add_component('x')
-        m.create_unique_names()
-        self.assertEqual(m.get('a').uname(), 'a')
-        self.assertEqual(m.get('a.x').uname(), 'a_x')
-        self.assertEqual(m.get('x').uname(), 'x_1')
+        # Get by variable ref (useful for handling unknown input type)
+        w = m.get(v)
+        self.assertIs(w, v)
 
-        # Disputed component name --> Generated name already exists
-        m = myokit.Model()
-        a = m.add_component('a')
-        a.add_variable('x')
-        m.add_component('x')
-        m.add_component('x_1')
-        m.create_unique_names()
-        self.assertEqual(m.get('a').uname(), 'a')
-        self.assertEqual(m.get('a.x').uname(), 'a_x')
-        self.assertEqual(m.get('x').uname(), 'x_2')
-        self.assertEqual(m.get('x_1').uname(), 'x_1')
+        # Get nested
+        a = m.get('ina.m.alpha')
+        self.assertEqual(a.qname(), 'ina.m.alpha')
+        self.assertIsInstance(a, myokit.Variable)
 
-    def test_unique_names_2(self):
-        # Test reserving of unique name prefixes
+        # Get component
+        c = m.get('membrane')
+        self.assertEqual(c.qname(), 'membrane')
+        self.assertIsInstance(c, myokit.Component)
 
-        m = myokit.Model()
-        a = m.add_component('paddington')
-        x = a.add_variable('v_x')
-        y = a.add_variable('bear')
-        b = m.add_component('yogi')
-        z = b.add_variable('bear')
+        # Get with filter
+        a = m.get('ina.m.alpha', myokit.Variable)
+        self.assertEqual(a.qname(), 'ina.m.alpha')
+        self.assertIsInstance(a, myokit.Variable)
+        self.assertRaises(KeyError, m.get, 'ina.m.alpha', myokit.Component)
+        self.assertRaises(KeyError, m.get, 'ina', myokit.Variable)
+        m.get('ina', myokit.Component)
 
-        m.create_unique_names()
-        self.assertEqual(x.uname(), 'v_x')
-        self.assertEqual(y.uname(), 'paddington_bear')
-        self.assertEqual(z.uname(), 'yogi_bear')
+        # Get non-existent
+        self.assertRaises(KeyError, m.get, 'membrane.bert')
+        self.assertRaises(KeyError, m.get, 'bert.bert')
 
-        # Don't allow v_ prefix
-        m.reserve_unique_name_prefix('v_', 'var_')
-        m.create_unique_names()
-        self.assertEqual(x.uname(), 'var_v_x')
-        self.assertEqual(y.uname(), 'paddington_bear')
-        self.assertEqual(z.uname(), 'yogi_bear')
+    def test_item_at_text_position(self):
+        # Test :meth:`Model.item_at_text_position()`.
 
-        # Don't allow pad prefix
-        m.reserve_unique_name_prefix('pad', 'marmelade_')
-        m.create_unique_names()
-        self.assertEqual(x.uname(), 'var_v_x')
-        self.assertEqual(y.uname(), 'marmelade_paddington_bear')
-        self.assertEqual(z.uname(), 'yogi_bear')
-        self.assertEqual(a.uname(), 'marmelade_paddington')
+        text = [
+            '[[model]]',        # 1
+            'c.x = 0',          # 2
+            '',                 # 3
+            '[e]',              # 4
+            't = 0 bind time',
+            '',
+            '[c]',
+            'desc: This is a test component',
+            'dot(x) = (10 - x) / y',
+            'y = 5 + y1',
+            '    y1 = 3',
+            ''
+        ]
+        model = myokit.parse_model(text)
+        e = model.get('e')
+        t = model.get('e.t')
+        c = model.get('c')
+        x = model.get('c.x')
+        y = model.get('c.y')
+        y1 = model.get('c.y.y1')
 
-        # Test bad calls
-        self.assertRaisesRegex(
-            ValueError, 'prefix cannot be empty',
-            m.reserve_unique_name_prefix, '', 'x')
-        self.assertRaisesRegex(
-            ValueError, 'prepend cannot be empty',
-            m.reserve_unique_name_prefix, 'x', '')
-        self.assertRaisesRegex(
-            ValueError, 'prepend cannot start with prefix',
-            m.reserve_unique_name_prefix, 'x', 'x')
+        def check(line, char, var):
+            tv = model.item_at_text_position(line, char)
+            if var is None:
+                self.assertIsNone(tv)
+            else:
+                token, var2 = tv
+                self.assertIsNotNone(var2)
+                self.assertEqual(var.qname(), var2.qname())
 
-    def test_warnings(self):
-        # Test Model.has_warnings(), model.warnings() and
-        # Model.format_warnings().
+        # It doesn't work on initial conditions
+        check(1, 0, None)
+        check(1, 1, None)
+        check(1, 2, None)
 
-        # Test model without warnings
+        # Find the component e and its variable
+        check(4, 0, None)
+        check(4, 1, e)
+        check(4, 2, None)
+        check(5, 0, t)
+        check(5, 1, None)
+
+        # Find the component c and its variables
+        check(7, 1, c)
+        check(9, 4, x)
+        check(10, 0, y)
+        check(11, 4, y1)
+
+    def test_label(self):
+        # Tests setting and getting of labels
+
+        # Note that set_label() is part of Variable, so not tested here
         m = myokit.Model()
         c = m.add_component('c')
-        t = c.add_variable('time')
-        t.set_binding('time')
-        t.set_rhs(0)
-        v = c.add_variable('v')
-        v.set_rhs('3 - v')
-        v.promote(0.1)
-        m.validate()
+        x = c.add_variable('x')
+        x.set_label('hello')
+        y = c.add_variable('y')
+        y.set_label('goodbye')
+        z = c.add_variable('z')
+        z.set_label('x')
 
-        self.assertFalse(m.has_warnings())
-        self.assertIn('0 validation warning', m.format_warnings())
-        self.assertEqual(m.warnings(), [])
+        # Test label()
+        self.assertEqual(m.label('goodbye'), y)
+        self.assertEqual(m.label('hello'), x)
+        self.assertEqual(m.label('x'), z)
+        self.assertEqual(m.label('y'), None)
 
-        # Test model with warnings
-        v.validate()
-        v.demote()
-        v.validate()
-        v.set_rhs(3)
-        m.validate()
+        # Test labels()
+        labels = dict(m.labels())
+        self.assertEqual(labels['goodbye'], y)
+        self.assertEqual(labels['hello'], x)
+        self.assertEqual(labels['x'], z)
+        self.assertFalse('y' in labels)
 
-        self.assertTrue(m.has_warnings())
-        self.assertIn('1 validation warning', m.format_warnings())
-        self.assertIn('Unused variable', str(m.warnings()[0]))
-
-    def test_bindings(self):
-        # Test setting bindings and :meth:`Model.bindings()`.
-
-        # Test set_binding() and bindings()
-        m = myokit.Model()
-        c = m.add_component('c')
-        t = c.add_variable('time')
-        t.set_binding('time')
-        t.set_rhs(0)
-        v = c.add_variable('v')
-        v.set_rhs('3 - v')
-        w = c.add_variable('w')
-        w.set_rhs(0)
-        bindings = list(m.bindings())
-        self.assertEqual(len(bindings), 1)
-        self.assertEqual(bindings[0][0], 'time')
-        self.assertEqual(bindings[0][1], t)
-
-        # Can't have two labels
+        # Test labelx()
+        self.assertEqual(m.labelx('goodbye'), y)
+        self.assertEqual(m.labelx('hello'), x)
+        self.assertEqual(m.labelx('x'), z)
         self.assertRaisesRegex(
-            myokit.InvalidBindingError, 'already bound to', t.set_binding,
-            'bert')
+            myokit.IncompatibleModelError,
+            'No variable found with label "y"',
+            m.labelx, 'y')
 
-        # No two variables can have the same label
+        # Test incompatible model error includes name if possible
         self.assertRaisesRegex(
-            myokit.InvalidBindingError, 'Duplicate binding', v.set_binding,
-            'time')
-
-        # Binding can't overlap with label
-        v.set_label('membrane_potential')
+            myokit.IncompatibleModelError,
+            'Incompatible model: No variable found',
+            m.labelx, 'y')
+        m.set_name('Bert')
         self.assertRaisesRegex(
-            myokit.InvalidBindingError, 'in use as a label', w.set_binding,
-            'membrane_potential')
-
-        # State variables can't be bound
-        v.promote(0)
-        self.assertRaisesRegex(
-            myokit.InvalidBindingError, 'State variables', v.set_binding, 'x')
+            myokit.IncompatibleModelError,
+            'Incompatible model <Bert>: No variable found',
+            m.labelx, 'y')
 
     def test_labels(self):
         # Test setting labels and :meth:`Model.labels()`.
@@ -828,6 +672,243 @@ class ModelTest(unittest.TestCase):
         # Missing state
         self.assertRaisesRegex(
             ValueError, 'Missing state', m.map_to_state, {v: 2})
+
+    def test_no_rhs_error(self):
+        # Test an exception is raised when a variable is missing an rhs.
+
+        m = myokit.Model('LotkaVolterra')
+        c0 = m.add_component('c0')
+        t = c0.add_variable('time')
+        t.set_binding('time')
+        self.assertRaises(myokit.MissingRhsError, m.validate)
+        t.set_rhs(myokit.Number(0))
+        m.validate()
+        a = c0.add_variable('test')
+        self.assertRaises(myokit.MissingRhsError, m.validate)
+        a.set_rhs(myokit.Number(1))
+        m.validate()
+        b = c0.add_variable('derv')
+        b.promote(10)
+        self.assertRaises(myokit.MissingRhsError, m.validate)
+        b.set_rhs(2)
+        m.validate()
+
+    def test_no_time_variable(self):
+        # Test an exception is raised if nothing is bound to time.
+
+        m = myokit.Model('LotkaVolterra')
+        c0 = m.add_component('c0')
+        t = c0.add_variable('time')
+        t.set_rhs(myokit.Number(0))
+        self.assertRaises(myokit.MissingTimeVariableError, m.validate)
+
+    def test_name(self):
+        # Test :meth:`Model.set_name(name)`.
+
+        m = myokit.Model()
+        self.assertIsNone(m.name())
+        m.set_name('ernie')
+        self.assertEqual(m.name(), 'ernie')
+        m.set_name(None)
+        self.assertIsNone(m.name())
+        m.set_name(None)
+        self.assertIsNone(m.name())
+
+        m = myokit.Model(name='ernie')
+        self.assertEqual(m.name(), 'ernie')
+        m.set_name(None)
+        self.assertIsNone(m.name())
+        m.set_name('bert')
+        self.assertEqual(m.name(), 'bert')
+
+    def test_remove_component(self):
+        # Test the removal of a component.
+
+        # Create model
+        m = myokit.Model('LotkaVolterra')
+        # Simplest case
+        X = m.add_component('X')
+        self.assertEqual(m.count_components(), 1)
+        m.remove_component(X)
+        self.assertEqual(m.count_components(), 0)
+        self.assertRaises(KeyError, m.remove_component, X)
+
+        # Test if orphaned
+        self.assertIsNone(X.parent())
+
+        # Re-adding
+        self.assertEqual(m.count_components(), 0)
+        X = m.add_component('X')
+        self.assertEqual(m.count_components(), 1)
+
+        # With internal variables and string name
+        a = X.add_variable('a')
+        a.set_rhs(myokit.Number(4))
+        b = X.add_variable('b')
+        b.set_rhs(myokit.Name(a))
+        m.remove_component('X')
+        self.assertEqual(m.count_components(), 0)
+
+        # With dependencies from another component
+        X = m.add_component('X')
+        a = X.add_variable('a')
+        a.set_rhs(myokit.Number(45))
+        b = X.add_variable('b')
+        b.set_rhs(myokit.Name(b))
+        Y = m.add_component('Y')
+        c = Y.add_variable('c')
+        c.set_rhs(myokit.Name(a))
+        d = Y.add_variable('d')
+        d.set_rhs(myokit.Name(c))
+        self.assertEqual(m.count_components(), 2)
+        self.assertRaises(myokit.IntegrityError, m.remove_component, X)
+        self.assertEqual(m.count_components(), 2)
+
+        # In the right order...
+        m.remove_component(Y)
+        self.assertEqual(m.count_components(), 1)
+        m.remove_component(X)
+        self.assertEqual(m.count_components(), 0)
+
+    def test_remove_derivative_references(self):
+        # Test the remove_derivative_references() method.
+
+        m0 = myokit.parse_model("""
+            [[model]]
+            c.x = 0
+            c.y = 1
+
+            [e]
+            t = 0 bind time
+
+            [c]
+            dot(x) = (1 - x) * alpha
+                alpha = 3 * beta + dot_x
+                beta = exp(-y) + cc
+                    cc = 1.23
+                dot_x = 3
+            dot(y) = (12 - y) / 7
+            z = 3 * dot(y)
+
+            [d]
+            z = 3 * dot(c.x) / dot(c.y)
+            """)
+        m2 = myokit.parse_model("""
+            [[model]]
+            c.x = 0
+            c.y = 1
+
+            [e]
+            t = 0 bind time
+
+            [c]
+            dot(x) = dot_x_1
+            dot_x_1 = (1 - x) * alpha
+                alpha = 3 * beta + dot_x
+                beta = exp(-y) + cc
+                    cc = 1.23
+                dot_x = 3
+            dot(y) = dot_y
+            dot_y = (12 - y) / 7
+            z = 3 * dot_y
+
+            [d]
+            z = 3 * c.dot_x_1 / c.dot_y
+            """)
+
+        # Remove derivatives from m1
+        m1 = m0.clone()
+        m1.remove_derivative_references()
+
+        # Assert model matches expected code
+        self.assertEqual(m1.code(), m2.code())
+
+        # Assert models both produce the same derivatives
+        dy1 = m1.eval_state_derivatives()
+        dy2 = m2.eval_state_derivatives()
+        self.assertEqual(dy1, dy2)
+
+        # Test time unit is None
+        self.assertIsNone(m1.get('c.dot_y').unit())
+
+        # Only one unit set? Then unit is still None
+        m1 = m0.clone()
+        m1.get('c.y').set_unit('mV')
+        m1.remove_derivative_references()
+        self.assertIsNone(m1.get('c.dot_y').unit())
+
+        m1 = m0.clone()
+        m1.get('e.t').set_unit('ms')
+        m1.remove_derivative_references()
+        self.assertIsNone(m1.get('c.dot_y').unit())
+
+        # Both units set? Then unit is division of two
+        m1 = m0.clone()
+        m1.get('e.t').set_unit('ms')
+        m1.get('c.y').set_unit('mV')
+        m1.remove_derivative_references()
+        self.assertEqual(m1.get('c.dot_y').unit(), myokit.parse_unit('mV/ms'))
+
+    def test_remove_variable_with_alias(self):
+        # Test cloning of a variable with an alias after an add / remove event.
+
+        m = myokit.Model('AddRemoveClone')
+        c = m.add_component('c')
+        p = c.add_variable('p')
+        p.set_binding('time')
+        p.set_rhs(0)
+        q = c.add_variable('q')
+        q.set_rhs(12)
+        m.validate()    # Raises error if not ok
+        m.clone()       # Raises error if not ok
+        d = m.add_component('d')
+        d.add_alias('bert', p)
+        e = d.add_variable('e')
+        e.set_rhs('10 * bert')
+        m.validate()
+        m.clone()
+        d.add_alias('ernie', q)
+        m.validate()
+        m.clone()
+        c.remove_variable(q)
+        m.validate()
+        m.clone()   # Will raise error if alias isn't deleted
+
+    def test_reorder_state(self):
+        # Test :meth:`Model.reorder_state()`.
+
+        m = myokit.Model()
+        c = m.add_component('c')
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        v = c.add_variable('v')
+        v.set_rhs('3 - v')
+        v.promote(0)
+        w = c.add_variable('w')
+        w.set_rhs(1)
+        w.promote(0)
+        self.assertEqual(list(m.states()), [v, w])
+        m.reorder_state([w, v])
+        self.assertEqual(list(m.states()), [w, v])
+        m.reorder_state([w, v])
+        self.assertEqual(list(m.states()), [w, v])
+        m.reorder_state([v, w])
+        self.assertEqual(list(m.states()), [v, w])
+
+        # Wrong number of states
+        self.assertRaisesRegex(
+            ValueError, 'number of entries', m.reorder_state, [v])
+        self.assertRaisesRegex(
+            ValueError, 'number of entries', m.reorder_state, [v, w, v])
+
+        # Duplicate entries
+        self.assertRaisesRegex(
+            ValueError, 'Duplicate', m.reorder_state, [v, v])
+
+        # Not a state
+        self.assertRaisesRegex(
+            ValueError, 'must all be', m.reorder_state, [v, t])
 
     def test_resolve_interdependent_components(self):
         # Test :meth:`Model.resolve_interdependent_components()`.
@@ -989,6 +1070,108 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(suggested, t)
         self.assertIn('No component', msg)
 
+    def test_unique_names_1(self):
+        # Test Model.create_unique_names().
+
+        # Heavily disputed variable names
+        m = myokit.Model()
+        a = m.add_component('a')
+        ax = a.add_variable('x')
+        b = m.add_component('b')
+        bx = b.add_variable('x')
+        x = m.add_component('x')
+        xx = x.add_variable('x')
+        m.create_unique_names()
+        self.assertEqual(a.uname(), 'a')
+        self.assertEqual(ax.uname(), 'a_x')
+        self.assertEqual(b.uname(), 'b')
+        self.assertEqual(bx.uname(), 'b_x')
+        self.assertEqual(x.uname(), 'x_1')
+        self.assertEqual(xx.uname(), 'x_x')
+
+        # Disputed variable name --> Generated name already exists
+        m = myokit.Model()
+        a = m.add_component('a')
+        ax = a.add_variable('x')
+        abx = a.add_variable('b_x')
+        aax = a.add_variable('a_x')
+        ax11 = a.add_variable('x_1_1')
+        b = m.add_component('b')
+        bx = b.add_variable('x')
+        bx11 = b.add_variable('x_1_1')
+        m.create_unique_names()
+        self.assertEqual(a.uname(), 'a')
+        self.assertEqual(ax.uname(), 'a_x_1')
+        self.assertEqual(abx.uname(), 'b_x')
+        self.assertEqual(aax.uname(), 'a_x')
+        self.assertEqual(ax11.uname(), 'a_x_1_1')
+        self.assertEqual(b.uname(), 'b')
+        self.assertEqual(bx.uname(), 'b_x_1')
+        self.assertEqual(bx11.uname(), 'b_x_1_1')
+
+        # Disputed component name
+        m = myokit.Model()
+        a = m.add_component('a')
+        a.add_variable('x')
+        m.add_component('x')
+        m.create_unique_names()
+        self.assertEqual(m.get('a').uname(), 'a')
+        self.assertEqual(m.get('a.x').uname(), 'a_x')
+        self.assertEqual(m.get('x').uname(), 'x_1')
+
+        # Disputed component name --> Generated name already exists
+        m = myokit.Model()
+        a = m.add_component('a')
+        a.add_variable('x')
+        m.add_component('x')
+        m.add_component('x_1')
+        m.create_unique_names()
+        self.assertEqual(m.get('a').uname(), 'a')
+        self.assertEqual(m.get('a.x').uname(), 'a_x')
+        self.assertEqual(m.get('x').uname(), 'x_2')
+        self.assertEqual(m.get('x_1').uname(), 'x_1')
+
+    def test_unique_names_2(self):
+        # Test reserving of unique name prefixes
+
+        m = myokit.Model()
+        a = m.add_component('paddington')
+        x = a.add_variable('v_x')
+        y = a.add_variable('bear')
+        b = m.add_component('yogi')
+        z = b.add_variable('bear')
+
+        m.create_unique_names()
+        self.assertEqual(x.uname(), 'v_x')
+        self.assertEqual(y.uname(), 'paddington_bear')
+        self.assertEqual(z.uname(), 'yogi_bear')
+
+        # Don't allow v_ prefix
+        m.reserve_unique_name_prefix('v_', 'var_')
+        m.create_unique_names()
+        self.assertEqual(x.uname(), 'var_v_x')
+        self.assertEqual(y.uname(), 'paddington_bear')
+        self.assertEqual(z.uname(), 'yogi_bear')
+
+        # Don't allow pad prefix
+        m.reserve_unique_name_prefix('pad', 'marmelade_')
+        m.create_unique_names()
+        self.assertEqual(x.uname(), 'var_v_x')
+        self.assertEqual(y.uname(), 'marmelade_paddington_bear')
+        self.assertEqual(z.uname(), 'yogi_bear')
+        self.assertEqual(a.uname(), 'marmelade_paddington')
+
+        # Test bad calls
+        self.assertRaisesRegex(
+            ValueError, 'prefix cannot be empty',
+            m.reserve_unique_name_prefix, '', 'x')
+        self.assertRaisesRegex(
+            ValueError, 'prepend cannot be empty',
+            m.reserve_unique_name_prefix, 'x', '')
+        self.assertRaisesRegex(
+            ValueError, 'prepend cannot start with prefix',
+            m.reserve_unique_name_prefix, 'x', 'x')
+
     def test_validate_and_remove_unused_variables(self):
         # Test :class:`Model.validate` with ``remove_unused_variables=True``.
 
@@ -1027,138 +1210,35 @@ class ModelTest(unittest.TestCase):
         t.set_rhs(1000)
         self.assertEqual(m.value('c.t'), 1000)
 
-    def test_item_at_text_position(self):
-        # Test :meth:`Model.item_at_text_position()`.
+    def test_warnings(self):
+        # Test Model.has_warnings(), model.warnings() and
+        # Model.format_warnings().
 
-        text = [
-            '[[model]]',        # 1
-            'c.x = 0',          # 2
-            '',                 # 3
-            '[e]',              # 4
-            't = 0 bind time',
-            '',
-            '[c]',
-            'desc: This is a test component',
-            'dot(x) = (10 - x) / y',
-            'y = 5 + y1',
-            '    y1 = 3',
-            ''
-        ]
-        model = myokit.parse_model(text)
-        e = model.get('e')
-        t = model.get('e.t')
-        c = model.get('c')
-        x = model.get('c.x')
-        y = model.get('c.y')
-        y1 = model.get('c.y.y1')
-
-        def check(line, char, var):
-            tv = model.item_at_text_position(line, char)
-            if var is None:
-                self.assertIsNone(tv)
-            else:
-                token, var2 = tv
-                self.assertIsNotNone(var2)
-                self.assertEqual(var.qname(), var2.qname())
-
-        # It doesn't work on initial conditions
-        check(1, 0, None)
-        check(1, 1, None)
-        check(1, 2, None)
-
-        # Find the component e and its variable
-        check(4, 0, None)
-        check(4, 1, e)
-        check(4, 2, None)
-        check(5, 0, t)
-        check(5, 1, None)
-
-        # Find the component c and its variables
-        check(7, 1, c)
-        check(9, 4, x)
-        check(10, 0, y)
-        check(11, 4, y1)
-
-    def test_label(self):
-        # Tests setting and getting of labels
-
-        # Note that set_label() is part of Variable, so not tested here
+        # Test model without warnings
         m = myokit.Model()
         c = m.add_component('c')
-        x = c.add_variable('x')
-        x.set_label('hello')
-        y = c.add_variable('y')
-        y.set_label('goodbye')
-        z = c.add_variable('z')
-        z.set_label('x')
+        t = c.add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+        v = c.add_variable('v')
+        v.set_rhs('3 - v')
+        v.promote(0.1)
+        m.validate()
 
-        # Test label()
-        self.assertEqual(m.label('goodbye'), y)
-        self.assertEqual(m.label('hello'), x)
-        self.assertEqual(m.label('x'), z)
-        self.assertEqual(m.label('y'), None)
+        self.assertFalse(m.has_warnings())
+        self.assertIn('0 validation warning', m.format_warnings())
+        self.assertEqual(m.warnings(), [])
 
-        # Test labels()
-        labels = dict(m.labels())
-        self.assertEqual(labels['goodbye'], y)
-        self.assertEqual(labels['hello'], x)
-        self.assertEqual(labels['x'], z)
-        self.assertFalse('y' in labels)
+        # Test model with warnings
+        v.validate()
+        v.demote()
+        v.validate()
+        v.set_rhs(3)
+        m.validate()
 
-        # Test labelx()
-        self.assertEqual(m.labelx('goodbye'), y)
-        self.assertEqual(m.labelx('hello'), x)
-        self.assertEqual(m.labelx('x'), z)
-        self.assertRaisesRegex(
-            myokit.IncompatibleModelError,
-            'No variable found with label "y"',
-            m.labelx, 'y')
-
-        # Test incompatible model error includes name if possible
-        self.assertRaisesRegex(
-            myokit.IncompatibleModelError,
-            'Incompatible model: No variable found',
-            m.labelx, 'y')
-        m.set_name('Bert')
-        self.assertRaisesRegex(
-            myokit.IncompatibleModelError,
-            'Incompatible model <Bert>: No variable found',
-            m.labelx, 'y')
-
-    def test_binding(self):
-        # Tests setting and getting of bindings
-
-        # Note that set_binding() is part of Variable, so not tested here
-        m = myokit.Model()
-        c = m.add_component('c')
-        x = c.add_variable('x')
-        x.set_binding('hello')
-        y = c.add_variable('y')
-        y.set_binding('goodbye')
-        z = c.add_variable('z')
-        z.set_binding('x')
-
-        # Test binding()
-        self.assertEqual(m.binding('goodbye'), y)
-        self.assertEqual(m.binding('hello'), x)
-        self.assertEqual(m.binding('x'), z)
-        self.assertEqual(m.binding('y'), None)
-
-        # Test bindings()
-        bindings = dict(m.bindings())
-        self.assertEqual(bindings['goodbye'], y)
-        self.assertEqual(bindings['hello'], x)
-        self.assertEqual(bindings['x'], z)
-        self.assertFalse('y' in bindings)
-
-        # Test bindingx()
-        self.assertEqual(m.bindingx('goodbye'), y)
-        self.assertEqual(m.bindingx('hello'), x)
-        self.assertEqual(m.bindingx('x'), z)
-        self.assertRaisesRegex(
-            myokit.IncompatibleModelError,
-            'No variable found with binding "y"',
-            m.bindingx, 'y')
+        self.assertTrue(m.has_warnings())
+        self.assertIn('1 validation warning', m.format_warnings())
+        self.assertIn('Unused variable', str(m.warnings()[0]))
 
 
 if __name__ == '__main__':
