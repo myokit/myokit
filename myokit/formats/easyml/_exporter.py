@@ -48,6 +48,10 @@ class EasyMLExporter(myokit.formats.Exporter):
         if not model.is_valid():
             raise ValueError('EasyML export requires a valid model.')
 
+        # Replace any RHS references to state derivatives with references to
+        # intermediary variables
+        model.remove_derivative_references()
+
         # List of variables not to output
         ignore = set()
 
