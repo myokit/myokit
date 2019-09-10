@@ -1034,6 +1034,17 @@ class ModelTest(unittest.TestCase):
         # Test deprecated alias
         m.show_line(m.get('ina.INa'))
 
+    def test_str(self):
+        # Test conversion to string
+
+        m = myokit.Model()
+        self.assertEqual(str(m), '<Unnamed Model>')
+        self.assertEqual(repr(m), '<Unnamed Model>')
+
+        m.set_name('bert')
+        self.assertEqual(str(m), '<Model(bert)>')
+        self.assertEqual(repr(m), '<Model(bert)>')
+
     def test_suggest(self):
         # Test :meth:`Model.suggest(variable_name)`.
 
