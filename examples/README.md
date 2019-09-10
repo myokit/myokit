@@ -5,6 +5,8 @@ This page, lists example notebooks_ showing how Myokit can be used in a variety 
 Please note this is very much a work in progress, and many of the items on the list are yet to be filled in.
 
 
+## The basics
 
+1. [Simulating an action potential](./basics-simulating-an-action-potential.ipynb)
 
 
