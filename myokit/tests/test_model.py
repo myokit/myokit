@@ -30,6 +30,7 @@ class ModelTest(unittest.TestCase):
     """
     Tests parts of :class:`myokit.Model`.
     """
+
     def test_add_component_allow_renamining(self):
         # Test the ``Model.add_component_allow_renaming`` method.
 
@@ -769,8 +770,87 @@ class ModelTest(unittest.TestCase):
         m.remove_component(X)
         self.assertEqual(m.count_components(), 0)
 
-    def test_remove_with_alias(self):
-        # Test cloning after an add / remove event.
+    def test_remove_derivative_references(self):
+        # Test the remove_derivative_references() method.
+
+        m0 = myokit.parse_model("""
+            [[model]]
+            c.x = 0
+            c.y = 1
+
+            [e]
+            t = 0 bind time
+
+            [c]
+            dot(x) = (1 - x) * alpha
+                alpha = 3 * beta + dot_x
+                beta = exp(-y) + cc
+                    cc = 1.23
+                dot_x = 3
+            dot(y) = (12 - y) / 7
+            z = 3 * dot(y)
+
+            [d]
+            z = 3 * dot(c.x) / dot(c.y)
+            """)
+        m2 = myokit.parse_model("""
+            [[model]]
+            c.x = 0
+            c.y = 1
+
+            [e]
+            t = 0 bind time
+
+            [c]
+            dot(x) = dot_x_1
+            dot_x_1 = (1 - x) * alpha
+                alpha = 3 * beta + dot_x
+                beta = exp(-y) + cc
+                    cc = 1.23
+                dot_x = 3
+            dot(y) = dot_y
+            dot_y = (12 - y) / 7
+            z = 3 * dot_y
+
+            [d]
+            z = 3 * c.dot_x_1 / c.dot_y
+            """)
+
+        # Remove derivatives from m1
+        m1 = m0.clone()
+        m1.remove_derivative_references()
+
+        # Assert model matches expected code
+        self.assertEqual(m1.code(), m2.code())
+
+        # Assert models both produce the same derivatives
+        dy1 = m1.eval_state_derivatives()
+        dy2 = m2.eval_state_derivatives()
+        self.assertEqual(dy1, dy2)
+
+        # Test time unit is None
+        self.assertIsNone(m1.get('c.dot_y').unit())
+
+        # Only one unit set? Then unit is still None
+        m1 = m0.clone()
+        m1.get('c.y').set_unit('mV')
+        m1.remove_derivative_references()
+        self.assertIsNone(m1.get('c.dot_y').unit())
+
+        m1 = m0.clone()
+        m1.get('e.t').set_unit('ms')
+        m1.remove_derivative_references()
+        self.assertIsNone(m1.get('c.dot_y').unit())
+
+        # Both units set? Then unit is division of two
+        m1 = m0.clone()
+        m1.get('e.t').set_unit('ms')
+        m1.get('c.y').set_unit('mV')
+        m1.remove_derivative_references()
+        self.assertEqual(m1.get('c.dot_y').unit(), myokit.parse_unit('mV/ms'))
+
+    def test_remove_variable_with_alias(self):
+        # Test cloning of a variable with an alias after an add / remove event.
 
         m = myokit.Model('AddRemoveClone')
         c = m.add_component('c')

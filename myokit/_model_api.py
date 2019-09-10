@@ -2252,6 +2252,62 @@ class Model(ObjectWithMeta, VarProvider):
         finally:
             self._valid = None
 
+    def remove_derivative_references(self):
+        """
+        Scans this model's RHS for any references to derivatives and removes
+        them by introducing a new variable.
+
+        For example, given a (partial) model::
+
+            [ernie]
+            dot(x) = (12 - x) / 5
+
+            [bert]
+            y = 1 + dot(x)
+
+        this method will update the model to::
+
+            [ernie]
+            dot_x = (12 - x) / 5
+            dot(x) = dot_x
+
+            [bert]
+            y = 1 + dot_x
+
+        """
+        # Get time unit
+        time = self.time()
+        if time is not None:
+            time_unit = time.unit()
+
+        # Scan all states
+        for state in self._state:
+
+            # Search for references to dot(state)
+            refs = list(state.refs_by())
+
+            if refs:
+                # If found, add a new variable to represent dot(state)
+                var = state.parent().add_variable_allow_renaming(
+                    'dot_' + state.name())
+                var.set_rhs(state.rhs())
+
+                # Set unit for new variable
+                if state.unit() is not None and time_unit is not None:
+                    var.set_unit(state.unit() / time_unit)
+
+                # Move nested variables
+                for child in list(state.variables()):
+                    state.move_variable(child, var)
+
+                # Update state RHS
+                state.set_rhs(myokit.Name(var))
+
+                # Update all referring equations
+                subst = {state.lhs(): var.lhs()}
+                for ref in refs:
+                    ref.set_rhs(ref.rhs().clone(subst=subst))
+
     def __repr__(self):
         """
         Returns a representation of this model in the form
