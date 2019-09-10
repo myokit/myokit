@@ -2,6 +2,7 @@
 from __future__ import print_function
 from myokit.__main__ import main
 
+# Deprecated since 2018-12-12
 print('**************************************************************')
 print('*              The "myo" script is deprecated.               *')
 print('* Please install Myokit (using pip or setup.py) and then use *')
