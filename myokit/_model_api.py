@@ -2313,7 +2313,10 @@ class Model(ObjectWithMeta, VarProvider):
         Returns a representation of this model in the form
         ``<Model(model_name)>``.
         """
-        return '<Model(' + self.name() + ')>'
+        try:
+            return '<Model(' + self.meta['name'] + ')>'
+        except KeyError:
+            return '<Unnamed Model>'
 
     def reserve_unique_names(self, *unames):
         """
