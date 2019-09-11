@@ -16,16 +16,24 @@ More information, including examples and an installation guide, is available on 
 
 To install Myokit, run
 
+    pip install myokit[pyqt]
+    
+to install the PyQt5-based version, or
+    
+    pip install myokit[pyside]
+    
+to install the version based on PySide2.
+
+If you're not planning to use the IDE (for example to run simulations on a server), you can simply install with
+
     pip install myokit
 
 On linux and windows, start menu icons can then be added by running
 
     python -m myokit icons
 
-To run single-cell simulations, [CVODE](https://computation.llnl.gov/projects/sundials/sundials-software) must be installed (windows binaries are included in the pip install).
+To run single-cell simulations, [CVODE](https://computation.llnl.gov/projects/sundials/sundials-software) must be installed (Windows binaries are included in the pip install).
 In addition, Myokit needs a working C/C++ compiler to be present on the system.
-
-For the graphical parts (such as the IDE) to work, you'll also need to have either PyQt4, PyQt5, or PySide installed (PySide2 is not yet supported).
 
 Existing Myokit installations can be upgraded using
 
