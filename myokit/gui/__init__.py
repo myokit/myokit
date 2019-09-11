@@ -109,7 +109,6 @@ elif pyqt4:
     # Load PyQt4
 
     # Deprecated since 2019-09-11
-    import logging
     logger = logging.getLogger('myokit')
     logger.warning(
         'PyQt4 support has been deprecated. Please upgrade to PyQt5 or'
@@ -200,7 +199,6 @@ elif pyside:
     # Load PySide
 
     # Deprecated since 2019-09-11
-    import logging
     logger = logging.getLogger('myokit')
     logger.warning(
         'PySide support has been deprecated. Please upgrade to PyQt5 or'
