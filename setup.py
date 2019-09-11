@@ -80,9 +80,8 @@ setup(
         'optional': [
             'cma',                      # Used in lib.fit
         ],
-        'gui': [
-            'pyqt5',
-            'sip',
-        ],
+        'gui': ['pyqt5', 'sip'],
+        'pyqt': ['pyqt5', 'sip'],
+        'pyside': ['pyside2'],
     },
 )
