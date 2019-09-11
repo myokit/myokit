@@ -71,7 +71,7 @@ def main():
         func(**args)
 
 
-def block(filename, pyqt4=False, pyqt5=False, pyside=False):
+def block(filename, pyqt4=False, pyqt5=False, pyside=False, pyqide2=False):
     """
     Runs the DataBlock viewer.
     """
@@ -80,14 +80,22 @@ def block(filename, pyqt4=False, pyqt5=False, pyside=False):
         myokit.FORCE_PYQT5 = True
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = False
     elif pyqt4:
         myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = True
         myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = False
     elif pyside:
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = True
+        myokit.FORCE_PYSIDE2 = False
+    elif pyside2:
+        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = True
     import myokit.gui
     import myokit.gui.datablock_viewer
     if pyqt5 or pyqt4 or pyside:
@@ -125,6 +133,11 @@ def add_block_parser(subparsers):
         '--pyside',
         action='store_true',
         help='Run the DataBlock Viewer using the PySide backend.',
+    )
+    parser.add_argument(
+        '--pyside2',
+        action='store_true',
+        help='Run the DataBlock Viewer using the PySide2 backend.',
     )
     parser.set_defaults(func=block)
 
@@ -559,7 +572,7 @@ def add_icon_parser(subparsers):
     parser.set_defaults(func=install)
 
 
-def ide(filename, pyqt4=False, pyqt5=False, pyside=False):
+def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     """
     Runs the Myokit IDE.
     """
@@ -568,14 +581,22 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False):
         myokit.FORCE_PYQT5 = True
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = False
     elif pyqt4:
         myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = True
         myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = False
     elif pyside:
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = True
+        myokit.FORCE_PYSIDE2 = False
+    elif pyside2:
+        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = True
     import myokit.gui
     import myokit.gui.ide
     if pyqt5 or pyqt4 or pyside:
@@ -613,6 +634,11 @@ def add_ide_parser(subparsers):
         '--pyside',
         action='store_true',
         help='Run the IDE using the PySide backend.',
+    )
+    parser.add_argument(
+        '--pyside2',
+        action='store_true',
+        help='Run the DataBlock Viewer using the PySide2 backend.',
     )
     parser.set_defaults(func=ide)
 

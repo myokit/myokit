@@ -222,18 +222,26 @@ def _load():
     # GUI Backend
     if config.has_option('gui', 'backend'):
         x = config.get('gui', 'backend').strip().lower()
-        if x == 'pyside':
-            myokit.FORCE_PYSIDE = True
-            myokit.FORCE_PYQT4 = False
-            myokit.FORCE_PYQT5 = False
-        elif x == 'pyqt' or x == 'pyqt4':
-            myokit.FORCE_PYSIDE = False
+        if x == 'pyqt' or x == 'pyqt4':
             myokit.FORCE_PYQT4 = True
             myokit.FORCE_PYQT5 = False
-        elif x == 'pyqt5':
             myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE2 = False
+        elif x == 'pyqt5':
             myokit.FORCE_PYQT4 = False
             myokit.FORCE_PYQT5 = True
+            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE2 = False
+        elif x == 'pyside':
+            myokit.FORCE_PYQT4 = False
+            myokit.FORCE_PYQT5 = False
+            myokit.FORCE_PYSIDE = True
+            myokit.FORCE_PYSIDE2 = False
+        elif x == 'pyside2':
+            myokit.FORCE_PYQT4 = False
+            myokit.FORCE_PYQT5 = False
+            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE2 = True
         #else:
         # If empty or invalid, don't adjust the settings!
 

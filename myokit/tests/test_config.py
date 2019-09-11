@@ -46,6 +46,11 @@ config_pyside = """
 backend=pyside
 """
 
+config_pyside2 = """
+[gui]
+backend=pyside2
+"""
+
 config_pyqt4 = """
 [gui]
 backend=pyqt4
@@ -103,6 +108,7 @@ class TestConfig(unittest.TestCase):
         time_format = myokit.TIME_FORMAT
         debug_numbers = myokit.DEBUG_LINE_NUMBERS
         force_pyside = myokit.FORCE_PYSIDE
+        force_pyside2 = myokit.FORCE_PYSIDE2
         force_pyqt4 = myokit.FORCE_PYQT4
         force_pyqt5 = myokit.FORCE_PYQT5
         sundials_lib = myokit.SUNDIALS_LIB
@@ -126,7 +132,7 @@ class TestConfig(unittest.TestCase):
                 myokit.SUNDIALS_INC = []
                 myokit.OPENCL_LIB = []
                 myokit.OPENCL_INC = []
-                myokit.FORCE_PYSIDE = False
+                myokit.FORCE_PYSIDE = myokit.FORCE_PYSIDE2 = False
                 myokit.FORCE_PYQT4 = myokit.FORCE_PYQT5 = False
                 with open(d.path('myokit.ini'), 'w') as f:
                     f.write(config2)
@@ -135,6 +141,7 @@ class TestConfig(unittest.TestCase):
                 self.assertEqual(myokit.TIME_FORMAT, 'TEST_TIME_FORMAT')
                 self.assertTrue(myokit.DEBUG_LINE_NUMBERS)
                 self.assertFalse(myokit.FORCE_PYSIDE)
+                self.assertFalse(myokit.FORCE_PYSIDE2)
                 self.assertFalse(myokit.FORCE_PYQT4)
                 self.assertFalse(myokit.FORCE_PYQT5)
                 self.assertEqual(myokit.SUNDIALS_LIB, ['one', 'two'])
@@ -147,6 +154,7 @@ class TestConfig(unittest.TestCase):
                     f.write(config_pyqt4)
                 config._load()
                 self.assertFalse(myokit.FORCE_PYSIDE)
+                self.assertFalse(myokit.FORCE_PYSIDE2)
                 self.assertTrue(myokit.FORCE_PYQT4)
                 self.assertFalse(myokit.FORCE_PYQT5)
 
@@ -154,6 +162,7 @@ class TestConfig(unittest.TestCase):
                     f.write(config_pyqt5)
                 config._load()
                 self.assertFalse(myokit.FORCE_PYSIDE)
+                self.assertFalse(myokit.FORCE_PYSIDE2)
                 self.assertFalse(myokit.FORCE_PYQT4)
                 self.assertTrue(myokit.FORCE_PYQT5)
 
@@ -161,6 +170,15 @@ class TestConfig(unittest.TestCase):
                     f.write(config_pyside)
                 config._load()
                 self.assertTrue(myokit.FORCE_PYSIDE)
+                self.assertFalse(myokit.FORCE_PYSIDE2)
+                self.assertFalse(myokit.FORCE_PYQT4)
+                self.assertFalse(myokit.FORCE_PYQT5)
+
+                with open(d.path('myokit.ini'), 'w') as f:
+                    f.write(config_pyside2)
+                config._load()
+                self.assertFalse(myokit.FORCE_PYSIDE)
+                self.assertTrue(myokit.FORCE_PYSIDE2)
                 self.assertFalse(myokit.FORCE_PYQT4)
                 self.assertFalse(myokit.FORCE_PYQT5)
 
