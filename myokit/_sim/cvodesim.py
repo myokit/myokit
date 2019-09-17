@@ -272,7 +272,7 @@ class Simulation(myokit.CModule):
         indicated using the ``log`` argument. There are several options for its
         value:
 
-        - ``None`` (default), to log all states.
+        - ``None`` (default), equivalent to using ``myokit.LOG_ALL``.
         - An integer flag or a combination of flags. Options:
           ``myokit.LOG_NONE``, ``myokit.LOG_STATE``, ``myokit.LOG_BOUND``,
           ``myokit.LOG_INTER``, ``myokit.LOG_DERIV`` or ``myokit.LOG_ALL``.
