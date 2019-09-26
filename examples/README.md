@@ -19,3 +19,9 @@ Please note this page is still a work in progress, and many more examples are ye
     - Defining protocols
 
 
+
+
+
+## Somewhere down the line
+
+Examples of fitting ionic currents and fitting conductances: https://github.com/pints-team/myokit-pints-examples
