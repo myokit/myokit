@@ -116,7 +116,7 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(list(d3['v2']), v2)
 
     def test_find(self):
-        # Tests the deprecated find() function
+        # Tests the find() function
 
         d = myokit.DataLog({
             'engine.time': [0, 5, 10, 15, 20],
