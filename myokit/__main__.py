@@ -10,9 +10,11 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 
+_line_width = 79
+
+
 def printline():
-    line_width = 60
-    print('-' * line_width)
+    print('-' * _line_width)
 
 
 def main():
@@ -1079,7 +1081,7 @@ def step(source, ref, ini, raw):
             print(myokit.step(model, initial=ini, reference=ref))
     except myokit.NumericalError as ee:
         e = 'Numerical error'
-        n = line_width - len(e) - 2
+        n = _line_width - len(e) - 2
         print('-' * int(n / 2) + ' ' + e + ' ' + '-' * (n - int(n / 2)))
         print('A numerical error occurred:')
         print(str(ee))
