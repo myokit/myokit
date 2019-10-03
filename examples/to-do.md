@@ -60,7 +60,13 @@ X. Running single current simulations
     - Importing/exporting patch clamp data
 
 
-
+X Implementing models
+    - MMT Syntax
+    - Comparing models with step
+    - Unit checking
+    - State dep matrix
+    - IDE shortcuts, variable graphing
+    - Interconnected components
 
 
 
