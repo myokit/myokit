@@ -5,7 +5,7 @@
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
 """
-Myokit: The Maastricht Modeling Toolkit
+Myokit
 
 This module provides a gateway to the main Myokit components. For example, to
 load a model use myokit.load_model('filename.mmt'), create a myokit.Protocol
@@ -118,6 +118,8 @@ del(log, logging)
 
 # Full license text
 LICENSE = """
+BSD 3-Clause License
+
 Copyright (c) 2011-2017 Maastricht University. All rights reserved.
 Copyright (c) 2017-2019 University of Oxford. All rights reserved.
  (University of Oxford means the Chancellor, Masters and Scholars of the
@@ -154,7 +156,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 LICENSE_HTML = """
 <h1>Myokit</h1>
 <p>
-          Copyright (c) 2011-2017 Maastricht University. All rights reserved.
+    BSD 3-Clause License
+    <br />
+    <br />Copyright (c) 2011-2017 Maastricht University. All rights reserved.
     <br />Copyright (c) 2017-2019 University of Oxford. All rights reserved.
     <br />(University of Oxford means the Chancellor, Masters and Scholars of
     the University of Oxford, having an administrative office at Wellington
