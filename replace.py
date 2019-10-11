@@ -4,6 +4,7 @@ import os
 abs_ignore = [
     './.git',
     './dev',
+    './replace.py',
 ]
 ext_ignore = [
     '.pyc',
@@ -58,20 +59,26 @@ head_new = """
 def replace(path):
 
     with open(path, 'r') as f:
-
         content = f.read()
 
-        header = content[:1000]
+    header = content[:1000]
 
-        if head1 in header:
-            print('Found head 1')
-            return 1
+    found = None
 
-        if head1 in header:
-            print('Found head 1')
-            return 1
+    if head1 in header:
+        print('Found head 1')
+        found = head1
+    elif head2 in header:
+        print('Found head 2')
+        found = head2
+    else:
+        return 0
 
-    return 0
+    content = content.replace(found, head_new)
+    with open(path, 'w') as f:
+        f.write(content)
+
+    return 1
 
 
 n = check_files('./')
