@@ -1,10 +1,8 @@
 #
 # SetupTools script for Myokit
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -38,7 +36,7 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
 
-    license='GNU General Public License version 3',
+    license='BSD 3-clause license',
 
     author='Michael Clerx',
 

@@ -1,18 +1,18 @@
 #
-# Command line tools for Myokit.
+# Command line tools.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 
+_line_width = 79
+
+
 def printline():
-    line_width = 60
-    print('-' * line_width)
+    print('-' * _line_width)
 
 
 def main():
@@ -1079,7 +1079,7 @@ def step(source, ref, ini, raw):
             print(myokit.step(model, initial=ini, reference=ref))
     except myokit.NumericalError as ee:
         e = 'Numerical error'
-        n = line_width - len(e) - 2
+        n = _line_width - len(e) - 2
         print('-' * int(n / 2) + ' ' + e + ' ' + '-' * (n - int(n / 2)))
         print('A numerical error occurred:')
         print(str(ee))

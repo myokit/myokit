@@ -1,10 +1,8 @@
 #
 # Myokit's version info
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 import sys
 
@@ -16,7 +14,7 @@ __release__ = True
 #  - Changes to minor indicate new features, possible slight backwards
 #    incompatibility
 #  - Changes to revision indicate bugfixes, tiny new features
-__version_tuple__ = 1, 28, 9
+__version_tuple__ = 1, 29, 0
 
 # String version of the version number
 __version__ = '.'.join([str(x) for x in __version_tuple__])
