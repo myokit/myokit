@@ -38,7 +38,7 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
 
-    license='GNU General Public License version 3',
+    license='BSD 3-clause license',
 
     author='Michael Clerx',
 
