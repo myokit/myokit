@@ -73,7 +73,7 @@ before_install:
     fi;
   # OS/X
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      brew update-reset
+      brew update-reset;
       brew install sundials;
     fi;
 
