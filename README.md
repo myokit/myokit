@@ -57,3 +57,7 @@ To see what else Myokit can do, type
 
     myokit -h
 
+
+## Citing Myokit
+
+If you use Myokit in your research, please cite it using the information in our [CITATION file](./CITATION).
