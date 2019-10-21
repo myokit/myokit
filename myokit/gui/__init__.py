@@ -53,7 +53,8 @@ else:
                     import PySide  # noqa
                     pyside = True
                 except ImportError:
-                    raise ImportError('Unable to find PyQt5, PyQt4 or PySide')
+                    raise ImportError(
+                        'Unable to find PyQt5, PyQt4, PySide2 or PySide')
 
 # Import and configure Qt
 if pyqt5:
