@@ -87,18 +87,18 @@ def block(filename, pyqt4=False, pyqt5=False, pyside=False, pyqide2=False):
         myokit.FORCE_PYSIDE = False
         myokit.FORCE_PYSIDE2 = False
     elif pyside:
-        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = True
         myokit.FORCE_PYSIDE2 = False
     elif pyside2:
-        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = False
         myokit.FORCE_PYSIDE2 = True
     import myokit.gui
     import myokit.gui.datablock_viewer
-    if pyqt5 or pyqt4 or pyside:
+    if pyqt5 or pyqt4 or pyside or pyside2:
         print('Using backend: ' + myokit.gui.backend)
     myokit.gui.run(myokit.gui.datablock_viewer.DataBlockViewer, filename)
 
@@ -588,18 +588,18 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
         myokit.FORCE_PYSIDE = False
         myokit.FORCE_PYSIDE2 = False
     elif pyside:
-        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = True
         myokit.FORCE_PYSIDE2 = False
     elif pyside2:
-        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = False
         myokit.FORCE_PYSIDE2 = True
     import myokit.gui
     import myokit.gui.ide
-    if pyqt5 or pyqt4 or pyside:
+    if pyqt5 or pyqt4 or pyside or pyside2:
         print('Using backend: ' + myokit.gui.backend)
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
 
