@@ -460,6 +460,12 @@ class Protocol(object):
 
         return lo, hi
 
+    def __reduce__(self):
+        """
+        Pickles the Protocol.
+        """
+        return (myokit.parse_protocol, (self.code(), ))
+
     def schedule(self, level, start, duration, period=0, multiplier=0):
         """
         Schedules a new event.
