@@ -806,19 +806,6 @@ class Model(ObjectWithMeta, VarProvider):
         if name:
             self.meta['name'] = str(name)
 
-    def __reduce__(self):
-        """
-        Pickles the model.
-        """
-        return (
-            myokit.parse_model,
-            (self.code(), ),
-        )
-
-        # TODO?
-        #self._reserved_unames = set()
-        #self._reserved_uname_prefixes = {}
-
     def add_component(self, name):
         """
         Adds a component with the given `name` to this model.
@@ -2170,6 +2157,16 @@ class Model(ObjectWithMeta, VarProvider):
         for var in unused:
             var.set_binding(None)
         return variables
+
+    def __reduce__(self):
+        """
+        Pickles the model.
+        """
+        return (myokit.parse_model, (self.code(), ))
+
+        # TODO?
+        # self._reserved_unames = set()
+        # self._reserved_uname_prefixes = {}
 
     def _register_binding(self, label, variable=None):
         """
