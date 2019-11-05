@@ -210,6 +210,16 @@ class Simulation(myokit.CModule):
         self._run(duration, myokit.LOG_NONE, None, None, None, progress, msg)
         self._default_state = self._state
 
+    def __reduce__(self):
+        """
+        Pickles this Simulation.
+        """
+        return (
+            self.__class__,
+            (self._model, self._protocol),
+            (self._time, self._state, self._default_state),
+        )
+
     def reset(self):
         """
         Resets the simulation:
@@ -553,6 +563,14 @@ class Simulation(myokit.CModule):
             self._protocol = None
         else:
             self._protocol = protocol.clone()
+
+    def __setstate__(self, state):
+        """
+        Called after unpickling.
+        """
+        self._time = state[0]
+        self._state = state[1]
+        self._default_state = state[2]
 
     def set_state(self, state):
         """
