@@ -372,12 +372,20 @@ class SubCapture(PyCapture):
             sys.stdout = self._stdout
             sys.stderr = self._stderr
             # Close temporary files and store capture output
-            self._file_out.seek(0)
-            self._captured.extend(self._file_out.readlines())
-            self._file_out.close()
-            self._file_err.seek(0)
-            self._captured.extend(self._file_err.readlines())
-            self._file_err.close()
+            try:
+                self._file_out.seek(0)
+                self._captured.extend(self._file_out.readlines())
+                self._file_out.close()
+            except ValueError:
+                # In rare cases, I've seen a ValueError, "underlying buffer has
+                # been detached".
+                pass
+            try:
+                self._file_err.seek(0)
+                self._captured.extend(self._file_err.readlines())
+                self._file_err.close()
+            except ValueError:
+                pass
             # We've stopped capturing
             self._capturing = False
 
