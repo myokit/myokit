@@ -519,6 +519,7 @@ from ._aux import (  # noqa
     _lvsd,
     _rmtree,
     _round_if_int,
+    _random_hash,
     strfloat,
 
     # Snapshot creation for replicability

@@ -1504,3 +1504,14 @@ def _rmtree(path):
             raise
 
     shutil.rmtree(path, ignore_errors=False, onerror=onerror)
+
+
+def _random_hash():
+    """
+    Returns a hash that should be pretty random, and depends on the current
+    time as well as the process id.
+    """
+    x = os.getpid() * timeit.default_timer()
+    x = abs(hash(str(x - int(x))))
+    return x
+
