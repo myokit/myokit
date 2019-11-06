@@ -191,6 +191,7 @@ class CModule(object):
                     t.extend(['    ' + x for x in captured.splitlines()])
                     raise myokit.CompilationError('\n'.join(t))
                 finally:
+                    # Delete egg, if created
                     egg = name + '.egg-info'
                     if os.path.exists(egg):
                         myokit._rmtree(egg)
