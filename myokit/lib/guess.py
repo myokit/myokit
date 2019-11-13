@@ -62,8 +62,6 @@ def _distance_to_bound(variable):
     return distances
 
 
-
-
 def stimulus_current(model):
     """
     Guesses which model variable (if any) represents the stimulus current and
