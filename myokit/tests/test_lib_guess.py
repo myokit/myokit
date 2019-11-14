@@ -25,6 +25,24 @@ class LibGuessTest(unittest.TestCase):
     Tests for ``myokit.lib.guess``.
     """
 
+    def test_compatible_units(self):
+        # Tests the (hidden) method to check if a unit is compatible with one
+        # of a list of types
+        A = myokit.units.A
+        pA = myokit.units.pA
+        AF = A / myokit.units.F
+        Am2 = A / myokit.units.m**2
+
+        units = [pA, AF, Am2]
+        self.assertTrue(guess._compatible_units(pA, units))
+        self.assertTrue(guess._compatible_units(A, units))
+        self.assertTrue(guess._compatible_units(AF, units))
+        self.assertTrue(guess._compatible_units(Am2, units))
+        self.assertTrue(guess._compatible_units(123 * Am2, units))
+        self.assertFalse(guess._compatible_units(myokit.units.m, units))
+        self.assertFalse(guess._compatible_units(myokit.units.V, units))
+        self.assertFalse(guess._compatible_units(None, units))
+
     def test_distance_to_bound(self):
         # Tests the (hidden) method to calculate the distance to a bound
         # variable
@@ -95,24 +113,6 @@ class LibGuessTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'must be a bound variable',
             guess._distance_to_bound, m.get('c.c'))
-
-    def test_compatible_units(self):
-        # Tests the (hidden) method to check if a unit is compatible with one
-        # of a list of types
-        A = myokit.units.A
-        pA = myokit.units.pA
-        AF = A / myokit.units.F
-        Am2 = A / myokit.units.m**2
-
-        units = [pA, AF, Am2]
-        self.assertTrue(guess._compatible_units(pA, units))
-        self.assertTrue(guess._compatible_units(A, units))
-        self.assertTrue(guess._compatible_units(AF, units))
-        self.assertTrue(guess._compatible_units(Am2, units))
-        self.assertTrue(guess._compatible_units(123 * Am2, units))
-        self.assertFalse(guess._compatible_units(myokit.units.m, units))
-        self.assertFalse(guess._compatible_units(myokit.units.V, units))
-        self.assertFalse(guess._compatible_units(None, units))
 
     def test_membrane_potential_1(self):
         # Test finding the membrane potential based on annotations
