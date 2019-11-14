@@ -21,6 +21,9 @@ except AttributeError:
 
 
 class LibGuessTest(unittest.TestCase):
+    """
+    Tests for ``myokit.lib.guess``.
+    """
 
     def test_distance_to_bound(self):
         # Tests the (hidden) method to calculate the distance to a bound
