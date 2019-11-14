@@ -10,21 +10,13 @@ import collections
 import myokit
 
 
-# Units that current is often expressed in (give or take a multiplier)
-_A = myokit.units.A
-_AF = myokit.units.A / myokit.units.F
-_Am2 = myokit.units.A / myokit.units.m**2
-
-
-def _is_current_unit(unit):
+def _compatible_units(unit, options):
+    """ Checks if ``unit`` is compatible with one of the given ``options``. """
     if unit is None:
         return False
-    if myokit.Unit.can_convert(unit, _A):
-        return True
-    if myokit.Unit.can_convert(unit, _AF):
-        return True
-    if myokit.Unit.can_convert(unit, _Am2):
-        return True
+    for option in options:
+        if myokit.Unit.can_convert(unit, option):
+            return True
     return False
 
 
@@ -67,24 +59,52 @@ def stimulus_current(model):
     Guesses which model variable (if any) represents the stimulus current and
     returns it.
 
-    If no suitable candidate is found, ``None`` is returned.
+    Three strategies are tried to find the stimulus current.
 
+    Firstly, annotated variables are searched for. If found, these are returned
+    without further checking of names, units etc. Supported annotations (in
+    order of priority) are (1) the label ``stimulus_current``, (2) the meta
+    data property ``oxmeta: membrane_stimulus_current``.
 
+    If no annotated variables are found, the following strategy is followed:
+
+    1. A list of candidate variables that depend (in)directly on ``time`` or
+       ``pace`` is compiled. Variables that depend (in)directly on states are
+       discounted.
+    2. Each candidate is assign an initial score ``1 - 1 / (1 + d)``, where
+       ``d`` is the distance (in the variable graph) to ``time`` or ``pace``.
+       As a result, if we define ``t_beat = engine.time % 1000`` then this gets
+       a lower score than ``I = if(t_beat > 100...)``.
+    3. Candidates that have a unit compatible with current get +1 point.
+    4. Candidates that define a unit (not ``None``) incompatible with current
+       are discarded.
+    5. Candidates whose name (case-insensitively) matches a known common
+       stimulus current variable name get +2 points.
+    6. Remaining candidates are ranked, and the highest scoring candidate is
+       returned. If there is more than one highest scoring candidate an
+       arbitrary one is selected.
+
+    If no candiates are found with this approach, a third strategy is tried:
+
+    1. All constants are scanned for variables with a known common name and a
+       current unit (or None). The first such variable is returned.
+
+    If all strategies fail, ``None`` is returned.
     """
-    # If labelled, return
+    # Units that current is often expressed in (give or take a multiplier)
+    current_units = [
+        myokit.units.A,
+        myokit.units.A / myokit.units.F,
+        myokit.units.A / myokit.units.m**2,
+    ]
 
-    # If oxmeta labelled, return
-
-    # Candidates:
-    #  Must depend (indirectly) on engine.pace xor engine.time
-    # Must not be a state, or depend on a state
-
-    # Candidate scoring:
-    #  Further away from time or pace is better:
-    #   score = 1 - 1 / (1 + d), where d is the distance to time or pace
-    #   This grows with decreasing distance, but stays within [0.5, 1]
-    #  Name is istim or i_stim --> +2 points
-    #  In units compat with A, A/F or A/cm^2: +1 point
+    # Common names for stimulus current variables (lowercase)
+    common_names = [
+        'istim',
+        'i_stim',
+        'i_st',
+        'ist',
+    ]
 
     # Return any variable labelled as `stimulus_current`
     i_stim = model.label('stimulus_current')
@@ -101,7 +121,7 @@ def stimulus_current(model):
     candidates = {}
     pace = model.binding('pace')
     if pace is not None:
-        for var, distance in _distance_to_bound(time).items():
+        for var, distance in _distance_to_bound(pace).items():
             candidates[var] = 1 - 1 / (1 + distance)
         candidates.update()
     time = model.time()
@@ -114,27 +134,33 @@ def stimulus_current(model):
     incompatible = []
     for v in candidates:
         unit = v.unit()
-        if _is_current_unit(unit):
-            candidates[v] += 1
-        elif unit is not None:
-            incompatible.append(v)
+        if unit is not None:
+            if _compatible_units(unit, current_units):
+                candidates[v] += 1
+            else:
+                incompatible.append(v)
     for v in incompatible:
-        #del(candidates[v])
-        pass
+        del(candidates[v])
 
-    # Add points for name (2 points if lower equals istim or i_stim
+    # Add points for name (2 points if name matches common name)
     for v in candidates:
         name = v.name().lower()
-        if name in ('istim', 'i_stim'):
+        if name in common_names:
             candidates[v] += 2
 
-    # No options? Return None
-    if not candidates:
-        return None
+    # Return candidates found with strategy 1
+    if candidates:
+        # Order from best to worst
+        ranking = sorted(candidates.keys(), key=lambda v: -candidates[v])
 
-    # Order from best to worst
-    ranking = sorted(candidates.keys(), key=lambda v: -candidates[v])
+        # Don't bother with tie-breaking, as long as something is returned!
+        return ranking[0]
 
-    # Don't bother with tie-breaking, as long as something is returned!
-    return ranking[0]
-
+    # Back-up strategy: scan for constants with right name/unit
+    for var in model.variables(const=True):
+        name = var.name().lower()
+        if name in common_names:
+            unit = var.unit()
+            if unit is None or _compatible_units(unit, current_units):
+                return var
+    return None

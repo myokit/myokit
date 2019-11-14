@@ -93,6 +93,172 @@ class LibGuessTest(unittest.TestCase):
             ValueError, 'must be a bound variable',
             guess._distance_to_bound, m.get('c.c'))
 
+    def test_compatible_units(self):
+        # Tests the (hidden) method to check if a unit is compatible with one
+        # of a list of types
+        A = myokit.units.A
+        pA = myokit.units.pA
+        AF = A / myokit.units.F
+        Am2 = A / myokit.units.m**2
+
+        units = [pA, AF, Am2]
+        self.assertTrue(guess._compatible_units(pA, units))
+        self.assertTrue(guess._compatible_units(A, units))
+        self.assertTrue(guess._compatible_units(AF, units))
+        self.assertTrue(guess._compatible_units(Am2, units))
+        self.assertTrue(guess._compatible_units(123 * Am2, units))
+        self.assertFalse(guess._compatible_units(myokit.units.m, units))
+        self.assertFalse(guess._compatible_units(myokit.units.V, units))
+        self.assertFalse(guess._compatible_units(None, units))
+
+    def test_stimulus_current_1(self):
+        # Test finding the stimulus current based on annotations
+
+        m = myokit.parse_model('''
+            [[model]]
+            c.V = -80
+
+            [c]
+            time = 0 bind time
+            pace = 0 bind pace
+            dot(V) = 0.1
+            i_stim = pace * 10 [pA]
+                in [pA]
+            d = 3 [m]
+            ''')
+
+        # Annotated with stimulus_current: return regardless of other factors
+        x = m.get('c.d')
+        x.set_label('stimulus_current')
+        self.assertEqual(guess.stimulus_current(m), x)
+        x.set_label(None)
+        x.set_label('stimulus_currents')
+        self.assertNotEqual(guess.stimulus_current(m), x)
+
+        # Alternatively, use oxmeta annotation
+        x.meta['oxmeta'] = 'membrane_stimulus_current'
+        self.assertEqual(guess.stimulus_current(m), x)
+        del(x.meta['oxmeta'])
+        self.assertNotEqual(guess.stimulus_current(m), x)
+
+    def test_stimulus_current_2(self):
+        # Test finding the stimulus current using dependence on time or pace
+
+        # Find variable furthest from time / pace (in A)
+        m = myokit.parse_model('''
+            [[model]]
+
+            [t]
+            pace = 0 bind pace
+            time = 0 bind time
+                in [s]
+            a = time * 1 [A/s]
+            b = 2 * a
+            c = 3 * b
+            d = 4 * c
+            i_stim = 5 [A]
+                in [A]
+            ''')
+        a, b, c, d = [m.get(var) for var in ['t.a', 't.b', 't.c', 't.d']]
+        self.assertEqual(guess.stimulus_current(m), d)
+
+        # Prefer explicitly correct unit
+        c.set_unit('A')
+        self.assertEqual(guess.stimulus_current(m), c)
+        c.set_unit(None)
+        self.assertEqual(guess.stimulus_current(m), d)
+        b.set_unit('A/F')
+        self.assertEqual(guess.stimulus_current(m), b)
+        d.set_unit('A/cm^2')
+        self.assertEqual(guess.stimulus_current(m), d)
+
+        # Disallow incorrect unit
+        d.set_unit('m')
+        self.assertEqual(guess.stimulus_current(m), b)
+        b.set_unit(None)
+        self.assertEqual(guess.stimulus_current(m), c)
+        d.set_unit(None)
+        self.assertEqual(guess.stimulus_current(m), d)
+
+        # Prefer variables with known names
+        m2 = m.clone()
+        x = m2.get('t').add_variable('test')
+        x.set_rhs('1 * a')
+        self.assertEqual(guess.stimulus_current(m2), m2.get('t.d'))
+        x = m2.get('t.i_stim')
+        x.set_rhs('1 * a')
+        self.assertEqual(guess.stimulus_current(m2), x)
+        # Even if others have better units
+        x.set_unit(None)
+        m2.get('t.d').set_unit('A')
+        self.assertEqual(guess.stimulus_current(m2), x)
+        # Allow other names
+        x.rename('istim')
+        self.assertEqual(guess.stimulus_current(m2), x)
+        x.rename('ist')
+        self.assertEqual(guess.stimulus_current(m2), x)
+        x.rename('i_st')
+        self.assertEqual(guess.stimulus_current(m2), x)
+
+        # This still works if using pace instead of time
+        m.get('t.pace').set_binding(None)
+        m.get('t.time').set_binding(None)
+        m.get('t.time').set_binding('pace')
+        self.assertEqual(guess.stimulus_current(m), d)
+
+        # But not with other bindings
+        m.get('t.time').set_binding(None)
+        m.get('t.time').set_binding('plaice')
+        self.assertNotEqual(guess.stimulus_current(m), d)
+
+    def test_stimulus_current_3(self):
+        # Test finding the stimulus current if it's a constant
+
+        # Find variable furthest from time / pace (in A)
+        m = myokit.parse_model('''
+            [[model]]
+
+            [t]
+            time = 0 bind time
+                in [s]
+            i_stim = 5 [A]
+                in [A]
+            i_steam = 4 [A]
+                in [A]
+            ''')
+
+        # Correct name and unit
+        i = m.get('t.i_stim')
+        self.assertEqual(guess.stimulus_current(m), i)
+
+        # Unit wrong or name wrong: don't return
+        i.set_unit('m')
+        self.assertIsNone(guess.stimulus_current(m))
+
+        # Other allowed units
+        i.set_unit('pA')
+        self.assertEqual(guess.stimulus_current(m), i)
+        i.set_unit('A/kF')
+        self.assertEqual(guess.stimulus_current(m), i)
+        i.set_unit('A/hm^2')
+        self.assertEqual(guess.stimulus_current(m), i)
+        i.set_unit(None)
+        self.assertEqual(guess.stimulus_current(m), i)
+        i.set_unit('mV')
+        self.assertIsNone(guess.stimulus_current(m))
+
+        # Other allowed names
+        i.set_unit('pA')
+        self.assertEqual(guess.stimulus_current(m), i)
+        i.rename('istim')
+        self.assertEqual(guess.stimulus_current(m), i)
+        i.rename('ist')
+        self.assertEqual(guess.stimulus_current(m), i)
+        i.rename('i_st')
+        self.assertEqual(guess.stimulus_current(m), i)
+        i.rename('ii_st')
+        self.assertIsNone(guess.stimulus_current(m))
+
 
 if __name__ == '__main__':
     unittest.main()
