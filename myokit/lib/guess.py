@@ -66,24 +66,22 @@ def membrane_potential(model):
     search for (1) the label ``membrane_potential``, (2) the meta data property
     ``oxmeta: membrane_voltage``.
 
-    If no annotated variables are found, the method will search for a component
-    named ``membrane`` containing a variable with (1) a common membrane
-    potential variable name (e.g. ``V``) and (2) units compatible with voltage
-    (or no explicit unit set). Name comparisons will be performed without
-    regard for case.
+    If no annotated variables are found, the following strategy is used:
 
-    Finally, the following strategy is used
-
-    1. A list of candidates is compiled, consisting of all state variables.
+    1. A list of candidates is compiled, consisting of all non-nested
+       variables.
     2. Candidates with a unit compatible with voltage get +1 points
     3. Candidates that define a unit (not ``None``) incompatible with voltage
        are discarded
-    4. Candidates with a name commonly used for voltage are given +2 points.
-    5. The candidate that's used in the highest number of variables defining
-       equations is given +1 points.
-    6. Remaining candidates are ranked, and the highest scoring candidate is
-       returned. If there is more than one highest scoring candidate an
-       arbitrary one is selected.
+    4. Candidates in a component with a common name for membrane potential
+       variables get +1 point. Similarly candidates in a common component for
+       membrane potential get +1 point, with an additional +0.5 point if both
+       conditions are met.
+    5. State variables get +1 point.
+    6. The candidate that is used in the most equations gets +0.1 point.
+    6. Candidates with a score < 1 are discarded.
+    7. The highest scoring candidate is returned (with no particular
+       tie-breaking rules).
 
     If all strategies fail the method returns ``None``.
     """
@@ -98,53 +96,70 @@ def membrane_potential(model):
             return v
 
     # Common units for the membrane potential
-    mV = myokit.units.mV
+    common_units = [myokit.units.V]
+
+    # Non-dimensionalised (e.g. Mitchell-Schaeffer) use [1]
+    # But this causes too many false positives
+    # common_units.append(myokit.units.dimensionless)
 
     # Common names for the membrane potential
+    common_component_names = [
+        'membrane',
+        'cell',
+    ]
     common_names = [
         'v',
         'vm',
         'v_m',
     ]
 
-    # Look for a membrane component
-    for c in model.components():
-        if c.name().lower() == 'membrane':
-            # Look for a suitable variable within the membrane component
-            for v in c.variables(deep=True):
-                if v.name().lower() in common_names:
-                    unit = v.unit()
-                    if unit is None or _compatible_units(unit, [mV]):
-                        return v
-
     # Create a list of candidates, with initial scores based on units
     candidates = {}
-    for v in model.states():
-        unit = v.unit()
-        if unit is None:
-            candidates[v] = 0
-        elif _compatible_units(unit, [mV]):
-            candidates[v] = 1
+    for c in model.components():
+        for v in model.variables():  # No nested variables
+            # Ignore time variable
+            if v.binding() == 'time':
+                continue
+            unit = v.unit()
+            if unit is None:
+                candidates[v] = 0
+            elif _compatible_units(unit, common_units):
+                candidates[v] = 1
 
-    # No candidates? Then return None
-    if not candidates:
+    # Easy case: no candidates or a single candidate
+    if len(candidates) == 0:
         return None
     elif len(candidates) == 1:
-        return None
+        return candidates.popitem()[0]
 
     # Award points for names
     for v in candidates:
-        if v.name().lower() in common_names:
-            candidates[v] += 2
+        cname = v.parent().name().lower() in common_component_names
+        vname = v.name().lower() in common_names
+        score = int(cname) + int(vname)
+        if cname and vname:
+            score += 0.5
+        if score:
+            candidates[v] += score
 
-    # Award point for most references
+    # Award point for states
+    for v in candidates:
+        if v.is_state():
+            candidates[v] += 1
+
+    # Award tie-breaking point for most references
     ranking = list(candidates)
-    ranking.sort(key = lambda v: -len(list(v.refs_by())))
-    candidates[ranking[0]] += 1
+    ranking.sort(key=lambda v: -len(list(v.refs_by())))
+    candidates[ranking[0]] += 0.1
 
-    # Order and return (one of) best
-    ranking.sort(key = lambda v: -candidates[v])
-    return ranking[0]
+    # Find (one of) best candidate
+    ranking.sort(key=lambda v: -candidates[v])
+
+    # Check candidate has at least 1 full point and return
+    v = ranking[0]
+    if candidates[v] < 1:
+        return None
+    return v
 
 
 def stimulus_current(model):
@@ -195,11 +210,15 @@ def stimulus_current(model):
             return v
 
     # Units that current is often expressed in (give or take a multiplier)
-    current_units = [
+    common_units = [
         myokit.units.A,
         myokit.units.A / myokit.units.F,
         myokit.units.A / myokit.units.m**2,
     ]
+
+    # Non-dimensionalised (e.g. Mitchell-Schaeffer) use [mS/uF]
+    # But this causes too many false positives
+    # common_units.append(myokit.units.S / myokit.units.F)
 
     # Common names for stimulus current variables (lowercase)
     common_names = [
@@ -228,7 +247,7 @@ def stimulus_current(model):
     for v in candidates:
         unit = v.unit()
         if unit is not None:
-            if _compatible_units(unit, current_units):
+            if _compatible_units(unit, common_units):
                 candidates[v] += 1
             else:
                 incompatible.append(v)
@@ -254,7 +273,7 @@ def stimulus_current(model):
         name = var.name().lower()
         if name in common_names:
             unit = var.unit()
-            if unit is None or _compatible_units(unit, current_units):
+            if unit is None or _compatible_units(unit, common_units):
                 return var
     return None
 

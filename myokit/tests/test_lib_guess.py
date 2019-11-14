@@ -114,6 +114,158 @@ class LibGuessTest(unittest.TestCase):
         self.assertFalse(guess._compatible_units(myokit.units.V, units))
         self.assertFalse(guess._compatible_units(None, units))
 
+    def test_membrane_potential_1(self):
+        # Test finding the membrane potential based on annotations
+
+        m = myokit.parse_model('''
+            [[model]]
+            membrane.V = -80
+
+            [membrane]
+            time = 0 bind time
+            dot(V) = 1 [mV/ms]
+                in [mV]
+
+            [c]
+            x = 5 in [A]
+            ''')
+
+        # Annotated with membrane_potential: return regardless of other factors
+        x = m.get('c.x')
+        x.set_label('membrane_potential')
+        self.assertEqual(guess.membrane_potential(m), x)
+        x.set_label(None)
+        x.set_label('membrane_potentials')
+        self.assertNotEqual(guess.membrane_potential(m), x)
+
+        # Alternatively, use oxmeta annotation
+        x.meta['oxmeta'] = 'membrane_voltage'
+        self.assertEqual(guess.membrane_potential(m), x)
+        del(x.meta['oxmeta'])
+        self.assertNotEqual(guess.membrane_potential(m), x)
+
+    def test_membrane_potential_2(self):
+        # Test finding the membrane potential based on a scoring system
+
+        # Must be in volts or None
+        m = myokit.parse_model('''
+            [[model]]
+            membrane.V = -80
+
+            [membrane]
+            time = 0 bind time
+            dot(V) = 1
+                in [A]
+            ''')
+        self.assertIsNone(guess.membrane_potential(m))
+        v = m.get('membrane.V')
+        v.set_unit('V')
+        self.assertEqual(guess.membrane_potential(m), v)
+        v.set_unit('MV')
+        self.assertEqual(guess.membrane_potential(m), v)
+        v.set_unit(None)
+        self.assertEqual(guess.membrane_potential(m), v)
+
+        # Prefer volts over none
+        w = m.get('membrane').add_variable('Vm')
+        w.set_rhs(1)
+        w.promote(-80)
+        w.set_unit('mV')
+        self.assertEqual(guess.membrane_potential(m), w)
+        w.set_unit(None)
+        v.set_unit('kV')
+        self.assertEqual(guess.membrane_potential(m), v)
+
+        # Prefer common variable names
+        m = myokit.parse_model('''
+            [[model]]
+            membrane.U = -80
+            membrane.V = -80
+            membrane.W = -80
+
+            [membrane]
+            time = 0 bind time
+            dot(U) = 1
+            dot(V) = 1
+            dot(W) = 1
+            ''')
+        self.assertEqual(guess.membrane_potential(m), m.get('membrane.V'))
+
+        # Prefer common component names
+        m = myokit.parse_model('''
+            [[model]]
+            a.V = -80
+            membrane.V = -80
+            c.V = -80
+
+            [a]
+            time = 0 bind time
+            dot(V) = 1
+
+            [membrane]
+            dot(V) = 1
+
+            [c]
+            dot(V) = 1
+            ''')
+        self.assertEqual(guess.membrane_potential(m), m.get('membrane.V'))
+        # Synergy gives extra points
+        m.get('a.V').set_unit('mV')
+        self.assertEqual(guess.membrane_potential(m), m.get('membrane.V'))
+        m.get('a.V').set_unit(None)
+        # Component name works without variable name
+        m.get('a.V').rename('W')
+        m.get('membrane.V').rename('W')
+        m.get('c.V').rename('W')
+        self.assertEqual(guess.membrane_potential(m), m.get('membrane.W'))
+
+        # Prefer states
+        m = myokit.parse_model('''
+            [[model]]
+            b.V = -80
+
+            [a]
+            time = 0 bind time
+            V = 1
+
+            [b]
+            dot(V) = 1
+
+            [c]
+            V = 1
+            ''')
+        self.assertEqual(guess.membrane_potential(m), m.get('b.V'))
+
+        # Use number of references as tie breaker
+        m = myokit.parse_model('''
+            [[model]]
+
+            [a]
+            time = 0 bind time
+            V = 1
+            x = V + b.V
+
+            [b]
+            V = 1
+
+            [c]
+            V = 1
+            x = V + b.V
+            ''')
+        self.assertEqual(guess.membrane_potential(m), m.get('b.V'))
+
+        # Don't return really awful guesses
+        m = myokit.parse_model('''
+            [[model]]
+
+            [a]
+            time = 0 bind time
+            x = 1
+            y = 2
+            z = 3
+            ''')
+        self.assertIsNone(guess.membrane_potential(m))
+
     def test_stimulus_current_1(self):
         # Test finding the stimulus current based on annotations
 
