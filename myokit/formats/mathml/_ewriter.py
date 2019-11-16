@@ -392,3 +392,11 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             p = self._et.SubElement(w, 'otherwise')
             self._ex(e._e[-1], p)
 
+    def _ex_opiecewise(self, e, t):
+        return self._ex_if(e.if_tree())
+
+    def _ex_polynomial(self, e, t):
+        return self.ex(e.tree())
+
+    def _ex_spline(self, e, t):
+        return self._ex_opiecewise(e)

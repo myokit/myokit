@@ -149,6 +149,9 @@ Conditional operators
 .. _api/myokit.Piecewise:
 .. autoclass:: Piecewise
 
+.. _api/myokit.OrderedPiecewise:
+.. autoclass:: OrderedPiecewise
+
 .. _api/myokit.Not:
 .. autoclass:: Not
 
@@ -194,6 +197,12 @@ Miscellaneous
 
 .. _api/myokit.Remainder:
 .. autoclass:: Remainder
+
+.. _api/myokit.Polynomial:
+.. autoclass:: Polynomial
+
+.. _api/myokit.Spline:
+.. autoclass:: Spline
 
 .. _api/myokit.UnsupportedFunction:
 .. autoclass:: UnsupportedFunction

@@ -16,6 +16,7 @@ submodules detailed in the sections listed below.
     common_plots
     dependency_analysis
     hh
+    function_approximation
     markov
     multi
     parameter_estimation

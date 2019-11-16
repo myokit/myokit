@@ -2195,4 +2195,6 @@ functions['abs'] = myokit.Abs
 functions['dot'] = myokit.Derivative
 functions['if'] = myokit.If
 functions['piecewise'] = myokit.Piecewise
-
+functions['opiecewise'] = myokit.OrderedPiecewise
+functions['spline'] = myokit.Spline
+functions['polynomial'] = myokit.Polynomial
