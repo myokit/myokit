@@ -2836,7 +2836,6 @@ class TestOrderedPiecewise(unittest.TestCase):
         self.reset()
 
 
-
 class TestPolynomial(unittest.TestCase):
     """
     Tests Polynomial.
