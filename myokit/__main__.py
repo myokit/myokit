@@ -71,7 +71,7 @@ def main():
         func(**args)
 
 
-def block(filename, pyqt4=False, pyqt5=False, pyside=False, pyqide2=False):
+def block(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     """
     Runs the DataBlock viewer.
     """
