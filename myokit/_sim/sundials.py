@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import logging
 import os
 
 import myokit
@@ -106,11 +107,17 @@ class Sundials(myokit.CModule):
         # Get version from sundials header
         version = Sundials.version()
         if version is not None:
-            # Version can be x.y.z-dev
-            if '-' in version:  # pragma: no cover
-                version = version[:version.index('-')]
-            version = [int(x) for x in version.split('.')]
-            version = version[0] * 10000 + version[1] * 100 + version[2]
+            try:
+                # Version can be x.y.z-dev
+                if '-' in version:  # pragma: no cover
+                    version = version[:version.index('-')]
+                version = [int(x) for x in version.split('.')]
+                version = version[0] * 10000 + version[1] * 100 + version[2]
+            except Exception:
+                log = logging.getLogger(__name__)
+                log.warning(
+                    'Unable to parse sundials version: ' + str(version))
+                version = None
         return version
 
 
