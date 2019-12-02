@@ -17,7 +17,7 @@ import myokit.units
 import myokit.formats
 from myokit.mxml import html2ascii
 from myokit.mxml import dom_child, dom_next
-from myokit.formats.mathml import parse_mathml_rhs
+from myokit.formats.mathml import parse_mathml_dom
 
 
 info = """
@@ -171,7 +171,7 @@ class SBMLImporter(myokit.formats.Importer):
                 self.logger().log(
                     'Parsing initial assignment for "' + var + '".')
                 var = comp[var]
-                expr = parse_mathml_rhs(
+                expr = parse_mathml_dom(
                     dom_child(node, 'math'), refs, self.logger())
 
                 if var.is_state():
@@ -233,7 +233,7 @@ class SBMLImporter(myokit.formats.Importer):
                 self.logger().log(
                     'Parsing assignment rule for <' + str(var) + '>.')
                 var = comp[var]
-                var.set_rhs(parse_mathml_rhs(
+                var.set_rhs(parse_mathml_dom(
                     dom_child(node, 'math'), refs, self.logger()))
             else:
                 raise SBMLError(   # pragma: no cover
@@ -251,7 +251,7 @@ class SBMLImporter(myokit.formats.Importer):
                 ini = var.rhs()
                 ini = ini.eval() if ini else 0
                 var.promote(ini)
-                var.set_rhs(parse_mathml_rhs(
+                var.set_rhs(parse_mathml_dom(
                     dom_child(node, 'math'), refs, self.logger()))
             else:
                 raise SBMLError(   # pragma: no cover

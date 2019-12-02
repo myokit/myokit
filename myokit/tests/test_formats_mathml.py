@@ -9,10 +9,10 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import unittest
-import xml.dom.minidom
+import xml.etree.ElementTree as etree
 
 import myokit
-import myokit.formats.mathml
+import myokit.formats.mathml as mathml
 from myokit.mxml import dom_child
 
 # Unit testing in Python 2 and 3
@@ -20,6 +20,23 @@ try:
     unittest.TestCase.assertRaisesRegex
 except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+
+
+def read(xml, var_table=None):
+    """ Parse a MathML string. """
+
+    if var_table is None:
+        p = mathml.MathMLParser(
+            lambda x, y: myokit.Name(x),
+            lambda x, y: myokit.Number(x),
+        )
+    else:
+        p = mathml.MathMLParser(
+            lambda x, y: myokit.Name(var_table[x]),
+            lambda x, y: myokit.Number(x),
+        )
+
+    return p.parse(etree.fromstring(xml))
 
 
 class ContentMathMLTest(unittest.TestCase):
@@ -33,14 +50,11 @@ class ContentMathMLTest(unittest.TestCase):
         component = model.add_component('c')
         avar = component.add_variable('a')
 
-        w = myokit.formats.mathml.MathMLExpressionWriter()
+        w = mathml.MathMLExpressionWriter()
         w.set_mode(presentation=False)
 
         def r(ex):
-            """ Read a MathML element (e.g. an <apply>) """
-            var_table = {'c.a': avar}
-            x = dom_child(xml.dom.minidom.parseString(ex))
-            return myokit.formats.mathml.parse_mathml_rhs(x, var_table)
+            return read(ex, {'c.a': avar})
 
         # Name
         a = myokit.Name(avar)
@@ -286,7 +300,7 @@ class ContentMathMLTest(unittest.TestCase):
         component = model.add_component('c')
         avar = component.add_variable('a')
 
-        w = myokit.formats.mathml.MathMLExpressionWriter()
+        w = mathml.MathMLExpressionWriter()
         w.set_mode(presentation=False)
 
         a = avar.lhs()
@@ -314,60 +328,41 @@ class ContentMathMLTest(unittest.TestCase):
 
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('mathml')
-        self.assertIsInstance(w, myokit.formats.mathml.MathMLExpressionWriter)
+        self.assertIsInstance(w, mathml.MathMLExpressionWriter)
 
         # Test without a Myokit expression
         self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
-    def test_parse_mathml(self):
+    def test_parse_mathml_string(self):
         """
-        Test :meth:`myokit.formats.mathml.parse_mathml()`.
+        Test :meth:`mathml.parse_mathml_string()`.
         """
-        mathml = (
-            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
-            '<apply><cn>1.0</cn></apply>'
-            '</math>'
-        )
         self.assertEqual(
-            myokit.formats.mathml.parse_mathml(mathml), myokit.Number(1))
+            mathml.parse_mathml_string('<apply><cn>1.0</cn></apply>'),
+            myokit.Number(1)
+        )
 
     def test_parsing_bad_mathml(self):
         """
         Test the parser on various invalid bits of mathml.
         """
-        def test(s):
-            """ Try parsing a bit of mathml. """
-            tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
-            tag2 = '</math>'
-            return myokit.formats.mathml.parse_mathml(tag1 + s + tag2)
-
-        def log_test(s, var_table=None):
-            """ Try parsing a bit of mathml, with var look-up and logging. """
-            var_table = {} if var_table is None else var_table
-            logger = myokit.formats.TextLogger()
-            x = dom_child(xml.dom.minidom.parseString(s))
-            myokit.formats.mathml.parse_mathml_rhs(x, var_table, logger=logger)
-            return logger
-
-        me = myokit.formats.mathml.MathMLError
 
         # No operands
         self.assertRaisesRegex(
-            me, 'at least one operand', test,
+            mathml.MathMLError, 'at least one operand', read,
             '<apply><times /></apply>')
 
         # Only one operand
         self.assertRaisesRegex(
-            me, 'at least two operands', test,
+            mathml.MathMLError, 'at least two operands', read,
             '<apply><times /><cn>1.0</cn></apply>')
 
         # Unresolvable reference
         x = '<apply><ci>bert</ci></apply>'
-        logger = log_test(x, {'ernie': 'banaan'})
-        w = list(logger.warnings())
-        self.assertEqual(len(w), 1)
-        self.assertIn('Unable to resolve', w[0])
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to create Name', read, x,
+            {'ernie': 'banaan'})
 
         # Normal piecewise
         x = (
@@ -380,7 +375,7 @@ class ContentMathMLTest(unittest.TestCase):
             '  </otherwise>'
             '</piecewise>'
         )
-        test(x)
+        read(x)
 
         # Piecewise with extra otherwise
         x = (
@@ -396,26 +391,27 @@ class ContentMathMLTest(unittest.TestCase):
             '  </otherwise>'
             '</piecewise>'
         )
-        logger = log_test(x)
-        w = list(logger.warnings())
-        self.assertEqual(len(w), 1)
-        self.assertIn('Multiple <otherwise>', w[0])
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Found more than one <otherwise>', read, x)
 
         # Piecewise without otherwise
         x = (
             '<piecewise>'
             '  <piece>'
-            '    <cn>1</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
+            '    <cn>2</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
             '  </piece>'
             '  <piece>'
             '    <cn>1</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
             '  </piece>'
             '</piecewise>'
         )
-        logger = log_test(x)
-        w = list(logger.warnings())
-        self.assertEqual(len(w), 1)
-        self.assertIn('No <otherwise>', w[0])
+        x = read(x)
+        # Check otherwise is automatically added
+        pieces = list(x.pieces())
+        self.assertEqual(len(pieces), 3)
+        self.assertEqual(pieces[0], myokit.Number(2))
+        self.assertEqual(pieces[1], myokit.Number(1))
+        self.assertEqual(pieces[2], myokit.Number(0))
 
         # Unexpected tag in piecwise
         x = (
@@ -429,30 +425,19 @@ class ContentMathMLTest(unittest.TestCase):
             '  <apply><eq /><cn>1</cn><cn>1</cn></apply>'
             '</piecewise>'
         )
-        logger = log_test(x)
-        w = list(logger.warnings())
-        self.assertEqual(len(w), 1)
-        self.assertIn('Unexpected tag', w[0])
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unexpected content in <piecewise>', read, x)
 
         # Unknown mathml tag
-        x = '<michael><cn>3</cn></michael>'
-        logger = log_test(x)
-        w = list(logger.warnings())
-        self.assertEqual(len(w), 1)
-        self.assertIn('Unknown element', w[0])
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unsupported element', read,
+            '<apply><yum /><ci>3</ci></apply>')
 
     def test_parsing_derivatives(self):
         """ Test parsing of derivatives with degree elements. """
 
-        def test(s):
-            tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
-            tag2 = '</math>'
-            myokit.formats.mathml.parse_mathml(tag1 + s + tag2)
-
-        me = myokit.formats.mathml.MathMLError
-
         # Basic test
-        test(
+        read(
             '<apply>'
             '  <diff/>'
             '  <bvar>'
@@ -463,7 +448,7 @@ class ContentMathMLTest(unittest.TestCase):
         )
 
         # Test with degree element
-        test(
+        read(
             '<apply>'
             '  <diff/>'
             '  <bvar>'
@@ -476,7 +461,7 @@ class ContentMathMLTest(unittest.TestCase):
 
         # Test with degree element other than 1
         self.assertRaisesRegex(
-            me, 'degree one', test,
+            mathml.MathMLError, 'degree one', read,
             '<apply>'
             '  <diff/>'
             '  <bvar>'
@@ -489,7 +474,7 @@ class ContentMathMLTest(unittest.TestCase):
 
         # Derivative of an expression
         self.assertRaisesRegex(
-            me, 'Derivative of an expression', test,
+            mathml.MathMLError, '<diff> element must contain a <ci>', read,
             '<apply>'
             '  <diff/>'
             '  <bvar>'
@@ -502,13 +487,8 @@ class ContentMathMLTest(unittest.TestCase):
     def test_parsing_roots(self):
         """ Test parsing of roots other than square root. """
 
-        def test(s):
-            tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
-            tag2 = '</math>'
-            return myokit.formats.mathml.parse_mathml(tag1 + s + tag2)
-
         # Basic test
-        x = test(
+        x = read(
             '<apply>'
             '  <root/>'
             '  <cn>3</cn>'
@@ -517,7 +497,7 @@ class ContentMathMLTest(unittest.TestCase):
         self.assertEqual(x, myokit.Sqrt(myokit.Number(3)))
 
         # Test with degree = 2
-        x = test(
+        x = read(
             '<apply>'
             '  <root/>'
             '  <degree><cn>2</cn></degree>'
@@ -527,7 +507,7 @@ class ContentMathMLTest(unittest.TestCase):
         self.assertEqual(x, myokit.Sqrt(myokit.Number(9)))
 
         # Test with degree
-        x = test(
+        x = read(
             '<apply>'
             '  <root/>'
             '  <degree><cn>3</cn></degree>'
@@ -539,175 +519,152 @@ class ContentMathMLTest(unittest.TestCase):
     def test_parsing_extra_trig(self):
         """ Test parsing of the annoying trig functions. """
 
-        def test(s):
-            tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
-            tag2 = '</math>'
-            return myokit.formats.mathml.parse_mathml(tag1 + s + tag2)
-
         # Cosecant
-        x = test('<apply><csc/><cn>3</cn></apply>')
+        x = read('<apply><csc/><cn>3</cn></apply>')
         y = myokit.parse_expression('1 / sin(3)')
         self.assertEqual(x, y)
 
         # Secant
-        x = test('<apply><sec/><cn>3</cn></apply>')
+        x = read('<apply><sec/><cn>3</cn></apply>')
         y = myokit.parse_expression('1 / cos(3)')
         self.assertEqual(x, y)
 
         # Cotangent
-        x = test('<apply><cot/><cn>3</cn></apply>')
+        x = read('<apply><cot/><cn>3</cn></apply>')
         y = myokit.parse_expression('1 / tan(3)')
         self.assertEqual(x, y)
 
         # arc-cosecant
-        x = test('<apply><arccsc/><cn>3</cn></apply>')
+        x = read('<apply><arccsc/><cn>3</cn></apply>')
         y = myokit.parse_expression('asin(1 / 3)')
         self.assertEqual(x, y)
 
         # arc-secant
-        x = test('<apply><arcsec/><cn>3</cn></apply>')
+        x = read('<apply><arcsec/><cn>3</cn></apply>')
         y = myokit.parse_expression('acos(1 / 3)')
         self.assertEqual(x, y)
 
         # arc-cotangent
-        x = test('<apply><arccot/><cn>3</cn></apply>')
+        x = read('<apply><arccot/><cn>3</cn></apply>')
         y = myokit.parse_expression('atan(1 / 3)')
         self.assertEqual(x, y)
 
         # Hyperbolic sine
-        x = test('<apply><sinh /><cn>3</cn></apply>')
+        x = read('<apply><sinh /><cn>3</cn></apply>')
         y = myokit.parse_expression('0.5 * (exp(3) - exp(-3))')
         self.assertEqual(x, y)
 
         # Hyperbolic cosine
-        x = test('<apply><cosh /><cn>3</cn></apply>')
+        x = read('<apply><cosh /><cn>3</cn></apply>')
         y = myokit.parse_expression('0.5 * (exp(3) + exp(-3))')
         self.assertEqual(x, y)
 
         # Hyperbolic tangent
-        x = test('<apply><tanh /><cn>3</cn></apply>')
+        x = read('<apply><tanh /><cn>3</cn></apply>')
         y = myokit.parse_expression('(exp(2*3) - 1) / (exp(2*3) + 1)')
         self.assertEqual(x, y)
 
         # Hyperbolic arc sine
-        x = test('<apply><arcsinh /><cn>3</cn></apply>')
+        x = read('<apply><arcsinh /><cn>3</cn></apply>')
         y = myokit.parse_expression('log(3 + sqrt(1 + 3*3))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc cosine
-        x = test('<apply><arccosh /><cn>3</cn></apply>')
+        x = read('<apply><arccosh /><cn>3</cn></apply>')
         y = myokit.parse_expression('log(3 + sqrt(3 + 1) * sqrt(3 - 1))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc tangent
-        x = test('<apply><arctanh /><cn>3</cn></apply>')
+        x = read('<apply><arctanh /><cn>3</cn></apply>')
         y = myokit.parse_expression('0.5 * (log(1 + 3) - log(1 - 3))')
         self.assertEqual(x, y)
 
         # Hyperbolic cosecant
-        x = test('<apply><csch /><cn>3</cn></apply>')
+        x = read('<apply><csch /><cn>3</cn></apply>')
         y = myokit.parse_expression('2 / (exp(3) - exp(-3))')
         self.assertEqual(x, y)
 
         # Hyperbolic secant
-        x = test('<apply><sech /><cn>3</cn></apply>')
+        x = read('<apply><sech /><cn>3</cn></apply>')
         y = myokit.parse_expression('2 / (exp(3) + exp(-3))')
         self.assertEqual(x, y)
 
         # Hyperbolic cotangent
-        x = test('<apply><coth /><cn>3</cn></apply>')
+        x = read('<apply><coth /><cn>3</cn></apply>')
         y = myokit.parse_expression('(exp(2*3) + 1) / (exp(2*3) - 1)')
         self.assertEqual(x, y)
 
         # Hyperbolic arc cosecant
-        x = test('<apply><arccsch /><cn>3</cn></apply>')
+        x = read('<apply><arccsch /><cn>3</cn></apply>')
         y = myokit.parse_expression('log(sqrt(1/(3*3) + 1) + 1/3)')
         self.assertEqual(x, y)
 
         # Hyperbolic arc secant
-        x = test('<apply><arcsech /><cn>3</cn></apply>')
+        x = read('<apply><arcsech /><cn>3</cn></apply>')
         y = myokit.parse_expression('log(sqrt(1/(3*3) - 1) + 1/3)')
         self.assertEqual(x, y)
 
         # Hyperbolic arc cotangent
-        x = test('<apply><arccoth /><cn>3</cn></apply>')
+        x = read('<apply><arccoth /><cn>3</cn></apply>')
         y = myokit.parse_expression('0.5 * log((3 + 1) / (3 - 1))')
         self.assertEqual(x, y)
 
     def test_parsing_constants(self):
         """ Test parsing of MathML special constants. """
 
-        def test(s):
-            tag1 = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
-            tag2 = '</math>'
-            return myokit.formats.mathml.parse_mathml(tag1 + s + tag2)
-
         # Test pi
         import math
-        x = test('<pi />')
+        x = read('<pi />')
         self.assertAlmostEqual(math.pi, float(x))
 
         # Test e
         import math
-        x = test('<exponentiale />')
+        x = read('<exponentiale />')
         self.assertAlmostEqual(math.e, float(x))
 
         # Test booleans
         import math
-        x = test('<true />')
+        x = read('<true />')
         self.assertEqual(float(x), 1)
-        x = test('<false />')
+        x = read('<false />')
         self.assertEqual(float(x), 0)
 
     def test_parse_mathml_number(self):
         """ Test parsing of various MathML number types. """
 
-        def test(s):
-            """ Try parsing a bit of mathml, with logging. """
-            logger = myokit.formats.TextLogger()
-            x = dom_child(xml.dom.minidom.parseString(s))
-            x = myokit.formats.mathml.parse_mathml_rhs(x, {}, logger=logger)
-            return float(x), logger
-
-        me = myokit.formats.mathml.MathMLError
-
         # Real
-        x, log = test('<cn>4</cn>')
-        self.assertEqual(x, 4)
-        x, log = test('<cn type="real">4</cn>')
-        self.assertEqual(x, 4)
+        x = read('<cn>4</cn>')
+        self.assertEqual(x, myokit.Number(4))
+        x = read('<cn type="real">4</cn>')
+        self.assertEqual(x, myokit.Number(4))
         # Real with base
-        x, log = test('<cn type="real" base="10">4</cn>')
-        self.assertEqual(x, 4)
-        self.assertRaises(me, test, '<cn type="real" base="9">4</cn>')
-        self.assertRaises(me, test, '<cn type="real" base="x">4</cn>')
+        x = read('<cn type="real" base="10">4</cn>')
+        self.assertEqual(x, myokit.Number(4))
+        self.assertRaises(mathml.MathMLError, read, '<cn type="real" base="9">4</cn>')
+        self.assertRaises(mathml.MathMLError, read, '<cn type="real" base="x">4</cn>')
 
         # Integer
-        x, log = test('<cn type="integer">4</cn>')
-        self.assertEqual(x, 4)
-        self.assertEqual(len(log.text()), 0)
+        x = read('<cn type="integer">4</cn>')
+        self.assertEqual(x, myokit.Number(4))
 
-        x, log = test('<cn type="integer" base="2">100</cn>')
-        self.assertEqual(x, 4)
-        self.assertIn('Converted from base 2', log.text())
+        x = read('<cn type="integer" base="2">100</cn>')
+        self.assertEqual(x, myokit.Number(4))
 
         # Double
-        x, log = test('<cn type="double">4</cn>')
-        self.assertEqual(x, 4)
+        x = read('<cn type="double">4</cn>')
+        self.assertEqual(x, myokit.Number(4))
 
         # E-notation
-        x, log = test('<cn type="e-notation">40<sep />-1</cn>')
-        self.assertEqual(x, 4)
-        self.assertIn('Converted 40e-1', log.text())
+        x = read('<cn type="e-notation">40<sep />-1</cn>')
+        self.assertEqual(x, myokit.Number(4))
 
         # Rational
-        x, log = test('<cn type="rational">16<sep />4</cn>')
-        self.assertEqual(x, 4)
-        self.assertIn('Converted 16 / 4', log.text())
+        x = read('<cn type="rational">16<sep />4</cn>')
+        self.assertEqual(x, myokit.Number(4))
 
         # Unknown type
         self.assertRaisesRegex(
-            me, 'Unsupported <cn> type', test, '<cn type="special">1</cn>')
+            mathml.MathMLError, 'Unsupported <cn> type', read, '<cn type="special">1</cn>')
 
 
 class PresentationMathMLTest(unittest.TestCase):
@@ -719,7 +676,7 @@ class PresentationMathMLTest(unittest.TestCase):
         """
         Test the presentation MathML expression writer.
         """
-        w = myokit.formats.mathml.MathMLExpressionWriter()
+        w = mathml.MathMLExpressionWriter()
         w.set_mode(presentation=True)
 
         model = myokit.Model()
@@ -908,7 +865,7 @@ class PresentationMathMLTest(unittest.TestCase):
 
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('mathml')
-        self.assertIsInstance(w, myokit.formats.mathml.MathMLExpressionWriter)
+        self.assertIsInstance(w, mathml.MathMLExpressionWriter)
 
         # Test without a Myokit expression
         self.assertRaisesRegex(
