@@ -25,6 +25,67 @@ class LibGuessTest(unittest.TestCase):
     Tests for ``myokit.lib.guess``.
     """
 
+    def test_compatible_units(self):
+        # Tests the (hidden) method to check if a unit is compatible with one
+        # of a list of types
+        A = myokit.units.A
+        pA = myokit.units.pA
+        AF = A / myokit.units.F
+        Am2 = A / myokit.units.m**2
+
+        units = [pA, AF, Am2]
+        self.assertTrue(guess._compatible_units(pA, units))
+        self.assertTrue(guess._compatible_units(A, units))
+        self.assertTrue(guess._compatible_units(AF, units))
+        self.assertTrue(guess._compatible_units(Am2, units))
+        self.assertTrue(guess._compatible_units(123 * Am2, units))
+        self.assertFalse(guess._compatible_units(myokit.units.m, units))
+        self.assertFalse(guess._compatible_units(myokit.units.V, units))
+        self.assertFalse(guess._compatible_units(None, units))
+
+    def test_deep_deps(self):
+        # Tests the (hidden) method to find all dependencies of a particular
+        # variable.
+
+        m = myokit.parse_model("""
+            [[model]]
+            c.v = -80
+
+            [c]
+            time = 0 bind time
+            dot(v) = -i_ion
+            i_ion = i1 + i2
+            i1 = 5 * v
+            i2 = x * v
+                x = 13 / time
+            z = 2 + y
+            y = 3
+            """)
+
+        # Simple cases
+        y, z = m.get('c.y'), m.get('c.z')
+        d = guess._deep_deps(y)
+        self.assertEqual(len(d), 0)
+        d = guess._deep_deps(z)
+        self.assertEqual(d[y], 1)
+        self.assertEqual(len(d), 1)
+
+        # Harder cases
+        v, time, i_ion = m.get('c.v'), m.get('c.time'), m.get('c.i_ion')
+        i1, i2, i2x = m.get('c.i1'), m.get('c.i2'), m.get('c.i2.x')
+        d = guess._deep_deps(i2)
+        self.assertEqual(d[i2x], 1)
+        self.assertEqual(d[time], 2)
+        self.assertEqual(len(d), 2)
+
+        d = guess._deep_deps(v)
+        self.assertEqual(d[i_ion], 1)
+        self.assertEqual(d[i1], 2)
+        self.assertEqual(d[i2], 2)
+        self.assertEqual(d[i2x], 3)
+        self.assertEqual(d[time], 4)
+        self.assertEqual(len(d), 5)
+
     def test_distance_to_bound(self):
         # Tests the (hidden) method to calculate the distance to a bound
         # variable
@@ -96,28 +157,10 @@ class LibGuessTest(unittest.TestCase):
             ValueError, 'must be a bound variable',
             guess._distance_to_bound, m.get('c.c'))
 
-    def test_compatible_units(self):
-        # Tests the (hidden) method to check if a unit is compatible with one
-        # of a list of types
-        A = myokit.units.A
-        pA = myokit.units.pA
-        AF = A / myokit.units.F
-        Am2 = A / myokit.units.m**2
-
-        units = [pA, AF, Am2]
-        self.assertTrue(guess._compatible_units(pA, units))
-        self.assertTrue(guess._compatible_units(A, units))
-        self.assertTrue(guess._compatible_units(AF, units))
-        self.assertTrue(guess._compatible_units(Am2, units))
-        self.assertTrue(guess._compatible_units(123 * Am2, units))
-        self.assertFalse(guess._compatible_units(myokit.units.m, units))
-        self.assertFalse(guess._compatible_units(myokit.units.V, units))
-        self.assertFalse(guess._compatible_units(None, units))
-
     def test_membrane_potential_1(self):
         # Test finding the membrane potential based on annotations
 
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
             membrane.V = -80
 
@@ -128,7 +171,7 @@ class LibGuessTest(unittest.TestCase):
 
             [c]
             x = 5 in [A]
-            ''')
+            """)
 
         # Annotated with membrane_potential: return regardless of other factors
         x = m.get('c.x')
@@ -148,7 +191,7 @@ class LibGuessTest(unittest.TestCase):
         # Test finding the membrane potential based on a scoring system
 
         # Must be in volts or None
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
             membrane.V = -80
 
@@ -156,7 +199,7 @@ class LibGuessTest(unittest.TestCase):
             time = 0 bind time
             dot(V) = 1
                 in [A]
-            ''')
+            """)
         self.assertIsNone(guess.membrane_potential(m))
         v = m.get('membrane.V')
         v.set_unit('V')
@@ -177,7 +220,7 @@ class LibGuessTest(unittest.TestCase):
         self.assertEqual(guess.membrane_potential(m), v)
 
         # Prefer common variable names
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
             membrane.U = -80
             membrane.V = -80
@@ -188,11 +231,11 @@ class LibGuessTest(unittest.TestCase):
             dot(U) = 1
             dot(V) = 1
             dot(W) = 1
-            ''')
+            """)
         self.assertEqual(guess.membrane_potential(m), m.get('membrane.V'))
 
         # Prefer common component names
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
             a.V = -80
             membrane.V = -80
@@ -207,7 +250,7 @@ class LibGuessTest(unittest.TestCase):
 
             [c]
             dot(V) = 1
-            ''')
+            """)
         self.assertEqual(guess.membrane_potential(m), m.get('membrane.V'))
         # Synergy gives extra points
         m.get('a.V').set_unit('mV')
@@ -220,7 +263,7 @@ class LibGuessTest(unittest.TestCase):
         self.assertEqual(guess.membrane_potential(m), m.get('membrane.W'))
 
         # Prefer states
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
             b.V = -80
 
@@ -233,11 +276,11 @@ class LibGuessTest(unittest.TestCase):
 
             [c]
             V = 1
-            ''')
+            """)
         self.assertEqual(guess.membrane_potential(m), m.get('b.V'))
 
         # Use number of references as tie breaker
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
 
             [a]
@@ -251,11 +294,11 @@ class LibGuessTest(unittest.TestCase):
             [c]
             V = 1
             x = V + b.V
-            ''')
+            """)
         self.assertEqual(guess.membrane_potential(m), m.get('b.V'))
 
         # Don't return really awful guesses
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
 
             [a]
@@ -263,13 +306,13 @@ class LibGuessTest(unittest.TestCase):
             x = 1
             y = 2
             z = 3
-            ''')
+            """)
         self.assertIsNone(guess.membrane_potential(m))
 
     def test_stimulus_current_1(self):
         # Test finding the stimulus current based on annotations
 
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
             c.V = -80
 
@@ -280,7 +323,7 @@ class LibGuessTest(unittest.TestCase):
             i_stim = pace * 10 [pA]
                 in [pA]
             d = 3 [m]
-            ''')
+            """)
 
         # Annotated with stimulus_current: return regardless of other factors
         x = m.get('c.d')
@@ -300,7 +343,7 @@ class LibGuessTest(unittest.TestCase):
         # Test finding the stimulus current using dependence on time or pace
 
         # Find variable furthest from time / pace (in A)
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
 
             [t]
@@ -313,7 +356,7 @@ class LibGuessTest(unittest.TestCase):
             d = 4 * c
             i_stim = 5 [A]
                 in [A]
-            ''')
+            """)
         a, b, c, d = [m.get(var) for var in ['t.a', 't.b', 't.c', 't.d']]
         self.assertEqual(guess.stimulus_current(m), d)
 
@@ -370,7 +413,7 @@ class LibGuessTest(unittest.TestCase):
         # Test finding the stimulus current if it's a constant
 
         # Find variable furthest from time / pace (in A)
-        m = myokit.parse_model('''
+        m = myokit.parse_model("""
             [[model]]
 
             [t]
@@ -380,7 +423,7 @@ class LibGuessTest(unittest.TestCase):
                 in [A]
             i_steam = 4 [A]
                 in [A]
-            ''')
+            """)
 
         # Correct name and unit
         i = m.get('t.i_stim')
@@ -413,6 +456,425 @@ class LibGuessTest(unittest.TestCase):
         self.assertEqual(guess.stimulus_current(m), i)
         i.rename('ii_st')
         self.assertIsNone(guess.stimulus_current(m))
+
+    def test_stimulus_current_info_1(self):
+        # Tests guessing of stimulus info based on annotations
+
+        # Guess all using oxmeta labels
+        m = myokit.parse_model("""
+            [[model]]
+            c.v = -80
+
+            [c]
+            t = 18 / 2
+                oxmeta: membrane_stimulus_current
+            a = 0 bind time
+                oxmeta: membrane_stimulus_current_period
+            dot(v) = -a
+                oxmeta: membrane_stimulus_current_amplitude
+            b = a / v
+                oxmeta: membrane_stimulus_current_offset
+            c = t
+                oxmeta: membrane_stimulus_current_duration
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['current'], m.get('c.t'))
+        self.assertEqual(i['amplitude'], m.get('c.v'))
+        self.assertEqual(i['duration'], m.get('c.c'))
+        self.assertEqual(i['period'], m.get('c.a'))
+        self.assertEqual(i['offset'], m.get('c.b'))
+        self.assertIsNone(i['amplitude_expression'])
+
+        # Try one without a label
+        m.get('c.v').meta['oxmeta'] = 'monkey'
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['amplitude'])
+        self.assertIsNotNone(i['amplitude_expression'])
+
+        # Stimulus current can have a myokit label
+        m.get('c.v').meta['oxmeta'] = 'membrane_stimulus_current_amplitude'
+        m.get('c.t').set_label('stimulus_current')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['current'], m.get('c.t'))
+        self.assertEqual(i['amplitude'], m.get('c.v'))
+        self.assertEqual(i['duration'], m.get('c.c'))
+        self.assertEqual(i['period'], m.get('c.a'))
+        self.assertEqual(i['offset'], m.get('c.b'))
+        self.assertIsNone(i['amplitude_expression'])
+        del(m.get('c.t').meta['oxmeta'])
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['current'], m.get('c.t'))
+        self.assertEqual(i['amplitude'], m.get('c.v'))
+        self.assertEqual(i['duration'], m.get('c.c'))
+        self.assertEqual(i['period'], m.get('c.a'))
+        self.assertEqual(i['offset'], m.get('c.b'))
+        self.assertIsNone(i['amplitude_expression'])
+
+        # No current? no info
+        m.get('c.t').set_label(None)
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['current'])
+        self.assertIsNone(i['amplitude'])
+        self.assertIsNone(i['duration'])
+        self.assertIsNone(i['period'])
+        self.assertIsNone(i['offset'])
+        self.assertIsNone(i['amplitude_expression'])
+
+    def test_stimulus_current_info_amplitude(self):
+        # Tests guessing of stimulus amplitude
+
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 [s] bind time
+                in [s]
+            i_stim = 4 * if((t - s) % p < d, a, 0 [pA])
+                in [pA]
+            s = 10 [s] in [s]
+            p = 1000 [s] in [s]
+            d = 0.5 [s] in [s]
+            a = 5 [pA] in [pA]
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['current'], m.get('c.i_stim'))
+
+        # Guess from correct unit or None
+        a = m.get('c.a')
+        self.assertEqual(i['amplitude'], a)
+        a.set_unit(None)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['amplitude'], a)
+
+        # Reject incompatible unit
+        a.set_unit('pF')
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['amplitude'])
+        a.set_unit(None)
+
+        # Prefer explicit current over None
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 [s] bind time
+                in [s]
+            i_stim = if((t - s) % p < d, a, 0 [pA])
+                in [pA]
+            s = 10 [s] in [s]
+            p = 1000 [s] in [s]
+            d = 0.5 [s] in [s]
+            a = b
+            b = 5 in [pA]
+            """)
+        b = m.get('c.b')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['amplitude'], b)
+        b.set_unit(None)
+        i = guess.stimulus_current_info(m)
+        self.assertNotEqual(i['amplitude'], b)
+
+        # Guessing from name
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 [s] bind time
+                in [s]
+            i_stim = 2 + if((t - s) % p < d, a, 0 [pA])
+                in [pA]
+            s = 10 [s] in [s]
+            p = 1000 [s] in [s]
+            d = 0.5 [s] in [s]
+            a = b in [pA]
+            b = c in [pA]
+            c = 7 [pA] in [pA]
+            """)
+        b = m.get('c.b')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['current'], m.get('c.i_stim'))
+        self.assertNotEqual(i['amplitude'], b)
+        b.rename('amplitude')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['amplitude'], b)
+        b.rename('zamplitudez')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['amplitude'], b)
+        b.rename('umplitudo')
+        i = guess.stimulus_current_info(m)
+        self.assertNotEqual(i['amplitude'], b)
+        b.rename('current_zamplitudez')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['amplitude'], b)
+        b.rename('current_zzz')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['amplitude'], b)
+        b.rename('umplitudo')
+        i = guess.stimulus_current_info(m)
+        self.assertNotEqual(i['amplitude'], b)
+
+        # Guessing from distance
+        self.assertEqual(i['amplitude'], m.get('c.a'))
+
+        # Can't already be used
+        m.get('c.a').meta['oxmeta'] = 'membrane_stimulus_current_offset'
+        i = guess.stimulus_current_info(m)
+        self.assertNotEqual(i['amplitude'], m.get('c.a'))
+
+    def test_stimulus_current_info_amplitude_expression(self):
+        # Tests guessing of stimulus amplitude expression
+
+        # Expression is not set if amplitude can be determined
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 [s] bind time
+                in [s]
+            i_stim = amplitude
+                in [pA]
+            amplitude = 1 [pA]
+                in [pA]
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertIsNotNone(i['amplitude'])
+        self.assertIsNone(i['amplitude_expression'])
+
+        # Simple constant (can be zero)
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 [s] bind time
+                in [s]
+            i_stim = 0 [pA]
+                in [pA]
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['amplitude'])
+        self.assertEqual(str(i['amplitude_expression']), '0 [pA]')
+
+        # More complicated constant
+        i_stim = m.get('c.i_stim')
+        r = '1 + 2 + 3 / sqrt(4)'
+        i_stim.set_rhs(r)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(str(i['amplitude_expression']), r)
+
+        # Non-zero part of an if (and ignore time variable)
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 bind time
+            i_stim = if(t < 5, 1, 0)
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(str(i['amplitude_expression']), '1')
+
+        # Non-zero part of an if
+        i_stim = m.get('c.i_stim')
+        i_stim.set_rhs('if(t < 5, 0, 2)')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(str(i['amplitude_expression']), '2')
+        i_stim.set_rhs('1 - if(t < 5, 0, 0)')
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['amplitude_expression'])
+
+        # Non-zero part of a piecewise
+        i_stim.set_rhs('piecewise(t < 5, 0, t < 10, 0, 0)')
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['amplitude_expression'])
+        i_stim.set_rhs('1 - piecewise(t < 5, 3, t < 10, 0, 0)')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(str(i['amplitude_expression']), '3')
+        i_stim.set_rhs('2 + piecewise(t < 5, 0, t < 10, 2 / 4, 0)')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(str(i['amplitude_expression']), '2 / 4')
+        i_stim.set_rhs('3 / piecewise(t < 5, 0, t < 10, 0, -18 / 2.4)')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(str(i['amplitude_expression']), '-18 / 2.4')
+
+        # No suitable expression
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 bind time
+            i_stim = t * 3
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['amplitude'])
+        self.assertIsNone(i['amplitude_expression'])
+
+    def test_stimulus_current_info_duration(self):
+        # Tests guessing of stimulus duration
+
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 [s] bind time
+                in [s]
+            i_stim = if((t - s) % p < d, a, 0 [pA])
+                in [pA]
+            s = 10 [s] in [s]
+                oxmeta: membrane_stimulus_current_offset
+            p = 1000 [s] in [s]
+                oxmeta: membrane_stimulus_current_period
+            d = 0.5 [s] in [s]
+            a = 5 [pA] in [pA]
+                oxmeta: membrane_stimulus_current_amplitude
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['current'], m.get('c.i_stim'))
+
+        # Note: Having labels above allows the method to exit early. We can't
+        # test this mini-optimisation, but it does show up in coverage
+
+        # Guess from name + (correct unit or None)
+        v = m.get('c.d')
+        self.assertIsNone(i['duration'], v)
+        v.rename('durandurations')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['duration'], v)
+        v.set_unit(None)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['duration'], v)
+        v.set_unit('s^2')
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['duration'], v)
+        v.set_unit('1')
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['duration'], v)
+
+        # Can't already be used
+        v.set_unit(None)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['duration'], v)
+        m.get('c.s').meta['oxmeta'] = 'hello'
+        v.meta['oxmeta'] = 'membrane_stimulus_current_offset'
+        i = guess.stimulus_current_info(m)
+        self.assertNotEqual(i['duration'], v)
+
+    def test_stimulus_current_info_offset(self):
+        # Tests guessing of stimulus offset
+
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 [s] bind time
+                in [s]
+            i_stim = if((t - s) % p < d, a, 0 [pA])
+                in [pA]
+            s = 10 [s] in [s]
+            p = 1000 [s] in [s]
+            d = 0.5 [s] in [s]
+            a = 5 [pA] in [pA]
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['current'], m.get('c.i_stim'))
+
+        # Guess from name + (correct unit or None)
+        v = m.get('c.d')
+        self.assertIsNone(i['offset'], v)
+        v.rename('foffsetti')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['offset'], v)
+        v.set_unit(None)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['offset'], v)
+        v.set_unit('s^2')
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['offset'], v)
+        v.set_unit('1')
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['offset'], v)
+
+        # Can't already be used
+        v.set_unit(None)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['offset'], v)
+        v.meta['oxmeta'] = 'membrane_stimulus_current_period'
+        i = guess.stimulus_current_info(m)
+        self.assertNotEqual(i['offset'], v)
+
+    def test_stimulus_current_info_period(self):
+        # Tests guessing of stimulus period
+
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 [s] bind time
+                in [s]
+            i_stim = if((t - s) % p < d, a, 0 [pA])
+                in [pA]
+            s = 10 [s] in [s]
+            p = 1000 [s] in [s]
+            d = 0.5 [s] in [s]
+            a = 5 [pA] in [pA]
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['current'], m.get('c.i_stim'))
+
+        # Guess from name + (correct unit or None)
+        v = m.get('c.d')
+        self.assertIsNone(i['period'], v)
+        v.rename('stim_periodic')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['period'], v)
+        v.set_unit(None)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['period'], v)
+        v.set_unit('s^2')
+        i = guess.stimulus_current_info(m)
+        self.assertIsNone(i['period'], v)
+
+        # Period can be dimensionless too
+        v.set_unit('1')
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['period'], v)
+
+        # Can't already be used
+        v.meta['oxmeta'] = 'membrane_stimulus_current_offset'
+        i = guess.stimulus_current_info(m)
+        self.assertNotEqual(i['duration'], v)
+
+    def test_stimulus_current_info_period_duration_offset(self):
+        # Tests what happens when a single variable matches multiple words
+
+        # In this model, amplitude should be x, and at most 2 variables out of
+        # duration, period, and offset can be set.
+        m = myokit.parse_model("""
+            [[model]]
+            [c]
+            t = 0 [s] bind time
+                in [s]
+            i_stim = if((t - x) % perioddurationoffset < x, 1, 0)
+            x = 5
+            perioddurationoffset = 2
+                in [s]
+            """)
+        i = guess.stimulus_current_info(m)
+        self.assertEqual(i['current'], m.get('c.i_stim'))
+        self.assertEqual(i['amplitude'], m.get('c.x'))
+        self.assertIsNone(i['amplitude_expression'])
+        empties = [x for x in i.values() if x is None]
+        self.assertEqual(len(empties), 3)
+
+        # Don't match period
+        x = m.get('c.perioddurationoffset')
+        x.rename('durationoffset')
+        i = guess.stimulus_current_info(m)
+        empties = [k for k, v in i.items() if v is None]
+        self.assertEqual(len(empties), 3)
+        self.assertIn('period', empties)
+
+        # Don't match duration
+        x.rename('periodnoffset')
+        i = guess.stimulus_current_info(m)
+        empties = [k for k, v in i.items() if v is None]
+        self.assertEqual(len(empties), 3)
+        self.assertIn('duration', empties)
+
+        # Don't match offset
+        x.rename('durationperiod')
+        i = guess.stimulus_current_info(m)
+        empties = [k for k, v in i.items() if v is None]
+        self.assertEqual(len(empties), 3)
+        self.assertIn('offset', empties)
 
 
 if __name__ == '__main__':
