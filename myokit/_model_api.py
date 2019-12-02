@@ -614,6 +614,9 @@ class VarOwner(ModelPart, VarProvider):
     def __getitem__(self, key):
         return self._variables[key]
 
+    def __iter__(self):
+        return iter(self._variables.values())
+
     def __len__(self):
         return len(self._variables)
 
@@ -1612,6 +1615,9 @@ class Model(ObjectWithMeta, VarProvider):
                 t = None
 
         return t
+
+    def __iter__(self):
+        return iter(self._components.values())
 
     def label(self, label):
         """
