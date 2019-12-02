@@ -76,12 +76,8 @@ Class names are CamelCase, and start with an upper case letter, for example `Sup
 
 ### Python 2 and 3
 
-Myokit is currently only for Python 2, but several issues are open concerning a transition to [code that works in both 2 and 3](http://python-future.org/compatible_idioms.html).
-
-
-
-
-
+Myokit runs in Python 2.7+ and 3.5+.
+All new code should be written [to work on both](http://python-future.org/compatible_idioms.html).
 
 ## Dependencies and reusing code
 
