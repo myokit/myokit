@@ -516,6 +516,14 @@ class CellMLImporter(myokit.formats.Importer):
             self.logger().log(
                 'Found ' + str(n) + ' equations in ' + cname + '.')
 
+        # Re-order states by order of appearance
+        ordered = []
+        for c in model.components():
+            for v in c:
+                if v.is_state():
+                    ordered.append(v)
+        model.reorder_state(ordered)
+
         # Use remaining initial values (can be used to set constants)
         for cname, vls in values.items():
             vrs = variables[cname]
