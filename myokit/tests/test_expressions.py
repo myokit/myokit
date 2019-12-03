@@ -433,9 +433,8 @@ class NameTest(unittest.TestCase):
 
         self.assertEqual(x.code(), 'c.x')
 
-        # Test invalid creation
+        # Test creating with over values that Variables
         myokit.Name('this is ok')
-        self.assertRaises(ValueError, myokit.Name, 3)
 
         # Test rhs
         # Name of non-state: rhs() should be the associated variable's rhs

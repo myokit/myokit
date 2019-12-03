@@ -712,11 +712,6 @@ class Name(LhsExpression):
 
     def __init__(self, value):
         super(Name, self).__init__()
-        if not isinstance(value, myokit.Variable):
-            if not isinstance(value, basestring):
-                raise ValueError(
-                    'myokit.Name objects must have a value that is a'
-                    ' myokit.Variable (or, when debugging, a string).')
         self._value = value
         self._references = set([self])
 
@@ -739,11 +734,7 @@ class Name(LhsExpression):
         return Name(self._value)
 
     def _code(self, b, c):
-        if isinstance(self._value, basestring):
-            # Allow an exception for strings (used in function templates and
-            # debugging).
-            b.write('str:' + str(self._value))
-        else:
+        if isinstance(self._value, myokit.Variable):
             if self._value.is_nested():
                 b.write(self._value.name())
             else:
@@ -754,6 +745,12 @@ class Name(LhsExpression):
                     except KeyError:
                         pass
                 b.write(self._value.qname(c))
+        elif isinstance(self._value, basestring):
+            # Allow strings for debugging
+            b.write('str:' + str(self._value))
+        else:
+            # And sneaky abuse of the expression system
+            b.write(str(self._value))
 
     def _eval_unit(self, mode):
 
