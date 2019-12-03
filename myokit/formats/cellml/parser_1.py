@@ -10,9 +10,11 @@ from __future__ import print_function, unicode_literals
 import collections
 
 import myokit
+import myokit.formats.mathml
+
 from myokit.mxml import split
 from myokit.formats.cellml import cellml_1 as cellml
-from myokit.formats.mathml import MathMLParser
+
 
 # Import lxml or default etree
 _lxml = True
@@ -157,6 +159,8 @@ class CellMLParser(object):
         try:
             return self._parse_model(root)
         except cellml.CellMLError as e:
+            raise CellMLParsingError(str(e))
+        except myokit.formats.mathml.MathMLError as e:
             raise CellMLParsingError(str(e))
         finally:
             del(self._ns, self._cmeta_ids, self._free_vars)
@@ -408,7 +412,8 @@ class CellMLParser(object):
             return myokit.Number(value, units.myokit_unit())
 
         # Create parser
-        p = MathMLParser(variable_factory, number_factory, self._free_vars)
+        p = myokit.formats.mathml.MathMLParser(
+            variable_factory, number_factory, self._free_vars)
 
         # Iterate over applies, allowing for applies nested inside <semantics>
         # elements
@@ -477,6 +482,7 @@ class CellMLParser(object):
         - [x] Parse and add equations
         - [ ] Read CellML meta data
         - [ ] Read RDF "is" annotations
+        - [ ] Imports
 
         """
         # Handle document-level validation here.
@@ -518,6 +524,11 @@ class CellMLParser(object):
         except cellml.CellMLError as e:
             raise CellMLParsingError(str(e), element)
 
+        # Check for imports
+        im = element.find(self._join('import'))
+        if im is not None:
+            raise CellMLParsingError('Imports are not supported.', im)
+
         # Check allowed content
         self._check_allowed_content(
             element,
@@ -557,8 +568,9 @@ class CellMLParser(object):
                 'Models that take derivatives with respect to more than one'
                 ' variable are not supported.')
 
-        # Set free variable
-        model.set_free_variable(self._free_vars.pop())
+        elif len(self._free_vars) == 1:
+            # Set free variable
+            model.set_free_variable(self._free_vars.pop())
 
         # Perform final validation and return
         model.validate()

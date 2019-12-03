@@ -7,9 +7,9 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-from ._importer import CellMLImporter, CellMLImporterError
 from ._exporter import CellMLExporter
 from ._ewriter import CellMLExpressionWriter
+from ._importer import CellMLImporter, CellMLImporterError
 
 import re
 

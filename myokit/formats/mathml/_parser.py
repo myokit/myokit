@@ -52,11 +52,12 @@ def parse_mathml_dom(node, var_table=None, logger=None):
     """
     Legacy method to parse MathML with the `xml.dom.minidom` interface.
     """
+    import xml.etree.ElementTree as etree
     p = MathMLParser(
         lambda x, y: myokit.Name(var_table[x]),
         lambda x, y: myokit.Number(x),
     )
-    return p.parse(node.toxml())
+    return p.parse(etree.fromstring(node.toxml()))
 
 
 class MathMLError(myokit.ImportError):
@@ -289,6 +290,11 @@ class MathMLParser(object):
             from. Must be an ``<apply>`` element.
 
         """
+        # Remove <math> element, if found
+        ns, el = split(element.tag)
+        if el == 'math':
+            element = element[0]
+
         return self._parse_atomic(element)
 
     def _parse_atomic(self, element):

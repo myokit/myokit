@@ -9,9 +9,8 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
-import myokit.formats.cellml as cellml
-
-from myokit.mxml import split
+import myokit.formats
+import myokit.mxml
 
 
 # Import lxml or default etree
@@ -47,6 +46,8 @@ class CellMLImporter(myokit.formats.Importer):
         """
         Reads a CellML file and returns a:class:`myokit.Model`.
         """
+        import myokit.formats.cellml as cellml
+
         log = self.logger()
         log.clear()
         log.clear_warnings()
@@ -65,7 +66,7 @@ class CellMLImporter(myokit.formats.Importer):
         root = tree.getroot()
 
         # Detect namespace
-        ns, el = split(root.tag)
+        ns, el = myokit.mxml.split(root.tag)
         if ns in (cellml.NS_CELLML_1_0, cellml.NS_CELLML_1_1):
 
             # Parse CellML1 model

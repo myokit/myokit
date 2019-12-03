@@ -14,6 +14,7 @@ import unittest
 import myokit
 import myokit.formats as formats
 import myokit.formats.cellml
+from myokit.formats.cellml import CellMLImporterError
 
 from shared import TemporaryDirectory, DIR_FORMATS
 
@@ -68,71 +69,94 @@ class CellMLImporterTest(unittest.TestCase):
         # Imports should raise an error
         i = formats.importer('cellml')
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError, '<import>',
+            CellMLImporterError, 'Imports are not supported',
             i.model, os.path.join(DIR_FORMATS, 'cellml-1-import.cellml'))
 
     def test_reaction(self):
         # Reaction elements should raise an error
         i = formats.importer('cellml')
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError, '<reaction>',
+            CellMLImporterError, 'Reactions are not supported',
             i.model, os.path.join(DIR_FORMATS, 'cellml-2-reaction.cellml'))
+
 
     def test_factorial(self):
         # Test if factorial, partialdiff, and sum elements trigger a warning.
 
         i = formats.importer('cellml')
-        i.model(os.path.join(
-            DIR_FORMATS, 'cellml-3-factorial-partialdiff-sum.cellml'))
-        w = '\n'.join(i.logger().warnings())
-        self.assertIn('<factorial>', w)
-        self.assertIn('<partialdiff>', w)
-        self.assertIn('<sum>', w)
+        self.assertRaisesRegex(
+            CellMLImporterError,
+            'Unsupported element in apply',
+            i.model,
+            os.path.join(
+                DIR_FORMATS, 'cellml-3-factorial-partialdiff-sum.cellml'),
+        )
 
     def test_unit_errors(self):
         # Test if warnings to do with units are raised.
 
         i = formats.importer('cellml')
-        m = i.model(os.path.join(
-            DIR_FORMATS, 'cellml-4-unit-errors.cellml'))
-        w = '\n'.join(i.logger().warnings())
-
-        # Some units that can't be parsed can be added as meta data
-        self.assertIsNone(m.get('Main.y').unit(), 'hi')
-        self.assertIn('cellml_unit', m.get('Main.y').meta)
+        self.assertRaisesRegex(
+            CellMLImporterError,
+            'Unable to resolve network of units in cellml:component',
+            i.model,
+            os.path.join(DIR_FORMATS, 'cellml-4-unit-errors-1.cellml')
+        )
 
         # Offset attribute is not supported
-        self.assertIn('"offset" attribute', w)
-
-        # Variable refers to a non-existing unit
-        self.assertIn('Unable to resolve unit', w)
-
-        # Unit refers to a non-existing unit
-        self.assertIn('Unknown base unit', w)
+        self.assertRaisesRegex(
+            CellMLImporterError,
+            'non-zero offsets',
+            i.model,
+            os.path.join(DIR_FORMATS, 'cellml-4-unit-errors-2.cellml')
+        )
 
         # Unknown prefix
+        self.assertRaisesRegex(
+            CellMLImporterError,
+            'must be a string from the list of known prefixes',
+            i.model,
+            os.path.join(DIR_FORMATS, 'cellml-4-unit-errors-3.cellml')
+        )
+
         # Non-integer prefix
-        self.assertIn('Unknown prefix', w)
+        self.assertRaisesRegex(
+            CellMLImporterError,
+            'or an integer',
+            i.model,
+            os.path.join(DIR_FORMATS, 'cellml-4-unit-errors-4.cellml')
+        )
 
         # Non-integer exponent
-        self.assertIn('Non-integer exponent', w)
+        self.assertRaisesRegex(
+            CellMLImporterError,
+            'Non-integer unit exponents',
+            i.model,
+            os.path.join(DIR_FORMATS, 'cellml-4-unit-errors-5.cellml')
+        )
 
         # Non-number exponent
-        self.assertIn('Unable to parse exponent', w)
+        self.assertRaisesRegex(
+            CellMLImporterError,
+            'Unit exponent must be a real number',
+            i.model,
+            os.path.join(DIR_FORMATS, 'cellml-4-unit-errors-6.cellml')
+        )
+
 
     def test_group_errors(self):
         # Test if warnings related to groups are raised.
 
         i = formats.importer('cellml')
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
-            'Group registered for unknown component',
+            CellMLImporterError,
+            'component attribute must reference a component',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-5-group-errors-1.cellml'))
 
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
-            'Group registered for unknown component',
+            CellMLImporterError,
+            'component attribute must reference a component',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-5-group-errors-2.cellml'))
 
@@ -142,31 +166,19 @@ class CellMLImporterTest(unittest.TestCase):
         # Connection fo component that doesn't exist
         i = formats.importer('cellml')
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
-            'Connection found for unlisted component',
+            CellMLImporterError,
+            'component_1 attribute must refer to a component',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-6-connection-errors-1.cellml'))
 
         # Map variables for bad variable_1, bad variable_2, and resulting
         # unresolved references
-        i.model(
-            os.path.join(DIR_FORMATS, 'cellml-6-connection-errors-2.cellml'))
-        w = '\n'.join(i.logger().warnings())
-        self.assertIn('No interface found for variable <bikes>', w)
-        self.assertIn('No interface found for variable <cars>', w)
-        self.assertIn('Unresolved reference <i_x1>', w)
-        self.assertIn('Unresolved reference <i_s>', w)
-
-        # Bad public interface
-        self.assertIn('Unable to resolve connection', w)
-
-        # RHS with unknown variable
-        self.assertIn('Unable to resolve RHS', w)
-        # And resulting unkown RHS
-        self.assertIn('No expression for variable', w)
-
-        # Unit mismatch between connected variables
-        self.assertIn('Unit mismatch between', w)
+        self.assertRaisesRegex(
+            CellMLImporterError,
+            'Variable units attribute must reference a units element',
+            i.model,
+            os.path.join(DIR_FORMATS, 'cellml-6-connection-errors-2.cellml')
+        )
 
     def test_equation_errors(self):
         # Test warnings raised in equation handling.
@@ -175,35 +187,35 @@ class CellMLImporterTest(unittest.TestCase):
 
         # Two variables of integration
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
+            CellMLImporterError,
             'Found derivatives to two different variables',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-7-equation-errors-1.cellml'))
 
         # Only <apply> is allowed in <maths>
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
+            CellMLImporterError,
             'expecting <apply>',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-7-equation-errors-2.cellml'))
 
         # Only <apply> is allowed in <maths>
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
+            CellMLImporterError,
             'expecting <eq>',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-7-equation-errors-3.cellml'))
 
         # No DAEs
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
+            CellMLImporterError,
             'Differential algebraic',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-7-equation-errors-4.cellml'))
 
         # Equation for non-existent variable
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
+            CellMLImporterError,
             'Equation found for unknown variable',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-7-equation-errors-5.cellml'))
@@ -219,7 +231,7 @@ class CellMLImporterTest(unittest.TestCase):
         # Not a valid CellML identifier
         i = formats.importer('cellml')
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
+            CellMLImporterError,
             'identifier',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-8-invalid-names-1.cellml')
@@ -235,7 +247,7 @@ class CellMLImporterTest(unittest.TestCase):
         # Not a valid CellML identifier: unit name
         i = formats.importer('cellml')
         self.assertRaisesRegex(
-            myokit.formats.cellml.CellMLError,
+            CellMLImporterError,
             'identifier',
             i.model,
             os.path.join(DIR_FORMATS, 'cellml-8-invalid-names-3-unit.cellml')
