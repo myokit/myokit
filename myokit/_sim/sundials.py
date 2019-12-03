@@ -113,7 +113,7 @@ class Sundials(myokit.CModule):
                     version = version[:version.index('-')]
                 version = [int(x) for x in version.split('.')]
                 version = version[0] * 10000 + version[1] * 100 + version[2]
-            except Exception:
+            except Exception:   # pragma: no cover
                 log = logging.getLogger(__name__)
                 log.warning(
                     'Unable to parse sundials version: ' + str(version))
