@@ -487,9 +487,10 @@ class Model(AnnotatableElement):
 
                     # Add equation
                     if variable.is_free():
-                        # Add zero for the free variable
+                        # Add zero for the free variable, and bind to time
                         v.set_rhs(
                             myokit.Number(0, variable.units().myokit_unit()))
+                        v.set_binding('time')
                     else:
                         # Add RHS with Myokit references
                         rhs = variable.rhs_or_initial_value()
@@ -499,8 +500,6 @@ class Model(AnnotatableElement):
                             v.promote(variable.initial_value())
 
         # TODO
-        # - [ ] Bind free variable to time
-        # - [ ] Sort state variables in order of occurence?
         # - [ ] Unit conversion
         # - [ ] Meta data (about etc.)
         # - [ ] Oxmeta / RDF is annotations
@@ -1141,8 +1140,8 @@ class Variable(AnnotatableElement):
 
         # Check that other variables define one value (except the free
         # variable)
-        elif self._rhs is None and self._initial_value is None:
-            if not self._is_free:
-                raise CellMLError(str(self) + ' must have an initial value or'
-                                  ' a defining equation.')
+        # elif self._rhs is None and self._initial_value is None:
+        #    if not self._is_free:
+        #        raise CellMLError(str(self) + ' must have an initial value or'
+        #                          ' a defining equation.')
 

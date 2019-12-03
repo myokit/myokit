@@ -73,9 +73,12 @@ class CellMLImporter(myokit.formats.Importer):
             from myokit.formats.cellml import parser_1
             p = parser_1.CellMLParser()
             try:
-                return p.parse(root)
+                cellml_model = p.parse(root)
             except parser_1.CellMLParsingError as e:
                 raise CellMLImporterError(str(e))
+
+            # Create and return Myokit model
+            return cellml_model.myokit_model()
 
         raise CellMLImporterError(
             'Unknown CellML version or not a CellML document at ' + str(path)

@@ -832,6 +832,16 @@ class CellMLParser(object):
             if cmeta_id:
                 variable.set_cmeta_id(cmeta_id)
 
+            # Check allowed content
+            attr = [
+                'initial_value',
+                'name',
+                'public_interface',
+                'private_interface',
+                'units',
+            ]
+            self._check_allowed_content(element, [], attr, name)
+
             # Set initial value
             variable.set_initial_value(
                 element.attrib.get('initial_value', None))
