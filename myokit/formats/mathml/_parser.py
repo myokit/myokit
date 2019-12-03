@@ -8,6 +8,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
+from myokit.mxml import split
 
 
 def parse_mathml_string(s):
@@ -246,7 +247,7 @@ class MathMLParser(object):
         if len(ops) != nargs:
             raise MathMLError(
                 'Expecting ' + str(nargs) + ' operands, got ' + str(len(ops))
-                + ' for ' + self._split(element)[1] + '.', element)
+                + ' for ' + split(element.tag)[1] + '.', element)
 
         return ops
 
@@ -270,7 +271,7 @@ class MathMLParser(object):
         # Find a specific element
         try:
             el = next(iterator)
-            while self._split(el)[1] != tag:
+            while split(el.tag)[1] != tag:
                 el = next(iterator)
             return el
         except StopIteration:
@@ -297,7 +298,7 @@ class MathMLParser(object):
         """
 
         # Get element type, decide what to do
-        _, name = self._split(element)
+        _, name = split(element.tag)
 
         # Brackets
         if name == 'apply':
@@ -346,7 +347,7 @@ class MathMLParser(object):
         element = self._next(iterator)
 
         # Decide what to do based on first child
-        _, name = self._split(element)
+        _, name = split(element.tag)
 
         # Handle derivative
         if name == 'diff':
@@ -637,7 +638,7 @@ class MathMLParser(object):
         if len(ops) != nargs:
             raise MathMLError(
                 'Expecting ' + str(nargs) + ' operands, got ' + str(len(ops))
-                + ' for ' + self._split(element)[1] + '.', element)
+                + ' for ' + split(element.tag)[1] + '.', element)
 
         return function(*ops)
 
@@ -662,7 +663,7 @@ class MathMLParser(object):
                 'Expecting operand after <log> element.', element)
 
         # Check if first op is logbase
-        if self._split(ops[0])[1] == 'logbase':
+        if split(ops[0].tag)[1] == 'logbase':
 
             # Get logbase
             base = ops[0]
@@ -798,7 +799,7 @@ class MathMLParser(object):
 
             # Check contents
             parts = [x for x in element]
-            if len(parts) != 1 or self._split(parts[0])[1] != 'sep':
+            if len(parts) != 1 or split(parts[0].tag)[1] != 'sep':
                 raise MathMLError(
                     'Number in e-notation should have the format'
                     ' number<sep />number.', element)
@@ -827,7 +828,7 @@ class MathMLParser(object):
             # 1<sep />3 = 1 / 3
             # Check contents
             parts = [x for x in element]
-            if len(parts) != 1 or self._split(parts[0])[1] != 'sep':
+            if len(parts) != 1 or split(parts[0].tag)[1] != 'sep':
                 raise MathMLError(
                     'Rational number should have the format'
                     ' number<sep />number.', element)
@@ -870,7 +871,7 @@ class MathMLParser(object):
 
         # Scan pieces
         for child in element:
-            _, el = self._split(child)
+            _, el = split(child.tag)
 
             if el == 'piece':
                 if len(child) != 2:
@@ -924,7 +925,7 @@ class MathMLParser(object):
                 'Expecting operand after <root> element.', element)
 
         # Check if first op is degree
-        if self._split(ops[0])[1] == 'degree':
+        if split(ops[0].tag)[1] == 'degree':
 
             # Get degree
             degree = ops[0]
@@ -968,14 +969,4 @@ class MathMLParser(object):
             return self._vfac(element.text.strip(), element)
         except Exception as e:
             raise MathMLError('Unable to create Name: ' + str(e), element)
-
-    def _split(self, element):
-        """
-        Returns the ``element``'s namespace and tag name.
-        """
-        tag = str(element.tag)
-        if tag[:1] != '{':
-            return None, tag
-        i = tag.index('}')
-        return tag[1:i], tag[1 + i:]
 
