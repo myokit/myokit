@@ -74,6 +74,7 @@ before_install:
   # OS/X
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew update-reset;
+      brew upgrade python2;
       brew install sundials;
     fi;
 
