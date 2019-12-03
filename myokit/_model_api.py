@@ -3099,7 +3099,10 @@ class Model(ObjectWithMeta, VarProvider):
 
 class Component(VarOwner):
     """
-    A Component acts as a container of :class:`variables <Variable>`.
+    A model component, containing several :class:`variables <Variable>`.
+
+    Components should not be created directly, but only via
+    :meth:`Model.add_component()`.
 
     Variables can be accessed using the ``comp['var_name']`` syntax or through
     the iterator methods.
@@ -3292,7 +3295,10 @@ class Component(VarOwner):
 
 class Variable(VarOwner):
     """
-    Represents a variable.
+    Represents a model variable.
+
+    Variables should not be created directly, but only via
+    :meth:`Component.add_variable()` or :meth:`Variable.add_variable()`.
 
     Each variable has a single defining equation. For state variables, this
     equation has a derivative on the left-hand side (lhs), for all other
