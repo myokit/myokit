@@ -971,6 +971,16 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m.count_components(), 4)
         m.get('remaining_2')
 
+    def test_sequence_interface(self):
+        # Test the sequence interface implementation
+        model = myokit.load_model('example')
+
+        cs = [c for c in model]
+        self.assertEqual(cs, list(model.components()))
+        self.assertEqual(len(cs), len(model))
+        c = model['membrane']
+        self.assertEqual(c.name(), 'membrane')
+
     def test_show_evaluation_of(self):
         # Test :meth:`Model.show_evaluation_of(variable)`.
         # Depends mostly on `references()`, and `code()` methods.
