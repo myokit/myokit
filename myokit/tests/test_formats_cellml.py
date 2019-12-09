@@ -62,7 +62,15 @@ class CellMLImporterTest(unittest.TestCase):
         m = i.model(os.path.join(DIR_FORMATS, 'corrias.cellml'))
         m.validate()
 
+    def test_not_a_model(self):
+        # Test loading something other than a CellML file
+        i = formats.importer('cellml')
+        self.assertRaisesRegex(
+            CellMLImporterError, 'not a CellML document',
+            i.model, os.path.join(DIR_FORMATS, 'HodgkinHuxley.xml'))
+
     def test_info(self):
+        # Test if the reporter implements info()
         i = formats.importer('cellml')
         self.assertIsInstance(i.info(), basestring)
 

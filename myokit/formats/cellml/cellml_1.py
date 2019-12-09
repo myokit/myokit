@@ -62,29 +62,26 @@ class AnnotatableElement(object):
         """
         Sets this element's cmeta id (must be a non-empty string or ``None``).
         """
-        # Check if already set
+        # Check if already set, ignore setting twice
         if self._cmeta_id is not None:
             # Ignore setting the same id again
             if cmeta_id == self._cmeta_id:
                 return
 
-            # Unregister if changing
-            self._model._unregister_cmeta_id(self._cmeta_id)
-
-        # Set new cmeta id
+        # Set new cmeta id, unregister old one
         if cmeta_id is None:
+            if self._cmeta_id is not None:
+                self._model._unregister_cmeta_id(self._cmeta_id)
             self._cmeta_id = None
         else:
-            # Check well-formedness
-            cmeta_id = str(cmeta_id)
-            if not cmeta_id:
-                raise CellMLError(
-                    'A cmeta:id must be a non-empty string (if set).')
-
-            # Register and check uniqueness
+            # Register and check uniqueness etc.
             self._model._register_cmeta_id(cmeta_id, self)
 
-            # Store
+            # Unregister old (do _after_ register has checked new cmeta id)
+            if self._cmeta_id is not None:
+                self._model._unregister_cmeta_id(self._cmeta_id)
+
+            # Store new
             self._cmeta_id = cmeta_id
 
 
@@ -93,8 +90,6 @@ class CellMLError(myokit.MyokitError):
     Raised when an invalid CellML model is created or detected, or when a model
     uses CellML features that Myokit does not support.
     """
-# TODO: Catch these when parsing, and then rethrow but with line and char
-# number where possible.
 
 
 class Component(AnnotatableElement):
@@ -116,7 +111,7 @@ class Component(AnnotatableElement):
 
         # This component's encapsulation relationships
         self._parent = None
-        self._children = set()
+        # self._children = set()    Currently unused
 
         # This component's variables
         self._variables= collections.OrderedDict()
@@ -226,11 +221,11 @@ class Component(AnnotatableElement):
                 raise ValueError('Parent must be from the same model.')
 
         # Store relationship
-        if self._parent is not None:
-            self._parent._children.remove(self)
+        # if self._parent is not None:
+        #    self._parent._children.remove(self)
         self._parent = parent
-        if parent is not None:
-            parent._children.add(self)
+        # if parent is not None:
+        #    parent._children.add(self)
 
     def __str__(self):
         return 'Component[@name="' + self._name + '"]'
@@ -290,7 +285,7 @@ class Model(AnnotatableElement):
     """
     #TODO: Update list above about base units: Might support them but convert
     # to dimensionless for Myokit??
-    def __init__(self, name, version):
+    def __init__(self, name, version='1.0'):
         super(Model, self).__init__(self)
 
         # Check and store name
@@ -301,7 +296,8 @@ class Model(AnnotatableElement):
 
         # Check and store version
         if version not in ('1.0', '1.1'):
-            raise ValueError('Only 1.0 and 1.1 models are supported.')
+            raise ValueError(
+                'Only 1.0 and 1.1 models are supported by this API.')
 
         # This model's components
         self._components = collections.OrderedDict()
@@ -347,14 +343,14 @@ class Model(AnnotatableElement):
         """
         # Check both are variables, and from this model
         if not isinstance(variable_1, Variable):
-            raise ValueError('Argument variable_1 must be a cellml.Variable')
+            raise ValueError('Argument variable_1 must be a cellml.Variable.')
         if not isinstance(variable_2, Variable):
-            raise ValueError('Argument variable_2 must be a cellml.Variable')
+            raise ValueError('Argument variable_2 must be a cellml.Variable.')
         if variable_1._model is not self:
             raise ValueError('Argument variable_1 must be a cellml.Variable'
                              ' from this model.')
         if variable_2._model is not self:
-            raise ValueError('Argument variable_1 must be a cellml.Variable'
+            raise ValueError('Argument variable_2 must be a cellml.Variable'
                              ' from this model.')
 
         # Check variables are distinct
@@ -425,6 +421,13 @@ class Model(AnnotatableElement):
         Returns the :class:`Component` with the given ``name``.
         """
         return self._components[name]
+
+    def element_with_cmeta_id(self, cmeta_id):
+        """
+        Returns the model, component, or variable with the given ``cmeta_id``
+        or raises a KeyError if no such element is found.
+        """
+        return self._cmeta_ids[cmeta_id]
 
     def find_units(self, name):
         """
@@ -530,10 +533,7 @@ class Model(AnnotatableElement):
 
         """
         # Check
-        try:
-            cmeta_id = str(cmeta_id)
-        except ValueError:
-            raise CellMLError('A cmeta:id must be a string.')
+        cmeta_id = str(cmeta_id).strip()
         if not cmeta_id:
             raise CellMLError('A cmeta:id must be a non-empty string.')
         if cmeta_id in self._cmeta_ids:
@@ -548,7 +548,7 @@ class Model(AnnotatableElement):
         Tells this model which variable to regard as the free variable (with
         respect to which derivatives are taken).
         """
-        if variable._model is not self:
+        if variable is not None and variable._model is not self:
             raise ValueError('Given variable must be from this model.')
 
         # Unset previous
@@ -557,7 +557,8 @@ class Model(AnnotatableElement):
 
         # Set new
         self._free_variable = variable
-        variable._is_free = True
+        if variable is not None:
+            variable._is_free = True
 
     def __str__(self):
         return 'Model[@name="' + self._name + '"]'
@@ -587,14 +588,33 @@ class Model(AnnotatableElement):
         # Check at most one variable doesn't have a source (one free variable
         # is allowed)
         free = set()
-        for c in self._components.values():
-            for v in c._variables.values():
-                if v.source() is None:
-                    free.add(v)
+        states = set()
+        for c in self:
+            for v in c:
+                if v.source() is v:
+                    if v.rhs() is None and v.initial_value() is None:
+                        free.add(v)
+                if v.is_state():
+                    states.add(v)
         if len(free) > 1:
             raise CellMLError(
-                'More than one free variable detected: ' +
+                'More than one variable does not have a value: ' +
                 ', '.join([str(v) for v in free]) + '.')
+        elif self._free_variable is not None and len(free) == 1:
+            free = free.pop()
+            if self._free_variable is not free:
+                raise CellMLError(
+                    'No value is defined for the variable "'
+                    + free.name() + '", but "' + self._free_variable.name()
+                    + '" is listed as the free variable.')
+
+
+        # If derivatives are used, check that a time variable is defined
+        if states:
+            if self._free_variable is None:
+                raise CellMLError(
+                    'If state variables are used, a free variable must be set'
+                    ' with Model.set_free_variable().')
 
     def version(self):
         """
@@ -647,7 +667,9 @@ class Units(object):
         if obj is None:
             myokit_unit = cls._si_units.get(name, None)
             if myokit_unit is None:
-                raise KeyError('Unknown predefined unit "' + str(name) + '".')
+                # Raise error that makes sense even if this was called via a
+                # model or component units lookup.
+                raise CellMLError('Unknown units name "' + str(name) + '".')
             obj = cls(name, myokit_unit, predefined=True)
             cls._si_unit_objects[name] = obj
         return obj
@@ -927,7 +949,7 @@ class Variable(AnnotatableElement):
         # Check and store units
         try:
             self._units = component.find_units(units)
-        except KeyError:
+        except CellMLError:
             raise CellMLError(
                 'Variable units attribute must reference a units element in'
                 ' the current component or model, or one of the predefined'
@@ -995,6 +1017,12 @@ class Variable(AnnotatableElement):
         """
         return self._is_state
 
+    def model(self):
+        """
+        Return this variable's model.
+        """
+        return self._model
+
     def name(self):
         """
         Returns this variable's name.
@@ -1027,7 +1055,7 @@ class Variable(AnnotatableElement):
         """
         if self._is_state:
             return self._rhs
-        if self._rhs is None:
+        if self._rhs is None and self._initial_value is not None:
             return myokit.Number(
                 self._initial_value, self._units.myokit_unit())
         return self._rhs
@@ -1043,7 +1071,7 @@ class Variable(AnnotatableElement):
 
         # Check interface
         if self._public_interface == 'in' or self._private_interface == 'in':
-            i = 'public' if public_interface == 'in' else 'private'
+            i = 'public' if self._public_interface == 'in' else 'private'
             raise CellMLError(
                 'An initial value cannot be set for ' + str(self) + ', which'
                 ' has ' + i + '_interface="in" (3.4.3.8).')
@@ -1062,7 +1090,7 @@ class Variable(AnnotatableElement):
         """
         # Check interface
         if self._public_interface == 'in' or self._private_interface == 'in':
-            i = 'public' if public_interface == 'in' else 'private'
+            i = 'public' if self._public_interface == 'in' else 'private'
             raise CellMLError(
                 'State variables can not have an "in" interface.')
 
@@ -1078,7 +1106,7 @@ class Variable(AnnotatableElement):
         """
         # Check interface
         if self._public_interface == 'in' or self._private_interface == 'in':
-            i = 'public' if public_interface == 'in' else 'private'
+            i = 'public' if self._public_interface == 'in' else 'private'
             raise CellMLError(
                 'An equation cannot be set for ' + str(self) + ', which has '
                 + i + '_interface="in" (4.4.4).')
@@ -1103,6 +1131,7 @@ class Variable(AnnotatableElement):
         var = self
         while var._source is not None:
             var = var._source
+            assert var is not self
         return var
 
     def __str__(self):
@@ -1123,7 +1152,7 @@ class Variable(AnnotatableElement):
         # Check that variables with an in interface are connected
         if self._public_interface == 'in' or self._private_interface == 'in':
             i = 'public' if self._public_interface == 'in' else 'private'
-            if self.source() is None:
+            if self._source is None:
                 raise CellMLError(
                     str(self) + ' has ' + i + '_interface="in", but is not'
                     ' connected to a variable with an appropriate "out"'

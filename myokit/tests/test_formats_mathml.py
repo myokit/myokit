@@ -13,7 +13,6 @@ import xml.etree.ElementTree as etree
 
 import myokit
 import myokit.formats.mathml as mathml
-from myokit.mxml import dom_child
 
 # Unit testing in Python 2 and 3
 try:
@@ -640,8 +639,10 @@ class ContentMathMLTest(unittest.TestCase):
         # Real with base
         x = read('<cn type="real" base="10">4</cn>')
         self.assertEqual(x, myokit.Number(4))
-        self.assertRaises(mathml.MathMLError, read, '<cn type="real" base="9">4</cn>')
-        self.assertRaises(mathml.MathMLError, read, '<cn type="real" base="x">4</cn>')
+        self.assertRaises(
+            mathml.MathMLError, read, '<cn type="real" base="9">4</cn>')
+        self.assertRaises(
+            mathml.MathMLError, read, '<cn type="real" base="x">4</cn>')
 
         # Integer
         x = read('<cn type="integer">4</cn>')
@@ -664,7 +665,8 @@ class ContentMathMLTest(unittest.TestCase):
 
         # Unknown type
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Unsupported <cn> type', read, '<cn type="special">1</cn>')
+            mathml.MathMLError, 'Unsupported <cn> type',
+            read, '<cn type="special">1</cn>')
 
 
 class PresentationMathMLTest(unittest.TestCase):
