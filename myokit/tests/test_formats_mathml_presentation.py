@@ -9,7 +9,6 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import unittest
-import xml.etree.ElementTree as etree
 
 import myokit
 import myokit.formats.mathml as mathml
@@ -82,14 +81,16 @@ class PresentationMathMLTest(unittest.TestCase):
         # Sqrt
         x = myokit.Sqrt(b)
         self.assertEqual(
-            self.w.ex(x), '<mrow><mi>root</mi><mfenced>' + cb + '</mfenced></mrow>')
+            self.w.ex(x),
+            '<mrow><mi>root</mi><mfenced>' + cb + '</mfenced></mrow>')
         # Exp
         x = myokit.Exp(a)
         self.assertEqual(self.w.ex(x), '<msup><mi>e</mi>' + ca + '</msup>')
         # Log(a)
         x = myokit.Log(b)
         self.assertEqual(
-            self.w.ex(x), '<mrow><mi>ln</mi><mfenced>' + cb + '</mfenced></mrow>')
+            self.w.ex(x),
+            '<mrow><mi>ln</mi><mfenced>' + cb + '</mfenced></mrow>')
         # Log(a, b)
         x = myokit.Log(a, b)
         self.assertEqual(
@@ -100,20 +101,24 @@ class PresentationMathMLTest(unittest.TestCase):
         # Log10
         x = myokit.Log10(b)
         self.assertEqual(
-            self.w.ex(x), '<mrow><mi>log</mi><mfenced>' + cb + '</mfenced></mrow>')
+            self.w.ex(x),
+            '<mrow><mi>log</mi><mfenced>' + cb + '</mfenced></mrow>')
 
         # Sin
         x = myokit.Sin(b)
         self.assertEqual(
-            self.w.ex(x), '<mrow><mi>sin</mi><mfenced>' + cb + '</mfenced></mrow>')
+            self.w.ex(x),
+            '<mrow><mi>sin</mi><mfenced>' + cb + '</mfenced></mrow>')
         # Cos
         x = myokit.Cos(b)
         self.assertEqual(
-            self.w.ex(x), '<mrow><mi>cos</mi><mfenced>' + cb + '</mfenced></mrow>')
+            self.w.ex(x),
+            '<mrow><mi>cos</mi><mfenced>' + cb + '</mfenced></mrow>')
         # Tan
         x = myokit.Tan(b)
         self.assertEqual(
-            self.w.ex(x), '<mrow><mi>tan</mi><mfenced>' + cb + '</mfenced></mrow>')
+            self.w.ex(x),
+            '<mrow><mi>tan</mi><mfenced>' + cb + '</mfenced></mrow>')
         # ASin
         x = myokit.ASin(b)
         self.assertEqual(
@@ -143,7 +148,8 @@ class PresentationMathMLTest(unittest.TestCase):
         # Abs
         x = myokit.Abs(b)
         self.assertEqual(
-            self.w.ex(x), '<mrow><mi>abs</mi><mfenced>' + cb + '</mfenced></mrow>')
+            self.w.ex(x),
+            '<mrow><mi>abs</mi><mfenced>' + cb + '</mfenced></mrow>')
 
         # Quotient
         x = myokit.Quotient(a, b)
@@ -188,7 +194,8 @@ class PresentationMathMLTest(unittest.TestCase):
         c2 = '<mrow><mn>2.0</mn><mo>&lt;</mo><mn>1.0</mn></mrow>'
         x = myokit.Not(cond1)
         self.assertEqual(
-            self.w.ex(x), '<mrow><mo>(</mo><mo>not</mo>' + c1 + '<mo>)</mo></mrow>')
+            self.w.ex(x),
+            '<mrow><mo>(</mo><mo>not</mo>' + c1 + '<mo>)</mo></mrow>')
         # And
         x = myokit.And(cond1, cond2)
         self.assertEqual(

@@ -33,6 +33,13 @@ class ContentMathMLParserTest(unittest.TestCase):
             lambda x, y: myokit.Number(x),
         )
 
+    def test_apply(self):
+        # Test <apply> element parsing
+
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Apply must contain at least one child',
+            self.p, '<apply />')
+
     def test_arithmetic_binary(self):
         # Tests parsing prefix operators
 
@@ -153,6 +160,37 @@ class ContentMathMLParserTest(unittest.TestCase):
         self.assertEqual(pieces[1], myokit.Number(1))
         self.assertEqual(pieces[2], myokit.Number(0))
 
+        # Too much stuff in a piece
+        x = (
+            '<piecewise>'
+            '  <piece>'
+            '    <cn>1</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
+            '    <cn>2</cn>'
+            '  </piece>'
+            '  <otherwise>'
+            '    <cn>3</cn>'
+            '  </otherwise>'
+            '</piecewise>'
+        )
+        self.assertRaisesRegex(
+            mathml.MathMLError, '<piece> element must have exactly 2 children',
+            self.p, x)
+
+        # Too much stuff in an otherwise
+        x = (
+            '<piecewise>'
+            '  <piece>'
+            '    <cn>1</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
+            '  </piece>'
+            '  <otherwise>'
+            '    <cn>3</cn><ci>x</ci>'
+            '  </otherwise>'
+            '</piecewise>'
+        )
+        self.assertRaisesRegex(
+            mathml.MathMLError, '<otherwise> element must have exactly 1',
+            self.p, x)
+
         # Unexpected tag in piecwise
         x = (
             '<piecewise>'
@@ -232,6 +270,20 @@ class ContentMathMLParserTest(unittest.TestCase):
             '</apply>'
         )
 
+        # Derivative with degree element but no cn
+        self.assertRaisesRegex(
+            mathml.MathMLError, '<degree> element must contain a <cn>',
+            self.p,
+            '<apply>'
+            '  <diff/>'
+            '  <bvar>'
+            '    <ci>time</ci>'
+            '    <degree />'
+            '  </bvar>'
+            '  <ci>V</ci>'
+            '</apply>'
+        )
+
         # Derivative of an expression
         self.assertRaisesRegex(
             mathml.MathMLError, '<diff> element must contain a <ci>', self.p,
@@ -241,6 +293,25 @@ class ContentMathMLParserTest(unittest.TestCase):
             '    <ci>time</ci>'
             '  </bvar>'
             '  <apply><plus /><cn>1.0</cn><ci>V</ci></apply>'
+            '</apply>'
+        )
+
+        # Derivative without a bvar
+        self.assertRaisesRegex(
+            mathml.MathMLError, '<diff> element must contain a <bvar>', self.p,
+            '<apply>'
+            '  <diff/>'
+            '  <ci>x</ci>'
+            '</apply>'
+        )
+
+        # Derivative without ci in its bvar
+        self.assertRaisesRegex(
+            mathml.MathMLError, '<bvar> element must contain a <ci>', self.p,
+            '<apply>'
+            '  <diff/>'
+            '  <bvar />'
+            '  <ci>x</ci>'
             '</apply>'
         )
 
@@ -271,21 +342,6 @@ class ContentMathMLParserTest(unittest.TestCase):
         self.assertRaisesRegex(
             mathml.MathMLError, 'Expecting 1 operand\(s\)', self.p, x)
 
-        # Log(a)
-        e = myokit.Log(b)
-        x = '<apply><ln /><cn>1.0</cn></apply>'
-        self.assertEqual(self.p(x), e)
-
-        # Log(a, b)
-        e = myokit.Log(a, b)
-        x = '<apply><log /><logbase><cn>1.0</cn></logbase><ci>a</ci></apply>'
-        self.assertEqual(self.p(x), e)
-
-        # Log10
-        e = myokit.Log10(b)
-        x = '<apply><log /><cn>1.0</cn></apply>'
-        self.assertEqual(self.p(x), e)
-
         # Floor
         e = myokit.Floor(b)
         x = '<apply><floor /><cn>1.0</cn></apply>'
@@ -311,7 +367,49 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = '<apply><rem /><ci>a</ci><cn>1.0</cn></apply>'
         self.assertEqual(self.p(x), e)
 
-    def test_functions_sqrt(self):
+    def test_functions_log(self):
+        # Tests parsing logs
+
+        # Log(a)
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        e = myokit.Log(b)
+        x = '<apply><ln /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Log(a, b)
+        e = myokit.Log(a, b)
+        x = '<apply><log /><logbase><cn>1.0</cn></logbase><ci>a</ci></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Log10
+        e = myokit.Log10(b)
+        x = '<apply><log /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Empty log
+        x = '<apply><log /></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting operand after <log>', self.p, x)
+
+        # Empty logbase
+        x = '<apply><log /><logbase /><ci>a</ci></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting a single', self.p, x)
+
+        # Crowded logbase
+        x = ('<apply>'
+             '<log /><logbase><cn>1</cn><cn>2</cn></logbase><ci>a</ci>'
+             '</apply>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting a single', self.p, x)
+
+        # Too many operands
+        x = '<apply><log /><cn>3</cn><ci>a</ci></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting a single', self.p, x)
+
+    def test_functions_root(self):
         # Tests parsing roots
 
         # Square root
@@ -352,8 +450,6 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = '<apply><root /><cn>1</cn><degree><cn>2</cn></degree></apply>'
         self.assertRaisesRegex(
             mathml.MathMLError, 'Expecting a single operand', self.p, x)
-
-
 
     def test_inequalities(self):
         # Test parsing (in)equalities
@@ -433,32 +529,84 @@ class ContentMathMLParserTest(unittest.TestCase):
         self.assertEqual(x, myokit.Number(4))
         x = self.p('<cn type="real">4</cn>')
         self.assertEqual(x, myokit.Number(4))
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn>barry</cn>')
+
         # Real with base
         x = self.p('<cn type="real" base="10">4</cn>')
         self.assertEqual(x, myokit.Number(4))
-        self.assertRaises(
-            mathml.MathMLError, self.p, '<cn type="real" base="9">4</cn>')
-        self.assertRaises(
-            mathml.MathMLError, self.p, '<cn type="real" base="x">4</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'bases other than 10',
+            self.p, '<cn type="real" base="9">4</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Invalid base',
+            self.p, '<cn type="real" base="x">4</cn>')
 
         # Integer
         x = self.p('<cn type="integer">4</cn>')
         self.assertEqual(x, myokit.Number(4))
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn type="integer">barry</cn>')
 
+        # Integer with base
         x = self.p('<cn type="integer" base="2">100</cn>')
         self.assertEqual(x, myokit.Number(4))
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to parse base',
+            self.p, '<cn type="integer" base="barry">7</cn>')
 
         # Double
         x = self.p('<cn type="double">4</cn>')
         self.assertEqual(x, myokit.Number(4))
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to convert contents of <cn>',
+            self.p, '<cn type="double">larry</cn>')
 
         # E-notation
         x = self.p('<cn type="e-notation">40<sep />-1</cn>')
         self.assertEqual(x, myokit.Number(4))
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'e-notation should have the format',
+            self.p, '<cn type="e-notation">12</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'missing part before the separator',
+            self.p, '<cn type="e-notation"> <sep />2</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'missing part before the separator',
+            self.p, '<cn type="e-notation"><sep />2</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'missing part after the separator',
+            self.p, '<cn type="e-notation">2<sep /> </cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'missing part after the separator',
+            self.p, '<cn type="e-notation">2<sep /></cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to parse number in e-notation',
+            self.p, '<cn type="e-notation">larry<sep />2</cn>')
 
         # Rational
         x = self.p('<cn type="rational">16<sep />4</cn>')
         self.assertEqual(x, myokit.Number(4))
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Rational number should have the format',
+            self.p, '<cn type="rational">12</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'missing part before the separator',
+            self.p, '<cn type="rational"> <sep />2</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'missing part before the separator',
+            self.p, '<cn type="rational"><sep />2</cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'missing part after the separator',
+            self.p, '<cn type="rational">1<sep /></cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'missing part after the separator',
+            self.p, '<cn type="rational">1<sep /> </cn>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to parse rational number',
+            self.p, '<cn type="rational">larry<sep />2</cn>')
 
         # Unknown type
         self.assertRaisesRegex(
@@ -594,26 +742,14 @@ class ContentMathMLParserTest(unittest.TestCase):
     def test_unsupported(self):
         # Test parsing unsupported elements
 
+        # Unsupported atomic
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unsupported element', self.p, '<apple />')
+
+        # Unsupported in apply
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unsupported element', self.p,
             '<apply><yum /><ci>3</ci></apply>')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class ContentMathMLWriterTest(unittest.TestCase):

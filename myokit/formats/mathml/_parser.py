@@ -619,31 +619,6 @@ class MathMLParser(object):
 
         return myokit.Derivative(var)
 
-    def _parse_function(self, element, iterator, function, nargs=1):
-        """
-        Parses a function.
-
-        ``element``
-            The element that determined the operator type.
-        ``iterator``
-            An iterator pointing at the first element after ``element``.
-        ``function``
-            The :class:`myokit.Expression` class to create an instance of.
-        ``nargs``
-            The allowed number of arguments.
-
-        """
-        # Get all operands
-        ops = [self._parse_atomic(x) for x in iterator]
-
-        # Check number of operands
-        if len(ops) != nargs:
-            raise MathMLError(
-                'Expecting ' + str(nargs) + ' operands, got ' + str(len(ops))
-                + ' for ' + split(element.tag)[1] + '.', element)
-
-        return function(*ops)
-
     def _parse_log(self, element, iterator):
         """
         Parses the elements following a ``<log>`` element.
@@ -809,11 +784,11 @@ class MathMLParser(object):
             # Get parts of number
             sig = element.text
             exp = parts[0].tail
-            if not sig or not exp:
+            if sig is None or not sig.strip():
                 raise MathMLError(
                     'Unable to parse number in e-notation: missing part before'
                     ' the separator.', element)
-            if exp is None:
+            if exp is None or not exp.strip():
                 raise MathMLError(
                     'Unable to parse number in e-notation: missing part after'
                     ' the separator.', element)
@@ -838,11 +813,11 @@ class MathMLParser(object):
             # Get parts of number
             numer = element.text
             denom = parts[0].tail
-            if numer is None:
+            if numer is None or not numer.strip():
                 raise MathMLError(
                     'Unable to parse rational number: missing part before the'
                     ' separator.', element)
-            if denom is None:
+            if denom is None or not denom.strip():
                 raise MathMLError(
                     'Unable to parse rational number: missing part after the'
                     ' separator.', element)
