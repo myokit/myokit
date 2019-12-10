@@ -59,13 +59,10 @@ class CellMLImporterTest(unittest.TestCase):
         m.validate()
 
     def test_model_errors(self):
-        # Files with errors raise CellMLImporterErrors
-
-        #TODO
-        #TODO
-        #TODO
-        #TODO
-        pass
+        # Files with errors raise CellMLImporterErrors (not parser errors)
+        i = formats.importer('cellml')
+        m = os.path.join(DIR, 'invalid', 'cmeta_id_empty.cellml')
+        self.assertRaises(CellMLImporterError, i.model, m)
 
     def test_model_nesting(self):
         # The corrias model has multiple levels of nesting (encapsulation)
