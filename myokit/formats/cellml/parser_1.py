@@ -32,7 +32,15 @@ def parse(path):
 
     Raises a :class:`CellMLParsingError` if anything goes wrong.
     """
-    return CellMLParser_1().parse(path)
+    # Read XML file
+    if _lxml:   # noqa
+        parser = etree.XMLParser(remove_comments=True)
+        tree = etree.parse(path, parser=parser)
+    else:
+        tree = etree.parse(path)
+
+    # Parse contents and return
+    return CellMLParser().parse(tree.getroot())
 
 
 class CellMLParsingError(myokit.ImportError):

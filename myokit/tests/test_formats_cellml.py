@@ -19,6 +19,9 @@ from myokit.formats.cellml import CellMLImporterError
 
 from shared import TemporaryDirectory, DIR_FORMATS
 
+# CellML dir
+DIR = os.path.join(DIR_FORMATS, 'cellml')
+
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
@@ -52,7 +55,7 @@ class CellMLImporterTest(unittest.TestCase):
     def test_model_dot(self):
         # This is beeler-reuter but with a dot() in an expression
         i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR_FORMATS, 'br-1977-dot.cellml'))
+        m = i.model(os.path.join(DIR, 'br-1977-dot.cellml'))
         m.validate()
 
     def test_model_errors(self):
@@ -67,13 +70,13 @@ class CellMLImporterTest(unittest.TestCase):
     def test_model_nesting(self):
         # The corrias model has multiple levels of nesting (encapsulation)
         i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR_FORMATS, 'corrias.cellml'))
+        m = i.model(os.path.join(DIR, 'corrias.cellml'))
         m.validate()
 
     def test_model_simple(self):
         # Beeler-Reuter is a simple model
         i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR_FORMATS, 'br-1977.cellml'))
+        m = i.model(os.path.join(DIR, 'br-1977.cellml'))
         m.validate()
 
     def test_not_a_model(self):
@@ -83,7 +86,7 @@ class CellMLImporterTest(unittest.TestCase):
         i = formats.importer('cellml')
         self.assertRaisesRegex(
             CellMLImporterError, 'not a CellML document',
-            i.model, os.path.join(DIR_FORMATS, 'HodgkinHuxley.xml'))
+            i.model, os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
 
         # Not an XML file
         self.assertRaisesRegex(

@@ -298,6 +298,7 @@ class Model(AnnotatableElement):
         if version not in ('1.0', '1.1'):
             raise ValueError(
                 'Only 1.0 and 1.1 models are supported by this API.')
+        self._version = version
 
         # This model's components
         self._components = collections.OrderedDict()
@@ -719,19 +720,9 @@ class Units(object):
         """
         # Find units object to start from
         if context is None:
-            try:
-                unit = cls.find_units(units)
-            except KeyError:
-                raise CellMLError(
-                    'Unknown predefined units name "' + str(units)
-                    + '" (5.4.2.2).')
+            unit = cls.find_units(units)
         else:
-            try:
-                unit = context.find_units(units)
-            except KeyError:
-                raise CellMLError(
-                    'Unknown units name "' + str(units) + '" within '
-                    + str(context) + ' (5.4.2.2).')
+            unit = context.find_units(units)
         unit = unit.myokit_unit()
 
         # Handle prefix

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the CellML 1.0 API and parser.
+# Tests the CellML 1.0 API.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -511,6 +511,12 @@ class TestCellMLModel(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'a free variable must be set', m.validate)
 
+    def test_version(self):
+        # TestsModel.version()
+
+        m = cellml.Model('mm', '1.1')
+        self.assertEqual(m.version(), '1.1')
+
 
 class TestCellMLVariable(unittest.TestCase):
     """ Tests for ``cellml.Variable``. """
@@ -794,6 +800,9 @@ class TestCellMLUnits(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'known prefixes or an integer',
             cellml.Units.parse_unit_row, 'meter', 14.8)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'too large',
+            cellml.Units.parse_unit_row, 'meter', 999)
 
         # Test exponent
         u = cellml.Units.parse_unit_row('meter', exponent=2)
