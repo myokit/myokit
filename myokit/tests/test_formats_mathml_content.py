@@ -409,6 +409,13 @@ class ContentMathMLParserTest(unittest.TestCase):
         self.assertRaisesRegex(
             mathml.MathMLError, 'Expecting a single', self.p, x)
 
+        # Too many operands after logbase
+        x = ('<apply>'
+             '<log /><logbase><cn>1</cn></logbase><cn>3</cn><ci>a</ci>'
+             '</apply>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting a single', self.p, x)
+
     def test_functions_root(self):
         # Tests parsing roots
 
@@ -450,6 +457,15 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = '<apply><root /><cn>1</cn><degree><cn>2</cn></degree></apply>'
         self.assertRaisesRegex(
             mathml.MathMLError, 'Expecting a single operand', self.p, x)
+
+        # Root with too many elements in degree
+        e = myokit.Sqrt(myokit.Number(3))
+        x = ('<apply>'
+             '<root /><degree><cn>2</cn><cn>3</cn></degree><cn>3</cn>'
+             '</apply>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting a single operand inside <degree>',
+            self.p, x)
 
     def test_inequalities(self):
         # Test parsing (in)equalities
@@ -520,6 +536,23 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Test name parsing
 
         self.assertEqual(self.p('<ci>var</ci>'), myokit.Name('var'))
+
+        # Empty ci
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'must contain a variable name',
+            self.p, '<ci />')
+
+        # Non-existent variable
+        d = {'a': myokit.Name('a')}
+        p = mathml.MathMLParser(
+            lambda x, y: d[x],
+            lambda x, y: myokit.Number(x),
+        )
+        x = etree.fromstring('<ci>a</ci>')
+        self.assertEqual(p.parse(x), myokit.Name('a'))
+        x = etree.fromstring('<ci>b</ci>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to create Name', p.parse, x)
 
     def test_number(self):
         # Test number parsing

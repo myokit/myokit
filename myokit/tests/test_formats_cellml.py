@@ -44,11 +44,10 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertTrue(i.supports_model())
         self.assertFalse(i.supports_protocol())
 
-    def test_model_simple(self):
-        # Beeler-Reuter is a simple model
+    def test_info(self):
+        # Test if the reporter implements info()
         i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR_FORMATS, 'br-1977.cellml'))
-        m.validate()
+        self.assertIsInstance(i.info(), basestring)
 
     def test_model_dot(self):
         # This is beeler-reuter but with a dot() in an expression
@@ -56,23 +55,40 @@ class CellMLImporterTest(unittest.TestCase):
         m = i.model(os.path.join(DIR_FORMATS, 'br-1977-dot.cellml'))
         m.validate()
 
+    def test_model_errors(self):
+        # Files with errors raise CellMLImporterErrors
+
+        #TODO
+        #TODO
+        #TODO
+        #TODO
+        pass
+
     def test_model_nesting(self):
         # The corrias model has multiple levels of nesting (encapsulation)
         i = formats.importer('cellml')
         m = i.model(os.path.join(DIR_FORMATS, 'corrias.cellml'))
         m.validate()
 
+    def test_model_simple(self):
+        # Beeler-Reuter is a simple model
+        i = formats.importer('cellml')
+        m = i.model(os.path.join(DIR_FORMATS, 'br-1977.cellml'))
+        m.validate()
+
     def test_not_a_model(self):
         # Test loading something other than a CellML file
+
+        # Different XML file
         i = formats.importer('cellml')
         self.assertRaisesRegex(
             CellMLImporterError, 'not a CellML document',
             i.model, os.path.join(DIR_FORMATS, 'HodgkinHuxley.xml'))
 
-    def test_info(self):
-        # Test if the reporter implements info()
-        i = formats.importer('cellml')
-        self.assertIsInstance(i.info(), basestring)
+        # Not an XML file
+        self.assertRaisesRegex(
+            CellMLImporterError, 'Unable to parse XML',
+            i.model, os.path.join(DIR_FORMATS, 'lr-1991.mmt'))
 
 
 class CellMLExpressionWriterTest(unittest.TestCase):
