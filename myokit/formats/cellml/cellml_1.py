@@ -488,15 +488,20 @@ class Model(AnnotatableElement):
                 if variable.is_local():
                     v = c[variable.name()]
 
+                    # At this point, the model has been validated so there can
+                    # only be one variable without an rhs or initial value, and
+                    # this is either known to be the free variable or assumed
+                    # to be (if not explicitly set by the user).
+
                     # Add equation
-                    if variable.is_free():
+                    rhs = variable.rhs_or_initial_value()
+                    if variable.is_free() or rhs is None:
                         # Add zero for the free variable, and bind to time
                         v.set_rhs(
                             myokit.Number(0, variable.units().myokit_unit()))
                         v.set_binding('time')
                     else:
                         # Add RHS with Myokit references
-                        rhs = variable.rhs_or_initial_value()
                         rhs = rhs.clone(subst=varmap)
                         v.set_rhs(rhs)
                         if variable.is_state():

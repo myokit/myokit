@@ -307,7 +307,6 @@ class CellMLExporterTest(unittest.TestCase):
 
             # Import model and check added stimulus works
             m2 = i.model(path)
-            m2.get('engine.time').set_binding('time')
             self.assertIn('stimulus', m2)
             self.assertEqual(m2.get('stimulus.ctime').eval(), 0)
             self.assertEqual(m2.get('stimulus.duration').eval(), 2)
@@ -327,7 +326,6 @@ class CellMLExporterTest(unittest.TestCase):
 
             # Import model and check added stimulus works
             m2 = i.model(path)
-            m2.get('engine.time').set_binding('time')
             self.assertIn('stimulus', m2)
             self.assertEqual(m2.get('stimulus.ctime').eval(), 0)
             self.assertEqual(m2.get('stimulus.duration').eval(), 0.002)
@@ -348,7 +346,6 @@ class CellMLExporterTest(unittest.TestCase):
 
             # Import model and check added stimulus works
             m2 = i.model(path)
-            m2.get('engine.time').set_binding('time')
             self.assertIn('stimulus', m2)
             self.assertEqual(m2.get('stimulus.ctime').eval(), 0)
             self.assertEqual(m2.get('stimulus.duration').eval(), 0.002)
@@ -371,7 +368,6 @@ class CellMLExporterTest(unittest.TestCase):
 
             # Import model and check added stimulus works
             m2 = i.model(path)
-            m2.get('engine.time').set_binding('time')
             self.assertIn('stimulus_3', m2)
             self.assertEqual(m2.get('stimulus_3.ctime').eval(), 0)
 

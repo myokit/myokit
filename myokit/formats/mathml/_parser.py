@@ -69,7 +69,7 @@ class MathMLError(myokit.ImportError):
     """
     def __init__(self, message, element=None):
         if element is not None:
-            try:
+            try:    # pragma: no cover
                 line = str(element.sourceline)
                 message = 'Error on line ' + line + '. ' + message
             except AttributeError:

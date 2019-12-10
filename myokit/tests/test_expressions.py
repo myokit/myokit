@@ -433,9 +433,6 @@ class NameTest(unittest.TestCase):
 
         self.assertEqual(x.code(), 'c.x')
 
-        # Test creating with over values that Variables
-        myokit.Name('this is ok')
-
         # Test rhs
         # Name of non-state: rhs() should be the associated variable's rhs
         self.assertEqual(x.rhs(), myokit.Number(15))
@@ -600,6 +597,17 @@ class NameTest(unittest.TestCase):
         # Test with spaces
         e = myokit.Plus(x, x)
         self.assertEqual(e.tree_str(), '+\n  y\n  y\n')
+
+    def test_values(self):
+        # Test with values other than Variables
+
+        # Special case: string
+        x = myokit.Name('this is ok')
+        self.assertEqual(x.code(), 'str:this is ok')
+
+        # All other values (this allows e.g. CellML expressions to be created)
+        x = myokit.Name(12.3)
+        self.assertEqual(x.code(), '12.3')
 
 
 class DerivativeTest(unittest.TestCase):
