@@ -44,7 +44,7 @@ def parse_mathml_etree(
         will be added to this set.
 
     """
-    p = MathMLEtreeParser(name_factory, number_factory, free_variables)
+    p = MathMLParser(name_factory, number_factory, free_variables)
     return p.parse(element)
 
 

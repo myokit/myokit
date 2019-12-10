@@ -21,362 +21,108 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
-def read(xml, var_table=None):
-    """ Parse a MathML string. """
+class ContentMathMLParserTest(unittest.TestCase):
+    """ Tests content MathML parsing. """
 
-    if var_table is None:
-        p = mathml.MathMLParser(
+    def p(self, xml):
+        """ Parses a MathML string and returns a myokit.Expression. """
+
+        return mathml.parse_mathml_etree(
+            etree.fromstring(xml),
             lambda x, y: myokit.Name(x),
             lambda x, y: myokit.Number(x),
         )
-    else:
-        p = mathml.MathMLParser(
-            lambda x, y: myokit.Name(var_table[x]),
-            lambda x, y: myokit.Number(x),
-        )
 
-    return p.parse(etree.fromstring(xml))
-
-
-class ContentMathMLTest(unittest.TestCase):
-    """ Test expression writing and parsing of content MathML. """
-
-    def test_content(self):
-        """ Test writing and reading of content MathML. """
-        model = myokit.Model()
-        component = model.add_component('c')
-        avar = component.add_variable('a')
-
-        w = mathml.MathMLExpressionWriter()
-        w.set_mode(presentation=False)
-
-        def r(ex):
-            return read(ex, {'c.a': avar})
-
-        # Name
-        a = myokit.Name(avar)
-        ca = '<ci>c.a</ci>'
-        self.assertEqual(w.ex(a), ca)
-        self.assertEqual(r(ca), a)
-
-        # Number without unit
-        b = myokit.Number(1)
-        cb = '<cn>1.0</cn>'
-        self.assertEqual(w.ex(b), cb)
-
-        # Number with unit
-        c = myokit.Number('12', 'pF')
-        cc = '<cn>12.0</cn>'
-        self.assertEqual(w.ex(c), cc)
-        # Unit isn't exported
-        #self.assertEqual(r(cc), c)
-
-        # Prefix plus
-        x = myokit.PrefixPlus(b)
-        cx = '<apply><plus />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Prefix minus
-        x = myokit.PrefixMinus(b)
-        cx = '<apply><minus />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
+    def test_arithmetic_binary(self):
+        # Tests parsing prefix operators
 
         # Plus
-        x = myokit.Plus(a, b)
-        cx = '<apply><plus />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
+        a = myokit.Name('a')
+        b = myokit.Number(1.0)
+        e = myokit.Plus(a, b)
+        x = '<apply><plus /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
         # Minus
-        x = myokit.Minus(a, b)
-        cx = '<apply><minus />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
+        e = myokit.Minus(a, b)
+        x = '<apply><minus /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
         # Multiply
-        x = myokit.Multiply(a, b)
-        cx = '<apply><times />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
+        e = myokit.Multiply(a, b)
+        x = '<apply><times /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
         # Divide
-        x = myokit.Divide(a, b)
-        cx = '<apply><divide />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Power
-        x = myokit.Power(a, b)
-        cx = '<apply><power />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Sqrt
-        x = myokit.Sqrt(b)
-        cx = '<apply><root />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Exp
-        x = myokit.Exp(a)
-        cx = '<apply><exp />' + ca + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Log(a)
-        x = myokit.Log(b)
-        cx = '<apply><ln />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Log(a, b)
-        x = myokit.Log(a, b)
-        cx = '<apply><log /><logbase>' + cb + '</logbase>' + ca + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Log10
-        x = myokit.Log10(b)
-        cx = '<apply><log />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Sin
-        x = myokit.Sin(b)
-        cx = '<apply><sin />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Cos
-        x = myokit.Cos(b)
-        cx = '<apply><cos />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Tan
-        x = myokit.Tan(b)
-        cx = '<apply><tan />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # ASin
-        x = myokit.ASin(b)
-        cx = '<apply><arcsin />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # ACos
-        x = myokit.ACos(b)
-        cx = '<apply><arccos />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # ATan
-        x = myokit.ATan(b)
-        cx = '<apply><arctan />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Floor
-        x = myokit.Floor(b)
-        cx = '<apply><floor />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Ceil
-        x = myokit.Ceil(b)
-        cx = '<apply><ceiling />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Abs
-        x = myokit.Abs(b)
-        cx = '<apply><abs />' + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Quotient
-        x = myokit.Quotient(a, b)
-        cx = '<apply><quotient />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Remainder
-        x = myokit.Remainder(a, b)
-        cx = '<apply><rem />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Equal
-        x = myokit.Equal(a, b)
-        cx = '<apply><eq />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # NotEqual
-        x = myokit.NotEqual(a, b)
-        cx = '<apply><neq />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # More
-        x = myokit.More(a, b)
-        cx = '<apply><gt />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Less
-        x = myokit.Less(a, b)
-        cx = '<apply><lt />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # MoreEqual
-        x = myokit.MoreEqual(a, b)
-        cx = '<apply><geq />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # LessEqual
-        x = myokit.LessEqual(a, b)
-        cx = '<apply><leq />' + ca + cb + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Not
-        cond1 = myokit.parse_expression('5 > 3')
-        cond2 = myokit.parse_expression('2 < 1')
-        c1 = '<apply><gt /><cn>5.0</cn><cn>3.0</cn></apply>'
-        c2 = '<apply><lt /><cn>2.0</cn><cn>1.0</cn></apply>'
-        x = myokit.Not(cond1)
-        cx = '<apply><not />' + c1 + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # And
-        x = myokit.And(cond1, cond2)
-        cx = '<apply><and />' + c1 + c2 + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # Or
-        x = myokit.Or(cond1, cond2)
-        cx = '<apply><or />' + c1 + c2 + '</apply>'
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-        # If
-        x = myokit.If(cond1, a, b)
-        cx = (
-            '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<otherwise>' + cb + '</otherwise>'
-            '</piecewise>'
-        )
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x.piecewise())
-
-        # Piecewise
-        x = myokit.Piecewise(cond1, a, cond2, b, myokit.Number(100))
-        cx = (
-            '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<piece>' + cb + c2 + '</piece>'
-            '<otherwise><cn>100.0</cn></otherwise>'
-            '</piecewise>'
-        )
-        self.assertEqual(w.ex(x), cx)
-        self.assertEqual(r(cx), x)
-
-    def test_writer(self):
-        # Test special cases for the expression writer.
-
-        # Create mini model
-        model = myokit.Model()
-        component = model.add_component('c')
-        avar = component.add_variable('a')
-
-        w = mathml.MathMLExpressionWriter()
-        w.set_mode(presentation=False)
-
-        a = avar.lhs()
-        ca = '<ci>c.a</ci>'
-        b = myokit.Number(1)
-        cb = '<cn>1.0</cn>'
-
-        # Equation
-        e = myokit.Equation(a, b)
-        ce = '<apply><eq />' + ca + cb + '</apply>'
-        self.assertEqual(w.eq(e), ce)
-
-        # Test for unfound variable (invalid cellml model)
-        x = myokit.Name('a string')
-        self.assertEqual(w.ex(x), '<ci>a string</ci>')
-
-        # Test lhs function
-        w.set_lhs_function(lambda v: 'bert')
-        x = myokit.Name(avar)
-        self.assertEqual(w.ex(x), '<ci>bert</ci>')
-
-        # Unsupported type
-        u = myokit.UnsupportedFunction('frog', x)
-        self.assertRaises(ValueError, w.ex, u)
-
-        # Test fetching using ewriter method
-        w = myokit.formats.ewriter('mathml')
-        self.assertIsInstance(w, mathml.MathMLExpressionWriter)
-
-        # Test without a Myokit expression
-        self.assertRaisesRegex(
-            ValueError, 'Unknown expression type', w.ex, 7)
-
-    def test_parse_mathml_string(self):
-        # Test :meth:`mathml.parse_mathml_string()`.
-
-        self.assertEqual(
-            mathml.parse_mathml_string('<apply><cn>1.0</cn></apply>'),
-            myokit.Number(1)
-        )
-
-    def test_parsing_bad_mathml(self):
-        # Test the parser on various invalid bits of mathml.
+        e = myokit.Divide(a, b)
+        x = '<apply><divide /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
         # No operands
         self.assertRaisesRegex(
-            mathml.MathMLError, 'at least one operand', read,
+            mathml.MathMLError, 'at least one operand', self.p,
             '<apply><times /></apply>')
 
         # Only one operand
         self.assertRaisesRegex(
-            mathml.MathMLError, 'at least two operands', read,
+            mathml.MathMLError, 'at least two operands', self.p,
             '<apply><times /><cn>1.0</cn></apply>')
 
-        # Unresolvable reference
-        x = '<apply><ci>bert</ci></apply>'
-        self.assertRaisesRegex(
-            mathml.MathMLError, 'Unable to create Name', read, x,
-            {'ernie': 'banaan'})
+        # Several operands
+        e = myokit.Multiply(
+            myokit.Multiply(myokit.Multiply(a, b), myokit.Number(2)),
+            myokit.Number(3))
+        x = '<apply><times /><ci>a</ci><cn>1</cn><cn>2</cn><cn>3</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Normal piecewise
+    def test_arithmetic_unary(self):
+        # Tests parsing basic arithmetic operators
+
+        # Prefix plus
+        e = myokit.PrefixPlus(myokit.Number(1))
+        x = '<apply><plus /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Prefix minus
+        e = myokit.PrefixMinus(myokit.Number(1))
+        x = '<apply><minus /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+    def test_conditionals(self):
+        # Tests if and piecewise parsing
+
+        # If
+        a = myokit.Name('c.a')
+        b = myokit.Number(1.0)
+        cond1 = myokit.parse_expression('5 > 3')
+        cond2 = myokit.parse_expression('2 < 1')
+        c1 = '<apply><gt /><cn>5.0</cn><cn>3.0</cn></apply>'
+        c2 = '<apply><lt /><cn>2.0</cn><cn>1.0</cn></apply>'
+        e = myokit.If(cond1, a, b)
         x = (
             '<piecewise>'
-            '  <piece>'
-            '    <cn>1</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
-            '  </piece>'
-            '  <otherwise>'
-            '    <cn>2</cn>'
-            '  </otherwise>'
+            '<piece><ci>c.a</ci>' + c1 + '</piece>'
+            '<otherwise><cn>1.0</cn></otherwise>'
             '</piecewise>'
         )
-        read(x)
+        self.assertEqual(self.p(x), e.piecewise())
+
+        # Piecewise
+        e = myokit.Piecewise(cond1, a, cond2, b, myokit.Number(100))
+        x = (
+            '<piecewise>'
+            '<piece><ci>c.a</ci>' + c1 + '</piece>'
+            '<piece><cn>1.0</cn>' + c2 + '</piece>'
+            '<otherwise><cn>100.0</cn></otherwise>'
+            '</piecewise>'
+        )
+        self.assertEqual(self.p(x), e)
 
         # Piecewise with extra otherwise
         x = (
             '<piecewise>'
             '  <piece>'
-            '    <cn>1</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
+            '    <cn>1.0</cn><apply><eq /><cn>1.0</cn><cn>1.0</cn></apply>'
             '  </piece>'
             '  <otherwise>'
             '    <cn>2</cn>'
@@ -387,22 +133,21 @@ class ContentMathMLTest(unittest.TestCase):
             '</piecewise>'
         )
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Found more than one <otherwise>', read, x)
+            mathml.MathMLError, 'Found more than one <otherwise>', self.p, x)
 
-        # Piecewise without otherwise
+        # Check otherwise is automatically added if not given
         x = (
             '<piecewise>'
             '  <piece>'
-            '    <cn>2</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
+            '    <cn>2</cn><apply><eq /><cn>1.0</cn><cn>1.0</cn></apply>'
             '  </piece>'
             '  <piece>'
-            '    <cn>1</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
+            '    <cn>1.0</cn><apply><eq /><cn>1.0</cn><cn>1.0</cn></apply>'
             '  </piece>'
             '</piecewise>'
         )
-        x = read(x)
-        # Check otherwise is automatically added
-        pieces = list(x.pieces())
+        e = self.p(x)
+        pieces = list(e.pieces())
         self.assertEqual(len(pieces), 3)
         self.assertEqual(pieces[0], myokit.Number(2))
         self.assertEqual(pieces[1], myokit.Number(1))
@@ -412,27 +157,42 @@ class ContentMathMLTest(unittest.TestCase):
         x = (
             '<piecewise>'
             '  <piece>'
-            '    <cn>1</cn><apply><eq /><cn>1</cn><cn>1</cn></apply>'
+            '    <cn>1.0</cn><apply><eq /><cn>1.0</cn><cn>1.0</cn></apply>'
             '  </piece>'
             '  <otherwise>'
             '    <cn>3</cn>'
             '  </otherwise>'
-            '  <apply><eq /><cn>1</cn><cn>1</cn></apply>'
+            '  <apply><eq /><cn>1.0</cn><cn>1.0</cn></apply>'
             '</piecewise>'
         )
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Unexpected content in <piecewise>', read, x)
+            mathml.MathMLError, 'Unexpected content in <piecewise>', self.p, x)
 
-        # Unknown mathml tag
-        self.assertRaisesRegex(
-            mathml.MathMLError, 'Unsupported element', read,
-            '<apply><yum /><ci>3</ci></apply>')
+    def test_constants(self):
+        # Tests parsing of MathML special constants.
+
+        # Pi
+        import math
+        x = self.p('<pi />')
+        self.assertAlmostEqual(math.pi, float(x))
+
+        # Test e
+        import math
+        x = self.p('<exponentiale />')
+        self.assertAlmostEqual(math.e, float(x))
+
+        # Test booleans
+        import math
+        x = self.p('<true />')
+        self.assertEqual(float(x), 1)
+        x = self.p('<false />')
+        self.assertEqual(float(x), 0)
 
     def test_derivatives(self):
-        # Test parsing of derivatives with degree elements.
+        # Test parsing of derivatives
 
-        # Basic test
-        read(
+        # Basic derivative
+        x = (
             '<apply>'
             '  <diff/>'
             '  <bvar>'
@@ -441,22 +201,26 @@ class ContentMathMLTest(unittest.TestCase):
             '  <ci>V</ci>'
             '</apply>'
         )
+        e = myokit.Derivative(myokit.Name('V'))
+        self.assertEqual(self.p(x), e)
 
-        # Test with degree element
-        read(
+        # Derivative with degree element
+        x = (
             '<apply>'
             '  <diff/>'
             '  <bvar>'
             '    <ci>time</ci>'
-            '    <degree><cn>1</cn></degree>'
+            '    <degree><cn>1.0</cn></degree>'
             '  </bvar>'
             '  <ci>V</ci>'
             '</apply>'
         )
+        e = myokit.Derivative(myokit.Name('V'))
+        self.assertEqual(self.p(x), e)
 
-        # Test with degree element other than 1
+        # Derivative with degree element other than 1
         self.assertRaisesRegex(
-            mathml.MathMLError, 'degree one', read,
+            mathml.MathMLError, 'degree one', self.p,
             '<apply>'
             '  <diff/>'
             '  <bvar>'
@@ -469,168 +233,609 @@ class ContentMathMLTest(unittest.TestCase):
 
         # Derivative of an expression
         self.assertRaisesRegex(
-            mathml.MathMLError, '<diff> element must contain a <ci>', read,
+            mathml.MathMLError, '<diff> element must contain a <ci>', self.p,
             '<apply>'
             '  <diff/>'
             '  <bvar>'
             '    <ci>time</ci>'
             '  </bvar>'
-            '  <apply><plus /><cn>1</cn><ci>V</ci></apply>'
+            '  <apply><plus /><cn>1.0</cn><ci>V</ci></apply>'
             '</apply>'
         )
 
-    def test_extra_trig(self):
-        # Tests parsing of the annoying trig functions.
+    def test_functions(self):
+        # Tests parsing basic functions
 
-        # Cosecant
-        x = read('<apply><csc/><cn>3</cn></apply>')
-        y = myokit.parse_expression('1 / sin(3)')
-        self.assertEqual(x, y)
+        # Power
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        e = myokit.Power(a, b)
+        x = '<apply><power /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Secant
-        x = read('<apply><sec/><cn>3</cn></apply>')
-        y = myokit.parse_expression('1 / cos(3)')
-        self.assertEqual(x, y)
+        # Sqrt
+        e = myokit.Sqrt(b)
+        x = '<apply><root /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Cotangent
-        x = read('<apply><cot/><cn>3</cn></apply>')
-        y = myokit.parse_expression('1 / tan(3)')
-        self.assertEqual(x, y)
+        # Exp
+        e = myokit.Exp(a)
+        x = '<apply><exp /><ci>a</ci></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # arc-cosecant
-        x = read('<apply><arccsc/><cn>3</cn></apply>')
-        y = myokit.parse_expression('asin(1 / 3)')
-        self.assertEqual(x, y)
+        # Log(a)
+        e = myokit.Log(b)
+        x = '<apply><ln /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # arc-secant
-        x = read('<apply><arcsec/><cn>3</cn></apply>')
-        y = myokit.parse_expression('acos(1 / 3)')
-        self.assertEqual(x, y)
+        # Log(a, b)
+        e = myokit.Log(a, b)
+        x = '<apply><log /><logbase><cn>1.0</cn></logbase><ci>a</ci></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # arc-cotangent
-        x = read('<apply><arccot/><cn>3</cn></apply>')
-        y = myokit.parse_expression('atan(1 / 3)')
-        self.assertEqual(x, y)
+        # Log10
+        e = myokit.Log10(b)
+        x = '<apply><log /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic sine
-        x = read('<apply><sinh /><cn>3</cn></apply>')
-        y = myokit.parse_expression('0.5 * (exp(3) - exp(-3))')
-        self.assertEqual(x, y)
+        # Floor
+        e = myokit.Floor(b)
+        x = '<apply><floor /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic cosine
-        x = read('<apply><cosh /><cn>3</cn></apply>')
-        y = myokit.parse_expression('0.5 * (exp(3) + exp(-3))')
-        self.assertEqual(x, y)
+        # Ceil
+        e = myokit.Ceil(b)
+        x = '<apply><ceiling /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic tangent
-        x = read('<apply><tanh /><cn>3</cn></apply>')
-        y = myokit.parse_expression('(exp(2*3) - 1) / (exp(2*3) + 1)')
-        self.assertEqual(x, y)
+        # Abs
+        e = myokit.Abs(b)
+        x = '<apply><abs /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic arc sine
-        x = read('<apply><arcsinh /><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(3 + sqrt(1 + 3*3))')
-        self.assertEqual(x, y)
+        # Quotient
+        e = myokit.Quotient(a, b)
+        x = '<apply><quotient /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic arc cosine
-        x = read('<apply><arccosh /><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(3 + sqrt(3 + 1) * sqrt(3 - 1))')
-        self.assertEqual(x, y)
+        # Remainder
+        e = myokit.Remainder(a, b)
+        x = '<apply><rem /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic arc tangent
-        x = read('<apply><arctanh /><cn>3</cn></apply>')
-        y = myokit.parse_expression('0.5 * (log(1 + 3) - log(1 - 3))')
-        self.assertEqual(x, y)
+    def test_inequalities(self):
+        # Test parsing (in)equalities
 
-        # Hyperbolic cosecant
-        x = read('<apply><csch /><cn>3</cn></apply>')
-        y = myokit.parse_expression('2 / (exp(3) - exp(-3))')
-        self.assertEqual(x, y)
+        # Equal
+        a = myokit.Name('a')
+        b = myokit.Number(1.0)
+        e = myokit.Equal(a, b)
+        x = '<apply><eq /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic secant
-        x = read('<apply><sech /><cn>3</cn></apply>')
-        y = myokit.parse_expression('2 / (exp(3) + exp(-3))')
-        self.assertEqual(x, y)
+        # NotEqual
+        e = myokit.NotEqual(a, b)
+        x = '<apply><neq /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic cotangent
-        x = read('<apply><coth /><cn>3</cn></apply>')
-        y = myokit.parse_expression('(exp(2*3) + 1) / (exp(2*3) - 1)')
-        self.assertEqual(x, y)
+        # More
+        e = myokit.More(a, b)
+        x = '<apply><gt /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic arc cosecant
-        x = read('<apply><arccsch /><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(sqrt(1/(3*3) + 1) + 1/3)')
-        self.assertEqual(x, y)
+        # Less
+        e = myokit.Less(a, b)
+        x = '<apply><lt /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic arc secant
-        x = read('<apply><arcsech /><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(sqrt(1/(3*3) - 1) + 1/3)')
-        self.assertEqual(x, y)
+        # MoreEqual
+        e = myokit.MoreEqual(a, b)
+        x = '<apply><geq /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Hyperbolic arc cotangent
-        x = read('<apply><arccoth /><cn>3</cn></apply>')
-        y = myokit.parse_expression('0.5 * log((3 + 1) / (3 - 1))')
-        self.assertEqual(x, y)
+        # LessEqual
+        e = myokit.LessEqual(a, b)
+        x = '<apply><leq /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
 
-    def test_constants(self):
-        # Tests parsing of MathML special constants.
+    def test_logic_operators(self):
+        # Tests parsing logic operators
 
-        # Test pi
-        import math
-        x = read('<pi />')
-        self.assertAlmostEqual(math.pi, float(x))
+        # Not
+        cond1 = myokit.parse_expression('5 > 3')
+        cond2 = myokit.parse_expression('2 < 1')
+        c1 = '<apply><gt /><cn>5.0</cn><cn>3.0</cn></apply>'
+        c2 = '<apply><lt /><cn>2.0</cn><cn>1.0</cn></apply>'
+        e = myokit.Not(cond1)
+        x = '<apply><not />' + c1 + '</apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Test e
-        import math
-        x = read('<exponentiale />')
-        self.assertAlmostEqual(math.e, float(x))
+        # And
+        e = myokit.And(cond1, cond2)
+        x = '<apply><and />' + c1 + c2 + '</apply>'
+        self.assertEqual(self.p(x), e)
 
-        # Test booleans
-        import math
-        x = read('<true />')
-        self.assertEqual(float(x), 1)
-        x = read('<false />')
-        self.assertEqual(float(x), 0)
+        # Or
+        e = myokit.Or(cond1, cond2)
+        x = '<apply><or />' + c1 + c2 + '</apply>'
+        self.assertEqual(self.p(x), e)
 
-    def test_numbers(self):
-        # Tests parsing of various MathML number types.
+    def test_parse_mathml_string(self):
+        # Test :meth:`mathml.parse_mathml_string()`.
+
+        self.assertEqual(
+            mathml.parse_mathml_string('<apply><cn>1.0</cn></apply>'),
+            myokit.Number(1)
+        )
+
+    def test_name(self):
+        # Test name parsing
+
+        self.assertEqual(self.p('<ci>var</ci>'), myokit.Name('var'))
+
+    def test_number(self):
+        # Test number parsing
 
         # Real
-        x = read('<cn>4</cn>')
+        x = self.p('<cn>4</cn>')
         self.assertEqual(x, myokit.Number(4))
-        x = read('<cn type="real">4</cn>')
+        x = self.p('<cn type="real">4</cn>')
         self.assertEqual(x, myokit.Number(4))
         # Real with base
-        x = read('<cn type="real" base="10">4</cn>')
+        x = self.p('<cn type="real" base="10">4</cn>')
         self.assertEqual(x, myokit.Number(4))
         self.assertRaises(
-            mathml.MathMLError, read, '<cn type="real" base="9">4</cn>')
+            mathml.MathMLError, self.p, '<cn type="real" base="9">4</cn>')
         self.assertRaises(
-            mathml.MathMLError, read, '<cn type="real" base="x">4</cn>')
+            mathml.MathMLError, self.p, '<cn type="real" base="x">4</cn>')
 
         # Integer
-        x = read('<cn type="integer">4</cn>')
+        x = self.p('<cn type="integer">4</cn>')
         self.assertEqual(x, myokit.Number(4))
 
-        x = read('<cn type="integer" base="2">100</cn>')
+        x = self.p('<cn type="integer" base="2">100</cn>')
         self.assertEqual(x, myokit.Number(4))
 
         # Double
-        x = read('<cn type="double">4</cn>')
+        x = self.p('<cn type="double">4</cn>')
         self.assertEqual(x, myokit.Number(4))
 
         # E-notation
-        x = read('<cn type="e-notation">40<sep />-1</cn>')
+        x = self.p('<cn type="e-notation">40<sep />-1</cn>')
         self.assertEqual(x, myokit.Number(4))
 
         # Rational
-        x = read('<cn type="rational">16<sep />4</cn>')
+        x = self.p('<cn type="rational">16<sep />4</cn>')
         self.assertEqual(x, myokit.Number(4))
 
         # Unknown type
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unsupported <cn> type',
-            read, '<cn type="special">1</cn>')
+            self.p, '<cn type="special">1</cn>')
+
+    def test_trig_basic(self):
+        # Test parsing basic trig functions
+
+        # Sin
+        e = myokit.Sin(myokit.Number(1))
+        x = '<apply><sin /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Cos
+        e = myokit.Cos(myokit.Number(1))
+        x = '<apply><cos /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Tan
+        e = myokit.Tan(myokit.Number(1))
+        x = '<apply><tan /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # ASin
+        e = myokit.ASin(myokit.Number(1))
+        x = '<apply><arcsin /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # ACos
+        e = myokit.ACos(myokit.Number(1))
+        x = '<apply><arccos /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # ATan
+        e = myokit.ATan(myokit.Number(1))
+        x = '<apply><arctan /><cn>1.0</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+    def test_trig_extra(self):
+        # Tests parsing of the annoying trig functions.
+
+        # Cosecant
+        x = self.p('<apply><csc/><cn>3</cn></apply>')
+        y = myokit.parse_expression('1 / sin(3)')
+        self.assertEqual(x, y)
+
+        # Secant
+        x = self.p('<apply><sec/><cn>3</cn></apply>')
+        y = myokit.parse_expression('1 / cos(3)')
+        self.assertEqual(x, y)
+
+        # Cotangent
+        x = self.p('<apply><cot/><cn>3</cn></apply>')
+        y = myokit.parse_expression('1 / tan(3)')
+        self.assertEqual(x, y)
+
+        # arc-cosecant
+        x = self.p('<apply><arccsc/><cn>3</cn></apply>')
+        y = myokit.parse_expression('asin(1 / 3)')
+        self.assertEqual(x, y)
+
+        # arc-secant
+        x = self.p('<apply><arcsec/><cn>3</cn></apply>')
+        y = myokit.parse_expression('acos(1 / 3)')
+        self.assertEqual(x, y)
+
+        # arc-cotangent
+        x = self.p('<apply><arccot/><cn>3</cn></apply>')
+        y = myokit.parse_expression('atan(1 / 3)')
+        self.assertEqual(x, y)
+
+        # Hyperbolic sine
+        x = self.p('<apply><sinh /><cn>3</cn></apply>')
+        y = myokit.parse_expression('0.5 * (exp(3) - exp(-3))')
+        self.assertEqual(x, y)
+
+        # Hyperbolic cosine
+        x = self.p('<apply><cosh /><cn>3</cn></apply>')
+        y = myokit.parse_expression('0.5 * (exp(3) + exp(-3))')
+        self.assertEqual(x, y)
+
+        # Hyperbolic tangent
+        x = self.p('<apply><tanh /><cn>3</cn></apply>')
+        y = myokit.parse_expression('(exp(2*3) - 1) / (exp(2*3) + 1)')
+        self.assertEqual(x, y)
+
+        # Hyperbolic arc sine
+        x = self.p('<apply><arcsinh /><cn>3</cn></apply>')
+        y = myokit.parse_expression('log(3 + sqrt(1 + 3*3))')
+        self.assertEqual(x, y)
+
+        # Hyperbolic arc cosine
+        x = self.p('<apply><arccosh /><cn>3</cn></apply>')
+        y = myokit.parse_expression('log(3 + sqrt(3 + 1) * sqrt(3 - 1))')
+        self.assertEqual(x, y)
+
+        # Hyperbolic arc tangent
+        x = self.p('<apply><arctanh /><cn>3</cn></apply>')
+        y = myokit.parse_expression('0.5 * (log(1 + 3) - log(1 - 3))')
+        self.assertEqual(x, y)
+
+        # Hyperbolic cosecant
+        x = self.p('<apply><csch /><cn>3</cn></apply>')
+        y = myokit.parse_expression('2 / (exp(3) - exp(-3))')
+        self.assertEqual(x, y)
+
+        # Hyperbolic secant
+        x = self.p('<apply><sech /><cn>3</cn></apply>')
+        y = myokit.parse_expression('2 / (exp(3) + exp(-3))')
+        self.assertEqual(x, y)
+
+        # Hyperbolic cotangent
+        x = self.p('<apply><coth /><cn>3</cn></apply>')
+        y = myokit.parse_expression('(exp(2*3) + 1) / (exp(2*3) - 1)')
+        self.assertEqual(x, y)
+
+        # Hyperbolic arc cosecant
+        x = self.p('<apply><arccsch /><cn>3</cn></apply>')
+        y = myokit.parse_expression('log(sqrt(1/(3*3) + 1) + 1/3)')
+        self.assertEqual(x, y)
+
+        # Hyperbolic arc secant
+        x = self.p('<apply><arcsech /><cn>3</cn></apply>')
+        y = myokit.parse_expression('log(sqrt(1/(3*3) - 1) + 1/3)')
+        self.assertEqual(x, y)
+
+        # Hyperbolic arc cotangent
+        x = self.p('<apply><arccoth /><cn>3</cn></apply>')
+        y = myokit.parse_expression('0.5 * log((3 + 1) / (3 - 1))')
+        self.assertEqual(x, y)
+
+    def test_unsupported(self):
+        # Test parsing unsupported elements
+
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unsupported element', self.p,
+            '<apply><yum /><ci>3</ci></apply>')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ContentMathMLWriterTest(unittest.TestCase):
+    """ Test writing content MathML expressions. """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.w = mathml.MathMLExpressionWriter()
+        cls.w.set_mode(presentation=False)
+
+    def test_arithmetic_binary(self):
+        # Tests writing basic arithmetic operators
+
+        # Plus
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        e = myokit.Plus(a, b)
+        x = '<apply><plus /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Minus
+        e = myokit.Minus(a, b)
+        x = '<apply><minus /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Multiply
+        e = myokit.Multiply(a, b)
+        x = '<apply><times /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Divide
+        e = myokit.Divide(a, b)
+        x = '<apply><divide /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+    def test_arithmetic_unary(self):
+        # Tests writing prefix operators
+
+        # Prefix plus
+        m = myokit.PrefixPlus(myokit.Number(1))
+        x = '<apply><plus /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(m), x)
+
+        # Prefix minus
+        m = myokit.PrefixMinus(myokit.Number(1))
+        x = '<apply><minus /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(m), x)
+
+    def test_conditionals(self):
+        # Tests if and piecewise writing
+
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        cond1 = myokit.parse_expression('5 > 3')
+        cond2 = myokit.parse_expression('2 < 1')
+        c1 = '<apply><gt /><cn>5.0</cn><cn>3.0</cn></apply>'
+        c2 = '<apply><lt /><cn>2.0</cn><cn>1.0</cn></apply>'
+
+        # If
+        e = myokit.If(cond1, a, b)
+        x = (
+            '<piecewise>'
+            '<piece><ci>a</ci>' + c1 + '</piece>'
+            '<otherwise><cn>1.0</cn></otherwise>'
+            '</piecewise>'
+        )
+        self.assertEqual(self.w.ex(e), x)
+
+        # Piecewise
+        e = myokit.Piecewise(cond1, a, cond2, b, myokit.Number(100))
+        x = (
+            '<piecewise>'
+            '<piece><ci>a</ci>' + c1 + '</piece>'
+            '<piece><cn>1.0</cn>' + c2 + '</piece>'
+            '<otherwise><cn>100.0</cn></otherwise>'
+            '</piecewise>'
+        )
+        self.assertEqual(self.w.ex(e), x)
+
+    def test_creation(self):
+        # Test creation via formats.ewriter
+
+        w = myokit.formats.ewriter('mathml')
+        self.assertIsInstance(self.w, mathml.MathMLExpressionWriter)
+
+    def test_equation(self):
+        # Test equation writing
+
+        e = myokit.Equation(myokit.Name('a'), myokit.Number(1))
+        x = '<apply><eq /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.eq(e), x)
+
+    def test_functions(self):
+        # Tests writing basic functions
+
+        # Power
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        e = myokit.Power(a, b)
+        x = '<apply><power /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Sqrt
+        e = myokit.Sqrt(b)
+        x = '<apply><root /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Exp
+        e = myokit.Exp(a)
+        x = '<apply><exp /><ci>a</ci></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Log(a)
+        e = myokit.Log(b)
+        x = '<apply><ln /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Log(a, b)
+        e = myokit.Log(a, b)
+        x = '<apply><log /><logbase><cn>1.0</cn></logbase><ci>a</ci></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Log10
+        e = myokit.Log10(b)
+        x = '<apply><log /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Floor
+        e = myokit.Floor(b)
+        x = '<apply><floor /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Ceil
+        e = myokit.Ceil(b)
+        x = '<apply><ceiling /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Abs
+        e = myokit.Abs(b)
+        x = '<apply><abs /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Quotient
+        e = myokit.Quotient(a, b)
+        x = '<apply><quotient /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Remainder
+        e = myokit.Remainder(a, b)
+        x = '<apply><rem /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+    def test_inequalities(self):
+        # Test writing (in)equalities
+
+        # Equal
+        a = myokit.Name('a')
+        b = myokit.Number(1)
+        e = myokit.Equal(a, b)
+        x = '<apply><eq /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # NotEqual
+        e = myokit.NotEqual(a, b)
+        x = '<apply><neq /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # More
+        e = myokit.More(a, b)
+        x = '<apply><gt /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Less
+        e = myokit.Less(a, b)
+        x = '<apply><lt /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # MoreEqual
+        e = myokit.MoreEqual(a, b)
+        x = '<apply><geq /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # LessEqual
+        e = myokit.LessEqual(a, b)
+        x = '<apply><leq /><ci>a</ci><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+    def test_lhs_function(self):
+        # Test writing with a special lhs function
+
+        w = mathml.MathMLExpressionWriter()
+        w.set_mode(presentation=False)
+        w.set_lhs_function(lambda v: 'bert')
+        self.assertEqual(w.ex(myokit.Name('ernie')), '<ci>bert</ci>')
+
+    def test_logic_operators(self):
+        # Tests writing logic operators
+
+        # Not
+        cond1 = myokit.parse_expression('5 > 3')
+        cond2 = myokit.parse_expression('2 < 1')
+        c1 = '<apply><gt /><cn>5.0</cn><cn>3.0</cn></apply>'
+        c2 = '<apply><lt /><cn>2.0</cn><cn>1.0</cn></apply>'
+        e = myokit.Not(cond1)
+        x = '<apply><not />' + c1 + '</apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # And
+        e = myokit.And(cond1, cond2)
+        x = '<apply><and />' + c1 + c2 + '</apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Or
+        e = myokit.Or(cond1, cond2)
+        x = '<apply><or />' + c1 + c2 + '</apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+    def test_name_and_numbers(self):
+        # Test name and number writing
+
+        self.assertEqual(self.w.ex(myokit.Name('a')), '<ci>a</ci>')
+
+        # Number without unit
+        self.assertEqual(self.w.ex(myokit.Number(1)), '<cn>1.0</cn>')
+
+        # Number with unit
+        # Unit isn't exported by default!
+        self.assertEqual(self.w.ex(myokit.Number('12', 'pF')), '<cn>12.0</cn>')
+
+    def test_trig_basic(self):
+        # Test writing basic trig functions
+
+        # Sin
+        b = myokit.Number(1)
+        e = myokit.Sin(b)
+        x = '<apply><sin /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Cos
+        e = myokit.Cos(b)
+        x = '<apply><cos /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # Tan
+        e = myokit.Tan(b)
+        x = '<apply><tan /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # ASin
+        e = myokit.ASin(b)
+        x = '<apply><arcsin /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # ACos
+        e = myokit.ACos(b)
+        x = '<apply><arccos /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+        # ATan
+        e = myokit.ATan(b)
+        x = '<apply><arctan /><cn>1.0</cn></apply>'
+        self.assertEqual(self.w.ex(e), x)
+
+    def test_unknown_expression(self):
+        # Test without a Myokit expression
+
+        self.assertRaisesRegex(
+            ValueError, 'Unknown expression type', self.w.ex, 7)
+
+    def test_unsupported_functions(self):
+        # Tests writing myokit.UnsupportedFunction
+
+        u = myokit.UnsupportedFunction('frog', myokit.Number(2))
+        self.assertRaises(ValueError, self.w.ex, u)
 
 
 if __name__ == '__main__':
