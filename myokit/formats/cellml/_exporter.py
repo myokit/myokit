@@ -45,7 +45,6 @@ class CellMLExporter(myokit.formats.Exporter):
         """
         Creates an almost readable name for a custom Myokit unit.
         """
-        import myokit.formats.cellml as cellml
         from myokit.formats.cellml.cellml_1 import is_valid_identifier
 
         # Get preferred name

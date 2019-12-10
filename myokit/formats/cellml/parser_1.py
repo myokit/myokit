@@ -391,6 +391,7 @@ class CellMLParser(object):
 
         # Create numbers with units
         attr = self._join('units')
+
         def number_factory(value, element):
             # Get units attribute
             try:

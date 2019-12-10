@@ -9,7 +9,7 @@ from __future__ import print_function, unicode_literals
 
 from ._exporter import XMLExporter, HTMLExporter
 from ._ewriter import MathMLExpressionWriter
-from ._parser import (
+from ._parser import (   # noqa
     MathMLError,
     MathMLParser,
     parse_mathml_dom,

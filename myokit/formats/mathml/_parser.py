@@ -247,7 +247,7 @@ class MathMLParser(object):
         # Check number of operands
         if len(ops) != nargs:
             raise MathMLError(
-                'Expecting ' + str(nargs) + ' operands, got ' + str(len(ops))
+                'Expecting ' + str(nargs) + ' operand(s), got ' + str(len(ops))
                 + ' for ' + split(element.tag)[1] + '.', element)
 
         return ops
@@ -259,22 +259,18 @@ class MathMLParser(object):
         If ``tag`` is given, elements will be drawn from the iterator until an
         element with the given tag is found.
         """
-        #TODO: Change this method to return ``None`` or raise some kind of
-        # exception if the next element isn't a ``tag``.
-
-        # Return next element
-        if tag is None:
-            try:
-                return next(iterator)
-            except StopIteration:
-                return None
-
-        # Find a specific element
         try:
+            # Return next element
+            if tag is None:
+                return next(iterator)
+
+            # Find a specific element
             el = next(iterator)
             while split(el.tag)[1] != tag:
                 el = next(iterator)
             return el
+
+        # Ran out of elements
         except StopIteration:
             return None
 
@@ -692,7 +688,7 @@ class MathMLParser(object):
 
             if len(ops) != 1:
                 raise MathMLError(
-                    'Expecing a single operand (or a <logbase> followed by a'
+                    'Expecting a single operand (or a <logbase> followed by a'
                     ' single operand) inside a <log> element.', element)
             op = self._parse_atomic(ops[0])
 
@@ -956,8 +952,8 @@ class MathMLParser(object):
         # No degree given
         if len(ops) != 1:
             raise MathMLError(
-                'Expecing a single operand (or a <degree> followed by a single'
-                ' operand) inside a <root> element.', element)
+                'Expecting a single operand (or a <degree> followed by a'
+                ' single operand) inside a <root> element.', element)
         op = self._parse_atomic(ops[0])
 
         return myokit.Sqrt(op)

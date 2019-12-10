@@ -114,7 +114,7 @@ class Component(AnnotatableElement):
         # self._children = set()    Currently unused
 
         # This component's variables
-        self._variables= collections.OrderedDict()
+        self._variables = collections.OrderedDict()
 
         # This component's component-level units
         self._units = {}
@@ -612,7 +612,6 @@ class Model(AnnotatableElement):
                     'No value is defined for the variable "'
                     + free.name() + '", but "' + self._free_variable.name()
                     + '" is listed as the free variable.')
-
 
         # If derivatives are used, check that a time variable is defined
         if states:

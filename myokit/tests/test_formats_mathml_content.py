@@ -220,7 +220,8 @@ class ContentMathMLParserTest(unittest.TestCase):
 
         # Derivative with degree element other than 1
         self.assertRaisesRegex(
-            mathml.MathMLError, 'degree one', self.p,
+            mathml.MathMLError, 'degree one',
+            self.p,
             '<apply>'
             '  <diff/>'
             '  <bvar>'
@@ -253,15 +254,22 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = '<apply><power /><ci>a</ci><cn>1.0</cn></apply>'
         self.assertEqual(self.p(x), e)
 
-        # Sqrt
-        e = myokit.Sqrt(b)
-        x = '<apply><root /><cn>1.0</cn></apply>'
-        self.assertEqual(self.p(x), e)
+        #TODO: Degree etc.
 
         # Exp
         e = myokit.Exp(a)
         x = '<apply><exp /><ci>a</ci></apply>'
         self.assertEqual(self.p(x), e)
+
+        # No operands
+        x = '<apply><exp /></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting 1 operand\(s\)', self.p, x)
+
+        # Too many operands
+        x = '<apply><exp /><cn>1</cn><cn>2</cn></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting 1 operand\(s\)', self.p, x)
 
         # Log(a)
         e = myokit.Log(b)
@@ -302,6 +310,25 @@ class ContentMathMLParserTest(unittest.TestCase):
         e = myokit.Remainder(a, b)
         x = '<apply><rem /><ci>a</ci><cn>1.0</cn></apply>'
         self.assertEqual(self.p(x), e)
+
+    def test_functions_sqrt(self):
+        # Tests parsing roots
+
+        # Sqrt
+        e = myokit.Sqrt(myokit.Number(1))
+        x = '<apply><root /><cn>1</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Root without operands
+        x = '<apply><root /></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting operand after <root>', self.p, x)
+
+        # Root with too many operands
+        x = '<apply><root /><cn>1</cn><cn>2</cn></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting a single operand', self.p, x)
+
 
     def test_inequalities(self):
         # Test parsing (in)equalities

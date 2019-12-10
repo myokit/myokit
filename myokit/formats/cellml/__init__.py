@@ -9,9 +9,10 @@ from __future__ import print_function, unicode_literals
 
 from ._exporter import CellMLExporter
 from ._ewriter import CellMLExpressionWriter
-from ._importer import CellMLImporter, CellMLImporterError
-
-import re
+from ._importer import (    # noqa
+    CellMLImporter,
+    CellMLImporterError
+)
 
 
 # Namespaces
