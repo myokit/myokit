@@ -445,6 +445,9 @@ class Expression(object):
         """
         return set(self._references)
 
+    def __repr__(self):
+        return 'myokit.Expression[' + self.code() + ']'
+
     def __str__(self):
         return self.code()
 
