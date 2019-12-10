@@ -314,7 +314,7 @@ class ContentMathMLParserTest(unittest.TestCase):
     def test_functions_sqrt(self):
         # Tests parsing roots
 
-        # Sqrt
+        # Square root
         e = myokit.Sqrt(myokit.Number(1))
         x = '<apply><root /><cn>1</cn></apply>'
         self.assertEqual(self.p(x), e)
@@ -328,6 +328,31 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = '<apply><root /><cn>1</cn><cn>2</cn></apply>'
         self.assertRaisesRegex(
             mathml.MathMLError, 'Expecting a single operand', self.p, x)
+
+        # Root with degree 2
+        e = myokit.Sqrt(myokit.Number(3))
+        x = '<apply><root /><degree><cn>2</cn></degree><cn>3</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Root with degree 2 and extra operands
+        x = ('<apply>'
+             '<root /><degree><cn>2</cn></degree><cn>3</cn><cn>3</cn>'
+             '</apply>')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'single operand after the <degree>', self.p, x)
+
+        # Root with degree 3
+        e = myokit.Power(
+            myokit.Number(3),
+            myokit.Divide(myokit.Number(1), myokit.Number(3)))
+        x = '<apply><root /><degree><cn>3</cn></degree><cn>3</cn></apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Root with degree in the wrong place
+        x = '<apply><root /><cn>1</cn><degree><cn>2</cn></degree></apply>'
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Expecting a single operand', self.p, x)
+
 
 
     def test_inequalities(self):
