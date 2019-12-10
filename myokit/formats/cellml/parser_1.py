@@ -25,22 +25,26 @@ except ImportError:
     import xml.etree.ElementTree as etree
 
 
-def parse(path):
+def parse_file(path):
     """
     Parses a CellML 1.0 or 1.1 model at the given path and returns a
     :class:`cellml.Model`.
 
     Raises a :class:`CellMLParsingError` if anything goes wrong.
     """
-    # Read XML file
-    if _lxml:   # noqa
-        parser = etree.XMLParser(remove_comments=True)
-        tree = etree.parse(path, parser=parser)
-    else:
-        tree = etree.parse(path)
+    return CellMLParser().parse_file(path)
 
-    # Parse contents and return
-    return CellMLParser().parse(tree.getroot())
+
+'''  Tricky with unicode. Revisit if needed.
+def parse_string(text):
+    """
+    Parses a CellML 1.0 or 1.1 model from the given string and returns a
+    :class:`cellml.Model`.
+
+    Raises a :class:`CellMLParsingError` if anything goes wrong.
+    """
+    return CellMLParser.parse(etree.fromstring(text))
+'''
 
 
 class CellMLParsingError(myokit.ImportError):
@@ -180,7 +184,7 @@ class CellMLParser(object):
         """
         # Read file
         try:
-            if _lxml:
+            if _lxml:   # pragma: no cover
                 parser = etree.XMLParser(remove_comments=True)
                 tree = etree.parse(path, parser=parser)
             else:

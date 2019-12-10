@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CellML Test Suite. https://github.com/MichaelClerx/cellml-validation -->
+<!-- CellML 1.0, 2.4.3 CellML elements can't appear inside extension elements -->
+<model name="cellml_elements_inside_extension"
+       xmlns="http://www.cellml.org/cellml/1.0#"
+       xmlns:cellml="http://www.cellml.org/cellml/1.0#"
+       xmlns:fruit="http://fruit.org">
+  <fruit:banana>
+    <cellml:component name="A" />
+  </fruit:banana>
+</model>

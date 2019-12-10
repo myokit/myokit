@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CellML Test Suite. https://github.com/MichaelClerx/cellml-validation -->
+<!-- CellML 1.0, 2.4.2 we can't invent new attributes -->
+<model name="imaginary_attributes_1"
+       xmlns="http://www.cellml.org/cellml/1.0#"
+       fruit="banana"
+       />
