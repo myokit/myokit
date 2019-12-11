@@ -134,6 +134,9 @@ class Expression(object):
         """
         raise NotImplementedError
 
+    def __contains__(self, key):
+        return key in self._operands
+
     def contains_type(self, kind):
         """
         Returns True if this expression tree contains an expression of the

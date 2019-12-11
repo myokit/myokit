@@ -168,6 +168,9 @@ class Component(AnnotatableElement):
             self, name, units, public_interface, private_interface)
         return v
 
+    def __contains__(self, key):
+        return key in self._variables
+
     def find_units(self, name):
         """
         Looks up and returns a :class:`Units` object with the given ``name``.
@@ -422,6 +425,9 @@ class Model(AnnotatableElement):
         Returns the :class:`Component` with the given ``name``.
         """
         return self._components[name]
+
+    def __contains__(self, key):
+        return key in self._components
 
     def element_with_cmeta_id(self, cmeta_id):
         """

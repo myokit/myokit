@@ -35,7 +35,6 @@ def parse_file(path):
     return CellMLParser().parse_file(path)
 
 
-'''  Tricky with unicode. Revisit if needed.
 def parse_string(text):
     """
     Parses a CellML 1.0 or 1.1 model from the given string and returns a
@@ -43,8 +42,8 @@ def parse_string(text):
 
     Raises a :class:`CellMLParsingError` if anything goes wrong.
     """
-    return CellMLParser.parse(etree.fromstring(text))
-'''
+    import xml.etree.ElementTree as etree   # lxml makes this difficult
+    return CellMLParser().parse(etree.fromstring(text))
 
 
 class CellMLParsingError(myokit.ImportError):

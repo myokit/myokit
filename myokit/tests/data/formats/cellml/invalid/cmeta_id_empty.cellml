@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<model name="cmeta_id_empty"
-       xmlns="http://www.cellml.org/cellml/1.0#"
-       xmlns:cmeta="http://www.cellml.org/metadata/1.0#">
-  <component name="A" />
-  <component name="B" cmeta:id="" />
-</model>

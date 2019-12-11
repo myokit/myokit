@@ -35,7 +35,8 @@ except NameError:   # pragma: no cover
 class TestCellMLParser(unittest.TestCase):
     """ Tests the CellML 1.0/1.1 parser (mostly for errors). """
 
-    def assertFail(self, message, name):
+    '''
+    def assertBadFile(self, message, name):
         """
         Tests parsing the file with the given ``name`` raises a parsing
         exception that matches ``message``.
@@ -45,6 +46,28 @@ class TestCellMLParser(unittest.TestCase):
             message,
             parser.parse_file,
             os.path.join(DIR, 'invalid', name + '.cellml'))
+    '''
+
+    def assertBad(self, xml, message):
+        """
+        Inserts the given ``xml`` into a <model> element, parses it, and checks
+        that this raises an exception matching ``message``.
+        """
+        self.assertRaisesRegex(
+            parser.CellMLParsingError, message, self.parse, xml)
+
+    def parse(self, xml):
+        """
+        Inserts the given ``xml`` into a <model> element, parses it, and
+        returns the result.
+        """
+        return parser.parse_string(
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<model name="test"'
+            '       xmlns="http://www.cellml.org/cellml/1.0#"'
+            '       xmlns:cmeta="http://www.cellml.org/metadata/1.0#">'
+            + xml +
+            '</model>')
 
     def test_cmeta_ids(self):
         # Test cmeta ids are parsed
@@ -55,9 +78,43 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(model.cmeta_id(), 'beeler_reuter_1977')
 
         # Invalid cmeta id
-        self.assertFail('non-empty string', 'cmeta_id_empty')
+        self.assertBad(
+            '<component cmeta:id="" name="c" />',
+            'non-empty string')
+
         # Duplicate cmeta id
-        self.assertFail('Duplicate cmeta:id', '8.4.1.cmeta_id_duplicate')
+        self.assertBad(
+            '<component cmeta:id="x" name="c" />'
+            '<component cmeta:id="x" name="d" />',
+            'Duplicate cmeta:id')
+
+    def test_component(self):
+        # Test component parsing
+
+        # Parse component
+        m = self.parse('<component name="ernie" />')
+        self.assertIn('ernie', m)
+
+        # Component must have name
+        self.assertBad('<component />', 'Component element must have a name')
+
+        # Reactions are not supported
+        self.assertBad(
+            '<component name="c">'
+            '<reaction />'
+            '</component>',
+            'Reactions are not supported')
+
+        # Component can have units
+        m = self.parse(
+            '<component name="ernie">'
+            '<units name="wooster">'
+            '<unit units="meter" />'
+            '</units>'
+            '</component>'
+        )
+        e = m['ernie']
+        u = e.find_units('wooster')
 
     def test_evaluated_derivatives(self):
         # Test parsing a simple model; compare RHS derivatives to known ones
@@ -107,23 +164,30 @@ class TestCellMLParser(unittest.TestCase):
         new_i = new_states.index(org_states[org_i])
         self.assertEqual(org_values[org_i], new_values[new_i])
 
-    def test_text_in_elements(self):
-        # Test for text inside elements
+    def test_extensions(self):
+        # Test handling of extension elements
 
-        self.assertFail(
-            'Text found in cellml:connection', '2.4.4.text_in_connection')
-        self.assertFail('Text found in cellml:units', '2.4.4.text_in_units_2')
+        # CellML inside extension is not allowed
+        self.assertBad(
+            '<x:y xmlns:x="xyz"><component name="c" /></x:y>',
+            'found inside extension element')
+
+    def test_text_in_elements(self):
+        # Test for text inside (and after) elements
+
+        self.assertBad(
+            '<component name="c">Hiya</component>',
+            'Text found in cellml:component')
+        self.assertBad(
+            '<component name="c"></component>Hiya',
+            'Text found in cellml:model')
 
     def test_unexpected(self):
         # Test for unexpected elements and attributes
 
-        self.assertFail('Unexpected content type', '2.4.2.imaginary_elements')
-        self.assertFail('Unexpected attribute', '2.4.2.imaginary_attributes_1')
-
-        # CellML inside extension
-        self.assertFail(
-            'found inside extension element',
-            '2.4.3.cellml_elements_inside_extensions')
+        self.assertBad('<wooster />', 'Unexpected content type')
+        self.assertBad(
+            '<component name="c" food="nice" />', 'Unexpected attribute')
 
 
 if __name__ == '__main__':
