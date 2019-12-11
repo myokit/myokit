@@ -448,6 +448,25 @@ class Model(AnnotatableElement):
         except KeyError:
             return Units.find_units(name)
 
+    @staticmethod
+    def from_myokit_model(myokit_model, protocol=None):
+        """
+        Creates a :class:`Model` from a :class:`myokit.Model`.
+
+        If a ``protocol`` is also given it will be used to generate a typical
+        CellML if-statement protocol.
+        """
+        #
+        # TODO:
+        #  - [ ] Add stimulus current based on protocol
+        #  - [ ] Create components & variables for states, so that they appear
+        #        in the order of the state variables.
+        #  - [ ] Add remaining components & variables
+        #  - [ ] Export oxmeta annotations
+        #  - [ ] Don't bother with nesting
+        #
+        raise NotImplementedError
+
     def __getitem__(self, key):
         return self._components[key]
 

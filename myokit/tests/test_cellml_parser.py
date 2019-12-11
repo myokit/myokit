@@ -98,6 +98,9 @@ class TestCellMLParser(unittest.TestCase):
         # Component must have name
         self.assertBad('<component />', 'Component element must have a name')
 
+        # CellML errors are passed through
+        self.assertBad('<component name="1" />', 'identifier')
+
         # Reactions are not supported
         self.assertBad(
             '<component name="c">'
@@ -115,6 +118,86 @@ class TestCellMLParser(unittest.TestCase):
         )
         e = m['ernie']
         u = e.find_units('wooster')
+
+    def test_connection(self):
+        # Test connection parsing
+
+        x = ('<component name="a">'
+             '  <variable name="x" units="volt" public_interface="in" />'
+             '</component>'
+             '<component name="b">'
+             '  <variable name="y" units="volt" public_interface="out" />'
+             '</component>'
+        )
+
+        # Parse valid connection
+        y = ('<connection>'
+             '  <map_components component_1="a" component_2="b" />'
+             '  <map_variables variable_1="x" variable_2="y" />'
+             '</connection>')
+        m = self.parse(x + y)
+        self.assertEqual(m['a']['x'].source(), m['b']['y'])
+        self.assertEqual(m['b']['y'].source(), m['b']['y'])
+
+        # No map components
+        self.assertBad(x + '<connection />', 'exactly one map_components')
+
+        # No map variables
+        y = ('<connection>'
+             '  <map_components component_1="a" component_2="b" />'
+             '</connection>')
+        self.assertBad(x + y, 'at least one map_variables')
+
+    def test_connection_map_components(self):
+        # Test parsing map_components elements
+
+        x = ('<component name="a">'
+             '  <variable name="x" units="volt" public_interface="in" />'
+             '</component>'
+             '<component name="b">'
+             '  <variable name="y" units="volt" public_interface="out" />'
+             '</component>'
+        )
+
+        # Valid connection is already checked
+
+        # Missing component 1 or 2
+        y = ('<connection>'
+             '  <map_components component_2="b" />'
+             '  <map_variables variable_1="x" variable_2="y" />'
+             '</connection>')
+        self.assertBad(x + y, 'must define a component_1 attribute')
+        y = ('<connection>'
+             '  <map_components component_1="a" />'
+             '  <map_variables variable_1="x" variable_2="y" />'
+             '</connection>')
+        self.assertBad(x + y, 'must define a component_2 attribute')
+
+        # Identical components
+        y = ('<connection>'
+             '  <map_components component_1="a" component_2="a" />'
+             '  <map_variables variable_1="x" variable_2="y" />'
+             '</connection>')
+        self.assertBad(x + y, 'must be different')
+
+        # Non-existent components
+        y = ('<connection>'
+             '  <map_components component_1="ax" component_2="b" />'
+             '  <map_variables variable_1="x" variable_2="y" />'
+             '</connection>')
+        self.assertBad(x + y, 'component_1 attribute must refer to')
+        y = ('<connection>'
+             '  <map_components component_1="a" component_2="bx" />'
+             '  <map_variables variable_1="x" variable_2="y" />'
+             '</connection>')
+        self.assertBad(x + y, 'component_2 attribute must refer to')
+
+        # Connected twice
+        y = ('<connection>'
+             '  <map_components component_1="a" component_2="b" />'
+             '  <map_variables variable_1="x" variable_2="y" />'
+             '</connection>')
+        self.assertBad(x + y + y, 'unique pair of components')
 
     def test_evaluated_derivatives(self):
         # Test parsing a simple model; compare RHS derivatives to known ones
