@@ -54,7 +54,7 @@ class CellMLImporter(myokit.formats.Importer):
 
         # Open XML file
         try:
-            if _lxml:   # noqa
+            if _lxml:   # pragma: no cover
                 parser = etree.XMLParser(remove_comments=True)
                 tree = etree.parse(path, parser=parser)
             else:
