@@ -14,7 +14,7 @@ import unittest
 import myokit
 import myokit.formats.cellml.parser_1 as parser
 
-from shared import DIR_FORMATS
+from shared import TemporaryDirectory, DIR_FORMATS
 
 # CellML directory
 DIR = os.path.join(DIR_FORMATS, 'cellml')
@@ -61,10 +61,28 @@ class TestCellMLParser(unittest.TestCase):
         Inserts the given ``xml`` into a <model> element, parses it, and
         returns the result.
         """
-        return parser.parse_string(
+        return parser.parse_string(self.wrap(xml))
+
+    def parse_in_file(self, xml):
+        """
+        Inserts the given ``xml`` into a <model> element, writes it to a
+        temporary file, parses it, and returns the result.
+        """
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            with open(path, 'w') as f:
+                f.write(self.wrap(xml))
+            return parser.parse_file(path)
+
+    def wrap(self, xml):
+        """
+        Wraps the given ``xml`` into a <model> element.
+        """
+        return (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<model name="test"'
             '       xmlns="http://www.cellml.org/cellml/1.0#"'
+            '       xmlns:cellml="http://www.cellml.org/cellml/1.0#"'
             '       xmlns:cmeta="http://www.cellml.org/metadata/1.0#">'
             + xml +
             '</model>')
@@ -199,6 +217,51 @@ class TestCellMLParser(unittest.TestCase):
              '</connection>')
         self.assertBad(x + y + y, 'unique pair of components')
 
+    def test_connection_map_variables(self):
+        # Test parsing map_variables elements
+
+        x = ('<component name="a">'
+             '  <variable name="x" units="volt" public_interface="in" />'
+             '</component>'
+             '<component name="b">'
+             '  <variable name="y" units="volt" public_interface="out" />'
+             '</component>'
+             '<connection>'
+             '  <map_components component_1="a" component_2="b" />'
+        )
+        z = ('</connection>')
+
+        # Valid connection is already checked
+
+        # Missing variable 1 or 2
+        y = '<map_variables variable_2="y" />'
+        self.assertBad(x + y + z, 'must define a variable_1 attribute')
+        y = '<map_variables variable_1="x" />'
+        self.assertBad(x + y + z, 'must define a variable_2 attribute')
+
+        # Non-existent variable 1 & 2
+        y = '<map_variables variable_1="y" variable_2="y" />'
+        self.assertBad(x + y + z, 'variable_1 attribute must refer to')
+        y = '<map_variables variable_1="x" variable_2="z" />'
+        self.assertBad(x + y + z, 'variable_2 attribute must refer to')
+
+        # Connecting twice is fine
+        y = '<map_variables variable_1="x" variable_2="y" />'
+        self.parse(x + y + y + z)
+
+        # Bad interfaces etc. propagate from cellml API
+        q = ('<component name="a">'
+             '  <variable name="x" units="volt" public_interface="out" />'
+             '</component>'
+             '<component name="b">'
+             '  <variable name="y" units="volt" public_interface="out" />'
+             '</component>'
+             '<connection>'
+             '  <map_components component_1="a" component_2="b" />'
+             '  <map_variable variable_1="x" variable_2="y" />'
+             '</connection>')
+        self.assertRaises(parser.CellMLParsingError, self.parse, q)
+
     def test_evaluated_derivatives(self):
         # Test parsing a simple model; compare RHS derivatives to known ones
 
@@ -254,6 +317,294 @@ class TestCellMLParser(unittest.TestCase):
         self.assertBad(
             '<x:y xmlns:x="xyz"><component name="c" /></x:y>',
             'found inside extension element')
+
+    def test_math(self):
+        # Tests parsing math elements
+        x = ('<component name="a">'
+             '  <variable name="x" units="volt" />'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
+        z = ('  </math>'
+             '</component>'
+             '<component name="b">'
+             '  <variable name="y" units="volt" initial_value="12.3" />'
+             '</component>')
+
+        # Test parsing valid equation
+        y = '<apply><eq /><ci>x</ci><cn cellml:units="volt">-80</cn></apply>'
+        m = self.parse(x + y + z)
+        var = m['a']['x']
+        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
+
+        # Valid equation inside a semantics element
+        m = self.parse(x + '<semantics>' + y + '</semantics>' + z)
+        var = m['a']['x']
+        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
+
+        # Valid equation with some annotations to ignore
+        m = self.parse(x + '<annotation />' + y + '<annotation-xml />' + z)
+        var = m['a']['x']
+        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
+
+        # Variable doesn't exist
+        y = '<apply><eq /><ci>y</ci><cn cellml:units="volt">-80</cn></apply>'
+        self.assertBad(x + y + z, 'Variable references in equation must name')
+        y = '<apply><eq /><ci>x</ci><ci>y</ci></apply>'
+        self.assertBad(x + y + z, 'Variable references in equation must name')
+
+        # No units in number
+        y = '<apply><eq /><ci>x</ci><cn>-80</cn></apply>'
+        self.assertBad(x + y + z, 'must define a cellml:units')
+
+        # Non-existent units
+        y = '<apply><eq /><ci>x</ci><cn cellml:units="vlop">-80</cn></apply>'
+        self.assertBad(x + y + z, 'Unknown unit "vlop" referenced')
+
+        # Items outside of MathML namespace
+        y = '<cellml:component name="bertie" />'
+        self.assertBad(x + y + z, 'must be in the mathml namespace')
+
+        # Doesn't start with an apply
+        y = '<ci>x</ci>'
+        self.assertBad(x + y + z, 'Expecting mathml:apply but found')
+
+        # Not an equality
+        y = '<apply><plus /><ci>x</ci></apply>'
+        self.assertBad(x + y + z, 'expecting a list of equations')
+
+        # Not in assignment form
+        y = ('<apply>'
+             ' <eq />'
+             ' <apply><plus /><ci>x</ci><cn cellml:units="volt">1</cn></apply>'
+             ' <cn cellml:units="volt">10</cn>'
+             '</apply>')
+        self.assertBad(x + y + z, 'Only models in "assignment form"')
+
+    def test_group(self):
+        # Tests parsing a group element.
+
+        x = ('<component name="a" />'
+             '<component name="b" />'
+             '<component name="c" />'
+             )
+
+        # Parse valid group
+        y = ('<group>'
+             '  <relationship_ref relationship="encapsulation"/>'
+             '  <component_ref component="a">'
+             '    <component_ref component="b">'
+             '      <component_ref component="c" />'
+             '    </component_ref>'
+             '  </component_ref>'
+             '</group>')
+        m = self.parse(x + y)
+        self.assertEqual(m['c'].parent(), m['b'])
+        self.assertEqual(m['b'].parent(), m['a'])
+        self.assertIsNone(m['a'].parent())
+
+        # Missing component ref
+        y = ('<group>'
+             '  <relationship_ref relationship="encapsulation"/>'
+             '</group>')
+        self.assertBad(x + y, 'at least one component_ref')
+
+        # Missing relationship ref
+        y = ('<group>'
+             '  <component_ref component="a">'
+             '    <component_ref component="b" />'
+             '  </component_ref>'
+             '</group>')
+        self.assertBad(x + y, 'at least one relationship_ref')
+
+    def test_group_component_ref(self):
+        # Tests parsing a component_ref element.
+
+        # Valid has already been checked
+
+        x = ('<component name="a" />'
+             '<component name="b" />'
+             '<component name="c" />'
+             '<group>'
+             '  <relationship_ref relationship="encapsulation"/>'
+             '  <component_ref component="a">'
+             '    <component_ref component="b" />')
+        z = ('  </component_ref>'
+             '</group>')
+
+        # Missing component attribute
+        y = '<component_ref />'
+        self.assertBad(x + y + z, 'must define a component attribute')
+
+        # Non-existent component
+        y = '<component_ref component="jane" />'
+        self.assertBad(x + y + z, 'must reference a component')
+
+        # Two parents
+        y = ('</component_ref>'
+             '<component_ref component="c">'
+             '  <component_ref component="b" />')
+        self.assertBad(x + y + z, 'only have a single encapsulation parent')
+
+        # CellML errors propagate
+        y = ('</component_ref>'
+             '<component_ref component="b">'
+             '  <component_ref component="a" />')
+        self.assertBad(x + y + z, 'hierarchy can not be circular')
+
+    def test_group_relationship_ref(self):
+        # Tests parsing a relationsip_ref element.
+
+        # Valid has already been checked
+
+        x = ('<component name="a" />'
+             '<component name="b" />'
+             '<group>'
+             '  <component_ref component="a">'
+             '    <component_ref component="b" />'
+             '  </component_ref>')
+        z = ('</group>')
+
+        # Containment is ok but ignored
+        y = '<relationship_ref relationship="containment" />'
+        m = self.parse(x + y + z)
+        self.assertIsNone(m['a'].parent())
+        self.assertIsNone(m['b'].parent())
+
+        # Relationship in other namespace is allowed but ignored
+        y = ('<relationship_ref'
+             '   xmlns:zippy="http://example.com"'
+             '   zippy:relationship="a-loose-affiliation" />')
+        m = self.parse(x + y + z)
+        self.assertIsNone(m['a'].parent())
+        self.assertIsNone(m['b'].parent())
+
+        # Only containment and encapsulation exist within CellML
+        y = '<relationship_ref relationship="equal" />'
+        self.assertBad(x + y + z, 'Unknown relationship type')
+
+        # Multiple relationship types are allowed
+        y = ('<relationship_ref relationship="encapsulation" />'
+             '<relationship_ref relationship="containment" />')
+        m = self.parse(x + y + z)
+        self.assertIsNone(m['a'].parent())
+        self.assertEqual(m['b'].parent(), m['a'])
+
+        # Multiple named containment relationship types are allowed
+        y = ('<relationship_ref relationship="containment" name="x" />'
+             '<relationship_ref relationship="containment" />')
+        m = self.parse(x + y + z)
+        self.assertIsNone(m['a'].parent())
+        self.assertIsNone(m['b'].parent())
+
+        # Duplicate relationships are not allowed
+        y = ('<relationship_ref relationship="containment" />'
+             '<relationship_ref relationship="containment" />')
+        self.assertBad(x + y + z, 'must have a unique pair')
+        y = ('<relationship_ref relationship="containment" name="xx" />'
+             '<relationship_ref relationship="containment" name="xx" />')
+        self.assertBad(x + y + z, 'must have a unique pair')
+
+        # Name must be a valid identifier
+        y = '<relationship_ref relationship="containment" name="123" />'
+        self.assertBad(x + y + z, 'valid CellML identifier')
+
+        # Encapsulation can't be named
+        y = '<relationship_ref relationship="encapsulation" name="betty" />'
+        self.assertBad(x + y + z, 'may not define a name')
+
+    def test_model(self):
+        # Tests parsing a model element.
+
+        # Valid one is already tested
+
+        # Invalid namespace
+        x = '<?xml version="1.0" encoding="UTF-8"?>'
+        y = '<model name="x" xmlns="http://example.com" />'
+        self.assertRaisesRegex(
+            parser.CellMLParsingError, 'must be in CellML',
+            parser.parse_string, x + y)
+
+        # Not a model
+        x = '<?xml version="1.0" encoding="UTF-8"?>'
+        y = '<module name="x" xmlns="http://www.cellml.org/cellml/1.0#" />'
+        self.assertRaisesRegex(
+            parser.CellMLParsingError, 'must be a CellML model',
+            parser.parse_string, x + y)
+
+        # No name
+        x = '<?xml version="1.0" encoding="UTF-8"?>'
+        y = '<model xmlns="http://www.cellml.org/cellml/1.0#" />'
+        self.assertRaisesRegex(
+            parser.CellMLParsingError, 'Model element must have a name',
+            parser.parse_string, x + y)
+
+        # CellML API errors are wrapped
+        x = '<?xml version="1.0" encoding="UTF-8"?>'
+        y = '<model name="123" xmlns="http://www.cellml.org/cellml/1.0#" />'
+        self.assertRaisesRegex(
+            parser.CellMLParsingError, 'valid CellML identifier',
+            parser.parse_string, x + y)
+
+        # Too many free variables
+        self.assertBad(
+            '<component name="a">'
+            '  <variable name="x" units="dimensionless" initial_value="0.1" />'
+            '  <variable name="y" units="dimensionless" initial_value="2.3" />'
+            '  <variable name="time1" units="dimensionless" />'
+            '  <variable name="time2" units="dimensionless" />'
+            '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '    <apply>'
+            '      <eq />'
+            '      <apply>'
+            '        <diff/>'
+            '        <bvar>'
+            '          <ci>time1</ci>'
+            '        </bvar>'
+            '        <ci>x</ci>'
+            '      </apply>'
+            '      <cn cellml:units="dimensionless">1</cn>'
+            '    </apply>'
+            '    <apply>'
+            '      <eq />'
+            '      <apply>'
+            '        <diff/>'
+            '        <bvar>'
+            '          <ci>time2</ci>'
+            '        </bvar>'
+            '        <ci>y</ci>'
+            '      </apply>'
+            '      <cn cellml:units="dimensionless">2</cn>'
+            '    </apply>'
+            '  </math>'
+            '</component>',
+            'derivatives with respect to more than one variable')
+
+    def test_parse_file(self):
+        # Tests the parse file method
+
+        # Parse a valid file
+        m = self.parse_in_file('<component name="a" />')
+        self.assertIn('a', m)
+
+        # Parse invalid XML: errors must be wrapped
+        self.assertRaisesRegex(
+            parser.CellMLParsingError,
+            'Unable to parse XML',
+            self.parse_in_file,
+            '<component',
+        )
+
+    def test_parse_string(self):
+        # Tests the parse string method
+
+        # Valid version is already tested
+
+        # Parse invalid XML: errors must be wrapped
+        self.assertRaisesRegex(
+            parser.CellMLParsingError,
+            'Unable to parse XML',
+            parser.parse_string,
+            'Hello there',
+        )
 
     def test_text_in_elements(self):
         # Test for text inside (and after) elements

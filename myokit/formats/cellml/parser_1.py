@@ -42,8 +42,7 @@ def parse_string(text):
 
     Raises a :class:`CellMLParsingError` if anything goes wrong.
     """
-    import xml.etree.ElementTree as etree   # lxml makes this difficult
-    return CellMLParser().parse(etree.fromstring(text))
+    return CellMLParser().parse_string(text)
 
 
 class CellMLParsingError(myokit.ImportError):
@@ -93,15 +92,17 @@ class CellMLParser(object):
                     element)
 
             # Check if allowed
+            ns = split(child.tag)[0]
             if str(child.tag) in allowed:
                 continue
-            if split(child.tag)[0] == self._ns:
+            if ns == self._ns:
                 raise CellMLParsingError(
                     'Unexpected content type in ' + self._tag(element, name)
                     + ', found element of type ' + self._tag(child) + '.',
                     child)
-            else:
+            elif ns != cellml.NS_MATHML:
                 # Check if CellML appearing in non-CellML elements
+                # But leave checking inside MathML for later
                 self._check_for_cellml_in_extensions(child)
 
         # Check attributes
@@ -193,6 +194,21 @@ class CellMLParser(object):
 
         # Parse content
         return self.parse(tree.getroot())
+
+    def parse_string(self, text):
+        """
+        Parses and validates the CellML XML in the string ``text`` and returns
+        a CellML model.
+        """
+        # Read string
+        import xml.etree.ElementTree as etree   # lxml makes this difficult
+        try:
+            root = etree.fromstring(text)
+        except Exception as e:
+            raise CellMLParsingError('Unable to parse XML: ' + str(e))
+
+        # Parse content
+        return self.parse(root)
 
     def _parse_component(self, element, model):
         """
@@ -383,212 +399,6 @@ class CellMLParser(object):
         # Check allowed content
         self._check_allowed_content(element, [], ['variable_1', 'variable_2'])
 
-    def _parse_math(self, element, component):
-        """
-        Parses a mathml:math ``element``, adding equations to the variables of
-        the given ``component``.
-        """
-
-        # Get variables from component
-        def variable_factory(name, element):
-            try:
-                var = component.variable(name)
-            except KeyError:
-                raise CellMLParsingError(
-                    'Variable references in equation must name a variable from'
-                    ' the local component (4.4.2.1).', element)
-
-            return myokit.Name(var)
-
-        # Create numbers with units
-        attr = self._join('units')
-
-        def number_factory(value, element):
-            # Get units attribute
-            try:
-                units = element.attrib[attr]
-            except KeyError:
-                raise CellMLParsingError(
-                    'Numbers inside MathML must define a cellml:units'
-                    ' attribute (4.4.3.1).', element)
-
-            # Find units in component
-            try:
-                units = component.find_units(units)
-            except KeyError:
-                raise CellMLParsingError(
-                    'Unknown unit "' + str(units) + '"referenced inside a'
-                    ' MathML equation (4.4.3.2).')
-
-            # Create and return
-            return myokit.Number(value, units.myokit_unit())
-
-        # Create parser
-        p = myokit.formats.mathml.MathMLParser(
-            variable_factory, number_factory, self._free_vars)
-
-        # Iterate over applies, allowing for applies nested inside <semantics>
-        # elements
-        todo = collections.deque([x for x in element])
-        while todo:
-            child = todo.popleft()
-
-            # Check each child is in MathML namespace
-            ns, el = split(child.tag)
-            if ns != cellml.NS_MATHML:
-                raise CellMLParsingError(
-                    'The contents of a mathml:math element must be in the'
-                    ' mathml namespace, found "' + str(child.tag) + '" inside '
-                    + str(component) + '.', child)
-
-            # Ignore annotations
-            if el in ['annotation', 'annotation-xml']:
-                continue
-
-            # Look inside of semantics elements
-            if el == 'semantics':
-                todo.appendleft(reverse([x for x in child]))
-                continue
-
-            # If it isn't these it must be an apply
-            if el != 'apply':
-                raise CellMLParsingError(
-                    'Unexpected contents in mathml:math, found mathml:' + el
-                    + ' inside maths for ' + str(component) + '.', child)
-
-            # Parse
-            eq = p.parse(child)
-            if not isinstance(eq, myokit.Equal):
-                raise CellMLParsingError(
-                    'Unexpected element in MathML, expecing a list of'
-                    ' equations, got ' + self._tag(child) + '.', child)
-            lhs, rhs = eq
-
-            # Check lhs
-            if isinstance(lhs, myokit.Derivative):
-                lhs.var().set_is_state(True)
-            elif not isinstance(lhs, myokit.Name):
-                raise CellMLParsingError(
-                    'Only models in "assignment-form" are supported: Each'
-                    ' equation must have either a single variable or a'
-                    ' derivative of a single variable as its left-hand side,'
-                    ' and each variable may only appear on a left-hand side'
-                    ' once.', child)
-
-            # Set rhs
-            lhs.var().set_rhs(rhs)
-
-    def _parse_model(self, element):
-        """
-        Parses a CellML model element.
-
-        Parsing occurs in the following order
-
-        - [x] Create model
-        - [x] Add model units
-        - [x] Create components
-        - [x] Add component units
-        - [x] Create variables, set interface, initial value, and cmeta id
-        - [x] Add encapsulation relations
-        - [x] Add connections
-        - [x] Parse and add equations
-        - [ ] Read CellML meta data
-        - [ ] Read RDF "is" annotations
-        - [ ] Imports
-
-        """
-        # Handle document-level validation here.
-
-        # Check namespace
-        ns, el = split(element.tag)
-        if ns == cellml.NS_CELLML_1_0:
-            version = '1.0'
-        elif ns == cellml.NS_CELLML_1_1:
-            version = '1.1'
-        else:
-            raise CellMLParsingError(
-                'Root node must be in CellML 1.0 or 1.1 namespace.', element)
-
-        # Store namespace
-        self._ns = ns
-
-        # Check root element is a model
-        if el != 'model':
-            raise CellMLParsingError(
-                'Root node must be a CellML model element.', element)
-
-        # Check name is present
-        try:
-            name = element.attrib['name']
-        except KeyError:
-            raise CellMLParsingError(
-                'Model element must have a name attribute (3.4.1.1).', element)
-
-        # Create model (validates name)
-        try:
-            model = cellml.Model(name, version)
-
-            # Check cmeta id
-            cmeta_id = self._check_cmeta_id(element)
-            if cmeta_id:
-                model.set_cmeta_id(cmeta_id)
-
-        except cellml.CellMLError as e:
-            raise CellMLParsingError(str(e), element)
-
-        # Check for imports
-        im = element.find(self._join('import'))
-        if im is not None:
-            raise CellMLParsingError('Imports are not supported.', im)
-
-        # Check allowed content
-        self._check_allowed_content(
-            element,
-            ['component', 'connection', 'group', 'units'],
-            ['name'],
-            name,
-        )
-
-        # Create model units
-        for child in self._sort_units(element):
-            self._parse_units(child, model)
-
-        # Create components
-        components = element.findall(self._join('component'))
-        for child in components:
-            self._parse_component(child, model)
-
-        # Create encapsulation hierarchy
-        for child in element.findall(self._join('group')):
-            self._parse_group(child, model)
-
-        # Add connections
-        connected = set()
-        for child in element.findall(self._join('connection')):
-            self._parse_connection(child, model, connected)
-
-        # Add equations
-        for child in components:
-            component = model.component(child.attrib['name'])
-            for math in child.findall(self._join('math', cellml.NS_MATHML)):
-                self._parse_math(math, component)
-
-        # Check number of free variables
-        self._free_vars = set([x.var().source() for x in self._free_vars])
-        if len(self._free_vars) > 1:
-            raise CellMLParsingError(
-                'Models that take derivatives with respect to more than one'
-                ' variable are not supported.')
-
-        elif len(self._free_vars) == 1:
-            # Set free variable
-            model.set_free_variable(self._free_vars.pop())
-
-        # Perform final validation and return
-        model.validate()
-
-        return model
-
     def _parse_group(self, element, model):
         """
         Parses a group ``element`` and updates components in the given
@@ -733,6 +543,213 @@ class CellMLParser(object):
 
         # Check allowed content
         self._check_allowed_content(element, [], ['relationship', 'name'])
+
+    def _parse_math(self, element, component):
+        """
+        Parses a mathml:math ``element``, adding equations to the variables of
+        the given ``component``.
+        """
+
+        # Get variables from component
+        def variable_factory(name, element):
+            try:
+                var = component.variable(name)
+            except KeyError:
+                raise CellMLParsingError(
+                    'Variable references in equation must name a variable from'
+                    ' the local component (4.4.2.1).', element)
+
+            return myokit.Name(var)
+
+        # Create numbers with units
+        attr = self._join('units')
+
+        def number_factory(value, element):
+            # Get units attribute
+            try:
+                units = element.attrib[attr]
+            except KeyError:
+                raise CellMLParsingError(
+                    'Numbers inside MathML must define a cellml:units'
+                    ' attribute (4.4.3.1).', element)
+
+            # Find units in component
+            try:
+                units = component.find_units(units)
+            except cellml.CellMLError:
+                raise CellMLParsingError(
+                    'Unknown unit "' + str(units) + '" referenced inside a'
+                    ' MathML equation (4.4.3.2).')
+
+            # Create and return
+            return myokit.Number(value, units.myokit_unit())
+
+        # Create parser
+        p = myokit.formats.mathml.MathMLParser(
+            variable_factory, number_factory, self._free_vars)
+
+        # Iterate over applies, allowing for applies nested inside <semantics>
+        # elements
+        todo = collections.deque([x for x in element])
+        while todo:
+            child = todo.popleft()
+
+            # Check each child is in MathML namespace
+            ns, el = split(child.tag)
+            if ns != cellml.NS_MATHML:
+                raise CellMLParsingError(
+                    'The contents of a mathml:math element must be in the'
+                    ' mathml namespace, found "' + str(child.tag) + '" inside '
+                    + str(component) + '.', child)
+
+            # Ignore annotations
+            if el in ['annotation', 'annotation-xml']:
+                continue
+
+            # Look inside of semantics elements
+            if el == 'semantics':
+                todo.extendleft(reversed(child))
+                continue
+
+            # If it isn't these it must be an apply
+            if el != 'apply':
+                raise CellMLParsingError(
+                    'Unexpected contents in mathml:math. Expecting'
+                    ' mathml:apply but found mathml:' + el + ' inside maths'
+                    ' for ' + str(component) + '.', child)
+
+            # Parse
+            eq = p.parse(child)
+            if not isinstance(eq, myokit.Equal):
+                raise CellMLParsingError(
+                    'Unexpected element in MathML, expecting a list of'
+                    ' equations, got ' + self._tag(child) + '.', child)
+            lhs, rhs = eq
+
+            # Check lhs
+            if isinstance(lhs, myokit.Derivative):
+                lhs.var().set_is_state(True)
+            elif not isinstance(lhs, myokit.Name):
+                raise CellMLParsingError(
+                    'Only models in "assignment form" are supported: Each'
+                    ' equation must have either a single variable or a'
+                    ' derivative of a single variable as its left-hand side,'
+                    ' and each variable may only appear on a left-hand side'
+                    ' once.', child)
+
+            # Set rhs
+            lhs.var().set_rhs(rhs)
+
+    def _parse_model(self, element):
+        """
+        Parses a CellML model element.
+
+        Parsing occurs in the following order
+
+        - [x] Create model
+        - [x] Add model units
+        - [x] Create components
+        - [x] Add component units
+        - [x] Create variables, set interface, initial value, and cmeta id
+        - [x] Add encapsulation relations
+        - [x] Add connections
+        - [x] Parse and add equations
+        - [ ] Read CellML meta data
+        - [ ] Read RDF "is" annotations
+        - [ ] Imports
+
+        """
+        # Handle document-level validation here.
+
+        # Check namespace
+        ns, el = split(element.tag)
+        if ns == cellml.NS_CELLML_1_0:
+            version = '1.0'
+        elif ns == cellml.NS_CELLML_1_1:
+            version = '1.1'
+        else:
+            raise CellMLParsingError(
+                'Root node must be in CellML 1.0 or 1.1 namespace.', element)
+
+        # Store namespace
+        self._ns = ns
+
+        # Check root element is a model
+        if el != 'model':
+            raise CellMLParsingError(
+                'Root node must be a CellML model element.', element)
+
+        # Check name is present
+        try:
+            name = element.attrib['name']
+        except KeyError:
+            raise CellMLParsingError(
+                'Model element must have a name attribute (3.4.1.1).', element)
+
+        # Create model (validates name)
+        try:
+            model = cellml.Model(name, version)
+
+            # Check cmeta id
+            cmeta_id = self._check_cmeta_id(element)
+            if cmeta_id:
+                model.set_cmeta_id(cmeta_id)
+
+        except cellml.CellMLError as e:
+            raise CellMLParsingError(str(e), element)
+
+        # Check for imports
+        im = element.find(self._join('import'))
+        if im is not None:
+            raise CellMLParsingError('Imports are not supported.', im)
+
+        # Check allowed content
+        self._check_allowed_content(
+            element,
+            ['component', 'connection', 'group', 'units'],
+            ['name'],
+            name,
+        )
+
+        # Create model units
+        for child in self._sort_units(element):
+            self._parse_units(child, model)
+
+        # Create components
+        components = element.findall(self._join('component'))
+        for child in components:
+            self._parse_component(child, model)
+
+        # Create encapsulation hierarchy
+        for child in element.findall(self._join('group')):
+            self._parse_group(child, model)
+
+        # Add connections
+        connected = set()
+        for child in element.findall(self._join('connection')):
+            self._parse_connection(child, model, connected)
+
+        # Add equations
+        for child in components:
+            component = model.component(child.attrib['name'])
+            for math in child.findall(self._join('math', cellml.NS_MATHML)):
+                self._parse_math(math, component)
+
+        # Check number of free variables
+        self._free_vars = set([x.var().source() for x in self._free_vars])
+        if len(self._free_vars) > 1:
+            raise CellMLParsingError(
+                'Models that take derivatives with respect to more than one'
+                ' variable are not supported.')
+
+        elif len(self._free_vars) == 1:
+            # Set free variable
+            model.set_free_variable(self._free_vars.pop())
+
+        # Perform final validation and return
+        model.validate()
+
+        return model
 
     def _parse_unit(self, element, owner):
         """
