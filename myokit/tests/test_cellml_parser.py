@@ -116,7 +116,7 @@ class TestCellMLParser(unittest.TestCase):
         # Component must have name
         self.assertBad('<component />', 'Component element must have a name')
 
-        # CellML errors are passed through
+        # CellML errors are converted
         self.assertBad('<component name="1" />', 'identifier')
 
         # Reactions are not supported
@@ -145,8 +145,7 @@ class TestCellMLParser(unittest.TestCase):
              '</component>'
              '<component name="b">'
              '  <variable name="y" units="volt" public_interface="out" />'
-             '</component>'
-        )
+             '</component>')
 
         # Parse valid connection
         y = ('<connection>'
@@ -174,8 +173,7 @@ class TestCellMLParser(unittest.TestCase):
              '</component>'
              '<component name="b">'
              '  <variable name="y" units="volt" public_interface="out" />'
-             '</component>'
-        )
+             '</component>')
 
         # Valid connection is already checked
 
@@ -227,8 +225,7 @@ class TestCellMLParser(unittest.TestCase):
              '  <variable name="y" units="volt" public_interface="out" />'
              '</component>'
              '<connection>'
-             '  <map_components component_1="a" component_2="b" />'
-        )
+             '  <map_components component_1="a" component_2="b" />')
         z = ('</connection>')
 
         # Valid connection is already checked
@@ -258,9 +255,11 @@ class TestCellMLParser(unittest.TestCase):
              '</component>'
              '<connection>'
              '  <map_components component_1="a" component_2="b" />'
-             '  <map_variable variable_1="x" variable_2="y" />'
+             '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
-        self.assertRaises(parser.CellMLParsingError, self.parse, q)
+        self.assertRaisesRegex(
+            parser.CellMLParsingError, 'Invalid connection',
+            self.parse, q)
 
     def test_evaluated_derivatives(self):
         # Test parsing a simple model; compare RHS derivatives to known ones
@@ -481,6 +480,10 @@ class TestCellMLParser(unittest.TestCase):
         y = '<relationship_ref relationship="equal" />'
         self.assertBad(x + y + z, 'Unknown relationship type')
 
+        # Relationship attribute must be present
+        y = '<relationship_ref />'
+        self.assertBad(x + y + z, 'must define a relationship attribute')
+
         # Multiple relationship types are allowed
         y = ('<relationship_ref relationship="encapsulation" />'
              '<relationship_ref relationship="containment" />')
@@ -511,6 +514,17 @@ class TestCellMLParser(unittest.TestCase):
         y = '<relationship_ref relationship="encapsulation" name="betty" />'
         self.assertBad(x + y + z, 'may not define a name')
 
+    def test_import(self):
+        # Import elements are not supported
+
+        x = ('<?xml version="1.0" encoding="UTF-8"?>'
+             '<model name="x" xmlns="http://www.cellml.org/cellml/1.1#">'
+             '  <import />'
+             '</model>')
+        self.assertRaisesRegex(
+            parser.CellMLParsingError, 'Imports are not supported',
+            parser.parse_string, x)
+
     def test_model(self):
         # Tests parsing a model element.
 
@@ -523,22 +537,27 @@ class TestCellMLParser(unittest.TestCase):
             parser.CellMLParsingError, 'must be in CellML',
             parser.parse_string, x + y)
 
+        # CellML 1.0 and 1.1 are ok
+        y = '<model name="x" xmlns="http://www.cellml.org/cellml/1.0#" />'
+        m = parser.parse_string(x + y)
+        self.assertEqual(m.version(), '1.0')
+        y = '<model name="x" xmlns="http://www.cellml.org/cellml/1.1#" />'
+        m = parser.parse_string(x + y)
+        self.assertEqual(m.version(), '1.1')
+
         # Not a model
-        x = '<?xml version="1.0" encoding="UTF-8"?>'
         y = '<module name="x" xmlns="http://www.cellml.org/cellml/1.0#" />'
         self.assertRaisesRegex(
             parser.CellMLParsingError, 'must be a CellML model',
             parser.parse_string, x + y)
 
         # No name
-        x = '<?xml version="1.0" encoding="UTF-8"?>'
         y = '<model xmlns="http://www.cellml.org/cellml/1.0#" />'
         self.assertRaisesRegex(
             parser.CellMLParsingError, 'Model element must have a name',
             parser.parse_string, x + y)
 
         # CellML API errors are wrapped
-        x = '<?xml version="1.0" encoding="UTF-8"?>'
         y = '<model name="123" xmlns="http://www.cellml.org/cellml/1.0#" />'
         self.assertRaisesRegex(
             parser.CellMLParsingError, 'valid CellML identifier',
@@ -622,6 +641,123 @@ class TestCellMLParser(unittest.TestCase):
         self.assertBad('<wooster />', 'Unexpected content type')
         self.assertBad(
             '<component name="c" food="nice" />', 'Unexpected attribute')
+
+    def test_unit(self):
+        # Test parsing a unit row
+
+        # Parse a valid set of units (that needs sorting)
+        x = ('<units name="megawooster">'
+             '  <unit units="wooster" prefix="mega" />'
+             '</units>'
+             '<units name="wooster">'
+             '  <unit units="volt"'
+             '        prefix="milli"'
+             '        exponent="2"'
+             '        multiplier="1.2" />'
+             '</units>')
+        m = self.parse(x)
+        wooster_ref = m.find_units('wooster')
+        wooster_myo = ((myokit.units.volt * 1e-3) ** 2) * 1.2
+        self.assertEqual(wooster_myo, wooster_ref.myokit_unit())
+        megawooster_ref = m.find_units('megawooster')
+        self.assertEqual(wooster_myo * 1e6, megawooster_ref.myokit_unit())
+
+        # Zero offsets are OK
+        x = ('<units name="wooster">'
+             '  <unit units="volt" offset="0.0" />'
+             '</units>')
+        m = self.parse(x)
+        self.assertEqual(
+            m.find_units('wooster').myokit_unit(), myokit.units.volt)
+
+        # Non-zero offsets are not supported
+        x = ('<units name="wooster">'
+             '  <unit units="volt" offset="0.1" />'
+             '</units>')
+        self.assertBad(x, 'non-zero offsets are not supported')
+
+        # Offset must be a number
+        x = ('<units name="wooster">'
+             '  <unit units="volt" offset="hello" />'
+             '</units>')
+        self.assertBad(x, 'must be a real number')
+
+        # Test that CellML errors are wrapped
+        x = ('<units name="wooster">'
+             '  <unit units="volt" prefix="woopsie" />'
+             '</units>')
+        self.assertBad(x, 'must be a string from the list')
+
+        # No units definition
+        x = ('<units name="wooster">'
+             '  <unit />'
+             '</units>')
+        self.assertBad(x, 'must have a units attribute')
+
+    def test_units(self):
+        # Test parsing a units definition
+
+        # Valid has already been testsed
+
+        # Base units attribute is allowed be no
+        x = ('<units name="wooster" base_units="no">'
+             '  <unit units="volt" />'
+             '</units>')
+        m = self.parse(x)
+        self.assertEqual(
+            m.find_units('wooster').myokit_unit(), myokit.units.volt)
+
+        # Base units attribute must be yes or no
+        x = ('<units name="wooster" base_units="bjork">'
+             '  <unit units="volt" offset="0.0" />'
+             '</units>')
+        self.assertBad(x, 'must be either "yes" or "no"')
+
+        # New base units are not supported
+        x = '<units name="wooster" base_units="yes" />'
+        self.assertBad(x, 'Defining new base units is not supported')
+
+        # CellML errors are converted to parse errors
+        x = '<units name="123"><unit units="volt" /></units>'
+        self.assertBad(x, 'valid CellML identifier')
+
+        # Missing name
+        x = '<units><unit units="volt" /></units>'
+        self.assertBad(x, 'must have a name')
+
+        # Name overlaps with predefined
+        x = '<units name="meter"><unit units="volt" /></units>'
+        self.assertBad(x, 'overlaps with a predefined name')
+
+        # Duplicate name (handled in sorting)
+        x = '<units name="wooster"><unit units="volt" /></units>'
+        self.assertBad(x + x, 'Duplicate units definition')
+
+        # Missing units definitions
+        x = ('<units name="wooster"><unit units="fluther" /></units>')
+        self.assertBad(x, 'Unable to resolve network of units')
+
+        # Circular units definitions
+        x = ('<units name="wooster"><unit units="fluther" /></units>'
+             '<units name="fluther"><unit units="wooster" /></units>')
+        self.assertBad(x, 'Unable to resolve network of units')
+
+    def test_variable(self):
+        # Tests parsing variables
+
+        # Valid has already been tested
+
+        # Must have a name
+        x = '<component name="a"><variable units="volt"/></component>'
+        self.assertBad(x, 'must have a name attribute')
+
+        # Must have units
+        x = '<component name="a"><variable name="a" /></component>'
+        self.assertBad(x, 'must have a units attribute')
+
+        # CellML errors are converted to parsing errors
+        x = '<component name="a"><variable name="1" units="volt"/></component>'
+        self.assertBad(x, 'valid CellML identifier')
 
 
 if __name__ == '__main__':

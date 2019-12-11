@@ -140,7 +140,6 @@ class TestCellMLComponent(unittest.TestCase):
 
         # Test getting
         self.assertIs(c.variable('v'), v)
-        self.assertIs(c['v'], v)
 
         # Test adding duplicate
         self.assertRaisesRegex(
@@ -161,6 +160,21 @@ class TestCellMLComponent(unittest.TestCase):
         m = cellml.Model('m')
         c = m.add_component('trixie')
         self.assertIs(c.name(), 'trixie')
+
+    def test_sequence_interface(self):
+        # Tests the sequence interface on a component
+
+        m = cellml.Model('m')
+        a = m.add_component('Stacey')
+        b = m.add_component('Jane')
+        c = m.add_component('Mary_jo_lisa')
+        self.assertIs(a, m['Stacey'])
+        self.assertIs(b, m['Jane'])
+        self.assertIs(c, m['Mary_jo_lisa'])
+        self.assertIn('Stacey', m)
+        self.assertIn('Jane', m)
+        self.assertIn('Mary_jo_lisa', m)
+        self.assertEqual(len(m), 3)
 
     def test_set_get_parent(self):
         # Tests setting and getting of parents
@@ -250,7 +264,6 @@ class TestCellMLModel(unittest.TestCase):
 
         # Test getting
         self.assertIs(m.component('c'), c)
-        self.assertIs(m['c'], c)
 
         # Test adding duplicate
         self.assertRaisesRegex(
@@ -476,6 +489,22 @@ class TestCellMLModel(unittest.TestCase):
         z = cellml.Model('mm').add_component('c').add_variable('z', 'liter')
         self.assertRaisesRegex(
             ValueError, 'from this model', m.set_free_variable, z)
+
+    def test_sequence_interface(self):
+        # Tests the sequence interface on a model
+
+        m = cellml.Model('m')
+        a = m.add_component('Stacey')
+        x = a.add_variable('x', 'volt')
+        y = a.add_variable('y', 'volt')
+        z = a.add_variable('z', 'volt')
+        self.assertIs(a['x'], x)
+        self.assertIs(a['y'], y)
+        self.assertIs(a['z'], z)
+        self.assertIn('x', a)
+        self.assertIn('y', a)
+        self.assertIn('z', a)
+        self.assertEqual(len(a), 3)
 
     def test_string_conversion(self):
         # Tests Model.__str__

@@ -475,11 +475,8 @@ class CellMLParser(object):
                     + str(component.parent()) + ' and ' + str(parent)
                     + ' (6.4.3.2).', element)
 
-            # Set parent
-            try:
-                component.set_parent(parent)
-            except cellml.CellMLError as e:
-                raise CellMLParsingError(str(e), element)
+            # Set parent (won't raise CellMLErrors)
+            component.set_parent(parent)
 
         # Check child component refs
         for child in element.findall(self._join('component_ref')):
@@ -497,10 +494,9 @@ class CellMLParser(object):
         self._check_cmeta_id(element)
 
         # Check relationship is specified
-        try:
-            ns = None
-            rel = element.attrib['relationship']
-        except KeyError:
+        ns = None
+        rel = element.attrib.get('relationship', None)
+        if rel is None:
             # Check for relationship attribute in other namespace
             for at in element.attrib:
                 ns, at = split(at)
