@@ -195,6 +195,23 @@ class ExpressionTest(unittest.TestCase):
         self.assertEqual(x.pystr(use_numpy=False), '3.0 * math.sqrt(v)')
         self.assertEqual(x.pystr(use_numpy=True), '3.0 * numpy.sqrt(v)')
 
+    def test_sequence_interface(self):
+        # Tests the Expression class's sequence interface
+
+        x = myokit.parse_expression('1 + 2')
+        self.assertEqual(len(x), 2)                 # __len__
+        self.assertIn(myokit.Number(1), x)          # __contains__
+        self.assertIn(myokit.Number(2), x)
+        self.assertEqual(x[0], myokit.Number(1))    # __getitem__
+        self.assertEqual(x[1], myokit.Number(2))
+
+        y = [op for op in x]                        # __iter__
+        self.assertEqual(len(y), 2)
+        self.assertIn(myokit.Number(1), y)
+        self.assertIn(myokit.Number(2), y)
+        self.assertEqual(y[0], myokit.Number(1))
+        self.assertEqual(y[1], myokit.Number(2))
+
     def test_string_conversion(self):
         # Tests __str__ and __repr__
 
