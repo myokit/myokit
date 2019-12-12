@@ -158,7 +158,6 @@ myokit
 - :class:`myokit.Timeout`
 - :class:`myokit.Unit`
 - :class:`myokit.UnresolvedReferenceError`
-- :class:`myokit.UnsupportedFunction`
 - :class:`myokit.UnusedVariableError`
 - :class:`myokit.UserFunction`
 - :class:`myokit.Variable`
