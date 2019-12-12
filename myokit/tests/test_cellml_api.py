@@ -13,6 +13,8 @@ import unittest
 import myokit
 import myokit.formats.cellml.cellml_1 as cellml
 
+from shared import LogCapturer
+
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
@@ -454,6 +456,26 @@ class TestCellMLModel(unittest.TestCase):
         self.assertIn('x', mm['a'])
         self.assertIn('y', mm['d'])
 
+        # Create model with pass-through values that requires unit conversion
+        m = cellml.Model('m')
+        m.add_units('millivolt', myokit.units.volt * 1e-3)
+        m.add_units('kilovolt', myokit.units.volt * 1e3)
+        a = m.add_component('a')
+        b = m.add_component('b')
+        c = m.add_component('c')
+        c.set_parent(b)
+        ax = a.add_variable('x', 'volt', 'out', 'none')
+        bx = b.add_variable('x', 'millivolt', 'in', 'out')
+        cx = c.add_variable('x', 'kilovolt', 'in', 'none')
+        m.add_connection(ax, bx)
+        m.add_connection(bx, cx)
+        ax.set_rhs(myokit.Number(1, myokit.units.V))
+
+        # Convert and check
+        with LogCapturer() as c:
+            mm = m.myokit_model()
+            self.assertIn('Unit conversion required', c.text())
+
     def test_name(self):
         # Tests Model.name().
 
@@ -520,24 +542,21 @@ class TestCellMLModel(unittest.TestCase):
         c = m.add_component('c')
         x = c.add_variable('x', 'mole')
         y = c.add_variable('y', 'liter')
-
-        # This triggers a warning
-        #self.assertRaisesRegex(
-        #    cellml.CellMLError,
-        #    'More than one variable does not have a value',
-        #    m.validate)
-        m.validate()
+        with LogCapturer() as c:
+            m.validate()
+            self.assertIn(
+                'More than one variable does not have a value',
+                c.text())
 
         # Free variable has a value, but other value does not
         x.set_initial_value(0.1)
         m.validate()
         m.set_free_variable(x)
-
-        # This triggers a warning
-        #self.assertRaisesRegex(
-        #    cellml.CellMLError, 'No value is defined for the variable "y"',
-        #    m.validate)
-        m.validate()
+        with LogCapturer() as c:
+            m.validate()
+            self.assertIn(
+                'No value is defined for the variable "y"',
+                c.text())
 
         # Free variable must be known if state is used
         y.set_rhs(myokit.Name(x))
@@ -735,11 +754,9 @@ class TestCellMLVariable(unittest.TestCase):
         ax = a.add_variable('x', 'meter', 'in')
         bx = b.add_variable('x', 'meter', 'out')
         bx.set_initial_value(3)
-
-        # This triggers a warning
-        # self.assertRaisesRegex(
-        #    cellml.CellMLError, 'not connected', m.validate)
-        m.validate()
+        with LogCapturer() as c:
+            m.validate()
+            self.assertIn('not connected', c.text())
 
         # States must define two values
         m.add_connection(ax, bx)
@@ -749,6 +766,10 @@ class TestCellMLVariable(unittest.TestCase):
             cellml.CellMLError, 'must have a defining equation', m.validate)
         bx.set_rhs(myokit.Number(1, 'meter'))
         m.validate()
+        bx.set_initial_value(None)
+        with LogCapturer() as c:
+            m.validate()
+            self.assertIn('has no initial value', c.text())
 
 
 class TestCellMLUnits(unittest.TestCase):
