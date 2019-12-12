@@ -663,6 +663,9 @@ def mmt_import(importer, source, target=None):
     # Import
     m = importer.model(source)
 
+    # Print any warnings
+    logger.log_warnings()
+
     # If a target is specified, save the output
     if target:
         # Save or output model to new location

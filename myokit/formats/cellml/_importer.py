@@ -52,7 +52,7 @@ class CellMLImporter(myokit.formats.Importer):
         log = self.logger()
         log.clear()
         log.clear_warnings()
-        log.log('Reading ' + str(path))
+        log.log('Importing ' + str(path))
 
         # Open XML file
         try:
@@ -85,11 +85,7 @@ class CellMLImporter(myokit.formats.Importer):
                 log.warn(warning)
 
             # Log result
-            n = len(warnings)
-            if n == 0:
-                log.log('Import successful')
-            else:
-                log.log('Import succeeded with ' + str(n) + ' warning(s).')
+            log.log('Import successful.')
 
             # Create and return Myokit model
             return cellml_model.myokit_model()
