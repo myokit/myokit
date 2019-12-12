@@ -742,6 +742,18 @@ class TestCellMLParser(unittest.TestCase):
              '<units name="fluther"><unit units="wooster" /></units>')
         self.assertBad(x, 'Unable to resolve network of units')
 
+        # Test unit resolving for shadowed units
+        x = ('<units name="wooster"><unit units="ampere" /></units>'
+             '<component name="a">'
+             '  <units name="kilowooster">'
+             '    <unit units="wooster" prefix="kilo" />'
+             '  </units>'
+             '  <units name="wooster"><unit units="volt" /></units>'
+             '</component>')
+        m = self.parse(x)
+        u = m['a'].find_units('kilowooster').myokit_unit()
+        self.assertEqual(u, myokit.units.volt * 1000)
+
     def test_variable(self):
         # Tests parsing variables
 
