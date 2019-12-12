@@ -724,7 +724,7 @@ class MathMLParser(object):
         if kind == 'real':
             # Float, specified as 123.123 (no exponent!)
             # May be in a different base than 10
-            base = element.attrib.get('base', 10)
+            base = element.attrib.get('base', '10').strip()
             try:
                 base = float(base)
             except (TypeError, ValueError):
@@ -737,7 +737,7 @@ class MathMLParser(object):
 
             # Get value
             try:
-                value = float(element.text)
+                value = float(element.text.strip())
             except ValueError:
                 raise MathMLError(
                     'Unable to convert contents of <cn> to a real number: "'
@@ -745,7 +745,7 @@ class MathMLParser(object):
 
         elif kind == 'integer':
             # Integer in any given base
-            base = element.attrib.get('base', 10)
+            base = element.attrib.get('base', '10').strip()
             try:
                 base = int(base)
             except ValueError:
@@ -755,7 +755,7 @@ class MathMLParser(object):
 
             # Get value
             try:
-                value = int(element.text, base)
+                value = int(element.text.strip(), base)
             except ValueError:
                 raise MathMLError(
                     'Unable to convert contents of <cn> to an integer: "'
@@ -765,7 +765,7 @@ class MathMLParser(object):
             # Floating point (positive, negative, exponents, etc)
 
             try:
-                value = float(element.text)
+                value = float(element.text.strip())
             except ValueError:
                 raise MathMLError(
                     'Unable to convert contents of <cn> to a real number: "'
@@ -795,7 +795,7 @@ class MathMLParser(object):
 
             # Get value
             try:
-                value = float(sig + 'e' + exp)
+                value = float(sig.strip() + 'e' + exp.strip())
             except ValueError:
                 raise MathMLError(
                     'Unable to parse number in e-notation "' + sig + 'e' + exp
@@ -824,7 +824,7 @@ class MathMLParser(object):
 
             # Get value
             try:
-                value = float(numer) / float(denom)
+                value = float(numer.strip()) / float(denom.strip())
             except ValueError:
                 raise MathMLError(
                     'Unable to parse rational number "' + numer + ' / ' + denom

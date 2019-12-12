@@ -560,6 +560,8 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Real
         x = self.p('<cn>4</cn>')
         self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn>   4  \n </cn>')
+        self.assertEqual(x, myokit.Number(4))
         x = self.p('<cn type="real">4</cn>')
         self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
@@ -568,6 +570,8 @@ class ContentMathMLParserTest(unittest.TestCase):
 
         # Real with base
         x = self.p('<cn type="real" base="10">4</cn>')
+        self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="real" base="  10  ">4</cn>')
         self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
             mathml.MathMLError, 'bases other than 10',
@@ -579,12 +583,16 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Integer
         x = self.p('<cn type="integer">4</cn>')
         self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="integer">\n4  </cn>')
+        self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unable to convert contents of <cn>',
             self.p, '<cn type="integer">barry</cn>')
 
         # Integer with base
         x = self.p('<cn type="integer" base="2">100</cn>')
+        self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="integer" base="  2  ">100</cn>')
         self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unable to parse base',
@@ -593,12 +601,18 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Double
         x = self.p('<cn type="double">4</cn>')
         self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="double">\t4\n</cn>')
+        self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
             mathml.MathMLError, 'Unable to convert contents of <cn>',
             self.p, '<cn type="double">larry</cn>')
 
         # E-notation
         x = self.p('<cn type="e-notation">40<sep />-1</cn>')
+        self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="e-notation">\n40<sep />-1</cn>')
+        self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="e-notation">40<sep />\t-1</cn>')
         self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
             mathml.MathMLError, 'e-notation should have the format',
@@ -621,6 +635,10 @@ class ContentMathMLParserTest(unittest.TestCase):
 
         # Rational
         x = self.p('<cn type="rational">16<sep />4</cn>')
+        self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="rational"> 16\t<sep />4</cn>')
+        self.assertEqual(x, myokit.Number(4))
+        x = self.p('<cn type="rational">16<sep />\n4 </cn>')
         self.assertEqual(x, myokit.Number(4))
         self.assertRaisesRegex(
             mathml.MathMLError, 'Rational number should have the format',
