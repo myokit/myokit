@@ -91,6 +91,31 @@ class CellMLImporterTest(unittest.TestCase):
             CellMLImporterError, 'Unable to parse XML',
             i.model, os.path.join(DIR_FORMATS, 'lr-1991.mmt'))
 
+    def test_warnings(self):
+        # Tests warnings are logged
+
+        # Create model that will generate warnings
+        x = ('<?xml version="1.0" encoding="UTF-8"?>'
+             '<model name="test" xmlns="http://www.cellml.org/cellml/1.0#">'
+             '<component name="a">'
+             '  <variable name="hello" units="ampere"'
+             '            public_interface="in" />'
+             '</component>'
+             '</model>')
+
+        # Write to disk and import
+        with TemporaryDirectory() as d:
+            path = d.path('test.celllml')
+            with open(path, 'w') as f:
+                f.write(x)
+
+            # Import
+            i = formats.importer('cellml')
+            i.model(path)
+
+            # Check warning was raised
+            self.assertIn('not connected', next(i.logger().warnings()))
+
 
 class CellMLExpressionWriterTest(unittest.TestCase):
     """

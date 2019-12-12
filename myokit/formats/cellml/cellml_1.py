@@ -8,7 +8,6 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import collections
-import logging
 import re
 
 import myokit
@@ -247,7 +246,7 @@ class Component(AnnotatableElement):
         """
         return self._units.values()
 
-    def _validate(self):
+    def _validate(self, warnings):
         """
         Validates this component, raising a :class:`CellMLError` if any errors
         are found.
@@ -262,7 +261,7 @@ class Component(AnnotatableElement):
 
         # Validate variables
         for v in self._variables.values():
-            v._validate()
+            v._validate(warnings)
 
     def variable(self, name):
         """
@@ -499,8 +498,9 @@ class Model(AnnotatableElement):
                     v = c.add_variable(variable.name())
                     v.set_unit(variable.units().myokit_unit())
                 elif variable.units() != variable.source().units():
-                    log = logging.getLogger(__name__)
-                    log.critical(
+                    #TODO Implement unit conversion
+                    import warnings
+                    warnings.warn(
                         'Unit conversion required for ' + str(variable) + '.')
 
         # Add equations
@@ -618,10 +618,15 @@ class Model(AnnotatableElement):
         """
         Validates this model, raising a :class:`CellMLError` if an errors are
         found.
+
+        Returns a list of warnings generated during validation.
         """
+        # Warnings
+        warnings = []
+
         # Validate components and variables
         for c in self._components.values():
-            c._validate()
+            c._validate(warnings)
 
         # Check at most one variable doesn't have a source (one free variable
         # is allowed)
@@ -636,16 +641,14 @@ class Model(AnnotatableElement):
                     states.add(v)
 
         if len(free) > 1:
-            log = logging.getLogger(__name__)
-            log.warning(
+            warnings.append(
                 'More than one variable does not have a value: ' +
                 ', '.join([str(v) for v in free]) + '.')
 
         elif self._free_variable is not None and len(free) == 1:
             free = free.pop()
             if self._free_variable is not free:
-                log = logging.getLogger(__name__)
-                log.warning(
+                warnings.append(
                     'No value is defined for the variable "'
                     + free.name() + '", but "' + self._free_variable.name()
                     + '" is listed as the free variable.')
@@ -656,6 +659,9 @@ class Model(AnnotatableElement):
                 raise CellMLError(
                     'If state variables are used, a free variable must be set'
                     ' with Model.set_free_variable().')
+
+        # Return warnings
+        return warnings
 
     def version(self):
         """
@@ -1181,7 +1187,7 @@ class Variable(AnnotatableElement):
         """
         return self._units
 
-    def _validate(self):
+    def _validate(self, warnings):
         """
         Validates this variable, raising a :class:`CellMLError` if any errors
         are found.
@@ -1191,8 +1197,7 @@ class Variable(AnnotatableElement):
         if self._public_interface == 'in' or self._private_interface == 'in':
             i = 'public' if self._public_interface == 'in' else 'private'
             if self._source is None:
-                log = logging.getLogger(__name__)
-                log.warning(
+                warnings.append(
                     str(self) + ' has ' + i + '_interface="in", but is not'
                     ' connected to a variable with an appropriate "out"')
 
@@ -1200,8 +1205,8 @@ class Variable(AnnotatableElement):
         elif self._is_state:
 
             if self._initial_value is None:
-                log = logging.getLogger(__name__)
-                log.warning('State ' + str(self) + ' has no initial value.')
+                warnings.append(
+                    'State ' + str(self) + ' has no initial value.')
 
             if self._rhs is None:
                 raise CellMLError(

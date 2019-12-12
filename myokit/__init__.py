@@ -501,7 +501,7 @@ from ._aux import (  # noqa
     # Test step
     step,
 
-    # Output masking
+    # Output capturing
     PyCapture,
     SubCapture,
 

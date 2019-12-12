@@ -13,8 +13,6 @@ import unittest
 import myokit
 import myokit.formats.cellml.cellml_1 as cellml
 
-from shared import LogCapturer
-
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
@@ -476,9 +474,11 @@ class TestCellMLModel(unittest.TestCase):
         ax.set_rhs(myokit.Number(1, myokit.units.V))
 
         # Convert and check
-        with LogCapturer() as c:
+        import warnings
+        with warnings.catch_warnings(record=True) as c:
             mm = m.myokit_model()
-            self.assertIn('Unit conversion required', c.text())
+        text = '\n'.join([str(warning) for warning in c])
+        self.assertIn('Unit conversion required', text)
 
     def test_name(self):
         # Tests Model.name().
@@ -546,21 +546,15 @@ class TestCellMLModel(unittest.TestCase):
         c = m.add_component('c')
         x = c.add_variable('x', 'mole')
         y = c.add_variable('y', 'liter')
-        with LogCapturer() as c:
-            m.validate()
-            self.assertIn(
-                'More than one variable does not have a value',
-                c.text())
+        warn = m.validate()
+        self.assertIn('More than one variable does not have a value', warn[0])
 
         # Free variable has a value, but other value does not
         x.set_initial_value(0.1)
         m.validate()
         m.set_free_variable(x)
-        with LogCapturer() as c:
-            m.validate()
-            self.assertIn(
-                'No value is defined for the variable "y"',
-                c.text())
+        warn = m.validate()
+        self.assertIn('No value is defined for the variable "y"', warn[0])
 
         # Free variable must be known if state is used
         y.set_rhs(myokit.Name(x))
@@ -764,9 +758,8 @@ class TestCellMLVariable(unittest.TestCase):
         ax = a.add_variable('x', 'meter', 'in')
         bx = b.add_variable('x', 'meter', 'out')
         bx.set_initial_value(3)
-        with LogCapturer() as c:
-            m.validate()
-            self.assertIn('not connected', c.text())
+        warn = m.validate()
+        self.assertIn('not connected', warn[0])
 
         # States must define two values
         m.add_connection(ax, bx)
@@ -777,9 +770,8 @@ class TestCellMLVariable(unittest.TestCase):
         bx.set_rhs(myokit.Number(1, 'meter'))
         m.validate()
         bx.set_initial_value(None)
-        with LogCapturer() as c:
-            m.validate()
-            self.assertIn('has no initial value', c.text())
+        warn = m.validate()
+        self.assertIn('has no initial value', warn[0])
 
 
 class TestCellMLUnits(unittest.TestCase):
