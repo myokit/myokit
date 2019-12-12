@@ -35,19 +35,6 @@ except NameError:   # pragma: no cover
 class TestCellMLParser(unittest.TestCase):
     """ Tests the CellML 1.0/1.1 parser (mostly for errors). """
 
-    '''
-    def assertBadFile(self, message, name):
-        """
-        Tests parsing the file with the given ``name`` raises a parsing
-        exception that matches ``message``.
-        """
-        self.assertRaisesRegex(
-            parser.CellMLParsingError,
-            message,
-            parser.parse_file,
-            os.path.join(DIR, 'invalid', name + '.cellml'))
-    '''
-
     def assertBad(self, xml, message):
         """
         Inserts the given ``xml`` into a <model> element, parses it, and checks
@@ -260,6 +247,68 @@ class TestCellMLParser(unittest.TestCase):
         self.assertRaisesRegex(
             parser.CellMLParsingError, 'Invalid connection',
             self.parse, q)
+
+    def test_documentation(self):
+        # Tests parsing a <documentation> tag from the cellml temp doc ns
+
+        x = """<documentation xmlns="http://cellml.org/tmp-documentation">
+          <article>
+            <articleinfo>
+            <title>Article title</title>
+            <author>
+              <firstname>Michael</firstname>
+              <surname>Clerx</surname>
+              <affiliation>
+                <shortaffil>University of Oxford</shortaffil>
+              </affiliation>
+            </author>
+            </articleinfo>
+            <section id="sec_status">
+              <title>Model Status</title>
+              <para>This model is fake.</para>
+            </section>
+            <sect1 id="sec_structure">
+              <para>
+                This is a paragraph.
+              </para>
+              <informalfigure float="0" id="fig_cell_diagram">
+                <mediaobject>
+                  <imageobject>
+                    <objectinfo>
+                      <title>schematic diagram</title>
+                    </objectinfo>
+                    <imagedata fileref="fake-model.png"/>
+                  </imageobject>
+                </mediaobject>
+                <caption>A schematic diagram describing the model.</caption>
+              </informalfigure>
+            </sect1>
+          </article>
+        </documentation>
+        <documentation xmlns="http://cellml.org/tmp-documentation">
+          Here's some extra documentation.
+        </documentation>"""
+        t = '\n'.join([
+            'Article title',
+            '',
+            'Michael',
+            'Clerx',
+            '',
+            'University of Oxford',
+            '',
+            'Model Status',
+            'This model is fake.',
+            '',
+            'This is a paragraph.',
+            '',
+            'schematic diagram',
+            '',
+            'A schematic diagram describing the model.',
+            '',
+            'Here\'s some extra documentation.',
+        ])
+        m = self.parse(x)
+        self.assertEqual(m.meta['documentation'], t)
 
     def test_evaluated_derivatives(self):
         # Test parsing a simple model; compare RHS derivatives to known ones

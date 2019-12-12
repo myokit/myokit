@@ -355,6 +355,8 @@ class TestCellMLModel(unittest.TestCase):
 
         # Create model
         m = cellml.Model('m')
+        documentation = 'This is the documentation.'
+        m.meta['documentation'] = documentation
         a = m.add_component('a')
         b = m.add_component('b')
         c = m.add_component('c')
@@ -384,6 +386,8 @@ class TestCellMLModel(unittest.TestCase):
         self.assertIsInstance(mm, myokit.Model)
         self.assertEqual(mm.name(), 'm')
         self.assertIn('author', mm.meta)
+        self.assertIn('desc', mm.meta)
+        self.assertEqual(mm.meta['desc'], documentation)
 
         # Check components are present
         ma = mm['a']
@@ -711,6 +715,12 @@ class TestCellMLVariable(unittest.TestCase):
         x = v.component().add_variable('x', 'volt', 'out', 'in')
         self.assertRaisesRegex(
             cellml.CellMLError, 'private_interface="in"', x.set_rhs, r)
+
+        # Invalid references
+        z = v.model().add_component('d').add_variable('z', 'volt')
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'can only reference variables from the same',
+            v.set_rhs, myokit.Name(z))
 
     def test_set_and_is_state(self):
         # Tests Variable.set_is_state() and Variable.is_state()

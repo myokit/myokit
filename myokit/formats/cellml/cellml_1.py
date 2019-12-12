@@ -23,7 +23,7 @@ NS_MATHML = 'http://www.w3.org/1998/Math/MathML'
 #NS_OXMETA = 'https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#'
 #NS_RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
 #NS_RDFS = 'http://www.w3.org/2000/01/rdf-schema#'
-#NS_TMP_DOC = 'http://cellml.org/tmp-documentation'
+NS_TMP_DOC = 'http://cellml.org/tmp-documentation'
 
 
 # Identifier validation
@@ -44,6 +44,9 @@ def is_valid_identifier(name):
 class AnnotatableElement(object):
     """
     Represents a CellML 1.0 or 1.1 element that can have a cmeta:id.
+
+    Each ``AnnotatableElement`` also has a public dict ``meta`` that can be
+    used to story key:value (string:string) pairs, for storing meta data.
     """
 
     def __init__(self, model):
@@ -53,6 +56,9 @@ class AnnotatableElement(object):
 
         # A unique identifier (or None)
         self._cmeta_id = None
+
+        # Public meta data
+        self.meta = {}
 
     def cmeta_id(self):
         """
@@ -278,6 +284,9 @@ class Model(AnnotatableElement):
     - Units with a non-integer exponent are not supported.
     - Defining new base units is not supported.
     - Reactions are not supported.
+    - Models that take derivatives with respect to more than one variable are
+      not supported.
+    - Models written as a DAE (e.g. ``1 + x = 2 + y``) are not supported.
 
     Arguments
 
@@ -288,8 +297,6 @@ class Model(AnnotatableElement):
         '1.0' or '1.1').
 
     """
-    #TODO: Update list above about base units: Might support them but convert
-    # to dimensionless for Myokit??
     def __init__(self, name, version='1.0'):
         super(Model, self).__init__(self)
 
@@ -458,15 +465,6 @@ class Model(AnnotatableElement):
         If a ``protocol`` is also given it will be used to generate a typical
         CellML if-statement protocol.
         """
-        #
-        # TODO:
-        #  - [ ] Add stimulus current based on protocol
-        #  - [ ] Create components & variables for states, so that they appear
-        #        in the order of the state variables.
-        #  - [ ] Add remaining components & variables
-        #  - [ ] Export oxmeta annotations
-        #  - [ ] Don't bother with nesting
-        #
         raise NotImplementedError
 
     def __getitem__(self, key):
@@ -488,6 +486,8 @@ class Model(AnnotatableElement):
         # Create model
         m = myokit.Model(self.name())
         m.meta['author'] = 'Myokit CellML 1 API'
+        if 'documentation' in self.meta:
+            m.meta['desc'] = self.meta['documentation']
 
         # Add components
         for component in self:
@@ -548,15 +548,6 @@ class Model(AnnotatableElement):
         if m.binding('time') is None:
             if undefined_variables:
                 undefined_variables[0].set_binding('time')
-
-        # TODO
-        # - [ ] Unit conversion
-        # - [ ] Meta data (about etc.)
-        # - [ ] Oxmeta / RDF is annotations
-        # TODO
-        # - [ ] Add importer that also creates a protocol, remove i_stim
-        #
-        #
 
         return m
 
@@ -1152,7 +1143,13 @@ class Variable(AnnotatableElement):
                 + i + '_interface="in" (4.4.4).')
 
         # Check all references in equation are known and local
-        #TODO
+        if rhs is not None:
+            for ref in rhs.references():
+                var = ref.var()
+                if var._component is not self._component:
+                    raise CellMLError(
+                        'A variable RHS can only reference variables from the'
+                        ' same component, found: ' + str(var) + '.')
 
         # Store
         self._rhs = rhs

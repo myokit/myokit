@@ -31,6 +31,9 @@ def parse_file(path):
     :class:`cellml.Model`.
 
     Raises a :class:`CellMLParsingError` if anything goes wrong.
+
+    For notes about CellML 1.0/1.1 support, see
+    :class:`myokit.formats.cellml.cellml_1.Model`.
     """
     return CellMLParser().parse_file(path)
 
@@ -41,6 +44,9 @@ def parse_string(text):
     :class:`cellml.Model`.
 
     Raises a :class:`CellMLParsingError` if anything goes wrong.
+
+    For notes about CellML 1.0/1.1 support, see
+    :class:`myokit.formats.cellml.cellml_1.Model`.
     """
     return CellMLParser().parse_string(text)
 
@@ -66,6 +72,9 @@ class CellMLParser(object):
     """
     Parses CellML 1.0 and 1.1 documents, and performs (partial) validation of a
     CellML document.
+
+    For notes about CellML 1.0/1.1 support, see
+    :class:`myokit.formats.cellml.cellml_1.Model`.
     """
 
     def _check_allowed_content(self, element, children, attributes, name=None):
@@ -150,6 +159,47 @@ class CellMLParser(object):
         # Store and return
         self._cmeta_ids.add(cmeta_id)
         return cmeta_id
+
+    def flatten(self, element):
+        """
+        Converts an element tree to a plain text string.
+        """
+        import re
+        import textwrap
+
+        # Gather all text
+        def gather(element, text=[]):
+            """ Flatten and gather text. """
+            if element.text is not None:
+                text.append(element.text)
+            for child in element:
+                gather(child, text)
+            if element.tail is not None:
+                text.append(element.tail)
+            return text
+
+        # Gather text, replace whitespace
+        text = ' '.join(gather(element)).strip()
+
+        # Replace all whitespace except newlines with a single space
+        text = re.sub(r'[ \t\f\r]+', ' ', text)
+
+        # Remove leading/trailing spaces
+        text = re.sub(r'[ \t\f\r]*[\n]+[ \t\f\r]*', '\n', text)
+
+        # Remove double line-breaks
+        text = re.sub(r'[\n][\n]+', '\n\n', text)
+
+        # Space text so that it's readable(ish)
+        lines = []
+        for line in text.splitlines():
+            if line:
+                lines.extend(textwrap.wrap(line, width=75))
+            else:
+                lines.append('')
+        text = '\n'.join(lines)
+
+        return text
 
     def _join(self, element, namespace=None):
         """
@@ -398,6 +448,18 @@ class CellMLParser(object):
 
         # Check allowed content
         self._check_allowed_content(element, [], ['variable_1', 'variable_2'])
+
+    def _parse_documentation(self, element, model):
+        """
+        Parses an old-fashion <documentation> element (by flattening the
+        content and adding it to the model's ``documentation`` meta data.
+        """
+        text = self.flatten(element)
+        if text:
+            if 'documentation' in model.meta:
+                model.meta['documentation'] += '\n\n' + text
+            else:
+                model.meta['documentation'] = text
 
     def _parse_group(self, element, model):
         """
@@ -741,6 +803,11 @@ class CellMLParser(object):
         elif len(self._free_vars) == 1:
             # Set free variable
             model.set_free_variable(self._free_vars.pop())
+
+        # Read any documentation
+        doc_tag = self._join('documentation', cellml.NS_TMP_DOC)
+        for child in element.findall(doc_tag):
+            self._parse_documentation(child, model)
 
         # Perform final validation and return
         model.validate()

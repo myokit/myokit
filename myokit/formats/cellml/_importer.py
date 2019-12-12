@@ -80,22 +80,6 @@ class CellMLImporter(myokit.formats.Importer):
             # Create and return Myokit model
             return cellml_model.myokit_model()
 
-            #TODO
-            #
-            # Add method to guess that can convert model+stimulus to
-            #  model+protocol (or else adds an empty protocol)
-            # Add method that can generate a default script (ideally printing
-            #  guessed V)
-            # Add method to convert 1-line protocol to model equations, replace
-            #  pace. Could also go in guess, maybe?
-            # Add option to model export to include protocol (like runnable,
-            #  but to be merged with the model)
-            # Update GUI import to use these methods
-            # Update GUI export to use these methods
-            # Update model import console script to use these methods
-            # Update model export console
-            # Remove this TODO
-
         raise CellMLImporterError(
             'Unknown CellML version or not a CellML document at ' + str(path)
             + '.')
