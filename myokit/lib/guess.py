@@ -1,5 +1,5 @@
 #
-# Methods for guessing the meaning of model variables
+# Methods for guessing the meaning of model variables.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -119,8 +119,8 @@ def membrane_potential(model):
        conditions are met.
     5. State variables get +1 point.
     6. The candidate that is used in the most equations gets +0.1 point.
-    6. Candidates with a score < 1 are discarded.
-    7. The highest scoring candidate is returned (with no particular
+    7. Candidates with a score < 1 are discarded.
+    8. The highest scoring candidate is returned (with no particular
        tie-breaking rules).
 
     If all strategies fail the method returns ``None``.
@@ -323,10 +323,11 @@ def stimulus_current_info(model):
     Guesses the stimulus current variable and related variables representing
     the stimulus amplitude, duration, period, and offset.
 
-    Returns a dict with entries 'current', 'amplitude', 'duration', 'period',
-    'offset', and 'amplitude_expression', each of which maybe `None`.
+    Returns a dict with entries ``current``, ``amplitude``, ``duration``,
+    ``period``, ``offset``, and ``amplitude_expression``, any of which may be
+    ``None``.
 
-    The field `amplitude_expression` will be used if no variable representing
+    The field ``amplitude_expression`` will be used if no variable representing
     the stimulus amplitude can be detected, but a literal expression for it can
     be found, e.g. from ``i_stim = -5 [pA]``.
 
@@ -335,7 +336,7 @@ def stimulus_current_info(model):
 
     1. The stimulus current is guessed using :meth:`stimulus_current()`. If no
        stimulus current is found the method terminates and returns a dict of
-       ``None``s.
+       ``None`` objects.
     2. Any variables annotated with oxmeta stimulus terms are found.
 
     If all fields (except ``amplitude_expression``) are filled now, the method

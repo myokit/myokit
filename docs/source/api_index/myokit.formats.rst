@@ -40,14 +40,31 @@ myokit.formats.axon
 
 myokit.formats.cellml
 ---------------------
-- :class:`myokit.formats.cellml.CellMLError`
 - :class:`myokit.formats.cellml.CellMLExporter`
 - :class:`myokit.formats.cellml.CellMLExpressionWriter`
 - :class:`myokit.formats.cellml.CellMLImporter`
+- :class:`myokit.formats.cellml.CellMLImporterError`
 - :meth:`myokit.formats.cellml.ewriters`
 - :meth:`myokit.formats.cellml.exporters`
 - :meth:`myokit.formats.cellml.importers`
-- :meth:`myokit.formats.cellml.is_valid_identifier`
+
+myokit.formats.cellml.cellml_1
+------------------------------
+- :class:`myokit.formats.cellml.cellml_1.AnnotatableElement`
+- :class:`myokit.formats.cellml.cellml_1.CellMLError`
+- :class:`myokit.formats.cellml.cellml_1.Component`
+- :meth:`myokit.formats.cellml.cellml_1.is_valid_identifier`
+- :class:`myokit.formats.cellml.cellml_1.Model`
+- :class:`myokit.formats.cellml.cellml_1.Units`
+- :class:`myokit.formats.cellml.cellml_1.Variable`
+
+myokit.formats.cellml.parser_1
+-------------------------------
+- :class:`myokit.formats.cellml.parser_1.CellMLParser`
+- :class:`myokit.formats.cellml.parser_1.CellMLParsingError`
+- :meth:`myokit.formats.cellml.parser_1.parse_file`
+- :meth:`myokit.formats.cellml.parser_1.parse_string`
+- :meth:`myokit.formats.cellml.parser_1.split`
 
 myokit.formats.channelml
 ------------------------
@@ -83,8 +100,10 @@ myokit.formats.mathml
 - :class:`myokit.formats.mathml.HTMLExporter`
 - :class:`myokit.formats.mathml.MathMLError`
 - :class:`myokit.formats.mathml.MathMLExpressionWriter`
-- :meth:`myokit.formats.mathml.parse_mathml`
-- :meth:`myokit.formats.mathml.parse_mathml_rhs`
+- :class:`myokit.formats.mathml.MathMLParser`
+- :meth:`myokit.formats.mathml.parse_mathml_dom`
+- :meth:`myokit.formats.mathml.parse_mathml_etree`
+- :meth:`myokit.formats.mathml.parse_mathml_string`
 - :class:`myokit.formats.mathml.XMLExporter`
 
 myokit.formats.matlab

@@ -20,6 +20,10 @@ Dom traversal
 
 .. autofunction:: dom_next
 
+Etree helpers
+-------------
+
+.. autofunction:: split
 
 Converting html to ascii
 ------------------------
