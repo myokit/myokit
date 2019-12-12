@@ -134,6 +134,9 @@ class Expression(object):
         """
         raise NotImplementedError
 
+    def __contains__(self, key):
+        return key in self._operands
+
     def contains_type(self, kind):
         """
         Returns True if this expression tree contains an expression of the
@@ -445,6 +448,9 @@ class Expression(object):
         """
         return set(self._references)
 
+    def __repr__(self):
+        return 'myokit.Expression[' + self.code() + ']'
+
     def __str__(self):
         return self.code()
 
@@ -712,11 +718,6 @@ class Name(LhsExpression):
 
     def __init__(self, value):
         super(Name, self).__init__()
-        if not isinstance(value, myokit.Variable):
-            if not isinstance(value, basestring):
-                raise ValueError(
-                    'myokit.Name objects must have a value that is a'
-                    ' myokit.Variable (or, when debugging, a string).')
         self._value = value
         self._references = set([self])
 
@@ -739,11 +740,7 @@ class Name(LhsExpression):
         return Name(self._value)
 
     def _code(self, b, c):
-        if isinstance(self._value, basestring):
-            # Allow an exception for strings (used in function templates and
-            # debugging).
-            b.write('str:' + str(self._value))
-        else:
+        if isinstance(self._value, myokit.Variable):
             if self._value.is_nested():
                 b.write(self._value.name())
             else:
@@ -754,6 +751,12 @@ class Name(LhsExpression):
                     except KeyError:
                         pass
                 b.write(self._value.qname(c))
+        elif isinstance(self._value, basestring):
+            # Allow strings for debugging
+            b.write('str:' + str(self._value))
+        else:
+            # And sneaky abuse of the expression system
+            b.write(str(self._value))
 
     def _eval_unit(self, mode):
 
@@ -1425,21 +1428,6 @@ class UnaryDimensionlessFunction(Function):
 
         # Unary dimensionless functions are always dimensionless
         return myokit.units.dimensionless
-
-
-class UnsupportedFunction(Function):
-    """
-    Unsupported functions in other formats than myokit can be imported as an
-    ``UnsupportedFunction``. This preserves the meaning of the original
-    document. UnsupportedFunction objects should never occur in valid models.
-    """
-    def __init__(self, name, ops):
-        self._nargs = [len(ops)]
-        self._fname = 'UNSUPPORTED::' + str(name).strip()
-        super(UnsupportedFunction, self).__init__(*ops)
-
-    def _validate(self, trail):
-        raise IntegrityError('UnsupportedFunction in expression.', self._token)
 
 
 class Sqrt(Function):

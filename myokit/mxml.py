@@ -13,6 +13,18 @@ import xml.dom
 import textwrap
 
 
+def split(tag):
+    """
+    Splits a ``tag`` (as used in elementtree) into a namespace and an element
+    name part.
+    """
+    tag = str(tag)
+    if tag[:1] != '{':
+        return None, tag
+    i = tag.index('}')
+    return tag[1:i], tag[1 + i:]
+
+
 def dom_child(node, selector=None):
     """
     Returns the first child element of the given DOM node.

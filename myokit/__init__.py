@@ -449,7 +449,6 @@ from ._expressions import (  # noqa
     Sin,
     Sqrt,
     Tan,
-    UnsupportedFunction,
     Unit,
 
 )

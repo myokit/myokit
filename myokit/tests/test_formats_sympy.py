@@ -275,10 +275,6 @@ class SymPyReadWriteTest(unittest.TestCase):
         cx = sympy.Piecewise((ca, c1))
         self.assertEqual(r.ex(cx), x)
 
-        # Myokit.Unsupported function placeholder --> Should raise exception
-        u = myokit.UnsupportedFunction('frog', x)
-        self.assertRaisesRegex(ValueError, 'Unsupported type', w.ex, u)
-
         # SymPy function without Myokit equivalent --> Should raise exception
         cu = sympy.principal_branch(cx, cc)
         self.assertRaisesRegex(ValueError, 'Unsupported type', r.ex, cu)

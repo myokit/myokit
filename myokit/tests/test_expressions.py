@@ -49,9 +49,8 @@ class ExpressionTest(unittest.TestCase):
         self.assertFalse(e.contains_type(myokit.Minus))
 
     def test_eval(self):
-        """
-        Test :meth:`Expression.eval()`.
-        """
+        # Test :meth:`Expression.eval()`.
+
         # Test basic use
         e = myokit.parse_expression('1 + 1 + 1')
         self.assertEqual(e.eval(), 3)
@@ -139,9 +138,8 @@ class ExpressionTest(unittest.TestCase):
             x._eval_unit(myokit.UNIT_STRICT), myokit.units.dimensionless)
 
     def test_eval_unit_error(self):
-        """
-        Test error handling for eval_unit.
-        """
+        # Test error handling for eval_unit.
+
         x = myokit.parse_expression('1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
         with self.assertRaises(myokit.IncompatibleUnitError) as e:
             x.eval_unit()
@@ -151,36 +149,32 @@ class ExpressionTest(unittest.TestCase):
         self.assertEqual(m[3], '                    ~~~~~~~~~~~~~~')
 
     def test_int_conversion(self):
-        """
-        Test conversion of expressions to int.
-        """
+        # Test conversion of expressions to int.
+
         x = myokit.parse_expression('1 + 2 + 3')
         self.assertEqual(int(x), 6)
         x = myokit.parse_expression('1 + 3.9')
         self.assertEqual(int(x), 4)
 
     def test_float_conversion(self):
-        """
-        Test conversion of expressions to float.
-        """
+        # Test conversion of expressions to float.
+
         x = myokit.parse_expression('1 + 2 + 3')
         self.assertEqual(int(x), 6)
         x = myokit.parse_expression('1 + 3.9')
         self.assertEqual(float(x), 4.9)
 
     def test_is_conditional(self):
-        """
-        Test :meth:`Expression.is_conditional().`.
-        """
+        # Test :meth:`Expression.is_conditional().`.
+
         pe = myokit.parse_expression
         self.assertFalse(pe('1 + 2 + 3').is_conditional())
         self.assertTrue(pe('if(1, 0, 2)').is_conditional())
         self.assertTrue(pe('1 + if(1, 0, 2)').is_conditional())
 
     def test_pyfunc(self):
-        """
-        Test the pyfunc() method.
-        """
+        # Test the pyfunc() method.
+
         # Note: Extensive testing happens in pywriter / numpywriter tests!
         x = myokit.parse_expression('3 * sqrt(v)')
         f = x.pyfunc(use_numpy=False)
@@ -194,20 +188,42 @@ class ExpressionTest(unittest.TestCase):
         self.assertEqual(list(f(np.array([1, 4, 9]))), [3, 6, 9])
 
     def test_pystr(self):
-        """
-        Test the pystr() method.
-        """
+        # Test the pystr() method.
         # Note: Extensive testing happens in pywriter / numpywriter tests!
+
         x = myokit.parse_expression('3 * sqrt(v)')
         self.assertEqual(x.pystr(use_numpy=False), '3.0 * math.sqrt(v)')
         self.assertEqual(x.pystr(use_numpy=True), '3.0 * numpy.sqrt(v)')
 
+    def test_sequence_interface(self):
+        # Tests the Expression class's sequence interface
+
+        x = myokit.parse_expression('1 + 2')
+        self.assertEqual(len(x), 2)                 # __len__
+        self.assertIn(myokit.Number(1), x)          # __contains__
+        self.assertIn(myokit.Number(2), x)
+        self.assertEqual(x[0], myokit.Number(1))    # __getitem__
+        self.assertEqual(x[1], myokit.Number(2))
+
+        y = [op for op in x]                        # __iter__
+        self.assertEqual(len(y), 2)
+        self.assertIn(myokit.Number(1), y)
+        self.assertIn(myokit.Number(2), y)
+        self.assertEqual(y[0], myokit.Number(1))
+        self.assertEqual(y[1], myokit.Number(2))
+
+    def test_string_conversion(self):
+        # Tests __str__ and __repr__
+
+        x = myokit.Plus(myokit.Number(1), myokit.Number(2))
+        self.assertEquals(str(x), '1 + 2')
+        self.assertEquals(repr(x), 'myokit.Expression[1 + 2]')
+
     def test_tree_str(self):
-        """
-        Test :meth:`Expression.tree_str()`.
-        More extensive testing of this method should happen in the individual
-        expression tests.
-        """
+        # Test :meth:`Expression.tree_str()`.
+        # More extensive testing of this method should happen in the individual
+        # expression tests.
+
         x = myokit.parse_expression('1 + 2 * 3 / 4')
         self.assertEqual(x.tree_str(), '\n'.join([
             '+',
@@ -221,9 +237,8 @@ class ExpressionTest(unittest.TestCase):
         ]))
 
     def test_validation(self):
-        """
-        Test :meth:`Expression.validate()`.
-        """
+        # Test :meth:`Expression.validate()`.
+
         e = myokit.parse_expression('5 + 2 * exp(3 / (1 + 2))')
         e.validate()
         self.assertIsNone(e.validate())
@@ -241,9 +256,8 @@ class ExpressionTest(unittest.TestCase):
             myokit.IntegrityError, 'must be other Expression', p.validate)
 
     def test_walk(self):
-        """
-        Test :meth:`Expression.walk().
-        """
+        # Test :meth:`Expression.walk().
+
         e = myokit.parse_expression('1 / (2 + exp(3 + sqrt(4)))')
         w = list(e.walk())
         self.assertEqual(len(w), 9)
@@ -277,9 +291,8 @@ class NumberTest(unittest.TestCase):
     """
 
     def test_basic(self):
-        """
-        Test construction, other basics.
-        """
+        # Test construction, other basics.
+
         # Test myokit.Number creation and representation
         x = myokit.Number(-4.0)
         self.assertEqual(str(x), '-4')
@@ -337,7 +350,7 @@ class NumberTest(unittest.TestCase):
         self.assertRaisesRegex(ValueError, 'unit', myokit.Number, q, 'kg')
 
     def test_bracket(self):
-        """ Test Number.bracket(). """
+        # Test Number.bracket().
         # Never needs a bracket
         x = myokit.Number(2)
         self.assertFalse(x.bracket())
@@ -346,7 +359,8 @@ class NumberTest(unittest.TestCase):
         self.assertRaises(ValueError, x.bracket, myokit.Number(2))
 
     def test_clone(self):
-        """ Test Number.clone(). """
+        # Test Number.clone().
+
         x = myokit.Number(2)
         y = x.clone()
         self.assertIsNot(x, y)
@@ -375,18 +389,16 @@ class NumberTest(unittest.TestCase):
         self.assertNotIn(y, x.refs_by())
 
     def test_eval(self):
-        """
-        Test evaluation (with single precision).
-        """
+        # Test evaluation (with single precision).
+
         x = myokit.Number(2)
         self.assertEqual(type(x.eval()), float)
         self.assertEqual(
             type(x.eval(precision=myokit.SINGLE_PRECISION)), np.float32)
 
     def test_eval_unit(self):
-        """
-        Test Number eval_unit.
-        """
+        # Test Number eval_unit.
+
         # Test in tolerant mode
         x = myokit.Number(3)
         self.assertEqual(x.eval_unit(), None)
@@ -399,7 +411,8 @@ class NumberTest(unittest.TestCase):
         self.assertEqual(y.eval_unit(myokit.UNIT_STRICT), myokit.units.ampere)
 
     def test_tree_str(self):
-        """ Test Number.tree_str() """
+        # Test Number.tree_str()
+
         # Test simple
         x = myokit.Number(1)
         self.assertEqual(x.tree_str(), '1\n')
@@ -432,10 +445,6 @@ class NameTest(unittest.TestCase):
         z = myokit.Name(zvar)
 
         self.assertEqual(x.code(), 'c.x')
-
-        # Test invalid creation
-        myokit.Name('this is ok')
-        self.assertRaises(ValueError, myokit.Name, 3)
 
         # Test rhs
         # Name of non-state: rhs() should be the associated variable's rhs
@@ -601,6 +610,17 @@ class NameTest(unittest.TestCase):
         # Test with spaces
         e = myokit.Plus(x, x)
         self.assertEqual(e.tree_str(), '+\n  y\n  y\n')
+
+    def test_values(self):
+        # Test with values other than Variables
+
+        # Special case: string
+        x = myokit.Name('this is ok')
+        self.assertEqual(x.code(), 'str:this is ok')
+
+        # All other values (this allows e.g. CellML expressions to be created)
+        x = myokit.Name(12.3)
+        self.assertEqual(x.code(), '12.3')
 
 
 class DerivativeTest(unittest.TestCase):
@@ -2666,16 +2686,6 @@ class EquationTest(unittest.TestCase):
         self.assertEqual(next(i), lhs)
         self.assertEqual(next(i), rhs)
         self.assertEqual(len(list(eq)), 2)
-
-
-class UnsupportedFunctionTest(unittest.TestCase):
-    """
-    Tests the myokit.UnsupportedFunction placeholder class.
-    """
-    def test_validation(self):
-        """ Test UnsupportedFunction.validate(). """
-        x = myokit.UnsupportedFunction('test', [myokit.Number(1)])
-        self.assertRaises(myokit.IntegrityError, x.validate)
 
 
 class UserFunctionTest(unittest.TestCase):

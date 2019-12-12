@@ -11,6 +11,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import logging
 import os
 import shutil
 import tempfile
@@ -127,3 +128,23 @@ class CancellingReporter(myokit.ProgressReporter):
     def update(self, f):
         self.okays -= 1
         return self.okays >= 0
+
+
+class LogCapturer(logging.Handler):
+    def __init__(self):
+        super(LogCapturer, self).__init__()
+        self._messages = []
+
+    def emit(self, record):
+        self._messages.append(str(record))
+
+    def text(self):
+        return '\n'.join(self._messages)
+
+    def __enter__(self):
+        logging.getLogger().addHandler(self)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        logging.getLogger().removeHandler(self)
+
