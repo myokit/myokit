@@ -520,17 +520,24 @@ class TestCellMLModel(unittest.TestCase):
         c = m.add_component('c')
         x = c.add_variable('x', 'mole')
         y = c.add_variable('y', 'liter')
-        self.assertRaisesRegex(
-            cellml.CellMLError, 'More than one variable does not have a value',
-            m.validate)
+
+        # This triggers a warning
+        #self.assertRaisesRegex(
+        #    cellml.CellMLError,
+        #    'More than one variable does not have a value',
+        #    m.validate)
+        m.validate()
 
         # Free variable has a value, but other value does not
         x.set_initial_value(0.1)
         m.validate()
         m.set_free_variable(x)
-        self.assertRaisesRegex(
-            cellml.CellMLError, 'No value is defined for the variable "y"',
-            m.validate)
+
+        # This triggers a warning
+        #self.assertRaisesRegex(
+        #    cellml.CellMLError, 'No value is defined for the variable "y"',
+        #    m.validate)
+        m.validate()
 
         # Free variable must be known if state is used
         y.set_rhs(myokit.Name(x))
@@ -728,7 +735,11 @@ class TestCellMLVariable(unittest.TestCase):
         ax = a.add_variable('x', 'meter', 'in')
         bx = b.add_variable('x', 'meter', 'out')
         bx.set_initial_value(3)
-        self.assertRaisesRegex(cellml.CellMLError, 'not connected', m.validate)
+
+        # This triggers a warning
+        # self.assertRaisesRegex(
+        #    cellml.CellMLError, 'not connected', m.validate)
+        m.validate()
 
         # States must define two values
         m.add_connection(ax, bx)
@@ -738,9 +749,6 @@ class TestCellMLVariable(unittest.TestCase):
             cellml.CellMLError, 'must have a defining equation', m.validate)
         bx.set_rhs(myokit.Number(1, 'meter'))
         m.validate()
-        bx.set_initial_value(None)
-        self.assertRaisesRegex(
-            cellml.CellMLError, 'must define an initial value', m.validate)
 
 
 class TestCellMLUnits(unittest.TestCase):

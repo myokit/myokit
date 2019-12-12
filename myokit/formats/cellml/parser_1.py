@@ -89,7 +89,7 @@ class CellMLParser(object):
                 raise CellMLParsingError(
                     'Text found in ' + self._tag(element, name)
                     + ' (after ' + self._tag(child) + ' element).',
-                    element)
+                    child)
 
             # Check if allowed
             ns = split(child.tag)[0]

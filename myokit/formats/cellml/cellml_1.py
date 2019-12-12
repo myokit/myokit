@@ -8,8 +8,10 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import collections
-import myokit
+import logging
 import re
+
+import myokit
 
 
 # Namespaces
@@ -496,8 +498,13 @@ class Model(AnnotatableElement):
                 if variable.is_local():
                     v = c.add_variable(variable.name())
                     v.set_unit(variable.units().myokit_unit())
+                elif variable.units() != variable.source().units():
+                    log = logging.getLogger(__name__)
+                    log.critical(
+                        'Unit conversion required for ' + str(variable) + '.')
 
         # Add equations
+        undefined_variables = []
         for component in self:
             c = m[component.name()]
 
@@ -522,16 +529,25 @@ class Model(AnnotatableElement):
                     # Add equation
                     rhs = variable.rhs_or_initial_value()
                     if variable.is_free() or rhs is None:
-                        # Add zero for the free variable, and bind to time
+                        # Use zero for free or undefined variables
                         v.set_rhs(
                             myokit.Number(0, variable.units().myokit_unit()))
-                        v.set_binding('time')
+                        if variable.is_free():
+                            v.set_binding('time')
+                        else:
+                            undefined_variables.append(v)
                     else:
                         # Add RHS with Myokit references
                         rhs = rhs.clone(subst=varmap)
                         v.set_rhs(rhs)
                         if variable.is_state():
-                            v.promote(variable.initial_value())
+                            init = variable.initial_value()
+                            v.promote(0 if init is None else init)
+
+        # Check that a binding to time has been made
+        if m.binding('time') is None:
+            if undefined_variables:
+                undefined_variables[0].set_binding('time')
 
         # TODO
         # - [ ] Unit conversion
@@ -627,14 +643,18 @@ class Model(AnnotatableElement):
                         free.add(v)
                 if v.is_state():
                     states.add(v)
+
         if len(free) > 1:
-            raise CellMLError(
+            log = logging.getLogger(__name__)
+            log.warning(
                 'More than one variable does not have a value: ' +
                 ', '.join([str(v) for v in free]) + '.')
+
         elif self._free_variable is not None and len(free) == 1:
             free = free.pop()
             if self._free_variable is not free:
-                raise CellMLError(
+                log = logging.getLogger(__name__)
+                log.warning(
                     'No value is defined for the variable "'
                     + free.name() + '", but "' + self._free_variable.name()
                     + '" is listed as the free variable.')
@@ -1170,27 +1190,23 @@ class Variable(AnnotatableElement):
         are found.
         """
         # Check that variables with an in interface are connected
+        # Sort of allowed in the spec ?
         if self._public_interface == 'in' or self._private_interface == 'in':
             i = 'public' if self._public_interface == 'in' else 'private'
             if self._source is None:
-                raise CellMLError(
+                log = logging.getLogger(__name__)
+                log.warning(
                     str(self) + ' has ' + i + '_interface="in", but is not'
-                    ' connected to a variable with an appropriate "out"'
-                    ' interface (3.4.6.4).')
+                    ' connected to a variable with an appropriate "out"')
 
         # Check that state variables define two values
         elif self._is_state:
+
             if self._initial_value is None:
-                raise CellMLError(
-                    'State ' + str(self) + ' must define an initial value.')
+                log = logging.getLogger(__name__)
+                log.warning('State ' + str(self) + ' has no initial value.')
+
             if self._rhs is None:
                 raise CellMLError(
                     'State ' + str(self) + ' must have a defining equation.')
-
-        # Check that other variables define one value (except the free
-        # variable)
-        # elif self._rhs is None and self._initial_value is None:
-        #    if not self._is_free:
-        #        raise CellMLError(str(self) + ' must have an initial value or'
-        #                          ' a defining equation.')
 
