@@ -1430,21 +1430,6 @@ class UnaryDimensionlessFunction(Function):
         return myokit.units.dimensionless
 
 
-class UnsupportedFunction(Function):
-    """
-    Unsupported functions in other formats than myokit can be imported as an
-    ``UnsupportedFunction``. This preserves the meaning of the original
-    document. UnsupportedFunction objects should never occur in valid models.
-    """
-    def __init__(self, name, ops):
-        self._nargs = [len(ops)]
-        self._fname = 'UNSUPPORTED::' + str(name).strip()
-        super(UnsupportedFunction, self).__init__(*ops)
-
-    def _validate(self, trail):
-        raise IntegrityError('UnsupportedFunction in expression.', self._token)
-
-
 class Sqrt(Function):
     """
     Represents the square root ``sqrt(x)``.

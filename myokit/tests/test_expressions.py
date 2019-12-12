@@ -2688,16 +2688,6 @@ class EquationTest(unittest.TestCase):
         self.assertEqual(len(list(eq)), 2)
 
 
-class UnsupportedFunctionTest(unittest.TestCase):
-    """
-    Tests the myokit.UnsupportedFunction placeholder class.
-    """
-    def test_validation(self):
-        """ Test UnsupportedFunction.validate(). """
-        x = myokit.UnsupportedFunction('test', [myokit.Number(1)])
-        self.assertRaises(myokit.IntegrityError, x.validate)
-
-
 class UserFunctionTest(unittest.TestCase):
     """
     Tests :class:`UserFunction`.

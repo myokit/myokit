@@ -1070,12 +1070,6 @@ class ContentMathMLWriterTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'Unknown expression type', self.w.ex, 7)
 
-    def test_unsupported_functions(self):
-        # Tests writing myokit.UnsupportedFunction
-
-        u = myokit.UnsupportedFunction('frog', myokit.Number(2))
-        self.assertRaises(ValueError, self.w.ex, u)
-
 
 if __name__ == '__main__':
     unittest.main()
