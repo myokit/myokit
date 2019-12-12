@@ -48,9 +48,11 @@ class CellMLImporter(myokit.formats.Importer):
         """
         import myokit.formats.cellml as cellml
 
+        # Clear logger and warnings
         log = self.logger()
         log.clear()
         log.clear_warnings()
+        log.log('Importing ' + str(path))
 
         # Open XML file
         try:
@@ -76,6 +78,14 @@ class CellMLImporter(myokit.formats.Importer):
                 cellml_model = p.parse(root)
             except parser_1.CellMLParsingError as e:
                 raise CellMLImporterError(str(e))
+
+            # Log warnings, if any
+            warnings = cellml_model.validate()
+            for warning in warnings:
+                log.warn(warning)
+
+            # Log result
+            log.log('Import successful.')
 
             # Create and return Myokit model
             return cellml_model.myokit_model()
