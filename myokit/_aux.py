@@ -14,6 +14,7 @@ import fnmatch
 import os
 import re
 import shutil
+import stat
 import sys
 import tempfile
 import timeit
@@ -1358,3 +1359,22 @@ def _round_if_int(x):
     ix = round(x)
     return ix if _feq(x, ix) else x
 
+
+def _rmtree(path):
+    """
+    Version of ``shutil.rmtree`` that handles access denied errors (when the
+    user is lacking write permissions). This seems to happen on Windows some
+    times.
+
+    The solution here is based on answers given on stackoverflow:
+    https://stackoverflow.com/questions/2656322
+    """
+    def onerror(function, path, excinfo):
+        if not os.access(path, os.W_OK):
+            # Give user write permissions (remove read-only flag)
+            os.chmod(path, stat.S_IWUSR)
+            function(path)
+        else:
+            raise
+
+    shutil.rmtree(path, ignore_errors=False, onerror=onerror)

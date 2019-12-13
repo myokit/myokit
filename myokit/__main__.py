@@ -532,12 +532,12 @@ def install_windows():
         raise Exception('Not a windows machine.')
 
     import os
-    #import shutil
     import tempfile
+
+    import menuinst
 
     import myokit
     import myokit.pype
-    import menuinst
 
     # Process template to get icon directory
     tdir = tempfile.mkdtemp()
@@ -556,8 +556,7 @@ def install_windows():
         print('Done')
 
     finally:
-        #shutil.rmtree(tdir)
-        pass
+        myokit._rmtree(tdir)
 
 
 def add_icon_parser(subparsers):
@@ -900,8 +899,7 @@ def reset(force=False):
     if remove:
         print('Removing')
         print('  ' + myokit.DIR_USER)
-        import shutil
-        shutil.rmtree(myokit.DIR_USER)
+        myokit._rmtree(myokit.DIR_USER)
         print('Done')
     else:
         print('Aborting.')
