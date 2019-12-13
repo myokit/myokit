@@ -524,6 +524,7 @@ from ._aux import (  # noqa
     format_float_dict,
     format_path,
     _lvsd,
+    _rmtree,
     _round_if_int,
     strfloat,
 
