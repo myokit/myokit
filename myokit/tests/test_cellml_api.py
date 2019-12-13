@@ -547,14 +547,19 @@ class TestCellMLModel(unittest.TestCase):
         x = c.add_variable('x', 'mole')
         y = c.add_variable('y', 'liter')
         warn = m.validate()
-        self.assertIn('More than one variable does not have a value', warn[0])
+        warn = '\n'.join(warn)
+        self.assertIn('No value set for Variable[@name="x"]', warn)
+        self.assertIn('No value set for Variable[@name="y"]', warn)
+        self.assertIn('More than one variable does not have a value', warn)
 
         # Free variable has a value, but other value does not
         x.set_initial_value(0.1)
         m.validate()
         m.set_free_variable(x)
         warn = m.validate()
-        self.assertIn('No value is defined for the variable "y"', warn[0])
+        warn = '\n'.join(warn)
+        self.assertIn('No value set for Variable[@name="y"]', warn)
+        self.assertIn('No value is defined for the variable "y"', warn)
 
         # Free variable must be known if state is used
         y.set_rhs(myokit.Name(x))
@@ -668,6 +673,26 @@ class TestCellMLVariable(unittest.TestCase):
 
         v = cellml.Model('m').add_component('a').add_variable('ernie', 'volt')
         self.assertEqual(v.name(), 'ernie')
+
+    def test_overdefined(self):
+        # Tests if overdefined variables are reported
+
+        # State can have initial value and RHS
+        m = cellml.Model('m')
+        c = m.add_component('c')
+        t = c.add_variable('t', 'second')
+        v = c.add_variable('v', 'volt')
+        v.set_rhs(myokit.Number(2, myokit.units.volt))
+        v.set_initial_value(3)
+        v.set_is_state(True)
+        m.set_free_variable(t)
+        m.validate()
+
+        # But non-state can not
+        v.set_is_state(False)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'both an initial value and a defining',
+            m.validate)
 
     def test_rhs_or_initial_value(self):
         # Tests Variable.rhs_or_initial_value()

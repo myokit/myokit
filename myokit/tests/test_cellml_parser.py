@@ -251,44 +251,8 @@ class TestCellMLParser(unittest.TestCase):
     def test_documentation(self):
         # Tests parsing a <documentation> tag from the cellml temp doc ns
 
-        x = """<documentation xmlns="http://cellml.org/tmp-documentation">
-          <article>
-            <articleinfo>
-            <title>Article title</title>
-            <author>
-              <firstname>Michael</firstname>
-              <surname>Clerx</surname>
-              <affiliation>
-                <shortaffil>University of Oxford</shortaffil>
-              </affiliation>
-            </author>
-            </articleinfo>
-            <section id="sec_status">
-              <title>Model Status</title>
-              <para>This model is fake.</para>
-            </section>
-            <sect1 id="sec_structure">
-              <para>
-                This is a paragraph.
-              </para>
-              <informalfigure float="0" id="fig_cell_diagram">
-                <mediaobject>
-                  <imageobject>
-                    <objectinfo>
-                      <title>schematic diagram</title>
-                    </objectinfo>
-                    <imagedata fileref="fake-model.png"/>
-                  </imageobject>
-                </mediaobject>
-                <caption>A schematic diagram describing the model.</caption>
-              </informalfigure>
-            </sect1>
-          </article>
-        </documentation>
-        <documentation xmlns="http://cellml.org/tmp-documentation">
-          Here's some extra documentation.
-        </documentation>"""
-        t = '\n'.join([
+        path = os.path.join(DIR, 'documentation.cellml')
+        expected = '\n'.join([
             'Article title',
             '',
             'Michael',
@@ -307,8 +271,8 @@ class TestCellMLParser(unittest.TestCase):
             '',
             'Here\'s some extra documentation.',
         ])
-        m = self.parse(x)
-        self.assertEqual(m.meta['documentation'], t)
+        m = parser.parse_file(path)
+        self.assertEqual(m.meta['documentation'], expected)
 
     def test_evaluated_derivatives(self):
         # Test parsing a simple model; compare RHS derivatives to known ones
@@ -425,7 +389,15 @@ class TestCellMLParser(unittest.TestCase):
              ' <apply><plus /><ci>x</ci><cn cellml:units="volt">1</cn></apply>'
              ' <cn cellml:units="volt">10</cn>'
              '</apply>')
-        self.assertBad(x + y + z, 'Only models in "assignment form"')
+        self.assertBad(x + y + z, 'Invalid expression found on the left-hand')
+
+        # Assignment to a variable with an "in" interface (error should be
+        # converted from CellMLError to CellMLParsingError).
+        x = ('<component name="a">'
+             '  <variable name="x" units="volt" public_interface="in" />'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
+        y = '<apply><eq /><ci>x</ci><cn cellml:units="volt">-80</cn></apply>'
+        self.assertBad(x + y + z, 'public_interface="in"')
 
     def test_group(self):
         # Tests parsing a group element.
@@ -645,6 +617,41 @@ class TestCellMLParser(unittest.TestCase):
             '  </math>'
             '</component>',
             'derivatives with respect to more than one variable')
+
+    def test_overdefined(self):
+        # Tests for overdefined variables
+
+        # Initial value and equation for state
+        x = ('<component name="a">'
+             '  <variable name="time" units="dimensionless" />'
+             '  <variable name="x" units="dimensionless" initial_value="2" />'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
+        a = ('    <apply>'
+             '      <eq />'
+             '      <apply>'
+             '        <diff/>'
+             '        <bvar>'
+             '          <ci>time</ci>'
+             '        </bvar>'
+             '        <ci>x</ci>'
+             '      </apply>'
+             '      <cn cellml:units="dimensionless">3</cn>'
+             '    </apply>')
+        z = ('  </math>'
+             '</component>')
+        m = self.parse(x + a + z)
+        v = m['a']['x']
+        self.assertEqual(v.rhs(), myokit.Number(3))
+        self.assertEqual(v.initial_value(), 2)
+
+        # Initial value and equation for a non-state
+        b = ('    <apply>'
+             '      <eq /><ci>x</ci><cn cellml:units="dimensionless">2</cn>'
+             '    </apply>')
+        self.assertBad(x + b + z, 'Initial value and a defining equation')
+
+        # Two equations
+        self.assertBad(x + a + a + z, 'Two defining equations')
 
     def test_parse_file(self):
         # Tests the parse file method
