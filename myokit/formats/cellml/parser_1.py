@@ -197,7 +197,7 @@ class CellMLParser(object):
         text = re.sub(r'[\n][\n]+', '\n\n', text)
 
         # Replace non-ascii characters
-        text = text.encode('ascii', errors='replace').decode()
+        text = text.encode('ascii', errors='ignore').decode()
 
         # Space text so that it's readable(ish)
         lines = []

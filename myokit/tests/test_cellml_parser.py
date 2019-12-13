@@ -265,7 +265,7 @@ class TestCellMLParser(unittest.TestCase):
             '',
             'This is a paragraph.',
             '',
-            'schematic diagram ?',
+            'schematic diagram',
             '',
             'A schematic diagram describing the model.',
             '',
