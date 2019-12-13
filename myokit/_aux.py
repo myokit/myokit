@@ -1369,7 +1369,7 @@ def _rmtree(path):
     The solution here is based on answers given on stackoverflow:
     https://stackoverflow.com/questions/2656322
     """
-    def onerror(function, path, excinfo):
+    def onerror(function, path, excinfo):   # pragma: no cover
         if not os.access(path, os.W_OK):
             # Give user write permissions (remove read-only flag)
             os.chmod(path, stat.S_IWUSR)
