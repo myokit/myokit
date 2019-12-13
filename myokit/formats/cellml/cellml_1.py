@@ -1212,3 +1212,14 @@ class Variable(AnnotatableElement):
                 raise CellMLError(
                     'State ' + str(self) + ' must have a defining equation.')
 
+        # Check that other variables define a value
+        elif self._rhs is None:
+            if self._initial_value is None and not self._is_free:
+                warnings.append('No value set for ' + str(self) + '.')
+
+        # And only one value
+        elif self._initial_value is not None:
+            raise CellMLError(
+                'Overdefined: ' + str(self) + ' has both an initial value and'
+                ' a defining equation (which is not an ODE).')
+

@@ -77,6 +77,12 @@ class CellMLParser(object):
     :class:`myokit.formats.cellml.cellml_1.Model`.
     """
 
+    # Note on assignment form, used in errors
+    _dae_message = (
+        'Each equation must have either a single variable or a derivative of a'
+        ' single variable as its left-hand side, and each variable may only'
+        ' appear on a left-hand side once.')
+
     def _check_allowed_content(self, element, children, attributes, name=None):
         """
         Scans ``element`` and raises an exception if any unlisted CellML
@@ -189,6 +195,9 @@ class CellMLParser(object):
 
         # Remove double line-breaks
         text = re.sub(r'[\n][\n]+', '\n\n', text)
+
+        # Replace non-ascii characters
+        text = text.encode('ascii', errors='replace').decode()
 
         # Space text so that it's readable(ish)
         lines = []
@@ -685,18 +694,33 @@ class CellMLParser(object):
             lhs, rhs = eq
 
             # Check lhs
-            if isinstance(lhs, myokit.Derivative):
-                lhs.var().set_is_state(True)
-            elif not isinstance(lhs, myokit.Name):
+            if not isinstance(lhs, myokit.LhsExpression):
                 raise CellMLParsingError(
-                    'Only models in "assignment form" are supported: Each'
-                    ' equation must have either a single variable or a'
-                    ' derivative of a single variable as its left-hand side,'
-                    ' and each variable may only appear on a left-hand side'
-                    ' once.', child)
+                    'Invalid expression found on the left-hand side of an'
+                    ' equation: ' + self._dae_message, child)
+
+            # Promote derivative, check non-derivatives have no initial value
+            var = lhs.var()
+            if isinstance(lhs, myokit.Derivative):
+                var.set_is_state(True)
+            elif var.initial_value() is not None:
+                raise CellMLParsingError(
+                    'Initial value and a defining equation found for'
+                    ' non-state ' + str(var) + ': ' + self._dae_message,
+                    child)
+
+            # Check for double rhs
+            if var.rhs() is not None:
+                raise CellMLParsingError(
+                    'Two defining equations found for ' + str(var) + ': '
+                    + self._dae_message,
+                    child)
 
             # Set rhs
-            lhs.var().set_rhs(rhs)
+            try:
+                lhs.var().set_rhs(rhs)
+            except cellml.CellMLError as e:
+                raise CellMLParsingError(str(e), child)
 
     def _parse_model(self, element):
         """
@@ -712,7 +736,7 @@ class CellMLParser(object):
         - [x] Add encapsulation relations
         - [x] Add connections
         - [x] Parse and add equations
-        - [ ] Read CellML meta data
+        - [x] Read CellML meta data
         - [ ] Read RDF "is" annotations
         - [ ] Imports
 
