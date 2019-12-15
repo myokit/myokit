@@ -40,6 +40,85 @@ def is_valid_identifier(name):
     return _cellml_identifier.match(name) is not None
 
 
+def clean_identifier(name):
+    """
+    Checks if ``name`` is a valid CellML identifier and if not attempts to make
+    it into one.
+
+    Raises a ``ValueError`` if it can't create a valid identifier.
+    """
+    if is_valid_identifier(name):
+        return name
+
+    # Replace spaces and hyphens with underscores
+    clean = re.sub(r'[\s-]', '_', name)
+
+    # Check if valid and return
+    if is_valid_identifier(clean):
+        return clean
+    raise ValueError(
+        'Unable to create a valid CellML identifier from "' + str(name) + '".')
+
+
+def create_unit_name(unit):
+    """
+    Creates an almost readable name for a Myokit ``unit``.
+    """
+    # Get preferred name from Myokit's representation (e.g. [kg]) but trim off
+    # the brackets
+    name = str(unit)[1:-1]
+
+    # If this is a valid name, return
+    if is_valid_identifier(name):
+        return name
+
+    # Not allowed: could be because of a multiplier, e.g. [m (0.0254)]
+    if ' ' in name:
+        name, multiplier = name.split(' ')
+    else:
+        name, multiplier = name, ''
+
+    # Could also be because it's g*m/mol^2
+    # (Exponents are integers, so don't need to deal with floats here)
+    name = name.replace('^', '')
+    name = name.replace('/', '_per_')
+    name = name.replace('*', '_')
+
+    # Remove "1_" from "1_per_mV"
+    if name[:2] == '1_':
+        name = name[2:]
+
+    # Turn "1 (123)" into "dimensionless (123)"
+    elif name == '1':
+        # E.g. [1 (1000)]
+        name = 'dimensionless'
+
+    # Add multiplier (can be float)
+    if multiplier:
+        multiplier = unit.multiplier()
+
+        # Use e-notation if multiple of 10
+        multiplier10 = unit.multiplier_log_10()
+        if myokit._feq(multiplier10, int(multiplier10)):
+            multiplier = '1e' + str(int(multiplier10))
+
+        # Format as integer
+        elif myokit._feq(multiplier, int(multiplier)):
+            multiplier = str(int(multiplier))
+
+        # Format as float
+        else:
+            multiplier = str(multiplier)
+
+        # Remove characters not allowed in CellML identifiers
+        multiplier = multiplier.replace('+', '')
+        multiplier = multiplier.replace('-', '_minus_')
+        multiplier = multiplier.replace('.', '_dot_')
+        name += '_times_' + multiplier
+
+    return name
+
+
 class AnnotatableElement(object):
     """
     Represents a CellML 1.0 or 1.1 element that can have a cmeta:id.
@@ -457,14 +536,162 @@ class Model(AnnotatableElement):
             return Units.find_units(name)
 
     @staticmethod
-    def from_myokit_model(myokit_model, protocol=None):
+    def from_myokit_model(model):
         """
         Creates a :class:`Model` from a :class:`myokit.Model`.
-
-        If a ``protocol`` is also given it will be used to generate a typical
-        CellML if-statement protocol.
         """
-        raise NotImplementedError
+
+        # Get name for CellML model
+        name = model.name()
+        if name is None:
+            name = 'unnamed_myokit_model'
+        else:
+            try:
+                name = clean_identifier(name)
+            except ValueError:
+                name = 'unnamed_myokit_model'
+
+        # Create CellML model
+        m = Model(name)
+
+        # Gather unit objects used in Myokit model
+        used = set()
+        for variable in model.variables(deep=True):
+            used.add(variable.unit())
+            for e in variable.rhs().walk(myokit.Number):
+                used.add(e.unit())
+        if None in used:
+            used.remove(None)
+
+        # Add units to models, and store mapping from objects to names
+        unit_map = dict(Units._si_units_r)
+        for unit in used:
+            if unit not in unit_map:
+                name = create_unit_name(unit)
+                unit_map[unit] = name
+                m.add_units(name, unit)
+        unit_map[None] = 'dimensionless'
+
+        # Check model with state variables declares a time variable
+        time = model.time()
+        if time is None:
+            if len(model.state      ()) > 0:
+                raise CellMLError(
+                    'Unable to create CellML model with state variables if no'
+                    ' variable has been bound to `time`.')
+
+        # Variable naming strategy:
+        # 1. Component level variables always use their unqualified names
+        # 2. Nested variables use their unames
+        # 3. Variable-in variables use their unames
+
+        # Create unames in model
+        model.create_unique_names()
+
+        # Dict of interface-in variables that need to be added to each
+        # component
+        in_variables = {component: set() for component in model}
+
+        # Dict mapping Myokit variables to CellML variables, per component
+        var_map = {component: dict() for component in model}
+
+        # Add components
+        for component in model:
+            c = m.add_component(component.name())
+
+            # Local var_map entry
+            local_var_map = var_map[component]
+
+            # Add variables
+            for variable in component:
+
+                # Check if this variable is needed in other components
+                interface = 'none'
+
+                # Get all refs to variable's LHS
+                refs = set(variable.refs_by())
+                if variable.is_state():
+                    # If it's a state, refs to dot(x) also require the time
+                    # variable
+                    if refs:
+                        refs.add(time)
+                    # And refs should include references to the state itself
+                    refs = refs.union(variable.refs_by(True))
+
+                # Update lists of required interface-in variables, and set
+                # interface to 'out' if needed
+                for user in refs:
+                    parent = user.parent(myokit.Component)
+                    if parent != component:
+                        in_variables[parent].add(variable)
+                        interface = 'out'
+
+                # Add variable
+                local_var_map[variable] = v = c.add_variable(
+                    variable.name(),
+                    unit_map[variable.unit()],
+                    public_interface=interface
+                )
+
+                # Copy meta-data, create cmeta id in case its needed
+                v.set_cmeta_id(variable.uname())
+                for key, value in variable.meta.items():
+                    v.meta[key] = value
+
+                # Add nested variables
+                for nested in variable.variables(deep=True):
+                    local_var_map[nested] = v = c.add_variable(
+                        nested.uname(), unit_map[nested.unit()])
+
+                    # Copy meta-data, create cmeta id in case its needed
+                    v.set_cmeta_id(nested.uname())
+                    for key, value in nested.meta.items():
+                        v.meta[key] = value
+
+        # Add interface-in variables
+        for component, variables in in_variables.items():
+            c = m[component.name()]
+
+            # Local var_map entry
+            local_var_map = var_map[component]
+
+            # Add variables
+            for variable in variables:
+                local_var_map[variable] = v = c.add_variable(
+                    variable.uname(),
+                    unit_map[variable.unit()],
+                    public_interface='in',
+                )
+
+                # Add connection
+                m.add_connection(
+                    v, m[variable.parent().name()][variable.name()])
+
+        # Set RHS equations
+        for component in model:
+
+            # Create dict of Name substitutions
+            local_var_map = var_map[component]
+            names = {
+                myokit.Name(x): myokit.Name(y)
+                for x, y in local_var_map.items()}
+
+            # Set RHS equations
+            for variable in component.variables(deep=True):
+                v = local_var_map[variable]
+                v.set_rhs(variable.rhs().clone(subst=names))
+
+                # Promote states and set initial value
+                if variable.is_state():
+                    v.set_is_state(True)
+                    v.set_initial_value(variable.state_value())
+
+                # Set time variable
+                if variable is time:
+                    m.set_free_variable(v)
+
+        # Return model
+        return m
 
     def __getitem__(self, key):
         return self._components[key]
@@ -641,9 +868,7 @@ class Model(AnnotatableElement):
                     states.add(v)
 
         if len(free) > 1:
-            warnings.append(
-                'More than one variable does not have a value: ' +
-                ', '.join([str(v) for v in free]) + '.')
+            warnings.append('More than one variable does not have a value.')
 
         elif self._free_variable is not None and len(free) == 1:
             free = free.pop()
@@ -872,7 +1097,6 @@ class Units(object):
     _si_unit_objects = {}
 
     # Predefined units in CellML, Unit object to name
-    '''
     _si_units_r = {
         myokit.units.dimensionless: 'dimensionless',
         myokit.units.A: 'ampere',
@@ -897,7 +1121,6 @@ class Units(object):
         myokit.units.L: 'liter',
         myokit.units.mol: 'mole',
     }
-    '''
 
     # Recognised unit prefixes, name to multiplier
     _si_prefixes = {
