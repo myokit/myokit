@@ -123,10 +123,17 @@ class TestCellMLComponent(unittest.TestCase):
 
         # Test iteration
         w = c.add_units('jarvis', myokit.units.meter)
-        us = [x for x in c.units()]
+        us = [unit for unit in c.units()]
         self.assertEqual(len(us), 2)
         self.assertIn(u, us)
         self.assertIn(w, us)
+
+        # Test finding names (finds the last added with that unit)
+        self.assertEqual(c.find_units_name(myokit.units.meter), 'jarvis')
+        self.assertEqual(c.find_units_name(myokit.units.volt), 'volt')
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'No name found for myokit unit',
+            c.find_units_name, 1 / myokit.units.volt)
 
     def test_add_get_variable(self):
         # Tests adding and getting variables
@@ -144,6 +151,13 @@ class TestCellMLComponent(unittest.TestCase):
         # Test adding duplicate
         self.assertRaisesRegex(
             cellml.CellMLError, 'unique', c.add_variable, 'v', 'meter')
+
+        # Test iteration over all
+        w = c.add_variable('w', 'volt')
+        vs = [x for x in c.variables()]
+        self.assertEqual(len(vs), 2)
+        self.assertIn(v, vs)
+        self.assertIn(w, vs)
 
         # Rest of creation is tested in variable test
 
@@ -183,18 +197,49 @@ class TestCellMLComponent(unittest.TestCase):
         m = cellml.Model('m')
         a = m.add_component('Stacey')
         b = m.add_component('Jane')
-        c = m.add_component('Mary_jo_lisa')
+        c = m.add_component('Mary')
+        d = m.add_component('Jo')
+        e = m.add_component('Lisa')
         self.assertIsNone(a.parent())
         self.assertIsNone(b.parent())
         self.assertIsNone(c.parent())
+        self.assertIsNone(d.parent())
+        self.assertIsNone(e.parent())
+        self.assertFalse(a.has_children())
+        self.assertFalse(b.has_children())
+        self.assertFalse(c.has_children())
+        self.assertFalse(d.has_children())
+        self.assertFalse(e.has_children())
+        self.assertEqual(len(list(a.children())), 0)
+        self.assertEqual(len(list(b.children())), 0)
+        self.assertEqual(len(list(c.children())), 0)
+        self.assertEqual(len(list(e.children())), 0)
+        self.assertEqual(len(list(e.children())), 0)
 
         # Test setting
-        a.set_parent(b)
-        b.set_parent(c)
+        b.set_parent(a)
         c.set_parent(b)
-        self.assertIs(a.parent(), b)
-        self.assertIs(b.parent(), c)
+        d.set_parent(c)
+        e.set_parent(c)
+        self.assertIsNone(a.parent())
+        self.assertIs(b.parent(), a)
         self.assertIs(c.parent(), b)
+        self.assertIs(d.parent(), c)
+        self.assertIs(e.parent(), c)
+        self.assertTrue(a.has_children())
+        self.assertTrue(b.has_children())
+        self.assertTrue(c.has_children())
+        self.assertFalse(d.has_children())
+        self.assertFalse(e.has_children())
+        self.assertEqual(len(list(a.children())), 1)
+        self.assertEqual(len(list(b.children())), 1)
+        self.assertEqual(len(list(c.children())), 2)
+        self.assertEqual(len(list(d.children())), 0)
+        self.assertEqual(len(list(e.children())), 0)
+        self.assertIn(b, list(a.children()))
+        self.assertIn(c, list(b.children()))
+        self.assertIn(d, list(c.children()))
+        self.assertIn(e, list(c.children()))
 
         # Test bad parent
         self.assertRaisesRegex(ValueError, 'cellml.Component', b.set_parent, m)
@@ -248,10 +293,17 @@ class TestCellMLModel(unittest.TestCase):
 
         # Test iteration
         w = m.add_units('jarvis', myokit.units.meter)
-        us = [x for x in m.units()]
+        us = [unit for unit in m.units()]
         self.assertEqual(len(us), 2)
         self.assertIn(u, us)
         self.assertIn(w, us)
+
+        # Test finding names (finds the last added with that unit)
+        self.assertEqual(m.find_units_name(myokit.units.meter), 'jarvis')
+        self.assertEqual(m.find_units_name(myokit.units.volt), 'volt')
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'No name found for myokit unit',
+            m.find_units_name, 1 / myokit.units.volt)
 
     def test_add_get_component(self):
         # Tests adding and getting components
@@ -269,12 +321,19 @@ class TestCellMLModel(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'unique', m.add_component, 'c')
 
+        # Test iteration over all
+        d = m.add_component('d')
+        cs = [x for x in m.components()]
+        self.assertEqual(len(cs), 2)
+        self.assertIn(c, cs)
+        self.assertIn(d, cs)
+
         # Rest of creation is tested in component test
 
     def test_add_connection(self):
         # Tests adding connections
 
-        # Test setting connections and using Variable.source()
+        # Test setting connections and using Variable.value_source()
         m = cellml.Model('m')
         a = m.add_component('a')
         b = m.add_component('b')
@@ -287,9 +346,12 @@ class TestCellMLModel(unittest.TestCase):
 
         m.add_connection(x, y)
         m.add_connection(z, y)
-        self.assertIs(x.source(), x)
+        self.assertIsNone(x.source())
         self.assertIs(y.source(), x)
-        self.assertIs(z.source(), x)
+        self.assertIs(z.source(), y)
+        self.assertIs(x.value_source(), x)
+        self.assertIs(y.value_source(), x)
+        self.assertIs(z.value_source(), x)
 
         # Test bad connections
         x2 = x
@@ -767,19 +829,28 @@ class TestCellMLVariable(unittest.TestCase):
             x.set_initial_value, 1)
 
     def test_is_local_and_source(self):
-        # Tests Variable.is_local() and Variable.source()
+        # Tests Variable.is_local() and Variable.source() and
+        # Variable.value_source()
 
         m = cellml.Model('m')
         a = m.add_component('a')
         b = m.add_component('b')
+        c = m.add_component('c')
+        c.set_parent(b)
         ax = a.add_variable('x', 'volt', 'out')
-        bx = b.add_variable('x', 'volt', 'in')
+        bx = b.add_variable('x', 'volt', 'in', 'out')
+        cx = c.add_variable('x', 'volt', 'in')
         m.add_connection(ax, bx)
+        m.add_connection(bx, cx)
 
         self.assertTrue(ax.is_local())
         self.assertFalse(bx.is_local())
-        self.assertIs(ax.source(), ax)
+        self.assertFalse(cx.is_local())
+        self.assertIs(cx.source(), bx)
         self.assertIs(bx.source(), ax)
+        self.assertIs(ax.value_source(), ax)
+        self.assertIs(bx.value_source(), ax)
+        self.assertIs(cx.value_source(), ax)
 
     def test_name(self):
         # Tests Variable.name()

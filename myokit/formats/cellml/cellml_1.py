@@ -197,13 +197,16 @@ class Component(AnnotatableElement):
 
         # This component's encapsulation relationships
         self._parent = None
-        # self._children = set()    Currently unused
+        self._children = set()
 
         # This component's variables
         self._variables = collections.OrderedDict()
 
         # This component's component-level units
         self._units = {}
+
+        # Lookup myokit unit to name (note this lookup may not be unique)
+        self._myokit_unit_to_name = {}
 
     def add_units(self, name, myokit_unit):
         """
@@ -223,8 +226,14 @@ class Component(AnnotatableElement):
                 ' name (5.4.1.2)')
 
         # Create, store, and return
-        self._units[name] = u = Units(name, myokit_unit)
-        return u
+        # Note: there can be units with different names but the same myokit
+        # unit, in this case we simply overwrite whatever name was already
+        # there. This shouldn't cause any issues because the name still refers
+        # to a valid unit.
+        units = Units(name, myokit_unit)
+        self._units[name] = units
+        self._myokit_unit_to_name[myokit_unit] = name
+        return units
 
     def add_variable(self, name, units, public_interface='none',
                      private_interface='none'):
@@ -254,6 +263,12 @@ class Component(AnnotatableElement):
             self, name, units, public_interface, private_interface)
         return v
 
+    def children(self):
+        """
+        Returns an iterator over any encapsulated child components.
+        """
+        return iter(self._children)
+
     def __contains__(self, key):
         return key in self._variables
 
@@ -261,17 +276,40 @@ class Component(AnnotatableElement):
         """
         Looks up and returns a :class:`Units` object with the given ``name``.
 
-        If no such unit exists in the component, the model units and predefined
-        units are searched. If a unit still isn't found, a `KeyError` is
-        raised.
+        Searches first in this component, then in its model, then in the list
+        of predefined units.
+
+        Raises a :class:`CellMLError` is no unit is found.
+
         """
         try:
             return self._units[name]
         except KeyError:
             return self._model.find_units(name)
 
+    def find_units_name(self, myokit_unit):
+        """
+        Attempts to find a string name for the given :class:`myokit.Unit`.
+
+        Searches first in this component, then in its model, then in the list
+        of predefined units. If multiple units definitions have the same
+        :class:`myokit.Unit`, the last added name is returned.
+
+        Raises a :class:`CellMLError` is no appropriate unit is found.
+        """
+        try:
+            return self._myokit_unit_to_name[myokit_unit]
+        except KeyError:
+            return self._model.find_units_name(myokit_unit)
+
     def __getitem__(self, key):
         return self._variables[key]
+
+    def has_children(self):
+        """
+        Checks if this component has any encapsulated child components.
+        """
+        return len(self._children) > 0
 
     def __iter__(self):
         return iter(self._variables.values())
@@ -310,20 +348,22 @@ class Component(AnnotatableElement):
                 raise ValueError('Parent must be from the same model.')
 
         # Store relationship
-        # if self._parent is not None:
-        #    self._parent._children.remove(self)
+        if self._parent is not None:
+           self._parent._children.remove(self)
         self._parent = parent
-        # if parent is not None:
-        #    parent._children.add(self)
+        if parent is not None:
+           parent._children.add(self)
 
     def __str__(self):
         return 'Component[@name="' + self._name + '"]'
 
     def units(self):
         """
-        Returns an iterator over this component's :class:`Unit` objects.
+        Returns an iterator over the :class:`Units` objects in this component.
         """
-        return self._units.values()
+        # Note: Must use _by_name here, other one doesn't necessarily contain
+        # all units objects (only names are unique).
+        return iter(self._units.values())
 
     def _validate(self, warnings):
         """
@@ -347,6 +387,12 @@ class Component(AnnotatableElement):
         Returns the variable with the given ``name``.
         """
         return self._variables[name]
+
+    def variables(self):
+        """
+        Returns an iterator over this component's variables.
+        """
+        return iter(self._variables.values())
 
 
 class Model(AnnotatableElement):
@@ -395,6 +441,9 @@ class Model(AnnotatableElement):
 
         # This model's model-level units
         self._units = {}
+
+        # Lookup myokit unit to name (note this lookup may not be unique)
+        self._myokit_unit_to_name = {}
 
         # A mapping from cmeta:ids to CellML element objects.
         self._cmeta_ids = {}
@@ -504,14 +553,22 @@ class Model(AnnotatableElement):
                 ' (5.4.1.2)')
 
         # Create, store, and return
-        self._units[name] = u = Units(name, myokit_unit)
-        return u
+        units = Units(name, myokit_unit)
+        self._units[name] = units
+        self._myokit_unit_to_name[myokit_unit] = name
+        return units
 
     def component(self, name):
         """
         Returns the :class:`Component` with the given ``name``.
         """
         return self._components[name]
+
+    def components(self):
+        """
+        Returns an iterator over this model's components.
+        """
+        return iter(self._components.values())
 
     def __contains__(self, key):
         return key in self._components
@@ -527,13 +584,29 @@ class Model(AnnotatableElement):
         """
         Looks up and returns a :class:`Units` object with the given ``name``.
 
-        If no such unit exists in the model, the predefined units are searched.
-        If a unit still isn't found, a `KeyError` is raised.
+        Searches first in this model, then in the list of predefined units.
+
+        Raises a :class:`CellMLError` is no unit is found.
         """
         try:
             return self._units[name]
         except KeyError:
             return Units.find_units(name)
+
+    def find_units_name(self, myokit_unit):
+        """
+        Attempts to find a string name for the given :class:`myokit.Unit`.
+
+        Searches first in this component, then in its model, then in the list
+        of predefined units. If multiple units definitions have the same
+        :class:`myokit.Unit`, the last added name is returned.
+
+        Raises a :class:`CellMLError` is no appropriate unit is found.
+        """
+        try:
+            return self._myokit_unit_to_name[myokit_unit]
+        except KeyError:
+            return Units.find_units_name(myokit_unit)
 
     @staticmethod
     def from_myokit_model(model):
@@ -664,8 +737,8 @@ class Model(AnnotatableElement):
                 )
 
                 # Add connection
-                m.add_connection(
-                    v, m[variable.parent().name()][variable.name()])
+                source = m[variable.parent().name()][variable.name()]
+                m.add_connection(v, source)
 
         # Set RHS equations
         for component in model:
@@ -679,12 +752,21 @@ class Model(AnnotatableElement):
             # Set RHS equations
             for variable in component.variables(deep=True):
                 v = local_var_map[variable]
-                v.set_rhs(variable.rhs().clone(subst=names))
+                rhs = variable.rhs().clone(subst=names)
 
-                # Promote states and set initial value
+                # Promote states and set rhs and initial value
                 if variable.is_state():
                     v.set_is_state(True)
                     v.set_initial_value(variable.state_value())
+                    v.set_rhs(rhs)
+
+                # Store literals (single number) in initial value
+                elif isinstance(rhs, myokit.Number):
+                    v.set_initial_value(rhs.eval())
+
+                # For all other use rhs
+                else:
+                    v.set_rhs(rhs)
 
                 # Set time variable
                 if variable is time:
@@ -724,7 +806,7 @@ class Model(AnnotatableElement):
                 if variable.is_local():
                     v = c.add_variable(variable.name())
                     v.set_unit(variable.units().myokit_unit())
-                elif variable.units() != variable.source().units():
+                elif variable.units() != variable.value_source().units():
                     #TODO Implement unit conversion
                     import warnings
                     warnings.warn(
@@ -738,7 +820,7 @@ class Model(AnnotatableElement):
             # Create dict of variable reference substitutions
             varmap = {}
             for variable in component:
-                source = variable.source()
+                source = variable.value_source()
                 parent = m[source.component().name()]
                 varmap[myokit.Name(variable)] = myokit.Name(
                     parent[source.name()])
@@ -830,9 +912,11 @@ class Model(AnnotatableElement):
 
     def units(self):
         """
-        Returns an iterator over this model's :class:`Unit` objects.
+        Returns an iterator over the :class:`Units` objects in this model.
         """
-        return self._units.values()
+        # Note: Must use _by_name here, other one doesn't necessarily contain
+        # all units objects (only names are unique).
+        return iter(self._units.values())
 
     def _unregister_cmeta_id(self, cmeta_id):
         """
@@ -861,7 +945,7 @@ class Model(AnnotatableElement):
         states = set()
         for c in self:
             for v in c:
-                if v.source() is v:
+                if v.value_source() is v:
                     if v.rhs() is None and v.initial_value() is None:
                         free.add(v)
                 if v.is_state():
@@ -934,17 +1018,40 @@ class Units(object):
         """
         Searches for a predefined unit with the given ``name`` and returns a
         :class:`Units` object representing it.
+
+        If no such unit is found a :class:`CellMLError` is raised.
         """
+        # Check if we have a cached object for this
         obj = cls._si_unit_objects.get(name, None)
         if obj is None:
+
+            # Check if this is an si unit
             myokit_unit = cls._si_units.get(name, None)
+
+            # If not raise error (and one that makes sense even if this was
+            # called via a model or component units lookup).
             if myokit_unit is None:
-                # Raise error that makes sense even if this was called via a
-                # model or component units lookup.
                 raise CellMLError('Unknown units name "' + str(name) + '".')
+
+            # Create and store object
             obj = cls(name, myokit_unit, predefined=True)
             cls._si_unit_objects[name] = obj
+
+        # Return
         return obj
+
+    @classmethod
+    def find_units_name(cls, myokit_unit):
+        """
+        Attempts to find a string name for the given :class:`myokit.Unit`.
+
+        Raises a :class:`CellMLError` is no appropriate unit is found.
+        """
+        try:
+            return cls._si_units_r[myokit_unit]
+        except KeyError:
+            raise CellMLError(
+                'No name found for myokit unit ' + str(myokit_unit) + '.')
 
     def myokit_unit(self):
         """
@@ -1385,20 +1492,12 @@ class Variable(AnnotatableElement):
 
     def source(self):
         """
-        Returns the :class:`Variable` that this variable derives its value
-        from.
+        If this :class:`Variable` has an "in" interface and is connected to
+        another variable, this method returns that variable.
 
-        If the variable has a defining equation or an initial value, this will
-        return the variable itself. If it is connected to another variable, it
-        will follow the chain of dependencies until a variable with an equation
-        or value is found.
-
+        If not, it returns ``None``.
         """
-        var = self
-        while var._source is not None:
-            var = var._source
-            assert var is not self
-        return var
+        return self._source
 
     def __str__(self):
         return (
@@ -1445,4 +1544,20 @@ class Variable(AnnotatableElement):
             raise CellMLError(
                 'Overdefined: ' + str(self) + ' has both an initial value and'
                 ' a defining equation (which is not an ODE).')
+
+    def value_source(self):
+        """
+        Returns the :class:`Variable` that this variable derives its value
+        from.
+
+        If the variable has a defining equation or an initial value, this will
+        return the variable itself. If it is connected to another variable, it
+        will follow the chain of dependencies until a variable with an equation
+        or value is found.
+        """
+        var = self
+        while var._source is not None:
+            var = var._source
+            assert var is not self
+        return var
 

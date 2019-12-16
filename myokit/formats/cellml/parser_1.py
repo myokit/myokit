@@ -818,7 +818,8 @@ class CellMLParser(object):
                 self._parse_math(math, component)
 
         # Check number of free variables
-        self._free_vars = set([x.var().source() for x in self._free_vars])
+        self._free_vars = set(
+            [x.var().value_source() for x in self._free_vars])
         if len(self._free_vars) > 1:
             raise CellMLParsingError(
                 'Models that take derivatives with respect to more than one'

@@ -61,10 +61,10 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
     def set_lhs_function(self, f):
         """
         Sets a naming function, will be called to get the variable name from a
-         ``myokit.LhsExpression`` object.
+         :class:`myokit.Name` (derivatives will be handled separately).
 
-        The argument ``f`` should be a function that takes an ``LhsExpression``
-        as input and returns a string.
+        The argument ``f`` should be a function that takes a
+        :class:`myokit.Name` as input and returns a string.
         """
         self._flhs = f
 
