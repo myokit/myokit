@@ -962,11 +962,14 @@ class TestCellMLVariable(unittest.TestCase):
         m = cellml.Model('m')
         a = m.add_component('a')
         b = m.add_component('b')
-        t = a.add_variable('t', 'dimensionless')
+        t = a.add_variable('t', 'dimensionless', 'out')
         m.set_free_variable(t)
         ax = a.add_variable('x', 'meter', 'in')
         bx = b.add_variable('x', 'meter', 'out')
         bx.set_initial_value(3)
+        bt = b.add_variable('toim', 'dimensionless', 'in')
+        m.add_connection(t, bt)
+
         warn = m.validate()
         self.assertIn('not connected', warn[0])
 

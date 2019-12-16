@@ -349,10 +349,10 @@ class Component(AnnotatableElement):
 
         # Store relationship
         if self._parent is not None:
-           self._parent._children.remove(self)
+            self._parent._children.remove(self)
         self._parent = parent
         if parent is not None:
-           parent._children.add(self)
+            parent._children.add(self)
 
     def __str__(self):
         return 'Component[@name="' + self._name + '"]'
@@ -381,6 +381,30 @@ class Component(AnnotatableElement):
         # Validate variables
         for v in self._variables.values():
             v._validate(warnings)
+
+        # If this component has states, check that it also has a free variable
+        # in the local component.
+        has_states = False
+        has_free = False
+        for v in self._variables.values():
+            if v.is_state():
+                has_states = True
+            elif v.value_source().is_free():
+                has_free = True
+            if has_states and has_free:
+                break
+
+        # If derivatives are used, check that a time variable is defined and
+        # is available in this component.
+        if has_states:
+            if self._model.free_variable() is None:
+                raise CellMLError(
+                    'If state variables are used, a free variable must be set'
+                    ' with Model.set_free_variable().')
+            if not has_free:
+                raise CellMLError(
+                    str(self) + ' has state variables, but no local variable'
+                    ' connected to the free variable.')
 
     def variable(self, name):
         """
@@ -608,6 +632,12 @@ class Model(AnnotatableElement):
         except KeyError:
             return Units.find_units_name(myokit_unit)
 
+    def free_variable(self):
+        """
+        Returns the free variable set with :meth:`set_free_variable`.
+        """
+        return self._free_variable
+
     @staticmethod
     def from_myokit_model(model):
         """
@@ -648,7 +678,7 @@ class Model(AnnotatableElement):
         # Check model with state variables declares a time variable
         time = model.time()
         if time is None:
-            if len(model.state      ()) > 0:
+            if len(model.state()) > 0:
                 raise CellMLError(
                     'Unable to create CellML model with state variables if no'
                     ' variable has been bound to `time`.')
@@ -688,8 +718,15 @@ class Model(AnnotatableElement):
                     # variable
                     if refs:
                         refs.add(time)
+
                     # And refs should include references to the state itself
                     refs = refs.union(variable.refs_by(True))
+
+                elif variable is time:
+                    # If this is the time variable, then ensure that all states
+                    # have a local reference to it.
+                    for ref in model.states():
+                        refs.add(ref)
 
                 # Update lists of required interface-in variables, and set
                 # interface to 'out' if needed
@@ -898,6 +935,12 @@ class Model(AnnotatableElement):
         if variable is not None and variable._model is not self:
             raise ValueError('Given variable must be from this model.')
 
+        # Check interface
+        if variable is not None and (variable.public_interface == 'in' or
+                                     variable.private_interface == 'in'):
+            raise CellMLError(
+                'The free variable cannot have an "in" interface.')
+
         # Unset previous
         if self._free_variable is not None:
             self._free_variable._is_free = False
@@ -942,14 +985,11 @@ class Model(AnnotatableElement):
         # Check at most one variable doesn't have a source (one free variable
         # is allowed)
         free = set()
-        states = set()
         for c in self:
             for v in c:
                 if v.value_source() is v:
                     if v.rhs() is None and v.initial_value() is None:
                         free.add(v)
-                if v.is_state():
-                    states.add(v)
 
         if len(free) > 1:
             warnings.append('More than one variable does not have a value.')
@@ -961,13 +1001,6 @@ class Model(AnnotatableElement):
                     'No value is defined for the variable "'
                     + free.name() + '", but "' + self._free_variable.name()
                     + '" is listed as the free variable.')
-
-        # If derivatives are used, check that a time variable is defined
-        if states:
-            if self._free_variable is None:
-                raise CellMLError(
-                    'If state variables are used, a free variable must be set'
-                    ' with Model.set_free_variable().')
 
         # Return warnings
         return warnings
