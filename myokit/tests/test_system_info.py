@@ -20,10 +20,29 @@ except NameError:   # pragma: no cover
     basestring = str
 
 
+class VersionTest(unittest.TestCase):
+    """
+    Tests the version() method.
+    """
+    def test_version(self):
+
+        # Raw version
+        raw = myokit.version(raw=True)
+        self.assertIsInstance(raw, basestring)
+        parts = raw.split('.')
+        self.assertTrue(len(parts) in [3, 4])
+
+        # Formatted version
+        v = myokit.version()
+        v = v.splitlines()
+        self.assertEqual(len(v), 3)
+
+
 class SystemInfoTest(unittest.TestCase):
     """
     Tests the system info method.
     """
+
     def test_system_info(self):
         import matplotlib
         matplotlib.use('template')
