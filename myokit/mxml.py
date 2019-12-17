@@ -318,16 +318,3 @@ def html2ascii(html, width=79, indent='  '):
     f.close()
     return f.get_text()
 
-
-def write_mathml(expression, presentation):
-    """
-    Converts a myokit :class:`Expression` to a mathml expression.
-
-    The boolean argument ``presentation`` can be used to select between
-    Presentation MathML and Content MathML.
-    """
-    from myokit.formats.mathml import MathMLExpressionWriter
-    w = MathMLExpressionWriter()
-    w.set_mode(presentation=presentation)
-    return w.ex(expression)
-

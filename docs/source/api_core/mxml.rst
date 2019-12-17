@@ -11,8 +11,6 @@ common tasks. This module is imported as part of the main ``myokit`` package.
 
 .. currentmodule:: myokit.mxml
 
-.. autofunction:: write_mathml
-
 Dom traversal
 -------------
 
