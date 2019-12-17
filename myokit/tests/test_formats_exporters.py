@@ -189,8 +189,8 @@ class ExportTest(unittest.TestCase):
     def test_ansic_euler_exporter(self):
         self._test(myokit.formats.exporter('ansic-euler'))
 
-    def test_cellml_exporter(self):
-        self._test(myokit.formats.exporter('cellml'))
+    #def test_cellml_exporter(self):
+    #    self._test(myokit.formats.exporter('cellml'))
 
     def test_cuda_kernel_exporter(self):
         self._test(myokit.formats.exporter('cuda-kernel'))

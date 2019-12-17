@@ -17,6 +17,9 @@ from ._parser import (   # noqa
     parse_mathml_string,
 )
 
+# Namespaces
+NS_MATHML_2 = 'http://www.w3.org/1998/Math/MathML'
+
 # Importers
 # Exporters
 _exporters = {

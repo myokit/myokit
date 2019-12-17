@@ -7,17 +7,11 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+from lxml import etree
+
 import myokit
+
 from myokit.formats.cellml import cellml_1 as cellml
-
-
-# Import lxml or default etree
-_lxml = True
-try:
-    from lxml import etree
-except ImportError:
-    _lxml = False
-    import xml.etree.ElementTree as etree
 
 
 # List of si unit names corresponding to myokit.Unit exponents
@@ -191,15 +185,17 @@ class CellMLWriter(object):
         # Create expression writer for this component
         from myokit.formats.cellml import CellMLExpressionWriter
         ewriter = CellMLExpressionWriter()
-        ewriter.set_element_tree_class(etree)
         ewriter.set_lhs_function(lambda x: x.var().name())
         ewriter.set_unit_function(lambda x: component.find_units_name(x))
         if free is not None:
             ewriter.set_time_variable(free)
 
         # Add math element and reset default namespace to MathML namespace
-        math = etree.SubElement(parent, 'math')
-        math.attrib['xmlns'] = cellml.NS_MATHML
+        nsmap = {
+            None: cellml.NS_MATHML,
+            'cellml': cellml.NS_CELLML_1_0,
+        }
+        math = etree.SubElement(parent, 'math', nsmap=nsmap)
 
         # Add maths for variables
         for variable in component:
@@ -225,15 +221,7 @@ class CellMLWriter(object):
             None: cellml.NS_CELLML_1_0,
             'cellml': cellml.NS_CELLML_1_0,
         }
-        if _lxml:
-            element = etree.Element('model', nsmap=namespaces)
-        else:
-            element = etree.Element('model')
-            element.attrib['xmlns'] = cellml.NS_CELLML_1_0
-            for prefix, ns in namespaces.items():
-                if prefix is not None:
-                    print('xmlns:' + prefix)
-                    element.attrib['xmlns:' + prefix] = ns
+        element = etree.Element('model', nsmap=namespaces)
 
         # Set model name
         element.attrib['name'] = model.name()
@@ -349,21 +337,13 @@ class CellMLWriter(object):
         tree = self.write(model)
 
         # Write to disk
-        kwargs = {
-            'encoding': 'utf-8',
-            'method': 'xml',
-            'xml_declaration': True,
-        }
-        if _lxml:   # pragma: no cover
-            kwargs['pretty_print'] = True
-        tree.write(path, **kwargs)
-
-        # Prettify, if not using lxml
-        if not _lxml:
-            import xml.dom.minidom as m
-            xml = m.parse(path)
-            with open(path, 'wb') as f:
-                f.write(xml.toprettyxml(encoding='utf-8'))
+        tree.write(
+            path,
+            encoding='utf-8',
+            method='xml',
+            xml_declaration=True,
+            pretty_print=True,
+        )
 
     def write_string(self, model):
         """
@@ -375,11 +355,10 @@ class CellMLWriter(object):
         tree = self.write(model)
 
         # Write to string
-        kwargs = {
-            'encoding': 'utf-8',
-            'method': 'xml',
-        }
-        if _lxml:   # pragma: no cover
-            kwargs['pretty_print'] = True
-        return etree.tostring(tree, **kwargs)
+        return etree.tostring(
+            tree,
+            encoding='utf-8',
+            method='xml',
+            pretty_print=True,
+        )
 

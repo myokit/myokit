@@ -8,18 +8,11 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+from lxml import etree
+
 import myokit
 import myokit.formats
 import myokit.mxml
-
-
-# Import lxml or default etree
-_lxml = True
-try:
-    from lxml import etree
-except ImportError:
-    _lxml = False
-    import xml.etree.ElementTree as etree
 
 
 class CellMLImporterError(myokit.ImportError):
@@ -56,11 +49,8 @@ class CellMLImporter(myokit.formats.Importer):
 
         # Open XML file
         try:
-            if _lxml:   # pragma: no cover
-                parser = etree.XMLParser(remove_comments=True)
-                tree = etree.parse(path, parser=parser)
-            else:
-                tree = etree.parse(path)
+            parser = etree.XMLParser(remove_comments=True)
+            tree = etree.parse(path, parser=parser)
         except Exception as e:
             raise CellMLImporterError('Unable to parse XML: ' + str(e))
 

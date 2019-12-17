@@ -15,6 +15,7 @@ import unittest
 import myokit
 import myokit.formats as formats
 import myokit.formats.cellml
+
 from myokit.formats.cellml import CellMLImporterError
 
 from shared import TemporaryDirectory, DIR_FORMATS
@@ -150,7 +151,7 @@ class CellMLExporterTest(unittest.TestCase):
         mad_unit = myokit.Unit()
         mad_unit *= 1.234
         mad_unit *= myokit.units.m
-        mad_unit /= myokit.units.s
+        mad_unit/= myokit.units.s
         mad_unit *= myokit.units.A
         time.set_unit(mad_unit)
 
@@ -403,183 +404,40 @@ class CellMLExpressionWriterTest(unittest.TestCase):
     Tests :class:`myokit.formats.cellml.CellMLExpressionWriter`.
     """
 
-    #TODO: Split into smaller tests
-    def test_all(self):
-
+    @classmethod
+    def setUpClass(cls):
         # CellML requires unit mapping
         units = {
             myokit.parse_unit('pF'): 'picofarad',
         }
-        w = myokit.formats.cellml.CellMLExpressionWriter()
-        w.set_unit_function(lambda x: units[x])
+        cls.w = myokit.formats.cellml.CellMLExpressionWriter()
+        cls.w.set_unit_function(lambda x: units[x])
 
         model = myokit.Model()
         component = model.add_component('c')
-        avar = component.add_variable('a')
+        cls.avar = component.add_variable('a')
 
         # Requires valid model with unames set
-        avar.set_rhs(0)
-        avar.set_binding('time')
+        cls.avar.set_rhs(0)
+        cls.avar.set_binding('time')
         model.validate()
 
-        # Name
-        a = myokit.Name(avar)
-        ca = '<ci>a</ci>'
-        self.assertEqual(w.ex(a), ca)
-        # Number with unit
-        b = myokit.Number('12', 'pF')
-        cb = '<cn cellml:units="picofarad">12.0</cn>'
-        self.assertEqual(w.ex(b), cb)
-        # Number without unit
-        c = myokit.Number(1)
-        cc = '<cn cellml:units="dimensionless">1.0</cn>'
-        self.assertEqual(w.ex(c), cc)
+        # MathML opening and closing tags
+        cls.m1 = ('<math xmlns:cellml="http://www.cellml.org/cellml/1.0#"'
+                  ' xmlns="http://www.w3.org/1998/Math/MathML">')
+        cls.m2 = ('</math>')
 
-        # Prefix plus
-        x = myokit.PrefixPlus(b)
-        self.assertEqual(w.ex(x), '<apply><plus />' + cb + '</apply>')
-        # Prefix minus
-        x = myokit.PrefixMinus(b)
-        self.assertEqual(w.ex(x), '<apply><minus />' + cb + '</apply>')
+    def assertWrite(self, expression, xml):
+        """ Assert writing an ``expression`` results in the given ``xml``. """
+        x = self.w.ex(expression)
+        self.assertTrue(x.startswith(self.m1))
+        x = x[len(self.m1):]
+        self.assertTrue(x.endswith(self.m2))
+        x = x[:-len(self.m2)]
+        self.assertEqual(x, xml)
 
-        # Plus
-        x = myokit.Plus(a, b)
-        self.assertEqual(w.ex(x), '<apply><plus />' + ca + cb + '</apply>')
-        # Minus
-        x = myokit.Minus(a, b)
-        self.assertEqual(w.ex(x), '<apply><minus />' + ca + cb + '</apply>')
-        # Multiply
-        x = myokit.Multiply(a, b)
-        self.assertEqual(w.ex(x), '<apply><times />' + ca + cb + '</apply>')
-        # Divide
-        x = myokit.Divide(a, b)
-        self.assertEqual(w.ex(x), '<apply><divide />' + ca + cb + '</apply>')
-
-        # Power
-        x = myokit.Power(a, b)
-        self.assertEqual(w.ex(x), '<apply><power />' + ca + cb + '</apply>')
-        # Sqrt
-        x = myokit.Sqrt(b)
-        self.assertEqual(w.ex(x), '<apply><root />' + cb + '</apply>')
-        # Exp
-        x = myokit.Exp(a)
-        self.assertEqual(w.ex(x), '<apply><exp />' + ca + '</apply>')
-        # Log(a)
-        x = myokit.Log(b)
-        self.assertEqual(w.ex(x), '<apply><ln />' + cb + '</apply>')
-        # Log(a, b)
-        x = myokit.Log(a, b)
-        self.assertEqual(
-            w.ex(x),
-            '<apply><log /><logbase>' + cb + '</logbase>' + ca + '</apply>'
-        )
-        # Log10
-        x = myokit.Log10(b)
-        self.assertEqual(w.ex(x), '<apply><log />' + cb + '</apply>')
-
-        # Sin
-        x = myokit.Sin(b)
-        self.assertEqual(w.ex(x), '<apply><sin />' + cb + '</apply>')
-        # Cos
-        x = myokit.Cos(b)
-        self.assertEqual(w.ex(x), '<apply><cos />' + cb + '</apply>')
-        # Tan
-        x = myokit.Tan(b)
-        self.assertEqual(w.ex(x), '<apply><tan />' + cb + '</apply>')
-        # ASin
-        x = myokit.ASin(b)
-        self.assertEqual(w.ex(x), '<apply><arcsin />' + cb + '</apply>')
-        # ACos
-        x = myokit.ACos(b)
-        self.assertEqual(w.ex(x), '<apply><arccos />' + cb + '</apply>')
-        # ATan
-        x = myokit.ATan(b)
-        self.assertEqual(w.ex(x), '<apply><arctan />' + cb + '</apply>')
-
-        # Floor
-        x = myokit.Floor(b)
-        self.assertEqual(w.ex(x), '<apply><floor />' + cb + '</apply>')
-        # Ceil
-        x = myokit.Ceil(b)
-        self.assertEqual(w.ex(x), '<apply><ceiling />' + cb + '</apply>')
-        # Abs
-        x = myokit.Abs(b)
-        self.assertEqual(w.ex(x), '<apply><abs />' + cb + '</apply>')
-
-        # Quotient
-        # Uses custom implementation: CellML doesn't have these operators.
-        x = myokit.Quotient(a, b)
-        self.assertEqual(
-            w.ex(x),
-            '<apply><floor /><apply><divide />' + ca + cb + '</apply></apply>')
-        # Remainder
-        x = myokit.Remainder(a, b)
-        self.assertEqual(
-            w.ex(x),
-            '<apply><minus />' + ca +
-            '<apply><times />' + cb +
-            '<apply><floor /><apply><divide />' + ca + cb + '</apply></apply>'
-            '</apply>'
-            '</apply>'
-        )
-
-        # Equal
-        x = myokit.Equal(a, b)
-        self.assertEqual(w.ex(x), '<apply><eq />' + ca + cb + '</apply>')
-        # NotEqual
-        x = myokit.NotEqual(a, b)
-        self.assertEqual(w.ex(x), '<apply><neq />' + ca + cb + '</apply>')
-        # More
-        x = myokit.More(a, b)
-        self.assertEqual(w.ex(x), '<apply><gt />' + ca + cb + '</apply>')
-        # Less
-        x = myokit.Less(a, b)
-        self.assertEqual(w.ex(x), '<apply><lt />' + ca + cb + '</apply>')
-        # MoreEqual
-        x = myokit.MoreEqual(a, b)
-        self.assertEqual(w.ex(x), '<apply><geq />' + ca + cb + '</apply>')
-        # LessEqual
-        x = myokit.LessEqual(a, b)
-        self.assertEqual(w.ex(x), '<apply><leq />' + ca + cb + '</apply>')
-
-        # Not
-        cond1 = myokit.parse_expression('5 > 3')
-        cond2 = myokit.parse_expression('2 < 1')
-        c1 = ('<apply><gt />'
-              '<cn cellml:units="dimensionless">5.0</cn>'
-              '<cn cellml:units="dimensionless">3.0</cn>'
-              '</apply>')
-        c2 = ('<apply><lt />'
-              '<cn cellml:units="dimensionless">2.0</cn>'
-              '<cn cellml:units="dimensionless">1.0</cn>'
-              '</apply>')
-        x = myokit.Not(cond1)
-        self.assertEqual(w.ex(x), '<apply><not />' + c1 + '</apply>')
-        # And
-        x = myokit.And(cond1, cond2)
-        self.assertEqual(w.ex(x), '<apply><and />' + c1 + c2 + '</apply>')
-        # Or
-        x = myokit.Or(cond1, cond2)
-        self.assertEqual(w.ex(x), '<apply><or />' + c1 + c2 + '</apply>')
-        # If
-        x = myokit.If(cond1, a, b)
-        self.assertEqual(
-            w.ex(x),
-            '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<otherwise>' + cb + '</otherwise>'
-            '</piecewise>'
-        )
-        # Piecewise
-        x = myokit.Piecewise(cond1, a, cond2, b, c)
-        self.assertEqual(
-            w.ex(x),
-            '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<piece>' + cb + c2 + '</piece>'
-            '<otherwise>' + cc + '</otherwise>'
-            '</piecewise>'
-        )
+    def test_creation(self):
+        # Tests creating a CellMLExpressionWriter
 
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('cellml')
@@ -588,12 +446,231 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         # Content mode not allowed
         self.assertRaises(RuntimeError, w.set_mode, True)
 
-        # Lhs function setting not allowed
-        self.assertRaises(NotImplementedError, w.set_lhs_function, None)
+    def test_name_and_number(self):
+        # Tests writing names and numbers
 
+        # Name
+        a = myokit.Name(self.avar)
+        ca = '<ci>a</ci>'
+        self.assertWrite(a, ca)
+
+        # Number with unit
+        b = myokit.Number('12', 'pF')
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+        self.assertWrite(b, cb)
+
+        # Number without unit
+        c = myokit.Number(1)
+        cc = ('<cn cellml:units="dimensionless">1.0</cn>')
+        self.assertWrite(c, cc)
+
+    def test_arithmetic(self):
+        # Test basic arithmetic
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertWrite(x, '<apply><plus/>' + cb + '</apply>')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertWrite(x, '<apply><minus/>' + cb + '</apply>')
+
+        # Plus
+        x = myokit.Plus(a, b)
+        self.assertWrite(x, '<apply><plus/>' + ca + cb + '</apply>')
+        # Minus
+        x = myokit.Minus(a, b)
+        self.assertWrite(x, '<apply><minus/>' + ca + cb + '</apply>')
+        # Multiply
+        x = myokit.Multiply(a, b)
+        self.assertWrite(x, '<apply><times/>' + ca + cb + '</apply>')
+        # Divide
+        x = myokit.Divide(a, b)
+        self.assertWrite(x, '<apply><divide/>' + ca + cb + '</apply>')
+
+    def test_functions(self):
+        # Test printing functions
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Power
+        x = myokit.Power(a, b)
+        self.assertWrite(x, '<apply><power/>' + ca + cb + '</apply>')
+        # Sqrt
+        x = myokit.Sqrt(b)
+        self.assertWrite(x, '<apply><root/>' + cb + '</apply>')
+        # Exp
+        x = myokit.Exp(a)
+        self.assertWrite(x, '<apply><exp/>' + ca + '</apply>')
+
+        # Floor
+        x = myokit.Floor(b)
+        self.assertWrite(x, '<apply><floor/>' + cb + '</apply>')
+        # Ceil
+        x = myokit.Ceil(b)
+        self.assertWrite(x, '<apply><ceiling/>' + cb + '</apply>')
+        # Abs
+        x = myokit.Abs(b)
+        self.assertWrite(x, '<apply><abs/>' + cb + '</apply>')
+
+    def test_inequalities(self):
+        # Tests printing inequalities
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Equal
+        x = myokit.Equal(a, b)
+        self.assertWrite(x, '<apply><eq/>' + ca + cb + '</apply>')
+        # NotEqual
+        x = myokit.NotEqual(a, b)
+        self.assertWrite(x, '<apply><neq/>' + ca + cb + '</apply>')
+        # More
+        x = myokit.More(a, b)
+        self.assertWrite(x, '<apply><gt/>' + ca + cb + '</apply>')
+        # Less
+        x = myokit.Less(a, b)
+        self.assertWrite(x, '<apply><lt/>' + ca + cb + '</apply>')
+        # MoreEqual
+        x = myokit.MoreEqual(a, b)
+        self.assertWrite(x, '<apply><geq/>' + ca + cb + '</apply>')
+        # LessEqual
+        x = myokit.LessEqual(a, b)
+        self.assertWrite(x, '<apply><leq/>' + ca + cb + '</apply>')
+
+    def test_log(self):
+        # Tests printing the log function
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Log(a)
+        x = myokit.Log(b)
+        self.assertWrite(x, '<apply><ln/>' + cb + '</apply>')
+        # Log(a, b)
+        x = myokit.Log(a, b)
+        self.assertWrite(
+            x, '<apply><log/><logbase>' + cb + '</logbase>' + ca + '</apply>')
+        # Log10
+        x = myokit.Log10(b)
+        self.assertWrite(x, '<apply><log/>' + cb + '</apply>')
+
+    def test_logical(self):
+        # Tests printing logical operators and functions
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        c = myokit.Number(1)
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+        cc = ('<cn cellml:units="dimensionless">1.0</cn>')
+
+        # Not
+        cond1 = myokit.parse_expression('5 > 3')
+        cond2 = myokit.parse_expression('2 < 1')
+        c1 = ('<apply><gt/>'
+              '<cn cellml:units="dimensionless">5.0</cn>'
+              '<cn cellml:units="dimensionless">3.0</cn>'
+              '</apply>')
+        c2 = ('<apply><lt/>'
+              '<cn cellml:units="dimensionless">2.0</cn>'
+              '<cn cellml:units="dimensionless">1.0</cn>'
+              '</apply>')
+        x = myokit.Not(cond1)
+        self.assertWrite(x, '<apply><not/>' + c1 + '</apply>')
+        # And
+        x = myokit.And(cond1, cond2)
+        self.assertWrite(x, '<apply><and/>' + c1 + c2 + '</apply>')
+        # Or
+        x = myokit.Or(cond1, cond2)
+        self.assertWrite(x, '<apply><or/>' + c1 + c2 + '</apply>')
+        # If
+        x = myokit.If(cond1, a, b)
+        self.assertWrite(
+            x,
+            '<piecewise>'
+            '<piece>' + ca + c1 + '</piece>'
+            '<otherwise>' + cb + '</otherwise>'
+            '</piecewise>'
+        )
+        # Piecewise
+        x = myokit.Piecewise(cond1, a, cond2, b, c)
+        self.assertWrite(
+            x,
+            '<piecewise>'
+            '<piece>' + ca + c1 + '</piece>'
+            '<piece>' + cb + c2 + '</piece>'
+            '<otherwise>' + cc + '</otherwise>'
+            '</piecewise>'
+        )
+
+    def test_trig_basic(self):
+        # Tests printing basic trig
+
+        b = myokit.Number('12', 'pF')
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Sin
+        x = myokit.Sin(b)
+        self.assertWrite(x, '<apply><sin/>' + cb + '</apply>')
+        # Cos
+        x = myokit.Cos(b)
+        self.assertWrite(x, '<apply><cos/>' + cb + '</apply>')
+        # Tan
+        x = myokit.Tan(b)
+        self.assertWrite(x, '<apply><tan/>' + cb + '</apply>')
+        # ASin
+        x = myokit.ASin(b)
+        self.assertWrite(x, '<apply><arcsin/>' + cb + '</apply>')
+        # ACos
+        x = myokit.ACos(b)
+        self.assertWrite(x, '<apply><arccos/>' + cb + '</apply>')
+        # ATan
+        x = myokit.ATan(b)
+        self.assertWrite(x, '<apply><arctan/>' + cb + '</apply>')
+
+    def test_quotient_remainder(self):
+        # Tests printing quotient and remainder
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Quotient
+        # Uses custom implementation: CellML doesn't have these operators.
+        x = myokit.Quotient(a, b)
+        self.assertWrite(
+            x,
+            '<apply><floor/><apply><divide/>' + ca + cb + '</apply></apply>')
+
+        # Remainder
+        x = myokit.Remainder(a, b)
+        self.assertWrite(
+            x,
+            '<apply><minus/>' + ca +
+            '<apply><times/>' + cb +
+            '<apply><floor/><apply><divide/>' + ca + cb + '</apply></apply>'
+            '</apply>'
+            '</apply>'
+        )
+
+    def test_unknown_expression(self):
         # Test without a Myokit expression
+
         self.assertRaisesRegex(
-            ValueError, 'Unknown expression type', w.ex, 7)
+            ValueError, 'Unknown expression type', self.w.ex, 7)
 
 
 class CellMLImporterTest(unittest.TestCase):
@@ -660,7 +737,7 @@ class CellMLImporterTest(unittest.TestCase):
              '<model name="test" xmlns="http://www.cellml.org/cellml/1.0#">'
              '<component name="a">'
              '  <variable name="hello" units="ampere"'
-             '            public_interface="in" />'
+             '            public_interface="in"/>'
              '</component>'
              '</model>')
 
