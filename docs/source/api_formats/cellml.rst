@@ -6,7 +6,7 @@ CellML
 
 An interface for importing CellML 1.0 and up is provided, as well as an export
 to CellML 1.0.
-For further CellML functions, see :ref:`CellML API <formats/cellml_api>`
+For further CellML functions, see :ref:`CellML API <formats/cellml_v1>`
 
 Importing
 =========

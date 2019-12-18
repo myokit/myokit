@@ -1,18 +1,18 @@
 .. _formats/cellml_api:
 
-**********
-CellML API
-**********
+.. module:: myokit.formats.cellml.v1
+
+**************
+CellML 1.0 API
+**************
 
 In addition to the :ref:`CellML importers and exporters <formats/cellml>`,
-Myokit contains a CellML Model API to represent CellML models, and a parser to
-parse CellML documents.
+Myokit contains an API to represent CellML models, along with methods to read
+and write CellML 1.0 and 1.1 documents.
 These are used under the hood by the importers and exporters.
 
 CellML Model API
 ================
-
-.. module:: myokit.formats.cellml.cellml_1
 
 .. autofunction:: is_valid_identifier
 
@@ -35,13 +35,9 @@ CellML Model API
 CellML Parsing
 ==============
 
-.. module:: myokit.formats.cellml.parser_1
-
 .. autofunction:: parse_file
 
 .. autofunction:: parse_string
-
-.. autofunction:: split
 
 .. autoclass:: CellMLParser
 
@@ -49,8 +45,6 @@ CellML Parsing
 
 CellML Writing
 ==============
-
-.. module:: myokit.formats.cellml.writer_1
 
 .. autofunction:: write_file
 
