@@ -35,7 +35,7 @@ try:
 except NameError:   # pragma: no python 2 cover
     basestring = str
 
-'''
+
 class CellMLExporterTest(unittest.TestCase):
     """
     Provides further tests of :class:`myokit.formats.cellml.CellMLExporter`.
@@ -396,7 +396,6 @@ class CellMLExporterTest(unittest.TestCase):
             with open(path, 'r') as f:
                 xml = f.read()
             m2 = importer.model(path)
-'''
 
 
 class CellMLExpressionWriterTest(unittest.TestCase):
