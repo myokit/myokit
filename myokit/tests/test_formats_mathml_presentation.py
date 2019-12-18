@@ -11,8 +11,6 @@ from __future__ import print_function, unicode_literals
 import re
 import unittest
 
-from lxml import etree
-
 import myokit
 import myokit.formats.mathml as mathml
 

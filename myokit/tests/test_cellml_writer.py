@@ -277,7 +277,7 @@ class TestCellMLWriter(unittest.TestCase):
         self.assertEqual(m2.name(), 'ernie')
         self.assertEqual(len(m2), 0)
 
-    def test_write_file(self):
+    def test_write_string(self):
         # Tests write_string
 
         m1 = cellml.Model('ernie')
