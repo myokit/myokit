@@ -247,6 +247,8 @@ class CellMLExpressionWriterTest(unittest.TestCase):
     def assertWrite(self, expression, xml):
         """ Assert writing an ``expression`` results in the given ``xml``. """
         x = self.w.ex(expression)
+        print()
+        print(x)
         self.assertTrue(x.startswith(self.m1))
         x = x[len(self.m1):]
         self.assertTrue(x.endswith(self.m2))
