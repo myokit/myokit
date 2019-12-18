@@ -627,9 +627,12 @@ class Model(AnnotatableElement):
         return self._free_variable
 
     @staticmethod
-    def from_myokit_model(model):
+    def from_myokit_model(model, version='1.0'):
         """
         Creates a :class:`Model` from a :class:`myokit.Model`.
+
+        The CellML version to use can be set with ``version``, which must be
+        either "1.0" or "1.1".
         """
 
         # Get name for CellML model
@@ -643,7 +646,7 @@ class Model(AnnotatableElement):
                 name = 'unnamed_myokit_model'
 
         # Create CellML model
-        m = Model(name)
+        m = Model(name, version)
 
         # Gather unit objects used in Myokit model, and replace units None with
         # dimensionless.

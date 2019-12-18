@@ -95,6 +95,26 @@ class CellMLExporterTest(unittest.TestCase):
         # Check original model is unchanged
         self.assertEqual(org_code, m1.code())
 
+    def test_version_selection(self):
+        # Test choosing between CellML versions
+
+        e = formats.exporter('cellml')
+        model = myokit.Model('hello')
+
+        # Write to 1.0 model
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            e.model(path, model, version='1.0')
+            with open(path, 'r') as f:
+                self.assertIn('cellml/1.0#', f.read())
+
+        # Write to 1.1 model
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            e.model(path, model, version='1.1')
+            with open(path, 'r') as f:
+                self.assertIn('cellml/1.1#', f.read())
+
     '''
 
     def test_oxmeta_annotation_export(self):
