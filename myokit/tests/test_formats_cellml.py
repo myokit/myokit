@@ -10,6 +10,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import re
 import unittest
 
 import myokit
@@ -240,20 +241,14 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         model.validate()
 
         # MathML opening and closing tags
-        cls.m1 = ('<math xmlns:cellml="http://www.cellml.org/cellml/1.0#"'
-                  ' xmlns="http://www.w3.org/1998/Math/MathML">')
-        cls.m2 = ('</math>')
+        cls._math = re.compile(r'^<math [^>]+>(.*)</math>$', re.S)
 
     def assertWrite(self, expression, xml):
         """ Assert writing an ``expression`` results in the given ``xml``. """
         x = self.w.ex(expression)
-        print()
-        print(x)
-        self.assertTrue(x.startswith(self.m1))
-        x = x[len(self.m1):]
-        self.assertTrue(x.endswith(self.m2))
-        x = x[:-len(self.m2)]
-        self.assertEqual(x, xml)
+        m = self._math.match(x)
+        self.assertTrue(m)
+        self.assertEqual(m.group(1), xml)
 
     def test_creation(self):
         # Tests creating a CellMLExpressionWriter

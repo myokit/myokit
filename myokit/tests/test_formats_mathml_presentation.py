@@ -8,7 +8,10 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import re
 import unittest
+
+from lxml import etree
 
 import myokit
 import myokit.formats.mathml as mathml
@@ -34,18 +37,15 @@ class PresentationMathMLTest(unittest.TestCase):
         cls.w = mathml.MathMLExpressionWriter()
         cls.w.set_mode(presentation=True)
 
-        cls.m1 = ('<math xmlns="' + mathml.NS_MATHML_2 + '">')
-        cls.m2 = ('</math>')
+        # MathML opening and closing tags
+        cls._math = re.compile(r'^<math [^>]+>(.*)</math>$', re.S)
 
     def assertWrite(self, expression, xml):
         """ Assert writing an ``expression`` results in the given ``xml``. """
-
         x = self.w.ex(expression)
-        self.assertTrue(x.startswith(self.m1))
-        x = x[len(self.m1):]
-        self.assertTrue(x.endswith(self.m2))
-        x = x[:-len(self.m2)]
-        self.assertEqual(x, xml)
+        m = self._math.match(x)
+        self.assertTrue(m)
+        self.assertEqual(m.group(1), xml)
 
     def test_arithmetic_binary(self):
         # Tests writing basic arithmetic operators

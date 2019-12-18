@@ -8,8 +8,10 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import re
 import unittest
-import xml.etree.ElementTree as etree
+
+import lxml.etree as etree
 
 import myokit
 import myokit.formats.mathml as mathml
@@ -820,18 +822,15 @@ class ContentMathMLWriterTest(unittest.TestCase):
         cls.w = mathml.MathMLExpressionWriter()
         cls.w.set_mode(presentation=False)
 
-        cls.m1 = ('<math xmlns="' + mathml.NS_MATHML_2 + '">')
-        cls.m2 = ('</math>')
+        # MathML opening and closing tags
+        cls._math = re.compile(r'^<math [^>]+>(.*)</math>$', re.S)
 
     def assertWrite(self, expression, xml):
         """ Assert writing an ``expression`` results in the given ``xml``. """
-
         x = self.w.ex(expression)
-        self.assertTrue(x.startswith(self.m1))
-        x = x[len(self.m1):]
-        self.assertTrue(x.endswith(self.m2))
-        x = x[:-len(self.m2)]
-        self.assertEqual(x, xml)
+        m = self._math.match(x)
+        self.assertTrue(m)
+        self.assertEqual(m.group(1), xml)
 
     def test_arithmetic_binary(self):
         # Tests writing basic arithmetic operators
@@ -911,9 +910,13 @@ class ContentMathMLWriterTest(unittest.TestCase):
     def test_equation(self):
         # Test equation writing
 
-        e = myokit.Equation(myokit.Name('a'), myokit.Number(1))
-        x = '<apply><eq/><ci>a</ci><cn>1.0</cn></apply>'
-        self.assertEqual(self.w.eq(e), self.m1 + x + self.m2)
+        expression = myokit.Equation(myokit.Name('a'), myokit.Number(1))
+        xml = '<apply><eq/><ci>a</ci><cn>1.0</cn></apply>'
+
+        x = self.w.eq(expression)
+        m = self._math.match(x)
+        self.assertTrue(m)
+        self.assertEqual(m.group(1), xml)
 
     def test_functions(self):
         # Tests writing basic functions
@@ -1016,9 +1019,14 @@ class ContentMathMLWriterTest(unittest.TestCase):
         w = mathml.MathMLExpressionWriter()
         w.set_mode(presentation=False)
         w.set_lhs_function(lambda v: 'bert')
-        self.assertEqual(
-            w.ex(myokit.Name('ernie')),
-            self.m1 + '<ci>bert</ci>' + self.m2)
+
+        expression = myokit.Name('ernie')
+        xml = '<ci>bert</ci>'
+
+        x = w.ex(expression)
+        m = self._math.match(x)
+        self.assertTrue(m)
+        self.assertEqual(m.group(1), xml)
 
     def test_logic_operators(self):
         # Tests writing logic operators
