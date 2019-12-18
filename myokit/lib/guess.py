@@ -132,7 +132,9 @@ def add_embedded_protocol(model, protocol):
     pace.set_rhs(0)
     kids = list(pace.variables())
     for kid in kids:
-        pace.remove_variable(kid)
+        kid.set_rhs(0)
+    for kid in kids:
+        pace.remove_variable(kid, recursive=True)
 
     # Add new child variables with stimulus properties
     level = pace.add_variable('level')
@@ -145,6 +147,7 @@ def add_embedded_protocol(model, protocol):
 
     period = pace.add_variable('period')
     period.set_rhs(event.period())
+    period.set_unit(myokit.units.dimensionless)
 
     duration = pace.add_variable('duration')
     duration.set_unit(time.unit())

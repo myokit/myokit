@@ -25,6 +25,94 @@ class LibGuessTest(unittest.TestCase):
     Tests for ``myokit.lib.guess``.
     """
 
+    def test_add_embedded_protocol(self):
+        # Tests the method to add protocols
+
+        # 1. Should work for variable bound to pace, and with protocol
+        m = myokit.Model('m')
+        c = m.add_component('c')
+        t = c.add_variable('t')
+        t.set_unit(myokit.units.second)
+        t.set_binding('time')
+        x = c.add_variable('x')
+        xa = x.add_variable('a')
+        xa.set_rhs(3)
+        xb = x.add_variable('b')
+        xb.set_rhs('3 * a')
+        x.set_rhs('sqrt(b) * 3 [mV]')
+        x.set_unit(myokit.units.ampere)
+        x.set_binding('pace')
+
+        protocol = myokit.pacing.blocktrain(
+            duration=1e-3, offset=0.01, period=1, level=2)
+
+        # Check adding works
+        model = m.clone()
+        self.assertTrue(guess.add_embedded_protocol(model, protocol))
+
+        # Check generated rhs
+        self.assertTrue(isinstance(model.get('c.x').rhs(), myokit.If))
+        self.assertEqual(
+            model.get('c.x').rhs().code(),
+            'if((c.t - offset) % period < duration, level, 0 [A])'
+        )
+        self.assertIsNone(model.get('c.x').binding())
+
+        # Check units
+        self.assertEqual(model.get('c.x').unit(), myokit.units.ampere)
+        self.assertEqual(model.get('c.x.offset').unit(), myokit.units.second)
+        self.assertEqual(model.get('c.x.duration').unit(), myokit.units.second)
+        self.assertEqual(model.get('c.x.level').unit(), myokit.units.ampere)
+        self.assertEqual(
+            model.get('c.x.period').unit(), myokit.units.dimensionless)
+
+        # Check values
+        self.assertEqual(model.get('c.x.offset').rhs(),
+                         myokit.Number(0.01, myokit.units.second))
+        self.assertEqual(model.get('c.x.duration').rhs(),
+                         myokit.Number(1e-3, myokit.units.second))
+        self.assertEqual(model.get('c.x.level').rhs(),
+                         myokit.Number(2, myokit.units.ampere))
+        self.assertEqual(model.get('c.x.period').rhs(),
+                         myokit.Number(1, myokit.units.dimensionless))
+
+        # 2. Should fail if nothing bound to pace
+        x.set_binding(None)
+        code = m.code()
+        self.assertFalse(guess.add_embedded_protocol(m, protocol))
+        self.assertEqual(code, m.code())
+        x.set_binding('pace')
+        model = m.clone()
+        self.assertTrue(guess.add_embedded_protocol(model, protocol))
+        self.assertTrue(isinstance(model.get('c.x').rhs(), myokit.If))
+
+        # 3 .Should fail if there's no time variable
+        t.set_binding(None)
+        code = m.code()
+        self.assertFalse(guess.add_embedded_protocol(m, protocol))
+        self.assertEqual(code, m.code())
+        t.set_binding('time')
+        model = m.clone()
+        self.assertTrue(guess.add_embedded_protocol(model, protocol))
+        self.assertTrue(isinstance(model.get('c.x').rhs(), myokit.If))
+
+        # 4. Should fail if we have a step protocol
+        p = myokit.pacing.steptrain([1, 2, 3], -80, 0.01, 1)
+        code = m.code()
+        self.assertFalse(guess.add_embedded_protocol(m, p))
+        self.assertEqual(code, m.code())
+        model = m.clone()
+        self.assertTrue(guess.add_embedded_protocol(model, protocol))
+        self.assertTrue(isinstance(model.get('c.x').rhs(), myokit.If))
+
+        # 5. Should fail if we have a non-zero multiplier
+        protocol = myokit.Protocol()
+        protocol.schedule(
+            duration=1e-3, start=0.01, period=1, level=2, multiplier=10)
+        code = m.code()
+        self.assertFalse(guess.add_embedded_protocol(m, protocol))
+        self.assertEqual(code, m.code())
+
     def test_compatible_units(self):
         # Tests the (hidden) method to check if a unit is compatible with one
         # of a list of types
