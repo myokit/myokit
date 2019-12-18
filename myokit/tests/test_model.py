@@ -1031,7 +1031,7 @@ class ModelTest(unittest.TestCase):
         e = m.show_evaluation_of('cell.Na_o')
         self.assertIn('cell.Na_o = ', e)
         self.assertIn('Literal constant', e)
-        self.assertEqual(len(e.splitlines()), 4)
+        self.assertEqual(len(e.splitlines()), 6)
 
         # Test for calculated constant
         e = m.show_evaluation_of('ina.ENa')
@@ -1056,7 +1056,7 @@ class ModelTest(unittest.TestCase):
         self.assertIn('not found', e)
         self.assertIn('cell.Na_o = ', e)
         self.assertIn('Literal constant', e)
-        self.assertEqual(len(e.splitlines()), 5)
+        self.assertEqual(len(e.splitlines()), 7)
 
         # Test with nothing similar
         m = myokit.Model()
@@ -1075,7 +1075,7 @@ class ModelTest(unittest.TestCase):
 
         m = myokit.load_model('example')
         e = m.show_line_of(m.get('ina.INa'))
-        self.assertIn('Defined on line 86', e)
+        self.assertIn('Defined on line 91', e)
         self.assertIn('Intermediary variable', e)
         self.assertEqual(len(e.splitlines()), 4)
 

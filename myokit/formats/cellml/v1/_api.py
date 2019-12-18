@@ -648,18 +648,32 @@ class Model(AnnotatableElement):
         # Create CellML model
         m = Model(name, version)
 
-        # Gather unit objects used in Myokit model, and replace units None with
-        # dimensionless.
+        # Gather unit objects used in Myokit model, and gather numbers without
+        # units that will need to be replaced.
         used = set()
         numbers_without_units = {}
         for variable in model.variables(deep=True):
-            used.add(variable.unit())
-            for e in variable.rhs().walk(myokit.Number):
-                u = e.unit()
-                if u is None:
-                    numbers_without_units[e] = myokit.Number(
-                        e.eval(), myokit.units.dimensionless)
-                used.add(u)
+
+            # Add variable unit, or unit evaluated from variable's RHS
+            u = variable.unit()
+            rhs = variable.rhs()
+            if u is None and rhs is not None:
+                # Evaluate unit in tolerant mode. This stops Myokit from
+                # raising any errors, but does mean that unit might still be
+                # None.
+                u = rhs.eval_unit(mode=myokit.UNIT_TOLERANT)
+            used.add(u)
+
+            # Check number units
+            if rhs is not None:
+                for e in rhs.walk(myokit.Number):
+                    u = e.unit()
+                    if u is None:
+                        numbers_without_units[e] = myokit.Number(
+                            e.eval(), myokit.units.dimensionless)
+                    used.add(u)
+
+        # Remove 'None' from the set of used units
         if None in used:
             used.remove(None)
 
@@ -670,6 +684,8 @@ class Model(AnnotatableElement):
                 name = create_unit_name(unit)
                 unit_map[unit] = name
                 m.add_units(name, unit)
+
+        # Map None to dimensionless
         unit_map[None] = 'dimensionless'
 
         # Check model with state variables declares a time variable
@@ -733,10 +749,17 @@ class Model(AnnotatableElement):
                         in_variables[parent].add(variable)
                         interface = 'out'
 
+                # Get variable unit, or infer from RHS if None
+                unit = variable.unit()
+                rhs = variable.rhs()
+                if unit is None and rhs is not None:
+                    # Note unit returned below may still be None
+                    unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
+
                 # Add variable
                 local_var_map[variable] = v = c.add_variable(
                     variable.name(),
-                    unit_map[variable.unit()],
+                    unit_map[unit],
                     public_interface=interface
                 )
 
@@ -790,7 +813,17 @@ class Model(AnnotatableElement):
             # Set RHS equations
             for variable in component.variables(deep=True):
                 v = local_var_map[variable]
-                rhs = variable.rhs().clone(subst=subst)
+
+                # Check if rhs set
+                rhs = variable.rhs()
+                if rhs is None:
+                    # Create new rhs in correct units
+                    u = variable.unit()
+                    rhs = myokit.Number(
+                        0, myokit.units.dimensionless if u is None else u)
+                else:
+                    # Create RHS with updated numbers and references
+                    rhs = variable.rhs().clone(subst=subst)
 
                 # Promote states and set rhs and initial value
                 if variable.is_state():

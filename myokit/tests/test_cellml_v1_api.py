@@ -623,7 +623,7 @@ class TestCellMLModel(unittest.TestCase):
         mm = cm.myokit_model()
         self.assertEqual(mm.get('c2.y').eval(), 8)
 
-        # Test numbers and variables without units are dimensionless
+        # Test numbers and variables without units are dimensionless...
         self.assertEqual(cm['c1']['x'].units().name(), 'dimensionless')
         self.assertEqual(
             cm['c2']['y'].rhs(),
@@ -631,6 +631,21 @@ class TestCellMLModel(unittest.TestCase):
                 myokit.Number(2, myokit.units.dimensionless),
                 myokit.Name(cm['c2']['x']))
         )
+
+        # ...or have a unit inferred from their RHS
+        z = c2.add_variable('z')
+        z.set_rhs('3 [mole]')
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(
+            cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
+
+        # Test variables with no RHS are given value 0
+        zz = c2.add_variable('zz')
+        zz.set_unit(myokit.units.volt)
+        zzz = c2.add_variable('zzz')
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(cm['c2']['zz'].initial_value(), 0)
+        self.assertEqual(cm['c2']['zzz'].initial_value(), 0)
 
         # Test nested variables are handled, and name conflicts are handled
         a1 = c1.add_variable('a1')
