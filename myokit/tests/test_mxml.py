@@ -120,30 +120,6 @@ Resources
         # Next line will raise exception if ascii is longer than the result
         self.assertRaises(StopIteration, next, ascii)
 
-    def test_write_mathml(self):
-        """
-        Test method `myokit.mxml.write_mathml`.
-        """
-        e = myokit.parse_expression('5 + log(x)')
-
-        # Content MathML
-        self.assertEqual(
-            myokit.mxml.write_mathml(e, False),
-            '<apply>'
-            '<plus /><cn>5.0</cn><apply><ln /><ci>x</ci></apply>'
-            '</apply>'
-        )
-
-        # Presentation MathML
-        self.assertEqual(
-            myokit.mxml.write_mathml(e, True),
-            '<mrow>'
-            '<mn>5.0</mn>'
-            '<mo>+</mo>'
-            '<mrow><mi>ln</mi><mfenced><mi>x</mi></mfenced></mrow>'
-            '</mrow>'
-        )
-
 
 if __name__ == '__main__':
     unittest.main()

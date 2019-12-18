@@ -9,20 +9,13 @@ from __future__ import print_function, unicode_literals
 
 import collections
 
+from lxml import etree
+
 import myokit
 import myokit.formats.mathml
 
 from myokit.mxml import split
 from myokit.formats.cellml import cellml_1 as cellml
-
-
-# Import lxml or default etree
-_lxml = True
-try:
-    from lxml import etree
-except ImportError:
-    _lxml = False
-    import xml.etree.ElementTree as etree
 
 
 def parse_file(path):
@@ -243,11 +236,8 @@ class CellMLParser(object):
         """
         # Read file
         try:
-            if _lxml:   # pragma: no cover
-                parser = etree.XMLParser(remove_comments=True)
-                tree = etree.parse(path, parser=parser)
-            else:
-                tree = etree.parse(path)
+            parser = etree.XMLParser(remove_comments=True)
+            tree = etree.parse(path, parser=parser)
         except Exception as e:
             raise CellMLParsingError('Unable to parse XML: ' + str(e))
 
@@ -632,6 +622,10 @@ class CellMLParser(object):
         attr = self._join('units')
 
         def number_factory(value, element):
+            # Numbers not connected to a cn
+            if element is None:
+                return myokit.Number(value, myokit.units.dimensionless)
+
             # Get units attribute
             try:
                 units = element.attrib[attr]
@@ -818,7 +812,8 @@ class CellMLParser(object):
                 self._parse_math(math, component)
 
         # Check number of free variables
-        self._free_vars = set([x.var().source() for x in self._free_vars])
+        self._free_vars = set(
+            [x.var().value_source() for x in self._free_vars])
         if len(self._free_vars) > 1:
             raise CellMLParsingError(
                 'Models that take derivatives with respect to more than one'

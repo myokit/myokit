@@ -483,6 +483,46 @@ class ModelTest(unittest.TestCase):
         self.assertRaises(KeyError, m.get, 'membrane.bert')
         self.assertRaises(KeyError, m.get, 'bert.bert')
 
+    def test_has_variables(self):
+        # Test VarProvider.has_variables (and VarProvider.variables)
+
+        m = myokit.Model()
+        z = m.add_component('z')
+        self.assertFalse(m.has_variables())
+
+        # Constant
+        a = z.add_variable('a')
+        a.set_rhs(0)
+        self.assertTrue(m.has_variables())
+        self.assertTrue(m.has_variables(const=True))
+        self.assertFalse(m.has_variables(const=False))
+
+        # State
+        self.assertFalse(m.has_variables(state=True))
+        b = z.add_variable('b')
+        b.set_rhs(1)
+        b.promote(0.2)
+        self.assertTrue(m.has_variables(state=True))
+        self.assertFalse(m.has_variables(const=False, state=False))
+
+        # Inter and deep
+        self.assertFalse(m.has_variables(inter=True))
+        self.assertFalse(m.has_variables(inter=True, deep=True))
+        c = b.add_variable('c')
+        c.set_rhs('b * 2')
+        b.set_rhs('1 + c')
+        self.assertFalse(m.has_variables(inter=True))
+        self.assertTrue(m.has_variables(inter=True, deep=True))
+
+        # Bound
+        self.assertFalse(m.has_variables(bound=True))
+        t = z.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        self.assertTrue(m.has_variables(bound=True))
+        self.assertFalse(
+            m.has_variables(const=False, state=False, bound=False))
+
     def test_item_at_text_position(self):
         # Test :meth:`Model.item_at_text_position()`.
 

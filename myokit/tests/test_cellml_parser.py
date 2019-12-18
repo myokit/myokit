@@ -140,8 +140,8 @@ class TestCellMLParser(unittest.TestCase):
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         m = self.parse(x + y)
-        self.assertEqual(m['a']['x'].source(), m['b']['y'])
-        self.assertEqual(m['b']['y'].source(), m['b']['y'])
+        self.assertIs(m['a']['x'].source(), m['b']['y'])
+        self.assertIsNone(m['b']['y'].source())
 
         # No map components
         self.assertBad(x + '<connection />', 'exactly one map_components')
@@ -356,6 +356,11 @@ class TestCellMLParser(unittest.TestCase):
         m = self.parse(x + '<annotation />' + y + '<annotation-xml />' + z)
         var = m['a']['x']
         self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
+
+        # Constants
+        m = self.parse(x + '<apply><eq /><ci>x</ci> <pi /> </apply>' + z)
+        var = m['a']['x']
+        self.assertEqual(var.rhs().unit(), myokit.units.dimensionless)
 
         # Variable doesn't exist
         y = '<apply><eq /><ci>y</ci><cn cellml:units="volt">-80</cn></apply>'

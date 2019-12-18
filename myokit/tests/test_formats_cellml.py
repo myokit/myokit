@@ -10,11 +10,13 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import re
 import unittest
 
 import myokit
 import myokit.formats as formats
 import myokit.formats.cellml
+
 from myokit.formats.cellml import CellMLImporterError
 
 from shared import TemporaryDirectory, DIR_FORMATS
@@ -35,289 +37,23 @@ except NameError:   # pragma: no python 2 cover
     basestring = str
 
 
-class CellMLImporterTest(unittest.TestCase):
+class CellMLExporterTest(unittest.TestCase):
     """
-    Tests the CellML importer.
+    Tests for :class:`myokit.formats.cellml.CellMLExporter`.
     """
 
     def test_capability_reporting(self):
         # Test if the right capabilities are reported.
-        i = formats.importer('cellml')
-        self.assertFalse(i.supports_component())
-        self.assertTrue(i.supports_model())
-        self.assertFalse(i.supports_protocol())
+        e = formats.exporter('cellml')
+        self.assertTrue(e.supports_model())
+        self.assertFalse(e.supports_runnable())
 
     def test_info(self):
-        # Test if the reporter implements info()
-        i = formats.importer('cellml')
-        self.assertIsInstance(i.info(), basestring)
+        # Test if the exporter implements info()
+        e = formats.exporter('cellml')
+        self.assertIsInstance(e.info(), basestring)
 
-    def test_model_dot(self):
-        # This is beeler-reuter but with a dot() in an expression
-        i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'br-1977-dot.cellml'))
-        m.validate()
-
-    def test_model_errors(self):
-        # Files with errors raise CellMLImporterErrors (not parser errors)
-        i = formats.importer('cellml')
-        m = os.path.join(DIR, 'invalid-file.cellml')
-        self.assertRaisesRegex(
-            CellMLImporterError, 'valid CellML identifier', i.model, m)
-
-    def test_model_nesting(self):
-        # The corrias model has multiple levels of nesting (encapsulation)
-        i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'corrias.cellml'))
-        m.validate()
-
-    def test_model_simple(self):
-        # Beeler-Reuter is a simple model
-        i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'br-1977.cellml'))
-        m.validate()
-
-    def test_not_a_model(self):
-        # Test loading something other than a CellML file
-
-        # Different XML file
-        i = formats.importer('cellml')
-        self.assertRaisesRegex(
-            CellMLImporterError, 'not a CellML document',
-            i.model, os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
-
-        # Not an XML file
-        self.assertRaisesRegex(
-            CellMLImporterError, 'Unable to parse XML',
-            i.model, os.path.join(DIR_FORMATS, 'lr-1991.mmt'))
-
-    def test_warnings(self):
-        # Tests warnings are logged
-
-        # Create model that will generate warnings
-        x = ('<?xml version="1.0" encoding="UTF-8"?>'
-             '<model name="test" xmlns="http://www.cellml.org/cellml/1.0#">'
-             '<component name="a">'
-             '  <variable name="hello" units="ampere"'
-             '            public_interface="in" />'
-             '</component>'
-             '</model>')
-
-        # Write to disk and import
-        with TemporaryDirectory() as d:
-            path = d.path('test.celllml')
-            with open(path, 'w') as f:
-                f.write(x)
-
-            # Import
-            i = formats.importer('cellml')
-            i.model(path)
-
-            # Check warning was raised
-            self.assertIn('not connected', next(i.logger().warnings()))
-
-
-class CellMLExpressionWriterTest(unittest.TestCase):
-    """
-    Tests :class:`myokit.formats.cellml.CellMLExpressionWriter`.
-    """
-
-    def test_all(self):
-
-        # CellML requires unit mapping
-        units = {
-            myokit.parse_unit('pF'): 'picofarad',
-        }
-        w = myokit.formats.cellml.CellMLExpressionWriter(units)
-
-        model = myokit.Model()
-        component = model.add_component('c')
-        avar = component.add_variable('a')
-
-        # Requires valid model with unames set
-        avar.set_rhs(0)
-        avar.set_binding('time')
-        model.validate()
-
-        # Name
-        a = myokit.Name(avar)
-        ca = '<ci>a</ci>'
-        self.assertEqual(w.ex(a), ca)
-        # Number with unit
-        b = myokit.Number('12', 'pF')
-        cb = '<cn cellml:units="picofarad">12.0</cn>'
-        self.assertEqual(w.ex(b), cb)
-        # Number without unit
-        c = myokit.Number(1)
-        cc = '<cn cellml:units="dimensionless">1.0</cn>'
-        self.assertEqual(w.ex(c), cc)
-
-        # Prefix plus
-        x = myokit.PrefixPlus(b)
-        self.assertEqual(w.ex(x), '<apply><plus />' + cb + '</apply>')
-        # Prefix minus
-        x = myokit.PrefixMinus(b)
-        self.assertEqual(w.ex(x), '<apply><minus />' + cb + '</apply>')
-
-        # Plus
-        x = myokit.Plus(a, b)
-        self.assertEqual(w.ex(x), '<apply><plus />' + ca + cb + '</apply>')
-        # Minus
-        x = myokit.Minus(a, b)
-        self.assertEqual(w.ex(x), '<apply><minus />' + ca + cb + '</apply>')
-        # Multiply
-        x = myokit.Multiply(a, b)
-        self.assertEqual(w.ex(x), '<apply><times />' + ca + cb + '</apply>')
-        # Divide
-        x = myokit.Divide(a, b)
-        self.assertEqual(w.ex(x), '<apply><divide />' + ca + cb + '</apply>')
-
-        # Power
-        x = myokit.Power(a, b)
-        self.assertEqual(w.ex(x), '<apply><power />' + ca + cb + '</apply>')
-        # Sqrt
-        x = myokit.Sqrt(b)
-        self.assertEqual(w.ex(x), '<apply><root />' + cb + '</apply>')
-        # Exp
-        x = myokit.Exp(a)
-        self.assertEqual(w.ex(x), '<apply><exp />' + ca + '</apply>')
-        # Log(a)
-        x = myokit.Log(b)
-        self.assertEqual(w.ex(x), '<apply><ln />' + cb + '</apply>')
-        # Log(a, b)
-        x = myokit.Log(a, b)
-        self.assertEqual(
-            w.ex(x),
-            '<apply><log /><logbase>' + cb + '</logbase>' + ca + '</apply>'
-        )
-        # Log10
-        x = myokit.Log10(b)
-        self.assertEqual(w.ex(x), '<apply><log />' + cb + '</apply>')
-
-        # Sin
-        x = myokit.Sin(b)
-        self.assertEqual(w.ex(x), '<apply><sin />' + cb + '</apply>')
-        # Cos
-        x = myokit.Cos(b)
-        self.assertEqual(w.ex(x), '<apply><cos />' + cb + '</apply>')
-        # Tan
-        x = myokit.Tan(b)
-        self.assertEqual(w.ex(x), '<apply><tan />' + cb + '</apply>')
-        # ASin
-        x = myokit.ASin(b)
-        self.assertEqual(w.ex(x), '<apply><arcsin />' + cb + '</apply>')
-        # ACos
-        x = myokit.ACos(b)
-        self.assertEqual(w.ex(x), '<apply><arccos />' + cb + '</apply>')
-        # ATan
-        x = myokit.ATan(b)
-        self.assertEqual(w.ex(x), '<apply><arctan />' + cb + '</apply>')
-
-        # Floor
-        x = myokit.Floor(b)
-        self.assertEqual(w.ex(x), '<apply><floor />' + cb + '</apply>')
-        # Ceil
-        x = myokit.Ceil(b)
-        self.assertEqual(w.ex(x), '<apply><ceiling />' + cb + '</apply>')
-        # Abs
-        x = myokit.Abs(b)
-        self.assertEqual(w.ex(x), '<apply><abs />' + cb + '</apply>')
-
-        # Quotient
-        # Uses custom implementation: CellML doesn't have these operators.
-        x = myokit.Quotient(a, b)
-        self.assertEqual(
-            w.ex(x),
-            '<apply><floor /><apply><divide />' + ca + cb + '</apply></apply>')
-        # Remainder
-        x = myokit.Remainder(a, b)
-        self.assertEqual(
-            w.ex(x),
-            '<apply><minus />' + ca +
-            '<apply><times />' + cb +
-            '<apply><floor /><apply><divide />' + ca + cb + '</apply></apply>'
-            '</apply>'
-            '</apply>'
-        )
-
-        # Equal
-        x = myokit.Equal(a, b)
-        self.assertEqual(w.ex(x), '<apply><eq />' + ca + cb + '</apply>')
-        # NotEqual
-        x = myokit.NotEqual(a, b)
-        self.assertEqual(w.ex(x), '<apply><neq />' + ca + cb + '</apply>')
-        # More
-        x = myokit.More(a, b)
-        self.assertEqual(w.ex(x), '<apply><gt />' + ca + cb + '</apply>')
-        # Less
-        x = myokit.Less(a, b)
-        self.assertEqual(w.ex(x), '<apply><lt />' + ca + cb + '</apply>')
-        # MoreEqual
-        x = myokit.MoreEqual(a, b)
-        self.assertEqual(w.ex(x), '<apply><geq />' + ca + cb + '</apply>')
-        # LessEqual
-        x = myokit.LessEqual(a, b)
-        self.assertEqual(w.ex(x), '<apply><leq />' + ca + cb + '</apply>')
-
-        # Not
-        cond1 = myokit.parse_expression('5 > 3')
-        cond2 = myokit.parse_expression('2 < 1')
-        c1 = ('<apply><gt />'
-              '<cn cellml:units="dimensionless">5.0</cn>'
-              '<cn cellml:units="dimensionless">3.0</cn>'
-              '</apply>')
-        c2 = ('<apply><lt />'
-              '<cn cellml:units="dimensionless">2.0</cn>'
-              '<cn cellml:units="dimensionless">1.0</cn>'
-              '</apply>')
-        x = myokit.Not(cond1)
-        self.assertEqual(w.ex(x), '<apply><not />' + c1 + '</apply>')
-        # And
-        x = myokit.And(cond1, cond2)
-        self.assertEqual(w.ex(x), '<apply><and />' + c1 + c2 + '</apply>')
-        # Or
-        x = myokit.Or(cond1, cond2)
-        self.assertEqual(w.ex(x), '<apply><or />' + c1 + c2 + '</apply>')
-        # If
-        x = myokit.If(cond1, a, b)
-        self.assertEqual(
-            w.ex(x),
-            '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<otherwise>' + cb + '</otherwise>'
-            '</piecewise>'
-        )
-        # Piecewise
-        x = myokit.Piecewise(cond1, a, cond2, b, c)
-        self.assertEqual(
-            w.ex(x),
-            '<piecewise>'
-            '<piece>' + ca + c1 + '</piece>'
-            '<piece>' + cb + c2 + '</piece>'
-            '<otherwise>' + cc + '</otherwise>'
-            '</piecewise>'
-        )
-
-        # Test fetching using ewriter method
-        w = myokit.formats.ewriter('cellml')
-        self.assertIsInstance(w, myokit.formats.cellml.CellMLExpressionWriter)
-
-        # Content mode not allowed
-        self.assertRaises(RuntimeError, w.set_mode, True)
-
-        # Lhs function setting not allowed
-        self.assertRaises(NotImplementedError, w.set_lhs_function, None)
-
-        # Test without a Myokit expression
-        self.assertRaisesRegex(
-            ValueError, 'Unknown expression type', w.ex, 7)
-
-
-class CellMLExporterTest(unittest.TestCase):
-    """
-    Provides further tests of :class:`myokit.formats.cellml.CellMLExporter`.
-    """
-
+    '''
     def test_stimulus_generation(self):
         # Test generation of a default stimulus current.
 
@@ -413,163 +149,6 @@ class CellMLExporterTest(unittest.TestCase):
             self.assertIn('stimulus_3', m2)
             self.assertEqual(m2.get('stimulus_3.ctime').eval(), 0)
 
-    def test_unit_export(self):
-        # Test exporting units.
-
-        # Start creating model
-        model = myokit.Model()
-        engine = model.add_component('engine')
-        time = engine.add_variable('time')
-        time.set_rhs(0)
-        time.set_binding('time')
-        three = engine.add_variable('three')
-        three.set_rhs(3)
-
-        mad_unit = myokit.Unit()
-        mad_unit *= 1.234
-        mad_unit *= myokit.units.m
-        mad_unit /= myokit.units.s
-        mad_unit *= myokit.units.A
-        time.set_unit(mad_unit)
-
-        pure_multiplier = myokit.Unit()
-        pure_multiplier *= 1000
-        three.set_unit(pure_multiplier)
-
-        # Create exporter and importer
-        e = myokit.formats.cellml.CellMLExporter()
-        i = myokit.formats.cellml.CellMLImporter()
-
-        # Export
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, model)
-
-            # Import model and check units
-            m2 = i.model(path)
-            self.assertEqual(m2.get('engine.three').eval(), 3)
-            self.assertEqual(m2.get('engine.three').unit(), pure_multiplier)
-            self.assertEqual(m2.get('engine.time').unit(), mad_unit)
-
-    def test_component_name_clashes(self):
-        # Test if name clashes in components (due to nested variables parents
-        # becoming components) are resolved.
-
-        # Start creating model
-        model = myokit.Model()
-        engine = model.add_component('x')
-        time = engine.add_variable('time')
-        time.set_rhs(0)
-        time.set_binding('time')
-        y = engine.add_variable('y')
-        y.set_rhs(1)
-        yc = y.add_variable('yc')
-        yc.set_rhs(2)
-
-        comp = model.add_component('x_y')
-        z = comp.add_variable('z')
-        z.set_rhs(2)
-
-        # The model now has a component `x_y` and a variable `x.y` that will be
-        # converted to a component `x_y`
-
-        # Create exporter and importer
-        e = myokit.formats.cellml.CellMLExporter()
-        i = myokit.formats.cellml.CellMLImporter()
-
-        # Export
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, model)
-
-            # Import model and check presence of renamed component
-            m2 = i.model(path)
-            self.assertIn('x_y', m2)
-            self.assertIn('x_y_2', m2)
-
-    def test_nested_variables(self):
-        # Test export of deep nesting structures.
-
-        # Start creating model
-        model = myokit.Model()
-        engine = model.add_component('x')
-        time = engine.add_variable('time')
-        time.set_rhs(0)
-        time.set_binding('time')
-
-        def add(parent, name, rhs=0):
-            var = parent.add_variable(name)
-            var.set_rhs(rhs)
-            return var
-
-        p1 = add(engine, 'p1', 1)
-        p2 = add(p1, 'p2', 2)
-        p3 = add(p2, 'p3', 3)
-        p4 = add(p3, 'p4', 4)
-        p5 = add(p4, 'p5', 5)
-        add(p5, 'p6', 6)
-
-        # Create exporter and importer
-        e = myokit.formats.cellml.CellMLExporter()
-        i = myokit.formats.cellml.CellMLImporter()
-
-        # Export
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, model)
-
-            # Import model and check presence of renamed component
-            m2 = i.model(path)
-            self.assertIn('x', m2)
-            self.assertIn('x_p1', m2)
-            self.assertIn('x_p1_p2', m2)
-            self.assertIn('x_p1_p2_p3', m2)
-            self.assertIn('x_p1_p2_p3_p4', m2)
-            self.assertIn('x_p1_p2_p3_p4_p5', m2)
-            self.assertNotIn('x_p1_p2_p3_p4_p5_p6', m2)
-
-    def test_component_ordering(self):
-
-        # Create quick model without any nested variables
-        m = myokit.Model()
-        m.meta['name'] = 'Hello'
-
-        c = m.add_component('C')
-        x = c.add_variable('x')
-        x.set_rhs('5 [ms]')
-        x.set_unit('ms')
-        x.set_binding('time')
-
-        a = m.add_component('A')
-        x = a.add_variable('x')
-        x.set_rhs('2 [ms]')
-        x.set_unit('ms')
-
-        d = m.add_component('D')
-        x = d.add_variable('x')
-        x.set_rhs('1 [ms]')
-        x.set_unit('ms')
-
-        b = m.add_component('B')
-        x = b.add_variable('x')
-        x.set_rhs('3 [ms]')
-        x.set_unit('ms')
-
-        e = myokit.formats.cellml.CellMLExporter()
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, m)
-
-            comps = []
-            with open(path, 'r') as f:
-                for line in f.readlines():
-                    line = line.strip()
-                    if line.startswith('<component name="'):
-                        comps.append(line[17:-2])
-            sorted_comps = list(comps)
-            sorted_comps.sort()
-            self.assertTrue(comps == sorted_comps)
-
     def test_oxmeta_annotation_export(self):
         # Text export of weblab oxmeta annotation
 
@@ -635,44 +214,359 @@ class CellMLExporterTest(unittest.TestCase):
 
             # Re-import, check if model can still be read
             m2 = importer.model(path)
+    '''
 
-    def test_weird_custom_units(self):
-        # Test export of units with large/small multipliers
 
-        # Create a test model
-        m = myokit.Model()
-        m.meta['name'] = 'Hello'
+class CellMLExpressionWriterTest(unittest.TestCase):
+    """
+    Tests :class:`myokit.formats.cellml.CellMLExpressionWriter`.
+    """
 
-        cc = m.add_component('C')
-        t = cc.add_variable('time')
-        t.set_rhs('0 [ms]')
-        t.set_unit('ms')
-        t.set_binding('time')
+    @classmethod
+    def setUpClass(cls):
+        # CellML requires unit mapping
+        units = {
+            myokit.parse_unit('pF'): 'picofarad',
+        }
+        cls.w = myokit.formats.cellml.CellMLExpressionWriter()
+        cls.w.set_unit_function(lambda x: units[x])
 
-        ca = m.add_component('A')
-        x = ca.add_variable('INa')
-        x.set_rhs('2 [N (1e+12)]')
-        x.set_unit('N (1e+12)')
+        model = myokit.Model()
+        component = model.add_component('c')
+        cls.avar = component.add_variable('a')
 
-        cd = m.add_component('D')
-        y = cd.add_variable('y')
-        y.set_rhs('1 [s (1e-13)]')
-        y.set_unit('s (1e-13)')
+        # Requires valid model with unames set
+        cls.avar.set_rhs(0)
+        cls.avar.set_binding('time')
+        model.validate()
 
-        cb = m.add_component('B')
-        z = cb.add_variable('z')
-        z.set_rhs('3 [1 (1e+06)]')
-        z.set_unit('1 (1e+06)')
+        # MathML opening and closing tags
+        cls._math = re.compile(r'^<math [^>]+>(.*)</math>$', re.S)
 
-        # Export and read back in again
-        exporter = myokit.formats.cellml.CellMLExporter()
-        importer = myokit.formats.cellml.CellMLImporter()
+    def assertWrite(self, expression, xml):
+        """ Assert writing an ``expression`` results in the given ``xml``. """
+        x = self.w.ex(expression)
+        m = self._math.match(x)
+        self.assertTrue(m)
+        self.assertEqual(m.group(1), xml)
+
+    def test_creation(self):
+        # Tests creating a CellMLExpressionWriter
+
+        # Test fetching using ewriter method
+        w = myokit.formats.ewriter('cellml')
+        self.assertIsInstance(w, myokit.formats.cellml.CellMLExpressionWriter)
+
+        # Content mode not allowed
+        self.assertRaises(RuntimeError, w.set_mode, True)
+
+    def test_name_and_number(self):
+        # Tests writing names and numbers
+
+        # Name
+        a = myokit.Name(self.avar)
+        ca = '<ci>a</ci>'
+        self.assertWrite(a, ca)
+
+        # Number with unit
+        b = myokit.Number('12', 'pF')
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+        self.assertWrite(b, cb)
+
+        # Number without unit
+        c = myokit.Number(1)
+        cc = ('<cn cellml:units="dimensionless">1.0</cn>')
+        self.assertWrite(c, cc)
+
+    def test_arithmetic(self):
+        # Test basic arithmetic
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Prefix plus
+        x = myokit.PrefixPlus(b)
+        self.assertWrite(x, '<apply><plus/>' + cb + '</apply>')
+        # Prefix minus
+        x = myokit.PrefixMinus(b)
+        self.assertWrite(x, '<apply><minus/>' + cb + '</apply>')
+
+        # Plus
+        x = myokit.Plus(a, b)
+        self.assertWrite(x, '<apply><plus/>' + ca + cb + '</apply>')
+        # Minus
+        x = myokit.Minus(a, b)
+        self.assertWrite(x, '<apply><minus/>' + ca + cb + '</apply>')
+        # Multiply
+        x = myokit.Multiply(a, b)
+        self.assertWrite(x, '<apply><times/>' + ca + cb + '</apply>')
+        # Divide
+        x = myokit.Divide(a, b)
+        self.assertWrite(x, '<apply><divide/>' + ca + cb + '</apply>')
+
+    def test_functions(self):
+        # Test printing functions
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Power
+        x = myokit.Power(a, b)
+        self.assertWrite(x, '<apply><power/>' + ca + cb + '</apply>')
+        # Sqrt
+        x = myokit.Sqrt(b)
+        self.assertWrite(x, '<apply><root/>' + cb + '</apply>')
+        # Exp
+        x = myokit.Exp(a)
+        self.assertWrite(x, '<apply><exp/>' + ca + '</apply>')
+
+        # Floor
+        x = myokit.Floor(b)
+        self.assertWrite(x, '<apply><floor/>' + cb + '</apply>')
+        # Ceil
+        x = myokit.Ceil(b)
+        self.assertWrite(x, '<apply><ceiling/>' + cb + '</apply>')
+        # Abs
+        x = myokit.Abs(b)
+        self.assertWrite(x, '<apply><abs/>' + cb + '</apply>')
+
+    def test_inequalities(self):
+        # Tests printing inequalities
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Equal
+        x = myokit.Equal(a, b)
+        self.assertWrite(x, '<apply><eq/>' + ca + cb + '</apply>')
+        # NotEqual
+        x = myokit.NotEqual(a, b)
+        self.assertWrite(x, '<apply><neq/>' + ca + cb + '</apply>')
+        # More
+        x = myokit.More(a, b)
+        self.assertWrite(x, '<apply><gt/>' + ca + cb + '</apply>')
+        # Less
+        x = myokit.Less(a, b)
+        self.assertWrite(x, '<apply><lt/>' + ca + cb + '</apply>')
+        # MoreEqual
+        x = myokit.MoreEqual(a, b)
+        self.assertWrite(x, '<apply><geq/>' + ca + cb + '</apply>')
+        # LessEqual
+        x = myokit.LessEqual(a, b)
+        self.assertWrite(x, '<apply><leq/>' + ca + cb + '</apply>')
+
+    def test_log(self):
+        # Tests printing the log function
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Log(a)
+        x = myokit.Log(b)
+        self.assertWrite(x, '<apply><ln/>' + cb + '</apply>')
+        # Log(a, b)
+        x = myokit.Log(a, b)
+        self.assertWrite(
+            x, '<apply><log/><logbase>' + cb + '</logbase>' + ca + '</apply>')
+        # Log10
+        x = myokit.Log10(b)
+        self.assertWrite(x, '<apply><log/>' + cb + '</apply>')
+
+    def test_logical(self):
+        # Tests printing logical operators and functions
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        c = myokit.Number(1)
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+        cc = ('<cn cellml:units="dimensionless">1.0</cn>')
+
+        # Not
+        cond1 = myokit.parse_expression('5 > 3')
+        cond2 = myokit.parse_expression('2 < 1')
+        c1 = ('<apply><gt/>'
+              '<cn cellml:units="dimensionless">5.0</cn>'
+              '<cn cellml:units="dimensionless">3.0</cn>'
+              '</apply>')
+        c2 = ('<apply><lt/>'
+              '<cn cellml:units="dimensionless">2.0</cn>'
+              '<cn cellml:units="dimensionless">1.0</cn>'
+              '</apply>')
+        x = myokit.Not(cond1)
+        self.assertWrite(x, '<apply><not/>' + c1 + '</apply>')
+        # And
+        x = myokit.And(cond1, cond2)
+        self.assertWrite(x, '<apply><and/>' + c1 + c2 + '</apply>')
+        # Or
+        x = myokit.Or(cond1, cond2)
+        self.assertWrite(x, '<apply><or/>' + c1 + c2 + '</apply>')
+        # If
+        x = myokit.If(cond1, a, b)
+        self.assertWrite(
+            x,
+            '<piecewise>'
+            '<piece>' + ca + c1 + '</piece>'
+            '<otherwise>' + cb + '</otherwise>'
+            '</piecewise>'
+        )
+        # Piecewise
+        x = myokit.Piecewise(cond1, a, cond2, b, c)
+        self.assertWrite(
+            x,
+            '<piecewise>'
+            '<piece>' + ca + c1 + '</piece>'
+            '<piece>' + cb + c2 + '</piece>'
+            '<otherwise>' + cc + '</otherwise>'
+            '</piecewise>'
+        )
+
+    def test_trig_basic(self):
+        # Tests printing basic trig
+
+        b = myokit.Number('12', 'pF')
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Sin
+        x = myokit.Sin(b)
+        self.assertWrite(x, '<apply><sin/>' + cb + '</apply>')
+        # Cos
+        x = myokit.Cos(b)
+        self.assertWrite(x, '<apply><cos/>' + cb + '</apply>')
+        # Tan
+        x = myokit.Tan(b)
+        self.assertWrite(x, '<apply><tan/>' + cb + '</apply>')
+        # ASin
+        x = myokit.ASin(b)
+        self.assertWrite(x, '<apply><arcsin/>' + cb + '</apply>')
+        # ACos
+        x = myokit.ACos(b)
+        self.assertWrite(x, '<apply><arccos/>' + cb + '</apply>')
+        # ATan
+        x = myokit.ATan(b)
+        self.assertWrite(x, '<apply><arctan/>' + cb + '</apply>')
+
+    def test_quotient_remainder(self):
+        # Tests printing quotient and remainder
+
+        a = myokit.Name(self.avar)
+        b = myokit.Number('12', 'pF')
+        ca = '<ci>a</ci>'
+        cb = ('<cn cellml:units="picofarad">12.0</cn>')
+
+        # Quotient
+        # Uses custom implementation: CellML doesn't have these operators.
+        x = myokit.Quotient(a, b)
+        self.assertWrite(
+            x,
+            '<apply><floor/><apply><divide/>' + ca + cb + '</apply></apply>')
+
+        # Remainder
+        x = myokit.Remainder(a, b)
+        self.assertWrite(
+            x,
+            '<apply><minus/>' + ca +
+            '<apply><times/>' + cb +
+            '<apply><floor/><apply><divide/>' + ca + cb + '</apply></apply>'
+            '</apply>'
+            '</apply>'
+        )
+
+    def test_unknown_expression(self):
+        # Test without a Myokit expression
+
+        self.assertRaisesRegex(
+            ValueError, 'Unknown expression type', self.w.ex, 7)
+
+
+class CellMLImporterTest(unittest.TestCase):
+    """
+    Tests the CellML importer.
+    """
+
+    def test_capability_reporting(self):
+        # Test if the right capabilities are reported.
+        i = formats.importer('cellml')
+        self.assertFalse(i.supports_component())
+        self.assertTrue(i.supports_model())
+        self.assertFalse(i.supports_protocol())
+
+    def test_info(self):
+        # Test if the importer implements info()
+        i = formats.importer('cellml')
+        self.assertIsInstance(i.info(), basestring)
+
+    def test_model_dot(self):
+        # This is beeler-reuter but with a dot() in an expression
+        i = formats.importer('cellml')
+        m = i.model(os.path.join(DIR, 'br-1977-dot.cellml'))
+        m.validate()
+
+    def test_model_errors(self):
+        # Files with errors raise CellMLImporterErrors (not parser errors)
+        i = formats.importer('cellml')
+        m = os.path.join(DIR, 'invalid-file.cellml')
+        self.assertRaisesRegex(
+            CellMLImporterError, 'valid CellML identifier', i.model, m)
+
+    def test_model_nesting(self):
+        # The corrias model has multiple levels of nesting (encapsulation)
+        i = formats.importer('cellml')
+        m = i.model(os.path.join(DIR, 'corrias.cellml'))
+        m.validate()
+
+    def test_model_simple(self):
+        # Beeler-Reuter is a simple model
+        i = formats.importer('cellml')
+        m = i.model(os.path.join(DIR, 'br-1977.cellml'))
+        m.validate()
+
+    def test_not_a_model(self):
+        # Test loading something other than a CellML file
+
+        # Different XML file
+        i = formats.importer('cellml')
+        self.assertRaisesRegex(
+            CellMLImporterError, 'not a CellML document',
+            i.model, os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+
+        # Not an XML file
+        self.assertRaisesRegex(
+            CellMLImporterError, 'Unable to parse XML',
+            i.model, os.path.join(DIR_FORMATS, 'lr-1991.mmt'))
+
+    def test_warnings(self):
+        # Tests warnings are logged
+
+        # Create model that will generate warnings
+        x = ('<?xml version="1.0" encoding="UTF-8"?>'
+             '<model name="test" xmlns="http://www.cellml.org/cellml/1.0#">'
+             '<component name="a">'
+             '  <variable name="hello" units="ampere"'
+             '            public_interface="in"/>'
+             '</component>'
+             '</model>')
+
+        # Write to disk and import
         with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            exporter.model(path, m)
-            with open(path, 'r') as f:
-                xml = f.read()
-            m2 = importer.model(path)
+            path = d.path('test.celllml')
+            with open(path, 'w') as f:
+                f.write(x)
+
+            # Import
+            i = formats.importer('cellml')
+            i.model(path)
+
+            # Check warning was raised
+            self.assertIn('not connected', next(i.logger().warnings()))
 
 
 if __name__ == '__main__':

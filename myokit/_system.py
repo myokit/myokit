@@ -113,7 +113,7 @@ def system(live_printing=False):
         out.append('Sundials: ' + (myokit.Sundials.version() or 'Not found'))
 
         opencl = myokit.OpenCL()
-        if not opencl.supported():
+        if not opencl.supported():  # pragma: no cover
             out.append('OpenCL: No OpenCL support detected.')
         else:   # pragma: no cover
             devices = []

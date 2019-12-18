@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Runs all tests for Myokit.
+# Runs tests for Myokit.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -10,26 +10,124 @@
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
+
+import argparse
+import fnmatch
 import gc
 import os
-import sys
-import fnmatch
-import argparse
-import unittest
-import traceback
 import subprocess
+import sys
+import traceback
+import unittest
 
 
-def unit(args):
+def coverage(args):
     """
-    Runs unit tests, exits if anything fails.
+    Runs the unit tests and prints a coverage report.
     """
-    print('Running tests with ' + sys.executable)
+    try:
+        print('Gathering coverage data')
+        p = subprocess.Popen([
+            'python3',
+            '-m',
+            'coverage',
+            'run',
+            'run-tests.py',
+            'unit',
+        ])
+        try:
+            ret = p.wait()
+        except KeyboardInterrupt:
+            try:
+                p.terminate()
+            except OSError:
+                pass
+            p.wait()
+            print('')
+            sys.exit(1)
+        if ret != 0:
+            print('FAILED')
+            sys.exit(ret)
 
-    suite = unittest.defaultTestLoader.discover(
-        os.path.join('myokit', 'tests'), pattern='test*.py')
-    res = unittest.TextTestRunner(verbosity=2).run(suite)
-    sys.exit(0 if res.wasSuccessful() else 1)
+        print('Generating coverage report.')
+        p = subprocess.Popen([
+            'python3',
+            '-m',
+            'coverage',
+            'report',
+            '-m',
+            '--skip-covered',
+        ])
+        p.wait()
+
+    finally:
+        # Remove coverage file
+        if os.path.isfile('.coverage'):
+            os.remove('.coverage')
+
+
+def doc_tests(args):
+    """
+    Checks if the documentation can be built, runs all doc tests, exits if
+    anything fails.
+    """
+    print('Building docs and running doctests.')
+    p = subprocess.Popen([
+        'sphinx-build',
+        '-b',
+        'doctest',
+        'docs/source',
+        'docs/build/html',
+        '-W',
+    ])
+    try:
+        ret = p.wait()
+    except KeyboardInterrupt:
+        try:
+            p.terminate()
+        except OSError:
+            pass
+        p.wait()
+        print('')
+        sys.exit(1)
+    if ret != 0:
+        print('FAILED')
+        sys.exit(ret)
+
+
+def examples_pub(args):
+    """
+    Runs all publication examples, exits if one of them fails.
+    """
+    # Get publications directory
+    path = os.path.join('myokit', 'tests', 'publications')
+
+    # PBMB 2016. Myokit: A simple interface to cardiac cellular
+    # electrophysiology
+    if test_mmt_files(os.path.join(path, 'pbmb-2016')):
+        sys.exit(1)
+
+
+def examples_web(args):
+    """
+    Runs all web examples, exits if one of them fails.
+    """
+    # Get web directory
+    path = os.path.join(
+        'dev',
+        'web',
+        'html',
+        'static',
+        'download',
+        'examples',
+    )
+    if not os.path.isdir(path):
+        print('Web examples not found. Skipping.')
+        return
+
+    # Run, exit on error
+    if test_mmt_files(path):
+        sys.exit(1)
 
 
 def flake8():
@@ -56,33 +154,25 @@ def flake8():
         sys.exit(ret)
 
 
-def doc_tests(args):
+def suite_full(args):
     """
-    Checks if the documentation can be built, runs all doc tests, exits if
-    anything fails.
+    Runs the full test suite, exits if anything fails.
     """
-    print('Checking if docs can be built.')
-    p = subprocess.Popen([
-        'sphinx-build',
-        '-b',
-        'doctest',
-        'docs/source',
-        'docs/build/html',
-        '-W',
-    ])
-    try:
-        ret = p.wait()
-    except KeyboardInterrupt:
-        try:
-            p.terminate()
-        except OSError:
-            pass
-        p.wait()
-        print('')
-        sys.exit(1)
-    if ret != 0:
-        print('FAILED')
-        sys.exit(ret)
+    # Set arguments for unit()
+    flake8()
+    doc_tests(args)
+    unit(args)
+    examples_web(args)
+    examples_pub(args)
+
+
+def suite_minimal(args):
+    """
+    Runs a minimal set of tests, exits if anything fails.
+    """
+    flake8()
+    doc_tests(args)
+    unit(args)
 
 
 def test_mmt_files(path):
@@ -143,63 +233,20 @@ def test_mmt_files(path):
     return error
 
 
-def publication_examples(args):
+def unit(args):
     """
-    Runs all publication examples, exits if one of them fails.
+    Runs unit tests, exits if anything fails.
     """
-    # Get publications directory
-    path = os.path.join('myokit', 'tests', 'publications')
+    print('Running tests with ' + sys.executable)
 
-    # PBMB 2016. Myokit: A simple interface to cardiac cellular
-    # electrophysiology
-    if test_mmt_files(os.path.join(path, 'pbmb-2016')):
-        sys.exit(1)
-
-
-def web_examples(args):
-    """
-    Runs all web examples, exits if one of them fails.
-    """
-    # Get web directory
-    path = os.path.join(
-        'dev',
-        'web',
-        'html',
-        'static',
-        'download',
-        'examples',
-    )
-    if not os.path.isdir(path):
-        print('Web examples not found. Skipping.')
-        return
-
-    # Run, exit on error
-    if test_mmt_files(path):
-        sys.exit(1)
+    suite = unittest.defaultTestLoader.discover(
+        os.path.join('myokit', 'tests'), pattern='test*.py')
+    res = unittest.TextTestRunner(verbosity=2).run(suite)
+    sys.exit(0 if res.wasSuccessful() else 1)
 
 
-def full_suite(args):
-    """
-    Runs the full test suite, exits if anything fails.
-    """
-    # Set arguments for unit()
-    flake8()
-    doc_tests(args)
-    unit(args)
-    web_examples(args)
-    publication_examples(args)
+if __name__ == '__main__':
 
-
-def minimal_suite(args):
-    """
-    Runs a minimal set of tests, exits if anything fails.
-    """
-    flake8()
-    doc_tests(args)
-    unit(args)
-
-
-def main():
     # Set up argument parsing
     parser = argparse.ArgumentParser(
         description='Run unit tests for Myokit.',
@@ -215,34 +262,39 @@ def main():
         help='Disable matplotlib output.',
     )
 
-    # Full test suite
-    full_parser = subparsers.add_parser(
-        'full', help='Run all tests (including graphical ones)')
-    full_parser.set_defaults(func=full_suite)
-
-    # Minimal test suite
-    minimal_parser = subparsers.add_parser(
-        'minimal', help='Run minimal checks (unit tests, flake8, docs)')
-    minimal_parser.set_defaults(func=minimal_suite)
-
-    # Unit tests
-    unit_parser = subparsers.add_parser('unit', help='Run unit tests')
-    unit_parser.set_defaults(func=unit)
+    # Coverage
+    coverage_parser = subparsers.add_parser(
+        'cover', help='Run unit tests and print a coverage report.')
+    coverage_parser.set_defaults(func=coverage)
 
     # Doctests
     doc_parser = subparsers.add_parser(
         'doc', help='Test if documentation can be built, and run doc tests.')
     doc_parser.set_defaults(func=doc_tests)
 
+    # Full test suite
+    full_parser = subparsers.add_parser(
+        'full', help='Run all tests (including graphical ones)')
+    full_parser.set_defaults(func=suite_full)
+
+    # Minimal test suite
+    minimal_parser = subparsers.add_parser(
+        'minimal', help='Run minimal checks (unit tests, flake8, docs)')
+    minimal_parser.set_defaults(func=suite_minimal)
+
     # Publication examples
     pub_parser = subparsers.add_parser(
         'pub', help='Run publication examples.')
-    pub_parser.set_defaults(func=publication_examples)
+    pub_parser.set_defaults(func=examples_pub)
+
+    # Unit tests
+    unit_parser = subparsers.add_parser('unit', help='Run unit tests')
+    unit_parser.set_defaults(func=unit)
 
     # Web examples
     web_parser = subparsers.add_parser(
         'web', help='Run web examples.')
-    web_parser.set_defaults(func=web_examples)
+    web_parser.set_defaults(func=examples_web)
 
     # Parse!
     args = parser.parse_args()
@@ -255,6 +307,3 @@ def main():
     else:
         parser.print_help()
 
-
-if __name__ == '__main__':
-    main()

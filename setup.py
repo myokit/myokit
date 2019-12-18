@@ -57,10 +57,11 @@ setup(
 
     # List of dependencies
     install_requires=[
+        'configparser',
+        'lxml',
+        'matplotlib>=1.5',
         'numpy',
         'scipy',
-        'matplotlib>=1.5',
-        'configparser',
         'setuptools',
         'sympy',            # Used in lib.markov
         # PyQT or PySide?
@@ -73,6 +74,7 @@ setup(
             'sphinx>=1.5, !=1.7.3',     # Doc generation
         ],
         'dev': [
+            'coverage',                 # Coverage checking
             'flake8>=3',                # Style checking
         ],
         'optional': [

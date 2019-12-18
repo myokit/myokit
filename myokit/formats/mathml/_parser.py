@@ -38,7 +38,8 @@ def parse_mathml_etree(
         :class:`myokit.Name` objects.
     ``number_factory``
         A callable with arguments ``(number_as_float, element)`` that returns
-        :class:`myokit.Number` objects.
+        :class:`myokit.Number` objects. Note that ``element`` can be ``None``
+        for numbers that have no corresponding ``<cn>`` element.
     ``free_variables``
         All :class:`Name` objects for free variables in derivative expressions
         will be added to this set.
@@ -88,7 +89,8 @@ class MathMLParser(object):
         :class:`myokit.Name` objects.
     ``number_factory``
         A callable with arguments ``(number_as_float, element)`` that returns
-        :class:`myokit.Number` objects.
+        :class:`myokit.Number` objects. Note that ``element`` can be ``None``
+        for numbers that have no corresponding ``<cn>`` element.
     ``free_variables``
         All :class:`Name` objects for free variables in derivative expressions
         will be added to this set.
@@ -222,6 +224,7 @@ class MathMLParser(object):
     def __init__(self, variable_factory, number_factory, free_variables=set()):
         self._vfac = variable_factory
         self._nfac = number_factory
+        self._const = lambda x: number_factory(x, None)
         self._free_variables = free_variables
 
     def _eat(self, element, iterator, nargs=1):
@@ -316,14 +319,14 @@ class MathMLParser(object):
 
         # Constants
         elif name == 'pi':
-            return myokit.Number('3.14159265358979323846')
+            return self._const('3.14159265358979323846')
         elif name == 'exponentiale':
-            return myokit.Exp(myokit.Number(1))
+            return myokit.Exp(self._const(1))
         elif name == 'true':
             # This is correct, ``True == 1`` -> False, ``True == 2`` -> False
-            return myokit.Number(1)
+            return self._const(1)
         elif name == 'false':
-            return myokit.Number(0)
+            return self._const(0)
 
         # Piecewise statement
         elif name == 'piecewise':
@@ -427,91 +430,91 @@ class MathMLParser(object):
         elif name == 'csc':
             # Cosecant: csc(x) = 1 / sin(x)
             return myokit.Divide(
-                myokit.Number(1), myokit.Sin(*self._eat(element, iterator)))
+                self._const(1), myokit.Sin(*self._eat(element, iterator)))
         elif name == 'sec':
             # Secant: sec(x) = 1 / cos(x)
             return myokit.Divide(
-                myokit.Number(1), myokit.Cos(*self._eat(element, iterator)))
+                self._const(1), myokit.Cos(*self._eat(element, iterator)))
         elif name == 'cot':
             # Contangent: cot(x) = 1 / tan(x)
             return myokit.Divide(
-                myokit.Number(1), myokit.Tan(*self._eat(element, iterator)))
+                self._const(1), myokit.Tan(*self._eat(element, iterator)))
         elif name == 'arccsc':
             # ArcCosecant: acsc(x) = asin(1/x)
             return myokit.ASin(
-                myokit.Divide(myokit.Number(1), *self._eat(element, iterator)))
+                myokit.Divide(self._const(1), *self._eat(element, iterator)))
         elif name == 'arcsec':
             # ArcSecant: asec(x) = acos(1/x)
             return myokit.ACos(
-                myokit.Divide(myokit.Number(1), *self._eat(element, iterator)))
+                myokit.Divide(self._const(1), *self._eat(element, iterator)))
         elif name == 'arccot':
             # ArcCotangent: acot(x) = atan(1/x)
             return myokit.ATan(
-                myokit.Divide(myokit.Number(1), *self._eat(element, iterator)))
+                myokit.Divide(self._const(1), *self._eat(element, iterator)))
 
         # Hyperbolic trig
         elif name == 'sinh':
             # Hyperbolic sine: sinh(x) = 0.5 * (e^x - e^-x)
             x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                myokit.Number(0.5), myokit.Minus(
+                self._const(0.5), myokit.Minus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
         elif name == 'cosh':
             # Hyperbolic cosine: cosh(x) = 0.5 * (e^x + e^-x)
             x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                myokit.Number(0.5), myokit.Plus(
+                self._const(0.5), myokit.Plus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
         elif name == 'tanh':
             # Hyperbolic tangent: tanh(x) = (e^2x - 1) / (e^2x + 1)
             x = self._eat(element, iterator)[0]
-            e2x = myokit.Exp(myokit.Multiply(myokit.Number(2), x))
+            e2x = myokit.Exp(myokit.Multiply(self._const(2), x))
             return myokit.Divide(
-                myokit.Minus(e2x, myokit.Number(1)),
-                myokit.Plus(e2x, myokit.Number(1)))
+                myokit.Minus(e2x, self._const(1)),
+                myokit.Plus(e2x, self._const(1)))
         elif name == 'arcsinh':
             # Inverse hyperbolic sine: asinh(x) = log(x + sqrt(1 + x*x))
             x = self._eat(element, iterator)[0]
             return myokit.Log(myokit.Plus(x, myokit.Sqrt(myokit.Plus(
-                myokit.Number(1), myokit.Multiply(x, x)))))
+                self._const(1), myokit.Multiply(x, x)))))
         elif name == 'arccosh':
             # Inverse hyperbolic cosine:
             #   acosh(x) = log(x + sqrt(x + 1) * sqrt(x - 1))
             x = self._eat(element, iterator)[0]
             return myokit.Log(
                 myokit.Plus(x, myokit.Multiply(
-                    myokit.Sqrt(myokit.Plus(x, myokit.Number(1))),
-                    myokit.Sqrt(myokit.Minus(x, myokit.Number(1))))))
+                    myokit.Sqrt(myokit.Plus(x, self._const(1))),
+                    myokit.Sqrt(myokit.Minus(x, self._const(1))))))
         elif name == 'arctanh':
             # Inverse hyperbolic tangent:
             #   atanh(x) = 0.5 * (log(1 + x) - log(1 - x))
             x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                myokit.Number(0.5), myokit.Minus(
-                    myokit.Log(myokit.Plus(myokit.Number(1), x)),
-                    myokit.Log(myokit.Minus(myokit.Number(1), x))))
+                self._const(0.5), myokit.Minus(
+                    myokit.Log(myokit.Plus(self._const(1), x)),
+                    myokit.Log(myokit.Minus(self._const(1), x))))
 
         # Hyperbolic redundant trig
         elif name == 'csch':
             # Hyperbolic cosecant: csch(x) = 2 / (exp(x) - exp(-x))
             x = self._eat(element, iterator)[0]
             return myokit.Divide(
-                myokit.Number(2), myokit.Minus(
+                self._const(2), myokit.Minus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
         elif name == 'sech':
             # Hyperbolic secant: sech(x) = 2 / (exp(x) + exp(-x))
             x = self._eat(element, iterator)[0]
             return myokit.Divide(
-                myokit.Number(2), myokit.Plus(
+                self._const(2), myokit.Plus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
         elif name == 'coth':
             # Hyperbolic cotangent:
             #   coth(x) = (exp(2*x) + 1) / (exp(2*x) - 1)
             x = self._eat(element, iterator)[0]
-            e2x = myokit.Exp(myokit.Multiply(myokit.Number(2), x))
+            e2x = myokit.Exp(myokit.Multiply(self._const(2), x))
             return myokit.Divide(
-                myokit.Plus(e2x, myokit.Number(1)),
-                myokit.Minus(e2x, myokit.Number(1)))
+                myokit.Plus(e2x, self._const(1)),
+                myokit.Minus(e2x, self._const(1)))
         elif name == 'arccsch':
             # Inverse hyperbolic cosecant:
             #   arccsch(x) = log(sqrt(1/(x*x) + 1) + 1/x)
@@ -521,13 +524,13 @@ class MathMLParser(object):
                     myokit.Sqrt(
                         myokit.Plus(
                             myokit.Divide(
-                                myokit.Number(1),
+                                self._const(1),
                                 myokit.Multiply(x, x)
                             ),
-                            myokit.Number(1)
+                            self._const(1)
                         )
                     ),
-                    myokit.Divide(myokit.Number(1), x))
+                    myokit.Divide(self._const(1), x))
             )
         elif name == 'arcsech':
             # Inverse hyperbolic secant:
@@ -538,24 +541,24 @@ class MathMLParser(object):
                     myokit.Sqrt(
                         myokit.Minus(
                             myokit.Divide(
-                                myokit.Number(1),
+                                self._const(1),
                                 myokit.Multiply(x, x)
                             ),
-                            myokit.Number(1)
+                            self._const(1)
                         )
                     ),
-                    myokit.Divide(myokit.Number(1), x))
+                    myokit.Divide(self._const(1), x))
             )
         elif name == 'arccoth':
             # Inverse hyperbolic cotangent:
             #   arccoth(x) = 0.5 * (log(3 + 1) - log(3 - 1))
             x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                myokit.Number(0.5),
+                self._const(0.5),
                 myokit.Log(
                     myokit.Divide(
-                        myokit.Plus(x, myokit.Number(1)),
-                        myokit.Minus(x, myokit.Number(1))
+                        myokit.Plus(x, self._const(1)),
+                        myokit.Minus(x, self._const(1))
                     )
                 )
             )
@@ -667,7 +670,7 @@ class MathMLParser(object):
                     ' single operand) inside a <log> element.', element)
             op = self._parse_atomic(ops[0])
 
-        if base is None or base == myokit.Number(10):
+        if base is None or base.eval() == 10:
             return myokit.Log10(op)
         else:
             return myokit.Log(op, base)
@@ -875,7 +878,7 @@ class MathMLParser(object):
 
         # Add otherwise
         if other is None:
-            ops.append(myokit.Number(0))
+            ops.append(self._const(0))
         else:
             ops.append(other)
 
@@ -920,9 +923,9 @@ class MathMLParser(object):
             op = self._parse_atomic(ops[1])
 
             # Return expression
-            if degree == myokit.Number(2):
+            if degree.eval() == 2:
                 return myokit.Sqrt(op)
-            return myokit.Power(op, myokit.Divide(myokit.Number(1), degree))
+            return myokit.Power(op, myokit.Divide(self._const(1), degree))
 
         # No degree given
         if len(ops) != 1:

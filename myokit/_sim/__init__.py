@@ -178,7 +178,7 @@ class CModule(object):
                             str('--install-lib=' + d_modul),
                             str('--old-and-unmanageable'),
                         ])
-                except (Exception, SystemExit) as e:
+                except (Exception, SystemExit) as e:    # pragma: no cover
                     s.disable()
                     t = ['Unable to compile.', 'Error message:']
                     t.append(str(e))

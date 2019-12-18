@@ -40,6 +40,85 @@ def is_valid_identifier(name):
     return _cellml_identifier.match(name) is not None
 
 
+def clean_identifier(name):
+    """
+    Checks if ``name`` is a valid CellML identifier and if not attempts to make
+    it into one.
+
+    Raises a ``ValueError`` if it can't create a valid identifier.
+    """
+    if is_valid_identifier(name):
+        return name
+
+    # Replace spaces and hyphens with underscores
+    clean = re.sub(r'[\s-]', '_', name)
+
+    # Check if valid and return
+    if is_valid_identifier(clean):
+        return clean
+    raise ValueError(
+        'Unable to create a valid CellML identifier from "' + str(name) + '".')
+
+
+def create_unit_name(unit):
+    """
+    Creates an almost readable name for a Myokit ``unit``.
+    """
+    # Get preferred name from Myokit's representation (e.g. [kg]) but trim off
+    # the brackets
+    name = str(unit)[1:-1]
+
+    # If this is a valid name, return
+    if is_valid_identifier(name):
+        return name
+
+    # Not allowed: could be because of a multiplier, e.g. [m (0.0254)]
+    if ' ' in name:
+        name, multiplier = name.split(' ')
+    else:
+        name, multiplier = name, ''
+
+    # Could also be because it's g*m/mol^2
+    # (Exponents are integers, so don't need to deal with floats here)
+    name = name.replace('^', '')
+    name = name.replace('/', '_per_')
+    name = name.replace('*', '_')
+
+    # Remove "1_" from "1_per_mV"
+    if name[:2] == '1_':
+        name = name[2:]
+
+    # Turn "1 (123)" into "dimensionless (123)"
+    elif name == '1':
+        # E.g. [1 (1000)]
+        name = 'dimensionless'
+
+    # Add multiplier (can be float)
+    if multiplier:
+        multiplier = unit.multiplier()
+
+        # Use e-notation if multiple of 10
+        multiplier10 = unit.multiplier_log_10()
+        if myokit._feq(multiplier10, int(multiplier10)):
+            multiplier = '1e' + str(int(multiplier10))
+
+        # Format as integer
+        elif myokit._feq(multiplier, int(multiplier)):
+            multiplier = str(int(multiplier))
+
+        # Format as float
+        else:
+            multiplier = str(multiplier)
+
+        # Remove characters not allowed in CellML identifiers
+        multiplier = multiplier.replace('+', '')
+        multiplier = multiplier.replace('-', '_minus_')
+        multiplier = multiplier.replace('.', '_dot_')
+        name += '_times_' + multiplier
+
+    return name
+
+
 class AnnotatableElement(object):
     """
     Represents a CellML 1.0 or 1.1 element that can have a cmeta:id.
@@ -118,13 +197,16 @@ class Component(AnnotatableElement):
 
         # This component's encapsulation relationships
         self._parent = None
-        # self._children = set()    Currently unused
+        self._children = set()
 
         # This component's variables
         self._variables = collections.OrderedDict()
 
         # This component's component-level units
         self._units = {}
+
+        # Lookup myokit unit to name (note this lookup may not be unique)
+        self._myokit_unit_to_name = {}
 
     def add_units(self, name, myokit_unit):
         """
@@ -144,8 +226,14 @@ class Component(AnnotatableElement):
                 ' name (5.4.1.2)')
 
         # Create, store, and return
-        self._units[name] = u = Units(name, myokit_unit)
-        return u
+        # Note: there can be units with different names but the same myokit
+        # unit, in this case we simply overwrite whatever name was already
+        # there. This shouldn't cause any issues because the name still refers
+        # to a valid unit.
+        units = Units(name, myokit_unit)
+        self._units[name] = units
+        self._myokit_unit_to_name[myokit_unit] = name
+        return units
 
     def add_variable(self, name, units, public_interface='none',
                      private_interface='none'):
@@ -175,6 +263,12 @@ class Component(AnnotatableElement):
             self, name, units, public_interface, private_interface)
         return v
 
+    def children(self):
+        """
+        Returns an iterator over any encapsulated child components.
+        """
+        return iter(self._children)
+
     def __contains__(self, key):
         return key in self._variables
 
@@ -182,17 +276,40 @@ class Component(AnnotatableElement):
         """
         Looks up and returns a :class:`Units` object with the given ``name``.
 
-        If no such unit exists in the component, the model units and predefined
-        units are searched. If a unit still isn't found, a `KeyError` is
-        raised.
+        Searches first in this component, then in its model, then in the list
+        of predefined units.
+
+        Raises a :class:`CellMLError` is no unit is found.
+
         """
         try:
             return self._units[name]
         except KeyError:
             return self._model.find_units(name)
 
+    def find_units_name(self, myokit_unit):
+        """
+        Attempts to find a string name for the given :class:`myokit.Unit`.
+
+        Searches first in this component, then in its model, then in the list
+        of predefined units. If multiple units definitions have the same
+        :class:`myokit.Unit`, the last added name is returned.
+
+        Raises a :class:`CellMLError` is no appropriate unit is found.
+        """
+        try:
+            return self._myokit_unit_to_name[myokit_unit]
+        except KeyError:
+            return self._model.find_units_name(myokit_unit)
+
     def __getitem__(self, key):
         return self._variables[key]
+
+    def has_children(self):
+        """
+        Checks if this component has any encapsulated child components.
+        """
+        return len(self._children) > 0
 
     def __iter__(self):
         return iter(self._variables.values())
@@ -231,20 +348,22 @@ class Component(AnnotatableElement):
                 raise ValueError('Parent must be from the same model.')
 
         # Store relationship
-        # if self._parent is not None:
-        #    self._parent._children.remove(self)
+        if self._parent is not None:
+            self._parent._children.remove(self)
         self._parent = parent
-        # if parent is not None:
-        #    parent._children.add(self)
+        if parent is not None:
+            parent._children.add(self)
 
     def __str__(self):
         return 'Component[@name="' + self._name + '"]'
 
     def units(self):
         """
-        Returns an iterator over this component's :class:`Unit` objects.
+        Returns an iterator over the :class:`Units` objects in this component.
         """
-        return self._units.values()
+        # Note: Must use _by_name here, other one doesn't necessarily contain
+        # all units objects (only names are unique).
+        return iter(self._units.values())
 
     def _validate(self, warnings):
         """
@@ -263,11 +382,41 @@ class Component(AnnotatableElement):
         for v in self._variables.values():
             v._validate(warnings)
 
+        # If this component has states, check that it also has a free variable
+        # in the local component.
+        has_states = False
+        has_free = False
+        for v in self._variables.values():
+            if v.is_state():
+                has_states = True
+            elif v.value_source().is_free():
+                has_free = True
+            if has_states and has_free:
+                break
+
+        # If derivatives are used, check that a time variable is defined and
+        # is available in this component.
+        if has_states:
+            if self._model.free_variable() is None:
+                raise CellMLError(
+                    'If state variables are used, a free variable must be set'
+                    ' with Model.set_free_variable().')
+            if not has_free:
+                raise CellMLError(
+                    str(self) + ' has state variables, but no local variable'
+                    ' connected to the free variable.')
+
     def variable(self, name):
         """
         Returns the variable with the given ``name``.
         """
         return self._variables[name]
+
+    def variables(self):
+        """
+        Returns an iterator over this component's variables.
+        """
+        return iter(self._variables.values())
 
 
 class Model(AnnotatableElement):
@@ -316,6 +465,9 @@ class Model(AnnotatableElement):
 
         # This model's model-level units
         self._units = {}
+
+        # Lookup myokit unit to name (note this lookup may not be unique)
+        self._myokit_unit_to_name = {}
 
         # A mapping from cmeta:ids to CellML element objects.
         self._cmeta_ids = {}
@@ -425,14 +577,22 @@ class Model(AnnotatableElement):
                 ' (5.4.1.2)')
 
         # Create, store, and return
-        self._units[name] = u = Units(name, myokit_unit)
-        return u
+        units = Units(name, myokit_unit)
+        self._units[name] = units
+        self._myokit_unit_to_name[myokit_unit] = name
+        return units
 
     def component(self, name):
         """
         Returns the :class:`Component` with the given ``name``.
         """
         return self._components[name]
+
+    def components(self):
+        """
+        Returns an iterator over this model's components.
+        """
+        return iter(self._components.values())
 
     def __contains__(self, key):
         return key in self._components
@@ -448,23 +608,219 @@ class Model(AnnotatableElement):
         """
         Looks up and returns a :class:`Units` object with the given ``name``.
 
-        If no such unit exists in the model, the predefined units are searched.
-        If a unit still isn't found, a `KeyError` is raised.
+        Searches first in this model, then in the list of predefined units.
+
+        Raises a :class:`CellMLError` is no unit is found.
         """
         try:
             return self._units[name]
         except KeyError:
             return Units.find_units(name)
 
+    def find_units_name(self, myokit_unit):
+        """
+        Attempts to find a string name for the given :class:`myokit.Unit`.
+
+        Searches first in this component, then in its model, then in the list
+        of predefined units. If multiple units definitions have the same
+        :class:`myokit.Unit`, the last added name is returned.
+
+        Raises a :class:`CellMLError` is no appropriate unit is found.
+        """
+        try:
+            return self._myokit_unit_to_name[myokit_unit]
+        except KeyError:
+            return Units.find_units_name(myokit_unit)
+
+    def free_variable(self):
+        """
+        Returns the free variable set with :meth:`set_free_variable`.
+        """
+        return self._free_variable
+
     @staticmethod
-    def from_myokit_model(myokit_model, protocol=None):
+    def from_myokit_model(model):
         """
         Creates a :class:`Model` from a :class:`myokit.Model`.
-
-        If a ``protocol`` is also given it will be used to generate a typical
-        CellML if-statement protocol.
         """
-        raise NotImplementedError
+
+        # Get name for CellML model
+        name = model.name()
+        if name is None:
+            name = 'unnamed_myokit_model'
+        else:
+            try:
+                name = clean_identifier(name)
+            except ValueError:
+                name = 'unnamed_myokit_model'
+
+        # Create CellML model
+        m = Model(name)
+
+        # Gather unit objects used in Myokit model, and replace units None with
+        # dimensionless.
+        used = set()
+        numbers_without_units = {}
+        for variable in model.variables(deep=True):
+            used.add(variable.unit())
+            for e in variable.rhs().walk(myokit.Number):
+                u = e.unit()
+                if u is None:
+                    numbers_without_units[e] = myokit.Number(
+                        e.eval(), myokit.units.dimensionless)
+                used.add(u)
+        if None in used:
+            used.remove(None)
+
+        # Add units to models, and store mapping from objects to names
+        unit_map = dict(Units._si_units_r)
+        for unit in used:
+            if unit not in unit_map:
+                name = create_unit_name(unit)
+                unit_map[unit] = name
+                m.add_units(name, unit)
+        unit_map[None] = 'dimensionless'
+
+        # Check model with state variables declares a time variable
+        time = model.time()
+        if time is None:
+            if len(model.state()) > 0:
+                raise CellMLError(
+                    'Unable to create CellML model with state variables if no'
+                    ' variable has been bound to `time`.')
+
+        # Variable naming strategy:
+        # 1. Component level variables always use their unqualified names
+        # 2. Nested variables use their unames
+        # 3. Variable-in variables use their unames
+
+        # Create unames in model
+        model.create_unique_names()
+
+        # Dict of interface-in variables that need to be added to each
+        # component
+        in_variables = {component: set() for component in model}
+
+        # Dict mapping Myokit variables to CellML variables, per component
+        var_map = {component: dict() for component in model}
+
+        # Add components
+        for component in model:
+            c = m.add_component(component.name())
+
+            # Local var_map entry
+            local_var_map = var_map[component]
+
+            # Add variables
+            for variable in component:
+
+                # Check if this variable is needed in other components
+                interface = 'none'
+
+                # Get all refs to variable's LHS
+                refs = set(variable.refs_by())
+                if variable.is_state():
+                    # If it's a state, refs to dot(x) also require the time
+                    # variable
+                    if refs:
+                        refs.add(time)
+
+                    # And refs should include references to the state itself
+                    refs = refs.union(variable.refs_by(True))
+
+                elif variable is time:
+                    # If this is the time variable, then ensure that all states
+                    # have a local reference to it.
+                    for ref in model.states():
+                        refs.add(ref)
+
+                # Update lists of required interface-in variables, and set
+                # interface to 'out' if needed
+                for user in refs:
+                    parent = user.parent(myokit.Component)
+                    if parent != component:
+                        in_variables[parent].add(variable)
+                        interface = 'out'
+
+                # Add variable
+                local_var_map[variable] = v = c.add_variable(
+                    variable.name(),
+                    unit_map[variable.unit()],
+                    public_interface=interface
+                )
+
+                # Copy meta-data, create cmeta id in case its needed
+                v.set_cmeta_id(variable.uname())
+                for key, value in variable.meta.items():
+                    v.meta[key] = value
+
+                # Add nested variables
+                for nested in variable.variables(deep=True):
+                    local_var_map[nested] = v = c.add_variable(
+                        nested.uname(), unit_map[nested.unit()])
+
+                    # Copy meta-data, create cmeta id in case its needed
+                    v.set_cmeta_id(nested.uname())
+                    for key, value in nested.meta.items():
+                        v.meta[key] = value
+
+        # Add interface-in variables
+        for component, variables in in_variables.items():
+            c = m[component.name()]
+
+            # Local var_map entry
+            local_var_map = var_map[component]
+
+            # Add variables
+            for variable in variables:
+                local_var_map[variable] = v = c.add_variable(
+                    variable.uname(),
+                    unit_map[variable.unit()],
+                    public_interface='in',
+                )
+
+                # Add connection
+                source = m[variable.parent().name()][variable.name()]
+                m.add_connection(v, source)
+
+        # Set RHS equations
+        for component in model:
+
+            # Create dict of Name substitutions
+            local_var_map = var_map[component]
+            subst = {
+                myokit.Name(x): myokit.Name(y)
+                for x, y in local_var_map.items()}
+
+            # Add number substitutions
+            for x, y in numbers_without_units.items():
+                subst[x] = y
+
+            # Set RHS equations
+            for variable in component.variables(deep=True):
+                v = local_var_map[variable]
+                rhs = variable.rhs().clone(subst=subst)
+
+                # Promote states and set rhs and initial value
+                if variable.is_state():
+                    v.set_is_state(True)
+                    v.set_initial_value(variable.state_value())
+                    v.set_rhs(rhs)
+
+                # Store literals (single number) in initial value
+                elif isinstance(rhs, myokit.Number):
+                    v.set_initial_value(rhs.eval())
+
+                # For all other use rhs
+                else:
+                    v.set_rhs(rhs)
+
+                # Set time variable
+                if variable is time:
+                    m.set_free_variable(v)
+
+        # Return model
+        return m
 
     def __getitem__(self, key):
         return self._components[key]
@@ -497,7 +853,7 @@ class Model(AnnotatableElement):
                 if variable.is_local():
                     v = c.add_variable(variable.name())
                     v.set_unit(variable.units().myokit_unit())
-                elif variable.units() != variable.source().units():
+                elif variable.units() != variable.value_source().units():
                     #TODO Implement unit conversion
                     import warnings
                     warnings.warn(
@@ -511,7 +867,7 @@ class Model(AnnotatableElement):
             # Create dict of variable reference substitutions
             varmap = {}
             for variable in component:
-                source = variable.source()
+                source = variable.value_source()
                 parent = m[source.component().name()]
                 varmap[myokit.Name(variable)] = myokit.Name(
                     parent[source.name()])
@@ -589,6 +945,12 @@ class Model(AnnotatableElement):
         if variable is not None and variable._model is not self:
             raise ValueError('Given variable must be from this model.')
 
+        # Check interface
+        if variable is not None and (variable._public_interface == 'in' or
+                                     variable._private_interface == 'in'):
+            raise CellMLError(
+                'The free variable cannot have an "in" interface.')
+
         # Unset previous
         if self._free_variable is not None:
             self._free_variable._is_free = False
@@ -603,9 +965,11 @@ class Model(AnnotatableElement):
 
     def units(self):
         """
-        Returns an iterator over this model's :class:`Unit` objects.
+        Returns an iterator over the :class:`Units` objects in this model.
         """
-        return self._units.values()
+        # Note: Must use _by_name here, other one doesn't necessarily contain
+        # all units objects (only names are unique).
+        return iter(self._units.values())
 
     def _unregister_cmeta_id(self, cmeta_id):
         """
@@ -631,19 +995,14 @@ class Model(AnnotatableElement):
         # Check at most one variable doesn't have a source (one free variable
         # is allowed)
         free = set()
-        states = set()
         for c in self:
             for v in c:
-                if v.source() is v:
+                if v.value_source() is v:
                     if v.rhs() is None and v.initial_value() is None:
                         free.add(v)
-                if v.is_state():
-                    states.add(v)
 
         if len(free) > 1:
-            warnings.append(
-                'More than one variable does not have a value: ' +
-                ', '.join([str(v) for v in free]) + '.')
+            warnings.append('More than one variable does not have a value.')
 
         elif self._free_variable is not None and len(free) == 1:
             free = free.pop()
@@ -652,13 +1011,6 @@ class Model(AnnotatableElement):
                     'No value is defined for the variable "'
                     + free.name() + '", but "' + self._free_variable.name()
                     + '" is listed as the free variable.')
-
-        # If derivatives are used, check that a time variable is defined
-        if states:
-            if self._free_variable is None:
-                raise CellMLError(
-                    'If state variables are used, a free variable must be set'
-                    ' with Model.set_free_variable().')
 
         # Return warnings
         return warnings
@@ -709,17 +1061,40 @@ class Units(object):
         """
         Searches for a predefined unit with the given ``name`` and returns a
         :class:`Units` object representing it.
+
+        If no such unit is found a :class:`CellMLError` is raised.
         """
+        # Check if we have a cached object for this
         obj = cls._si_unit_objects.get(name, None)
         if obj is None:
+
+            # Check if this is an si unit
             myokit_unit = cls._si_units.get(name, None)
+
+            # If not raise error (and one that makes sense even if this was
+            # called via a model or component units lookup).
             if myokit_unit is None:
-                # Raise error that makes sense even if this was called via a
-                # model or component units lookup.
                 raise CellMLError('Unknown units name "' + str(name) + '".')
+
+            # Create and store object
             obj = cls(name, myokit_unit, predefined=True)
             cls._si_unit_objects[name] = obj
+
+        # Return
         return obj
+
+    @classmethod
+    def find_units_name(cls, myokit_unit):
+        """
+        Attempts to find a string name for the given :class:`myokit.Unit`.
+
+        Raises a :class:`CellMLError` is no appropriate unit is found.
+        """
+        try:
+            return cls._si_units_r[myokit_unit]
+        except KeyError:
+            raise CellMLError(
+                'No name found for myokit unit ' + str(myokit_unit) + '.')
 
     def myokit_unit(self):
         """
@@ -872,7 +1247,6 @@ class Units(object):
     _si_unit_objects = {}
 
     # Predefined units in CellML, Unit object to name
-    '''
     _si_units_r = {
         myokit.units.dimensionless: 'dimensionless',
         myokit.units.A: 'ampere',
@@ -897,7 +1271,6 @@ class Units(object):
         myokit.units.L: 'liter',
         myokit.units.mol: 'mole',
     }
-    '''
 
     # Recognised unit prefixes, name to multiplier
     _si_prefixes = {
@@ -1157,25 +1530,35 @@ class Variable(AnnotatableElement):
                         'A variable RHS can only reference variables from the'
                         ' same component, found: ' + str(var) + '.')
 
+            # Check all units are known
+            numbers_without_units = {}
+            for x in rhs.walk(myokit.Number):
+                # Replace None with dimensionless
+                if x.unit() is None:
+                    numbers_without_units[x] = myokit.Number(
+                        x.eval(), myokit.units.dimensionless)
+                else:
+                    try:
+                        self._component.find_units_name(x.unit())
+                    except CellMLError:
+                        raise CellMLError(
+                            'All units appearing in a variable\'s RHS must be'
+                            ' known to its component, found: ' + str(x.unit())
+                            + '.')
+            if numbers_without_units:
+                rhs = rhs.clone(subst=numbers_without_units)
+
         # Store
         self._rhs = rhs
 
     def source(self):
         """
-        Returns the :class:`Variable` that this variable derives its value
-        from.
+        If this :class:`Variable` has an "in" interface and is connected to
+        another variable, this method returns that variable.
 
-        If the variable has a defining equation or an initial value, this will
-        return the variable itself. If it is connected to another variable, it
-        will follow the chain of dependencies until a variable with an equation
-        or value is found.
-
+        If not, it returns ``None``.
         """
-        var = self
-        while var._source is not None:
-            var = var._source
-            assert var is not self
-        return var
+        return self._source
 
     def __str__(self):
         return (
@@ -1222,4 +1605,20 @@ class Variable(AnnotatableElement):
             raise CellMLError(
                 'Overdefined: ' + str(self) + ' has both an initial value and'
                 ' a defining equation (which is not an ODE).')
+
+    def value_source(self):
+        """
+        Returns the :class:`Variable` that this variable derives its value
+        from.
+
+        If the variable has a defining equation or an initial value, this will
+        return the variable itself. If it is connected to another variable, it
+        will follow the chain of dependencies until a variable with an equation
+        or value is found.
+        """
+        var = self
+        while var._source is not None:
+            var = var._source
+            assert var is not self
+        return var
 

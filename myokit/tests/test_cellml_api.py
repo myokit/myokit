@@ -123,10 +123,17 @@ class TestCellMLComponent(unittest.TestCase):
 
         # Test iteration
         w = c.add_units('jarvis', myokit.units.meter)
-        us = [x for x in c.units()]
+        us = [unit for unit in c.units()]
         self.assertEqual(len(us), 2)
         self.assertIn(u, us)
         self.assertIn(w, us)
+
+        # Test finding names (finds the last added with that unit)
+        self.assertEqual(c.find_units_name(myokit.units.meter), 'jarvis')
+        self.assertEqual(c.find_units_name(myokit.units.volt), 'volt')
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'No name found for myokit unit',
+            c.find_units_name, 1 / myokit.units.volt)
 
     def test_add_get_variable(self):
         # Tests adding and getting variables
@@ -144,6 +151,13 @@ class TestCellMLComponent(unittest.TestCase):
         # Test adding duplicate
         self.assertRaisesRegex(
             cellml.CellMLError, 'unique', c.add_variable, 'v', 'meter')
+
+        # Test iteration over all
+        w = c.add_variable('w', 'volt')
+        vs = [x for x in c.variables()]
+        self.assertEqual(len(vs), 2)
+        self.assertIn(v, vs)
+        self.assertIn(w, vs)
 
         # Rest of creation is tested in variable test
 
@@ -183,18 +197,49 @@ class TestCellMLComponent(unittest.TestCase):
         m = cellml.Model('m')
         a = m.add_component('Stacey')
         b = m.add_component('Jane')
-        c = m.add_component('Mary_jo_lisa')
+        c = m.add_component('Mary')
+        d = m.add_component('Jo')
+        e = m.add_component('Lisa')
         self.assertIsNone(a.parent())
         self.assertIsNone(b.parent())
         self.assertIsNone(c.parent())
+        self.assertIsNone(d.parent())
+        self.assertIsNone(e.parent())
+        self.assertFalse(a.has_children())
+        self.assertFalse(b.has_children())
+        self.assertFalse(c.has_children())
+        self.assertFalse(d.has_children())
+        self.assertFalse(e.has_children())
+        self.assertEqual(len(list(a.children())), 0)
+        self.assertEqual(len(list(b.children())), 0)
+        self.assertEqual(len(list(c.children())), 0)
+        self.assertEqual(len(list(e.children())), 0)
+        self.assertEqual(len(list(e.children())), 0)
 
         # Test setting
-        a.set_parent(b)
-        b.set_parent(c)
+        b.set_parent(a)
         c.set_parent(b)
-        self.assertIs(a.parent(), b)
-        self.assertIs(b.parent(), c)
+        d.set_parent(c)
+        e.set_parent(c)
+        self.assertIsNone(a.parent())
+        self.assertIs(b.parent(), a)
         self.assertIs(c.parent(), b)
+        self.assertIs(d.parent(), c)
+        self.assertIs(e.parent(), c)
+        self.assertTrue(a.has_children())
+        self.assertTrue(b.has_children())
+        self.assertTrue(c.has_children())
+        self.assertFalse(d.has_children())
+        self.assertFalse(e.has_children())
+        self.assertEqual(len(list(a.children())), 1)
+        self.assertEqual(len(list(b.children())), 1)
+        self.assertEqual(len(list(c.children())), 2)
+        self.assertEqual(len(list(d.children())), 0)
+        self.assertEqual(len(list(e.children())), 0)
+        self.assertIn(b, list(a.children()))
+        self.assertIn(c, list(b.children()))
+        self.assertIn(d, list(c.children()))
+        self.assertIn(e, list(c.children()))
 
         # Test bad parent
         self.assertRaisesRegex(ValueError, 'cellml.Component', b.set_parent, m)
@@ -248,10 +293,17 @@ class TestCellMLModel(unittest.TestCase):
 
         # Test iteration
         w = m.add_units('jarvis', myokit.units.meter)
-        us = [x for x in m.units()]
+        us = [unit for unit in m.units()]
         self.assertEqual(len(us), 2)
         self.assertIn(u, us)
         self.assertIn(w, us)
+
+        # Test finding names (finds the last added with that unit)
+        self.assertEqual(m.find_units_name(myokit.units.meter), 'jarvis')
+        self.assertEqual(m.find_units_name(myokit.units.volt), 'volt')
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'No name found for myokit unit',
+            m.find_units_name, 1 / myokit.units.volt)
 
     def test_add_get_component(self):
         # Tests adding and getting components
@@ -269,12 +321,19 @@ class TestCellMLModel(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'unique', m.add_component, 'c')
 
+        # Test iteration over all
+        d = m.add_component('d')
+        cs = [x for x in m.components()]
+        self.assertEqual(len(cs), 2)
+        self.assertIn(c, cs)
+        self.assertIn(d, cs)
+
         # Rest of creation is tested in component test
 
     def test_add_connection(self):
         # Tests adding connections
 
-        # Test setting connections and using Variable.source()
+        # Test setting connections and using Variable.value_source()
         m = cellml.Model('m')
         a = m.add_component('a')
         b = m.add_component('b')
@@ -287,9 +346,12 @@ class TestCellMLModel(unittest.TestCase):
 
         m.add_connection(x, y)
         m.add_connection(z, y)
-        self.assertIs(x.source(), x)
+        self.assertIsNone(x.source())
         self.assertIs(y.source(), x)
-        self.assertIs(z.source(), x)
+        self.assertIs(z.source(), y)
+        self.assertIs(x.value_source(), x)
+        self.assertIs(y.value_source(), x)
+        self.assertIs(z.value_source(), x)
 
         # Test bad connections
         x2 = x
@@ -516,6 +578,138 @@ class TestCellMLModel(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'from this model', m.set_free_variable, z)
 
+        # Variable with in interface
+        z1 = c.add_variable('z1', 'second', public_interface='in')
+        z2 = c.add_variable('z2', 'second', private_interface='in')
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'free variable cannot have an "in" interface',
+            m.set_free_variable, z1)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'free variable cannot have an "in" interface',
+            m.set_free_variable, z2)
+
+    def test_from_myokit_model(self):
+        # Tests creating a cellml.Model from a myokit.Model
+
+        # Test model name is transferred
+        m = myokit.Model('test')
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(cm.name(), 'test')
+        m = myokit.Model('test model')
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(cm.name(), 'test_model')
+
+        # Test model is renamed if can't clean name
+        m = myokit.Model('123')
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(cm.name(), 'unnamed_myokit_model')
+
+        # Test model is ramed if no name given
+        m = myokit.Model()
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(cm.name(), 'unnamed_myokit_model')
+
+        # Test duplicate names are solved
+        m = myokit.Model()
+        c1 = m.add_component('c1')
+        c2 = m.add_component('c2')
+        x1 = c1.add_variable('x')
+        x2 = c2.add_variable('x')
+        y = c2.add_variable('y')
+        x1.set_rhs(1)
+        x2.set_rhs('3 + c1.x')
+        y.set_rhs('2 * x')
+        cm = cellml.Model.from_myokit_model(m)
+        mm = cm.myokit_model()
+        self.assertEqual(mm.get('c2.y').eval(), 8)
+
+        # Test numbers and variables without units are dimensionless
+        self.assertEqual(cm['c1']['x'].units().name(), 'dimensionless')
+        self.assertEqual(
+            cm['c2']['y'].rhs(),
+            myokit.Multiply(
+                myokit.Number(2, myokit.units.dimensionless),
+                myokit.Name(cm['c2']['x']))
+        )
+
+        # Test nested variables are handled, and name conflicts are handled
+        a1 = c1.add_variable('a1')
+        a2 = a1.add_variable('a2')
+        a3 = a2.add_variable('a3')
+        a4 = a3.add_variable('a4')
+        a3b = c2.add_variable('a3')
+        a3b.set_rhs(10)
+        a4.set_rhs('1 + c2.a3')
+        a3.set_rhs('1 + a4')
+        a2.set_rhs('1 + a3')
+        a1.set_rhs('1 + a2')
+        cm = cellml.Model.from_myokit_model(m)
+        mm = cm.myokit_model()
+        self.assertEqual(mm.get('c1.a1').eval(), 14)
+
+        # If a derivative is used a time variable must be set
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('log10(1000) + x')
+        x.promote(0.1)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'no variable has been bound to `time`',
+            cellml.Model.from_myokit_model, m)
+
+        # Test references to derivatives
+        t = c.add_variable('t')
+        t.set_rhs(0)
+        t.set_binding('time')
+        y = c.add_variable('y')
+        y.set_rhs('2 * dot(x)')
+        cm = cellml.Model.from_myokit_model(m)
+        mm = cm.myokit_model()
+        self.assertEqual(mm.get('c.y').eval(), 6.2)
+
+        # Test meta data is passed on and cmeta ids are set
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        y = x.add_variable('y')
+        y.set_rhs(1)
+        x.set_rhs('1 + y')
+        d = m.add_component('d')
+        x2 = d.add_variable('x')
+        x2.set_rhs(3)
+        x2.meta['bert'] = 'ernie'
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(cm['c']['x'].cmeta_id(), 'c_x')
+        self.assertEqual(cm['c']['y'].cmeta_id(), 'y')
+        self.assertEqual(cm['d']['x'].cmeta_id(), 'd_x')
+        self.assertEqual(len(cm['c']['x'].meta), 0)
+        self.assertEqual(len(cm['c']['y'].meta), 0)
+        self.assertEqual(len(cm['d']['x'].meta), 1)
+        self.assertEqual(cm['d']['x'].meta['bert'], 'ernie')
+
+        # Test evaluating states of model
+        m = myokit.load_model('example')
+        cm = cellml.Model.from_myokit_model(m)
+        warnings = cm.validate()
+        self.assertEqual(len(warnings), 0)
+
+        # Recreate myokit model and test states
+        mm = cm.myokit_model()
+        mm.validate()
+        state_1 = m.state()
+        state_2 = mm.state()
+        states_1 = [x.name() for x in m.states()]
+        states_2 = [x.name() for x in mm.states()]
+        state_2 = [state_2[states_2.index(x)] for x in states_1]
+        self.assertEqual(state_1[0], state_2[0])
+        self.assertEqual(state_1[1], state_2[1])
+        self.assertEqual(state_1[2], state_2[2])
+        self.assertEqual(state_1[3], state_2[3])
+        self.assertEqual(state_1[4], state_2[4])
+        self.assertEqual(state_1[5], state_2[5])
+        self.assertEqual(state_1[6], state_2[6])
+        self.assertEqual(state_1[7], state_2[7])
+
     def test_sequence_interface(self):
         # Tests the sequence interface on a model
 
@@ -568,6 +762,15 @@ class TestCellMLModel(unittest.TestCase):
         m.set_free_variable(None)
         self.assertRaisesRegex(
             cellml.CellMLError, 'a free variable must be set', m.validate)
+
+        # Free variable is set, but not present in component containing state
+        d = m.add_component('d')
+        z = d.add_variable('z', 'second')
+        z.set_initial_value(0)
+        m.set_free_variable(z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'no local variable connected to the free',
+            m.validate)
 
     def test_version(self):
         # TestsModel.version()
@@ -654,19 +857,28 @@ class TestCellMLVariable(unittest.TestCase):
             x.set_initial_value, 1)
 
     def test_is_local_and_source(self):
-        # Tests Variable.is_local() and Variable.source()
+        # Tests Variable.is_local() and Variable.source() and
+        # Variable.value_source()
 
         m = cellml.Model('m')
         a = m.add_component('a')
         b = m.add_component('b')
+        c = m.add_component('c')
+        c.set_parent(b)
         ax = a.add_variable('x', 'volt', 'out')
-        bx = b.add_variable('x', 'volt', 'in')
+        bx = b.add_variable('x', 'volt', 'in', 'out')
+        cx = c.add_variable('x', 'volt', 'in')
         m.add_connection(ax, bx)
+        m.add_connection(bx, cx)
 
         self.assertTrue(ax.is_local())
         self.assertFalse(bx.is_local())
-        self.assertIs(ax.source(), ax)
+        self.assertFalse(cx.is_local())
+        self.assertIs(cx.source(), bx)
         self.assertIs(bx.source(), ax)
+        self.assertIs(ax.value_source(), ax)
+        self.assertIs(bx.value_source(), ax)
+        self.assertIs(cx.value_source(), ax)
 
     def test_name(self):
         # Tests Variable.name()
@@ -741,10 +953,22 @@ class TestCellMLVariable(unittest.TestCase):
             cellml.CellMLError, 'can only reference variables from the same',
             v.set_rhs, myokit.Name(z))
 
+        # Unknown units in RHS
+        rhs = myokit.Plus(
+            myokit.Number(3),
+            myokit.Number(1, myokit.units.volt / myokit.units.mole)
+        )
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'units appearing in a variable\'s RHS',
+            v.set_rhs, rhs)
+
     def test_set_and_is_state(self):
         # Tests Variable.set_is_state() and Variable.is_state()
 
-        v = cellml.Model('m').add_component('a').add_variable('v', 'volt')
+        m = cellml.Model('m')
+        m.add_units('flubber', myokit.units.volt / myokit.units.second)
+        c = m.add_component('a')
+        v = c.add_variable('v', 'volt')
         self.assertFalse(v.is_state())
         v.set_initial_value(4)
         v.set_rhs(myokit.Number(3, myokit.units.volt / myokit.units.second))
@@ -778,11 +1002,14 @@ class TestCellMLVariable(unittest.TestCase):
         m = cellml.Model('m')
         a = m.add_component('a')
         b = m.add_component('b')
-        t = a.add_variable('t', 'dimensionless')
+        t = a.add_variable('t', 'dimensionless', 'out')
         m.set_free_variable(t)
         ax = a.add_variable('x', 'meter', 'in')
         bx = b.add_variable('x', 'meter', 'out')
         bx.set_initial_value(3)
+        bt = b.add_variable('toim', 'dimensionless', 'in')
+        m.add_connection(t, bt)
+
         warn = m.validate()
         self.assertIn('not connected', warn[0])
 
@@ -1075,6 +1302,66 @@ class TestCellMLUnits(unittest.TestCase):
 
 class TestCellMLMethods(unittest.TestCase):
     """ Tests for public CellML API methods. """
+
+    def test_clean_identifier(self):
+        # Tests clean_identifier().
+
+        # Valid identifiers get passed through
+        name = 'hello'
+        self.assertEqual(cellml.clean_identifier(name), name)
+        name = 'h_ello'
+        self.assertEqual(cellml.clean_identifier(name), name)
+        name = 'x123'
+        self.assertEqual(cellml.clean_identifier(name), name)
+        name = 'x_123'
+        self.assertEqual(cellml.clean_identifier(name), name)
+
+        # Some identifiers can be fixed
+        self.assertEqual(
+            cellml.clean_identifier('this is a model'),
+            'this_is_a_model')
+        self.assertEqual(
+            cellml.clean_identifier('This-is-a-model'),
+            'This_is_a_model')
+
+        # Some identifiers can't be fixed
+        self.assertRaises(ValueError, cellml.clean_identifier, '18 + 25')
+
+    def test_create_unit_name(self):
+        # Tests create_unit_name().
+
+        # Easy ones
+        u = myokit.units.kg
+        self.assertEqual(cellml.create_unit_name(u), 'kg')
+        u = myokit.units.mV
+        self.assertEqual(cellml.create_unit_name(u), 'mV')
+
+        # Easy unit with funny multiplier
+        u = myokit.units.m * 1.234
+        self.assertEqual(cellml.create_unit_name(u), 'm_times_1_dot_234')
+
+        # Dimensionless unit with multiplier
+        u = myokit.units.dimensionless * 2
+        self.assertEqual(cellml.create_unit_name(u), 'dimensionless_times_2')
+
+        # Dimensionless unit with multiplier in e-notation
+        u = myokit.units.dimensionless * 1000
+        self.assertEqual(cellml.create_unit_name(u), 'dimensionless_times_1e3')
+        u = myokit.units.dimensionless / 1000
+        self.assertEqual(
+            cellml.create_unit_name(u), 'dimensionless_times_1e_minus_3')
+
+        # Per meter
+        u = 1 / myokit.units.meter
+        self.assertEqual(cellml.create_unit_name(u), 'per_m')
+
+        # Unit known to myokit (per second
+        u = 1 / myokit.units.second
+        self.assertEqual(cellml.create_unit_name(u), 'S_per_F')
+
+        # Square meters
+        u = myokit.units.meter ** 2
+        self.assertEqual(cellml.create_unit_name(u), 'm2')
 
     def test_valid_identifier(self):
         # Tests is_valid_identifier().
