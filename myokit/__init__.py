@@ -86,21 +86,6 @@ from ._myokit_version import (  # noqa
 )
 
 
-# Myokit version
-def version(raw=False):
-    """
-    Returns the current Myokit version.
-    """
-    if raw:
-        return __version__
-    else:
-        t1 = ' Myokit ' + __version__ + ' '
-        t2 = '_' * len(t1)
-        t1 += '|/\\'
-        t2 += '|  |' + '_' * 5
-        return '\n' + t1 + '\n' + t2
-
-
 # Warn about development version
 import logging  # noqa
 log = logging.getLogger(__name__)
@@ -478,9 +463,16 @@ from ._parsing import (  # noqa
 
 # Auxillary functions
 from ._aux import (  # noqa
+    # Version info
+    version,
+
     # Global date and time formats
     date,
     time,
+
+    # Default mmt parts
+    default_protocol,
+    default_script,
 
     # Reading, writing
     load,
@@ -609,45 +601,4 @@ _Simulation_progress = None
 #
 from . import _config   # noqa
 del(_config)
-
-
-#
-# Default mmt file parts
-#
-def default_protocol():
-    """
-    Provides a default protocol to use when no embedded one is available.
-    """
-    p = Protocol()
-    p.schedule(1, 100, 0.5, 1000, 0)
-    return p
-
-
-def default_script():
-    """
-    Provides a default script to use when no embedded script is available.
-    """
-    return '\n'.join((
-        "[[script]]",
-        "import matplotlib.pyplot as plt",
-        "import myokit",
-        "",
-        "# Get model and protocol, create simulation",
-        "m = get_model()",
-        "p = get_protocol()",
-        "s = myokit.Simulation(m, p)",
-        "",
-        "# Run simulation",
-        "d = s.run(1000)",
-        "",
-        "# Get the first state variable's name",
-        "first_state = next(m.states())",
-        "var = first_state.qname()",
-        "",
-        "# Display the results",
-        "plt.figure()",
-        "plt.plot(d.time(), d[var])",
-        "plt.title(var)",
-        "plt.show()",
-    ))
 

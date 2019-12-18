@@ -373,6 +373,44 @@ class SubCapture(PyCapture):
         return self._stdout
 
 
+def default_protocol():
+    """
+    Returns a default protocol to use when no embedded one is available.
+    """
+    p = Protocol()
+    p.schedule(1, 100, 0.5, 1000, 0)
+    return p
+
+
+def default_script():
+    """
+    Returns a default script to use when no embedded script is available.
+    """
+    return '\n'.join((  # pragma: no cover
+        "[[script]]",
+        "import matplotlib.pyplot as plt",
+        "import myokit",
+        "",
+        "# Get model and protocol, create simulation",
+        "m = get_model()",
+        "p = get_protocol()",
+        "s = myokit.Simulation(m, p)",
+        "",
+        "# Run simulation",
+        "d = s.run(1000)",
+        "",
+        "# Get the first state variable's name",
+        "first_state = next(m.states())",
+        "var = first_state.qname()",
+        "",
+        "# Display the results",
+        "plt.figure()",
+        "plt.plot(d.time(), d[var])",
+        "plt.title(var)",
+        "plt.show()",
+    ))
+
+
 def _examplify(filename):
     """
     If ``filename`` is equal to "example" and there isn't a file with that
@@ -1334,6 +1372,20 @@ def strfloat(number, full=False):
     # But if the number is given with lots of decimals, use the highest
     # precision number possible
     return myokit.SFDOUBLE.format(number)
+
+
+def version(raw=False):
+    """
+    Returns the current Myokit version.
+    """
+    if raw:
+        return myokit.__version__
+    else:
+        t1 = ' Myokit ' + myokit.__version__ + ' '
+        t2 = '_' * len(t1)
+        t1 += '|/\\'
+        t2 += '|  |' + '_' * 5
+        return '\n' + t1 + '\n' + t2
 
 
 def _feq(a, b):
