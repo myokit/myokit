@@ -377,7 +377,7 @@ def default_protocol():
     """
     Returns a default protocol to use when no embedded one is available.
     """
-    p = Protocol()
+    p = myokit.Protocol()
     p.schedule(1, 100, 0.5, 1000, 0)
     return p
 
