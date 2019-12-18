@@ -58,8 +58,8 @@ if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
         'Myokit is not tested on Python 2 versions older than 2.7.15')
     log.warning('Detected Python version: ' + sys.version)
     del(logging, log)
-elif (  # pragma: no cover
-        sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000):
+elif (sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000
+        ):  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
@@ -230,7 +230,7 @@ if os.path.exists(DIR_USER):    # pragma: no cover
     if not os.path.isdir(DIR_USER):
         raise Exception(
             'File or link found in place of user directory: ' + str(DIR_USER))
-else:
+else:                           # pragma: no cover
     os.makedirs(DIR_USER)
 
 # Example mmt file
@@ -371,7 +371,7 @@ ex, name, clas = None, None, None
 for ex in inspect.getmembers(_err):
     name, clas = ex
     if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-        if name not in _globals:
+        if name not in _globals:    # pragma: no cover
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 del(_err)
