@@ -357,6 +357,11 @@ class TestCellMLParser(unittest.TestCase):
         var = m['a']['x']
         self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
 
+        # Constants
+        m = self.parse(x + '<apply><eq /><ci>x</ci> <pi /> </apply>' + z)
+        var = m['a']['x']
+        self.assertEqual(var.rhs().unit(), myokit.units.dimensionless)
+
         # Variable doesn't exist
         y = '<apply><eq /><ci>y</ci><cn cellml:units="volt">-80</cn></apply>'
         self.assertBad(x + y + z, 'Variable references in equation must name')

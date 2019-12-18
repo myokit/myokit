@@ -21,8 +21,6 @@ _exp_si = [cellml.Units._si_units_r[x] for x in myokit.Unit.list_exponents()]
 def write_file(path, model):
     """
     Writes a CellML 1.0 or 1.1 model to the given path.
-
-    Raises a :class:`CellMLWritingError` if anything goes wrong.
     """
     return CellMLWriter().write_file(path, model)
 
@@ -30,18 +28,8 @@ def write_file(path, model):
 def write_string(model):
     """
     Writes a CellML 1.0 or 1.1 model to a string and returns it.
-
-    Raises a :class:`CellMLWritingError` if anything goes wrong.
     """
     return CellMLWriter().write_string(model)
-
-
-class CellMLWritingError(myokit.ImportError):
-    """
-    Raised if an error occurs during CellML writing.
-    """
-    def __init__(self, message):
-        super(CellMLWritingError, self).__init__(message)
 
 
 class CellMLWriter(object):
@@ -280,29 +268,6 @@ class CellMLWriter(object):
             else:
                 rows[0].attrib['multiplier'] = myokit.strfloat(multiplier)
 
-    def write(self, model):
-        """
-        Takes a :meth:`myokit.formats.cellml.cellml_1.Model` as input, and
-        creates an ElementTree that represents it.
-        """
-        # Validate model
-        model.validate()
-
-        try:
-            # Temporarily store free variable (in valid models, this is always
-            # set if states are used).
-            self._time = model.free_variable()
-
-            # Create model element (with children)
-            element = self._model(model)
-
-            # Wrap in ElementTree and return
-            return etree.ElementTree(element)
-
-        finally:
-            # Delete any temporary properties
-            del(self._time)
-
     def _variable(self, parent, variable):
         """
         Adds a ``variable`` element to ``parent`` for the variable represented
@@ -326,6 +291,29 @@ class CellMLWriter(object):
         if variable.initial_value() is not None:
             element.attrib['initial_value'] = myokit.strfloat(
                 variable.initial_value())
+
+    def write(self, model):
+        """
+        Takes a :meth:`myokit.formats.cellml.cellml_1.Model` as input, and
+        creates an ElementTree that represents it.
+        """
+        # Validate model
+        model.validate()
+
+        try:
+            # Temporarily store free variable (in valid models, this is always
+            # set if states are used).
+            self._time = model.free_variable()
+
+            # Create model element (with children)
+            element = self._model(model)
+
+            # Wrap in ElementTree and return
+            return etree.ElementTree(element)
+
+        finally:
+            # Delete any temporary properties
+            del(self._time)
 
     def write_file(self, path, model):
         """
