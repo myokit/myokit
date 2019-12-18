@@ -259,6 +259,21 @@ class TestCellMLWriter(unittest.TestCase):
         self.assertEqual(q.initial_value(), None)
         self.assertEqual(r.initial_value(), None)
 
+    def test_version(self):
+        # Tests if both versions can be written
+
+        # Version 1.0
+        m1 = cellml.Model('m', version='1.0')
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
+        self.assertEqual(m2.version(), '1.0')
+
+        # Version 1.1
+        m1 = cellml.Model('m', version='1.1')
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
+        self.assertEqual(m2.version(), '1.1')
+
     def test_write_file(self):
         # Tests write_file
 

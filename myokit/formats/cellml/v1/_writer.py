@@ -262,12 +262,22 @@ class CellMLWriter(object):
         """
         Returns an etree ``Element`` representing the given ``model``.
         """
+
+        # Load correct namespaces
+        version = model.version()
+        assert version in ('1.0', '1.1')    # Model ensures this
+        if version == '1.0':
+            namespaces = {
+                None: cellml.NS_CELLML_1_0,
+                'cellml': cellml.NS_CELLML_1_0,
+            }
+        else:
+            namespaces = {
+                None: cellml.NS_CELLML_1_1,
+                'cellml': cellml.NS_CELLML_1_1,
+            }
+
         # Create model element
-        #TODO: Be flexible about namespace
-        namespaces = {
-            None: cellml.NS_CELLML_1_0,
-            'cellml': cellml.NS_CELLML_1_0,
-        }
         element = etree.Element('model', nsmap=namespaces)
 
         # Set model name
@@ -356,10 +366,13 @@ class CellMLWriter(object):
             element.attrib['initial_value'] = myokit.strfloat(
                 variable.initial_value())
 
-    def write(self, model):
+    def write(self, model, version='1.0'):
         """
         Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
         creates an ElementTree that represents it.
+
+        The CellML version can be specified with ``version``, which must be
+        either "1.0" or "1.1".
         """
         # Validate model
         model.validate()

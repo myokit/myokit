@@ -13,6 +13,12 @@ import myokit
 import myokit.lib.guess
 
 
+# class CellMLExporterError(myokit.ImportError):
+#    """
+#    Raised if an error occurs when exporting CellML.
+#    """
+
+
 class CellMLExporter(myokit.formats.Exporter):
     """
     This:class:`Exporter <myokit.formats.Exporter>` creates a CellML model.
@@ -48,8 +54,11 @@ class CellMLExporter(myokit.formats.Exporter):
         log.log('Exporting model to CellML...')
 
         # Load API and writer
-        # TODO Use version
-        import myokit.formats.cellml.v1 as v1
+        if version in ('1.0', '1.1'):
+            import myokit.formats.cellml.v1 as cellml
+
+        else:   # pragma: no cover
+            raise ValueError('Only versions 1.0 and 1.1 are supported.')
 
         # Embed protocol
         if protocol is not None:
@@ -60,8 +69,8 @@ class CellMLExporter(myokit.formats.Exporter):
                 log.warn('Unable to embed stimulus protocol.')
 
         # Export
-        cellml_model = v1.Model.from_myokit_model(model)
-        v1.write_file(path, cellml_model)
+        cellml_model = cellml.Model.from_myokit_model(model, version)
+        cellml.write_file(path, cellml_model)
         log.log('Model written to ' + str(path))
 
     def supports_model(self):
