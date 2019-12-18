@@ -58,8 +58,8 @@ if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
         'Myokit is not tested on Python 2 versions older than 2.7.15')
     log.warning('Detected Python version: ' + sys.version)
     del(logging, log)
-elif (sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000
-        ):  # pragma: no cover
+elif (sys.hexversion >= 0x03000000 and
+      sys.hexversion < 0x03050000):  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
