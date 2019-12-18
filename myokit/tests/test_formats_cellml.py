@@ -38,9 +38,21 @@ except NameError:   # pragma: no python 2 cover
 
 class CellMLExporterTest(unittest.TestCase):
     """
-    Provides further tests of :class:`myokit.formats.cellml.CellMLExporter`.
+    Tests for :class:`myokit.formats.cellml.CellMLExporter`.
     """
 
+    def test_capability_reporting(self):
+        # Test if the right capabilities are reported.
+        e = formats.exporter('cellml')
+        self.assertTrue(e.supports_model())
+        self.assertFalse(e.supports_runnable())
+
+    def test_info(self):
+        # Test if the exporter implements info()
+        e = formats.exporter('cellml')
+        self.assertIsInstance(e.info(), basestring)
+
+    '''
     def test_stimulus_generation(self):
         # Test generation of a default stimulus current.
 
@@ -136,163 +148,6 @@ class CellMLExporterTest(unittest.TestCase):
             self.assertIn('stimulus_3', m2)
             self.assertEqual(m2.get('stimulus_3.ctime').eval(), 0)
 
-    def test_unit_export(self):
-        # Test exporting units.
-
-        # Start creating model
-        model = myokit.Model()
-        engine = model.add_component('engine')
-        time = engine.add_variable('time')
-        time.set_rhs(0)
-        time.set_binding('time')
-        three = engine.add_variable('three')
-        three.set_rhs(3)
-
-        mad_unit = myokit.Unit()
-        mad_unit *= 1.234
-        mad_unit *= myokit.units.m
-        mad_unit/= myokit.units.s
-        mad_unit *= myokit.units.A
-        time.set_unit(mad_unit)
-
-        pure_multiplier = myokit.Unit()
-        pure_multiplier *= 1000
-        three.set_unit(pure_multiplier)
-
-        # Create exporter and importer
-        e = myokit.formats.cellml.CellMLExporter()
-        i = myokit.formats.cellml.CellMLImporter()
-
-        # Export
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, model)
-
-            # Import model and check units
-            m2 = i.model(path)
-            self.assertEqual(m2.get('engine.three').eval(), 3)
-            self.assertEqual(m2.get('engine.three').unit(), pure_multiplier)
-            self.assertEqual(m2.get('engine.time').unit(), mad_unit)
-
-    def test_component_name_clashes(self):
-        # Test if name clashes in components (due to nested variables parents
-        # becoming components) are resolved.
-
-        # Start creating model
-        model = myokit.Model()
-        engine = model.add_component('x')
-        time = engine.add_variable('time')
-        time.set_rhs(0)
-        time.set_binding('time')
-        y = engine.add_variable('y')
-        y.set_rhs(1)
-        yc = y.add_variable('yc')
-        yc.set_rhs(2)
-
-        comp = model.add_component('x_y')
-        z = comp.add_variable('z')
-        z.set_rhs(2)
-
-        # The model now has a component `x_y` and a variable `x.y` that will be
-        # converted to a component `x_y`
-
-        # Create exporter and importer
-        e = myokit.formats.cellml.CellMLExporter()
-        i = myokit.formats.cellml.CellMLImporter()
-
-        # Export
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, model)
-
-            # Import model and check presence of renamed component
-            m2 = i.model(path)
-            self.assertIn('x_y', m2)
-            self.assertIn('x_y_2', m2)
-
-    def test_nested_variables(self):
-        # Test export of deep nesting structures.
-
-        # Start creating model
-        model = myokit.Model()
-        engine = model.add_component('x')
-        time = engine.add_variable('time')
-        time.set_rhs(0)
-        time.set_binding('time')
-
-        def add(parent, name, rhs=0):
-            var = parent.add_variable(name)
-            var.set_rhs(rhs)
-            return var
-
-        p1 = add(engine, 'p1', 1)
-        p2 = add(p1, 'p2', 2)
-        p3 = add(p2, 'p3', 3)
-        p4 = add(p3, 'p4', 4)
-        p5 = add(p4, 'p5', 5)
-        add(p5, 'p6', 6)
-
-        # Create exporter and importer
-        e = myokit.formats.cellml.CellMLExporter()
-        i = myokit.formats.cellml.CellMLImporter()
-
-        # Export
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, model)
-
-            # Import model and check presence of renamed component
-            m2 = i.model(path)
-            self.assertIn('x', m2)
-            self.assertIn('x_p1', m2)
-            self.assertIn('x_p1_p2', m2)
-            self.assertIn('x_p1_p2_p3', m2)
-            self.assertIn('x_p1_p2_p3_p4', m2)
-            self.assertIn('x_p1_p2_p3_p4_p5', m2)
-            self.assertNotIn('x_p1_p2_p3_p4_p5_p6', m2)
-
-    def test_component_ordering(self):
-
-        # Create quick model without any nested variables
-        m = myokit.Model()
-        m.meta['name'] = 'Hello'
-
-        c = m.add_component('C')
-        x = c.add_variable('x')
-        x.set_rhs('5 [ms]')
-        x.set_unit('ms')
-        x.set_binding('time')
-
-        a = m.add_component('A')
-        x = a.add_variable('x')
-        x.set_rhs('2 [ms]')
-        x.set_unit('ms')
-
-        d = m.add_component('D')
-        x = d.add_variable('x')
-        x.set_rhs('1 [ms]')
-        x.set_unit('ms')
-
-        b = m.add_component('B')
-        x = b.add_variable('x')
-        x.set_rhs('3 [ms]')
-        x.set_unit('ms')
-
-        e = myokit.formats.cellml.CellMLExporter()
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, m)
-
-            comps = []
-            with open(path, 'r') as f:
-                for line in f.readlines():
-                    line = line.strip()
-                    if line.startswith('<component name="'):
-                        comps.append(line[17:-2])
-            sorted_comps = list(comps)
-            sorted_comps.sort()
-            self.assertTrue(comps == sorted_comps)
-
     def test_oxmeta_annotation_export(self):
         # Text export of weblab oxmeta annotation
 
@@ -358,44 +213,7 @@ class CellMLExporterTest(unittest.TestCase):
 
             # Re-import, check if model can still be read
             m2 = importer.model(path)
-
-    def test_weird_custom_units(self):
-        # Test export of units with large/small multipliers
-
-        # Create a test model
-        m = myokit.Model()
-        m.meta['name'] = 'Hello'
-
-        cc = m.add_component('C')
-        t = cc.add_variable('time')
-        t.set_rhs('0 [ms]')
-        t.set_unit('ms')
-        t.set_binding('time')
-
-        ca = m.add_component('A')
-        x = ca.add_variable('INa')
-        x.set_rhs('2 [N (1e+12)]')
-        x.set_unit('N (1e+12)')
-
-        cd = m.add_component('D')
-        y = cd.add_variable('y')
-        y.set_rhs('1 [s (1e-13)]')
-        y.set_unit('s (1e-13)')
-
-        cb = m.add_component('B')
-        z = cb.add_variable('z')
-        z.set_rhs('3 [1 (1e+06)]')
-        z.set_unit('1 (1e+06)')
-
-        # Export and read back in again
-        exporter = myokit.formats.cellml.CellMLExporter()
-        importer = myokit.formats.cellml.CellMLImporter()
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            exporter.model(path, m)
-            with open(path, 'r') as f:
-                xml = f.read()
-            m2 = importer.model(path)
+    '''
 
 
 class CellMLExpressionWriterTest(unittest.TestCase):
@@ -685,7 +503,7 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertFalse(i.supports_protocol())
 
     def test_info(self):
-        # Test if the reporter implements info()
+        # Test if the importer implements info()
         i = formats.importer('cellml')
         self.assertIsInstance(i.info(), basestring)
 

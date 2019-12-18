@@ -8,6 +8,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import re
 import unittest
 
 import myokit
@@ -76,8 +77,8 @@ class TestCellMLWriter(unittest.TestCase):
 
         m1 = myokit.load_model('example')
         c1 = cellml.Model.from_myokit_model(m1)
-        writer.write_file('test.cellml', c1)
-        c2 = parser.parse_file('test.cellml')
+        xml = writer.write_string(c1)
+        c2 = parser.parse_string(xml)
         m2 = c2.myokit_model()
 
         self.assertEqual(
@@ -179,6 +180,36 @@ class TestCellMLWriter(unittest.TestCase):
 
         self.assertEqual(m2.name(), 'model_name')
         self.assertEqual(len(m2), 0)
+
+    def test_ordering(self):
+        # Tests ordering of components and variables
+
+        # Check component ordering
+        m = cellml.Model('m')
+        c = m.add_component('C')
+        a = m.add_component('A')
+        d = m.add_component('D')
+        b = m.add_component('B')
+
+        xml = writer.write_string(m)
+        reg = re.compile(b'<component [^>]*name="[\w]+"')
+        items = reg.findall(xml)
+        items_sorted = list(sorted(items))
+        self.assertEqual(items, items_sorted)
+
+        # Check variable ordering
+        m = cellml.Model('m')
+        c = m.add_component('C')
+        r = c.add_variable('r', 'volt')
+        p = c.add_variable('p', 'ampere')
+        s = c.add_variable('s', 'kilogram')
+        q = c.add_variable('q', 'mole')
+
+        xml = writer.write_string(m)
+        reg = re.compile(b'<variable [^>]*name="[\w]+"')
+        items = reg.findall(xml)
+        items_sorted = list(sorted(items))
+        self.assertEqual(items, items_sorted)
 
     def test_units(self):
         # Test writing of units

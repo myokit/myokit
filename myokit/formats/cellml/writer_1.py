@@ -14,8 +14,6 @@ import myokit
 from myokit.formats.cellml import cellml_1 as cellml
 
 
-
-
 '''
         # Add name in 'tmp-documentation' format
         emodel.attrib['name'] = 'generated_model'
@@ -166,9 +164,6 @@ from myokit.formats.cellml import cellml_1 as cellml
 
 '''
 
-
-
-
 # List of si unit names corresponding to myokit.Unit exponents
 _exp_si = [cellml.Units._si_units_r[x] for x in myokit.Unit.list_exponents()]
 
@@ -191,6 +186,10 @@ class CellMLWriter(object):
     """
     Writes CellML 1.0 documents.
     """
+
+    # Note: Most items are sorted, to get closer to a 'canonical form' CellML
+    # document: https://github.com/cellml/libcellml/issues/289
+
     def _component(self, parent, component):
         """
         Adds an etree ``Element`` to a ``parent`` element, representing the
@@ -202,11 +201,11 @@ class CellMLWriter(object):
         element.attrib['name'] = component.name()
 
         # Add units
-        for units in component.units():
+        for units in sorted(component.units(), key=_name):
             self._units(element, units)
 
         # Add variables
-        for variable in component.variables():
+        for variable in sorted(component.variables(), key=_name):
             self._variable(element, variable)
 
         # Add maths
@@ -248,7 +247,7 @@ class CellMLWriter(object):
                 vrs.append((v1, v2))
 
         # Add elements
-        for cs, vs in connections.items():
+        for cs, vs in sorted(connections.items(), key=lambda x: _names(x[0])):
 
             # Add connection
             connection = etree.SubElement(parent, 'connection')
@@ -257,7 +256,7 @@ class CellMLWriter(object):
             map_components.attrib['component_2'] = cs[1].name()
 
             # Add variables
-            for v1, v2 in vs:
+            for v1, v2 in sorted(vs, key=_names):
                 map_variables = etree.SubElement(connection, 'map_variables')
                 map_variables.attrib['variable_1'] = v1.name()
                 map_variables.attrib['variable_2'] = v2.name()
@@ -283,7 +282,7 @@ class CellMLWriter(object):
         relationship_ref.attrib['relationship'] = 'encapsulation'
 
         # Add all unencapsulated components that have children
-        for component in model:
+        for component in sorted(model, key=_name):
             if component.parent() is None and component.has_children():
                 self._group_component_ref(element, component)
 
@@ -298,7 +297,7 @@ class CellMLWriter(object):
         element.attrib['component'] = component.name()
 
         # Add children
-        for child in component.children():
+        for child in sorted(component.children(), key=_name):
             self._group_component_ref(element, child)
 
     def _maths(self, parent, component):
@@ -341,7 +340,7 @@ class CellMLWriter(object):
         math = etree.SubElement(parent, 'math', nsmap=nsmap)
 
         # Add maths for variables
-        for variable in component:
+        for variable in sorted(component, key=_name):
             # Check RHS
             rhs = variable.rhs()
             if rhs is None:
@@ -370,11 +369,11 @@ class CellMLWriter(object):
         element.attrib['name'] = model.name()
 
         # Add units
-        for units in model.units():
+        for units in sorted(model.units(), key=_name):
             self._units(element, units)
 
         # Add components
-        for component in model:
+        for component in sorted(model, key=_name):
             self._component(element, component)
 
         # Add connections
@@ -488,6 +487,8 @@ class CellMLWriter(object):
             xml_declaration=True,
             pretty_print=True,
         )
+        # Note: Can use method='c14n' to get canonical output, but that also
+        # removes the xml declaration, which I quite like having!
 
     def write_string(self, model):
         """
@@ -505,4 +506,14 @@ class CellMLWriter(object):
             method='xml',
             pretty_print=True,
         )
+
+
+def _name(x):
+    """ Sort by name. """
+    return x.name()
+
+
+def _names(x):
+    """ Sort by names. """
+    return x[0].name(), x[1].name()
 
