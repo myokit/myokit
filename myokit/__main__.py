@@ -293,7 +293,8 @@ def mmt_export(exporter, source, target):
     import myokit.formats
 
     # Get exporter
-    exporter = myokit.formats.exporter(exporter)
+    name = exporter
+    exporter = myokit.formats.exporter(name)
 
     # Set to auto-print
     logger = exporter.logger()
@@ -319,7 +320,10 @@ def mmt_export(exporter, source, target):
     if exporter.supports_model():
         # Export model
         logger.log('Exporting model')
-        exporter.model(target, model)
+        if name == 'cellml':
+            exporter.model(target, model, protocol)
+        else:
+            exporter.model(target, model)
     else:
         # Export runnable
         logger.log('Exporting runnable')

@@ -10,6 +10,7 @@ from __future__ import print_function, unicode_literals
 import inspect
 
 import myokit
+import myokit.lib.guess
 
 
 class CellMLExporter(myokit.formats.Exporter):
@@ -22,8 +23,7 @@ class CellMLExporter(myokit.formats.Exporter):
     def info(self):
         return inspect.getdoc(self)
 
-    def model(self, path, model, protocol=None, add_hardcoded_pacing=True,
-              version='1.0'):
+    def model(self, path, model, protocol=None, version='1.0'):
         """
         Writes a CellML model to the given filename.
 
@@ -34,37 +34,36 @@ class CellMLExporter(myokit.formats.Exporter):
         ``model``
             The model to export
         ``protocol``
-            This argument will be ignored: protocols are not supported by
-            CellML.
-        ``add_hardcoded_pacing``
-            Set this to ``True`` to add a hardcoded pacing signal to the model
-            file. This requires the model to have a variable bound to `pace`.
+            If given, an attempt will be made to convert the protocol to an
+            expression and insert it into the model before exporting. See
+            :meth:`myokit.lib.guess.add_embedded_protocol()` for details.
         ``version``
             The CellML version to write
 
-        Notes about CellML export:
-
-        * CellML expects a unit for every number present in the model. Since
-          Myokit allows but does not enforce this, the resulting CellML file
-          may only validate with unit checking disabled.
-        * Files downloaded from the CellML repository typically have a pacing
-          stimulus embedded in them, while Myokit views models and pacing
-          protocols as separate things. To generate a model file with a simple
-          embbeded protocol, add the optional argument
-          ``add_hardcoded_pacing=True``.
-        * Variables annotated with an ``oxmeta`` property will be annotated
-          using the oxmeta namespace in the created CellML. For example, a
-          variable with the meta-data ``oxmeta: time`` will be annotated as
-          ``https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#time`` in
-          the CellML file.
-
         """
+        # Clear log
+        log = self.logger()
+        log.clear()
+        log.clear_warnings()
+        log.log('Exporting model to CellML...')
+
+        # Load API and writer
         # TODO Use version
         import myokit.formats.cellml.cellml_1 as api
         import myokit.formats.cellml.writer_1 as writer
 
-        m = api.Model.from_myokit_model(model)
-        writer.write_file(path, m)
+        # Embed protocol
+        if protocol is not None:
+            model = model.clone()
+            if myokit.lib.guess.add_embedded_protocol(model, protocol):
+                log.log('Added embedded stimulus protocol.')
+            else:
+                log.warn('Unable to embed stimulus protocol.')
+
+        # Export
+        cellml_model = api.Model.from_myokit_model(model)
+        writer.write_file(path, cellml_model)
+        log.log('Model written to ' + str(path))
 
     def supports_model(self):
         """

@@ -94,6 +94,84 @@ def _distance_to_bound(variable):
     return distances
 
 
+def add_embedded_protocol(model, protocol):
+    """
+    Attempts to convert a :class:`myokit.Protocol` to a (discontinuous)
+    expression and embed it in the given :class`myokit.Model`.
+
+    Returns ``True`` if the model was succesfully updated.
+
+    This method is designed for protocols that contain a single, indefinitely
+    recurring event (e.g. cell pacing protocols), and doesn't handle other
+    forms of protocol.
+    """
+
+    # Get time variable
+    time = model.time()
+    if time is None:
+        return False
+
+    # Get pacing variable
+    pace = model.binding('pace')
+    if pace is None:
+        return False
+
+    # Check protocol is suitable
+    if len(protocol) != 1:
+        return False
+
+    # Get protocol properties
+    event = protocol.head()
+
+    # Check it's an indefinitely recurring periodic event
+    if event.period() == 0 or event.multiplier() != 0:
+        return False
+
+    # Remove any kids (pace is already guaranteed not to be a state)
+    pace.set_binding(None)
+    pace.set_rhs(0)
+    kids = list(pace.variables())
+    for kid in kids:
+        kid.set_rhs(0)
+    for kid in kids:
+        pace.remove_variable(kid, recursive=True)
+
+    # Add new child variables with stimulus properties
+    level = pace.add_variable('level')
+    level.set_unit(pace.unit())
+    level.set_rhs(myokit.Number(event.level(), pace.unit()))
+
+    offset = pace.add_variable('offset')
+    offset.set_unit(time.unit())
+    offset.set_rhs(myokit.Number(event.start(), time.unit()))
+
+    period = pace.add_variable('period')
+    period.set_rhs(event.period())
+    period.set_unit(myokit.units.dimensionless)
+
+    duration = pace.add_variable('duration')
+    duration.set_unit(time.unit())
+    duration.set_rhs(myokit.Number(event.duration(), time.unit()))
+
+    # Set new right-hand side
+    pace.set_rhs(
+        myokit.If(
+            myokit.Less(
+                myokit.Remainder(
+                    myokit.Minus(myokit.Name(time), myokit.Name(offset)),
+                    myokit.Name(period)
+                ),
+                myokit.Name(duration)
+            ),
+            myokit.Name(level),
+            myokit.Number(0, pace.unit())
+        )
+    )
+
+    # It worked!
+    return True
+
+
 def membrane_potential(model):
     """
     Gueses which model variable (if any) represents the membrane potential and

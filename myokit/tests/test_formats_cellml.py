@@ -53,101 +53,49 @@ class CellMLExporterTest(unittest.TestCase):
         e = formats.exporter('cellml')
         self.assertIsInstance(e.info(), basestring)
 
-    '''
     def test_stimulus_generation(self):
-        # Test generation of a default stimulus current.
+        # Tests if protocols allow a stimulus current to be added
 
-        # Start creating model
-        model = myokit.Model()
-        engine = model.add_component('engine')
-        time = engine.add_variable('time')
-        time.set_rhs(0)
-        time.set_binding('time')
+        e = formats.exporter('cellml')
+        i = formats.importer('cellml')
 
-        # Create exporter and importer
-        e = myokit.formats.cellml.CellMLExporter()
-        i = myokit.formats.cellml.CellMLImporter()
+        # Load input model
+        m1, p1, _ = myokit.load('example')
+        org_code = m1.code()
 
-        # Export --> Should generate warning, missing pace variable
+        # 1. Export without a protocol
         with TemporaryDirectory() as d:
             path = d.path('model.cellml')
-            e.model(path, model)
-        self.assertIn('No variable bound to "pace"', e.logger().text())
-
-        # Add pace variable, start testing generation
-        pace = engine.add_variable('pace')
-        pace.set_rhs(0)
-        pace.set_binding('pace')
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, model)
-            self.assertNotIn('No variable bound to "pace"', e.logger().text())
-
-            # Import model and check added stimulus works
+            e.model(path, m1)
             m2 = i.model(path)
-            self.assertIn('stimulus', m2)
-            self.assertEqual(m2.get('stimulus.ctime').eval(), 0)
-            self.assertEqual(m2.get('stimulus.duration').eval(), 2)
-            self.assertEqual(m2.get('stimulus.offset').eval(), 100)
-            self.assertEqual(m2.get('stimulus.period').eval(), 1000)
-            self.assertEqual(m2.get('stimulus.pace').eval(), 0)
-            m2.get('engine.time').set_rhs(101)
-            self.assertEqual(m2.get('stimulus.pace').eval(), 1)
-            m2.validate()
+        self.assertFalse(e.logger().has_warnings())
+        self.assertFalse(
+            isinstance(m2.get('engine.pace').rhs(), myokit.Piecewise))
 
-        # Test with pace variable in seconds
-        time.set_unit('s')
+        # 2. Export with protocol, but without variable bound to pacing
+        m1.get('engine.pace').set_binding(None)
         with TemporaryDirectory() as d:
             path = d.path('model.cellml')
-            e.model(path, model)
-            self.assertNotIn('No variable bound to "pace"', e.logger().text())
-
-            # Import model and check added stimulus works
+            e.model(path, m1, p1)
             m2 = i.model(path)
-            self.assertIn('stimulus', m2)
-            self.assertEqual(m2.get('stimulus.ctime').eval(), 0)
-            self.assertEqual(m2.get('stimulus.duration').eval(), 0.002)
-            self.assertEqual(m2.get('stimulus.offset').eval(), 0.1)
-            self.assertEqual(m2.get('stimulus.period').eval(), 1)
-            self.assertEqual(m2.get('stimulus.pace').eval(), 0)
-            m2.get('engine.time').set_rhs(0.101)
-            self.assertEqual(m2.get('stimulus.pace').eval(), 1)
-            m2.validate()
+        self.assertTrue(e.logger().has_warnings())
+        self.assertFalse(
+            isinstance(m2.get('engine.pace').rhs(), myokit.Piecewise))
 
-        # Test pace variable's children are removed
-        pace.add_variable('hello')
-        self.assertEqual(len(pace), 1)
+        # 3. Export with protocol and variable bound to pacing
+        m1.get('engine.pace').set_binding('pace')
         with TemporaryDirectory() as d:
             path = d.path('model.cellml')
-            e.model(path, model)
-            self.assertNotIn('No variable bound to "pace"', e.logger().text())
-
-            # Import model and check added stimulus works
+            e.model(path, m1, p1)
             m2 = i.model(path)
-            self.assertIn('stimulus', m2)
-            self.assertEqual(m2.get('stimulus.ctime').eval(), 0)
-            self.assertEqual(m2.get('stimulus.duration').eval(), 0.002)
-            self.assertEqual(m2.get('stimulus.offset').eval(), 0.1)
-            self.assertEqual(m2.get('stimulus.period').eval(), 1)
-            self.assertEqual(m2.get('stimulus.pace').eval(), 0)
-            m2.get('engine.time').set_rhs(0.101)
-            self.assertEqual(m2.get('stimulus.pace').eval(), 1)
-            m2.validate()
+        self.assertFalse(e.logger().has_warnings())
+        self.assertTrue(
+            isinstance(m2.get('engine.pace').rhs(), myokit.Piecewise))
 
-            # Check child variables are gone (and pace lives in stimulus now)
-            self.assertEqual(len(m2.get('stimulus.pace')), 0)
+        # Check original model is unchanged
+        self.assertEqual(org_code, m1.code())
 
-        # Test name is adapted if stimulus is already a component
-        model.add_component('stimulus')
-        model.add_component('stimulus_2')
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            e.model(path, model)
-
-            # Import model and check added stimulus works
-            m2 = i.model(path)
-            self.assertIn('stimulus_3', m2)
-            self.assertEqual(m2.get('stimulus_3.ctime').eval(), 0)
+    '''
 
     def test_oxmeta_annotation_export(self):
         # Text export of weblab oxmeta annotation
