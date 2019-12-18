@@ -622,6 +622,10 @@ class CellMLParser(object):
         attr = self._join('units')
 
         def number_factory(value, element):
+            # Numbers not connected to a cn
+            if element is None:
+                return myokit.Number(value, myokit.units.dimensionless)
+
             # Get units attribute
             try:
                 units = element.attrib[attr]

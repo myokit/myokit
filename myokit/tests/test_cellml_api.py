@@ -623,6 +623,15 @@ class TestCellMLModel(unittest.TestCase):
         mm = cm.myokit_model()
         self.assertEqual(mm.get('c2.y').eval(), 8)
 
+        # Test numbers and variables without units are dimensionless
+        self.assertEqual(cm['c1']['x'].units().name(), 'dimensionless')
+        self.assertEqual(
+            cm['c2']['y'].rhs(),
+            myokit.Multiply(
+                myokit.Number(2, myokit.units.dimensionless),
+                myokit.Name(cm['c2']['x']))
+        )
+
         # Test nested variables are handled, and name conflicts are handled
         a1 = c1.add_variable('a1')
         a2 = a1.add_variable('a2')
@@ -944,10 +953,22 @@ class TestCellMLVariable(unittest.TestCase):
             cellml.CellMLError, 'can only reference variables from the same',
             v.set_rhs, myokit.Name(z))
 
+        # Unknown units in RHS
+        rhs = myokit.Plus(
+            myokit.Number(3),
+            myokit.Number(1, myokit.units.volt / myokit.units.mole)
+        )
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'units appearing in a variable\'s RHS',
+            v.set_rhs, rhs)
+
     def test_set_and_is_state(self):
         # Tests Variable.set_is_state() and Variable.is_state()
 
-        v = cellml.Model('m').add_component('a').add_variable('v', 'volt')
+        m = cellml.Model('m')
+        m.add_units('flubber', myokit.units.volt / myokit.units.second)
+        c = m.add_component('a')
+        v = c.add_variable('v', 'volt')
         self.assertFalse(v.is_state())
         v.set_initial_value(4)
         v.set_rhs(myokit.Number(3, myokit.units.volt / myokit.units.second))

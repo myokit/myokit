@@ -226,6 +226,15 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = self.p('<false/>')
         self.assertEqual(float(x), 0)
 
+        # Test constants are handled via the number factory
+        xml = '<pi/>'
+        x = mathml.parse_mathml_etree(
+            etree.fromstring(xml),
+            lambda x, y: myokit.Name(x),
+            lambda x, y: myokit.Number(x, myokit.units.volt),
+        )
+        self.assertEqual(x.unit(), myokit.units.volt)
+
     def test_derivatives(self):
         # Test parsing of derivatives
 

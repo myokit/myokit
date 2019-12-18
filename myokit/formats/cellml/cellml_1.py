@@ -657,12 +657,18 @@ class Model(AnnotatableElement):
         # Create CellML model
         m = Model(name)
 
-        # Gather unit objects used in Myokit model
+        # Gather unit objects used in Myokit model, and replace units None with
+        # dimensionless.
         used = set()
+        numbers_without_units = {}
         for variable in model.variables(deep=True):
             used.add(variable.unit())
             for e in variable.rhs().walk(myokit.Number):
-                used.add(e.unit())
+                u = e.unit()
+                if u is None:
+                    numbers_without_units[e] = myokit.Number(
+                        e.eval(), myokit.units.dimensionless)
+                used.add(u)
         if None in used:
             used.remove(None)
 
@@ -782,14 +788,18 @@ class Model(AnnotatableElement):
 
             # Create dict of Name substitutions
             local_var_map = var_map[component]
-            names = {
+            subst = {
                 myokit.Name(x): myokit.Name(y)
                 for x, y in local_var_map.items()}
+
+            # Add number substitutions
+            for x, y in numbers_without_units.items():
+                subst[x] = y
 
             # Set RHS equations
             for variable in component.variables(deep=True):
                 v = local_var_map[variable]
-                rhs = variable.rhs().clone(subst=names)
+                rhs = variable.rhs().clone(subst=subst)
 
                 # Promote states and set rhs and initial value
                 if variable.is_state():
@@ -1519,6 +1529,24 @@ class Variable(AnnotatableElement):
                     raise CellMLError(
                         'A variable RHS can only reference variables from the'
                         ' same component, found: ' + str(var) + '.')
+
+            # Check all units are known
+            numbers_without_units = {}
+            for x in rhs.walk(myokit.Number):
+                # Replace None with dimensionless
+                if x.unit() is None:
+                    numbers_without_units[x] = myokit.Number(
+                        x.eval(), myokit.units.dimensionless)
+                else:
+                    try:
+                        self._component.find_units_name(x.unit())
+                    except CellMLError:
+                        raise CellMLError(
+                            'All units appearing in a variable\'s RHS must be'
+                            ' known to its component, found: ' + str(x.unit())
+                            + '.')
+            if numbers_without_units:
+                rhs = rhs.clone(subst=numbers_without_units)
 
         # Store
         self._rhs = rhs
