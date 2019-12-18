@@ -26,105 +26,11 @@ from myokit.formats.cellml import cellml_1 as cellml
 
 
 
-
-
         * Variables annotated with an ``oxmeta`` property will be annotated
           using the oxmeta namespace in the created CellML. For example, a
           variable with the meta-data ``oxmeta: time`` will be annotated as
           ``https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#time`` in
           the CellML file.
-
-
-
-
-
-
-        # Replace the pacing variable with a hardcoded stimulus protocol
-        if add_hardcoded_pacing:
-
-            # Check for pacing variable
-            if model.binding('pace') is None:
-                self.logger().warn(
-                    'No variable bound to "pace", unable to add hardcoded'
-                    ' stimulus protocol.')
-            else:
-                # Clone model before making changes
-                model = model.clone()
-
-                # Get pacing variable
-                pace = model.binding('pace')
-
-                # Set basic properties for pace
-                pace.set_unit(myokit.units.dimensionless)
-                pace.set_rhs(0)
-                pace.set_binding(None)
-                pace.set_label(None)    # Should already be true...
-
-                # Get time variable of cloned model
-                time = model.time()
-
-                # Get time unit
-                time_unit = time.unit(mode=myokit.UNIT_STRICT)
-
-                # Get correction factor if using anything other than
-                # milliseconds (hardcoded below)
-                try:
-                    time_factor = myokit.Unit.conversion_factor(
-                        'ms', time_unit)
-                except myokit.IncompatibleUnitError:
-                    time_factor = 1
-
-                # Create new component for the pacing variables
-                component = 'stimulus'
-                if model.has_component(component):
-                    root = component
-                    number = 1
-                    while model.has_component(component):
-                        number += 1
-                        component = root + '_' + str(number)
-                component = model.add_component(component)
-
-                # Move pace. This will be ok any references: since pace was
-                # bound it cannot be a nested variable.
-                # While moving, update its name to avoid conflicts with the
-                # hardcoded names.
-                pace.parent().move_variable(pace, component, new_name='pace')
-
-                # Add variables defining pacing protocol
-                qperiod = myokit.Quantity('1000 [ms]')
-                qoffset = myokit.Quantity('100 [ms]')
-                qduration = myokit.Quantity('2 [ms]')
-                period = component.add_variable('period')
-                period.set_unit(time_unit)
-                period.set_rhs(qperiod * time_factor)
-                offset = component.add_variable('offset')
-                offset.set_unit(time_unit)
-                offset.set_rhs(qoffset * time_factor)
-                duration = component.add_variable('duration')
-                duration.set_unit(time_unit)
-                duration.set_rhs(qduration * time_factor)
-
-                # Add corrected time variable
-                ctime = component.add_variable('ctime')
-                ctime.set_unit(time_unit)
-                ctime.set_rhs(
-                    time.qname() + ' - floor(' + time.qname()
-                    + ' / period) * period')
-
-                # Remove any child variables pace might have before changing
-                # its RHS (which needs to refer to them).
-                pace_kids = list(pace.variables())
-                for kid in pace_kids:
-                    pace.remove_variable(kid, recursive=True)
-
-                # Set new RHS for pace
-                pace.set_rhs(
-                    'if(ctime >= offset and ctime < offset + duration, 1, 0)')
-
-
-
-
-
 
 
 
