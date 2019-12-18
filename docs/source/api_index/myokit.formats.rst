@@ -52,6 +52,8 @@ myokit.formats.cellml.cellml_1
 ------------------------------
 - :class:`myokit.formats.cellml.cellml_1.AnnotatableElement`
 - :class:`myokit.formats.cellml.cellml_1.CellMLError`
+- :meth:`myokit.formats.cellml.cellml_1.clean_identifier`
+- :meth:`myokit.formats.cellml.cellml_1.create_unit_name`
 - :class:`myokit.formats.cellml.cellml_1.Component`
 - :meth:`myokit.formats.cellml.cellml_1.is_valid_identifier`
 - :class:`myokit.formats.cellml.cellml_1.Model`
@@ -65,6 +67,12 @@ myokit.formats.cellml.parser_1
 - :meth:`myokit.formats.cellml.parser_1.parse_file`
 - :meth:`myokit.formats.cellml.parser_1.parse_string`
 - :meth:`myokit.formats.cellml.parser_1.split`
+
+myokit.formats.cellml.writer_1
+------------------------------
+- :class:`myokit.formats.cellml.writer_1.CellMLWriter`
+- :meth:`myokit.formats.cellml.writer_1.write_file`
+- :meth:`myokit.formats.cellml.writer_1.write_string`
 
 myokit.formats.channelml
 ------------------------

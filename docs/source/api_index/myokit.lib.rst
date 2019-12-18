@@ -45,6 +45,7 @@ myokit.lib.fit
 
 myokit.lib.guess
 ----------------
+- :meth:`myokit.lib.guess.add_embedded_protocol`
 - :meth:`myokit.lib.guess.membrane_potential`
 - :meth:`myokit.lib.guess.stimulus_current`
 - :meth:`myokit.lib.guess.stimulus_current_info`

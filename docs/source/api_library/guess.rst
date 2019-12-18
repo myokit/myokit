@@ -11,6 +11,7 @@ of model variables.
 In general, it's better to use annotation (e.g. labels and binds) for this sort
 of thing.
 
+.. autofunction:: add_embedded_protocol
 
 .. autofunction:: membrane_potential
 

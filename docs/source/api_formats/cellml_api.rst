@@ -28,6 +28,10 @@ CellML Model API
 
 .. autoclass:: CellMLError
 
+.. autofunction:: clean_identifier
+
+.. autofunction:: create_unit_name
+
 CellML Parsing
 ==============
 
@@ -42,4 +46,15 @@ CellML Parsing
 .. autoclass:: CellMLParser
 
 .. autoclass:: CellMLParsingError
+
+CellML Writing
+==============
+
+.. module:: myokit.formats.cellml.writer_1
+
+.. autofunction:: write_file
+
+.. autofunction:: write_string
+
+.. autoclass:: CellMLWriter
 

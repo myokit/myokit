@@ -1,5 +1,6 @@
 #
-# Methods for guessing the meaning of model variables.
+# Methods for guessing the meaning of model variables (and manipulating models
+# based on those guesses).
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
