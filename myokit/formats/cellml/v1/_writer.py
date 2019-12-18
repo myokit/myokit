@@ -1,5 +1,5 @@
 #
-# CellML 1.0/1.1 Writer: Writes a cellml_1.Model to disk
+# CellML 1.0/1.1 Writer: Writes a CellML Model to disk
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -10,8 +10,7 @@ from __future__ import print_function, unicode_literals
 from lxml import etree
 
 import myokit
-
-from myokit.formats.cellml import cellml_1 as cellml
+import myokit.formats.cellml as cellml
 
 
 '''
@@ -70,9 +69,6 @@ from myokit.formats.cellml import cellml_1 as cellml
 
 '''
 
-# List of si unit names corresponding to myokit.Unit exponents
-_exp_si = [cellml.Units._si_units_r[x] for x in myokit.Unit.list_exponents()]
-
 
 def write_file(path, model):
     """
@@ -92,6 +88,9 @@ class CellMLWriter(object):
     """
     Writes CellML 1.0 documents.
     """
+
+    # List of si unit names corresponding to myokit.Unit exponents
+    _exp_si = None
 
     # Note: Most items are sorted, to get closer to a 'canonical form' CellML
     # document: https://github.com/cellml/libcellml/issues/289
@@ -296,6 +295,11 @@ class CellMLWriter(object):
         Adds a ``units`` element to ``parent``, for the given cellml units
         object.
         """
+        # Get unit exponents on first call
+        if self._exp_si is None:
+            from myokit.formats.cellml import v1
+            self._exp_si = [
+                v1.Units._si_units_r[x] for x in myokit.Unit.list_exponents()]
 
         # Create units element
         element = etree.SubElement(parent, 'units')
@@ -309,7 +313,7 @@ class CellMLWriter(object):
         for k, e in enumerate(myokit_unit.exponents()):
             if e != 0:
                 row = etree.SubElement(element, 'unit')
-                row.attrib['units'] = _exp_si[k]
+                row.attrib['units'] = self._exp_si[k]
                 if e != 1:
                     row.attrib['exponent'] = str(e)     # Must be an integer
                 rows.append(row)
@@ -331,7 +335,7 @@ class CellMLWriter(object):
     def _variable(self, parent, variable):
         """
         Adds a ``variable`` element to ``parent`` for the variable represented
-        by :meth:`myokit.formats.cellml.cellml_1.Variable` ``variable``.
+        by :class:`myokit.formats.cellml.v1.Variable` ``variable``.
         """
 
         # Create element
@@ -354,7 +358,7 @@ class CellMLWriter(object):
 
     def write(self, model):
         """
-        Takes a :meth:`myokit.formats.cellml.cellml_1.Model` as input, and
+        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
         creates an ElementTree that represents it.
         """
         # Validate model
@@ -378,7 +382,7 @@ class CellMLWriter(object):
 
     def write_file(self, path, model):
         """
-        Takes a :meth:`myokit.formats.cellml.cellml_1.Model` as input, and
+        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
         writes it to the given ``path``.
         """
 
@@ -398,7 +402,7 @@ class CellMLWriter(object):
 
     def write_string(self, model):
         """
-        Takes a :meth:`myokit.formats.cellml.cellml_1.Model` as input, and
+        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
         converts it to an XML string.
         """
 

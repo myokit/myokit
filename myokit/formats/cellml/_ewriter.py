@@ -10,6 +10,7 @@ from __future__ import print_function, unicode_literals
 from lxml import etree
 
 import myokit
+import myokit.formats.cellml
 
 from myokit.formats.mathml import MathMLExpressionWriter
 
@@ -33,8 +34,7 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
         self._flhs = lambda x: x.var().uname()
 
         # Namespaces for element creation
-        from myokit.formats.cellml import cellml_1
-        self._nsmap['cellml'] = cellml_1.NS_CELLML_1_0
+        self._nsmap['cellml'] = myokit.formats.cellml.NS_CELLML_1_0
 
     def set_unit_function(self, f):
         """
@@ -44,7 +44,6 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
         self._funits = f
 
     def _ex_number(self, e, t):
-        import myokit.formats.cellml.cellml_1 as cellml
         x = etree.SubElement(t, 'cn')
         x.text = self._fnum(e)
         unit = e.unit()
@@ -52,7 +51,8 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
             units = self._funits(e.unit())
         else:
             units = 'dimensionless'
-        x.attrib[etree.QName(cellml.NS_CELLML_1_0, 'units')] = units
+        x.attrib[
+            etree.QName(myokit.formats.cellml.NS_CELLML_1_0, 'units')] = units
 
     def _ex_quotient(self, e, t):
         # CellML subset doesn't contain quotient

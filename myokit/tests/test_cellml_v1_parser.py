@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the CellML 1.0/1.1 parser.
+# Tests the CellML 1.0/1.1 cellml.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -12,7 +12,7 @@ import os
 import unittest
 
 import myokit
-import myokit.formats.cellml.parser_1 as parser
+import myokit.formats.cellml.v1 as cellml
 
 from shared import TemporaryDirectory, DIR_FORMATS
 
@@ -41,14 +41,14 @@ class TestCellMLParser(unittest.TestCase):
         that this raises an exception matching ``message``.
         """
         self.assertRaisesRegex(
-            parser.CellMLParsingError, message, self.parse, xml)
+            cellml.CellMLParsingError, message, self.parse, xml)
 
     def parse(self, xml):
         """
         Inserts the given ``xml`` into a <model> element, parses it, and
         returns the result.
         """
-        return parser.parse_string(self.wrap(xml))
+        return cellml.parse_string(self.wrap(xml))
 
     def parse_in_file(self, xml):
         """
@@ -59,7 +59,7 @@ class TestCellMLParser(unittest.TestCase):
             path = d.path('test.cellml')
             with open(path, 'w') as f:
                 f.write(self.wrap(xml))
-            return parser.parse_file(path)
+            return cellml.parse_file(path)
 
     def wrap(self, xml):
         """
@@ -79,7 +79,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Test parsing cmeta id
         path = os.path.join(DIR, 'br-1977.cellml')
-        model = parser.parse_file(path)
+        model = cellml.parse_file(path)
         self.assertEqual(model.cmeta_id(), 'beeler_reuter_1977')
 
         # Invalid cmeta id
@@ -245,7 +245,7 @@ class TestCellMLParser(unittest.TestCase):
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         self.assertRaisesRegex(
-            parser.CellMLParsingError, 'Invalid connection',
+            cellml.CellMLParsingError, 'Invalid connection',
             self.parse, q)
 
     def test_documentation(self):
@@ -271,7 +271,7 @@ class TestCellMLParser(unittest.TestCase):
             '',
             'Here\'s some extra documentation.',
         ])
-        m = parser.parse_file(path)
+        m = cellml.parse_file(path)
         self.assertEqual(m.meta['documentation'], expected)
 
     def test_evaluated_derivatives(self):
@@ -284,8 +284,8 @@ class TestCellMLParser(unittest.TestCase):
 
         # Load exported version
         path = os.path.join(DIR, 'lr-1991-exported.cellml')
-        cellml = parser.parse_file(path)
-        new_model = cellml.myokit_model()
+        cm = cellml.parse_file(path)
+        new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
         new_values = new_model.eval_state_derivatives()
 
@@ -548,8 +548,8 @@ class TestCellMLParser(unittest.TestCase):
              '  <import />'
              '</model>')
         self.assertRaisesRegex(
-            parser.CellMLParsingError, 'Imports are not supported',
-            parser.parse_string, x)
+            cellml.CellMLParsingError, 'Imports are not supported',
+            cellml.parse_string, x)
 
     def test_model(self):
         # Tests parsing a model element.
@@ -560,34 +560,34 @@ class TestCellMLParser(unittest.TestCase):
         x = '<?xml version="1.0" encoding="UTF-8"?>'
         y = '<model name="x" xmlns="http://example.com" />'
         self.assertRaisesRegex(
-            parser.CellMLParsingError, 'must be in CellML',
-            parser.parse_string, x + y)
+            cellml.CellMLParsingError, 'must be in CellML',
+            cellml.parse_string, x + y)
 
         # CellML 1.0 and 1.1 are ok
         y = '<model name="x" xmlns="http://www.cellml.org/cellml/1.0#" />'
-        m = parser.parse_string(x + y)
+        m = cellml.parse_string(x + y)
         self.assertEqual(m.version(), '1.0')
         y = '<model name="x" xmlns="http://www.cellml.org/cellml/1.1#" />'
-        m = parser.parse_string(x + y)
+        m = cellml.parse_string(x + y)
         self.assertEqual(m.version(), '1.1')
 
         # Not a model
         y = '<module name="x" xmlns="http://www.cellml.org/cellml/1.0#" />'
         self.assertRaisesRegex(
-            parser.CellMLParsingError, 'must be a CellML model',
-            parser.parse_string, x + y)
+            cellml.CellMLParsingError, 'must be a CellML model',
+            cellml.parse_string, x + y)
 
         # No name
         y = '<model xmlns="http://www.cellml.org/cellml/1.0#" />'
         self.assertRaisesRegex(
-            parser.CellMLParsingError, 'Model element must have a name',
-            parser.parse_string, x + y)
+            cellml.CellMLParsingError, 'Model element must have a name',
+            cellml.parse_string, x + y)
 
         # CellML API errors are wrapped
         y = '<model name="123" xmlns="http://www.cellml.org/cellml/1.0#" />'
         self.assertRaisesRegex(
-            parser.CellMLParsingError, 'valid CellML identifier',
-            parser.parse_string, x + y)
+            cellml.CellMLParsingError, 'valid CellML identifier',
+            cellml.parse_string, x + y)
 
         # Too many free variables
         self.assertBad(
@@ -667,7 +667,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Parse invalid XML: errors must be wrapped
         self.assertRaisesRegex(
-            parser.CellMLParsingError,
+            cellml.CellMLParsingError,
             'Unable to parse XML',
             self.parse_in_file,
             '<component',
@@ -680,9 +680,9 @@ class TestCellMLParser(unittest.TestCase):
 
         # Parse invalid XML: errors must be wrapped
         self.assertRaisesRegex(
-            parser.CellMLParsingError,
+            cellml.CellMLParsingError,
             'Unable to parse XML',
-            parser.parse_string,
+            cellml.parse_string,
             'Hello there',
         )
 

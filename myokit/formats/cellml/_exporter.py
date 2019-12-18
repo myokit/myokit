@@ -49,8 +49,7 @@ class CellMLExporter(myokit.formats.Exporter):
 
         # Load API and writer
         # TODO Use version
-        import myokit.formats.cellml.cellml_1 as api
-        import myokit.formats.cellml.writer_1 as writer
+        import myokit.formats.cellml.v1 as v1
 
         # Embed protocol
         if protocol is not None:
@@ -61,8 +60,8 @@ class CellMLExporter(myokit.formats.Exporter):
                 log.warn('Unable to embed stimulus protocol.')
 
         # Export
-        cellml_model = api.Model.from_myokit_model(model)
-        writer.write_file(path, cellml_model)
+        cellml_model = v1.Model.from_myokit_model(model)
+        v1.write_file(path, cellml_model)
         log.log('Model written to ' + str(path))
 
     def supports_model(self):
