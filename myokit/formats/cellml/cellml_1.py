@@ -936,8 +936,8 @@ class Model(AnnotatableElement):
             raise ValueError('Given variable must be from this model.')
 
         # Check interface
-        if variable is not None and (variable.public_interface == 'in' or
-                                     variable.private_interface == 'in'):
+        if variable is not None and (variable._public_interface == 'in' or
+                                     variable._private_interface == 'in'):
             raise CellMLError(
                 'The free variable cannot have an "in" interface.')
 

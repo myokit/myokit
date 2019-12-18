@@ -578,6 +578,16 @@ class TestCellMLModel(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'from this model', m.set_free_variable, z)
 
+        # Variable with in interface
+        z1 = c.add_variable('z1', 'second', public_interface='in')
+        z2 = c.add_variable('z2', 'second', private_interface='in')
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'free variable cannot have an "in" interface',
+            m.set_free_variable, z1)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'free variable cannot have an "in" interface',
+            m.set_free_variable, z2)
+
     def test_from_myokit_model(self):
         # Tests creating a cellml.Model from a myokit.Model
 
@@ -743,6 +753,15 @@ class TestCellMLModel(unittest.TestCase):
         m.set_free_variable(None)
         self.assertRaisesRegex(
             cellml.CellMLError, 'a free variable must be set', m.validate)
+
+        # Free variable is set, but not present in component containing state
+        d = m.add_component('d')
+        z = d.add_variable('z', 'second')
+        z.set_initial_value(0)
+        m.set_free_variable(z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'no local variable connected to the free',
+            m.validate)
 
     def test_version(self):
         # TestsModel.version()
