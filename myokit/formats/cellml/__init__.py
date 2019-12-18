@@ -24,7 +24,7 @@ NS_MATHML = 'http://www.w3.org/1998/Math/MathML'
 #NS_OXMETA = 'https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#'
 #NS_RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
 #NS_RDFS = 'http://www.w3.org/2000/01/rdf-schema#'
-#NS_TMP_DOC = 'http://cellml.org/tmp-documentation'
+NS_TMP_DOC = 'http://cellml.org/tmp-documentation'
 
 
 # Importers

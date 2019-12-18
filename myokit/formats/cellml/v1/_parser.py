@@ -1,5 +1,5 @@
 #
-# Parses a CellML 1.0 document.
+# Parses a CellML 1.0 or 1.1 document.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -13,20 +13,21 @@ from lxml import etree
 
 import myokit
 import myokit.formats.mathml
+import myokit.formats.cellml as cellml
+import myokit.formats.cellml.v1
 
 from myokit.mxml import split
-from myokit.formats.cellml import cellml_1 as cellml
 
 
 def parse_file(path):
     """
     Parses a CellML 1.0 or 1.1 model at the given path and returns a
-    :class:`cellml.Model`.
+    :class:`myokit.formats.cellml.v1.Model`.
 
     Raises a :class:`CellMLParsingError` if anything goes wrong.
 
     For notes about CellML 1.0/1.1 support, see
-    :class:`myokit.formats.cellml.cellml_1.Model`.
+    :class:`myokit.formats.cellml.v1.Model`.
     """
     return CellMLParser().parse_file(path)
 
@@ -34,12 +35,12 @@ def parse_file(path):
 def parse_string(text):
     """
     Parses a CellML 1.0 or 1.1 model from the given string and returns a
-    :class:`cellml.Model`.
+    :class:`myokit.formats.cellml.v1.Model`.
 
     Raises a :class:`CellMLParsingError` if anything goes wrong.
 
     For notes about CellML 1.0/1.1 support, see
-    :class:`myokit.formats.cellml.cellml_1.Model`.
+    :class:`myokit.formats.cellml.v1.Model`.
     """
     return CellMLParser().parse_string(text)
 
@@ -67,7 +68,7 @@ class CellMLParser(object):
     CellML document.
 
     For notes about CellML 1.0/1.1 support, see
-    :class:`myokit.formats.cellml.cellml_1.Model`.
+    :class:`myokit.formats.cellml.v1.Model`.
     """
 
     # Note on assignment form, used in errors
@@ -222,7 +223,7 @@ class CellMLParser(object):
         self._free_vars = set()
         try:
             return self._parse_model(root)
-        except cellml.CellMLError as e:
+        except myokit.formats.cellml.v1.CellMLError as e:
             raise CellMLParsingError(str(e))
         except myokit.formats.mathml.MathMLError as e:
             raise CellMLParsingError(str(e))
@@ -280,7 +281,7 @@ class CellMLParser(object):
             if cmeta_id:
                 component.set_cmeta_id(cmeta_id)
 
-        except cellml.CellMLError as e:
+        except myokit.formats.cellml.v1.CellMLError as e:
             raise CellMLParsingError(str(e), element)
 
         # Check for reactions
@@ -439,7 +440,7 @@ class CellMLParser(object):
         model = c1.model()
         try:
             model.add_connection(v1, v2)
-        except cellml.CellMLError as e:
+        except myokit.formats.cellml.v1.CellMLError as e:
             raise CellMLParsingError(str(e), element)
 
         # Check cmeta id
@@ -583,7 +584,7 @@ class CellMLParser(object):
                     'Encapsulation relationships may not define a name'
                     ' attribute (6.4.2.4).', element)
 
-            if not cellml.is_valid_identifier(name):
+            if not myokit.formats.cellml.v1.is_valid_identifier(name):
                 raise CellMLParsingError(
                     'Relationship_ref name must be a valid CellML identifier,'
                     ' but found "' + name + '" (6.4.2.3).', element)
@@ -637,7 +638,7 @@ class CellMLParser(object):
             # Find units in component
             try:
                 units = component.find_units(units)
-            except cellml.CellMLError:
+            except myokit.formats.cellml.v1.CellMLError:
                 raise CellMLParsingError(
                     'Unknown unit "' + str(units) + '" referenced inside a'
                     ' MathML equation (4.4.3.2).')
@@ -713,7 +714,7 @@ class CellMLParser(object):
             # Set rhs
             try:
                 lhs.var().set_rhs(rhs)
-            except cellml.CellMLError as e:
+            except myokit.formats.cellml.v1.CellMLError as e:
                 raise CellMLParsingError(str(e), child)
 
     def _parse_model(self, element):
@@ -764,14 +765,14 @@ class CellMLParser(object):
 
         # Create model (validates name)
         try:
-            model = cellml.Model(name, version)
+            model = myokit.formats.cellml.v1.Model(name, version)
 
             # Check cmeta id
             cmeta_id = self._check_cmeta_id(element)
             if cmeta_id:
                 model.set_cmeta_id(cmeta_id)
 
-        except cellml.CellMLError as e:
+        except myokit.formats.cellml.v1.CellMLError as e:
             raise CellMLParsingError(str(e), element)
 
         # Check for imports
@@ -870,7 +871,7 @@ class CellMLParser(object):
         )
 
         # Create and return
-        return cellml.Units.parse_unit_row(
+        return myokit.formats.cellml.v1.Units.parse_unit_row(
             units, prefix, exponent, multiplier, owner)
 
     def _parse_units(self, element, owner):
@@ -906,7 +907,7 @@ class CellMLParser(object):
         # Add units to owner
         try:
             owner.add_units(name, myokit_unit)
-        except cellml.CellMLError as e:
+        except myokit.formats.cellml.v1.CellMLError as e:
             raise CellMLParsingError(str(e), element)
 
     def _parse_variable(self, element, component):
@@ -957,7 +958,7 @@ class CellMLParser(object):
             variable.set_initial_value(
                 element.attrib.get('initial_value', None))
 
-        except cellml.CellMLError as e:
+        except myokit.formats.cellml.v1.CellMLError as e:
             raise CellMLParsingError(str(e), element)
 
     def _sort_units(self, element, model=None):
@@ -970,8 +971,9 @@ class CellMLParser(object):
         ``element``
             A model or component element
         ``model``
-            If the owner is a component, a :class:`cellml.Model` can be passed
-            in to look up any model units.
+            If the owner is a component, a
+            :class:`myokit.formats.cellml.v1.Model` can be passed in to look up
+            any model units.
 
         """
         # Create a list of resolved and a dict mapping unresolved unit names to
@@ -980,7 +982,7 @@ class CellMLParser(object):
         unresolved = {}
 
         # Add SI units to the list of resolved units
-        si_units = set(cellml.Units.si_unit_names())
+        si_units = set(myokit.formats.cellml.v1.Units.si_unit_names())
         resolved.update(si_units)
 
         # If this is a component, add any model units to the list

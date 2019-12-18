@@ -62,11 +62,11 @@ class CellMLImporter(myokit.formats.Importer):
         if ns in (cellml.NS_CELLML_1_0, cellml.NS_CELLML_1_1):
 
             # Parse CellML1 model
-            from myokit.formats.cellml import parser_1
-            p = parser_1.CellMLParser()
+            import myokit.formats.cellml.v1 as v1
+            p = v1.CellMLParser()
             try:
                 cellml_model = p.parse(root)
-            except parser_1.CellMLParsingError as e:
+            except v1.CellMLParsingError as e:
                 raise CellMLImporterError(str(e))
 
             # Log warnings, if any

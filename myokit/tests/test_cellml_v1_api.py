@@ -11,7 +11,7 @@ from __future__ import print_function, unicode_literals
 import unittest
 
 import myokit
-import myokit.formats.cellml.cellml_1 as cellml
+import myokit.formats.cellml.v1 as cellml
 
 # Unit testing in Python 2 and 3
 try:

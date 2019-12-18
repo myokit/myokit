@@ -12,9 +12,7 @@ import re
 import unittest
 
 import myokit
-import myokit.formats.cellml.cellml_1 as cellml
-import myokit.formats.cellml.writer_1 as writer
-import myokit.formats.cellml.parser_1 as parser
+import myokit.formats.cellml.v1 as cellml
 
 from shared import TemporaryDirectory
 
@@ -35,8 +33,8 @@ class TestCellMLWriter(unittest.TestCase):
         c = m1.add_component('c')
         d = m1.add_component('d')
 
-        xml = writer.write_string(m1)
-        m2 = parser.parse_string(xml)
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
 
         self.assertIn('c', m2)
         self.assertIn('d', m2)
@@ -56,8 +54,8 @@ class TestCellMLWriter(unittest.TestCase):
         m1.add_connection(p, q)
         m1.add_connection(r, s)
 
-        xml = writer.write_string(m1)
-        m2 = parser.parse_string(xml)
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
 
         p = m2['c']['p']
         q = m2['d']['q']
@@ -71,14 +69,10 @@ class TestCellMLWriter(unittest.TestCase):
     def test_evaluating_derivatives(self):
         # Writes and then parses a model and compares the derivatives
 
-        import myokit.formats.cellml.cellml_1 as cellml
-        import myokit.formats.cellml.parser_1 as parser
-        import myokit.formats.cellml.writer_1 as writer
-
         m1 = myokit.load_model('example')
         c1 = cellml.Model.from_myokit_model(m1)
-        xml = writer.write_string(c1)
-        c2 = parser.parse_string(xml)
+        xml = cellml.write_string(c1)
+        c2 = cellml.parse_string(xml)
         m2 = c2.myokit_model()
 
         self.assertEqual(
@@ -113,8 +107,8 @@ class TestCellMLWriter(unittest.TestCase):
         c.set_parent(e)
         b.set_parent(c)
 
-        xml = writer.write_string(m1)
-        m2 = parser.parse_string(xml)
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
         a, b, c, d, e, f = [m2.component(x) for x in 'abcdef']
         self.assertIs(a.parent(), d)
         self.assertIs(e.parent(), d)
@@ -151,8 +145,8 @@ class TestCellMLWriter(unittest.TestCase):
         r1.set_rhs(er1)
 
         # Write and read
-        xml = writer.write_string(m1)
-        m2 = parser.parse_string(xml)
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
 
         # Check results
         p2, q2, r2, s2 = m2['c']['p'], m2['c']['q'], m2['c']['r'], m2['d']['s']
@@ -175,8 +169,8 @@ class TestCellMLWriter(unittest.TestCase):
         # Tests model writing
 
         m1 = cellml.Model('model_name')
-        xml = writer.write_string(m1)
-        m2 = parser.parse_string(xml)
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
 
         self.assertEqual(m2.name(), 'model_name')
         self.assertEqual(len(m2), 0)
@@ -191,7 +185,7 @@ class TestCellMLWriter(unittest.TestCase):
         d = m.add_component('D')
         b = m.add_component('B')
 
-        xml = writer.write_string(m)
+        xml = cellml.write_string(m)
         reg = re.compile(b'<component [^>]*name="[\w]+"')
         items = reg.findall(xml)
         items_sorted = list(sorted(items))
@@ -205,7 +199,7 @@ class TestCellMLWriter(unittest.TestCase):
         s = c.add_variable('s', 'kilogram')
         q = c.add_variable('q', 'mole')
 
-        xml = writer.write_string(m)
+        xml = cellml.write_string(m)
         reg = re.compile(b'<variable [^>]*name="[\w]+"')
         items = reg.findall(xml)
         items_sorted = list(sorted(items))
@@ -227,8 +221,8 @@ class TestCellMLWriter(unittest.TestCase):
         q = d.add_variable('q', 'flibbit')
         q.set_rhs(myokit.Number(2, u1))
 
-        xml = writer.write_string(m1)
-        m2 = parser.parse_string(xml)
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
 
         p, q = m2['ccc']['p'], m2['ddd']['q']
         self.assertEqual(p.units().name(), 'flibbit')
@@ -248,8 +242,8 @@ class TestCellMLWriter(unittest.TestCase):
         r = c.add_variable('r', 'ampere', private_interface='out')
         p.set_initial_value(1)
 
-        xml = writer.write_string(m1)
-        m2 = parser.parse_string(xml)
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
 
         p, q, r = m2['c']['p'], m2['c']['q'], m2['c']['r']
         self.assertEqual(p.units().name(), 'mole')
@@ -271,8 +265,8 @@ class TestCellMLWriter(unittest.TestCase):
         m1 = cellml.Model('ernie')
         with TemporaryDirectory() as d:
             path = d.path('test.cellml')
-            writer.write_file(path, m1)
-            m2 = parser.parse_file(path)
+            cellml.write_file(path, m1)
+            m2 = cellml.parse_file(path)
 
         self.assertEqual(m2.name(), 'ernie')
         self.assertEqual(len(m2), 0)
@@ -281,8 +275,8 @@ class TestCellMLWriter(unittest.TestCase):
         # Tests write_string
 
         m1 = cellml.Model('ernie')
-        xml = writer.write_string(m1)
-        m2 = parser.parse_string(xml)
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
 
         self.assertEqual(m2.name(), 'ernie')
         self.assertEqual(len(m2), 0)
