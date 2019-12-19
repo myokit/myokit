@@ -373,19 +373,49 @@ class SubCapture(PyCapture):
         return self._stdout
 
 
-def default_protocol():
+def default_protocol(time_units=None):
     """
     Returns a default protocol to use when no embedded one is available.
     """
+    start = 100
+    duration = 0.5
+    period = 1000
+
+    if time_units is not None:
+        default_units = myokit.units.ms
+        start = myokit.Unit.convert(start, default_units, time_units)
+        duration = myokit.Unit.convert(duration, default_units, time_units)
+        period = myokit.Unit.convert(period, default_units, time_units)
+
     p = myokit.Protocol()
-    p.schedule(1, 100, 0.5, 1000, 0)
+    p.schedule(1, start, duration, period, 0)
     return p
 
 
-def default_script():
+def default_script(model=None):
     """
     Returns a default script to use when no embedded script is available.
     """
+    # Defaults
+    vm = 'next(m.states()).qname()'
+    duration = 1000
+
+    # Try to improve on defaults using model
+    if model is not None:
+        # Guess membrane potential
+        import myokit.lib.guess
+        v = myokit.lib.guess.membrane_potential(model)
+        if v is not None:
+            vm = "'" + v.qname() + "'"
+
+        # Get duration in good units
+        time = model.time()
+        if time is not None:
+            if time.units() is not None:
+                duration = myokit.Unit.convert(
+                    1000, myokit.units.ms, time_units)
+
+    # Create and return script
     return '\n'.join((  # pragma: no cover
         "[[script]]",
         "import matplotlib.pyplot as plt",
@@ -397,15 +427,11 @@ def default_script():
         "s = myokit.Simulation(m, p)",
         "",
         "# Run simulation",
-        "d = s.run(1000)",
-        "",
-        "# Get the first state variable's name",
-        "first_state = next(m.states())",
-        "var = first_state.qname()",
+        "d = s.run("  + str(duration) + ")",
         "",
         "# Display the results",
         "plt.figure()",
-        "plt.plot(d.time(), d[var])",
+        "plt.plot(d.time(), d[" + vm + "])",
         "plt.title(var)",
         "plt.show()",
     ))
