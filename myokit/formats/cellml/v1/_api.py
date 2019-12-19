@@ -630,7 +630,7 @@ class Model(AnnotatableElement):
     @staticmethod
     def from_myokit_model(model, version='1.0'):
         """
-        Creates a :class:`Model` from a :class:`myokit.Model`.
+        Creates a CellML :class:`Model` from a :class:`myokit.Model`.
 
         The CellML version to use can be set with ``version``, which must be
         either "1.0" or "1.1".
@@ -745,8 +745,7 @@ class Model(AnnotatableElement):
                 for key, value in variable.meta.items():
                     v.meta[key] = value
 
-                # If oxmeta annotations are found, create a cmeta id for the
-                # variable
+                # Create cmeta id for variables with an oxmeta annotation
                 if 'oxmeta' in variable.meta:
                     v.set_cmeta_id(variable.uname())
 
@@ -755,10 +754,14 @@ class Model(AnnotatableElement):
                     local_var_map[nested] = v = c.add_variable(
                         nested.uname(), unit_map[nested.unit()])
 
-                    # Copy meta-data, create cmeta id in case its needed
-                    v.set_cmeta_id(nested.uname())
+                    # Copy meta-data
                     for key, value in nested.meta.items():
                         v.meta[key] = value
+
+                    # Create cmeta id for variables with an oxmeta annotation
+                    if 'oxmeta' in nested.meta:
+                        v.set_cmeta_id(variable.uname())
+
 
         # Add interface-in variables
         for component, variables in in_variables.items():

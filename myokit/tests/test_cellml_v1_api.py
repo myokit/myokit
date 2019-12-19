@@ -667,25 +667,28 @@ class TestCellMLModel(unittest.TestCase):
         mm = cm.myokit_model()
         self.assertEqual(mm.get('c.y').eval(), 6.2)
 
-        # Test meta data is passed on and cmeta ids are set
+        # Test meta data is passed on
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
         y = x.add_variable('y')
         y.set_rhs(1)
         x.set_rhs('1 + y')
+        x.meta['oxmeta'] = 'membrane_voltage'
         d = m.add_component('d')
         x2 = d.add_variable('x')
         x2.set_rhs(3)
         x2.meta['bert'] = 'ernie'
         cm = cellml.Model.from_myokit_model(m)
-        self.assertEqual(cm['c']['x'].cmeta_id(), 'c_x')
-        self.assertEqual(cm['c']['y'].cmeta_id(), 'y')
-        self.assertEqual(cm['d']['x'].cmeta_id(), 'd_x')
-        self.assertEqual(len(cm['c']['x'].meta), 0)
+        self.assertEqual(len(cm['c']['x'].meta), 1)
         self.assertEqual(len(cm['c']['y'].meta), 0)
         self.assertEqual(len(cm['d']['x'].meta), 1)
         self.assertEqual(cm['d']['x'].meta['bert'], 'ernie')
+
+        # Test cmeta id is set if variable has oxmeta annotation
+        self.assertEqual(cm['c']['x'].cmeta_id(), 'c_x')
+        self.assertIsNone(cm['c']['y'].cmeta_id())
+        self.assertIsNone(cm['d']['x'].cmeta_id())
 
         # Test evaluating states of model
         m = myokit.load_model('example')

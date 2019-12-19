@@ -222,6 +222,36 @@ class TestCellMLWriter(unittest.TestCase):
         items_sorted = list(sorted(items))
         self.assertEqual(items, items_sorted)
 
+    def test_oxmeta_annotations(self):
+        # Tests if oxmeta annotations are written
+
+        # Create mini model
+        m = cellml.Model('m')
+        c = m.add_component('c')
+        v = c.add_variable('v', 'volt')
+        v.set_rhs(myokit.Number(0, myokit.units.volt))
+
+        # Test no RDF is written without oxmeta or cmeta
+        xml = cellml.write_string(m)
+        self.assertNotIn('rdf:RDF', xml)
+
+        v.meta['oxmeta'] = 'membrane_voltage'
+        xml = cellml.write_string(m)
+        self.assertNotIn('rdf:RDF', xml)
+
+        del(v.meta['oxmeta'])
+        v.set_cmeta_id('vvv')
+        xml = cellml.write_string(m)
+        self.assertNotIn('rdf:RDF', xml)
+
+        # Test it is written if both are set
+        v.meta['oxmeta'] = 'membrane_voltage'
+        xml = cellml.write_string(m)
+        self.assertIn('rdf:RDF', xml)
+
+        # Test reading it again with the parser
+        raise NotImplementedError
+
     def test_units(self):
         # Test writing of units
 
