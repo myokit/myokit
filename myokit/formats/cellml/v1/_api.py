@@ -423,6 +423,7 @@ class Model(AnnotatableElement):
     - Models that take derivatives with respect to more than one variable are
       not supported.
     - Models written as a DAE (e.g. ``1 + x = 2 + y``) are not supported.
+    - cmeta:id support is limited to models, components, and variables.
 
     Arguments
 
@@ -740,10 +741,14 @@ class Model(AnnotatableElement):
                     public_interface=interface
                 )
 
-                # Copy meta-data, create cmeta id in case its needed
-                v.set_cmeta_id(variable.uname())
+                # Copy meta data
                 for key, value in variable.meta.items():
                     v.meta[key] = value
+
+                # If oxmeta annotations are found, create a cmeta id for the
+                # variable
+                if 'oxmeta' in variable.meta:
+                    v.set_cmeta_id(variable.uname())
 
                 # Add nested variables
                 for nested in variable.variables(deep=True):

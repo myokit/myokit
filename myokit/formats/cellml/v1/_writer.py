@@ -86,7 +86,7 @@ def write_string(model):
 
 class CellMLWriter(object):
     """
-    Writes CellML 1.0 documents.
+    Writes CellML 1.0 or 1.1 documents.
     """
 
     # List of si unit names corresponding to myokit.Unit exponents
@@ -115,6 +115,11 @@ class CellMLWriter(object):
 
         # Add maths
         self._maths(element, component)
+
+        # Add cmeta id
+        cid = component.cmeta_id()
+        if cid is not None:
+            element.attrib[etree.QName(cellml.NS_CMETA, 'id')] = cid
 
     def _connections(self, parent, model):
         """
@@ -270,11 +275,13 @@ class CellMLWriter(object):
             namespaces = {
                 None: cellml.NS_CELLML_1_0,
                 'cellml': cellml.NS_CELLML_1_0,
+                'cmeta': cellml.NS_CMETA,
             }
         else:
             namespaces = {
                 None: cellml.NS_CELLML_1_1,
                 'cellml': cellml.NS_CELLML_1_1,
+                'cmeta': cellml.NS_CMETA,
             }
 
         # Create model element
@@ -296,6 +303,11 @@ class CellMLWriter(object):
 
         # Add groups
         self._groups(element, model)
+
+        # Add cmeta id
+        cid = model.cmeta_id()
+        if cid is not None:
+            element.attrib[etree.QName(cellml.NS_CMETA, 'id')] = cid
 
         # Return model element
         return element
@@ -366,13 +378,19 @@ class CellMLWriter(object):
             element.attrib['initial_value'] = myokit.strfloat(
                 variable.initial_value())
 
+        # Add cmeta id
+        cid = variable.cmeta_id()
+        if cid is not None:
+            element.attrib[etree.QName(cellml.NS_CMETA, 'id')] = cid
+
     def write(self, model, version='1.0'):
         """
         Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
         creates an ElementTree that represents it.
 
-        The CellML version can be specified with ``version``, which must be
-        either "1.0" or "1.1".
+        If the model contains any variables that have an `oxmeta` meta data
+        property, this will be annotated with RDF tags suitable for use with
+        the Cardiac Electrophysiology Web Lab.
         """
         # Validate model
         model.validate()
@@ -397,6 +415,8 @@ class CellMLWriter(object):
         """
         Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
         writes it to the given ``path``.
+
+        See :meth:`write()` for details.
         """
 
         # Create ElementTree
@@ -417,6 +437,8 @@ class CellMLWriter(object):
         """
         Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
         converts it to an XML string.
+
+        See :meth:`write()` for details.
         """
 
         # Create ElementTree

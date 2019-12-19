@@ -26,6 +26,23 @@ except AttributeError:
 class TestCellMLWriter(unittest.TestCase):
     """ Tests for cellml.Writer. """
 
+    def test_cmeta_ids(self):
+        # Tests cmeta ids are written for models, components, and variables
+
+        m1 = cellml.Model('m')
+        m1.set_cmeta_id('modell')
+        c1 = m1.add_component('c')
+        c1.set_cmeta_id('commponnent')
+        v1 = c1.add_variable('v', 'volt')
+        v1.set_cmeta_id('variiable')
+
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
+
+        self.assertEqual(m2.cmeta_id(), 'modell')
+        self.assertEqual(m2['c'].cmeta_id(), 'commponnent')
+        self.assertEqual(m2['c']['v'].cmeta_id(), 'variiable')
+
     def test_component(self):
         # Tests if components are written
 
