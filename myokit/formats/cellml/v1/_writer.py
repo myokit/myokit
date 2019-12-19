@@ -197,7 +197,7 @@ class CellMLWriter(object):
 
         # Create expression writer for this component
         from myokit.formats.cellml import CellMLExpressionWriter
-        ewriter = CellMLExpressionWriter()
+        ewriter = CellMLExpressionWriter(component.model().version())
         ewriter.set_lhs_function(lambda x: x.var().name())
         ewriter.set_unit_function(lambda x: component.find_units_name(x))
         if free is not None:
@@ -242,7 +242,6 @@ class CellMLWriter(object):
         namespaces['cellml'] = namespaces[None]
         namespaces['cmeta'] = cellml.NS_CMETA
         namespaces['bqbiol'] = cellml.NS_BQBIOL
-        namespaces['oxmeta'] = cellml.NS_OXMETA
         namespaces['rdf'] = cellml.NS_RDF
 
         # Create model element
@@ -293,6 +292,7 @@ class CellMLWriter(object):
                 self._oxmeta_variables.items(), key=lambda x: x[0]):
             description = etree.SubElement(
                 rdf, etree.QName(cellml.NS_RDF, 'Description'))
+            description.attrib[etree.QName(cellml.NS_RDF, 'about')] = '#' + cid
             iz = etree.SubElement(
                 description, etree.QName(cellml.NS_BQBIOL, 'is'))
             iz.attrib[etree.QName(cellml.NS_RDF, 'resource')] = \

@@ -23,7 +23,7 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
     variable names with :meth:`set_lhs_function()`, and a method to look up
     unit names with :meth:`set_unit_function()`.
     """
-    def __init__(self):
+    def __init__(self, version='1.0'):
         super(CellMLExpressionWriter, self).__init__()
         super(CellMLExpressionWriter, self).set_mode(presentation=False)
 
@@ -33,8 +33,16 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
         # Use unames by default
         self._flhs = lambda x: x.var().uname()
 
+        # Get namespace based on version
+        if version == '1.0':
+            self._ns = myokit.formats.cellml.NS_CELLML_1_0
+        elif version == '1.1':
+            self._ns = myokit.formats.cellml.NS_CELLML_1_1
+        else:
+            raise ValueError('Unknown CellML version: ' + str(version))
+
         # Namespaces for element creation
-        self._nsmap['cellml'] = myokit.formats.cellml.NS_CELLML_1_0
+        self._nsmap['cellml'] = self._ns
 
     def set_unit_function(self, f):
         """
@@ -51,8 +59,7 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
             units = self._funits(e.unit())
         else:
             units = 'dimensionless'
-        x.attrib[
-            etree.QName(myokit.formats.cellml.NS_CELLML_1_0, 'units')] = units
+        x.attrib[etree.QName(self._ns, 'units')] = units
 
     def _ex_quotient(self, e, t):
         # CellML subset doesn't contain quotient

@@ -720,21 +720,6 @@ class CellMLParser(object):
     def _parse_model(self, element):
         """
         Parses a CellML model element.
-
-        Parsing occurs in the following order
-
-        - [x] Create model
-        - [x] Add model units
-        - [x] Create components
-        - [x] Add component units
-        - [x] Create variables, set interface, initial value, and cmeta id
-        - [x] Add encapsulation relations
-        - [x] Add connections
-        - [x] Parse and add equations
-        - [x] Read CellML meta data
-        - [ ] Read RDF "is" annotations
-        - [ ] Imports
-
         """
         # Handle document-level validation here.
 
@@ -824,6 +809,11 @@ class CellMLParser(object):
             # Set free variable
             model.set_free_variable(self._free_vars.pop())
 
+        # Read any rdf annotations
+        rdf_tag = self._join('RDF', cellml.NS_RDF)
+        for child in element.findall(rdf_tag):
+            self._parse_rdf(child, model)
+
         # Read any documentation
         doc_tag = self._join('documentation', cellml.NS_TMP_DOC)
         for child in element.findall(doc_tag):
@@ -833,6 +823,56 @@ class CellMLParser(object):
         model.validate()
 
         return model
+
+    def _parse_rdf(self, element, model):
+        """
+        Parses an RDF tag, looks for oxmeta annotations.
+        """
+        # rdf:Description tag with rdf:about attribute
+        dtag = self._join('Description', cellml.NS_RDF)
+        aatt = self._join('about', cellml.NS_RDF)
+
+        # bqbiol:is tag with rdf:resource attribute
+        itag = self._join('is', cellml.NS_BQBIOL)
+        ratt = self._join('resource', cellml.NS_RDF)
+
+        # Oxmeta namespace
+        ox = cellml.NS_OXMETA
+
+        # Look for descriptions
+        for child in element.findall(dtag):
+
+            # Get variable cmeta id
+            about = child.attrib.get(aatt, None)
+            if about is None:
+                continue
+
+            # Strip leading '#'
+            about = about[1:]
+
+            # Look for variable with that cmeta id
+            try:
+                variable = model.element_with_cmeta_id(about)
+            except KeyError:
+                continue
+            if not isinstance(variable, myokit.formats.cellml.v1.Variable):
+                continue
+
+            # Get bqbiol:is element
+            eis = child.find(itag)
+            if eis is None:
+                continue
+
+            # Get resource
+            resource = eis.attrib.get(ratt, None)
+            if resource is None:
+                continue
+
+            # Strip oxmeta from annotation and store
+            if not resource.startswith(ox):
+                continue
+            annotation = resource[len(ox):]
+            variable.meta['oxmeta'] = annotation
 
     def _parse_unit(self, element, owner):
         """

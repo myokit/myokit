@@ -136,8 +136,14 @@ class TestCellMLWriter(unittest.TestCase):
     def test_maths(self):
         # Test maths is written
 
+        self._test_maths('1.0')
+        self._test_maths('1.1')
+
+    def _test_maths(self, version):
+        # Test maths is written in either 1.0 or 1.1
+
         # Create model
-        m1 = cellml.Model('m')
+        m1 = cellml.Model('m', version)
         c1 = m1.add_component('c')
         p1 = c1.add_variable('p', 'mole')
         p1.set_initial_value(2)
@@ -233,24 +239,28 @@ class TestCellMLWriter(unittest.TestCase):
 
         # Test no RDF is written without oxmeta or cmeta
         xml = cellml.write_string(m)
-        self.assertNotIn('rdf:RDF', xml)
+        self.assertNotIn(b'rdf:RDF', xml)
 
         v.meta['oxmeta'] = 'membrane_voltage'
         xml = cellml.write_string(m)
-        self.assertNotIn('rdf:RDF', xml)
+        self.assertNotIn(b'rdf:RDF', xml)
 
         del(v.meta['oxmeta'])
         v.set_cmeta_id('vvv')
         xml = cellml.write_string(m)
-        self.assertNotIn('rdf:RDF', xml)
+        self.assertNotIn(b'rdf:RDF', xml)
 
         # Test it is written if both are set
         v.meta['oxmeta'] = 'membrane_voltage'
         xml = cellml.write_string(m)
-        self.assertIn('rdf:RDF', xml)
+        self.assertIn(b'rdf:RDF', xml)
 
         # Test reading it again with the parser
-        raise NotImplementedError
+        m2 = cellml.parse_string(xml)
+        v2 = m2['c']['v']
+        self.assertEqual(v2.cmeta_id(), 'vvv')
+        self.assertIn('oxmeta', v2.meta)
+        self.assertEqual(v2.meta['oxmeta'], 'membrane_voltage')
 
     def test_units(self):
         # Test writing of units

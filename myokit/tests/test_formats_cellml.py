@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #
-# Tests the CellML importer and exporter.
-# More testing of CellML if performed in test_cellml_api.py
+# Tests the CellML importer, exporter, and expression writer.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -114,75 +113,6 @@ class CellMLExporterTest(unittest.TestCase):
             e.model(path, model, version='1.1')
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.1#', f.read())
-
-    '''
-
-    def test_oxmeta_annotation_export(self):
-        # Text export of weblab oxmeta annotation
-
-        # Create a test model
-        m = myokit.Model()
-        m.meta['name'] = 'Hello'
-
-        cc = m.add_component('C')
-        t = cc.add_variable('time')
-        t.set_rhs('0 [ms]')
-        t.set_unit('ms')
-        t.set_binding('time')
-
-        ca = m.add_component('A')
-        x = ca.add_variable('INa')
-        x.set_rhs('2 [ms]')
-        x.set_unit('ms')
-
-        cd = m.add_component('D')
-        y = cd.add_variable('y')
-        y.set_rhs('1 [ms]')
-        y.set_unit('ms')
-
-        cb = m.add_component('B')
-        z = cb.add_variable('z')
-        z.set_rhs('3 [ms]')
-        z.set_unit('ms')
-
-        # No oxmeta annotations: No cmeta namespace or RDF annotations
-        exporter = myokit.formats.cellml.CellMLExporter()
-        importer = myokit.formats.cellml.CellMLImporter()
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            exporter.model(path, m)
-            with open(path, 'r') as f:
-                xml = f.read()
-            self.assertTrue('xmlns:cmeta' not in xml)
-            self.assertTrue('cmeta:id' not in xml)
-            self.assertTrue('<rdf' not in xml)
-
-        # Add oxmeta annotations
-        t.meta['oxmeta'] = 'time'
-        x.meta['oxmeta'] = 'membrane_fast_sodium_current'
-        with TemporaryDirectory() as d:
-            path = d.path('model.cellml')
-            exporter.model(path, m)
-            time_found = ina_found = False
-            with open(path, 'r') as f:
-                lines = f.readlines()
-                for i, line in enumerate(lines):
-                    if 'rdf:about="#time"' in line:
-                        time_found = True
-                        self.assertIn('oxford-metadata#time', lines[i + 1])
-
-                    if 'rdf:about="#INa"' in line:
-                        ina_found = True
-                        self.assertIn(
-                            'oxford-metadata#membrane_fast_sodium_current',
-                            lines[i + 1])
-
-                self.assertTrue(time_found)
-                self.assertTrue(ina_found)
-
-            # Re-import, check if model can still be read
-            m2 = importer.model(path)
-    '''
 
 
 class CellMLExpressionWriterTest(unittest.TestCase):

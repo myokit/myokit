@@ -760,8 +760,7 @@ class Model(AnnotatableElement):
 
                     # Create cmeta id for variables with an oxmeta annotation
                     if 'oxmeta' in nested.meta:
-                        v.set_cmeta_id(variable.uname())
-
+                        v.set_cmeta_id(nested.uname())
 
         # Add interface-in variables
         for component, variables in in_variables.items():
@@ -840,8 +839,10 @@ class Model(AnnotatableElement):
         # Create model
         m = myokit.Model(self.name())
         m.meta['author'] = 'Myokit CellML 1 API'
-        if 'documentation' in self.meta:
-            m.meta['desc'] = self.meta['documentation']
+
+        # Copy meta data
+        for key, value in self.meta.items():
+            m.meta[key] = value
 
         # Add components
         for component in self:
@@ -857,6 +858,13 @@ class Model(AnnotatableElement):
                     import warnings
                     warnings.warn(
                         'Unit conversion required for ' + str(variable) + '.')
+                # Copy meta data
+                for key, value in variable.meta.items():
+                    v.meta[key] = value
+
+            # Copy meta data
+            for key, value in component.meta.items():
+                c.meta[key] = value
 
         # Add equations
         undefined_variables = []
