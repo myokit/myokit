@@ -12,62 +12,23 @@ from lxml import etree
 import myokit
 import myokit.formats.cellml as cellml
 
-
-'''
-        # Add name in 'tmp-documentation' format
-        emodel.attrib['name'] = 'generated_model'
-        if 'name' in model.meta:
-            dtag = et.SubElement(emodel, 'documentation')
-            dtag.attrib['xmlns'] = NS_TMP_DOC
-            atag = et.SubElement(dtag, 'article')
-            ttag = et.SubElement(atag, 'title')
-            ttag.text = model.meta['name']
+# Quoting URI strings in Python2 and Python3
+try:
+    from urllib.parse import quote
+except ImportError:     # pragma: no python 3 cover
+    # Python 2
+    from urllib import quote
 
 
-
-        * Variables annotated with an ``oxmeta`` property will be annotated
-          using the oxmeta namespace in the created CellML. For example, a
-          variable with the meta-data ``oxmeta: time`` will be annotated as
-          ``https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#time`` in
-          the CellML file.
-
-
-
-        # Collect oxmeta annotated variables
-        oxmeta_vars = {}
-
-        in add_variable()
-            # Weblab oxmeta id given? Then add a cmeta id to reference via RDF
-            # later.
-            if 'oxmeta' in var.meta:
-                # Ensure cmeta namespace is defined
-                if 'xmlns:cmeta' not in emodel.attrib:
-                    emodel.attrib['xmlns:cmeta'] = NS_CMETA
-
-                # Add cmeta:id to variable
-                cmeta_id = var.uname()
-                evar.attrib['cmeta:id'] = cmeta_id
-
-                # Store cmeta id and annotation for later
-                oxmeta_vars[cmeta_id] = var.meta['oxmeta']
-
-
-        # Add RDF for oxmeta annotated variables
-        if oxmeta_vars:
-            erdf = et.SubElement(emodel, 'rdf:RDF', {
-                'xmlns:bqbiol': NS_BQBIOL,
-                'xmlns:oxmeta': NS_OXMETA,
-                'xmlns:rdf': NS_RDF,
-                #'xmlns:rdfs': NS_RDFS,
-            })
-            for cmeta_id in sorted(oxmeta_vars):
-                annotation = oxmeta_vars[cmeta_id]
-                edesc = et.SubElement(erdf, 'rdf:Description')
-                edesc.attrib['rdf:about'] = '#' + cmeta_id
-                eis = et.SubElement(edesc, 'bqbiol:is')
-                eis.attrib['rdf:resource'] = NS_OXMETA + quote(annotation)
-
-'''
+# Left-over from old exporter. Not sure if this had any function.
+# Add name in 'tmp-documentation' format
+# emodel.attrib['name'] = 'generated_model'
+# if 'name' in model.meta:
+#     dtag = et.SubElement(emodel, 'documentation')
+#     dtag.attrib['xmlns'] = NS_TMP_DOC
+#     atag = et.SubElement(dtag, 'article')
+#     ttag = et.SubElement(atag, 'title')
+#     ttag.text = model.meta['name']
 
 
 def write_file(path, model):
@@ -236,17 +197,20 @@ class CellMLWriter(object):
 
         # Create expression writer for this component
         from myokit.formats.cellml import CellMLExpressionWriter
-        ewriter = CellMLExpressionWriter()
+        ewriter = CellMLExpressionWriter(component.model().version())
         ewriter.set_lhs_function(lambda x: x.var().name())
         ewriter.set_unit_function(lambda x: component.find_units_name(x))
         if free is not None:
             ewriter.set_time_variable(free)
 
-        # Add math element and reset default namespace to MathML namespace
-        nsmap = {
-            None: cellml.NS_MATHML,
-            'cellml': cellml.NS_CELLML_1_0,
-        }
+        # Reset default namespace to MathML namespace
+        nsmap = {None: cellml.NS_MATHML}
+        if component.model().version() == '1.0':
+            nsmap['cellml'] = cellml.NS_CELLML_1_0
+        else:
+            nsmap['cellml'] = cellml.NS_CELLML_1_1
+
+        # Create math elements
         math = etree.SubElement(parent, 'math', nsmap=nsmap)
 
         # Add maths for variables
@@ -272,17 +236,13 @@ class CellMLWriter(object):
         version = model.version()
         assert version in ('1.0', '1.1')    # Model ensures this
         if version == '1.0':
-            namespaces = {
-                None: cellml.NS_CELLML_1_0,
-                'cellml': cellml.NS_CELLML_1_0,
-                'cmeta': cellml.NS_CMETA,
-            }
+            namespaces = {None: cellml.NS_CELLML_1_0}
         else:
-            namespaces = {
-                None: cellml.NS_CELLML_1_1,
-                'cellml': cellml.NS_CELLML_1_1,
-                'cmeta': cellml.NS_CMETA,
-            }
+            namespaces = {None: cellml.NS_CELLML_1_1}
+        namespaces['cellml'] = namespaces[None]
+        namespaces['cmeta'] = cellml.NS_CMETA
+        namespaces['bqbiol'] = cellml.NS_BQBIOL
+        namespaces['rdf'] = cellml.NS_RDF
 
         # Create model element
         element = etree.Element('model', nsmap=namespaces)
@@ -309,8 +269,34 @@ class CellMLWriter(object):
         if cid is not None:
             element.attrib[etree.QName(cellml.NS_CMETA, 'id')] = cid
 
+        # Add oxmeta annotations
+        self._oxmeta_annotations(element)
+
         # Return model element
         return element
+
+    def _oxmeta_annotations(self, parent):
+        """
+        Adds RDF annotations suitable for use with the web lab, for any
+        variable that has an `oxmeta` meta data property and a `cmeta_id`.
+        """
+        # Check if there's anything to do
+        if len(self._oxmeta_variables) == 0:
+            return
+
+        # Create parent RDF tag
+        rdf = etree.SubElement(parent, etree.QName(cellml.NS_RDF, 'RDF'))
+
+        # Add annotations
+        for cid, annotation in sorted(
+                self._oxmeta_variables.items(), key=lambda x: x[0]):
+            description = etree.SubElement(
+                rdf, etree.QName(cellml.NS_RDF, 'Description'))
+            description.attrib[etree.QName(cellml.NS_RDF, 'about')] = '#' + cid
+            iz = etree.SubElement(
+                description, etree.QName(cellml.NS_BQBIOL, 'is'))
+            iz.attrib[etree.QName(cellml.NS_RDF, 'resource')] = \
+                cellml.NS_OXMETA + quote(annotation)
 
     def _units(self, parent, units):
         """
@@ -383,6 +369,12 @@ class CellMLWriter(object):
         if cid is not None:
             element.attrib[etree.QName(cellml.NS_CMETA, 'id')] = cid
 
+            # Add oxmeta annotation, if found
+            try:
+                self._oxmeta_variables[cid] = variable.meta['oxmeta']
+            except KeyError:
+                pass
+
     def write(self, model, version='1.0'):
         """
         Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
@@ -396,6 +388,11 @@ class CellMLWriter(object):
         model.validate()
 
         try:
+            # Variables with an oxmeta annotation and a cmeta:id will get an
+            # annotation suitable for use with the web lab. This dict maps
+            # cmeta:id strings to oxmeta annotations.
+            self._oxmeta_variables = {}
+
             # Temporarily store free variable (in valid models, this is always
             # set if states are used).
             self._time = None
@@ -409,7 +406,7 @@ class CellMLWriter(object):
 
         finally:
             # Delete any temporary properties
-            del(self._time)
+            del(self._oxmeta_variables, self._time)
 
     def write_file(self, path, model):
         """

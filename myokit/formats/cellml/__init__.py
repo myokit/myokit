@@ -13,14 +13,13 @@ from ._importer import CellMLImporter, CellMLImporterError  # noqa
 
 
 # Namespaces
-#NS_BQBIOL = 'http://biomodels.net/biology-qualifiers/'
+NS_BQBIOL = 'http://biomodels.net/biology-qualifiers/'
 NS_CELLML_1_0 = 'http://www.cellml.org/cellml/1.0#'
 NS_CELLML_1_1 = 'http://www.cellml.org/cellml/1.1#'
 NS_CMETA = 'http://www.cellml.org/metadata/1.0#'
 NS_MATHML = 'http://www.w3.org/1998/Math/MathML'
-#NS_OXMETA = 'https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#'
-#NS_RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-#NS_RDFS = 'http://www.w3.org/2000/01/rdf-schema#'
+NS_OXMETA = 'https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#'
+NS_RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
 NS_TMP_DOC = 'http://cellml.org/tmp-documentation'
 
 

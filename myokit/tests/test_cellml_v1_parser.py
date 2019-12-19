@@ -12,7 +12,8 @@ import os
 import unittest
 
 import myokit
-import myokit.formats.cellml.v1 as cellml
+import myokit.formats.cellml as cellml
+import myokit.formats.cellml.v1 as v1
 
 from shared import TemporaryDirectory, DIR_FORMATS
 
@@ -41,14 +42,14 @@ class TestCellMLParser(unittest.TestCase):
         that this raises an exception matching ``message``.
         """
         self.assertRaisesRegex(
-            cellml.CellMLParsingError, message, self.parse, xml)
+            v1.CellMLParsingError, message, self.parse, xml)
 
     def parse(self, xml):
         """
         Inserts the given ``xml`` into a <model> element, parses it, and
         returns the result.
         """
-        return cellml.parse_string(self.wrap(xml))
+        return v1.parse_string(self.wrap(xml))
 
     def parse_in_file(self, xml):
         """
@@ -59,7 +60,7 @@ class TestCellMLParser(unittest.TestCase):
             path = d.path('test.cellml')
             with open(path, 'w') as f:
                 f.write(self.wrap(xml))
-            return cellml.parse_file(path)
+            return v1.parse_file(path)
 
     def wrap(self, xml):
         """
@@ -79,7 +80,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Test parsing cmeta id
         path = os.path.join(DIR, 'br-1977.cellml')
-        model = cellml.parse_file(path)
+        model = v1.parse_file(path)
         self.assertEqual(model.cmeta_id(), 'beeler_reuter_1977')
 
         # Invalid cmeta id
@@ -245,7 +246,7 @@ class TestCellMLParser(unittest.TestCase):
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         self.assertRaisesRegex(
-            cellml.CellMLParsingError, 'Invalid connection',
+            v1.CellMLParsingError, 'Invalid connection',
             self.parse, q)
 
     def test_documentation(self):
@@ -271,7 +272,7 @@ class TestCellMLParser(unittest.TestCase):
             '',
             'Here\'s some extra documentation.',
         ])
-        m = cellml.parse_file(path)
+        m = v1.parse_file(path)
         self.assertEqual(m.meta['documentation'], expected)
 
     def test_evaluated_derivatives(self):
@@ -284,7 +285,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Load exported version
         path = os.path.join(DIR, 'lr-1991-exported.cellml')
-        cm = cellml.parse_file(path)
+        cm = v1.parse_file(path)
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
         new_values = new_model.eval_state_derivatives()
@@ -329,80 +330,6 @@ class TestCellMLParser(unittest.TestCase):
         self.assertBad(
             '<x:y xmlns:x="xyz"><component name="c" /></x:y>',
             'found inside extension element')
-
-    def test_math(self):
-        # Tests parsing math elements
-        x = ('<component name="a">'
-             '  <variable name="x" units="volt" />'
-             '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
-        z = ('  </math>'
-             '</component>'
-             '<component name="b">'
-             '  <variable name="y" units="volt" initial_value="12.3" />'
-             '</component>')
-
-        # Test parsing valid equation
-        y = '<apply><eq /><ci>x</ci><cn cellml:units="volt">-80</cn></apply>'
-        m = self.parse(x + y + z)
-        var = m['a']['x']
-        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
-
-        # Valid equation inside a semantics element
-        m = self.parse(x + '<semantics>' + y + '</semantics>' + z)
-        var = m['a']['x']
-        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
-
-        # Valid equation with some annotations to ignore
-        m = self.parse(x + '<annotation />' + y + '<annotation-xml />' + z)
-        var = m['a']['x']
-        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
-
-        # Constants
-        m = self.parse(x + '<apply><eq /><ci>x</ci> <pi /> </apply>' + z)
-        var = m['a']['x']
-        self.assertEqual(var.rhs().unit(), myokit.units.dimensionless)
-
-        # Variable doesn't exist
-        y = '<apply><eq /><ci>y</ci><cn cellml:units="volt">-80</cn></apply>'
-        self.assertBad(x + y + z, 'Variable references in equation must name')
-        y = '<apply><eq /><ci>x</ci><ci>y</ci></apply>'
-        self.assertBad(x + y + z, 'Variable references in equation must name')
-
-        # No units in number
-        y = '<apply><eq /><ci>x</ci><cn>-80</cn></apply>'
-        self.assertBad(x + y + z, 'must define a cellml:units')
-
-        # Non-existent units
-        y = '<apply><eq /><ci>x</ci><cn cellml:units="vlop">-80</cn></apply>'
-        self.assertBad(x + y + z, 'Unknown unit "vlop" referenced')
-
-        # Items outside of MathML namespace
-        y = '<cellml:component name="bertie" />'
-        self.assertBad(x + y + z, 'must be in the mathml namespace')
-
-        # Doesn't start with an apply
-        y = '<ci>x</ci>'
-        self.assertBad(x + y + z, 'Expecting mathml:apply but found')
-
-        # Not an equality
-        y = '<apply><plus /><ci>x</ci></apply>'
-        self.assertBad(x + y + z, 'expecting a list of equations')
-
-        # Not in assignment form
-        y = ('<apply>'
-             ' <eq />'
-             ' <apply><plus /><ci>x</ci><cn cellml:units="volt">1</cn></apply>'
-             ' <cn cellml:units="volt">10</cn>'
-             '</apply>')
-        self.assertBad(x + y + z, 'Invalid expression found on the left-hand')
-
-        # Assignment to a variable with an "in" interface (error should be
-        # converted from CellMLError to CellMLParsingError).
-        x = ('<component name="a">'
-             '  <variable name="x" units="volt" public_interface="in" />'
-             '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
-        y = '<apply><eq /><ci>x</ci><cn cellml:units="volt">-80</cn></apply>'
-        self.assertBad(x + y + z, 'public_interface="in"')
 
     def test_group(self):
         # Tests parsing a group element.
@@ -548,8 +475,82 @@ class TestCellMLParser(unittest.TestCase):
              '  <import />'
              '</model>')
         self.assertRaisesRegex(
-            cellml.CellMLParsingError, 'Imports are not supported',
-            cellml.parse_string, x)
+            v1.CellMLParsingError, 'Imports are not supported',
+            v1.parse_string, x)
+
+    def test_math(self):
+        # Tests parsing math elements
+        x = ('<component name="a">'
+             '  <variable name="x" units="volt" />'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
+        z = ('  </math>'
+             '</component>'
+             '<component name="b">'
+             '  <variable name="y" units="volt" initial_value="12.3" />'
+             '</component>')
+
+        # Test parsing valid equation
+        y = '<apply><eq /><ci>x</ci><cn cellml:units="volt">-80</cn></apply>'
+        m = self.parse(x + y + z)
+        var = m['a']['x']
+        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
+
+        # Valid equation inside a semantics element
+        m = self.parse(x + '<semantics>' + y + '</semantics>' + z)
+        var = m['a']['x']
+        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
+
+        # Valid equation with some annotations to ignore
+        m = self.parse(x + '<annotation />' + y + '<annotation-xml />' + z)
+        var = m['a']['x']
+        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
+
+        # Constants
+        m = self.parse(x + '<apply><eq /><ci>x</ci> <pi /> </apply>' + z)
+        var = m['a']['x']
+        self.assertEqual(var.rhs().unit(), myokit.units.dimensionless)
+
+        # Variable doesn't exist
+        y = '<apply><eq /><ci>y</ci><cn cellml:units="volt">-80</cn></apply>'
+        self.assertBad(x + y + z, 'Variable references in equation must name')
+        y = '<apply><eq /><ci>x</ci><ci>y</ci></apply>'
+        self.assertBad(x + y + z, 'Variable references in equation must name')
+
+        # No units in number
+        y = '<apply><eq /><ci>x</ci><cn>-80</cn></apply>'
+        self.assertBad(x + y + z, 'must define a cellml:units')
+
+        # Non-existent units
+        y = '<apply><eq /><ci>x</ci><cn cellml:units="vlop">-80</cn></apply>'
+        self.assertBad(x + y + z, 'Unknown unit "vlop" referenced')
+
+        # Items outside of MathML namespace
+        y = '<cellml:component name="bertie" />'
+        self.assertBad(x + y + z, 'must be in the mathml namespace')
+
+        # Doesn't start with an apply
+        y = '<ci>x</ci>'
+        self.assertBad(x + y + z, 'Expecting mathml:apply but found')
+
+        # Not an equality
+        y = '<apply><plus /><ci>x</ci></apply>'
+        self.assertBad(x + y + z, 'expecting a list of equations')
+
+        # Not in assignment form
+        y = ('<apply>'
+             ' <eq />'
+             ' <apply><plus /><ci>x</ci><cn cellml:units="volt">1</cn></apply>'
+             ' <cn cellml:units="volt">10</cn>'
+             '</apply>')
+        self.assertBad(x + y + z, 'Invalid expression found on the left-hand')
+
+        # Assignment to a variable with an "in" interface (error should be
+        # converted from CellMLError to CellMLParsingError).
+        x = ('<component name="a">'
+             '  <variable name="x" units="volt" public_interface="in" />'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
+        y = '<apply><eq /><ci>x</ci><cn cellml:units="volt">-80</cn></apply>'
+        self.assertBad(x + y + z, 'public_interface="in"')
 
     def test_model(self):
         # Tests parsing a model element.
@@ -560,34 +561,34 @@ class TestCellMLParser(unittest.TestCase):
         x = '<?xml version="1.0" encoding="UTF-8"?>'
         y = '<model name="x" xmlns="http://example.com" />'
         self.assertRaisesRegex(
-            cellml.CellMLParsingError, 'must be in CellML',
-            cellml.parse_string, x + y)
+            v1.CellMLParsingError, 'must be in CellML',
+            v1.parse_string, x + y)
 
         # CellML 1.0 and 1.1 are ok
         y = '<model name="x" xmlns="http://www.cellml.org/cellml/1.0#" />'
-        m = cellml.parse_string(x + y)
+        m = v1.parse_string(x + y)
         self.assertEqual(m.version(), '1.0')
         y = '<model name="x" xmlns="http://www.cellml.org/cellml/1.1#" />'
-        m = cellml.parse_string(x + y)
+        m = v1.parse_string(x + y)
         self.assertEqual(m.version(), '1.1')
 
         # Not a model
         y = '<module name="x" xmlns="http://www.cellml.org/cellml/1.0#" />'
         self.assertRaisesRegex(
-            cellml.CellMLParsingError, 'must be a CellML model',
-            cellml.parse_string, x + y)
+            v1.CellMLParsingError, 'must be a CellML model',
+            v1.parse_string, x + y)
 
         # No name
         y = '<model xmlns="http://www.cellml.org/cellml/1.0#" />'
         self.assertRaisesRegex(
-            cellml.CellMLParsingError, 'Model element must have a name',
-            cellml.parse_string, x + y)
+            v1.CellMLParsingError, 'Model element must have a name',
+            v1.parse_string, x + y)
 
         # CellML API errors are wrapped
         y = '<model name="123" xmlns="http://www.cellml.org/cellml/1.0#" />'
         self.assertRaisesRegex(
-            cellml.CellMLParsingError, 'valid CellML identifier',
-            cellml.parse_string, x + y)
+            v1.CellMLParsingError, 'valid CellML identifier',
+            v1.parse_string, x + y)
 
         # Too many free variables
         self.assertBad(
@@ -658,6 +659,102 @@ class TestCellMLParser(unittest.TestCase):
         # Two equations
         self.assertBad(x + a + a + z, 'Two defining equations')
 
+    def test_oxmeta_annotations(self):
+        # Tests parsing of RDF annotations for the Web Lab
+
+        # Start and end of required tags
+        r1 = ('<rdf:RDF'
+              ' xmlns:rdf="' + cellml.NS_RDF + '"'
+              ' xmlns:bqbiol="' + cellml.NS_BQBIOL + '"'
+              '>')
+        r2 = '</rdf:RDF>'
+        d1a = '<rdf:Description rdf:about="#'
+        d1b = '">'
+        d2 = '</rdf:Description>'
+        b1 = '<bqbiol:is rdf:resource="' + cellml.NS_OXMETA
+        b2 = '"/>'
+
+        # Create mini model with 2 rdf tags and 3 annotations
+        x = ('<component name="a">'
+             '  <variable name="x" units="volt" cmeta:id="x" />'
+             '  <variable name="y" units="volt" cmeta:id="yzie" />'
+             '  <variable name="z" units="volt" cmeta:id="zed" />'
+             '</component>')
+        y = r1
+        y += d1a + 'x' + d1b + b1 + 'membrane_voltage' + b2 + d2
+        y += d1a + 'yzie' + d1b + b1 + 'sodium_reversal_potential' + b2 + d2
+        y += r2
+        y += r1
+        y += d1a + 'zed' + d1b + b1 + 'calcium_reversal_potential' + b2 + d2
+        y += r2
+
+        # Parse
+        cm = self.parse(x + y)
+
+        # Check cmeta ids
+        x, y, z = cm['a']['x'], cm['a']['y'], cm['a']['z']
+        self.assertEqual(x.cmeta_id(), 'x')
+        self.assertEqual(y.cmeta_id(), 'yzie')
+        self.assertEqual(z.cmeta_id(), 'zed')
+
+        # Check oxmeta annotation
+        self.assertIn('oxmeta', x.meta)
+        self.assertIn('oxmeta', y.meta)
+        self.assertIn('oxmeta', z.meta)
+        self.assertEqual(x.meta['oxmeta'], 'membrane_voltage')
+        self.assertEqual(y.meta['oxmeta'], 'sodium_reversal_potential')
+        self.assertEqual(z.meta['oxmeta'], 'calcium_reversal_potential')
+
+    def test_oxmeta_annotations_bad(self):
+        # Tests parsing of RDF annotations for the Web Lab
+
+        # Start and end of required tags
+        r1 = ('<rdf:RDF'
+              ' xmlns:rdf="' + cellml.NS_RDF + '"'
+              ' xmlns:bqbiol="' + cellml.NS_BQBIOL + '"'
+              '>')
+        r2 = '</rdf:RDF>'
+        d1a = '<rdf:Description rdf:about="#'
+        d1b = '">'
+        d2 = '</rdf:Description>'
+        b1 = '<bqbiol:is rdf:resource="' + cellml.NS_OXMETA
+        b2 = '"/>'
+
+        # Model code
+        x = ('<component name="a">'
+             '  <variable name="x" units="volt" cmeta:id="x" />'
+             '</component>')
+
+        # Check that parser survives all kinds of half-formed annotations
+
+        # No content
+        y = r1 + r2
+        cm = self.parse(x + y)
+
+        # No about attribute
+        y = r1 + '<rdf:Description />' + r2
+        cm = self.parse(x + y)
+
+        # Unknown cmeta id
+        y = r1 + d1a + 'xxx' + d1b + d2 + r2
+        cm = self.parse(x + y)
+
+        # No bqbiol:is
+        y = r1 + d1a + 'x' + d1b + d2 + r2
+        cm = self.parse(x + y)
+
+        # No bqbiol:is
+        y = r1 + d1a + 'x' + d1b + d2 + r2
+        cm = self.parse(x + y)
+
+        # No resource
+        y = r1 + d1a + 'x' + d1b + '<bqbiol:is/>' + d2 + r2
+        cm = self.parse(x + y)
+
+        # Non oxmeta-resource
+        y = r1 + d1a + 'x' + d1b + '<bqbiol:is rdf:resource="hi"/>' + d2 + r2
+        cm = self.parse(x + y)
+
     def test_parse_file(self):
         # Tests the parse file method
 
@@ -667,7 +764,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Parse invalid XML: errors must be wrapped
         self.assertRaisesRegex(
-            cellml.CellMLParsingError,
+            v1.CellMLParsingError,
             'Unable to parse XML',
             self.parse_in_file,
             '<component',
@@ -680,9 +777,9 @@ class TestCellMLParser(unittest.TestCase):
 
         # Parse invalid XML: errors must be wrapped
         self.assertRaisesRegex(
-            cellml.CellMLParsingError,
+            v1.CellMLParsingError,
             'Unable to parse XML',
-            cellml.parse_string,
+            v1.parse_string,
             'Hello there',
         )
 
