@@ -14,7 +14,7 @@ import unittest
 
 import myokit
 import myokit.formats as formats
-import myokit.formats.cellml
+import myokit.formats.cellml as cellml
 
 from myokit.formats.cellml import CellMLImporterError
 
@@ -126,7 +126,7 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         units = {
             myokit.parse_unit('pF'): 'picofarad',
         }
-        cls.w = myokit.formats.cellml.CellMLExpressionWriter()
+        cls.w = cellml.CellMLExpressionWriter()
         cls.w.set_unit_function(lambda x: units[x])
 
         model = myokit.Model()
@@ -153,7 +153,7 @@ class CellMLExpressionWriterTest(unittest.TestCase):
 
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('cellml')
-        self.assertIsInstance(w, myokit.formats.cellml.CellMLExpressionWriter)
+        self.assertIsInstance(w, cellml.CellMLExpressionWriter)
 
         # Content mode not allowed
         self.assertRaises(RuntimeError, w.set_mode, True)
@@ -440,6 +440,29 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertRaisesRegex(
             CellMLImporterError, 'Unable to parse XML',
             i.model, os.path.join(DIR_FORMATS, 'lr-1991.mmt'))
+
+    def test_versions(self):
+        # Tests writing to different CellML versions
+
+        # CellML 1.0
+        units = {
+            myokit.parse_unit('pF'): 'picofarad',
+        }
+        w = cellml.CellMLExpressionWriter('1.0')
+        w.set_unit_function(lambda x: units[x])
+        xml = w.ex(myokit.Number(1, myokit.units.pF))
+        self.assertIn(cellml.NS_CELLML_1_0, xml)
+
+        # CellML 1.1
+        w = cellml.CellMLExpressionWriter('1.1')
+        w.set_unit_function(lambda x: units[x])
+        xml = w.ex(myokit.Number(1, myokit.units.pF))
+        self.assertIn(cellml.NS_CELLML_1_1, xml)
+
+        # CellML 1.2
+        self.assertRaisesRegex(
+            ValueError, 'Unknown CellML version',
+            cellml.CellMLExpressionWriter, '1.2')
 
     def test_warnings(self):
         # Tests warnings are logged
