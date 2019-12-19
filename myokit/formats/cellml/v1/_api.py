@@ -9,6 +9,7 @@ from __future__ import print_function, unicode_literals
 
 import collections
 import re
+import warnings
 
 import myokit
 
@@ -877,27 +878,51 @@ class Model(AnnotatableElement):
         for key, value in self.meta.items():
             m.meta[key] = value
 
+        # Mapping from CellML variables to Myokit variables, per component
+        var_map = {}
+
+        # Gather set of variables that are used in (local) equations
+        used = set()
+        for component in self:
+            for variable in component:
+                rhs = variable.rhs()
+                if rhs is not None:
+                    for ref in rhs.references():
+                        used.add(ref.var())
+
+        # Gather dict of variables that need unit conversion, mapping their
+        # CellML variables to a tuple of units (from, to).
+        # This is the set of variables that are non-local, have a different
+        # unit than their source, and are referenced by other variables.
+        needs_conversion = set()
+        for component in self:
+            for variable in component:
+                if variable.is_local() or variable not in used:
+                    continue
+
+                # Compare units
+                ufrom = variable.value_source().units().myokit_unit()
+                uto = variable.units().myokit_unit()
+                if ufrom != uto:
+                    needs_conversion.add(variable)
+
         # Add components
         for component in self:
             c = m.add_component(component.name())
 
-            # Add local variables
-            for variable in component:
-                if variable.is_local():
-                    v = c.add_variable(variable.name())
-                    v.set_unit(variable.units().myokit_unit())
-                elif variable.units() != variable.value_source().units():
-                    #TODO Implement unit conversion
-                    import warnings
-                    warnings.warn(
-                        'Unit conversion required for ' + str(variable) + '.')
-                # Copy meta data
-                for key, value in variable.meta.items():
-                    v.meta[key] = value
-
             # Copy meta data
             for key, value in component.meta.items():
                 c.meta[key] = value
+
+            # Create local variables or variables that need unit conversion
+            for variable in component:
+                if variable.is_local() or variable in needs_conversion:
+                    v = c.add_variable(variable.name())
+                    v.set_unit(variable.units().myokit_unit())
+
+                    # Copy meta data
+                    for key, value in variable.meta.items():
+                        v.meta[key] = value
 
         # Add equations
         undefined_variables = []
@@ -905,15 +930,21 @@ class Model(AnnotatableElement):
             c = m[component.name()]
 
             # Create dict of variable reference substitutions
-            varmap = {}
+            var_map = {}
             for variable in component:
-                source = variable.value_source()
-                parent = m[source.component().name()]
-                varmap[myokit.Name(variable)] = myokit.Name(
-                    parent[source.name()])
+                cname = myokit.Name(variable)
+                if variable.is_local() or variable in needs_conversion:
+                    mname = myokit.Name(c[variable.name()])
+                else:
+                    source = variable.value_source()
+                    source = m[source.component().name()][source.name()]
+                    mname = myokit.Name(source)
+                var_map[cname] = mname
 
             # Add equations
             for variable in component:
+
+                # Add local variable equations
                 if variable.is_local():
                     v = c[variable.name()]
 
@@ -934,11 +965,36 @@ class Model(AnnotatableElement):
                             undefined_variables.append(v)
                     else:
                         # Add RHS with Myokit references
-                        rhs = rhs.clone(subst=varmap)
+                        rhs = rhs.clone(subst=var_map)
+
                         v.set_rhs(rhs)
                         if variable.is_state():
                             init = variable.initial_value()
                             v.promote(0 if init is None else init)
+
+                # Add local copies of variables requiring unit conversion
+                elif variable in needs_conversion:
+
+                    # Get Myokit variable
+                    v = c[variable.name()]
+
+                    # Get Myokit variable for source
+                    r = variable.value_source()
+                    r = m[r.component().name()][r.name()]
+
+                    # Get conversion factor
+                    try:
+                        f = myokit.Unit.conversion_factor(r.unit(), v.unit())
+                        f = myokit.Number(f)
+                    except myokit.IncompatibleUnitError:
+                        warnings.warn(
+                            'Unable to determine unit conversion factor for '
+                            + str(v) + ', from ' + str(v.unit()) + ' to '
+                            + str(r.unit()) + '.')
+                        f = myokit.Number(1)
+
+                    # Add equation
+                    v.set_rhs(myokit.Multiply(myokit.Name(r), f))
 
         # Check that a binding to time has been made
         if m.binding('time') is None:
