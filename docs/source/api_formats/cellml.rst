@@ -13,10 +13,17 @@ Importing
 
 Myokit can import most models listed in the CellML electrophysiology
 repository.
+(Although take care, some of the CellML versions of models are known issues.
+This is usually mentioned in their documentation).
 
-However, most CellML models contain a hard-coded stimulus current which will
-cause problems for the solver. These must rewritten manually to use Myokit's
-pacing system.
+Adapting an embedded stimulus current
+-------------------------------------
+
+Most CellML models contain a hard-coded stimulus current.
+Myokit will try to detect these stimulus currents and replace them by an
+appropriate :class:`myokit.Protocol`.
+However, if this fails, the stimulus will need to be converted by hand, which
+is described below.
 
 In the following example we show how to import the Beeler-Reuter model from
 the CellML database.

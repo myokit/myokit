@@ -40,27 +40,6 @@ def _deep_deps(variable):
     return distances
 
 
-def _find_conditional(expression):
-    """
-    Performs a breadth-first search on the given ``expression``, returning the
-    first conditional expression it finds (or ``None`` if no conditionals are
-    encountered).
-    """
-    conds = (myokit.If, myokit.Piecewise)
-    if isinstance(expression, conds):
-        return expression
-
-    queue = collections.deque([expression])
-    while queue:
-        root = queue.popleft()
-        for e in iter(root):
-            if isinstance(e, conds):
-                return e
-            queue.append(e)
-
-    return None
-
-
 def _distance_to_bound(variable):
     """
     Finds all variables that depend on a bound ``variable``, but are otherwise
@@ -93,6 +72,53 @@ def _distance_to_bound(variable):
         variable.set_binding(binding)
 
     return distances
+
+
+def _find_conditional(expression):
+    """
+    Performs a breadth-first search on the given ``expression``, returning the
+    first conditional expression it finds (or ``None`` if no conditionals are
+    encountered).
+    """
+    conds = (myokit.If, myokit.Piecewise)
+    if isinstance(expression, conds):
+        return expression
+
+    queue = collections.deque([expression])
+    while queue:
+        root = queue.popleft()
+        for e in iter(root):
+            if isinstance(e, conds):
+                return e
+            queue.append(e)
+
+    return None
+
+
+def _make_boring(variable):
+    """
+    Update the given variable to have a zero RHS, no child variables, no
+    bindings, no labels, and to not be a state.
+
+    Does not alter the variable's unit.
+    """
+    # Update variable itself
+    variable.set_rhs(0)
+    variable.set_binding(None)
+    variable.set_label(None)
+    if variable.is_state():
+        variable.demote()
+
+    # Remove nested variables
+    def remove_nested(var):
+        kids = list([kid for kid in var])
+        for kid in kids:
+            kid.set_rhs(0)
+        for kid in kids:
+            remove_nested(kid)
+            kid.parent().remove_variable(kid, recursive=True)
+
+    remove_nested(variable)
 
 
 def add_embedded_protocol(model, protocol):
@@ -128,29 +154,23 @@ def add_embedded_protocol(model, protocol):
     if event.period() == 0 or event.multiplier() != 0:
         return False
 
-    # Remove any kids (pace is already guaranteed not to be a state)
-    pace.set_binding(None)
-    pace.set_rhs(0)
-    kids = list(pace.variables())
-    for kid in kids:
-        kid.set_rhs(0)
-    for kid in kids:
-        pace.remove_variable(kid, recursive=True)
+    # Ensure pace is a really boring variable, without kids etc.
+    _make_boring(pace)
 
     # Add new child variables with stimulus properties
-    level = pace.add_variable('level')
+    level = pace.add_variable_allow_renaming('stimulus_amplitude')
     level.set_unit(pace.unit())
     level.set_rhs(myokit.Number(event.level(), pace.unit()))
 
-    offset = pace.add_variable('offset')
+    offset = pace.add_variable_allow_renaming('stimulus_offset')
     offset.set_unit(time.unit())
     offset.set_rhs(myokit.Number(event.start(), time.unit()))
 
-    period = pace.add_variable('period')
+    period = pace.add_variable_allow_renaming('stimulus_period')
     period.set_rhs(event.period())
     period.set_unit(myokit.units.dimensionless)
 
-    duration = pace.add_variable('duration')
+    duration = pace.add_variable_allow_renaming('stimulus_duration')
     duration.set_unit(time.unit())
     duration.set_rhs(myokit.Number(event.duration(), time.unit()))
 
@@ -279,6 +299,74 @@ def membrane_potential(model):
     if candidates[v] < 1:
         return None
     return v
+
+
+def remove_embedded_protocol(model):
+    """
+    Searches the given model for a hardcoded periodic stimulus current and, if
+    one is found, removes it and returns a :class:`myokit.Protocol` instead.
+
+    For this method to work, :meth:`stimulus_current_info` should return at
+    least a current variable, a period and duration variable, and either an
+    amplitude variable or an amplitude expression.
+
+    Returns a :class:`myokit.Protocol` if succesful, or ``None`` if not.
+    """
+
+    # Get stimulus current info from model
+    info = stimulus_current_info(model)
+
+    # Must have a stimulus current
+    v_current = info['current']
+    if v_current is None:
+        return None
+
+    # Must have a period and duration
+    duration = info['duration']
+    period = info['period']
+    if period is None or duration is None:
+        return None
+    period = period.eval()
+    duration = duration.eval()
+
+    # Check values are sensible
+    if period <= 0 or duration <= 0:
+        return None
+
+    # Offset is optional
+    offset = info['offset']
+    if offset is None:
+        offset = 0
+    else:
+        offset = offset.eval()
+
+    # Must have an amplitude or an amplitude expression
+    e_amplitude = info['amplitude_expression']
+    if e_amplitude is None:
+        if info['amplitude'] is None:
+            return None
+        e_amplitude = myokit.Name(info['amplitude'])
+
+    # Start modifying model
+
+    # Get pacing variable
+    v_pace = model.binding('pace')
+    if v_pace is None:
+        v_pace = v_current.parent(
+            myokit.Component).add_variable_allow_renaming('pace')
+
+    # Ensure pace is a really boring variable, without kids etc.
+    _make_boring(v_pace)
+
+    # Set pace to be pacing variable
+    v_pace.set_binding('pace')
+
+    # Set new RHS for stimulus variable
+    v_current.set_rhs(myokit.Multiply(myokit.Name(v_pace), e_amplitude))
+
+    # Return periodic protocol
+    return myokit.pacing.blocktrain(
+        period=period, duration=duration, offset=offset)
 
 
 def stimulus_current(model):
@@ -430,7 +518,7 @@ def stimulus_current_info(model):
        the first containing either ``offset`` or ``start`` is used for the
        stimulus offset.
     3. The first candidate that has ``period`` in its name and has no units,
-       time units, or is dimensionless, is used for the stimulus offset.
+       time units, or is dimensionless, is used for the stimulus period.
 
     The stimulus amplitude is determined as follows:
 

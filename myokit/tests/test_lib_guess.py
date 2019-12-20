@@ -54,26 +54,32 @@ class LibGuessTest(unittest.TestCase):
         self.assertTrue(isinstance(model.get('c.x').rhs(), myokit.If))
         self.assertEqual(
             model.get('c.x').rhs().code(),
-            'if((c.t - offset) % period < duration, level, 0 [A])'
+            'if((c.t - stimulus_offset) % stimulus_period < stimulus_duration,'
+            ' stimulus_amplitude, 0 [A])'
         )
         self.assertIsNone(model.get('c.x').binding())
 
         # Check units
-        self.assertEqual(model.get('c.x').unit(), myokit.units.ampere)
-        self.assertEqual(model.get('c.x.offset').unit(), myokit.units.second)
-        self.assertEqual(model.get('c.x.duration').unit(), myokit.units.second)
-        self.assertEqual(model.get('c.x.level').unit(), myokit.units.ampere)
         self.assertEqual(
-            model.get('c.x.period').unit(), myokit.units.dimensionless)
+            model.get('c.x').unit(), myokit.units.ampere)
+        self.assertEqual(
+            model.get('c.x.stimulus_offset').unit(), myokit.units.second)
+        self.assertEqual(
+            model.get('c.x.stimulus_duration').unit(), myokit.units.second)
+        self.assertEqual(
+            model.get('c.x.stimulus_amplitude').unit(), myokit.units.ampere)
+        self.assertEqual(
+            model.get('c.x.stimulus_period').unit(),
+            myokit.units.dimensionless)
 
         # Check values
-        self.assertEqual(model.get('c.x.offset').rhs(),
+        self.assertEqual(model.get('c.x.stimulus_offset').rhs(),
                          myokit.Number(0.01, myokit.units.second))
-        self.assertEqual(model.get('c.x.duration').rhs(),
+        self.assertEqual(model.get('c.x.stimulus_duration').rhs(),
                          myokit.Number(1e-3, myokit.units.second))
-        self.assertEqual(model.get('c.x.level').rhs(),
+        self.assertEqual(model.get('c.x.stimulus_amplitude').rhs(),
                          myokit.Number(2, myokit.units.ampere))
-        self.assertEqual(model.get('c.x.period').rhs(),
+        self.assertEqual(model.get('c.x.stimulus_period').rhs(),
                          myokit.Number(1, myokit.units.dimensionless))
 
         # 2. Should fail if nothing bound to pace
@@ -245,6 +251,49 @@ class LibGuessTest(unittest.TestCase):
             ValueError, 'must be a bound variable',
             guess._distance_to_bound, m.get('c.c'))
 
+    def test_make_boring(self):
+        # Tests the method to make variables really dull
+
+        m = myokit.parse_model("""
+            [[model]]
+            membrane.V = -80
+
+            [membrane]
+            time = z bind time
+                z = 10 + a + b
+                    a = 12
+                b = 12
+                in [s]
+            dot(V) = 1 + x + y
+                x = 1 + a + y
+                    a = b
+                        b = 10
+                y = 12
+                in [mV]
+                label membrane_potential
+            """)
+        m.validate()
+
+        m2 = m.clone()
+        v = m2.get('membrane.V')
+        myokit.lib.guess._make_boring(v)
+        self.assertEqual(v.rhs(), myokit.Number(0))
+        self.assertEqual(v.unit(), myokit.units.mV)
+        self.assertEqual(len(v), 0)
+        self.assertFalse(v.is_state())
+        self.assertIsNone(v.label())
+        self.assertIsNone(v.binding())
+        m2.validate()
+
+        t = m2.get('membrane.time')
+        myokit.lib.guess._make_boring(t)
+        self.assertEqual(t.rhs(), myokit.Number(0))
+        self.assertEqual(t.unit(), myokit.units.s)
+        self.assertEqual(len(t), 0)
+        self.assertFalse(t.is_state())
+        self.assertIsNone(t.label())
+        self.assertIsNone(t.binding())
+
     def test_membrane_potential_1(self):
         # Test finding the membrane potential based on annotations
 
@@ -396,6 +445,114 @@ class LibGuessTest(unittest.TestCase):
             z = 3
             """)
         self.assertIsNone(guess.membrane_potential(m))
+
+    def test_remove_embedded_protocol(self):
+        # Tests extracting an embedded protocol
+
+        # Test without an offset
+        model = myokit.parse_model("""
+            [[model]]
+            c.V = -80
+
+            [c]
+            time = 0 [ms]
+                in [ms]
+                bind time
+            dot(V) = 0.1 * i_stim
+            i_stim = if(time % period < duration, amplitude, 0)
+                in [pA]
+            duration = 0.3 [ms]
+                in [ms]
+            period = 500
+            amplitude = -80 [pA]
+            d = 3 [m]
+            """)
+        protocol = myokit.lib.guess.remove_embedded_protocol(model)
+        self.assertIsInstance(protocol, myokit.Protocol)
+        self.assertEqual(protocol.head().start(), 0)
+        self.assertEqual(protocol.head().duration(), 0.3)
+        self.assertEqual(protocol.head().period(), 500)
+
+        # Test with an offset
+        model = myokit.parse_model("""
+            [[model]]
+            c.V = -80
+
+            [c]
+            time = 0 [ms]
+                in [ms]
+                bind time
+            dot(V) = 0.1 * i_stim
+            i_stim = if((time - offset) % period < duration, amplitude, 0)
+                in [pA]
+            offset = 11 [ms]
+                in [ms]
+            duration = 0.3 [ms]
+                in [ms]
+            period = 500
+            amplitude = -80 [pA]
+            d = 3 [m]
+            """)
+        m2 = model.clone()
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
+        self.assertIsInstance(protocol, myokit.Protocol)
+        self.assertEqual(protocol.head().start(), 11)
+        self.assertEqual(protocol.head().duration(), 0.3)
+        self.assertEqual(protocol.head().period(), 500)
+
+        # Test various ways it can fail
+
+        # Stimulus current not found
+        m2 = model.clone()
+        m2.get('c.V').set_rhs(1)
+        m2.get('c').remove_variable(m2.get('c.i_stim'))
+        m2.get('c').remove_variable(m2.get('c.amplitude'))
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
+        self.assertIsNone(protocol)
+
+        # Duration not found
+        m2 = model.clone()
+        v = m2.get('c.i_stim')
+        v.set_rhs('if((time - offset) % period < 0.4, 0, 0)')
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
+        self.assertIsNone(protocol)
+
+        # Negative duration
+        m2 = model.clone()
+        m2.get('c.duration').set_rhs(-5)
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
+        self.assertIsNone(protocol)
+
+        # Period not found
+        m2 = model.clone()
+        v = m2.get('c.i_stim')
+        v.set_rhs('if((time - offset) < duration, 0, 0)')
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
+        self.assertIsNone(protocol)
+
+        # Negative period
+        m2 = model.clone()
+        m2.get('c.period').set_rhs(-5)
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
+        self.assertIsNone(protocol)
+
+        # Amplitude not found
+        m2 = model.clone()
+        v = m2.get('c.i_stim')
+        v.set_rhs('if((time - offset) % period < duration, 0, 0)')
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
+        self.assertIsNone(protocol)
+
+        # Test recovering a protocol created by myokit
+        m, p1, _ = myokit.load('example')
+        myokit.lib.guess.add_embedded_protocol(m, p1)
+        p2 = myokit.lib.guess.remove_embedded_protocol(m)
+        self.assertIsInstance(p2, myokit.Protocol)
+        self.assertEqual(p1.head().level(), p2.head().level())
+        self.assertEqual(p1.head().start(), p2.head().start())
+        self.assertEqual(p1.head().duration(), p2.head().duration())
+        self.assertEqual(p1.head().period(), p2.head().period())
+        self.assertEqual(p1.head().multiplier(), p2.head().multiplier())
 
     def test_stimulus_current_1(self):
         # Test finding the stimulus current based on annotations

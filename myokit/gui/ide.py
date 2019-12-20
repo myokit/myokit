@@ -19,6 +19,7 @@ import traceback
 import myokit
 import myokit.formats
 import myokit.lib.deps
+import myokit.lib.guess
 
 # Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
@@ -628,11 +629,24 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             # Load file
             i = myokit.formats.importer('cellml')
             try:
+                # Import the model
                 model = i.model(filename)
+
+                # Try to split off protocol
+                protocol = myokit.lib.guess.remove_embedded_protocol(model)
+
+                # No protocol? Then create one
+                if protocol is None:
+                    protocol = myokit.default_protocol(model)
+
+                # Get default script
+                script = myokit.default_script(model)
 
                 # Import okay, update interface
                 self.new_file()
                 self._model_editor.setPlainText(model.code())
+                self._protocol_editor.setPlainText(protocol.code())
+                self._script_editor.setPlainText(script)
 
                 # Write log to console
                 i.logger().log_warnings()
