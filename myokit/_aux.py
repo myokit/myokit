@@ -418,12 +418,11 @@ def default_script(model=None):
         # Get duration in good units
         time = model.time()
         if time is not None:
-            print('here')
-            if time.unit() is not None:
-                print('and here')
+            default_unit = myokit.units.ms
+            if time.unit() is not None and time.unit() != default_unit:
                 duration = myokit.Unit.convert(
-                    1000, myokit.units.ms, time.unit())
-    print(duration)
+                    1000, default_unit, time.unit())
+
     # Create and return script
     return '\n'.join((  # pragma: no cover
         "[[script]]",
@@ -436,7 +435,7 @@ def default_script(model=None):
         "s = myokit.Simulation(m, p)",
         "",
         "# Run simulation",
-        "d = s.run("  + str(duration) + ")",
+        "d = s.run(" + str(duration) + ")",
         "",
         "# Display the results",
         "var = " + vm,

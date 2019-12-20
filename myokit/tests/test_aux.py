@@ -81,14 +81,72 @@ class AuxTest(unittest.TestCase):
     def test_default_protocol(self):
         # Test default_protocol()
 
+        # Test default version
         protocol = myokit.default_protocol()
         self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
+
+        # Test adapting the time unit
+        model = myokit.Model()
+        t = model.add_component('c').add_variable('t')
+        t.set_rhs(0)
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
+
+        t.set_binding('time')
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
+
+        t.set_unit('s')
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1)
+
+        t.set_unit('ms')
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
 
     def test_default_script(self):
         # Test default script
 
+        # Test without a model
         script = myokit.default_script()
         self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
+
+        # Test adapting the time unit
+        model = myokit.Model()
+        t = model.add_component('c').add_variable('t')
+        t.set_rhs(0)
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
+
+        t.set_binding('time')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
+
+        t.set_unit('s')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1.0)', script)
+
+        t.set_unit('ms')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
+
+        # Test plotting membrane potential
+        v = model.get('c').add_variable('v')
+        v.set_label('membrane_potential')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn("var = 'c.v'", script)
+
         # TODO: Run with tiny model?
 
     def test_examplify(self):
