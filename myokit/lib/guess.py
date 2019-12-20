@@ -99,6 +99,8 @@ def _make_boring(variable):
     """
     Update the given variable to have a zero RHS, no child variables, no
     bindings, no labels, and to not be a state.
+
+    Does not alter the variable's unit.
     """
     # Update variable itself
     variable.set_rhs(0)
@@ -108,11 +110,18 @@ def _make_boring(variable):
         variable.demote()
 
     # Update nested variables
-    def remove_nested(var):
+    def make_zero(var):
         var.set_rhs(0)
         for kid in var:
-            remove_nested(kid)
+            make_zero(kid)
 
+    def remove_nested(var):
+        for kid in var:
+            remove_nested(kid)
+        for kid in var:
+            kid.parent().remove_variable(kid, recursive=True)
+
+    make_zero(variable)
     remove_nested(variable)
 
 
@@ -153,19 +162,19 @@ def add_embedded_protocol(model, protocol):
     _make_boring(pace)
 
     # Add new child variables with stimulus properties
-    level = pace.add_variable('level')
+    level = pace.add_variable_allow_renaming('stimulus_amplitude')
     level.set_unit(pace.unit())
     level.set_rhs(myokit.Number(event.level(), pace.unit()))
 
-    offset = pace.add_variable('offset')
+    offset = pace.add_variable_allow_renaming('stimulus_offset')
     offset.set_unit(time.unit())
     offset.set_rhs(myokit.Number(event.start(), time.unit()))
 
-    period = pace.add_variable('period')
+    period = pace.add_variable_allow_renaming('stimulus_period')
     period.set_rhs(event.period())
     period.set_unit(myokit.units.dimensionless)
 
-    duration = pace.add_variable('duration')
+    duration = pace.add_variable_allow_renaming('stimulus_duration')
     duration.set_unit(time.unit())
     duration.set_rhs(myokit.Number(event.duration(), time.unit()))
 
@@ -349,13 +358,11 @@ def remove_embedded_protocol(model):
     if v_pace is None:
         v_pace = v_current.parent(
             myokit.Component).add_variable_allow_renaming('pace')
-        v_pace.set_binding('pace')
 
     # Ensure pace is a really boring variable, without kids etc.
     _make_boring(v_pace)
 
     # Set pace to be pacing variable
-    v_pace.set_rhs(0)
     v_pace.set_binding('pace')
 
     # Set new RHS for stimulus variable

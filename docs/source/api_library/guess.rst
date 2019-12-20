@@ -18,6 +18,8 @@ guesses or other heuristics.
 
 .. autofunction:: membrane_potential
 
+.. autofunction:: remove_embedded_protocol
+
 .. autofunction:: stimulus_current
 
 .. autofunction:: stimulus_current_info
