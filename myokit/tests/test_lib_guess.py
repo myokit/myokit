@@ -493,7 +493,8 @@ class LibGuessTest(unittest.TestCase):
             amplitude = -80 [pA]
             d = 3 [m]
             """)
-        protocol = myokit.lib.guess.remove_embedded_protocol(model)
+        m2 = model.clone()
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
         self.assertIsInstance(protocol, myokit.Protocol)
         self.assertEqual(protocol.head().start(), 11)
         self.assertEqual(protocol.head().duration(), 0.3)
@@ -505,46 +506,47 @@ class LibGuessTest(unittest.TestCase):
         m2 = model.clone()
         m2.get('c.V').set_rhs(1)
         m2.get('c').remove_variable(m2.get('c.i_stim'))
-        protocol = myokit.lib.guess.remove_embedded_protocol(model)
+        m2.get('c').remove_variable(m2.get('c.amplitude'))
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
         self.assertIsNone(protocol)
 
         # Duration not found
         m2 = model.clone()
         v = m2.get('c.i_stim')
         v.set_rhs('if((time - offset) % period < 0.4, 0, 0)')
-        protocol = myokit.lib.guess.remove_embedded_protocol(model)
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
         self.assertIsNone(protocol)
 
         # Negative duration
         m2 = model.clone()
         m2.get('c.duration').set_rhs(-5)
-        protocol = myokit.lib.guess.remove_embedded_protocol(model)
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
         self.assertIsNone(protocol)
 
         # Period not found
         m2 = model.clone()
         v = m2.get('c.i_stim')
         v.set_rhs('if((time - offset) < duration, 0, 0)')
-        protocol = myokit.lib.guess.remove_embedded_protocol(model)
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
         self.assertIsNone(protocol)
 
         # Negative period
         m2 = model.clone()
         m2.get('c.period').set_rhs(-5)
-        protocol = myokit.lib.guess.remove_embedded_protocol(model)
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
         self.assertIsNone(protocol)
 
         # Amplitude not found
         m2 = model.clone()
         v = m2.get('c.i_stim')
         v.set_rhs('if((time - offset) % period < duration, 0, 0)')
-        protocol = myokit.lib.guess.remove_embedded_protocol(model)
+        protocol = myokit.lib.guess.remove_embedded_protocol(m2)
         self.assertIsNone(protocol)
 
         # Test recovering a protocol created by myokit
         m, p1, _ = myokit.load('example')
-        myokit.lib.guess.add_embedded_protocol(model, p1)
-        p2 = myokit.lib.guess.remove_embedded_protocol(model)
+        myokit.lib.guess.add_embedded_protocol(m, p1)
+        p2 = myokit.lib.guess.remove_embedded_protocol(m)
         self.assertIsInstance(p2, myokit.Protocol)
         self.assertEqual(p1.head().level(), p2.head().level())
         self.assertEqual(p1.head().start(), p2.head().start())

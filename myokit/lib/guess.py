@@ -109,19 +109,15 @@ def _make_boring(variable):
     if variable.is_state():
         variable.demote()
 
-    # Update nested variables
-    def make_zero(var):
-        var.set_rhs(0)
-        for kid in var:
-            make_zero(kid)
-
+    # Remove nested variables
     def remove_nested(var):
-        for kid in var:
+        kids = list([kid for kid in var])
+        for kid in kids:
+            kid.set_rhs(0)
+        for kid in kids:
             remove_nested(kid)
-        for kid in var:
             kid.parent().remove_variable(kid, recursive=True)
 
-    make_zero(variable)
     remove_nested(variable)
 
 
