@@ -93,12 +93,12 @@ before_script:
 # Run tests
 script:
   - if [[ $MYOKIT_UNIT == true ]]; then python run-tests.py unit; fi;
-  - if [[ $MYOKIT_COVER == true ]]; then coverage run run-tests.py unit; fi;
+  - if [[ $MYOKIT_COVER == true ]]; then python run-tests.py coverage; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then
         python -m flake8 --version;
         python -m flake8;
     fi;
-  - if [[ $MYOKIT_DOC == true ]]; then 
+  - if [[ $MYOKIT_DOC == true ]]; then
         python run-tests.py doc-coverage;
         python run-tests.py doc;
     fi;

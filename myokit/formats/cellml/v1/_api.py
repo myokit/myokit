@@ -833,8 +833,12 @@ class Model(AnnotatableElement):
                     # Create RHS with updated numbers and references
                     rhs = variable.rhs().clone(subst=subst)
 
+                # Free variable shouldn't have a value
+                if variable is time:
+                    m.set_free_variable(v)
+
                 # Promote states and set rhs and initial value
-                if variable.is_state():
+                elif variable.is_state():
                     v.set_is_state(True)
                     v.set_initial_value(variable.state_value())
                     v.set_rhs(rhs)
@@ -846,10 +850,6 @@ class Model(AnnotatableElement):
                 # For all other use rhs
                 else:
                     v.set_rhs(rhs)
-
-                # Set time variable
-                if variable is time:
-                    m.set_free_variable(v)
 
         # Return model
         return m
