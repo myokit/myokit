@@ -458,7 +458,7 @@ def suite_full(args):
     flake8()
     doc_coverage(args)
     doc_tests(args)
-    unit(args)
+    coverage(args)
     examples_web(args)
     examples_pub(args)
 
@@ -470,7 +470,7 @@ def suite_minimal(args):
     flake8()
     doc_coverage(args)
     doc_tests(args)
-    unit(args)
+    coverage(args)
 
 
 def test_mmt_files(path):
