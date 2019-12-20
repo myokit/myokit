@@ -98,7 +98,10 @@ script:
         python -m flake8 --version;
         python -m flake8;
     fi;
-  - if [[ $MYOKIT_DOC == true ]]; then python run-tests.py doc; fi;
+  - if [[ $MYOKIT_DOC == true ]]; then 
+        python run-tests.py doc-coverage;
+        python run-tests.py doc;
+    fi;
 
 # Compile coverage report
 after_success:
