@@ -61,24 +61,25 @@ class CellMLImporter(myokit.formats.Importer):
         ns, el = myokit.mxml.split(root.tag)
         if ns in (cellml.NS_CELLML_1_0, cellml.NS_CELLML_1_1):
 
-            # Parse CellML1 model
-            import myokit.formats.cellml.v1 as v1
-            p = v1.CellMLParser()
             try:
+                # Parse CellML1 model
+                import myokit.formats.cellml.v1 as v1
+                p = v1.CellMLParser()
                 cellml_model = p.parse(root)
+
+                # Log warnings, if any
+                warnings = cellml_model.validate()
+                for warning in warnings:
+                    log.warn(warning)
+
+                # Log result
+                log.log('Import successful.')
+
+                # Create and return Myokit model
+                return cellml_model.myokit_model()
+
             except v1.CellMLParsingError as e:
                 raise CellMLImporterError(str(e))
-
-            # Log warnings, if any
-            warnings = cellml_model.validate()
-            for warning in warnings:
-                log.warn(warning)
-
-            # Log result
-            log.log('Import successful.')
-
-            # Create and return Myokit model
-            return cellml_model.myokit_model()
 
         raise CellMLImporterError(
             'Unknown CellML version or not a CellML document at ' + str(path)

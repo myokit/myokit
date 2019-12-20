@@ -345,17 +345,21 @@ def remove_embedded_protocol(model):
     # Start modifying model
 
     # Get pacing variable
-    pace = model.binding('pace')
-    if pace is None:
-        pace = v_current.parent(myokit.Component).add_variable(
-            'pace', allow_renaming=True)
-        pace.set_binding('pace')
+    v_pace = model.binding('pace')
+    if v_pace is None:
+        v_pace = v_current.parent(
+            myokit.Component).add_variable_allow_renaming('pace')
+        v_pace.set_binding('pace')
 
     # Ensure pace is a really boring variable, without kids etc.
-    _make_boring(pace)
+    _make_boring(v_pace)
 
-    # Set new RHS for pacing variable
-    pace.set_rhs(myokit.Multiply(myokit.Name(pace), e_amplitude))
+    # Set pace to be pacing variable
+    v_pace.set_rhs(0)
+    v_pace.set_binding('pace')
+
+    # Set new RHS for stimulus variable
+    v_current.set_rhs(myokit.Multiply(myokit.Name(v_pace), e_amplitude))
 
     # Return periodic protocol
     return myokit.pacing.blocktrain(

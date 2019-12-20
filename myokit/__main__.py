@@ -664,20 +664,30 @@ def mmt_import(importer, source, target=None):
     logger.log_flair(str(importer.__class__.__name__))
 
     # Import
-    m = importer.model(source)
+    model = importer.model(source)
 
     # Print any warnings
     logger.log_warnings()
+
+    # Try to split off an embedded protocol
+    protocol = myokit.lib.guess.remove_embedded_protocol(model)
+
+    # No protocol? Then create one
+    if protocol is None:
+        protocol = myokit.default_protocol(model)
+
+    # Get default script
+    script = myokit.default_script(model)
 
     # If a target is specified, save the output
     if target:
         # Save or output model to new location
         logger.log('Saving output to ' + str(target))
-        myokit.save(target, m)
+        myokit.save(target, model, protocol, script)
         logger.log('Done.')
     else:
         # Write it to screen
-        print(myokit.save(None, m))
+        print(myokit.save(None, model, protocol, script))
 
 
 def add_import_parser(subparsers):

@@ -373,7 +373,7 @@ class SubCapture(PyCapture):
         return self._stdout
 
 
-def default_protocol(time_units=None):
+def default_protocol(model=None):
     """
     Returns a default protocol to use when no embedded one is available.
     """
@@ -381,6 +381,13 @@ def default_protocol(time_units=None):
     duration = 0.5
     period = 1000
 
+    # Try to get the time units
+    time_units = None
+    if model is not None:
+        if model.time() is not None:
+            time_units = model.time().unit()
+
+    # Adapt protocol if necessary
     if time_units is not None:
         default_units = myokit.units.ms
         start = myokit.Unit.convert(start, default_units, time_units)
@@ -411,10 +418,12 @@ def default_script(model=None):
         # Get duration in good units
         time = model.time()
         if time is not None:
-            if time.units() is not None:
+            print('here')
+            if time.unit() is not None:
+                print('and here')
                 duration = myokit.Unit.convert(
-                    1000, myokit.units.ms, time_units)
-
+                    1000, myokit.units.ms, time.unit())
+    print(duration)
     # Create and return script
     return '\n'.join((  # pragma: no cover
         "[[script]]",
@@ -430,8 +439,9 @@ def default_script(model=None):
         "d = s.run("  + str(duration) + ")",
         "",
         "# Display the results",
+        "var = " + vm,
         "plt.figure()",
-        "plt.plot(d.time(), d[" + vm + "])",
+        "plt.plot(d.time(), d[var])",
         "plt.title(var)",
         "plt.show()",
     ))
