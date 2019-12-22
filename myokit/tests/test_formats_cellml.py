@@ -68,8 +68,7 @@ class CellMLExporterTest(unittest.TestCase):
             e.model(path, m1)
             m2 = i.model(path)
         self.assertFalse(e.logger().has_warnings())
-        self.assertFalse(
-            isinstance(m2.get('engine.pace').rhs(), myokit.Piecewise))
+        self.assertTrue(isinstance(m2.get('engine.pace').rhs(), myokit.Number))
 
         # 2. Export with protocol, but without variable bound to pacing
         m1.get('engine.pace').set_binding(None)
@@ -78,8 +77,7 @@ class CellMLExporterTest(unittest.TestCase):
             e.model(path, m1, p1)
             m2 = i.model(path)
         self.assertTrue(e.logger().has_warnings())
-        self.assertFalse(
-            isinstance(m2.get('engine.pace').rhs(), myokit.Piecewise))
+        self.assertTrue(isinstance(m2.get('engine.pace').rhs(), myokit.Number))
 
         # 3. Export with protocol and variable bound to pacing
         m1.get('engine.pace').set_binding('pace')
@@ -88,8 +86,9 @@ class CellMLExporterTest(unittest.TestCase):
             e.model(path, m1, p1)
             m2 = i.model(path)
         self.assertFalse(e.logger().has_warnings())
-        self.assertTrue(
-            isinstance(m2.get('engine.pace').rhs(), myokit.Piecewise))
+        rhs = m2.get('membrane.i_stim').rhs()
+        self.assertTrue(rhs, myokit.Multiply)
+        self.assertTrue(isinstance(rhs[0], myokit.Piecewise))
 
         # Check original model is unchanged
         self.assertEqual(org_code, m1.code())
@@ -99,6 +98,9 @@ class CellMLExporterTest(unittest.TestCase):
 
         e = formats.exporter('cellml')
         model = myokit.Model('hello')
+        t = model.add_component('env').add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
 
         # Write to 1.0 model
         with TemporaryDirectory() as d:

@@ -636,6 +636,12 @@ class Model(AnnotatableElement):
         The CellML version to use can be set with ``version``, which must be
         either "1.0" or "1.1".
         """
+        # Model must be valid
+        # Otherwise could have cycles, invalid references, etc.
+        model.validate()
+
+        # Valid model always has a time variable
+        time = model.time()
 
         # Get name for CellML model
         name = model.name()
@@ -689,14 +695,6 @@ class Model(AnnotatableElement):
 
         # Map None to dimensionless
         unit_map[None] = 'dimensionless'
-
-        # Check model with state variables declares a time variable
-        time = model.time()
-        if time is None:
-            if len(model.state()) > 0:
-                raise CellMLError(
-                    'Unable to create CellML model with state variables if no'
-                    ' variable has been bound to `time`.')
 
         # Variable naming strategy:
         # 1. Component level variables always use their unqualified names
@@ -822,16 +820,8 @@ class Model(AnnotatableElement):
             for variable in component.variables(deep=True):
                 v = local_var_map[variable]
 
-                # Check if rhs set
-                rhs = variable.rhs()
-                if rhs is None:
-                    # Create new rhs in correct units
-                    u = variable.unit()
-                    rhs = myokit.Number(
-                        0, myokit.units.dimensionless if u is None else u)
-                else:
-                    # Create RHS with updated numbers and references
-                    rhs = variable.rhs().clone(subst=subst)
+                # Create RHS with updated numbers and references
+                rhs = variable.rhs().clone(subst=subst)
 
                 # Free variable shouldn't have a value
                 if variable is time:

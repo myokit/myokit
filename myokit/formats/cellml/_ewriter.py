@@ -62,13 +62,13 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
         x.attrib[etree.QName(self._ns, 'units')] = units
 
     def _ex_quotient(self, e, t):
-        # CellML subset doesn't contain quotient
+        # CellML 1.0 subset doesn't contain quotient
         # Note that this _must_ round towards minus infinity!
         # See myokit.Quotient !
         return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])), t)
 
     def _ex_remainder(self, e, t):
-        # CellML subset doesn't contain remainder
+        # CellML 1.0 subset doesn't contain remainder
         # Note that this _must_ use the same round-to-neg-inf convention as
         # myokit.Quotient! Implementation below is consistent with Python
         # convention:

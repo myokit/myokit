@@ -25,8 +25,9 @@ class LibGuessTest(unittest.TestCase):
     Tests for ``myokit.lib.guess``.
     """
 
-    def test_add_embedded_protocol(self):
-        # Tests the method to add protocols
+    def test_add_embedded_protocol_pacing(self):
+        # Tests the method to add protocols, to models without a stimulus
+        # current
 
         # 1. Should work for variable bound to pace, and with protocol
         m = myokit.Model('m')
@@ -54,33 +55,26 @@ class LibGuessTest(unittest.TestCase):
         self.assertTrue(isinstance(model.get('c.x').rhs(), myokit.If))
         self.assertEqual(
             model.get('c.x').rhs().code(),
-            'if((c.t - stimulus_offset) % stimulus_period < stimulus_duration,'
-            ' stimulus_amplitude, 0 [A])'
-        )
+            'if((c.t - offset) % period < duration, 2 [A], 0 [A])')
         self.assertIsNone(model.get('c.x').binding())
 
         # Check units
         self.assertEqual(
             model.get('c.x').unit(), myokit.units.ampere)
         self.assertEqual(
-            model.get('c.x.stimulus_offset').unit(), myokit.units.second)
+            model.get('c.x.offset').unit(), myokit.units.second)
         self.assertEqual(
-            model.get('c.x.stimulus_duration').unit(), myokit.units.second)
+            model.get('c.x.duration').unit(), myokit.units.second)
         self.assertEqual(
-            model.get('c.x.stimulus_amplitude').unit(), myokit.units.ampere)
-        self.assertEqual(
-            model.get('c.x.stimulus_period').unit(),
-            myokit.units.dimensionless)
+            model.get('c.x.period').unit(), myokit.units.second)
 
         # Check values
-        self.assertEqual(model.get('c.x.stimulus_offset').rhs(),
+        self.assertEqual(model.get('c.x.offset').rhs(),
                          myokit.Number(0.01, myokit.units.second))
-        self.assertEqual(model.get('c.x.stimulus_duration').rhs(),
+        self.assertEqual(model.get('c.x.duration').rhs(),
                          myokit.Number(1e-3, myokit.units.second))
-        self.assertEqual(model.get('c.x.stimulus_amplitude').rhs(),
-                         myokit.Number(2, myokit.units.ampere))
-        self.assertEqual(model.get('c.x.stimulus_period').rhs(),
-                         myokit.Number(1, myokit.units.dimensionless))
+        self.assertEqual(model.get('c.x.period').rhs(),
+                         myokit.Number(1, myokit.units.second))
 
         # 2. Should fail if nothing bound to pace
         x.set_binding(None)
@@ -118,6 +112,75 @@ class LibGuessTest(unittest.TestCase):
         code = m.code()
         self.assertFalse(guess.add_embedded_protocol(m, protocol))
         self.assertEqual(code, m.code())
+
+    def test_add_embedded_protocol_stimulus(self):
+        # Tests the method to add protocols to models with a stimulus current
+
+        # 1. Should work for variable bound to pace, and with protocol
+        m = myokit.parse_model("""
+        [[model]]
+
+        [engine]
+        time = 0 [ms]
+            in [ms]
+            bind time
+        pace = x
+            x = 5 [1]
+            bind pace
+            in [1]
+
+        [stimulus]
+        i_stim = engine.pace * amplitude
+            in [pA]
+        amplitude = -80 [pA]
+            in [pA]
+        """)
+
+        protocol = myokit.pacing.blocktrain(
+            duration=0.5, offset=5, period=1000, level=2)
+
+        # Check adding works
+        model = m.clone()
+        self.assertTrue(guess.add_embedded_protocol(model, protocol))
+
+        # Check generated rhs
+        rhs = model.get('stimulus.i_stim').rhs()
+        self.assertTrue(isinstance(rhs, myokit.Multiply))
+        self.assertTrue(isinstance(rhs[0], myokit.If))
+
+        # Check pacing variable has disappeared
+        self.assertNotIn('pace', model.get('engine'))
+        self.assertIsNone(model.binding('pace'))
+
+        # Check units
+        self.assertEqual(
+            model.get('stimulus.i_stim').unit(),
+            myokit.units.pA)
+        self.assertEqual(
+            model.get('stimulus.i_stim.offset').unit(),
+            myokit.units.ms)
+        self.assertEqual(
+            model.get('stimulus.i_stim.duration').unit(),
+            myokit.units.ms)
+        self.assertEqual(
+            model.get('stimulus.i_stim.period').unit(),
+            myokit.units.ms)
+
+        # Check values
+        self.assertEqual(model.get('stimulus.i_stim.offset').rhs(),
+                         myokit.Number(5, myokit.units.ms))
+        self.assertEqual(model.get('stimulus.i_stim.duration').rhs(),
+                         myokit.Number(0.5, myokit.units.ms))
+        self.assertEqual(model.get('stimulus.i_stim.period').rhs(),
+                         myokit.Number(1000, myokit.units.ms))
+
+        # 2. Should fail if stimulus variables are present
+        model = m.clone()
+        p = model.get('stimulus').add_variable('period')
+        p.set_unit(myokit.units.ms)
+        p.set_rhs(1000)
+        p.meta['oxmeta'] = 'membrane_stimulus_current_period'
+        guess.add_embedded_protocol(model, protocol)
 
     def test_compatible_units(self):
         # Tests the (hidden) method to check if a unit is compatible with one
@@ -251,23 +314,23 @@ class LibGuessTest(unittest.TestCase):
             ValueError, 'must be a bound variable',
             guess._distance_to_bound, m.get('c.c'))
 
-    def test_make_boring(self):
-        # Tests the method to make variables really dull
+    def test_remove_nested(self):
+        # Tests the method to remove nested variables
 
         m = myokit.parse_model("""
             [[model]]
             membrane.V = -80
 
             [membrane]
-            time = z bind time
-                z = 10 + a + b
-                    a = 12
-                b = 12
-                in [s]
+            t = 0 bind time
             dot(V) = 1 + x + y
-                x = 1 + a + y
+                x = 1 + a + y + c
                     a = b
-                        b = 10
+                        f = 9
+                        b = 10 - f * g
+                        g = 2
+                    c = a + d
+                    d = 4 * a
                 y = 12
                 in [mV]
                 label membrane_potential
@@ -276,23 +339,10 @@ class LibGuessTest(unittest.TestCase):
 
         m2 = m.clone()
         v = m2.get('membrane.V')
-        myokit.lib.guess._make_boring(v)
-        self.assertEqual(v.rhs(), myokit.Number(0))
+        v.set_rhs(0)
+        myokit.lib.guess._remove_nested(v)
         self.assertEqual(v.unit(), myokit.units.mV)
         self.assertEqual(len(v), 0)
-        self.assertFalse(v.is_state())
-        self.assertIsNone(v.label())
-        self.assertIsNone(v.binding())
-        m2.validate()
-
-        t = m2.get('membrane.time')
-        myokit.lib.guess._make_boring(t)
-        self.assertEqual(t.rhs(), myokit.Number(0))
-        self.assertEqual(t.unit(), myokit.units.s)
-        self.assertEqual(len(t), 0)
-        self.assertFalse(t.is_state())
-        self.assertIsNone(t.label())
-        self.assertIsNone(t.binding())
 
     def test_membrane_potential_1(self):
         # Test finding the membrane potential based on annotations

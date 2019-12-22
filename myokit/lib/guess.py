@@ -95,33 +95,18 @@ def _find_conditional(expression):
     return None
 
 
-def _make_boring(variable):
+def _remove_nested(variable):
     """
-    Update the given variable to have a zero RHS, no child variables, no
-    bindings, no labels, and to not be a state.
-
-    Does not alter the variable's unit.
+    Removes any nested variables of the given variable.
     """
-    # Update variable itself
-    variable.set_rhs(0)
-    variable.set_binding(None)
-    variable.set_label(None)
-    if variable.is_state():
-        variable.demote()
-
-    # Remove nested variables
-    def remove_nested(var):
-        kids = list([kid for kid in var])
-        for kid in kids:
-            kid.set_rhs(0)
-        for kid in kids:
-            remove_nested(kid)
-            kid.parent().remove_variable(kid, recursive=True)
-
-    remove_nested(variable)
+    kids = [k for k in variable]
+    for k in kids:
+        k.set_rhs(0)
+    for k in kids:
+        variable.remove_variable(k, recursive=True)
 
 
-def add_embedded_protocol(model, protocol):
+def add_embedded_protocol(model, protocol, add_oxmeta_annotations=True):
     """
     Attempts to convert a :class:`myokit.Protocol` to a (discontinuous)
     expression and embed it in the given :class`myokit.Model`.
@@ -131,6 +116,9 @@ def add_embedded_protocol(model, protocol):
     This method is designed for protocols that contain a single, indefinitely
     recurring event (e.g. cell pacing protocols), and doesn't handle other
     forms of protocol.
+
+    If ``add_oxmeta_annotations`` is set to ``True``, the method will add
+    the relevant ``oxmeta`` annotations to any newly created variables
     """
 
     # Get time variable
@@ -139,55 +127,107 @@ def add_embedded_protocol(model, protocol):
         return False
 
     # Get pacing variable
-    pace = model.binding('pace')
-    if pace is None:
+    v_pace = model.binding('pace')
+    if v_pace is None:
+        # Nothing bound to pace: Might be able to add protocol, but there'd be
+        # no point to it!
         return False
 
-    # Check protocol is suitable
+    # Check protocol has only a single event
     if len(protocol) != 1:
         return False
 
-    # Get protocol properties
-    event = protocol.head()
-
     # Check it's an indefinitely recurring periodic event
+    event = protocol.head()
     if event.period() == 0 or event.multiplier() != 0:
         return False
 
-    # Ensure pace is a really boring variable, without kids etc.
-    _make_boring(pace)
+    # Check for existing stimulus variables
+    stim_info = stimulus_current_info(model)
+    v_current = stim_info['current']
+    v_amplitude = stim_info['amplitude']
+    e_amplitude = stim_info['amplitude_expression']
+    v_offset = stim_info['offset']
+    v_period = stim_info['period']
+    v_duration = stim_info['duration']
+
+    # Don't add a stimulus if there's already periodic stimulus variables about
+    if v_offset is not None or v_period is not None or v_duration is not None:
+        return False
+    del(v_offset, v_period, v_duration)
+
+    # Determine variable to update: pace or i_stim
+    if v_current is None or (v_amplitude is None and e_amplitude is None):
+        # Unable to set current as (...) * amplitude? Then update v_pace
+        updating_current = False
+
+        # VarOwner to add variables to
+        parent = v_pace
+
+    else:
+        # Able to set current as (...) * amplitude? Then update v_current
+        updating_current = True
+
+        # VarOwner to add variables to
+        parent = v_current
+
+    # Start modifying model
 
     # Add new child variables with stimulus properties
-    level = pace.add_variable_allow_renaming('stimulus_amplitude')
-    level.set_unit(pace.unit())
-    level.set_rhs(myokit.Number(event.level(), pace.unit()))
+    v_offset = parent.add_variable_allow_renaming('offset')
+    v_offset.set_unit(time.unit())
+    v_offset.set_rhs(myokit.Number(event.start(), time.unit()))
 
-    offset = pace.add_variable_allow_renaming('stimulus_offset')
-    offset.set_unit(time.unit())
-    offset.set_rhs(myokit.Number(event.start(), time.unit()))
+    v_period = parent.add_variable_allow_renaming('period')
+    v_period.set_unit(time.unit())
+    v_period.set_rhs(myokit.Number(event.period(), time.unit()))
 
-    period = pace.add_variable_allow_renaming('stimulus_period')
-    period.set_rhs(event.period())
-    period.set_unit(myokit.units.dimensionless)
+    v_duration = parent.add_variable_allow_renaming('duration')
+    v_duration.set_unit(time.unit())
+    v_duration.set_rhs(myokit.Number(event.duration(), time.unit()))
 
-    duration = pace.add_variable_allow_renaming('stimulus_duration')
-    duration.set_unit(time.unit())
-    duration.set_rhs(myokit.Number(event.duration(), time.unit()))
+    # Add oxmeta annotations for web lab
+    if updating_current and add_oxmeta_annotations:
+        v_offset.meta['oxmeta'] = 'membrane_stimulus_current_offset'
+        v_period.meta['oxmeta'] = 'membrane_stimulus_current_period'
+        v_duration.meta['oxmeta'] = 'membrane_stimulus_current_duration'
+        if v_amplitude is not None and 'oxmeta' not in v_amplitude.meta:
+            v_amplitude.meta['oxmeta'] = 'membrane_stimulus_current_amplitude'
 
-    # Set new right-hand side
-    pace.set_rhs(
-        myokit.If(
-            myokit.Less(
-                myokit.Remainder(
-                    myokit.Minus(myokit.Name(time), myokit.Name(offset)),
-                    myokit.Name(period)
-                ),
-                myokit.Name(duration)
+    # Create expression for pacing signal
+    pace_term = myokit.If(
+        myokit.Less(
+            myokit.Remainder(
+                myokit.Minus(myokit.Name(time), myokit.Name(v_offset)),
+                myokit.Name(v_period)
             ),
-            myokit.Name(level),
-            myokit.Number(0, pace.unit())
-        )
+            myokit.Name(v_duration)
+        ),
+        myokit.Number(event.level(), v_pace.unit()),
+        myokit.Number(0, v_pace.unit())
     )
+
+    if updating_current:
+
+        # Update current variable
+        if e_amplitude is None:
+            e_amplitude = myokit.Name(v_amplitude)
+        v_current.set_rhs(myokit.Multiply(pace_term, e_amplitude))
+
+        # Unbind pacing variable and remove if unused
+        v_pace.set_binding(None)
+        v_pace.set_rhs(myokit.Number(0, v_pace.unit()))
+        _remove_nested(v_pace)
+        if len(list(v_pace.refs_by())) == 0:
+            v_pace.parent().remove_variable(v_pace)
+
+    else:
+
+        # Update pacing variable
+        v_pace.set_rhs(pace_term)
+
+        # Unbind pacing variable
+        v_pace.set_binding(None)
 
     # It worked!
     return True
@@ -322,30 +362,31 @@ def remove_embedded_protocol(model):
         return None
 
     # Must have a period and duration
-    duration = info['duration']
-    period = info['period']
-    if period is None or duration is None:
+    v_duration = info['duration']
+    v_period = info['period']
+    if v_period is None or v_duration is None:
         return None
-    period = period.eval()
-    duration = duration.eval()
+    period = v_period.eval()
+    duration = v_duration.eval()
 
     # Check values are sensible
     if period <= 0 or duration <= 0:
         return None
 
     # Offset is optional
-    offset = info['offset']
-    if offset is None:
+    v_offset = info['offset']
+    if v_offset is None:
         offset = 0
     else:
-        offset = offset.eval()
+        offset = v_offset.eval()
 
     # Must have an amplitude or an amplitude expression
+    v_amplitude = info['amplitude']
     e_amplitude = info['amplitude_expression']
     if e_amplitude is None:
-        if info['amplitude'] is None:
+        if v_amplitude is None:
             return None
-        e_amplitude = myokit.Name(info['amplitude'])
+        e_amplitude = myokit.Name(v_amplitude)
 
     # Start modifying model
 
@@ -354,15 +395,17 @@ def remove_embedded_protocol(model):
     if v_pace is None:
         v_pace = v_current.parent(
             myokit.Component).add_variable_allow_renaming('pace')
-
-    # Ensure pace is a really boring variable, without kids etc.
-    _make_boring(v_pace)
-
-    # Set pace to be pacing variable
-    v_pace.set_binding('pace')
+        v_pace.set_unit(myokit.units.dimensionless)
+        v_pace.set_rhs(myokit.Number(0, myokit.units.dimensionless))
+        v_pace.set_binding('pace')
 
     # Set new RHS for stimulus variable
     v_current.set_rhs(myokit.Multiply(myokit.Name(v_pace), e_amplitude))
+
+    # Remove stimulus variables, if unused
+    for v in (v_period, v_duration, v_offset, v_amplitude):
+        if v is not None and len(list(v.refs_by())) == 0:
+            v.parent().remove_variable(v, recursive=True)
 
     # Return periodic protocol
     return myokit.pacing.blocktrain(

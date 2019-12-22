@@ -200,16 +200,23 @@ class VarOwnerTest(unittest.TestCase):
         self.assertEqual(a.count_variables(), 0)
         self.assertEqual(X.count_variables(), 0)
 
-        # Same with dot(a) = a, b = 3 * a
+        # Test deleting variable with nested variables that depend on each
+        # other
         a = X.add_variable('a')
-        a.promote(0.123)
         b = a.add_variable('b')
-        b.set_rhs(myokit.Multiply(myokit.Number(3), myokit.Name(a)))
-        a.set_rhs(myokit.Name(b))
+        c = a.add_variable('c')
+        d = a.add_variable('d')
+        a.set_rhs('b + c - d')
+        a.promote(0.1)
+        b.set_rhs('2 * a - d')
+        c.set_rhs('a + b + d')
+        d.set_rhs('3 * a')
         self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
-        self.assertRaises(myokit.IntegrityError, a.remove_variable, b)
-        self.assertRaises(myokit.IntegrityError, a.remove_variable, b, True)
+        self.assertEqual(a.count_variables(), 3)
+        self.assertEqual(X.count_variables(), 1)
         X.remove_variable(a, recursive=True)
+        self.assertEqual(a.count_variables(), 0)
+        self.assertEqual(X.count_variables(), 0)
 
         # Test if removed from model's label and binding lists
         m = myokit.Model()

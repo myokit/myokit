@@ -530,30 +530,38 @@ class TestCellMLModelConversion(unittest.TestCase):
     """
     Tests for converting between Myokit and CellML models.
     """
+    def model(self, name=None):
+        """ Creates and returns a model with a time variable. """
+        m = myokit.Model(name)
+        t = m.add_component('env').add_variable('time')
+        t.set_rhs(myokit.Number(0, myokit.units.ms))
+        t.set_unit(myokit.units.ms)
+        t.set_binding('time')
+        return m
 
     def test_m2c_model_names(self):
         # Tests name issues when creating a CellML model
 
         # Test model name is transferred
-        m = myokit.Model('test')
+        m = self.model('test')
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(cm.name(), 'test')
-        m = myokit.Model('test model')
+        m = self.model('test model')
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(cm.name(), 'test_model')
 
         # Test model is renamed if can't clean name
-        m = myokit.Model('123')
+        m = self.model('123')
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(cm.name(), 'unnamed_myokit_model')
 
         # Test model is ramed if no name given
-        m = myokit.Model()
+        m = self.model()
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(cm.name(), 'unnamed_myokit_model')
 
         # Test duplicate names are solved
-        m = myokit.Model()
+        m = self.model()
         c1 = m.add_component('c1')
         c2 = m.add_component('c2')
         x1 = c1.add_variable('x')
@@ -569,7 +577,7 @@ class TestCellMLModelConversion(unittest.TestCase):
     def test_m2c_units(self):
         # Test unit issues when creating a CellML model
 
-        m = myokit.Model()
+        m = self.model()
         c1 = m.add_component('c1')
         c2 = m.add_component('c2')
         x1 = c1.add_variable('x')
@@ -597,19 +605,11 @@ class TestCellMLModelConversion(unittest.TestCase):
         self.assertEqual(
             cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
 
-        # Test variables with no RHS are given value 0
-        zz = c2.add_variable('zz')
-        zz.set_unit(myokit.units.volt)
-        zzz = c2.add_variable('zzz')
-        cm = cellml.Model.from_myokit_model(m)
-        self.assertEqual(cm['c2']['zz'].initial_value(), 0)
-        self.assertEqual(cm['c2']['zzz'].initial_value(), 0)
-
     def test_m2c_nested_variables(self):
         # Test nested variables are handled, and name conflicts are handled
         # when creating a CellML model.
 
-        m1 = myokit.Model()
+        m1 = self.model()
         c1 = m1.add_component('c1')
         c2 = m1.add_component('c2')
         a1 = c1.add_variable('a1')
@@ -629,20 +629,12 @@ class TestCellMLModelConversion(unittest.TestCase):
     def test_m2c_derivatives(self):
         # Test derivative support when creating a CellML model
 
-        # If a derivative is used a time variable must be set
-        m = myokit.Model()
+        # Test references to derivatives
+        m = self.model()
         c = m.add_component('c')
         x = c.add_variable('x')
         x.set_rhs('log10(1000) + x')
         x.promote(0.1)
-        self.assertRaisesRegex(
-            cellml.CellMLError, 'no variable has been bound to `time`',
-            cellml.Model.from_myokit_model, m)
-
-        # Test references to derivatives
-        t = c.add_variable('t')
-        t.set_rhs(0)
-        t.set_binding('time')
         y = c.add_variable('y')
         y.set_rhs('2 * dot(x)')
         cm = cellml.Model.from_myokit_model(m)
@@ -653,7 +645,7 @@ class TestCellMLModelConversion(unittest.TestCase):
         # Test that oxmeta data is passed on when creating a CellML model.
 
         # Test oxmeta data is passed on
-        m = myokit.Model()
+        m = self.model()
         c = m.add_component('c')
         x = c.add_variable('x')
         y = x.add_variable('y')
