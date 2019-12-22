@@ -3625,6 +3625,8 @@ class Variable(VarOwner):
         # Delete child variables
         if recursive:
             for kid in kids:
+                kid.set_rhs(0)
+            for kid in kids:
                 # Call this method for each kid (and cascade to kid-kids)
                 kid._delete(recursive=True, whole_component=whole_component)
                 # Remove kid from list of nested variables
