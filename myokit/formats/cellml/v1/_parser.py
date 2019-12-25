@@ -763,7 +763,11 @@ class CellMLParser(object):
         # Check for imports
         im = element.find(self._join('import'))
         if im is not None:
-            raise CellMLParsingError('Imports are not supported.', im)
+            if version == '1.1':
+                raise CellMLParsingError('Imports are not supported.', im)
+            else:
+                raise CellMLParsingError(
+                    'Imports are not allowed in CellML 1.0.', im)
 
         # Check allowed content
         self._check_allowed_content(

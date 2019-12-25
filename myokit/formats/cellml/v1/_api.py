@@ -20,11 +20,19 @@ _cellml_identifier = re.compile('^([_][0-9_]*)?[a-zA-Z][a-zA-Z0-9_]*$')
 
 def is_valid_identifier(name):
     """
-    Tests if the given ``name`` is a valid CellML 1 identifier.
+    Tests if the given ``name`` is a valid CellML 1.1 identifier.
 
-    The official for 1.0 docs allow silly things, e.g. ``1e2``, ``123`` or
-    ``_123``. This method is more strict, requiring (1) at least one letter,
-    and (2) that the first character is not a number.
+    This method returns True if (and only if) the identifier
+
+    1. contains only alphanumeric characters (from the basic latin set) or
+       underscores
+    2. contains at least one letter
+    3. does not begin with a numerical character.
+
+    The rules for 1.0 are slightly more lenient, and allow silly things like
+    ``1e2``, ``123`` or ``_123`` as identifiers. Because this creates issues
+    distinguishing identifiers from numbers, Myokit always follows the 1.1
+    rule, even for 1.0 documents.
     """
     return _cellml_identifier.match(name) is not None
 
@@ -412,11 +420,8 @@ class Model(AnnotatableElement):
     """
     Represents a CellML 1.0 or 1.1 model.
 
-    Support notes:
+    Support notes for 1.0 and 1.1:
 
-    - Imports (CellML 1.1) are not supported.
-    - A slightly more strict rule for 'valid CellML identifiers' is used (must
-      not start with a number, must contain at least one letter).
     - Units that require an offset (celsius and fahrenheit) are not supported.
     - Units with a non-integer exponent are not supported.
     - Defining new base units is not supported.
@@ -425,6 +430,15 @@ class Model(AnnotatableElement):
       not supported.
     - Models written as a DAE (e.g. ``1 + x = 2 + y``) are not supported.
     - cmeta:id support is limited to models, components, and variables.
+    - Imports (CellML 1.1) are not supported.
+
+    Support notes for 1.1:
+
+    - The stricter 1.1 rule for identifiers is used for both CellML 1.0 and
+      1.1: a valid identifier not start with a number, and must contain at
+      least one letter.
+    - The new feature of using variables in ``initial_value`` attributes is not
+      supported.
 
     Arguments
 
@@ -1576,9 +1590,14 @@ class Variable(AnnotatableElement):
         try:
             self._initial_value = float(value)
         except ValueError:
-            raise CellMLError(
-                'If given, a variable initial_value must be a real number'
-                ' (3.4.3.7).')
+            if self._model.version() == '1.0':
+                raise CellMLError(
+                    'If given, a variable initial_value must be a real number'
+                    ' (3.4.3.7).')
+            else:
+                raise CellMLError(
+                    'If given, a variable initial_value must be a real number'
+                    ' (using variables as initial values is not supported).')
 
     def set_is_state(self, state):
         """
