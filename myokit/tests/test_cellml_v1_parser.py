@@ -36,20 +36,20 @@ except NameError:   # pragma: no cover
 class TestCellMLParser(unittest.TestCase):
     """ Tests the CellML 1.0/1.1 parser (mostly for errors). """
 
-    def assertBad(self, xml, message):
+    def assertBad(self, xml, message, version='1.0'):
         """
         Inserts the given ``xml`` into a <model> element, parses it, and checks
         that this raises an exception matching ``message``.
         """
         self.assertRaisesRegex(
-            v1.CellMLParsingError, message, self.parse, xml)
+            v1.CellMLParsingError, message, self.parse, xml, version)
 
-    def parse(self, xml):
+    def parse(self, xml, version='1.0'):
         """
         Inserts the given ``xml`` into a <model> element, parses it, and
         returns the result.
         """
-        return v1.parse_string(self.wrap(xml))
+        return v1.parse_string(self.wrap(xml, version))
 
     def parse_in_file(self, xml):
         """
@@ -62,15 +62,19 @@ class TestCellMLParser(unittest.TestCase):
                 f.write(self.wrap(xml))
             return v1.parse_file(path)
 
-    def wrap(self, xml):
+    def wrap(self, xml, version='1.0'):
         """
         Wraps the given ``xml`` into a <model> element.
         """
+        assert version in ('1.0', '1.1'), 'version must be 1.0 or 1.1'
+        v = version
+        # Note: Meta data stays version 1.0
+
         return (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<model name="test"'
-            '       xmlns="http://www.cellml.org/cellml/1.0#"'
-            '       xmlns:cellml="http://www.cellml.org/cellml/1.0#"'
+            '       xmlns="http://www.cellml.org/cellml/' + v + '#"'
+            '       xmlns:cellml="http://www.cellml.org/cellml/' + v + '#"'
             '       xmlns:cmeta="http://www.cellml.org/metadata/1.0#">'
             + xml +
             '</model>')
@@ -470,13 +474,13 @@ class TestCellMLParser(unittest.TestCase):
     def test_import(self):
         # Import elements are not supported
 
-        x = ('<?xml version="1.0" encoding="UTF-8"?>'
-             '<model name="x" xmlns="http://www.cellml.org/cellml/1.1#">'
-             '  <import />'
-             '</model>')
-        self.assertRaisesRegex(
-            v1.CellMLParsingError, 'Imports are not supported',
-            v1.parse_string, x)
+        # Not allowed in 1.0
+        self.assertBad(
+            '<import />', 'not allowed in CellML 1.0', version='1.0')
+
+        # Not supported in 1.1
+        self.assertBad(
+            '<import />', 'Imports are not supported', version='1.1')
 
     def test_math(self):
         # Tests parsing math elements
@@ -551,6 +555,21 @@ class TestCellMLParser(unittest.TestCase):
              '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
         y = '<apply><eq /><ci>x</ci><cn cellml:units="volt">-80</cn></apply>'
         self.assertBad(x + y + z, 'public_interface="in"')
+
+    def test_maths_1_1(self):
+        # Test setting a variable as initial value, allowed in 1.1
+
+        # Legal case in 1.1
+        x = ('<component name="a">'
+             '  <variable name="p" units="volt" initial_value="q" />'
+             '  <variable name="q" units="volt" initial_value="12.3" />'
+             '</component>')
+
+        # Not allowed in 1.0
+        self.assertBad(x, r'a real number \(3.4.3.7\)', version='1.0')
+
+        # Not supported in 1.1
+        self.assertBad(x, 'not supported', version='1.1')
 
     def test_model(self):
         # Tests parsing a model element.
