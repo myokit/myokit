@@ -1,5 +1,5 @@
 #
-# Tools for working with Markov ion channel models
+# Tools for working with Markov models of ion channels
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -10,7 +10,6 @@ from __future__ import print_function, unicode_literals
 import numpy as np
 
 import myokit
-from myokit.formats import sympy
 
 
 class LinearModel(object):
@@ -291,61 +290,45 @@ class LinearModel(object):
         for k, state in enumerate(self._states):
             state_indices[state] = k
 
-        # Extract expressions for state & current variables:
-        #  1. Get expanded equation (with all references to variables replaced
-        #     by inlined expressions)
-        #  2. Convert to sympy
-        #  3. Simplify / attempt to rewrite as linear combination
-        #  4. Re-import from sympy
+        # Get expressions for state & current variables, but with all
+        # references to variables (except states and parameters) replaced by
+        # inlined expressions.
         expressions = []
-        for state in self._states:
-            e = state.rhs().clone(expand=True, retain=self._inputs)
-            e = sympy.write(e)
-            e = e.expand()
-            e = sympy.read(e, self._model)
-            expressions.append(e)
+        for v in self._states:
+            expressions.append(v.rhs().clone(expand=True, retain=self._inputs))
         if self._current is not None:
-            e = self._current.rhs().clone(expand=True, retain=self._inputs)
-            e = sympy.write(e)
-            e = e.expand()
-            current_expression = sympy.read(e, self._model)
+            current_expression = self._current.rhs().clone(
+                expand=True, retain=self._inputs)
 
         # Create parametrisable matrices to evaluate the state & current
-        #  1. For each expression, get the terms. This works because Sympy
-        #     returns the equations as an addition of terms (or a single term).
-        #  2. Each term can be written as f*s, where f is a constant factor and
-        #     s is a state. Gather these factors
+        # This checks that each state's RHS can be written as a linear
+        # combination of the states, and gathers the corresponding multipliers.
+
+        # Matrix of linear factors
         n = len(self._states)
-        A = []      # Ode matrix
-        T = set()   # List of transitions
-        for i in range(n):
-            A.append([myokit.Number(0) for j in range(n)])
+        A = [[myokit.Number(0) for j in range(n)] for i in range(n)]
+
+        # List of transitions
+        T = set()
+
+        # Populate A and T
         for row, e in enumerate(expressions):
 
-            # Scan terms
-            for term in _list_terms(e):
+            # Check if this expression is a linear combination of the states
+            try:
+                factors = _linear_combination(e, self._states)
+            except ValueError:
+                raise LinearModelError(
+                    'Unable to write expression as linear combination of'
+                    ' states: ' + str(e) + '.')
 
-                # Look for the single state this expression depends on
-                state = None
-                for ref in term.references():
-                    if ref.var().is_state():
-                        if state is not None:
-                            raise LinearModelError(
-                                'Unable to write expression as linear'
-                                ' combination of states (found term with'
-                                ' multiple state dependencies): ' + str(e))
-                        state = ref.var()
-                if state is None:
-                    raise LinearModelError(
-                        'Unable to write expression as linear combination of'
-                        ' states (found term without state dependency): '
-                        + str(e))
-
-                # Get factor
-                state, factor = _find_factor(term, e)
+            # Scan factors
+            for col, state in enumerate(self._states):
+                factor = factors[col]
+                if factor is None:
+                    continue
 
                 # Add factor to transition matrix
-                col = state_indices[state]
                 cur = A[row][col]
                 if cur != myokit.Number(0):
                     factor = myokit.Plus(cur, factor)
@@ -358,25 +341,18 @@ class LinearModel(object):
         # Create a parametrisable matrix for the current
         B = [myokit.Number(0) for i in range(n)]
         if self._current is not None:
-            for term in _list_terms(current_expression):
-                state = None
-                for ref in term.references():
-                    if ref.var().is_state():
-                        if state is not None:
-                            raise LinearModelError(
-                                'Unable to write expression for current as'
-                                ' linear combination of states (found term'
-                                ' with multiple state dependencies): '
-                                + str(current_expression))
-                        state = ref.var()
-                if state is None:
-                    raise LinearModelError(
-                        'Unable to write expression for current as linear'
-                        ' combination of states (found term without state'
-                        ' dependency): ' + str(e))
+            try:
+                factors = _linear_combination(current_expression, self._states)
+            except ValueError:
+                raise LinearModelError(
+                    'Unable to write expression as linear combination of'
+                    ' states: ' + str(e) + '.')
 
-                state, factor = _find_factor(term, current_expression)
-                col = state_indices[state]
+            for col, state in enumerate(self._states):
+                factor = factors[col]
+                if factor is None:
+                    continue
+
                 cur = B[col]
                 if cur != myokit.Number(0):
                     factor = myokit.Plus(cur, factor)
@@ -1592,74 +1568,6 @@ class DiscreteSimulation(object):
         return list(self._state)
 
 
-def _list_terms(expression, terms=None):
-    """
-    Takes an expression tree of myokit.Plus elements and splits it into terms.
-
-    This method is specifically for use in analyzing expressions returned by
-    Sympy: A more general implementation would look at Minus objects at well,
-    but since Sympy has no substraction operator this works fine.
-    """
-    if terms is None:
-        terms = []
-    if type(expression) == myokit.Plus:
-        for e in expression:
-            _list_terms(e, terms)
-    else:
-        terms.append(expression)
-    return terms
-
-
-def _find_factor(expression, original):
-    """
-    Takes an expression tree of myokit myokit.Multiply objects and splits the
-    expression into a state variable and a constant factor. If the term
-    contains multiple states an error is raised.
-    """
-    t = type(expression)
-
-    if t == myokit.Name:
-        var = expression.var()
-        if not var.is_state():  # pragma: no cover
-            raise LinearModelError(
-                'Unable to write expression as linear combination of states'
-                ' (non-state reference found): '
-                + str(original))
-        return var, myokit.Number(1)
-
-    elif t == myokit.Multiply or t == myokit.PrefixMinus:
-
-        if t == myokit.PrefixMinus:
-            a = myokit.Number(-1)
-            b = expression[0]
-        else:
-            a, b = expression
-
-        # Check if a contains a state and b is constant
-        ac, bc = a.is_constant(), b.is_constant()
-        if (ac and bc) or not (ac or bc):
-            raise LinearModelError(  # pragma: no cover
-                'Unable to write expression as linear combination of states'
-                ' (state multiplied by non-constant): '
-                + str(original))
-        if ac:
-            a, b = b, a
-
-        # Check if a is a state
-        if type(a) == myokit.Name and a.var().is_state():
-            return a.var(), b
-        else:
-            # Get the factor and state from a, multiply by b and return
-            state, factor = _find_factor(a, original)
-            factor = myokit.Multiply(factor, b)
-            return state, factor
-    else:
-        raise LinearModelError(
-            'Unable to write expression as linear combination of states'
-            ' (term that is not Multiply or Name found): ' + str(t) +
-            ' in ' + str(original))
-
-
 class MarkovModel(object):
     """
     **Deprecated**: This class has been replaced by the classes
@@ -1701,4 +1609,140 @@ class LinearModelError(myokit.MyokitError):
     """
     Raised for issues with constructing or using a :class:`LinearModel`.
     """
+
+
+def _linear_combination(expression, variables):
+    """
+    Checks if ``expression`` is a linear combination of the given ``variables``
+    and returns the multiplier for each variable.
+
+    If ``expression`` is a linear combination ``a1*v1 + a2*v2 + ...`` where
+    ``vi`` is a variable in ``variables``, this method returns a list of
+    expressions ``[a1, a2, ...]``. The expressions ``ai`` are not guaranteed to
+    be constants, but won't contain any references to the variables in
+    ``variables``.
+
+    If the expression cannot be written as a linear combination a
+    ``ValueError`` is raised.
+    """
+    # Multiplier for each variable
+    multipliers = [None] * len(variables)
+
+    # Split expression into terms
+    terms = _split_terms(expression)
+
+    # Check each term multiplies one of the variables
+    for term in terms:
+        # Split into name and multiplier
+        name, multiplier = _split_factor(term, variables)
+
+        # Update the variable's multiplier
+        var = name.var()
+        i = variables.index(var)
+        if multipliers[i] is None:
+            multipliers[i] = multiplier
+        else:
+            multipliers[i] = myokit.Plus(multipliers[i], multiplier)
+
+    # Return obtained multipliers
+    return multipliers
+
+
+def _split_factor(term, variables):
+    """
+    Splits ``term`` into two parts that can be multiplied together, so that one
+    part is a reference to a variable in ``variables``, and the other part has
+    no references to variables in ``variables``.
+
+    Returns a tuple ``(name, multiplier)`` where ``name`` is a
+    :class:`myokit.Name` referencing a variable in the list ``variables``, and
+    where ``multiplier`` is some other expression such that ``name*multiplier``
+    is equivalent to the original term.
+
+    If the term can't be split this way, a ``ValueError`` is raised.
+    """
+
+    # Check that the term references exactly one variable from ``variables``
+    names = set([myokit.Name(var) for var in variables])
+    refs = set(term.references())
+    n_refs = len(names & refs)
+    if n_refs != 1:
+        raise ValueError(
+            'The expression `term` must reference exactly one variable from'
+            ' the list `variables` (found ' + str(n_refs) + ').')
+
+    # Get Name of variable referenced in this term
+    name = (names & refs).pop()
+
+    # Split
+    m = None
+    positive = True
+    while term != name:
+        t = type(term)
+        if t == myokit.PrefixPlus:
+            term = term[0]
+        elif t == myokit.PrefixMinus:
+            positive = not positive
+            term = term[0]
+        elif t == myokit.Multiply:
+            a, b = term
+            if name in b.references():
+                a, b = b, a
+            term = a
+            m = b if m is None else myokit.Multiply(m, b)
+        elif t == myokit.Divide:
+            a, b = term
+            if name in b.references():
+                raise ValueError(
+                    'Non-linear term of ' + str(name) + ' found in '
+                    + str(expression) + '.')
+            term = a
+            m = myokit.Divide(myokit.Number(1) if m is None else m, b)
+        else:
+            raise ValueError(
+                'Non-linear function of ' + str(name) + ' found in '
+                + str(term) + '.')
+
+    # Finalise multiplier
+    if m is None:
+        m = myokit.Number(1)
+    if not positive:
+        m = myokit.PrefixMinus(m)
+
+    # Return
+    return name, m
+
+
+def _split_terms(expression, terms=None, positive=True):
+    """
+    Takes an expression tree of :class:`myokit.Plus` and/or
+    :class:`myokit.Minus` objects and splits it into terms.
+
+    Arguments:
+
+    ``expression``
+        The expression to split.
+    ``terms``
+        Used internally: A list of terms to append to.
+    ``positive``
+        Used internally: If false, the terms will be multiplied by -1
+        before adding.
+
+    """
+    if terms is None:
+        terms = []
+    if type(expression) == myokit.Plus:
+        a, b = expression
+        _split_terms(a, terms, positive)
+        _split_terms(b, terms, positive)
+    elif type(expression) == myokit.Minus:
+        a, b = expression
+        _split_terms(a, terms, positive)
+        _split_terms(b, terms, not positive)
+    else:
+        if positive:
+            terms.append(expression)
+        else:
+            terms.append(myokit.PrefixMinus(expression))
+    return terms
 

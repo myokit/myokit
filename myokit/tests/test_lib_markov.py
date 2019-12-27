@@ -175,7 +175,7 @@ class LinearModelTest(unittest.TestCase):
         x.set_rhs(str(x.rhs()) + ' + C1^2')
         y.set_rhs(str(y.rhs()) + ' - C1^2')
         self.assertRaisesRegex(
-            markov.LinearModelError, 'not Multiply or Name',
+            markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)
 
         # Not a linear model
@@ -185,7 +185,7 @@ class LinearModelTest(unittest.TestCase):
         y = m2.get(states[1])
         x.set_rhs('V')
         self.assertRaisesRegex(
-            markov.LinearModelError, 'without state dependency',
+            markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)
 
         # Not a linear model
@@ -195,14 +195,14 @@ class LinearModelTest(unittest.TestCase):
         y = m2.get(states[1])
         x.set_rhs(states[0] + ' * ' + states[1])
         self.assertRaisesRegex(
-            markov.LinearModelError, 'multiple state dependencies',
+            markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)
 
         # Current not a linear combination of states
         m2 = model.clone()
         m2.get(current).set_rhs('sqrt(ina.O)')
         self.assertRaisesRegex(
-            markov.LinearModelError, 'not Multiply or Name',
+            markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)
 
         # Current not a linear combination of states
@@ -210,7 +210,7 @@ class LinearModelTest(unittest.TestCase):
         x = m2.get(current)
         x.set_rhs(states[0] + ' * ' + states[1])
         self.assertRaisesRegex(
-            markov.LinearModelError, 'multiple state dependencies',
+            markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)
 
         # Current not a linear combination of states
@@ -218,7 +218,7 @@ class LinearModelTest(unittest.TestCase):
         x = m2.get(current)
         x.set_rhs(str(x.rhs()) + ' + V')
         self.assertRaisesRegex(
-            markov.LinearModelError, 'without state dependency',
+            markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)
 
     def test_linear_model_from_component(self):
