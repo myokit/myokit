@@ -945,6 +945,8 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
     ``dot(x) = (x_inf - x) / tau_x``, where ``x_inf`` and ``tau_x`` are the
     new variables.
 
+    See also: :meth:`get_alpha_and_beta()`.
+
     Arguments:
 
     ``model``
@@ -1006,6 +1008,10 @@ def get_alpha_and_beta(x, v=None):
     Here, ``alpha(v)`` and ``beta(v)`` represent the forward and backward
     reaction rates for ``x``. Both may depend on ``v``, but not on any (other)
     state variable.
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
 
     Arguments:
 
@@ -1113,6 +1119,10 @@ def get_inf_and_tau(x, v=None):
     Here, ``x_inf`` and ``tau_x`` represent the steady-state and time
     constant of ``x``. Both may depend on ``v``, but not on any (other) state
     variable.
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
 
     Arguments:
 
@@ -1276,6 +1286,10 @@ def has_alpha_beta_form(x, v=None):
     both ``alpha`` and ``beta`` depend on ``v``, and (2) check that they don't
     depend on any state variables (not counting ``v``).
 
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
+
     Arguments:
 
     ``x``
@@ -1302,6 +1316,10 @@ def has_inf_tau_form(x, v=None):
     If the optional argument ``v`` is given, the method will (1) check that
     both ``x_inf`` and ``tau_x`` depend on ``v``, and (2) check that they don't
     depend on any state variables (not counting ``v``).
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
 
     Arguments:
 
