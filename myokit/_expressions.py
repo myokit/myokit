@@ -57,8 +57,10 @@ class Expression(object):
 
     def __init__(self, operands=None):
         self._token = None
+
         # Store operands
         self._operands = () if operands is None else operands
+
         # Cached values
         # These _could_ be calculated immediatly, since they won't change in
         # the object's lifetime. However, it turns out to be faster to only
@@ -66,6 +68,7 @@ class Expression(object):
         self._cached_hash = None
         self._cached_polish = None
         self._cached_validation = None
+
         # Store references
         self._references = set()
         for op in self._operands:
