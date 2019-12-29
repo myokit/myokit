@@ -339,7 +339,7 @@ class AnalyticalSimulationTest(unittest.TestCase):
     """
 
     def test_create_and_run(self):
-        """ Test basics """
+        # Test basics of analytical simulation
 
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -447,9 +447,8 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertTrue(len(d['engine.time']) > n)
 
     def test_analytical_simulation_properties(self):
-        """
-        Test basic get/set methods of analytical simulation.
-        """
+        # Test basic get/set methods of analytical simulation.
+
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
         model = myokit.load_model(fname)
@@ -565,7 +564,7 @@ class DiscreteSimulationTest(unittest.TestCase):
     """
 
     def test_basics(self):
-        """ Test the DiscreteSimulation class, running, resetting etc.. """
+        # Test the DiscreteSimulation class, running, resetting etc..
 
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
@@ -671,9 +670,8 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertRaisesRegexp(ValueError, 'extra', s.run, 1, log=d2)
 
     def test_discrete_simulation_properties(self):
-        """
-        Test basic get/set methods of discrete simulation.
-        """
+        # Test basic get/set methods of discrete simulation.
+
         # Create a simulation
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
         model = myokit.load_model(fname)
@@ -740,6 +738,24 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertEqual(s.discretize_state([0.4, 0.6]), [20, 30])
         self.assertRaisesRegex(
             ValueError, 'must equal 1', s.discretize_state, [0.5, 0.6])
+
+
+class FindMarkovModelsTest(unittest.TestCase):
+    """
+    Test cases for finding Markov models.
+    """
+
+    def test_find_markov_model(self):
+        # Tests the 'find-markov-model' code
+
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(fname)
+
+        models = markov.find_markov_models(model)
+        self.assertEqual(len(models), 2)
+
+        print(models)
+
 
 
 if __name__ == '__main__':

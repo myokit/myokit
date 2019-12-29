@@ -1,5 +1,5 @@
 #
-# Tools for working with Markov models of ion channels
+# Tools for working with Markov models of ion channels.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import collections
 import numpy as np
 
 import myokit
@@ -144,6 +145,10 @@ class LinearModel(object):
                     'State <' + state.qname() + '> was added twice.')
             self._states.append(state)
         del(states)
+
+        # TODO: If one (and only one) state is not a state variable, call a
+        # method to convert it to a state.
+        # See #473
 
         # Check and collect parameter variables
         unique = set()
@@ -1616,6 +1621,16 @@ def _linear_combination(expression, variables):
     Checks if ``expression`` is a linear combination of the given ``variables``
     and returns the multiplier for each variable.
 
+    See :meth:`_linear_combination_terms` for details.
+    """
+    return _linear_combination_terms(_split_terms(expression), variables)
+
+
+def _linear_combination_terms(terms, variables):
+    """
+    Checks if a list of terms forms linear combination of the given
+    ``variables`` and returns the multiplier for each variable.
+
     If ``expression`` is a linear combination ``a1*v1 + a2*v2 + ...`` where
     ``vi`` is a variable in ``variables``, this method returns a list of
     expressions ``[a1, a2, ...]``. The expressions ``ai`` are not guaranteed to
@@ -1627,9 +1642,6 @@ def _linear_combination(expression, variables):
     """
     # Multiplier for each variable
     multipliers = [None] * len(variables)
-
-    # Split expression into terms
-    terms = _split_terms(expression)
 
     # Check each term multiplies one of the variables
     for term in terms:
@@ -1695,7 +1707,7 @@ def _split_factor(term, variables):
             if name in b.references():
                 raise ValueError(
                     'Non-linear term of ' + str(name) + ' found in '
-                    + str(expression) + '.')
+                    + str(term) + '.')
             term = a
             m = myokit.Divide(myokit.Number(1) if m is None else m, b)
         else:
@@ -1745,4 +1757,136 @@ def _split_terms(expression, terms=None, positive=True):
         else:
             terms.append(myokit.PrefixMinus(expression))
     return terms
+
+
+def find_markov_models(model, vm=None):
+    """
+    Searches a :class:`myokit.Model` for groups of states that constitute a
+    Markov model.
+
+    Returns a list of lists, where the inner lists are groups of variables that
+    form a Markov model together.
+
+    Note that this method performs a shallow check of the equation shapes,
+    and does not perform any simplification or rewriting to see if the
+    expressions can be made to fit a Markov form.
+
+    Arguments:
+
+    ``model``
+        The :class:`myokit.Model` to search.
+    ``vm``
+        The variable indicating membrane potential. If set to ``None``
+        (default) the method will search for a variable with the label
+        ``membrane_potential``.
+
+    """
+    # Check membrane potential variable
+    if vm is None:
+        vm = model.label('membrane_potential')
+    if vm is None:
+        raise ValueError(
+            'A membrane potential must be specified as `vm` or using the'
+            ' label `membrane_potential`.')
+
+    # Models
+    models = []
+
+    # Scan model for clusters of states that depend on each other
+    seen = {vm}
+    for var in model.states():
+        if var in seen:
+            continue
+
+        # Check references to other states, made by this state
+        group = set(var.refs_to(True))
+        if len(group) == 0:
+            continue
+
+        # Find group of connected states
+        todo = collections.deque(group)
+        while todo:
+            var = todo.popleft()
+            for ref in set(var.refs_to(True)) - group:
+                group.add(ref)
+                todo.append(ref)
+
+        # All these states now count as 'seen'
+        seen |= group
+
+        # Now check if there's a (1 - x1 - x2 - ...) variable:
+        # First check if there's a non-state variable that depends on all of
+        # these states.
+        candidates = set()
+        for var in group:
+            for ref in var.refs_by(True):
+                if set(ref.refs_to(True)) == group:
+                    candidates.add(ref)
+        candidates -= group
+
+        # Now test the candidates for the correct form
+        extra = set()
+        for candidate in candidates:
+            # Split into terms
+            terms = _split_terms(candidate.rhs())
+
+            # Must have a 1 and a term for each state
+            if len(terms) != 1 + len(group):
+                continue
+
+            # Remove the '1' term
+            i_one = None
+            for i, term in enumerate(terms):
+                if term.is_constant() and term.eval() == 1:
+                    i_one = i
+                    break
+            if i_one is None:
+                continue
+            del(terms[i_one])
+
+            # Remaining terms must be linear combination of the states in
+            # group...
+            try:
+                factors = _linear_combination_terms(terms, list(group))
+            except ValueError:
+                continue
+
+            # And each factor must be -1
+            ok = True
+            for factor in factors:
+                if not (factor.is_constant() and factor.eval() == -1):
+                    ok = False
+                    break
+            if not ok:
+                continue
+
+            # Passed all tests!
+            extra.add(candidate)
+        del(candidates)
+
+        # At this point `extra` should be empty or a single variable, if not,
+        # it's not a (normal) Markov model
+        if len(extra) > 1:
+            continue
+
+        # Must have at least 2 states in total
+        states = group | extra
+        if len(states) < 2:
+            continue
+
+        # Get sorted list of states for output
+        states = list(states)
+        states.sort(key=lambda x: myokit._natural_sort_key(x.qname()))
+
+        # Check all members of `group` are a linear combination of states
+        try:
+            for state in group:
+                _linear_combination(state.rhs(), states)
+        except ValueError:
+            continue
+
+        # This looks like a Markov model!
+        models.append(states)
+
+    return models
 
