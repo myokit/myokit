@@ -330,18 +330,13 @@ class LinearModel(object):
             # Scan factors
             for col, state in enumerate(self._states):
                 factor = factors[col]
-                if factor is None:
-                    continue
+                if factor is not None:
+                    # Add factor to transition matrix
+                    A[row][col] = factor
 
-                # Add factor to transition matrix
-                cur = A[row][col]
-                if cur != myokit.Number(0):
-                    factor = myokit.Plus(cur, factor)
-                A[row][col] = factor
-
-                # Store transition in transition list
-                if row != col:
-                    T.add((col, row))   # A is mirrored
+                    # Store transition in transition list
+                    if row != col:
+                        T.add((col, row))   # A is mirrored
 
         # Create a parametrisable matrix for the current
         B = [myokit.Number(0) for i in range(n)]
@@ -355,13 +350,8 @@ class LinearModel(object):
 
             for col, state in enumerate(self._states):
                 factor = factors[col]
-                if factor is None:
-                    continue
-
-                cur = B[col]
-                if cur != myokit.Number(0):
-                    factor = myokit.Plus(cur, factor)
-                B[col] = factor
+                if factor is not None:
+                    B[col] = factor
 
         # Create list of transition rates and associated equations
         T = list(T)
@@ -1710,6 +1700,9 @@ def _split_factor(term, variables):
                     + str(term) + '.')
             term = a
             m = myokit.Divide(myokit.Number(1) if m is None else m, b)
+        elif t in (myokit.Plus, myokit.Minus):
+            raise ValueError(
+                'Expression passed to _split_factor must be a single term.')
         else:
             raise ValueError(
                 'Non-linear function of ' + str(name) + ' found in '
@@ -1751,6 +1744,10 @@ def _split_terms(expression, terms=None, positive=True):
         a, b = expression
         _split_terms(a, terms, positive)
         _split_terms(b, terms, not positive)
+    elif type(expression) == myokit.PrefixPlus:
+        _split_terms(expression[0], terms, positive)
+    elif type(expression) == myokit.PrefixMinus:
+        _split_terms(expression[0], terms, not positive)
     else:
         if positive:
             terms.append(expression)
