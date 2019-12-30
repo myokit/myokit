@@ -319,12 +319,14 @@ def _doc_coverage_get_modules_classes_functions():
 
             # Class
             elif inspect.isclass(member):
-                if name not in ['Qt', 'QSignal']:
+                if member.__module__.startswith('myokit.'):
                     classes.add(full_name)
 
             # Function
             elif inspect.isfunction(member):
-                functions.add(full_name)
+                if member.__module__.startswith('myokit.'):
+                    functions.add(full_name)
+
         return
 
     # Scan and return
