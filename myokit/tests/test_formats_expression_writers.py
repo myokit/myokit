@@ -694,10 +694,6 @@ class LatexExpressionWriterTest(unittest.TestCase):
             'piecewise\\left(\\left(5.0>3.0\\right),\\text{a},'
             '\\left(2.0<1.0\\right),12.0,1.0\\right)')
 
-        # Unsupported type
-        u = myokit.UnsupportedFunction('frog', x)
-        self.assertRaises(ValueError, w.ex, u)
-
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('latex')
         self.assertIsInstance(w, myokit.formats.latex.LatexExpressionWriter)

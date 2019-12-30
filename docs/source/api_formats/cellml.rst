@@ -6,16 +6,24 @@ CellML
 
 An interface for importing CellML 1.0 and up is provided, as well as an export
 to CellML 1.0.
+For further CellML functions, see :ref:`CellML API <formats/cellml_v1>`
 
 Importing
 =========
 
 Myokit can import most models listed in the CellML electrophysiology
 repository.
+(Although take care, some of the CellML versions of models are known issues.
+This is usually mentioned in their documentation).
 
-However, most CellML models contain a hard-coded stimulus current which will
-cause problems for the solver. These must rewritten manually to use Myokit's
-pacing system.
+Adapting an embedded stimulus current
+-------------------------------------
+
+Most CellML models contain a hard-coded stimulus current.
+Myokit will try to detect these stimulus currents and replace them by an
+appropriate :class:`myokit.Protocol`.
+However, if this fails, the stimulus will need to be converted by hand, which
+is described below.
 
 In the following example we show how to import the Beeler-Reuter model from
 the CellML database.
@@ -66,100 +74,34 @@ the CellML database.
     The same procedure can be followed for any other valid model in the
     database.
 
-Model quality
--------------
-Please keep in mind that the quality of available CellML models may vary. Some
-models are incomplete, contain errors or are not written in valid CellML. In
-addition, some models contain experimental features such as random variation
-or partial differential equations. These are not currently part of the CellML
-standard and are not supported by Myokit.
-
-Limitations
------------
-CellML is built with a larger scope in mind than Myokit and includes a few
-oddities such as ``<arccsch>``, which were included " because they are
-reasonably straightforward to translate to computer code" (CellML 1.0
-specification). Below is a list of the CellML features Myokit does not support.
-
-**CellML 1.0**
-
-Differential algebraic equations (DAEs)
-    Myokit has no support for DAEs, so model that contain them cannot be
-    imported. However, these models can manually be rewritten to a form
-    supported by Myokit.
-``<factorial>``
-    The factorial operation is not common in cell models or in programming
-    math libraries (C for example, does not include it). In addition, note that
-    ``13! > 2^32`` and ``21! > 2^64`` so that there is only a very small
-    subset of factorials that we can easily compute. At the time of writing,
-    July 2015, none of the *cardiac* models in the CellML electrophysiology
-    repository use this feature.
-``<reaction>``
-    The ``<reaction>`` element and its children are used to specify biochemical
-    pathways without an explicit mathematical form. Since there are plenty of
-    tools for pathways already, Myokit does not support them. At the time of
-    writing, July 2015, none of the models in the CellML electrophysiology
-    repository use this feature.
-``<semantics>``
-    The ``<semantics>`` element and its children can be used to specify both
-    a meaningful set of equations and a pretty set of equations. Since Myokit
-    has only one way of displaying equations, this is not supported. At the
-    time of writing, July 2015, none of the models in the CellML
-    electrophysiology repository use this feature.
-
-**CellML 1.1**
-
-``<import>``
-    The import element introduced in CellML 1.1 is currently not supported,
-    but this may change in the future.
-
-**Optional features**
-
-Unit conversion
-    Myokit's CellML import does not perform automatic unit conversion, but it
-    will warn if inconsistent units are found.
-Scripting
-    CellML scripting is not supported by Myokit.
 
 Exporting
 =========
-Myokit provides an export to CellML 1.0. Since Myokit separates the model from
-the pacing protocol, but most CellML based tools do not expect this, Myokit has
-an option to embed a hardcoded stimulus protocol in exported CellML files.
+Myokit provides an export to CellML 1.0.
+Since Myokit separates the model from the pacing protocol, but most CellML
+based tools do not expect this, Myokit has an option to embed a hardcoded
+stimulus protocol in exported CellML files.
 This is enabled by default but can be disabled when exporting models via the
 API (see :class:`CellMLExporter <myokit.formats.cellml.CellMLExporter>`).
 
 Note that the protocol has a default duration of 2ms, making it suitable for
-most older models but not the more modern ones. For models that require shorter
-stimulus currents, adapt the CellML model by searching for a component named
-"stimulus" (or "stimulus\_2" if that name was already taken) and changing the
-"duration" variable.
-
-OpenCOR
--------
-A few notes about OpenCOR:
-
-1. The OpenCOR manual states that, *"a model that requires a stimulus protocol
-   should have the maximum step value of the CVODE solver set to the length of
-   the stimulus"*. Since most models have a stimulus protocol you'll usually
-   have to set the maximum step size on the "simulation" tab for models to
-   work in OpenCOR.
-2. OpenCOR has been known to complain about nested piecewise functions. If
-   these are present it seems to run anyway.
+most older models but not the more modern ones.
+For models that require shorter stimulus currents, adapt the CellML model by
+searching for a component named "stimulus" (or "stimulus\_2" if that name was
+already taken) and changing the "duration" variable.
 
 
-API
-===
-The standard interfaces for importing and exporting are provided:
+Imports, exporters, and expression writers
+==========================================
 
 .. module:: myokit.formats.cellml
-
-.. autofunction:: is_valid_identifier
 
 .. autofunction:: importers
 
 .. autoclass:: CellMLImporter
     :inherited-members:
+
+.. autoclass:: CellMLImporterError
 
 .. autofunction:: exporters
 
@@ -170,6 +112,4 @@ The standard interfaces for importing and exporting are provided:
 
 .. autoclass:: CellMLExpressionWriter
     :inherited-members:
-
-.. autoclass:: CellMLError
 

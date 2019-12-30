@@ -58,7 +58,8 @@ if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
         'Myokit is not tested on Python 2 versions older than 2.7.15')
     log.warning('Detected Python version: ' + sys.version)
     del(logging, log)
-elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000:
+elif (sys.hexversion >= 0x03000000 and
+      sys.hexversion < 0x03050000):  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
@@ -68,7 +69,7 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000:
 
 
 # Exec() that works with Python 2 versions before 2.7.9
-if sys.hexversion < 0x020709F0:
+if sys.hexversion < 0x020709F0:     # pragma: no python 3 cover
     from ._exec_old import _exec    # noqa
 else:
     from ._exec_new import _exec    # noqa
@@ -83,21 +84,6 @@ from ._myokit_version import (  # noqa
     __version__,
     __version_tuple__,
 )
-
-
-# Myokit version
-def version(raw=False):
-    """
-    Returns the current Myokit version.
-    """
-    if raw:
-        return __version__
-    else:
-        t1 = ' Myokit ' + __version__ + ' '
-        t2 = '_' * len(t1)
-        t1 += '|/\\'
-        t2 += '|  |' + '_' * 5
-        return '\n' + t1 + '\n' + t2
 
 
 # Warn about development version
@@ -244,7 +230,7 @@ if os.path.exists(DIR_USER):    # pragma: no cover
     if not os.path.isdir(DIR_USER):
         raise Exception(
             'File or link found in place of user directory: ' + str(DIR_USER))
-else:
+else:                           # pragma: no cover
     os.makedirs(DIR_USER)
 
 # Example mmt file
@@ -385,7 +371,7 @@ ex, name, clas = None, None, None
 for ex in inspect.getmembers(_err):
     name, clas = ex
     if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-        if name not in _globals:
+        if name not in _globals:    # pragma: no cover
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 del(_err)
@@ -449,7 +435,6 @@ from ._expressions import (  # noqa
     Sin,
     Sqrt,
     Tan,
-    UnsupportedFunction,
     Unit,
 
 )
@@ -478,9 +463,16 @@ from ._parsing import (  # noqa
 
 # Auxillary functions
 from ._aux import (  # noqa
+    # Version info
+    version,
+
     # Global date and time formats
     date,
     time,
+
+    # Default mmt parts
+    default_protocol,
+    default_script,
 
     # Reading, writing
     load,
@@ -502,7 +494,7 @@ from ._aux import (  # noqa
     # Test step
     step,
 
-    # Output masking
+    # Output capturing
     PyCapture,
     SubCapture,
 
@@ -525,6 +517,7 @@ from ._aux import (  # noqa
     format_float_dict,
     format_path,
     _lvsd,
+    _rmtree,
     _round_if_int,
     strfloat,
 
@@ -608,45 +601,4 @@ _Simulation_progress = None
 #
 from . import _config   # noqa
 del(_config)
-
-
-#
-# Default mmt file parts
-#
-def default_protocol():
-    """
-    Provides a default protocol to use when no embedded one is available.
-    """
-    p = Protocol()
-    p.schedule(1, 100, 0.5, 1000, 0)
-    return p
-
-
-def default_script():
-    """
-    Provides a default script to use when no embedded script is available.
-    """
-    return '\n'.join((
-        "[[script]]",
-        "import matplotlib.pyplot as plt",
-        "import myokit",
-        "",
-        "# Get model and protocol, create simulation",
-        "m = get_model()",
-        "p = get_protocol()",
-        "s = myokit.Simulation(m, p)",
-        "",
-        "# Run simulation",
-        "d = s.run(1000)",
-        "",
-        "# Get the first state variable's name",
-        "first_state = next(m.states())",
-        "var = first_state.qname()",
-        "",
-        "# Display the results",
-        "plt.figure()",
-        "plt.plot(d.time(), d[var])",
-        "plt.title(var)",
-        "plt.show()",
-    ))
 

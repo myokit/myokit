@@ -47,7 +47,7 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
         """
         try:
             action = self._op_map[type(e)]
-        except KeyError:
+        except KeyError:    # pragma: no cover
             raise ValueError('Unsupported type: ' + str(type(e)))
         return action(e)
 

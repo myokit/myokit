@@ -62,7 +62,7 @@ class SBMLTest(unittest.TestCase):
         i = formats.importer('sbml')
 
         def sbml(fname):
-            m = i.model(os.path.join(DIR_FORMATS, fname))
+            m = i.model(os.path.join(DIR_FORMATS, 'sbml', fname))
             try:
                 m.validate()
             except myokit.MissingTimeVariableError:

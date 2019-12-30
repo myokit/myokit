@@ -159,6 +159,15 @@ class MyokitUnitTest(unittest.TestCase):
             myokit.IncompatibleUnitError, 'from',
             myokit.Unit.convert, 1, 'A', V)
 
+    def test_exponents(self):
+        # Test Unit.exponents
+
+        x = myokit.Unit()
+        self.assertEqual(x.exponents(), [0] * 7)
+
+        x = myokit.units.m ** -2
+        self.assertEqual(x.exponents(), [0, -2, 0, 0, 0, 0, 0])
+
     def test_float(self):
         # Test :meth:`Unit.__float__()`.
         x = myokit.Unit()
@@ -174,43 +183,43 @@ class MyokitUnitTest(unittest.TestCase):
 
         # Test div
         d = myokit.Unit()
-        self.assertEqual(d._x, [0] * 7)
+        self.assertEqual(d.exponents(), [0] * 7)
         d = d / myokit.units.m
-        self.assertEqual(d._x, [0, -1, 0, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, -1, 0, 0, 0, 0, 0])
         d = d / myokit.units.m
-        self.assertEqual(d._x, [0, -2, 0, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, -2, 0, 0, 0, 0, 0])
         d = d / d
-        self.assertEqual(d._x, [0, 0, 0, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, 0, 0, 0, 0, 0, 0])
 
         # Test mul
         d = myokit.Unit()
-        self.assertEqual(d._x, [0] * 7)
+        self.assertEqual(d.exponents(), [0] * 7)
         d = d * myokit.units.s
-        self.assertEqual(d._x, [0, 0, 1, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, 0, 1, 0, 0, 0, 0])
         d = d * myokit.units.m
-        self.assertEqual(d._x, [0, 1, 1, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, 1, 1, 0, 0, 0, 0])
         d = d * d
-        self.assertEqual(d._x, [0, 2, 2, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, 2, 2, 0, 0, 0, 0])
 
         # Test pow
         d = myokit.Unit()
-        self.assertEqual(d._x, [0] * 7)
+        self.assertEqual(d.exponents(), [0] * 7)
         d *= myokit.units.s
         d *= myokit.units.m
-        self.assertEqual(d._x, [0, 1, 1, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, 1, 1, 0, 0, 0, 0])
         d = d**3
-        self.assertEqual(d._x, [0, 3, 3, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, 3, 3, 0, 0, 0, 0])
 
         # Test rdiv and rmul (i.e. with non-units)
         d = myokit.Unit()
         d *= myokit.units.meter
         self.assertEqual(d._m, 0)
-        self.assertEqual(d._x, [0, 1, 0, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, 1, 0, 0, 0, 0, 0])
         d = 1000 * d
         self.assertEqual(d._m, 3)
         d = 1 / d
         self.assertEqual(d._m, -3)
-        self.assertEqual(d._x, [0, -1, 0, 0, 0, 0, 0])
+        self.assertEqual(d.exponents(), [0, -1, 0, 0, 0, 0, 0])
         d = 100 * d
         self.assertEqual(d._m, -1)
         d = 10 * d

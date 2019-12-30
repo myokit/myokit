@@ -8,7 +8,8 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
-import xml.etree.cElementTree as et
+
+from lxml import etree
 
 import myokit
 from ._ewriter import MathMLExpressionWriter
@@ -32,12 +33,11 @@ class XMLExporter(myokit.formats.Exporter):
         path = os.path.abspath(os.path.expanduser(path))
 
         # Create model xml element
-        root = et.Element('math')
+        root = etree.Element('math')
         root.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
 
         # Create expression writer
         writer = MathMLExpressionWriter()
-        writer.set_element_tree_class(et)
         writer.set_mode(presentation=False)
         writer.set_time_variable(model.time())
 
@@ -46,7 +46,7 @@ class XMLExporter(myokit.formats.Exporter):
             writer.eq(var.eq(), root)
 
         # Write xml to file
-        doc = et.ElementTree(root)
+        doc = etree.ElementTree(root)
         doc.write(path, encoding='utf-8', method='xml')
 
         # Pretty output
@@ -85,35 +85,34 @@ class HTMLExporter(myokit.formats.Exporter):
             name = 'Generated model'
 
         # Create model html element
-        html = et.Element('html')
-        head = et.SubElement(html, 'head')
-        title = et.SubElement(head, 'title')
+        html = etree.Element('html')
+        head = etree.SubElement(html, 'head')
+        title = etree.SubElement(head, 'title')
         title.text = name
-        body = et.SubElement(html, 'body')
-        heading = et.SubElement(body, 'h1')
+        body = etree.SubElement(html, 'body')
+        heading = etree.SubElement(body, 'h1')
         heading.text = name
 
         # Create expression writer
         writer = MathMLExpressionWriter()
-        writer.set_element_tree_class(et)
         writer.set_mode(presentation=True)
         writer.set_time_variable(model.time())
 
         # Write equations, per component
         for component in model.components():
-            div = et.SubElement(body, 'div')
+            div = etree.SubElement(body, 'div')
             div.attrib['class'] = 'component'
-            heading = et.SubElement(div, 'h2')
+            heading = etree.SubElement(div, 'h2')
             heading.text = component.qname()
             for var in component.variables(deep=True):
-                div2 = et.SubElement(div, 'div')
+                div2 = etree.SubElement(div, 'div')
                 div2.attrib['class'] = 'variable'
-                math = et.SubElement(div2, 'math')
+                math = etree.SubElement(div2, 'math')
                 math.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
                 writer.eq(var.eq(), math)
 
         # Write xml to file
-        doc = et.ElementTree(html)
+        doc = etree.ElementTree(html)
         doc.write(path, encoding='utf-8', method='xml')
 
         # Pretty output

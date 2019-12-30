@@ -14,6 +14,7 @@ import fnmatch
 import os
 import re
 import shutil
+import stat
 import sys
 import tempfile
 import timeit
@@ -370,6 +371,79 @@ class SubCapture(PyCapture):
         example for debug output).
         """
         return self._stdout
+
+
+def default_protocol(model=None):
+    """
+    Returns a default protocol to use when no embedded one is available.
+    """
+    start = 100
+    duration = 0.5
+    period = 1000
+
+    # Try to get the time units
+    time_units = None
+    if model is not None:
+        if model.time() is not None:
+            time_units = model.time().unit()
+
+    # Adapt protocol if necessary
+    if time_units is not None:
+        default_units = myokit.units.ms
+        start = myokit.Unit.convert(start, default_units, time_units)
+        duration = myokit.Unit.convert(duration, default_units, time_units)
+        period = myokit.Unit.convert(period, default_units, time_units)
+
+    p = myokit.Protocol()
+    p.schedule(1, start, duration, period, 0)
+    return p
+
+
+def default_script(model=None):
+    """
+    Returns a default script to use when no embedded script is available.
+    """
+    # Defaults
+    vm = 'next(m.states()).qname()'
+    duration = 1000
+
+    # Try to improve on defaults using model
+    if model is not None:
+        # Guess membrane potential
+        import myokit.lib.guess
+        v = myokit.lib.guess.membrane_potential(model)
+        if v is not None:
+            vm = "'" + v.qname() + "'"
+
+        # Get duration in good units
+        time = model.time()
+        if time is not None:
+            default_unit = myokit.units.ms
+            if time.unit() is not None and time.unit() != default_unit:
+                duration = myokit.Unit.convert(
+                    1000, default_unit, time.unit())
+
+    # Create and return script
+    return '\n'.join((  # pragma: no cover
+        "[[script]]",
+        "import matplotlib.pyplot as plt",
+        "import myokit",
+        "",
+        "# Get model and protocol, create simulation",
+        "m = get_model()",
+        "p = get_protocol()",
+        "s = myokit.Simulation(m, p)",
+        "",
+        "# Run simulation",
+        "d = s.run(" + str(duration) + ")",
+        "",
+        "# Display the results",
+        "var = " + vm,
+        "plt.figure()",
+        "plt.plot(d.time(), d[var])",
+        "plt.title(var)",
+        "plt.show()",
+    ))
 
 
 def _examplify(filename):
@@ -1335,6 +1409,20 @@ def strfloat(number, full=False):
     return myokit.SFDOUBLE.format(number)
 
 
+def version(raw=False):
+    """
+    Returns the current Myokit version.
+    """
+    if raw:
+        return myokit.__version__
+    else:
+        t1 = ' Myokit ' + myokit.__version__ + ' '
+        t2 = '_' * len(t1)
+        t1 += '|/\\'
+        t2 += '|  |' + '_' * 5
+        return '\n' + t1 + '\n' + t2
+
+
 def _feq(a, b):
     """
     Checks if floating point numbers ``a`` and ``b`` are equal, or so close to
@@ -1358,3 +1446,22 @@ def _round_if_int(x):
     ix = round(x)
     return ix if _feq(x, ix) else x
 
+
+def _rmtree(path):
+    """
+    Version of ``shutil.rmtree`` that handles access denied errors (when the
+    user is lacking write permissions). This seems to happen on Windows some
+    times.
+
+    The solution here is based on answers given on stackoverflow:
+    https://stackoverflow.com/questions/2656322
+    """
+    def onerror(function, path, excinfo):   # pragma: no cover
+        if not os.access(path, os.W_OK):
+            # Give user write permissions (remove read-only flag)
+            os.chmod(path, stat.S_IWUSR)
+            function(path)
+        else:
+            raise
+
+    shutil.rmtree(path, ignore_errors=False, onerror=onerror)

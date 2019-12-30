@@ -21,74 +21,74 @@ Implementation
 Actions
 ----------
 
-.. autoclass:: myokit.gui.gde.DA_AddVariable
+.. autoclass:: DA_AddVariable
 
-.. autoclass:: myokit.gui.gde.DA_AddNode
+.. autoclass:: DA_AddNode
 
-.. autoclass:: myokit.gui.gde.DA_ChangeVariable
+.. autoclass:: DA_ChangeVariable
 
-.. autoclass:: myokit.gui.gde.DA_ChangeVariables
+.. autoclass:: DA_ChangeVariables
 
-.. autoclass:: myokit.gui.gde.DA_RemoveNode
+.. autoclass:: DA_RemoveNode
 
-.. autoclass:: myokit.gui.gde.DA_RemoveVariable
+.. autoclass:: DA_RemoveVariable
 
 Document
 --------
 
-.. autoclass:: myokit.gui.gde.Document
+.. autoclass:: Document
 
-.. autoclass:: myokit.gui.gde.DocumentNode
+.. autoclass:: DocumentNode
 
-.. autoclass:: myokit.gui.gde.DocumentVariable
+.. autoclass:: DocumentVariable
 
 Penalized Spline
 ----------------
 
-.. autofunction:: myokit.gui.gde.pspline()
+.. autofunction:: pspline
 
 Widgets
 -------
 
-.. autoclass:: myokit.gui.gde.AxisItem
+.. autoclass:: AxisItem
 
-.. autoclass:: myokit.gui.gde.AxisPointItem
+.. autoclass:: AxisPointItem
 
-.. autoclass:: myokit.gui.gde.BoolVariableField
+.. autoclass:: BoolVariableField
 
-.. autoclass:: myokit.gui.gde.DataPointItem
+.. autoclass:: DataPointItem
 
-.. autoclass:: myokit.gui.gde.DataSetItem
+.. autoclass:: DataSetItem
 
-.. autoclass:: myokit.gui.gde.DocumentAction
+.. autoclass:: DocumentAction
 
-.. autoclass:: myokit.gui.gde.DocumentEditDock
+.. autoclass:: DocumentEditDock
 
-.. autoclass:: myokit.gui.gde.DocumentModel
+.. autoclass:: DocumentModel
 
-.. autoclass:: myokit.gui.gde.DocumentTreeView
+.. autoclass:: DocumentTreeView
 
-.. autoclass:: myokit.gui.gde.DocumentVariableEditDock
+.. autoclass:: DocumentVariableEditDock
 
-.. autoclass:: myokit.gui.gde.DocumentVariableField
+.. autoclass:: DocumentVariableField
 
-.. autoclass:: myokit.gui.gde.DocumentVariableList
+.. autoclass:: DocumentVariableList
 
-.. autoclass:: myokit.gui.gde.DraggableItem
+.. autoclass:: DraggableItem
 
-.. autoclass:: myokit.gui.gde.GdeDocument
+.. autoclass:: GdeDocument
 
-.. autoclass:: myokit.gui.gde.GdeScene
+.. autoclass:: GdeScene
 
-.. autoclass:: myokit.gui.gde.GdeView
+.. autoclass:: GdeView
 
-.. autoclass:: myokit.gui.gde.ImageItem
+.. autoclass:: ImageItem
 
-.. autoclass:: myokit.gui.gde.Line2D
+.. autoclass:: Line2D
 
-.. autoclass:: myokit.gui.gde.Point2D
+.. autoclass:: Point2D
 
-.. autoclass:: myokit.gui.gde.TextVariableField
+.. autoclass:: TextVariableField
 
-.. autoclass:: myokit.gui.gde.SceneItem
+.. autoclass:: SceneItem
 

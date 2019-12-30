@@ -19,6 +19,7 @@ import traceback
 import myokit
 import myokit.formats
 import myokit.lib.deps
+import myokit.lib.guess
 
 # Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
@@ -475,9 +476,12 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             m = self.model(errors_in_console=True)
             if m is False:
                 return
+
             e = myokit.formats.exporter(name)
+            e.logger().log(e.info())
             if not e.supports_model():
                 raise Exception('Exporter does not support export of model')
+
             filename = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 'Select file to export to',
@@ -485,13 +489,22 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 filter=glob)[0]
             if not filename:
                 return
+
             try:
-                e.model(filename, m)
+                if name == 'cellml':
+                    p = self.protocol(errors_in_console=True)
+                    if p is False:
+                        p = None
+                    e.model(filename, m, p)
+                else:
+                    e.model(filename, m)
+
                 msg = 'Export successful.'
-                e.logger().log(e.info())
             except myokit.ExportError:
                 msg = 'Export failed.'
+
             self._console.write(msg + '\n' + e.logger().text())
+
         except Exception:
             self.show_exception()
 
@@ -612,35 +625,57 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 filter=FILTER_CELLML)[0]
             if not filename:
                 return
+
             # Load file
             i = myokit.formats.importer('cellml')
             try:
+                # Import the model
                 model = i.model(filename)
+
+                # Try to split off protocol
+                protocol = myokit.lib.guess.remove_embedded_protocol(model)
+
+                # No protocol? Then create one
+                if protocol is None:
+                    protocol = myokit.default_protocol(model)
+
+                # Get default script
+                script = myokit.default_script(model)
+
                 # Import okay, update interface
                 self.new_file()
                 self._model_editor.setPlainText(model.code())
+                self._protocol_editor.setPlainText(protocol.code())
+                self._script_editor.setPlainText(script)
+
                 # Write log to console
                 i.logger().log_warnings()
                 self._console.write(
                     'Model imported successfully.\n' + i.logger().text())
+
                 # Set working directory to file's path
                 self._path = os.path.dirname(filename)
                 os.chdir(self._path)
+
                 # Save settings file
                 try:
                     self.save_config()
                 except Exception:
                     pass
+
                 # Update interface
                 self._tool_save.setEnabled(True)
                 self.update_window_title()
+
             except myokit.ImportError as e:
+
                 # Write output to console
                 i.logger().log_warnings()
                 self._console.write(
                     'Model import failed.\n' + i.logger().text()
                     + '\n\nModel import failed.\n' + str(e))
                 self.statusBar().showMessage('Model import failed.')
+
         except Exception:
             self.show_exception()
 

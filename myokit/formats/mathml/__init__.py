@@ -7,10 +7,18 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-from ._parser import parse_mathml, parse_mathml_rhs, MathMLError  # noqa
 from ._exporter import XMLExporter, HTMLExporter
 from ._ewriter import MathMLExpressionWriter
+from ._parser import (   # noqa
+    MathMLError,
+    MathMLParser,
+    parse_mathml_dom,
+    parse_mathml_etree,
+    parse_mathml_string,
+)
 
+# Namespaces
+NS_MATHML_2 = 'http://www.w3.org/1998/Math/MathML'
 
 # Importers
 # Exporters

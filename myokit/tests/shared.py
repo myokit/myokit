@@ -5,14 +5,13 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-# The TemporaryDirectory class was copied form Pints
+# The TemporaryDirectory class was adapted from Pints
 # See: https://github.com/pints-team/pints
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
-import shutil
 import tempfile
 
 import myokit
@@ -80,7 +79,7 @@ class TemporaryDirectory(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         try:
-            shutil.rmtree(self._dir)
+            myokit._rmtree(self._dir)
         finally:
             self._dir = None
 
@@ -127,3 +126,4 @@ class CancellingReporter(myokit.ProgressReporter):
     def update(self, f):
         self.okays -= 1
         return self.okays >= 0
+

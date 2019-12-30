@@ -18,6 +18,12 @@ try:
 except ImportError:  # pragma: no python 2 cover
     from io import StringIO
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 import myokit
 
 from shared import DIR_DATA, TemporaryDirectory
@@ -27,39 +33,6 @@ class AuxTest(unittest.TestCase):
     """
     Test various methods from myokit._aux.
     """
-
-    def test_myokit_date(self):
-        # Test date formatting method.
-
-        import time
-        for i in range(3):
-            a = time.strftime(myokit.DATE_FORMAT)
-            b = myokit.date()
-            if a == b:
-                break
-        self.assertEqual(a, b)
-
-    def test_myokit_time(self):
-        # Test time formatting method.
-
-        import time
-        for i in range(3):
-            a = time.strftime(myokit.TIME_FORMAT)
-            b = myokit.time()
-            if a == b:
-                break
-        self.assertEqual(a, b)
-
-    def test_natural_sort_key(self):
-        # Test natural sort key method.
-
-        a = ['a12', 'a3', 'a11', 'a2', 'a10', 'a1']
-        b = ['a1', 'a2', 'a3', 'a10', 'a11', 'a12']
-        self.assertNotEqual(a, b)
-        a.sort()
-        self.assertNotEqual(a, b)
-        a.sort(key=lambda x: myokit._natural_sort_key(x))
-        self.assertEqual(a, b)
 
     def test_benchmarker(self):
         # Test the benchmarker.
@@ -94,57 +67,87 @@ class AuxTest(unittest.TestCase):
             b.format(3600 * 24 * 7),
             '1 week, 0 days, 0 hours, 0 minutes, 0 seconds')
 
-    def test_py_capture(self):
-        # Test the PyCapture method.
+    def test_date(self):
+        # Test date formatting method.
 
-        # Test basic use
-        with myokit.PyCapture() as c:
-            print('Hello')
-            self.assertEqual(c.text(), 'Hello\n')
-            sys.stdout.write('Test')
-        self.assertEqual(c.text(), 'Hello\nTest')
+        import time
+        for i in range(3):
+            a = time.strftime(myokit.DATE_FORMAT)
+            b = myokit.date()
+            if a == b:
+                break
+        self.assertEqual(a, b)
 
-        # Test wrapping
-        with myokit.PyCapture() as c:
-            print('Hello')
-            self.assertEqual(c.text(), 'Hello\n')
-            with myokit.PyCapture() as d:
-                print('Yes')
-            self.assertEqual(d.text(), 'Yes\n')
-            sys.stdout.write('Test')
-        self.assertEqual(c.text(), 'Hello\nTest')
+    def test_default_protocol(self):
+        # Test default_protocol()
 
-        # Test disabling / enabling
-        with myokit.PyCapture() as c:
-            print('Hello')
-            self.assertEqual(c.text(), 'Hello\n')
-            with myokit.PyCapture() as d:
-                sys.stdout.write('Yes')
-                d.disable()
-                print('Hmmm')
-                d.enable()
-                print('No')
-            self.assertEqual(d.text(), 'YesNo\n')
-            sys.stdout.write('Test')
-        self.assertEqual(c.text(), 'Hello\nHmmm\nTest')
+        # Test default version
+        protocol = myokit.default_protocol()
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
 
-        # Test clear() method
-        with myokit.PyCapture() as c:
-            print('Hi')
-            self.assertEqual(c.text(), 'Hi\n')
-            print('Ho')
-            self.assertEqual(c.text(), 'Hi\nHo\n')
-            c.clear()
-            print('Ha')
-            self.assertEqual(c.text(), 'Ha\n')
+        # Test adapting the time unit
+        model = myokit.Model()
+        t = model.add_component('c').add_variable('t')
+        t.set_rhs(0)
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
 
-        # Bug: Test clear method _without_ calling text() before clear()
-        with myokit.PyCapture() as c:
-            print('Hi')
-            print('Ho')
-            c.clear()
-            print('Ha')
-            self.assertEqual(c.text(), 'Ha\n')
+        t.set_binding('time')
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
+
+        t.set_unit('s')
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1)
+
+        t.set_unit('ms')
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
+
+    def test_default_script(self):
+        # Test default script
+
+        # Test without a model
+        script = myokit.default_script()
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
+
+        # Test adapting the time unit
+        model = myokit.Model()
+        t = model.add_component('c').add_variable('t')
+        t.set_rhs(0)
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
+
+        t.set_binding('time')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
+
+        t.set_unit('s')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1.0)', script)
+
+        t.set_unit('ms')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
+
+        # Test plotting membrane potential
+        v = model.get('c').add_variable('v')
+        v.set_label('membrane_potential')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn("var = 'c.v'", script)
+
+        # TODO: Run with tiny model?
 
     def test_examplify(self):
         # Test examplify.
@@ -152,7 +155,41 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(myokit._aux._examplify('test.txt'), 'test.txt')
         self.assertEqual(myokit._aux._examplify('example'), myokit.EXAMPLE)
 
-    def test_myokit_format_float_dict(self):
+    def test_float_functions(self):
+        # Test the floating point comparison methods
+
+        # Test that test is going to work
+        x = 49
+        y = 1 / (1 / x)
+        self.assertNotEqual(x, y)
+
+        # Test if feq allows 1 floating point error
+        # Test if
+        self.assertTrue(myokit._feq(x, y))
+        self.assertTrue(myokit._fgeq(x, y))
+        self.assertTrue(myokit._fgeq(y, x))
+        x += x * sys.float_info.epsilon
+        self.assertTrue(myokit._feq(x, y))
+        self.assertTrue(myokit._fgeq(x, y))
+        self.assertTrue(myokit._fgeq(y, x))
+        x += x * sys.float_info.epsilon
+        self.assertFalse(myokit._feq(x, y))
+        self.assertTrue(myokit._fgeq(x, y))
+        self.assertFalse(myokit._fgeq(y, x))
+
+        # Test rounding
+        self.assertNotEqual(49, y)
+        self.assertEqual(49, myokit._round_if_int(y))
+        self.assertNotEqual(49, myokit._round_if_int(x))
+        self.assertEqual(0.5, myokit._round_if_int(0.5))
+
+        # Try with negative numbers
+        self.assertNotEqual(-49, -y)
+        self.assertEqual(-49, myokit._round_if_int(-y))
+        self.assertNotEqual(-49, myokit._round_if_int(-x))
+        self.assertEqual(-0.5, myokit._round_if_int(-0.5))
+
+    def test_format_float_dict(self):
         # Test myokit.format_float_dict.
 
         d = {'one': 1, 'Definitely two': 2, 'Three-ish': 3.1234567}
@@ -162,7 +199,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(x[1], 'Three-ish      = 3.1234567')
         self.assertEqual(x[2], 'one            = 1')
 
-    def test_myokit_format_path(self):
+    def test_format_path(self):
         # Test format_path().
 
         # Normal use
@@ -200,36 +237,6 @@ class AuxTest(unittest.TestCase):
                 os.path.abspath('test'),
                 os.path.abspath('test/tost')),
             os.path.abspath('test'))
-
-    def test_myokit_pack_snapshot(self):
-        # Test if the pack_snapshot method runs without exceptions.
-
-        with TemporaryDirectory() as d:
-            # Run!
-            path = d.path('pack.zip')
-            new_path = myokit.pack_snapshot(path)
-            self.assertTrue(os.path.isfile(new_path))
-            self.assertTrue(os.path.getsize(new_path) > 500000)
-
-            # Run with same location --> error
-            self.assertRaises(
-                IOError, myokit.pack_snapshot, path, overwrite=False)
-
-            # Run with overwrite switch is ok
-            myokit.pack_snapshot(path, overwrite=True)
-
-            # Write to directory: finds own filename
-            path = d.path('')
-            new_path = myokit.pack_snapshot(path)
-            self.assertEqual(new_path[:len(path)], path)
-            self.assertTrue(len(new_path) - len(path) > 5)
-
-            # Write to directory again without overwrite --> error
-            self.assertRaises(
-                IOError, myokit.pack_snapshot, path, overwrite=False)
-
-            # Run with overwrite switch is ok
-            myokit.pack_snapshot(path, overwrite=True)
 
     def test_levenshtein_distance(self):
         # Test the levenshtein distance method.
@@ -329,7 +336,18 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(len(c), 2)
         self.assertEqual(len(c), len(myokit.ModelComparison(m3, m1)))
 
-    def test_myokit_numpy_writer(self):
+    def test_natural_sort_key(self):
+        # Test natural sort key method.
+
+        a = ['a12', 'a3', 'a11', 'a2', 'a10', 'a1']
+        b = ['a1', 'a2', 'a3', 'a10', 'a11', 'a12']
+        self.assertNotEqual(a, b)
+        a.sort()
+        self.assertNotEqual(a, b)
+        a.sort(key=lambda x: myokit._natural_sort_key(x))
+        self.assertEqual(a, b)
+
+    def test_numpy_writer(self):
         # Test NumPy expression writer obtaining method.
 
         import myokit
@@ -349,7 +367,37 @@ class AuxTest(unittest.TestCase):
         x.set_rhs('5 + x')
         self.assertEqual(w.ex(x.rhs()), '5.0 + c_x')
 
-    def test_myokit_python_writer(self):
+    def test_pack_snapshot(self):
+        # Test if the pack_snapshot method runs without exceptions.
+
+        with TemporaryDirectory() as d:
+            # Run!
+            path = d.path('pack.zip')
+            new_path = myokit.pack_snapshot(path)
+            self.assertTrue(os.path.isfile(new_path))
+            self.assertTrue(os.path.getsize(new_path) > 500000)
+
+            # Run with same location --> error
+            self.assertRaises(
+                IOError, myokit.pack_snapshot, path, overwrite=False)
+
+            # Run with overwrite switch is ok
+            myokit.pack_snapshot(path, overwrite=True)
+
+            # Write to directory: finds own filename
+            path = d.path('')
+            new_path = myokit.pack_snapshot(path)
+            self.assertEqual(new_path[:len(path)], path)
+            self.assertTrue(len(new_path) - len(path) > 5)
+
+            # Write to directory again without overwrite --> error
+            self.assertRaises(
+                IOError, myokit.pack_snapshot, path, overwrite=False)
+
+            # Run with overwrite switch is ok
+            myokit.pack_snapshot(path, overwrite=True)
+
+    def test_python_writer(self):
         # Test Python expression writer obtaining method.
 
         import myokit
@@ -369,7 +417,59 @@ class AuxTest(unittest.TestCase):
         x.set_rhs('5 + x')
         self.assertEqual(w.ex(x.rhs()), '5.0 + c_x')
 
-    def test_myokit_run(self):
+    def test_py_capture(self):
+        # Test the PyCapture method.
+
+        # Test basic use
+        with myokit.PyCapture() as c:
+            print('Hello')
+            self.assertEqual(c.text(), 'Hello\n')
+            sys.stdout.write('Test')
+        self.assertEqual(c.text(), 'Hello\nTest')
+
+        # Test wrapping
+        with myokit.PyCapture() as c:
+            print('Hello')
+            self.assertEqual(c.text(), 'Hello\n')
+            with myokit.PyCapture() as d:
+                print('Yes')
+            self.assertEqual(d.text(), 'Yes\n')
+            sys.stdout.write('Test')
+        self.assertEqual(c.text(), 'Hello\nTest')
+
+        # Test disabling / enabling
+        with myokit.PyCapture() as c:
+            print('Hello')
+            self.assertEqual(c.text(), 'Hello\n')
+            with myokit.PyCapture() as d:
+                sys.stdout.write('Yes')
+                d.disable()
+                print('Hmmm')
+                d.enable()
+                print('No')
+            self.assertEqual(d.text(), 'YesNo\n')
+            sys.stdout.write('Test')
+        self.assertEqual(c.text(), 'Hello\nHmmm\nTest')
+
+        # Test clear() method
+        with myokit.PyCapture() as c:
+            print('Hi')
+            self.assertEqual(c.text(), 'Hi\n')
+            print('Ho')
+            self.assertEqual(c.text(), 'Hi\nHo\n')
+            c.clear()
+            print('Ha')
+            self.assertEqual(c.text(), 'Ha\n')
+
+        # Bug: Test clear method _without_ calling text() before clear()
+        with myokit.PyCapture() as c:
+            print('Hi')
+            print('Ho')
+            c.clear()
+            print('Ha')
+            self.assertEqual(c.text(), 'Ha\n')
+
+    def test_run(self):
         # Test run() method.
 
         m, p, _ = myokit.load('example')
@@ -394,7 +494,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(c.text(), '')
         self.assertEqual(s.getvalue(), 'Hi there\n')
 
-    def test_myokit_step(self):
+    def test_step(self):
         # Test the step() method.
         m1 = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
 
@@ -583,39 +683,30 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(
             myokit.strfloat(1.23, True), ' 1.22999999999999998e+00')
 
-    def test_float_functions(self):
-        # Test the floating point comparison methods
+    def test_time(self):
+        # Test time formatting method.
 
-        # Test that test is going to work
-        x = 49
-        y = 1 / (1 / x)
-        self.assertNotEqual(x, y)
+        import time
+        for i in range(3):
+            a = time.strftime(myokit.TIME_FORMAT)
+            b = myokit.time()
+            if a == b:
+                break
+        self.assertEqual(a, b)
 
-        # Test if feq allows 1 floating point error
-        # Test if
-        self.assertTrue(myokit._feq(x, y))
-        self.assertTrue(myokit._fgeq(x, y))
-        self.assertTrue(myokit._fgeq(y, x))
-        x += x * sys.float_info.epsilon
-        self.assertTrue(myokit._feq(x, y))
-        self.assertTrue(myokit._fgeq(x, y))
-        self.assertTrue(myokit._fgeq(y, x))
-        x += x * sys.float_info.epsilon
-        self.assertFalse(myokit._feq(x, y))
-        self.assertTrue(myokit._fgeq(x, y))
-        self.assertFalse(myokit._fgeq(y, x))
+    def test_version(self):
+        # Test the version() method.
 
-        # Test rounding
-        self.assertNotEqual(49, y)
-        self.assertEqual(49, myokit._round_if_int(y))
-        self.assertNotEqual(49, myokit._round_if_int(x))
-        self.assertEqual(0.5, myokit._round_if_int(0.5))
+        # Raw version
+        raw = myokit.version(raw=True)
+        self.assertIsInstance(raw, basestring)
+        parts = raw.split('.')
+        self.assertTrue(len(parts) in [3, 4])
 
-        # Try with negative numbers
-        self.assertNotEqual(-49, -y)
-        self.assertEqual(-49, myokit._round_if_int(-y))
-        self.assertNotEqual(-49, myokit._round_if_int(-x))
-        self.assertEqual(-0.5, myokit._round_if_int(-0.5))
+        # Formatted version
+        v = myokit.version()
+        v = v.splitlines()
+        self.assertEqual(len(v), 3)
 
 
 if __name__ == '__main__':

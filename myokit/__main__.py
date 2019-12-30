@@ -293,7 +293,8 @@ def mmt_export(exporter, source, target):
     import myokit.formats
 
     # Get exporter
-    exporter = myokit.formats.exporter(exporter)
+    name = exporter
+    exporter = myokit.formats.exporter(name)
 
     # Set to auto-print
     logger = exporter.logger()
@@ -319,7 +320,10 @@ def mmt_export(exporter, source, target):
     if exporter.supports_model():
         # Export model
         logger.log('Exporting model')
-        exporter.model(target, model)
+        if name == 'cellml':
+            exporter.model(target, model, protocol)
+        else:
+            exporter.model(target, model)
     else:
         # Export runnable
         logger.log('Exporting runnable')
@@ -532,12 +536,12 @@ def install_windows():
         raise Exception('Not a windows machine.')
 
     import os
-    #import shutil
     import tempfile
+
+    import menuinst
 
     import myokit
     import myokit.pype
-    import menuinst
 
     # Process template to get icon directory
     tdir = tempfile.mkdtemp()
@@ -556,8 +560,7 @@ def install_windows():
         print('Done')
 
     finally:
-        #shutil.rmtree(tdir)
-        pass
+        myokit._rmtree(tdir)
 
 
 def add_icon_parser(subparsers):
@@ -661,17 +664,30 @@ def mmt_import(importer, source, target=None):
     logger.log_flair(str(importer.__class__.__name__))
 
     # Import
-    m = importer.model(source)
+    model = importer.model(source)
+
+    # Print any warnings
+    logger.log_warnings()
+
+    # Try to split off an embedded protocol
+    protocol = myokit.lib.guess.remove_embedded_protocol(model)
+
+    # No protocol? Then create one
+    if protocol is None:
+        protocol = myokit.default_protocol(model)
+
+    # Get default script
+    script = myokit.default_script(model)
 
     # If a target is specified, save the output
     if target:
         # Save or output model to new location
         logger.log('Saving output to ' + str(target))
-        myokit.save(target, m)
+        myokit.save(target, model, protocol, script)
         logger.log('Done.')
     else:
         # Write it to screen
-        print(myokit.save(None, m))
+        print(myokit.save(None, model, protocol, script))
 
 
 def add_import_parser(subparsers):
@@ -897,8 +913,7 @@ def reset(force=False):
     if remove:
         print('Removing')
         print('  ' + myokit.DIR_USER)
-        import shutil
-        shutil.rmtree(myokit.DIR_USER)
+        myokit._rmtree(myokit.DIR_USER)
         print('Done')
     else:
         print('Aborting.')

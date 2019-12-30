@@ -43,6 +43,14 @@ myokit.lib.fit
 - :meth:`myokit.lib.fit.voronoi_regions`
 - :meth:`myokit.lib.fit.xnes`
 
+myokit.lib.guess
+----------------
+- :meth:`myokit.lib.guess.add_embedded_protocol`
+- :meth:`myokit.lib.guess.membrane_potential`
+- :meth:`myokit.lib.guess.remove_embedded_protocol`
+- :meth:`myokit.lib.guess.stimulus_current`
+- :meth:`myokit.lib.guess.stimulus_current_info`
+
 myokit.lib.hh
 -------------
 - :class:`myokit.lib.hh.AnalyticalSimulation`

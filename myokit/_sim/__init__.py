@@ -10,9 +10,8 @@ from __future__ import print_function, unicode_literals
 
 # Library imports
 import os
-import sys
-import shutil
 import platform
+import sys
 import tempfile
 import traceback
 
@@ -179,7 +178,7 @@ class CModule(object):
                             str('--install-lib=' + d_modul),
                             str('--old-and-unmanageable'),
                         ])
-                except (Exception, SystemExit) as e:
+                except (Exception, SystemExit) as e:    # pragma: no cover
                     s.disable()
                     t = ['Unable to compile.', 'Error message:']
                     t.append(str(e))
@@ -192,14 +191,14 @@ class CModule(object):
                 finally:
                     egg = name + '.egg-info'
                     if os.path.exists(egg):
-                        shutil.rmtree(egg)
+                        myokit._rmtree(egg)
 
             # Include module (and refresh in case 2nd model is loaded)
             return load_module(name, d_modul)
 
         finally:
             try:
-                shutil.rmtree(d_cache)
+                myokit._rmtree(d_cache)
             except Exception:   # pragma: no cover
                 pass
 

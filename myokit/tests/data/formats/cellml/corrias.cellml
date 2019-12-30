@@ -1,12 +1,12 @@
-
-<model 
+<?xml version="1.0" encoding="UTF-8"?>
+<model
       name="corrias_rabbit_purkinje_model_2011"
       xmlns="http://www.cellml.org/cellml/1.0#"
       xmlns:cmeta="http://www.cellml.org/metadata/1.0#"
       xmlns:cellml="http://www.cellml.org/cellml/1.0#">
-      
 
-      
+
+
   <units name="conductance_units">
       <unit units="siemens" prefix="nano"/>
    </units>
@@ -22,7 +22,7 @@
    <units name="inverse_voltage_units">
       <unit units="voltage_units" exponent="-1"/>
    </units>
-   
+
    <units name="inverse_voltage_units_square">
       <unit units="voltage_units" exponent="-2"/>
    </units>
@@ -69,23 +69,23 @@
    </units>
    <units name="inverse_millimolar_fourth_power">
       <unit units="millimolar" exponent="-4"/>
-   </units>   
+   </units>
    <units name="millimolar_power_4">
       <unit units="millimolar" exponent="4"/>
-   </units>   
-    
-   
+   </units>
+
+
   <units name="micromolar_per_time_units">
       <unit units="mole" prefix="micro"/>
       <unit units="litre" exponent="-1"/>
       <unit units="time_units" exponent="-1"/>
    </units>
-   
+
    <units name="per_millimolar">
       <unit units="litre"/>
       <unit units="mole" prefix="milli" exponent="-1"/>
    </units>
-   <units name  ="current_per_millimolar_units">	
+   <units name  ="current_per_millimolar_units">
       <unit units="current_units"/>
       <unit units="per_millimolar"/>
    </units>
@@ -117,7 +117,7 @@
       <unit units="liter" exponent="1"/>
       <unit units="volume_units" exponent="-1"/>
    </units>
-   
+
    <units name="milliA_over_picoA">
       <unit units="molar" exponent="12"/>
       <unit units="molar" exponent="-6"/>
@@ -177,7 +177,7 @@
          </rdf:Description>
       </rdf:RDF>
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
-      
+
       <variable name="Ca_i_peripheral" units="millimolar" initial_value="0.00001" public_interface="out" private_interface="out"/>
       <variable name="Ca_i_bulk" units="millimolar" initial_value="0.000032" public_interface="out" private_interface="out"/>
       <variable name="Ca_sr" units="millimolar" initial_value="0.17" public_interface="out" private_interface="out"/>
@@ -220,26 +220,26 @@
       <variable name="i_serca_bulk" units="current_units" private_interface="in"/>
       <variable name="i_diff" units="current_units" private_interface="in"/>
       <variable name="i_leak" units="current_units" private_interface="in"/>
-      
+
       <variable name="peripheral_volume" units="volume_units" private_interface="out"/>
       <variable name="bulk_volume" units="volume_units" private_interface="out"/>
       <variable name="diffusable_volume" units="volume_units" private_interface="out"/>
       <variable name="sr_volume" units="volume_units" private_interface="out"/>
       <variable name="cell_volume" units="volume_units" initial_value="13266.5" private_interface="out"/>
-      
+
       <variable name="bulk_fraction" units="dimensionless" initial_value="0.6" private_interface="out"/>
       <variable name="periphery_fraction" units="dimensionless" initial_value="0.2" private_interface="out"/>
       <variable name="sr_fraction" units="dimensionless" initial_value="0.06" private_interface="out"/>
-      
-      
-      
+
+
+
        <variable initial_value="700" name="stim_start" units="time_units"/>
       <variable initial_value="9000000" name="stim_end" units="time_units"/>
       <variable initial_value="500" name="stim_period" units="time_units"/>
       <variable initial_value="0.5" name="stim_duration" units="time_units"/>
       <variable initial_value="-4320.0" name="stim_amplitude" units="current_units"/>
-      
-      
+
+
       <math xmlns="http://www.w3.org/1998/Math/MathML">
        <apply>
             <eq/>
@@ -302,7 +302,7 @@
 		<ci>bulk_fraction</ci>
                <ci>cell_volume</ci>
             </apply>
-         </apply>      
+         </apply>
          <apply>
             <eq/>
             <ci>peripheral_volume</ci>
@@ -311,7 +311,7 @@
 		<ci>periphery_fraction</ci>
                <ci>cell_volume</ci>
             </apply>
-         </apply> 
+         </apply>
          <apply>
             <eq/>
             <ci>sr_volume</ci>
@@ -320,7 +320,7 @@
 		<ci>sr_fraction</ci>
                <ci>cell_volume</ci>
             </apply>
-         </apply> 
+         </apply>
 	 <apply>
             <eq/>
             <ci>diffusable_volume</ci>
@@ -409,17 +409,17 @@
 				  <times/>
 				      <cn cellml:units="dimensionless">-1</cn>
 				      <ci>i_cab</ci>
-				</apply>		
+				</apply>
 				<apply>
 				  <times/>
 				      <cn cellml:units="dimensionless">1</cn>
 				      <ci>i_rel_per</ci>
-				</apply>			
+				</apply>
 				<apply>
 				  <times/>
 				      <cn cellml:units="dimensionless">-1</cn>
 				      <ci>i_serca_per</ci>
-				</apply>		
+				</apply>
 				<apply>
 				  <times/>
 				      <cn cellml:units="dimensionless">-1</cn>
@@ -429,7 +429,7 @@
 				  <times/>
 				      <cn cellml:units="dimensionless">2</cn>
 				      <ci>i_naca</ci>
-				</apply>			
+				</apply>
 				<apply>
 				  <times/>
 				      <cn cellml:units="dimensionless">-1</cn>
@@ -458,11 +458,11 @@
 	    <apply> <divide/>
 		<apply> <times/>
 			  <apply>
-				<plus/>								
+				<plus/>
 				<apply><times/>
 				      <cn cellml:units="dimensionless">-1</cn>
 				      <ci>i_serca_bulk</ci>
-				</apply>		
+				</apply>
 				<ci>i_diff</ci>
 				<ci>i_leak</ci>
 			 </apply>
@@ -490,11 +490,11 @@
 			<apply>
 			  <times/>
 			  <apply>
-				<plus/>								
+				<plus/>
 				<apply><times/>
 				      <cn cellml:units="dimensionless">-1</cn>
 				      <ci>i_rel_per</ci>
-				</apply>	
+				</apply>
 				<apply><times/>
 				      <cn cellml:units="dimensionless">-1</cn>
 				      <ci>i_leak</ci>
@@ -526,11 +526,11 @@
 			<apply>
 			  <times/>
 			  <apply>
-				<plus/>								
+				<plus/>
 				<apply><times/>
 				      <cn cellml:units="dimensionless">-1</cn>
 				      <ci>i_to_fast</ci>
-				</apply>	
+				</apply>
 				<apply><times/>
 				      <cn cellml:units="dimensionless">-1</cn>
 				      <ci>i_to_sustained</ci>
@@ -588,12 +588,12 @@
 			<apply>
 			  <times/>
 			  <apply>
-				<plus/>								
+				<plus/>
 				<apply>
 				  <times/>
 				      <cn cellml:units="dimensionless">-1</cn>
 				      <ci>i_na_fast</ci>
-				</apply>	
+				</apply>
 				<apply>
 				  <times/>
 				      <cn cellml:units="dimensionless">-1</cn>
@@ -631,11 +631,11 @@
          </apply><!--end of the equation -->
       </math>
    </component><!-- end of membrane component -->
-   
-   
-   
-   
-   
+
+
+
+
+
    <component name="x_Ttype">
       <variable name="Vm" units="voltage_units" public_interface="in"/>
       <variable name="x_inf_Ttype" units="dimensionless"/>
@@ -738,7 +738,7 @@
 		</apply>
 
 	    </apply>
-         </apply>  
+         </apply>
          <apply>
             <eq/>
             <apply>
@@ -772,7 +772,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="Ca_o" units="millimolar" public_interface="in"/>
       <variable name="Ca_i_peripheral" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -916,13 +916,13 @@
 				<cn cellml:units="voltage_units">14.5</cn>
 			      </apply>
 			    </apply>
-			    <cn cellml:units="dimensionless">2.0</cn>  
+			    <cn cellml:units="dimensionless">2.0</cn>
 			 </apply>
 		      </apply>
 		    </apply>
 		 </apply>
 	      </apply><!-- end of denominator -->
-		  
+
 	    </apply><!-- end of divide -->
          </apply> <!-- end of tau-->
          <apply>
@@ -946,14 +946,14 @@
          </apply>
       </math>
    </component>
-   
-   
-   
-   
-   
-   
-   
-   
+
+
+
+
+
+
+
+
    <component name="y_ca_Ltype">
       <variable name="Ca_i_peripheral" units="millimolar" public_interface="in"/>
       <variable name="y_ca_inf_Ltype" units="dimensionless"/>
@@ -1047,7 +1047,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="Ca_o" units="millimolar" public_interface="in"/>
       <variable name="Ca_i_peripheral" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -1205,7 +1205,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="K_o" units="millimolar" public_interface="in"/>
       <variable name="K_i" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -1282,7 +1282,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="K_o" units="millimolar" public_interface="in"/>
       <variable name="K_i" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -1437,7 +1437,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="Na_o" units="millimolar" public_interface="in"/>
       <variable name="Na_i" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -1614,7 +1614,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="Na_o" units="millimolar" public_interface="in"/>
       <variable name="Na_i" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -1689,7 +1689,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="K_o" units="millimolar" public_interface="in"/>
       <variable name="K_i" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -1763,7 +1763,7 @@
          </apply>
       </math>
    </component>
-   
+
     <component name="y_kr">
       <variable name="Vm" units="voltage_units" public_interface="in"/>
       <variable name="y_inf_kr" units="dimensionless"/>
@@ -1957,7 +1957,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="K_o" units="millimolar" public_interface="in"/>
       <variable name="K_i" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -2196,7 +2196,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="K_o" units="millimolar" public_interface="in"/>
       <variable name="K_i" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -2342,7 +2342,7 @@
 	    </apply>
 	  </apply>
       </math>
-    </component>   
+    </component>
 
    <component name="x_nak">
       <variable name="Vm" units="voltage_units" public_interface="in"/>
@@ -2453,7 +2453,7 @@
             </apply>
          </apply>
       </math>
-   </component>   
+   </component>
 
    <component name="i_kb">
       <variable name="i_kb" units="current_units" public_interface="out"/>
@@ -2508,7 +2508,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="Na_o" units="millimolar" public_interface="in"/>
       <variable name="Na_i" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
             <eq/>
@@ -2551,7 +2551,7 @@
       <variable name="RToF" units="voltage_units" public_interface="in"/>
       <variable name="Ca_o" units="millimolar" public_interface="in"/>
       <variable name="Ca_i_peripheral" units="millimolar" public_interface="in" private_interface="out"/>
- 
+
       <variable name="time" units="time_units" public_interface="in" private_interface="out"/>
       <math xmlns="http://www.w3.org/1998/Math/MathML">
          <apply>
@@ -2586,7 +2586,7 @@
          </apply>
       </math>
    </component>
- 
+
    <component name="i_pmca">
       <variable name="i_pmca" units="current_units" public_interface="out"/>
       <variable name="PMCA_max" units="current_units" initial_value="5.0"/>
@@ -2876,10 +2876,10 @@
          </apply>
       </math>
   </component>
-  
-  
-  
-  
+
+
+
+
 
    <component name="i_rel_per">
       <variable name="i_rel_per" units="current_units"  public_interface="out"/>
@@ -2964,7 +2964,7 @@
 				<ci>Kmr</ci>
 			      </apply>
 			      <ci>H</ci>
-			  </apply>			  
+			  </apply>
 		      </apply>
                </apply>
             </apply>
@@ -3020,14 +3020,14 @@
 				<ci>Kmr</ci>
 			      </apply>
 			      <ci>H</ci>
-			  </apply>			  
+			  </apply>
 		      </apply>
                </apply>
             </apply>
          </apply>
       </math>
    </component>
-   
+
    <component name="i_leak">
       <variable name="i_leak" units="current_units" public_interface="out"/>
       <variable name="LEAK_max" units="current_per_millimolar_units" initial_value="10.0"/>
@@ -3048,7 +3048,7 @@
             </apply>
          </apply>
       </math>
-   </component>   
+   </component>
    <component name="i_diff">
       <variable name="i_diff" units="current_units" public_interface="out"/>
       <variable name="DIFF_max" units="current_per_millimolar_units" initial_value="5000.0"/>
@@ -3069,8 +3069,8 @@
             </apply>
          </apply>
       </math>
-   </component>      
-   
+   </component>
+
 
    <connection>
       <map_components component_1="x_Ttype" component_2="i_cat"/>
@@ -3093,8 +3093,8 @@
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="Ca_o" variable_2="Ca_o"/>
    </connection>
-   
-   
+
+
    <connection>
       <map_components component_1="x_Ltype" component_2="i_cal"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
@@ -3121,7 +3121,7 @@
       <map_variables variable_1="time" variable_2="time"/>
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="Ca_o" variable_2="Ca_o"/>
-   </connection>   
+   </connection>
 
    <connection>
       <map_components component_1="x_to_fast" component_2="i_to_fast"/>
@@ -3143,7 +3143,7 @@
       <map_variables variable_1="time" variable_2="time"/>
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="K_o" variable_2="K_o"/>
-   </connection> 
+   </connection>
    <connection>
       <map_components component_1="x_to_sustained" component_2="i_to_sustained"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
@@ -3159,7 +3159,7 @@
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="K_o" variable_2="K_o"/>
    </connection>
-   
+
     <connection>
       <map_components component_1="x_na_fast" component_2="i_na_fast"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
@@ -3180,8 +3180,8 @@
       <map_variables variable_1="time" variable_2="time"/>
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="Na_o" variable_2="Na_o"/>
-   </connection> 
-   
+   </connection>
+
    <connection>
       <map_components component_1="x_na_late" component_2="i_na_late"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
@@ -3202,11 +3202,11 @@
       <map_variables variable_1="time" variable_2="time"/>
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="Na_o" variable_2="Na_o"/>
-   </connection> 
-   
-   
-   
-   
+   </connection>
+
+
+
+
    <connection>
       <map_components component_1="x_k1" component_2="i_k1"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
@@ -3222,8 +3222,8 @@
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="K_o" variable_2="K_o"/>
    </connection>
-   
-   
+
+
    <connection>
       <map_components component_1="x_kr" component_2="i_kr"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
@@ -3271,7 +3271,7 @@
       <map_variables variable_1="time" variable_2="time"/>
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="K_o" variable_2="K_o"/>
-   </connection>  
+   </connection>
 
    <connection>
       <map_components component_1="i_naca" component_2="membrane"/>
@@ -3282,25 +3282,25 @@
       <map_variables variable_1="Cai" variable_2="Ca_i_peripheral"/>
       <map_variables variable_1="Nao" variable_2="Na_o"/>
       <map_variables variable_1="Nai" variable_2="Na_i"/>
-   </connection> 
+   </connection>
 
    <connection>
       <map_components component_1="i_nak" component_2="y_nak"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
       <map_variables variable_1="y_nak" variable_2="y_nak"/>
-   </connection> 
+   </connection>
    <connection>
       <map_components component_1="i_nak" component_2="x_nak"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
       <map_variables variable_1="x_nak" variable_2="x_nak"/>
-   </connection> 
+   </connection>
    <connection>
       <map_components component_1="i_nak" component_2="membrane"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
       <map_variables variable_1="i_nak" variable_2="i_nak"/>
       <map_variables variable_1="K_o" variable_2="K_o"/>
       <map_variables variable_1="Na_i" variable_2="Na_i"/>
-   </connection> 
+   </connection>
    <connection>
       <map_components component_1="i_kb" component_2="membrane"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
@@ -3308,7 +3308,7 @@
       <map_variables variable_1="i_kb" variable_2="i_kb"/>
       <map_variables variable_1="K_o" variable_2="K_o"/>
       <map_variables variable_1="K_i" variable_2="K_i"/>
-   </connection> 
+   </connection>
    <connection>
       <map_components component_1="i_nab" component_2="membrane"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
@@ -3316,7 +3316,7 @@
       <map_variables variable_1="i_nab" variable_2="i_nab"/>
       <map_variables variable_1="Na_o" variable_2="Na_o"/>
       <map_variables variable_1="Na_i" variable_2="Na_i"/>
-   </connection> 
+   </connection>
    <connection>
       <map_components component_1="i_cab" component_2="membrane"/>
       <map_variables variable_1="Ca_i_peripheral" variable_2="Ca_i_peripheral"/>
@@ -3325,13 +3325,13 @@
       <map_variables variable_1="time" variable_2="time"/>
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="Ca_o" variable_2="Ca_o"/>
-   </connection>  
+   </connection>
    <connection>
       <map_components component_1="i_pmca" component_2="membrane"/>
       <map_variables variable_1="Ca_i_peripheral" variable_2="Ca_i_peripheral"/>
       <map_variables variable_1="i_pmca" variable_2="i_pmca"/>
    </connection>
-   
+
    <connection>
       <map_components component_1="i_f_na" component_2="membrane"/>
       <map_variables variable_1="Vm" variable_2="Vm"/>
@@ -3340,8 +3340,8 @@
       <map_variables variable_1="time" variable_2="time"/>
       <map_variables variable_1="Na_o" variable_2="Na_o"/>
       <map_variables variable_1="Na_i" variable_2="Na_i"/>
-   </connection> 
-   
+   </connection>
+
    <connection>
       <map_components component_1="i_f_k" component_2="membrane"/>
       <map_variables variable_1="K_i" variable_2="K_i"/>
@@ -3350,7 +3350,7 @@
       <map_variables variable_1="time" variable_2="time"/>
       <map_variables variable_1="RToF" variable_2="RToF"/>
       <map_variables variable_1="K_o" variable_2="K_o"/>
-   </connection>   
+   </connection>
 
     <connection>
       <map_components component_1="y_gate_f_k" component_2="i_f_k"/>
@@ -3365,41 +3365,41 @@
       <map_variables variable_1="y_gate_f_na" variable_2="y_gate_f_na"/>
       <map_variables variable_1="time" variable_2="time"/>
    </connection>
-   
+
    <connection>
       <map_components component_1="i_rel_per" component_2="membrane"/>
       <map_variables variable_1="Ca_i_peripheral" variable_2="Ca_i_peripheral"/>
       <map_variables variable_1="Ca_sr" variable_2="Ca_sr"/>
-      <map_variables variable_1="i_rel_per" variable_2="i_rel_per"/>   
-   </connection>   
+      <map_variables variable_1="i_rel_per" variable_2="i_rel_per"/>
+   </connection>
 
    <connection>
       <map_components component_1="i_serca_per" component_2="membrane"/>
       <map_variables variable_1="Ca_i_peripheral" variable_2="Ca_i_peripheral"/>
       <map_variables variable_1="Ca_sr" variable_2="Ca_sr"/>
-      <map_variables variable_1="i_serca_per" variable_2="i_serca_per"/>   
-   </connection>   
+      <map_variables variable_1="i_serca_per" variable_2="i_serca_per"/>
+   </connection>
 
    <connection>
       <map_components component_1="i_serca_bulk" component_2="membrane"/>
       <map_variables variable_1="Ca_i_bulk" variable_2="Ca_i_bulk"/>
       <map_variables variable_1="Ca_sr" variable_2="Ca_sr"/>
-      <map_variables variable_1="i_serca_bulk" variable_2="i_serca_bulk"/>   
-   </connection>   
+      <map_variables variable_1="i_serca_bulk" variable_2="i_serca_bulk"/>
+   </connection>
 
    <connection>
       <map_components component_1="i_leak" component_2="membrane"/>
       <map_variables variable_1="Ca_i_bulk" variable_2="Ca_i_bulk"/>
       <map_variables variable_1="Ca_sr" variable_2="Ca_sr"/>
-      <map_variables variable_1="i_leak" variable_2="i_leak"/>   
-   </connection>   
+      <map_variables variable_1="i_leak" variable_2="i_leak"/>
+   </connection>
    <connection>
       <map_components component_1="i_diff" component_2="membrane"/>
       <map_variables variable_1="Ca_i_bulk" variable_2="Ca_i_bulk"/>
       <map_variables variable_1="Ca_i_peripheral" variable_2="Ca_i_peripheral"/>
-      <map_variables variable_1="i_diff" variable_2="i_diff"/>   
-   </connection>   
-   
+      <map_variables variable_1="i_diff" variable_2="i_diff"/>
+   </connection>
+
    <connection>
       <map_components component_1="membrane" component_2="Environment"/>
       <map_variables variable_1="Ca_o" variable_2="Ca_o"/>
@@ -3413,13 +3413,13 @@
       <map_components component_1="Time" component_2="membrane"/>
       <map_variables variable_1="time" variable_2="time"/>
    </connection>
-   
+
    <connection>
       <map_components component_1="i_serca_bulk" component_2="i_serca_per"/>
       <map_variables variable_1="SERCA_max" variable_2="SERCA_max"/>
-   </connection>    
-   
-   
+   </connection>
+
+
    <group>
       <relationship_ref relationship="encapsulation"/>
       <component_ref component="membrane">

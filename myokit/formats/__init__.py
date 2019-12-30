@@ -185,7 +185,7 @@ class ExpressionWriter(object):
         Converts an Expression to a string.
         """
         t = type(e)
-        if t not in self._op_map:
+        if t not in self._op_map:   # pragma: no cover
             raise ValueError('Unknown expression type: ' + str(t))
         return self._op_map[t](e)
 

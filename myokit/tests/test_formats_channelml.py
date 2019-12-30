@@ -17,6 +17,9 @@ import myokit.formats.channelml
 
 from shared import DIR_FORMATS
 
+# ChannelML dir
+DIR = os.path.join(DIR_FORMATS, 'channelml')
+
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
@@ -44,12 +47,12 @@ class ChannelMLTest(unittest.TestCase):
         """ Test :meth:`ChannelMLImporter.model()`. """
         i = myokit.formats.importer('channelml')
         self.assertTrue(i.supports_model())
-        m = i.model(os.path.join(DIR_FORMATS, 'ch-00-valid-file.channelml'))
+        m = i.model(os.path.join(DIR, 'ch-00-valid-file.channelml'))
         m.validate()
 
     def test_component(self):
         """ Test :meth:`ChannelMLImporter.component()`. """
-        path = os.path.join(DIR_FORMATS, 'ch-00-valid-file.channelml')
+        path = os.path.join(DIR, 'ch-00-valid-file.channelml')
         i = myokit.formats.importer('channelml')
         self.assertTrue(i.supports_component())
         m = myokit.Model()
@@ -76,57 +79,57 @@ class ChannelMLTest(unittest.TestCase):
         # Wrong XML root element
         self.assertRaisesRegex(
             ce, 'Unknown root', i.model,
-            os.path.join(DIR_FORMATS, 'ch-01-wrong-root.channelml'))
+            os.path.join(DIR, 'ch-01-wrong-root.channelml'))
 
         # No channel_type element
         self.assertRaisesRegex(
             ce, 'No <channel_type>', i.model,
-            os.path.join(DIR_FORMATS, 'ch-02-no-channel-type.channelml'))
+            os.path.join(DIR, 'ch-02-no-channel-type.channelml'))
 
         # Test name adaptation when it overlaps with names already in the model
         m = i.model(
-            os.path.join(DIR_FORMATS, 'ch-03-overlapping-name.channelml'))
+            os.path.join(DIR, 'ch-03-overlapping-name.channelml'))
         m.validate()
         self.assertIn('membrane_2', m)  # Renamed channel membrane > membrane_2
 
         # No current_voltage_relation element
         self.assertRaisesRegex(
             ce, 'current voltage relation', i.model,
-            os.path.join(DIR_FORMATS, 'ch-04-no-cvr.channelml'))
+            os.path.join(DIR, 'ch-04-no-cvr.channelml'))
 
         # Multiple current_voltage_relation elements
         i.logger().clear_warnings()
         self.assertEqual(len(list(i.logger().warnings())), 0)
-        m = i.model(os.path.join(DIR_FORMATS, 'ch-05-two-cvrs.channelml'))
+        m = i.model(os.path.join(DIR, 'ch-05-two-cvrs.channelml'))
         m.validate()
         warnings = list(i.logger().warnings())
         self.assertEqual(len(warnings), 1)
         self.assertIn('Multiple current voltage relations', warnings[0])
 
         # No q10 information
-        m = i.model(os.path.join(DIR_FORMATS, 'ch-06-no-q10.channelml'))
+        m = i.model(os.path.join(DIR, 'ch-06-no-q10.channelml'))
         m.validate()
 
         # Not exactly 2 transitions
         self.assertRaisesRegex(
             ce, 'exactly 2 transitions', i.model,
-            os.path.join(DIR_FORMATS, 'ch-07-three-transitions.channelml'))
+            os.path.join(DIR, 'ch-07-three-transitions.channelml'))
 
         # Not closed-to-open transition
         self.assertRaisesRegex(
             ce, 'closed-to-open', i.model,
-            os.path.join(DIR_FORMATS, 'ch-08-no-closed-to-open.channelml'))
+            os.path.join(DIR, 'ch-08-no-closed-to-open.channelml'))
 
         # Not open-to-closed transition
         self.assertRaisesRegex(
             ce, 'open-to-closed', i.model,
-            os.path.join(DIR_FORMATS, 'ch-09-no-open-to-closed.channelml'))
+            os.path.join(DIR, 'ch-09-no-open-to-closed.channelml'))
 
         # Unreadable closed-to-open expression
         i.logger().clear_warnings()
         self.assertEqual(len(list(i.logger().warnings())), 0)
         m = i.model(
-            os.path.join(DIR_FORMATS, 'ch-10-tco-bad-expression.channelml'))
+            os.path.join(DIR, 'ch-10-tco-bad-expression.channelml'))
 
         # > RHS Should not be set
         self.assertRaises(myokit.MissingRhsError, m.validate)
@@ -143,7 +146,7 @@ class ChannelMLTest(unittest.TestCase):
         i.logger().clear_warnings()
         self.assertEqual(len(list(i.logger().warnings())), 0)
         m = i.model(
-            os.path.join(DIR_FORMATS, 'ch-11-toc-bad-expression.channelml'))
+            os.path.join(DIR, 'ch-11-toc-bad-expression.channelml'))
         self.assertRaises(myokit.MissingRhsError, m.validate)
         warnings = list(i.logger().warnings())
         self.assertEqual(len(warnings), 1)
@@ -153,16 +156,16 @@ class ChannelMLTest(unittest.TestCase):
         # No transitions or steady-state/time-course for a gate
         self.assertRaisesRegex(
             ce, 'steady state', i.model,
-            os.path.join(DIR_FORMATS, 'ch-12-no-steady-state.channelml'))
+            os.path.join(DIR, 'ch-12-no-steady-state.channelml'))
         self.assertRaisesRegex(
             ce, 'time course', i.model,
-            os.path.join(DIR_FORMATS, 'ch-13-no-time-course.channelml'))
+            os.path.join(DIR, 'ch-13-no-time-course.channelml'))
 
         # Unreadable steady-state expression
         i.logger().clear_warnings()
         self.assertEqual(len(list(i.logger().warnings())), 0)
         m = i.model(
-            os.path.join(DIR_FORMATS, 'ch-14-inf-bad-expression.channelml'))
+            os.path.join(DIR, 'ch-14-inf-bad-expression.channelml'))
         self.assertRaises(myokit.MissingRhsError, m.validate)
         warnings = list(i.logger().warnings())
         self.assertEqual(len(warnings), 1)
@@ -173,7 +176,7 @@ class ChannelMLTest(unittest.TestCase):
         i.logger().clear_warnings()
         self.assertEqual(len(list(i.logger().warnings())), 0)
         m = i.model(
-            os.path.join(DIR_FORMATS, 'ch-15-tau-bad-expression.channelml'))
+            os.path.join(DIR, 'ch-15-tau-bad-expression.channelml'))
         self.assertRaises(myokit.MissingRhsError, m.validate)
         warnings = list(i.logger().warnings())
         self.assertEqual(len(warnings), 1)
@@ -183,13 +186,13 @@ class ChannelMLTest(unittest.TestCase):
         # No gates
         self.assertRaisesRegex(
             ce, 'at least one gate', i.model,
-            os.path.join(DIR_FORMATS, 'ch-16-no-gates.channelml'))
+            os.path.join(DIR, 'ch-16-no-gates.channelml'))
 
         # Invalid name
         i.logger().clear_warnings()
         self.assertEqual(len(list(i.logger().warnings())), 0)
         m = i.model(
-            os.path.join(DIR_FORMATS, 'ch-17-invalid-name.channelml'))
+            os.path.join(DIR, 'ch-17-invalid-name.channelml'))
         m.validate()
         warnings = list(i.logger().warnings())
         self.assertEqual(len(warnings), 1)
@@ -200,7 +203,7 @@ class ChannelMLTest(unittest.TestCase):
         # If-then-else
         i = myokit.formats.importer('channelml')
         m = i.model(
-            os.path.join(DIR_FORMATS, 'ch-18-c-style-if.channelml'))
+            os.path.join(DIR, 'ch-18-c-style-if.channelml'))
         self.assertEqual(
             str(m.get('Nav1_3.m.alpha').rhs()),
             'if(membrane.v != -26, 12, 13)'

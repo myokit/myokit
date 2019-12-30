@@ -24,6 +24,7 @@ class SystemInfoTest(unittest.TestCase):
     """
     Tests the system info method.
     """
+
     def test_system_info(self):
         import matplotlib
         matplotlib.use('template')

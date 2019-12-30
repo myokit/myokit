@@ -13,6 +13,18 @@ import xml.dom
 import textwrap
 
 
+def split(tag):
+    """
+    Splits a ``tag`` (as used in elementtree) into a namespace and an element
+    name part.
+    """
+    tag = str(tag)
+    if tag[:1] != '{':
+        return None, tag
+    i = tag.index('}')
+    return tag[1:i], tag[1 + i:]
+
+
 def dom_child(node, selector=None):
     """
     Returns the first child element of the given DOM node.
@@ -305,17 +317,4 @@ def html2ascii(html, width=79, indent='  '):
     f.feed(html)
     f.close()
     return f.get_text()
-
-
-def write_mathml(expression, presentation):
-    """
-    Converts a myokit :class:`Expression` to a mathml expression.
-
-    The boolean argument ``presentation`` can be used to select between
-    Presentation MathML and Content MathML.
-    """
-    from myokit.formats.mathml import MathMLExpressionWriter
-    w = MathMLExpressionWriter()
-    w.set_mode(presentation=presentation)
-    return w.ex(expression)
 
