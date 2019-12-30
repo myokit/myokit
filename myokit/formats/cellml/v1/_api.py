@@ -430,17 +430,20 @@ class Model(AnnotatableElement):
       not supported.
     - Models written as a DAE (e.g. ``1 + x = 2 + y``) are not supported.
     - cmeta:id support is limited to models, components, and variables.
-    - Imports (CellML 1.1) are not supported.
 
     Support notes for 1.1:
+
+    - The new feature of using variables in ``initial_value`` attributes is not
+      supported.
+    - Imports (CellML 1.1) are not supported.
+
+    Support notes for 1.0:
 
     - The stricter 1.1 rule for identifiers is used for both CellML 1.0 and
       1.1: a valid identifier not start with a number, and must contain at
       least one letter.
-    - The new feature of using variables in ``initial_value`` attributes is not
-      supported.
 
-    Arguments
+    Arguments:
 
     ``name``
         A valid CellML identifier string.
