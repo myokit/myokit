@@ -23,7 +23,7 @@ Discrete, stochastic simulations can be performed using the
  :class:`DiscreteSimulation` class.
 
 Analytical and discrete simulation
----------------------------------
+----------------------------------
 
 .. autoclass:: LinearModel
 
