@@ -121,12 +121,14 @@ class LinearModel(object):
     def __init__(self, model, states, parameters=None, current=None, vm=None):
         super(LinearModel, self).__init__()
 
+        # Get a clone of the model, with all markov models written in full ODE
+        # form.
+        self._model = convert_markov_models_to_full_ode_form(model)
+        del(model)
+
         #
         # Check input
         #
-        # Clone model
-        self._model = model.clone()
-        del(model)
 
         # Check and collect state variables
         self._states = []
@@ -145,10 +147,6 @@ class LinearModel(object):
                     'State <' + state.qname() + '> was added twice.')
             self._states.append(state)
         del(states)
-
-        # TODO: If one (and only one) state is not a state variable, call a
-        # method to convert it to a state.
-        # See #473
 
         # Check and collect parameter variables
         unique = set()
