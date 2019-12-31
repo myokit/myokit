@@ -57,14 +57,17 @@ class EasyMLExporter(myokit.formats.Exporter):
         # intermediary variables
         model.remove_derivative_references()
 
+        # Remove hardcoded stimulus protocol, if any
+        guess.remove_embedded_protocol(model)
+
         # List of variables not to output
         ignore = set()
 
         # Find membrane potential
         vm = guess.membrane_potential(model)
 
-        # Make sure vm is a state --> So that expressions depending on V are
-        # not seen as constants
+        # Ensure vm is a state, so that expressions depending on V are not seen
+        # as constants.
         if not vm.is_state():
             vm.promote(-80)
 
@@ -74,43 +77,48 @@ class EasyMLExporter(myokit.formats.Exporter):
         # Get time variable
         time = model.time()
 
-        # Find pacing variable
-        i_pace = model.binding('pace')
+        # Find currents (must be done before i_ion is removed)
+        currents = guess.membrane_currents(model)
 
-        # Find diffusion current
-        i_diff = model.binding('diffusion_current')
-
-        # Guess transmembrane current
-        i_ion = model.label('cellular_current')
-
-        # Find expression to extract currents from
-        if i_ion is not None:
-            e_currents = i_ion.rhs()
-        else:
-            e_currents = vm.rhs()
+        # Use recommended units
+        '''
+        recommended_current_units = [
+            myokit.parse_unit('pA/pF'),
+            myokit.parse_unit('uA/cm^2'),
+        ]
+        helpers =
+        if time.unit() is not None:
+            time.convert_unit(myokit.units.ms)
+        if vm.unit() is not None:
+            vm.convert_unit(myokit.units.mV)
+        for current in currents:
+            if current.unit() is not None:
+                if current.unit() not in recommended_current_units:
+                    current.convert_unit('uA/cm^2', helpers=helpers)
+        '''
 
         # Remove time, pacing variable, diffusion current, and i_ion
-        for var in [time, i_pace, i_diff, i_ion]:
+        pace = model.binding('pace')
+        i_diff = model.binding('diffusion_current')
+        i_ion = model.label('cellular_current')
+        for var in [time, pace, i_diff, i_ion]:
             if var is None:
                 continue
 
+            # Replace references to these variables with 0
             refs = list(var.refs_by())
             subst = {var.lhs(): myokit.Number(0)}
             for ref in refs:
                 ref.set_rhs(ref.rhs().clone(subst=subst))
+
+            # Remove variable
             var.parent().remove_variable(var)
 
-        # Guess currents
-        # Assume that e_currents is an expression such as:
-        #  INa + ICaL + IKr + ...
-        #  i_ion + i_diff + i_stim
-        #  -1/C * (...)
-        currents = []
-        for term in e_currents.references():
-            if term.is_constant():
-                continue
-            currents.append(term.var())
-        currents.sort(key=lambda x: x.name())
+            # Remove from currents, if present
+            try:
+                currents.remove(var)
+            except ValueError:
+                pass
 
         # Remove unused variables
 
@@ -213,16 +221,6 @@ class EasyMLExporter(myokit.formats.Exporter):
             # Store (initial) name for var
             var_to_name[var] = name
 
-        # Create names for HH variables
-        for var, state in alphas.items():
-            var_to_name[var] = 'alpha_' + var_to_name[state]
-        for var, state in betas.items():
-            var_to_name[var] = 'beta_' + var_to_name[state]
-        for var, state in taus.items():
-            var_to_name[var] = 'tau_' + var_to_name[state]
-        for var, state in infs.items():
-            var_to_name[var] = var_to_name[state] + '_inf'
-
         # Check for conflicts with known keywords
         from . import keywords
         reserved = [
@@ -267,6 +265,16 @@ class EasyMLExporter(myokit.formats.Exporter):
         # Remove reverse mappings
         del(name_to_var, needs_renaming)
 
+        # Create names for HH variables
+        for var, state in alphas.items():
+            var_to_name[var] = 'alpha_' + var_to_name[state]
+        for var, state in betas.items():
+            var_to_name[var] = 'beta_' + var_to_name[state]
+        for var, state in taus.items():
+            var_to_name[var] = 'tau_' + var_to_name[state]
+        for var, state in infs.items():
+            var_to_name[var] = var_to_name[state] + '_inf'
+
         # Create naming function
         def lhs(e):
             if isinstance(e, myokit.Derivative):
@@ -305,7 +313,7 @@ class EasyMLExporter(myokit.formats.Exporter):
             for c in model.components():
                 todo = [v for v in c.variables(deep=True) if v not in ignore]
                 if todo:
-                    f.write('# ' + c.name() + eol)
+                    f.write('// ' + c.name() + eol)
                     for v in todo:
                         f.write(e.eq(v.eq()) + eos)
                     f.write(eol)
@@ -325,14 +333,6 @@ class EasyMLExporter(myokit.formats.Exporter):
             f.write('Iion = ')
             f.write(' + '.join([lhs(v) for v in currents]))
             f.write(eos)
-            f.write(eol)
-
-            # Write current group
-            f.write('// All currents' + eol)
-            f.write('group {' + eol)
-            for v in currents:
-                f.write('  ' + lhs(v) + eos)
-            f.write('}' + eol)
             f.write(eol)
 
     def supports_model(self):

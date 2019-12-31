@@ -29,9 +29,9 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
 
     def _ex_number(self, e):
         s = myokit.strfloat(e)
-        if '.' not in s:
-            return s + '.'
-        return s
+        if '.' in s or 'e' in s:
+            return s
+        return s + '.'
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):

@@ -86,6 +86,14 @@ myokit.formats.cuda
 - :meth:`myokit.formats.cuda.exporters`
 - :meth:`myokit.formats.cuda.ewriters`
 
+
+myokit.formats.easyml
+---------------------
+- :class:`myokit.formats.easyml.EasyMLExporter`
+- :class:`myokit.formats.easyml.EasyMLExpressionWriter`
+- :meth:`myokit.formats.easyml.exporters`
+- :meth:`myokit.formats.easyml.ewriters`
+
 myokit.formats.latex
 ---------------------
 - :meth:`myokit.formats.latex.exporters`
