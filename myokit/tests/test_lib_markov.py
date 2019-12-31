@@ -177,28 +177,6 @@ class LinearModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)
-        '''
-
-        # Not a linear model
-        m2 = model.clone()
-        markov.LinearModel(m2, states, parameters, current)
-        x = m2.get(states[0])
-        y = m2.get(states[1])
-        x.set_rhs('V')
-        self.assertRaisesRegex(
-            markov.LinearModelError, 'linear combination of states',
-            markov.LinearModel, m2, states, parameters, current)
-
-        # Not a linear model
-        m2 = model.clone()
-        markov.LinearModel(m2, states, parameters, current)
-        x = m2.get(states[0])
-        y = m2.get(states[1])
-        x.set_rhs(states[0] + ' * ' + states[1])
-        self.assertRaisesRegex(
-            markov.LinearModelError, 'linear combination of states',
-            markov.LinearModel, m2, states, parameters, current)
-        '''
 
         # Current not a linear combination of states
         m2 = model.clone()
@@ -206,24 +184,6 @@ class LinearModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             markov.LinearModelError, 'linear combination of states',
             markov.LinearModel, m2, states, parameters, current)
-
-        '''
-        # Current not a linear combination of states
-        m2 = model.clone()
-        x = m2.get(current)
-        x.set_rhs(states[0] + ' * ' + states[1])
-        self.assertRaisesRegex(
-            markov.LinearModelError, 'linear combination of states',
-            markov.LinearModel, m2, states, parameters, current)
-
-        # Current not a linear combination of states
-        m2 = model.clone()
-        x = m2.get(current)
-        x.set_rhs(str(x.rhs()) + ' + V')
-        self.assertRaisesRegex(
-            markov.LinearModelError, 'linear combination of states',
-            markov.LinearModel, m2, states, parameters, current)
-        '''
 
     def test_linear_model_from_component(self):
 
@@ -485,14 +445,14 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
         self.assertEqual(list(state), list(s.state()))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_state, state[:-1])
         state[0] += 0.1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'sum to 1', s.set_state, state)
         state[0] = -.1
         state[1] = 1.1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'negative', s.set_state, state)
 
         # Default state
@@ -502,14 +462,14 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(dstate), list(s.default_state()))
         s.set_default_state(dstate)
         self.assertEqual(list(dstate), list(s.default_state()))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_default_state, dstate[:-1])
         dstate[0] += 0.1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'sum to 1', s.set_default_state, dstate)
         dstate[0] = -.1
         dstate[1] = 1.1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'negative', s.set_default_state, dstate)
 
     def test_against_cvode(self):
@@ -644,10 +604,10 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertEqual(len(d['engine.time']), len(d['ina.O']))
         d2 = d.clone()
         del(d2[next(iter(d2.keys()))])
-        self.assertRaisesRegexp(ValueError, 'missing', s.run, 1, log=d2)
+        self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d2)
         d2 = d.clone()
         d2['hello'] = [1, 2, 3]
-        self.assertRaisesRegexp(ValueError, 'extra', s.run, 1, log=d2)
+        self.assertRaisesRegex(ValueError, 'extra', s.run, 1, log=d2)
 
         #
         # Test without current variable
@@ -668,10 +628,10 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertNotIn('ina.i', d)
         d2 = d.clone()
         del(d2[next(iter(d2.keys()))])
-        self.assertRaisesRegexp(ValueError, 'missing', s.run, 1, log=d2)
+        self.assertRaisesRegex(ValueError, 'missing', s.run, 1, log=d2)
         d2 = d.clone()
         d2['hello'] = [1, 2, 3]
-        self.assertRaisesRegexp(ValueError, 'extra', s.run, 1, log=d2)
+        self.assertRaisesRegex(ValueError, 'extra', s.run, 1, log=d2)
 
     def test_discrete_simulation_properties(self):
         # Test basic get/set methods of discrete simulation.
@@ -711,14 +671,14 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
         self.assertEqual(list(state), list(s.state()))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_state, state[:-1])
         state[0] += 1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must equal', s.set_state, state)
         state[0] = -1
         state[1] = 51
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'negative', s.set_state, state)
 
         # Default state
@@ -728,14 +688,14 @@ class DiscreteSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(dstate), list(s.default_state()))
         s.set_default_state(dstate)
         self.assertEqual(list(dstate), list(s.default_state()))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_default_state, dstate[:-1])
         dstate[0] += 1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'must equal', s.set_default_state, dstate)
         dstate[0] = -1
         dstate[1] = 51
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'negative', s.set_default_state, dstate)
 
         # Discretize state

@@ -612,9 +612,7 @@ class LinearModel(object):
 
         """
         # Calculate Jacobian and derivatives
-        A, B = self.matrices(membrane_potential, parameters)
-        A = np.matrix(A)
-        del(B)
+        A, _ = self.matrices(membrane_potential, parameters)
 
         # Set up reduced system with full rank: dot(x) = Ay + B
         B = A[:-1, -1]
