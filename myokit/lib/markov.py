@@ -330,18 +330,13 @@ class LinearModel(object):
             # Scan factors
             for col, state in enumerate(self._states):
                 factor = factors[col]
-                if factor is None:
-                    continue
+                if factor is not None:
+                    # Add factor to transition matrix
+                    A[row][col] = factor
 
-                # Add factor to transition matrix
-                cur = A[row][col]
-                if cur != myokit.Number(0):
-                    factor = myokit.Plus(cur, factor)
-                A[row][col] = factor
-
-                # Store transition in transition list
-                if row != col:
-                    T.add((col, row))   # A is mirrored
+                    # Store transition in transition list
+                    if row != col:
+                        T.add((col, row))   # A is mirrored
 
         # Create a parametrisable matrix for the current
         B = [myokit.Number(0) for i in range(n)]
@@ -355,13 +350,8 @@ class LinearModel(object):
 
             for col, state in enumerate(self._states):
                 factor = factors[col]
-                if factor is None:
-                    continue
-
-                cur = B[col]
-                if cur != myokit.Number(0):
-                    factor = myokit.Plus(cur, factor)
-                B[col] = factor
+                if factor is not None:
+                    B[col] = factor
 
         # Create list of transition rates and associated equations
         T = list(T)
@@ -1706,10 +1696,13 @@ def _split_factor(term, variables):
             a, b = term
             if name in b.references():
                 raise ValueError(
-                    'Non-linear term of ' + str(name) + ' found in '
-                    + str(term) + '.')
+                    'Non-linear function (division) of ' + str(name)
+                    + ' found in ' + str(term) + '.')
             term = a
             m = myokit.Divide(myokit.Number(1) if m is None else m, b)
+        elif t in (myokit.Plus, myokit.Minus):
+            raise ValueError(
+                'Expression passed to _split_factor must be a single term.')
         else:
             raise ValueError(
                 'Non-linear function of ' + str(name) + ' found in '
@@ -1751,6 +1744,10 @@ def _split_terms(expression, terms=None, positive=True):
         a, b = expression
         _split_terms(a, terms, positive)
         _split_terms(b, terms, not positive)
+    elif type(expression) == myokit.PrefixPlus:
+        _split_terms(expression[0], terms, positive)
+    elif type(expression) == myokit.PrefixMinus:
+        _split_terms(expression[0], terms, not positive)
     else:
         if positive:
             terms.append(expression)
@@ -1759,7 +1756,7 @@ def _split_terms(expression, terms=None, positive=True):
     return terms
 
 
-def find_markov_models(model, vm=None):
+def find_markov_models(model):
     """
     Searches a :class:`myokit.Model` for groups of states that constitute a
     Markov model.
@@ -1775,33 +1772,20 @@ def find_markov_models(model, vm=None):
 
     ``model``
         The :class:`myokit.Model` to search.
-    ``vm``
-        The variable indicating membrane potential. If set to ``None``
-        (default) the method will search for a variable with the label
-        ``membrane_potential``.
 
     """
-    # Check membrane potential variable
-    if vm is None:
-        vm = model.label('membrane_potential')
-    if vm is None:
-        raise ValueError(
-            'A membrane potential must be specified as `vm` or using the'
-            ' label `membrane_potential`.')
 
     # Models
     models = []
 
     # Scan model for clusters of states that depend on each other
-    seen = {vm}
+    seen = set()
     for var in model.states():
         if var in seen:
             continue
 
-        # Check references to other states, made by this state
+        # Get references to other states, made by this state
         group = set(var.refs_to(True))
-        if len(group) == 0:
-            continue
 
         # Find group of connected states
         todo = collections.deque(group)
@@ -1830,11 +1814,7 @@ def find_markov_models(model, vm=None):
             # Split into terms
             terms = _split_terms(candidate.rhs())
 
-            # Must have a 1 and a term for each state
-            if len(terms) != 1 + len(group):
-                continue
-
-            # Remove the '1' term
+            # Find and remove the '1' term
             i_one = None
             for i, term in enumerate(terms):
                 if term.is_constant() and term.eval() == 1:
