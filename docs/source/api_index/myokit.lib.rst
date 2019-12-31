@@ -67,8 +67,8 @@ myokit.lib.markov
 -----------------
 - :class:`myokit.lib.markov.AnalyticalSimulation`
 - :class:`myokit.lib.markov.DiscreteSimulation`
-- :meth:`convert_markov_models_to_compact_form`
-- :meth:`convert_markov_models_to_full_ode_form`
+- :meth:`myokit.lib.markov.convert_markov_models_to_compact_form`
+- :meth:`myokit.lib.markov.convert_markov_models_to_full_ode_form`
 - :meth:`myokit.lib.markov.find_markov_models`
 - :class:`myokit.lib.markov.LinearModel`
 - :class:`myokit.lib.markov.LinearModelError`
