@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 import myokit
+import myokit.formats
 import myokit.formats.easyml
+import myokit.lib.guess as guess
 
-#TODO:
-# 1. Load CellML
-#    --> Update CellML importer to guess stimulus
-# 2. Use guessing method to annotate model
-# 3. Continue as below
+# Load CellML model
+importer = myokit.formats.importer('cellml')
+model = importer.model('decker_2009.cellml')
 
-m, p, _ = myokit.load('example')
+# Remove hardcoded stimulus protocol, if any
+guess.remove_embedded_protocol(model)
 
-e = myokit.formats.easyml.EasyMLExporter()
-
-e.model('easyml.model', m)
+# Export to EasyML
+exporter = myokit.formats.exporter('easyml')
+exporter.model('decker_2009.model', model)

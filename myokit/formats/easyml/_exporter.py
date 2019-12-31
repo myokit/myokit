@@ -13,7 +13,9 @@ import os
 import logging
 
 import myokit.formats
+import myokit.lib.guess as guess
 import myokit.lib.hh as hh
+import myokit.lib.markov as markov
 
 
 class EasyMLExporter(myokit.formats.Exporter):
@@ -42,11 +44,14 @@ class EasyMLExporter(myokit.formats.Exporter):
 
         log = logging.getLogger(__name__)
 
-        # Clone model so that changes can be made
-        model = model.clone()
+        # Test model is valid
         model.validate()
         if not model.is_valid():
             raise ValueError('EasyML export requires a valid model.')
+
+        # Rewrite model so that any Markov models have a 1-sum(...) state
+        # This also clones the model, so that changes can be made
+        model = markov.convert_markov_models_to_compact_form(model)
 
         # Replace any RHS references to state derivatives with references to
         # intermediary variables
@@ -56,15 +61,7 @@ class EasyMLExporter(myokit.formats.Exporter):
         ignore = set()
 
         # Find membrane potential
-        vm = model.label('membrane_potential')
-        if vm is None:
-            if model.count_states() == 0:
-                raise ValueError('EasyML export requires model with ODEs.')
-
-            # Guess Vm
-            vm = next(model.states())
-            log.warning('Membrane potential variable not annotated. Guessing '
-                        + vm.qname())
+        vm = guess.membrane_potential(model)
 
         # Make sure vm is a state --> So that expressions depending on V are
         # not seen as constants
@@ -114,15 +111,6 @@ class EasyMLExporter(myokit.formats.Exporter):
                 continue
             currents.append(term.var())
         currents.sort(key=lambda x: x.name())
-
-        #TODO: Allow this via #388
-        # Run over state variables, check that none of the equations refer to
-        # derivatives
-        for var in model.states():
-            if len(list(var.refs_by())) > 0:
-                raise ValueError(
-                    'EasyML export does not support models with expressions'
-                    ' that depend on derivatives of the state variables.')
 
         # Remove unused variables
 
@@ -303,13 +291,14 @@ class EasyMLExporter(myokit.formats.Exporter):
             # Write membrane potential
             f.write(lhs(vm) + '; .nodal(); .external(Vm);' + eol)
 
-            # Write remaining state variables
-            for v in model.states():
-                if v != vm:
-                    f.write(lhs(v) + eos)
-
             # Write current
             f.write('Iion; .nodal(); .external();' + eol)
+            f.write(eol)
+
+            # Write initial conditions
+            for v in model.states():
+                f.write(lhs(v) + '_init = ' + myokit.strfloat(v.state_value())
+                        + eos)
             f.write(eol)
 
             # Write remaining variables
@@ -321,19 +310,25 @@ class EasyMLExporter(myokit.formats.Exporter):
                         f.write(e.eq(v.eq()) + eos)
                     f.write(eol)
 
-            # Write initial conditions
-            for v in model.states():
-                f.write(lhs(v) + '_init = ' + myokit.strfloat(v.state_value())
-                        + eos)
-            f.write(eol)
+            # Write solution methods for Markov models
+            for states in markov.find_markov_models(model):
+                f.write('// Markov model' + eol)
+                f.write('group {' + eol)
+                for state in states:
+                    if state.is_state():
+                        f.write('  ' + lhs(state) + eos)
+                f.write('} .method(markov_be)' + eos)
+                f.write(eol)
 
             # Write sum of currents variable
+            f.write('// Sum of currents' + eol)
             f.write('Iion = ')
             f.write(' + '.join([lhs(v) for v in currents]))
             f.write(eos)
             f.write(eol)
 
             # Write current group
+            f.write('// All currents' + eol)
             f.write('group {' + eol)
             for v in currents:
                 f.write('  ' + lhs(v) + eos)

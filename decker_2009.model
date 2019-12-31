@@ -1,0 +1,424 @@
+Vm; .nodal(); .external(Vm);
+Iion; .nodal(); .external();
+
+Vm_init = -8.74947322902196021e+01;
+C1_init =  4.76679784307081023e-01;
+C2_init =  2.55181042718489015e-01;
+C3_init =  5.12272866698557025e-02;
+C4_init =  4.57058497361950006e-03;
+C5_init =  1.52923243503507003e-04;
+C6_init =  1.32814156809568013e-01;
+C7_init =  5.33245721646180004e-02;
+C8_init =  7.13656414955777998e-03;
+C9_init =  3.18368292970148004e-04;
+C10_init =  1.38769647384952999e-02;
+C11_init =  3.71438476499171997e-03;
+C12_init =  2.48553788631871006e-04;
+C13_init =  6.44426171899078006e-04;
+C14_init =  8.62495047666860979e-05;
+C15_init =  1.12344645485892998e-05;
+O1_init =  1.05292905767804992e-05;
+C_init =  9.99969820932870013e-01;
+O_init =  2.26882961412491001e-05;
+C_star_init =  7.49117189549873021e-06;
+O_star_init =  1.23556404128517995e-10;
+CI_init =  5.89853003114132047e-11;
+OI_init =  8.01952813127322043e-17;
+CI_star_init =  1.92370010170209980e-09;
+m_init =  1.01841101248411996e-03;
+h_init =  9.91354143386886988e-01;
+j_init =  9.97090362512429995e-01;
+mL_init =  1.01841101248411996e-03;
+hL_init =  3.19611809402137015e-01;
+xr_init =  4.06959064407486026e-06;
+a_1_init =  1.76776038804227995e-05;
+i1f_init =  9.97976503910798951e-01;
+i1s_init =  9.47581184798815035e-01;
+i2f_init =  9.96044894628275945e-01;
+Irel_init =  7.14227102027744981e-04;
+Ca_JSR_init =  9.93914988616979023e-01;
+Ca_NSR_init =  1.01475649943057000e+00;
+Ca_i_init =  8.38749860095481967e-05;
+Ca_ss_sr_init =  1.12967071024340005e-04;
+Ca_ss_CaL_init =  1.19239795531548000e-04;
+Na_i_init =  8.01031392415196919e+00;
+Na_ss_sr_init =  8.01033434859049009e+00;
+Cl_i_init =  2.06683603724431997e+01;
+Cl_ss_init =  2.06683605553302989e+01;
+K_i_init =  1.44907134343313999e+02;
+CaMK_trap_init =  1.14911034744776992e-02;
+
+# IKs
+IKs = gKs * OKs * (Vm - EKs);
+diff_C13 = (-(IKs_alpha + 3.0 * delta_2)) * C13 + IKs_beta * C14 + gamma * C11;
+diff_C12 = (-(2.0 * IKs_beta + 2.0 * gamma + 2.0 * delta_2)) * C12 + IKs_alpha * C11 + 3.0 * gamma * C9 + 3.0 * delta_2 * C14;
+diff_C11 = (-(IKs_alpha + IKs_beta + gamma + 2.0 * delta_2)) * C11 + 2.0 * IKs_alpha * C10 + 2.0 * IKs_beta * C12 + 2.0 * gamma * C8 + 3.0 * delta_2 * C13;
+diff_C10 = (-(2.0 * IKs_alpha + 2.0 * delta_2)) * C10 + IKs_beta * C11 + gamma * C7;
+O2 = 1.0 - (C1 + C2 + C3 + C4 + C5 + C6 + C7 + C8 + C9 + C10 + C11 + C12 + C13 + C14 + C15 + O1);
+diff_C15 = (-(4.0 * delta_2 + theta_2)) * C15 + gamma * C14 + eta_2 * O1;
+diff_C14 = (-(IKs_beta + gamma + 3.0 * delta_2)) * C14 + IKs_alpha * C13 + 2.0 * gamma * C12 + 4.0 * delta_2 * C15;
+diff_C9 = (-(3.0 * IKs_beta + 3.0 * gamma + delta_2)) * C9 + IKs_alpha * C8 + 4.0 * gamma * C5 + 2.0 * delta_2 * C12;
+diff_C8 = (-(IKs_alpha + 2.0 * IKs_beta + 2.0 * gamma + delta_2)) * C8 + 2.0 * IKs_alpha * C7 + 3.0 * IKs_beta * C9 + 3.0 * gamma * C4 + 2.0 * delta_2 * C11;
+diff_O1 = (-(eta_2 + psi)) * O1 + omega * O2 + theta_2 * C15;
+diff_C3 = (-(2.0 * IKs_alpha + 2.0 * IKs_beta + 2.0 * gamma)) * C3 + 3.0 * IKs_alpha * C2 + 3.0 * IKs_beta * C4 + delta_2 * C7;
+diff_C2 = (-(3.0 * IKs_alpha + IKs_beta + gamma)) * C2 + 4.0 * IKs_alpha * C1 + 2.0 * IKs_beta * C3 + delta_2 * C6;
+diff_C1 = (-4.0) * IKs_alpha * C1 + IKs_beta * C2;
+diff_C7 = (-(2.0 * IKs_alpha + IKs_beta + gamma + delta_2)) * C7 + 3.0 * IKs_alpha * C6 + 2.0 * IKs_beta * C8 + 2.0 * gamma * C3 + 2.0 * delta_2 * C10;
+diff_C6 = (-(3.0 * IKs_alpha + delta_2)) * C6 + IKs_beta * C7 + gamma * C2;
+diff_C5 = (-(4.0 * IKs_beta + 4.0 * gamma)) * C5 + IKs_alpha * C4 + delta_2 * C9;
+diff_C4 = (-(IKs_alpha + 3.0 * IKs_beta + 3.0 * gamma)) * C4 + 2.0 * IKs_alpha * C3 + 4.0 * IKs_beta * C5 + delta_2 * C8;
+OKs = O1 + O2;
+psi =  5.86382286630140026e-01 * exp( 2.82055543314960022e-01 * Vm * F / (R * T));
+gKs = gKs_max * (1.0 + 0.6 / (1.0 + pow(3.8e-05 / Ca_i, 1.4)));
+IKs_beta =  8.39863121998299933e-02 * exp((- 5.54610571266399982e-02) * Vm * F / (R * T));
+delta_2 =  3.11732688739999996e-03 * exp((- 4.26254519443760027e-01) * Vm * F / (R * T));
+IKs_alpha =  1.48645979808599994e-02 * exp( 2.98773012358800015e-02 * Vm * F / (R * T));
+omega =  7.94054599586400012e-01 * exp((- 8.01737819297699966e-02) * Vm * F / (R * T));
+gKs_max = 0.0826;
+eta_2 =  7.73199009733099990e-02 * exp((- 6.47261224887100001e-02) * Vm * F / (R * T));
+theta_2 =  8.95383064110199939e-02;
+gamma =  1.46006611831600002e-02 * exp( 2.44649530996450010e-01 * Vm * F / (R * T));
+
+# IKr
+IKr = gKr * xr * r * (Vm - EK);
+gKr = gKr_max * sqrt(K_o / 5.4);
+gKr_max = 0.0138542;
+
+# IKp
+IKp = gKp * Kp * (Vm - EK);
+gKp = 0.00276;
+Kp = 1.0 / (1.0 + exp((7.488 - Vm) / 5.98));
+
+# CT_Na_Cl
+CT_Na_Cl_max =  2.46108000000000016e-05;
+CT_Na_Cl = CT_Na_Cl_max * pow(ENa - ECl, 4.0) / (pow(ENa - ECl, 4.0) + pow(87.8251, 4.0));
+
+# Na
+diff_Na_ss_sr = (-(3.0 * INaCa_ss_sr * AF / Vss_sr + Idiff_Na));
+Idiff_Na = (Na_ss_sr - Na_i) / Ca_tau_diff;
+diff_Na_i = (-((3.0 * INaCa + 3.0 * INaK + INa + INaL + INab) * AF / Vmyo - (CT_Na_Cl + Idiff_Na * Vss_sr / Vmyo)));
+
+# INaL_hL_gate
+tau_hL = 600.0;
+hL_inf = 1.0 / (1.0 + exp((Vm + 91.0) / 6.1));
+
+# Ito2
+zCl = -1.0;
+kCa_ito2 = 0.4;
+Ito2 = Ito2_max * Ito2_max_scaling_factor * i2f * KCa_ito2;
+KCa_ito2 = 1.0 - 1.0 / (1.0 + pow(Irel / kCa_ito2, 2.0));
+PCl = 9e-07.;
+Ito2_max = PCl * pow(zCl, 2.0) * Vm * pow(F, 2.0) / (R * T) * (Cl_i - Cl_o * exp(Vm * F / (R * T))) / (1.0 - exp(Vm * F / (R * T)));
+Ito2_max_scaling_factor = 1.0;
+
+# reversal_potentials
+ENa = R * T / F * log(Na_o / Na_i);
+ECl = (-R) * T / F * log(Cl_o / Cl_i);
+EKs = R * T / F * log((K_o + prnak * Na_o) / (K_i + prnak * Na_i));
+prnak = 0.01833;
+EK = R * T / F * log(K_o / K_i);
+
+# INaL_mL_gate
+alpha_mL = 0.32 * (Vm + 47.13) / (1.0 - exp((-0.1) * (Vm + 47.13)));
+beta_mL = 0.08 * exp((-Vm) / 11.0);
+
+# IK1_K1_gate
+K1 = IK1_K1_gate_alpha_k1 / (IK1_K1_gate_alpha_k1 + IK1_K1_gate_beta_k1);
+IK1_K1_gate_beta_k1 = (0.49124 * exp(0.08032 * (Vm - EK + 5.476)) + exp(0.06175 * (Vm - EK - 594.31))) / (1.0 + exp((-0.5143) * (Vm - EK + 4.753)));
+IK1_K1_gate_alpha_k1 = 1.02 / (1.0 + exp(0.2385 * (Vm - EK - 59.215)));
+
+# ICab
+gamma_Ca_i = 1.0;
+PCab =  1.99507999999999989e-07;
+ICab = PCab * 4.0 * Vm * pow(F, 2.0) / (R * T) * (gamma_Ca_i * Ca_i * exp(2.0 * Vm * F / (R * T)) - gamma_Ca_o * Ca_o) / (exp(2.0 * Vm * F / (R * T)) - 1.0);
+gamma_Ca_o = 0.341;
+
+# INa_m_gate
+alpha_m = 0.32 * (Vm + 47.13) / (1.0 - exp((-0.1) * (Vm + 47.13)));
+beta_m = 0.08 * exp((-Vm) / 11.0);
+
+# IpCa
+gpCa = 0.0575;
+IpCa = gpCa * Ca_i / (KmpCa + Ca_i);
+KmpCa = 0.0005;
+
+# INa_h_gate
+beta_h = ((Vm >= (-40.0)) ? 1.0 / (0.13 * (1.0 + exp((Vm + 10.66) / (-11.1)))) : 3.56 * exp(0.079 * Vm) + 310000.0 * exp(0.35 * Vm));
+alpha_h = ((Vm >= (-40.0)) ? 0.0 : 0.135 * exp((80.0 + Vm) / (-6.8)));
+
+# Ito1_a_gate
+Ito1_a_gate_beta_a = 3.5 / (1.0 + exp((Vm + 100.0) / 29.3814));
+a_inf = 1.0 / (1.0 + exp((Vm + 9.437) / (-7.133)));
+Ito1_a_gate_alpha_a = 1.0 / (1.2089 * (1.0 + exp((Vm - 18.4099) / (-29.3814))));
+tau_a = 1.0 / (Ito1_a_gate_alpha_a + Ito1_a_gate_beta_a);
+
+# model_parameters
+F = 96485.0;
+Na_o = 140.0;
+R = 8314.0;
+T = 310.0;
+K_o = 5.4;
+Cl_o = 100.0;
+Ca_o = 1.8;
+
+# INaCa
+denom_ss_1 = 1.0 + pow(KmCa_act / Ca_ss_sr, 2.0);
+denom_ss_3 = KmCao * pow(Na_ss_sr, 3.0) + pow(KmNao, 3.0) * Ca_ss_sr + pow(KmNai, 3.0) * Ca_o * (1.0 + Ca_ss_sr / KmCai);
+denom_ss_2 = 1.0 + ksat * exp((eta_1 - 1.0) * Vm * F / (R * T));
+denom_ss_4 = KmCai * pow(Na_o, 3.0) * (1.0 + pow(Na_ss_sr / KmNai, 3.0)) + pow(Na_ss_sr, 3.0) * Ca_o + pow(Na_o, 3.0) * Ca_ss_sr;
+eta_1 = 0.27;
+numerator = 0.8 * Vmax * (pow(Na_i, 3.0) * Ca_o * exp(eta_1 * Vm * F / (R * T)) - pow(Na_o, 3.0) * Ca_i * exp((eta_1 - 1.0) * Vm * F / (R * T)));
+INaCa_ss_sr = num_ss / (denom_ss_1 * denom_ss_2 * (denom_ss_3 + denom_ss_4));
+denom_4 = KmCai * pow(Na_o, 3.0) * (1.0 + pow(Na_i / KmNai, 3.0)) + pow(Na_i, 3.0) * Ca_o + pow(Na_o, 3.0) * Ca_i;
+denom_3 = KmCao * pow(Na_i, 3.0) + pow(KmNao, 3.0) * Ca_i + pow(KmNai, 3.0) * Ca_o * (1.0 + Ca_i / KmCai);
+KmCa_act = 0.000125;
+denom_1 = 1.0 + pow(KmCa_act / Ca_i, 2.0);
+INaCa = INaCa_cai + INaCa_ss_sr;
+KmCai = 0.0036;
+KmNai = 12.3;
+INaCa_cai = numerator / (denom_1 * denom_2 * (denom_3 + denom_4));
+ksat = 0.32;
+KmCao = 1.3;
+KmNao = 87.5;
+Vmax = 4.5;
+num_ss = 0.2 * Vmax * (pow(Na_ss_sr, 3.0) * Ca_o * exp(eta_1 * Vm * F / (R * T)) - pow(Na_o, 3.0) * Ca_ss_sr * exp((eta_1 - 1.0) * Vm * F / (R * T)));
+denom_2 = 1.0 + ksat * exp((eta_1 - 1.0) * Vm * F / (R * T));
+
+# Ito1_i1f_gate
+alpha_i1f = 0.025 / (1.0 + exp((Vm + 58.0) / 5.0));
+beta_i1f = 1.0 / (9.7953 * (1.0 + exp((Vm + 19.0) / (-9.0))));
+
+# Irel
+rel_infinity = ICaL * Irel_alpha_rel / (1.0 + pow(Krel_infinity / Ca_JSR, h_rel));
+Irel_tau_rel = Irel_beta_tau / (1.0 + Krel_tau / Ca_JSR);
+kappa = 0.1125;
+Irel_beta_tau = Irel_beta_0 * (1.0 + delta_beta_CaMK);
+Irel_beta_0 = 4.75;
+Krel_tau = 0.0123;
+delta_beta_CaMK = delta_beta_0 / (1.0 + pow(K_beta / (1.0 * CaMK_active), h_beta));
+Krel_infinity = 1.0;
+Irel_alpha_rel = Irel_beta_tau * kappa;
+diff_Irel = (-(rel_infinity + Irel)) / Irel_tau_rel;
+delta_beta_0 = 1.0;
+h_rel = 8.0;
+h_beta = 10.0;
+K_beta = 0.28;
+
+# ICaL
+OI_star = 1.0 - (C + O + C_star + O_star + CI + OI + CI_star);
+diff_C = (-(ICaL_alpha + delta_1 + y)) * C + ICaL_beta * O + theta_1 * C_star + x * CI;
+ACT_tau = 0.59 + 0.8 * exp(0.052 * (Vm + 13.0)) / (1.0 + exp(0.132 * (Vm + 13.0)));
+diff_CI_star = (-(ICaL_alpha + theta_I + x_star)) * CI_star + delta_I * CI + y_star * C_star + ICaL_beta * OI_star;
+IV_tau = 1.0 / (1.0 / (24.828 * (1.0 + exp((Vm + 49.1) / 10.349))) + 1.0 / (30.553 * (1.0 + exp((-(Vm + 0.213)) / 10.807))));
+IV_infinity = (1.0 / (1.0 + exp((Vm + 17.5) / 3.0)) + 0.25) / 1.25;
+ICaL_max = PCa * 4.0 * Vm * pow(F, 2.0) / (R * T) * (gamma_Cai * Ca_ss_CaL * exp(2.0 * Vm * F / (R * T)) - gamma_Cao * Ca_o) / (exp(2.0 * Vm * F / (R * T)) - 1.0);
+ICaL = ICaL_max * (O + O_star);
+IV_beta_infinity_star = 25.0 - 17.5 / (1.0 + pow(0.003 / Ca_ss_CaL, 4.0));
+theta_1 = 1.0;
+PCa =  1.55520000000000002e-04;
+diff_CI = (-(ICaL_alpha + delta_I + x)) * CI + y * C + theta_I * CI_star + ICaL_beta * OI;
+diff_C_star = (-(ICaL_alpha + theta_1 + y_star)) * C_star + delta_1 * C + ICaL_beta * O_star + x_star * CI_star;
+diff_O = (-(ICaL_beta + delta_1 + y)) * O + ICaL_alpha * C + theta_1 * O_star + x * OI;
+IV_beta_star = 1.0 / (IV_beta_infinity_star * (1.0 + exp((-(Vm + 0.213)) / 10.807)));
+ICaL_beta = (1.0 - ACT_infinity) / ACT_tau;
+gamma_Cai = 1.0;
+delta_1 = 3.0 / (1.0 + pow(0.003 / Ca_ss_CaL, 4.0));
+gamma_Cao = 0.341;
+ICaL_alpha = ACT_infinity / ACT_tau;
+theta_I = 1e-06.;
+IV_infinity_star = (1.0 / (1.0 + exp((Vm + 17.5) / 3.0)) + 0.0001) / 1.0001;
+diff_O_star = (-(ICaL_beta + theta_1 + y_star)) * O_star + delta_1 * O + ICaL_alpha * C_star + x_star * OI_star;
+ACT_infinity = 1.0 / (1.0 + exp((-(Vm - 13.56)) / 9.45));
+diff_OI = (-(ICaL_beta + delta_I + x)) * OI + y * O + theta_I * OI_star + ICaL_alpha * CI;
+y_star = (1.0 - IV_infinity_star) / IV_tau_star;
+delta_I = theta_I * x * y_star * delta_1 / (y * x_star * theta_1);
+y = (1.0 - IV_infinity) / IV_tau;
+x = IV_infinity / IV_tau;
+x_star = IV_infinity_star / IV_tau_star;
+IV_tau_star = 1.0 / (1.0 / (24.828 * (1.0 + exp((Vm + 49.1) / 10.349))) + IV_beta_star);
+
+# membrane
+stim_amplitude = -80.0;
+kiont = IKr + IKs + IK1 + IKp + (-2.0) * INaK + Ito1 + i_Stim;
+naiont = INa + 3.0 * (INaCa + INaCa_ss_sr) + 3.0 * INaK + INaL + INab;
+clont = IClb + Ito2;
+caiont = ICaL + ICab + IpCa - 2.0 * (INaCa + INaCa_ss_sr);
+i_Stim = 0.0 * stim_amplitude;
+
+# Iup
+delta_kmPLB = delta_kmPLB_bar * CaMK_active * 1.0 / (kmCaMK + CaMK_active * 1.0);
+kmup = 0.00092;
+delta_iupCaMK_bar = 0.75;
+delta_iupCaMK = delta_iupCaMK_bar * CaMK_active * 1.0 / (kmCaMK + CaMK_active * 1.0);
+Iup = (delta_iupCaMK + 1.0) * iupbar * Ca_i / (Ca_i + kmup - delta_kmPLB);
+iupbar = 0.004375;
+delta_kmPLB_bar = 0.00017;
+kmCaMK = 0.15;
+
+# cell_geometry
+a_2 = 0.0011;
+AF = 1.0 * 1.0 * Acap / (F * 1.0);
+Acap = ageo * 2.0;
+l = 0.01;
+ageo = 2.0 *  3.14159265358979312e+00 * a_2 * a_2 + 2.0 *  3.14159265358979312e+00 * a_2 * l;
+Vnsr = vcell * 0.0552;
+vcell = 1000.0 *  3.14159265358979312e+00 * a_2 * a_2 * l;
+Vmyo = vcell * 0.678;
+Vjsr = vcell * 0.0048;
+Vss_CaL = vcell * 0.002;
+Vss_sr = vcell * 0.02;
+
+# Ito1
+gto1 = 0.497458;
+Ito1 = gto1 * pow(a_1, 3.0) * i1f * i1s * rto1 * (Vm - EK);
+rto1 = exp(Vm / 550.0);
+
+# IClb
+IClb = gClb * (Vm - ECl);
+gClb = 0.000225;
+
+# IK1
+gK1 = g_K1_max * sqrt(K_o / 5.4);
+IK1 = gK1 * K1 * (Vm - EK);
+g_K1_max = 0.5;
+
+# INa_j_gate
+alpha_j = ((Vm >= (-40.0)) ? 0.0 : ((-127140.0) * exp(0.2444 * Vm) - 6.948e-05 * exp((-0.04391) * Vm)) * (Vm + 37.78) / (1.0 + exp(0.311 * (Vm + 79.23))));
+beta_j = ((Vm >= (-40.0)) ? 0.3 * exp((-2.535e-07) * Vm) / (1.0 + exp((-0.1) * (Vm + 32.0))) : 0.1212 * exp((-0.01052) * Vm) / (1.0 + exp((-0.1378) * (Vm + 40.14))));
+
+# K
+diff_K_i = (-((IKs + IKr + IK1 + Ito1 + IKp + i_Stim - 2.0 * INaK) * AF / Vmyo - CT_K_Cl));
+
+# IKr_xr_gate
+xr_inf = 1.0 / (1.0 + exp((-(Vm + 10.085)) / 4.25));
+tau_xr = 1.0 / (0.0006 * (Vm - 1.7384) / (1.0 - exp((-0.136) * (Vm - 1.7384))) + 0.0003 * (Vm + 38.3608) / (exp(0.1522 * (Vm + 38.3608)) - 1.0));
+
+# Ileak
+nsrbar = 15.0;
+Ileak = 0.004375 / nsrbar * Ca_NSR;
+
+# INaL
+gNaL = 0.0065;
+INaL = gNaL * pow(mL, 3.0) * hL * (Vm - ENa);
+
+# INaK
+phi_1 = sigma * (Vm - V_half) * F / (R * T);
+fv = 1.0 / (1.0 + exp((-phi_1)));
+kmko = 1.5;
+kmnai = 2.6;
+V_half = -92.0;
+ibarnak = 1.4;
+INaK = ibarnak * fv * PK * PNa;
+PNa = pow(Na_i / (Na_i + kmnai), 3.0);
+PK = K_o / (K_o + kmko);
+sigma = 1.0;
+
+# INa
+INa = g_Na * pow(m, 3.0) * h * j * (Vm - ENa);
+g_Na = 9.075;
+
+# Ito1_i1s_gate
+alpha_i1s = 1.0 / (250.0 * (1.0 + exp((Vm + 60.0) / 5.0)));
+beta_i1s = 1.0 / (9.7953 * (1.0 + exp((Vm + 19.0) / (-9.0))));
+
+# CaMK_active
+CaMK_active = CaMK_0 * (1.0 - CaMK_trap) / (1.0 + Km / Ca_ss_sr) + CaMK_trap;
+CaMK_active_alpha_CaMK = 0.05;
+CaMK_active_beta_CaMK = 0.00068;
+Km = 0.0015;
+diff_CaMK_trap = CaMK_active_alpha_CaMK * CaMK_active * (CaMK_active - CaMK_trap) - CaMK_active_beta_CaMK * CaMK_trap;
+CaMK_0 = 0.05;
+
+# IKr_r_gate
+r = 1.0 / (1.0 + exp((Vm + 10.0) / 15.4));
+
+# Cl
+diff_Cl_i = (-(IClb * AF / ((-1.0) * Vmyo) - (CT_Na_Cl + CT_K_Cl + Idiff_Cl * Vss_sr / Vmyo)));
+Idiff_Cl = (Cl_ss - Cl_i) / Ca_tau_diff;
+diff_Cl_ss = (-(Ito2 * AF / ((-1.0) * Vss_sr) + Idiff_Cl));
+
+# INab
+phi_2 = F * Vm / (R * T);
+INab = F * PNab * phi_2 * (Na_i * exp(phi_2) - Na_o) / (exp(phi_2) - 1.0);
+PNab = 3.2e-09;
+
+# Ca
+diff_Ca_ss_CaL = (-bss_cal) * (ICaL * AF / (2.0 * Vss_CaL) - Idiff_ss * Vss_sr / Vss_CaL);
+bss_cal = 1.0 / (1.0 + BSRmax * KmBSR / pow(KmBSR + Ca_ss_CaL, 2.0) + BSLmax * KmBSL / pow(KmBSL + Ca_ss_CaL, 2.0));
+km_cmdn = 0.00238;
+diff_Ca_i = bmyo * ((-(ICab + IpCa - 2.0 * INaCa)) * AF / (Vmyo * 2.0) + (Ileak - Iup) * Vnsr / Vmyo + Idiff * Vss_sr / Vmyo);
+km_trpn = 0.0005;
+bcsqn = 1.0 / (1.0 + kmcsqn * csqnbar / pow(Ca_JSR + kmcsqn, 2.0));
+csqnbar = 10.0;
+Idiff_ss = (Ca_ss_sr - Ca_ss_CaL) / Ca_tau_diff_ss;
+Idiff = (Ca_ss_sr - Ca_i) / Ca_tau_diff;
+trpn_bar = 0.07;
+diff_Ca_NSR = Iup - (Ileak + Itr * Vjsr / Vnsr);
+Ca_tau_diff_ss = 2.0;
+cmdn_bar = 0.05;
+kmcsqn = 0.8;
+BSLmax = 1.124;
+bmyo = 1.0 / (1.0 + cmdn_bar * km_cmdn / pow(Ca_i + km_cmdn, 2.0) + km_trpn * trpn_bar / pow(Ca_i + km_trpn, 2.0));
+diff_Ca_JSR = bcsqn * (Itr - Irel);
+BSRmax = 0.047;
+KmBSL = 0.0087;
+diff_Ca_ss_sr = (-bss_sr) * (Idiff + Idiff_ss - (2.0 * INaCa_ss_sr * AF / (2.0 * Vss_sr) + Irel * Vjsr / Vss_sr));
+Ca_tau_diff = 0.2;
+bss_sr = 1.0 / (1.0 + BSRmax * KmBSR / pow(KmBSR + Ca_ss_sr, 2.0) + BSLmax * KmBSL / pow(KmBSL + Ca_ss_sr, 2.0));
+KmBSR = 0.00087;
+
+# Ito2_i2f_gate
+i2f_inf = Ito2_i2f_gate_alpha_i2f / (Ito2_i2f_gate_alpha_i2f + Ito2_i2f_gate_beta_i2f);
+Ito2_i2f_gate_alpha_i2f = 0.025 / (1.0 + exp((Vm + 58.0) / 5.0));
+Ito2_i2f_gate_beta_i2f = 1.0 / (5.0 * (1.0 + exp((Vm + 19.0) / (-9.0))));
+tau_i2f = 8.0;
+
+# CT_K_Cl
+CT_K_Cl = CT_K_Cl_max * (EK - ECl) / (EK + 87.8251 - ECl);
+CT_K_Cl_max = 1.77e-05;
+
+# Itr
+tautr = 25.0;
+Itr = (Ca_NSR - Ca_JSR) / tautr;
+
+// Markov model
+group {
+  C1;
+  C2;
+  C3;
+  C4;
+  C5;
+  C6;
+  C7;
+  C8;
+  C9;
+  C10;
+  C11;
+  C12;
+  C13;
+  C14;
+  C15;
+  O1;
+} .method(markov_be);
+
+// Markov model
+group {
+  C;
+  C_star;
+  CI;
+  CI_star;
+  O;
+  O_star;
+  OI;
+} .method(markov_be);
+
+// Sum of currents
+Iion = caiont + clont + kiont + naiont;
+
+// All currentsgroup {
+  caiont;
+  clont;
+  kiont;
+  naiont;
+}
+

@@ -9,6 +9,8 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import warnings
+
 import myokit
 from myokit.formats.python import PythonExpressionWriter
 
@@ -39,16 +41,9 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     #def _ex_divide(self, e):
 
     def _ex_quotient(self, e):
-        # Note that this _must_ round towards minus infinity!
-        # See myokit.Quotient !
-        self.warn('Potentially unsupported operator: Quotient')
         return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])))
 
     def _ex_remainder(self, e):
-        # Note that this _must_ use the same round-to-neg-inf convention as
-        # myokit.Quotient! Implementation below is consistent with Python
-        # convention:
-        self.warn('Potentially unsupported operator: Remainder')
         return self.ex(myokit.Minus(
             e[0], myokit.Multiply(e[1], myokit.Quotient(e[0], e[1]))))
 
@@ -58,25 +53,25 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     #def _ex_sqrt(self, e):
 
     def _ex_sin(self, e):
-        self.warn('Potentially unsupported function: sin()')
+        warnings.warn('Potentially unsupported function: sin()')
         super(EasyMLExpressionWriter, self)._ex_sin(e)
 
     def _ex_cos(self, e):
-        self.warn('Potentially unsupported function: cos()')
+        warnings.warn('Potentially unsupported function: cos()')
         super(EasyMLExpressionWriter, self)._ex_cos(e)
 
     def _ex_tan(self, e):
-        self.warn('Potentially unsupported function: tan()')
+        warnings.warn('Potentially unsupported function: tan()')
         super(EasyMLExpressionWriter, self)._ex_tan(e)
 
     def _ex_asin(self, e):
-        self.warn('Potentially unsupported function: asin()')
+        warnings.warn('Potentially unsupported function: asin()')
         super(EasyMLExpressionWriter, self)._ex_asin(e)
 
     #def _ex_acos(self, e):
 
     def _ex_atan(self, e):
-        self.warn('Potentially unsupported function: atan()')
+        warnings.warn('Potentially unsupported function: atan()')
         super(EasyMLExpressionWriter, self)._ex_atan(e)
 
     #def _ex_exp(self, e):
@@ -89,11 +84,11 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     #def _ex_log10(self, e):
 
     def _ex_floor(self, e):
-        self.warn('Potentially unsupported function: floor()')
+        warnings.warn('Potentially unsupported function: floor()')
         super(EasyMLExpressionWriter, self)._ex_floor(e)
 
     def _ex_ceil(self, e):
-        self.warn('Potentially unsupported function: ceil()')
+        warnings.warn('Potentially unsupported function: ceil()')
         super(EasyMLExpressionWriter, self)._ex_ceil(e)
 
     def _ex_abs(self, e):
@@ -110,11 +105,11 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     #def _ex_less_equal(self, e):
 
     def _ex_and(self, e):
-        self.warn('Potentially unsupported operator: and')
+        warnings.warn('Potentially unsupported operator: and')
         return self._ex_infix_condition(e, '&&')
 
     def _ex_or(self, e):
-        self.warn('Potentially unsupported operator: or')
+        warnings.warn('Potentially unsupported operator: or')
         return self._ex_infix_condition(e, '||')
 
     def _ex_if(self, e):
