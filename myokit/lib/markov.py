@@ -1899,3 +1899,99 @@ def convert_markov_models_to_compact_form(model):
 
     return model
 
+
+def convert_markov_models_to_full_ode_form(model):
+    """
+    Scans a :class:`myokit.Model` for Markov models, and ensures they are
+    written in a form where every Markov state is evaluated as an ODE.
+
+    Arguments:
+
+    ``model``
+        The :class:`myokit.Model` to scan.
+
+    Returns an updated :class:`myokit.Model`.
+    """
+    # Clone model
+    model = model.clone()
+
+    # Find markov models and convert
+    for states in find_markov_models(model):
+
+        # Find 1-sum() state
+        special = None
+        i_special = None
+        for i, state in enumerate(states):
+            if not state.is_state():
+                special = state
+                i_special = i
+                break
+
+        # No special state: then no need to convert
+        if special is None:
+            continue
+
+        # Get initial value for special state
+        initial_value = special.eval()
+
+        # Gather terms for existing states, see which ones don't cancel out
+        sum_of_terms = [[] for _ in states]
+        for state in states:
+            if state is special:
+                continue
+
+            factors = _linear_combination(state.rhs(), states)
+            for i, factor in enumerate(factors):
+                if factor is None:
+                    continue
+
+                # Split terms in factor, add each to sum_of_terms
+                for term in _split_terms(factor):
+
+                    # Get negative term
+                    if isinstance(term, myokit.PrefixMinus):
+                        negative = term[0]
+                    else:
+                        negative = myokit.PrefixMinus(term)
+
+                    # If negative term is in list, then these cancel out and
+                    # should be removed
+                    try:
+                        sum_of_terms[i].remove(negative)
+                    except ValueError:
+                        # Negative term isn't in the list, so add this factor
+                        # to the list.
+                        sum_of_terms[i].append(term)
+
+        # Create RHS from remaining terms
+        terms = []
+        for i, sums in enumerate(sum_of_terms):
+            if not sums:
+                continue
+
+            # Combine terms
+            term = sums[0]
+            for t in sums[1:]:
+                term = myokit.Plus(term, t)
+
+            # Negate
+            if isinstance(term, myokit.PrefixMinus):
+                term = term[0]
+            else:
+                term = myokit.PrefixMinus(term)
+
+            # Multiply with state and store
+            terms.append(myokit.Multiply(term, myokit.Name(states[i])))
+
+        # Combine terms (should always be 2 or more).
+        rhs = terms[0]
+        for term in terms[1:]:
+            rhs = myokit.Plus(rhs, term)
+
+        # Update special state
+        special.promote(initial_value)
+        special.set_rhs(rhs)
+
+    # Return cloned & updated model
+    return model
+

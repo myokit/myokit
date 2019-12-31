@@ -736,16 +736,46 @@ class MarkovFunctionsTest(unittest.TestCase):
         n2 = sum([1 for x in m2 if x.is_state()])
         self.assertEqual(n2, len(m2) - 1)
 
+        # Check states evaluate to the same value
+        self.assertEqual(
+            model1.get('ina.C1').eval(), model2.get('ina.C1').eval())
+        self.assertEqual(
+            model1.get('ina.C2').eval(), model2.get('ina.C2').eval())
+        self.assertEqual(
+            model1.get('ina.C3').eval(), model2.get('ina.C3').eval())
+        self.assertEqual(
+            model1.get('ina.IF').eval(), model2.get('ina.IF').eval())
+        self.assertEqual(
+            model1.get('ina.IS').eval(), model2.get('ina.IS').eval())
+        self.assertEqual(
+            model1.get('ina.O').eval(), model2.get('ina.O').eval())
+
         # Doing it twice should have no effect
         model3 = markov.convert_markov_models_to_compact_form(model2)
-        models = markov.find_markov_models(model3)
-        self.assertEqual(len(models), 2)
-        m1, m2 = models
+        self.assertEqual(model2.code(), model3.code())
+
+    def test_convert_markov_models_to_full_ode_form(self):
+        # Tests convert_markov_models_to_compact_form()
+
+        # Load clancy model, has two versions of same markov model in it
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model1 = myokit.load_model(fname)
+
+        # Convert to compact form, and check that it worked
+        model1 = markov.convert_markov_models_to_compact_form(model1)
+        m1, m2 = markov.find_markov_models(model1)
         n1 = sum([1 for x in m1 if x.is_state()])
         self.assertEqual(n1, len(m1) - 1)
         n2 = sum([1 for x in m2 if x.is_state()])
         self.assertEqual(n2, len(m2) - 1)
-        self.assertEqual(model2.code(), model3.code())
+
+        # Now convert to full form
+        model2 = markov.convert_markov_models_to_full_ode_form(model1)
+        m1, m2 = markov.find_markov_models(model2)
+        n1 = sum([1 for x in m1 if x.is_state()])
+        self.assertEqual(n1, len(m1))
+        n2 = sum([1 for x in m2 if x.is_state()])
+        self.assertEqual(n2, len(m2))
 
         # Check states evaluate to the same value
         self.assertEqual(
@@ -754,6 +784,16 @@ class MarkovFunctionsTest(unittest.TestCase):
             model1.get('ina.C2').eval(), model2.get('ina.C2').eval())
         self.assertEqual(
             model1.get('ina.C3').eval(), model2.get('ina.C3').eval())
+        self.assertEqual(
+            model1.get('ina.IF').eval(), model2.get('ina.IF').eval())
+        self.assertEqual(
+            model1.get('ina.IS').eval(), model2.get('ina.IS').eval())
+        self.assertEqual(
+            model1.get('ina.O').eval(), model2.get('ina.O').eval())
+
+        # Doing it twice should have no effect
+        model3 = markov.convert_markov_models_to_full_ode_form(model2)
+        self.assertEqual(model2.code(), model3.code())
 
     def test_find_markov_models(self):
         # Tests find_markov_models()

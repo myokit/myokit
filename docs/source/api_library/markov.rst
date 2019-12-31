@@ -38,6 +38,8 @@ Finding Markov models
 
 .. autofunction:: convert_markov_models_to_compact_form
 
+.. autofunction:: convert_markov_models_to_full_ode_form
+
 .. autofunction:: find_markov_models
 
 Deprecated
