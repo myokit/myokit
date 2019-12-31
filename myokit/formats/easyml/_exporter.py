@@ -168,8 +168,8 @@ class EasyMLExporter(myokit.formats.Exporter):
                 betas[ret[1]] = var
                 continue
 
-        hh_variables = set(
-            alphas.keys() + betas.keys() + taus.keys() + infs.keys())
+        hh_variables = (set(alphas.keys()) | set(betas.keys()) |
+                        set(taus.keys()) | set(infs.keys()))
 
         # Create variable names
         # The following strategy is followed:
