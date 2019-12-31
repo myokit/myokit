@@ -3216,14 +3216,18 @@ class Component(VarOwner):
         """
         pre = t * TAB
         b.write(pre + '[' + self.name() + ']\n')
+
         # Append meta properties
         self._code_meta(b, t)
+
         # Append aliases
-        for alias, var in self._alias_map.items():
+        for alias, var in sorted(self._alias_map.items()):
             b.write(pre + 'use ' + var.qname() + ' as ' + alias + '\n')
+
         # Append values
         for v in self.variables(sort=True):
             v._code(b, t)
+
         b.write(pre + '\n')
 
     def qname(self, hide=None):
