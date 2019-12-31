@@ -22,7 +22,8 @@ Fast simulations can then be performed using the
 Discrete, stochastic simulations can be performed using the
  :class:`DiscreteSimulation` class.
 
-*The LinearModel class requires Sympy to be installed.*
+Analytical and discrete simulation
+---------------------------------
 
 .. autoclass:: LinearModel
 
@@ -31,6 +32,11 @@ Discrete, stochastic simulations can be performed using the
 .. autoclass:: AnalyticalSimulation
 
 .. autoclass:: DiscreteSimulation
+
+Finding Markov models
+---------------------
+
+.. autofunction:: find_markov_models
 
 Deprecated
 ----------
