@@ -105,7 +105,6 @@ class SymPyExpressionReader(object):
         return myokit.Name(var)
 
     def _ex_number(self, e):
-        from sympy.core.numbers import Number
         return myokit.Number(float(e))
 
     def _ex_plus(self, e):
