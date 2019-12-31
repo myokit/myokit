@@ -63,7 +63,7 @@ setup(
         'numpy',
         'scipy',
         'setuptools',
-        'sympy',            # Used in lib.markov
+        'sympy',            # Used in formats.sympy
         # PyQT or PySide?
         # (PySide is pip installable, Travis can get PyQt from apt)
     ],

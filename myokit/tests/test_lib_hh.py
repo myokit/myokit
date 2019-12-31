@@ -804,14 +804,14 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
         self.assertEqual(list(state), list(s.state()))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_state, state[:-1])
         state[0] += 0.1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'sum to 1', s.set_state, state)
         state[0] = -.1
         state[1] = 1.1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'negative', s.set_state, state)
 
         # Default state
@@ -821,14 +821,14 @@ class AnalyticalSimulationTest(unittest.TestCase):
         self.assertNotEqual(list(dstate), list(s.default_state()))
         s.set_default_state(dstate)
         self.assertEqual(list(dstate), list(s.default_state()))
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_default_state, dstate[:-1])
         dstate[0] += 0.1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'sum to 1', s.set_default_state, dstate)
         dstate[0] = -.1
         dstate[1] = 1.1
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, 'negative', s.set_default_state, dstate)
 
     def test_against_cvode(self):
