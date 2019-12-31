@@ -957,7 +957,7 @@ class MarkovFunctionsTest(unittest.TestCase):
         c = moodel.get('ina_ref')
         for v in c.variables(deep=True):
             v.set_rhs(0)
-        for v in c.variables(deep=True):
+        for v in list(c.variables(deep=True)):
             c.remove_variable(v, recursive=True)
 
         # Only one markov model left at this point
