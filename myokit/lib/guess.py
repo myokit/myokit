@@ -233,6 +233,45 @@ def add_embedded_protocol(model, protocol, add_oxmeta_annotations=True):
     return True
 
 
+def membrane_currents(model):
+    """
+    Gueses which model variables represent ionic currents through the outer
+    membrane and returns them.
+
+    This method assumes that all currents follow the same sign convention.
+
+    Currents defined as sums of currents (or multiples of fluxes) are not
+    expanded.
+    """
+    # Get membrane potential
+    vm = membrane_potential(model)
+
+    # Get expression that refers to currents (possibly indirectly)
+    i_ion = model.label('cellular_current')
+    if i_ion is not None:
+        e_currents = i_ion.rhs()
+    else:
+        e_currents = vm.rhs()
+    del(i_ion)
+
+    # Assume that e_currents is an expression such as:
+    #  INa + ICaL + IKr + ...
+    #  i_ion + i_diff + i_stim
+    #  -1/C * (...)
+    currents = []
+    for term in e_currents.references():
+        if term.is_constant():
+            continue
+
+        # Get current variable
+        current = term.var()
+        currents.append(current)
+
+    # Sort and return
+    currents.sort(key=lambda x: x.name())
+    return currents
+
+
 def membrane_potential(model):
     """
     Gueses which model variable (if any) represents the membrane potential and
