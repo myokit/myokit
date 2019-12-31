@@ -1868,3 +1868,34 @@ def find_markov_models(model):
 
     return models
 
+
+def convert_markov_models_to_compact_form(model):
+    """
+    Scans a :class:`myokit.Model` for Markov models, and ensures they contain
+    one state that's not evaluated as an ODE, but as ``1 - sum(x[i])``, where
+    the sum is over all other states ``x[i]``.
+
+    Arguments:
+
+    ``model``
+        The :class:`myokit.Model` to scan.
+
+    Returns an updated :class:`myokit.Model`.
+    """
+    # Clone model
+    model = model.clone()
+
+    # Find markov models and convert
+    for states in find_markov_models(model):
+
+        # Check if a non-ODE state is already present
+        if sum([1 for x in states if not x.is_state()]):
+            continue
+
+        # Update final state
+        state = states[-1]
+        state.demote()
+        state.set_rhs('1 - ' + '-'.join([x.qname() for x in states[:-1]]))
+
+    return model
+

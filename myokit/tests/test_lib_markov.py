@@ -709,159 +709,51 @@ class MarkovFunctionsTest(unittest.TestCase):
     Test cases for finding Markov models.
     """
 
-    def test_split_terms(self):
-        # Tests _split_terms
+    def test_convert_markov_models_to_compact_form(self):
+        # Tests convert_markov_models_to_compact_form()
 
-        # Load model, get rhs with lots of terms
+        # Load clancy model, has two versions of same markov model in it
         fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        model1 = myokit.load_model(fname)
 
-        # Simple case
-        v1 = model.get('ina.C1')
-        v2 = model.get('ina.C2')
-        v3 = model.get('ina.C3')
-        v4 = model.get('ina.IF')
-        v5 = model.get('ina.IS')
-        v6 = model.get('ina.O')
-        v3.set_rhs('1 - C1 - C2 - IF - IS - O')
-        terms = markov._split_terms(v3.rhs())
-        self.assertEqual(terms[0], myokit.Number(1))
-        self.assertEqual(terms[1], myokit.PrefixMinus(myokit.Name(v1)))
-        self.assertEqual(terms[2], myokit.PrefixMinus(myokit.Name(v2)))
-        self.assertEqual(terms[3], myokit.PrefixMinus(myokit.Name(v4)))
-        self.assertEqual(terms[4], myokit.PrefixMinus(myokit.Name(v5)))
-        self.assertEqual(terms[5], myokit.PrefixMinus(myokit.Name(v6)))
-        del(terms)
+        models = markov.find_markov_models(model1)
+        self.assertEqual(len(models), 2)
+        m1, m2 = models
 
-        # Case with brackets
-        v3.set_rhs('-(+(IF) + C1 -(-IS - C2)) + 1 - O')
-        terms = markov._split_terms(v3.rhs())
-        self.assertEqual(terms[0], myokit.PrefixMinus(myokit.Name(v4)))
-        self.assertEqual(terms[1], myokit.PrefixMinus(myokit.Name(v1)))
-        self.assertEqual(terms[2], myokit.PrefixMinus(myokit.Name(v5)))
-        self.assertEqual(terms[3], myokit.PrefixMinus(myokit.Name(v2)))
-        self.assertEqual(terms[4], myokit.Number(1))
-        self.assertEqual(terms[5], myokit.PrefixMinus(myokit.Name(v6)))
+        # Check both models are full ODE form
+        n1 = sum([1 for x in m1 if x.is_state()])
+        self.assertEqual(n1, len(m1))
+        n2 = sum([1 for x in m2 if x.is_state()])
+        self.assertEqual(n2, len(m2))
 
-        # Empty case
-        v3.set_rhs('1 * C1 * C2')
-        terms = markov._split_terms(v3.rhs())
-        self.assertEqual(len(terms), 1)
-        self.assertEqual(terms[0], v3.rhs())
+        # Convert both compact form
+        model2 = markov.convert_markov_models_to_compact_form(model1)
+        models = markov.find_markov_models(model2)
+        self.assertEqual(len(models), 2)
+        m1, m2 = models
+        n1 = sum([1 for x in m1 if x.is_state()])
+        self.assertEqual(n1, len(m1) - 1)
+        n2 = sum([1 for x in m2 if x.is_state()])
+        self.assertEqual(n2, len(m2) - 1)
 
-    def test_split_factor(self):
-        # Tests _split_factor
+        # Doing it twice should have no effect
+        model3 = markov.convert_markov_models_to_compact_form(model2)
+        models = markov.find_markov_models(model3)
+        self.assertEqual(len(models), 2)
+        m1, m2 = models
+        n1 = sum([1 for x in m1 if x.is_state()])
+        self.assertEqual(n1, len(m1) - 1)
+        n2 = sum([1 for x in m2 if x.is_state()])
+        self.assertEqual(n2, len(m2) - 1)
+        self.assertEqual(model2.code(), model3.code())
 
-        # Load model, to create interesting RHS
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
-        v1 = model.get('ina.C1')
-        v2 = model.get('ina.C2')
-        v3 = model.get('ina.C3')
-        v4 = model.get('ina.IF')
-
-        # Test simplest cases
-        v4.set_rhs('C1')
+        # Check states evaluate to the same value
         self.assertEqual(
-            markov._split_factor(v4.rhs(), [v1]),
-            (myokit.Name(v1), myokit.Number(1)))
-        v4.set_rhs('+++C1')
+            model1.get('ina.C1').eval(), model2.get('ina.C1').eval())
         self.assertEqual(
-            markov._split_factor(v4.rhs(), [v1]),
-            (myokit.Name(v1), myokit.Number(1)))
-        v4.set_rhs('--C1')
+            model1.get('ina.C2').eval(), model2.get('ina.C2').eval())
         self.assertEqual(
-            markov._split_factor(v4.rhs(), [v1]),
-            (myokit.Name(v1), myokit.Number(1)))
-        v4.set_rhs('---C1')
-        self.assertEqual(
-            markov._split_factor(v4.rhs(), [v1]),
-            (myokit.Name(v1), myokit.PrefixMinus(myokit.Number(1))))
-
-        # Test multiplication
-        v4.set_rhs('C1 * 3')
-        self.assertEqual(
-            markov._split_factor(v4.rhs(), [v1]),
-            (myokit.Name(v1), myokit.Number(3)))
-        v4.set_rhs('C1 * (sqrt(C2) + C3)')
-        self.assertEqual(
-            markov._split_factor(v4.rhs(), [v1]),
-            (myokit.Name(v1),
-             myokit.Plus(myokit.Sqrt(myokit.Name(v2)), myokit.Name(v3))))
-
-        # Test division
-        v4.set_rhs('C1 / (sqrt(C2) + C3)')
-        self.assertEqual(
-            markov._split_factor(v4.rhs(), [v1]),
-            (myokit.Name(v1),
-             myokit.Divide(
-                myokit.Number(1),
-                myokit.Plus(myokit.Sqrt(myokit.Name(v2)), myokit.Name(v3)))))
-
-        # Test division that's not allowed
-        v4.set_rhs('(sqrt(C2) + C3) / C1')
-        self.assertRaisesRegex(
-            ValueError, r'Non-linear function \(division\)',
-            markov._split_factor, v4.rhs(), [v1])
-
-        # Test with list of variables
-        v4.set_rhs('C2 * 3')
-        self.assertEqual(
-            markov._split_factor(v4.rhs(), [v1, v2, v3]),
-            (myokit.Name(v2), myokit.Number(3)))
-
-        # Multiple variables is not allowed
-        v4.set_rhs('C2 * C1')
-        self.assertRaisesRegex(
-            ValueError, 'must reference exactly one variable',
-            markov._split_factor, v4.rhs(), [v1, v2, v3])
-
-        # Zero variables is not allowed
-        v4.set_rhs('C3')
-        self.assertRaisesRegex(
-            ValueError, 'must reference exactly one variable',
-            markov._split_factor, v4.rhs(), [v1, v2])
-
-        # Non-linear term is not allowed
-        v4.set_rhs('sqrt(C1)')
-        self.assertRaisesRegex(
-            ValueError, 'Non-linear function',
-            markov._split_factor, v4.rhs(), [v1, v2])
-
-        # Multiple terms is not allowed
-        v4.set_rhs('C2 - C2')
-        self.assertRaisesRegex(
-            ValueError, 'must be a single term',
-            markov._split_factor, v4.rhs(), [v1, v2, v3])
-
-    def test_linear_combination(self):
-        # Tests _linear_combination()
-
-        # Load model, to create interesting RHS
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
-        v1 = model.get('ina.C1')
-        v2 = model.get('ina.C2')
-        v3 = model.get('ina.C3')
-        v4 = model.get('ina.IF')
-        v5 = model.get('ina.IS')
-        v6 = model.get('ina.O')
-
-        # Test C1 rhs
-        f = markov._linear_combination(v1.rhs(), [v1, v2, v3, v4, v5, v6])
-        self.assertEqual(f[0].code(), '-(ina.a13 + ina.b12 + ina.b3)')
-        self.assertEqual(f[1].code(), 'ina.a12')
-        self.assertIsNone(f[2])
-        self.assertEqual(f[3].code(), 'ina.a3')
-        self.assertIsNone(f[4])
-        self.assertEqual(f[5].code(), 'ina.b13')
-
-        # Test double appearances
-        v1.set_rhs('2 * C1 - 3 * C1 + C1 * sqrt(O) + C2 * IF')
-        f = markov._linear_combination(v1.rhs(), [v1, v2, v3])
-        self.assertEqual(f[0].code(), '2 + -3 + sqrt(ina.O)')
-        self.assertEqual(f[1].code(), 'ina.IF')
-        self.assertIsNone(f[2])
+            model1.get('ina.C3').eval(), model2.get('ina.C3').eval())
 
     def test_find_markov_models(self):
         # Tests find_markov_models()
@@ -975,6 +867,160 @@ class MarkovFunctionsTest(unittest.TestCase):
         v = c.add_variable('v')
         v.promote(0.1)
         self.assertEqual(len(markov.find_markov_models(m)), 0)
+
+    def test_linear_combination(self):
+        # Tests _linear_combination()
+
+        # Load model, to create interesting RHS
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(fname)
+        v1 = model.get('ina.C1')
+        v2 = model.get('ina.C2')
+        v3 = model.get('ina.C3')
+        v4 = model.get('ina.IF')
+        v5 = model.get('ina.IS')
+        v6 = model.get('ina.O')
+
+        # Test C1 rhs
+        f = markov._linear_combination(v1.rhs(), [v1, v2, v3, v4, v5, v6])
+        self.assertEqual(f[0].code(), '-(ina.a13 + ina.b12 + ina.b3)')
+        self.assertEqual(f[1].code(), 'ina.a12')
+        self.assertIsNone(f[2])
+        self.assertEqual(f[3].code(), 'ina.a3')
+        self.assertIsNone(f[4])
+        self.assertEqual(f[5].code(), 'ina.b13')
+
+        # Test double appearances
+        v1.set_rhs('2 * C1 - 3 * C1 + C1 * sqrt(O) + C2 * IF')
+        f = markov._linear_combination(v1.rhs(), [v1, v2, v3])
+        self.assertEqual(f[0].code(), '2 + -3 + sqrt(ina.O)')
+        self.assertEqual(f[1].code(), 'ina.IF')
+        self.assertIsNone(f[2])
+
+    def test_split_factor(self):
+        # Tests _split_factor
+
+        # Load model, to create interesting RHS
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(fname)
+        v1 = model.get('ina.C1')
+        v2 = model.get('ina.C2')
+        v3 = model.get('ina.C3')
+        v4 = model.get('ina.IF')
+
+        # Test simplest cases
+        v4.set_rhs('C1')
+        self.assertEqual(
+            markov._split_factor(v4.rhs(), [v1]),
+            (myokit.Name(v1), myokit.Number(1)))
+        v4.set_rhs('+++C1')
+        self.assertEqual(
+            markov._split_factor(v4.rhs(), [v1]),
+            (myokit.Name(v1), myokit.Number(1)))
+        v4.set_rhs('--C1')
+        self.assertEqual(
+            markov._split_factor(v4.rhs(), [v1]),
+            (myokit.Name(v1), myokit.Number(1)))
+        v4.set_rhs('---C1')
+        self.assertEqual(
+            markov._split_factor(v4.rhs(), [v1]),
+            (myokit.Name(v1), myokit.PrefixMinus(myokit.Number(1))))
+
+        # Test multiplication
+        v4.set_rhs('C1 * 3')
+        self.assertEqual(
+            markov._split_factor(v4.rhs(), [v1]),
+            (myokit.Name(v1), myokit.Number(3)))
+        v4.set_rhs('C1 * (sqrt(C2) + C3)')
+        self.assertEqual(
+            markov._split_factor(v4.rhs(), [v1]),
+            (myokit.Name(v1),
+             myokit.Plus(myokit.Sqrt(myokit.Name(v2)), myokit.Name(v3))))
+
+        # Test division
+        v4.set_rhs('C1 / (sqrt(C2) + C3)')
+        self.assertEqual(
+            markov._split_factor(v4.rhs(), [v1]),
+            (myokit.Name(v1),
+             myokit.Divide(
+                myokit.Number(1),
+                myokit.Plus(myokit.Sqrt(myokit.Name(v2)), myokit.Name(v3)))))
+
+        # Test division that's not allowed
+        v4.set_rhs('(sqrt(C2) + C3) / C1')
+        self.assertRaisesRegex(
+            ValueError, r'Non-linear function \(division\)',
+            markov._split_factor, v4.rhs(), [v1])
+
+        # Test with list of variables
+        v4.set_rhs('C2 * 3')
+        self.assertEqual(
+            markov._split_factor(v4.rhs(), [v1, v2, v3]),
+            (myokit.Name(v2), myokit.Number(3)))
+
+        # Multiple variables is not allowed
+        v4.set_rhs('C2 * C1')
+        self.assertRaisesRegex(
+            ValueError, 'must reference exactly one variable',
+            markov._split_factor, v4.rhs(), [v1, v2, v3])
+
+        # Zero variables is not allowed
+        v4.set_rhs('C3')
+        self.assertRaisesRegex(
+            ValueError, 'must reference exactly one variable',
+            markov._split_factor, v4.rhs(), [v1, v2])
+
+        # Non-linear term is not allowed
+        v4.set_rhs('sqrt(C1)')
+        self.assertRaisesRegex(
+            ValueError, 'Non-linear function',
+            markov._split_factor, v4.rhs(), [v1, v2])
+
+        # Multiple terms is not allowed
+        v4.set_rhs('C2 - C2')
+        self.assertRaisesRegex(
+            ValueError, 'must be a single term',
+            markov._split_factor, v4.rhs(), [v1, v2, v3])
+
+    def test_split_terms(self):
+        # Tests _split_terms
+
+        # Load model, get rhs with lots of terms
+        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(fname)
+
+        # Simple case
+        v1 = model.get('ina.C1')
+        v2 = model.get('ina.C2')
+        v3 = model.get('ina.C3')
+        v4 = model.get('ina.IF')
+        v5 = model.get('ina.IS')
+        v6 = model.get('ina.O')
+        v3.set_rhs('1 - C1 - C2 - IF - IS - O')
+        terms = markov._split_terms(v3.rhs())
+        self.assertEqual(terms[0], myokit.Number(1))
+        self.assertEqual(terms[1], myokit.PrefixMinus(myokit.Name(v1)))
+        self.assertEqual(terms[2], myokit.PrefixMinus(myokit.Name(v2)))
+        self.assertEqual(terms[3], myokit.PrefixMinus(myokit.Name(v4)))
+        self.assertEqual(terms[4], myokit.PrefixMinus(myokit.Name(v5)))
+        self.assertEqual(terms[5], myokit.PrefixMinus(myokit.Name(v6)))
+        del(terms)
+
+        # Case with brackets
+        v3.set_rhs('-(+(IF) + C1 -(-IS - C2)) + 1 - O')
+        terms = markov._split_terms(v3.rhs())
+        self.assertEqual(terms[0], myokit.PrefixMinus(myokit.Name(v4)))
+        self.assertEqual(terms[1], myokit.PrefixMinus(myokit.Name(v1)))
+        self.assertEqual(terms[2], myokit.PrefixMinus(myokit.Name(v5)))
+        self.assertEqual(terms[3], myokit.PrefixMinus(myokit.Name(v2)))
+        self.assertEqual(terms[4], myokit.Number(1))
+        self.assertEqual(terms[5], myokit.PrefixMinus(myokit.Name(v6)))
+
+        # Empty case
+        v3.set_rhs('1 * C1 * C2')
+        terms = markov._split_terms(v3.rhs())
+        self.assertEqual(len(terms), 1)
+        self.assertEqual(terms[0], v3.rhs())
 
 
 if __name__ == '__main__':
