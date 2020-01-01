@@ -45,9 +45,10 @@ class EasyMLExporter(myokit.formats.Exporter):
         log = logging.getLogger(__name__)
 
         # Test model is valid
-        model.validate()
-        if not model.is_valid():
-            raise ValueError('EasyML export requires a valid model.')
+        try:
+            model.validate()
+        except myokit.MyokitError:
+            raise myokit.ExportError('EasyML export requires a valid model.')
 
         # Rewrite model so that any Markov models have a 1-sum(...) state
         # This also clones the model, so that changes can be made
@@ -283,7 +284,8 @@ class EasyMLExporter(myokit.formats.Exporter):
                 return var_to_name[e.var()]
             elif isinstance(e, myokit.Variable):
                 return var_to_name[e]
-            raise ValueError('Not a variable or LhsExpression: ' + str(e))
+            raise ValueError(   # pragma: no cover
+                'Not a variable or LhsExpression: ' + str(e))
 
         # Create expression writer
         e = easyml.EasyMLExpressionWriter()

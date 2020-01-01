@@ -8,12 +8,14 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import os
 import unittest
 
 import myokit
 import myokit.formats
 import myokit.formats.easyml
 
+from shared import TemporaryDirectory, DIR_DATA
 
 # Unit testing in Python 2 and 3
 try:
@@ -21,9 +23,65 @@ try:
 except AttributeError:  # pragma: no python 3 cover
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
+# Strings in Python 2 and 3
+try:
+    basestring
+except NameError:   # pragma: no python 2 cover
+    basestring = str
+
+
+class EasyMLExporterTest(unittest.TestCase):
+    """ Tests EasyML export. """
+
+    def test_easyml_exporter(self):
+        # Tests exporting a model
+
+        model1 = myokit.load_model('example')
+        model2 = myokit.load_model(os.path.join(DIR_DATA, 'heijman-2011.mmt'))
+        e = myokit.formats.easyml.EasyMLExporter()
+
+        with TemporaryDirectory() as d:
+            path = d.path('easy.model')
+
+            # Test with simple model
+            e.model(path, model1)
+
+            # Test with model containing markov models
+            e.model(path, model2)
+
+            # Test with extra bound variables
+            model1.get('membrane.C').set_binding('hello')
+            e.model(path, model1)
+
+            # Test without V being a state variable
+            v = model1.get('membrane.V')
+            v.demote()
+            v.set_rhs(3)
+            e.model(path, model1)
+
+            # Test with invalid model
+            v.set_rhs('2 * V')
+            self.assertRaisesRegex(
+                myokit.ExportError, 'valid model', e.model, path, model1)
+
+    def test_easyml_exporter_fetching(self):
+        # Tests getting an EasyML exporter via the 'exporter' interface
+
+        e = myokit.formats.exporter('easyml')
+        self.assertIsInstance(e, myokit.formats.easyml.EasyMLExporter)
+
+    def test_easyml_exporter_info(self):
+        # Tests the info() method returns a string
+
+        e = myokit.formats.easyml.EasyMLExporter()
+        self.assertIsInstance(e.info(), basestring)
+
+        # Test the supports_model method
+        self.assertTrue(e.supports_model())
+
 
 class EasyMLExpressionWriterTest(unittest.TestCase):
-    """ Test EasyML expression writer functionality. """
+    """ Tests EasyML expression writer functionality. """
 
     def test_all(self):
         w = myokit.formats.ewriter('easyml')
@@ -159,14 +217,15 @@ class EasyMLExpressionWriterTest(unittest.TestCase):
             w.ex(x),
             '((5.0 > 3.0) ? c.a : ((2.0 < 1.0) ? 12.0 : 1.0))')
 
-        # Test fetching using ewriter method
-        w = myokit.formats.ewriter('easyml')
-        self.assertIsInstance(w, myokit.formats.easyml.EasyMLExpressionWriter)
-
         # Test without a Myokit expression
         self.assertRaisesRegex(
             ValueError, 'Unknown expression type', w.ex, 7)
 
+    def test_easyml_ewriter_fetching(self):
+
+        # Test fetching using ewriter method
+        w = myokit.formats.ewriter('easyml')
+        self.assertIsInstance(w, myokit.formats.easyml.EasyMLExpressionWriter)
 
 
 if __name__ == '__main__':
