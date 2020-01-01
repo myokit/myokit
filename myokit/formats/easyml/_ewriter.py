@@ -28,10 +28,7 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     #def _ex_derivative(self, e):
 
     def _ex_number(self, e):
-        s = myokit.strfloat(e)
-        if '.' in s or 'e' in s:
-            return s
-        return s + '.'
+        return myokit.strfloat(e)
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):
@@ -54,25 +51,23 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
 
     def _ex_sin(self, e):
         warnings.warn('Potentially unsupported function: sin()')
-        super(EasyMLExpressionWriter, self)._ex_sin(e)
+        return super(EasyMLExpressionWriter, self)._ex_sin(e)
 
-    def _ex_cos(self, e):
-        warnings.warn('Potentially unsupported function: cos()')
-        super(EasyMLExpressionWriter, self)._ex_cos(e)
+    #def _ex_cos(self, e):
 
     def _ex_tan(self, e):
         warnings.warn('Potentially unsupported function: tan()')
-        super(EasyMLExpressionWriter, self)._ex_tan(e)
+        return super(EasyMLExpressionWriter, self)._ex_tan(e)
 
     def _ex_asin(self, e):
         warnings.warn('Potentially unsupported function: asin()')
-        super(EasyMLExpressionWriter, self)._ex_asin(e)
+        return super(EasyMLExpressionWriter, self)._ex_asin(e)
 
     #def _ex_acos(self, e):
 
     def _ex_atan(self, e):
         warnings.warn('Potentially unsupported function: atan()')
-        super(EasyMLExpressionWriter, self)._ex_atan(e)
+        return super(EasyMLExpressionWriter, self)._ex_atan(e)
 
     #def _ex_exp(self, e):
 
@@ -85,11 +80,11 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
 
     def _ex_floor(self, e):
         warnings.warn('Potentially unsupported function: floor()')
-        super(EasyMLExpressionWriter, self)._ex_floor(e)
+        return super(EasyMLExpressionWriter, self)._ex_floor(e)
 
     def _ex_ceil(self, e):
         warnings.warn('Potentially unsupported function: ceil()')
-        super(EasyMLExpressionWriter, self)._ex_ceil(e)
+        return super(EasyMLExpressionWriter, self)._ex_ceil(e)
 
     def _ex_abs(self, e):
         return self._ex_function(e, 'fabs')
@@ -105,12 +100,10 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     #def _ex_less_equal(self, e):
 
     def _ex_and(self, e):
-        warnings.warn('Potentially unsupported operator: and')
-        return self._ex_infix_condition(e, '&&')
+        return self._ex_infix_condition(e, 'and')
 
     def _ex_or(self, e):
-        warnings.warn('Potentially unsupported operator: or')
-        return self._ex_infix_condition(e, '||')
+        return self._ex_infix_condition(e, 'or')
 
     def _ex_if(self, e):
         ite = (self.ex(e._i), self.ex(e._t), self.ex(e._e))
