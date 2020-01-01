@@ -496,6 +496,31 @@ class LibGuessTest(unittest.TestCase):
             """)
         self.assertIsNone(guess.membrane_potential(m))
 
+    def test_membrane_currents(self):
+        # Tests getting a list of (outer) membrane currents
+
+        # Test with annotated variable
+        m = myokit.load_model('example')
+        c = guess.membrane_currents(m)
+        self.assertEqual(len(c), 6)
+        c = [v.qname() for v in c]
+        self.assertIn('ica.ICa', c)
+        self.assertIn('ik.IK', c)
+        self.assertIn('ik1.IK1', c)
+        self.assertIn('ikp.IKp', c)
+        self.assertIn('ina.INa', c)
+        self.assertIn('ib.Ib', c)
+
+        # Test with Vm
+        i = m.label('cellular_current')
+        i.set_label(None)
+        c = guess.membrane_currents(m)
+        self.assertEqual(len(c), 3)
+        c = [v.qname() for v in c]
+        self.assertIn('membrane.i_diff', c)
+        self.assertIn('membrane.i_ion', c)
+        self.assertIn('membrane.i_stim', c)
+
     def test_remove_embedded_protocol(self):
         # Tests extracting an embedded protocol
 
