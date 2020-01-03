@@ -686,8 +686,12 @@ class Model(AnnotatableElement):
                 # Evaluate unit in tolerant mode. This stops Myokit from
                 # raising any errors, but does mean that unit might still be
                 # None.
-                u = rhs.eval_unit(mode=myokit.UNIT_TOLERANT)
-            used.add(u)
+                try:
+                    u = rhs.eval_unit(mode=myokit.UNIT_TOLERANT)
+                except myokit.IncompatibleUnitError:
+                    pass
+            if u is not None:
+                used.add(u)
 
             # Check number units
             if rhs is not None:
@@ -771,7 +775,10 @@ class Model(AnnotatableElement):
                 rhs = variable.rhs()
                 if unit is None and rhs is not None:
                     # Note unit returned below may still be None
-                    unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
+                    try:
+                        unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
+                    except myokit.IncompatibleUnitError:
+                        pass
 
                 # Add variable
                 local_var_map[variable] = v = c.add_variable(
