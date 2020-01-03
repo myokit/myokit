@@ -75,11 +75,14 @@ ABOUT = '<h1>' + TITLE + '</h1>' + """
 FILTER_ALL = 'All files (*.*)'
 FILTER_MMT_SAVE = 'Myokit mmt files (*.mmt)'
 FILTER_MMT = 'Myokit mmt files (*.mmt);;' + FILTER_ALL
-FILTER_CELLML = 'CellML file (*.cellml *.xml);;' + FILTER_ALL
-FILTER_HTML = 'HTHML file (*.html *.htm);;' + FILTER_ALL
-FILTER_LATEX = 'Tex file (*.tex)' + FILTER_ALL
+
 FILTER_ABF = 'Axon files (*.abf *.pro);; Axon Binary File (*.abf)' \
     + ';;Axon Protocol File (*.pro);;' + FILTER_ALL
+FILTER_CELLML = 'CellML file (*.cellml *.xml);;' + FILTER_ALL
+FILTER_CHANNELML = 'ChannelML file (*.channelml *.xml);;' + FILTER_ALL
+FILTER_HTML = 'HTML file (*.html *.htm);;' + FILTER_ALL
+FILTER_LATEX = 'Tex file (*.tex)' + FILTER_ALL
+FILTER_SBML = 'SBML file (*.sbml *.xml)' + FILTER_ALL
 
 
 # Application icon
@@ -469,8 +472,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
         ``name``
             The exporter name
-        ``filter``
+        ``glob``
             A filter for the file selection method.
+
         """
         try:
             m = self.model(errors_in_console=True)
@@ -611,23 +615,32 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except Exception:
             self.show_exception()
 
-    def action_import_cellml(self):
+    def action_import_model(self, name, glob=None):
         """
-        Imports a CellML model
+        Imports a model definition.
+
+        Arguments:
+
+        ``name``
+            The name of the importer to use.
+        ``glob``
+            A filter for file selection.
+
         """
         try:
             if not self.prompt_save_changes(cancel=True):
                 return
             filename = QtWidgets.QFileDialog.getOpenFileName(
-                self,
-                'Open CellML file',
-                self._path,
-                filter=FILTER_CELLML)[0]
+                self, 'Select model file', self._path, filter=glob)[0]
             if not filename:
                 return
 
+            # Set working directory to file's path
+            self._path = os.path.dirname(filename)
+            os.chdir(self._path)
+
             # Load file
-            i = myokit.formats.importer('cellml')
+            i = myokit.formats.importer(name)
             try:
                 # Import the model
                 model = i.model(filename)
@@ -652,10 +665,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 i.logger().log_warnings()
                 self._console.write(
                     'Model imported successfully.\n' + i.logger().text())
-
-                # Set working directory to file's path
-                self._path = os.path.dirname(filename)
-                os.chdir(self._path)
 
                 # Save settings file
                 try:
@@ -1607,27 +1616,20 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_preview_protocol.triggered.connect(
             self.action_preview_protocol)
         self._menu_view.addAction(self._tool_preview_protocol)
+
         #
         # Convert menu
         #
         self._menu_convert = self._menu.addMenu('&Convert')
+
         # Convert > Import CellML
         self._tool_import_cellml = QtWidgets.QAction(
             'Import model from CellML', self)
         self._tool_import_cellml.setStatusTip(
             'Import a model definition from a CellML file.')
-        self._tool_import_cellml.triggered.connect(self.action_import_cellml)
+        self._tool_import_cellml.triggered.connect(
+            lambda: self.action_import_model('cellml', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_import_cellml)
-        # Convert > Import ABF
-        self._tool_import_abf = QtWidgets.QAction(
-            'Import protocol from ABF', self)
-        self._tool_import_abf.setStatusTip(
-            'Import a protocol definition from an ABF file.')
-        self._tool_import_abf.triggered.connect(
-            self.action_import_abf_protocol)
-        self._menu_convert.addAction(self._tool_import_abf)
-        # Convert > ----
-        self._menu_convert.addSeparator()
         # Convert > Export CellML
         self._tool_export_cellml = QtWidgets.QAction(
             'Export model to CellML', self)
@@ -1636,6 +1638,36 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_cellml.triggered.connect(
             lambda: self.action_export_model('cellml', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_export_cellml)
+
+        # Convert > ----
+        self._menu_convert.addSeparator()
+        # Convert > Import ABF
+        self._tool_import_abf = QtWidgets.QAction(
+            'Import protocol from ABF', self)
+        self._tool_import_abf.setStatusTip(
+            'Import a protocol definition from an ABF file.')
+        self._tool_import_abf.triggered.connect(
+            self.action_import_abf_protocol)
+        self._menu_convert.addAction(self._tool_import_abf)
+        # Convert > Import ChannelML
+        self._tool_import_channelml = QtWidgets.QAction(
+            'Import model from ChannelML', self)
+        self._tool_import_channelml.setStatusTip(
+            'Import a channel model from ChannelML.')
+        self._tool_import_channelml.triggered.connect(
+            lambda: self.action_import_model('channelml', FILTER_CHANNELML))
+        self._menu_convert.addAction(self._tool_import_channelml)
+        # Convert > Import SBML
+        self._tool_import_sbml = QtWidgets.QAction(
+            'Import model from SBML', self)
+        self._tool_import_sbml.setStatusTip(
+            'Import a model from SBML.')
+        self._tool_import_sbml.triggered.connect(
+            lambda: self.action_import_model('sbml', FILTER_SBML))
+        self._menu_convert.addAction(self._tool_import_sbml)
+
+        # Convert > ----
+        self._menu_convert.addSeparator()
         # Convert > Export HTML
         self._tool_export_html = QtWidgets.QAction(
             'Export model to HTML', self)
@@ -1653,6 +1685,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_latex.triggered.connect(
             lambda: self.action_export_model('latex-article', FILTER_LATEX))
         self._menu_convert.addAction(self._tool_export_latex)
+
         # Convert > ----
         self._menu_convert.addSeparator()
         # Convert > Ansic
@@ -1662,6 +1695,23 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_ansic.triggered.connect(
             lambda: self.action_export_runnable('ansic'))
         self._menu_convert.addAction(self._tool_export_ansic)
+        # Convert > CUDA
+        self._tool_export_cuda = QtWidgets.QAction(
+            'Export to CUDA kernel', self)
+        self._tool_export_cuda.setStatusTip(
+            'Export a model definition to a CUDA kernel program.')
+        self._tool_export_cuda.triggered.connect(
+            lambda: self.action_export_runnable('cuda-kernel'))
+        self._menu_convert.addAction(self._tool_export_cuda)
+        # Convert > CUDA RL
+        self._tool_export_cuda_rl = QtWidgets.QAction(
+            'Export to CUDA kernel with RL updates', self)
+        self._tool_export_cuda_rl.setStatusTip(
+            'Export a model definition to a CUDA kernel program using'
+            ' Rush-Larsen updates where possible.')
+        self._tool_export_cuda_rl.triggered.connect(
+            lambda: self.action_export_runnable('cuda-kernel-rl'))
+        self._menu_convert.addAction(self._tool_export_cuda_rl)
         # Convert > Matlab
         self._tool_export_matlab = QtWidgets.QAction(
             'Export to Matlab/Octave', self)
@@ -1671,12 +1721,22 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             lambda: self.action_export_runnable('matlab'))
         self._menu_convert.addAction(self._tool_export_matlab)
         # Convert > OpenCL
-        self._tool_export_opencl = QtWidgets.QAction('Export to OpenCL', self)
+        self._tool_export_opencl = QtWidgets.QAction(
+            'Export to OpenCL kernel', self)
         self._tool_export_opencl.setStatusTip(
-            'Export a model definition to an OpenCL kernel program.')
+            'Export a model definition to an OpenCL kernel program using')
         self._tool_export_opencl.triggered.connect(
             lambda: self.action_export_runnable('opencl'))
         self._menu_convert.addAction(self._tool_export_opencl)
+        # Convert > OpenCL RL
+        self._tool_export_opencl_rl = QtWidgets.QAction(
+            'Export to OpenCL kernel with RL updates', self)
+        self._tool_export_opencl_rl.setStatusTip(
+            'Export a model definition to an OpenCL kernel program using'
+            ' Rush-Larsen updates where possible.')
+        self._tool_export_opencl_rl.triggered.connect(
+            lambda: self.action_export_runnable('opencl-rl'))
+        self._menu_convert.addAction(self._tool_export_opencl_rl)
         # Convert > Python
         self._tool_export_python = QtWidgets.QAction('Export to Python', self)
         self._tool_export_python.setStatusTip(
@@ -1684,6 +1744,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_python.triggered.connect(
             lambda: self.action_export_runnable('python'))
         self._menu_convert.addAction(self._tool_export_python)
+
         #
         # Analysis menu
         #
@@ -1924,6 +1985,13 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 filename = config.get('files', 'file')
                 if os.path.isfile(filename):
                     self._file = filename
+            if config.has_option('files', 'path'):
+                path = config.get('files', 'path')
+                if os.path.isdir(path):
+                    # Note: If self._file is a valid file this will be loaded,
+                    # which will change _path again. But if no last file is
+                    # set, this option is used.
+                    self._path = path
             self._recent_files = []
             for i in range(0, N_RECENT_FILES):
                 opt = 'recent_' + str(i)
@@ -2194,6 +2262,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
         # Current and recent files
         config.add_section('files')
+        config.set('files', 'path', self._path)
         config.set('files', 'file', self._file)
         for k, filename in enumerate(self._recent_files):
             config.set('files', 'recent_' + str(k), filename)
