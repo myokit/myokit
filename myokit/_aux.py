@@ -388,12 +388,15 @@ def default_protocol(model=None):
             time_units = model.time().unit()
 
     # Adapt protocol if necessary
-    if time_units is not None:
-        default_units = myokit.units.ms
+    default_units = myokit.units.ms
+    try:
         start = myokit.Unit.convert(start, default_units, time_units)
         duration = myokit.Unit.convert(duration, default_units, time_units)
         period = myokit.Unit.convert(period, default_units, time_units)
+    except myokit.IncompatibleUnitError:
+        pass
 
+    # Create and return
     p = myokit.Protocol()
     p.schedule(1, start, duration, period, 0)
     return p
@@ -420,8 +423,11 @@ def default_script(model=None):
         if time is not None:
             default_unit = myokit.units.ms
             if time.unit() is not None and time.unit() != default_unit:
-                duration = myokit.Unit.convert(
-                    1000, default_unit, time.unit())
+                try:
+                    duration = myokit.Unit.convert(
+                        1000, default_unit, time.unit())
+                except myokit.IncompatibleUnitError:
+                    pass
 
     # Create and return script
     return '\n'.join((  # pragma: no cover
