@@ -2102,13 +2102,18 @@ class FunctionParser(NudParser):
             return (func, ops, (name,))
         else:
             # User-defined function
-            try:
-                func = info.model.get_function(name[1], len(ops))
-            except KeyError:
+            func = None
+            if info.model is not None:
+                try:
+                    func = info.model.get_function(name[1], len(ops))
+                except KeyError:
+                    pass
+            if func is None:
                 raise ParseError(
                     'Unknown function', name[2], name[3], 'A function '
                     + name[1] + '() with ' + str(len(ops))
                     + ' argument(s) could not be found.')
+
             # Found function, return template, arguments and tokens. "func" is
             # now a (template) Expression object.
             return (func, ops, (name,))

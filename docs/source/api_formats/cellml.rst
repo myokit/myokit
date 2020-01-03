@@ -30,8 +30,18 @@ the CellML database.
 
     1. Find and download the model file (``beeler_reuter_1977.cellml``).
     2. Open the GUI and select ``Convert > Import model from CellML``.
-    3. Have a look at the imported code. Apart from the messy representation
-       of the meta-data, everything should be in order.
+    3. Have a look at the imported code. You should find a stimulus current
+       implemented as ``pace * IstimAmplitude``. This has automatically been
+       added when you imported the model.
+    4. If you run the code, you should see an action potential!
+
+Now let's import the model in code, without automatic conversion:
+
+    1. In a script, load the Myokit formats module (``import myokit.formats``)
+       and create a CellMLImporter: ``i = myokit.formats.importer('cellml')``.
+    2. Import the model, using ``i.model('beeler_reuter_1977.cellml')``.
+    3. Have a look at the generated code. You should see the hardcoded stimulus
+       that was present in the CellML file.
     4. Run the embedded script or explorer. You should see something like this:
 
     .. figure:: ../_static/br_cellml_bad_thumb.png
@@ -73,6 +83,8 @@ the CellML database.
 
     The same procedure can be followed for any other valid model in the
     database.
+    An automated version of this procedure is implemented as
+    :meth:`myokit.lib.guess.remove_embedded_protocol()`.
 
 
 Exporting

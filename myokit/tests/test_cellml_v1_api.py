@@ -605,6 +605,12 @@ class TestCellMLModelConversion(unittest.TestCase):
         self.assertEqual(
             cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
 
+        # But evaluated units can have errors
+        y.set_rhs('1 [mV] ^ 1.2')    # Not supported by Myokit's unit system
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(
+            cm['c2']['y'].units().myokit_unit(), myokit.units.dimensionless)
+
     def test_m2c_nested_variables(self):
         # Test nested variables are handled, and name conflicts are handled
         # when creating a CellML model.

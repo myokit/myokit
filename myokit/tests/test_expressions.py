@@ -140,6 +140,7 @@ class ExpressionTest(unittest.TestCase):
     def test_eval_unit_error(self):
         # Test error handling for eval_unit.
 
+        # Incompatible units
         x = myokit.parse_expression('1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
         with self.assertRaises(myokit.IncompatibleUnitError) as e:
             x.eval_unit()
@@ -147,6 +148,24 @@ class ExpressionTest(unittest.TestCase):
         self.assertEqual(len(m), 4)
         self.assertEqual(m[2], '  1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
         self.assertEqual(m[3], '                    ~~~~~~~~~~~~~~')
+
+        # Special case: invalid power or sqrt
+        x = myokit.parse_expression('1 + 2 * 3 [mV] ^ 1.4')
+        with self.assertRaises(myokit.IncompatibleUnitError) as e:
+            x.eval_unit()
+        m = str(e.exception).splitlines()
+        self.assertEqual(len(m), 4)
+        self.assertEqual(m[2], '  1 + 2 * 3 [mV] ^ 1.4')
+        self.assertEqual(m[3], '          ~~~~~~~~~~~~')
+
+        # Special case: invalid power or sqrt
+        x = myokit.parse_expression('1 + 2 * sqrt(3 [mV])')
+        with self.assertRaises(myokit.IncompatibleUnitError) as e:
+            x.eval_unit()
+        m = str(e.exception).splitlines()
+        self.assertEqual(len(m), 4)
+        self.assertEqual(m[2], '  1 + 2 * sqrt(3 [mV])')
+        self.assertEqual(m[3], '          ~~~~~~~~~~~~')
 
     def test_int_conversion(self):
         # Test conversion of expressions to int.

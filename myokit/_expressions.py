@@ -57,8 +57,10 @@ class Expression(object):
 
     def __init__(self, operands=None):
         self._token = None
+
         # Store operands
         self._operands = () if operands is None else operands
+
         # Cached values
         # These _could_ be calculated immediatly, since they won't change in
         # the object's lifetime. However, it turns out to be faster to only
@@ -66,6 +68,7 @@ class Expression(object):
         self._cached_hash = None
         self._cached_polish = None
         self._cached_validation = None
+
         # Store references
         self._references = set()
         for op in self._operands:
@@ -284,8 +287,9 @@ class Expression(object):
         try:
             return self._eval_unit(mode)
         except EvalUnitError as e:
-            raise myokit.IncompatibleUnitError(
-                _expr_error_message(self, e), e.expr._token)
+            message = _expr_error_message(self, e)
+            token = e.expr._token
+        raise myokit.IncompatibleUnitError(message, token)
 
     def _eval_unit(self, mode):
         """
@@ -1338,7 +1342,11 @@ class Power(InfixExpression):
 
         if unit1 is None:
             return None
-        return unit1 ** self._op2.eval()
+
+        try:
+            return unit1 ** self._op2.eval()
+        except TypeError as e:
+            raise EvalUnitError(self, str(e))
 
 
 class Function(Expression):
@@ -1455,8 +1463,8 @@ class Sqrt(Function):
             return None
         try:
             return unit ** 0.5
-        except ValueError as e:
-            raise EvalUnitError(self, e)
+        except TypeError as e:
+            raise EvalUnitError(self, str(e))
 
 
 class Sin(UnaryDimensionlessFunction):
@@ -2753,7 +2761,7 @@ class Unit(object):
         e = [myokit._round_if_int(f * x) for x in self._x]
         for x in e:
             if not x == int(x):
-                raise ValueError(
+                raise TypeError(
                     'Unit exponentiation (' + repr(self) + ') ^ '
                     + str(f) + ' failed: would result in non-integer'
                     + ' exponents, which is not supported.')
