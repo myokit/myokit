@@ -1688,6 +1688,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
         # Convert > ----
         self._menu_convert.addSeparator()
+
         # Convert > Ansic
         self._tool_export_ansic = QtWidgets.QAction('Export to Ansi C', self)
         self._tool_export_ansic.setStatusTip(
@@ -1695,6 +1696,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_ansic.triggered.connect(
             lambda: self.action_export_runnable('ansic'))
         self._menu_convert.addAction(self._tool_export_ansic)
+
         # Convert > CUDA
         self._tool_export_cuda = QtWidgets.QAction(
             'Export to CUDA kernel', self)
@@ -1703,6 +1705,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_cuda.triggered.connect(
             lambda: self.action_export_runnable('cuda-kernel'))
         self._menu_convert.addAction(self._tool_export_cuda)
+
         # Convert > CUDA RL
         self._tool_export_cuda_rl = QtWidgets.QAction(
             'Export to CUDA kernel with RL updates', self)
@@ -1712,6 +1715,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_cuda_rl.triggered.connect(
             lambda: self.action_export_runnable('cuda-kernel-rl'))
         self._menu_convert.addAction(self._tool_export_cuda_rl)
+
+        # Convert > EasyML
+        self._tool_export_easyml = QtWidgets.QAction(
+            'Export to EasyML (Carp)', self)
+        self._tool_export_easyml.setStatusTip(
+            'Export to an EasyML script for use with Carp/Carpentry.')
+        self._tool_export_easyml.triggered.connect(
+            lambda: self.action_export_model('easyml'))
+        self._menu_convert.addAction(self._tool_export_easyml)
+
         # Convert > Matlab
         self._tool_export_matlab = QtWidgets.QAction(
             'Export to Matlab/Octave', self)
@@ -1720,6 +1733,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_matlab.triggered.connect(
             lambda: self.action_export_runnable('matlab'))
         self._menu_convert.addAction(self._tool_export_matlab)
+
         # Convert > OpenCL
         self._tool_export_opencl = QtWidgets.QAction(
             'Export to OpenCL kernel', self)
@@ -1728,6 +1742,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_opencl.triggered.connect(
             lambda: self.action_export_runnable('opencl'))
         self._menu_convert.addAction(self._tool_export_opencl)
+
         # Convert > OpenCL RL
         self._tool_export_opencl_rl = QtWidgets.QAction(
             'Export to OpenCL kernel with RL updates', self)
@@ -1737,6 +1752,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_opencl_rl.triggered.connect(
             lambda: self.action_export_runnable('opencl-rl'))
         self._menu_convert.addAction(self._tool_export_opencl_rl)
+
         # Convert > Python
         self._tool_export_python = QtWidgets.QAction('Export to Python', self)
         self._tool_export_python.setStatusTip(
