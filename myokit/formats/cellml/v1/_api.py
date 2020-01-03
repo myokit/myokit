@@ -689,7 +689,7 @@ class Model(AnnotatableElement):
                 try:
                     u = rhs.eval_unit(mode=myokit.UNIT_TOLERANT)
                 except myokit.IncompatibleUnitError:
-                    u = None
+                    pass
             if u is not None:
                 used.add(u)
 
