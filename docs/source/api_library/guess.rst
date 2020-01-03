@@ -16,6 +16,8 @@ guesses or other heuristics.
 
 .. autofunction:: add_embedded_protocol
 
+.. autofunction:: membrane_capacitance
+
 .. autofunction:: membrane_currents
 
 .. autofunction:: membrane_potential
