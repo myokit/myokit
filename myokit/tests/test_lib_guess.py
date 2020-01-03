@@ -344,6 +344,112 @@ class LibGuessTest(unittest.TestCase):
         self.assertEqual(v.unit(), myokit.units.mV)
         self.assertEqual(len(v), 0)
 
+    def test_membrane_capacitance(self):
+        # Tests getting the membrane capacitance variable
+
+        # Get by annotation
+        m = myokit.parse_model("""
+            [[model]]
+            membrane.V = -80
+
+            [membrane]
+            t = 0 bind time
+                oxmeta: it's me
+            dot(V) = -1/Cm * i_ion
+                oxmeta: membrane_capacitance
+            i_ion = 4
+            Cm = 1 [pF]
+                in [pF]
+            """)
+        self.assertEqual(guess.membrane_capacitance(m).name(), 'V')
+
+        # Get referenced in Vm
+        m = myokit.parse_model("""
+            [[model]]
+            membrane.V = -80
+
+            [membrane]
+            t = 0 bind time
+                oxmeta: it's me
+            dot(V) = - i_ion
+            i_ion = 4
+            """)
+        self.assertEqual(guess.membrane_capacitance(m).name(), 'i_ion')
+        # Must be constant
+        m.get('membrane.i_ion').set_rhs('4 * V')
+        self.assertIsNone(guess.membrane_capacitance(m))
+
+        # Get by name
+        m = myokit.parse_model("""
+            [[model]]
+            membrane.V = -80
+
+            [membrane]
+            t = 0 bind time
+            dot(V) = - i_ion
+            i_ion = 4
+            Cm = 3
+                in [pF]
+            """)
+        c = m.get('membrane.Cm')
+        self.assertEqual(guess.membrane_capacitance(m), c)
+        c.rename('c')
+        self.assertEqual(guess.membrane_capacitance(m), c)
+        c.rename('c_m')
+        self.assertEqual(guess.membrane_capacitance(m), c)
+        c.rename('acap')
+        self.assertEqual(guess.membrane_capacitance(m), c)
+        c.rename('a_cap')
+        self.assertEqual(guess.membrane_capacitance(m), c)
+        c.rename('zzz')
+        self.assertNotEqual(guess.membrane_capacitance(m), c)
+
+        # Get by unit
+        c.rename('Cm')
+        self.assertEqual(guess.membrane_capacitance(m), c)
+        c.set_unit(None)
+        self.assertNotEqual(guess.membrane_capacitance(m), c)
+        c.set_unit('pF/cm^2')
+        self.assertEqual(guess.membrane_capacitance(m), c)
+        c.set_unit('cm^2')
+        self.assertEqual(guess.membrane_capacitance(m), c)
+
+        # Bad unit cancels out point for name
+        m = myokit.parse_model("""
+            [[model]]
+
+            [membrane]
+            t = 0 bind time
+            Cm = 3
+                in [A]
+            """)
+        self.assertIsNone(guess.membrane_capacitance(m), c)
+
+    def test_membrane_currents(self):
+        # Tests getting a list of (outer) membrane currents
+
+        # Test with annotated variable
+        m = myokit.load_model('example')
+        c = guess.membrane_currents(m)
+        self.assertEqual(len(c), 6)
+        c = [v.qname() for v in c]
+        self.assertIn('ica.ICa', c)
+        self.assertIn('ik.IK', c)
+        self.assertIn('ik1.IK1', c)
+        self.assertIn('ikp.IKp', c)
+        self.assertIn('ina.INa', c)
+        self.assertIn('ib.Ib', c)
+
+        # Test with Vm
+        i = m.label('cellular_current')
+        i.set_label(None)
+        c = guess.membrane_currents(m)
+        self.assertEqual(len(c), 3)
+        c = [v.qname() for v in c]
+        self.assertIn('membrane.i_diff', c)
+        self.assertIn('membrane.i_ion', c)
+        self.assertIn('membrane.i_stim', c)
+
     def test_membrane_potential_1(self):
         # Test finding the membrane potential based on annotations
 
@@ -495,31 +601,6 @@ class LibGuessTest(unittest.TestCase):
             z = 3
             """)
         self.assertIsNone(guess.membrane_potential(m))
-
-    def test_membrane_currents(self):
-        # Tests getting a list of (outer) membrane currents
-
-        # Test with annotated variable
-        m = myokit.load_model('example')
-        c = guess.membrane_currents(m)
-        self.assertEqual(len(c), 6)
-        c = [v.qname() for v in c]
-        self.assertIn('ica.ICa', c)
-        self.assertIn('ik.IK', c)
-        self.assertIn('ik1.IK1', c)
-        self.assertIn('ikp.IKp', c)
-        self.assertIn('ina.INa', c)
-        self.assertIn('ib.Ib', c)
-
-        # Test with Vm
-        i = m.label('cellular_current')
-        i.set_label(None)
-        c = guess.membrane_currents(m)
-        self.assertEqual(len(c), 3)
-        c = [v.qname() for v in c]
-        self.assertIn('membrane.i_diff', c)
-        self.assertIn('membrane.i_ion', c)
-        self.assertIn('membrane.i_stim', c)
 
     def test_remove_embedded_protocol(self):
         # Tests extracting an embedded protocol
