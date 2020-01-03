@@ -233,6 +233,82 @@ def add_embedded_protocol(model, protocol, add_oxmeta_annotations=True):
     return True
 
 
+def membrane_capacitance(model):
+    """
+    Guess which model variable (if any) represents the membrane capacitance.
+
+    The following strategy is used:
+
+    1. If a variable is found with the annotation
+       ``oxmeta: membrane_capacitance``, this variable is returned.
+    2. If not, a list of candidates is drawn up from all constants in the
+       model.
+    3. 1.5 points are awarded for being referenced by the membrane potential.
+    4. A point is awarded for having a unit compatible with ``F``, ``F/m^2``,
+       or ``m^2``. A point is subtracted for having a unit other than ``None``
+       that's incompatible with any of the above.
+    5. A point is awarded for having the name ``C``, ``Cm``, ``C_m``, ``Acap``
+       or ``A_cap``, or  having a name including the string 'capacitance'
+       (where the checks are made case-insensitively).
+
+    If no suitable candidates are found the method returns ``None``, otherwise
+    the highest ranking candidate is returned.
+    """
+    # Return any variable annotated as `oxmeta: membrane_capacitance`
+    for v in model.variables(deep=True):
+        if v.meta.get('oxmeta', None) == 'membrane_capacitance':
+            return v
+
+    # Gather candidates
+    candidates = {v: 0 for v in model.variables(deep=True, const=True)}
+
+    # Points if used by Vm
+    vm = membrane_potential(model)
+    if vm is not None:
+        for ref in vm.refs_to():
+            if ref.is_constant():
+                candidates[ref] += 1.5
+
+    # Points for units
+    def is_compatible(unit1, unit2):
+        try:
+            myokit.Unit.conversion_factor(unit1, unit2)
+            return True
+        except myokit.IncompatibleUnitError:
+            return False
+
+    cap1 = myokit.units.farad
+    cap2 = myokit.units.farad / myokit.units.m**2
+    cap3 = myokit.units.m**2
+    for v in candidates:
+        unit = v.unit()
+        if unit is None:
+            continue
+        elif is_compatible(unit, cap1) or is_compatible(unit, cap2):
+            candidates[v] += 1
+        elif is_compatible(unit, cap3):
+            candidates[v] += 1
+        else:
+            candidates[v] -= 1
+
+    # Points for names
+    names = ['c', 'cm', 'c_m', 'acap', 'a_cap']
+    for v in candidates:
+        name = v.name().lower()
+        if name in names or 'capacitance' in name:
+            candidates[v] += 1
+
+    # Find best candidate, with at least some credibility
+    if candidates:
+        ranking = sorted(candidates.keys(), key=lambda v: -candidates[v])
+        v = ranking[0]
+        if candidates[v] > 0:
+            return v
+
+    # Nothing found!
+    return None
+
+
 def membrane_currents(model):
     """
     Gueses which model variables represent ionic currents through the outer
