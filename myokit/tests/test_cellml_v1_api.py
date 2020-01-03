@@ -606,7 +606,7 @@ class TestCellMLModelConversion(unittest.TestCase):
             cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
 
         # But evaluated units can have errors
-        y.set_rhs('z ^ 1.2')    # Not supported by Myokit's unit system
+        y.set_rhs('1 [mV] ^ 1.2')    # Not supported by Myokit's unit system
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(
             cm['c2']['y'].units().myokit_unit(), myokit.units.dimensionless)
