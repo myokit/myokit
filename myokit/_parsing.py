@@ -2114,7 +2114,6 @@ class FunctionParser(NudParser):
                     + name[1] + '() with ' + str(len(ops))
                     + ' argument(s) could not be found.')
 
-
             # Found function, return template, arguments and tokens. "func" is
             # now a (template) Expression object.
             return (func, ops, (name,))
