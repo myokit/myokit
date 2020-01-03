@@ -419,10 +419,10 @@ def default_script(model=None):
             vm = "'" + v.qname() + "'"
 
         # Get duration in good units
+        default_unit = myokit.units.ms
         time = model.time()
         if time is not None:
-            default_unit = myokit.units.ms
-            if time.unit() is not None and time.unit() != default_unit:
+            if time.unit() != default_unit:
                 try:
                     duration = myokit.Unit.convert(
                         1000, default_unit, time.unit())
