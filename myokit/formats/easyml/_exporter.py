@@ -1,16 +1,13 @@
 #
 # Export as an EasyML model.
 #
-# This file is part of Myokit
-#  Copyright 2011-2019 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
-import logging
 
 import myokit.formats
 import myokit.lib.guess as guess
@@ -41,8 +38,6 @@ class EasyMLExporter(myokit.formats.Exporter):
         A :class:`myokit.ExportError` will be raised if any errors occur.
         """
         import myokit.formats.easyml as easyml
-
-        log = logging.getLogger(__name__)
 
         # Test model is valid
         try:
@@ -152,21 +147,34 @@ class EasyMLExporter(myokit.formats.Exporter):
         taus = {}
         infs = {}
 
-        # Find HH state variables, infs, taus, alphas, betas
+        # If an inf/tau/alpha/beta is used by more than one state, we create a
+        # copy for each user, so that we can give the variables the appropriate
+        # name (e.g. x_inf, y_inf, z_inf) etc.
+        def renamable(var):
+            srefs = [v for v in var.refs_by() if v.is_state()]
+            if len(srefs) > 1:
+                v = var.parent().add_variable_allow_renaming(var.name())
+                v.set_rhs(myokit.Name(var))
+                v.set_unit(var.unit())
+                return v
+            return var
+
+        # Find HH state variables and their infs, taus, alphas, betas
+        #
         for var in model.states():
             ret = hh.get_inf_and_tau(var, vm)
             if ret is not None:
                 ignore.add(var)
                 hh_states.add(var)
-                infs[ret[0]] = var
-                taus[ret[1]] = var
+                infs[renamable(ret[0])] = var
+                taus[renamable(ret[1])] = var
                 continue
             ret = hh.get_alpha_and_beta(var, vm)
             if ret is not None:
                 ignore.add(var)
                 hh_states.add(var)
-                alphas[ret[0]] = var
-                betas[ret[1]] = var
+                alphas[renamable(ret[0])] = var
+                betas[renamable(ret[1])] = var
                 continue
 
         hh_variables = (set(alphas.keys()) | set(betas.keys()) |

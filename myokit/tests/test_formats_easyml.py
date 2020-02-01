@@ -64,6 +64,43 @@ class EasyMLExporterTest(unittest.TestCase):
             self.assertRaisesRegex(
                 myokit.ExportError, 'valid model', e.model, path, model1)
 
+    def test_export_reused_variable(self):
+        # Tests exporting when an `inf` or other special variable is used twice
+
+        # Create model re-using tau and inf
+        m = myokit.parse_model(
+            '''
+            [[model]]
+            m.V = -80
+            c.x = 0.1
+            c.y = 0.1
+
+            [m]
+            time = 0 bind time
+            i_ion = c.I
+            dot(V) = -i_ion
+
+            [c]
+            inf = 0.5
+            tau = 3
+            dot(x) = (inf - x) / tau
+            dot(y) = (inf - y) / tau
+            I = x * y * (m.V - 50)
+            ''')
+
+        # Export, and read back in
+        e = myokit.formats.easyml.EasyMLExporter()
+        with TemporaryDirectory() as d:
+            path = d.path('easy.model')
+            e.model(path, m)
+            with open(path, 'r') as f:
+                x = f.read()
+
+        self.assertIn('x_inf =', x)
+        self.assertIn('y_inf =', x)
+        self.assertIn('tau_x =', x)
+        self.assertIn('tau_y =', x)
+
     def test_easyml_exporter_fetching(self):
         # Tests getting an EasyML exporter via the 'exporter' interface
 

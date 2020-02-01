@@ -23,9 +23,8 @@ except NameError:   # pragma: no python 2 cover
 #
 # Deprecated since 2018-04-16
 #
-import logging
-logger = logging.getLogger('myokit')
-logger.warning(
+import warnings
+warnings.warn(
     'The module myokit.lib.common is deprecated: it will be removed in future'
     ' versions of Myokit.'
 )
