@@ -88,10 +88,8 @@ def time(model):
     Deprecated alias of :meth:`Model.timex()`.
     """
     # Deprecated since 2019-09-09
-    import logging
-    logging.basicConfig()
-    log = logging.getLogger(__name__)
-    log.warning(
+    import warnings
+    warnings.warn(
         'The method `myokit.lib.multi.time()` is deprecated and will be'
         ' removed in future versions of Myokit. Please use `Model.timex()`'
         ' instead.')
@@ -103,10 +101,8 @@ def label(model, label):
     Deprecated alias of :meth:`Model.labelx()`.
     """
     # Deprecated since 2019-09-09
-    import logging
-    logging.basicConfig()
-    log = logging.getLogger(__name__)
-    log.warning(
+    import warnings
+    warnings.warn(
         'The method `myokit.lib.multi.label()` is deprecated and will be'
         ' removed in future versions of Myokit. Please use `Model.labelx()`'
         ' instead.')
@@ -118,10 +114,8 @@ def binding(model, binding):
     Deprecated alias of :meth:`Model.bindingx()`.
     """
     # Deprecated since 2019-09-09
-    import logging
-    logging.basicConfig()
-    log = logging.getLogger(__name__)
-    log.warning(
+    import warnings
+    warnings.warn(
         'The method `myokit.lib.multi.binding()` is deprecated and will be'
         ' removed in future versions of Myokit. Please use `Model.bindingx()`'
         ' instead.')
