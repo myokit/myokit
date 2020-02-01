@@ -192,6 +192,9 @@ class ExportTest(unittest.TestCase):
     def test_cellml_exporter(self):
         self._test(myokit.formats.exporter('cellml'))
 
+    def test_chaste_exporter(self):
+        self._test(myokit.formats.exporter('chaste'))
+
     def test_cuda_kernel_exporter(self):
         self._test(myokit.formats.exporter('cuda-kernel'))
 

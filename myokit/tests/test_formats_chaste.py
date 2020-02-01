@@ -8,14 +8,13 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import os
 import unittest
 
 import myokit
 import myokit.formats
 import myokit.formats.chaste
 
-from shared import TemporaryDirectory, DIR_DATA
+from shared import TemporaryDirectory
 
 # Unit testing in Python 2 and 3
 try:
@@ -36,35 +35,21 @@ class ChasteExporterTest(unittest.TestCase):
     def test_chaste_exporter(self):
         # Tests exporting a model
 
-        model1 = myokit.load_model('example')
-        model2 = myokit.load_model(os.path.join(DIR_DATA, 'heijman-2011.mmt'))
+        m, p, _ = myokit.load('example')
         e = myokit.formats.chaste.ChasteExporter()
 
-        '''
         with TemporaryDirectory() as d:
-            path = d.path('easy.model')
+            path = d.path('chaste')
 
             # Test with simple model
-            e.model(path, model1)
-
-            # Test with model containing markov models
-            e.model(path, model2)
-
-            # Test with extra bound variables
-            model1.get('membrane.C').set_binding('hello')
-            e.model(path, model1)
-
-            # Test without V being a state variable
-            v = model1.get('membrane.V')
-            v.demote()
-            v.set_rhs(3)
-            e.model(path, model1)
+            e.runnable(path, m, p)
 
             # Test with invalid model
+            v = m.get('membrane.V')
+            v.demote()
             v.set_rhs('2 * V')
             self.assertRaisesRegex(
-                myokit.ExportError, 'valid model', e.model, path, model1)
-        '''
+                myokit.ExportError, 'valid model', e.runnable, path, m, p)
 
     def test_chaste_exporter_fetching(self):
         # Tests getting an Chaste exporter via the 'exporter' interface

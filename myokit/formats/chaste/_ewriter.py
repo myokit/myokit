@@ -7,8 +7,8 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import myokit
 from myokit.formats.cpp import CppExpressionWriter
+
 
 class ChasteExpressionWriter(CppExpressionWriter):
     """
