@@ -105,6 +105,11 @@ class ChasteExporter(myokit.formats.TemplatedRunnableExporter):
             else:
                 return 'var_' + lhs.var().uname()
 
+        # Expression writer
+        from . import ChasteExpressionWriter
+        ewriter = ChasteExpressionWriter()
+        ewriter.set_lhs_function(var_name)
+
         # State vector
         n_states = model.count_states()
         vm = guess.membrane_potential(model)
@@ -118,6 +123,8 @@ class ChasteExporter(myokit.formats.TemplatedRunnableExporter):
         # Return template variables
         return {
             'class_name': class_name,
+            'code_name': self._model_code_name,
+            'ewriter': ewriter,
             'header_file': header_file,
             'model_name': name,
             'model': model,

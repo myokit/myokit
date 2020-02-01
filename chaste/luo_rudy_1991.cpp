@@ -34,7 +34,7 @@
     {
     }
 
-    {% endif %}double CellLuoRudy1991FromMyokit::GetIIonic(const std::vector<double>* pStateVariables)
+    double CellLuoRudy1991FromMyokit::GetIIonic(const std::vector<double>* pStateVariables)
     {
         // For state variable interpolation (SVI) we read in interpolated state variables,
         // otherwise for ionic current interpolation (ICI) we use the state variables of this model (node).
@@ -43,7 +43,9 @@
         {% for state_var in state_vars %}
         {%- if state_var.in_ionic %}double {{ state_var.var }} = {% if loop.index0 == membrane_voltage_index %}(mSetVoltageDerivativeToZero ? this->mFixedVoltage : rY[{{loop.index0}}]);{%- else %}rY[{{loop.index0}}];{%- endif %}
         // Units: {{state_var.units}}; Initial value: {{state_var.initial_value}}
-        {% endif %}{%- endfor %}{% for ionic_var in ionic_vars %}
+        {% endif %}{%- endfor %}
+
+        {% for ionic_var in ionic_vars %}
         const double {{ionic_var.lhs}} = {{ionic_var.rhs}}; // {{ionic_var.units}}
         {%- endfor %}
 
@@ -74,20 +76,69 @@
         // Units: [mM]; Initial value: 0.0002
 
         // Mathematics
-        {% for deriv in y_derivative_equations %}{%- if deriv.is_voltage%}double {{deriv.lhs}};{%- endif %}{%- endfor %}
-        {%- for deriv in y_derivative_equations %}{%- if not deriv.in_membrane_voltage %}
-        const double {{deriv.lhs}} = {{deriv.rhs}}; // {{deriv.units}}{%- endif %}
-        {%- endfor %}
-
-        if (mSetVoltageDerivativeToZero)
+        const double var_Eb = (-59.87);
+        const double var_gb = 0.03921;
+        const double var_Ib = var_gb * (var_V - var_Eb);
+        const double var_Ca_o = 1.8;
+        const double var_K_i = 145.0;
+        const double var_K_o = 5.4;
+        const double var_Na_i = 10.0;
+        const double var_Na_o = 140.0;
+        const double var_F = 96500.0;
+        const double var_R = 8314.0;
+        const double var_T = 310.0;
+        const double var_RTF = var_R * var_T / var_F;
+        const double var_pace = 0.0;
+        const double var_time = 0.0;
+        const double var_xi = ((var_V < (-100.0)) ? 1.0 : ((var_V == (-77.0)) ? 2.837 * 0.04 / exp(0.04 * (var_V + 35.0)) : 2.837 * (exp(0.04 * (var_V + 77.0)) - 1.0) / ((var_V + 77.0) * exp(0.04 * (var_V + 35.0)))));
+        const double var_ik_x_alpha = 0.0005 * exp(0.083 * (var_V + 50.0)) / (1.0 + exp(0.057 * (var_V + 50.0)));
+        const double var_ik_x_beta = 0.0013 * exp((-0.06) * (var_V + 20.0)) / (1.0 + exp((-0.04) * (var_V + 20.0)));
+        const double ddt_x = var_ik_x_alpha * (1.0 - var_x) - var_ik_x_beta * var_x;
+        const double var_PNa_K = 0.01833;
+        const double var_gK = 0.282 * sqrt(var_K_o / 5.4);
+        const double var_ik_IK_E = var_RTF * log((var_K_o + var_PNa_K * var_Na_o) / (var_K_i + var_PNa_K * var_Na_i));
+        const double var_IK = var_gK * var_xi * var_x * (var_V - var_ik_IK_E);
+        const double var_ENa = var_RTF * log(var_Na_o / var_Na_i);
+        const double var_a = 1.0 - 1.0 / (1.0 + exp((-(var_V + 40.0)) / 0.24));
+        const double var_gNa = 16.0;
+        const double var_ina_m_alpha = 0.32 * (var_V + 47.13) / (1.0 - exp((-0.1) * (var_V + 47.13)));
+        const double var_ina_m_beta = 0.08 * exp((-var_V) / 11.0);
+        const double ddt_m = var_ina_m_alpha * (1.0 - var_m) - var_ina_m_beta * var_m;
+        const double var_INa = var_gNa * pow(var_m, 3.0) * var_h * var_j * (var_V - var_ENa);
+        const double var_ina_h_alpha = var_a * 0.135 * exp((80.0 + var_V) / (-6.8));
+        const double var_ina_h_beta = var_a * (3.56 * exp(0.079 * var_V) + 310000.0 * exp(0.35 * var_V)) + (1.0 - var_a) / (0.13 * (1.0 + exp((var_V + 10.66) / (-11.1))));
+        const double ddt_h = var_ina_h_alpha * (1.0 - var_h) - var_ina_h_beta * var_h;
+        const double var_ina_j_alpha = var_a * ((-127140.0) * exp(0.2444 * var_V) - 3.474e-05 * exp((-0.04391) * var_V)) * (var_V + 37.78) / (1.0 + exp(0.311 * (var_V + 79.23)));
+        const double var_ina_j_beta = var_a * (0.1212 * exp((-0.01052) * var_V) / (1.0 + exp((-0.1378) * (var_V + 40.14)))) + (1.0 - var_a) * (0.3 * exp((-2.535e-07) * var_V) / (1.0 + exp((-0.1) * (var_V + 32.0))));
+        const double ddt_j = var_ina_j_alpha * (1.0 - var_j) - var_ina_j_beta * var_j;
+        const double var_ica_E = 7.7 - 13.0287 * log(var_Ca_i / var_Ca_o);
+        const double var_gCa = 0.09;
+        const double var_ica_d_alpha = 0.095 * exp((-0.01) * (var_V - 5.0)) / (1.0 + exp((-0.072) * (var_V - 5.0)));
+        const double var_ica_d_beta = 0.07 * exp((-0.017) * (var_V + 44.0)) / (1.0 + exp(0.05 * (var_V + 44.0)));
+        const double ddt_d = var_ica_d_alpha * (1.0 - var_d) - var_ica_d_beta * var_d;
+        const double var_ica_f_alpha = 0.012 * exp((-0.008) * (var_V + 28.0)) / (1.0 + exp(0.15 * (var_V + 28.0)));
+        const double var_ica_f_beta = 0.0065 * exp((-0.02) * (var_V + 30.0)) / (1.0 + exp((-0.2) * (var_V + 30.0)));
+        const double ddt_f = var_ica_f_alpha * (1.0 - var_f) - var_ica_f_beta * var_f;
+        const double var_ICa = var_gCa * var_d * var_f * (var_V - var_ica_E);
+        const double ddt_Ca_i = (-0.0001) * var_ICa + 0.07 * (0.0001 - var_Ca_i);
+        const double var_ik1_E = var_RTF * log(var_K_o / var_K_i);
+        const double var_gK1 = 0.6047 * sqrt(var_K_o / 5.4);
+        const double var_ik1_g_alpha = 1.02 / (1.0 + exp(0.2385 * (var_V - var_ik1_E - 59.215)));
+        const double var_ik1_g_beta = (0.49124 * exp(0.08032 * (var_V - var_ik1_E + 5.476)) + 1.0 * exp(0.06175 * (var_V - var_ik1_E - 594.31))) / (1.0 + exp((-0.5143) * (var_V - var_ik1_E + 4.753)));
+        const double var_g = var_ik1_g_alpha / (var_ik1_g_alpha + var_ik1_g_beta);
+        const double var_IK1 = var_gK1 * var_g * (var_V - var_ik1_E);
+        const double var_Kp = 1.0 / (1.0 + exp((7.488 - var_V) / 5.98));
+        const double var_gKp = 0.0183;
+        const double var_IKp = var_gKp * var_Kp * (var_V - var_ik1_E);
+        const double var_C = 1.0;
+        const double var_i_diff = 0.0;
+        const double var_i_ion = var_INa + var_IK + var_Ib + var_IKp + var_IK1 + var_ICa;
+        const double var_stim_amplitude = (-80.0);
+        const double var_i_stim = var_pace * var_stim_amplitude;
+        double ddt_V = 0;
+        if (!mSetVoltageDerivativeToZero)
         {
-            {% for deriv in y_derivative_equations %}{%- if deriv.is_voltage%}{{deriv.lhs}} = 0.0;{%- endif %}{%- endfor %}
-        }
-        else
-        {
-            {%- for deriv in y_derivative_equations %}{% if deriv.in_membrane_voltage %}
-            {% if not deriv.is_voltage%}const double {% endif %}{{deriv.lhs}} = {{deriv.rhs}}; // {{deriv.units}}{%- endif %}
-            {%- endfor %}
+            ddt_V = (-(1.0 / var_C)) * (var_i_ion + var_i_diff + var_i_stim);
         }
 
         // Outputs:
@@ -104,22 +155,44 @@
 template<>
 void OdeSystemInformation<CellLuoRudy1991FromMyokit>::Initialise(void)
 {
-    this->mSystemName = "{{free_variable.system_name}}";
-    this->mFreeVariableName = "{{free_variable.name}}";
-    this->mFreeVariableUnits = "{{free_variable.units}}";
+    this->mSystemName = "luo_rudy_1991";
+    this->mFreeVariableName = "time";
+    this->mFreeVariableUnits = "millisecond";
 
-    {% for ode_info in ode_system_information %}// rY[{{loop.index0}}]:
-    this->mVariableNames.push_back("{{ode_info.name}}");
-    this->mVariableUnits.push_back("{{ode_info.units}}");
-    this->mInitialConditions.push_back({{ode_info.initial_value}});
+    this->mVariableNames.push_back("V");
+    this->mVariableUnits.push_back("[mV]");
+    this->mInitialConditions.push_back(-84.5286);
 
-    {% endfor %}{% for param in modifiable_parameters %}// mParameters[{{loop.index0}}]:
-    this->mParameterNames.push_back("{{param["name"]}}");
-    this->mParameterUnits.push_back("{{param["units"]}}");
+    this->mVariableNames.push_back("m");
+    this->mVariableUnits.push_back("None");
+    this->mInitialConditions.push_back(0.0017);
 
-    {% endfor %}{% for attr in named_attributes %}
-    this->mAttributes["{{attr["name"]}}"] = {{attr["value"]}};
-    {% endfor %}this->mInitialised = true;
+    this->mVariableNames.push_back("h");
+    this->mVariableUnits.push_back("None");
+    this->mInitialConditions.push_back(0.9832);
+
+    this->mVariableNames.push_back("j");
+    this->mVariableUnits.push_back("None");
+    this->mInitialConditions.push_back(0.995484);
+
+    this->mVariableNames.push_back("d");
+    this->mVariableUnits.push_back("None");
+    this->mInitialConditions.push_back(3e-06);
+
+    this->mVariableNames.push_back("f");
+    this->mVariableUnits.push_back("None");
+    this->mInitialConditions.push_back(1.0);
+
+    this->mVariableNames.push_back("x");
+    this->mVariableUnits.push_back("None");
+    this->mInitialConditions.push_back(0.0057);
+
+    this->mVariableNames.push_back("Ca_i");
+    this->mVariableUnits.push_back("[mM]");
+    this->mInitialConditions.push_back(0.0002);
+
+    this->mAttributes["SuggestedForwardEulerTimestep"] = 0.001;
+    this->mInitialised = true;
 }
 
 
