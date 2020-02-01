@@ -261,7 +261,8 @@ class DataLog(OrderedDict):
         """
         # Deprecated since 2019-08-16
         import warnings
-        warnings.warn(            'The method `find` is deprecated. Please use `find_after`'
+        warnings.warn(
+            'The method `find` is deprecated. Please use `find_after`'
             ' instead.')
 
         return self.find_after(time)
