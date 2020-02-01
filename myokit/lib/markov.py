@@ -1575,10 +1575,8 @@ class MarkovModel(object):
         :class:`LinearModel` based on a Myokit model component.
         """
         # Deprecated since 2016-01-25
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `MarkovModel.from_component` is deprecated.'
             ' Please use `LinearModel.from_component` instead.')
         return AnalyticalSimulation(LinearModel.from_component(
@@ -1586,10 +1584,8 @@ class MarkovModel(object):
 
     def __new__(self, model, states, parameters=None, current=None, vm=None):
         # Deprecated since 2016-01-25
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The `MarkovModel` class is deprecated.'
             ' Please use the `LinearModel` class instead.')
         return AnalyticalSimulation(LinearModel(

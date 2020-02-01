@@ -2104,10 +2104,8 @@ class Model(ObjectWithMeta, VarProvider):
         Deprecated alias of :meth:`resolve_interdependent_components`.
         """
         # Deprecated since 2018-05-30
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `merge_interdependent_components` is deprecated.'
             ' Please use `resolve_interdependent_components` instead.')
         self.resolve_interdependent_components()
@@ -2504,10 +2502,8 @@ class Model(ObjectWithMeta, VarProvider):
         Deprecated alias of :meth:`show_line_of`.
         """
         # Deprecated since 2018-05-30
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `show_line` is deprecated and will be removed in'
             ' future versions of Myokit. Please use `show_line_of` instead.')
         self.show_line_of(var)

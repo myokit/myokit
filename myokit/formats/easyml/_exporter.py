@@ -8,7 +8,6 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
-import logging
 
 import myokit.formats
 import myokit.lib.guess as guess
@@ -39,8 +38,6 @@ class EasyMLExporter(myokit.formats.Exporter):
         A :class:`myokit.ExportError` will be raised if any errors occur.
         """
         import myokit.formats.easyml as easyml
-
-        log = logging.getLogger(__name__)
 
         # Test model is valid
         try:

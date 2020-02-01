@@ -260,11 +260,8 @@ class DataLog(OrderedDict):
         Deprecated alias of :meth:`find_after()`.
         """
         # Deprecated since 2019-08-16
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
-            'The method `find` is deprecated. Please use `find_after`'
+        import warnings
+        warnings.warn(            'The method `find` is deprecated. Please use `find_after`'
             ' instead.')
 
         return self.find_after(time)

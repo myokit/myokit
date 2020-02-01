@@ -155,10 +155,8 @@ class Protocol(object):
         Deprecated alias of :meth:`log_for_interval`.
         """
         # Deprecated since 2019-01-09
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `create_log_for_interval` is deprecated.'
             ' Please use `log_for_interval` instead.')
         return self.log_for_interval(a, b, for_drawing)
@@ -168,10 +166,8 @@ class Protocol(object):
         Deprecated alias of :meth:`log_for_times`.
         """
         # Deprecated since 2019-01-09
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `create_log_for_times` is deprecated.'
             ' Please use `log_for_times` instead.')
         return self.log_for_times(times)
@@ -196,9 +192,8 @@ class Protocol(object):
         This method now returns the value given by :meth:`characteristic_time`.
         """
         # Deprecated since 2016-02-06
-        import logging
-        logger = logging.getLogger('myokit')
-        logger.warning(
+        import warnings
+        warnings.warn(
             'The method Protocol.guess_duration() is deprecated: it will be'
             ' removed in future versions of Myokit. Please use the method'
             ' `characteristic_time` instead.'
