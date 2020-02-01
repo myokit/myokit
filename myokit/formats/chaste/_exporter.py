@@ -107,22 +107,21 @@ class ChasteExporter(myokit.formats.TemplatedRunnableExporter):
 
         # State vector
         n_states = model.count_states()
-        v = guess.membrane_potential(model)
-        if v is None:
+        vm = guess.membrane_potential(model)
+        if vm is None:
             raise myokit.ExportError(
                 'Chaste export cannot find membrane potential variable.')
-        elif not v.is_state():
+        elif not vm.is_state():
             raise myokit.ExportError(
                 'Chaste export requires membrane potential to be a state.')
-        v_index = v.indice()
 
         # Return template variables
         return {
             'class_name': class_name,
             'header_file': header_file,
             'model_name': name,
-            'n_states': n_states,
-            'time': var_name(model.time()),
-            'v_index': v_index,
+            'model': model,
+            'var_name': var_name,
+            'vm': vm,
         }
 

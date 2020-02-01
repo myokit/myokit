@@ -3,9 +3,10 @@
 #
 # Variables:
 #   class_name      A valid camel cased class name
+#   model           A model object
 #   model_name      A user friendly model name (arbitrary string)
-#   time            The name of the time variable in cpp
-#
+#   var_name        A method that creates variable names
+
 ?>#ifndef <?= class_name.upper() ?>_HPP_
 #define <?= class_name.upper() ?>_HPP_
 
@@ -39,7 +40,7 @@ public:
     <?= class_name ?>(boost::shared_ptr<AbstractIvpOdeSolver> pSolver, boost::shared_ptr<AbstractStimulusFunction> pIntracellularStimulus);
     ~<?= class_name ?>();
     double GetIIonic(const std::vector<double>* pStateVariables=NULL);
-    void EvaluateYDerivatives(double <?= time ?>, const std::vector<double>& rY, std::vector<double>& rDY);
+    void EvaluateYDerivatives(double <?= var_name(model.time()) ?>, const std::vector<double>& rY, std::vector<double>& rDY);
 };
 
 

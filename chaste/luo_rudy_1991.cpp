@@ -56,10 +56,22 @@
     {
         // Inputs:
         // Time units: millisecond
-        {%- for state_var in state_vars %}
-        {% if state_var.in_y_deriv %}double {{ state_var.var }} = {% if loop.index0 == membrane_voltage_index %}(mSetVoltageDerivativeToZero ? this->mFixedVoltage : rY[{{loop.index0}}]);{%- else %}rY[{{loop.index0}}];{%- endif %}{%- endif %}
-        // Units: {{state_var.units}}; Initial value: {{state_var.initial_value}}
-        {%- endfor %}
+        double var_V = (mSetVoltageDerivativeToZero ? this->mFixedVoltage : rY[0];
+        // Units: [mV]; Initial value: -84.5286
+        double var_m = rY[1];
+        // Units: None; Initial value: 0.0017
+        double var_h = rY[2];
+        // Units: None; Initial value: 0.9832
+        double var_j = rY[3];
+        // Units: None; Initial value: 0.995484
+        double var_d = rY[4];
+        // Units: None; Initial value: 3e-06
+        double var_f = rY[5];
+        // Units: None; Initial value: 1.0
+        double var_x = rY[6];
+        // Units: None; Initial value: 0.0057
+        double var_Ca_i = rY[7];
+        // Units: [mM]; Initial value: 0.0002
 
         // Mathematics
         {% for deriv in y_derivative_equations %}{%- if deriv.is_voltage%}double {{deriv.lhs}};{%- endif %}{%- endfor %}
@@ -77,9 +89,16 @@
             {% if not deriv.is_voltage%}const double {% endif %}{{deriv.lhs}} = {{deriv.rhs}}; // {{deriv.units}}{%- endif %}
             {%- endfor %}
         }
-        {% for deriv in y_derivatives %}
-        rDY[{{loop.index0}}] = {{deriv}};
-        {%- endfor %}
+
+        // Outputs:
+        rDY[0] = ddt_V;
+        rDY[1] = ddt_m;
+        rDY[2] = ddt_h;
+        rDY[3] = ddt_j;
+        rDY[4] = ddt_d;
+        rDY[5] = ddt_f;
+        rDY[6] = ddt_x;
+        rDY[7] = ddt_Ca_i;
     }
 
 template<>
