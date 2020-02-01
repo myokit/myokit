@@ -73,6 +73,13 @@ myokit.formats.channelml
 - :class:`myokit.formats.channelml.ChannelMLImporter`
 - :meth:`myokit.formats.channelml.importers`
 
+myokit.formats.chaste
+---------------------
+- :class:`myokit.formats.chaste.ChasteExporter`
+- :class:`myokit.formats.chaste.ChasteExpressionWriter`
+- :meth:`myokit.formats.chaste.exporters`
+- :meth:`myokit.formats.chaste.ewriters`
+
 myokit.formats.cpp
 ------------------------
 - :class:`myokit.formats.cpp.CppExpressionWriter`
