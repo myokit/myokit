@@ -96,6 +96,11 @@ class ChasteExporter(myokit.formats.TemplatedRunnableExporter):
         # Get header file name
         header_file = self._model_code_name + '.hpp'
 
+        # Remove all bindings except pace and time
+        for label, var in model.bindings():
+            if label not in ('time', 'pace'):
+                var.set_binding(None)
+
         # Variable names
         def var_name(lhs):
             if isinstance(lhs, myokit.Variable):
@@ -120,10 +125,14 @@ class ChasteExporter(myokit.formats.TemplatedRunnableExporter):
             raise myokit.ExportError(
                 'Chaste export requires membrane potential to be a state.')
 
+        # Outer membrane currents
+        currents = guess.membrane_currents(model)
+
         # Return template variables
         return {
             'class_name': class_name,
             'code_name': self._model_code_name,
+            'currents': currents,
             'ewriter': ewriter,
             'header_file': header_file,
             'model_name': name,

@@ -4,6 +4,7 @@
 # Variables:
 #   class_name      A valid camel cased class name
 #   code_name       A model name usable in variables etc.
+#   currents        A list of outer membrane current variables
 #   ewriter         An expression writer
 #   header_file     The name of the accompanying header file
 #   model           A model object
@@ -51,29 +52,6 @@ tab = '    '
     {
     }
 
-    double <?= class_name ?>::GetIIonic(const std::vector<double>* pStateVariables)
-    {
-        // For state variable interpolation (SVI) we read in interpolated state variables,
-        // otherwise for ionic current interpolation (ICI) we use the state variables of this model (node).
-        if (!pStateVariables) pStateVariables = &rGetStateVariables();
-        const std::vector<double>& rY = *pStateVariables;
-        {% for state_var in state_vars %}
-        {%- if state_var.in_ionic %}double {{ state_var.var }} = {% if loop.index0 == membrane_voltage_index %}(mSetVoltageDerivativeToZero ? this->mFixedVoltage : rY[{{loop.index0}}]);{%- else %}rY[{{loop.index0}}];{%- endif %}
-        // Units: {{state_var.units}}; Initial value: {{state_var.initial_value}}
-        {% endif %}
-        {%- endfor %}
-        {% for ionic_var in ionic_vars %}
-        const double {{ionic_var.lhs}} = {{ionic_var.rhs}}; // {{ionic_var.units}}
-        {%- endfor %}
-
-        //TODO:
-        // const double var_chaste_interface__i_ionic = (var_L_type_Ca_current__i_CaL + var_calcium_background_current__i_b_Ca + var_calcium_pump_current__i_p_Ca + var_fast_sodium_current__i_Na + var_inward_rectifier_potassium_current__i_K1 + var_potassium_pump_current__i_p_K + var_rapid_time_dependent_potassium_current__i_Kr + var_slow_time_dependent_potassium_current__i_Ks + var_sodium_background_current__i_b_Na + var_sodium_calcium_exchanger_current__i_NaCa + var_sodium_potassium_pump_current__i_NaK + var_transient_outward_current__i_to) * HeartConfig::Instance()->GetCapacitance(); // uA_per_cm2
-
-        const double i_ionic = var_chaste_interface__i_ionic;
-        EXCEPT_IF_NOT(!std::isnan(i_ionic));
-        return i_ionic;
-    }
-
     void <?= class_name ?>::EvaluateYDerivatives(double <?= var_name(model.time()) ?>, const std::vector<double>& rY, std::vector<double>& rDY)
     {
         // Inputs:
@@ -88,6 +66,9 @@ for var in model.states():
 ?>
 
         //TODO:
+
+        STIMULUS IS IN uA/cm^2
+
         // const double var_membrane__i_Stim_converter = GetIntracellularAreaStimulus(var_chaste_interface__environment__time); // uA_per_cm2
         // const double var_membrane__i_Stim = var_membrane__i_Stim_converter / HeartConfig::Instance()->GetCapacitance(); // picoA_per_picoF
 
@@ -110,6 +91,73 @@ for eqs in model.solvable_order().values():
 for var in model.states():
     print(tab*2 + 'rDY[' + str(var.indice()) + '] = ' + var_name(var.lhs()) + ';')
 ?>    }
+
+    double <?= class_name ?>::GetIIonic(const std::vector<double>* pStateVariables)
+    {
+        // For state variable interpolation (SVI) we read in interpolated state variables,
+        // otherwise for ionic current interpolation (ICI) we use the state variables of this model (node).
+        if (!pStateVariables) pStateVariables = &rGetStateVariables();
+        const std::vector<double>& rY = *pStateVariables;
+<?
+# Get equations for currents, and list of states+bound variables required
+eqs, args = model.expressions_for(*currents)
+args = set(args)
+
+# Get states
+for state in model.states():
+    if state not in args:
+        continue
+
+    rhs = 'rY[' + str(var.indice()) + ']'
+    if var is vm:
+        rhs = '(mSetVoltageDerivativeToZero ? this->mFixedVoltage : ' + rhs
+    print(tab*2 + 'double ' + var_name(var) + ' = ' + rhs + ';')
+    print(tab*2 + '// Units: ' + str(var.unit()) + '; Initial value: ' + str(var.state_value()))
+
+# Get pacing variable
+pace = model.binding('pace')
+if pace in args:
+    print('TODO PACING VAR')
+
+# Add equations
+for eq in eqs:
+    var = eq.lhs.var()
+    if var is vm:
+        print(tab*2 + 'double ' + var_name(eq.lhs) + ' = 0;')
+        print(tab*2 + 'if (!mSetVoltageDerivativeToZero)')
+        print(tab*2 + '{')
+        print(tab*3 + ewriter.eq(eq) + ';')
+        print(tab*2 + '}')
+    else:
+        print(tab*2 + 'const double ' + ewriter.eq(eq) + ';')
+
+# Add sum of currents
+print(tab*2 + 'i_sum = ' + ' + '.join([var_name(x) for x in currents]) + ';')
+
+?>
+
+     * @return a value in units of microamps/cm^2.  Note that many cell models
+     * do not use these dimensions (let alone these units) and so a complex conversion
+     * is required.  There are 2 main cases:
+     *   - Cell model uses amps per unit capacitance.  Often in this case the units used
+     *     for the cell capacitance don't make sense (e.g. uF/cm^2 is used, and dV/dt=I/C_m).
+     *     Hence we suggest examining the equation for dV/dt given in the model to determine
+     *     what the cell model really considers the value for C_m to be, and scaling by
+     *     Chaste's C_m / cell model C_m (the latter implicitly being dimensionless).
+     *   - Cell model uses amps.  In this case you need to divide by an estimate of the cell
+     *     surface area.  Assuming the model represents a single cell, and gives C_m in farads,
+     *     then scaling by Chaste's C_m / model C_m seems reasonable.  If the 'cell model'
+     *     doesn't actually represent a single whole cell, then you'll have to be more careful.
+     * In both cases additional scaling may be required to obtain correct units once the
+     * dimensions have been sorted out.
+
+
+        //TODO:
+        //const double i_ionic = i_sum * HeartConfig::Instance()->GetCapacitance(); // uA_per_cm2
+        EXCEPT_IF_NOT(!std::isnan(i_ionic));
+        return i_ionic;
+    }
+
 
 template<>
 void OdeSystemInformation<<?= class_name ?>>::Initialise(void)

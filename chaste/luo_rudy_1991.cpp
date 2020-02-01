@@ -34,26 +34,6 @@
     {
     }
 
-    double CellLuoRudy1991FromMyokit::GetIIonic(const std::vector<double>* pStateVariables)
-    {
-        // For state variable interpolation (SVI) we read in interpolated state variables,
-        // otherwise for ionic current interpolation (ICI) we use the state variables of this model (node).
-        if (!pStateVariables) pStateVariables = &rGetStateVariables();
-        const std::vector<double>& rY = *pStateVariables;
-        {% for state_var in state_vars %}
-        {%- if state_var.in_ionic %}double {{ state_var.var }} = {% if loop.index0 == membrane_voltage_index %}(mSetVoltageDerivativeToZero ? this->mFixedVoltage : rY[{{loop.index0}}]);{%- else %}rY[{{loop.index0}}];{%- endif %}
-        // Units: {{state_var.units}}; Initial value: {{state_var.initial_value}}
-        {% endif %}{%- endfor %}
-
-        {% for ionic_var in ionic_vars %}
-        const double {{ionic_var.lhs}} = {{ionic_var.rhs}}; // {{ionic_var.units}}
-        {%- endfor %}
-
-        const double i_ionic = var_chaste_interface__i_ionic;
-        EXCEPT_IF_NOT(!std::isnan(i_ionic));
-        return i_ionic;
-    }
-
     void CellLuoRudy1991FromMyokit::EvaluateYDerivatives(double var_time, const std::vector<double>& rY, std::vector<double>& rDY)
     {
         // Inputs:
@@ -74,6 +54,11 @@
         // Units: None; Initial value: 0.0057
         double var_Ca_i = rY[7];
         // Units: [mM]; Initial value: 0.0002
+
+
+        //TODO:
+        // const double var_membrane__i_Stim_converter = GetIntracellularAreaStimulus(var_chaste_interface__environment__time); // uA_per_cm2
+        // const double var_membrane__i_Stim = var_membrane__i_Stim_converter / HeartConfig::Instance()->GetCapacitance(); // picoA_per_picoF
 
         // Mathematics
         const double var_Eb = (-59.87);
@@ -151,6 +136,54 @@
         rDY[6] = ddt_x;
         rDY[7] = ddt_Ca_i;
     }
+
+    double CellLuoRudy1991FromMyokit::GetIIonic(const std::vector<double>* pStateVariables)
+    {
+        // For state variable interpolation (SVI) we read in interpolated state variables,
+        // otherwise for ionic current interpolation (ICI) we use the state variables of this model (node).
+        if (!pStateVariables) pStateVariables = &rGetStateVariables();
+        const std::vector<double>& rY = *pStateVariables;
+        const double var_Ca_o = 1.8;
+        const double var_gCa = 0.09;
+        const double var_PNa_K = 0.01833;
+        const double var_K_i = 145.0;
+        const double var_K_o = 5.4;
+        const double var_Na_i = 10.0;
+        const double var_Na_o = 140.0;
+        const double var_F = 96500.0;
+        const double var_R = 8314.0;
+        const double var_T = 310.0;
+        const double var_xi = ((var_V < (-100.0)) ? 1.0 : ((var_V == (-77.0)) ? 2.837 * 0.04 / exp(0.04 * (var_V + 35.0)) : 2.837 * (exp(0.04 * (var_V + 77.0)) - 1.0) / ((var_V + 77.0) * exp(0.04 * (var_V + 35.0)))));
+        const double var_Kp = 1.0 / (1.0 + exp((7.488 - var_V) / 5.98));
+        const double var_gKp = 0.0183;
+        const double var_gNa = 16.0;
+        const double var_Eb = (-59.87);
+        const double var_gb = 0.03921;
+        const double var_ica_E = 7.7 - 13.0287 * log(var_Ca_i / var_Ca_o);
+        const double var_RTF = var_R * var_T / var_F;
+        const double var_gK = 0.282 * sqrt(var_K_o / 5.4);
+        const double var_gK1 = 0.6047 * sqrt(var_K_o / 5.4);
+        const double var_ik_IK_E = var_RTF * log((var_K_o + var_PNa_K * var_Na_o) / (var_K_i + var_PNa_K * var_Na_i));
+        const double var_ik1_E = var_RTF * log(var_K_o / var_K_i);
+        const double var_ENa = var_RTF * log(var_Na_o / var_Na_i);
+        const double var_ik1_g_alpha = 1.02 / (1.0 + exp(0.2385 * (var_V - var_ik1_E - 59.215)));
+        const double var_ik1_g_beta = (0.49124 * exp(0.08032 * (var_V - var_ik1_E + 5.476)) + 1.0 * exp(0.06175 * (var_V - var_ik1_E - 594.31))) / (1.0 + exp((-0.5143) * (var_V - var_ik1_E + 4.753)));
+        const double var_g = var_ik1_g_alpha / (var_ik1_g_alpha + var_ik1_g_beta);
+        const double var_ICa = var_gCa * var_d * var_f * (var_V - var_ica_E);
+        const double var_IK = var_gK * var_xi * var_x * (var_V - var_ik_IK_E);
+        const double var_IK1 = var_gK1 * var_g * (var_V - var_ik1_E);
+        const double var_IKp = var_gKp * var_Kp * (var_V - var_ik1_E);
+        const double var_INa = var_gNa * pow(var_m, 3.0) * var_h * var_j * (var_V - var_ENa);
+        const double var_Ib = var_gb * (var_V - var_Eb);
+        i_sum = var_ICa + var_IK + var_IK1 + var_IKp + var_INa + var_Ib;
+
+
+        //TODO:
+        //const double i_ionic = i_sum * HeartConfig::Instance()->GetCapacitance(); // uA_per_cm2
+        EXCEPT_IF_NOT(!std::isnan(i_ionic));
+        return i_ionic;
+    }
+
 
 template<>
 void OdeSystemInformation<CellLuoRudy1991FromMyokit>::Initialise(void)
