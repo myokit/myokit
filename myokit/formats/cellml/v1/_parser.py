@@ -469,9 +469,6 @@ class CellMLParser(object):
                 ' variable in component_2, got "' + str(v1) + '" (3.4.6.3).',
                 element)
 
-        # Check if already connected
-        # Doesn't seem to be a rule against this!
-
         # Connect variables
         model = c1.model()
         try:

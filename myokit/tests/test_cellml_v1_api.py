@@ -398,6 +398,22 @@ class TestCellMLModel(unittest.TestCase):
             cellml.CellMLError, 'Invalid connection',
             m.add_connection, xsib, y)
 
+        # "in" variable connected to two "out" variables
+        m = cellml.Model('m')
+        a = m.add_component('a')
+        b = m.add_component('b')
+        c = m.add_component('c')
+        x = a.add_variable('x', 'volt', 'out', 'none')
+        y = b.add_variable('y', 'volt', 'out', 'none')
+        z = c.add_variable('z', 'volt', 'in', 'none')
+        m.add_connection(x, z)
+        m.add_connection(x, z)
+        m.add_connection(x, z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Invalid connection', m.add_connection, y, z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Invalid connection', m.add_connection, z, y)
+
     def test_creation(self):
         # Tests Model creation
 
