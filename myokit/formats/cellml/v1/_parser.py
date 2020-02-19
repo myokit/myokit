@@ -77,11 +77,16 @@ class CellMLParser(object):
         ' single variable as its left-hand side, and each variable may only'
         ' appear on a left-hand side once.')
 
-    def _check_allowed_content(self, element, children, attributes, name=None):
+    def _check_allowed_content(
+            self, element, children, attributes, name=None, math=False):
         """
         Scans ``element`` and raises an exception if any unlisted CellML
         children are found, if any unlisted null-namespace attributes are
         found, or if the element contains text.
+
+        With ``math=False`` (default), the method also checks that no MathML
+        elements are present. With ``math=True`` only a MathML ``<math>``
+        element is allowed.
         """
         # Check for text inside this tag
         # For mixed-context xml this checks only up until the first child tag.
@@ -92,6 +97,8 @@ class CellMLParser(object):
 
         # Check child elements
         allowed = set([self._join(x) for x in children])
+        if math:
+            allowed.add(self._join('math', cellml.NS_MATHML))
         for child in element:
             # Check for trailing text
             if child.tail is not None and child.tail.strip():
@@ -101,15 +108,15 @@ class CellMLParser(object):
                     child)
 
             # Check if allowed
-            ns = split(child.tag)[0]
             if str(child.tag) in allowed:
                 continue
-            if ns == self._ns:
+            ns = split(child.tag)[0]
+            if ns == self._ns or ns == cellml.NS_MATHML:
                 raise CellMLParsingError(
                     'Unexpected content type in ' + self._tag(element, name)
                     + ', found element of type ' + self._tag(child) + '.',
                     child)
-            elif ns != cellml.NS_MATHML:
+            else:
                 # Check if CellML appearing in non-CellML elements
                 # But leave checking inside MathML for later
                 self._check_for_cellml_in_extensions(child)
@@ -291,7 +298,7 @@ class CellMLParser(object):
 
         # Check allowed content
         self._check_allowed_content(
-            element, ['units', 'variable'], ['name'], name)
+            element, ['units', 'variable'], ['name'], name, math=True)
 
         # Create component units
         for child in self._sort_units(element, model):
@@ -1112,6 +1119,8 @@ class CellMLParser(object):
         """
         ns, el = split(element.tag)
         if ns != self._ns:
+            if ns == cellml.NS_MATHML:
+                return 'mathml:' + el
             return str(element.tag)
         tag = 'cellml:' + el
         if name is not None:

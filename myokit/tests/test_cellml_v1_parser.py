@@ -609,6 +609,12 @@ class TestCellMLParser(unittest.TestCase):
             v1.CellMLParsingError, 'valid CellML identifier',
             v1.parse_string, x + y)
 
+        # MathML inside the model element
+        self.assertBad(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML" />',
+            'element of type mathml:math',
+        )
+
         # Too many free variables
         self.assertBad(
             '<component name="a">'
