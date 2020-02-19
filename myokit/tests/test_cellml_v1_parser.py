@@ -75,9 +75,19 @@ class TestCellMLParser(unittest.TestCase):
             '<model name="test"'
             '       xmlns="http://www.cellml.org/cellml/' + v + '#"'
             '       xmlns:cellml="http://www.cellml.org/cellml/' + v + '#"'
-            '       xmlns:cmeta="http://www.cellml.org/metadata/1.0#">'
+            '       xmlns:cmeta="http://www.cellml.org/metadata/1.0#"'
+            '       xmlns:rdf="' + cellml.NS_RDF + '"'
+            '       xmlns:bqbiol="' + cellml.NS_BQBIOL + '">'
             + xml +
             '</model>')
+
+    def test_cellml_namespace(self):
+        # Attributes from the CellML namespace are not allowed
+
+        self.assertBad(
+            '<component name="c" cellml:name="d" />',
+            'Unexpected attribute cellml:name',
+        )
 
     def test_cmeta_ids(self):
         # Test cmeta ids are parsed
@@ -97,6 +107,22 @@ class TestCellMLParser(unittest.TestCase):
             '<component cmeta:id="x" name="c" />'
             '<component cmeta:id="x" name="d" />',
             'Duplicate cmeta:id')
+
+    def test_cmeta_namespace(self):
+        # Only the cmeta:id attribute is allowed, no other cmeta attributes or
+        # elements.
+
+        # Attribute in cmeta
+        self.assertBad(
+            '<component name="c" cmeta:ernie="bert" />',
+            'Unexpected attribute cmeta:ernie')
+
+        # Element in cmeta
+        self.assertBad(
+            '<component name="c">'
+            '  <cmeta:bert />'
+            '</component>',
+            'element of type cmeta:bert')
 
     def test_component(self):
         # Test component parsing
@@ -556,6 +582,19 @@ class TestCellMLParser(unittest.TestCase):
         y = '<apply><eq /><ci>x</ci><cn cellml:units="volt">-80</cn></apply>'
         self.assertBad(x + y + z, 'public_interface="in"')
 
+        # MathML inside the model element
+        self.assertBad(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML" />',
+            'element of type mathml:math',
+        )
+
+        # Attributes from the MathML namespace
+        self.assertBad(
+            '<component name="c" mathml:name="d" '
+            ' xmlns:mathml="http://www.w3.org/1998/Math/MathML" />',
+            'Unexpected attribute mathml:name',
+        )
+
     def test_maths_1_1(self):
         # Test setting a variable as initial value, allowed in 1.1
 
@@ -682,10 +721,7 @@ class TestCellMLParser(unittest.TestCase):
         # Tests parsing of RDF annotations for the Web Lab
 
         # Start and end of required tags
-        r1 = ('<rdf:RDF'
-              ' xmlns:rdf="' + cellml.NS_RDF + '"'
-              ' xmlns:bqbiol="' + cellml.NS_BQBIOL + '"'
-              '>')
+        r1 = '<rdf:RDF>'
         r2 = '</rdf:RDF>'
         d1a = '<rdf:Description rdf:about="#'
         d1b = '">'
@@ -728,10 +764,7 @@ class TestCellMLParser(unittest.TestCase):
         # Tests parsing of RDF annotations for the Web Lab
 
         # Start and end of required tags
-        r1 = ('<rdf:RDF'
-              ' xmlns:rdf="' + cellml.NS_RDF + '"'
-              ' xmlns:bqbiol="' + cellml.NS_BQBIOL + '"'
-              '>')
+        r1 = '<rdf:RDF>'
         r2 = '</rdf:RDF>'
         d1a = '<rdf:Description rdf:about="#'
         d1b = '">'
@@ -801,6 +834,22 @@ class TestCellMLParser(unittest.TestCase):
             v1.parse_string,
             'Hello there',
         )
+
+    def test_rdf(self):
+        # rdf:RDF is allowed, but no other elements or attributes
+
+        # rdf:RDF is ok
+        self.parse('<rdf:RDF />')
+
+        # Attribute from rdf namespace
+        self.assertBad(
+            '<component name="c" rdf:RDF="d" />',
+            'Unexpected attribute rdf:RDF')
+
+        # Element from rdf namespace
+        self.assertBad(
+            '<rdf:robert />',
+            'found element of type rdf:robert')
 
     def test_text_in_elements(self):
         # Test for text inside (and after) elements

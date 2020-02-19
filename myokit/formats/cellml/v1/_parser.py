@@ -77,11 +77,16 @@ class CellMLParser(object):
         ' single variable as its left-hand side, and each variable may only'
         ' appear on a left-hand side once.')
 
-    def _check_allowed_content(self, element, children, attributes, name=None):
+    def _check_allowed_content(
+            self, element, children, attributes, name=None, math=False):
         """
         Scans ``element`` and raises an exception if any unlisted CellML
         children are found, if any unlisted null-namespace attributes are
         found, or if the element contains text.
+
+        With ``math=False`` (default), the method also checks that no MathML
+        elements are present. With ``math=True`` only a MathML ``<math>``
+        element is allowed.
         """
         # Check for text inside this tag
         # For mixed-context xml this checks only up until the first child tag.
@@ -90,8 +95,17 @@ class CellMLParser(object):
                 raise CellMLParsingError(
                     'Text found in ' + self._tag(element, name) + '.', element)
 
+        # Not extension namespaces
+        not_ext_ns = (
+            self._ns, cellml.NS_CMETA, cellml.NS_RDF, cellml.NS_MATHML)
+
         # Check child elements
         allowed = set([self._join(x) for x in children])
+        allowed.add(self._join('RDF', cellml.NS_RDF))
+        if math:
+            allowed.add(self._join('math', cellml.NS_MATHML))
+
+        # Check if only contains allowed child elements
         for child in element:
             # Check for trailing text
             if child.tail is not None and child.tail.strip():
@@ -101,25 +115,47 @@ class CellMLParser(object):
                     child)
 
             # Check if allowed
-            ns = split(child.tag)[0]
             if str(child.tag) in allowed:
                 continue
-            if ns == self._ns:
+
+            # Check if in an extension element
+            ns = split(child.tag)[0]
+            if ns in not_ext_ns:
                 raise CellMLParsingError(
                     'Unexpected content type in ' + self._tag(element, name)
                     + ', found element of type ' + self._tag(child) + '.',
                     child)
-            elif ns != cellml.NS_MATHML:
+            else:
                 # Check if CellML appearing in non-CellML elements
                 # But leave checking inside MathML for later
                 self._check_for_cellml_in_extensions(child)
 
         # Check attributes
         allowed = set(attributes)
+        cmeta_id = self._join('id', cellml.NS_CMETA)
         for key in element.attrib:
-            if key[:1] != '{' and key not in allowed:
+            # Cmeta id is always allowed
+            if key == cmeta_id:
+                continue
+
+            # Extension namespaces are always allowed
+            ns, at = split(key)
+            if ns is not None and ns not in not_ext_ns:
+                continue
+
+            # No namespace, then must be in allowed list
+            if key not in allowed:
+                # Format attribute name
+                if ns == self._ns:
+                    key = 'cellml:' + at
+                elif ns == cellml.NS_MATHML:
+                    key = 'mathml:' + at
+                elif ns == cellml.NS_RDF:
+                    key = 'rdf:' + at
+                elif ns == cellml.NS_CMETA:
+                    key = 'cmeta:' + at
                 raise CellMLParsingError(
-                    'Unexpected attribute "' + key + '" found in '
+                    'Unexpected attribute ' + key + ' found in '
                     + self._tag(element, name) + '.', element)
 
     def _check_for_cellml_in_extensions(self, element):
@@ -291,7 +327,7 @@ class CellMLParser(object):
 
         # Check allowed content
         self._check_allowed_content(
-            element, ['units', 'variable'], ['name'], name)
+            element, ['units', 'variable'], ['name'], name, math=True)
 
         # Create component units
         for child in self._sort_units(element, model):
@@ -1104,15 +1140,24 @@ class CellMLParser(object):
     def _tag(self, element, name=None):
         """
         Returns an element's name, but changes the syntax from ``{...}tag`` to
-        ``cellml:tag`` for CellML attributes.
+        ``cellml:tag`` for CellML elements.
 
         If the element is in a CellML namespace and an optional ``name``
         attribute is given, this is added to the returned output using xpath
         syntax, e.g. ``cellml:model[@name="MyModel"]``.
+
+        Can also be used for attributes.
         """
         ns, el = split(element.tag)
         if ns != self._ns:
-            return str(element.tag)
+            if ns == cellml.NS_MATHML:
+                return 'mathml:' + el
+            elif ns == cellml.NS_RDF:
+                return 'rdf:' + el
+            elif ns == cellml.NS_CMETA:
+                return 'cmeta:' + el
+            else:
+                return str(element.tag)
         tag = 'cellml:' + el
         if name is not None:
             tag += '[@name="' + name + '"]'
