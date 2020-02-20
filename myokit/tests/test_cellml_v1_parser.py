@@ -356,10 +356,31 @@ class TestCellMLParser(unittest.TestCase):
     def test_extensions(self):
         # Test handling of extension elements
 
-        # CellML inside extension is not allowed
+        # CellML elements can not appear inside extensions
         self.assertBad(
-            '<x:y xmlns:x="xyz"><component name="c" /></x:y>',
+            '<x:y xmlns:x="x"><component name="c" /></x:y>',
             'found inside extension element')
+        self.assertBad(
+            '<x:a xmlns:x="xxx">'
+            '  <y:b xmlns:y="yyy">'
+            '    <z:b xmlns:z="zzz">'
+            '      <component name="c" />'
+            '    </z:b>'
+            '  </y:b>'
+            '</x:a>',
+            'found inside extension element')
+
+        # CellML attributes can not appear inside extensions
+        self.assertBad(
+            '<x:y xmlns:x="x" cellml:name="a" />',
+            'found in extension element')
+        self.assertBad(
+            '<x:a xmlns:x="xxx">'
+            '  <y:b xmlns:y="yyy">'
+            '    <z:b xmlns:z="zzz" cellml:name="b" />'
+            '  </y:b>'
+            '</x:a>',
+            'found in extension element')
 
     def test_group(self):
         # Tests parsing a group element.
