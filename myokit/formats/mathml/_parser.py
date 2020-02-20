@@ -327,6 +327,10 @@ class MathMLParser(object):
             return self._const(1)
         elif name == 'false':
             return self._const(0)
+        elif name == 'notanumber':
+            return self._const(float('nan'))
+        elif name == 'infinity':
+            return self._const(float('inf'))
 
         # Piecewise statement
         elif name == 'piecewise':

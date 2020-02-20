@@ -228,6 +228,12 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = self.p('<false/>')
         self.assertEqual(float(x), 0)
 
+        # Nan and inf
+        x = self.p('<notanumber/>')
+        self.assertTrue(math.isnan(float(x)))
+        x = self.p('<infinity/>')
+        self.assertEqual(float(x), float('inf'))
+
         # Test constants are handled via the number factory
         xml = '<pi/>'
         x = mathml.parse_mathml_etree(
