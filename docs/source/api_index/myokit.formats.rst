@@ -63,6 +63,7 @@ myokit.formats.cellml.v1
 - :meth:`myokit.formats.cellml.v1.parse_file`
 - :meth:`myokit.formats.cellml.v1.parse_string`
 - :class:`myokit.formats.cellml.v1.Units`
+- :class:`myokit.formats.cellml.v1.UnsupportedUnitsError`
 - :class:`myokit.formats.cellml.v1.Variable`
 - :meth:`myokit.formats.cellml.v1.write_file`
 - :meth:`myokit.formats.cellml.v1.write_string`

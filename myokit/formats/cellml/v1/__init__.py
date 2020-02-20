@@ -15,6 +15,7 @@ from ._api import (     # noqa
     Component,
     Model,
     Units,
+    UnsupportedUnitsError,
     Variable,
     is_valid_identifier,
 )

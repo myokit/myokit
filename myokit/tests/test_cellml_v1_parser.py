@@ -595,6 +595,10 @@ class TestCellMLParser(unittest.TestCase):
         y = '<apply><eq /><ci>x</ci><cn cellml:units="vlop">-80</cn></apply>'
         self.assertBad(x + y + z, 'Unknown unit "vlop" referenced')
 
+        # Unsupported units
+        y = '<apply><eq /><ci>x</ci><cn cellml:units="celsius">2</cn></apply>'
+        self.assertBad(x + y + z, 'Unsupported unit "celsius" referenced')
+
         # Items outside of MathML namespace
         y = '<cellml:component name="bertie" />'
         self.assertBad(x + y + z, 'must be in the mathml namespace')
@@ -996,6 +1000,10 @@ class TestCellMLParser(unittest.TestCase):
         x = '<units name="meter"><unit units="volt" /></units>'
         self.assertBad(x, 'overlaps with a predefined name')
 
+        # Same error for celsius (unsupported units)
+        x = '<units name="meter"><unit units="celsius" /></units>'
+        self.assertBad(x, 'overlaps with a predefined name')
+
         # Duplicate name (handled in sorting)
         x = '<units name="wooster"><unit units="volt" /></units>'
         self.assertBad(x + x, 'Duplicate units definition')
@@ -1020,6 +1028,57 @@ class TestCellMLParser(unittest.TestCase):
         m = self.parse(x)
         u = m['a'].find_units('kilowooster').myokit_unit()
         self.assertEqual(u, myokit.units.volt * 1000)
+
+    def test_units_predefined(self):
+        # Tests parsing all the predefined units
+
+        def u(units):
+            m = self.parse(
+                '<component name="c">'
+                '  <variable name="x" units="' + units + '"'
+                '   initial_value="1" />'
+                '</component>'
+            )
+            return m['c']['x'].units().myokit_unit()
+
+        self.assertEqual(u('ampere'), myokit.units.ampere)
+        self.assertEqual(u('becquerel'), myokit.units.becquerel)
+        self.assertEqual(u('candela'), myokit.units.candela)
+        self.assertEqual(u('coulomb'), myokit.units.coulomb)
+        self.assertEqual(u('dimensionless'), myokit.units.dimensionless)
+        self.assertEqual(u('farad'), myokit.units.farad)
+        self.assertEqual(u('gram'), myokit.units.g)
+        self.assertEqual(u('gray'), myokit.units.gray)
+        self.assertEqual(u('henry'), myokit.units.henry)
+        self.assertEqual(u('hertz'), myokit.units.hertz)
+        self.assertEqual(u('joule'), myokit.units.joule)
+        self.assertEqual(u('katal'), myokit.units.katal)
+        self.assertEqual(u('kelvin'), myokit.units.kelvin)
+        self.assertEqual(u('kilogram'), myokit.units.kg)
+        self.assertEqual(u('liter'), myokit.units.liter)
+        self.assertEqual(u('litre'), myokit.units.liter)
+        self.assertEqual(u('lumen'), myokit.units.lumen)
+        self.assertEqual(u('lux'), myokit.units.lux)
+        self.assertEqual(u('meter'), myokit.units.meter)
+        self.assertEqual(u('metre'), myokit.units.meter)
+        self.assertEqual(u('mole'), myokit.units.mole)
+        self.assertEqual(u('newton'), myokit.units.newton)
+        self.assertEqual(u('ohm'), myokit.units.ohm)
+        self.assertEqual(u('pascal'), myokit.units.pascal)
+        self.assertEqual(u('radian'), myokit.units.radian)
+        self.assertEqual(u('second'), myokit.units.second)
+        self.assertEqual(u('siemens'), myokit.units.siemens)
+        self.assertEqual(u('sievert'), myokit.units.sievert)
+        self.assertEqual(u('steradian'), myokit.units.steradian)
+        self.assertEqual(u('tesla'), myokit.units.tesla)
+        self.assertEqual(u('volt'), myokit.units.volt)
+        self.assertEqual(u('watt'), myokit.units.watt)
+        self.assertEqual(u('weber'), myokit.units.weber)
+
+        # Celsius is not supported
+        self.assertRaisesRegex(
+            v1.CellMLParsingError, 'unsupported units "celsius"',
+            u, 'celsius')
 
     def test_variable(self):
         # Tests parsing variables

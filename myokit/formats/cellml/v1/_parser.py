@@ -709,10 +709,15 @@ class CellMLParser(object):
             # Find units in component
             try:
                 units = component.find_units(units)
+            except myokit.formats.cellml.v1.UnsupportedUnitsError:
+                raise CellMLParsingError(
+                    'Unsupported unit "' + str(units) + '" referenced inside a'
+                    ' MathML equation (4.4.3.2).', element)
+
             except myokit.formats.cellml.v1.CellMLError:
                 raise CellMLParsingError(
                     'Unknown unit "' + str(units) + '" referenced inside a'
-                    ' MathML equation (4.4.3.2).')
+                    ' MathML equation (4.4.3.2).', element)
 
             # Create and return
             return myokit.Number(value, units.myokit_unit())
