@@ -471,7 +471,7 @@ class TestCellMLParser(unittest.TestCase):
         y = ('</component_ref>'
              '<component_ref component="b">'
              '  <component_ref component="a" />')
-        self.assertBad(x + y + z, 'hierarchy can not be circular')
+        self.assertBad(x + y + z, 'hierarchy cannot be circular')
 
     def test_group_relationship_ref(self):
         # Tests parsing a relationsip_ref element.

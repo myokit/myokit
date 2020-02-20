@@ -372,7 +372,7 @@ class Component(AnnotatableElement):
         while parent is not None:
             if parent is self:
                 raise CellMLError(
-                    'Encapsulation hierarchy can not be circular (6.4.3.2).')
+                    'Encapsulation hierarchy cannot be circular (6.4.3.2).')
             parent = parent._parent
 
         # Validate variables
