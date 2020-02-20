@@ -397,6 +397,11 @@ class MathMLParser(object):
             return self._parse_nary(element, iterator, myokit.And)
         elif name == 'or':
             return self._parse_nary(element, iterator, myokit.Or)
+        elif name == 'xor':
+            # Becomes ``(x or y) and not(x and y)``
+            x, y = self._eat(element, iterator, 2)
+            return myokit.And(myokit.Or(x, y), myokit.Not(myokit.And(x, y)))
+
         elif name == 'not':
             return myokit.Not(*self._eat(element, iterator))
         elif name == 'eq' or name == 'equivalent':
