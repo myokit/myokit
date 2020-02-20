@@ -418,6 +418,26 @@ class TestCellMLParser(unittest.TestCase):
              '</group>')
         self.assertBad(x + y, 'at least one relationship_ref')
 
+        # In encapsulation and containment relationships, the first
+        # component_ref must have at least one child
+        y = ('<group>'
+             '  <relationship_ref relationship="encapsulation" />'
+             '  <component_ref component="a" />'
+             '</group>')
+        self.assertBad(x + y, 'must have at least one child \(6.4.3.2\)')
+        y = ('<group>'
+             '  <relationship_ref relationship="containment" />'
+             '  <component_ref component="a" />'
+             '</group>')
+        self.assertBad(x + y, 'must have at least one child \(6.4.3.2\)')
+
+        # But it's fine for extension types
+        y = ('<group xmlns:x="x">'
+             '  <relationship_ref x:relationship="family" />'
+             '  <component_ref component="a" />'
+             '</group>')
+        self.parse(x + y)
+
     def test_group_component_ref(self):
         # Tests parsing a component_ref element.
 

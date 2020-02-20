@@ -601,9 +601,20 @@ class CellMLParser(object):
             component.set_parent(parent)
 
         # Check child component refs
-        for child in element.findall(self._join('component_ref')):
+        kids = element.findall(self._join('component_ref'))
+        for child in kids:
             self._parse_group_component_ref(
                 child, model, relationships, component)
+
+        # No parent? Then (encapsulation and containment) relationships must
+        # have at least one child.
+        if len(kids) == 0 and parent is None:
+            if ('encapsulation' in relationships
+                    or 'containment' in relationships):
+                raise CellMLParsingError(
+                    'The first component_ref in an encapsulation or'
+                    ' containment relationship must have at least one child'
+                    ' (6.4.3.2).')
 
     def _parse_group_relationship_ref(self, element, relationships):
         """
