@@ -145,29 +145,34 @@ class CellMLParser(object):
 
             # No namespace, then must be in allowed list
             if key not in allowed:
-                # Format attribute name
-                if ns == self._ns:
-                    key = 'cellml:' + at
-                elif ns == cellml.NS_MATHML:
-                    key = 'mathml:' + at
-                elif ns == cellml.NS_RDF:
-                    key = 'rdf:' + at
-                elif ns == cellml.NS_CMETA:
-                    key = 'cmeta:' + at
+                key = self._item(ns, at)
                 raise CellMLParsingError(
                     'Unexpected attribute ' + key + ' found in '
                     + self._tag(element, name) + '.', element)
 
     def _check_for_cellml_in_extensions(self, element):
         """
-        Checks that a non-CellML element does not contain CellML elements.
+        Checks that a non-CellML element does not contain CellML elements or
+        attributes.
         """
+        # Check if this element contains CellML attributes
+        for key in element.attrib:
+            ns, at = split(key)
+            if ns == self._ns:
+                raise CellMLParsingError(
+                    'CellML attribute ' + self._item(ns, at) + ' found'
+                    ' in extension element ' + self._tag(element)
+                    + ' (2.4.3).', element)
+
+        # Check if this element has CellML children
         for child in element:
             if split(child.tag)[0] == self._ns:
                 raise CellMLParsingError(
                     'CellML element ' + self._tag(child) + ' found inside'
                     ' extension element ' + self._tag(element) + ' (2.4.3).',
                     child)
+
+            # Recurse into children
             self._check_for_cellml_in_extensions(child)
 
     def _check_cmeta_id(self, element):
@@ -239,6 +244,28 @@ class CellMLParser(object):
         text = '\n'.join(lines)
 
         return text
+
+    def _item(self, ns, item):
+        """
+        Given a namespace ``ns`` and an element or attribute ``item``, this
+        method will return a nicely formatted combination, e.g. ``item`` for
+        the null namespace, ``cellml:item`` for a namespace with a known
+        prefix, or ``{ns}item`` for a namespace without a known prefix.
+
+        See also :meth:`_tag`.
+        """
+        if ns is None:
+            return item
+        elif ns == self._ns:
+            return 'cellml:' + item
+        elif ns == cellml.NS_MATHML:
+            return 'mathml:' + item
+        elif ns == cellml.NS_RDF:
+            return 'rdf:' + item
+        elif ns == cellml.NS_CMETA:
+            return 'cmeta:' + item
+        else:
+            return '{' + ns + '}' + item
 
     def _join(self, element, namespace=None):
         """
@@ -469,9 +496,6 @@ class CellMLParser(object):
                 ' variable in component_2, got "' + str(v1) + '" (3.4.6.3).',
                 element)
 
-        # Check if already connected
-        # Doesn't seem to be a rule against this!
-
         # Connect variables
         model = c1.model()
         try:
@@ -577,9 +601,20 @@ class CellMLParser(object):
             component.set_parent(parent)
 
         # Check child component refs
-        for child in element.findall(self._join('component_ref')):
+        kids = element.findall(self._join('component_ref'))
+        for child in kids:
             self._parse_group_component_ref(
                 child, model, relationships, component)
+
+        # No parent? Then (encapsulation and containment) relationships must
+        # have at least one child.
+        if len(kids) == 0 and parent is None:
+            if ('encapsulation' in relationships
+                    or 'containment' in relationships):
+                raise CellMLParsingError(
+                    'The first component_ref in an encapsulation or'
+                    ' containment relationship must have at least one child'
+                    ' (6.4.3.2).')
 
     def _parse_group_relationship_ref(self, element, relationships):
         """
@@ -674,10 +709,15 @@ class CellMLParser(object):
             # Find units in component
             try:
                 units = component.find_units(units)
+            except myokit.formats.cellml.v1.UnsupportedUnitsError:
+                raise CellMLParsingError(
+                    'Unsupported unit "' + str(units) + '" referenced inside a'
+                    ' MathML equation (4.4.3.2).', element)
+
             except myokit.formats.cellml.v1.CellMLError:
                 raise CellMLParsingError(
                     'Unknown unit "' + str(units) + '" referenced inside a'
-                    ' MathML equation (4.4.3.2).')
+                    ' MathML equation (4.4.3.2).', element)
 
             # Create and return
             return myokit.Number(value, units.myokit_unit())
@@ -1149,17 +1189,8 @@ class CellMLParser(object):
         Can also be used for attributes.
         """
         ns, el = split(element.tag)
-        if ns != self._ns:
-            if ns == cellml.NS_MATHML:
-                return 'mathml:' + el
-            elif ns == cellml.NS_RDF:
-                return 'rdf:' + el
-            elif ns == cellml.NS_CMETA:
-                return 'cmeta:' + el
-            else:
-                return str(element.tag)
-        tag = 'cellml:' + el
-        if name is not None:
+        tag = self._item(ns, el)
+        if ns == self._ns and name is not None:
             tag += '[@name="' + name + '"]'
         return tag
 

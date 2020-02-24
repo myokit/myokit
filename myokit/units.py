@@ -102,8 +102,8 @@ _add('lumen', lm)       # Luminous flux
 _add('lx', lm / m**2, quantifiable=True, output=True)
 _add('lux', lx)         # Illuminance
 _add('Bq', 1 / s, quantifiable=True, output=True)
-_add('bequerel', Bq)    # radioactive decays / s
-_add('Bequerel', Bq)
+_add('becquerel', Bq)    # radioactive decays / s
+_add('Becquerel', Bq)
 _add('Gy', J / kg, quantifiable=True, output=True)
 _add('gray', Gy)        # absorbed dose of ionizing radiation
 _add('Gray', Gy)

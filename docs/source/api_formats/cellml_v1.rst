@@ -31,6 +31,8 @@ CellML Model API
 
 .. autoclass:: CellMLError
 
+.. autoclass:: UnsupportedUnitsError
+
 .. autofunction:: clean_identifier
 
 .. autofunction:: create_unit_name

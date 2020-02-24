@@ -228,6 +228,12 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = self.p('<false/>')
         self.assertEqual(float(x), 0)
 
+        # Nan and inf
+        x = self.p('<notanumber/>')
+        self.assertTrue(math.isnan(float(x)))
+        x = self.p('<infinity/>')
+        self.assertEqual(float(x), float('inf'))
+
         # Test constants are handled via the number factory
         xml = '<pi/>'
         x = mathml.parse_mathml_etree(
@@ -533,6 +539,14 @@ class ContentMathMLParserTest(unittest.TestCase):
         # Or
         e = myokit.Or(cond1, cond2)
         x = '<apply><or/>' + c1 + c2 + '</apply>'
+        self.assertEqual(self.p(x), e)
+
+        # Xor
+        e = myokit.And(
+            myokit.Or(cond1, cond2),
+            myokit.Not(myokit.And(cond1, cond2))
+        )
+        x = '<apply><xor/>' + c1 + c2 + '</apply>'
         self.assertEqual(self.p(x), e)
 
     def test_parse_mathml_string(self):

@@ -160,6 +160,12 @@ class TestCellMLComponent(unittest.TestCase):
         self.assertIn(v, vs)
         self.assertIn(w, vs)
 
+        # Test creating a variable with celsius
+        c = cellml.Model('m').add_component('c')
+        self.assertRaisesRegex(
+            cellml.UnsupportedUnitsError, 'celsius',
+            c.add_variable, 'v', 'celsius')
+
         # Rest of creation is tested in variable test
 
     def test_model(self):
@@ -397,6 +403,22 @@ class TestCellMLModel(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'Invalid connection',
             m.add_connection, xsib, y)
+
+        # "in" variable connected to two "out" variables
+        m = cellml.Model('m')
+        a = m.add_component('a')
+        b = m.add_component('b')
+        c = m.add_component('c')
+        x = a.add_variable('x', 'volt', 'out', 'none')
+        y = b.add_variable('y', 'volt', 'out', 'none')
+        z = c.add_variable('z', 'volt', 'in', 'none')
+        m.add_connection(x, z)
+        m.add_connection(x, z)
+        m.add_connection(x, z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Invalid connection', m.add_connection, y, z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Invalid connection', m.add_connection, z, y)
 
     def test_creation(self):
         # Tests Model creation
@@ -1220,6 +1242,11 @@ class TestCellMLUnits(unittest.TestCase):
             cellml.CellMLError, 'Unknown units name',
             cellml.Units.find_units, 'wooster')
 
+        # Test lookup of unsupported units
+        self.assertRaisesRegex(
+            cellml.UnsupportedUnitsError, 'celsius',
+            cellml.Units.find_units, 'celsius')
+
     def test_myokit_unit(self):
         # Tests myokit_unit()
 
@@ -1305,76 +1332,74 @@ class TestCellMLUnits(unittest.TestCase):
         self.assertEqual(u, myokit.parse_unit('mm^2 (1.234)'))
 
     def test_predefined(self):
-        # Tests all predefined units exist
+        # Tests the predefined units exist and map to the correct myokit units
 
-        self.assertEqual(cellml.Units.find_units(
-            'dimensionless').myokit_unit(), myokit.units.dimensionless)
         self.assertEqual(cellml.Units.find_units(
             'ampere').myokit_unit(), myokit.units.A)
         self.assertEqual(cellml.Units.find_units(
-            'farad').myokit_unit(), myokit.units.F)
-        self.assertEqual(cellml.Units.find_units(
-            'katal').myokit_unit(), myokit.units.kat)
-        self.assertEqual(cellml.Units.find_units(
-            'lux').myokit_unit(), myokit.units.lux)
-        self.assertEqual(cellml.Units.find_units(
-            'pascal').myokit_unit(), myokit.units.Pa)
-        self.assertEqual(cellml.Units.find_units(
-            'tesla').myokit_unit(), myokit.units.T)
-        self.assertEqual(cellml.Units.find_units(
             'becquerel').myokit_unit(), myokit.units.Bq)
-        self.assertEqual(cellml.Units.find_units(
-            'gram').myokit_unit(), myokit.units.g)
-        self.assertEqual(cellml.Units.find_units(
-            'kelvin').myokit_unit(), myokit.units.K)
-        self.assertEqual(cellml.Units.find_units(
-            'meter').myokit_unit(), myokit.units.m)
-        self.assertEqual(cellml.Units.find_units(
-            'radian').myokit_unit(), myokit.units.rad)
-        self.assertEqual(cellml.Units.find_units(
-            'volt').myokit_unit(), myokit.units.V)
         self.assertEqual(cellml.Units.find_units(
             'candela').myokit_unit(), myokit.units.cd)
         self.assertEqual(cellml.Units.find_units(
+            'coulomb').myokit_unit(), myokit.units.C)
+        self.assertEqual(cellml.Units.find_units(
+            'dimensionless').myokit_unit(), myokit.units.dimensionless)
+        self.assertEqual(cellml.Units.find_units(
+            'farad').myokit_unit(), myokit.units.F)
+        self.assertEqual(cellml.Units.find_units(
+            'gram').myokit_unit(), myokit.units.g)
+        self.assertEqual(cellml.Units.find_units(
             'gray').myokit_unit(), myokit.units.Gy)
-        self.assertEqual(cellml.Units.find_units(
-            'kilogram').myokit_unit(), myokit.units.kg)
-        self.assertEqual(cellml.Units.find_units(
-            'metre').myokit_unit(), myokit.units.m)
-        self.assertEqual(cellml.Units.find_units(
-            'second').myokit_unit(), myokit.units.s)
-        self.assertEqual(cellml.Units.find_units(
-            'watt').myokit_unit(), myokit.units.W)
-        self.assertEqual(cellml.Units.find_units(
-            'celsius').myokit_unit(), myokit.units.C)
         self.assertEqual(cellml.Units.find_units(
             'henry').myokit_unit(), myokit.units.H)
         self.assertEqual(cellml.Units.find_units(
-            'liter').myokit_unit(), myokit.units.L)
-        self.assertEqual(cellml.Units.find_units(
-            'mole').myokit_unit(), myokit.units.mol)
-        self.assertEqual(cellml.Units.find_units(
-            'siemens').myokit_unit(), myokit.units.S)
-        self.assertEqual(cellml.Units.find_units(
-            'weber').myokit_unit(), myokit.units.Wb)
-        self.assertEqual(cellml.Units.find_units(
-            'coulomb').myokit_unit(), myokit.units.C)
-        self.assertEqual(cellml.Units.find_units(
             'hertz').myokit_unit(), myokit.units.Hz)
-        self.assertEqual(cellml.Units.find_units(
-            'litre').myokit_unit(), myokit.units.L)
-        self.assertEqual(cellml.Units.find_units(
-            'newton').myokit_unit(), myokit.units.N)
-        self.assertEqual(cellml.Units.find_units(
-            'sievert').myokit_unit(), myokit.units.Sv)
         self.assertEqual(cellml.Units.find_units(
             'joule').myokit_unit(), myokit.units.J)
         self.assertEqual(cellml.Units.find_units(
+            'katal').myokit_unit(), myokit.units.kat)
+        self.assertEqual(cellml.Units.find_units(
+            'kelvin').myokit_unit(), myokit.units.K)
+        self.assertEqual(cellml.Units.find_units(
+            'kilogram').myokit_unit(), myokit.units.kg)
+        self.assertEqual(cellml.Units.find_units(
+            'liter').myokit_unit(), myokit.units.L)
+        self.assertEqual(cellml.Units.find_units(
+            'litre').myokit_unit(), myokit.units.L)
+        self.assertEqual(cellml.Units.find_units(
             'lumen').myokit_unit(), myokit.units.lm)
+        self.assertEqual(cellml.Units.find_units(
+            'lux').myokit_unit(), myokit.units.lux)
+        self.assertEqual(cellml.Units.find_units(
+            'meter').myokit_unit(), myokit.units.m)
+        self.assertEqual(cellml.Units.find_units(
+            'metre').myokit_unit(), myokit.units.m)
+        self.assertEqual(cellml.Units.find_units(
+            'mole').myokit_unit(), myokit.units.mol)
+        self.assertEqual(cellml.Units.find_units(
+            'newton').myokit_unit(), myokit.units.N)
         self.assertEqual(cellml.Units.find_units(
             'ohm').myokit_unit(), myokit.units.R)
         self.assertEqual(cellml.Units.find_units(
+            'pascal').myokit_unit(), myokit.units.Pa)
+        self.assertEqual(cellml.Units.find_units(
+            'radian').myokit_unit(), myokit.units.rad)
+        self.assertEqual(cellml.Units.find_units(
+            'second').myokit_unit(), myokit.units.s)
+        self.assertEqual(cellml.Units.find_units(
+            'siemens').myokit_unit(), myokit.units.S)
+        self.assertEqual(cellml.Units.find_units(
+            'sievert').myokit_unit(), myokit.units.Sv)
+        self.assertEqual(cellml.Units.find_units(
             'steradian').myokit_unit(), myokit.units.sr)
+        self.assertEqual(cellml.Units.find_units(
+            'tesla').myokit_unit(), myokit.units.T)
+        self.assertEqual(cellml.Units.find_units(
+            'volt').myokit_unit(), myokit.units.V)
+        self.assertEqual(cellml.Units.find_units(
+            'watt').myokit_unit(), myokit.units.W)
+        self.assertEqual(cellml.Units.find_units(
+            'weber').myokit_unit(), myokit.units.Wb)
 
     def test_prefixes(self):
         # Tests if all units prefixes are parsed correctly.
@@ -1450,6 +1475,8 @@ class TestCellMLUnits(unittest.TestCase):
         self.assertTrue(len(names) > 10)
         for name in names:
             self.assertTrue(isinstance(name, basestring))
+            if name == 'celsius':
+                continue
             self.assertTrue(
                 isinstance(cellml.Units.find_units(name), cellml.Units))
 

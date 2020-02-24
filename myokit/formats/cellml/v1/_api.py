@@ -175,6 +175,16 @@ class CellMLError(myokit.MyokitError):
     """
 
 
+class UnsupportedUnitsError(CellMLError):
+    """
+    Raised when unsupported units are used.
+    """
+    def __init__(self, units):
+        self.units = units
+        super(UnsupportedUnitsError, self).__init__(
+            'Unsupported units "' + units + '".')
+
+
 class Component(AnnotatableElement):
     """
     Represents a model component, should not be created directly but only via
@@ -277,7 +287,6 @@ class Component(AnnotatableElement):
         of predefined units.
 
         Raises a :class:`CellMLError` is no unit is found.
-
         """
         try:
             return self._units[name]
@@ -372,7 +381,7 @@ class Component(AnnotatableElement):
         while parent is not None:
             if parent is self:
                 raise CellMLError(
-                    'Encapsulation hierarchy can not be circular (6.4.3.2).')
+                    'Encapsulation hierarchy cannot be circular (6.4.3.2).')
             parent = parent._parent
 
         # Validate variables
@@ -555,9 +564,20 @@ class Model(AnnotatableElement):
                 ' relationship (3.4.6.4).')
 
         # Check interfaces and connect variables
+        # Note: We're allowing the same connection to be specified twice here
         if interface_1 == 'out' and interface_2 == 'in':
+            if variable_2._source not in (None, variable_1):
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_2) + ' has a '
+                    + string_1 + '_interface of "in" and is already connected'
+                    ' to a variable with an interface of "out".')
             variable_2._source = variable_1
         elif interface_1 == 'in' and interface_2 == 'out':
+            if variable_1._source not in (None, variable_2):
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_1) + ' has a '
+                    + string_2 + '_interface of "in" and is already connected'
+                    ' to a variable with an interface of "out".')
             variable_1._source = variable_2
         else:
             raise CellMLError(
@@ -1174,6 +1194,10 @@ class Units(object):
 
         If no such unit is found a :class:`CellMLError` is raised.
         """
+        # Check for unsupported units
+        if name == 'celsius':
+            raise UnsupportedUnitsError('celsius')
+
         # Check if we have a cached object for this
         obj = cls._si_unit_objects.get(name, None)
         if obj is None:
@@ -1317,40 +1341,40 @@ class Units(object):
 
     # Predefined units in CellML, name to Unit
     _si_units = {
-        'dimensionless': myokit.units.dimensionless,
         'ampere': myokit.units.A,
-        'farad': myokit.units.F,
-        'katal': myokit.units.kat,
-        'lux': myokit.units.lux,
-        'pascal': myokit.units.Pa,
-        'tesla': myokit.units.T,
         'becquerel': myokit.units.Bq,
-        'gram': myokit.units.g,
-        'kelvin': myokit.units.K,
-        'meter': myokit.units.m,
-        'radian': myokit.units.rad,
-        'volt': myokit.units.V,
         'candela': myokit.units.cd,
-        'gray': myokit.units.Gy,
-        'kilogram': myokit.units.kg,
-        'metre': myokit.units.m,
-        'second': myokit.units.s,
-        'watt': myokit.units.W,
-        'celsius': myokit.units.C,
-        'henry': myokit.units.H,
-        'liter': myokit.units.L,
-        'mole': myokit.units.mol,
-        'siemens': myokit.units.S,
-        'weber': myokit.units.Wb,
+        'celsius': None,
         'coulomb': myokit.units.C,
+        'dimensionless': myokit.units.dimensionless,
+        'farad': myokit.units.F,
+        'gram': myokit.units.g,
+        'gray': myokit.units.Gy,
+        'henry': myokit.units.H,
         'hertz': myokit.units.Hz,
-        'litre': myokit.units.L,
-        'newton': myokit.units.N,
-        'sievert': myokit.units.Sv,
         'joule': myokit.units.J,
+        'katal': myokit.units.kat,
+        'kelvin': myokit.units.K,
+        'kilogram': myokit.units.kg,
+        'liter': myokit.units.L,
+        'litre': myokit.units.L,
         'lumen': myokit.units.lm,
+        'lux': myokit.units.lux,
+        'meter': myokit.units.m,
+        'metre': myokit.units.m,
+        'mole': myokit.units.mol,
+        'newton': myokit.units.N,
         'ohm': myokit.units.R,
-        'steradian': myokit.units.sr,
+        'pascal': myokit.units.Pa,
+        'radian': myokit.units.radian,
+        'second': myokit.units.s,
+        'siemens': myokit.units.S,
+        'sievert': myokit.units.Sv,
+        'steradian': myokit.units.steradian,
+        'tesla': myokit.units.T,
+        'volt': myokit.units.V,
+        'watt': myokit.units.W,
+        'weber': myokit.units.Wb,
     }
 
     # Predefined Units objects
@@ -1358,28 +1382,35 @@ class Units(object):
 
     # Predefined units in CellML, Unit object to name
     _si_units_r = {
-        myokit.units.dimensionless: 'dimensionless',
         myokit.units.A: 'ampere',
-        myokit.units.F: 'farad',
-        myokit.units.kat: 'katal',
-        myokit.units.lux: 'lux',
-        myokit.units.Pa: 'pascal',
-        myokit.units.T: 'tesla',
         myokit.units.Bq: 'becquerel',
-        myokit.units.g: 'gram',
-        myokit.units.K: 'kelvin',
-        myokit.units.m: 'meter',
-        myokit.units.V: 'volt',
         myokit.units.cd: 'candela',
+        myokit.units.C: 'coulomb',
+        myokit.units.dimensionless: 'dimensionless',
+        myokit.units.F: 'farad',
+        myokit.units.g: 'gram',
         myokit.units.Gy: 'gray',
-        myokit.units.kg: 'kilogram',
-        myokit.units.m: 'metre',
-        myokit.units.s: 'second',
-        myokit.units.W: 'watt',
-        myokit.units.C: 'celsius',
         myokit.units.H: 'henry',
+        myokit.units.hertz: 'hertz',
+        myokit.units.joule: 'joule',
+        myokit.units.kat: 'katal',
+        myokit.units.K: 'kelvin',
+        myokit.units.kg: 'kilogram',
         myokit.units.L: 'liter',
+        myokit.units.lumen: 'lumen',
+        myokit.units.lux: 'lux',
+        myokit.units.m: 'meter',
         myokit.units.mol: 'mole',
+        myokit.units.N: 'newton',
+        myokit.units.ohm: 'ohm',
+        myokit.units.Pa: 'pascal',
+        myokit.units.s: 'second',
+        myokit.units.S: 'siemens',
+        myokit.units.sievert: 'sievert',
+        myokit.units.T: 'tesla',
+        myokit.units.V: 'volt',
+        myokit.units.W: 'watt',
+        myokit.units.weber: 'weber',
     }
 
     # Recognised unit prefixes, name to multiplier
@@ -1406,32 +1437,6 @@ class Units(object):
         'zepto': -21,
         'yocto': -24,
     }
-
-    # Recognised unit prefixes, multiplier to name
-    '''
-    _si_prefixes_r = {
-        -24: 'yocto',
-        -21: 'zepto',
-        -18: 'atto',
-        -15: 'femto',
-        -12: 'pico',
-        -9: 'nano',
-        -6: 'micro',
-        -3: 'milli',
-        -2: 'centi',
-        -1: 'deci',
-        1: 'deka',
-        2: 'hecto',
-        3: 'kilo',
-        6: 'mega',
-        9: 'giga',
-        12: 'tera',
-        15: 'peta',
-        18: 'exa',
-        21: 'zetta',
-        24: 'yotta',
-    }
-    '''
 
 
 class Variable(AnnotatableElement):
@@ -1469,11 +1474,15 @@ class Variable(AnnotatableElement):
         # Check and store units
         try:
             self._units = component.find_units(units)
+        except UnsupportedUnitsError as e:
+            raise UnsupportedUnitsError(
+                'Variable units attribute references the unsupported units'
+                ' "' + e.units + '".')
         except CellMLError:
             raise CellMLError(
                 'Variable units attribute must reference a units element in'
                 ' the current component or model, or one of the predefined'
-                ' units (3.4.3.3).')
+                ' units, found "' + str(units) + '" (3.4.3.3).')
 
         # Check and store interfaces
         if public_interface not in ['none', 'in', 'out']:
