@@ -1425,7 +1425,8 @@ def version(raw=False):
     The same version info can be accessed using ``myokit.__version__``.
     Unformatted info is available in ``myokit.__version_tuple__``, which
     contains the major, minor, and revision number respectively, all as
-    ``int``s. For development versions of Myokit, it may contain a 4th element.
+    ``int`` objects. For development versions of Myokit, it may contain a 4th
+    element ``"dev"``.
     """
     if raw:
         return myokit.__version__
