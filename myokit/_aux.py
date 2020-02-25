@@ -1417,7 +1417,12 @@ def strfloat(number, full=False):
 
 def version(raw=False):
     """
-    Returns the current Myokit version.
+    Returns the current Myokit version as a string.
+
+    If the optional argument ``raw`` is set to ``True``, a tuple is returned
+    with the major, minor, and revision numbers (as ``int``s). For development
+    versions of Myokit the tuple will contain a fourth element containing the
+    string ``"dev"``.
     """
     if raw:
         return myokit.__version__
