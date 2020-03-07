@@ -3546,11 +3546,25 @@ class Variable(VarOwner):
         for var in self.refs_by(self._is_state):
             var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
 
-        # For the time variable, update all state RHS's as well
+        # For states, also update references to their derivatives
+        if self._is_state:
+            old_ref = myokit.Derivative(myokit.Name(self))
+            new_ref = myokit.Divide(old_ref, fw)
+            for var in self.refs_by(False):
+                var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
+
+        # For the time variable, update all state RHS's, and any references to
+        # derivatives
         model = self.parent(Model)
         if self == model.time():
             for var in model.states():
                 var.set_rhs(myokit.Divide(var.rhs(), fw))
+                old_ref = myokit.Derivative(myokit.Name(var))
+                new_ref = myokit.Multiply(old_ref, fw)
+                for ref in var.refs_by(False):
+                    ref.set_rhs(ref.rhs().clone(subst={old_ref: new_ref}))
+
+
 
     def _delete(self, recursive=False, whole_component=False):
         """
