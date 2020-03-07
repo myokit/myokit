@@ -3564,8 +3564,6 @@ class Variable(VarOwner):
                 for ref in var.refs_by(False):
                     ref.set_rhs(ref.rhs().clone(subst={old_ref: new_ref}))
 
-
-
     def _delete(self, recursive=False, whole_component=False):
         """
         Tells this variable that it's going to be deleted.
