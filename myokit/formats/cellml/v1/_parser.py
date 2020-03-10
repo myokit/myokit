@@ -1019,9 +1019,16 @@ class CellMLParser(object):
         self._check_allowed_content(
             element, ['unit'], ['name', 'base_units'], name)
 
+        # Check the units definition has children
+        children = element.findall(self._join('unit'))
+        if not children:
+            raise CellMLParsingError(
+                'Units element with base_units="no" must contain at least one'
+                ' child unit element.')
+
         # Parse content
         myokit_unit = myokit.units.dimensionless
-        for child in element.findall(self._join('unit')):
+        for child in children:
             myokit_unit *= self._parse_unit(child, owner)
 
         # Add units to owner

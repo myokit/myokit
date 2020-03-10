@@ -38,6 +38,8 @@ class VariableTest(unittest.TestCase):
             [membrane]
             dot(V) = - (ikr.i + ina.i * 1 [cm^2/uF])
                 in [mV]
+            dotv = 5 [mV/ms] + dot(V)
+                in [mV/ms]
 
             [cell]
             Cm = 0.123 [uF]
