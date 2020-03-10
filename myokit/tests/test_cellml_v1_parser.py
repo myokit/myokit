@@ -1008,6 +1008,10 @@ class TestCellMLParser(unittest.TestCase):
         x = '<units name="wooster"><unit units="volt" /></units>'
         self.assertBad(x + x, 'Duplicate units definition')
 
+        # No child unit elements
+        x = '<units name="woopster" />'
+        self.assertBad(x, 'at least one child unit element')
+
         # Missing units definitions
         x = ('<units name="wooster"><unit units="fluther" /></units>')
         self.assertBad(x, 'Unable to resolve network of units')
