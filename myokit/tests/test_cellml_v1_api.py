@@ -413,8 +413,8 @@ class TestCellMLModel(unittest.TestCase):
         y = b.add_variable('y', 'volt', 'out', 'none')
         z = c.add_variable('z', 'volt', 'in', 'none')
         m.add_connection(x, z)
-        m.add_connection(x, z)
-        m.add_connection(x, z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Invalid connection', m.add_connection, x, z)
         self.assertRaisesRegex(
             cellml.CellMLError, 'Invalid connection', m.add_connection, y, z)
         self.assertRaisesRegex(
