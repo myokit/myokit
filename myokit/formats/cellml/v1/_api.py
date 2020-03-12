@@ -658,9 +658,9 @@ class Model(AnnotatableElement):
         """
         Attempts to find a string name for the given :class:`myokit.Unit`.
 
-        Searches first in this component, then in its model, then in the list
-        of predefined units. If multiple units definitions have the same
-        :class:`myokit.Unit`, the last added name is returned.
+        Searches first in this model, then in the list of predefined units. If
+        multiple units definitions have the same :class:`myokit.Unit`, the last
+        added name is returned.
 
         Raises a :class:`CellMLError` is no appropriate unit is found.
         """
@@ -1406,10 +1406,10 @@ class Units(object):
         myokit.units.kat: 'katal',
         myokit.units.K: 'kelvin',
         myokit.units.kg: 'kilogram',
-        myokit.units.L: 'liter',
+        myokit.units.L: 'litre',
         myokit.units.lumen: 'lumen',
         myokit.units.lux: 'lux',
-        myokit.units.m: 'meter',
+        myokit.units.m: 'metre',
         myokit.units.mol: 'mole',
         myokit.units.N: 'newton',
         myokit.units.ohm: 'ohm',
