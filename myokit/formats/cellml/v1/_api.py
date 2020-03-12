@@ -566,19 +566,29 @@ class Model(AnnotatableElement):
         # Check interfaces and connect variables
         # Note: We're allowing the same connection to be specified twice here
         if interface_1 == 'out' and interface_2 == 'in':
-            if variable_2._source not in (None, variable_1):
+            if variable_2._source is None:
+                variable_2._source = variable_1
+            elif variable_2._source is variable_1:
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_2) + ' is already'
+                    ' connected to ' + str(variable_1) + '.')
+            else:
                 raise CellMLError(
                     'Invalid connection: ' + str(variable_2) + ' has a '
                     + string_1 + '_interface of "in" and is already connected'
                     ' to a variable with an interface of "out".')
-            variable_2._source = variable_1
         elif interface_1 == 'in' and interface_2 == 'out':
-            if variable_1._source not in (None, variable_2):
+            if variable_1._source is None:
+                variable_1._source = variable_2
+            elif variable_1._source is variable_2:
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_1) + ' is already'
+                    ' connected to ' + str(variable_2) + '.')
+            else:
                 raise CellMLError(
                     'Invalid connection: ' + str(variable_1) + ' has a '
                     + string_2 + '_interface of "in" and is already connected'
                     ' to a variable with an interface of "out".')
-            variable_1._source = variable_2
         else:
             raise CellMLError(
                 'Invalid connection: ' + str(variable_1) + ' has a ' + string_1
