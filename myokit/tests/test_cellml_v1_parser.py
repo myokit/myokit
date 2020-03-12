@@ -260,9 +260,11 @@ class TestCellMLParser(unittest.TestCase):
         y = '<map_variables variable_1="x" variable_2="z" />'
         self.assertBad(x + y + z, 'variable_2 attribute must refer to')
 
-        # Connecting twice is fine
+        # Connecting twice is not OK
         y = '<map_variables variable_1="x" variable_2="y" />'
-        self.parse(x + y + y + z)
+        self.assertRaisesRegex(
+            v1.CellMLParsingError, 'already connected to',
+            self.parse, x + y + y + z)
 
         # Bad interfaces etc. propagate from cellml API
         q = ('<component name="a">'
