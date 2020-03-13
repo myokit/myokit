@@ -349,7 +349,7 @@ class Component(AnnotatableElement):
         # Check parent is a component from the same model (or None)
         if parent is not None:
             if not isinstance(parent, Component):
-                raise ValueError('Parent must be a cellml.Component.')
+                raise ValueError('Parent must be a cellml.v1.Component.')
             if self._model != parent._model:
                 raise ValueError('Parent must be from the same model.')
 
@@ -523,15 +523,17 @@ class Model(AnnotatableElement):
         """
         # Check both are variables, and from this model
         if not isinstance(variable_1, Variable):
-            raise ValueError('Argument variable_1 must be a cellml.Variable.')
+            raise ValueError('Argument variable_1 must be a'
+                             ' cellml.v1.Variable.')
         if not isinstance(variable_2, Variable):
-            raise ValueError('Argument variable_2 must be a cellml.Variable.')
+            raise ValueError('Argument variable_2 must be a'
+                             ' cellml.v1.Variable.')
         if variable_1._model is not self:
-            raise ValueError('Argument variable_1 must be a cellml.Variable'
-                             ' from this model.')
+            raise ValueError('Argument variable_1 must be a variable from this'
+                             ' model.')
         if variable_2._model is not self:
-            raise ValueError('Argument variable_2 must be a cellml.Variable'
-                             ' from this model.')
+            raise ValueError('Argument variable_2 must be a variable from this'
+                             ' model.')
 
         # Check variables are distinct
         if variable_1 is variable_2:
