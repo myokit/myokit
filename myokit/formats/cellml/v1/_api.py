@@ -1554,7 +1554,7 @@ class Variable(AnnotatableElement):
 
     def is_state(self):
         """
-        Checks if this is a state variable.
+        Checks if this variable has been marked as a state variable.
         """
         return self._is_state
 

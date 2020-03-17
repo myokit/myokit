@@ -86,7 +86,7 @@ class TestCellML1AnnotatedElement(unittest.TestCase):
 
 
 class TestCellML1Component(unittest.TestCase):
-    """ Tests for ``cellml.Component``. """
+    """ Tests for ``cellml.v1.Component``. """
 
     def test_creation(self):
         # Test component creation
@@ -249,7 +249,7 @@ class TestCellML1Component(unittest.TestCase):
         self.assertIn(e, list(c.children()))
 
         # Test bad parent
-        self.assertRaisesRegex(ValueError, 'cellml.Component', b.set_parent, m)
+        self.assertRaisesRegex(ValueError, 'v1.Component', b.set_parent, m)
         m2 = cellml.Model('m2')
         c2 = m2.add_component('c2')
         self.assertRaisesRegex(ValueError, 'same model', b.set_parent, c2)
@@ -373,16 +373,16 @@ class TestCellML1Model(unittest.TestCase):
 
         # Not a variable or wrong model
         self.assertRaisesRegex(
-            ValueError, 'variable_1 must be a cellml.Variable.',
+            ValueError, 'variable_1 must be a cellml.v1.Variable.',
             m.add_connection, 'x', y)
         self.assertRaisesRegex(
-            ValueError, 'variable_2 must be a cellml.Variable.',
+            ValueError, 'variable_2 must be a cellml.v1.Variable.',
             m.add_connection, y, 'x')
         self.assertRaisesRegex(
-            ValueError, 'variable_1 must be a cellml.Variable from',
+            ValueError, 'variable_1 must be a variable from',
             m.add_connection, x2, y)
         self.assertRaisesRegex(
-            ValueError, 'variable_2 must be a cellml.Variable from',
+            ValueError, 'variable_2 must be a variable from',
             m.add_connection, y, x2)
 
         # Connected to self
@@ -962,7 +962,7 @@ class TestCellML1ModelConversion(unittest.TestCase):
 
 
 class TestCellML1Variable(unittest.TestCase):
-    """ Tests for ``cellml.Variable``. """
+    """ Tests for ``cellml.v1.Variable``. """
 
     def test_creation(self):
         # Tests variable creation
