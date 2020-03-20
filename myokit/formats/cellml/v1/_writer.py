@@ -375,10 +375,10 @@ class CellMLWriter(object):
             except KeyError:
                 pass
 
-    def write(self, model, version='1.0'):
+    def write(self, model):
         """
-        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
-        creates an ElementTree that represents it.
+        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and creates
+        an ElementTree that represents it.
 
         If the model contains any variables that have an `oxmeta` meta data
         property, this will be annotated with RDF tags suitable for use with
@@ -410,8 +410,8 @@ class CellMLWriter(object):
 
     def write_file(self, path, model):
         """
-        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
-        writes it to the given ``path``.
+        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and writes it
+        to the given ``path``.
 
         See :meth:`write()` for details.
         """
@@ -432,8 +432,8 @@ class CellMLWriter(object):
 
     def write_string(self, model):
         """
-        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
-        converts it to an XML string.
+        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and converts
+        it to an XML string.
 
         See :meth:`write()` for details.
         """

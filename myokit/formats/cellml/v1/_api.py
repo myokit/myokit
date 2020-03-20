@@ -367,8 +367,6 @@ class Component(AnnotatableElement):
         """
         Returns an iterator over the :class:`Units` objects in this component.
         """
-        # Note: Must use _by_name here, other one doesn't necessarily contain
-        # all units objects (only names are unique).
         return iter(self._units.values())
 
     def _validate(self, warnings):
@@ -511,15 +509,7 @@ class Model(AnnotatableElement):
 
     def add_connection(self, variable_1, variable_2):
         """
-        Adds a connection between variables ``comp1.var1`` and ``comp2.var2``.
-
-        Arguments:
-
-        ``variable_1``
-            One variable to connect.
-        ``variable_2``
-            The other variable to connect.
-
+        Adds a connection between ``variable_1`` and ``variable_2``.
         """
         # Check both are variables, and from this model
         if not isinstance(variable_1, Variable):
@@ -923,9 +913,6 @@ class Model(AnnotatableElement):
         # Copy meta data
         for key, value in self.meta.items():
             m.meta[key] = value
-
-        # Mapping from CellML variables to Myokit variables, per component
-        var_map = {}
 
         # Gather set of variables that are used in (local) equations
         used = set()
