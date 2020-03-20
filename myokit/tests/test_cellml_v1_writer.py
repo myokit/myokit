@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the CellML 1.0 writer
+# Tests the CellML 1.0/1.1 writer
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -152,7 +152,6 @@ class TestCellMLWriter(unittest.TestCase):
         r1.set_is_state(True)
         r1.set_initial_value(0.1)
         t1 = c1.add_variable('t', 'second')
-        t1.set_initial_value(0)
         m1.set_free_variable(t1)
 
         # Add component without maths

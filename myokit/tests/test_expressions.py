@@ -2645,13 +2645,30 @@ class PiecewiseTest(unittest.TestCase):
 
 class EquationTest(unittest.TestCase):
     """
-    Tests :class:`myokit.Equation`.
+    Tests :class:`myokit.Equation` (which is not strictly speaking a part of
+    the equation system).
     """
     def test_creation(self):
         # Test creation of equations.
         lhs = myokit.Name('x')
         rhs = myokit.Number('3')
         myokit.Equation(lhs, rhs)
+
+    def test_code(self):
+        # Test :meth:`Equation.code()`.
+        eq = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
+        self.assertEqual(eq.code(), 'str:x = 3')
+        self.assertEqual(eq.code(), str(eq))
+
+    def test_clone(self):
+        # Test equation cloning
+        eq1 = myokit.Equation(myokit.Name('x'), myokit.Name('y'))
+        eq2 = myokit.Equation(myokit.Name('y'), myokit.Name('x'))
+        self.assertEqual(eq1.clone(), eq1)
+        self.assertEqual(eq1, eq2.clone(subst={
+            myokit.Name('x'): myokit.Name('y'),
+            myokit.Name('y'): myokit.Name('x'),
+        }))
 
     def test_eq(self):
         # Test equality checking.
@@ -2678,12 +2695,6 @@ class EquationTest(unittest.TestCase):
         self.assertNotEqual(eq1, eq2)
         self.assertNotEqual(eq2, eq1)
 
-    def test_code(self):
-        # Test :meth:`Equation.code()`.
-        eq = myokit.Equation(myokit.Name('x'), myokit.Number('3'))
-        self.assertEqual(eq.code(), 'str:x = 3')
-        self.assertEqual(eq.code(), str(eq))
-
     def test_hash(self):
         # Test that equations can be hashed.
         # No exception = pass
@@ -2698,6 +2709,13 @@ class EquationTest(unittest.TestCase):
         self.assertEqual(next(i), lhs)
         self.assertEqual(next(i), rhs)
         self.assertEqual(len(list(eq)), 2)
+
+    def test_str_and_repr(self):
+        # Test string conversion
+        x = myokit.Model('m').add_component('c').add_variable('x')
+        eq1 = myokit.Equation(myokit.Name(x), myokit.Number('3'))
+        self.assertEqual(str(eq1), 'c.x = 3')
+        self.assertEqual(repr(eq1), '<Equation c.x = 3>')
 
 
 class UserFunctionTest(unittest.TestCase):

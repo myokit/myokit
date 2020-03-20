@@ -4275,6 +4275,17 @@ class Equation(object):
         else:
             return self.lhs == other.lhs and self.rhs == other.rhs
 
+    def clone(self, subst=None, expand=False, retain=None):
+        """
+        Clones this equation.
+
+        See :meth:`myokit.Expression.clone()` for details of the arguments.
+        """
+        return Equation(
+            self.lhs.clone(subst, expand, retain),
+            self.rhs.clone(subst, expand, retain),
+        )
+
     def code(self):
         b = StringIO()
         self.lhs._code(b, None)
@@ -4295,6 +4306,9 @@ class Equation(object):
 
     def __str__(self):
         return self.code()
+
+    def __repr__(self):
+        return '<Equation ' + str(self) + '>'
 
 
 class EquationList(list, VarProvider):

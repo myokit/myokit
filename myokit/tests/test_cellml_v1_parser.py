@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the CellML 1.0/1.1 cellml.
+# Tests the CellML 1.0/1.1 parser.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -316,7 +316,7 @@ class TestCellMLParser(unittest.TestCase):
         org_values = org_model.eval_state_derivatives()
 
         # Load exported version
-        path = os.path.join(DIR, 'lr-1991-exported.cellml')
+        path = os.path.join(DIR, 'lr-1991-exported-1.cellml')
         cm = v1.parse_file(path)
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
