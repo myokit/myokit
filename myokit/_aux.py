@@ -250,7 +250,7 @@ class PyCapture(object):
         if capturing:
             self._stop_capturing()
 
-        if sys.hexversion >= 0x03000000:    # pragma: no cover
+        if sys.hexversion >= 0x03000000:
             text = ''.join(self._captured)
         else:   # pragma: no cover
             # In Python 2, this needs to be decoded from ascii
@@ -297,9 +297,25 @@ class SubCapture(PyCapture):
             self._stdout = sys.stdout
             self._stderr = sys.stderr
 
-            # Get file descriptors used for output and errors
-            self._stdout_fd = sys.__stdout__.fileno()
-            self._stderr_fd = sys.__stderr__.fileno()
+            # Get file descriptors used for output and errors.
+            #
+            # On https://docs.python.org/3/library/sys.html#module-sys, it says
+            # that stdout/err as well as __stdout__ can be None (e.g. in spyder
+            # on windows), so we need to check for this.
+            # In other cases (pythonw.exe) they can be set but return a
+            # negative file descriptor (indicating it's invalid).
+            # So here we check if __stdout__ is None and if so set a negative
+            # fileno so that we can catch both cases at once in the rest of the
+            # code.
+            #
+            if sys.__stdout__ is not None:
+                self._stdout_fd = sys.__stdout__.fileno()
+            else:   # pragma: no cover
+                self._stdout_fd = -1
+            if sys.__stderr__ is not None:
+                self._stderr_fd = sys.__stderr__.fileno()
+            else:   # pragma: no cover
+                self._stderr_fd = -1
 
             # If they're proper streams (so if not pythonw.exe), flush them
             if self._stdout_fd >= 0:
