@@ -6,7 +6,26 @@
 
 **Important: Do simulation first, model syntax later (it's pretty self-explanatory, and most people don't write models!)**
 
-1. Running a single cell simulation
+## 1. Running a single cell simulation
+
+1. [Simulating an action potential](./basics-simulating-an-action-potential.ipynb)
+    - Loading model, protocol, script
+    - Creating simulation
+    - Running
+    - Plotting
+
+
+2. [Logging simulation results](basics-logging-simulation-results.ipynb)
+    - Selecting by name
+    - Logging derivatives
+    - Using flags
+    - Continuing on from a previous simulation
+    - Storing to disk, loading from disk
+    
+    
+    
+    
+
     - Starting/stopping
     - Pre-pacing and resetting
     - Different log options (names, existing log, constants, derivatives)

@@ -9,11 +9,10 @@ Please note this page is still a work in progress, and many more examples are ye
 
 
 
-## The basics
+## Running single cell simulations
 
 1. [Simulating an action potential](./basics-simulating-an-action-potential.ipynb)
-2. [Selecting variables to log](basics-selecting-variables.ipynb)
-
+2. [Logging simulation results](basics-logging-simulation-results.ipynb)
 3. Starting, stopping, pre-pacing, and loops
     - Changing variables
     - Defining protocols
