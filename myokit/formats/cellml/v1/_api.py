@@ -349,7 +349,7 @@ class Component(AnnotatableElement):
         # Check parent is a component from the same model (or None)
         if parent is not None:
             if not isinstance(parent, Component):
-                raise ValueError('Parent must be a cellml.Component.')
+                raise ValueError('Parent must be a cellml.v1.Component.')
             if self._model != parent._model:
                 raise ValueError('Parent must be from the same model.')
 
@@ -367,8 +367,6 @@ class Component(AnnotatableElement):
         """
         Returns an iterator over the :class:`Units` objects in this component.
         """
-        # Note: Must use _by_name here, other one doesn't necessarily contain
-        # all units objects (only names are unique).
         return iter(self._units.values())
 
     def _validate(self, warnings):
@@ -511,27 +509,21 @@ class Model(AnnotatableElement):
 
     def add_connection(self, variable_1, variable_2):
         """
-        Adds a connection between variables ``comp1.var1`` and ``comp2.var2``.
-
-        Arguments:
-
-        ``variable_1``
-            One variable to connect.
-        ``variable_2``
-            The other variable to connect.
-
+        Adds a connection between ``variable_1`` and ``variable_2``.
         """
         # Check both are variables, and from this model
         if not isinstance(variable_1, Variable):
-            raise ValueError('Argument variable_1 must be a cellml.Variable.')
+            raise ValueError('Argument variable_1 must be a'
+                             ' cellml.v1.Variable.')
         if not isinstance(variable_2, Variable):
-            raise ValueError('Argument variable_2 must be a cellml.Variable.')
+            raise ValueError('Argument variable_2 must be a'
+                             ' cellml.v1.Variable.')
         if variable_1._model is not self:
-            raise ValueError('Argument variable_1 must be a cellml.Variable'
-                             ' from this model.')
+            raise ValueError('Argument variable_1 must be a variable from this'
+                             ' model.')
         if variable_2._model is not self:
-            raise ValueError('Argument variable_2 must be a cellml.Variable'
-                             ' from this model.')
+            raise ValueError('Argument variable_2 must be a variable from this'
+                             ' model.')
 
         # Check variables are distinct
         if variable_1 is variable_2:
@@ -566,19 +558,29 @@ class Model(AnnotatableElement):
         # Check interfaces and connect variables
         # Note: We're allowing the same connection to be specified twice here
         if interface_1 == 'out' and interface_2 == 'in':
-            if variable_2._source not in (None, variable_1):
+            if variable_2._source is None:
+                variable_2._source = variable_1
+            elif variable_2._source is variable_1:
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_2) + ' is already'
+                    ' connected to ' + str(variable_1) + '.')
+            else:
                 raise CellMLError(
                     'Invalid connection: ' + str(variable_2) + ' has a '
                     + string_1 + '_interface of "in" and is already connected'
                     ' to a variable with an interface of "out".')
-            variable_2._source = variable_1
         elif interface_1 == 'in' and interface_2 == 'out':
-            if variable_1._source not in (None, variable_2):
+            if variable_1._source is None:
+                variable_1._source = variable_2
+            elif variable_1._source is variable_2:
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_1) + ' is already'
+                    ' connected to ' + str(variable_2) + '.')
+            else:
                 raise CellMLError(
                     'Invalid connection: ' + str(variable_1) + ' has a '
                     + string_2 + '_interface of "in" and is already connected'
                     ' to a variable with an interface of "out".')
-            variable_1._source = variable_2
         else:
             raise CellMLError(
                 'Invalid connection: ' + str(variable_1) + ' has a ' + string_1
@@ -648,9 +650,9 @@ class Model(AnnotatableElement):
         """
         Attempts to find a string name for the given :class:`myokit.Unit`.
 
-        Searches first in this component, then in its model, then in the list
-        of predefined units. If multiple units definitions have the same
-        :class:`myokit.Unit`, the last added name is returned.
+        Searches first in this model, then in the list of predefined units. If
+        multiple units definitions have the same :class:`myokit.Unit`, the last
+        added name is returned.
 
         Raises a :class:`CellMLError` is no appropriate unit is found.
         """
@@ -911,9 +913,6 @@ class Model(AnnotatableElement):
         # Copy meta data
         for key, value in self.meta.items():
             m.meta[key] = value
-
-        # Mapping from CellML variables to Myokit variables, per component
-        var_map = {}
 
         # Gather set of variables that are used in (local) equations
         used = set()
@@ -1396,10 +1395,10 @@ class Units(object):
         myokit.units.kat: 'katal',
         myokit.units.K: 'kelvin',
         myokit.units.kg: 'kilogram',
-        myokit.units.L: 'liter',
+        myokit.units.L: 'litre',
         myokit.units.lumen: 'lumen',
         myokit.units.lux: 'lux',
-        myokit.units.m: 'meter',
+        myokit.units.m: 'metre',
         myokit.units.mol: 'mole',
         myokit.units.N: 'newton',
         myokit.units.ohm: 'ohm',
@@ -1542,7 +1541,7 @@ class Variable(AnnotatableElement):
 
     def is_state(self):
         """
-        Checks if this is a state variable.
+        Checks if this variable has been marked as a state variable.
         """
         return self._is_state
 

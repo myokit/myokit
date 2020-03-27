@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests the CellML 1.0 API.
+# Tests the CellML 1.0/1.1 API.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -27,7 +27,7 @@ except NameError:   # pragma: no cover
     basestring = str
 
 
-class TestCellMLAnnotatedElement(unittest.TestCase):
+class TestCellML1AnnotatedElement(unittest.TestCase):
     """ Tests for cellml.AnnotatableElement. """
 
     def test_cmeta_id(self):
@@ -85,8 +85,8 @@ class TestCellMLAnnotatedElement(unittest.TestCase):
             cellml.CellMLError, 'unique', c.set_cmeta_id, m_id)
 
 
-class TestCellMLComponent(unittest.TestCase):
-    """ Tests for ``cellml.Component``. """
+class TestCellML1Component(unittest.TestCase):
+    """ Tests for ``cellml.v1.Component``. """
 
     def test_creation(self):
         # Test component creation
@@ -249,7 +249,7 @@ class TestCellMLComponent(unittest.TestCase):
         self.assertIn(e, list(c.children()))
 
         # Test bad parent
-        self.assertRaisesRegex(ValueError, 'cellml.Component', b.set_parent, m)
+        self.assertRaisesRegex(ValueError, 'v1.Component', b.set_parent, m)
         m2 = cellml.Model('m2')
         c2 = m2.add_component('c2')
         self.assertRaisesRegex(ValueError, 'same model', b.set_parent, c2)
@@ -277,7 +277,7 @@ class TestCellMLComponent(unittest.TestCase):
         m.validate()
 
 
-class TestCellMLModel(unittest.TestCase):
+class TestCellML1Model(unittest.TestCase):
     """ Tests for ``cellml.Model``. """
 
     def test_add_find_units(self):
@@ -373,16 +373,16 @@ class TestCellMLModel(unittest.TestCase):
 
         # Not a variable or wrong model
         self.assertRaisesRegex(
-            ValueError, 'variable_1 must be a cellml.Variable.',
+            ValueError, 'variable_1 must be a cellml.v1.Variable.',
             m.add_connection, 'x', y)
         self.assertRaisesRegex(
-            ValueError, 'variable_2 must be a cellml.Variable.',
+            ValueError, 'variable_2 must be a cellml.v1.Variable.',
             m.add_connection, y, 'x')
         self.assertRaisesRegex(
-            ValueError, 'variable_1 must be a cellml.Variable from',
+            ValueError, 'variable_1 must be a variable from',
             m.add_connection, x2, y)
         self.assertRaisesRegex(
-            ValueError, 'variable_2 must be a cellml.Variable from',
+            ValueError, 'variable_2 must be a variable from',
             m.add_connection, y, x2)
 
         # Connected to self
@@ -413,8 +413,8 @@ class TestCellMLModel(unittest.TestCase):
         y = b.add_variable('y', 'volt', 'out', 'none')
         z = c.add_variable('z', 'volt', 'in', 'none')
         m.add_connection(x, z)
-        m.add_connection(x, z)
-        m.add_connection(x, z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Invalid connection', m.add_connection, x, z)
         self.assertRaisesRegex(
             cellml.CellMLError, 'Invalid connection', m.add_connection, y, z)
         self.assertRaisesRegex(
@@ -548,7 +548,7 @@ class TestCellMLModel(unittest.TestCase):
         self.assertEqual(m.version(), '1.1')
 
 
-class TestCellMLModelConversion(unittest.TestCase):
+class TestCellML1ModelConversion(unittest.TestCase):
     """
     Tests for converting between Myokit and CellML models.
     """
@@ -961,8 +961,8 @@ class TestCellMLModelConversion(unittest.TestCase):
         self.assertRaises(myokit.IncompatibleUnitError, m.check_units)
 
 
-class TestCellMLVariable(unittest.TestCase):
-    """ Tests for ``cellml.Variable``. """
+class TestCellML1Variable(unittest.TestCase):
+    """ Tests for ``cellml.v1.Variable``. """
 
     def test_creation(self):
         # Tests variable creation
@@ -1208,7 +1208,7 @@ class TestCellMLVariable(unittest.TestCase):
         self.assertIn('has no initial value', warn[0])
 
 
-class TestCellMLUnits(unittest.TestCase):
+class TestCellML1Units(unittest.TestCase):
     """ Tests for ``cellml.Units``. """
 
     def test_creation(self):
@@ -1487,7 +1487,7 @@ class TestCellMLUnits(unittest.TestCase):
         self.assertEqual(str(u), 'Units[@name="Numpty"]')
 
 
-class TestCellMLMethods(unittest.TestCase):
+class TestCellML1Methods(unittest.TestCase):
     """ Tests for public CellML API methods. """
 
     def test_clean_identifier(self):
@@ -1563,6 +1563,8 @@ class TestCellMLMethods(unittest.TestCase):
         self.assertFalse(cellml.is_valid_identifier('_'))
         self.assertFalse(cellml.is_valid_identifier('123'))
         self.assertFalse(cellml.is_valid_identifier('1e3'))
+        self.assertFalse(cellml.is_valid_identifier('3'))
+        self.assertFalse(cellml.is_valid_identifier(''))
 
 
 if __name__ == '__main__':
