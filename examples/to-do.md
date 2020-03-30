@@ -8,36 +8,19 @@
 
 ## 1. Running a single cell simulation
 
-1. [Simulating an action potential](./basics-simulating-an-action-potential.ipynb)
-    - Loading model, protocol, script
-    - Creating simulation
-    - Running
-    - Plotting
-
-
-2. [Logging simulation results](basics-logging-simulation-results.ipynb)
-    - Selecting by name
-    - Logging derivatives
-    - Using flags
-    - Continuing on from a previous simulation
-    - Storing to disk, loading from disk
-    
-    
-    
-    
+3 Starting/stopping, pre-pacing and resetting
 
     - Starting/stopping
     - Pre-pacing and resetting
-    - Different log options (names, existing log, constants, derivatives)
     - Different timing options (free, dt, explicit times)
 
-X. Using the model API
-    - Adding variables
-    - Plotting with pyfunc
-    - Manipulating models
-    - Manipulating equations (variable, eq, lhs, rhs, derivatives, refs_by, refs_to)
+    - pacing protocols
 
-X. Importing from CellML
+## 2. Working with models
+
+    - MMT syntax
+    - IDE stuff
+
 
 X. Using the IDE
     - Run (w. F6)
@@ -47,6 +30,22 @@ X. Using the IDE
     - Show variable users and dependencies
     - Graph component dependencies
     - Graph "state dependency matrix"
+
+
+- Creating pacing protocols
+    - MMT syntax
+    - API
+    - Factory
+    - Data clamp
+
+
+X. Using the model API
+    - Adding variables
+    - Plotting with pyfunc
+    - Manipulating models
+    - Manipulating equations (variable, eq, lhs, rhs, derivatives, refs_by, refs_to)
+
+X. Importing from CellML
 
 
 X. Simulating a 1d strand
@@ -66,12 +65,6 @@ X. Running single current simulations
     - Protocol options
     - Data clamp
 
-
-- Creating pacing protocols
-    - MMT syntax
-    - API
-    - Factory
-    - Data clamp
 
 - Formats
     - Importing models
@@ -113,6 +106,7 @@ X Implementing models
 - Using the explorer
 
 ### Using the IDE
+- Graphing variables using pyfunc
 
 ### Using scripts
 - running a simulation without pre-pacing (using the IDE)
@@ -123,7 +117,6 @@ X Implementing models
 - calculating apds
 - creating apd vs pcl diagrams
 - Accessing and changing model variables
-- Graphing variables using pyfunc
 
 ### Converting formats
 - Exporting for presentations: latex / html

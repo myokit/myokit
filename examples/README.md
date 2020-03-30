@@ -11,11 +11,41 @@ Please note this page is still a work in progress, and many more examples are ye
 
 ## Running single cell simulations
 
-1. [Simulating an action potential](./basics-simulating-an-action-potential.ipynb)
-2. [Logging simulation results](basics-logging-simulation-results.ipynb)
-3. Starting, stopping, pre-pacing, and loops
-    - Changing variables
-    - Defining protocols
+1. [Simulating an action potential](./1-1-simulating-an-action-potential.ipynb)
+    - Loading a model, protocol, and script
+    - Creating a simulation
+    - Running a simulation
+    - Plotting simulation results
+
+2. [Logging simulation results](1-2-logging-simulation-results.ipynb)
+    - Selecting variable by name
+    - Logging derivatives
+    - Using logging flags
+    - Continuing on from a previous simulation
+    - Storing results to disk
+
+3. [Starting, stopping, pre-pacing, and loops](1-3-starting-stopping.ipynb)
+    - Starting and stoppping simulations
+    - Pre-pacing to a "steady state"
+    - Exploring the effects of parameter changing
+    
+4. Exploring AP models
+    - MMT syntax (link to ref)
+    - Graphing variables and other MMT tricks
+    - Modifying models using the API
+
+5. Pacing protocols for AP models
+    - MMT syntax
+    - AP clamp
+
+5. Post-processing and 
+    - APD calculation
+    - Restitution
+    - Alternans
+
+
+
+
 
 
 
