@@ -290,7 +290,7 @@ class SBMLImporter(myokit.formats.Importer):
                     'Assignment found for unknown parameter: "' + var + '".')
 
         # Create variables with rate rules (states)
-        node = parent.findall(ns + 'rateRule')
+        nodes = parent.findall(ns + 'rateRule')
         for node in nodes:
             var = self._convert_name(
                 str(node.get('variable')).strip())

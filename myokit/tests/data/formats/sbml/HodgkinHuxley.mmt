@@ -41,24 +41,14 @@ desc: """
     """
 name: hodgkin_huxley_squid_axon_1952
 # Initial values
-sbml.V_neg   = 0
-sbml.E       = -75
-sbml.V_L     = -10.613
-sbml.beta_n  = 0.125
-sbml.alpha_h = 0.07
-sbml.V_Na    = -115
-sbml.V_K     = 12
-sbml.i_K     = -4.39990442724464259
-sbml.i_Na    =  1.22002208010699764
-sbml.i_L     = 3.1839
-sbml.beta_m  = 4
-sbml.alpha_n =  5.81976706869326496e-2
-sbml.alpha_m =  2.23563724584630030e-1
-sbml.beta_h  =  4.74258731775667811e-2
+sbml.V = 0
+sbml.m = 0.052932
+sbml.h = 0.59612
+sbml.n = 0.31768
 
 [sbml]
 Cm = 1
-dot(E) = V + E_R
+E = V + E_R
     in [mV]
 E_K = -63
     in [mV]
@@ -69,29 +59,29 @@ E_Na = -190
 E_R = -75
     in [mV]
 I = 0
-V = 0
+dot(V) = (I - (i_Na + i_K + i_L)) / Cm
     in [mV]
-dot(V_K) = E_K - E_R
+V_K = E_K - E_R
     in [mV]
-dot(V_L) = E_L - E_R
+V_L = E_L - E_R
     in [mV]
-dot(V_Na) = E_Na - E_R
+V_Na = E_Na - E_R
     in [mV]
-dot(V_neg) = -V
+V_neg = -V
     in [mV]
-dot(alpha_h) = 0.07 * exp(V / 20)
-dot(alpha_m) = 0.1 * (V + 25) / (exp((V + 25) / 10) - 1)
-dot(alpha_n) = 0.01 * (V + 10) / (exp((V + 10) / 10) - 1)
-dot(beta_h) = 1 / (exp((V + 30) / 10) + 1)
-dot(beta_m) = 4 * exp(V / 18)
-dot(beta_n) = 0.125 * exp(V / 80)
+alpha_h = 0.07 * exp(V / 20)
+alpha_m = 0.1 * (V + 25) / (exp((V + 25) / 10) - 1)
+alpha_n = 0.01 * (V + 10) / (exp((V + 10) / 10) - 1)
+beta_h = 1 / (exp((V + 30) / 10) + 1)
+beta_m = 4 * exp(V / 18)
+beta_n = 0.125 * exp(V / 80)
 g_K = 36
 g_L = 0.3
 g_Na = 120
-h = 0.59612
-dot(i_K) = g_K * n ^ 4 * (V - V_K)
-dot(i_L) = g_L * (V - V_L)
-dot(i_Na) = g_Na * m ^ 3 * h * (V - V_Na)
-m = 0.052932
-n = 0.31768
+dot(h) = alpha_h * (1 - h) - beta_h * h
+i_K = g_K * n ^ 4 * (V - V_K)
+i_L = g_L * (V - V_L)
+i_Na = g_Na * m ^ 3 * h * (V - V_Na)
+dot(m) = alpha_m * (1 - m) - beta_m * m
+dot(n) = alpha_n * (1 - n) - beta_n * n
 
