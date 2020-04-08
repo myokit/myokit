@@ -1,0 +1,97 @@
+[[model]]
+desc: """
+    This is an implementation of the Hodgkin-Huxley model of the electrical
+    behavior of the squid axon membrane from:
+    **A quantitative description of membrane current and its application to
+    conduction and excitation in nerve.**
+    A. L. Hodgkin and A. F. Huxley. (1952 ) *Journal of Physiology* 119(4): pp
+    500-544; pmID: 12991237 .
+    
+    **Abstract:**
+    This article concludes a series of papers concerned with the flow of
+    electric current through the surface membrane of a giant nerve fibre
+    (Hodgkin,Huxley & Katz, 1952; Hodgkin & Huxley, 1952 a-c). Its general
+    object is to discuss the results of the preceding papers (Part I), to put
+    them into mathematical form (Part II) and to show that they will account
+    for conduction and excitation in quantitative terms (Part III).
+    
+    This SBML model uses the same formalism as the one described in the paper,
+    contrary to modern versions:
+    * V describes the the membrane depolarisation relative to the resting
+    potential of the membrane
+    * opposing to modern practice, depolarization is *negative* , not
+    *positive* , so the sign of V is different
+    * inward transmembrane currents are considered positive (inward current
+    positive), contrary to modern use
+    The changeable parameters are the equilibrium potentials( *E_R, E_K, E_L,
+    E_Na* ), the membrane depolarization ( *V* ) and the initial sodium and
+    potassium channel activation and inactivation coefficients ( *m,h,n* ). The
+    initial values of *m,h,n* for the model were calculated for *V* = 0 using
+    the equations from the article: *n t=0 = _n V=0 /(_n V=0 + _n V=0 ) * and
+    equivalent expressions for *h* and *m* .
+    For single excitations apply a negative membrane depolarization (V < 0). To
+    achieve oscillatory behavior either change the resting potential to a more
+    positive value or apply a constant negative ionic current (I < 0).
+    Two assignments for parameters in the model, alpha_n and alpha_m, are not
+    defined at V=-10 resp. -25 mV. We did not change this to keep the formulas
+    similar to the original publication and as most integrators seem not to
+    have any problem with it. The limits at V=-10 and -25 mV are 0.1 for
+    alpha_n resp. 1 for alpha_m.
+    We thank Mark W. Johnson for finding a bug in the model and his helpful
+    comments.
+    
+    This model originates from BioModels Database: A Database of Annotated
+    Published Models. It is copyright (c) 2005-2009 The BioModels Team.
+    For more information see the terms of use .
+    To cite BioModels Database, please use Le Novre N., Bornstein B., Broicher
+    A., Courtot M., Donizelli M., Dharuri H., Li L., Sauro H., Schilstra M.,
+    Shapiro B., Snoep J.L., Hucka M. (2006) BioModels Database: A Free,
+    Centralized Database of Curated, Published, Quantitative Kinetic Models of
+    Biochemical and Cellular Systems Nucleic Acids Res., 34: D689-D691.
+    """
+name: hodgkin_huxley_squid_axon_1952
+# Initial values
+sbml.V = 0
+sbml.m = 0.052932
+sbml.h = 0.59612
+sbml.n = 0.31768
+
+[sbml]
+Cm = 1
+E = V + E_R
+    in [mV]
+E_K = -63
+    in [mV]
+E_L = -85.613
+    in [mV]
+E_Na = -190
+    in [mV]
+E_R = -75
+    in [mV]
+I = 0
+dot(V) = (I - (i_Na + i_K + i_L)) / Cm
+    in [mV]
+V_K = E_K - E_R
+    in [mV]
+V_L = E_L - E_R
+    in [mV]
+V_Na = E_Na - E_R
+    in [mV]
+V_neg = -V
+    in [mV]
+alpha_h = 0.07 * exp(V / 20)
+alpha_m = 0.1 * (V + 25) / (exp((V + 25) / 10) - 1)
+alpha_n = 0.01 * (V + 10) / (exp((V + 10) / 10) - 1)
+beta_h = 1 / (exp((V + 30) / 10) + 1)
+beta_m = 4 * exp(V / 18)
+beta_n = 0.125 * exp(V / 80)
+g_K = 36
+g_L = 0.3
+g_Na = 120
+dot(h) = alpha_h * (1 - h) - beta_h * h
+i_K = g_K * n ^ 4 * (V - V_K)
+i_L = g_L * (V - V_L)
+i_Na = g_Na * m ^ 3 * h * (V - V_Na)
+dot(m) = alpha_m * (1 - m) - beta_m * m
+dot(n) = alpha_n * (1 - n) - beta_n * n
+
