@@ -3,6 +3,7 @@ filename=
     *.py,
     ./test
 exclude=
+    ./venv
     ./dev,
     ./.git,
     ./myokit.egg-info,
