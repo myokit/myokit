@@ -1,16 +1,7 @@
-from myokit.formats.sbml import SBMLImporter, SBMLImporterOld
+from myokit.formats.sbml import SBMLImporter
 
-# Test Case I: Old importer
-# import with old importer
-oldImporter = SBMLImporterOld()
-mOld = oldImporter.model('myokit/tests/data/formats/sbml/HodgkinHuxley.xml')
 
-# convert old model to mmt file
-mmtOld = mOld.code()
-with open('myokit/tests/data/formats/sbml/HodgkinHuxleyOld.mmt', 'w') as f:
-    f.write(mmtOld)
-
-# Test Case II: New Importer
+# Test Case I: New Importer
 newImporter = SBMLImporter()
 mNew = newImporter.model('myokit/tests/data/formats/sbml/HodgkinHuxley.xml')
 

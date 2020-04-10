@@ -9,7 +9,6 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import xml.etree.ElementTree as ET
-import xml.dom.minidom
 import os
 import re
 
@@ -17,8 +16,7 @@ import myokit
 import myokit.units
 import myokit.formats
 from myokit.mxml import html2ascii
-from myokit.mxml import dom_child, dom_next
-from myokit.formats.mathml import parse_mathml_dom, parse_mathml_etree
+from myokit.formats.mathml import parse_mathml_etree
 
 
 info = """

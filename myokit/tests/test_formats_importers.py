@@ -50,6 +50,12 @@ class ImporterTest(unittest.TestCase):
 
 class SBMLTest(unittest.TestCase):
     """ Test SBML import. """
+    # Test Case I: Hodkin Huxley
+    i = formats.importer('sbml')
+    HoHu = i.model(os.path.join(
+        DIR_FORMATS,
+        'sbml',
+        'HodgkinHuxley.xml'))
 
     def test_capability_reporting(self):
         """ Test if the right capabilities are reported. """
@@ -81,6 +87,51 @@ class SBMLTest(unittest.TestCase):
 
         # Model with listOfInitialValues and unit with multiplier
         sbml('Noble1962-initial-assignments-and-weird-unit.xml')
+
+    def test_initial_assignments(self):
+        # Test Case: Hodkin Huxley
+        # expected
+        # TODO: Hodkin Huxley has no initial assignments. But some PKPD
+        # model with sepcies do. So I will include a test for that in the
+        # next issue.
+        assert True
+
+    def test_parameters(self):
+        # Test Case: Hodkin Huxley
+        # expected
+        parameters = [
+            'V',
+            'V_neg',
+            'E',
+            'I',
+            'i_Na',
+            'i_K',
+            'i_L',
+            'm',
+            'h',
+            'n',
+            'E_R',
+            'Cm',
+            'g_Na',
+            'g_K',
+            'g_L',
+            'E_Na',
+            'E_K',
+            'E_L',
+            'V_Na',
+            'V_K',
+            'V_L',
+            'alpha_m',
+            'beta_m',
+            'alpha_h',
+            'beta_h',
+            'alpha_n',
+            'beta_n'
+        ]
+
+        # test whether parameters are in myokit model
+        for param in parameters:
+            assert self.HoHu.has_variable('sbml.' + param)
 
     def test_info(self):
         i = formats.importer('sbml')
