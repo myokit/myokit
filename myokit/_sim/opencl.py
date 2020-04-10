@@ -50,9 +50,12 @@ class OpenCL(myokit.CModule):
 
         # Define libraries
         libs = []
+        flags = []
         import platform
-        if platform.system() != 'Darwin':     # pragma: no osx cover
+        if platform.system() != 'Darwin':   # pragma: no osx cover
             libs.append('OpenCL')
+        else:                               # pragma: no cover
+            flags.append('-framework OpenCL')
 
         # Add include / linker paths
         libd = list(myokit.OPENCL_LIB)
@@ -62,7 +65,7 @@ class OpenCL(myokit.CModule):
         try:
             OpenCL._message = None
             OpenCL._instance = self._compile(
-                mname, fname, args, libs, libd, incd)
+                mname, fname, args, libs, libd, incd, flags)
         except myokit.CompilationError as e:
             OpenCL._instance = False
             OpenCL._message = str(e)
