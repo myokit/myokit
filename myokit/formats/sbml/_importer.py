@@ -38,7 +38,6 @@ class SBMLImporter(myokit.formats.Importer):
         self.re_alpha = re.compile(r'[\W]+')
         self.re_white = re.compile(r'[ \t\f\n\r]+')
         self.units = {}
-        self.ns = self._define_namespaces()
 
     def _convert_name(self, name):
         """
@@ -70,7 +69,9 @@ class SBMLImporter(myokit.formats.Importer):
         return info
 
     def model(self, path):
-
+        """
+        Returns myokit model specified by the SBML fil provided.
+        """
         # Get logger
         log = self.logger()
 
@@ -78,15 +79,13 @@ class SBMLImporter(myokit.formats.Importer):
         path = os.path.abspath(os.path.expanduser(path))
         tree = ET.parse(path)
         root = tree.getroot()
-        xmodel = root[0]
 
         # get SBML namespace
-        sbml_ns = self._namespace(root)
-        if sbml_ns not in self.ns['sbml']:   # pragma: no cover
-            log.warn('The SBML version %s has not been tested.'
-                     % sbml_ns)
+        sbml_version = self._get_sbml_version(root)
+        self.ns = self._get_namespaces(sbml_version, log)
 
         # Get model node
+        xmodel = root[0]
         if xmodel.get('name'):
             name = str(xmodel.get('name'))
         elif xmodel.get('id'):
@@ -105,7 +104,7 @@ class SBMLImporter(myokit.formats.Importer):
         refs = {}
 
         # Handle notes, if given
-        x = xmodel.find(sbml_ns + 'notes')
+        x = xmodel.find(self.ns['sbml'] + 'notes')
         if x:
             log.log('Converting <model> notes to ascii')
             model.meta['desc'] = html2ascii(ET.tostring(x, encoding='unicode'),
@@ -114,46 +113,51 @@ class SBMLImporter(myokit.formats.Importer):
             # width = 79 - 4 for tab!
 
         # Warn about missing functionality
-        x = xmodel.find(sbml_ns + 'listOfCompartments')
+        x = xmodel.find(self.ns['sbml'] + 'listOfCompartments')
         if x:   # pragma: no cover
             log.warn('Compartments are not supported.')
-        x = xmodel.find(sbml_ns + 'listOfSpecies')
+        x = xmodel.find(self.ns['sbml'] + 'listOfSpecies')
         if x:   # pragma: no cover
             log.warn('Species are not supported.')
-        x = xmodel.find(sbml_ns + 'listOfConstraints')
+        x = xmodel.find(self.ns['sbml'] + 'listOfConstraints')
         if x:   # pragma: no cover
             log.warn('Constraints are not supported.')
-        x = xmodel.find(sbml_ns + 'listOfReactions')
+        x = xmodel.find(self.ns['sbml'] + 'listOfReactions')
         if x:   # pragma: no cover
             log.warn('Reactions are not supported.')
-        x = xmodel.find(sbml_ns + 'listOfEvents')
+        x = xmodel.find(self.ns['sbml'] + 'listOfEvents')
         if x:   # pragma: no cover
             log.warn('Events are not supported.')
 
         # Ignore custom functions
-        x = xmodel.find(sbml_ns + 'listOfFunctionDefinitions')
+        x = xmodel.find(self.ns['sbml'] + 'listOfFunctionDefinitions')
         if x:   # pragma: no cover
             log.warn('Custom math functions are not (yet) implemented.')
 
         # Parse custom units
-        x = xmodel.find(sbml_ns + 'listOfUnitDefinitions')
+        x = xmodel.find(self.ns['sbml'] + 'listOfUnitDefinitions')
         if x:
-            self._parse_units(model, comp, x, sbml_ns)
+            self._parse_units(model, comp, x, self.ns['sbml'])
 
         # Parse parameters (constants + parameters)
-        x = xmodel.find(sbml_ns + 'listOfParameters')
+        x = xmodel.find(self.ns['sbml'] + 'listOfParameters')
         if x:
-            self._parse_parameters(model, comp, refs, x, sbml_ns)
+            self._parse_parameters(model, comp, refs, x, self.ns['sbml'])
 
         # Parse rules (equations)
-        x = xmodel.find(sbml_ns + 'listOfRules')
+        x = xmodel.find(self.ns['sbml'] + 'listOfRules')
         if x:
-            self._parse_rules(model, comp, refs, x, sbml_ns)
+            self._parse_rules(model, comp, refs, x, self.ns['sbml'])
 
         # Parse extra initial assignments
-        x = xmodel.find(sbml_ns + 'listOfInitialAssignments')
+        x = xmodel.find(self.ns['sbml'] + 'listOfInitialAssignments')
         if x:
-            self._parse_initial_assignments(model, comp, refs, x, sbml_ns)
+            self._parse_initial_assignments(model,
+                                            comp,
+                                            refs,
+                                            x,
+                                            self.ns['sbml']
+                                            )
 
         # Write warnings to log
         log.log_warnings()
@@ -170,24 +174,56 @@ class SBMLImporter(myokit.formats.Importer):
         # Return finished model
         return model
 
-    def _define_namespaces(self):
+    def _get_namespaces(self, sbml_version: str, log):
         """
-        Defines supported namespaces.
+        Defines namespaces for supported SBML versions. Supported versions are:
+        level 2, version 3, 4, 5.
         """
         ns = dict()
-        # supported SBML versions
-        ns['sbml'] = ["{http://www.sbml.org/sbml/level2/version3}"]
+        if sbml_version == "{http://www.sbml.org/sbml/level2/version3}":
+            # SBML
+            ns['sbml'] = "{http://www.sbml.org/sbml/level2/version3}"
+            # MathML
+            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
+        elif sbml_version == "{http://www.sbml.org/sbml/level2/version4}":
+            # SBML
+            ns['sbml'] = "{http://www.sbml.org/sbml/level2/version4}"
+            # MathML
+            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
+        elif sbml_version == "{http://www.sbml.org/sbml/level2/version5}":
+            # SBML
+            ns['sbml'] = "{http://www.sbml.org/sbml/level2/version5}"
+            # MathML
+            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
+        elif sbml_version == "{http://www.sbml.org/sbml/level3/version1}":
+            # SBML
+            ns['sbml'] = "{http://www.sbml.org/sbml/level3/version1}"
+            # MathML
+            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
+        elif sbml_version == "{http://www.sbml.org/sbml/level3/version2}":
+            # SBML
+            ns['sbml'] = "{http://www.sbml.org/sbml/level3/version2}"
+            # MathML
+            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
+        else:
+            # SBML
+            ns['sbml'] = sbml_version
+            # MathML
+            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
 
-        # xhtml
-        ns['xhtml'] = ["{http://www.w3.org/1999/xhtml}"]
-
-        # MathML
-        ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
+            # log import warning
+            log.warn('The SBML version %s has not been tested. The model'
+                     % sbml_version + ' may not be imported correctly.'
+                     )
 
         return ns
 
-    def _namespace(self, element):
-        m = re.match(r'\{.*\}', element.tag)
+    def _get_sbml_version(self, root):
+        """
+        Returns the SBML version of the file.
+        """
+        m = re.match(r'\{.*\}', root.tag)
+
         return m.group(0) if m else ''
 
     def _parse_initial_assignments(self, model, comp, refs, node, ns):
@@ -195,21 +231,18 @@ class SBMLImporter(myokit.formats.Importer):
         Parses any initial values specified outside of the rules section.
         """
         nodes = node.findall(ns + 'initialAssignment')
-        print(nodes)
         # get mathml ns
         mathml_ns = self.ns['mathml']
         # iterate through initial assignments
         for node in nodes:
             var = str(node.get('symbol')).strip()
             var = self._convert_name(var)
-            print(var)
             if var in comp:
                 self.logger().log(
                     'Parsing initial assignment for "' + var + '".')
                 var = comp[var]
                 # get child
                 child = node.find(mathml_ns + 'math')
-                print('test: ', child)
                 if child:
                     expr = parse_mathml_etree(
                         child,
