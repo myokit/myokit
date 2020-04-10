@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-from ._importer import SBMLImporter, SBMLImporterOld, SBMLError  # noqa
+from ._importer import SBMLImporter, SBMLError  # noqa
 
 
 # Importers
