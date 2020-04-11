@@ -50,7 +50,7 @@ class ImporterTest(unittest.TestCase):
 
 class SBMLTest(unittest.TestCase):
     """ Test SBML import. """
-    # Test Case I: Hodkin Huxley
+    # Test Case I: Hodgkin Huxley
     i = formats.importer('sbml')
     HoHu = i.model(os.path.join(
         DIR_FORMATS,
