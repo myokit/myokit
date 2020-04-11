@@ -378,7 +378,8 @@ class FiberTissueSimulation(myokit.CModule):
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
-        self._sim = self._compile(mname, fname, args, libs, libd, incd, flags)
+        self._sim = self._compile(
+            mname, fname, args, libs, libd, incd, larg=flags)
 
     def fiber_state(self, x=None):
         """

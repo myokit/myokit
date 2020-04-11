@@ -307,7 +307,8 @@ class SimulationOpenCL(myokit.CModule):
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
-        self._sim = self._compile(mname, fname, args, libs, libd, incd, flags)
+        self._sim = self._compile(
+            mname, fname, args, libs, libd, incd, larg=flags)
 
     def calculate_conductance(self, r, sx, chi, dx):
         """

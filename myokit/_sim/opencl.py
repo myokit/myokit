@@ -65,7 +65,7 @@ class OpenCL(myokit.CModule):
         try:
             OpenCL._message = None
             OpenCL._instance = self._compile(
-                mname, fname, args, libs, libd, incd, flags)
+                mname, fname, args, libs, libd, incd, larg=flags)
         except myokit.CompilationError as e:
             OpenCL._instance = False
             OpenCL._message = str(e)
