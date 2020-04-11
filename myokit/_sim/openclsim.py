@@ -294,17 +294,20 @@ class SimulationOpenCL(myokit.CModule):
 
         # Define libraries
         libs = []
+        flags = []
         plat = platform.system()
-        if plat != 'Darwin':     # pragma: no osx cover
+        if plat != 'Darwin':    # pragma: no osx cover
             libs.append('OpenCL')
-        if plat != 'Windows':    # pragma: no windows cover
+        else:                   # pragma: no cover
+            flags.append('-framework OpenCL')
+        if plat != 'Windows':   # pragma: no windows cover
             libs.append('m')
 
         # Create extension
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
-        self._sim = self._compile(mname, fname, args, libs, libd, incd)
+        self._sim = self._compile(mname, fname, args, libs, libd, incd, flags)
 
     def calculate_conductance(self, r, sx, chi, dx):
         """
