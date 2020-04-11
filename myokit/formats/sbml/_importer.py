@@ -66,7 +66,7 @@ class SBMLImporter(myokit.formats.Importer):
     def info(self):
         return info
 
-    def model(self, path):
+    def model(self, path, bind_time=True):
         """
         Returns myokit model specified by the SBML fil provided.
         """
@@ -136,6 +136,22 @@ class SBMLImporter(myokit.formats.Importer):
         x = xmodel.find(self.ns['sbml'] + 'listOfUnitDefinitions')
         if x:
             self._parse_units(model, comp, x, self.ns['sbml'])
+
+        # add time as independent variable (not explicit in SBML format)
+        if bind_time:
+            # add and bind time variable to component
+            comp.add_variable('time')
+            time = comp.get('time')
+            time.set_binding('time')
+            # set unit and value
+            if 'time' in self.units.keys():
+                unit = self.units['time']
+            else:
+                unit = myokit.units.s
+                log.warn('Unit of time could not be found in file and was by '
+                         + 'default set to seconds.')
+            time.set_unit(unit)
+            time.set_rhs(0.0)
 
         # Parse parameters (constants + parameters)
         x = xmodel.find(self.ns['sbml'] + 'listOfParameters')
