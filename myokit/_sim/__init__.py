@@ -84,8 +84,8 @@ class CModule(object):
         else:
             return self._export(tpl, tpl_vars)
 
-    def _compile(
-            self, name, tpl, tpl_vars, libs, libd=None, incd=None, flags=None):
+    def _compile(self, name, tpl, tpl_vars, libs, libd=None, incd=None,
+                 carg=None, larg=None):
         """
         Compiles a source template into a module and returns it.
 
@@ -98,7 +98,7 @@ class CModule(object):
         Any C libraries needed for compilation should be given in the sequence
         type ``libs``. Library dirs and include dirs can be passed in using
         ``libd`` and ``incd``. Extra compiler arguments can be given in the
-        list ``flags``.
+        list ``carg``, and linker args in ``larg``.
         """
         src_file = self._source_file()
         d_cache = tempfile.mkdtemp('myokit')
@@ -116,16 +116,17 @@ class CModule(object):
             # Inputs must all be strings
             name = str(name)
             src_file = str(src_file)
-            flags = None if flags is None else [str(x) for x in flags]
             libd = None if libd is None else [str(x) for x in libd]
             incd = None if incd is None else [str(x) for x in incd]
             libs = None if libs is None else [str(x) for x in libs]
+            carg = None if carg is None else [str(x) for x in carg]
+            larg = None if larg is None else [str(x) for x in larg]
 
             # Uncomment to debug C89 issues
             '''
-            if flags is None:
-                flags = []
-            flags.extend([
+            if carg is None:
+                carg = []
+            carg.extend([
                 #'-Wall',
                 #'-Wextra',
                 #'-Werror=strict-prototypes',
@@ -161,7 +162,8 @@ class CModule(object):
                 library_dirs=libd,
                 runtime_library_dirs=runtime,
                 include_dirs=incd,
-                extra_compile_args=flags,
+                extra_compile_args=carg,
+                extra_linker_args=larg,
             )
 
             # Compile, catch output
