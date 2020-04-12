@@ -135,7 +135,7 @@ class SBMLImporter(myokit.formats.Importer):
         # Parse custom units
         x = xmodel.find(self.ns['sbml'] + 'listOfUnitDefinitions')
         if x:
-            self._parse_units(model, comp, x, self.ns['sbml'])
+            self._parse_units(model, comp, x)
 
         # add time as independent variable (not explicit in SBML format)
         if bind_time:
@@ -144,12 +144,12 @@ class SBMLImporter(myokit.formats.Importer):
             time = comp.get('time')
             time.set_binding('time')
             # set unit and value
-            if 'time' in self.units.keys():
+            try:
                 unit = self.units['time']
-            else:
+            except KeyError:
                 unit = myokit.units.s
                 log.warn('Unit of time could not be found in file and was by '
-                         + 'default set to seconds.')
+                         'default set to seconds.')
             time.set_unit(unit)
             time.set_rhs(0.0)
 
@@ -166,12 +166,8 @@ class SBMLImporter(myokit.formats.Importer):
         # Parse extra initial assignments
         x = xmodel.find(self.ns['sbml'] + 'listOfInitialAssignments')
         if x:
-            self._parse_initial_assignments(model,
-                                            comp,
-                                            refs,
-                                            x,
-                                            self.ns['sbml']
-                                            )
+            self._parse_initial_assignments(
+                model, comp, refs, x)
 
         # Write warnings to log
         log.log_warnings()
@@ -193,42 +189,23 @@ class SBMLImporter(myokit.formats.Importer):
         Defines namespaces for supported SBML versions. Supported versions are:
         level 2, version 3, 4, 5.
         """
-        ns = dict()
-        if sbml_version == "{http://www.sbml.org/sbml/level2/version3}":
-            # SBML
-            ns['sbml'] = "{http://www.sbml.org/sbml/level2/version3}"
-            # MathML
-            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
-        elif sbml_version == "{http://www.sbml.org/sbml/level2/version4}":
-            # SBML
-            ns['sbml'] = "{http://www.sbml.org/sbml/level2/version4}"
-            # MathML
-            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
-        elif sbml_version == "{http://www.sbml.org/sbml/level2/version5}":
-            # SBML
-            ns['sbml'] = "{http://www.sbml.org/sbml/level2/version5}"
-            # MathML
-            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
-        elif sbml_version == "{http://www.sbml.org/sbml/level3/version1}":
-            # SBML
-            ns['sbml'] = "{http://www.sbml.org/sbml/level3/version1}"
-            # MathML
-            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
-        elif sbml_version == "{http://www.sbml.org/sbml/level3/version2}":
-            # SBML
-            ns['sbml'] = "{http://www.sbml.org/sbml/level3/version2}"
-            # MathML
-            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
-        else:
-            # SBML
-            ns['sbml'] = sbml_version
-            # MathML
-            ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
-
+        supported_sbml_versions = [
+            "{http://www.sbml.org/sbml/level2/version3}",
+            "{http://www.sbml.org/sbml/level2/version4}",
+            "{http://www.sbml.org/sbml/level2/version5}",
+            "{http://www.sbml.org/sbml/level3/version1}",
+            "{http://www.sbml.org/sbml/level3/version2}"
+        ]
+        if sbml_version not in supported_sbml_versions:
             # log import warning
             log.warn('The SBML version %s has not been tested. The model'
                      % sbml_version + ' may not be imported correctly.'
                      )
+        ns = dict()
+        # SBML version
+        ns['sbml'] = sbml_version
+        # MathML
+        ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
 
         return ns
 
@@ -240,15 +217,15 @@ class SBMLImporter(myokit.formats.Importer):
 
         return m.group(0) if m else ''
 
-    def _parse_initial_assignments(self, model, comp, refs, node, ns):
+    def _parse_initial_assignments(self, model, comp, refs, node):
         """
         Parses any initial values specified outside of the rules section.
         """
-        nodes = node.findall(ns + 'initialAssignment')
+        ns = self.ns['sbml']
         # get mathml ns
         mathml_ns = self.ns['mathml']
         # iterate through initial assignments
-        for node in nodes:
+        for node in node.findall(ns + 'initialAssignment'):
             var = str(node.get('symbol')).strip()
             var = self._convert_name(var)
             if var in comp:
@@ -279,8 +256,7 @@ class SBMLImporter(myokit.formats.Importer):
         """
         Parses parameters
         """
-        nodes = node.findall(ns + 'parameter')
-        for node in nodes:
+        for node in node.findall(ns + 'parameter'):
             # Create variable
             org_name = str(node.get('id'))
             name = self._convert_name(org_name)
@@ -290,14 +266,10 @@ class SBMLImporter(myokit.formats.Importer):
                     'Skipping duplicate parameter name: ' + str(name))
             else:
                 # Create variable
-                unit = None
-                if node.get('units'):
-                    foreign_unit = node.get('units')
-                    if foreign_unit:
-                        unit = self._convert_unit(foreign_unit)
-                value = None
-                if node.get('value'):
-                    value = node.get('value')
+                unit = node.get('units')
+                if unit:
+                    unit = self._convert_unit(unit)
+                value = node.get('value')
                 var = comp.add_variable(name)
                 var.set_unit(unit)
                 var.set_rhs(value)
@@ -305,17 +277,14 @@ class SBMLImporter(myokit.formats.Importer):
                 # Store reference to variable
                 refs[org_name] = refs[name] = var
 
-    def _parse_rules(self, model, comp, refs, node, ns):
+    def _parse_rules(self, model, comp, refs, parent, ns):
         """
         Parses the rules (equations) in this model
         """
-        parent = node
-        # Create variables with assignment rules (all except derivatives)
-        nodes = parent.findall(ns + 'assignmentRule')
         # get MathML ns
         mathml_ns = self.ns['mathml']
-        # iterate through assignment rules
-        for node in nodes:
+        # Define rules for variables (intermediate expressions)
+        for node in parent.findall(ns + 'assignmentRule'):
             var = self._convert_name(
                 str(node.get('variable')).strip())
             if var in comp:
@@ -336,9 +305,8 @@ class SBMLImporter(myokit.formats.Importer):
                 raise SBMLError(   # pragma: no cover
                     'Assignment found for unknown parameter: "' + var + '".')
 
-        # Create variables with rate rules (states)
-        nodes = parent.findall(ns + 'rateRule')
-        for node in nodes:
+        # Define rates for variables (states)
+        for node in parent.findall(ns + 'rateRule'):
             var = self._convert_name(
                 str(node.get('variable')).strip())
             if var in comp:
@@ -361,13 +329,13 @@ class SBMLImporter(myokit.formats.Importer):
                 raise SBMLError(   # pragma: no cover
                     'Derivative found for unknown parameter: <' + var + '>.')
 
-    def _parse_units(self, model, comp, node, ns):
+    def _parse_units(self, model, comp, node):
         """
         Parses custom unit definitions, creating a look-up table that can be
         used to convert these units to myokit ones.
         """
-        nodes = node.findall(ns + 'unitDefinition')
-        for node in nodes:
+        ns = self.ns['sbml']
+        for node in node.findall(ns + 'unitDefinition'):
             name = node.get('id')
             self.logger().log('Parsing unit definition for "' + name + '".')
             unit = myokit.units.dimensionless
