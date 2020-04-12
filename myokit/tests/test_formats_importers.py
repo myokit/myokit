@@ -50,12 +50,14 @@ class ImporterTest(unittest.TestCase):
 
 class SBMLTest(unittest.TestCase):
     """ Test SBML import. """
-    # Test Case I: Hodgkin Huxley
-    i = formats.importer('sbml')
-    HoHu = i.model(os.path.join(
-        DIR_FORMATS,
-        'sbml',
-        'HodgkinHuxley.xml'))
+    @classmethod
+    def setUpClass(cls):
+        """
+        Test Hodgkin Huxley model.
+        """
+        i = formats.importer('sbml')
+        cls.hohu = i.model(os.path.join(
+            DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
 
     def test_capability_reporting(self):
         """ Test if the right capabilities are reported. """
@@ -123,7 +125,7 @@ class SBMLTest(unittest.TestCase):
 
         # test whether parameters are in myokit model
         for param in parameters:
-            assert self.HoHu.has_variable('sbml.' + param)
+            self.assertTrue(self.hohu.has_variable('sbml.' + param))
 
     def test_units(self):
         # Test Case: Hodkin Huxley
@@ -161,7 +163,7 @@ class SBMLTest(unittest.TestCase):
         # test whether parameters have correct units
         for param in param_unit_dict:
             unit = param_unit_dict[param]
-            assert unit == self.HoHu.get('sbml.' + param).unit()
+            self.assertEqual(unit, self.hohu.get('sbml.' + param).unit())
 
     def test_initial_values(self):
         # Test Case: Hodkin Huxley
@@ -181,7 +183,7 @@ class SBMLTest(unittest.TestCase):
         # test whether parameters have correct initial values
         for param in param_value_dict:
             value = param_value_dict[param]
-            assert value == self.HoHu.get('sbml.' + param).value()
+            self.assertEqual(value, self.hohu.get('sbml.' + param).value())
 
     def test_intermediate_expressions(self):
         # Test Case: Hodkin Huxley
@@ -207,8 +209,9 @@ class SBMLTest(unittest.TestCase):
         # test whether intermediate expressions are correct
         for param in param_expr_dict:
             expr = param_expr_dict[param]
-            assert 'sbml.' + param == str(self.HoHu.get('sbml.' + param).lhs())
-            assert expr == str(self.HoHu.get('sbml.' + param).rhs())
+            self.assertEqual(
+                'sbml.' + param, str(self.hohu.get('sbml.' + param).lhs()))
+            self.assertEqual(expr, str(self.hohu.get('sbml.' + param).rhs()))
 
     def test_state_expressions(self):
         # Test Case: Hodkin Huxley
@@ -222,10 +225,10 @@ class SBMLTest(unittest.TestCase):
         # test whether state expressions are correct
         for param in param_expr_dict:
             expr = param_expr_dict[param]
-            assert 'dot(sbml.%s)' % param == str(
-                self.HoHu.get('sbml.' + param).lhs()
-            )
-            assert expr == str(self.HoHu.get('sbml.' + param).rhs())
+            self.assertEqual(
+                'dot(sbml.%s)' % param,
+                str(self.hohu.get('sbml.' + param).lhs()))
+            self.assertEqual(expr, str(self.hohu.get('sbml.' + param).rhs()))
 
     def test_info(self):
         i = formats.importer('sbml')
