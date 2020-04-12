@@ -188,7 +188,7 @@ class SBMLImporter(myokit.formats.Importer):
         # Return finished model
         return model
 
-    def _get_namespaces(self, sbml_version: str, log):
+    def _get_namespaces(self, sbml_version, log):
         """
         Defines namespaces for supported SBML versions. Supported versions are:
         level 2, version 3, 4, 5.
