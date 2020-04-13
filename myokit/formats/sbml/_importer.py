@@ -112,7 +112,7 @@ class SBMLImporter(myokit.formats.Importer):
         if x:
             log.log('Converting <model> notes to ascii')
             model.meta['desc'] = html2ascii(
-                str(ET.tostring(x, encoding='utf-8')), width=75)
+                ET.tostring(x, encoding='utf-8').decode(), width=75)
             # width = 79 - 4 for tab!
 
         # Warn about missing functionality
