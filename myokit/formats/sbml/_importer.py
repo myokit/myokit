@@ -15,7 +15,7 @@ import re
 import myokit
 import myokit.units
 import myokit.formats
-from myokit.mxml import html2ascii
+from myokit.mxml import html2ascii, split
 from myokit.formats.mathml import parse_mathml_etree
 
 
@@ -68,7 +68,13 @@ class SBMLImporter(myokit.formats.Importer):
 
     def model(self, path, bind_time=True):
         """
-        Returns myokit model specified by the SBML fil provided.
+        Returns a :class:myokit.Model based on the SBML file provided.
+
+        Arguments:
+            path -- Path to SBML file.
+            bind_time -- Flag to create and bind a time bound variable. If
+                         False no variable will be bound to time in the
+                         :class:myokit.Model.
         """
         # Get logger
         log = self.logger()
@@ -105,9 +111,8 @@ class SBMLImporter(myokit.formats.Importer):
         x = xmodel.find(self.ns['sbml'] + 'notes')
         if x:
             log.log('Converting <model> notes to ascii')
-            model.meta['desc'] = html2ascii(ET.tostring(x, encoding='unicode'),
-                                            width=75
-                                            )
+            model.meta['desc'] = html2ascii(
+                str(ET.tostring(x, encoding='utf-8')), width=75)
             # width = 79 - 4 for tab!
 
         # Warn about missing functionality
@@ -140,8 +145,7 @@ class SBMLImporter(myokit.formats.Importer):
         # add time as independent variable (not explicit in SBML format)
         if bind_time:
             # add and bind time variable to component
-            comp.add_variable('time')
-            time = comp.get('time')
+            time = comp.add_variable_allow_renaming('time')
             time.set_binding('time')
             # set unit and value
             try:
@@ -213,9 +217,9 @@ class SBMLImporter(myokit.formats.Importer):
         """
         Returns the SBML version of the file.
         """
-        m = re.match(r'\{.*\}', root.tag)
-
-        return m.group(0) if m else ''
+        namespace = split(root.tag)[0]
+        # add brackets, so we can find nodes by namespace + name
+        return '{' + namespace + '}'
 
     def _parse_initial_assignments(self, model, comp, refs, node):
         """
@@ -307,27 +311,32 @@ class SBMLImporter(myokit.formats.Importer):
 
         # Define rates for variables (states)
         for node in parent.findall(ns + 'rateRule'):
-            var = self._convert_name(
-                str(node.get('variable')).strip())
-            if var in comp:
-                self.logger().log('Parsing rate rule for <' + var + '>.')
-                var = comp[var]
-                ini = var.rhs()
-                ini = ini.eval() if ini else 0
-                var.promote(ini)
-                # get child
-                child = node.find(mathml_ns + 'math')
-                # add expression to model
-                if child:
-                    var.set_rhs(parse_mathml_etree(
-                        child,
-                        lambda x, y: myokit.Name(refs[x]),
-                        lambda x, y: myokit.Number(x)
-                    )
-                    )
+            var = node.get('variable')
+            if var is not None:
+                var = self._convert_name(str(var).strip())
+                if var in comp:
+                    self.logger().log('Parsing rate rule for <' + var + '>.')
+                    var = comp[var]
+                    ini = var.rhs()
+                    ini = ini.eval() if ini else 0
+                    var.promote(ini)
+                    # get child
+                    child = node.find(mathml_ns + 'math')
+                    # add expression to model
+                    if child:
+                        var.set_rhs(parse_mathml_etree(
+                            child,
+                            lambda x, y: myokit.Name(refs[x]),
+                            lambda x, y: myokit.Number(x)
+                        )
+                        )
+                else:
+                    raise SBMLError(   # pragma: no cover
+                        'Derivative found for unknown parameter: <' + var
+                        + '>.')
             else:
                 raise SBMLError(   # pragma: no cover
-                    'Derivative found for unknown parameter: <' + var + '>.')
+                    'RateRule has no attribute "variable".')
 
     def _parse_units(self, model, comp, node):
         """
@@ -344,15 +353,9 @@ class SBMLImporter(myokit.formats.Importer):
             for node2 in units:
                 kind = str(node2.get('kind')).strip()
                 u2 = self._convert_unit(kind)
-                if node2.get('multiplier'):
-                    m = float(node2.get('multiplier'))
-                else:
-                    m = 1.0
-                if node2.get('scale'):
-                    m *= 10 ** float(node2.get('scale'))
-                u2 *= m
-                if node2.get('exponent'):
-                    u2 **= float(node2.get('exponent'))
+                u2 *= float(node2.get('multiplier', default=1.0))
+                u2 *= 10 ** float(node2.get('scale', default=0.0))
+                u2 **= float(node2.get('exponent', default=1.0))
                 unit *= u2
             self.units[name] = unit
 
