@@ -8,11 +8,12 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 from ._importer import SBMLImporter, SBMLError  # noqa
+from. _new_importer import SBMLImporter as NewImporter
 
 
 # Importers
 _importers = {
-    'sbml': SBMLImporter,
+    'sbml': NewImporter,
 }
 
 
