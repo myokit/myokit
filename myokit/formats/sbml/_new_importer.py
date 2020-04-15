@@ -42,7 +42,7 @@ class SBMLImporter(myokit.formats.Importer):
     def info(self):
         return info
 
-    def model(self, path, bind_time=True):
+    def model(self, path):
         """
         Returns a :class:myokit.Model based on the SBML file provided.
 
@@ -59,8 +59,9 @@ class SBMLImporter(myokit.formats.Importer):
         reader = SBMLReader()
         doc = reader.readSBMLFromFile(path)
         if doc.getNumErrors() > 0:
-            print('There were some errors')
-            # TODO: proper error handling here.
+            raise ImportError(
+                'The SBML file could not be imported, or does not comply to'
+                ' SBML standards.')
 
         # Get level and version of SBML file
         lvl = doc.getLevel()
@@ -82,13 +83,6 @@ class SBMLImporter(myokit.formats.Importer):
                         'Conversion of SBML file to level 3, version 2 was '
                         'attempted but not successful. This may result in '
                         'model building errors.')
-
-        # TODO: level and version conversion
-        # If significant changes between levels exist that would influence
-        # how models are built, upgrade versions, potentially levels to the
-        # latest stage, and build models from there.
-        # using doc.setLevelandVersion()
-        # problems can be asses with ErrorLog
 
         # Get model name
         SBMLmodel = doc.getModel()
@@ -117,14 +111,36 @@ class SBMLImporter(myokit.formats.Importer):
             for funcDef in funcDefs:
                 userFuncDict[funcDef.getIdAttribute()] = funcDef
 
+        # Create user defined unit reference
+        self.userUnitDict = dict()
+
         # Get unit definitions
         unitDefs = SBMLmodel.getListOfUnitDefinitions()
         if unitDefs:
-            userUnitDict = dict()
             for unitDef in unitDefs:
-                userUnitDict[unitDef.getIdAttribute()] = self._convert_unit(
-                    unitDef)
-            print(userUnitDict)  # TODO: Upgrading introduces units?
+                self.userUnitDict[
+                    unitDef.getIdAttribute()] = self._convert_unit_def(unitDef)
+
+        # Get model units
+        units = {
+            'substanceUnit': SBMLmodel.getSubstanceUnits(),
+            'timeUnit': SBMLmodel.getTimeUnits(),
+            'volumeUnit': SBMLmodel.getVolumeUnits(),
+            'areaUnit': SBMLmodel.getAreaUnits(),
+            'lengthUnit': SBMLmodel.getLengthUnits(),
+            'extentUnit': SBMLmodel.getExtentUnits(),
+        }
+        for unitId in units:
+            unit = units[unitId]
+            if unit in self.userUnitDict:
+                self.userUnitDict[unitId] = self.userUnitDict[unit]
+            elif unit in SBML2MyoKitUnitDict:
+                self.userUnitDict[unitId] = SBML2MyoKitUnitDict[unit]
+            else:
+                self.userUnitDict[unitId] = None
+
+        # Initialise parameter and species dictionary
+        self.paramAndSpeciesDict = dict()
 
         # Add compartments to model
         compDict = dict()
@@ -135,15 +151,36 @@ class SBMLImporter(myokit.formats.Importer):
                 name = comp.getName()
                 if not name:
                     name = idx
+                size = comp.getSize()
+                unit = comp.getUnits()
+                if unit:
+                    if unit in self.userUnitDict:
+                        unit = self.userUnitDict[unit]
+                    elif unit in SBML2MyoKitUnitDict:
+                        unit = SBML2MyoKitUnitDict[unit]
+                else:
+                    dim = comp.getSpatialDimensions()  # can be non-integer
+                    if dim == 3.0:
+                        unit = self.userUnitDict['volumeUnit']
+                    elif dim == 2.0:
+                        unit = self.userUnitDict['areaUnit']
+                    elif dim == 1.0:
+                        unit = self.userUnitDict['lengthUnit']
+                    else:
+                        unit = None
+
+                # Create compartment
                 compDict[idx] = model.add_component(
                     self._convert_name(name))
+
+                # Add size parameter to compartment
+                var = compDict[idx].add_variable('size')
+                var.set_unit(unit)
+                var.set_rhs(size)
 
         # Add a generic compartment for anything unassigned
         name = self._convert_name('sbml')
         compDict['sbml'] = model.add_component(name)
-
-        # Initialise parameter and species dictionary
-        paramAndSpeciesDict = dict()
 
         # Add parameters to model
         params = SBMLmodel.getListOfParameters()
@@ -155,8 +192,8 @@ class SBMLImporter(myokit.formats.Importer):
                     name = idp
                 value = param.getValue()
                 unit = param.getUnits()
-                if unit in userUnitDict:
-                    unit = userUnitDict[unit]
+                if unit in self.userUnitDict:
+                    unit = self.userUnitDict[unit]
                 elif unit in SBML2MyoKitUnitDict:
                     unit = SBML2MyoKitUnitDict[unit]
                 else:
@@ -170,7 +207,7 @@ class SBMLImporter(myokit.formats.Importer):
                 v.set_rhs(value)
 
                 # save param in container for later assignments/reactions
-                paramAndSpeciesDict[idp] = v
+                self.paramAndSpeciesDict[idp] = v
 
         # Add species to compartments
         species = SBMLmodel.getListOfSpecies()
@@ -178,30 +215,61 @@ class SBMLImporter(myokit.formats.Importer):
             for s in species:
                 ids = s.getIdAttribute()
                 name = s.getName()
+                if not name:
+                    name = ids
                 idc = s.getCompartment()
+                isAmount = s.getHasOnlySubstanceUnits()
+                value = self._get_species_initial_value(s, idc, isAmount)
+                unit = s.getUnits()
+
 
             # species.initialAmount or initialConcentration
-            # species is constant, stays constant
+            # TODO: constant and boundaryCondition
             # substanceUnits
             # hasOnlySubstanceUnits shows whether amount or concentration
-            # constant and boundaryCondition
+            #
             # conversionFactor, look up in parameters
             # if size changes concentration has to be recalculated,
             # complexity of this depends on hasOnlySubstanceUnits
 
-        # TODO: add time parameter, if not existent, and bind to time
-        # Model attribute timeUnits defines time. If not provided log warning
-
-        # TODO: Potentially get extent units. KineticLaw units are extentUnit/timeUnits
+        # Add time bound variable to model
+        time = compDict['sbml'].add_variable('time')
+        time.set_binding('time')
+        time.set_unit(self.userUnitDict['timeUnit'])
+        time.set_rhs(0.0)  # According to SBML guidelines
+        time_id = 'http://www.sbml.org/sbml/symbols/time'  # This ID is not
+        # protected
+        if time_id in self.paramAndSpeciesDict:
+            raise ImportError(
+                'Using the ID %s for parameters or species leads import'
+                'errors.')
+        else:
+            self.paramAndSpeciesDict[
+                'http://www.sbml.org/sbml/symbols/time'] = time
 
         # TODO: add initial assignments to model
         # initial assignment overrule initial value / concentration
 
         # TODO: add Rules to model
 
-        # TODO: extract Constraints (cannot be added to model, but should be returned)
+        # TODO: extract Constraints (cannot be added to model, but should be
+        # returned)
 
         # TODO: add Reactions to model
+        reactions = SBMLmodel.getListOfReactions()
+        if reactions:
+            for reaction in reactions:
+                idr = reaction.getIdAttribute()
+                reactants = self._get_reaction_species(
+                    reaction.getListOfReactants())
+                products = self._get_reaction_species(
+                    reaction.getListOfProducts())
+                modifiers = [
+                    m.getSpecies() for m in reaction.getListOfModifiers()]
+                kineticLaw = reaction.getKineticLaw()
+                # TODO: Look at kinetic law and how to best construct ODE
+                # TODO: check rate that it is compliant with reversible flag.
+                c = reaction.getCompartment()
 
         # TODO: extract event and convert it to protocol
 
@@ -221,7 +289,7 @@ class SBMLImporter(myokit.formats.Importer):
                 'Converting name <' + org_name + '> to <' + name + '>.')
         return name
 
-    def _convert_unit(self, unitDef):
+    def _convert_unit_def(self, unitDef):
         """
         Converts unit definition into a myokit unit.
         """
@@ -246,12 +314,61 @@ class SBMLImporter(myokit.formats.Importer):
 
         return unitDef
 
+    def convert_unit(self, unit):
+        """
+        Returns :class:myokit.Unit expression of unit.
+        """
+        if unit in self.userUnitDict:
+            return self.userUnitDict[unit]
+        elif unit in SBML2MyoKitUnitDict:
+            return SBML2MyoKitUnitDict[unit]
+        else:
+            return None
+
+    def _get_species_initial_value(self, species, compId, isAmount):
+        """
+        Returns the initial value of a species either in amount or
+        concentration depend on the flag is Amount.
+        """
+        amount = species.getInitialAmount()
+        if not amount:
+            if isAmount:
+                return amount
+            else:
+                volume = self.paramAndSpeciesDict[compId]
+                return myokit.Divide(myokit.Number(amount), volume)
+        conc = species.getInitialConcentration()
+        if not conc:
+            if isAmount:
+                volume = self.paramAndSpeciesDict[compId]
+                return myokit.Multiply(myokit.Number(amount), volume)
+            else:
+                return conc
+
+        return None
+
+    def _get_reaction_species(self, listOfSpecies):
+        """
+        Returns a dictionary with species IDs as keys and their respective
+        stoichiometries.
+        """
+        species = {}
+        for s in species:
+            ids = s.getSpecies()
+            stoich = s.getStoichiometry()
+            if ids in species:
+                species[ids] += stoich
+            else:
+                species[ids] = stoich
+
+            return species
 
 
 class SBMLError(myokit.ImportError):
     """
     Thrown if an error occurs when importing SBML
     """
+
 
 # SBML base units according to libSBML (order matters for unit identification!)
 SBML2MyoKitUnitDict = {
