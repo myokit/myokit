@@ -191,23 +191,20 @@ class SBMLImporter(myokit.formats.Importer):
                 if not name:
                     name = idp
                 value = param.getValue()
-                unit = param.getUnits()
-                if unit in self.userUnitDict:
-                    unit = self.userUnitDict[unit]
-                elif unit in SBML2MyoKitUnitDict:
-                    unit = SBML2MyoKitUnitDict[unit]
-                else:
-                    unit = None
+                unit = self._get_unit(param)
 
                 # add parameter to sbml compartment
                 comp = compDict['sbml']
-                v = comp.add_variable_allow_renaming(
+                var = comp.add_variable_allow_renaming(
                     self._convert_name(name))
-                v.set_unit(unit)
-                v.set_rhs(value)
+                var.set_unit(unit)
+                var.set_rhs(value)
 
                 # save param in container for later assignments/reactions
-                self.paramAndSpeciesDict[idp] = v
+                self.paramAndSpeciesDict[idp] = var
+
+        # Create conversion factor reference
+        convFactorDict = dict()
 
         # Add species to compartments
         species = SBMLmodel.getListOfSpecies()
@@ -220,17 +217,24 @@ class SBMLImporter(myokit.formats.Importer):
                 idc = s.getCompartment()
                 isAmount = s.getHasOnlySubstanceUnits()
                 value = self._get_species_initial_value(s, idc, isAmount)
-                unit = s.getUnits()
+                unit = self._get_unit(s)
+                var = compDict[idc].add_variable_allow_renaming(name)
+                var.set_unit(unit)
+                var.set_rhs(value)
 
+                # save species in container for later assignments/reactions
+                self.paramAndSpeciesDict[ids] = var
 
-            # species.initialAmount or initialConcentration
+                # save conversion factor to container for later reactions
+                convFactor = s.getConversionFactor()
+                if convFactor:
+                    convFactor = self.paramAndSpeciesDict[convFactor]
+                convFactorDict[ids] = convFactor
+
             # TODO: constant and boundaryCondition
-            # substanceUnits
-            # hasOnlySubstanceUnits shows whether amount or concentration
-            #
-            # conversionFactor, look up in parameters
-            # if size changes concentration has to be recalculated,
-            # complexity of this depends on hasOnlySubstanceUnits
+            # allows to fix the amount of the species even if it's part of
+            # a reaction or rate equation. (not supported at the moment, maybe
+            # never)
 
         # Add time bound variable to model
         time = compDict['sbml'].add_variable('time')
@@ -314,9 +318,10 @@ class SBMLImporter(myokit.formats.Importer):
 
         return unitDef
 
-    def convert_unit(self, unit):
+    def _get_unit(self, model_entity):
         """
-        Returns :class:myokit.Unit expression of unit.
+        Returns :class:myokit.Unit expression of the unit of a parameter or
+        species.
         """
         if unit in self.userUnitDict:
             return self.userUnitDict[unit]
