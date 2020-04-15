@@ -257,8 +257,21 @@ class SBMLImporter(myokit.formats.Importer):
             self.paramAndSpeciesDict[
                 'http://www.sbml.org/sbml/symbols/time'] = time
 
-        # TODO: add initial assignments to model
-        # initial assignment overrule initial value / concentration
+        # Add initial assignments to model
+        assignments = SBMLmodel.getListOfInitialAssignments()
+        if assignments:
+            for assign in assignments:
+                var = assign.getSymbol()
+                var = self.paramAndSpeciesDict[var]
+                expr = assign.getMath()
+                if expr:
+                    var.set_rhs(parse_mathml_etree(
+                        expr,
+                        lambda x, y: myokit.Name(self.paramAndSpeciesDict[x]),
+                        lambda x, y: myokit.Number(x)
+                    ))
+
+
 
         # TODO: add Rules to model
 
