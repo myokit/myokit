@@ -178,9 +178,15 @@ class SBMLImporter(myokit.formats.Importer):
                 var.set_unit(unit)
                 var.set_rhs(size)
 
-        # Add a generic compartment for anything unassigned
-        name = self._convert_name('sbml')
-        compDict['sbml'] = model.add_component(name)
+                # save size in container for later assignments/reactions
+                self.paramAndSpeciesDict[idx] = var
+
+        name = self._convert_name('myokit')
+        if 'MyoKit' in compDict:
+            raise ImportError(
+                'The compartment ID <MyoKit> is reserved in a myokit'
+                'import.')
+        compDict['MyoKit'] = model.add_component(name)
 
         # Add parameters to model
         params = SBMLmodel.getListOfParameters()
@@ -194,7 +200,7 @@ class SBMLImporter(myokit.formats.Importer):
                 unit = self._get_unit(param)
 
                 # add parameter to sbml compartment
-                comp = compDict['sbml']
+                comp = compDict['MyoKit']
                 var = comp.add_variable_allow_renaming(
                     self._convert_name(name))
                 var.set_unit(unit)
@@ -237,7 +243,7 @@ class SBMLImporter(myokit.formats.Importer):
             # never)
 
         # Add time bound variable to model
-        time = compDict['sbml'].add_variable('time')
+        time = compDict['MyoKit'].add_variable('time')
         time.set_binding('time')
         time.set_unit(self.userUnitDict['timeUnit'])
         time.set_rhs(0.0)  # According to SBML guidelines
@@ -323,6 +329,7 @@ class SBMLImporter(myokit.formats.Importer):
         Returns :class:myokit.Unit expression of the unit of a parameter or
         species.
         """
+        unit = model_entity.getUnits()
         if unit in self.userUnitDict:
             return self.userUnitDict[unit]
         elif unit in SBML2MyoKitUnitDict:
@@ -341,12 +348,14 @@ class SBMLImporter(myokit.formats.Importer):
                 return amount
             else:
                 volume = self.paramAndSpeciesDict[compId]
-                return myokit.Divide(myokit.Number(amount), volume)
+                return myokit.Divide(
+                    myokit.Number(amount), myokit.Name(volume))
         conc = species.getInitialConcentration()
         if not conc:
             if isAmount:
                 volume = self.paramAndSpeciesDict[compId]
-                return myokit.Multiply(myokit.Number(amount), volume)
+                return myokit.Multiply(
+                    myokit.Number(amount), myokit.Name(volume))
             else:
                 return conc
 
