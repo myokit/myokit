@@ -55,6 +55,7 @@ class SBMLImporter(myokit.formats.Importer):
         # Get logger
         log = self.logger()
 
+        # TODO: remove libSBML depence (kept for now to upgrade lvl)
         # Read SBML file
         reader = SBMLReader()
         doc = reader.readSBMLFromFile(path)
@@ -76,6 +77,7 @@ class SBMLImporter(myokit.formats.Importer):
                     'This may result in model building errors.')
             else:
                 success = doc.setLevelAndVersion(level=3, version=2)
+                print(success)
                 if success:
                     log.log('Converted SBML file to level 3, version 2.')
                 else:
@@ -83,52 +85,58 @@ class SBMLImporter(myokit.formats.Importer):
                         'Conversion of SBML file to level 3, version 2 was '
                         'attempted but not successful. This may result in '
                         'model building errors.')
+        #TODO: Read in as etreee
+        doc = XMLNode.convertXMLNodeToString(doc.toXMLNode())
+        SBMLmodel = ET.fromstring(doc)[0]
 
         # Get model name
-        SBMLmodel = doc.getModel()
-        name = SBMLmodel.getName()
-        if not name:
-            name = SBMLmodel.getIdAttribute()
+        # SBMLmodel = doc.getModel()
+        name = self._getName(SBMLmodel)
         if not name:
             name = 'Imported SBML model'
+        print(name)
 
         # Create myokit model
         model = myokit.Model(self._convert_name(name))
         log.log('Reading model "' + model.meta['name'] + '"')
 
         # Add notes, if provided, to model description
-        notes = SBMLmodel.getNotes()
+        notes = self._getNotes(SBMLmodel)
         if notes:
             log.log('Converting <model> notes to ascii')
-            notes = XMLNode.convertXMLNodeToString(notes)
             model.meta['desc'] = html2ascii(notes, width=75)
             # width = 79 - 4 for tab!
 
-        # Get function definitions
-        funcDefs = SBMLmodel.getListOfFunctionDefinitions()
-        if funcDefs:
-            userFuncDict = dict()
-            for funcDef in funcDefs:
-                userFuncDict[funcDef.getIdAttribute()] = funcDef
+        # TODO: Get function definitions
+        # funcDefs = SBMLmodel.getListOfFunctionDefinitions()
+        # if funcDefs:
+        #     userFuncDict = dict()
+        #     for funcDef in funcDefs:
+        #         userFuncDict[funcDef.getIdAttribute()] = funcDef
 
         # Create user defined unit reference
         self.userUnitDict = dict()
 
         # Get unit definitions
-        unitDefs = SBMLmodel.getListOfUnitDefinitions()
+        unitDefs = self._getListOfUnitDefinitions(SBMLmodel)
         if unitDefs:
             for unitDef in unitDefs:
+                unitId = unitDef.get('id')
+                if not unitId:
+                    raise ImportError(
+                        'The file does not adhere to SBML 3.2 standards.'
+                        'No unit ID provided.')
                 self.userUnitDict[
-                    unitDef.getIdAttribute()] = self._convert_unit_def(unitDef)
+                    unitId] = self._convert_unit_def(unitDef)
 
         # Get model units
         units = {
-            'substanceUnit': SBMLmodel.getSubstanceUnits(),
-            'timeUnit': SBMLmodel.getTimeUnits(),
-            'volumeUnit': SBMLmodel.getVolumeUnits(),
-            'areaUnit': SBMLmodel.getAreaUnits(),
-            'lengthUnit': SBMLmodel.getLengthUnits(),
-            'extentUnit': SBMLmodel.getExtentUnits(),
+            'substanceUnit': SBMLmodel.get('substanceUnits'),
+            'timeUnit': SBMLmodel.get('timeUnits'),
+            'volumeUnit': SBMLmodel.get('volumeUnits'),
+            'areaUnit': SBMLmodel.get('areaUnits'),
+            'lengthUnit': SBMLmodel.get('lengthUnits'),
+            'extentUnit': SBMLmodel.get('extentUnits'),
         }
         for unitId in units:
             unit = units[unitId]
@@ -144,22 +152,26 @@ class SBMLImporter(myokit.formats.Importer):
 
         # Add compartments to model
         compDict = dict()
-        comps = SBMLmodel.getListOfCompartments()
+        comps = self._getListOfCompartments(SBMLmodel)
         if comps:
             for comp in comps:
-                idx = comp.getIdAttribute()
-                name = comp.getName()
+                idx = comp.get('id')
+                if not idx:
+                    raise ImportError(
+                        'The file does not adhere to SBML 3.2 standards.'
+                        'No compartment ID provided.')
+                name = comp.get('name')
                 if not name:
                     name = idx
-                size = comp.getSize()
-                unit = comp.getUnits()
+                size = comp.get('size')
+                unit = comp.get('units')
                 if unit:
                     if unit in self.userUnitDict:
                         unit = self.userUnitDict[unit]
                     elif unit in SBML2MyoKitUnitDict:
                         unit = SBML2MyoKitUnitDict[unit]
                 else:
-                    dim = comp.getSpatialDimensions()  # can be non-integer
+                    dim = float(comp.get('spatialDimensions'))  # can be non-integer
                     if dim == 3.0:
                         unit = self.userUnitDict['volumeUnit']
                     elif dim == 2.0:
@@ -189,15 +201,19 @@ class SBMLImporter(myokit.formats.Importer):
         compDict['MyoKit'] = model.add_component(name)
 
         # Add parameters to model
-        params = SBMLmodel.getListOfParameters()
+        params = self._getListOfParameters(SBMLmodel)
         if params:
             for param in params:
-                idp = param.getIdAttribute()
-                name = param.getName()
+                idp = param.get('id')
+                if not idp:
+                    raise ImportError(
+                        'The file does not adhere to SBML 3.2 standards.'
+                        'No parameter ID provided.')
+                name = param.get('name')
                 if not name:
                     name = idp
-                value = param.getValue()
-                unit = self._get_unit(param)
+                value = param.get('value')
+                unit = self._getUnit(param)
 
                 # add parameter to sbml compartment
                 comp = compDict['MyoKit']
@@ -213,17 +229,22 @@ class SBMLImporter(myokit.formats.Importer):
         convFactorDict = dict()
 
         # Add species to compartments
-        species = SBMLmodel.getListOfSpecies()
+        species = self._getListOfSpecies(SBMLmodel)
+        print('species: ', species)
         if species:
             for s in species:
-                ids = s.getIdAttribute()
-                name = s.getName()
+                ids = s.get('id')
+                if not ids:
+                    raise ImportError(
+                        'The file does not adhere to SBML 3.2 standards.'
+                        'No species ID provided.')
+                name = s.get('name')
                 if not name:
                     name = ids
-                idc = s.getCompartment()
-                isAmount = s.getHasOnlySubstanceUnits()
-                value = self._get_species_initial_value(s, idc, isAmount)
-                unit = self._get_unit(s)
+                idc = s.get('compartment')
+                isAmount = s.get('hasOnlySubstanceUnits')
+                value = self._getSpeciesInitialValue(s, idc, isAmount)
+                unit = self._getUnit(s)
                 var = compDict[idc].add_variable_allow_renaming(name)
                 var.set_unit(unit)
                 var.set_rhs(value)
@@ -232,7 +253,7 @@ class SBMLImporter(myokit.formats.Importer):
                 self.paramAndSpeciesDict[ids] = var
 
                 # save conversion factor to container for later reactions
-                convFactor = s.getConversionFactor()
+                convFactor = s.get('conversionFactor')
                 if convFactor:
                     convFactor = self.paramAndSpeciesDict[convFactor]
                 convFactorDict[ids] = convFactor
@@ -257,19 +278,19 @@ class SBMLImporter(myokit.formats.Importer):
             self.paramAndSpeciesDict[
                 'http://www.sbml.org/sbml/symbols/time'] = time
 
-        # Add initial assignments to model
-        assignments = SBMLmodel.getListOfInitialAssignments()
-        if assignments:
-            for assign in assignments:
-                var = assign.getSymbol()
-                var = self.paramAndSpeciesDict[var]
-                expr = assign.getMath()
-                if expr:
-                    var.set_rhs(parse_mathml_etree(
-                        expr,
-                        lambda x, y: myokit.Name(self.paramAndSpeciesDict[x]),
-                        lambda x, y: myokit.Number(x)
-                    ))
+        # # Add initial assignments to model
+        # assignments = SBMLmodel.getListOfInitialAssignments()
+        # if assignments:
+        #     for assign in assignments:
+        #         var = assign.getSymbol()
+        #         var = self.paramAndSpeciesDict[var]
+        #         expr = assign.getMath()
+        #         if expr:
+        #             var.set_rhs(parse_mathml_etree(
+        #                 expr,
+        #                 lambda x, y: myokit.Name(self.paramAndSpeciesDict[x]),
+        #                 lambda x, y: myokit.Number(x)
+        #             ))
 
 
 
@@ -279,24 +300,86 @@ class SBMLImporter(myokit.formats.Importer):
         # returned)
 
         # TODO: add Reactions to model
-        reactions = SBMLmodel.getListOfReactions()
-        if reactions:
-            for reaction in reactions:
-                idr = reaction.getIdAttribute()
-                reactants = self._get_reaction_species(
-                    reaction.getListOfReactants())
-                products = self._get_reaction_species(
-                    reaction.getListOfProducts())
-                modifiers = [
-                    m.getSpecies() for m in reaction.getListOfModifiers()]
-                kineticLaw = reaction.getKineticLaw()
-                # TODO: Look at kinetic law and how to best construct ODE
-                # TODO: check rate that it is compliant with reversible flag.
-                c = reaction.getCompartment()
+        # reactions = SBMLmodel.getListOfReactions()
+        # if reactions:
+        #     for reaction in reactions:
+        #         idr = reaction.getIdAttribute()
+        #         reactants = self._get_reaction_species(
+        #             reaction.getListOfReactants())
+        #         products = self._get_reaction_species(
+        #             reaction.getListOfProducts())
+        #         modifiers = [
+        #             m.getSpecies() for m in reaction.getListOfModifiers()]
+        #         kineticLaw = reaction.getKineticLaw()
+        #         # TODO: Look at kinetic law and how to best construct ODE
+        #         # TODO: check rate that it is compliant with reversible flag.
+        #         c = reaction.getCompartment()
 
         # TODO: extract event and convert it to protocol
 
         return model
+
+    def _getName(self, element):
+        name = element.get('name')
+        if name:
+            return name
+        name = element.get('id')
+        if name:
+            return name
+        return None
+
+    def _getNotes(self, element):
+        notes = element.find(
+            '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'notes')
+        if notes:
+            return ET.tostring(notes).decode()
+        return None
+
+    def _getListOfUnitDefinitions(self, element):
+        units = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfUnitDefinitions/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'unitDefinition')
+        if units:
+            return units
+        return None
+
+    def _getListOfCompartments(self, element):
+        comps = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfCompartments/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'compartment')
+        if comps:
+            return comps
+        return None
+
+    def _getListOfParameters(self, element):
+        params = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfParameters/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'parameter')
+        if params:
+            return params
+        return None
+
+    def _getListOfSpecies(self, element):
+        species = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfSpecies/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'species')
+        print(species)
+        if species:
+            return species
+        return None
 
     def _convert_name(self, name):
         """
@@ -317,7 +400,12 @@ class SBMLImporter(myokit.formats.Importer):
         Converts unit definition into a myokit unit.
         """
         # Get composing base units
-        units = unitDef.getListOfUnits()
+        units = unitDef.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            'listOfUnits/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'unit')
         if not units:
             return None
 
@@ -326,23 +414,27 @@ class SBMLImporter(myokit.formats.Importer):
 
         # construct unit definition from base units
         for baseUnit in units:
-            sbmlUnit = SBMLBaseUnits[baseUnit.getKind()]
-            # getKind() returns index defined by SBML
-            myokitUnit = SBML2MyoKitUnitDict[sbmlUnit]
-            myokitUnit *= baseUnit.getMultiplier()  # mandatory in l3
-            myokitUnit *= 10 ** float(baseUnit.getScale())  # mandatory in l3
-            myokitUnit **= float(baseUnit.getExponent())  # mandatory in l3
+            kind = baseUnit.get('kind')
+            if not kind:
+                raise ImportError(
+                    'The file does not adhere to SBML 3.2 standards.'
+                    'No unit kind provided.')
+            myokitUnit = SBML2MyoKitUnitDict[kind]
+            myokitUnit *= float(baseUnit.get('multiplier', default=1.0))
+            myokitUnit *= 10 ** float(baseUnit.get('scale', default=0.0))
+            myokitUnit **= float(baseUnit.get('exponent', default=1.0))
+
             # "add" composite unit to unit definition
             unitDef *= myokitUnit
 
         return unitDef
 
-    def _get_unit(self, model_entity):
+    def _getUnit(self, model_entity):
         """
         Returns :class:myokit.Unit expression of the unit of a parameter or
         species.
         """
-        unit = model_entity.getUnits()
+        unit = model_entity.get('units')
         if unit in self.userUnitDict:
             return self.userUnitDict[unit]
         elif unit in SBML2MyoKitUnitDict:
@@ -350,12 +442,12 @@ class SBMLImporter(myokit.formats.Importer):
         else:
             return None
 
-    def _get_species_initial_value(self, species, compId, isAmount):
+    def _getSpeciesInitialValue(self, species, compId, isAmount):
         """
         Returns the initial value of a species either in amount or
         concentration depend on the flag is Amount.
         """
-        amount = species.getInitialAmount()
+        amount = species.get('initialAmount')
         if not amount:
             if isAmount:
                 return amount
@@ -363,7 +455,7 @@ class SBMLImporter(myokit.formats.Importer):
                 volume = self.paramAndSpeciesDict[compId]
                 return myokit.Divide(
                     myokit.Number(amount), myokit.Name(volume))
-        conc = species.getInitialConcentration()
+        conc = species.get('initialConcentration')
         if not conc:
             if isAmount:
                 volume = self.paramAndSpeciesDict[compId]
@@ -371,7 +463,6 @@ class SBMLImporter(myokit.formats.Importer):
                     myokit.Number(amount), myokit.Name(volume))
             else:
                 return conc
-
         return None
 
     def _get_reaction_species(self, listOfSpecies):
@@ -438,5 +529,3 @@ SBML2MyoKitUnitDict = {
     'invalid': None,
 }
 
-# SBML base units
-SBMLBaseUnits = list(SBML2MyoKitUnitDict.keys())
