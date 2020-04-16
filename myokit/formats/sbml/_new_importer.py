@@ -60,7 +60,7 @@ class SBMLImporter(myokit.formats.Importer):
         reader = SBMLReader()
         doc = reader.readSBMLFromFile(path)
         if doc.getNumErrors() > 0:
-            raise ImportError(
+            raise SBMLError(
                 'The SBML file could not be imported, or does not comply to'
                 ' SBML standards.')
 
@@ -87,10 +87,24 @@ class SBMLImporter(myokit.formats.Importer):
                         'model building errors.')
         #TODO: Read in as etreee
         doc = XMLNode.convertXMLNodeToString(doc.toXMLNode())
-        SBMLmodel = ET.fromstring(doc)[0]
+        root = ET.fromstring(doc)
+
+        # Check whether file has SBML 3.2 namespace
+        ns = self._getNamespace(root)
+        if ns != 'http://www.sbml.org/sbml/level3/version2/core':
+            raise SBMLError(
+                'The file does not adhere to SBML 3.2 standards. The global'
+                ' namespace is not'
+                ' <http://www.sbml.org/sbml/level3/version2/core>.')
+
+        # Get model
+        SBMLmodel = self._getModel(root)
+        if not SBMLmodel:
+            raise SBMLError(
+                'The file does not adhere to SBML 3.2 standards.'
+                ' No model provided.')
 
         # Get model name
-        # SBMLmodel = doc.getModel()
         name = self._getName(SBMLmodel)
         if not name:
             name = 'Imported SBML model'
@@ -123,9 +137,9 @@ class SBMLImporter(myokit.formats.Importer):
             for unitDef in unitDefs:
                 unitId = unitDef.get('id')
                 if not unitId:
-                    raise ImportError(
+                    raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
-                        'No unit ID provided.')
+                        ' No unit ID provided.')
                 self.userUnitDict[
                     unitId] = self._convert_unit_def(unitDef)
 
@@ -157,9 +171,9 @@ class SBMLImporter(myokit.formats.Importer):
             for comp in comps:
                 idx = comp.get('id')
                 if not idx:
-                    raise ImportError(
+                    raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
-                        'No compartment ID provided.')
+                        ' No compartment ID provided.')
                 name = comp.get('name')
                 if not name:
                     name = idx
@@ -195,9 +209,9 @@ class SBMLImporter(myokit.formats.Importer):
 
         name = self._convert_name('myokit')
         if 'MyoKit' in compDict:
-            raise ImportError(
+            raise SBMLError(
                 'The compartment ID <MyoKit> is reserved in a myokit'
-                'import.')
+                ' import.')
         compDict['MyoKit'] = model.add_component(name)
 
         # Add parameters to model
@@ -206,9 +220,9 @@ class SBMLImporter(myokit.formats.Importer):
             for param in params:
                 idp = param.get('id')
                 if not idp:
-                    raise ImportError(
+                    raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
-                        'No parameter ID provided.')
+                        ' No parameter ID provided.')
                 name = param.get('name')
                 if not name:
                     name = idp
@@ -235,9 +249,9 @@ class SBMLImporter(myokit.formats.Importer):
             for s in species:
                 ids = s.get('id')
                 if not ids:
-                    raise ImportError(
+                    raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
-                        'No species ID provided.')
+                        ' No species ID provided.')
                 name = s.get('name')
                 if not name:
                     name = ids
@@ -271,9 +285,9 @@ class SBMLImporter(myokit.formats.Importer):
         time_id = 'http://www.sbml.org/sbml/symbols/time'  # This ID is not
         # protected
         if time_id in self.paramAndSpeciesDict:
-            raise ImportError(
+            raise SBMLError(
                 'Using the ID %s for parameters or species leads import'
-                'errors.')
+                ' errors.')
         else:
             self.paramAndSpeciesDict[
                 'http://www.sbml.org/sbml/symbols/time'] = time
@@ -318,6 +332,17 @@ class SBMLImporter(myokit.formats.Importer):
         # TODO: extract event and convert it to protocol
 
         return model
+
+    def _getNamespace(self, element):
+        return split(element.tag)[0]
+
+    def _getModel(self, element):
+        model = element.find(
+            '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'model')
+        if model:
+            return model
+        return None
 
     def _getName(self, element):
         name = element.get('name')
@@ -416,9 +441,9 @@ class SBMLImporter(myokit.formats.Importer):
         for baseUnit in units:
             kind = baseUnit.get('kind')
             if not kind:
-                raise ImportError(
+                raise SBMLError(
                     'The file does not adhere to SBML 3.2 standards.'
-                    'No unit kind provided.')
+                    ' No unit kind provided.')
             myokitUnit = SBML2MyoKitUnitDict[kind]
             myokitUnit *= float(baseUnit.get('multiplier', default=1.0))
             myokitUnit *= 10 ** float(baseUnit.get('scale', default=0.0))
