@@ -28,3 +28,10 @@ print(mM)
 ms = myokit.parse_unit('ms')
 um3 = myokit.parse_unit('um^3')
 
+
+And show off quality of error messages:
+
+[18:21:06] Incompatible units on line 75: Exponent in Power must be dimensionless.
+Encountered when evaluating
+  1 + 2 + 3 ^ 3 [mV]
+          ~~~~~~~~~~
