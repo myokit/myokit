@@ -370,6 +370,8 @@ class SBMLImporter(myokit.formats.Importer):
                                 'myokit has, however, initialised the stoich-'
                                 ' iometry with value 1.')
                             stoich = 1.0
+                        else:
+                            stoich = float(stoich)
                         idStoich = reactant.get('id')
                         name = reactant.get('name')
                         if not name:
@@ -392,8 +394,6 @@ class SBMLImporter(myokit.formats.Importer):
                         isConstant = speciesPropDict[ids]['isConstant']
                         hasBoundaryCond = speciesPropDict[ids][
                             'hasBoundaryCondition']
-                        print(isConstant)
-                        print(hasBoundaryCond)
                         if not (isConstant or hasBoundaryCond):
                             # Only if constant and boundaryCondition is False,
                             # species can change through a reaction
@@ -417,6 +417,8 @@ class SBMLImporter(myokit.formats.Importer):
                                 'myokit has, however, initialised the stoich-'
                                 ' iometry with value 1.')
                             stoich = 1.0
+                        else:
+                            stoich = float(stoich)
                         idStoich = product.get('id')
                         name = product.get('name')
                         if not name:
@@ -444,7 +446,6 @@ class SBMLImporter(myokit.formats.Importer):
                             # species can change through a reaction
                             productsStoichDict[
                                 ids] = idStoich if idStoich else stoich
-                print(speciesList)
                 if reactants is None and products is None:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards. '
@@ -496,18 +497,18 @@ class SBMLImporter(myokit.formats.Importer):
                                 'that are not listed as reactants, products'
                                 ' or modifiers.')
 
-                        print(productsStoichDict)
                         # Collect expressions for products
                         for species in productsStoichDict:
                             stoich = productsStoichDict[species]
                             if stoich in self.paramAndSpeciesDict:
                                 stoich = myokit.Name(self.paramAndSpeciesDict[
                                     stoich])
+                                weightedExpr = myokit.Multiply(stoich, expr)
+                            elif stoich == 1.0:
+                                weightedExpr = expr
                             else:
                                 stoich = myokit.Number(stoich)
-
-                            # Weight rate expression with stoichiometry
-                            weightedExpr = myokit.Multiply(stoich, expr)
+                                weightedExpr = myokit.Multiply(stoich, expr)
 
                             # add expression to rate expression of species
                             if species in reactionSpeciesDict:
@@ -518,24 +519,27 @@ class SBMLImporter(myokit.formats.Importer):
                                 reactionSpeciesDict[species] = weightedExpr
 
                         # Collect expressions for reactants
-                        expr = myokit.Multiply(myokit.Number(-1.0), expr)
                         for species in reactantsStoichDict:
                             stoich = reactantsStoichDict[species]
                             if stoich in self.paramAndSpeciesDict:
                                 stoich = myokit.Name(self.paramAndSpeciesDict[
                                     stoich])
+                                weightedExpr = myokit.Multiply(stoich, expr)
+                            elif stoich == 1.0:
+                                weightedExpr = expr
                             else:
                                 stoich = myokit.Number(stoich)
+                                weightedExpr = myokit.Multiply(stoich, expr)
 
-                            # Weight rate expression with stoichiometry
-                            weightedExpr = myokit.Multiply(stoich, expr)
-
-                            # add expression to rate expression of species
+                            # add (with minus sign) expression to rate
+                            # expression of species
                             if species in reactionSpeciesDict:
                                 partialExpr = reactionSpeciesDict[species]
-                                reactionSpeciesDict[species] = myokit.Plus(
+                                reactionSpeciesDict[species] = myokit.Minus(
                                     partialExpr, weightedExpr)
                             else:
+                                weightedExpr = myokit.Multiply(
+                                    myokit.Number(-1.0), weightedExpr)
                                 reactionSpeciesDict[species] = weightedExpr
 
                         # TODO: whats up with conversion factor
@@ -555,7 +559,7 @@ class SBMLImporter(myokit.formats.Importer):
                     # effective stoich Sum React refs of species - sum Prod refs of species
 
                 # TODO: Look at kinetic law and how to best construct ODE
-            print(reactionSpeciesDict)
+
             # Add rate expression for species to model
             for species in reactionSpeciesDict:
                 var = self.paramAndSpeciesDict[species]
