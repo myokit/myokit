@@ -256,6 +256,10 @@ class SBMLImporter(myokit.formats.Importer):
         # Create properties dictionary for later reference
         speciesPropDict = dict()
 
+        # Create dictionary for species that occur in amount and in
+        # concentration
+        speciesAlsoInAmountDict = dict()
+
         # Add species to compartments
         species = self._getListOfSpecies(SBMLmodel)
         if species:
@@ -275,13 +279,30 @@ class SBMLImporter(myokit.formats.Importer):
                         'The file does not adhere to SBML 3.2 standards.'
                         ' No <hasOnlySubstanceUnits> flag provided.')
                 isAmount = True if isAmount == 'true' else False
-                value = self._getSpeciesInitialValue(s, idc, isAmount)
-                unit = self._getSubstanceUnits(s, isAmount, idc)
+                value = self._getSpeciesInitialValueInAmount(s, idc, isAmount)
+                unit = self._getSubstanceUnits(s)
+
+                # Add variable in amount (needed for reactions, even if
+                # measured in conc.)
                 var = compDict[idc].add_variable_allow_renaming(name)
                 var.set_unit(unit)
                 var.set_rhs(value)
 
-                # save species in container for later assignments/reactions
+                if not isAmount:
+                    # Safe amount variable for later reference
+                    speciesAlsoInAmountDict[ids] = var
+
+                    # Add variable in units of concentration
+                    volume = self.paramAndSpeciesDict[idc]
+                    value = myokit.Divide(
+                        myokit.Name(var), myokit.Name(volume))
+                    unit = unit / volume.unit()
+                    var = compDict[idc].add_variable_allow_renaming(
+                        name + '_Concentration')
+                    var.set_unit(unit)
+                    var.set_rhs(value)
+
+                # Save species in container for later assignments/reactions
                 self.paramAndSpeciesDict[ids] = var
 
                 # save species properties to container for later assignments/
@@ -334,213 +355,213 @@ class SBMLImporter(myokit.formats.Importer):
             self.paramAndSpeciesDict[
                 'http://www.sbml.org/sbml/symbols/time'] = time
 
-        # # Add Reactions to model
-        # reactions = self._getListOfReactions(SBMLmodel)
-        # if reactions:
-        #     # Create reactant and product reference to build rate equations
-        #     reactionSpeciesDict = dict()
-        #     for reaction in reactions:
-        #         # Create reaction specific species references
-        #         speciesList = []
-        #         reactantsStoichDict = dict()
-        #         productsStoichDict = dict()
+        # Add Reactions to model
+        reactions = self._getListOfReactions(SBMLmodel)
+        if reactions:
+            # Create reactant and product reference to build rate equations
+            reactionSpeciesDict = dict()
+            for reaction in reactions:
+                # Create reaction specific species references
+                speciesList = []
+                reactantsStoichDict = dict()
+                productsStoichDict = dict()
 
-        #         # Get reactans, products and mnodifiers
-        #         idr = reaction.get('id')
-        #         idc = reaction.get('compartment')
-        #         if not idr:
-        #             raise SBMLError(
-        #                 'The file does not adhere to SBML 3.2 standards.'
-        #                 ' No reaction ID provided.')
+                # Get reactans, products and mnodifiers
+                idr = reaction.get('id')
+                idc = reaction.get('compartment')
+                if not idr:
+                    raise SBMLError(
+                        'The file does not adhere to SBML 3.2 standards.'
+                        ' No reaction ID provided.')
 
-        #         # Reactants
-        #         reactants = self._getListOfReactants(reaction)
-        #         if reactants:
-        #             for reactant in reactants:
-        #                 ids = reactant.get('species')
-        #                 if ids not in self.paramAndSpeciesDict:
-        #                     raise SBMLError(
-        #                         'The file does not adhere to SBML 3.2 '
-        #                         'standards. Species ID not existent.')
-        #                 stoich = reactant.get('stoichiometry')
-        #                 if stoich is None:
-        #                     log.warn(
-        #                         'Stoichiometry has not been set in reaction. '
-        #                         'It may be set elsewhere in the SBML file, '
-        #                         'myokit has, however, initialised the stoich-'
-        #                         ' iometry with value 1.')
-        #                     stoich = 1.0
-        #                 else:
-        #                     stoich = float(stoich)
-        #                 idStoich = reactant.get('id')
-        #                 name = reactant.get('name')
-        #                 if not name:
-        #                     name = idStoich
+                # Reactants
+                reactants = self._getListOfReactants(reaction)
+                if reactants:
+                    for reactant in reactants:
+                        ids = reactant.get('species')
+                        if ids not in self.paramAndSpeciesDict:
+                            raise SBMLError(
+                                'The file does not adhere to SBML 3.2 '
+                                'standards. Species ID not existent.')
+                        stoich = reactant.get('stoichiometry')
+                        if stoich is None:
+                            log.warn(
+                                'Stoichiometry has not been set in reaction. '
+                                'It may be set elsewhere in the SBML file, '
+                                'myokit has, however, initialised the stoich-'
+                                ' iometry with value 1.')
+                            stoich = 1.0
+                        else:
+                            stoich = float(stoich)
+                        idStoich = reactant.get('id')
+                        name = reactant.get('name')
+                        if not name:
+                            name = idStoich
 
-        #                 # If ID exits, create global parameter
-        #                 if idStoich:
-        #                     try:
-        #                         var = compDict[
-        #                             idc].add_variable_allow_renaming(name)
-        #                     except KeyError:
-        #                         var = compDict[
-        #                             'MyoKit'].add_variable_allow_renaming(name)
-        #                     var.set_unit = myokit.units.dimensionless
-        #                     var.set_rhs(stoich)
-        #                     self.paramAndSpeciesDict[idStoich] = var
+                        # If ID exits, create global parameter
+                        if idStoich:
+                            try:
+                                var = compDict[
+                                    idc].add_variable_allow_renaming(name)
+                            except KeyError:
+                                var = compDict[
+                                    'MyoKit'].add_variable_allow_renaming(name)
+                            var.set_unit = myokit.units.dimensionless
+                            var.set_rhs(stoich)
+                            self.paramAndSpeciesDict[idStoich] = var
 
-        #                 # Save species behaviour in this reaction
-        #                 speciesList.append(ids)
-        #                 isConstant = speciesPropDict[ids]['isConstant']
-        #                 hasBoundaryCond = speciesPropDict[ids][
-        #                     'hasBoundaryCondition']
-        #                 if not (isConstant or hasBoundaryCond):
-        #                     # Only if constant and boundaryCondition is False,
-        #                     # species can change through a reaction
-        #                     reactantsStoichDict[
-        #                         ids] = idStoich if idStoich else stoich
+                        # Save species behaviour in this reaction
+                        speciesList.append(ids)
+                        isConstant = speciesPropDict[ids]['isConstant']
+                        hasBoundaryCond = speciesPropDict[ids][
+                            'hasBoundaryCondition']
+                        if not (isConstant or hasBoundaryCond):
+                            # Only if constant and boundaryCondition is False,
+                            # species can change through a reaction
+                            reactantsStoichDict[
+                                ids] = idStoich if idStoich else stoich
 
-        #         # Products
-        #         products = self._getListOfProducts(reaction)
-        #         if products:
-        #             for product in products:
-        #                 ids = product.get('species')
-        #                 if ids not in self.paramAndSpeciesDict:
-        #                     raise SBMLError(
-        #                         'The file does not adhere to SBML 3.2 '
-        #                         'standards. Species ID not existent.')
-        #                 stoich = product.get('stoichiometry')
-        #                 if stoich is None:
-        #                     log.warn(
-        #                         'Stoichiometry has not been set in reaction. '
-        #                         'It may be set elsewhere in the SBML file, '
-        #                         'myokit has, however, initialised the stoich-'
-        #                         ' iometry with value 1.')
-        #                     stoich = 1.0
-        #                 else:
-        #                     stoich = float(stoich)
-        #                 idStoich = product.get('id')
-        #                 name = product.get('name')
-        #                 if not name:
-        #                     name = idStoich
+                # Products
+                products = self._getListOfProducts(reaction)
+                if products:
+                    for product in products:
+                        ids = product.get('species')
+                        if ids not in self.paramAndSpeciesDict:
+                            raise SBMLError(
+                                'The file does not adhere to SBML 3.2 '
+                                'standards. Species ID not existent.')
+                        stoich = product.get('stoichiometry')
+                        if stoich is None:
+                            log.warn(
+                                'Stoichiometry has not been set in reaction. '
+                                'It may be set elsewhere in the SBML file, '
+                                'myokit has, however, initialised the stoich-'
+                                ' iometry with value 1.')
+                            stoich = 1.0
+                        else:
+                            stoich = float(stoich)
+                        idStoich = product.get('id')
+                        name = product.get('name')
+                        if not name:
+                            name = idStoich
 
-        #                 # If ID exits, create global parameter
-        #                 if idStoich:
-        #                     try:
-        #                         var = compDict[
-        #                             idc].add_variable_allow_renaming(name)
-        #                     except KeyError:
-        #                         var = compDict[
-        #                             'MyoKit'].add_variable_allow_renaming(name)
-        #                     var.set_unit = myokit.units.dimensionless
-        #                     var.set_rhs(stoich)
-        #                     self.paramAndSpeciesDict[idStoich] = var
+                        # If ID exits, create global parameter
+                        if idStoich:
+                            try:
+                                var = compDict[
+                                    idc].add_variable_allow_renaming(name)
+                            except KeyError:
+                                var = compDict[
+                                    'MyoKit'].add_variable_allow_renaming(name)
+                            var.set_unit = myokit.units.dimensionless
+                            var.set_rhs(stoich)
+                            self.paramAndSpeciesDict[idStoich] = var
 
-        #                 # Save species behaviour in this reaction
-        #                 speciesList.append(ids)
-        #                 isConstant = speciesPropDict[ids]['isConstant']
-        #                 hasBoundaryCond = speciesPropDict[ids][
-        #                     'hasBoundaryCondition']
-        #                 if not (isConstant or hasBoundaryCond):
-        #                     # Only if constant and boundaryCondition is False,
-        #                     # species can change through a reaction
-        #                     productsStoichDict[
-        #                         ids] = idStoich if idStoich else stoich
-        #         if reactants is None and products is None:
-        #             raise SBMLError(
-        #                 'The file does not adhere to SBML 3.2 standards. '
-        #                 'Reaction must have at least one reactant or product.')
+                        # Save species behaviour in this reaction
+                        speciesList.append(ids)
+                        isConstant = speciesPropDict[ids]['isConstant']
+                        hasBoundaryCond = speciesPropDict[ids][
+                            'hasBoundaryCondition']
+                        if not (isConstant or hasBoundaryCond):
+                            # Only if constant and boundaryCondition is False,
+                            # species can change through a reaction
+                            productsStoichDict[
+                                ids] = idStoich if idStoich else stoich
+                if reactants is None and products is None:
+                    raise SBMLError(
+                        'The file does not adhere to SBML 3.2 standards. '
+                        'Reaction must have at least one reactant or product.')
 
-        #         # Modifiers
-        #         modifiers = self._getListOfModiefiers(reaction)
-        #         if modifiers:
-        #             for modifier in modifiers:
-        #                 ids = modifier.get('species')
-        #                 if ids not in self.paramAndSpeciesDict:
-        #                     raise SBMLError(
-        #                         'The file does not adhere to SBML 3.2 '
-        #                         'standards. Species ID not existent.')
+                # Modifiers
+                modifiers = self._getListOfModiefiers(reaction)
+                if modifiers:
+                    for modifier in modifiers:
+                        ids = modifier.get('species')
+                        if ids not in self.paramAndSpeciesDict:
+                            raise SBMLError(
+                                'The file does not adhere to SBML 3.2 '
+                                'standards. Species ID not existent.')
 
-        #                 # save species behaviour in this reaction
-        #                 speciesList.append(ids)
-        #         isFast = reaction.get('fast')
-        #         if isFast:
-        #             raise SBMLError(
-        #                 'Myokit does not support the conversion of <fast>'
-        #                 ' reactions to steady states. Please do the maths'
-        #                 ' and substitute the steady states as AssigmentRule')
+                        # save species behaviour in this reaction
+                        speciesList.append(ids)
+                isFast = reaction.get('fast')
+                if isFast:
+                    raise SBMLError(
+                        'Myokit does not support the conversion of <fast>'
+                        ' reactions to steady states. Please do the maths'
+                        ' and substitute the steady states as AssigmentRule')
 
-        #         # Get kinetic law
-        #         kineticLaw = self._getKineticLaw(reaction)
-        #         if kineticLaw:
-        #             localParams = self._getListOfLocalParameters(kineticLaw)
-        #             if localParams:
-        #                 raise SBMLError(
-        #                     'Myokit does not support the definition of local'
-        #                     ' parameters in reactions. Please move their'
-        #                     ' definition to the <listOfParameters> instead.')
+                # Get kinetic law
+                kineticLaw = self._getKineticLaw(reaction)
+                if kineticLaw:
+                    localParams = self._getListOfLocalParameters(kineticLaw)
+                    if localParams:
+                        raise SBMLError(
+                            'Myokit does not support the definition of local'
+                            ' parameters in reactions. Please move their'
+                            ' definition to the <listOfParameters> instead.')
 
-        #             # get rate expression for reaction
-        #             expr = self._getMath(kineticLaw)
-        #             if expr:
-        #                 try:
-        #                     expr = parse_mathml_etree(
-        #                         expr,
-        #                         lambda x, y: myokit.Name(
-        #                             self.paramAndSpeciesDict[
-        #                                 x]),  #if x in speciesList else None]),
-        #                         lambda x, y: myokit.Number(x))
-        #                 except KeyError:
-        #                     SBMLError(
-        #                         'The file does not adhere to SBML 3.2 '
-        #                         'standards. The reaction refers to species '
-        #                         'that are not listed as reactants, products'
-        #                         ' or modifiers.')
+                    # get rate expression for reaction
+                    expr = self._getMath(kineticLaw)
+                    if expr:
+                        try:
+                            expr = parse_mathml_etree(
+                                expr,
+                                lambda x, y: myokit.Name(
+                                    self.paramAndSpeciesDict[
+                                        x]),  #if x in speciesList else None]),
+                                lambda x, y: myokit.Number(x))
+                        except KeyError:
+                            SBMLError(
+                                'The file does not adhere to SBML 3.2 '
+                                'standards. The reaction refers to species '
+                                'that are not listed as reactants, products'
+                                ' or modifiers.')
 
-        #                 # Collect expressions for products
-        #                 for species in productsStoichDict:
-        #                     stoich = productsStoichDict[species]
-        #                     if stoich in self.paramAndSpeciesDict:
-        #                         stoich = myokit.Name(self.paramAndSpeciesDict[
-        #                             stoich])
-        #                         weightedExpr = myokit.Multiply(stoich, expr)
-        #                     elif stoich == 1.0:
-        #                         weightedExpr = expr
-        #                     else:
-        #                         stoich = myokit.Number(stoich)
-        #                         weightedExpr = myokit.Multiply(stoich, expr)
+                        # Collect expressions for products
+                        for species in productsStoichDict:
+                            stoich = productsStoichDict[species]
+                            if stoich in self.paramAndSpeciesDict:
+                                stoich = myokit.Name(self.paramAndSpeciesDict[
+                                    stoich])
+                                weightedExpr = myokit.Multiply(stoich, expr)
+                            elif stoich == 1.0:
+                                weightedExpr = expr
+                            else:
+                                stoich = myokit.Number(stoich)
+                                weightedExpr = myokit.Multiply(stoich, expr)
 
-        #                     # add expression to rate expression of species
-        #                     if species in reactionSpeciesDict:
-        #                         partialExpr = reactionSpeciesDict[species]
-        #                         reactionSpeciesDict[species] = myokit.Plus(
-        #                             partialExpr, weightedExpr)
-        #                     else:
-        #                         reactionSpeciesDict[species] = weightedExpr
+                            # add expression to rate expression of species
+                            if species in reactionSpeciesDict:
+                                partialExpr = reactionSpeciesDict[species]
+                                reactionSpeciesDict[species] = myokit.Plus(
+                                    partialExpr, weightedExpr)
+                            else:
+                                reactionSpeciesDict[species] = weightedExpr
 
-        #                 # Collect expressions for reactants
-        #                 for species in reactantsStoichDict:
-        #                     stoich = reactantsStoichDict[species]
-        #                     if stoich in self.paramAndSpeciesDict:
-        #                         stoich = myokit.Name(self.paramAndSpeciesDict[
-        #                             stoich])
-        #                         weightedExpr = myokit.Multiply(stoich, expr)
-        #                     elif stoich == 1.0:
-        #                         weightedExpr = expr
-        #                     else:
-        #                         stoich = myokit.Number(stoich)
-        #                         weightedExpr = myokit.Multiply(stoich, expr)
+                        # Collect expressions for reactants
+                        for species in reactantsStoichDict:
+                            stoich = reactantsStoichDict[species]
+                            if stoich in self.paramAndSpeciesDict:
+                                stoich = myokit.Name(self.paramAndSpeciesDict[
+                                    stoich])
+                                weightedExpr = myokit.Multiply(stoich, expr)
+                            elif stoich == 1.0:
+                                weightedExpr = expr
+                            else:
+                                stoich = myokit.Number(stoich)
+                                weightedExpr = myokit.Multiply(stoich, expr)
 
-        #                     # add (with minus sign) expression to rate
-        #                     # expression of species
-        #                     if species in reactionSpeciesDict:
-        #                         partialExpr = reactionSpeciesDict[species]
-        #                         reactionSpeciesDict[species] = myokit.Minus(
-        #                             partialExpr, weightedExpr)
-        #                     else:
-        #                         weightedExpr = myokit.Multiply(
-        #                             myokit.Number(-1.0), weightedExpr)
-        #                         reactionSpeciesDict[species] = weightedExpr
+                            # add (with minus sign) expression to rate
+                            # expression of species
+                            if species in reactionSpeciesDict:
+                                partialExpr = reactionSpeciesDict[species]
+                                reactionSpeciesDict[species] = myokit.Minus(
+                                    partialExpr, weightedExpr)
+                            else:
+                                weightedExpr = myokit.Multiply(
+                                    myokit.Number(-1.0), weightedExpr)
+                                reactionSpeciesDict[species] = weightedExpr
 
                         # TODO: whats up with conversion factor
 
@@ -560,32 +581,42 @@ class SBMLImporter(myokit.formats.Importer):
 
                 # TODO: Look at kinetic law and how to best construct ODE
 
-            # # Add rate expression for species to model
-            # for species in reactionSpeciesDict:
-            #     var = self.paramAndSpeciesDict[species]
-            #     initialValue = var.rhs()
-            #     initialValue = initialValue.eval() if initialValue else 0
-            #     var.promote(initialValue)
-            #     var.set_rhs(reactionSpeciesDict[species])
-
-        # Add initial assignments to model
-        assignments = self._getListOfInitialAssignments(SBMLmodel)
-        if assignments:
-            for assign in assignments:
-                var = assign.get('symbol')
+            # Add rate expression for species to model
+            for species in reactionSpeciesDict:
                 try:
-                    var = self.paramAndSpeciesDict[var]
+                    var = speciesAlsoInAmountDict[species]
                 except KeyError:
-                    raise SBMLError(
-                        'The file does not adhere to SBML 3.2 standards.'
-                        ' Initial assignment refers to non-existent ID.')
-                expr = self._getMath(assign)
-                if expr:
-                    var.set_rhs(parse_mathml_etree(
-                        expr,
-                        lambda x, y: myokit.Name(self.paramAndSpeciesDict[x]),
-                        lambda x, y: myokit.Number(x)
-                    ))
+                    var = self.paramAndSpeciesDict[species]
+                unit = self.userUnitDict['extentUnit']
+                if not unit:
+                    unit = var.unit()  # not strictly according to SBML
+                timeUnit = self.userUnitDict['timeUnit']
+                rateUnit = unit / timeUnit
+                initialValue = var.rhs()
+                print('bla', initialValue)
+                initialValue = initialValue.eval() if initialValue else 0
+                var.promote(initialValue)
+                var.set_unit(rateUnit)
+                var.set_rhs(reactionSpeciesDict[species])
+
+        # # Add initial assignments to model
+        # assignments = self._getListOfInitialAssignments(SBMLmodel)
+        # if assignments:
+        #     for assign in assignments:
+        #         var = assign.get('symbol')
+        #         try:
+        #             var = self.paramAndSpeciesDict[var]
+        #         except KeyError:
+        #             raise SBMLError(
+        #                 'The file does not adhere to SBML 3.2 standards.'
+        #                 ' Initial assignment refers to non-existent ID.')
+        #         expr = self._getMath(assign)
+        #         if expr:
+        #             var.set_rhs(parse_mathml_etree(
+        #                 expr,
+        #                 lambda x, y: myokit.Name(self.paramAndSpeciesDict[x]),
+        #                 lambda x, y: myokit.Number(x)
+        #             ))
 
         # # Add Rules to model
         # rules = self._getListOfInitialAssignments(SBMLmodel)
@@ -827,48 +858,32 @@ class SBMLImporter(myokit.formats.Importer):
         else:
             return None
 
-    def _getSubstanceUnits(self, species, isAmount, compartmentId):
+    def _getSubstanceUnits(self, species):
         """
         Returns :class:myokit.Unit expression of the unit of a species.
         """
         # Convert substance unit into myokiy.Unit
         unit = species.get('substanceUnits')
         if unit in self.userUnitDict:
-            unit = self.userUnitDict[unit]
+            return self.userUnitDict[unit]
         elif unit in SBML2MyoKitUnitDict:
-            unit = SBML2MyoKitUnitDict[unit]
+            return SBML2MyoKitUnitDict[unit]
         else:
             return None
 
-        # Convert to concentration, isAmount False
-        if isAmount:
-            return unit
-        volumeUnit = self.paramAndSpeciesDict[compartmentId].unit()
-        return unit / volumeUnit
-
-
-
-    def _getSpeciesInitialValue(self, species, compId, isAmount):
+    def _getSpeciesInitialValueInAmount(self, species, compId, isAmount):
         """
         Returns the initial value of a species either in amount or
         concentration depend on the flag is Amount.
         """
         amount = species.get('initialAmount')
         if amount:
-            if isAmount:
-                return amount
-            else:
-                volume = self.paramAndSpeciesDict[compId]
-                return myokit.Divide(
-                    myokit.Number(amount), myokit.Name(volume))
+            return amount
         conc = species.get('initialConcentration')
         if conc:
-            if isAmount:
-                volume = self.paramAndSpeciesDict[compId]
-                return myokit.Multiply(
-                    myokit.Number(amount), myokit.Name(volume))
-            else:
-                return conc
+            volume = self.paramAndSpeciesDict[compId]
+            return myokit.Multiply(
+                myokit.Number(amount), myokit.Name(volume))
         return None
 
     def _get_reaction_species(self, listOfSpecies):
