@@ -276,7 +276,7 @@ class SBMLImporter(myokit.formats.Importer):
                         ' No <hasOnlySubstanceUnits> flag provided.')
                 isAmount = True if isAmount == 'true' else False
                 value = self._getSpeciesInitialValue(s, idc, isAmount)
-                unit = self._getSubstanceUnits(s)
+                unit = self._getSubstanceUnits(s, isAmount, idc)
                 var = compDict[idc].add_variable_allow_renaming(name)
                 var.set_unit(unit)
                 var.set_rhs(value)
@@ -827,17 +827,26 @@ class SBMLImporter(myokit.formats.Importer):
         else:
             return None
 
-    def _getSubstanceUnits(self, species):
+    def _getSubstanceUnits(self, species, isAmount, compartmentId):
         """
         Returns :class:myokit.Unit expression of the unit of a species.
         """
+        # Convert substance unit into myokiy.Unit
         unit = species.get('substanceUnits')
         if unit in self.userUnitDict:
-            return self.userUnitDict[unit]
+            unit = self.userUnitDict[unit]
         elif unit in SBML2MyoKitUnitDict:
-            return SBML2MyoKitUnitDict[unit]
+            unit = SBML2MyoKitUnitDict[unit]
         else:
             return None
+
+        # Convert to concentration, isAmount False
+        if isAmount:
+            return unit
+        volumeUnit = self.paramAndSpeciesDict[compartmentId].unit()
+        return unit / volumeUnit
+
+
 
     def _getSpeciesInitialValue(self, species, compId, isAmount):
         """
