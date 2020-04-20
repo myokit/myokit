@@ -133,7 +133,6 @@ myokit.formats.mathml
 - :class:`myokit.formats.mathml.MathMLError`
 - :class:`myokit.formats.mathml.MathMLExpressionWriter`
 - :class:`myokit.formats.mathml.MathMLParser`
-- :meth:`myokit.formats.mathml.parse_mathml_dom`
 - :meth:`myokit.formats.mathml.parse_mathml_etree`
 - :meth:`myokit.formats.mathml.parse_mathml_string`
 - :class:`myokit.formats.mathml.XMLExporter`
