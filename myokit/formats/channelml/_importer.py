@@ -23,27 +23,18 @@ from myokit import formats
 from myokit import Name, Number, Minus, Multiply, Divide, Power
 
 
-def dom_child(node, selector=None):
+def dom_child(node):
     """
     Returns the first child element of the given DOM node.
-
-    If the optional selector is given it searches for an element of a
-    particular type.
 
     Returns ``None`` if no such node is found.
     """
     enode = xml.dom.Node.ELEMENT_NODE
     e = node.firstChild
-    if selector:
-        while e is not None:
-            if e.nodeType == enode and e.tagName == selector:
-                return e
-            e = e.nextSibling
-    else:
-        while e is not None:
-            if e.nodeType == enode:
-                return e
-            e = e.nextSibling
+    while e is not None:
+        if e.nodeType == enode:
+            return e
+        e = e.nextSibling
     return None
 
 
@@ -58,16 +49,10 @@ def dom_next(node, selector=False):
     """
     enode = xml.dom.Node.ELEMENT_NODE
     e = node.nextSibling
-    if selector:
-        while e is not None:
-            if e.nodeType == enode and e.tagName == selector:
-                return e
-            e = e.nextSibling
-    else:
-        while e is not None:
-            if e.nodeType == enode:
-                return e
-            e = e.nextSibling
+    while e is not None:
+        if e.nodeType == enode:
+            return e
+        e = e.nextSibling
     return None
 
 
