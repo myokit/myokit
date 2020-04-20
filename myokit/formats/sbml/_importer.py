@@ -145,18 +145,19 @@ class SBMLImporter(myokit.formats.Importer):
         if x:
             self._parse_units(model, comp, x)
 
-        # add time as independent variable (not explicit in SBML format)
+        # Add time as independent variable (not explicit in SBML format)
         if bind_time:
-            # add and bind time variable to component
+            # Add and bind time variable to component
             time = comp.add_variable_allow_renaming('time')
             time.set_binding('time')
-            # set unit and value
+
+            # Set unit and value
             try:
                 unit = self.units['time']
-            except KeyError:
+            except KeyError:    # pragma: no cover
                 unit = myokit.units.s
-                log.warn('Unit of time could not be found in file and was by '
-                         'default set to seconds.')
+                log.warn('Unit of time could not be found in file (falling'
+                         ' back onto default of seconds.')
             time.set_unit(unit)
             time.set_rhs(0.0)
 
@@ -179,10 +180,10 @@ class SBMLImporter(myokit.formats.Importer):
         # Write warnings to log
         log.log_warnings()
 
-        # Run model validation, order variables etc
+        # Check that valid model was created
         try:
             model.validate()
-        except myokit.IntegrityError as e:
+        except myokit.IntegrityError as e:  # pragma: no cover
             log.log_line()
             log.log('WARNING: Integrity error found in model:')
             log.log(str(e))
