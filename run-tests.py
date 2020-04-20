@@ -69,24 +69,6 @@ def coverage(args):
             os.remove('.coverage')
 
 
-def doc_coverage(args):
-    """
-    Checks if the documentation covers all public classes and methods.
-    """
-    # Scan Myokit modules for classes and functions
-    modules, classes, functions = _doc_coverage_get_modules_classes_functions()
-
-    # Check if they're all in the index
-    ok = _doc_coverage_check_index(modules, classes, functions)
-
-    # Check if they're all shown somewhere
-    ok = ok and _doc_coverage_check_completeness(classes, functions)
-
-    # Terminate if failed
-    if not ok:
-        sys.exit(1)
-
-
 def _doc_coverage_check_completeness(classes, functions):
     """
     Check all classes and functions exposed by Myokit are included in the docs
@@ -352,6 +334,21 @@ def doc_tests(args):
     Checks if the documentation can be built, runs all doc tests, exits if
     anything fails.
     """
+    print('Checking documentation coverage.')
+    # Scan Myokit modules for classes and functions
+    modules, classes, functions = _doc_coverage_get_modules_classes_functions()
+
+    # Check if they're all in the index
+    ok = _doc_coverage_check_index(modules, classes, functions)
+
+    # Check if they're all shown somewhere
+    ok = ok and _doc_coverage_check_completeness(classes, functions)
+
+    # Terminate if failed
+    if not ok:
+        sys.exit(1)
+
+
     print('Building docs and running doctests.')
     p = subprocess.Popen([
         'sphinx-build',
@@ -569,17 +566,9 @@ if __name__ == '__main__':
 
     # Doctests
     doc_parser = subparsers.add_parser(
-        'doc', help='Test if documentation can be built, and run doc tests.')
+        'doc',
+        help='Test documentation cover, building, and doc tests.')
     doc_parser.set_defaults(func=doc_tests)
-
-    # Documentation coverage
-    doc_coverage_parser = subparsers.add_parser(
-        'doc-coverage',
-        description='Checks all classes and functions are in the docs.',
-        help='Checks all classes and functions are included in the rst'
-             ' documentation.'
-    )
-    doc_coverage_parser.set_defaults(func=doc_coverage)
 
     # Full test suite
     full_parser = subparsers.add_parser(
