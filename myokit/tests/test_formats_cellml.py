@@ -116,6 +116,37 @@ class CellMLExporterTest(unittest.TestCase):
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.1#', f.read())
 
+        # Write to 2.0 model
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            e.model(path, model, version='2.0')
+            with open(path, 'r') as f:
+                self.assertIn('cellml/2.0#', f.read())
+
+    def test_version_specific_exporters(self):
+        # Test the aliased exporters for specific versions
+
+        model = myokit.Model('hello')
+        t = model.add_component('env').add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+
+        # Write to 1.0 model
+        e = formats.exporter('cellml1')
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            e.model(path, model)
+            with open(path, 'r') as f:
+                self.assertIn('cellml/1.0#', f.read())
+
+        # Write to 2.0 model
+        e = formats.exporter('cellml2')
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            e.model(path, model)
+            with open(path, 'r') as f:
+                self.assertIn('cellml/2.0#', f.read())
+
 
 class CellMLExpressionWriterTest(unittest.TestCase):
     """
