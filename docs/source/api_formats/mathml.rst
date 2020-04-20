@@ -13,8 +13,6 @@ Parsing
 
 .. currentmodule:: myokit.formats.mathml
 
-.. autofunction:: parse_mathml_dom
-
 .. autofunction:: parse_mathml_etree
 
 .. autofunction:: parse_mathml_string

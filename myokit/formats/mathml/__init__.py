@@ -12,7 +12,6 @@ from ._ewriter import MathMLExpressionWriter
 from ._parser import (   # noqa
     MathMLError,
     MathMLParser,
-    parse_mathml_dom,
     parse_mathml_etree,
     parse_mathml_string,
 )
