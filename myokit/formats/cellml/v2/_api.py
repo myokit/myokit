@@ -174,7 +174,7 @@ class Component(AnnotatableElement):
         # Check and store name
         if not is_identifier(name):
             raise CellMLError(
-                'Component name must be a valid CellML identifier (B7.1.1).')
+                'Component name must be a valid CellML identifier.')
         self._name = name
 
         # This component's encapsulation relationships
@@ -202,7 +202,7 @@ class Component(AnnotatableElement):
         # Check name uniqueness
         if name in self._variables:
             raise CellMLError(
-                'Variable name must be unique within Component (B8.1.1.1).')
+                'Variable name must be unique within component.')
 
         # Create, store, and return
         self._variables[name] = v = Variable(self, name, units, interface)
@@ -282,7 +282,7 @@ class Component(AnnotatableElement):
         while parent is not None:
             if parent is self:
                 raise CellMLError(
-                    'Encapsulation hierarchy cannot be circular (C11.1).')
+                    'Encapsulation hierarchy cannot be circular.')
             parent = parent._parent
 
     def variable(self, name):
@@ -328,7 +328,7 @@ class Model(AnnotatableElement):
         # Check and store name
         if not is_identifier(name):
             raise CellMLError(
-                'Model name must be a valid CellML identifier (B1.2.1).')
+                'Model name must be a valid CellML identifier.')
         self._name = name
 
         # Check and store version
@@ -362,8 +362,7 @@ class Model(AnnotatableElement):
         """
         # Check uniqueness
         if name in self._components:
-            raise CellMLError(
-                'Component name must be unique within model (B.7.1.1).')
+            raise CellMLError('Component name must be unique within model.')
 
         # Create, store, and return
         self._components[name] = c = Component(self, name)
@@ -414,21 +413,19 @@ class Model(AnnotatableElement):
                 'Unable to connect ' + str(variable_1) + ' to '
                 + str(variable_2) + ': connections can only be made between'
                 ' components that are siblings or have a parent-child'
-                ' relationship (C1.10).')
+                ' relationship.')
 
         # Check the variables' interfaces.
         if interface_1 not in variable_1.interface():
             raise CellMLError(
                 'Unable to connect ' + str(variable_1) + ' to '
                 + str(variable_2) + ': variable_1 requires the ' + interface_1
-                + ' interface, but is set to ' + variable_1.interface()
-                + ' (C1.10).')
+                + ' interface, but is set to ' + variable_1.interface() + '.')
         if interface_2 not in variable_2.interface():
             raise CellMLError(
                 'Unable to connect ' + str(variable_1) + ' to '
                 + str(variable_2) + ': variable_2 requires the ' + interface_2
-                + ' interface, but is set to ' + variable_2.interface()
-                + ' (C1.10).')
+                + ' interface, but is set to ' + variable_2.interface() + '.')
 
         # Check the variables' units.
         unit_1 = variable_1.units().myokit_unit()
@@ -437,7 +434,7 @@ class Model(AnnotatableElement):
             raise CellMLError(
                 'Unable to connect ' + str(variable_1) + ' to '
                 + str(variable_2) + ': Connected variables must have'
-                ' compatible units (C1.6). Found ' + str(variable_1.units())
+                ' compatible units. Found ' + str(variable_1.units())
                 + ' and ' + str(variable_2.units()) + '.')
 
         # Check the variables aren't already connected
@@ -445,7 +442,7 @@ class Model(AnnotatableElement):
             raise CellMLError(
                 'Variables cannot be connected twice: ' + str(variable_1)
                 + ' is already in the connected variable set of '
-                + str(variable_2) + ' (C1.4).')
+                + str(variable_2) + '.')
 
         # Connect the variables, by merging their connected variable sets.
         ConnectedVariableSet._merge(variable_1._cset, variable_2._cset)
@@ -467,8 +464,7 @@ class Model(AnnotatableElement):
         # Check uniqueness
         if name in self._units:
             raise CellMLError(
-                'Units defined in the same model cannot have the same name'
-                ' (B5.1.2)')
+                'Units defined in the same model cannot have the same name.')
 
         # Create, store, and return
         units = Units(name, myokit_unit)
@@ -1092,11 +1088,10 @@ class Units(object):
         # Check and store name
         if not is_identifier(name):
             raise CellMLError(
-                'Units name must be a valid CellML identifier (B.5.1.1).')
+                'Units name must be a valid CellML identifier.')
         if not predefined and name in self._si_units:
             raise CellMLError(
-                'Units name "' + name + '" overlaps with a predefined name'
-                ' (B.5.1.3).')
+                'Units name "' + name + '" overlaps with a predefined name.')
         self._name = name
 
         # Check and store Myokit unit
@@ -1194,7 +1189,7 @@ class Units(object):
         # Handle prefix
         if prefix is not None:
             # Parse prefix
-            if is_integer_string(str(prefix)):
+            if is_integer_string(str(prefix).strip()):
                 p = int(prefix)
             else:
                 try:
@@ -1202,7 +1197,8 @@ class Units(object):
                 except KeyError:
                     raise CellMLError(
                         'Units prefix must be a string from the list of known'
-                        ' prefixes or an integer string (B6.1.2.1).')
+                        ' prefixes or an integer string, got "' + str(prefix)
+                        + '".')
 
             # Apply prefix to unit
 
@@ -1215,9 +1211,10 @@ class Units(object):
         if exponent is not None:
             # Parse exponent
 
-            if not is_real_number_string(str(exponent)):
+            if not is_real_number_string(str(exponent).strip()):
                 raise CellMLError(
-                    'Unit exponent must be a real number string (B6.1.2.3).')
+                    'Unit exponent must be a real number string, got "'
+                    + str(multiplier) + '"')
             e = float(exponent)
 
             # Only integers are supported by Myokit
@@ -1230,9 +1227,10 @@ class Units(object):
 
         # Handle multiplier
         if multiplier is not None:
-            if not is_real_number_string(str(multiplier)):
+            if not is_real_number_string(str(multiplier).strip()):
                 raise CellMLError(
-                    'Unit multiplier must be a real number string (B6.1.2.2).')
+                    'Unit multiplier must be a real number string, got "'
+                    + str(multiplier) + '"')
             m = float(multiplier)
 
             # Apply multiplier to unit
@@ -1374,7 +1372,7 @@ class Variable(AnnotatableElement):
         # Check and store name
         if not is_identifier(name):
             raise CellMLError(
-                'Variable name must be a valid CellML identifier (B8.1.1.1).')
+                'Variable name must be a valid CellML identifier.')
         self._name = name
 
         # Check and store units
@@ -1384,14 +1382,14 @@ class Variable(AnnotatableElement):
             raise CellMLError(
                 'Variable units attribute must reference a units element in'
                 ' the model, or one of the predefined units, found "'
-                + str(units) + '" (B8.1.1.2).')
+                + str(units) + '".')
 
         # Check and store interfaces
         interfaces = ('none', 'public', 'private', 'public_and_private')
         if interface not in interfaces:
             raise CellMLError(
                 'Interface must be "public", "private", "public_and_private",'
-                ' or "none" (B8.1.2.1).')
+                ' or "none".')
         self._interface = interface
 
         # Connected variable set: will also be manipulated by the Model class.

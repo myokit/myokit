@@ -1950,6 +1950,8 @@ class TestCellML2Methods(unittest.TestCase):
         self.assertTrue(cellml.is_real_number_string('.1e-3'))
         self.assertTrue(cellml.is_real_number_string('-1.E0'))
         self.assertTrue(cellml.is_real_number_string('1E33464636'))
+        self.assertTrue(cellml.is_real_number_string(
+            '1.23000000000000028e+02'))
 
         self.assertFalse(cellml.is_real_number_string(''))
         self.assertFalse(cellml.is_real_number_string('.'))

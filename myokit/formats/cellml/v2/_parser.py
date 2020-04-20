@@ -90,7 +90,7 @@ class CellMLParser(object):
         if element.text is not None:
             if element.text.strip():
                 raise CellMLParsingError(
-                    'Text found in ' + self._tag(element, name) + ' (A2.4).',
+                    'Text found in ' + self._tag(element, name) + '.',
                     element)
 
         # Check child elements
@@ -104,7 +104,7 @@ class CellMLParser(object):
             if child.tail is not None and child.tail.strip():
                 raise CellMLParsingError(
                     'Text found in ' + self._tag(element, name)
-                    + ', after ' + self._tag(child) + ' element (A2.4).',
+                    + ', after ' + self._tag(child) + ' element.',
                     child)
 
             # Check if allowed
@@ -237,7 +237,7 @@ class CellMLParser(object):
             name = element.attrib['name']
         except KeyError:
             raise CellMLParsingError(
-                'Component element must have a name attribute (B7.1.1).',
+                'Component element must have a name attribute.',
                 element)
 
         # Create component (validates name and checks uniqueness)
@@ -276,21 +276,21 @@ class CellMLParser(object):
             c1 = element.attrib['component_1']
         except KeyError:
             raise CellMLParsingError(
-                'A connection element must define a component_1 attribute'
-                ' (B15.1.1).', element)
+                'A connection element must define a component_1 attribute.',
+                element)
         try:
             c2 = element.attrib['component_2']
         except KeyError:
             raise CellMLParsingError(
-                'A connection element must define a component_2 attribute'
-                ' (B15.1.2).', element)
+                'A connection element must define a component_2 attribute.',
+                element)
 
         # Check components are different
         if c1 == c2:
             raise CellMLParsingError(
                 'The component_1 and component_2 attributes in a connection'
                 ' element must be different, got "' + str(c1)
-                + '" twice (B15.1.2).', element)
+                + '" twice.', element)
 
         # Get components
         try:
@@ -298,22 +298,22 @@ class CellMLParser(object):
         except KeyError:
             raise CellMLParsingError(
                 'A map_components component_1 attribute must refer to a'
-                ' component in the current model, got "' + str(c1)
-                + '" (B15.1.1).', element)
+                ' component in the current model, got "' + str(c1) + '".',
+                element)
         try:
             c2 = model.component(c2)
         except KeyError:
             raise CellMLParsingError(
                 'A map_components component_2 attribute must refer to a'
-                ' component in the current model, got "' + str(c2)
-                + '" (B15.1.2).', element)
+                ' component in the current model, got "' + str(c2) + '".',
+                element)
 
         # Check components are not yet connected
         if (c1, c2) in connected:
             raise CellMLParsingError(
                 'Each connection in a model must connect a unique pair of'
                 ' components, found multiple for "' + c1.name() + '" and "'
-                + c2.name() + '" (B15.1.3).', element)
+                + c2.name() + '".', element)
         connected.add((c1, c2))
         connected.add((c2, c1))
 
@@ -321,8 +321,8 @@ class CellMLParser(object):
         map_variables = element.findall(self._join('map_variables'))
         if len(map_variables) < 1:
             raise CellMLParsingError(
-                'A connection must contain at least one map_variables element'
-                ' (B15.1.4).', element)
+                'A connection must contain at least one map_variables'
+                ' element.', element)
 
         # Parse map_variables elements
         for child in map_variables:
@@ -345,14 +345,14 @@ class CellMLParser(object):
             v1 = element.attrib['variable_1']
         except KeyError:
             raise CellMLParsingError(
-                'A map_variables element must define a variable_1 attribute'
-                ' (B16.1.1).', element)
+                'A map_variables element must define a variable_1 attribute.',
+                element)
         try:
             v2 = element.attrib['variable_2']
         except KeyError:
             raise CellMLParsingError(
-                'A map_variables element must define a variable_2 attribute'
-                ' (B16.1.2).', element)
+                'A map_variables element must define a variable_2 attribute.',
+                element)
 
         # Get variables
         try:
@@ -360,14 +360,14 @@ class CellMLParser(object):
         except KeyError:
             raise CellMLParsingError(
                 'A map_variables variable_1 attribute must refer to a'
-                ' variable in component_1, got "' + str(v1) + '" (B16.1.1).',
+                ' variable in component_1, got "' + str(v1) + '".',
                 element)
         try:
             v2 = c2.variable(v2)
         except KeyError:
             raise CellMLParsingError(
                 'A map_variables variable_2 attribute must refer to a'
-                ' variable in component_2, got "' + str(v1) + '" (B16.1.2).',
+                ' variable in component_2, got "' + str(v1) + '".',
                 element)
 
         # Connect variables
@@ -395,8 +395,8 @@ class CellMLParser(object):
         # Check contains at least one component_ref
         if element.find(self._join('component_ref')) is None:
             raise CellMLParsingError(
-                'Group must contain at least one component_ref element'
-                ' (6.4.1.1).', element)
+                'Group must contain at least one component_ref element.',
+                element)
 
         # Check allowed content
         self._check_allowed_content(element, ['component_ref'], [])
@@ -420,7 +420,7 @@ class CellMLParser(object):
             component = element.attrib['component']
         except KeyError:
             raise CellMLParsingError(
-                'A component_ref must define a component attribute (B14.1.1).',
+                'A component_ref must define a component attribute.',
                 element)
 
         # Get component
@@ -429,8 +429,8 @@ class CellMLParser(object):
         except KeyError:
             raise CellMLParsingError(
                 'A component_ref\'s component attribute must reference a'
-                ' component in the same model, got "' + component
-                + '" (B14.1.1).', element)
+                ' component in the same model, got "' + component + '".',
+                element)
 
         # Check allowed content
         self._check_allowed_content(element, ['component_ref'], ['component'])
@@ -443,9 +443,8 @@ class CellMLParser(object):
                 raise CellMLParsingError(
                     'A component can only have a single encapsulation parent:'
                     ' found ' + str(component) + ' with parents '
-                    + str(component.parent()) + ' and ' + str(parent)
-                    + ' (CODE).', element)
-            #TODO Update rule number above
+                    + str(component.parent()) + ' and ' + str(parent) + '.',
+                    element)
 
             # Set parent (won't raise CellMLErrors)
             component.set_parent(parent)
@@ -459,7 +458,7 @@ class CellMLParser(object):
         if len(kids) == 0 and parent is None:
             raise CellMLParsingError(
                 'The first component_ref in an encapsulation must have at'
-                ' least one child (B14.1.3).')
+                ' least one child.')
 
     def _parse_math(self, element, component):
         """
@@ -475,7 +474,7 @@ class CellMLParser(object):
             except KeyError:
                 raise CellMLParsingError(
                     'Variable references in equations must name a variable'
-                    ' from the local component (B12.1.3).', element)
+                    ' from the local component.', element)
 
             return myokit.Name(var)
 
@@ -493,7 +492,7 @@ class CellMLParser(object):
             except KeyError:
                 raise CellMLParsingError(
                     'Numbers inside MathML must define a cellml:units'
-                    ' attribute (B12.1.4).', element)
+                    ' attribute.', element)
 
             # Find units in component
             try:
@@ -501,7 +500,7 @@ class CellMLParser(object):
             except myokit.formats.cellml.v2.CellMLError:
                 raise CellMLParsingError(
                     'Unknown unit "' + str(units) + '" referenced inside a'
-                    ' MathML equation (B12.1.4).', element)
+                    ' MathML equation.', element)
 
             # Create and return
             return myokit.Number(value, units.myokit_unit())
@@ -584,7 +583,7 @@ class CellMLParser(object):
             name = element.attrib['name']
         except KeyError:
             raise CellMLParsingError(
-                'Model element must have a name attribute (B1.2.1).', element)
+                'Model element must have a name attribute.', element)
 
         # Create model (validates name)
         try:
@@ -621,8 +620,8 @@ class CellMLParser(object):
         encapsulation = element.findall(self._join('encapsulation'))
         if len(encapsulation) > 1:
             raise CellMLParsingError(
-                'A model cannot contain more than one encapsulation element'
-                ' (B1.2.3).', encapsulation[1])
+                'A model cannot contain more than one encapsulation element.',
+                encapsulation[1])
         for child in encapsulation:
             self._parse_encapsulation(child, model)
 
@@ -723,7 +722,7 @@ class CellMLParser(object):
             name = element.attrib['name']
         except KeyError:
             raise CellMLParsingError(
-                'Variable element must have a name attribute (B8.1.1.1).',
+                'Variable element must have a name attribute.',
                 element)
 
         # Check units are present
@@ -731,7 +730,7 @@ class CellMLParser(object):
             units = element.attrib['units']
         except KeyError:
             raise CellMLParsingError(
-                'Variable element must have a units attribute (B8.1.1.2).',
+                'Variable element must have a units attribute.',
                 element)
 
         # Get interface
@@ -789,20 +788,20 @@ class CellMLParser(object):
                 name = units.attrib['name']
             except KeyError:
                 raise CellMLParsingError(
-                    'Units element must have a name attribute (B5.1.1).',
+                    'Units element must have a name attribute.',
                     element)
 
             # Check doesn't shadow an si unit
             if name in si_units:
                 raise CellMLParsingError(
                     'Units name "' + name + '" overlaps with a predefined name'
-                    ' in ' + self._tag(element) + ' (B5.1.2).', element)
+                    ' in ' + self._tag(element) + '.', element)
 
             # Check for duplicates
             if name in local_units:
                 raise CellMLParsingError(
                     'Duplicate units definition "' + name + '" in '
-                    + self._tag(element) + ' (B5.1.2).', element)
+                    + self._tag(element) + '.', element)
             local_units[name] = units
 
             # Determine dependencies
@@ -812,7 +811,7 @@ class CellMLParser(object):
                     dep = unit.attrib['units']
                 except KeyError:
                     raise CellMLParsingError(
-                        'Unit elements must have a units attribute (B6.1.1).',
+                        'Unit elements must have a units attribute.',
                         element)
                 deps.add(dep)
             unresolved[name] = deps
@@ -838,7 +837,7 @@ class CellMLParser(object):
             else:
                 raise CellMLParsingError(
                     'Unable to resolve network of units in '
-                    + self._tag(element) + ' (B6.1.1.2).', element)
+                    + self._tag(element) + '.', element)
         return ordered
 
     def _tag(self, element, name=None):
