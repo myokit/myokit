@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-from ._exporter import CellMLExporter
+from ._exporter import CellMLExporter, CellML1Exporter, CellML2Exporter
 from ._ewriter import CellMLExpressionWriter
 from ._importer import CellMLImporter, CellMLImporterError  # noqa
 
@@ -40,6 +40,8 @@ def importers():
 # Exporters
 _exporters = {
     'cellml': CellMLExporter,
+    'cellml1': CellML1Exporter,
+    'cellml2': CellML2Exporter,
 }
 
 

@@ -44,6 +44,8 @@ myokit.formats.cellml
 - :class:`myokit.formats.cellml.CellMLExpressionWriter`
 - :class:`myokit.formats.cellml.CellMLImporter`
 - :class:`myokit.formats.cellml.CellMLImporterError`
+- :class:`myokit.formats.cellml.CellML1Exporter`
+- :class:`myokit.formats.cellml.CellML2Exporter`
 - :meth:`myokit.formats.cellml.ewriters`
 - :meth:`myokit.formats.cellml.exporters`
 - :meth:`myokit.formats.cellml.importers`

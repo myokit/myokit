@@ -120,6 +120,12 @@ Imports, exporters, and expression writers
 .. autoclass:: CellMLExporter
     :inherited-members:
 
+.. autoclass:: CellML1Exporter
+    :inherited-members:
+
+.. autoclass:: CellML2Exporter
+    :inherited-members:
+
 .. autofunction:: ewriters
 
 .. autoclass:: CellMLExpressionWriter
