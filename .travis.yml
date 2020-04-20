@@ -99,9 +99,6 @@ script:
         python -m flake8;
     fi;
   - if [[ $MYOKIT_DOC == true ]]; then
-        python run-tests.py doc-coverage;
-    fi;
-  - if [[ $MYOKIT_DOC == true ]]; then
         python run-tests.py doc;
     fi;
 
