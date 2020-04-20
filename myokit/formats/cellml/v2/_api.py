@@ -12,12 +12,22 @@ import re
 
 import myokit
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
 
-# Identifier validation
-_cellml_identifier = re.compile('^[a-zA-Z][a-zA-Z0-9_]*$')
+
+# Data types
+_cellml_identifier = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
+_cellml_integer = re.compile(r'^[+-]?[0-9]+$')
+_real = r'[+-]?(([0-9]*\.[0-9]+)|([0-9]+\.?[0-9]*))'
+_cellml_basic_real = re.compile(r'^' + _real + r'$')
+_cellml_real = re.compile(r'^' + _real + r'([eE][+-]?[0-9]+)?$')
 
 
-def is_valid_identifier(name):
+def is_identifier(name):
     """
     Tests if the given ``name`` is a valid CellML 2.0 identifier.
 
@@ -30,6 +40,27 @@ def is_valid_identifier(name):
     return _cellml_identifier.match(name) is not None
 
 
+def is_integer_string(text):
+    """
+    Tests if the given ``text`` is a valid CellML 2.0 integer string.
+    """
+    return _cellml_integer.match(text) is not None
+
+
+def is_basic_real_number_string(text):
+    """
+    Tests if the given ``text`` is a valid CellML 2.0 basic real number string.
+    """
+    return _cellml_basic_real.match(text) is not None
+
+
+def is_real_number_string(text):
+    """
+    Tests if the given ``text`` is a valid CellML 2.0 basic real number string.
+    """
+    return _cellml_real.match(text) is not None
+
+
 def clean_identifier(name):
     """
     Checks if ``name`` is a valid CellML 2.0 identifier and if not attempts to
@@ -37,14 +68,14 @@ def clean_identifier(name):
 
     Raises a ``ValueError`` if it can't create a valid identifier.
     """
-    if is_valid_identifier(name):
+    if is_identifier(name):
         return name
 
     # Replace spaces and hyphens with underscores
     clean = re.sub(r'[\s-]', '_', name)
 
     # Check if valid and return
-    if is_valid_identifier(clean):
+    if is_identifier(clean):
         return clean
     raise ValueError(
         'Unable to create a valid CellML 2.0 identifier from "' + str(name)
@@ -60,7 +91,7 @@ def create_unit_name(unit):
     name = str(unit)[1:-1]
 
     # If this is a valid name, return
-    if is_valid_identifier(name):
+    if is_identifier(name):
         return name
 
     # Not allowed: could be because of a multiplier, e.g. [m (0.0254)]
@@ -141,7 +172,7 @@ class Component(AnnotatableElement):
         self._model = model
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Component name must be a valid CellML identifier (B7.1.1).')
         self._name = name
@@ -295,7 +326,7 @@ class Model(AnnotatableElement):
         super(Model, self).__init__()
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Model name must be a valid CellML identifier (B1.2.1).')
         self._name = name
@@ -1059,7 +1090,7 @@ class Units(object):
     def __init__(self, name, myokit_unit, predefined=False):
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Units name must be a valid CellML identifier (B.5.1.1).')
         if not predefined and name in self._si_units:
@@ -1162,21 +1193,16 @@ class Units(object):
 
         # Handle prefix
         if prefix is not None:
-            p = cls._si_prefixes.get(prefix, None)
-            if p is None:
+            # Parse prefix
+            if is_integer_string(str(prefix)):
+                p = int(prefix)
+            else:
                 try:
-                    # Test if can convert to float
-                    p = float(prefix)
-                except ValueError:
-                    pass
-                else:
-                    # Test if is integer
-                    if int(p) != p:
-                        p = None
-            if p is None:
-                raise CellMLError(
-                    'Units prefix must be a string from the list of known'
-                    ' prefixes or an integer (B6.1.2.1).')
+                    p = cls._si_prefixes[prefix]
+                except KeyError:
+                    raise CellMLError(
+                        'Units prefix must be a string from the list of known'
+                        ' prefixes or an integer string (B6.1.2.1).')
 
             # Apply prefix to unit
 
@@ -1187,11 +1213,14 @@ class Units(object):
 
         # Handle exponent (note: prefix is exponentiated, multiplier is not).
         if exponent is not None:
-            try:
-                e = float(exponent)
-            except ValueError:
+            # Parse exponent
+
+            if not is_real_number_string(str(exponent)):
                 raise CellMLError(
-                    'Unit exponent must be a real number (B6.1.2.3).')
+                    'Unit exponent must be a real number string (B6.1.2.3).')
+            e = float(exponent)
+
+            # Only integers are supported by Myokit
             if not myokit._feq(e, int(e)):
                 raise CellMLError(
                     'Non-integer unit exponents are not supported.')
@@ -1201,11 +1230,10 @@ class Units(object):
 
         # Handle multiplier
         if multiplier is not None:
-            try:
-                m = float(multiplier)
-            except ValueError:
+            if not is_real_number_string(str(multiplier)):
                 raise CellMLError(
-                    'Unit multiplier must be a real number (B6.1.2.2).')
+                    'Unit multiplier must be a real number string (B6.1.2.2).')
+            m = float(multiplier)
 
             # Apply multiplier to unit
             unit *= m
@@ -1344,7 +1372,7 @@ class Variable(AnnotatableElement):
         self._component = component
 
         # Check and store name
-        if not is_valid_identifier(name):
+        if not is_identifier(name):
             raise CellMLError(
                 'Variable name must be a valid CellML identifier (B8.1.1.1).')
         self._name = name
@@ -1592,13 +1620,17 @@ class Variable(AnnotatableElement):
         # Allow unsetting with ``None``
         if value is not None:
 
-            # Check
-            try:
+            # Check value is a real number string
+            if isinstance(value, basestring):
+                if is_real_number_string(value):
+                    value = float(value)
+                else:
+                    raise CellMLError(
+                        'If given, a variable initial_value must be a real'
+                        ' number (using variables as initial values is not'
+                        ' supported).')
+            else:
                 value = float(value)
-            except ValueError:
-                raise CellMLError(
-                    'If given, a variable initial_value must be a real number'
-                    ' (using variables as initial values is not supported).')
 
             value = myokit.Number(value, self._units.myokit_unit())
 

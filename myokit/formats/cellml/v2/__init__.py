@@ -16,7 +16,10 @@ from ._api import (     # noqa
     Model,
     Units,
     Variable,
-    is_valid_identifier,
+    is_basic_real_number_string,
+    is_identifier,
+    is_integer_string,
+    is_real_number_string,
 )
 
 from ._parser import (  # noqa

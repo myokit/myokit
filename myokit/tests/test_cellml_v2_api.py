@@ -1586,10 +1586,11 @@ class TestCellML2Units(unittest.TestCase):
         self.assertEqual(u, myokit.parse_unit('um'))
         u = cellml.Units.parse_unit_row('metre', -4)
         self.assertEqual(u, myokit.parse_unit('m (1e-4)'))
-        u = cellml.Units.parse_unit_row('metre', -4.0)
-        self.assertEqual(u, myokit.parse_unit('m (1e-4)'))
 
         # Test bad prefixes
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'known prefixes or an integer',
+            cellml.Units.parse_unit_row, 'metre', '4.0')
         self.assertRaisesRegex(
             cellml.CellMLError, 'known prefixes or an integer',
             cellml.Units.parse_unit_row, 'metre', 'forty')
@@ -1854,21 +1855,111 @@ class TestCellML2Methods(unittest.TestCase):
         u = myokit.units.meter ** 2
         self.assertEqual(cellml.create_unit_name(u), 'm2')
 
-    def test_valid_identifier(self):
-        # Tests is_valid_identifier().
+    def test_is_identifier(self):
+        # Tests is_identifier().
 
-        self.assertTrue(cellml.is_valid_identifier('hello'))
-        self.assertTrue(cellml.is_valid_identifier('h_e_l_l_o'))
-        self.assertTrue(cellml.is_valid_identifier('X123'))
-        self.assertTrue(cellml.is_valid_identifier('ZAa123_lo_2'))
-        self.assertTrue(cellml.is_valid_identifier('a'))
+        self.assertTrue(cellml.is_identifier('hello'))
+        self.assertTrue(cellml.is_identifier('h_e_l_l_o'))
+        self.assertTrue(cellml.is_identifier('X123'))
+        self.assertTrue(cellml.is_identifier('ZAa123_lo_2'))
+        self.assertTrue(cellml.is_identifier('a'))
 
-        self.assertFalse(cellml.is_valid_identifier(''))
-        self.assertFalse(cellml.is_valid_identifier('_'))
-        self.assertFalse(cellml.is_valid_identifier('_a'))
-        self.assertFalse(cellml.is_valid_identifier('_1'))
-        self.assertFalse(cellml.is_valid_identifier('123'))
-        self.assertFalse(cellml.is_valid_identifier('1e3'))
+        self.assertFalse(cellml.is_identifier(''))
+        self.assertFalse(cellml.is_identifier('_'))
+        self.assertFalse(cellml.is_identifier('_a'))
+        self.assertFalse(cellml.is_identifier('_1'))
+        self.assertFalse(cellml.is_identifier('123'))
+        self.assertFalse(cellml.is_identifier('1e3'))
+
+    def test_is_integer_string(self):
+        # Tests is_integer_string().
+
+        self.assertTrue(cellml.is_integer_string('0'))
+        self.assertTrue(cellml.is_integer_string('+0'))
+        self.assertTrue(cellml.is_integer_string('-0'))
+        self.assertTrue(cellml.is_integer_string('3'))
+        self.assertTrue(cellml.is_integer_string('+3'))
+        self.assertTrue(cellml.is_integer_string('-3'))
+        self.assertTrue(cellml.is_integer_string('34269386698604537836794387'))
+
+        self.assertFalse(cellml.is_integer_string(''))
+        self.assertFalse(cellml.is_integer_string('.'))
+        self.assertFalse(cellml.is_integer_string('1.2'))
+        self.assertFalse(cellml.is_integer_string('-1.2'))
+        self.assertFalse(cellml.is_integer_string('1.0'))
+        self.assertFalse(cellml.is_integer_string('1.'))
+        self.assertFalse(cellml.is_integer_string('.0'))
+        self.assertFalse(cellml.is_integer_string('1e3'))
+        self.assertFalse(cellml.is_integer_string('++1'))
+        self.assertFalse(cellml.is_integer_string('+-3'))
+        self.assertFalse(cellml.is_integer_string('--1'))
+        self.assertFalse(cellml.is_integer_string('+'))
+        self.assertFalse(cellml.is_integer_string('-'))
+        self.assertFalse(cellml.is_integer_string('a'))
+        self.assertFalse(cellml.is_integer_string('12C'))
+
+    def test_is_basic_real_number_string(self):
+        # Tests is_basic_real_number_string().
+
+        self.assertTrue(cellml.is_basic_real_number_string('0'))
+        self.assertTrue(cellml.is_basic_real_number_string('+0'))
+        self.assertTrue(cellml.is_basic_real_number_string('-0'))
+        self.assertTrue(cellml.is_basic_real_number_string('3'))
+        self.assertTrue(cellml.is_basic_real_number_string('+3'))
+        self.assertTrue(cellml.is_basic_real_number_string('-3'))
+        self.assertTrue(cellml.is_basic_real_number_string(
+            '3426938669860453783679436474536745674567887'))
+        self.assertTrue(cellml.is_basic_real_number_string(
+            '-.342693866982438645847568457875604537836794387'))
+        self.assertTrue(cellml.is_basic_real_number_string('1.2'))
+        self.assertTrue(cellml.is_basic_real_number_string('-1.2'))
+        self.assertTrue(cellml.is_basic_real_number_string('1.0'))
+        self.assertTrue(cellml.is_basic_real_number_string('1.'))
+        self.assertTrue(cellml.is_basic_real_number_string('.1'))
+
+        self.assertFalse(cellml.is_basic_real_number_string(''))
+        self.assertFalse(cellml.is_basic_real_number_string('.'))
+        self.assertFalse(cellml.is_basic_real_number_string('1e3'))
+        self.assertFalse(cellml.is_basic_real_number_string('++1'))
+        self.assertFalse(cellml.is_basic_real_number_string('+-3'))
+        self.assertFalse(cellml.is_basic_real_number_string('--1'))
+        self.assertFalse(cellml.is_basic_real_number_string('+'))
+        self.assertFalse(cellml.is_basic_real_number_string('-'))
+        self.assertFalse(cellml.is_basic_real_number_string('a'))
+        self.assertFalse(cellml.is_basic_real_number_string('12C'))
+
+    def test_is_real_number_string(self):
+        # Tests is_real_number_string().
+
+        self.assertTrue(cellml.is_real_number_string('0'))
+        self.assertTrue(cellml.is_real_number_string('+0'))
+        self.assertTrue(cellml.is_real_number_string('-0'))
+        self.assertTrue(cellml.is_real_number_string('3'))
+        self.assertTrue(cellml.is_real_number_string('+3'))
+        self.assertTrue(cellml.is_real_number_string('-3'))
+        self.assertTrue(cellml.is_real_number_string(
+            '3426938669860453783679436474536745674567887'))
+        self.assertTrue(cellml.is_real_number_string(
+            '-.342693866982438645847568457875604537836794387'))
+        self.assertTrue(cellml.is_real_number_string('1.2'))
+        self.assertTrue(cellml.is_real_number_string('-1.2'))
+        self.assertTrue(cellml.is_real_number_string('+1.0'))
+        self.assertTrue(cellml.is_real_number_string('+1.'))
+        self.assertTrue(cellml.is_real_number_string('.1'))
+        self.assertTrue(cellml.is_real_number_string('1e3'))
+        self.assertTrue(cellml.is_real_number_string('.1e-3'))
+        self.assertTrue(cellml.is_real_number_string('-1.E0'))
+        self.assertTrue(cellml.is_real_number_string('1E33464636'))
+
+        self.assertFalse(cellml.is_real_number_string(''))
+        self.assertFalse(cellml.is_real_number_string('.'))
+        self.assertFalse(cellml.is_real_number_string('++1'))
+        self.assertFalse(cellml.is_real_number_string('+-3'))
+        self.assertFalse(cellml.is_real_number_string('--1'))
+        self.assertFalse(cellml.is_real_number_string('+'))
+        self.assertFalse(cellml.is_real_number_string('-'))
+        self.assertFalse(cellml.is_real_number_string('a'))
+        self.assertFalse(cellml.is_real_number_string('12C'))
 
 
 if __name__ == '__main__':
