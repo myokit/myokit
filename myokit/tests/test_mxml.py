@@ -49,6 +49,8 @@ html = """
             <li><a href="http://myokit.org/download">Two</a></li>
         </ul>
         <h3>Resources</h3>
+        This has a<br />
+        line break.
         <ol>
             <li>Numbered A.</li>
             <li><em>Numbered B is italic.</em></li>
@@ -92,6 +94,9 @@ Software
 ...............................................................................
 Resources
 ...............................................................................
+
+This has a
+line break.
 
   1 Numbered A.
   2 *Numbered B is italic.*
