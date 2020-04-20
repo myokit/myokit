@@ -9,7 +9,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import textwrap
-from xml.dom import minidom
+import xml.dom
 
 try:
     # Python 2
@@ -21,7 +21,54 @@ except ImportError:
 import myokit
 from myokit import formats
 from myokit import Name, Number, Minus, Multiply, Divide, Power
-from myokit.mxml import dom_child, dom_next
+
+
+def dom_child(node, selector=None):
+    """
+    Returns the first child element of the given DOM node.
+
+    If the optional selector is given it searches for an element of a
+    particular type.
+
+    Returns ``None`` if no such node is found.
+    """
+    enode = xml.dom.Node.ELEMENT_NODE
+    e = node.firstChild
+    if selector:
+        while e is not None:
+            if e.nodeType == enode and e.tagName == selector:
+                return e
+            e = e.nextSibling
+    else:
+        while e is not None:
+            if e.nodeType == enode:
+                return e
+            e = e.nextSibling
+    return None
+
+
+def dom_next(node, selector=False):
+    """
+    Returns the next sibling element after the given DOM node.
+
+    If the optional selector is given it searches for an element of a
+    particular type.
+
+    Returns ``None`` if no such node is found.
+    """
+    enode = xml.dom.Node.ELEMENT_NODE
+    e = node.nextSibling
+    if selector:
+        while e is not None:
+            if e.nodeType == enode and e.tagName == selector:
+                return e
+            e = e.nextSibling
+    else:
+        while e is not None:
+            if e.nodeType == enode:
+                return e
+            e = e.nextSibling
+    return None
 
 
 class ChannelMLError(myokit.ImportError):
@@ -90,7 +137,7 @@ class ChannelMLImporter(formats.Importer):
 
         # Parse XML
         path = os.path.abspath(os.path.expanduser(path))
-        dom = minidom.parse(path)
+        dom = xml.dom.minidom.parse(path)
 
         # Get channelml tag
         root = dom.getElementsByTagName('channelml')

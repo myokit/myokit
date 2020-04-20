@@ -9,7 +9,6 @@ from __future__ import print_function, unicode_literals
 
 import re
 import sys
-import xml.dom
 import textwrap
 
 
@@ -23,54 +22,6 @@ def split(tag):
         return None, tag
     i = tag.index('}')
     return tag[1:i], tag[1 + i:]
-
-
-def dom_child(node, selector=None):
-    """
-    Returns the first child element of the given DOM node.
-
-    If the optional selector is given it searches for an element of a
-    particular type.
-
-    Returns ``None`` if no such node is found.
-    """
-    enode = xml.dom.Node.ELEMENT_NODE
-    e = node.firstChild
-    if selector:
-        while e is not None:
-            if e.nodeType == enode and e.tagName == selector:
-                return e
-            e = e.nextSibling
-    else:
-        while e is not None:
-            if e.nodeType == enode:
-                return e
-            e = e.nextSibling
-    return None
-
-
-def dom_next(node, selector=False):
-    """
-    Returns the next sibling element after the given DOM node.
-
-    If the optional selector is given it searches for an element of a
-    particular type.
-
-    Returns ``None`` if no such node is found.
-    """
-    enode = xml.dom.Node.ELEMENT_NODE
-    e = node.nextSibling
-    if selector:
-        while e is not None:
-            if e.nodeType == enode and e.tagName == selector:
-                return e
-            e = e.nextSibling
-    else:
-        while e is not None:
-            if e.nodeType == enode:
-                return e
-            e = e.nextSibling
-    return None
 
 
 def html2ascii(html, width=79, indent='  '):
