@@ -464,6 +464,30 @@ class CellMLImporterTest(unittest.TestCase):
         m = i.model(os.path.join(DIR, 'decker-2009.cellml'))
         m.validate()
 
+    def test_model_2_0_errors(self):
+        # CellML 2.0 files with errors should raise CellMLImporterErrors
+
+        # Create model that will generate warnings
+        x = ('<?xml version="1.0" encoding="UTF-8"?>'
+             '<model name="test" xmlns="http://www.cellml.org/cellml/2.0#">'
+             '<component name="a">'
+             '  <variable name="hello" units="ampere"'
+             '            public_interface="in"/>'
+             '</component>'
+             '</model>')
+
+        # Write to disk and import
+        with TemporaryDirectory() as d:
+            path = d.path('test.celllml')
+            with open(path, 'w') as f:
+                f.write(x)
+
+            # Import
+            i = formats.importer('cellml')
+            self.assertRaisesRegex(
+                CellMLImporterError, 'Unexpected attribute',
+                i.model, path)
+
     def test_not_a_model(self):
         # Test loading something other than a CellML file
 
@@ -478,7 +502,7 @@ class CellMLImporterTest(unittest.TestCase):
             CellMLImporterError, 'Unable to parse XML',
             i.model, os.path.join(DIR_FORMATS, 'lr-1991.mmt'))
 
-    def test_warnings(self):
+    def test_warnings_1_0(self):
         # Tests warnings are logged
 
         # Create model that will generate warnings
@@ -502,7 +526,6 @@ class CellMLImporterTest(unittest.TestCase):
 
             # Check warning was raised
             self.assertIn('not connected', next(i.logger().warnings()))
-
 
 if __name__ == '__main__':
     unittest.main()
