@@ -106,6 +106,9 @@ def html2ascii(html, width=79, indent='  '):
 
         def handle_starttag(self, tag, attrs):
             """ Called when a start tag is encountered. """
+            if ':' in tag:
+                tag = tag[1 + tag.index(':'):]
+
             if tag == 'head':
                 self.inhead = True
 
@@ -163,6 +166,9 @@ def html2ascii(html, width=79, indent='  '):
 
         def handle_startendtag(self, tag, attrs):
             """ Called when an open/end tag is encountered. """
+            if ':' in tag:
+                tag = tag[1 + tag.index(':'):]
+
             if tag == 'br':
                 self.endline()
 
@@ -173,6 +179,8 @@ def html2ascii(html, width=79, indent='  '):
 
         def handle_endtag(self, tag):
             """ Called when an endtag is encountered. """
+            if ':' in tag:
+                tag = tag[1 + tag.index(':'):]
 
             if tag == 'head':
                 self.inhead = False
