@@ -16,6 +16,7 @@ from ._importer import CellMLImporter, CellMLImporterError  # noqa
 NS_BQBIOL = 'http://biomodels.net/biology-qualifiers/'
 NS_CELLML_1_0 = 'http://www.cellml.org/cellml/1.0#'
 NS_CELLML_1_1 = 'http://www.cellml.org/cellml/1.1#'
+NS_CELLML_2_0 = 'http://www.cellml.org/cellml/2.0#'
 NS_CMETA = 'http://www.cellml.org/metadata/1.0#'
 NS_MATHML = 'http://www.w3.org/1998/Math/MathML'
 NS_OXMETA = 'https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#'

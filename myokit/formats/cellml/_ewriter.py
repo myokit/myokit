@@ -38,6 +38,8 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
             self._ns = myokit.formats.cellml.NS_CELLML_1_0
         elif version == '1.1':
             self._ns = myokit.formats.cellml.NS_CELLML_1_1
+        elif version == '2.0':
+            self._ns = myokit.formats.cellml.NS_CELLML_2_0
         else:
             raise ValueError('Unknown CellML version: ' + str(version))
 

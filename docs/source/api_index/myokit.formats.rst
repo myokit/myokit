@@ -68,6 +68,28 @@ myokit.formats.cellml.v1
 - :meth:`myokit.formats.cellml.v1.write_file`
 - :meth:`myokit.formats.cellml.v1.write_string`
 
+myokit.formats.cellml.v2
+------------------------------
+- :class:`myokit.formats.cellml.v2.AnnotatableElement`
+- :class:`myokit.formats.cellml.v2.CellMLError`
+- :class:`myokit.formats.cellml.v2.CellMLParser`
+- :class:`myokit.formats.cellml.v2.CellMLParsingError`
+- :class:`myokit.formats.cellml.v2.CellMLWriter`
+- :meth:`myokit.formats.cellml.v2.clean_identifier`
+- :meth:`myokit.formats.cellml.v2.create_unit_name`
+- :class:`myokit.formats.cellml.v2.Component`
+- :meth:`myokit.formats.cellml.v2.is_basic_real_number_string`
+- :meth:`myokit.formats.cellml.v2.is_identifier`
+- :meth:`myokit.formats.cellml.v2.is_integer_string`
+- :meth:`myokit.formats.cellml.v2.is_real_number_string`
+- :class:`myokit.formats.cellml.v2.Model`
+- :meth:`myokit.formats.cellml.v2.parse_file`
+- :meth:`myokit.formats.cellml.v2.parse_string`
+- :class:`myokit.formats.cellml.v2.Units`
+- :class:`myokit.formats.cellml.v2.Variable`
+- :meth:`myokit.formats.cellml.v2.write_file`
+- :meth:`myokit.formats.cellml.v2.write_string`
+
 myokit.formats.channelml
 ------------------------
 - :class:`myokit.formats.channelml.ChannelMLError`
