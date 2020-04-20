@@ -1630,14 +1630,22 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_import_cellml.triggered.connect(
             lambda: self.action_import_model('cellml', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_import_cellml)
-        # Convert > Export CellML
-        self._tool_export_cellml = QtWidgets.QAction(
-            'Export model to CellML', self)
-        self._tool_export_cellml.setStatusTip(
-            'Export a model definition to a CellML document')
-        self._tool_export_cellml.triggered.connect(
-            lambda: self.action_export_model('cellml', FILTER_CELLML))
-        self._menu_convert.addAction(self._tool_export_cellml)
+        # Convert > Export CellML 1
+        self._tool_export_cellml1 = QtWidgets.QAction(
+            'Export model to CellML 1.0', self)
+        self._tool_export_cellml1.setStatusTip(
+            'Export a model definition to a CellML 1.0 document')
+        self._tool_export_cellml1.triggered.connect(
+            lambda: self.action_export_model('cellml1', FILTER_CELLML))
+        self._menu_convert.addAction(self._tool_export_cellml1)
+        # Convert > Export CellML 2
+        self._tool_export_cellml2 = QtWidgets.QAction(
+            'Export model to CellML 2.0', self)
+        self._tool_export_cellml2.setStatusTip(
+            'Export a model definition to a CellML 2.0 document')
+        self._tool_export_cellml2.triggered.connect(
+            lambda: self.action_export_model('cellml2', FILTER_CELLML))
+        self._menu_convert.addAction(self._tool_export_cellml2)
 
         # Convert > ----
         self._menu_convert.addSeparator()

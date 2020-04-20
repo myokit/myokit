@@ -7,8 +7,6 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import inspect
-
 import myokit
 import myokit.lib.guess
 
@@ -51,12 +49,6 @@ class CellMLExporter(myokit.formats.Exporter):
             The CellML version to write (1.0, 1.1, or 2.0).
 
         """
-        # Clear log
-        log = self.logger()
-        log.clear()
-        log.clear_warnings()
-        log.log('Exporting model to CellML...')
-
         # Load API and writer
         if version in ('1.0', '1.1'):
             import myokit.formats.cellml.v1 as cellml
@@ -65,6 +57,12 @@ class CellMLExporter(myokit.formats.Exporter):
         else:   # pragma: no cover
             raise ValueError(
                 'Only versions 1.0, 1.1, and 2.0 are supported.')
+
+        # Clear log
+        log = self.logger()
+        log.clear()
+        log.clear_warnings()
+        log.log('Exporting model to CellML ' + version + '...')
 
         # Embed protocol
         if protocol is not None:

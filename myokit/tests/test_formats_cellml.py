@@ -558,5 +558,6 @@ class CellMLImporterTest(unittest.TestCase):
             # Check warning was raised
             self.assertIn('not connected', next(i.logger().warnings()))
 
+
 if __name__ == '__main__':
     unittest.main()
