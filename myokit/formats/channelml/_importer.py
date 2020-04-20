@@ -10,6 +10,7 @@ from __future__ import print_function, unicode_literals
 import os
 import textwrap
 import xml.dom
+import xml.dom.minidom
 
 try:
     # Python 2
