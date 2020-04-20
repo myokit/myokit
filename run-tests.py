@@ -348,7 +348,7 @@ def doc_tests(args):
     if not ok:
         sys.exit(1)
 
-
+    # Build docs and run doc tests
     print('Building docs and running doctests.')
     p = subprocess.Popen([
         'sphinx-build',
