@@ -1634,7 +1634,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_cellml1 = QtWidgets.QAction(
             'Export model to CellML 1.0', self)
         self._tool_export_cellml1.setStatusTip(
-            'Export a model definition to a CellML 1.0 document')
+            'Export a model definition to a CellML 1.0 document.')
         self._tool_export_cellml1.triggered.connect(
             lambda: self.action_export_model('cellml1', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_export_cellml1)
@@ -1642,7 +1642,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_cellml2 = QtWidgets.QAction(
             'Export model to CellML 2.0', self)
         self._tool_export_cellml2.setStatusTip(
-            'Export a model definition to a CellML 2.0 document')
+            'Export a model definition to a CellML 2.0 document.')
         self._tool_export_cellml2.triggered.connect(
             lambda: self.action_export_model('cellml2', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_export_cellml2)
