@@ -17,7 +17,13 @@ In most cases, it's easier to avoid these methods and use the
 CellML Model API
 ================
 
-.. autofunction:: is_valid_identifier
+.. autofunction:: is_identifier
+
+.. autofunction:: is_integer_string
+
+.. autofunction:: is_basic_real_number_string
+
+.. autofunction:: is_real_number_string
 
 .. autoclass:: Model
 
