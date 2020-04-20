@@ -163,7 +163,7 @@ class CModule(object):
                 runtime_library_dirs=runtime,
                 include_dirs=incd,
                 extra_compile_args=carg,
-                extra_linker_args=larg,
+                extra_link_args=larg,
             )
 
             # Compile, catch output
