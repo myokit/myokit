@@ -563,23 +563,7 @@ class SBMLImporter(myokit.formats.Importer):
                                     myokit.Number(-1.0), weightedExpr)
                                 reactionSpeciesDict[species] = weightedExpr
 
-                        # TODO: whats up with conversion factor
-
-                        # TODO: if extentUnit exist, get conversion factor
-                        # multiply all reaction rates with it
-                        # Check whether this can differ from units of indiv params
-
-                    # reactions are always in amount per time. So if species
-                    # is given as concentration it needs to be converted into
-                    # amount
-
-                    # species with constant an boundary False do change and need rate expr.
-
-                    # evolcity of reaction is extent/time
-
-                    # effective stoich Sum React refs of species - sum Prod refs of species
-
-                # TODO: Look at kinetic law and how to best construct ODE
+                        # TODO: whats up with conversion fac
 
             # Add rate expression for species to model
             for species in reactionSpeciesDict:
@@ -593,7 +577,6 @@ class SBMLImporter(myokit.formats.Importer):
                 timeUnit = self.userUnitDict['timeUnit']
                 rateUnit = unit / timeUnit
                 initialValue = var.rhs()
-                print('bla', initialValue)
                 initialValue = initialValue.eval() if initialValue else 0
                 var.promote(initialValue)
                 var.set_unit(rateUnit)
