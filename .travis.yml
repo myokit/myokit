@@ -23,7 +23,7 @@ branches:
 # 2.7   --> Latest 2.7 version. At the moment 2.7.14 on travis (2018-10-31)
 # 3.0-3.3 --> Bad initial versions of Python 3; Not supported
 # 3.4     --> No longer supported by pip (2019-03)
-# 3.5-3.7 --> Works
+# 3.5-3.8 --> Works
 
 matrix:
     # Always put true env variable first, for nicer overview on travis website
@@ -34,15 +34,15 @@ matrix:
           env:
             - MYOKIT_UNIT=true
         # Style checking
-        - python: "3.7"
+        - python: "3.8"
           env:
             - MYOKIT_STYLE=true
         # Doctests
-        - python: "3.7"
+        - python: "3.8"
           env:
             - MYOKIT_DOC=true
         # Cover checking
-        - python: "3.7"
+        - python: "3.8"
           env:
             - MYOKIT_COVER=true
         # Unit tests on Ubuntu
@@ -60,6 +60,9 @@ matrix:
           env:
             - MYOKIT_UNIT=true
         - python: "3.7"
+          env:
+            - MYOKIT_UNIT=true
+        - python: "3.8"
           env:
             - MYOKIT_UNIT=true
 
@@ -97,9 +100,6 @@ script:
   - if [[ $MYOKIT_STYLE == true ]]; then
         python -m flake8 --version;
         python -m flake8;
-    fi;
-  - if [[ $MYOKIT_DOC == true ]]; then
-        python run-tests.py doc-coverage;
     fi;
   - if [[ $MYOKIT_DOC == true ]]; then
         python run-tests.py doc;

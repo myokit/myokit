@@ -116,6 +116,37 @@ class CellMLExporterTest(unittest.TestCase):
             with open(path, 'r') as f:
                 self.assertIn('cellml/1.1#', f.read())
 
+        # Write to 2.0 model
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            e.model(path, model, version='2.0')
+            with open(path, 'r') as f:
+                self.assertIn('cellml/2.0#', f.read())
+
+    def test_version_specific_exporters(self):
+        # Test the aliased exporters for specific versions
+
+        model = myokit.Model('hello')
+        t = model.add_component('env').add_variable('time')
+        t.set_binding('time')
+        t.set_rhs(0)
+
+        # Write to 1.0 model
+        e = formats.exporter('cellml1')
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            e.model(path, model)
+            with open(path, 'r') as f:
+                self.assertIn('cellml/1.0#', f.read())
+
+        # Write to 2.0 model
+        e = formats.exporter('cellml2')
+        with TemporaryDirectory() as d:
+            path = d.path('test.cellml')
+            e.model(path, model)
+            with open(path, 'r') as f:
+                self.assertIn('cellml/2.0#', f.read())
+
 
 class CellMLExpressionWriterTest(unittest.TestCase):
     """
@@ -386,65 +417,8 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'Unknown expression type', self.w.ex, 7)
 
-
-class CellMLImporterTest(unittest.TestCase):
-    """
-    Tests the CellML importer.
-    """
-
-    def test_capability_reporting(self):
-        # Test if the right capabilities are reported.
-        i = formats.importer('cellml')
-        self.assertFalse(i.supports_component())
-        self.assertTrue(i.supports_model())
-        self.assertFalse(i.supports_protocol())
-
-    def test_info(self):
-        # Test if the importer implements info()
-        i = formats.importer('cellml')
-        self.assertIsInstance(i.info(), basestring)
-
-    def test_model_dot(self):
-        # This is beeler-reuter but with a dot() in an expression
-        i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'br-1977-dot.cellml'))
-        m.validate()
-
-    def test_model_errors(self):
-        # Files with errors raise CellMLImporterErrors (not parser errors)
-        i = formats.importer('cellml')
-        m = os.path.join(DIR, 'invalid-file.cellml')
-        self.assertRaisesRegex(
-            CellMLImporterError, 'valid CellML identifier', i.model, m)
-
-    def test_model_nesting(self):
-        # The corrias model has multiple levels of nesting (encapsulation)
-        i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'corrias.cellml'))
-        m.validate()
-
-    def test_model_simple(self):
-        # Beeler-Reuter is a simple model
-        i = formats.importer('cellml')
-        m = i.model(os.path.join(DIR, 'br-1977.cellml'))
-        m.validate()
-
-    def test_not_a_model(self):
-        # Test loading something other than a CellML file
-
-        # Different XML file
-        i = formats.importer('cellml')
-        self.assertRaisesRegex(
-            CellMLImporterError, 'not a CellML document',
-            i.model, os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
-
-        # Not an XML file
-        self.assertRaisesRegex(
-            CellMLImporterError, 'Unable to parse XML',
-            i.model, os.path.join(DIR_FORMATS, 'lr-1991.mmt'))
-
     def test_versions(self):
-        # Tests writing to different CellML versions
+        # Tests writing different CellML versions
 
         # CellML 1.0
         units = {
@@ -466,7 +440,100 @@ class CellMLImporterTest(unittest.TestCase):
             ValueError, 'Unknown CellML version',
             cellml.CellMLExpressionWriter, '1.2')
 
-    def test_warnings(self):
+        # CellML 2.0
+        w = cellml.CellMLExpressionWriter('2.0')
+        w.set_unit_function(lambda x: units[x])
+        xml = w.ex(myokit.Number(1, myokit.units.pF))
+        self.assertIn(cellml.NS_CELLML_2_0, xml)
+
+
+class CellMLImporterTest(unittest.TestCase):
+    """
+    Tests the CellML importer.
+    """
+
+    def test_capability_reporting(self):
+        # Test if the right capabilities are reported.
+        i = formats.importer('cellml')
+        self.assertFalse(i.supports_component())
+        self.assertTrue(i.supports_model())
+        self.assertFalse(i.supports_protocol())
+
+    def test_info(self):
+        # Test if the importer implements info()
+        i = formats.importer('cellml')
+        self.assertIsInstance(i.info(), basestring)
+
+    def test_model_1_0_dot(self):
+        # This is beeler-reuter but with a dot() in an expression
+        i = formats.importer('cellml')
+        m = i.model(os.path.join(DIR, 'br-1977-dot.cellml'))
+        m.validate()
+
+    def test_model_1_0_errors(self):
+        # Files with errors raise CellMLImporterErrors (not parser errors)
+        i = formats.importer('cellml')
+        m = os.path.join(DIR, 'invalid-file.cellml')
+        self.assertRaisesRegex(
+            CellMLImporterError, 'valid CellML identifier', i.model, m)
+
+    def test_model__1_0_nesting(self):
+        # The corrias model has multiple levels of nesting (encapsulation)
+        i = formats.importer('cellml')
+        m = i.model(os.path.join(DIR, 'corrias.cellml'))
+        m.validate()
+
+    def test_model_1_0_simple(self):
+        # Beeler-Reuter is a simple model
+        i = formats.importer('cellml')
+        m = i.model(os.path.join(DIR, 'br-1977.cellml'))
+        m.validate()
+
+    def test_model_2_0(self):
+        # Decker 2009 in CellML 2.0
+        i = formats.importer('cellml')
+        m = i.model(os.path.join(DIR, 'decker-2009.cellml'))
+        m.validate()
+
+    def test_model_2_0_errors(self):
+        # CellML 2.0 files with errors should raise CellMLImporterErrors
+
+        # Create model that will generate warnings
+        x = ('<?xml version="1.0" encoding="UTF-8"?>'
+             '<model name="test" xmlns="http://www.cellml.org/cellml/2.0#">'
+             '<component name="a">'
+             '  <variable name="hello" units="ampere"'
+             '            public_interface="in"/>'
+             '</component>'
+             '</model>')
+
+        # Write to disk and import
+        with TemporaryDirectory() as d:
+            path = d.path('test.celllml')
+            with open(path, 'w') as f:
+                f.write(x)
+
+            # Import
+            i = formats.importer('cellml')
+            self.assertRaisesRegex(
+                CellMLImporterError, 'Unexpected attribute',
+                i.model, path)
+
+    def test_not_a_model(self):
+        # Test loading something other than a CellML file
+
+        # Different XML file
+        i = formats.importer('cellml')
+        self.assertRaisesRegex(
+            CellMLImporterError, 'not a CellML document',
+            i.model, os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+
+        # Not an XML file
+        self.assertRaisesRegex(
+            CellMLImporterError, 'Unable to parse XML',
+            i.model, os.path.join(DIR_FORMATS, 'lr-1991.mmt'))
+
+    def test_warnings_1_0(self):
         # Tests warnings are logged
 
         # Create model that will generate warnings

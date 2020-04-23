@@ -13,12 +13,7 @@ import unittest
 import myokit
 
 
-class AsciifierTest(unittest.TestCase):
-    """
-    Tests the method to convert html to ascii.
-    """
-    def test_asciify(self):
-        html = """
+html = """
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
@@ -54,6 +49,8 @@ class AsciifierTest(unittest.TestCase):
             <li><a href="http://myokit.org/download">Two</a></li>
         </ul>
         <h3>Resources</h3>
+        This has a<br />
+        line break.
         <ol>
             <li>Numbered A.</li>
             <li><em>Numbered B is italic.</em></li>
@@ -70,7 +67,8 @@ class AsciifierTest(unittest.TestCase):
     </div>
 </body>
 </html>"""
-        ascii = """
+
+ascii = """
 ===============================================================================
 Myokit
 ===============================================================================
@@ -97,6 +95,9 @@ Software
 Resources
 ...............................................................................
 
+This has a
+line break.
+
   1 Numbered A.
   2 *Numbered B is italic.*
   3
@@ -110,15 +111,23 @@ Resources
 * This item had no list :(
 """.strip()
 
+
+class AsciifierTest(unittest.TestCase):
+    """
+    Tests the method to convert html to ascii.
+    """
+    def test_asciify(self):
+
         # Compare line by line
-        ascii = iter(ascii.splitlines())
+        asc = iter(ascii.splitlines())
         for line1 in myokit.mxml.html2ascii(html).splitlines():
             # Next line will raise exception if the result is longer than ascii
-            line2 = next(ascii)
+            line2 = next(asc)
             # Check if lines are equal
             self.assertEqual(line1, line2)
+
         # Next line will raise exception if ascii is longer than the result
-        self.assertRaises(StopIteration, next, ascii)
+        self.assertRaises(StopIteration, next, asc)
 
 
 if __name__ == '__main__':

@@ -71,10 +71,13 @@ class SBMLImporter(myokit.formats.Importer):
         Returns a :class:myokit.Model based on the SBML file provided.
 
         Arguments:
-            path -- Path to SBML file.
-            bind_time -- Flag to create and bind a time bound variable. If
-                         False no variable will be bound to time in the
-                         :class:myokit.Model.
+
+        ``path``
+            The path to the SBML file.
+        `` bind_time``
+            If set to ``True`` (default), a variable called "time" will be
+            created and bound to `time`.
+
         """
         # Get logger
         log = self.logger()
@@ -142,18 +145,19 @@ class SBMLImporter(myokit.formats.Importer):
         if x:
             self._parse_units(model, comp, x)
 
-        # add time as independent variable (not explicit in SBML format)
+        # Add time as independent variable (not explicit in SBML format)
         if bind_time:
-            # add and bind time variable to component
+            # Add and bind time variable to component
             time = comp.add_variable_allow_renaming('time')
             time.set_binding('time')
-            # set unit and value
+
+            # Set unit and value
             try:
                 unit = self.units['time']
-            except KeyError:
+            except KeyError:    # pragma: no cover
                 unit = myokit.units.s
-                log.warn('Unit of time could not be found in file and was by '
-                         'default set to seconds.')
+                log.warn('Unit of time could not be found in file (falling'
+                         ' back onto default of seconds.')
             time.set_unit(unit)
             time.set_rhs(0.0)
 
@@ -176,10 +180,10 @@ class SBMLImporter(myokit.formats.Importer):
         # Write warnings to log
         log.log_warnings()
 
-        # Run model validation, order variables etc
+        # Check that valid model was created
         try:
             model.validate()
-        except myokit.IntegrityError as e:
+        except myokit.IntegrityError as e:  # pragma: no cover
             log.log_line()
             log.log('WARNING: Integrity error found in model:')
             log.log(str(e))
@@ -190,27 +194,25 @@ class SBMLImporter(myokit.formats.Importer):
 
     def _get_namespaces(self, sbml_version, log):
         """
-        Defines namespaces for supported SBML versions. Supported versions are:
-        level 2, version 3, 4, 5.
+        Creates a dict of namespaces, based on the given ``sbml_version``
+        string.
         """
         supported_sbml_versions = [
-            "{http://www.sbml.org/sbml/level2/version3}",
-            "{http://www.sbml.org/sbml/level2/version4}",
-            "{http://www.sbml.org/sbml/level2/version5}",
-            "{http://www.sbml.org/sbml/level3/version1}",
+            # "{http://www.sbml.org/sbml/level2/version3}",
+            # "{http://www.sbml.org/sbml/level2/version4}",
+            # "{http://www.sbml.org/sbml/level2/version5}",
+            # "{http://www.sbml.org/sbml/level3/version1}",
             "{http://www.sbml.org/sbml/level3/version2}"
         ]
         if sbml_version not in supported_sbml_versions:
-            # log import warning
-            log.warn('The SBML version %s has not been tested. The model'
-                     % sbml_version + ' may not be imported correctly.'
-                     )
-        ns = dict()
-        # SBML version
-        ns['sbml'] = sbml_version
-        # MathML
-        ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
+            log.warn(
+                'The SBML version ' + str(sbml_version) + ' has not been'
+                ' tested. The model may not be imported correctly.')
 
+        # Create namespace dict
+        ns = dict()
+        ns['sbml'] = sbml_version
+        ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
         return ns
 
     def _get_sbml_version(self, root):
@@ -218,7 +220,7 @@ class SBMLImporter(myokit.formats.Importer):
         Returns the SBML version of the file.
         """
         namespace = split(root.tag)[0]
-        # add brackets, so we can find nodes by namespace + name
+        # Add brackets, so we can find nodes by namespace + name
         return '{' + namespace + '}'
 
     def _parse_initial_assignments(self, model, comp, refs, node):
@@ -226,9 +228,9 @@ class SBMLImporter(myokit.formats.Importer):
         Parses any initial values specified outside of the rules section.
         """
         ns = self.ns['sbml']
-        # get mathml ns
         mathml_ns = self.ns['mathml']
-        # iterate through initial assignments
+
+        # Iterate over initial assignments
         for node in node.findall(ns + 'initialAssignment'):
             var = str(node.get('symbol')).strip()
             var = self._convert_name(var)
