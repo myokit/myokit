@@ -8,16 +8,15 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import xml.dom.minidom
+import xml.etree.ElementTree as ET
 import os
 import re
 
 import myokit
 import myokit.units
 import myokit.formats
-from myokit.mxml import html2ascii
-from myokit.mxml import dom_child, dom_next
-from myokit.formats.mathml import parse_mathml_dom
+from myokit.mxml import html2ascii, split
+from myokit.formats.mathml import parse_mathml_etree
 
 
 info = """
@@ -67,21 +66,37 @@ class SBMLImporter(myokit.formats.Importer):
     def info(self):
         return info
 
-    def model(self, path):
+    def model(self, path, bind_time=True):
+        """
+        Returns a :class:myokit.Model based on the SBML file provided.
 
+        Arguments:
+
+        ``path``
+            The path to the SBML file.
+        `` bind_time``
+            If set to ``True`` (default), a variable called "time" will be
+            created and bound to `time`.
+
+        """
         # Get logger
         log = self.logger()
 
         # Parse xml file
         path = os.path.abspath(os.path.expanduser(path))
-        dom = xml.dom.minidom.parse(path)
-        xmodel = dom.getElementsByTagName('model')[0]
+        tree = ET.parse(path)
+        root = tree.getroot()
+
+        # get SBML namespace
+        sbml_version = self._get_sbml_version(root)
+        self.ns = self._get_namespaces(sbml_version, log)
 
         # Get model node
-        if xmodel.getAttribute('name'):
-            name = str(xmodel.getAttribute('name'))
-        elif xmodel.getAttribute('id'):
-            name = str(xmodel.getAttribute('id'))
+        xmodel = root[0]
+        if xmodel.get('name'):
+            name = str(xmodel.get('name'))
+        elif xmodel.get('id'):
+            name = str(xmodel.get('id'))
         else:
             name = 'Imported SBML model'
 
@@ -96,61 +111,79 @@ class SBMLImporter(myokit.formats.Importer):
         refs = {}
 
         # Handle notes, if given
-        x = dom_child(xmodel, 'notes')
+        x = xmodel.find(self.ns['sbml'] + 'notes')
         if x:
             log.log('Converting <model> notes to ascii')
-            model.meta['desc'] = html2ascii(x.toxml(), width=75)
+            model.meta['desc'] = html2ascii(
+                ET.tostring(x).decode(), width=75)
             # width = 79 - 4 for tab!
 
         # Warn about missing functionality
-        x = dom_child(xmodel, 'listOfCompartments')
+        x = xmodel.find(self.ns['sbml'] + 'listOfCompartments')
         if x:   # pragma: no cover
             log.warn('Compartments are not supported.')
-        x = dom_child(xmodel, 'listOfSpecies')
+        x = xmodel.find(self.ns['sbml'] + 'listOfSpecies')
         if x:   # pragma: no cover
             log.warn('Species are not supported.')
-        x = dom_child(xmodel, 'listOfConstraints')
+        x = xmodel.find(self.ns['sbml'] + 'listOfConstraints')
         if x:   # pragma: no cover
             log.warn('Constraints are not supported.')
-        x = dom_child(xmodel, 'listOfReactions')
+        x = xmodel.find(self.ns['sbml'] + 'listOfReactions')
         if x:   # pragma: no cover
             log.warn('Reactions are not supported.')
-        x = dom_child(xmodel, 'listOfEvents')
+        x = xmodel.find(self.ns['sbml'] + 'listOfEvents')
         if x:   # pragma: no cover
             log.warn('Events are not supported.')
 
         # Ignore custom functions
-        x = dom_child(xmodel, 'listOfFunctionDefinitions')
+        x = xmodel.find(self.ns['sbml'] + 'listOfFunctionDefinitions')
         if x:   # pragma: no cover
             log.warn('Custom math functions are not (yet) implemented.')
 
         # Parse custom units
-        x = dom_child(xmodel, 'listOfUnitDefinitions')
+        x = xmodel.find(self.ns['sbml'] + 'listOfUnitDefinitions')
         if x:
             self._parse_units(model, comp, x)
 
+        # Add time as independent variable (not explicit in SBML format)
+        if bind_time:
+            # Add and bind time variable to component
+            time = comp.add_variable_allow_renaming('time')
+            time.set_binding('time')
+
+            # Set unit and value
+            try:
+                unit = self.units['time']
+            except KeyError:    # pragma: no cover
+                unit = myokit.units.s
+                log.warn('Unit of time could not be found in file (falling'
+                         ' back onto default of seconds.')
+            time.set_unit(unit)
+            time.set_rhs(0.0)
+
         # Parse parameters (constants + parameters)
-        x = dom_child(xmodel, 'listOfParameters')
+        x = xmodel.find(self.ns['sbml'] + 'listOfParameters')
         if x:
-            self._parse_parameters(model, comp, refs, x)
+            self._parse_parameters(model, comp, refs, x, self.ns['sbml'])
 
         # Parse rules (equations)
-        x = dom_child(xmodel, 'listOfRules')
+        x = xmodel.find(self.ns['sbml'] + 'listOfRules')
         if x:
-            self._parse_rules(model, comp, refs, x)
+            self._parse_rules(model, comp, refs, x, self.ns['sbml'])
 
         # Parse extra initial assignments
-        x = dom_child(xmodel, 'listOfInitialAssignments')
+        x = xmodel.find(self.ns['sbml'] + 'listOfInitialAssignments')
         if x:
-            self._parse_initial_assignments(model, comp, refs, x)
+            self._parse_initial_assignments(
+                model, comp, refs, x)
 
         # Write warnings to log
         log.log_warnings()
 
-        # Run model validation, order variables etc
+        # Check that valid model was created
         try:
             model.validate()
-        except myokit.IntegrityError as e:
+        except myokit.IntegrityError as e:  # pragma: no cover
             log.log_line()
             log.log('WARNING: Integrity error found in model:')
             log.log(str(e))
@@ -159,42 +192,79 @@ class SBMLImporter(myokit.formats.Importer):
         # Return finished model
         return model
 
+    def _get_namespaces(self, sbml_version, log):
+        """
+        Creates a dict of namespaces, based on the given ``sbml_version``
+        string.
+        """
+        supported_sbml_versions = [
+            # "{http://www.sbml.org/sbml/level2/version3}",
+            # "{http://www.sbml.org/sbml/level2/version4}",
+            # "{http://www.sbml.org/sbml/level2/version5}",
+            # "{http://www.sbml.org/sbml/level3/version1}",
+            "{http://www.sbml.org/sbml/level3/version2}"
+        ]
+        if sbml_version not in supported_sbml_versions:
+            log.warn(
+                'The SBML version ' + str(sbml_version) + ' has not been'
+                ' tested. The model may not be imported correctly.')
+
+        # Create namespace dict
+        ns = dict()
+        ns['sbml'] = sbml_version
+        ns['mathml'] = "{http://www.w3.org/1998/Math/MathML}"
+        return ns
+
+    def _get_sbml_version(self, root):
+        """
+        Returns the SBML version of the file.
+        """
+        namespace = split(root.tag)[0]
+        # Add brackets, so we can find nodes by namespace + name
+        return '{' + namespace + '}'
+
     def _parse_initial_assignments(self, model, comp, refs, node):
         """
         Parses any initial values specified outside of the rules section.
         """
-        node = dom_child(node, 'initialAssignment')
-        while node:
-            var = str(node.getAttribute('symbol')).strip()
+        ns = self.ns['sbml']
+        mathml_ns = self.ns['mathml']
+
+        # Iterate over initial assignments
+        for node in node.findall(ns + 'initialAssignment'):
+            var = str(node.get('symbol')).strip()
             var = self._convert_name(var)
             if var in comp:
                 self.logger().log(
                     'Parsing initial assignment for "' + var + '".')
                 var = comp[var]
-                expr = parse_mathml_dom(
-                    dom_child(node, 'math'), refs, self.logger())
+                # get child
+                child = node.find(mathml_ns + 'math')
+                if child:
+                    expr = parse_mathml_etree(
+                        child,
+                        lambda x, y: myokit.Name(refs[x]),
+                        lambda x, y: myokit.Number(x)
+                    )
 
-                if var.is_state():
-                    # Initial value
-                    var.set_state_value(expr)
-                else:
-                    # Change of value
-                    var.set_rhs(expr)
+                    if var.is_state():
+                        # Initial value
+                        var.set_state_value(expr)
+                    else:
+                        # Change of value
+                        var.set_rhs(expr)
             else:   # pragma: no cover
                 raise SBMLError(   # pragma: no cover
                     'Initial assignment found for unknown parameter <' + var
                     + '>.')
 
-            node = dom_next(node, 'initialAssignment')
-
-    def _parse_parameters(self, model, comp, refs, node):
+    def _parse_parameters(self, model, comp, refs, node, ns):
         """
         Parses parameters
         """
-        node = dom_child(node, 'parameter')
-        while node:
+        for node in node.findall(ns + 'parameter'):
             # Create variable
-            org_name = str(node.getAttribute('id'))
+            org_name = str(node.get('id'))
             name = self._convert_name(org_name)
             self.logger().log('Found parameter "' + name + '"')
             if name in comp:    # pragma: no cover
@@ -202,14 +272,10 @@ class SBMLImporter(myokit.formats.Importer):
                     'Skipping duplicate parameter name: ' + str(name))
             else:
                 # Create variable
-                unit = None
-                if node.hasAttribute('units'):
-                    foreign_unit = node.getAttribute('units')
-                    if foreign_unit:
-                        unit = self._convert_unit(foreign_unit)
-                value = None
-                if node.hasAttribute('value'):
-                    value = node.getAttribute('value')
+                unit = node.get('units')
+                if unit:
+                    unit = self._convert_unit(unit)
+                value = node.get('value')
                 var = comp.add_variable(name)
                 var.set_unit(unit)
                 var.set_rhs(value)
@@ -217,75 +283,83 @@ class SBMLImporter(myokit.formats.Importer):
                 # Store reference to variable
                 refs[org_name] = refs[name] = var
 
-            node = dom_next(node, 'parameter')
-
-    def _parse_rules(self, model, comp, refs, node):
+    def _parse_rules(self, model, comp, refs, parent, ns):
         """
         Parses the rules (equations) in this model
         """
-        parent = node
-        # Create variables with assignment rules (all except derivatives)
-        node = dom_child(parent, 'assignmentRule')
-        while node:
+        # get MathML ns
+        mathml_ns = self.ns['mathml']
+        # Define rules for variables (intermediate expressions)
+        for node in parent.findall(ns + 'assignmentRule'):
             var = self._convert_name(
-                str(node.getAttribute('variable')).strip())
+                str(node.get('variable')).strip())
             if var in comp:
                 self.logger().log(
                     'Parsing assignment rule for <' + str(var) + '>.')
                 var = comp[var]
-                var.set_rhs(parse_mathml_dom(
-                    dom_child(node, 'math'), refs, self.logger()))
+                # get child
+                child = node.find(mathml_ns + 'math')
+                # add expression to model
+                if child:
+                    var.set_rhs(parse_mathml_etree(
+                        child,
+                        lambda x, y: myokit.Name(refs[x]),
+                        lambda x, y: myokit.Number(x)
+                    )
+                    )
             else:
                 raise SBMLError(   # pragma: no cover
                     'Assignment found for unknown parameter: "' + var + '".')
-            node = dom_next(node, 'assignmentRule')
 
-        # Create variables with rate rules (states)
-        node = dom_child(parent, 'rateRule')
-        while node:
-            var = self._convert_name(
-                str(node.getAttribute('variable')).strip())
-            if var in comp:
-                self.logger().log('Parsing rate rule for <' + var + '>.')
-                var = comp[var]
-                ini = var.rhs()
-                ini = ini.eval() if ini else 0
-                var.promote(ini)
-                var.set_rhs(parse_mathml_dom(
-                    dom_child(node, 'math'), refs, self.logger()))
+        # Define rates for variables (states)
+        for node in parent.findall(ns + 'rateRule'):
+            var = node.get('variable')
+            if var is not None:
+                var = self._convert_name(str(var).strip())
+                if var in comp:
+                    self.logger().log('Parsing rate rule for <' + var + '>.')
+                    var = comp[var]
+                    ini = var.rhs()
+                    ini = ini.eval() if ini else 0
+                    var.promote(ini)
+                    # get child
+                    child = node.find(mathml_ns + 'math')
+                    # add expression to model
+                    if child:
+                        var.set_rhs(parse_mathml_etree(
+                            child,
+                            lambda x, y: myokit.Name(refs[x]),
+                            lambda x, y: myokit.Number(x)
+                        )
+                        )
+                else:
+                    raise SBMLError(   # pragma: no cover
+                        'Derivative found for unknown parameter: <' + var
+                        + '>.')
             else:
                 raise SBMLError(   # pragma: no cover
-                    'Derivative found for unknown parameter: <' + var + '>.')
-            node = dom_next(node, 'rateRule')
+                    'RateRule has no attribute "variable".')
 
     def _parse_units(self, model, comp, node):
         """
         Parses custom unit definitions, creating a look-up table that can be
         used to convert these units to myokit ones.
         """
-        node = dom_child(node, 'unitDefinition')
-        while node:
-            name = node.getAttribute('id')
+        ns = self.ns['sbml']
+        for node in node.findall(ns + 'unitDefinition'):
+            name = node.get('id')
             self.logger().log('Parsing unit definition for "' + name + '".')
             unit = myokit.units.dimensionless
-            node2 = dom_child(node, 'listOfUnits')
-            node2 = dom_child(node2, 'unit')
-            while node2:
-                kind = str(node2.getAttribute('kind')).strip()
+            units = node.find(ns + 'listOfUnits')
+            units = units.findall(ns + 'unit')
+            for node2 in units:
+                kind = str(node2.get('kind')).strip()
                 u2 = self._convert_unit(kind)
-                if node2.hasAttribute('multiplier'):
-                    m = float(node2.getAttribute('multiplier'))
-                else:
-                    m = 1.0
-                if node2.hasAttribute('scale'):
-                    m *= 10 ** float(node2.getAttribute('scale'))
-                u2 *= m
-                if node2.hasAttribute('exponent'):
-                    u2 **= float(node2.getAttribute('exponent'))
+                u2 *= float(node2.get('multiplier', default=1.0))
+                u2 *= 10 ** float(node2.get('scale', default=0.0))
+                u2 **= float(node2.get('exponent', default=1.0))
                 unit *= u2
-                node2 = dom_next(node2, 'unit')
             self.units[name] = unit
-            node = dom_next(node, 'unitDefinition')
 
     def supports_model(self):
         return True

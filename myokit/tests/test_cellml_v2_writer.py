@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Tests the CellML 1.0/1.1 writer
+# Tests the CellML 2.0 writer.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -12,7 +12,7 @@ import re
 import unittest
 
 import myokit
-import myokit.formats.cellml.v1 as cellml
+import myokit.formats.cellml.v2 as cellml
 
 from shared import TemporaryDirectory
 
@@ -25,23 +25,6 @@ except AttributeError:
 
 class TestCellMLWriter(unittest.TestCase):
     """ Tests for cellml.Writer. """
-
-    def test_cmeta_ids(self):
-        # Tests cmeta ids are written for models, components, and variables
-
-        m1 = cellml.Model('m')
-        m1.set_cmeta_id('modell')
-        c1 = m1.add_component('c')
-        c1.set_cmeta_id('commponnent')
-        v1 = c1.add_variable('v', 'volt')
-        v1.set_cmeta_id('variiable')
-
-        xml = cellml.write_string(m1)
-        m2 = cellml.parse_string(xml)
-
-        self.assertEqual(m2.cmeta_id(), 'modell')
-        self.assertEqual(m2['c'].cmeta_id(), 'commponnent')
-        self.assertEqual(m2['c']['v'].cmeta_id(), 'variiable')
 
     def test_component(self):
         # Tests if components are written
@@ -62,10 +45,10 @@ class TestCellMLWriter(unittest.TestCase):
         m1 = cellml.Model('m')
         c = m1.add_component('c')
         d = m1.add_component('d')
-        p = c.add_variable('p', 'mole', public_interface='out')
-        q = d.add_variable('q', 'mole', public_interface='in')
-        r = c.add_variable('r', 'ampere', public_interface='in')
-        s = d.add_variable('r', 'ampere', public_interface='out')
+        p = c.add_variable('p', 'mole', 'public')
+        q = d.add_variable('q', 'mole', 'public')
+        r = c.add_variable('r', 'ampere', 'public')
+        s = d.add_variable('r', 'ampere', 'public')
         p.set_initial_value(1)
         s.set_initial_value(2)
         m1.add_connection(p, q)
@@ -76,12 +59,17 @@ class TestCellMLWriter(unittest.TestCase):
 
         p = m2['c']['p']
         q = m2['d']['q']
+        self.assertIn(p, q.connected_variables())
+        self.assertIn(q, p.connected_variables())
+        self.assertIs(p.initial_value_variable(), p)
+        self.assertIs(q.initial_value_variable(), p)
+
         r = m2['c']['r']
         s = m2['d']['r']
-        self.assertIsNone(p.source())
-        self.assertIs(q.source(), p)
-        self.assertIs(r.source(), s)
-        self.assertIsNone(s.source())
+        self.assertIn(r, s.connected_variables())
+        self.assertIn(s, r.connected_variables())
+        self.assertIs(r.initial_value_variable(), s)
+        self.assertIs(s.initial_value_variable(), s)
 
     def test_evaluating_derivatives(self):
         # Writes and then parses a model and compares the derivatives
@@ -102,7 +90,7 @@ class TestCellMLWriter(unittest.TestCase):
         self.assertEqual(m1.get('ik.x').eval(), m2.get('ik.x').eval())
         self.assertEqual(m1.get('ica.Ca_i').eval(), m2.get('ica.Ca_i').eval())
 
-    def test_groups(self):
+    def test_encapsulation(self):
         # Tests if encapsulation relationships are written out.
 
         # Create a model with
@@ -136,11 +124,10 @@ class TestCellMLWriter(unittest.TestCase):
     def test_maths(self):
         # Test maths is written
 
-        self._test_maths('1.0')
-        self._test_maths('1.1')
+        self._test_maths('2.0')
 
     def _test_maths(self, version):
-        # Test maths is written in either 1.0 or 1.1
+        # Test maths is written (in selected ``version``)
 
         # Create model
         m1 = cellml.Model('m', version)
@@ -149,22 +136,25 @@ class TestCellMLWriter(unittest.TestCase):
         p1.set_initial_value(2)
         q1 = c1.add_variable('q', 'dimensionless')
         r1 = c1.add_variable('r', 'second')
-        r1.set_is_state(True)
         r1.set_initial_value(0.1)
         t1 = c1.add_variable('t', 'second')
-        m1.set_free_variable(t1)
+        m1.set_variable_of_integration(t1)
 
         # Add component without maths
         d1 = m1.add_component('d')
         s1 = d1.add_variable('s', 'volt')
         s1.set_initial_value(1.23)
 
-        # Add two rhs equations
-        eq1 = myokit.Plus(myokit.Number(3, myokit.units.mole), myokit.Name(p1))
+        # Add two equations
         # Note: Numbers without units become dimensionless in CellML
-        er1 = myokit.Power(myokit.Name(q1), myokit.Number(2))
-        q1.set_rhs(eq1)
-        r1.set_rhs(er1)
+        eq1 = myokit.Equation(
+            myokit.Name(q1),
+            myokit.Plus(myokit.Number(3, myokit.units.mole), myokit.Name(p1)))
+        er1 = myokit.Equation(
+            myokit.Derivative(myokit.Name(r1)),
+            myokit.Power(myokit.Name(q1), myokit.Number(2)))
+        q1.set_equation(eq1)
+        r1.set_equation(er1)
 
         # Write and read
         xml = cellml.write_string(m1)
@@ -175,17 +165,20 @@ class TestCellMLWriter(unittest.TestCase):
         subst = {
             myokit.Name(p1): myokit.Name(p2),
             myokit.Name(q1): myokit.Name(q2),
+            myokit.Name(r1): myokit.Name(r2),
         }
         eq2 = eq1.clone(subst)
         er2 = er1.clone(subst)
-        self.assertEqual(q2.rhs(), eq2)
-        self.assertEqual(r2.rhs(), er2)
-        self.assertEqual(s2.initial_value(), 1.23)
+
+        self.assertEqual(q2.equation(), eq2)
+        self.assertEqual(r2.equation(), er2)
+        self.assertEqual(
+            s2.initial_value(), myokit.Number(1.23, myokit.units.volt))
         self.assertFalse(p2.is_state())
         self.assertFalse(q2.is_state())
         self.assertTrue(r2.is_state())
         self.assertFalse(s2.is_state())
-        self.assertIs(m2.free_variable(), m2['c']['t'])
+        self.assertIs(m2.variable_of_integration(), m2['c']['t'])
 
     def test_model(self):
         # Tests model writing
@@ -227,66 +220,37 @@ class TestCellMLWriter(unittest.TestCase):
         items_sorted = list(sorted(items))
         self.assertEqual(items, items_sorted)
 
-    def test_oxmeta_annotations(self):
-        # Tests if oxmeta annotations are written
-
-        # Create mini model
-        m = cellml.Model('m')
-        c = m.add_component('c')
-        v = c.add_variable('v', 'volt')
-        v.set_rhs(myokit.Number(0, myokit.units.volt))
-
-        # Test no RDF is written without oxmeta or cmeta
-        xml = cellml.write_string(m)
-        self.assertNotIn(b'rdf:RDF', xml)
-
-        v.meta['oxmeta'] = 'membrane_voltage'
-        xml = cellml.write_string(m)
-        self.assertNotIn(b'rdf:RDF', xml)
-
-        del(v.meta['oxmeta'])
-        v.set_cmeta_id('vvv')
-        xml = cellml.write_string(m)
-        self.assertNotIn(b'rdf:RDF', xml)
-
-        # Test it is written if both are set
-        v.meta['oxmeta'] = 'membrane_voltage'
-        xml = cellml.write_string(m)
-        self.assertIn(b'rdf:RDF', xml)
-
-        # Test reading it again with the parser
-        m2 = cellml.parse_string(xml)
-        v2 = m2['c']['v']
-        self.assertEqual(v2.cmeta_id(), 'vvv')
-        self.assertIn('oxmeta', v2.meta)
-        self.assertEqual(v2.meta['oxmeta'], 'membrane_voltage')
-
     def test_units(self):
         # Test writing of units
 
         u1 = myokit.parse_unit('kg*m^2/mole^3 (0.123)')
-        u2 = myokit.parse_unit('1 (4.56)')
 
         m1 = cellml.Model('mmm')
         m1.add_units('flibbit', u1)
         m1.add_units('special_volt', myokit.units.Volt)
-        c = m1.add_component('ccc')
-        c.add_units('flibbit', u2)
-        p = c.add_variable('p', 'flibbit')
         d = m1.add_component('ddd')
         q = d.add_variable('q', 'flibbit')
-        q.set_rhs(myokit.Number(2, u1))
+        q.set_equation(myokit.Equation(
+            myokit.Name(q), myokit.Number(2, u1)))
 
         xml = cellml.write_string(m1)
         m2 = cellml.parse_string(xml)
 
-        p, q = m2['ccc']['p'], m2['ddd']['q']
-        self.assertEqual(p.units().name(), 'flibbit')
+        q = m2['ddd']['q']
         self.assertEqual(q.units().name(), 'flibbit')
-        self.assertEqual(p.units().myokit_unit(), u2)
         self.assertEqual(q.units().myokit_unit(), u1)
         self.assertEqual(
             m2.find_units('special_volt').myokit_unit(), myokit.units.volt)
+
+        # Dimensionless units with a multiplier
+        u1 = myokit.parse_unit('1 (0.123)')
+        m1 = cellml.Model('mmm')
+        m1.add_units('flibbit', u1)
+        xml = cellml.write_string(m1)
+        m2 = cellml.parse_string(xml)
+        u2 = m2.find_units('flibbit')
+        u2 = u2.myokit_unit()
+        self.assertEqual(u1, u2)
 
     def test_variable(self):
         # Tests writing of variables
@@ -294,8 +258,8 @@ class TestCellMLWriter(unittest.TestCase):
         m1 = cellml.Model('m')
         c = m1.add_component('c')
         p = c.add_variable('p', 'mole')
-        q = c.add_variable('q', 'kelvin', public_interface='in')
-        r = c.add_variable('r', 'ampere', private_interface='out')
+        q = c.add_variable('q', 'kelvin', interface='public')
+        r = c.add_variable('r', 'ampere', interface='private')
         p.set_initial_value(1)
 
         xml = cellml.write_string(m1)
@@ -305,30 +269,22 @@ class TestCellMLWriter(unittest.TestCase):
         self.assertEqual(p.units().name(), 'mole')
         self.assertEqual(q.units().name(), 'kelvin')
         self.assertEqual(r.units().name(), 'ampere')
-        self.assertEqual(p.public_interface(), 'none')
-        self.assertEqual(q.public_interface(), 'in')
-        self.assertEqual(r.public_interface(), 'none')
-        self.assertEqual(p.private_interface(), 'none')
-        self.assertEqual(q.private_interface(), 'none')
-        self.assertEqual(r.private_interface(), 'out')
-        self.assertEqual(p.initial_value(), 1)
+        self.assertEqual(p.interface(), 'none')
+        self.assertEqual(q.interface(), 'public')
+        self.assertEqual(r.interface(), 'private')
+        self.assertEqual(
+            p.initial_value(), myokit.Number(1, myokit.units.mole))
         self.assertEqual(q.initial_value(), None)
         self.assertEqual(r.initial_value(), None)
 
     def test_version(self):
-        # Tests if both versions can be written
+        # Tests if all supported versions can be written
 
-        # Version 1.0
-        m1 = cellml.Model('m', version='1.0')
+        # Version 2.0
+        m1 = cellml.Model('m', version='2.0')
         xml = cellml.write_string(m1)
         m2 = cellml.parse_string(xml)
-        self.assertEqual(m2.version(), '1.0')
-
-        # Version 1.1
-        m1 = cellml.Model('m', version='1.1')
-        xml = cellml.write_string(m1)
-        m2 = cellml.parse_string(xml)
-        self.assertEqual(m2.version(), '1.1')
+        self.assertEqual(m2.version(), '2.0')
 
     def test_write_file(self):
         # Tests write_file

@@ -49,18 +49,6 @@ def parse_mathml_etree(
     return p.parse(element)
 
 
-def parse_mathml_dom(node, var_table=None, logger=None):
-    """
-    Legacy method to parse MathML with the `xml.dom.minidom` interface.
-    """
-    import xml.etree.ElementTree as etree
-    p = MathMLParser(
-        lambda x, y: myokit.Name(var_table[x]),
-        lambda x, y: myokit.Number(x),
-    )
-    return p.parse(etree.fromstring(node.toxml()))
-
-
 class MathMLError(myokit.ImportError):
     """
     Raised if an error occurs during MathML import.

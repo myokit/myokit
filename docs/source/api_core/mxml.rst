@@ -11,13 +11,6 @@ common tasks. This module is imported as part of the main ``myokit`` package.
 
 .. currentmodule:: myokit.mxml
 
-Dom traversal
--------------
-
-.. autofunction:: dom_child
-
-.. autofunction:: dom_next
-
 Etree helpers
 -------------
 

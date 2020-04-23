@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Tests the CellML 1.0/1.1 parser.
+# Tests the CellML 2.0 parser.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -12,8 +12,7 @@ import os
 import unittest
 
 import myokit
-import myokit.formats.cellml as cellml
-import myokit.formats.cellml.v1 as v1
+import myokit.formats.cellml.v2 as v2
 
 from shared import TemporaryDirectory, DIR_FORMATS
 
@@ -34,22 +33,22 @@ except NameError:   # pragma: no cover
 
 
 class TestCellMLParser(unittest.TestCase):
-    """ Tests the CellML 1.0/1.1 parser (mostly for errors). """
+    """ Tests the CellML 2.0 parser (mostly for errors / model validation). """
 
-    def assertBad(self, xml, message, version='1.0'):
+    def assertBad(self, xml, message, version='2.0'):
         """
         Inserts the given ``xml`` into a <model> element, parses it, and checks
         that this raises an exception matching ``message``.
         """
         self.assertRaisesRegex(
-            v1.CellMLParsingError, message, self.parse, xml, version)
+            v2.CellMLParsingError, message, self.parse, xml, version)
 
-    def parse(self, xml, version='1.0'):
+    def parse(self, xml, version='2.0'):
         """
         Inserts the given ``xml`` into a <model> element, parses it, and
         returns the result.
         """
-        return v1.parse_string(self.wrap(xml, version))
+        return v2.parse_string(self.wrap(xml, version))
 
     def parse_in_file(self, xml):
         """
@@ -60,69 +59,23 @@ class TestCellMLParser(unittest.TestCase):
             path = d.path('test.cellml')
             with open(path, 'w') as f:
                 f.write(self.wrap(xml))
-            return v1.parse_file(path)
+            return v2.parse_file(path)
 
-    def wrap(self, xml, version='1.0'):
+    def wrap(self, xml, version='2.0'):
         """
         Wraps the given ``xml`` into a <model> element.
         """
-        assert version in ('1.0', '1.1'), 'version must be 1.0 or 1.1'
+        assert version == '2.0', 'version must be 2.0'
         v = version
-        # Note: Meta data stays version 1.0
 
         return (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<model name="test"'
             '       xmlns="http://www.cellml.org/cellml/' + v + '#"'
             '       xmlns:cellml="http://www.cellml.org/cellml/' + v + '#"'
-            '       xmlns:cmeta="http://www.cellml.org/metadata/1.0#"'
-            '       xmlns:rdf="' + cellml.NS_RDF + '"'
-            '       xmlns:bqbiol="' + cellml.NS_BQBIOL + '">'
+            '       >'
             + xml +
             '</model>')
-
-    def test_cellml_namespace(self):
-        # Attributes from the CellML namespace are not allowed
-
-        self.assertBad(
-            '<component name="c" cellml:name="d" />',
-            'Unexpected attribute cellml:name',
-        )
-
-    def test_cmeta_ids(self):
-        # Test cmeta ids are parsed
-
-        # Test parsing cmeta id
-        path = os.path.join(DIR, 'br-1977.cellml')
-        model = v1.parse_file(path)
-        self.assertEqual(model.cmeta_id(), 'beeler_reuter_1977')
-
-        # Invalid cmeta id
-        self.assertBad(
-            '<component cmeta:id="" name="c" />',
-            'non-empty string')
-
-        # Duplicate cmeta id
-        self.assertBad(
-            '<component cmeta:id="x" name="c" />'
-            '<component cmeta:id="x" name="d" />',
-            'Duplicate cmeta:id')
-
-    def test_cmeta_namespace(self):
-        # Only the cmeta:id attribute is allowed, no other cmeta attributes or
-        # elements.
-
-        # Attribute in cmeta
-        self.assertBad(
-            '<component name="c" cmeta:ernie="bert" />',
-            'Unexpected attribute cmeta:ernie')
-
-        # Element in cmeta
-        self.assertBad(
-            '<component name="c">'
-            '  <cmeta:bert />'
-            '</component>',
-            'element of type cmeta:bert')
 
     def test_component(self):
         # Test component parsing
@@ -137,98 +90,74 @@ class TestCellMLParser(unittest.TestCase):
         # CellML errors are converted
         self.assertBad('<component name="1" />', 'identifier')
 
-        # Reactions are not supported
+        # Resets are not supported
         self.assertBad(
             '<component name="c">'
-            '<reaction />'
+            '<reset />'
             '</component>',
-            'Reactions are not supported')
+            'Resets are not supported')
 
-        # Component can have units
-        m = self.parse(
+        # Component can't have units
+        m = (
             '<component name="ernie">'
             '<units name="wooster">'
             '<unit units="meter" />'
             '</units>'
             '</component>'
         )
-        e = m['ernie']
-        u = e.find_units('wooster')
+        self.assertRaisesRegex(
+            v2.CellMLParsingError, 'Unexpected content', self.parse, m)
 
     def test_connection(self):
         # Test connection parsing
 
         x = ('<component name="a">'
-             '  <variable name="x" units="volt" public_interface="in" />'
+             '  <variable name="x" units="volt" interface="public" />'
              '</component>'
              '<component name="b">'
-             '  <variable name="y" units="volt" public_interface="out" />'
+             '  <variable name="y" units="volt" interface="public"'
+             '            initial_value="3" />'
              '</component>')
 
         # Parse valid connection
-        y = ('<connection>'
-             '  <map_components component_1="a" component_2="b" />'
+        y = ('<connection component_1="a" component_2="b">'
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         m = self.parse(x + y)
-        self.assertIs(m['a']['x'].source(), m['b']['y'])
-        self.assertIsNone(m['b']['y'].source())
-
-        # No map components
-        self.assertBad(x + '<connection />', 'exactly one map_components')
+        self.assertIs(m['a']['x'].initial_value_variable(), m['b']['y'])
 
         # No map variables
-        y = ('<connection>'
-             '  <map_components component_1="a" component_2="b" />'
-             '</connection>')
+        y = '<connection component_1="a" component_2="b" />'
         self.assertBad(x + y, 'at least one map_variables')
 
-    def test_connection_map_components(self):
-        # Test parsing map_components elements
-
-        x = ('<component name="a">'
-             '  <variable name="x" units="volt" public_interface="in" />'
-             '</component>'
-             '<component name="b">'
-             '  <variable name="y" units="volt" public_interface="out" />'
-             '</component>')
-
-        # Valid connection is already checked
-
         # Missing component 1 or 2
-        y = ('<connection>'
-             '  <map_components component_2="b" />'
+        y = ('<connection component_2="b">'
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         self.assertBad(x + y, 'must define a component_1 attribute')
-        y = ('<connection>'
-             '  <map_components component_1="a" />'
+        y = ('<connection component_1="a">'
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         self.assertBad(x + y, 'must define a component_2 attribute')
 
         # Identical components
-        y = ('<connection>'
-             '  <map_components component_1="a" component_2="a" />'
+        y = ('<connection component_1="a" component_2="a">'
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         self.assertBad(x + y, 'must be different')
 
         # Non-existent components
-        y = ('<connection>'
-             '  <map_components component_1="ax" component_2="b" />'
+        y = ('<connection component_1="ax" component_2="b">'
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         self.assertBad(x + y, 'component_1 attribute must refer to')
-        y = ('<connection>'
-             '  <map_components component_1="a" component_2="bx" />'
+        y = ('<connection component_1="a" component_2="bx">'
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         self.assertBad(x + y, 'component_2 attribute must refer to')
 
         # Connected twice
-        y = ('<connection>'
-             '  <map_components component_1="a" component_2="b" />'
+        y = ('<connection component_1="a" component_2="b">'
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         self.assertBad(x + y + y, 'unique pair of components')
@@ -237,13 +166,12 @@ class TestCellMLParser(unittest.TestCase):
         # Test parsing map_variables elements
 
         x = ('<component name="a">'
-             '  <variable name="x" units="volt" public_interface="in" />'
+             '  <variable name="x" units="volt" interface="public" />'
              '</component>'
              '<component name="b">'
-             '  <variable name="y" units="volt" public_interface="out" />'
+             '  <variable name="y" units="volt" interface="public" />'
              '</component>'
-             '<connection>'
-             '  <map_components component_1="a" component_2="b" />')
+             '<connection component_1="a" component_2="b">')
         z = ('</connection>')
 
         # Valid connection is already checked
@@ -263,49 +191,22 @@ class TestCellMLParser(unittest.TestCase):
         # Connecting twice is not OK
         y = '<map_variables variable_1="x" variable_2="y" />'
         self.assertRaisesRegex(
-            v1.CellMLParsingError, 'already connected to',
+            v2.CellMLParsingError, 'connected twice',
             self.parse, x + y + y + z)
 
         # Bad interfaces etc. propagate from cellml API
         q = ('<component name="a">'
-             '  <variable name="x" units="volt" public_interface="out" />'
+             '  <variable name="x" units="volt" interface="public" />'
              '</component>'
              '<component name="b">'
-             '  <variable name="y" units="volt" public_interface="out" />'
+             '  <variable name="y" units="volt" interface="private" />'
              '</component>'
-             '<connection>'
-             '  <map_components component_1="a" component_2="b" />'
+             '<connection component_1="a" component_2="b">'
              '  <map_variables variable_1="x" variable_2="y" />'
              '</connection>')
         self.assertRaisesRegex(
-            v1.CellMLParsingError, 'Invalid connection',
+            v2.CellMLParsingError, 'Unable to connect',
             self.parse, q)
-
-    def test_documentation(self):
-        # Tests parsing a <documentation> tag from the cellml temp doc ns
-
-        path = os.path.join(DIR, 'documentation.cellml')
-        expected = '\n'.join([
-            'Article title',
-            '',
-            'Michael',
-            'Clerx',
-            '',
-            'University of Oxford',
-            '',
-            'Model Status',
-            'This model is fake.',
-            '',
-            'This is a paragraph.',
-            '',
-            'schematic diagram',
-            '',
-            'A schematic diagram describing the model.',
-            '',
-            'Here\'s some extra documentation.',
-        ])
-        m = v1.parse_file(path)
-        self.assertEqual(m.meta['documentation'], expected)
 
     def test_evaluated_derivatives(self):
         # Test parsing a simple model; compare RHS derivatives to known ones
@@ -316,8 +217,8 @@ class TestCellMLParser(unittest.TestCase):
         org_values = org_model.eval_state_derivatives()
 
         # Load exported version
-        path = os.path.join(DIR, 'lr-1991-exported-1.cellml')
-        cm = v1.parse_file(path)
+        path = os.path.join(DIR, 'lr-1991-exported-2.cellml')
+        cm = v2.parse_file(path)
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
         new_values = new_model.eval_state_derivatives()
@@ -355,92 +256,42 @@ class TestCellMLParser(unittest.TestCase):
         new_i = new_states.index(org_states[org_i])
         self.assertEqual(org_values[org_i], new_values[new_i])
 
-    def test_extensions(self):
-        # Test handling of extension elements
-
-        # CellML elements can not appear inside extensions
-        self.assertBad(
-            '<x:y xmlns:x="x"><component name="c" /></x:y>',
-            'found inside extension element')
-        self.assertBad(
-            '<x:a xmlns:x="xxx">'
-            '  <y:b xmlns:y="yyy">'
-            '    <z:b xmlns:z="zzz">'
-            '      <component name="c" />'
-            '    </z:b>'
-            '  </y:b>'
-            '</x:a>',
-            'found inside extension element')
-
-        # CellML attributes can not appear inside extensions
-        self.assertBad(
-            '<x:y xmlns:x="x" cellml:name="a" />',
-            'found in extension element')
-        self.assertBad(
-            '<x:a xmlns:x="xxx">'
-            '  <y:b xmlns:y="yyy">'
-            '    <z:b xmlns:z="zzz" cellml:name="b" />'
-            '  </y:b>'
-            '</x:a>',
-            'found in extension element')
-
-    def test_group(self):
-        # Tests parsing a group element.
+    def test_encapsulation(self):
+        # Tests parsing an encapsulation element.
 
         x = ('<component name="a" />'
              '<component name="b" />'
              '<component name="c" />'
              )
 
-        # Parse valid group
-        y = ('<group>'
-             '  <relationship_ref relationship="encapsulation"/>'
+        # Parse valid encapsulation
+        y = ('<encapsulation>'
              '  <component_ref component="a">'
              '    <component_ref component="b">'
              '      <component_ref component="c" />'
              '    </component_ref>'
              '  </component_ref>'
-             '</group>')
+             '</encapsulation>')
         m = self.parse(x + y)
         self.assertEqual(m['c'].parent(), m['b'])
         self.assertEqual(m['b'].parent(), m['a'])
         self.assertIsNone(m['a'].parent())
 
         # Missing component ref
-        y = ('<group>'
-             '  <relationship_ref relationship="encapsulation"/>'
-             '</group>')
+        y = '<encapsulation />'
         self.assertBad(x + y, 'at least one component_ref')
 
-        # Missing relationship ref
-        y = ('<group>'
-             '  <component_ref component="a">'
-             '    <component_ref component="b" />'
-             '  </component_ref>'
-             '</group>')
-        self.assertBad(x + y, 'at least one relationship_ref')
-
-        # In encapsulation and containment relationships, the first
-        # component_ref must have at least one child
-        y = ('<group>'
-             '  <relationship_ref relationship="encapsulation" />'
+        # The first component_ref must have at least one child
+        y = ('<encapsulation>'
              '  <component_ref component="a" />'
-             '</group>')
-        self.assertBad(x + y, 'must have at least one child \(6.4.3.2\)')
-        y = ('<group>'
-             '  <relationship_ref relationship="containment" />'
-             '  <component_ref component="a" />'
-             '</group>')
-        self.assertBad(x + y, 'must have at least one child \(6.4.3.2\)')
+             '</encapsulation>')
+        self.assertBad(x + y, 'must have at least one child')
 
-        # But it's fine for extension types
-        y = ('<group xmlns:x="x">'
-             '  <relationship_ref x:relationship="family" />'
-             '  <component_ref component="a" />'
-             '</group>')
-        self.parse(x + y)
+        # Only one encapsulation is allowed
+        y = '<encapsulation /><encapsulation />'
+        self.assertBad(y, 'cannot contain more than one encapsulation')
 
-    def test_group_component_ref(self):
+    def test_encapsulation_component_ref(self):
         # Tests parsing a component_ref element.
 
         # Valid has already been checked
@@ -448,12 +299,11 @@ class TestCellMLParser(unittest.TestCase):
         x = ('<component name="a" />'
              '<component name="b" />'
              '<component name="c" />'
-             '<group>'
-             '  <relationship_ref relationship="encapsulation"/>'
+             '<encapsulation>'
              '  <component_ref component="a">'
              '    <component_ref component="b" />')
         z = ('  </component_ref>'
-             '</group>')
+             '</encapsulation>')
 
         # Missing component attribute
         y = '<component_ref />'
@@ -475,81 +325,48 @@ class TestCellMLParser(unittest.TestCase):
              '  <component_ref component="a" />')
         self.assertBad(x + y + z, 'hierarchy cannot be circular')
 
-    def test_group_relationship_ref(self):
-        # Tests parsing a relationsip_ref element.
+    def test_extension(self):
+        # Extension elements or attributes are no longer a thing
 
-        # Valid has already been checked
+        # Element
+        self.assertBad(
+            '<zzz:hiya xmlns:zzz="https://zzzx" />',
+            'Unexpected content')
 
-        x = ('<component name="a" />'
-             '<component name="b" />'
-             '<group>'
-             '  <component_ref component="a">'
-             '    <component_ref component="b" />'
-             '  </component_ref>')
-        z = ('</group>')
+        # Attribute
+        self.assertBad(
+            '<component name="x" xmlns:rdf="rdf" rdf:attr="value" />',
+            'Unexpected attribute')
 
-        # Containment is ok but ignored
-        y = '<relationship_ref relationship="containment" />'
-        m = self.parse(x + y + z)
-        self.assertIsNone(m['a'].parent())
-        self.assertIsNone(m['b'].parent())
+    def test_id(self):
+        # Test id attribute functionality
 
-        # Relationship in other namespace is allowed but ignored
-        y = ('<relationship_ref'
-             '   xmlns:zippy="http://example.com"'
-             '   zippy:relationship="a-loose-affiliation" />')
-        m = self.parse(x + y + z)
-        self.assertIsNone(m['a'].parent())
-        self.assertIsNone(m['b'].parent())
+        # Ids can appear on any element
+        x = (
+            '<component id="hiya" name="a">'
+            '  <variable name="x" units="volt" id="x" initial_value="0.1" />'
+            '</component>'
+            '<units name="wooster" id="woops">'
+            '  <unit units="volt" id="yes" />'
+            '</units>'
+        )
+        self.parse(x)
 
-        # Only containment and encapsulation exist within CellML
-        y = '<relationship_ref relationship="equal" />'
-        self.assertBad(x + y + z, 'Unknown relationship type')
+        # Empty ids are not allowed
+        x = '<component name="x" id="" />'
+        self.assertBad(x, 'id must be a non-empty')
 
-        # Relationship attribute must be present
-        y = '<relationship_ref />'
-        self.assertBad(x + y + z, 'must define a relationship attribute')
-
-        # Multiple relationship types are allowed
-        y = ('<relationship_ref relationship="encapsulation" />'
-             '<relationship_ref relationship="containment" />')
-        m = self.parse(x + y + z)
-        self.assertIsNone(m['a'].parent())
-        self.assertEqual(m['b'].parent(), m['a'])
-
-        # Multiple named containment relationship types are allowed
-        y = ('<relationship_ref relationship="containment" name="x" />'
-             '<relationship_ref relationship="containment" />')
-        m = self.parse(x + y + z)
-        self.assertIsNone(m['a'].parent())
-        self.assertIsNone(m['b'].parent())
-
-        # Duplicate relationships are not allowed
-        y = ('<relationship_ref relationship="containment" />'
-             '<relationship_ref relationship="containment" />')
-        self.assertBad(x + y + z, 'must have a unique pair')
-        y = ('<relationship_ref relationship="containment" name="xx" />'
-             '<relationship_ref relationship="containment" name="xx" />')
-        self.assertBad(x + y + z, 'must have a unique pair')
-
-        # Name must be a valid identifier
-        y = '<relationship_ref relationship="containment" name="123" />'
-        self.assertBad(x + y + z, 'valid CellML identifier')
-
-        # Encapsulation can't be named
-        y = '<relationship_ref relationship="encapsulation" name="betty" />'
-        self.assertBad(x + y + z, 'may not define a name')
+        # Duplicate ids are not allowed
+        x = ('<component name="x" id="x">'
+             '  <variable name="a" units="volt" id="x" />'
+             '</component>')
+        self.assertBad(x, 'uplicate id')
 
     def test_import(self):
         # Import elements are not supported
 
-        # Not allowed in 1.0
         self.assertBad(
-            '<import />', 'not allowed in CellML 1.0', version='1.0')
-
-        # Not supported in 1.1
-        self.assertBad(
-            '<import />', 'Imports are not supported', version='1.1')
+            '<import />', 'Imports are not supported', version='2.0')
 
     def test_math(self):
         # Tests parsing math elements
@@ -568,16 +385,6 @@ class TestCellMLParser(unittest.TestCase):
         var = m['a']['x']
         self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
 
-        # Valid equation inside a semantics element
-        m = self.parse(x + '<semantics>' + y + '</semantics>' + z)
-        var = m['a']['x']
-        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
-
-        # Valid equation with some annotations to ignore
-        m = self.parse(x + '<annotation />' + y + '<annotation-xml />' + z)
-        var = m['a']['x']
-        self.assertEqual(var.rhs(), myokit.Number(-80, myokit.units.volt))
-
         # Constants
         m = self.parse(x + '<apply><eq /><ci>x</ci> <pi /> </apply>' + z)
         var = m['a']['x']
@@ -585,9 +392,9 @@ class TestCellMLParser(unittest.TestCase):
 
         # Variable doesn't exist
         y = '<apply><eq /><ci>y</ci><cn cellml:units="volt">-80</cn></apply>'
-        self.assertBad(x + y + z, 'Variable references in equation must name')
+        self.assertBad(x + y + z, 'Variable references in equations must name')
         y = '<apply><eq /><ci>x</ci><ci>y</ci></apply>'
-        self.assertBad(x + y + z, 'Variable references in equation must name')
+        self.assertBad(x + y + z, 'Variable references in equations must name')
 
         # No units in number
         y = '<apply><eq /><ci>x</ci><cn>-80</cn></apply>'
@@ -596,10 +403,6 @@ class TestCellMLParser(unittest.TestCase):
         # Non-existent units
         y = '<apply><eq /><ci>x</ci><cn cellml:units="vlop">-80</cn></apply>'
         self.assertBad(x + y + z, 'Unknown unit "vlop" referenced')
-
-        # Unsupported units
-        y = '<apply><eq /><ci>x</ci><cn cellml:units="celsius">2</cn></apply>'
-        self.assertBad(x + y + z, 'Unsupported unit "celsius" referenced')
 
         # Items outside of MathML namespace
         y = '<cellml:component name="bertie" />'
@@ -621,14 +424,6 @@ class TestCellMLParser(unittest.TestCase):
              '</apply>')
         self.assertBad(x + y + z, 'Invalid expression found on the left-hand')
 
-        # Assignment to a variable with an "in" interface (error should be
-        # converted from CellMLError to CellMLParsingError).
-        x = ('<component name="a">'
-             '  <variable name="x" units="volt" public_interface="in" />'
-             '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
-        y = '<apply><eq /><ci>x</ci><cn cellml:units="volt">-80</cn></apply>'
-        self.assertBad(x + y + z, 'public_interface="in"')
-
         # MathML inside the model element
         self.assertBad(
             '<math xmlns="http://www.w3.org/1998/Math/MathML" />',
@@ -642,21 +437,6 @@ class TestCellMLParser(unittest.TestCase):
             'Unexpected attribute mathml:name',
         )
 
-    def test_maths_1_1(self):
-        # Test setting a variable as initial value, allowed in 1.1
-
-        # Legal case in 1.1
-        x = ('<component name="a">'
-             '  <variable name="p" units="volt" initial_value="q" />'
-             '  <variable name="q" units="volt" initial_value="12.3" />'
-             '</component>')
-
-        # Not allowed in 1.0
-        self.assertBad(x, r'a real number \(3.4.3.7\)', version='1.0')
-
-        # Not supported in 1.1
-        self.assertBad(x, 'not supported', version='1.1')
-
     def test_model(self):
         # Tests parsing a model element.
 
@@ -666,34 +446,31 @@ class TestCellMLParser(unittest.TestCase):
         x = '<?xml version="1.0" encoding="UTF-8"?>'
         y = '<model name="x" xmlns="http://example.com" />'
         self.assertRaisesRegex(
-            v1.CellMLParsingError, 'must be in CellML',
-            v1.parse_string, x + y)
+            v2.CellMLParsingError, 'must be in CellML',
+            v2.parse_string, x + y)
 
-        # CellML 1.0 and 1.1 are ok
-        y = '<model name="x" xmlns="http://www.cellml.org/cellml/1.0#" />'
-        m = v1.parse_string(x + y)
-        self.assertEqual(m.version(), '1.0')
-        y = '<model name="x" xmlns="http://www.cellml.org/cellml/1.1#" />'
-        m = v1.parse_string(x + y)
-        self.assertEqual(m.version(), '1.1')
+        # CellML 2.0 is ok
+        y = '<model name="x" xmlns="http://www.cellml.org/cellml/2.0#" />'
+        m = v2.parse_string(x + y)
+        self.assertEqual(m.version(), '2.0')
 
         # Not a model
-        y = '<module name="x" xmlns="http://www.cellml.org/cellml/1.0#" />'
+        y = '<module name="x" xmlns="http://www.cellml.org/cellml/2.0#" />'
         self.assertRaisesRegex(
-            v1.CellMLParsingError, 'must be a CellML model',
-            v1.parse_string, x + y)
+            v2.CellMLParsingError, 'must be a CellML model',
+            v2.parse_string, x + y)
 
         # No name
-        y = '<model xmlns="http://www.cellml.org/cellml/1.0#" />'
+        y = '<model xmlns="http://www.cellml.org/cellml/2.0#" />'
         self.assertRaisesRegex(
-            v1.CellMLParsingError, 'Model element must have a name',
-            v1.parse_string, x + y)
+            v2.CellMLParsingError, 'Model element must have a name',
+            v2.parse_string, x + y)
 
         # CellML API errors are wrapped
-        y = '<model name="123" xmlns="http://www.cellml.org/cellml/1.0#" />'
+        y = '<model name="123" xmlns="http://www.cellml.org/cellml/2.0#" />'
         self.assertRaisesRegex(
-            v1.CellMLParsingError, 'valid CellML identifier',
-            v1.parse_string, x + y)
+            v2.CellMLParsingError, 'valid CellML identifier',
+            v2.parse_string, x + y)
 
         # Too many free variables
         self.assertBad(
@@ -753,106 +530,16 @@ class TestCellMLParser(unittest.TestCase):
         m = self.parse(x + a + z)
         v = m['a']['x']
         self.assertEqual(v.rhs(), myokit.Number(3))
-        self.assertEqual(v.initial_value(), 2)
+        self.assertEqual(v.initial_value(), myokit.Number(2))
 
         # Initial value and equation for a non-state
         b = ('    <apply>'
              '      <eq /><ci>x</ci><cn cellml:units="dimensionless">2</cn>'
              '    </apply>')
-        self.assertBad(x + b + z, 'Initial value and a defining equation')
+        self.assertBad(x + b + z, 'equation and an initial value')
 
         # Two equations
         self.assertBad(x + a + a + z, 'Two defining equations')
-
-    def test_oxmeta_annotations(self):
-        # Tests parsing of RDF annotations for the Web Lab
-
-        # Start and end of required tags
-        r1 = '<rdf:RDF>'
-        r2 = '</rdf:RDF>'
-        d1a = '<rdf:Description rdf:about="#'
-        d1b = '">'
-        d2 = '</rdf:Description>'
-        b1 = '<bqbiol:is rdf:resource="' + cellml.NS_OXMETA
-        b2 = '"/>'
-
-        # Create mini model with 2 rdf tags and 3 annotations
-        x = ('<component name="a">'
-             '  <variable name="x" units="volt" cmeta:id="x" />'
-             '  <variable name="y" units="volt" cmeta:id="yzie" />'
-             '  <variable name="z" units="volt" cmeta:id="zed" />'
-             '</component>')
-        y = r1
-        y += d1a + 'x' + d1b + b1 + 'membrane_voltage' + b2 + d2
-        y += d1a + 'yzie' + d1b + b1 + 'sodium_reversal_potential' + b2 + d2
-        y += r2
-        y += r1
-        y += d1a + 'zed' + d1b + b1 + 'calcium_reversal_potential' + b2 + d2
-        y += r2
-
-        # Parse
-        cm = self.parse(x + y)
-
-        # Check cmeta ids
-        x, y, z = cm['a']['x'], cm['a']['y'], cm['a']['z']
-        self.assertEqual(x.cmeta_id(), 'x')
-        self.assertEqual(y.cmeta_id(), 'yzie')
-        self.assertEqual(z.cmeta_id(), 'zed')
-
-        # Check oxmeta annotation
-        self.assertIn('oxmeta', x.meta)
-        self.assertIn('oxmeta', y.meta)
-        self.assertIn('oxmeta', z.meta)
-        self.assertEqual(x.meta['oxmeta'], 'membrane_voltage')
-        self.assertEqual(y.meta['oxmeta'], 'sodium_reversal_potential')
-        self.assertEqual(z.meta['oxmeta'], 'calcium_reversal_potential')
-
-    def test_oxmeta_annotations_bad(self):
-        # Tests parsing of RDF annotations for the Web Lab
-
-        # Start and end of required tags
-        r1 = '<rdf:RDF>'
-        r2 = '</rdf:RDF>'
-        d1a = '<rdf:Description rdf:about="#'
-        d1b = '">'
-        d2 = '</rdf:Description>'
-        b1 = '<bqbiol:is rdf:resource="' + cellml.NS_OXMETA
-        b2 = '"/>'
-
-        # Model code
-        x = ('<component name="a">'
-             '  <variable name="x" units="volt" cmeta:id="x" />'
-             '</component>')
-
-        # Check that parser survives all kinds of half-formed annotations
-
-        # No content
-        y = r1 + r2
-        cm = self.parse(x + y)
-
-        # No about attribute
-        y = r1 + '<rdf:Description />' + r2
-        cm = self.parse(x + y)
-
-        # Unknown cmeta id
-        y = r1 + d1a + 'xxx' + d1b + d2 + r2
-        cm = self.parse(x + y)
-
-        # No bqbiol:is
-        y = r1 + d1a + 'x' + d1b + d2 + r2
-        cm = self.parse(x + y)
-
-        # No bqbiol:is
-        y = r1 + d1a + 'x' + d1b + d2 + r2
-        cm = self.parse(x + y)
-
-        # No resource
-        y = r1 + d1a + 'x' + d1b + '<bqbiol:is/>' + d2 + r2
-        cm = self.parse(x + y)
-
-        # Non oxmeta-resource
-        y = r1 + d1a + 'x' + d1b + '<bqbiol:is rdf:resource="hi"/>' + d2 + r2
-        cm = self.parse(x + y)
 
     def test_parse_file(self):
         # Tests the parse file method
@@ -863,7 +550,7 @@ class TestCellMLParser(unittest.TestCase):
 
         # Parse invalid XML: errors must be wrapped
         self.assertRaisesRegex(
-            v1.CellMLParsingError,
+            v2.CellMLParsingError,
             'Unable to parse XML',
             self.parse_in_file,
             '<component',
@@ -876,27 +563,11 @@ class TestCellMLParser(unittest.TestCase):
 
         # Parse invalid XML: errors must be wrapped
         self.assertRaisesRegex(
-            v1.CellMLParsingError,
+            v2.CellMLParsingError,
             'Unable to parse XML',
-            v1.parse_string,
+            v2.parse_string,
             'Hello there',
         )
-
-    def test_rdf(self):
-        # rdf:RDF is allowed, but no other elements or attributes
-
-        # rdf:RDF is ok
-        self.parse('<rdf:RDF />')
-
-        # Attribute from rdf namespace
-        self.assertBad(
-            '<component name="c" rdf:RDF="d" />',
-            'Unexpected attribute rdf:RDF')
-
-        # Element from rdf namespace
-        self.assertBad(
-            '<rdf:robert />',
-            'found element of type rdf:robert')
 
     def test_text_in_elements(self):
         # Test for text inside (and after) elements
@@ -935,26 +606,6 @@ class TestCellMLParser(unittest.TestCase):
         megawooster_ref = m.find_units('megawooster')
         self.assertEqual(wooster_myo * 1e6, megawooster_ref.myokit_unit())
 
-        # Zero offsets are OK
-        x = ('<units name="wooster">'
-             '  <unit units="volt" offset="0.0" />'
-             '</units>')
-        m = self.parse(x)
-        self.assertEqual(
-            m.find_units('wooster').myokit_unit(), myokit.units.volt)
-
-        # Non-zero offsets are not supported
-        x = ('<units name="wooster">'
-             '  <unit units="volt" offset="0.1" />'
-             '</units>')
-        self.assertBad(x, 'non-zero offsets are not supported')
-
-        # Offset must be a number
-        x = ('<units name="wooster">'
-             '  <unit units="volt" offset="hello" />'
-             '</units>')
-        self.assertBad(x, 'must be a real number')
-
         # Test that CellML errors are wrapped
         x = ('<units name="wooster">'
              '  <unit units="volt" prefix="woopsie" />'
@@ -980,14 +631,8 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(
             m.find_units('wooster').myokit_unit(), myokit.units.volt)
 
-        # Base units attribute must be yes or no
-        x = ('<units name="wooster" base_units="bjork">'
-             '  <unit units="volt" offset="0.0" />'
-             '</units>')
-        self.assertBad(x, 'must be either "yes" or "no"')
-
         # New base units are not supported
-        x = '<units name="wooster" base_units="yes" />'
+        x = '<units name="wooster" />'
         self.assertBad(x, 'Defining new base units is not supported')
 
         # CellML errors are converted to parse errors
@@ -999,20 +644,12 @@ class TestCellMLParser(unittest.TestCase):
         self.assertBad(x, 'must have a name')
 
         # Name overlaps with predefined
-        x = '<units name="meter"><unit units="volt" /></units>'
-        self.assertBad(x, 'overlaps with a predefined name')
-
-        # Same error for celsius (unsupported units)
-        x = '<units name="meter"><unit units="celsius" /></units>'
+        x = '<units name="metre"><unit units="volt" /></units>'
         self.assertBad(x, 'overlaps with a predefined name')
 
         # Duplicate name (handled in sorting)
         x = '<units name="wooster"><unit units="volt" /></units>'
         self.assertBad(x + x, 'Duplicate units definition')
-
-        # No child unit elements
-        x = '<units name="woopster" />'
-        self.assertBad(x, 'at least one child unit element')
 
         # Missing units definitions
         x = ('<units name="wooster"><unit units="fluther" /></units>')
@@ -1022,18 +659,6 @@ class TestCellMLParser(unittest.TestCase):
         x = ('<units name="wooster"><unit units="fluther" /></units>'
              '<units name="fluther"><unit units="wooster" /></units>')
         self.assertBad(x, 'Unable to resolve network of units')
-
-        # Test unit resolving for shadowed units
-        x = ('<units name="wooster"><unit units="ampere" /></units>'
-             '<component name="a">'
-             '  <units name="kilowooster">'
-             '    <unit units="wooster" prefix="kilo" />'
-             '  </units>'
-             '  <units name="wooster"><unit units="volt" /></units>'
-             '</component>')
-        m = self.parse(x)
-        u = m['a'].find_units('kilowooster').myokit_unit()
-        self.assertEqual(u, myokit.units.volt * 1000)
 
     def test_units_predefined(self):
         # Tests parsing all the predefined units
@@ -1061,11 +686,9 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(u('katal'), myokit.units.katal)
         self.assertEqual(u('kelvin'), myokit.units.kelvin)
         self.assertEqual(u('kilogram'), myokit.units.kg)
-        self.assertEqual(u('liter'), myokit.units.liter)
         self.assertEqual(u('litre'), myokit.units.liter)
         self.assertEqual(u('lumen'), myokit.units.lumen)
         self.assertEqual(u('lux'), myokit.units.lux)
-        self.assertEqual(u('meter'), myokit.units.meter)
         self.assertEqual(u('metre'), myokit.units.meter)
         self.assertEqual(u('mole'), myokit.units.mole)
         self.assertEqual(u('newton'), myokit.units.newton)
@@ -1080,11 +703,6 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(u('volt'), myokit.units.volt)
         self.assertEqual(u('watt'), myokit.units.watt)
         self.assertEqual(u('weber'), myokit.units.weber)
-
-        # Celsius is not supported
-        self.assertRaisesRegex(
-            v1.CellMLParsingError, 'unsupported units "celsius"',
-            u, 'celsius')
 
     def test_variable(self):
         # Tests parsing variables

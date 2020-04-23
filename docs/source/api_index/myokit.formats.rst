@@ -44,6 +44,8 @@ myokit.formats.cellml
 - :class:`myokit.formats.cellml.CellMLExpressionWriter`
 - :class:`myokit.formats.cellml.CellMLImporter`
 - :class:`myokit.formats.cellml.CellMLImporterError`
+- :class:`myokit.formats.cellml.CellML1Exporter`
+- :class:`myokit.formats.cellml.CellML2Exporter`
 - :meth:`myokit.formats.cellml.ewriters`
 - :meth:`myokit.formats.cellml.exporters`
 - :meth:`myokit.formats.cellml.importers`
@@ -67,6 +69,28 @@ myokit.formats.cellml.v1
 - :class:`myokit.formats.cellml.v1.Variable`
 - :meth:`myokit.formats.cellml.v1.write_file`
 - :meth:`myokit.formats.cellml.v1.write_string`
+
+myokit.formats.cellml.v2
+------------------------------
+- :class:`myokit.formats.cellml.v2.AnnotatableElement`
+- :class:`myokit.formats.cellml.v2.CellMLError`
+- :class:`myokit.formats.cellml.v2.CellMLParser`
+- :class:`myokit.formats.cellml.v2.CellMLParsingError`
+- :class:`myokit.formats.cellml.v2.CellMLWriter`
+- :meth:`myokit.formats.cellml.v2.clean_identifier`
+- :meth:`myokit.formats.cellml.v2.create_unit_name`
+- :class:`myokit.formats.cellml.v2.Component`
+- :meth:`myokit.formats.cellml.v2.is_basic_real_number_string`
+- :meth:`myokit.formats.cellml.v2.is_identifier`
+- :meth:`myokit.formats.cellml.v2.is_integer_string`
+- :meth:`myokit.formats.cellml.v2.is_real_number_string`
+- :class:`myokit.formats.cellml.v2.Model`
+- :meth:`myokit.formats.cellml.v2.parse_file`
+- :meth:`myokit.formats.cellml.v2.parse_string`
+- :class:`myokit.formats.cellml.v2.Units`
+- :class:`myokit.formats.cellml.v2.Variable`
+- :meth:`myokit.formats.cellml.v2.write_file`
+- :meth:`myokit.formats.cellml.v2.write_string`
 
 myokit.formats.channelml
 ------------------------
@@ -111,7 +135,6 @@ myokit.formats.mathml
 - :class:`myokit.formats.mathml.MathMLError`
 - :class:`myokit.formats.mathml.MathMLExpressionWriter`
 - :class:`myokit.formats.mathml.MathMLParser`
-- :meth:`myokit.formats.mathml.parse_mathml_dom`
 - :meth:`myokit.formats.mathml.parse_mathml_etree`
 - :meth:`myokit.formats.mathml.parse_mathml_string`
 - :class:`myokit.formats.mathml.XMLExporter`
