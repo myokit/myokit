@@ -741,7 +741,8 @@ class SBMLImporter(myokit.formats.Importer):
         # Raise error if constraints are provided
         constraints = self._getListOfConstraints(SBMLmodel)
         if constraints:
-            log.warn("Myokit does not support SBML's constraints feature. "
+            log.warn(
+                "Myokit does not support SBML's constraints feature. "
                 "The constraints will be ignored for the simulation.")
 
         # TODO: extract event and convert it to protocol
