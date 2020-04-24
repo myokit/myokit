@@ -358,6 +358,10 @@ class SBMLImporter(myokit.formats.Importer):
             self.paramAndSpeciesDict[
                 'http://www.sbml.org/sbml/symbols/time'] = time
 
+        # Create speciesReference for all species in reactions for later
+        # assignment and rate rules
+        speciesReference = set()
+
         # Add Reactions to model
         reactions = self._getListOfReactions(SBMLmodel)
         if reactions:
@@ -365,17 +369,11 @@ class SBMLImporter(myokit.formats.Importer):
             reactionSpeciesDict = dict()
             for reaction in reactions:
                 # Create reaction specific species references
-                speciesList = []
                 reactantsStoichDict = dict()
                 productsStoichDict = dict()
 
-                # Get reactans, products and mnodifiers
-                idr = reaction.get('id')
+                # Get reactans, products and modifiers
                 idc = reaction.get('compartment')
-                if not idr:
-                    raise SBMLError(
-                        'The file does not adhere to SBML 3.2 standards.'
-                        ' No reaction ID provided.')
 
                 # Reactants
                 reactants = self._getListOfReactants(reaction)
@@ -414,7 +412,6 @@ class SBMLImporter(myokit.formats.Importer):
                             self.paramAndSpeciesDict[idStoich] = var
 
                         # Save species behaviour in this reaction
-                        speciesList.append(ids)
                         isConstant = speciesPropDict[ids]['isConstant']
                         hasBoundaryCond = speciesPropDict[ids][
                             'hasBoundaryCondition']
@@ -423,6 +420,9 @@ class SBMLImporter(myokit.formats.Importer):
                             # species can change through a reaction
                             reactantsStoichDict[
                                 ids] = idStoich if idStoich else stoich
+
+                        # Create reference that species is part of a reaction
+                        speciesReference.add(ids)
 
                 # Products
                 products = self._getListOfProducts(reaction)
@@ -461,7 +461,6 @@ class SBMLImporter(myokit.formats.Importer):
                             self.paramAndSpeciesDict[idStoich] = var
 
                         # Save species behaviour in this reaction
-                        speciesList.append(ids)
                         isConstant = speciesPropDict[ids]['isConstant']
                         hasBoundaryCond = speciesPropDict[ids][
                             'hasBoundaryCondition']
@@ -470,6 +469,9 @@ class SBMLImporter(myokit.formats.Importer):
                             # species can change through a reaction
                             productsStoichDict[
                                 ids] = idStoich if idStoich else stoich
+
+                        # Create reference that species is part of a reaction
+                        speciesReference.add(ids)
                 if reactants is None and products is None:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards. '
@@ -485,8 +487,10 @@ class SBMLImporter(myokit.formats.Importer):
                                 'The file does not adhere to SBML 3.2 '
                                 'standards. Species ID not existent.')
 
-                        # save species behaviour in this reaction
-                        speciesList.append(ids)
+                        # Create reference that species is part of a reaction
+                        speciesReference.add(ids)
+
+                # Raise error if different velocities of reactions are assumed
                 isFast = reaction.get('fast')
                 if isFast:
                     raise SBMLError(
@@ -657,24 +661,40 @@ class SBMLImporter(myokit.formats.Importer):
                     else:
                         var.set_rhs(expr)
 
-        # Add Rules to model
-        rules = self._getListOfInitialAssignments(SBMLmodel)
-        if assignments:
-            for assign in assignments:
-                var = assign.get('symbol')
+        # Raise error if algebraicRules are in file
+        rules = self._getListOfAlgebraicRules(SBMLmodel)
+        if rules:
+            raise SBMLError(
+                'Myokit does not support algebraic assignments.')
+
+        # Add assignmentRules to model
+        rules = self._getListOfAssignmentRules(SBMLmodel)
+        if rules:
+            for rule in rules:
+                var = rule.get('variable')
+                if var in speciesReference:
+                    if not speciesPropDict[var]['hasBoundaryCondition']:
+                        raise SBMLError(
+                            'The file does not adhere to SBML 3.2 standards.'
+                            ' Species is assigned with rule, while being '
+                            'created / desctroyed in reaction. Either set '
+                            'boundaryCondition to True or remove one of the'
+                            ' assignments.')
                 try:
                     var = self.paramAndSpeciesDict[var]
                 except KeyError:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
-                        ' Initial assignment refers to non-existent ID.')
-                expr = self._getMath(assign)
+                        ' AssignmentRule refers to non-existent ID.')
+                expr = self._getMath(rule)
                 if expr:
                     var.set_rhs(parse_mathml_etree(
                         expr,
                         lambda x, y: myokit.Name(self.paramAndSpeciesDict[x]),
                         lambda x, y: myokit.Number(x)
                     ))
+
+        # Add rateRules to model
 
         # TODO: extract Constraints (cannot be added to model, but should be
         # returned)
@@ -816,6 +836,28 @@ class SBMLImporter(myokit.formats.Importer):
             + 'initialAssignment')
         if assignments:
             return assignments
+        return None
+
+    def _getListOfAlgebraicRules(self, element):
+        rules = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfRules/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'algebraicRule')
+        if rules:
+            return rules
+        return None
+
+    def _getListOfAssignmentRules(self, element):
+        rules = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfRules/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'assignmentRule')
+        if rules:
+            return rules
         return None
 
     def _getMath(self, element):
