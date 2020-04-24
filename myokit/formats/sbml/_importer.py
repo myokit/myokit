@@ -738,8 +738,11 @@ class SBMLImporter(myokit.formats.Importer):
                     var.promote(value)
                     var.set_rhs(expr)
 
-        # TODO: extract Constraints (cannot be added to model, but should be
-        # returned)
+        # Raise error if constraints are provided
+        constraints = self._getListOfConstraints(SBMLmodel)
+        if constraints:
+            log.warn("Myokit does not support SBML's constraints feature. "
+                "The constraints will be ignored for the simulation.")
 
         # TODO: extract event and convert it to protocol
 
@@ -909,6 +912,17 @@ class SBMLImporter(myokit.formats.Importer):
             + 'listOfRules/'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
             + 'rateRule')
+        if rules:
+            return rules
+        return None
+
+    def _getListOfConstraints(self, element):
+        rules = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfConstraints/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'constraint')
         if rules:
             return rules
         return None
