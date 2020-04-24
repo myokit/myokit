@@ -626,20 +626,36 @@ class SBMLImporter(myokit.formats.Importer):
         assignments = self._getListOfInitialAssignments(SBMLmodel)
         if assignments:
             for assign in assignments:
-                var = assign.get('symbol')
+                varId = assign.get('symbol')
                 try:
-                    var = self.paramAndSpeciesDict[var]
+                    var = self.paramAndSpeciesDict[varId]
                 except KeyError:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
                         ' Initial assignment refers to non-existent ID.')
                 expr = self._getMath(assign)
                 if expr:
-                    var.set_rhs(parse_mathml_etree(
+                    expr = parse_mathml_etree(
                         expr,
                         lambda x, y: myokit.Name(self.paramAndSpeciesDict[x]),
-                        lambda x, y: myokit.Number(x)
-                    ))
+                        lambda x, y: myokit.Number(x))
+
+                    # if species exist in conc. and amount, we update amount.
+                    try:
+                        var = speciesAlsoInAmountDict[varId]
+                    except KeyError:
+                        pass
+                    else:
+                        idc = speciesPropDict[varId]['compartment']
+                        volume = self.paramAndSpeciesDict[idc]
+                        expr = myokit.Divide(expr, myokit.Name(volume))
+
+                    # update inital value
+                    if var.is_state():
+                        value = expr.eval()
+                        var.set_state_value(value)
+                    else:
+                        var.set_rhs(expr)
 
         # Add Rules to model
         rules = self._getListOfInitialAssignments(SBMLmodel)
