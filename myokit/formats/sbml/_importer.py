@@ -644,7 +644,8 @@ class SBMLImporter(myokit.formats.Importer):
                         lambda x, y: myokit.Name(self.paramAndSpeciesDict[x]),
                         lambda x, y: myokit.Number(x))
 
-                    # if species exist in conc. and amount, we update amount.
+                    # If species, and it exists in conc. and amount, we update
+                    # amount.
                     try:
                         var = speciesAlsoInAmountDict[varId]
                     except KeyError:
@@ -652,9 +653,9 @@ class SBMLImporter(myokit.formats.Importer):
                     else:
                         idc = speciesPropDict[varId]['compartment']
                         volume = self.paramAndSpeciesDict[idc]
-                        expr = myokit.Divide(expr, myokit.Name(volume))
+                        expr = myokit.Multiply(expr, myokit.Name(volume))
 
-                    # update inital value
+                    # Update inital value
                     if var.is_state():
                         value = expr.eval()
                         var.set_state_value(value)
@@ -695,6 +696,47 @@ class SBMLImporter(myokit.formats.Importer):
                     ))
 
         # Add rateRules to model
+        rules = self._getListOfRateRules(SBMLmodel)
+        if rules:
+            for rule in rules:
+                varId = rule.get('variable')
+                if varId in speciesReference:
+                    if not speciesPropDict[varId]['hasBoundaryCondition']:
+                        raise SBMLError(
+                            'The file does not adhere to SBML 3.2 standards.'
+                            ' Species is assigned with rule, while being '
+                            'created / desctroyed in reaction. Either set '
+                            'boundaryCondition to True or remove one of the'
+                            ' assignments.')
+                try:
+                    var = self.paramAndSpeciesDict[varId]
+                except KeyError:
+                    raise SBMLError(
+                        'The file does not adhere to SBML 3.2 standards.'
+                        ' RateRule refers to non-existent ID.')
+                expr = self._getMath(rule)
+                if expr:
+                    expr = parse_mathml_etree(
+                        expr,
+                        lambda x, y: myokit.Name(self.paramAndSpeciesDict[x]),
+                        lambda x, y: myokit.Number(x)
+                    )
+
+                    # If species, and it exists in conc. and amount, we update
+                    # amount.
+                    try:
+                        var = speciesAlsoInAmountDict[varId]
+                    except KeyError:
+                        pass
+                    else:
+                        idc = speciesPropDict[varId]['compartment']
+                        volume = self.paramAndSpeciesDict[idc]
+                        expr = myokit.Divide(expr, myokit.Name(volume))
+
+                    # promote variable to state and set initial value
+                    value = var.eval()
+                    var.promote(value)
+                    var.set_rhs(expr)
 
         # TODO: extract Constraints (cannot be added to model, but should be
         # returned)
@@ -856,6 +898,17 @@ class SBMLImporter(myokit.formats.Importer):
             + 'listOfRules/'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
             + 'assignmentRule')
+        if rules:
+            return rules
+        return None
+
+    def _getListOfRateRules(self, element):
+        rules = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfRules/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'rateRule')
         if rules:
             return rules
         return None
