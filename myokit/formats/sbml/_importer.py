@@ -1,6 +1,8 @@
 #
 # Imports a model from an SBML file.
-# Only partial SBML support (Based on SBML level 3) is provided.
+# Only partial SBML support (Based on SBML level 3 version 2) is provided.
+# The file format specifications can be found here
+# http://sbml.org/Documents/Specifications.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -240,13 +242,14 @@ class SBMLImporter(myokit.formats.Importer):
                 self.paramAndSpeciesDict[idp] = var
 
         # Add reference to global conversion factor
-        convFactor = SBMLmodel.get('conversionFactor')
-        if convFactor:
+        convFactorId = SBMLmodel.get('conversionFactor')
+        if convFactorId:
             if 'globalConversionFactor' in self.paramAndSpeciesDict:
                 raise SBMLError(
                     'The ID <globalConversionFactor> is protected in a myokit'
                     ' SBML import. Please rename IDs.')
             try:
+                convFactor = self.paramAndSpeciesDict[convFactorId]
                 self.paramAndSpeciesDict['globalConversionFactor'] = convFactor
             except KeyError:
                 raise SBMLError(
@@ -435,8 +438,8 @@ class SBMLImporter(myokit.formats.Importer):
                             log.warn(
                                 'Stoichiometry has not been set in reaction. '
                                 'It may be set elsewhere in the SBML file, '
-                                'myokit has, however, initialised the stoich-'
-                                ' iometry with value 1.')
+                                'myokit has, however, initialised the stoich'
+                                'iometry with value 1.')
                             stoich = 1.0
                         else:
                             stoich = float(stoich)
@@ -520,6 +523,7 @@ class SBMLImporter(myokit.formats.Importer):
 
                         # Collect expressions for products
                         for species in productsStoichDict:
+                            # weight with stoichiometry
                             stoich = productsStoichDict[species]
                             if stoich in self.paramAndSpeciesDict:
                                 stoich = myokit.Name(self.paramAndSpeciesDict[
@@ -531,6 +535,13 @@ class SBMLImporter(myokit.formats.Importer):
                                 stoich = myokit.Number(stoich)
                                 weightedExpr = myokit.Multiply(stoich, expr)
 
+                            # weight with conversion factor
+                            convFactor = speciesPropDict[species][
+                                'conversionFactor']
+                            if convFactor:
+                                weightedExpr = myokit.Multiply(
+                                    convFactor, weightedExpr)
+
                             # add expression to rate expression of species
                             if species in reactionSpeciesDict:
                                 partialExpr = reactionSpeciesDict[species]
@@ -541,6 +552,7 @@ class SBMLImporter(myokit.formats.Importer):
 
                         # Collect expressions for reactants
                         for species in reactantsStoichDict:
+                            # weight with stoichiometry
                             stoich = reactantsStoichDict[species]
                             if stoich in self.paramAndSpeciesDict:
                                 stoich = myokit.Name(self.paramAndSpeciesDict[
@@ -551,6 +563,13 @@ class SBMLImporter(myokit.formats.Importer):
                             else:
                                 stoich = myokit.Number(stoich)
                                 weightedExpr = myokit.Multiply(stoich, expr)
+
+                            # weight with conversion factor
+                            convFactor = speciesPropDict[species][
+                                'conversionFactor']
+                            if convFactor:
+                                weightedExpr = myokit.Multiply(
+                                    convFactor, weightedExpr)
 
                             # add (with minus sign) expression to rate
                             # expression of species
@@ -563,23 +582,44 @@ class SBMLImporter(myokit.formats.Importer):
                                     myokit.Number(-1.0), weightedExpr)
                                 reactionSpeciesDict[species] = weightedExpr
 
-                        # TODO: whats up with conversion fac
-
             # Add rate expression for species to model
             for species in reactionSpeciesDict:
                 try:
                     var = speciesAlsoInAmountDict[species]
                 except KeyError:
                     var = self.paramAndSpeciesDict[species]
-                unit = self.userUnitDict['extentUnit']
+                expr = reactionSpeciesDict[species]
+
+                # weight expression with conversion factor
+                convFactor = speciesPropDict[species][
+                    'conversionFactor']
+                if convFactor:
+                    expr = myokit.Multiply(convFactor, expr)
+
+                # The units of a reaction rate are according to SBML guidelines
+                # extentUnits / timeUnits, which are both globally defined.
+                # Rates in myokit don't get assigned with a unit explicitly,
+                # but only the state variable has a unit and the time variable
+                # has a unit, which then define the rate unit implicitly.
+                #
+                # A problem occurs when the extentUnit and the species unit do
+                # not agree. Since initial values can be assigned to the secies
+                # in the respective substance units, we will choose the species
+                # unit (in amount) over the globally defined extentUnits. This
+                # is NOT according to SBML guidelines.
+                unit = var.unit()
+                extentUnit = self.userUnitDict['extentUnit']
                 if not unit:
-                    unit = var.unit()  # not strictly according to SBML
-                timeUnit = self.userUnitDict['timeUnit']
-                rateUnit = unit / timeUnit
+                    unit = extentUnit
+                if unit != extentUnit:
+                    log.warn(
+                        'Myokit does not support extentUnits for reactions. '
+                        'Reactions will have the unit substanceUnit / '
+                        'timeUnit')
                 initialValue = var.rhs()
                 initialValue = initialValue.eval() if initialValue else 0
                 var.promote(initialValue)
-                var.set_unit(rateUnit)
+                var.set_unit(unit)
                 var.set_rhs(reactionSpeciesDict[species])
 
         # Add initial assignments to model
