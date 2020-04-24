@@ -455,7 +455,6 @@ def suite_full(args):
     """
     # Set arguments for unit()
     flake8()
-    doc_coverage(args)
     doc_tests(args)
     coverage(args)
     examples_web(args)
@@ -467,7 +466,6 @@ def suite_minimal(args):
     Runs a minimal set of tests, exits if anything fails.
     """
     flake8()
-    doc_coverage(args)
     doc_tests(args)
     coverage(args)
 
