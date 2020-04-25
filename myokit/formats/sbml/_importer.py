@@ -13,8 +13,6 @@ from __future__ import print_function, unicode_literals
 import re
 import xml.etree.ElementTree as ET
 
-from libsbml import SBMLReader, XMLNode
-
 import myokit
 import myokit.units
 import myokit.formats
@@ -56,39 +54,9 @@ class SBMLImporter(myokit.formats.Importer):
         # Get logger
         log = self.logger()
 
-        # TODO: remove libSBML depence (kept for now to upgrade lvl)
         # Read SBML file
-        reader = SBMLReader()
-        doc = reader.readSBMLFromFile(path)
-        if doc.getNumErrors() > 0:
-            raise SBMLError(
-                'The SBML file could not be imported, or does not comply to'
-                ' SBML standards.')
-
-        # Get level and version of SBML file
-        lvl = doc.getLevel()
-        v = doc.getVersion()
-
-        # check whether file is latest version and upgrade, if possible
-        if lvl != 3 or v != 2:
-            doc.checkL3v2Compatibility()
-            if doc.getNumErrors() > 0:
-                log.warn(
-                    'SBML file cannot be converted to level 3, version 2.'
-                    'This may result in model building errors.')
-            else:
-                success = doc.setLevelAndVersion(level=3, version=2)
-                print(success)
-                if success:
-                    log.log('Converted SBML file to level 3, version 2.')
-                else:
-                    log.warn(
-                        'Conversion of SBML file to level 3, version 2 was '
-                        'attempted but not successful. This may result in '
-                        'model building errors.')
-        #TODO: Read in as etreee
-        doc = XMLNode.convertXMLNodeToString(doc.toXMLNode())
-        root = ET.fromstring(doc)
+        doc = ET.parse(path)
+        root = doc.getroot()
 
         # Check whether file has SBML 3.2 namespace
         ns = self._getNamespace(root)
