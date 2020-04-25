@@ -90,12 +90,14 @@ class SBMLImporter(myokit.formats.Importer):
             model.meta['desc'] = html2ascii(notes, width=75)
             # width = 79 - 4 for tab!
 
-        # TODO: Get function definitions
-        # funcDefs = SBMLmodel.getListOfFunctionDefinitions()
-        # if funcDefs:
-        #     userFuncDict = dict()
-        #     for funcDef in funcDefs:
-        #         userFuncDict[funcDef.getIdAttribute()] = funcDef
+        # Raise error if function definitions are provided (could be added in
+        # another PR)
+        funcDefs = self._getListOfFunctionDefinitions(SBMLmodel)
+        if funcDefs:
+            raise SBMLError(
+                'Myokit does not support functionDefinitions. Please insert '
+                'your function wherever it occurs in yout SBML file and delete'
+                ' the functionDefiniton in the file.')
 
         # Create user defined unit reference
         self.userUnitDict = dict()
@@ -749,6 +751,17 @@ class SBMLImporter(myokit.formats.Importer):
             + 'notes')
         if notes:
             return ET.tostring(notes).decode()
+        return None
+
+    def _getListOfFunctionDefinitions(self, element):
+         funcs = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfFunctionDefinitions/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'functionDefinition')
+        if funcs:
+            return funcs
         return None
 
     def _getListOfUnitDefinitions(self, element):
