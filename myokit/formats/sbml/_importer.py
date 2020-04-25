@@ -738,14 +738,20 @@ class SBMLImporter(myokit.formats.Importer):
                     var.promote(value)
                     var.set_rhs(expr)
 
-        # Raise error if constraints are provided
+        # Log warning if constraints are provided
         constraints = self._getListOfConstraints(SBMLmodel)
         if constraints:
             log.warn(
                 "Myokit does not support SBML's constraints feature. "
                 "The constraints will be ignored for the simulation.")
 
-        # TODO: extract event and convert it to protocol
+        # Log warning if events are provided (could be supported in a later PR)
+        events = self._getListOfEvents(SBMLmodel)
+        if events:
+            log.warn(
+                "Myokit does not support SBML's events feature. The events"
+                " will be ignored for the simulation. Have a look at myokits"
+                " protocol feature for instantaneous state value changes.")
 
         return model
 
@@ -918,14 +924,25 @@ class SBMLImporter(myokit.formats.Importer):
         return None
 
     def _getListOfConstraints(self, element):
-        rules = element.findall(
+        constraints = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
             + 'listOfConstraints/'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
             + 'constraint')
-        if rules:
-            return rules
+        if constraints:
+            return constraints
+        return None
+
+    def _getListOfEvents(self, element):
+        events = element.findall(
+            './'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'listOfEvents/'
+            + '{http://www.sbml.org/sbml/level3/version2/core}'
+            + 'event')
+        if events:
+            return events
         return None
 
     def _getMath(self, element):
