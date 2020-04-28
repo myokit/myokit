@@ -37,11 +37,12 @@ class SBMLTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """
-        Test Hodgkin Huxley model.
+        Tests case 00004 from the SBML test suite
+        http://sbml.org/Facilities/Database/.
         """
         i = formats.importer('sbml')
-        cls.hohu = i.model(os.path.join(
-            DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+        cls.modelFour = i.model(os.path.join(
+            DIR_FORMATS, 'sbml', '00004-sbml-l3v2.xml'))
 
     def test_capability_reporting(self):
         """ Test if the right capabilities are reported. """
@@ -50,169 +51,163 @@ class SBMLTest(unittest.TestCase):
         self.assertTrue(i.supports_model())
         self.assertFalse(i.supports_protocol())
 
-    def test_model(self):
-        i = formats.importer('sbml')
+    def test_model_name(self):
+        """Tests whether model name is set properly."""
+        name = 'case00004'
+        self.assertEqual(self.modelFour.name(), name)
 
-        def sbml(fname):
-            m = i.model(os.path.join(DIR_FORMATS, 'sbml', fname))
-            try:
-                m.validate()
-            except myokit.MissingTimeVariableError:
-                # SBML models don't specify the time variable
-                pass
+    def test_compartments(self):
+        """
+        Tests whether compartments have been imported properly. Compartments
+        should include the compartments in the SBML file, plus a myokit
+        compartment for the global parameters.
+        """
+        # compartment 1
+        comp = 'compartment'
+        self.assertTrue(self.modelFour.has_component(comp))
 
-        # Basic Hodgkin-Huxley
-        sbml('HodgkinHuxley.xml')
+        # compartment 2
+        comp = 'myokit'
+        self.assertTrue(self.modelFour.has_component(comp))
 
-        # Same but without a model name
-        sbml('HodgkinHuxley-no-model-name-but-id.xml')
-        sbml('HodgkinHuxley-no-model-name-or-id.xml')
+        # total number of compartments
+        number = 2
+        self.assertEqual(self.modelFour.count_components(), number)
 
-        # Same but with funny variable names
-        sbml('HodgkinHuxley-funny-names.xml')
+    def test_time(self):
+        """Tests whether the time bound variable was set properly"""
+        variable = 'time'
+        self.assertTrue(self.modelFour.has_variable('myokit.' + variable))
+        variable = self.modelFour.get('myokit.' + variable)
+        self.assertTrue(variable.is_bound())
 
-        # Model with listOfInitialValues and unit with multiplier
-        sbml('Noble1962-initial-assignments-and-weird-unit.xml')
+    def test_state_variables(self):
+        """Tests whether all dynamic variables were imported properly."""
+        # state 1
+        state = 'S1'
+        self.assertTrue(self.modelFour.has_variable('compartment.' + state))
+        state = self.modelFour.get('compartment.' + state)
+        self.assertTrue(state.is_state())
 
-    def test_parameters(self):
-        # Test Case: Hodkin Huxley
-        # expected
-        parameters = [
-            'V',
-            'V_neg',
-            'E',
-            'I',
-            'i_Na',
-            'i_K',
-            'i_L',
-            'm',
-            'h',
-            'n',
-            'E_R',
-            'Cm',
-            'g_Na',
-            'g_K',
-            'g_L',
-            'E_Na',
-            'E_K',
-            'E_L',
-            'V_Na',
-            'V_K',
-            'V_L',
-            'alpha_m',
-            'beta_m',
-            'alpha_h',
-            'beta_h',
-            'alpha_n',
-            'beta_n'
-        ]
+        # state 2
+        state = 'S2'
+        self.assertTrue(self.modelFour.has_variable('compartment.' + state))
+        state = self.modelFour.get('compartment.' + state)
+        self.assertTrue(state.is_state())
 
-        # test whether parameters are in myokit model
-        for param in parameters:
-            self.assertTrue(self.hohu.has_variable('sbml.' + param))
+        # total number of states
+        number = 2
+        self.assertEqual(self.modelFour.count_variables(state=True), number)
 
-    def test_units(self):
-        # Test Case: Hodkin Huxley
-        # expected
-        param_unit_dict = {
-            'V': myokit.units.V * 10 ** (-3),
-            'V_neg': myokit.units.V * 10 ** (-3),
-            'E': myokit.units.V * 10 ** (-3),
-            'I': None,
-            'i_Na': None,
-            'i_K': None,
-            'i_L': None,
-            'm': None,
-            'h': None,
-            'n': None,
-            'E_R': myokit.units.V * 10 ** (-3),
-            'Cm': None,
-            'g_Na': None,
-            'g_K': None,
-            'g_L': None,
-            'E_Na': myokit.units.V * 10 ** (-3),
-            'E_K': myokit.units.V * 10 ** (-3),
-            'E_L': myokit.units.V * 10 ** (-3),
-            'V_Na': myokit.units.V * 10 ** (-3),
-            'V_K': myokit.units.V * 10 ** (-3),
-            'V_L': myokit.units.V * 10 ** (-3),
-            'alpha_m': None,
-            'beta_m': None,
-            'alpha_h': None,
-            'beta_h': None,
-            'alpha_n': None,
-            'beta_n': None
-        }
+    def test_constant_parameters(self):
+        """
+        Tests whether all constant parameters in the file were properly
+        imported.
+        """
+        # parameter 1
+        parameter = 'k1'
+        self.assertTrue(self.modelFour.has_variable('myokit.' + parameter))
+        parameter = self.modelFour.get('myokit.' + parameter)
+        self.assertTrue(parameter.is_constant())
 
-        # test whether parameters have correct units
-        for param in param_unit_dict:
-            unit = param_unit_dict[param]
-            self.assertEqual(unit, self.hohu.get('sbml.' + param).unit())
+        # parameter 2
+        parameter = 'k2'
+        self.assertTrue(self.modelFour.has_variable('myokit.' + parameter))
+        parameter = self.modelFour.get('myokit.' + parameter)
+        self.assertTrue(parameter.is_constant())
+
+        # parameter 3
+        parameter = 'size'
+        self.assertTrue(
+            self.modelFour.has_variable('compartment.' + parameter))
+        parameter = self.modelFour.get('compartment.' + parameter)
+        self.assertTrue(parameter.is_constant())
+
+        # total number of parameters
+        number = 3
+        self.assertEqual(self.modelFour.count_variables(const=True), number)
+
+    def test_intermediate_parameters(self):
+        """
+        Tests whether all intermediate parameters in the file were properly
+        imported.
+        """
+        # parameter 1
+        parameter = 'S1_Concentration'
+        self.assertTrue(
+            self.modelFour.has_variable('compartment.' + parameter))
+        parameter = self.modelFour.get('compartment.' + parameter)
+        self.assertTrue(parameter.is_intermediary())
+
+        # parameter 2
+        parameter = 'S2_Concentration'
+        self.assertTrue(
+            self.modelFour.has_variable('compartment.' + parameter))
+        parameter = self.modelFour.get('compartment.' + parameter)
+        self.assertTrue(parameter.is_intermediary())
+
+        # total number of parameters
+        number = 2
+        self.assertEqual(self.modelFour.count_variables(inter=True), number)
 
     def test_initial_values(self):
-        # Test Case: Hodkin Huxley
-        # expected
-        param_value_dict = {
-            'I': 0,
-            'E_R': -75,
-            'Cm': 1,
-            'g_Na': 120,
-            'g_K': 36,
-            'g_L': 0.3,
-            'E_Na': -190,
-            'E_K': -63,
-            'E_L': -85.613
-        }
+        """
+        Tests whether initial values of constant parameters and state variables
+        have been set properly.
+        """
+        # state 1
+        state = 'S1'
+        state = self.modelFour.get('compartment.' + state)
+        initialValue = 0.15
+        self.assertEqual(state.state_value(), initialValue)
 
-        # test whether parameters have correct initial values
-        for param in param_value_dict:
-            value = param_value_dict[param]
-            self.assertEqual(value, self.hohu.get('sbml.' + param).value())
+        # state 2
+        state = 'S2'
+        state = self.modelFour.get('compartment.' + state)
+        initialValue = 0
+        self.assertEqual(state.state_value(), initialValue)
 
-    def test_intermediate_expressions(self):
-        # Test Case: Hodkin Huxley
-        # expected
-        param_expr_dict = {
-            'V_neg': '-sbml.V',
-            'E': 'sbml.V + sbml.E_R',
-            'i_Na': 'sbml.g_Na * sbml.m ^ 3 * sbml.h * (sbml.V - sbml.V_Na)',
-            'i_K': 'sbml.g_K * sbml.n ^ 4 * (sbml.V - sbml.V_K)',
-            'i_L': 'sbml.g_L * (sbml.V - sbml.V_L)',
-            'V_Na': 'sbml.E_Na - sbml.E_R',
-            'V_K': 'sbml.E_K - sbml.E_R',
-            'V_L': 'sbml.E_L - sbml.E_R',
-            'alpha_m':
-            '0.1 * (sbml.V + 25) / (exp((sbml.V + 25) / 10) - 1)',
-            'beta_m': '4 * exp(sbml.V / 18)',
-            'alpha_h': '0.07 * exp(sbml.V / 20)',
-            'beta_h': '1 / (exp((sbml.V + 30) / 10) + 1)',
-            'alpha_n': '0.01 * (sbml.V + 10) / (exp((sbml.V + 10) / 10) - 1)',
-            'beta_n': '0.125 * exp(sbml.V / 80)'
-        }
+        # parameter 1
+        parameter = 'k1'
+        parameter = self.modelFour.get('myokit.' + parameter)
+        initialValue = 0.35
+        self.assertEqual(parameter.eval(), initialValue)
 
-        # test whether intermediate expressions are correct
-        for param in param_expr_dict:
-            expr = param_expr_dict[param]
-            self.assertEqual(
-                'sbml.' + param, str(self.hohu.get('sbml.' + param).lhs()))
-            self.assertEqual(expr, str(self.hohu.get('sbml.' + param).rhs()))
+        # parameter 2
+        parameter = 'k2'
+        parameter = self.modelFour.get('myokit.' + parameter)
+        initialValue = 180
+        self.assertEqual(parameter.eval(), initialValue)
 
-    def test_state_expressions(self):
-        # Test Case: Hodkin Huxley
-        # expected
-        param_expr_dict = {
-            'm': 'sbml.alpha_m * (1 - sbml.m) - sbml.beta_m * sbml.m',
-            'h': 'sbml.alpha_h * (1 - sbml.h) - sbml.beta_h * sbml.h',
-            'n': 'sbml.alpha_n * (1 - sbml.n) - sbml.beta_n * sbml.n'
-        }
+        # parameter 3
+        parameter = 'size'
+        parameter = self.modelFour.get('compartment.' + parameter)
+        initialValue = 1
+        self.assertEqual(parameter.eval(), initialValue)
 
-        # test whether state expressions are correct
-        for param in param_expr_dict:
-            expr = param_expr_dict[param]
-            self.assertEqual(
-                'dot(sbml.%s)' % param,
-                str(self.hohu.get('sbml.' + param).lhs()))
-            self.assertEqual(expr, str(self.hohu.get('sbml.' + param).rhs()))
+    def test_rate_expressions(self):
+        """
+        Tests whether state variables have been assigned with the correct
+        rate expression. Those may come from a rateRule or reaction.
+        """
+        # state 1
+        state = 'S1'
+        state = self.modelFour.get('compartment.' + state)
+        expression = str(
+            '-1 * (compartment.size * myokit.k1 * '
+            + 'compartment.S1_Concentration) + compartment.size * myokit.k2'
+            + ' * compartment.S2_Concentration ^ 2')
+        self.assertEqual(str(state.rhs()), expression)
+
+        # state 2
+        state = 'S2'
+        state = self.modelFour.get('compartment.' + state)
+        expression = str(
+            '2 * (compartment.size * myokit.k1 * '
+            + 'compartment.S1_Concentration) - 2 * '
+            + '(compartment.size * myokit.k2 '
+            + '* compartment.S2_Concentration ^ 2)')
+        self.assertEqual(str(state.rhs()), expression)
 
     def test_info(self):
         i = formats.importer('sbml')
