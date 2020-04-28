@@ -46,10 +46,10 @@ class SBMLImporter(myokit.formats.Importer):
         Returns a :class:myokit.Model based on the SBML file provided.
 
         Arguments:
-            path -- Path to SBML file.
-            bind_time -- Flag to create and bind a time bound variable. If
-                         False no variable will be bound to time in the
-                         :class:myokit.Model.
+
+        ``path``
+            Path to SBML file.
+
         """
         # Get logger
         log = self.logger()
@@ -77,7 +77,6 @@ class SBMLImporter(myokit.formats.Importer):
         name = self._getName(SBMLmodel)
         if not name:
             name = 'Imported SBML model'
-        print(name)
 
         # Create myokit model
         model = myokit.Model(self._convert_name(name))
@@ -1056,7 +1055,7 @@ class SBMLError(myokit.ImportError):
     """
 
 
-# SBML base units according to libSBML (order matters for unit identification!)
+# SBML base units according to libSBML
 SBML2MyoKitUnitDict = {
     'ampere': myokit.units.A,
     'avogadro': None,  # TODO: myokit equivalent not yet looked up
