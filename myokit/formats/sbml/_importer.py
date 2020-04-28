@@ -41,6 +41,12 @@ class SBMLImporter(myokit.formats.Importer):
     def info(self):
         return info
 
+    def supports_model(self):
+        """
+        Returns a bool indicating if model import is supported.
+        """
+        return True
+
     def model(self, path):
         """
         Returns a :class:myokit.Model based on the SBML file provided.
@@ -753,7 +759,7 @@ class SBMLImporter(myokit.formats.Importer):
         return None
 
     def _getListOfFunctionDefinitions(self, element):
-         funcs = element.findall(
+        funcs = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
             + 'listOfFunctionDefinitions/'
