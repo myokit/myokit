@@ -450,6 +450,55 @@ class SBMLTest(unittest.TestCase):
             'insert your function wherever it occurs in yout SBML file and'
             ' delete the functionDefiniton in the file.')
 
+    def test_missing_id(self):
+        # missing unit ID
+        xml = (
+            '<ns0:listOfUnitDefinitions>\n'
+            '<ns0:unitDefinition>\n'  # here is where an ID is supposed to be
+            '<ns0:listOfUnits>\n'
+            '<ns0:unit kind="litre" exponent="1" scale="0" multiplier="1"/>\n'
+            '</ns0:listOfUnits>\n'
+            '</ns0:unitDefinition>\n'
+            '</ns0:listOfUnitDefinitions>')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' No unit ID provided.')
+
+        # missing compartment ID
+        xml = (
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment/>\n'  # here is where the ID is missing
+            '</ns0:listOfCompartments>')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' No compartment ID provided.')
+
+        # missing parameter ID
+        xml = (
+            '<ns0:listOfParameters>\n'
+            '<ns0:parameter/>\n'  # here is where the ID is missing
+            '</ns0:listOfParameters>')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' No parameter ID provided.')
+
+    def test_reserved_compartment_id(self):
+        """
+        MyoKit is a reserved ID that is used while importing for the myokit
+        compartment.
+        """
+        xml = (
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="MyoKit"/>\n'
+            '</ns0:listOfCompartments>')
+        self.assertBad(
+            xml=xml,
+            message='The compartment ID <MyoKit> is reserved in a myokit'
+            ' import.')
+
     def test_info(self):
         i = formats.importer('sbml')
         self.assertIsInstance(i.info(), basestring)
