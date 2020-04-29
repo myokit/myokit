@@ -196,8 +196,9 @@ class SBMLImporter(myokit.formats.Importer):
                     elif unit in SBML2MyoKitUnitDict:
                         unit = SBML2MyoKitUnitDict[unit]
                 else:
-                    dim = float(comp.get('spatialDimensions'))  # can be non-
-                    # integer
+                    dim = comp.get('spatialDimensions')
+                    if dim:
+                        dim = float(dim)  # can be non-integer
                     if dim == 3.0:
                         unit = self.userUnitDict['volumeUnit']
                     elif dim == 2.0:
