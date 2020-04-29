@@ -287,6 +287,10 @@ class SBMLImporter(myokit.formats.Importer):
                 if not name:
                     name = ids
                 idc = s.get('compartment')
+                if not idc:
+                    raise SBMLError(
+                        'The file does not adhere to SBML 3.2 standards.'
+                        ' No <compartment> attribute provided.')
                 isAmount = s.get('hasOnlySubstanceUnits')
                 if isAmount is None:
                     raise SBMLError(
@@ -363,8 +367,8 @@ class SBMLImporter(myokit.formats.Importer):
         # protected
         if time_id in self.paramAndSpeciesDict:
             raise SBMLError(
-                'Using the ID %s for parameters or species leads import'
-                ' errors.')
+                'Using the ID <%s> for parameters or species ' % time_id
+                + 'leads import errors.')
         else:
             self.paramAndSpeciesDict[
                 'http://www.sbml.org/sbml/symbols/time'] = time
@@ -503,6 +507,7 @@ class SBMLImporter(myokit.formats.Importer):
 
                 # Raise error if different velocities of reactions are assumed
                 isFast = reaction.get('fast')
+                isFast = True if isFast == 'true' else False
                 if isFast:
                     raise SBMLError(
                         'Myokit does not support the conversion of <fast>'
@@ -515,9 +520,10 @@ class SBMLImporter(myokit.formats.Importer):
                     localParams = self._getListOfLocalParameters(kineticLaw)
                     if localParams:
                         raise SBMLError(
-                            'Myokit does not support the definition of local'
-                            ' parameters in reactions. Please move their'
-                            ' definition to the <listOfParameters> instead.')
+                            'Myokit does currently not support the definition '
+                            'of local parameters in reactions. Please move '
+                            'their definition to the <listOfParameters> '
+                            'instead.')
 
                     # get rate expression for reaction
                     expr = self._getMath(kineticLaw)

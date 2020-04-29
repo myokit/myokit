@@ -388,9 +388,7 @@ class SBMLTest(unittest.TestCase):
             '"http://www.sbml.org/sbml/level%s/version%s/core" ' % (lvl, v)
             + 'xmlns:ns1="http://www.w3.org/1998/Math/MathML" '
             'level="%s" version="%s">\n ' % (lvl, v)
-            + '<ns0:model id="test" name="test" timeUnits="s">\n '
             + xml_content +
-            '</ns0:model>\n'
             '</ns0:sbml>')
         return doc
 
@@ -425,6 +423,7 @@ class SBMLTest(unittest.TestCase):
 
     def test_function_definitions(self):
         xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n '
             '<ns0:listOfFunctionDefinitions>\n'
             '<ns0:functionDefinition id="multiply" name="multiply">\n'
             '<ns1:math xmlns="http://www.w3.org/1998/Math/MathML">\n'
@@ -443,7 +442,8 @@ class SBMLTest(unittest.TestCase):
             '</lambda>\n'
             '</ns1:math>\n'
             '</ns0:functionDefinition>\n'
-            '</ns0:listOfFunctionDefinitions>')
+            '</ns0:listOfFunctionDefinitions>\n'
+            '</ns0:model>\n')
         self.assertBad(
             xml=xml,
             message='Myokit does not support functionDefinitions. Please '
@@ -453,13 +453,15 @@ class SBMLTest(unittest.TestCase):
     def test_missing_id(self):
         # missing unit ID
         xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfUnitDefinitions>\n'
             '<ns0:unitDefinition>\n'  # here is where an ID is supposed to be
             '<ns0:listOfUnits>\n'
             '<ns0:unit kind="litre" exponent="1" scale="0" multiplier="1"/>\n'
             '</ns0:listOfUnits>\n'
             '</ns0:unitDefinition>\n'
-            '</ns0:listOfUnitDefinitions>')
+            '</ns0:listOfUnitDefinitions>\n'
+            '</ns0:model>\n')
         self.assertBad(
             xml=xml,
             message='The file does not adhere to SBML 3.2 standards.'
@@ -467,9 +469,11 @@ class SBMLTest(unittest.TestCase):
 
         # missing compartment ID
         xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
             '<ns0:compartment/>\n'  # here is where the ID is missing
-            '</ns0:listOfCompartments>')
+            '</ns0:listOfCompartments>\n'
+            '</ns0:model>\n')
         self.assertBad(
             xml=xml,
             message='The file does not adhere to SBML 3.2 standards.'
@@ -477,27 +481,320 @@ class SBMLTest(unittest.TestCase):
 
         # missing parameter ID
         xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfParameters>\n'
             '<ns0:parameter/>\n'  # here is where the ID is missing
-            '</ns0:listOfParameters>')
+            '</ns0:listOfParameters>\n'
+            '</ns0:model>\n')
         self.assertBad(
             xml=xml,
             message='The file does not adhere to SBML 3.2 standards.'
             ' No parameter ID provided.')
 
+        # missing global conversion factor ID
+        xml = (
+            '<ns0:model id="test" conversionFactor="someFactor" timeUnits="s">\n'
+            '<ns0:listOfParameters>\n'
+            '<ns0:parameter id="someOtherFactor"/>\n'
+            '</ns0:listOfParameters>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' The model conversionFactor points to non-existent ID.')
+
+        # missing species ID
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species/>\n'  # here is where the ID is missing
+            '</ns0:listOfSpecies>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' No species ID provided.')
+
+        # missing conversion factor ID
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            ' conversionFactor="someFactor"/>\n'
+            '</ns0:listOfSpecies>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' conversionFactor refers to non-existent ID.')
+
+        # missing reactant ID
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction>\n'
+            '<ns0:listOfReactants>\n'
+            '<ns0:speciesReference species="someSpecies"/>\n'
+            '</ns0:listOfReactants>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards. '
+            'Species ID not existent.')
+
+        # missing product ID
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction>\n'
+            '<ns0:listOfProducts>\n'
+            '<ns0:speciesReference species="someSpecies"/>\n'
+            '</ns0:listOfProducts>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards. '
+            'Species ID not existent.')
+
+        # missing modifier ID
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction>\n'
+            '<ns0:listOfReactants>\n'
+            '<ns0:speciesReference species="someSpecies"/>\n'
+            '</ns0:listOfReactants>\n'
+            '<ns0:listOfModifiers>\n'
+            '<ns0:modifierSpeciesReference species="someOtherSpecies"/>\n'
+            '</ns0:listOfModifiers>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards. '
+            'Species ID not existent.')
+
     def test_reserved_compartment_id(self):
         """
-        MyoKit is a reserved ID that is used while importing for the myokit
+        ``MyoKit`` is a reserved ID that is used while importing for the myokit
         compartment.
         """
         xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
             '<ns0:compartment id="MyoKit"/>\n'
-            '</ns0:listOfCompartments>')
+            '</ns0:listOfCompartments>\n'
+            '</ns0:model>\n')
         self.assertBad(
             xml=xml,
             message='The compartment ID <MyoKit> is reserved in a myokit'
             ' import.')
+
+    def test_reserved_parameter_id(self):
+        """
+        ``globalConversionFactor`` is a reserved ID that is used while
+        importing the global conversion factor.
+        """
+        xml = (
+            '<ns0:model id="test" conversionFactor="someFactor" timeUnits="s">\n'
+            '<ns0:listOfParameters>\n'
+            '<ns0:parameter id="globalConversionFactor"/>\n'
+            '</ns0:listOfParameters>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The ID <globalConversionFactor> is protected in a myokit'
+            ' SBML import. Please rename IDs.')
+
+    def test_missing_compartment(self):
+        """
+        Tests whether error is thrown when ``compartment``
+        attribute is not specified for a species.
+        """
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies"/>\n'
+            '</ns0:listOfSpecies>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' No <compartment> attribute provided.')
+
+    def test_missing_hasOnlySubstanceUnits(self):
+        """
+        Tests whether error is thrown when ``hasOnlySubstanceUnits``
+        attribute is not specified for a species.
+        """
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" compartment="someComp"/>\n'
+            '</ns0:listOfSpecies>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' No <hasOnlySubstanceUnits> flag provided.')
+
+    def test_missing_constant(self):
+        """
+        Tests whether error is thrown when ``constant``
+        attribute is not specified for a species.
+        """
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true"'
+            ' compartment="someComp"/>\n'
+            '</ns0:listOfSpecies>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' No <constant> flag provided.')
+
+    def test_missing_boundaryCondition(self):
+        """
+        Tests whether error is thrown when ``boundaryCondition``
+        attribute is not specified for a species.
+        """
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true"'
+            ' compartment="someComp" constant="false"/>\n'
+            '</ns0:listOfSpecies>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' No <boundaryCondition> flag provided.')
+
+    def test_reserved_time_id(self):
+        """
+        Tests whether error is thrown when
+        ``http://www.sbml.org/sbml/symbols/time`` is used as parameter or
+        species ID. This is the definitionURL used by MathML to identify
+        the time variable in equations. We use it as an parameter ID to
+        find the time bound variable in the myokit model.
+        """
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfParameters>\n'
+            '<ns0:parameter id="http://www.sbml.org/sbml/symbols/time"/>\n'
+            '</ns0:listOfParameters>\n'
+            '</ns0:model>\n')
+        time_id = 'http://www.sbml.org/sbml/symbols/time'
+        self.assertBad(
+            xml=xml,
+            message='Using the ID <%s> for parameters or species ' % time_id
+            + 'leads import errors.')
+
+    def test_missing_reactants_products(self):
+        """
+        Tests whether error is thrown when reaction does neither provide
+        reactants not products.
+        """
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards. '
+            'Reaction must have at least one reactant or product.')
+
+    def test_fast_reaction(self):
+        """
+        Tests whether error is thrown when a reaction is flagged as ``fast``.
+        Myokit treats all reactions equal, so fast reactions are not supported.
+        """
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction fast="true">\n'
+            '<ns0:listOfReactants>\n'
+            '<ns0:speciesReference species="someSpecies"/>\n'
+            '</ns0:listOfReactants>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='Myokit does not support the conversion of <fast>'
+            ' reactions to steady states. Please do the maths'
+            ' and substitute the steady states as AssigmentRule')
+
+    def test_local_parameters(self):
+        """
+        Tests whether error is thrown when a reaction has ``localParameters``.
+        Local parameters are currenly not supported in myokit.
+        """
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction>\n'
+            '<ns0:listOfReactants>\n'
+            '<ns0:speciesReference species="someSpecies"/>\n'
+            '</ns0:listOfReactants>\n'
+            '<ns0:kineticLaw>\n'
+            '<ns0:listOfLocalParameters>\n'
+            '<ns0:localParameter id="someParameter"/>'
+            '</ns0:listOfLocalParameters>\n'
+            '</ns0:kineticLaw>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='Myokit does currently not support the definition '
+            'of local parameters in reactions. Please move '
+            'their definition to the <listOfParameters> '
+            'instead.')
 
     def test_info(self):
         i = formats.importer('sbml')
