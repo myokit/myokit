@@ -956,13 +956,8 @@ class MathMLParser(object):
         Parses a ``<csymbol>`` element and returns a :class:`myokit.Name`
         created by the name factory.
         """
-
-        timeUri = 'http://www.sbml.org/sbml/symbols/time'
-        if element.get('definitionURL') != timeUri:
-            raise ImportError(
-                '<csymbol> must have definitionURL %s to be ' % timeUri
-                + 'interpretable my myokit.')
+        symbol = element.get('definitionURL')
         try:
-            return self._vfac(timeUri, element)
+            return self._vfac(symbol, element)
         except Exception as e:
             raise MathMLError('Unable to create Name: ' + str(e), element)
