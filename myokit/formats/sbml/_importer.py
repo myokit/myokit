@@ -36,7 +36,6 @@ class SBMLImporter(myokit.formats.Importer):
         self.re_name = re.compile(r'^[a-zA-Z]+[a-zA-Z0-9_]*$')
         self.re_alpha = re.compile(r'[\W]+')
         self.re_white = re.compile(r'[ \t\f\n\r]+')
-        self.units = {}
 
     def info(self):
         return info
@@ -47,22 +46,58 @@ class SBMLImporter(myokit.formats.Importer):
         """
         return True
 
-    def model(self, path):
+    def supports_component(self):
+        """
+        Returns a bool indicating if component import is supported.
+        """
+        return True
+
+    def parse_file(self, path):
+        """
+        Parses the SBML file at ``path`` and returns a myokit
+        model.
+        """
+        # Read file
+        try:
+            tree = ET.parse(path)
+        except Exception as e:
+            raise SBMLError('Unable to parse XML: ' + str(e))
+
+        # Parse content
+        return self.parse(tree.getroot())
+
+    def parse_string(self, text):
+        """
+        Parses the SBML XML in the string ``text`` and returns
+        a myokit model.
+        """
+        # Read string
+        try:
+            root = ET.fromstring(text)
+        except Exception as e:
+            raise SBMLError('Unable to parse XML: ' + str(e))
+
+        # Parse content
+        return self.parse(root)
+
+    def parse(self, root):
+        """
+        Parses and a SBML document rooted in the given elementtree
+        element.
+        """
+        try:
+            return self._parse_model(root)
+        except myokit.formats.sbml._importer.SBMLError as e:
+            raise SBMLError(str(e))
+        except myokit.formats.mathml.MathMLError as e:
+            raise SBMLError(str(e))
+
+    def _parse_model(self, root):
         """
         Returns a :class:myokit.Model based on the SBML file provided.
-
-        Arguments:
-
-        ``path``
-            Path to SBML file.
-
         """
         # Get logger
         log = self.logger()
-
-        # Read SBML file
-        doc = ET.parse(path)
-        root = doc.getroot()
 
         # Check whether file has SBML 3.2 namespace
         ns = self._getNamespace(root)
