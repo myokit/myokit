@@ -209,6 +209,67 @@ class SBMLTest(unittest.TestCase):
             + '* compartment.S2_Concentration ^ 2)')
         self.assertEqual(str(state.rhs()), expression)
 
+    def test_assignment_rules(self):
+        """
+        Tests whether intermediate variables have been assigned with correct
+        expressions.
+        """
+        # parameter 1
+        parameter = 'S1_Concentration'
+        parameter = self.modelFour.get('compartment.' + parameter)
+        expression = 'compartment.S1 / compartment.size'
+        self.assertEqual(str(parameter.rhs()), expression)
+
+        # parameter 2
+        parameter = 'S2_Concentration'
+        parameter = self.modelFour.get('compartment.' + parameter)
+        expression = 'compartment.S2 / compartment.size'
+        self.assertEqual(str(parameter.rhs()), expression)
+
+    def test_units(self):
+        """Tests whether units have been imported properly."""
+        # state 1
+        state = 'S1'
+        state = self.modelFour.get('compartment.' + state)
+        unit = myokit.units.mol
+        self.assertEqual(state.unit(), unit)
+
+        # state 2
+        state = 'S2'
+        state = self.modelFour.get('compartment.' + state)
+        unit = myokit.units.mol
+        self.assertEqual(state.unit(), unit)
+
+        # parameter 1
+        parameter = 'k1'
+        parameter = self.modelFour.get('myokit.' + parameter)
+        unit = None
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 2
+        parameter = 'k2'
+        parameter = self.modelFour.get('myokit.' + parameter)
+        unit = None
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 3
+        parameter = 'size'
+        parameter = self.modelFour.get('compartment.' + parameter)
+        unit = myokit.units.L
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 4
+        parameter = 'S1_Concentration'
+        parameter = self.modelFour.get('compartment.' + parameter)
+        unit = myokit.units.mol / myokit.units.L
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 5
+        parameter = 'S2_Concentration'
+        parameter = self.modelFour.get('compartment.' + parameter)
+        unit = myokit.units.mol / myokit.units.L
+        self.assertEqual(parameter.unit(), unit)
+
     def test_info(self):
         i = formats.importer('sbml')
         self.assertIsInstance(i.info(), basestring)
