@@ -423,6 +423,33 @@ class SBMLTest(unittest.TestCase):
             message='The file does not adhere to SBML 3.2 standards.'
                 ' No model provided.')
 
+    def test_function_definitions(self):
+        xml = (
+            '<ns0:listOfFunctionDefinitions>\n'
+            '<ns0:functionDefinition id="multiply" name="multiply">\n'
+            '<ns1:math xmlns="http://www.w3.org/1998/Math/MathML">\n'
+            '<lambda>\n'
+            '<bvar>\n'
+            '<ci> x </ci>\n'
+            '</bvar>\n'
+            '<bvar>\n'
+            '<ci> y </ci>\n'
+            '</bvar>\n'
+            '<apply>\n'
+            '<times/>\n'
+            '<ci> x </ci>\n'
+            '<ci> y </ci>\n'
+            '</apply>\n'
+            '</lambda>\n'
+            '</ns1:math>\n'
+            '</ns0:functionDefinition>\n'
+            '</ns0:listOfFunctionDefinitions>')
+        self.assertBad(
+            xml=xml,
+            message='Myokit does not support functionDefinitions. Please '
+            'insert your function wherever it occurs in yout SBML file and'
+            ' delete the functionDefiniton in the file.')
+
     def test_info(self):
         i = formats.importer('sbml')
         self.assertIsInstance(i.info(), basestring)
