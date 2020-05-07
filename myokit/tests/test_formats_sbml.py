@@ -48,7 +48,7 @@ class SBMLTest(unittest.TestCase):
     def test_capability_reporting(self):
         # Test if the right capabilities are reported.
         i = formats.importer('sbml')
-        self.assertTrue(i.supports_component())
+        self.assertFalse(i.supports_component())
         self.assertTrue(i.supports_model())
         self.assertFalse(i.supports_protocol())
 
@@ -599,12 +599,12 @@ class SBMLTest(unittest.TestCase):
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
-            '<ns0:compartment id="MyoKit"/>\n'
+            '<ns0:compartment id="Myokit"/>\n'
             '</ns0:listOfCompartments>\n'
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The compartment ID <MyoKit> is reserved in a myokit'
+            message='The compartment ID <Myokit> is reserved in a myokit'
             ' import.')
 
     def test_reserved_parameter_id(self):
