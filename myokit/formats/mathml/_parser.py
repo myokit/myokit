@@ -101,7 +101,8 @@ class MathMLParser(object):
         in the tag's attributes (esp. in CellML) the number post-processing
         function can be used.
     ``<csymbol>``
-        Becomes a :class:`myokit.Name`. Currently, only time is supported.
+        Becomes a :class:`myokit.Name`. Only csymbols representing special
+        variables are supported.
 
     Algebra
 
