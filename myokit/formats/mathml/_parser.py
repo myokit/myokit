@@ -953,8 +953,8 @@ class MathMLParser(object):
 
     def _parse_symbol(self, element):
         """
-        Parses a ``<csymbol>`` element and returns a :class:`myokit.Name`
-        created by the name factory.
+        Parses only ``<csymbol>`` elements that represent special variables
+        and returns a :class:`myokit.Name` created by the name factory.
         """
         symbol = element.get('definitionURL')
         try:
