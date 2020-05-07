@@ -239,7 +239,7 @@ class SBMLImporter(myokit.formats.Importer):
                 unit = self._get_units(param)
 
                 # add parameter to sbml compartment
-                comp = compDict['MyoKit']
+                comp = compDict['Myokit']
                 var = comp.add_variable_allow_renaming(
                     self._convert_name(name))
                 var.set_unit(unit)
@@ -355,7 +355,7 @@ class SBMLImporter(myokit.formats.Importer):
                 }
 
         # Add time bound variable to model
-        time = compDict['MyoKit'].add_variable('time')
+        time = compDict['Myokit'].add_variable('time')
         time.set_binding('time')
         time.set_unit(self.userUnitDict['timeUnit'])
         time.set_rhs(0.0)  # According to SBML guidelines
@@ -417,7 +417,7 @@ class SBMLImporter(myokit.formats.Importer):
                                     idc].add_variable_allow_renaming(name)
                             except KeyError:
                                 var = compDict[
-                                    'MyoKit'].add_variable_allow_renaming(name)
+                                    'Myokit'].add_variable_allow_renaming(name)
                             var.set_unit = myokit.units.dimensionless
                             var.set_rhs(stoich)
                             self.paramAndSpeciesDict[idStoich] = var
@@ -466,7 +466,7 @@ class SBMLImporter(myokit.formats.Importer):
                                     idc].add_variable_allow_renaming(name)
                             except KeyError:
                                 var = compDict[
-                                    'MyoKit'].add_variable_allow_renaming(name)
+                                    'Myokit'].add_variable_allow_renaming(name)
                             var.set_unit = myokit.units.dimensionless
                             var.set_rhs(stoich)
                             self.paramAndSpeciesDict[idStoich] = var
