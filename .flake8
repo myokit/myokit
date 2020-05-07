@@ -3,6 +3,7 @@ filename=
     *.py,
     ./test
 exclude=
+    ./build
     ./venv
     ./dev,
     ./.git,
