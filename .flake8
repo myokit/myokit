@@ -3,13 +3,13 @@ filename=
     *.py,
     ./test
 exclude=
-    ./build,
     ./venv,
     ./dev,
     ./.git,
     ./myokit.egg-info,
     ./myokit/_exec_old.py,
-    ./myokit/formats/python/template
+    ./myokit/formats/python/template,
+    ./build,
 ignore=
     # Block comment should start with '# '
     # Not if it's a commented out line

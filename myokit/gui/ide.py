@@ -495,7 +495,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 return
 
             try:
-                if name == 'cellml':
+                if name in ('cellml1', 'cellml2'):
                     p = self.protocol(errors_in_console=True)
                     if p is False:
                         p = None
