@@ -38,7 +38,7 @@ class SBMLTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """
-        Tests case 00004 from the SBML test suite
+        Tests a modified version of case 00004 from the SBML test suite
         http://sbml.org/Facilities/Database/.
         """
         cls.i = formats.importer('sbml')
@@ -46,7 +46,7 @@ class SBMLTest(unittest.TestCase):
             DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
 
     def test_capability_reporting(self):
-        """ Test if the right capabilities are reported. """
+        # Test if the right capabilities are reported.
         i = formats.importer('sbml')
         self.assertTrue(i.supports_component())
         self.assertTrue(i.supports_model())

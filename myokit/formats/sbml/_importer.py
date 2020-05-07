@@ -41,16 +41,12 @@ class SBMLImporter(myokit.formats.Importer):
         return info
 
     def supports_model(self):
-        """
-        Returns a bool indicating if model import is supported.
-        """
+        """See :meth: myokit.formats.Importer.supports_model()."""
         return True
 
     def supports_component(self):
-        """
-        Returns a bool indicating if component import is supported.
-        """
-        return True
+        """See :meth: myokit.formats.Importer.supports_component()."""
+        return False
 
     def parse_file(self, path):
         """
@@ -100,7 +96,7 @@ class SBMLImporter(myokit.formats.Importer):
         log = self.logger()
 
         # Check whether file has SBML 3.2 namespace
-        ns = self._getNamespace(root)
+        ns = self._get_namespace(root)
         if ns != 'http://www.sbml.org/sbml/level3/version2/core':
             raise SBMLError(
                 'The file does not adhere to SBML 3.2 standards. The global'
@@ -108,14 +104,14 @@ class SBMLImporter(myokit.formats.Importer):
                 ' <http://www.sbml.org/sbml/level3/version2/core>.')
 
         # Get model
-        SBMLmodel = self._getModel(root)
+        SBMLmodel = self._get_model(root)
         if not SBMLmodel:
             raise SBMLError(
                 'The file does not adhere to SBML 3.2 standards.'
                 ' No model provided.')
 
         # Get model name
-        name = self._getName(SBMLmodel)
+        name = self._get_name(SBMLmodel)
         if not name:
             name = 'Imported SBML model'
 
@@ -124,7 +120,7 @@ class SBMLImporter(myokit.formats.Importer):
         log.log('Reading model "' + model.meta['name'] + '"')
 
         # Add notes, if provided, to model description
-        notes = self._getNotes(SBMLmodel)
+        notes = self._get_notes(SBMLmodel)
         if notes:
             log.log('Converting <model> notes to ascii')
             model.meta['desc'] = html2ascii(notes, width=75)
@@ -132,7 +128,7 @@ class SBMLImporter(myokit.formats.Importer):
 
         # Raise error if function definitions are provided (could be added in
         # another PR)
-        funcDefs = self._getListOfFunctionDefinitions(SBMLmodel)
+        funcDefs = self._get_list_of_function_definitions(SBMLmodel)
         if funcDefs:
             raise SBMLError(
                 'Myokit does not support functionDefinitions. Please insert '
@@ -143,7 +139,7 @@ class SBMLImporter(myokit.formats.Importer):
         self.userUnitDict = dict()
 
         # Get unit definitions
-        unitDefs = self._getListOfUnitDefinitions(SBMLmodel)
+        unitDefs = self._get_list_of_unit_definitions(SBMLmodel)
         if unitDefs:
             for unitDef in unitDefs:
                 unitId = unitDef.get('id')
@@ -177,7 +173,7 @@ class SBMLImporter(myokit.formats.Importer):
 
         # Add compartments to model
         compDict = dict()
-        comps = self._getListOfCompartments(SBMLmodel)
+        comps = self._get_list_of_compartments(SBMLmodel)
         if comps:
             for comp in comps:
                 idx = comp.get('id')
@@ -221,14 +217,14 @@ class SBMLImporter(myokit.formats.Importer):
                 self.paramAndSpeciesDict[idx] = var
 
         name = self._convert_name('myokit')
-        if 'MyoKit' in compDict:
+        if 'Myokit' in compDict:
             raise SBMLError(
-                'The compartment ID <MyoKit> is reserved in a myokit'
+                'The compartment ID <Myokit> is reserved in a myokit'
                 ' import.')
-        compDict['MyoKit'] = model.add_component(name)
+        compDict['Myokit'] = model.add_component(name)
 
         # Add parameters to model
-        params = self._getListOfParameters(SBMLmodel)
+        params = self._get_list_of_parameters(SBMLmodel)
         if params:
             for param in params:
                 idp = param.get('id')
@@ -240,7 +236,7 @@ class SBMLImporter(myokit.formats.Importer):
                 if not name:
                     name = idp
                 value = param.get('value')
-                unit = self._getUnits(param)
+                unit = self._get_units(param)
 
                 # add parameter to sbml compartment
                 comp = compDict['MyoKit']
@@ -275,7 +271,7 @@ class SBMLImporter(myokit.formats.Importer):
         speciesAlsoInAmountDict = dict()
 
         # Add species to compartments
-        species = self._getListOfSpecies(SBMLmodel)
+        species = self._get_list_of_species(SBMLmodel)
         if species:
             for s in species:
                 ids = s.get('id')
@@ -297,8 +293,8 @@ class SBMLImporter(myokit.formats.Importer):
                         'The file does not adhere to SBML 3.2 standards.'
                         ' No <hasOnlySubstanceUnits> flag provided.')
                 isAmount = True if isAmount == 'true' else False
-                value = self._getSpeciesInitialValueInAmount(s, idc, isAmount)
-                unit = self._getSubstanceUnits(s)
+                value = self._get_species_initial_value_in_amount(s, idc, isAmount)
+                unit = self._get_substance_units(s)
 
                 # Add variable in amount (needed for reactions, even if
                 # measured in conc.)
@@ -378,7 +374,7 @@ class SBMLImporter(myokit.formats.Importer):
         speciesReference = set()
 
         # Add Reactions to model
-        reactions = self._getListOfReactions(SBMLmodel)
+        reactions = self._get_list_of_reactions(SBMLmodel)
         if reactions:
             # Create reactant and product reference to build rate equations
             reactionSpeciesDict = dict()
@@ -391,7 +387,7 @@ class SBMLImporter(myokit.formats.Importer):
                 idc = reaction.get('compartment')
 
                 # Reactants
-                reactants = self._getListOfReactants(reaction)
+                reactants = self._get_list_of_reactants(reaction)
                 if reactants:
                     for reactant in reactants:
                         ids = reactant.get('species')
@@ -440,7 +436,7 @@ class SBMLImporter(myokit.formats.Importer):
                         speciesReference.add(ids)
 
                 # Products
-                products = self._getListOfProducts(reaction)
+                products = self._get_list_of_products(reaction)
                 if products:
                     for product in products:
                         ids = product.get('species')
@@ -493,7 +489,7 @@ class SBMLImporter(myokit.formats.Importer):
                         'Reaction must have at least one reactant or product.')
 
                 # Modifiers
-                modifiers = self._getListOfModiefiers(reaction)
+                modifiers = self._get_list_of_modiefiers(reaction)
                 if modifiers:
                     for modifier in modifiers:
                         ids = modifier.get('species')
@@ -515,9 +511,10 @@ class SBMLImporter(myokit.formats.Importer):
                         ' and substitute the steady states as AssigmentRule')
 
                 # Get kinetic law
-                kineticLaw = self._getKineticLaw(reaction)
+                kineticLaw = self._get_kinetic_law(reaction)
                 if kineticLaw:
-                    localParams = self._getListOfLocalParameters(kineticLaw)
+                    localParams = self._get_list_of_local_parameters(
+                        kineticLaw)
                     if localParams:
                         raise SBMLError(
                             'Myokit does currently not support the definition '
@@ -526,7 +523,7 @@ class SBMLImporter(myokit.formats.Importer):
                             'instead.')
 
                     # get rate expression for reaction
-                    expr = self._getMath(kineticLaw)
+                    expr = self._get_math(kineticLaw)
                     if expr:
                         try:
                             expr = parse_mathml_etree(
@@ -644,7 +641,7 @@ class SBMLImporter(myokit.formats.Importer):
                 var.set_rhs(reactionSpeciesDict[species])
 
         # Add initial assignments to model
-        assignments = self._getListOfInitialAssignments(SBMLmodel)
+        assignments = self._get_list_of_initial_assignments(SBMLmodel)
         if assignments:
             for assign in assignments:
                 varId = assign.get('symbol')
@@ -654,7 +651,7 @@ class SBMLImporter(myokit.formats.Importer):
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
                         ' Initial assignment refers to non-existent ID.')
-                expr = self._getMath(assign)
+                expr = self._get_math(assign)
                 if expr:
                     expr = parse_mathml_etree(
                         expr,
@@ -680,13 +677,13 @@ class SBMLImporter(myokit.formats.Importer):
                         var.set_rhs(expr)
 
         # Raise error if algebraicRules are in file
-        rules = self._getListOfAlgebraicRules(SBMLmodel)
+        rules = self._get_list_of_algebraic_rules(SBMLmodel)
         if rules:
             raise SBMLError(
                 'Myokit does not support algebraic assignments.')
 
         # Add assignmentRules to model
-        rules = self._getListOfAssignmentRules(SBMLmodel)
+        rules = self._get_list_of_assignment_rules(SBMLmodel)
         if rules:
             for rule in rules:
                 var = rule.get('variable')
@@ -704,7 +701,7 @@ class SBMLImporter(myokit.formats.Importer):
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
                         ' AssignmentRule refers to non-existent ID.')
-                expr = self._getMath(rule)
+                expr = self._get_math(rule)
                 if expr:
                     var.set_rhs(parse_mathml_etree(
                         expr,
@@ -713,7 +710,7 @@ class SBMLImporter(myokit.formats.Importer):
                     ))
 
         # Add rateRules to model
-        rules = self._getListOfRateRules(SBMLmodel)
+        rules = self._get_list_of_rate_rules(SBMLmodel)
         if rules:
             for rule in rules:
                 varId = rule.get('variable')
@@ -731,7 +728,7 @@ class SBMLImporter(myokit.formats.Importer):
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
                         ' RateRule refers to non-existent ID.')
-                expr = self._getMath(rule)
+                expr = self._get_math(rule)
                 if expr:
                     expr = parse_mathml_etree(
                         expr,
@@ -756,14 +753,14 @@ class SBMLImporter(myokit.formats.Importer):
                     var.set_rhs(expr)
 
         # Log warning if constraints are provided
-        constraints = self._getListOfConstraints(SBMLmodel)
+        constraints = self._get_list_of_constraints(SBMLmodel)
         if constraints:
             log.warn(
                 "Myokit does not support SBML's constraints feature. "
                 "The constraints will be ignored for the simulation.")
 
         # Log warning if events are provided (could be supported in a later PR)
-        events = self._getListOfEvents(SBMLmodel)
+        events = self._get_list_of_events(SBMLmodel)
         if events:
             log.warn(
                 "Myokit does not support SBML's events feature. The events"
@@ -772,10 +769,10 @@ class SBMLImporter(myokit.formats.Importer):
 
         return model
 
-    def _getNamespace(self, element):
+    def _get_namespace(self, element):
         return split(element.tag)[0]
 
-    def _getModel(self, element):
+    def _get_model(self, element):
         model = element.find(
             '{http://www.sbml.org/sbml/level3/version2/core}'
             + 'model')
@@ -783,7 +780,7 @@ class SBMLImporter(myokit.formats.Importer):
             return model
         return None
 
-    def _getName(self, element):
+    def _get_name(self, element):
         name = element.get('name')
         if name:
             return name
@@ -792,7 +789,7 @@ class SBMLImporter(myokit.formats.Importer):
             return name
         return None
 
-    def _getNotes(self, element):
+    def _get_notes(self, element):
         notes = element.find(
             '{http://www.sbml.org/sbml/level3/version2/core}'
             + 'notes')
@@ -800,7 +797,7 @@ class SBMLImporter(myokit.formats.Importer):
             return ET.tostring(notes).decode()
         return None
 
-    def _getListOfFunctionDefinitions(self, element):
+    def _get_list_of_function_definitions(self, element):
         funcs = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -811,7 +808,7 @@ class SBMLImporter(myokit.formats.Importer):
             return funcs
         return None
 
-    def _getListOfUnitDefinitions(self, element):
+    def _get_list_of_unit_definitions(self, element):
         units = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -822,7 +819,7 @@ class SBMLImporter(myokit.formats.Importer):
             return units
         return None
 
-    def _getListOfCompartments(self, element):
+    def _get_list_of_compartments(self, element):
         comps = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -833,7 +830,7 @@ class SBMLImporter(myokit.formats.Importer):
             return comps
         return None
 
-    def _getListOfParameters(self, element):
+    def _get_list_of_parameters(self, element):
         params = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -844,7 +841,7 @@ class SBMLImporter(myokit.formats.Importer):
             return params
         return None
 
-    def _getListOfSpecies(self, element):
+    def _get_list_of_species(self, element):
         species = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -855,7 +852,7 @@ class SBMLImporter(myokit.formats.Importer):
             return species
         return None
 
-    def _getListOfReactions(self, element):
+    def _get_list_of_reactions(self, element):
         reactions = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -866,7 +863,7 @@ class SBMLImporter(myokit.formats.Importer):
             return reactions
         return None
 
-    def _getListOfReactants(self, element):
+    def _get_list_of_reactants(self, element):
         reactants = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -877,7 +874,7 @@ class SBMLImporter(myokit.formats.Importer):
             return reactants
         return None
 
-    def _getListOfProducts(self, element):
+    def _get_list_of_products(self, element):
         products = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -888,7 +885,7 @@ class SBMLImporter(myokit.formats.Importer):
             return products
         return None
 
-    def _getListOfModiefiers(self, element):
+    def _get_list_of_modiefiers(self, element):
         modifiers = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -899,7 +896,7 @@ class SBMLImporter(myokit.formats.Importer):
             return modifiers
         return None
 
-    def _getKineticLaw(self, element):
+    def _get_kinetic_law(self, element):
         kineticLaw = element.find(
             '{http://www.sbml.org/sbml/level3/version2/core}'
             + 'kineticLaw')
@@ -907,7 +904,7 @@ class SBMLImporter(myokit.formats.Importer):
             return kineticLaw
         return None
 
-    def _getListOfInitialAssignments(self, element):
+    def _get_list_of_initial_assignments(self, element):
         assignments = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -918,7 +915,7 @@ class SBMLImporter(myokit.formats.Importer):
             return assignments
         return None
 
-    def _getListOfAlgebraicRules(self, element):
+    def _get_list_of_algebraic_rules(self, element):
         rules = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -929,7 +926,7 @@ class SBMLImporter(myokit.formats.Importer):
             return rules
         return None
 
-    def _getListOfAssignmentRules(self, element):
+    def _get_list_of_assignment_rules(self, element):
         rules = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -940,7 +937,7 @@ class SBMLImporter(myokit.formats.Importer):
             return rules
         return None
 
-    def _getListOfRateRules(self, element):
+    def _get_list_of_rate_rules(self, element):
         rules = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -951,7 +948,7 @@ class SBMLImporter(myokit.formats.Importer):
             return rules
         return None
 
-    def _getListOfConstraints(self, element):
+    def _get_list_of_constraints(self, element):
         constraints = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -962,7 +959,7 @@ class SBMLImporter(myokit.formats.Importer):
             return constraints
         return None
 
-    def _getListOfEvents(self, element):
+    def _get_list_of_events(self, element):
         events = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -973,7 +970,7 @@ class SBMLImporter(myokit.formats.Importer):
             return events
         return None
 
-    def _getMath(self, element):
+    def _get_math(self, element):
         math = element.find(
             '{http://www.w3.org/1998/Math/MathML}'
             + 'math')
@@ -981,7 +978,7 @@ class SBMLImporter(myokit.formats.Importer):
             return math
         return None
 
-    def _getListOfLocalParameters(self, element):
+    def _get_list_of_local_parameters(self, element):
         params = element.findall(
             './'
             + '{http://www.sbml.org/sbml/level3/version2/core}'
@@ -1040,7 +1037,7 @@ class SBMLImporter(myokit.formats.Importer):
 
         return unitDef
 
-    def _getUnits(self, parameter):
+    def _get_units(self, parameter):
         """
         Returns :class:myokit.Unit expression of the unit of a parameter.
         """
@@ -1052,7 +1049,7 @@ class SBMLImporter(myokit.formats.Importer):
         else:
             return None
 
-    def _getSubstanceUnits(self, species):
+    def _get_substance_units(self, species):
         """
         Returns :class:myokit.Unit expression of the unit of a species.
         """
@@ -1065,7 +1062,7 @@ class SBMLImporter(myokit.formats.Importer):
         else:
             return None
 
-    def _getSpeciesInitialValueInAmount(self, species, compId, isAmount):
+    def _get_species_initial_value_in_amount(self, species, compId, isAmount):
         """
         Returns the initial value of a species either in amount or
         concentration depend on the flag is Amount.
@@ -1079,22 +1076,6 @@ class SBMLImporter(myokit.formats.Importer):
             return myokit.Multiply(
                 myokit.Number(amount), myokit.Name(volume))
         return None
-
-    def _get_reaction_species(self, listOfSpecies):
-        """
-        Returns a dictionary with species IDs as keys and their respective
-        stoichiometries.
-        """
-        species = {}
-        for s in species:
-            ids = s.getSpecies()
-            stoich = s.getStoichiometry()
-            if ids in species:
-                species[ids] += stoich
-            else:
-                species[ids] = stoich
-
-            return species
 
 
 class SBMLError(myokit.ImportError):
@@ -1141,5 +1122,4 @@ SBML2MyoKitUnitDict = {
     'volt': myokit.units.V,
     'watt': myokit.units.W,
     'weber': myokit.units.Wb,
-    'invalid': None,
 }
