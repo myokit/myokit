@@ -493,7 +493,8 @@ class SBMLTest(unittest.TestCase):
 
         # missing global conversion factor ID
         xml = (
-            '<ns0:model id="test" conversionFactor="someFactor" timeUnits="s">\n'
+            '<ns0:model id="test" conversionFactor="someFactor" '
+            'timeUnits="s">\n'
             '<ns0:listOfParameters>\n'
             '<ns0:parameter id="someOtherFactor"/>\n'
             '</ns0:listOfParameters>\n'
@@ -613,7 +614,8 @@ class SBMLTest(unittest.TestCase):
         importing the global conversion factor.
         """
         xml = (
-            '<ns0:model id="test" conversionFactor="someFactor" timeUnits="s">\n'
+            '<ns0:model id="test" conversionFactor="someFactor" '
+            'timeUnits="s">\n'
             '<ns0:listOfParameters>\n'
             '<ns0:parameter id="globalConversionFactor"/>\n'
             '</ns0:listOfParameters>\n'
