@@ -1030,8 +1030,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         Validates the model and, if the model is valid, the protocol.
         """
         try:
-            if not self.model(console=True):
-                return
+            self.model(console=True)
             self.protocol(console=True)
         except Exception:
             self.show_exception()
