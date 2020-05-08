@@ -41,8 +41,14 @@ class SBMLTest(unittest.TestCase):
         Tests a modified version of case 00004 from the SBML test suite
         http://sbml.org/Facilities/Database/.
         """
+        # Instantiate parser
+        cls.p = formats.importer('sbml-parser')
+
+        # Instantiate importer
         cls.i = formats.importer('sbml')
-        cls.modelFour = cls.i.parse_file(os.path.join(
+
+        # Instantiate SBML model
+        cls.modelFour = cls.i.model(os.path.join(
             DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
 
     def test_capability_reporting(self):
@@ -374,7 +380,7 @@ class SBMLTest(unittest.TestCase):
         Inserts the given ``xml`` into a <model> element, parses it, and
         returns the result.
         """
-        return self.i.parse_string(self.wrap(xml, lvl, v))
+        return self.p.parse_string(self.wrap(xml, lvl, v))
 
     def wrap(self, xml_content, sbml_level='3', sbml_version='2'):
         """
