@@ -119,7 +119,7 @@ class SBMLParser(object):
 
         # Create user defined unit reference that maps ids to
         # myokit.Units object
-        self._user_unit_dict = dict()
+        user_unit_dict = dict()
 
         # Get unit definitions
         unit_defs = self._get_list_of_unit_definitions(sbml_model)
@@ -130,7 +130,7 @@ class SBMLParser(object):
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
                         ' No unit ID provided.')
-                self._user_unit_dict[
+                user_unit_dict[
                     unit_id] = self._convert_unit_def(unit_def)
 
         # Get model units
@@ -143,37 +143,39 @@ class SBMLParser(object):
             'extentUnit': sbml_model.get('extentUnits'),
         }
         for unit_id, unit in units.items():
-            if unit in self._user_unit_dict:
-                self._user_unit_dict[unit_id] = self._user_unit_dict[unit]
+            if unit in user_unit_dict:
+                user_unit_dict[unit_id] = user_unit_dict[unit]
             elif unit in sbml_to_myokit_unit_dict:
-                self._user_unit_dict[unit_id] = sbml_to_myokit_unit_dict[unit]
+                user_unit_dict[unit_id] = sbml_to_myokit_unit_dict[unit]
             else:
-                self._user_unit_dict[unit_id] = None
+                user_unit_dict[unit_id] = None
 
         # Initialise parameter and species dictionary; maps ids to
         # myokit.Variable objects.
-        self._param_and_species_dict = dict()
+        param_and_species_dict = dict()
 
         # Initialise compartment dictionary that maps ids to
         # myokit.Component objects.
-        self._comp_dict = dict()
+        comp_dict = dict()
 
         # Add compartments to model
-        self._parse_compartments(sbml_model)
+        self._parse_compartments(
+            sbml_model, user_unit_dict, param_and_species_dict, comp_dict)
 
         # Add parameters to model
-        self._parse_parameters(sbml_model)
+        self._parse_parameters(
+            sbml_model, user_unit_dict, param_and_species_dict, comp_dict)
 
         # Add reference to global conversion factor
         conv_factor_id = sbml_model.get('conversionFactor')
         if conv_factor_id:
-            if 'globalConversionFactor' in self._param_and_species_dict:
+            if 'globalConversionFactor' in param_and_species_dict:
                 raise SBMLError(
                     'The ID <globalConversionFactor> is protected in a myokit'
                     ' SBML import. Please rename IDs.')
             try:
-                conv_factor = self._param_and_species_dict[conv_factor_id]
-                self._param_and_species_dict[
+                conv_factor = param_and_species_dict[conv_factor_id]
+                param_and_species_dict[
                     'globalConversionFactor'] = conv_factor
             except KeyError:
                 raise SBMLError(
@@ -182,29 +184,31 @@ class SBMLParser(object):
 
         # Create species property dictionary for later reference that maps ids
         # to a dictionary of properties.
-        self._species_prop_dict = dict()
+        species_prop_dict = dict()
 
         # Create dictionary for species that occur in amount and in
         # concentration that maps ids to myokit.Variable measured in
         # amount.
-        self._species_also_in_amount_dict = dict()
+        species_also_in_amount_dict = dict()
 
         # Add species to compartments
-        self._parse_species(sbml_model)
+        self._parse_species(
+            sbml_model, user_unit_dict, param_and_species_dict, comp_dict,
+            species_prop_dict, species_also_in_amount_dict)
 
         # Add time bound variable to model
-        time = self._comp_dict['Myokit'].add_variable('time')
+        time = comp_dict['Myokit'].add_variable('time')
         time.set_binding('time')
-        time.set_unit(self._user_unit_dict['timeUnit'])
+        time.set_unit(user_unit_dict['timeUnit'])
         time.set_rhs(0.0)  # According to SBML guidelines
         time_id = 'http://www.sbml.org/sbml/symbols/time'  # This ID is not
         # protected
-        if time_id in self._param_and_species_dict:
+        if time_id in param_and_species_dict:
             raise SBMLError(
                 'Using the ID <%s> for parameters or species ' % time_id
                 + 'leads import errors.')
         else:
-            self._param_and_species_dict[
+            param_and_species_dict[
                 'http://www.sbml.org/sbml/symbols/time'] = time
 
         # Create species reference for all species in reactions for later
@@ -212,10 +216,14 @@ class SBMLParser(object):
         self._species_reference = set()
 
         # Add Reactions to model
-        self._parse_reactions(sbml_model)
+        self._parse_reactions(
+            sbml_model, user_unit_dict, param_and_species_dict, comp_dict,
+            species_prop_dict, species_also_in_amount_dict)
 
         # Add initial assignments to model
-        self._parse_initial_assignments(sbml_model)
+        self._parse_initial_assignments(
+            sbml_model, param_and_species_dict, species_prop_dict,
+            species_also_in_amount_dict)
 
         # Raise error if algebraicRules are in file
         rules = self._get_list_of_algebraic_rules(sbml_model)
@@ -224,10 +232,13 @@ class SBMLParser(object):
                 'Myokit does not support algebraic assignments.')
 
         # Add assignmentRules to model
-        self._parse_assignment_rules(sbml_model)
+        self._parse_assignment_rules(
+            sbml_model, param_and_species_dict, species_prop_dict)
 
         # Add rateRules to model
-        self._parse_rate_rules(sbml_model)
+        self._parse_rate_rules(
+            sbml_model, param_and_species_dict, species_prop_dict,
+            species_also_in_amount_dict)
 
         # Log warning if constraints are provided
         constraints = self._get_list_of_constraints(sbml_model)
@@ -246,11 +257,16 @@ class SBMLParser(object):
 
         return self._model
 
-    def _parse_compartments(self, sbml_model):
+    def _parse_compartments(
+            self,
+            sbml_model,
+            user_unit_dict,
+            param_and_species_dict,
+            comp_dict):
         """
         Adds compartments to model and creates references in
-        self._comp_dict. A ``size`` variable is initialised in each compartment
-        and references in self._param_and_species_dict.
+        comp_dict. A ``size`` variable is initialised in each compartment
+        and references in param_and_species_dict.
         """
         for comp in self._get_list_of_compartments(sbml_model):
             idx = comp.get('id')
@@ -264,8 +280,8 @@ class SBMLParser(object):
             size = comp.get('size')
             unit = comp.get('units')
             if unit:
-                if unit in self._user_unit_dict:
-                    unit = self._user_unit_dict[unit]
+                if unit in user_unit_dict:
+                    unit = user_unit_dict[unit]
                 elif unit in sbml_to_myokit_unit_dict:
                     unit = sbml_to_myokit_unit_dict[unit]
             else:
@@ -273,37 +289,42 @@ class SBMLParser(object):
                 if dim:
                     dim = float(dim)  # can be non-integer
                 if dim == 3.0:
-                    unit = self._user_unit_dict['volumeUnit']
+                    unit = user_unit_dict['volumeUnit']
                 elif dim == 2.0:
-                    unit = self._user_unit_dict['areaUnit']
+                    unit = user_unit_dict['areaUnit']
                 elif dim == 1.0:
-                    unit = self._user_unit_dict['lengthUnit']
+                    unit = user_unit_dict['lengthUnit']
                 else:
                     unit = None
 
             # Create compartment
-            self._comp_dict[idx] = self._model.add_component(
+            comp_dict[idx] = self._model.add_component(
                 self._convert_name(name))
 
             # Add size parameter to compartment
-            var = self._comp_dict[idx].add_variable('size')
+            var = comp_dict[idx].add_variable('size')
             var.set_unit(unit)
             var.set_rhs(size)
 
             # save size in container for later assignments/reactions
-            self._param_and_species_dict[idx] = var
+            param_and_species_dict[idx] = var
 
         name = self._convert_name('myokit')
-        if 'Myokit' in self._comp_dict:
+        if 'Myokit' in comp_dict:
             raise SBMLError(
                 'The compartment ID <Myokit> is reserved in a myokit'
                 ' import.')
-        self._comp_dict['Myokit'] = self._model.add_component(name)
+        comp_dict['Myokit'] = self._model.add_component(name)
 
-    def _parse_parameters(self, sbml_model):
+    def _parse_parameters(
+            self,
+            sbml_model,
+            user_unit_dict,
+            param_and_species_dict,
+            comp_dict):
         """
         Adds parameters to `Myokit` compartment in model and creates
-        references in `self._param_and_species_dict`.
+        references in `param_and_species_dict`.
         """
         for param in self._get_list_of_parameters(sbml_model):
             idp = param.get('id')
@@ -315,22 +336,29 @@ class SBMLParser(object):
             if not name:
                 name = idp
             value = param.get('value')
-            unit = self._get_units(param)
+            unit = self._get_units(param, user_unit_dict)
 
             # add parameter to sbml compartment
-            comp = self._comp_dict['Myokit']
+            comp = comp_dict['Myokit']
             var = comp.add_variable_allow_renaming(
                 self._convert_name(name))
             var.set_unit(unit)
             var.set_rhs(value)
 
             # save param in container for later assignments/reactions
-            self._param_and_species_dict[idp] = var
+            param_and_species_dict[idp] = var
 
-    def _parse_species(self, sbml_model):
+    def _parse_species(
+            self,
+            sbml_model,
+            user_unit_dict,
+            param_and_species_dict,
+            comp_dict,
+            species_prop_dict,
+            species_also_in_amount_dict):
         """
         Adds species to references compartment in model and creates references
-        in `self._param_and_species_dict`.
+        in `param_and_species_dict`.
         """
         for s in self._get_list_of_species(sbml_model):
             ids = s.get('id')
@@ -353,30 +381,30 @@ class SBMLParser(object):
                     ' No <hasOnlySubstanceUnits> flag provided.')
             is_amount = True if is_amount == 'true' else False
             value = self._get_species_initial_value_in_amount(s, idc)
-            unit = self._get_substance_units(s)
+            unit = self._get_substance_units(s, user_unit_dict)
 
             # Add variable in amount (needed for reactions, even if
             # measured in conc.)
-            var = self._comp_dict[idc].add_variable_allow_renaming(name)
+            var = comp_dict[idc].add_variable_allow_renaming(name)
             var.set_unit(unit)
             var.set_rhs(value)
 
             if not is_amount:
                 # Safe amount variable for later reference
-                self._species_also_in_amount_dict[ids] = var
+                species_also_in_amount_dict[ids] = var
 
                 # Add variable in units of concentration
-                volume = self._param_and_species_dict[idc]
+                volume = param_and_species_dict[idc]
                 value = myokit.Divide(
                     myokit.Name(var), myokit.Name(volume))
                 unit = unit / volume.unit()
-                var = self._comp_dict[idc].add_variable_allow_renaming(
+                var = comp_dict[idc].add_variable_allow_renaming(
                     name + '_Concentration')
                 var.set_unit(unit)
                 var.set_rhs(value)
 
             # Save species in container for later assignments/reactions
-            self._param_and_species_dict[ids] = var
+            param_and_species_dict[ids] = var
 
             # save species properties to container for later assignments/
             # reactions
@@ -395,17 +423,17 @@ class SBMLParser(object):
             conv_factor = s.get('conversionFactor')
             if conv_factor:
                 try:
-                    conv_factor = self._param_and_species_dict[conv_factor]
+                    conv_factor = param_and_species_dict[conv_factor]
                 except KeyError:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
                         ' conversionFactor refers to non-existent ID.')
-            elif 'globalConversionFactor' in self._param_and_species_dict:
-                conv_factor = self._param_and_species_dict[
+            elif 'globalConversionFactor' in param_and_species_dict:
+                conv_factor = param_and_species_dict[
                     'globalConversionFactor']
             else:
                 conv_factor = None
-            self._species_prop_dict[ids] = {
+            species_prop_dict[ids] = {
                 'compartment': idc,
                 'isAmount': is_amount,
                 'isConstant': is_constant,
@@ -413,7 +441,14 @@ class SBMLParser(object):
                 'conversionFactor': conv_factor,
             }
 
-    def _parse_reactions(self, sbml_model):
+    def _parse_reactions(
+            self,
+            sbml_model,
+            user_unit_dict,
+            param_and_species_dict,
+            comp_dict,
+            species_prop_dict,
+            species_also_in_amount_dict):
         """
         Adds rate expressions for species involved in reactions.
 
@@ -433,7 +468,7 @@ class SBMLParser(object):
             # Reactants
             for reactant in self._get_list_of_reactants(reaction):
                 ids = reactant.get('species')
-                if ids not in self._param_and_species_dict:
+                if ids not in param_and_species_dict:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 '
                         'standards. Species ID not existent.')
@@ -455,18 +490,18 @@ class SBMLParser(object):
                 # If ID exits, create global parameter
                 if stoich_id:
                     try:
-                        var = self._comp_dict[
+                        var = comp_dict[
                             idc].add_variable_allow_renaming(name)
                     except KeyError:
-                        var = self._comp_dict[
+                        var = comp_dict[
                             'Myokit'].add_variable_allow_renaming(name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
-                    self._param_and_species_dict[stoich_id] = var
+                    param_and_species_dict[stoich_id] = var
 
                 # Save species behaviour in this reaction
-                is_constant = self._species_prop_dict[ids]['isConstant']
-                has_boundary = self._species_prop_dict[ids][
+                is_constant = species_prop_dict[ids]['isConstant']
+                has_boundary = species_prop_dict[ids][
                     'hasBoundaryCondition']
                 if not (is_constant or has_boundary):
                     # Only if constant and boundaryCondition is False,
@@ -480,7 +515,7 @@ class SBMLParser(object):
             # Products
             for product in self._get_list_of_products(reaction):
                 ids = product.get('species')
-                if ids not in self._param_and_species_dict:
+                if ids not in param_and_species_dict:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 '
                         'standards. Species ID not existent.')
@@ -502,18 +537,18 @@ class SBMLParser(object):
                 # If ID exits, create global parameter
                 if stoich_id:
                     try:
-                        var = self._comp_dict[
+                        var = comp_dict[
                             idc].add_variable_allow_renaming(name)
                     except KeyError:
-                        var = self._comp_dict[
+                        var = comp_dict[
                             'Myokit'].add_variable_allow_renaming(name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
-                    self._param_and_species_dict[stoich_id] = var
+                    param_and_species_dict[stoich_id] = var
 
                 # Save species behaviour in this reaction
-                is_constant = self._species_prop_dict[ids]['isConstant']
-                has_boundary = self._species_prop_dict[ids][
+                is_constant = species_prop_dict[ids]['isConstant']
+                has_boundary = species_prop_dict[ids][
                     'hasBoundaryCondition']
                 if not (is_constant or has_boundary):
                     # Only if constant and boundaryCondition is False,
@@ -533,7 +568,7 @@ class SBMLParser(object):
             # Modifiers
             for modifier in self._get_list_of_modiefiers(reaction):
                 ids = modifier.get('species')
-                if ids not in self._param_and_species_dict:
+                if ids not in param_and_species_dict:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 '
                         'standards. Species ID not existent.')
@@ -569,7 +604,7 @@ class SBMLParser(object):
                         expr = parse_mathml_etree(
                             expr,
                             lambda x, y: myokit.Name(
-                                self._param_and_species_dict[
+                                param_and_species_dict[
                                     x]),
                             lambda x, y: myokit.Number(x))
                     except KeyError:
@@ -583,9 +618,9 @@ class SBMLParser(object):
                     for species in products_stoich_dict:
                         # weight with stoichiometry
                         stoich = products_stoich_dict[species]
-                        if stoich in self._param_and_species_dict:
+                        if stoich in param_and_species_dict:
                             stoich = myokit.Name(
-                                self._param_and_species_dict[stoich])
+                                param_and_species_dict[stoich])
                             weighted_expr = myokit.Multiply(stoich, expr)
                         elif stoich == 1.0:
                             weighted_expr = expr
@@ -594,7 +629,7 @@ class SBMLParser(object):
                             weighted_expr = myokit.Multiply(stoich, expr)
 
                         # weight with conversion factor
-                        conv_factor = self._species_prop_dict[species][
+                        conv_factor = species_prop_dict[species][
                             'conversionFactor']
                         if conv_factor:
                             weighted_expr = myokit.Multiply(
@@ -612,9 +647,9 @@ class SBMLParser(object):
                     for species in reactants_stoich_dict:
                         # weight with stoichiometry
                         stoich = reactants_stoich_dict[species]
-                        if stoich in self._param_and_species_dict:
+                        if stoich in param_and_species_dict:
                             stoich = myokit.Name(
-                                self._param_and_species_dict[stoich])
+                                param_and_species_dict[stoich])
                             weighted_expr = myokit.Multiply(stoich, expr)
                         elif stoich == 1.0:
                             weighted_expr = expr
@@ -623,7 +658,7 @@ class SBMLParser(object):
                             weighted_expr = myokit.Multiply(stoich, expr)
 
                         # weight with conversion factor
-                        conv_factor = self._species_prop_dict[species][
+                        conv_factor = species_prop_dict[species][
                             'conversionFactor']
                         if conv_factor:
                             weighted_expr = myokit.Multiply(
@@ -643,13 +678,13 @@ class SBMLParser(object):
         # Add rate expression for species to model
         for species in reaction_species_dict:
             try:
-                var = self._species_also_in_amount_dict[species]
+                var = species_also_in_amount_dict[species]
             except KeyError:
-                var = self._param_and_species_dict[species]
+                var = param_and_species_dict[species]
             expr = reaction_species_dict[species]
 
             # weight expression with conversion factor
-            conv_factor = self._species_prop_dict[species][
+            conv_factor = species_prop_dict[species][
                 'conversionFactor']
             if conv_factor:
                 expr = myokit.Multiply(conv_factor, expr)
@@ -666,7 +701,7 @@ class SBMLParser(object):
             # unit (in amount) over the globally defined extentUnits. This
             # is NOT according to SBML guidelines.
             unit = var.unit()
-            extent_unit = self._user_unit_dict['extentUnit']
+            extent_unit = user_unit_dict['extentUnit']
             if not unit:
                 unit = extent_unit
             if unit != extent_unit:
@@ -680,12 +715,17 @@ class SBMLParser(object):
             var.set_unit(unit)
             var.set_rhs(reaction_species_dict[species])
 
-    def _parse_initial_assignments(self, sbml_model):
+    def _parse_initial_assignments(
+            self,
+            sbml_model,
+            param_and_species_dict,
+            species_prop_dict,
+            species_also_in_amount_dict):
         """Adds initial assignments to variables in model."""
         for assign in self._get_list_of_initial_assignments(sbml_model):
             var_id = assign.get('symbol')
             try:
-                var = self._param_and_species_dict[var_id]
+                var = param_and_species_dict[var_id]
             except KeyError:
                 raise SBMLError(
                     'The file does not adhere to SBML 3.2 standards.'
@@ -695,18 +735,18 @@ class SBMLParser(object):
                 expr = parse_mathml_etree(
                     expr,
                     lambda x, y: myokit.Name(
-                        self._param_and_species_dict[x]),
+                        param_and_species_dict[x]),
                     lambda x, y: myokit.Number(x))
 
                 # If species, and it exists in conc. and amount, we update
                 # amount, as conc = amount / size.
                 try:
-                    var = self._species_also_in_amount_dict[var_id]
+                    var = species_also_in_amount_dict[var_id]
                 except KeyError:
                     pass
                 else:
-                    idc = self._species_prop_dict[var_id]['compartment']
-                    volume = self._param_and_species_dict[idc]
+                    idc = species_prop_dict[var_id]['compartment']
+                    volume = param_and_species_dict[idc]
                     expr = myokit.Multiply(expr, myokit.Name(volume))
 
                 # Update inital value
@@ -716,12 +756,16 @@ class SBMLParser(object):
                 else:
                     var.set_rhs(expr)
 
-    def _parse_assignment_rules(self, sbml_model):
+    def _parse_assignment_rules(
+            self,
+            sbml_model,
+            param_and_species_dict,
+            species_prop_dict):
         """Adds assignment rules to variables in model."""
         for rule in self._get_list_of_assignment_rules(sbml_model):
             var = rule.get('variable')
             if var in self._species_reference:
-                if not self._species_prop_dict[
+                if not species_prop_dict[
                         var]['hasBoundaryCondition']:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
@@ -730,7 +774,7 @@ class SBMLParser(object):
                         'boundaryCondition to True or remove one of the'
                         ' assignments.')
             try:
-                var = self._param_and_species_dict[var]
+                var = param_and_species_dict[var]
             except KeyError:
                 raise SBMLError(
                     'The file does not adhere to SBML 3.2 standards.'
@@ -740,16 +784,21 @@ class SBMLParser(object):
                 var.set_rhs(parse_mathml_etree(
                     expr,
                     lambda x, y: myokit.Name(
-                        self._param_and_species_dict[x]),
+                        param_and_species_dict[x]),
                     lambda x, y: myokit.Number(x)
                 ))
 
-    def _parse_rate_rules(self, sbml_model):
+    def _parse_rate_rules(
+            self,
+            sbml_model,
+            param_and_species_dict,
+            species_prop_dict,
+            species_also_in_amount_dict):
         """Adds rate rules for variables to model."""
         for rule in self._get_list_of_rate_rules(sbml_model):
             var_id = rule.get('variable')
             if var_id in self._species_reference:
-                if not self._species_prop_dict[
+                if not species_prop_dict[
                         var_id]['hasBoundaryCondition']:
                     raise SBMLError(
                         'The file does not adhere to SBML 3.2 standards.'
@@ -758,7 +807,7 @@ class SBMLParser(object):
                         'boundaryCondition to True or remove one of the'
                         ' assignments.')
             try:
-                var = self._param_and_species_dict[var_id]
+                var = param_and_species_dict[var_id]
             except KeyError:
                 raise SBMLError(
                     'The file does not adhere to SBML 3.2 standards.'
@@ -768,19 +817,19 @@ class SBMLParser(object):
                 expr = parse_mathml_etree(
                     expr,
                     lambda x, y: myokit.Name(
-                        self._param_and_species_dict[x]),
+                        param_and_species_dict[x]),
                     lambda x, y: myokit.Number(x)
                 )
 
                 # If species, and it exists in conc. and amount, we update
                 # amount.
                 try:
-                    var = self._species_also_in_amount_dict[var_id]
+                    var = species_also_in_amount_dict[var_id]
                 except KeyError:
                     pass
                 else:
-                    idc = self._species_prop_dict[var_id]['compartment']
-                    volume = self._param_and_species_dict[idc]
+                    idc = species_prop_dict[var_id]['compartment']
+                    volume = param_and_species_dict[idc]
                     expr = myokit.Divide(expr, myokit.Name(volume))
 
                 # promote variable to state and set initial value
@@ -1056,26 +1105,26 @@ class SBMLParser(object):
 
         return unit_def
 
-    def _get_units(self, parameter):
+    def _get_units(self, parameter, user_unit_dict):
         """
         Returns :class:myokit.Unit expression of the unit of a parameter.
         """
         unit = parameter.get('units')
-        if unit in self._user_unit_dict:
-            return self._user_unit_dict[unit]
+        if unit in user_unit_dict:
+            return user_unit_dict[unit]
         elif unit in sbml_to_myokit_unit_dict:
             return sbml_to_myokit_unit_dict[unit]
         else:
             return None
 
-    def _get_substance_units(self, species):
+    def _get_substance_units(self, species, user_unit_dict):
         """
         Returns :class:myokit.Unit expression of the unit of a species.
         """
         # Convert substance unit into myokiy.Unit
         unit = species.get('substanceUnits')
-        if unit in self._user_unit_dict:
-            return self._user_unit_dict[unit]
+        if unit in user_unit_dict:
+            return user_unit_dict[unit]
         elif unit in sbml_to_myokit_unit_dict:
             return sbml_to_myokit_unit_dict[unit]
         else:
@@ -1091,7 +1140,7 @@ class SBMLParser(object):
             return amount
         conc = species.get('initialConcentration')
         if conc:
-            volume = self._param_and_species_dict[compId]
+            volume = param_and_species_dict[compId]
             return myokit.Multiply(
                 myokit.Number(amount), myokit.Name(volume))
         return None
