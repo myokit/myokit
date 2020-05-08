@@ -376,9 +376,15 @@ class Protocol(object):
         The time points in the log will be ``a`` and ``b``, and any time in
         between at which the pacing value changes.
 
-        If ``for_drawing`` is set to ``True`` each time value between ``a`` and
-        ``b`` will be listed twice, so that a vertical line can be drawn from
-        the old to the new pacing value.
+        If ``for_drawing`` is set to ``True`` each time value where the
+        protocol changes will be listed twice, so that a vertical line can be
+        drawn from the old to the new pacing value.
+
+        Note that the points returned are from ``a`` to ``b`` inclusive (the
+        interval ``[a, b]``), and so if ``b`` coincides with the end of the
+        protocol a point ``(b, 0)`` will be included in the output (protocol
+        steps are defined as half-open, so include their starting point but not
+        their end point).
         """
         # Test the input
         a, b = float(a), float(b)
