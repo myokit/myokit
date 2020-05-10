@@ -346,6 +346,10 @@ class SBMLParser(object):
             var.set_rhs(value)
 
             # save param in container for later assignments/reactions
+            if idp in param_and_species_dict:
+                raise SBMLError(
+                    'The file does not adhere to SBML 3.2 standards.'
+                    ' The provided parameter ID already exists.')
             param_and_species_dict[idp] = var
 
     def _parse_species(
@@ -404,6 +408,10 @@ class SBMLParser(object):
                 var.set_rhs(value)
 
             # Save species in container for later assignments/reactions
+            if ids in param_and_species_dict:
+                raise SBMLError(
+                    'The file does not adhere to SBML 3.2 standards.'
+                    ' The provided species ID already exists.')
             param_and_species_dict[ids] = var
 
             # save species properties to container for later assignments/
@@ -497,6 +505,10 @@ class SBMLParser(object):
                             'Myokit'].add_variable_allow_renaming(name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
+                    if stoich_id in param_and_species_dict:
+                        raise SBMLError(
+                            'The file does not adhere to SBML 3.2 '
+                            'standards. Stoichiometry ID is not unique.')
                     param_and_species_dict[stoich_id] = var
 
                 # Save species behaviour in this reaction
@@ -544,6 +556,10 @@ class SBMLParser(object):
                             'Myokit'].add_variable_allow_renaming(name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
+                    if stoich_id in param_and_species_dict:
+                        raise SBMLError(
+                            'The file does not adhere to SBML 3.2 '
+                            'standards. Stoichiometry ID is not unique.')
                     param_and_species_dict[stoich_id] = var
 
                 # Save species behaviour in this reaction

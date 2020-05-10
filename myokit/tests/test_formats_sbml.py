@@ -51,6 +51,14 @@ class SBMLTest(unittest.TestCase):
         cls.modelFour = cls.i.model(os.path.join(
             DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
 
+    def test_info(self):
+        """Tests whether info method works as expected."""
+        info = """
+        Loads a Model definition from an SBML file. Warning: Not all SBML features
+        are supported.
+        """
+        self.assertEqual(self.i.info(), info)
+
     def test_capability_reporting(self):
         # Test if the right capabilities are reported.
         i = formats.importer('sbml')
@@ -398,6 +406,22 @@ class SBMLTest(unittest.TestCase):
             '</ns0:sbml>')
         return doc
 
+    def test_parse_file(self):
+        # Check whether error is thrown for invalid path
+        path = 'some/path'
+        message = 'Unable to parse XML: '
+        self.assertRaisesRegex(
+            formats.sbml.SBMLError,
+            message,
+            self.p.parse_file,
+            path)
+
+    def test_parse_string(self):
+        # Check whether error is thrown for invalid string
+        self.assertBad(
+            xml='<ns0:model ',  # incomplete xml
+            message='Unable to parse XML: ')
+
     def test_level_version(self):
         # Check whether error is thrown for wrong level
         self.assertBad(
@@ -614,6 +638,124 @@ class SBMLTest(unittest.TestCase):
             message='The compartment ID <Myokit> is reserved in a myokit'
             ' import.')
 
+    def test_coinciding_ids(self):
+        """
+        Checks that error is thrown when indentical IDs are used for
+        compartment, parameters or species.
+        """
+        # Coinciding compartment and parameter IDs
+        xml = (
+            '<ns0:model id="test" '
+            'timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someId"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfParameters>\n'
+            '<ns0:parameter id="someId"/>\n'
+            '</ns0:listOfParameters>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' The provided parameter ID already exists.')
+
+        # Coinciding compartment and species IDs
+        xml = (
+            '<ns0:model id="test" '
+            'timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someId"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someId" hasOnlySubstanceUnits="true"'
+            ' compartment="someId" constant="false"'
+            ' boundaryCondition="true" />\n'
+            '</ns0:listOfSpecies>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' The provided species ID already exists.')
+
+        # Coinciding parameter and species IDs
+        xml = (
+            '<ns0:model id="test" '
+            'timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfParameters>\n'
+            '<ns0:parameter id="someId"/>\n'
+            '</ns0:listOfParameters>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someId" hasOnlySubstanceUnits="true"'
+            ' compartment="someComp" constant="false"'
+            ' boundaryCondition="true" />\n'
+            '</ns0:listOfSpecies>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 standards.'
+            ' The provided species ID already exists.')
+
+        # Coinciding parameter and reactant stoichiometry IDs
+        stoich_id = 'someStoich'
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfParameters>\n'
+            '<ns0:parameter id="' + stoich_id + '"/>\n'
+            '</ns0:listOfParameters>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction >\n'
+            '<ns0:listOfReactants>\n'
+            '<ns0:speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>\n'
+            '</ns0:listOfReactants>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 '
+            'standards. Stoichiometry ID is not unique.')
+
+        # Coinciding parameter and product stoichiometry IDs
+        stoich_id = 'someStoich'
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfParameters>\n'
+            '<ns0:parameter id="' + stoich_id + '"/>\n'
+            '</ns0:listOfParameters>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction >\n'
+            '<ns0:listOfProducts>\n'
+            '<ns0:speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>\n'
+            '</ns0:listOfProducts>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='The file does not adhere to SBML 3.2 '
+            'standards. Stoichiometry ID is not unique.')
+
     def test_reserved_parameter_id(self):
         """
         ``globalConversionFactor`` is a reserved ID that is used while
@@ -722,6 +864,115 @@ class SBMLTest(unittest.TestCase):
             xml=xml,
             message='Using the ID <%s> for parameters or species ' % time_id
             + 'leads import errors.')
+
+    def test_stoichiometry_reference(self):
+        """
+        Tests whether stoichiometry parameters are linked properly to global
+        variables.
+        """
+        # Check that reactant stoichiometry is added as parameter to referenced
+        # compartment
+        comp_id = 'someComp'
+        stoich_id = 'someStoich'
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="' + comp_id + '"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="' + comp_id + '" '
+            'constant="false" boundaryCondition="false"/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction compartment="' + comp_id + '">\n'
+            '<ns0:listOfReactants>\n'
+            '<ns0:speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>\n'
+            '</ns0:listOfReactants>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        model = self.parse(xml)
+        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+
+        # Check that reactant stoichiometry is added as parameter to <myokit>
+        # compartment, if no compartment is referenced
+        comp_id = 'myokit'
+        stoich_id = 'someStoich'
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction >\n'
+            '<ns0:listOfReactants>\n'
+            '<ns0:speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>\n'
+            '</ns0:listOfReactants>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        model = self.parse(xml)
+        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+
+        # Check that product stoichiometry is added as parameter to referenced
+        # compartment
+        comp_id = 'someComp'
+        stoich_id = 'someStoich'
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="' + comp_id + '"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="' + comp_id + '" '
+            'constant="false" boundaryCondition="false"/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction compartment="' + comp_id + '">\n'
+            '<ns0:listOfProducts>\n'
+            '<ns0:speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>\n'
+            '</ns0:listOfProducts>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        model = self.parse(xml)
+        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+
+        # Check that product stoichiometry is added as parameter to <myokit>
+        # compartment, if no compartment is referenced
+        comp_id = 'myokit'
+        stoich_id = 'someStoich'
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction >\n'
+            '<ns0:listOfProducts>\n'
+            '<ns0:speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>\n'
+            '</ns0:listOfProducts>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        model = self.parse(xml)
+        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
 
     def test_missing_reactants_products(self):
         """
