@@ -1051,6 +1051,40 @@ class SBMLTest(unittest.TestCase):
             'their definition to the <listOfParameters> '
             'instead.')
 
+    def test_bad_kinetic_law(self):
+        """
+        Tests whether error is thrown if kinetic law refers to non-existent
+        parameters.
+        """
+        xml = (
+            '<ns0:model id="test" name="test" timeUnits="s">\n'
+            '<ns0:listOfCompartments>\n'
+            '<ns0:compartment id="someComp"/>\n'
+            '</ns0:listOfCompartments>\n'
+            '<ns0:listOfSpecies>\n'
+            '<ns0:species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>\n'
+            '</ns0:listOfSpecies>\n'
+            '<ns0:listOfReactions>\n'
+            '<ns0:reaction>\n'
+            '<ns0:listOfReactants>\n'
+            '<ns0:speciesReference species="someSpecies"/>\n'
+            '</ns0:listOfReactants>\n'
+            '<ns0:kineticLaw>\n'
+            '<ns1:math>\n'
+            '<apply>\n'
+            '<times/> <ci> someParam </ci> <ci> someSpecies </ci>\n'
+            '</apply>\n'
+            '</ns1:math>\n'
+            '</ns0:kineticLaw>\n'
+            '</ns0:reaction>\n'
+            '</ns0:listOfReactions>\n'
+            '</ns0:model>\n')
+        self.assertBad(
+            xml=xml,
+            message='An error occured when importing the kineticLaw: ')
+
 
 if __name__ == '__main__':
     unittest.main()

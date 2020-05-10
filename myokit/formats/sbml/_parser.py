@@ -623,12 +623,10 @@ class SBMLParser(object):
                                 param_and_species_dict[
                                     x]),
                             lambda x, y: myokit.Number(x))
-                    except KeyError:
-                        SBMLError(
-                            'The file does not adhere to SBML 3.2 '
-                            'standards. The reaction refers to species '
-                            'that are not listed as reactants, products'
-                            ' or modifiers.')
+                    except myokit.formats.mathml._parser.MathMLError as e:
+                        raise SBMLError(
+                            'An error occured when importing the kineticLaw: '
+                            + str(e))
 
                     # Collect expressions for products
                     for species in products_stoich_dict:
