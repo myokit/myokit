@@ -52,12 +52,8 @@ class SBMLTest(unittest.TestCase):
             DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
 
     def test_info(self):
-        """Tests whether info method works as expected."""
-        info = """
-        Loads a Model definition from an SBML file. Warning: Not all SBML features
-        are supported.
-        """
-        self.assertEqual(self.i.info(), info)
+        i = formats.importer('sbml')
+        self.assertIsInstance(i.info(), basestring)
 
     def test_capability_reporting(self):
         # Test if the right capabilities are reported.
@@ -1054,10 +1050,6 @@ class SBMLTest(unittest.TestCase):
             'of local parameters in reactions. Please move '
             'their definition to the <listOfParameters> '
             'instead.')
-
-    def test_info(self):
-        i = formats.importer('sbml')
-        self.assertIsInstance(i.info(), basestring)
 
 
 if __name__ == '__main__':
