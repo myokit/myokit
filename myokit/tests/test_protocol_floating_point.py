@@ -366,6 +366,24 @@ class CVodeSimulationFloatingPointTest(unittest.TestCase):
         self.assertEqual(list(d['c.t']), [0, 22159.6, 23500.2, 30000, 40000])
         self.assertEqual(list(d['c.v']), [-80, -70, -60, 0, 0])
 
+    def test_ending_near_protocol_end(self):
+        # Tests ending a CVODE simulation at a point almost equal to (i.e.
+        # indistinguishable from) an event point
+
+        m = myokit.load_model('example')
+        m.binding('pace').set_binding(None)
+        v = m.label('membrane_potential')
+        v.set_rhs(0)
+        v.demote()
+        v.set_binding('pace')
+
+        p = myokit.Protocol()
+        p.schedule(-80, 0, 15400)
+
+        # This will cause an error unles handled explicitly
+        s = myokit.Simulation(m, p)
+        s.run(15400.000000000002)
+
 
 if __name__ == '__main__':
     unittest.main()
