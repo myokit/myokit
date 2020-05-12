@@ -848,11 +848,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
-        if np.any(state < 0):
+        if np.any(state < 0) or np.any(state > 1):
             raise ValueError(
-                'The fraction of channels in a state cannot be negative.')
-        if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+                'All states must be in the range [0, 1].')
         self._default_state = state
 
     def set_membrane_potential(self, v):
@@ -883,11 +881,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
-        if np.any(state < 0):
+        if np.any(state < 0) or np.any(state > 1):
             raise ValueError(
-                'The fraction of channels in a state cannot be negative.')
-        if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+                'All states must be in the range [0, 1].')
         self._state = state
 
     def solve(self, times):
