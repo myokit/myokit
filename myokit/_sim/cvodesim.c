@@ -1196,6 +1196,7 @@ sim_step(PyObject *self, PyObject *args)
         }
 
         /* Check if we're finished */
+        if (ESys_eq(engine_time, tmax)) engine_time = tmax;
         if (engine_time >= tmax) break;
 
         /* Perform any Python signal handling */
