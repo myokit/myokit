@@ -14,7 +14,6 @@ from ._parser import SBMLError, SBMLParser  # noqa
 # Importers
 _importers = {
     'sbml': SBMLImporter,
-    'sbml-parser': SBMLParser,
 }
 
 
