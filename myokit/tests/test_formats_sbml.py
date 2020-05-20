@@ -13,6 +13,7 @@ import unittest
 
 import myokit
 import myokit.formats as formats
+from myokit.formats.sbml import SBMLParser
 
 from shared import DIR_FORMATS
 
@@ -42,7 +43,7 @@ class SBMLTest(unittest.TestCase):
         http://sbml.org/Facilities/Database/.
         """
         # Instantiate parser
-        cls.p = formats.importer('sbml-parser')
+        cls.p = SBMLParser()
 
         # Instantiate importer
         cls.i = formats.importer('sbml')

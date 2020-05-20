@@ -102,7 +102,8 @@ class MathMLParser(object):
         function can be used.
     ``<csymbol>``
         Becomes a :class:`myokit.Name`. Only csymbols representing special
-        variables are supported.
+        variables are supported. Using the ``name_factory`` the definitionURL
+        is translated into a :class:`myokit.Name`.
 
     Algebra
 
