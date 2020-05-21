@@ -60,7 +60,7 @@ class SBMLParser(object):
 
     def parse(self, root):
         """
-        Parses and a SBML document rooted in the given elementtree
+        Parses a SBML document rooted in the given elementtree
         element.
         """
         try:
@@ -72,7 +72,7 @@ class SBMLParser(object):
 
     def _parse_model(self, root):
         """
-        Returns a :class:myokit.Model based on the SBML file provided.
+        Returns a :class:`myokit.Model` based on the SBML file provided.
         """
         # Get logger
         self._log = myokit.formats.TextLogger()

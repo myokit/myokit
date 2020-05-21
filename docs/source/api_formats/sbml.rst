@@ -4,14 +4,16 @@
 SBML
 ****
 
-Import of model definitions is provided from SBML models using only parameters,
-rates and units. Species-compartment type models can not be imported.
+.. currentmodule:: myokit
+
+Import of model definitions is provided from SBML level 3 version 2 files.
 
 Limitations:
 
-  - The Species-Compartment features of SBML are not supported.
-  - No mechanism to import stimulus currents is implemented. This means models
-    will need to be adapted by hand to run in myokit.
+  - The function definition feature of SBML is not supported.
+  - The algebraic rule feature of SBML is not supported.
+  - The constraint feature of SBML is not supported.
+  - The events feature of SBML is not supported. External stimuli can be added by hand with :class:`Protocol`.
 
 API
 ===
@@ -23,6 +25,13 @@ The standard API for importing is provided:
 .. autofunction:: importers
 
 .. autoclass:: SBMLImporter
+    :inherited-members:
 
 .. autoclass:: SBMLError
+
+Parsing
+=======
+
+.. autoclass:: SBMLParser
+    :inherited-members:
 

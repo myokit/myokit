@@ -21,20 +21,21 @@ are supported.
 
 class SBMLImporter(myokit.formats.Importer):
     """
-    This :class:`Importer <myokit.formats.Importer>` load model definitions
+    This :class:`Importer <myokit.formats.Importer>` loads model definitions
     from files in SBML format.
     """
     def __init__(self):
         super(SBMLImporter, self).__init__()
 
     def info(self):
+        """See :meth:`myokit.formats.Importer.info`."""
         return info
 
     def supports_model(self):
-        """See :meth: myokit.formats.Importer.supports_model()."""
+        """See :meth:`myokit.formats.Importer.supports_model`."""
         return True
 
     def model(self, path):
-        """See :meth: myokit.formats.Importer.model()."""
+        """See :meth:`myokit.formats.Importer.model`."""
         parser = myokit.formats.sbml.SBMLParser()
         return parser.parse_file(path)
