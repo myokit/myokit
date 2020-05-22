@@ -31,5 +31,4 @@ Parsing
 =======
 
 .. autoclass:: SBMLParser
-    :inherited-members:
 
