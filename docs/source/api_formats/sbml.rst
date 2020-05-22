@@ -4,8 +4,6 @@
 SBML
 ****
 
-.. currentmodule:: myokit
-
 Import of model definitions is provided from SBML level 3 version 2 files.
 
 Limitations:
@@ -13,7 +11,7 @@ Limitations:
   - The function definition feature of SBML is not supported.
   - The algebraic rule feature of SBML is not supported.
   - The constraint feature of SBML is not supported.
-  - The events feature of SBML is not supported. External stimuli can be added by hand with :class:`Protocol`.
+  - The events feature of SBML is not supported. External stimuli can be added by hand with :class:`myokit.Protocol`.
 
 API
 ===
