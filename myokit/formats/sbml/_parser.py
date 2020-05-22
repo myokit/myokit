@@ -32,8 +32,7 @@ class SBMLParser(object):
 
     def parse_file(self, path):
         """
-        Parses the SBML file at ``path`` and returns a myokit
-        model.
+        Parses the SBML file at ``path`` and returns a :class:`myokit.Model`.
         """
         # Read file
         try:
@@ -46,8 +45,8 @@ class SBMLParser(object):
 
     def parse_string(self, text):
         """
-        Parses the SBML XML in the string ``text`` and returns
-        a myokit model.
+        Parses the SBML XML in the string ``text`` and returns a
+        :class:`myokit.Model`.
         """
         # Read string
         try:
@@ -60,8 +59,8 @@ class SBMLParser(object):
 
     def parse(self, root):
         """
-        Parses a SBML document rooted in the given elementtree
-        element.
+        Parses an SBML document rooted in the given elementtree element and
+        returns a :class:`myokit.Model`.
         """
         try:
             return self._parse_model(root)
