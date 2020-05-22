@@ -16,3 +16,8 @@ Full example would show
 - access via label/labelx
 - access via lib.guess
 - unit conversion, including with helpers
+
+
+steady state
+
+model.set_state(limit_cycle(model, protocol))
