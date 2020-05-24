@@ -1168,7 +1168,7 @@ class SBMLError(myokit.ImportError):
 # SBML base units according to libSBML
 sbml_to_myokit_unit_dict = {
     'ampere': myokit.units.A,
-    'avogadro': None,  # TODO: myokit equivalent not yet looked up
+    'avogadro': myokit.units.mol,  # This is a simplification of SBML's def
     'becquerel': myokit.units.Bq,
     'candela': myokit.units.cd,
     'celsius': myokit.units.C,
