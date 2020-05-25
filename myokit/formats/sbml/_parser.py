@@ -144,10 +144,9 @@ class SBMLParser(object):
         for unit_id, unit in units.items():
             if unit in user_unit_dict:
                 user_unit_dict[unit_id] = user_unit_dict[unit]
-            elif unit in sbml_to_myokit_unit_dict:
-                user_unit_dict[unit_id] = sbml_to_myokit_unit_dict[unit]
             else:
-                user_unit_dict[unit_id] = None
+                user_unit_dict[unit_id] = self._convert_sbml_to_myokit_units(
+                    unit)
 
         # Initialise parameter and species dictionary; maps ids to
         # myokit.Variable objects.
@@ -281,8 +280,8 @@ class SBMLParser(object):
             if unit:
                 if unit in user_unit_dict:
                     unit = user_unit_dict[unit]
-                elif unit in sbml_to_myokit_unit_dict:
-                    unit = sbml_to_myokit_unit_dict[unit]
+                else:
+                    unit = self._convert_sbml_to_myokit_units(unit)
             else:
                 dim = comp.get('spatialDimensions')
                 if dim:
@@ -383,7 +382,8 @@ class SBMLParser(object):
                     'The file does not adhere to SBML 3.2 standards.'
                     ' No <hasOnlySubstanceUnits> flag provided.')
             is_amount = True if is_amount == 'true' else False
-            value = self._get_species_initial_value_in_amount(s, idc)
+            value = self._get_species_initial_value_in_amount(
+                s, idc, param_and_species_dict)
             unit = self._get_substance_units(s, user_unit_dict)
 
             # Add variable in amount (needed for reactions, even if
@@ -1108,7 +1108,7 @@ class SBMLParser(object):
                 raise SBMLError(
                     'The file does not adhere to SBML 3.2 standards.'
                     ' No unit kind provided.')
-            myokitUnit = sbml_to_myokit_unit_dict[kind]
+            myokitUnit = self._convert_sbml_to_myokit_units(kind)
             myokitUnit *= float(baseUnit.get('multiplier', default=1.0))
             myokitUnit *= 10 ** float(baseUnit.get('scale', default=0.0))
             myokitUnit **= float(baseUnit.get('exponent', default=1.0))
@@ -1125,10 +1125,7 @@ class SBMLParser(object):
         unit = parameter.get('units')
         if unit in user_unit_dict:
             return user_unit_dict[unit]
-        elif unit in sbml_to_myokit_unit_dict:
-            return sbml_to_myokit_unit_dict[unit]
-        else:
-            return None
+        return self._convert_sbml_to_myokit_units(unit)
 
     def _get_substance_units(self, species, user_unit_dict):
         """
@@ -1138,12 +1135,10 @@ class SBMLParser(object):
         unit = species.get('substanceUnits')
         if unit in user_unit_dict:
             return user_unit_dict[unit]
-        elif unit in sbml_to_myokit_unit_dict:
-            return sbml_to_myokit_unit_dict[unit]
-        else:
-            return None
+        return self._convert_sbml_to_myokit_units(unit)
 
-    def _get_species_initial_value_in_amount(self, species, compId):
+    def _get_species_initial_value_in_amount(
+            self, species, compId, param_and_species_dict):
         """
         Returns the initial value of a species either in amount or
         concentration depend on the flag is Amount.
@@ -1158,6 +1153,15 @@ class SBMLParser(object):
                 myokit.Number(amount), myokit.Name(volume))
         return None
 
+    def _convert_sbml_to_myokit_units(self, unit):
+        if unit == 'celsius':
+            raise SBMLError(
+                'Myokit does not support the unit <Celsius>.')
+        try:
+            return sbml_to_myokit_unit_dict[unit]
+        except KeyError:
+            return None
+
 
 class SBMLError(myokit.ImportError):
     """
@@ -1165,13 +1169,12 @@ class SBMLError(myokit.ImportError):
     """
 
 
-# SBML base units according to libSBML
+# SBML base units (except Celsius, because it's not defined in myokit)
 sbml_to_myokit_unit_dict = {
     'ampere': myokit.units.A,
-    'avogadro': myokit.units.mol,  # This is a simplification of SBML's def
+    'avogadro': myokit.parse_unit('1 (6.02214179e23)'),
     'becquerel': myokit.units.Bq,
     'candela': myokit.units.cd,
-    'celsius': myokit.units.C,
     'coulomb': myokit.units.C,
     'dimensionless': myokit.units.dimensionless,
     'farad': myokit.units.F,
@@ -1192,7 +1195,7 @@ sbml_to_myokit_unit_dict = {
     'metre': myokit.units.m,
     'mole': myokit.units.mol,
     'newton': myokit.units.N,
-    'ohm': myokit.units.R,
+    'ohm': myokit.units.ohm,
     'pascal': myokit.units.Pa,
     'radian': myokit.units.rad,
     'second': myokit.units.s,
