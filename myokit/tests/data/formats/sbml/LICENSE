@@ -1,7 +1,8 @@
-The file HodgkinHuxley.xml was downloaded from
+The file 00004-sbml-l3v2-modified.xml is adapted from the file 00004-sbml-l3v2.xml downloaded from
 
-    The BioModels database
-    http://www.ebi.ac.uk/biomodels/
+    The SBML Test Suite Database
+    http://sbml.org/Facilities/Database/
 
-Please see the metadata section in this file for copyright information.
+For copyright information, please see
 
+    https://github.com/sbmlteam/sbml-test-suite/blob/master/LICENSE.html

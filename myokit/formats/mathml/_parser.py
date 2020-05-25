@@ -100,6 +100,10 @@ class MathMLParser(object):
         Becomes a :class:`myokit.Number`. To process units which may be present
         in the tag's attributes (esp. in CellML) the number post-processing
         function can be used.
+    ``<csymbol>``
+        Becomes a :class:`myokit.Name`. Only csymbols representing special
+        variables are supported. Using the ``name_factory`` the definitionURL
+        is translated into a :class:`myokit.Name`.
 
     Algebra
 
@@ -304,6 +308,9 @@ class MathMLParser(object):
         # Number
         elif name == 'cn':
             return self._parse_number(element)
+
+        elif name == 'csymbol':
+            return self._parse_symbol(element)
 
         # Constants
         elif name == 'pi':
@@ -938,7 +945,6 @@ class MathMLParser(object):
         Parses a ``<ci>`` element and returns a :class:`myokit.Name` created by
         the name factory.
         """
-
         if element.text is None:
             raise MathMLError(
                 '<ci> element must contain a variable name.', element)
@@ -947,3 +953,13 @@ class MathMLParser(object):
         except Exception as e:
             raise MathMLError('Unable to create Name: ' + str(e), element)
 
+    def _parse_symbol(self, element):
+        """
+        Parses only ``<csymbol>`` elements that represent special variables
+        and returns a :class:`myokit.Name` created by the name factory.
+        """
+        symbol = element.get('definitionURL')
+        try:
+            return self._vfac(symbol, element)
+        except Exception as e:
+            raise MathMLError('Unable to create Name: ' + str(e), element)

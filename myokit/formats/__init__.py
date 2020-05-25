@@ -364,7 +364,7 @@ class Importer(object):
 
     def logger(self):
         """
-        Returns this exporter's :class:`TextLogger`.
+        Returns this importer's :class:`TextLogger`.
         """
         return self._logger
 
