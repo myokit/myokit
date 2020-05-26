@@ -95,14 +95,14 @@ before_script:
 
 # Run tests
 script:
-  - if [[ $MYOKIT_UNIT == true ]]; then python run-tests.py unit; fi;
-  - if [[ $MYOKIT_COVER == true ]]; then coverage run run-tests.py unit; fi;
+  - if [[ $MYOKIT_UNIT == true ]]; then python -m myokit test unit; fi;
+  - if [[ $MYOKIT_COVER == true ]]; then coverage3 run -m myokit test unit; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then
         python -m flake8 --version;
         python -m flake8;
     fi;
   - if [[ $MYOKIT_DOC == true ]]; then
-        python run-tests.py doc;
+        python -m myokit test doc;
     fi;
 
 # Compile coverage report
