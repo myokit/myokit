@@ -82,9 +82,9 @@ _add('Volt', V)
 _add('F', C / V, quantifiable=True, output=True)
 _add('farad', F)        # electric capacitance
 _add('Farad', F)
-_add('R', V / A, quantifiable=True, output=True)
-_add('ohm', R)          # electric resistance
-_add('Ohm', R)
+_add('Ohm', V / A, quantifiable=True, output=True)
+_add('ohm', Ohm)        # electric resistance
+_add('R', Ohm, quantifiable=True)   # Legacy: Deprecated on May 26th 2020
 _add('S', 1 / R, quantifiable=True, output=True)
 _add('siemens', S)      # siemens (electric conductivity)
 _add('Siemens', S)
