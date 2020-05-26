@@ -27,12 +27,12 @@ You now have everything you need to start making changes!
 ### D. Finishing touches
 
 8. Please check your code conforms to the [coding style guidelines](#coding-style-guidelines).
-9. [Test your code!](#testing)
+9. [Test your code!](#testing), and make sure it has 100% test coverage.
 10. Myokit has online documentation at http://docs.myokit.org/. To make sure any new methods or classes you added show up there, please read the [documentation](#documentation) section.
 
 ### E. Merging changes
 
-11. When you feel your code is finished, or at least warrants serious discussion, create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR).
+11. When you feel your code is finished, or at least warrants serious discussion, create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR). Note that development for Myokit happens on the `develop` branch, so you'll have to make a PR from your branch into `develop`.
 12. Once a PR has been created, it will be reviewed, discussed, and if all goes well it'll be merged into the main source code!
 
 Thanks!
