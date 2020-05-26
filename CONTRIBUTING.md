@@ -119,11 +119,59 @@ $ python3 -m myokit test doc
 
 Every method and every class should have a [docstring](https://www.python.org/dev/peps/pep-0257/) that describes in plain terms what it does, and what the expected input and output is.
 
-These docstrings can be fairly simple, but can also make use of [reStructuredText](http://docutils.sourceforge.net/docs/user/rst/quickref.html), a markup language designed specifically for writing [technical documentation](https://en.wikipedia.org/wiki/ReStructuredText). For example, you can link to other classes and methods by writing ```:class:`myokit.Model` ``` and  ```:meth:`run()` ```.
+Each docstring should start with a one-line explanation.
+If more explanation is needed, this one-liner is followed by a blank line and more information in the following paragraphs.
 
-In addition, we write a (very) small bit of documentation in separate reStructuredText files in the `doc` directory. Most of what these files do is simply import docstrings from the source code. But they also do things like add tables and indexes. If you've added a new class to a module, search the `doc` directory for the appropriate `.rst` file and add your class.
+These docstrings can be fairly simple, but can also make use of [reStructuredText](http://docutils.sourceforge.net/docs/user/rst/quickref.html), a markup language designed specifically for writing [technical documentation](https://en.wikipedia.org/wiki/ReStructuredText).
+For example, you can link to other classes and methods by writing ```:class:`myokit.Model` ``` and  ```:meth:`run()` ```.
 
-Using [Sphinx](http://www.sphinx-doc.org/en/stable/) the documentation in `doc` can be converted to HTML, PDF, and other formats. In particular, we use it to generate the documentation on http://docs.myokit.org/
+In addition, we write a (very) small bit of documentation in separate reStructuredText files in the `doc` directory.
+Most of what these files do is simply import docstrings from the source code. But they also do things like add tables and indexes.
+If you've added a new class to a module, search the `doc` directory for the appropriate `.rst` file and add your class.
+
+Using [Sphinx](http://www.sphinx-doc.org/en/stable/) the documentation in `doc` can be converted to HTML, PDF, and other formats.
+In particular, we use it to generate the documentation on http://docs.myokit.org/
+
+### Examples
+
+A very short docstring:
+```
+def eat_biscuits(n):
+    """ Eats ``n`` biscuits from the central biscuit repository. """
+```
+
+A long form docstring, with argument list and return types:
+
+```
+def get_alpha_and_beta(x, v=None):
+    """
+    Tests if the given ``x`` is a state variable with an expression of the form
+    ``(1 - x) * alpha - x * beta``, and returns the variables for ``alpha`` and
+    ``beta`` if so.
+
+    Here, ``alpha(v)`` and ``beta(v)`` represent the forward and backward
+    reaction rates for ``x``. Both may depend on ``v``, but not on any (other)
+    state variable.
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
+
+    Arguments:
+
+    ``x``
+        The :class:`myokit.Variable` to check.
+    ``v``
+        An optional :class:`myokit.Variable` representing the membrane
+        potential. If not given, the label ``membrane_potential`` will be used
+        to determine ``v``. If ``v=None`` and no membrane potential can be
+        found an error will be raised. Membrane potential is typically
+        specified as a state, but this is not a requirement.
+
+    Returns a tuple ``(alpha, beta)`` if successful, or ``None`` if not. Both
+    ``alpha`` and ``beta`` are :class:`myokit.Variable` objects.
+    """
+```
 
 ### Building the documentation
 
