@@ -34,7 +34,8 @@ def coverage(args):
             '-m',
             'coverage',
             'run',
-            'run-tests.py',
+            'myokit',
+            'test',
             'unit',
         ])
         try:
