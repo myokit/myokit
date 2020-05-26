@@ -1355,6 +1355,7 @@ def test_coverage(args):
     """
     Runs the unit tests and prints a coverage report.
     """
+    import os
     import subprocess
     import sys
 
