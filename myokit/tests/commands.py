@@ -5,13 +5,12 @@
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-# Parts of this test script are based on the test script for Pints
+# Parts of this test script are based on the test script for PINTS
 # See: https://github.com/pints-team/pints
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import argparse
 import fnmatch
 import gc
 import importlib
@@ -287,6 +286,8 @@ def _doc_coverage_get_modules_classes_functions():
             if inspect.ismodule(member):
                 try:
                     # Don't scan external modules
+                    if member.__file__ is None:
+                        continue
                     if member.__file__[0:nroot] != root:
                         continue
                 except AttributeError:
@@ -449,27 +450,6 @@ def colored(color, text):
     return colors[color] + str(text) + colors['normal']
 
 
-def suite_full(args):
-    """
-    Runs the full test suite, exits if anything fails.
-    """
-    # Set arguments for unit()
-    flake8()
-    doc_tests(args)
-    coverage(args)
-    examples_web(args)
-    examples_pub(args)
-
-
-def suite_minimal(args):
-    """
-    Runs a minimal set of tests, exits if anything fails.
-    """
-    flake8()
-    doc_tests(args)
-    coverage(args)
-
-
 def test_mmt_files(path):
     """
     Run all the `mmt` files in a given directory `path`, returns 0 iff nothing
@@ -540,13 +520,14 @@ def unit(args):
     sys.exit(0 if res.wasSuccessful() else 1)
 
 
-if __name__ == '__main__':
-
-    # Set up argument parsing
-    parser = argparse.ArgumentParser(
-        description='Run unit tests for Myokit.',
-        epilog='To run individual unit tests, use e.g.'
-               ' $ tests/test_parser.py',
+def add_test_parser(subparsers):
+    """
+    Adds a parser for all the tests to a subparser.
+    """
+    parser = subparsers.add_parser(
+        'test',
+        description='Runs tests',
+        help='Runs unit tests, doc tests, etc.',
     )
     subparsers = parser.add_subparsers(help='commands')
 
@@ -560,46 +541,39 @@ if __name__ == '__main__':
     # Coverage
     coverage_parser = subparsers.add_parser(
         'coverage', help='Run unit tests and print a coverage report.')
-    coverage_parser.set_defaults(func=coverage)
+    coverage_parser.set_defaults(testfunc=coverage)
 
     # Doctests
     doc_parser = subparsers.add_parser(
         'doc',
         help='Test documentation cover, building, and doc tests.')
-    doc_parser.set_defaults(func=doc_tests)
-
-    # Full test suite
-    full_parser = subparsers.add_parser(
-        'full', help='Run all tests (including graphical ones)')
-    full_parser.set_defaults(func=suite_full)
-
-    # Minimal test suite
-    minimal_parser = subparsers.add_parser(
-        'minimal', help='Run minimal checks (unit tests, flake8, docs)')
-    minimal_parser.set_defaults(func=suite_minimal)
+    doc_parser.set_defaults(testfunc=doc_tests)
 
     # Publication examples
     pub_parser = subparsers.add_parser(
         'pub', help='Run publication examples.')
-    pub_parser.set_defaults(func=examples_pub)
+    pub_parser.set_defaults(testfunc=examples_pub)
 
     # Unit tests
     unit_parser = subparsers.add_parser('unit', help='Run unit tests')
-    unit_parser.set_defaults(func=unit)
+    unit_parser.set_defaults(testfunc=unit)
 
     # Web examples
     web_parser = subparsers.add_parser(
         'web', help='Run web examples.')
-    web_parser.set_defaults(func=examples_web)
+    web_parser.set_defaults(testfunc=examples_web)
 
-    # Parse!
-    args = parser.parse_args()
-    if args.nompl:
-        print('Disabling matplotlib output')
-        import matplotlib
-        matplotlib.use('template')
-    if 'func' in args:
-        args.func(args)
-    else:
-        parser.print_help()
+    # Nested test running method: maintains access to `parser`.
+    def run_tests(nompl=False, testfunc=None, **args):
+        if nompl:
+            print('Disabling matplotlib output')
+            import matplotlib
+            matplotlib.use('template')
+
+        if testfunc is None:
+            parser.print_help()
+        else:
+            testfunc(args)
+
+    parser.set_defaults(func=run_tests)
 

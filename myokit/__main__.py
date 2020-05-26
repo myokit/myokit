@@ -6,6 +6,7 @@
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
+from myokit.tests.commands import add_test_parser
 
 
 _line_width = 79
@@ -51,6 +52,7 @@ def main():
     add_step_parser(subparsers)             # Load a model, perform 1 step
     add_sundials_parser(subparsers)         # Show Sundials support
     add_system_parser(subparsers)           # Show system information
+    add_test_parser(subparsers)             # Run tests
     add_version_parser(subparsers)          # Show version info
     add_video_parser(subparsers)            # Convert a DataBlock to video
 
