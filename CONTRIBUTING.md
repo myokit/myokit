@@ -46,7 +46,7 @@ Thanks!
 Myokit can be installed into your Python system, using
 
 ```
-$ python setup.py develop
+$ python3 setup.py develop
 ```
 
 This will tell other Python modules where to find Myokit, so that you can use `import myokit` anywhere on your system.
@@ -100,16 +100,16 @@ Secondly, Matplotlib should never be imported at the module level, but always in
 
 Myokit uses the [unittest](https://docs.python.org/3.3/library/unittest.html) package for tests.
 
-To run style tests, unit tests, and check the docs can be built, use
+To run unit tests:
 
 ```
-$ python test --quick
+$ python3 -m myokit test unit
 ```
 
-To run unit tests only, use
+To run documentation tests:
 
 ```
-$ python test --unit
+$ python3 -m myokit test doc
 ```
 
 
