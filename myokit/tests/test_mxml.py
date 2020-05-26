@@ -15,7 +15,9 @@ import myokit
 
 html = """
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xhtml="http://www.w3.org/1999/xhtml"
+      lang="en">
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
@@ -49,10 +51,10 @@ html = """
             <li><a href="http://myokit.org/download">Two</a></li>
         </ul>
         <h3>Resources</h3>
-        This has a<br />
+        This has a<xhtml:br />
         line break.
         <ol>
-            <li>Numbered A.</li>
+            <xhtml:li>Numbered A.</xhtml:li>
             <li><em>Numbered B is italic.</em></li>
             <li>
                 <ul>
