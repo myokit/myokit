@@ -96,7 +96,7 @@ before_script:
 # Run tests
 script:
   - if [[ $MYOKIT_UNIT == true ]]; then python -m myokit test unit; fi;
-  - if [[ $MYOKIT_COVER == true ]]; then coverage run myokit test unit; fi;
+  - if [[ $MYOKIT_COVER == true ]]; then coverage3 run -m myokit test unit; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then
         python -m flake8 --version;
         python -m flake8;
