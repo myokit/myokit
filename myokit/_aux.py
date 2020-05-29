@@ -376,7 +376,7 @@ class SubCapture(PyCapture):
                 self._file_out.seek(0)
                 self._captured.extend(self._file_out.readlines())
                 self._file_out.close()
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 # In rare cases, I've seen a ValueError, "underlying buffer has
                 # been detached".
                 pass
@@ -384,7 +384,7 @@ class SubCapture(PyCapture):
                 self._file_err.seek(0)
                 self._captured.extend(self._file_err.readlines())
                 self._file_err.close()
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 pass
             # We've stopped capturing
             self._capturing = False
@@ -1506,10 +1506,9 @@ def _rmtree(path):
     shutil.rmtree(path, ignore_errors=False, onerror=onerror)
 
 
-def _random_hash():
+def _pid_hash():
     """
-    Returns a hash that should be pretty random, and depends on the current
-    time as well as the process id.
+    Returns a hash that depends on the current time as well as the process id.
     """
     x = os.getpid() * timeit.default_timer()
     x = abs(hash(str(x - int(x))))

@@ -517,9 +517,9 @@ from ._aux import (  # noqa
     format_float_dict,
     format_path,
     _lvsd,
+    _pid_hash,
     _rmtree,
     _round_if_int,
-    _random_hash,
     strfloat,
 
     # Snapshot creation for replicability

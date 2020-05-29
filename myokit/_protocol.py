@@ -463,6 +463,8 @@ class Protocol(object):
     def __reduce__(self):
         """
         Pickles the Protocol.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
         """
         return (myokit.parse_protocol, (self.code(), ))
 

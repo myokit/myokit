@@ -117,7 +117,7 @@ class Simulation(myokit.CModule):
         # Unique simulation id
         Simulation._index += 1
         module_name = 'myokit_sim_' + str(Simulation._index)
-        module_name += '_' + str(myokit._random_hash())
+        module_name += '_' + str(myokit._pid_hash())
 
         # Arguments
         args = {
@@ -599,6 +599,8 @@ class Simulation(myokit.CModule):
     def __setstate__(self, state):
         """
         Called after unpickling.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
         """
         self._time = state[0]
         self._state = state[1]

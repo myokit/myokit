@@ -2161,6 +2161,8 @@ class Model(ObjectWithMeta, VarProvider):
     def __reduce__(self):
         """
         Pickles the model.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
         """
         return (myokit.parse_model, (self.code(), ))
 
