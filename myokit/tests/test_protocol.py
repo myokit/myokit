@@ -74,6 +74,30 @@ class ProtocolTest(unittest.TestCase):
         p2 = p1.clone()
         self.assertEqual(p1, p2)
 
+    def test_equals(self):
+        # Test protocol equality checking
+
+        p1 = myokit.Protocol()
+        p2 = myokit.Protocol()
+        self.assertEqual(p1, p2)
+
+        p1.schedule(1, 0, 100)
+        self.assertNotEqual(p1, p2)
+        p2.schedule(1, 0, 100)
+        self.assertEqual(p1, p2)
+
+        p1.schedule(1, 100, 200, 1000, 10)
+        p1.schedule(1, 300, 300, 2000)
+        self.assertNotEqual(p1, p2)
+        p2.schedule(1, 100, 200, 1000, 10)
+        p2.schedule(1, 300, 300, 2000)
+        self.assertEqual(p1, p2)
+
+        self.assertNotEqual(p1, None)
+        self.assertNotEqual(p1, 17)
+        self.assertNotEqual(p1, p1.code())
+        self.assertEqual(p1, p1)
+
     def test_event_creation(self):
         # Test creating events.
 

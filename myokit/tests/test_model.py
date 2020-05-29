@@ -336,10 +336,11 @@ class ModelTest(unittest.TestCase):
         self.assertIsInstance(m2, myokit.Model)
         self.assertFalse(m1 is m2)
         self.assertEqual(m1, m2)
+        self.assertEqual(m1, m1)
 
         # Test with none-model
-        self.assertFalse(m1 == None)    # noqa
-        self.assertFalse(m1 == m1.get('membrane.V'))
+        self.assertNotEqual(m1, None)
+        self.assertNotEqual(m1, m1.code())
 
         # Add reserved names
         m1.reserve_unique_names('bertie')
