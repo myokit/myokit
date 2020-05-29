@@ -612,7 +612,7 @@ class Simulation(myokit.CModule):
         # The following properties need to be set on the internal simulation
         # object
         self.set_tolerance(*state[4])
-        self.set_max_step_size(state[5])
+        self.set_min_step_size(state[5])
         self.set_max_step_size(state[6])
 
     def set_state(self, state):

@@ -8,11 +8,12 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import numpy as np
 import os
+import pickle
+import platform
 import re
 import unittest
-import platform
-import numpy as np
 
 import myokit
 
@@ -437,6 +438,41 @@ class SimulationTest(unittest.TestCase):
         d1 = s1.run(11, log_interval=1)
         self.assertEqual(list(d1.time()), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         self.assertEqual(list(d1['c.w']), [0, 0, 2, 2, 4, 4, 4, 4, 6, 6, 0])
+
+    def test_pickling(self):
+        # Test pickling a simulation
+
+        # Test with myokit.Protocol
+        m, p, _ = myokit.load('example')
+        s1 = myokit.Simulation(m, p)
+        s1.pre(123)
+        s_bytes = pickle.dumps(s1)
+        s2 = pickle.loads(s_bytes)
+        self.assertEqual(s1.time(), s2.time())
+        self.assertEqual(s1.state(), s2.state())
+        self.assertEqual(s1.default_state(), s2.default_state())
+        s1.run(123, log=myokit.LOG_NONE)
+        s2.run(123, log=myokit.LOG_NONE)
+        self.assertEqual(s1.time(), s2.time())
+        self.assertEqual(s1.state(), s2.state())
+
+        # Test simulation properties
+        s1.set_tolerance(1e-8, 1e-8)
+        s1.set_min_step_size(1e-2)
+        s1.set_max_step_size(0.1)
+        s2 = pickle.loads(pickle.dumps(s1))
+        s1.run(23, log=myokit.LOG_NONE)
+        s2.run(23, log=myokit.LOG_NONE)
+        self.assertEqual(s1.time(), s2.time())
+        self.assertEqual(s1.state(), s2.state())
+
+        # Test changed constants
+        s1.set_constant('membrane.C', 1.1)
+        s2 = pickle.loads(pickle.dumps(s1))
+        s1.run(17, log=myokit.LOG_NONE)
+        s2.run(17, log=myokit.LOG_NONE)
+        self.assertEqual(s1.time(), s2.time())
+        self.assertEqual(s1.state(), s2.state())
 
 
 class RuntimeSimulationTest(unittest.TestCase):

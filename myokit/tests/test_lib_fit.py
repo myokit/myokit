@@ -29,7 +29,7 @@ class EvaluatorTest(unittest.TestCase):
     """
     Tests the sequential and parallel evaluation classes.
     """
-    '''
+
     def test_evaluators(self):
 
         # Test basic sequential/parallel evaluation
@@ -94,16 +94,19 @@ class EvaluatorTest(unittest.TestCase):
 
         self.assertRaisesRegex(
             Exception, 'in subprocess', e.evaluate, range(10))
-    '''
 
     def test_parallel_simulations(self):
         # Test running simulations in parallel
 
+        # Test running simulation defined in object
         s = Sim()
         e = fit.ParallelEvaluator(s.run, nworkers=4)
         e.evaluate([1, 2, 3, 4])
 
-    '''
+        # Test running simulation created inside of score function
+        e = fit.ParallelEvaluator(run_sim, nworkers=4)
+        e.evaluate([1, 2, 3, 4])
+
     def test_worker(self):
         # Manual test of worker, since cover doesn't pick up on its run method.
         from myokit.lib.fit import _Worker as Worker
@@ -271,7 +274,7 @@ class FittingTest(unittest.TestCase):
             x, f = fit.xnes(
                 FittingTest._score, self._boundaries, hint=self._hint,
                 parallel=False, max_iter=50)
-'''
+
 
 # Globally defined test functions (for windows)
 def f(x):
@@ -310,7 +313,11 @@ class Sim(object):
         return x
 
 # Run a simulation, created inside the called method
-# TODO
+def run_sim(x):
+    m, p, _ = myokit.load('example')
+    s = myokit.Simulation(m, p)
+    s.run(10)
+    return x
 
 
 if __name__ == '__main__':
