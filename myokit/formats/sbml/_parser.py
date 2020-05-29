@@ -20,6 +20,15 @@ import myokit.formats
 from myokit.mxml import html2ascii, split
 from myokit.formats.mathml import parse_mathml_etree
 
+MATHML_NS = 'http://www.w3.org/1998/Math/MathML'
+
+
+class SBMLError(myokit.ImportError):
+    """
+    Thrown if an error occurs when importing SBML.
+    """
+    pass
+
 
 class SBMLParser(object):
     """
@@ -86,15 +95,12 @@ class SBMLParser(object):
             'http://www.sbml.org/sbml/level3/version2/core',
         )
 
-        # Check whether file has SBML 3.2 namespace
-        ns = self._get_namespace(root)
-        if ns not in supported:
+        # Check whether document declares a supported namespace
+        self._ns = self._get_namespace(root)
+        if self._ns not in supported:
             self._log.warn(
-                'Unknown SBML namespace ' + str(ns) + '. This version of SBML'
-                ' may not be supported.')
-
-        # Store namespace for later identification of elements and attributes.
-        self._ns = '{' + ns + '}'
+                'Unknown SBML namespace ' + str(self._ns) + '. This version of'
+                ' SBML may not be supported.')
 
         # Get model
         sbml_model = self._get_model(root)
@@ -123,9 +129,9 @@ class SBMLParser(object):
         func_defs = self._get_list_of_function_definitions(sbml_model)
         if func_defs:
             raise SBMLError(
-                'Myokit does not support functionDefinitions. Please insert '
-                'your function wherever it occurs in yout SBML file and delete'
-                ' the functionDefiniton in the file.')
+                'Myokit does not support functionDefinitions. Please insert'
+                ' your function wherever it occurs in yout SBML file and'
+                ' delete the functionDefiniton in the file.')
 
         # Create user defined unit reference that maps ids to
         # myokit.Units object
@@ -182,12 +188,10 @@ class SBMLParser(object):
                     ' SBML import. Please rename IDs.')
             try:
                 conv_factor = param_and_species_dict[conv_factor_id]
-                param_and_species_dict[
-                    'globalConversionFactor'] = conv_factor
+                param_and_species_dict['globalConversionFactor'] = conv_factor
             except KeyError:
                 raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' The model conversionFactor points to non-existent ID.')
+                    'The model conversionFactor points to non-existent ID.')
 
         # Create species property dictionary for later reference that maps ids
         # to a dictionary of properties.
@@ -207,7 +211,7 @@ class SBMLParser(object):
         time = comp_dict['Myokit'].add_variable('time')
         time.set_binding('time')
         time.set_unit(user_unit_dict['timeUnit'])
-        time.set_rhs(0.0)  # According to SBML guidelines
+        time.set_rhs(0)  # According to SBML guidelines
         time_id = 'http://www.sbml.org/sbml/symbols/time'  # This ID is not
 
         # protected
@@ -253,16 +257,16 @@ class SBMLParser(object):
         constraints = self._get_list_of_constraints(sbml_model)
         if constraints:
             self._log.warn(
-                "Myokit does not support SBML's constraints feature. "
-                "The constraints will be ignored for the simulation.")
+                'Myokit does not support SBML constraints.  The constraints'
+                ' will be ignored for the simulation.')
 
         # Log warning if events are provided (could be supported in a later PR)
         events = self._get_list_of_events(sbml_model)
         if events:
             self._log.warn(
-                "Myokit does not support SBML's events feature. The events"
-                " will be ignored for the simulation. Have a look at myokits"
-                " protocol feature for instantaneous state value changes.")
+                'Myokit does not support SBML event. The events will be'
+                ' ignored for the simulation. Have a look at myokits protocol'
+                ' feature for instantaneous state value changes.')
 
         return model
 
@@ -281,9 +285,7 @@ class SBMLParser(object):
         for comp in self._get_list_of_compartments(sbml_model):
             idx = comp.get('id')
             if not idx:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' No compartment ID provided.')
+                raise SBMLError('No compartment ID provided.')
             name = comp.get('name')
             if not name:
                 name = idx
@@ -298,11 +300,11 @@ class SBMLParser(object):
                 dim = comp.get('spatialDimensions')
                 if dim:
                     dim = float(dim)  # can be non-integer
-                if dim == 3.0:
+                if dim == 3:
                     unit = user_unit_dict['volumeUnit']
-                elif dim == 2.0:
+                elif dim == 2:
                     unit = user_unit_dict['areaUnit']
-                elif dim == 1.0:
+                elif dim == 1:
                     unit = user_unit_dict['lengthUnit']
                 else:
                     unit = None
@@ -321,8 +323,7 @@ class SBMLParser(object):
         name = self._convert_name('myokit')
         if 'Myokit' in comp_dict:
             raise SBMLError(
-                'The compartment ID <Myokit> is reserved in a myokit'
-                ' import.')
+                'The compartment ID <Myokit> is reserved in a myokit import.')
         comp_dict['Myokit'] = model.add_component(name)
 
     def _parse_parameters(
@@ -332,15 +333,13 @@ class SBMLParser(object):
             param_and_species_dict,
             comp_dict):
         """
-        Adds parameters to `Myokit` compartment in model and creates
-        references in `param_and_species_dict`.
+        Adds parameters to `Myokit` compartment in model and creates references
+        in `param_and_species_dict`.
         """
         for param in self._get_list_of_parameters(sbml_model):
             idp = param.get('id')
             if not idp:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' No parameter ID provided.')
+                raise SBMLError('No parameter ID provided.')
             name = param.get('name')
             if not name:
                 name = idp
@@ -349,16 +348,13 @@ class SBMLParser(object):
 
             # add parameter to sbml compartment
             comp = comp_dict['Myokit']
-            var = comp.add_variable_allow_renaming(
-                self._convert_name(name))
+            var = comp.add_variable_allow_renaming(self._convert_name(name))
             var.set_unit(unit)
             var.set_rhs(value)
 
             # save param in container for later assignments/reactions
             if idp in param_and_species_dict:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' The provided parameter ID already exists.')
+                raise SBMLError('The provided parameter ID already exists.')
             param_and_species_dict[idp] = var
 
     def _parse_species(
@@ -376,22 +372,16 @@ class SBMLParser(object):
         for s in self._get_list_of_species(sbml_model):
             ids = s.get('id')
             if not ids:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' No species ID provided.')
+                raise SBMLError('No species ID provided.')
             name = s.get('name')
             if not name:
                 name = ids
             idc = s.get('compartment')
             if not idc:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' No <compartment> attribute provided.')
+                raise SBMLError('No <compartment> attribute provided.')
             is_amount = s.get('hasOnlySubstanceUnits')
             if is_amount is None:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' No <hasOnlySubstanceUnits> flag provided.')
+                raise SBMLError('No <hasOnlySubstanceUnits> flag provided.')
             is_amount = True if is_amount == 'true' else False
             value = self._get_species_initial_value_in_amount(
                 s, idc, param_and_species_dict)
@@ -409,8 +399,7 @@ class SBMLParser(object):
 
                 # Add variable in units of concentration
                 volume = param_and_species_dict[idc]
-                value = myokit.Divide(
-                    myokit.Name(var), myokit.Name(volume))
+                value = myokit.Divide(myokit.Name(var), myokit.Name(volume))
                 unit = unit / volume.unit()
                 var = comp_dict[idc].add_variable_allow_renaming(
                     name + '_Concentration')
@@ -419,24 +408,18 @@ class SBMLParser(object):
 
             # Save species in container for later assignments/reactions
             if ids in param_and_species_dict:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' The provided species ID already exists.')
+                raise SBMLError('The provided species ID already exists.')
             param_and_species_dict[ids] = var
 
             # save species properties to container for later assignments/
             # reactions
             is_constant = s.get('constant')
             if is_constant is None:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' No <constant> flag provided.')
+                raise SBMLError('No <constant> flag provided.')
             is_constant = False if is_constant == 'false' else True
             has_boundary = s.get('boundaryCondition')
             if has_boundary is None:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' No <boundaryCondition> flag provided.')
+                raise SBMLError('No <boundaryCondition> flag provided.')
             has_boundary = False if has_boundary == 'false' else True
             conv_factor = s.get('conversionFactor')
             if conv_factor:
@@ -444,11 +427,9 @@ class SBMLParser(object):
                     conv_factor = param_and_species_dict[conv_factor]
                 except KeyError:
                     raise SBMLError(
-                        'The file does not adhere to SBML 3.2 standards.'
-                        ' conversionFactor refers to non-existent ID.')
+                        'conversionFactor refers to non-existent ID.')
             elif 'globalConversionFactor' in param_and_species_dict:
-                conv_factor = param_and_species_dict[
-                    'globalConversionFactor']
+                conv_factor = param_and_species_dict['globalConversionFactor']
             else:
                 conv_factor = None
             species_prop_dict[ids] = {
@@ -488,17 +469,13 @@ class SBMLParser(object):
             for reactant in self._get_list_of_reactants(reaction):
                 ids = reactant.get('species')
                 if ids not in param_and_species_dict:
-                    raise SBMLError(
-                        'The file does not adhere to SBML 3.2 '
-                        'standards. Species ID not existent.')
+                    raise SBMLError('Species ID not existent.')
                 stoich = reactant.get('stoichiometry')
                 if stoich is None:
                     self._log.warn(
-                        'Stoichiometry has not been set in reaction. '
-                        'It may be set elsewhere in the SBML file, '
-                        'myokit has, however, initialised the stoich-'
-                        ' iometry with value 1.')
-                    stoich = 1.0
+                        'Stoichiometry has not been set in reaction. Continued'
+                        ' initialisation using value 1.')
+                    stoich = 1
                 else:
                     stoich = float(stoich)
                 stoich_id = reactant.get('id')
@@ -509,28 +486,24 @@ class SBMLParser(object):
                 # If ID exits, create global parameter
                 if stoich_id:
                     try:
-                        var = comp_dict[
-                            idc].add_variable_allow_renaming(name)
+                        var = comp_dict[idc].add_variable_allow_renaming(name)
                     except KeyError:
-                        var = comp_dict[
-                            'Myokit'].add_variable_allow_renaming(name)
+                        var = comp_dict['Myokit'].add_variable_allow_renaming(
+                            name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
                     if stoich_id in param_and_species_dict:
-                        raise SBMLError(
-                            'The file does not adhere to SBML 3.2 '
-                            'standards. Stoichiometry ID is not unique.')
+                        raise SBMLError('Stoichiometry ID is not unique.')
                     param_and_species_dict[stoich_id] = var
 
                 # Save species behaviour in this reaction
                 is_constant = species_prop_dict[ids]['isConstant']
-                has_boundary = species_prop_dict[ids][
-                    'hasBoundaryCondition']
+                has_boundary = species_prop_dict[ids]['hasBoundaryCondition']
                 if not (is_constant or has_boundary):
                     # Only if constant and boundaryCondition is False,
                     # species can change through a reaction
-                    reactants_stoich_dict[
-                        ids] = stoich_id if stoich_id else stoich
+                    reactants_stoich_dict[ids] = \
+                        stoich_id if stoich_id else stoich
 
                 # Create reference that species is part of a reaction
                 species_reference.add(ids)
@@ -539,17 +512,13 @@ class SBMLParser(object):
             for product in self._get_list_of_products(reaction):
                 ids = product.get('species')
                 if ids not in param_and_species_dict:
-                    raise SBMLError(
-                        'The file does not adhere to SBML 3.2 '
-                        'standards. Species ID not existent.')
+                    raise SBMLError('Species ID not existent.')
                 stoich = product.get('stoichiometry')
                 if stoich is None:
                     self._log.warn(
-                        'Stoichiometry has not been set in reaction. '
-                        'It may be set elsewhere in the SBML file, '
-                        'myokit has, however, initialised the stoich'
-                        'iometry with value 1.')
-                    stoich = 1.0
+                        'Stoichiometry has not been set in reaction. Continued'
+                        ' initialisation using value 1.')
+                    stoich = 1
                 else:
                     stoich = float(stoich)
                 stoich_id = product.get('id')
@@ -560,28 +529,24 @@ class SBMLParser(object):
                 # If ID exits, create global parameter
                 if stoich_id:
                     try:
-                        var = comp_dict[
-                            idc].add_variable_allow_renaming(name)
+                        var = comp_dict[idc].add_variable_allow_renaming(name)
                     except KeyError:
-                        var = comp_dict[
-                            'Myokit'].add_variable_allow_renaming(name)
+                        var = comp_dict['Myokit'].add_variable_allow_renaming(
+                            name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
                     if stoich_id in param_and_species_dict:
-                        raise SBMLError(
-                            'The file does not adhere to SBML 3.2 '
-                            'standards. Stoichiometry ID is not unique.')
+                        raise SBMLError('Stoichiometry ID is not unique.')
                     param_and_species_dict[stoich_id] = var
 
                 # Save species behaviour in this reaction
                 is_constant = species_prop_dict[ids]['isConstant']
-                has_boundary = species_prop_dict[ids][
-                    'hasBoundaryCondition']
+                has_boundary = species_prop_dict[ids]['hasBoundaryCondition']
                 if not (is_constant or has_boundary):
                     # Only if constant and boundaryCondition is False,
                     # species can change through a reaction
-                    products_stoich_dict[
-                        ids] = stoich_id if stoich_id else stoich
+                    products_stoich_dict[ids] = \
+                        stoich_id if stoich_id else stoich
 
                 # Create reference that species is part of a reaction
                 species_reference.add(ids)
@@ -589,40 +554,33 @@ class SBMLParser(object):
             # Raise error if neither reactants not products is populated
             if not species_reference:
                 raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards. '
                     'Reaction must have at least one reactant or product.')
 
             # Modifiers
             for modifier in self._get_list_of_modiefiers(reaction):
                 ids = modifier.get('species')
                 if ids not in param_and_species_dict:
-                    raise SBMLError(
-                        'The file does not adhere to SBML 3.2 '
-                        'standards. Species ID not existent.')
+                    raise SBMLError('Species ID not existent.')
 
                 # Create reference that species is part of a reaction
                 species_reference.add(ids)
 
             # Raise error if different velocities of reactions are assumed
-            is_fast = reaction.get('fast')
-            is_fast = True if is_fast == 'true' else False
-            if is_fast:
+            if reaction.get('fast') == 'true':
                 raise SBMLError(
                     'Myokit does not support the conversion of <fast>'
-                    ' reactions to steady states. Please do the maths'
-                    ' and substitute the steady states as AssigmentRule')
+                    ' reactions to steady states. Please substitute the steady'
+                    ' states as AssigmentRule')
 
             # Get kinetic law
             kinetic_law = self._get_kinetic_law(reaction)
             if kinetic_law:
-                local_params = self._get_list_of_local_parameters(
-                    kinetic_law)
+                local_params = self._get_list_of_local_parameters(kinetic_law)
                 if local_params:
                     raise SBMLError(
-                        'Myokit does currently not support the definition '
-                        'of local parameters in reactions. Please move '
-                        'their definition to the <listOfParameters> '
-                        'instead.')
+                        'Myokit does not support the definition of local'
+                        ' parameters in reactions. Please move their'
+                        ' definition to the <listOfParameters> instead.')
 
                 # get rate expression for reaction
                 expr = self._get_math(kinetic_law)
@@ -631,8 +589,7 @@ class SBMLParser(object):
                         expr = parse_mathml_etree(
                             expr,
                             lambda x, y: myokit.Name(
-                                param_and_species_dict[
-                                    x]),
+                                param_and_species_dict[x]),
                             lambda x, y: myokit.Number(x))
                     except myokit.formats.mathml._parser.MathMLError as e:
                         raise SBMLError(
@@ -647,7 +604,7 @@ class SBMLParser(object):
                             stoich = myokit.Name(
                                 param_and_species_dict[stoich])
                             weighted_expr = myokit.Multiply(stoich, expr)
-                        elif stoich == 1.0:
+                        elif stoich == 1:
                             weighted_expr = expr
                         else:
                             stoich = myokit.Number(stoich)
@@ -676,7 +633,7 @@ class SBMLParser(object):
                             stoich = myokit.Name(
                                 param_and_species_dict[stoich])
                             weighted_expr = myokit.Multiply(stoich, expr)
-                        elif stoich == 1.0:
+                        elif stoich == 1:
                             weighted_expr = expr
                         else:
                             stoich = myokit.Number(stoich)
@@ -697,7 +654,7 @@ class SBMLParser(object):
                                 partialExpr, weighted_expr)
                         else:
                             weighted_expr = myokit.Multiply(
-                                myokit.Number(-1.0), weighted_expr)
+                                myokit.Number(-1), weighted_expr)
                             reaction_species_dict[species] = weighted_expr
 
         # Add rate expression for species to model
@@ -709,8 +666,7 @@ class SBMLParser(object):
             expr = reaction_species_dict[species]
 
             # weight expression with conversion factor
-            conv_factor = species_prop_dict[species][
-                'conversionFactor']
+            conv_factor = species_prop_dict[species]['conversionFactor']
             if conv_factor:
                 expr = myokit.Multiply(conv_factor, expr)
 
@@ -753,14 +709,12 @@ class SBMLParser(object):
                 var = param_and_species_dict[var_id]
             except KeyError:
                 raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' Initial assignment refers to non-existent ID.')
+                    'Initial assignment refers to non-existent ID.')
             expr = self._get_math(assign)
             if expr:
                 expr = parse_mathml_etree(
                     expr,
-                    lambda x, y: myokit.Name(
-                        param_and_species_dict[x]),
+                    lambda x, y: myokit.Name(param_and_species_dict[x]),
                     lambda x, y: myokit.Number(x))
 
                 # If species, and it exists in conc. and amount, we update
@@ -792,26 +746,20 @@ class SBMLParser(object):
         for rule in self._get_list_of_assignment_rules(sbml_model):
             var = rule.get('variable')
             if var in species_reference:
-                if not species_prop_dict[
-                        var]['hasBoundaryCondition']:
+                if not species_prop_dict[var]['hasBoundaryCondition']:
                     raise SBMLError(
-                        'The file does not adhere to SBML 3.2 standards.'
-                        ' Species is assigned with rule, while being '
-                        'created / desctroyed in reaction. Either set '
-                        'boundaryCondition to True or remove one of the'
-                        ' assignments.')
+                        'Species is assigned with rule, while being created /'
+                        ' destroyed in reaction. Either set boundaryCondition'
+                        ' to True or remove one of the assignments.')
             try:
                 var = param_and_species_dict[var]
             except KeyError:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' AssignmentRule refers to non-existent ID.')
+                raise SBMLError('AssignmentRule refers to non-existent ID.')
             expr = self._get_math(rule)
             if expr:
                 var.set_rhs(parse_mathml_etree(
                     expr,
-                    lambda x, y: myokit.Name(
-                        param_and_species_dict[x]),
+                    lambda x, y: myokit.Name(param_and_species_dict[x]),
                     lambda x, y: myokit.Number(x)
                 ))
 
@@ -827,26 +775,20 @@ class SBMLParser(object):
         for rule in self._get_list_of_rate_rules(sbml_model):
             var_id = rule.get('variable')
             if var_id in species_reference:
-                if not species_prop_dict[
-                        var_id]['hasBoundaryCondition']:
+                if not species_prop_dict[var_id]['hasBoundaryCondition']:
                     raise SBMLError(
-                        'The file does not adhere to SBML 3.2 standards.'
-                        ' Species is assigned with rule, while being '
-                        'created / desctroyed in reaction. Either set '
-                        'boundaryCondition to True or remove one of the'
-                        ' assignments.')
+                        'Species is assigned with rule, while being created /'
+                        ' destroyed in reaction. Either set boundaryCondition'
+                        ' to True or remove one of the assignments.')
             try:
                 var = param_and_species_dict[var_id]
             except KeyError:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' RateRule refers to non-existent ID.')
+                raise SBMLError('RateRule refers to non-existent ID.')
             expr = self._get_math(rule)
             if expr:
                 expr = parse_mathml_etree(
                     expr,
-                    lambda x, y: myokit.Name(
-                        param_and_species_dict[x]),
+                    lambda x, y: myokit.Name(param_and_species_dict[x]),
                     lambda x, y: myokit.Number(x)
                 )
 
@@ -870,9 +812,7 @@ class SBMLParser(object):
         return split(element.tag)[0]
 
     def _get_model(self, element):
-        model = element.find(
-            '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'model')
+        model = element.find(self._path('model'))
         if model:
             return model
         return None
@@ -887,201 +827,130 @@ class SBMLParser(object):
         return None
 
     def _get_notes(self, element):
-        notes = element.find(
-            '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'notes')
+        notes = element.find(self._path('notes'))
         if notes:
             return ET.tostring(notes).decode()
         return None
 
     def _get_list_of_function_definitions(self, element):
-        funcs = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfFunctionDefinitions/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'functionDefinition')
+        funcs = element.findall(self._path(
+            './', 'listOfFunctionDefinitions', 'functionDefinition'))
         if funcs:
             return funcs
         return None
 
     def _get_list_of_unit_definitions(self, element):
-        units = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfUnitDefinitions/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'unitDefinition')
+        units = element.findall(self._path(
+            './', 'listOfUnitDefinitions', 'unitDefinition'))
         if units:
             return units
         return None
 
     def _get_list_of_compartments(self, element):
-        comps = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfCompartments/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'compartment')
+        comps = element.findall(self._path(
+            './', 'listOfCompartments', 'compartment'))
         if comps:
             return comps
         return []
 
     def _get_list_of_parameters(self, element):
-        params = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfParameters/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'parameter')
+        params = element.findall(self._path(
+            './', 'listOfParameters', 'parameter'))
         if params:
             return params
         return []
 
     def _get_list_of_species(self, element):
-        species = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfSpecies/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'species')
+        species = element.findall(self._path(
+            './', 'listOfSpecies', 'species'))
         if species:
             return species
         return []
 
     def _get_list_of_reactions(self, element):
-        reactions = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfReactions/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'reaction')
+        reactions = element.findall(self._path(
+            './', 'listOfReactions', 'reaction'))
         if reactions:
             return reactions
         return []
 
     def _get_list_of_reactants(self, element):
-        reactants = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfReactants/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'speciesReference')
+        reactants = element.findall(self._path(
+            './', 'listOfReactants', 'speciesReference'))
         if reactants:
             return reactants
         return []
 
     def _get_list_of_products(self, element):
-        products = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfProducts/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'speciesReference')
+        products = element.findall(self._path(
+            './', 'listOfProducts', 'speciesReference'))
         if products:
             return products
         return []
 
     def _get_list_of_modiefiers(self, element):
-        modifiers = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfModifiers/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'modifierSpeciesReference')
+        modifiers = element.findall(self._path(
+            './', 'listOfModifiers', 'modifierSpeciesReference'))
         if modifiers:
             return modifiers
         return []
 
     def _get_kinetic_law(self, element):
-        kinetic_law = element.find(
-            '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'kineticLaw')
+        kinetic_law = element.find(self._path('kineticLaw'))
         if kinetic_law:
             return kinetic_law
         return None
 
     def _get_list_of_initial_assignments(self, element):
-        assignments = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfInitialAssignments/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'initialAssignment')
+        assignments = element.findall(self._path(
+            './', 'listOfInitialAssignments', 'initialAssignment'))
         if assignments:
             return assignments
         return []
 
     def _get_list_of_algebraic_rules(self, element):
-        rules = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfRules/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'algebraicRule')
+        rules = element.findall(self._path(
+            './', 'listOfRules', 'algebraicRule'))
         if rules:
             return rules
         return None
 
     def _get_list_of_assignment_rules(self, element):
-        rules = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfRules/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'assignmentRule')
+        rules = element.findall(self._path(
+            './', 'listOfRules', 'assignmentRule'))
         if rules:
             return rules
         return []
 
     def _get_list_of_rate_rules(self, element):
-        rules = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfRules/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'rateRule')
+        rules = element.findall(self._path(
+            './', 'listOfRules', 'rateRule'))
         if rules:
             return rules
         return []
 
     def _get_list_of_constraints(self, element):
-        constraints = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfConstraints/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'constraint')
+        constraints = element.findall(self._path(
+            './', 'listOfConstraints', 'constraint'))
         if constraints:
             return constraints
         return None
 
     def _get_list_of_events(self, element):
-        events = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfEvents/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'event')
+        events = element.findall(self._path('./', 'listOfEvents', 'event'))
         if events:
             return events
         return None
 
     def _get_math(self, element):
-        math = element.find(
-            '{http://www.w3.org/1998/Math/MathML}'
-            + 'math')
+        math = element.find('{' + MATHML_NS + '}math')
         if math:
             return math
         return None
 
     def _get_list_of_local_parameters(self, element):
-        params = element.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'listOfLocalParameters/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'localParameter')
+        params = element.findall(self._path(
+            './', 'listOfLocalParameters', 'localParameter'))
         if params:
             return params
         return None
@@ -1105,12 +974,7 @@ class SBMLParser(object):
         Converts unit definition into a myokit unit.
         """
         # Get composing base units
-        units = unit_def.findall(
-            './'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            'listOfUnits/'
-            + '{http://www.sbml.org/sbml/level3/version2/core}'
-            + 'unit')
+        units = unit_def.findall(self._path('./', 'listOfUnits', 'unit'))
         if not units:
             return None
 
@@ -1121,13 +985,11 @@ class SBMLParser(object):
         for baseUnit in units:
             kind = baseUnit.get('kind')
             if not kind:
-                raise SBMLError(
-                    'The file does not adhere to SBML 3.2 standards.'
-                    ' No unit kind provided.')
+                raise SBMLError('No unit kind provided.')
             myokitUnit = self._convert_sbml_to_myokit_units(kind)
-            myokitUnit *= float(baseUnit.get('multiplier', default=1.0))
-            myokitUnit *= 10 ** float(baseUnit.get('scale', default=0.0))
-            myokitUnit **= float(baseUnit.get('exponent', default=1.0))
+            myokitUnit *= float(baseUnit.get('multiplier', default=1))
+            myokitUnit *= 10 ** float(baseUnit.get('scale', default=0))
+            myokitUnit **= float(baseUnit.get('exponent', default=1))
 
             # "add" composite unit to unit definition
             unit_def *= myokitUnit
@@ -1165,24 +1027,32 @@ class SBMLParser(object):
         conc = species.get('initialConcentration')
         if conc:
             volume = param_and_species_dict[compId]
-            return myokit.Multiply(
-                myokit.Number(amount), myokit.Name(volume))
+            return myokit.Multiply(myokit.Number(amount), myokit.Name(volume))
         return None
 
     def _convert_sbml_to_myokit_units(self, unit):
         if unit == 'celsius':
-            raise SBMLError(
-                'Myokit does not support the unit <Celsius>.')
+            raise SBMLError('Myokit does not support the unit <Celsius>.')
         try:
             return sbml_to_myokit_unit_dict[unit]
         except KeyError:
             return None
 
+    def _path(self, *tags):
+        """
+        Returns a string created by prepending the namespace to each tag and
+        adding forward slashes to separate.
 
-class SBMLError(myokit.ImportError):
-    """
-    Thrown if an error occurs when importing SBML
-    """
+        If a tag starts with a forward slash or period, no namespace will be
+        prepended.
+        """
+        treated = []
+        for tag in tags:
+            if tag[:1] not in './':
+                tag = '{' + self._ns + '}' + tag
+            tag = tag.rstrip('/')
+            treated.append(tag)
+        return '/'.join(treated)
 
 
 # SBML base units (except Celsius, because it's not defined in myokit)
