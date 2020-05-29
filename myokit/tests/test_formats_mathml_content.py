@@ -243,6 +243,35 @@ class ContentMathMLParserTest(unittest.TestCase):
         )
         self.assertEqual(x.unit(), myokit.units.volt)
 
+    def test_csymbol(self):
+        # Test csymbol parsing
+        # A csymbol MathML's way to define extensions, e.g. functions or
+        # operators or symbols not defined in MathML. In Myokit we only
+        # support their use as a type of <ci>.
+
+        self.assertEqual(
+            self.p('<csymbol definitionURL="hello" />'),
+            myokit.Name('hello')
+        )
+
+        # Missing definition url
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'must contain a definitionURL attribute',
+            self.p, '<csymbol>Hiya</csymbol>')
+
+        # Unknown variable
+        d = {'a': myokit.Name('a')}
+        p = mathml.MathMLParser(
+            lambda x, y: d[x],
+            lambda x, y: myokit.Number(x),
+        )
+        x = etree.fromstring('<csymbol definitionURL="a" />')
+        self.assertEqual(p.parse(x), myokit.Name('a'))
+        x = etree.fromstring('<csymbol definitionURL="b" />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to create Name from csymbol',
+            p.parse, x)
+
     def test_derivatives(self):
         # Test parsing of derivatives
 
