@@ -304,6 +304,7 @@ class Sim(object):
         self.s.run(10)
         return x
 
+
 # Run a simulation, created inside the called method
 def run_sim(x):
     m, p, _ = myokit.load('example')
