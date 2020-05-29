@@ -11,9 +11,10 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import myokit
 import pickle
 import unittest
+
+import myokit
 
 from shared import TemporaryDirectory
 
@@ -337,7 +338,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m1, m2)
 
         # Test with none-model
-        self.assertFalse(m1 == None)
+        self.assertFalse(m1 == None)    # noqa
         self.assertFalse(m1 == m1.get('membrane.V'))
 
         # Add reserved names

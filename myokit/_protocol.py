@@ -172,6 +172,13 @@ class Protocol(object):
             ' Please use `log_for_times` instead.')
         return self.log_for_times(times)
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if not isinstance(other, Protocol):
+            return False
+        return self.code() == other.code()
+
     def events(self):
         """
         Returns a list of all events in this protocol.
