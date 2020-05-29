@@ -30,27 +30,10 @@ except NameError:   # pragma: no python 2 cover
     basestring = str
 
 
-class SBMLTest(unittest.TestCase):
+class SBMLImporterTest(unittest.TestCase):
     """
-    Tests the SBML importer. First correct construction of myokit model
-    is tested using an altered model from the SBML test suite. Then
-    handling of errors or misspecified files is checked.
+    Tests various properties of the SBMLParser and SBMLImporter.
     """
-    @classmethod
-    def setUpClass(cls):
-        """
-        Tests a modified version of case 00004 from the SBML test suite
-        http://sbml.org/Facilities/Database/.
-        """
-        # Instantiate parser
-        cls.p = SBMLParser()
-
-        # Instantiate importer
-        cls.i = formats.importer('sbml')
-
-        # Instantiate SBML model
-        cls.modelFour = cls.i.model(os.path.join(
-            DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
 
     def test_info(self):
         i = formats.importer('sbml')
@@ -63,314 +46,18 @@ class SBMLTest(unittest.TestCase):
         self.assertTrue(i.supports_model())
         self.assertFalse(i.supports_protocol())
 
-    def test_model_name(self):
-        """Tests whether model name is set properly."""
-        name = 'case00004'
-        self.assertEqual(self.modelFour.name(), name)
 
-    def test_compartments(self):
-        """
-        Tests whether compartments have been imported properly. Compartments
-        should include the compartments in the SBML file, plus a myokit
-        compartment for the global parameters.
-        """
-        # compartment 1
-        comp = 'compartment'
-        self.assertTrue(self.modelFour.has_component(comp))
+class SBMLParserTest(unittest.TestCase):
+    """
+    Unit tests for the SBMLParser class.
 
-        # compartment 2
-        comp = 'myokit'
-        self.assertTrue(self.modelFour.has_component(comp))
+    Further tests are provided in SBMLParserReactionsTest and
+    SBMLParserEquationsTest.
+    """
 
-        # total number of compartments
-        number = 2
-        self.assertEqual(self.modelFour.count_components(), number)
-
-    def test_time(self):
-        """Tests whether the time bound variable was set properly"""
-        variable = 'time'
-        self.assertTrue(self.modelFour.has_variable('myokit.' + variable))
-        variable = self.modelFour.get('myokit.' + variable)
-        self.assertTrue(variable.is_bound())
-
-    def test_state_variables(self):
-        """Tests whether all dynamic variables were imported properly."""
-        # state 1
-        state = 'S1'
-        self.assertTrue(self.modelFour.has_variable('compartment.' + state))
-        state = self.modelFour.get('compartment.' + state)
-        self.assertTrue(state.is_state())
-
-        # state 2
-        state = 'S2'
-        self.assertTrue(self.modelFour.has_variable('compartment.' + state))
-        state = self.modelFour.get('compartment.' + state)
-        self.assertTrue(state.is_state())
-
-        # state 3
-        state = 'V'
-        self.assertTrue(self.modelFour.has_variable('myokit.' + state))
-        state = self.modelFour.get('myokit.' + state)
-        self.assertTrue(state.is_state())
-
-        # total number of states
-        number = 3
-        self.assertEqual(self.modelFour.count_variables(state=True), number)
-
-    def test_constant_parameters(self):
-        """
-        Tests whether all constant parameters in the file were properly
-        imported.
-        """
-        # parameter 1
-        parameter = 'k1'
-        self.assertTrue(self.modelFour.has_variable('myokit.' + parameter))
-        parameter = self.modelFour.get('myokit.' + parameter)
-        self.assertTrue(parameter.is_constant())
-
-        # parameter 2
-        parameter = 'k2'
-        self.assertTrue(self.modelFour.has_variable('myokit.' + parameter))
-        parameter = self.modelFour.get('myokit.' + parameter)
-        self.assertTrue(parameter.is_constant())
-
-        # parameter 3
-        parameter = 'size'
-        self.assertTrue(
-            self.modelFour.has_variable('compartment.' + parameter))
-        parameter = self.modelFour.get('compartment.' + parameter)
-        self.assertTrue(parameter.is_constant())
-
-        # parameter 5
-        parameter = 'i_Na'
-        self.assertTrue(self.modelFour.has_variable('myokit.' + parameter))
-        parameter = self.modelFour.get('myokit.' + parameter)
-        self.assertTrue(parameter.is_constant())
-
-        # parameter 5
-        parameter = 'g_Na'
-        self.assertTrue(self.modelFour.has_variable('myokit.' + parameter))
-        parameter = self.modelFour.get('myokit.' + parameter)
-        self.assertTrue(parameter.is_constant())
-
-        # parameter 6
-        parameter = 'm'
-        self.assertTrue(self.modelFour.has_variable('myokit.' + parameter))
-        parameter = self.modelFour.get('myokit.' + parameter)
-        self.assertTrue(parameter.is_constant())
-
-        # parameter 7
-        parameter = 'Cm'
-        self.assertTrue(self.modelFour.has_variable('myokit.' + parameter))
-        parameter = self.modelFour.get('myokit.' + parameter)
-        self.assertTrue(parameter.is_constant())
-
-        # total number of parameters
-        number = 7
-        self.assertEqual(self.modelFour.count_variables(const=True), number)
-
-    def test_intermediate_parameters(self):
-        """
-        Tests whether all intermediate parameters in the file were properly
-        imported.
-        """
-        # parameter 1
-        parameter = 'S1_Concentration'
-        self.assertTrue(
-            self.modelFour.has_variable('compartment.' + parameter))
-        parameter = self.modelFour.get('compartment.' + parameter)
-        self.assertTrue(parameter.is_intermediary())
-
-        # parameter 2
-        parameter = 'S2_Concentration'
-        self.assertTrue(
-            self.modelFour.has_variable('compartment.' + parameter))
-        parameter = self.modelFour.get('compartment.' + parameter)
-        self.assertTrue(parameter.is_intermediary())
-
-        # total number of parameters
-        number = 2
-        self.assertEqual(self.modelFour.count_variables(inter=True), number)
-
-    def test_initial_values(self):
-        """
-        Tests whether initial values of constant parameters and state variables
-        have been set properly.
-        """
-        # state 1
-        state = 'S1'
-        state = self.modelFour.get('compartment.' + state)
-        initialValue = 0.15
-        self.assertEqual(state.state_value(), initialValue)
-
-        # state 2
-        state = 'S2'
-        state = self.modelFour.get('compartment.' + state)
-        initialValue = 0
-        self.assertEqual(state.state_value(), initialValue)
-
-        # parameter 1
-        parameter = 'k1'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        initialValue = 0.35
-        self.assertEqual(parameter.eval(), initialValue)
-
-        # parameter 2
-        parameter = 'k2'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        initialValue = 180
-        self.assertEqual(parameter.eval(), initialValue)
-
-        # parameter 3
-        parameter = 'size'
-        parameter = self.modelFour.get('compartment.' + parameter)
-        initialValue = 1
-        self.assertEqual(parameter.eval(), initialValue)
-
-        # parameter 4
-        parameter = 'g_Na'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        initialValue = 2
-        self.assertEqual(parameter.eval(), initialValue)
-
-        # parameter 5
-        parameter = 'm'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        initialValue = 4
-        self.assertEqual(parameter.eval(), initialValue)
-
-        # parameter 6
-        parameter = 'Cm'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        initialValue = 1
-        self.assertEqual(parameter.eval(), initialValue)
-
-    def test_rate_expressions(self):
-        """
-        Tests whether state variables have been assigned with the correct
-        rate expression. Those may come from a rateRule or reaction.
-        """
-        # state 1
-        state = 'S1'
-        state = self.modelFour.get('compartment.' + state)
-        expression = str(
-            '-1 * (compartment.size * myokit.k1 * '
-            + 'compartment.S1_Concentration) + compartment.size * myokit.k2'
-            + ' * compartment.S2_Concentration ^ 2')
-        self.assertEqual(str(state.rhs()), expression)
-
-        # state 2
-        state = 'S2'
-        state = self.modelFour.get('compartment.' + state)
-        expression = str(
-            '2 * (compartment.size * myokit.k1 * '
-            + 'compartment.S1_Concentration) - 2 * '
-            + '(compartment.size * myokit.k2 '
-            + '* compartment.S2_Concentration ^ 2)')
-        self.assertEqual(str(state.rhs()), expression)
-
-        # state 3
-        state = 'V'
-        state = self.modelFour.get('myokit.' + state)
-        expression = 'myokit.i_Na / myokit.Cm'
-        self.assertEqual(str(state.rhs()), expression)
-
-    def test_assignment_rules(self):
-        """
-        Tests whether intermediate variables have been assigned with correct
-        expressions.
-        """
-        # parameter 1
-        parameter = 'S1_Concentration'
-        parameter = self.modelFour.get('compartment.' + parameter)
-        expression = 'compartment.S1 / compartment.size'
-        self.assertEqual(str(parameter.rhs()), expression)
-
-        # parameter 2
-        parameter = 'S2_Concentration'
-        parameter = self.modelFour.get('compartment.' + parameter)
-        expression = 'compartment.S2 / compartment.size'
-        self.assertEqual(str(parameter.rhs()), expression)
-
-        # parameter 3
-        parameter = 'i_Na'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        expression = 'myokit.g_Na * myokit.m ^ 3'
-        self.assertEqual(str(parameter.rhs()), expression)
-
-    def test_units(self):
-        """Tests whether units parsing."""
-        # state 1
-        state = 'S1'
-        state = self.modelFour.get('compartment.' + state)
-        unit = myokit.units.mol
-        self.assertEqual(state.unit(), unit)
-
-        # state 2
-        state = 'S2'
-        state = self.modelFour.get('compartment.' + state)
-        unit = myokit.units.mol
-        self.assertEqual(state.unit(), unit)
-
-        # state 3
-        state = 'V'
-        state = self.modelFour.get('myokit.' + state)
-        unit = myokit.units.V * 10 ** (-3)
-        self.assertEqual(state.unit(), unit)
-
-        # parameter 1
-        parameter = 'k1'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        unit = None
-        self.assertEqual(parameter.unit(), unit)
-
-        # parameter 2
-        parameter = 'k2'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        unit = None
-        self.assertEqual(parameter.unit(), unit)
-
-        # parameter 3
-        parameter = 'size'
-        parameter = self.modelFour.get('compartment.' + parameter)
-        unit = myokit.units.L
-        self.assertEqual(parameter.unit(), unit)
-
-        # parameter 4
-        parameter = 'S1_Concentration'
-        parameter = self.modelFour.get('compartment.' + parameter)
-        unit = myokit.units.mol / myokit.units.L
-        self.assertEqual(parameter.unit(), unit)
-
-        # parameter 5
-        parameter = 'S2_Concentration'
-        parameter = self.modelFour.get('compartment.' + parameter)
-        unit = myokit.units.mol / myokit.units.L
-        self.assertEqual(parameter.unit(), unit)
-
-        # parameter 6
-        parameter = 'i_Na'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        unit = None
-        self.assertEqual(parameter.unit(), unit)
-
-        # parameter 7
-        parameter = 'g_Na'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        unit = None
-        self.assertEqual(parameter.unit(), unit)
-
-        # parameter 8
-        parameter = 'm'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        unit = None
-        self.assertEqual(parameter.unit(), unit)
-
-        # parameter 9
-        parameter = 'Cm'
-        parameter = self.modelFour.get('myokit.' + parameter)
-        unit = None
-        self.assertEqual(parameter.unit(), unit)
+    @classmethod
+    def setUpClass(cls):
+        cls.p = SBMLParser()
 
     def assertBad(self, xml, message, lvl='3', v='2'):
         """
@@ -620,10 +307,9 @@ class SBMLTest(unittest.TestCase):
             'Species ID not existent.')
 
     def test_reserved_compartment_id(self):
-        """
-        ``MyoKit`` is a reserved ID that is used while importing for the myokit
-        compartment.
-        """
+        # ``Myokit`` is a reserved ID that is used while importing for the
+        # myokit compartment.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
@@ -636,10 +322,9 @@ class SBMLTest(unittest.TestCase):
             ' import.')
 
     def test_coinciding_ids(self):
-        """
-        Checks that error is thrown when indentical IDs are used for
-        compartment, parameters or species.
-        """
+        # Checks that error is thrown when indentical IDs are used for
+        # compartment, parameters or species.
+
         # Coinciding compartment and parameter IDs
         xml = (
             '<ns0:model id="test" '
@@ -754,10 +439,9 @@ class SBMLTest(unittest.TestCase):
             'standards. Stoichiometry ID is not unique.')
 
     def test_reserved_parameter_id(self):
-        """
-        ``globalConversionFactor`` is a reserved ID that is used while
-        importing the global conversion factor.
-        """
+        # ``globalConversionFactor`` is a reserved ID that is used while
+        # importing the global conversion factor.
+
         xml = (
             '<ns0:model id="test" conversionFactor="someFactor" '
             'timeUnits="s">\n'
@@ -771,10 +455,9 @@ class SBMLTest(unittest.TestCase):
             ' SBML import. Please rename IDs.')
 
     def test_missing_compartment(self):
-        """
-        Tests whether error is thrown when ``compartment``
-        attribute is not specified for a species.
-        """
+        # Tests whether error is thrown when ``compartment``
+        # attribute is not specified for a species.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfSpecies>\n'
@@ -787,10 +470,9 @@ class SBMLTest(unittest.TestCase):
             ' No <compartment> attribute provided.')
 
     def test_missing_hasOnlySubstanceUnits(self):
-        """
-        Tests whether error is thrown when ``hasOnlySubstanceUnits``
-        attribute is not specified for a species.
-        """
+        # Tests whether error is thrown when ``hasOnlySubstanceUnits``
+        # attribute is not specified for a species.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfSpecies>\n'
@@ -803,10 +485,9 @@ class SBMLTest(unittest.TestCase):
             ' No <hasOnlySubstanceUnits> flag provided.')
 
     def test_missing_constant(self):
-        """
-        Tests whether error is thrown when ``constant``
-        attribute is not specified for a species.
-        """
+        # Tests whether error is thrown when ``constant``
+        # attribute is not specified for a species.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
@@ -823,10 +504,9 @@ class SBMLTest(unittest.TestCase):
             ' No <constant> flag provided.')
 
     def test_missing_boundaryCondition(self):
-        """
-        Tests whether error is thrown when ``boundaryCondition``
-        attribute is not specified for a species.
-        """
+        # Tests whether error is thrown when ``boundaryCondition``
+        # attribute is not specified for a species.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
@@ -843,13 +523,12 @@ class SBMLTest(unittest.TestCase):
             ' No <boundaryCondition> flag provided.')
 
     def test_reserved_time_id(self):
-        """
-        Tests whether error is thrown when
-        ``http://www.sbml.org/sbml/symbols/time`` is used as parameter or
-        species ID. This is the definitionURL used by MathML to identify
-        the time variable in equations. We use it as an parameter ID to
-        find the time bound variable in the myokit model.
-        """
+        # Tests whether an error is thrown when
+        # ``http://www.sbml.org/sbml/symbols/time`` is used as parameter or
+        # species ID. This is the definitionURL used by MathML to identify
+        # the time variable in equations. We use it as an parameter ID to
+        # find the time bound variable in the myokit model.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfParameters>\n'
@@ -863,10 +542,9 @@ class SBMLTest(unittest.TestCase):
             + 'leads import errors.')
 
     def test_stoichiometry_reference(self):
-        """
-        Tests whether stoichiometry parameters are linked properly to global
-        variables.
-        """
+        # Tests whether stoichiometry parameters are linked properly to global
+        # variables.
+
         # Check that reactant stoichiometry is added as parameter to referenced
         # compartment
         comp_id = 'someComp'
@@ -972,10 +650,9 @@ class SBMLTest(unittest.TestCase):
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
 
     def test_missing_reactants_products(self):
-        """
-        Tests whether error is thrown when reaction does neither provide
-        reactants not products.
-        """
+        # Tests whether error is thrown when reaction does neither provide
+        # reactants not products.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfReactions>\n'
@@ -989,10 +666,10 @@ class SBMLTest(unittest.TestCase):
             'Reaction must have at least one reactant or product.')
 
     def test_fast_reaction(self):
-        """
-        Tests whether error is thrown when a reaction is flagged as ``fast``.
-        Myokit treats all reactions equal, so fast reactions are not supported.
-        """
+        # Tests whether error is thrown when a reaction is flagged as ``fast``.
+        # Myokit treats all reactions equal, so fast reactions are not
+        # supported.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
@@ -1018,10 +695,10 @@ class SBMLTest(unittest.TestCase):
             ' and substitute the steady states as AssigmentRule')
 
     def test_local_parameters(self):
-        """
-        Tests whether error is thrown when a reaction has ``localParameters``.
-        Local parameters are currenly not supported in myokit.
-        """
+        # Tests whether error is thrown when a reaction has
+        # ``localParameters``.
+        # Local parameters are currenly not supported in myokit.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
@@ -1053,10 +730,9 @@ class SBMLTest(unittest.TestCase):
             'instead.')
 
     def test_bad_kinetic_law(self):
-        """
-        Tests whether error is thrown if kinetic law refers to non-existent
-        parameters.
-        """
+        # Tests whether an error is thrown if a kinetic law refers to
+        # non-existent parameters.
+
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
@@ -1085,6 +761,344 @@ class SBMLTest(unittest.TestCase):
         self.assertBad(
             xml=xml,
             message='An error occured when importing the kineticLaw: ')
+
+
+class SBMLParserReactionsTest(unittest.TestCase):
+    """
+    Tests parsing an SBML file with species, compartments, and reactions.
+
+    This tests uses a modified model (case 00004) from the SBML test suite
+    http://sbml.org/Facilities/Database/.
+    """
+    @classmethod
+    def setUpClass(cls):
+        cls.model = SBMLParser().parse_file(os.path.join(
+            DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
+
+    def test_model_name(self):
+        # Tests whether model name is set properly.
+        name = 'case00004'
+        self.assertEqual(self.model.name(), name)
+
+    def test_compartments(self):
+        # Tests whether compartments have been imported properly. Compartments
+        # should include the compartments in the SBML file, plus a myokit
+        # compartment for the global parameters.
+
+        # compartment 1
+        comp = 'compartment'
+        self.assertTrue(self.model.has_component(comp))
+
+        # compartment 2
+        comp = 'myokit'
+        self.assertTrue(self.model.has_component(comp))
+
+        # total number of compartments
+        number = 2
+        self.assertEqual(self.model.count_components(), number)
+
+    def test_time(self):
+        # Tests whether the time bound variable was set properly
+
+        variable = 'time'
+        self.assertTrue(self.model.has_variable('myokit.' + variable))
+        variable = self.model.get('myokit.' + variable)
+        self.assertTrue(variable.is_bound())
+
+    def test_state_variables(self):
+        # Tests whether all dynamic variables were imported properly.
+
+        # state 1
+        state = 'S1'
+        self.assertTrue(self.model.has_variable('compartment.' + state))
+        state = self.model.get('compartment.' + state)
+        self.assertTrue(state.is_state())
+
+        # state 2
+        state = 'S2'
+        self.assertTrue(self.model.has_variable('compartment.' + state))
+        state = self.model.get('compartment.' + state)
+        self.assertTrue(state.is_state())
+
+        # state 3
+        state = 'V'
+        self.assertTrue(self.model.has_variable('myokit.' + state))
+        state = self.model.get('myokit.' + state)
+        self.assertTrue(state.is_state())
+
+        # total number of states
+        number = 3
+        self.assertEqual(self.model.count_variables(state=True), number)
+
+    def test_constant_parameters(self):
+        # Tests whether all constant parameters in the file were properly
+        # imported.
+
+        # parameter 1
+        parameter = 'k1'
+        self.assertTrue(self.model.has_variable('myokit.' + parameter))
+        parameter = self.model.get('myokit.' + parameter)
+        self.assertTrue(parameter.is_constant())
+
+        # parameter 2
+        parameter = 'k2'
+        self.assertTrue(self.model.has_variable('myokit.' + parameter))
+        parameter = self.model.get('myokit.' + parameter)
+        self.assertTrue(parameter.is_constant())
+
+        # parameter 3
+        parameter = 'size'
+        self.assertTrue(
+            self.model.has_variable('compartment.' + parameter))
+        parameter = self.model.get('compartment.' + parameter)
+        self.assertTrue(parameter.is_constant())
+
+        # parameter 5
+        parameter = 'i_Na'
+        self.assertTrue(self.model.has_variable('myokit.' + parameter))
+        parameter = self.model.get('myokit.' + parameter)
+        self.assertTrue(parameter.is_constant())
+
+        # parameter 5
+        parameter = 'g_Na'
+        self.assertTrue(self.model.has_variable('myokit.' + parameter))
+        parameter = self.model.get('myokit.' + parameter)
+        self.assertTrue(parameter.is_constant())
+
+        # parameter 6
+        parameter = 'm'
+        self.assertTrue(self.model.has_variable('myokit.' + parameter))
+        parameter = self.model.get('myokit.' + parameter)
+        self.assertTrue(parameter.is_constant())
+
+        # parameter 7
+        parameter = 'Cm'
+        self.assertTrue(self.model.has_variable('myokit.' + parameter))
+        parameter = self.model.get('myokit.' + parameter)
+        self.assertTrue(parameter.is_constant())
+
+        # total number of parameters
+        number = 7
+        self.assertEqual(self.model.count_variables(const=True), number)
+
+    def test_intermediate_parameters(self):
+        # Tests whether all intermediate parameters in the file were properly
+        # imported.
+
+        # parameter 1
+        parameter = 'S1_Concentration'
+        self.assertTrue(
+            self.model.has_variable('compartment.' + parameter))
+        parameter = self.model.get('compartment.' + parameter)
+        self.assertTrue(parameter.is_intermediary())
+
+        # parameter 2
+        parameter = 'S2_Concentration'
+        self.assertTrue(
+            self.model.has_variable('compartment.' + parameter))
+        parameter = self.model.get('compartment.' + parameter)
+        self.assertTrue(parameter.is_intermediary())
+
+        # total number of parameters
+        number = 2
+        self.assertEqual(self.model.count_variables(inter=True), number)
+
+    def test_initial_values(self):
+        # Tests whether initial values of constant parameters and state variables
+        # have been set properly.
+
+        # state 1
+        state = 'S1'
+        state = self.model.get('compartment.' + state)
+        initialValue = 0.15
+        self.assertEqual(state.state_value(), initialValue)
+
+        # state 2
+        state = 'S2'
+        state = self.model.get('compartment.' + state)
+        initialValue = 0
+        self.assertEqual(state.state_value(), initialValue)
+
+        # parameter 1
+        parameter = 'k1'
+        parameter = self.model.get('myokit.' + parameter)
+        initialValue = 0.35
+        self.assertEqual(parameter.eval(), initialValue)
+
+        # parameter 2
+        parameter = 'k2'
+        parameter = self.model.get('myokit.' + parameter)
+        initialValue = 180
+        self.assertEqual(parameter.eval(), initialValue)
+
+        # parameter 3
+        parameter = 'size'
+        parameter = self.model.get('compartment.' + parameter)
+        initialValue = 1
+        self.assertEqual(parameter.eval(), initialValue)
+
+        # parameter 4
+        parameter = 'g_Na'
+        parameter = self.model.get('myokit.' + parameter)
+        initialValue = 2
+        self.assertEqual(parameter.eval(), initialValue)
+
+        # parameter 5
+        parameter = 'm'
+        parameter = self.model.get('myokit.' + parameter)
+        initialValue = 4
+        self.assertEqual(parameter.eval(), initialValue)
+
+        # parameter 6
+        parameter = 'Cm'
+        parameter = self.model.get('myokit.' + parameter)
+        initialValue = 1
+        self.assertEqual(parameter.eval(), initialValue)
+
+    def test_rate_expressions(self):
+        # Tests whether state variables have been assigned with the correct
+        # rate expression. Those may come from a rateRule or reaction.
+
+        # state 1
+        state = 'S1'
+        state = self.model.get('compartment.' + state)
+        expression = str(
+            '-1 * (compartment.size * myokit.k1 * '
+            + 'compartment.S1_Concentration) + compartment.size * myokit.k2'
+            + ' * compartment.S2_Concentration ^ 2')
+        self.assertEqual(str(state.rhs()), expression)
+
+        # state 2
+        state = 'S2'
+        state = self.model.get('compartment.' + state)
+        expression = str(
+            '2 * (compartment.size * myokit.k1 * '
+            + 'compartment.S1_Concentration) - 2 * '
+            + '(compartment.size * myokit.k2 '
+            + '* compartment.S2_Concentration ^ 2)')
+        self.assertEqual(str(state.rhs()), expression)
+
+        # state 3
+        state = 'V'
+        state = self.model.get('myokit.' + state)
+        expression = 'myokit.i_Na / myokit.Cm'
+        self.assertEqual(str(state.rhs()), expression)
+
+    def test_assignment_rules(self):
+        # Tests whether intermediate variables have been assigned with correct
+        # expressions.
+
+        # parameter 1
+        parameter = 'S1_Concentration'
+        parameter = self.model.get('compartment.' + parameter)
+        expression = 'compartment.S1 / compartment.size'
+        self.assertEqual(str(parameter.rhs()), expression)
+
+        # parameter 2
+        parameter = 'S2_Concentration'
+        parameter = self.model.get('compartment.' + parameter)
+        expression = 'compartment.S2 / compartment.size'
+        self.assertEqual(str(parameter.rhs()), expression)
+
+        # parameter 3
+        parameter = 'i_Na'
+        parameter = self.model.get('myokit.' + parameter)
+        expression = 'myokit.g_Na * myokit.m ^ 3'
+        self.assertEqual(str(parameter.rhs()), expression)
+
+    def test_units(self):
+        # Tests units parsing.
+
+        # state 1
+        state = 'S1'
+        state = self.model.get('compartment.' + state)
+        unit = myokit.units.mol
+        self.assertEqual(state.unit(), unit)
+
+        # state 2
+        state = 'S2'
+        state = self.model.get('compartment.' + state)
+        unit = myokit.units.mol
+        self.assertEqual(state.unit(), unit)
+
+        # state 3
+        state = 'V'
+        state = self.model.get('myokit.' + state)
+        unit = myokit.units.V * 10 ** (-3)
+        self.assertEqual(state.unit(), unit)
+
+        # parameter 1
+        parameter = 'k1'
+        parameter = self.model.get('myokit.' + parameter)
+        unit = None
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 2
+        parameter = 'k2'
+        parameter = self.model.get('myokit.' + parameter)
+        unit = None
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 3
+        parameter = 'size'
+        parameter = self.model.get('compartment.' + parameter)
+        unit = myokit.units.L
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 4
+        parameter = 'S1_Concentration'
+        parameter = self.model.get('compartment.' + parameter)
+        unit = myokit.units.mol / myokit.units.L
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 5
+        parameter = 'S2_Concentration'
+        parameter = self.model.get('compartment.' + parameter)
+        unit = myokit.units.mol / myokit.units.L
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 6
+        parameter = 'i_Na'
+        parameter = self.model.get('myokit.' + parameter)
+        unit = None
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 7
+        parameter = 'g_Na'
+        parameter = self.model.get('myokit.' + parameter)
+        unit = None
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 8
+        parameter = 'm'
+        parameter = self.model.get('myokit.' + parameter)
+        unit = None
+        self.assertEqual(parameter.unit(), unit)
+
+        # parameter 9
+        parameter = 'Cm'
+        parameter = self.model.get('myokit.' + parameter)
+        unit = None
+        self.assertEqual(parameter.unit(), unit)
+
+
+class SBMLParserEquationsTest(unittest.TestCase):
+    """
+    Tests parsing an SBML file with only explicit equations (``assignmentRule``
+    elements).
+
+    This tests uses a modified model from the BioModels database.
+    https://www.ebi.ac.uk/biomodels/BIOMD0000000020.
+    """
+    @classmethod
+    def setUpClass(cls):
+        cls.model = SBMLParser().parse_file(os.path.join(
+            DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+
+    def test_name(self):
+        # Test the name attribute was parsed correctly
+
+        self.assertEqual(cls.model.name, 'cookaburra')
 
 
 if __name__ == '__main__':
