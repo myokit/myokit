@@ -2188,11 +2188,14 @@ class Model(ObjectWithMeta, VarProvider):
 
         See: https://docs.python.org/3/library/pickle.html#object.__reduce__
         """
-        return (myokit.parse_model, (self.code(), ))
-
-        # TODO?
-        # self._reserved_unames = set()
-        # self._reserved_uname_prefixes = {}
+        return (
+            myokit.parse_model,
+            (self.code(), ),
+            (
+                self._reserved_unames,
+                self._reserved_uname_prefixes,
+            ),
+        )
 
     def _register_binding(self, label, variable=None):
         """
@@ -2446,6 +2449,15 @@ class Model(ObjectWithMeta, VarProvider):
                 pass
         else:
             self.meta['name'] = str(name)
+
+    def __setstate__(self, state):
+        """
+        Called after unpickling.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__setstate__
+        """
+        self._reserved_unames = state[0]
+        self._reserved_uname_prefixes = state[1]
 
     def set_state(self, state):
         """

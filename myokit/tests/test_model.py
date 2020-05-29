@@ -820,15 +820,12 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m1, m2)
 
         # Test unique names and prefixes (see also test_clone)
-        #TODO
-
-
-
-
-
-
-
-
+        m1.reserve_unique_names('barnard', 'lincoln', 'glasgow')
+        m1.reserve_unique_name_prefix('monkey', 'giraffe')
+        m1.reserve_unique_name_prefix('ostrich', 'turkey')
+        m_bytes = pickle.dumps(m1)
+        m2 = pickle.loads(m_bytes)
+        self.assertEqual(m1, m2)
 
     def test_remove_component(self):
         # Test the removal of a component.

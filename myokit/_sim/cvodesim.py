@@ -223,6 +223,8 @@ class Simulation(myokit.CModule):
     def __reduce__(self):
         """
         Pickles this Simulation.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
         """
         apd_var = None if self._apd_var is None else self._apd_var.qname()
         return (
@@ -600,7 +602,7 @@ class Simulation(myokit.CModule):
         """
         Called after unpickling.
 
-        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        See: https://docs.python.org/3/library/pickle.html#object.__setstate__
         """
         self._time = state[0]
         self._state = state[1]
