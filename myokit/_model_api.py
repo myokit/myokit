@@ -2158,6 +2158,18 @@ class Model(ObjectWithMeta, VarProvider):
             var.set_binding(None)
         return variables
 
+    def __reduce__(self):
+        """
+        Pickles the model.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        return (myokit.parse_model, (self.code(), ))
+
+        # TODO?
+        # self._reserved_unames = set()
+        # self._reserved_uname_prefixes = {}
+
     def _register_binding(self, label, variable=None):
         """
         Used by variables to inform the model of the addition or removal of a
@@ -3509,7 +3521,7 @@ class Variable(VarOwner):
             attempt to use if the new and old units are incompatible. Each
             factor should be specified as a :class:`myokit.Quantity` or
             something that can be converted to a Quantity e.g. a string
-            ``1 [uF/cm^2]``.
+            ``1 [uF/cm^2]`` or a :class:`myokit.Number()`.
 
         Note that this method will assume the expression is currently in the
         unit returned by :meth:`Variable.unit()`. It will not check whether the
