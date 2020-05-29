@@ -11,8 +11,10 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import myokit
+import pickle
 import unittest
+
+import myokit
 
 from shared import TemporaryDirectory
 
@@ -255,6 +257,22 @@ class ModelTest(unittest.TestCase):
             self.assertEqual(token[2], 3)
             self.assertEqual(token[3], 0)
 
+    def test_clone(self):
+        # Test :meth:`Model.clone()
+
+        # Test model, component, variables
+        m1 = myokit.load_model('example')
+        m2 = m1.clone()
+        self.assertFalse(m1 is m2)
+        self.assertEqual(m1, m2)
+
+        # Test unames and uname prefixes
+        m1.reserve_unique_names('barnard', 'lincoln', 'glasgow')
+        m1.reserve_unique_name_prefix('monkey', 'giraffe')
+        m1.reserve_unique_name_prefix('ostrich', 'turkey')
+        m2 = m1.clone()
+        self.assertEqual(m1, m2)
+
     def test_code(self):
         # Test :meth:`Model.code()`.
 
@@ -308,6 +326,39 @@ class ModelTest(unittest.TestCase):
             '12 [comp2]\n'
             '13 d = comp1.a\n'
         )
+
+    def test_equals(self):
+        # Check that equality takes both code() and unames into account
+
+        # Test without custom reserved names
+        m1 = myokit.load_model('example')
+        m2 = m1.clone()
+        self.assertIsInstance(m2, myokit.Model)
+        self.assertFalse(m1 is m2)
+        self.assertEqual(m1, m2)
+        self.assertEqual(m1, m1)
+
+        # Test with none-model
+        self.assertNotEqual(m1, None)
+        self.assertNotEqual(m1, m1.code())
+
+        # Add reserved names
+        m1.reserve_unique_names('bertie')
+        self.assertNotEqual(m1, m2)
+        m1.reserve_unique_names('clair')
+        self.assertNotEqual(m1, m2)
+        m2.reserve_unique_names('clair', 'bertie')
+        self.assertEqual(m1, m2)
+
+        # Add reserved name prefixes
+        m1.reserve_unique_name_prefix('aa', 'bb')
+        m1.reserve_unique_name_prefix('cc', 'dd')
+        self.assertNotEqual(m1, m2)
+        m2.reserve_unique_name_prefix('aa', 'bb')
+        m2.reserve_unique_name_prefix('cc', 'ee')
+        self.assertNotEqual(m1, m2)
+        m2.reserve_unique_name_prefix('cc', 'dd')
+        self.assertEqual(m1, m2)
 
     def test_eval_state_derivatives(self):
         # Test Model.eval_state_derivatives().
@@ -758,6 +809,25 @@ class ModelTest(unittest.TestCase):
         self.assertIsNone(m.name())
         m.set_name('bert')
         self.assertEqual(m.name(), 'bert')
+
+    def test_pickling(self):
+        # Test pickling and unpickling a model
+
+        # Test model structure
+        m1 = myokit.load_model('example')
+        m_bytes = pickle.dumps(m1)
+        m2 = pickle.loads(m_bytes)
+        self.assertFalse(m1 is m2)
+        self.assertIsInstance(m2, myokit.Model)
+        self.assertEqual(m1, m2)
+
+        # Test unique names and prefixes (see also test_clone)
+        m1.reserve_unique_names('barnard', 'lincoln', 'glasgow')
+        m1.reserve_unique_name_prefix('monkey', 'giraffe')
+        m1.reserve_unique_name_prefix('ostrich', 'turkey')
+        m_bytes = pickle.dumps(m1)
+        m2 = pickle.loads(m_bytes)
+        self.assertEqual(m1, m2)
 
     def test_remove_component(self):
         # Test the removal of a component.

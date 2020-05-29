@@ -789,11 +789,14 @@ class Model(ObjectWithMeta, VarProvider):
         # A list of warnings about the model's integrity
         self._warnings = []
 
-        # A list of unique names (for easier export)
-        # Some names may be taken up by system functions etc
+        # A list of names that can't be used as unames()
         self._reserved_unames = set()
-        self._reserved_uname_prefixes = {}
         self.reserve_unique_names(*myokit.KEYWORDS)
+
+        # A dict mapping `prefix` strings to `prepend` strings. When generating
+        # unames any uname startinhg with `prefix` will be prepended by
+        # `prepend`.
+        self._reserved_uname_prefixes = {}
 
         # A dictionary token_start : (token, object) relating some (not all!)
         #  tokens to a model. Will be filled by parser when reading a model.
@@ -1025,7 +1028,7 @@ class Model(ObjectWithMeta, VarProvider):
 
     def clone(self):
         """
-        Returns a deep clone of this model.
+        Returns a (deep) clone of this model.
         """
         clone = Model()
 
@@ -1052,8 +1055,12 @@ class Model(ObjectWithMeta, VarProvider):
         for k, c in self._components.items():
             c._clone2(clone[k], lhsmap)
 
-        # Copy unique names
+        # Copy unique names and unique name prefixes
         clone.reserve_unique_names(*iter(self._reserved_unames))
+        for prefix, prepend in self._reserved_uname_prefixes.items():
+            clone.reserve_unique_name_prefix(prefix, prepend)
+
+        # Return
         return clone
 
     def code(self, line_numbers=False):
@@ -1267,6 +1274,23 @@ class Model(ObjectWithMeta, VarProvider):
                 for v in c.variables(deep=deep, sort=sort):
                     yield v
         return stream(self)
+
+    def __eq__(self, other):
+        """
+        Checks if this model equals the ``other`` model.
+
+        This checks equality of code(), but also unique names and unique name
+        prefixes.
+        """
+        if self is other:
+            return True
+        if not isinstance(other, Model):
+            return False
+        if self._reserved_unames != other._reserved_unames:
+            return False
+        if self._reserved_uname_prefixes != other._reserved_uname_prefixes:
+            return False
+        return self.code() == other.code()
 
     def eval_state_derivatives(
             self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
@@ -2158,6 +2182,21 @@ class Model(ObjectWithMeta, VarProvider):
             var.set_binding(None)
         return variables
 
+    def __reduce__(self):
+        """
+        Pickles the model.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        return (
+            myokit.parse_model,
+            (self.code(), ),
+            (
+                self._reserved_unames,
+                self._reserved_uname_prefixes,
+            ),
+        )
+
     def _register_binding(self, label, variable=None):
         """
         Used by variables to inform the model of the addition or removal of a
@@ -2410,6 +2449,15 @@ class Model(ObjectWithMeta, VarProvider):
                 pass
         else:
             self.meta['name'] = str(name)
+
+    def __setstate__(self, state):
+        """
+        Called after unpickling.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__setstate__
+        """
+        self._reserved_unames = state[0]
+        self._reserved_uname_prefixes = state[1]
 
     def set_state(self, state):
         """
@@ -3509,7 +3557,7 @@ class Variable(VarOwner):
             attempt to use if the new and old units are incompatible. Each
             factor should be specified as a :class:`myokit.Quantity` or
             something that can be converted to a Quantity e.g. a string
-            ``1 [uF/cm^2]``.
+            ``1 [uF/cm^2]`` or a :class:`myokit.Number()`.
 
         Note that this method will assume the expression is currently in the
         unit returned by :meth:`Variable.unit()`. It will not check whether the

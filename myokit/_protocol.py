@@ -172,6 +172,13 @@ class Protocol(object):
             ' Please use `log_for_times` instead.')
         return self.log_for_times(times)
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if not isinstance(other, Protocol):
+            return False
+        return self.code() == other.code()
+
     def events(self):
         """
         Returns a list of all events in this protocol.
@@ -459,6 +466,14 @@ class Protocol(object):
             e = e._next
 
         return lo, hi
+
+    def __reduce__(self):
+        """
+        Pickles the Protocol.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        return (myokit.parse_protocol, (self.code(), ))
 
     def schedule(self, level, start, duration, period=0, multiplier=0):
         """

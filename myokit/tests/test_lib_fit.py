@@ -29,6 +29,7 @@ class EvaluatorTest(unittest.TestCase):
     """
     Tests the sequential and parallel evaluation classes.
     """
+
     def test_evaluators(self):
 
         # Test basic sequential/parallel evaluation
@@ -94,10 +95,20 @@ class EvaluatorTest(unittest.TestCase):
         self.assertRaisesRegex(
             Exception, 'in subprocess', e.evaluate, range(10))
 
+    def test_parallel_simulations(self):
+        # Test running simulations in parallel
+
+        # Test running simulation defined in object
+        s = Sim()
+        e = fit.ParallelEvaluator(s.run, nworkers=4)
+        e.evaluate([1, 2, 3, 4])
+
+        # Test running simulation created inside of score function
+        e = fit.ParallelEvaluator(run_sim, nworkers=4)
+        e.evaluate([1, 2, 3, 4])
+
     def test_worker(self):
-        """
-        Manual test of worker, since cover doesn't pick up on its run method.
-        """
+        # Manual test of worker, since cover doesn't pick up on its run method.
         from myokit.lib.fit import _Worker as Worker
 
         # Create queues for worker
@@ -213,9 +224,8 @@ class FittingTest(unittest.TestCase):
             return float('inf')
 
     def test_cmaes(self):
-        """
-        Test if a CMA-ES routine runs without errors.
-        """
+        # Test if a CMA-ES routine runs without errors.
+
         # Some CMAES versions import matplotlib...
         import matplotlib
         matplotlib.use('template')
@@ -234,9 +244,7 @@ class FittingTest(unittest.TestCase):
                 parallel=False, target=1)
 
     def test_pso(self):
-        """
-        Test if a PSO routine runs without errors.
-        """
+        # Test if a PSO routine runs without errors.
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.pso(
@@ -244,9 +252,7 @@ class FittingTest(unittest.TestCase):
                 parallel=False, max_iter=50)
 
     def test_snes(self):
-        """
-        Test if a SNES routine runs without errors.
-        """
+        # Test if a SNES routine runs without errors.
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.snes(
@@ -254,9 +260,7 @@ class FittingTest(unittest.TestCase):
                 parallel=False, max_iter=50)
 
     def test_xnes(self):
-        """
-        Test if a xNES routine runs without errors.
-        """
+        # Test if a xNES routine runs without errors.
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.xnes(
@@ -283,10 +287,30 @@ def ioerror_on_five(x):
     return x
 
 
+# Test handling of keyboard interrupts
 def h(x):
     if x == 30:
         raise KeyboardInterrupt
     return 2 * x
+
+
+# Run a simulation, created outside of the called method
+class Sim(object):
+    def __init__(self):
+        m, p, _ = myokit.load('example')
+        self.s = myokit.Simulation(m, p)
+
+    def run(self, x):
+        self.s.run(10)
+        return x
+
+
+# Run a simulation, created inside the called method
+def run_sim(x):
+    m, p, _ = myokit.load('example')
+    s = myokit.Simulation(m, p)
+    s.run(10)
+    return x
 
 
 if __name__ == '__main__':
