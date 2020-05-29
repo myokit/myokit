@@ -267,14 +267,6 @@ class FittingTest(unittest.TestCase):
                 FittingTest._score, self._boundaries, hint=self._hint,
                 parallel=False, max_iter=50)
 
-    def test_xnes(self):
-        # Test if a xNES routine runs without errors.
-        np.random.seed(1)
-        with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
-            x, f = fit.xnes(
-                FittingTest._score, self._boundaries, hint=self._hint,
-                parallel=False, max_iter=50)
-
 
 # Globally defined test functions (for windows)
 def f(x):
