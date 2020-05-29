@@ -106,6 +106,7 @@ class SBMLParserTest(unittest.TestCase):
             xml='<ns0:model ',  # incomplete xml
             message='Unable to parse XML: ')
 
+    '''
     def test_level_version(self):
         # Check whether error is thrown for wrong level
         self.assertBad(
@@ -128,12 +129,13 @@ class SBMLParserTest(unittest.TestCase):
                 'global namespace is not'
                 ' <http://www.sbml.org/sbml/level3/version2/core>.',
             v=1)
+    '''
+
+
+
 
     def test_no_model(self):
-        self.assertBad(
-            xml=' ',
-            message='The file does not adhere to SBML 3.2 standards.'
-                ' No model provided.')
+        self.assertBad(xml='', message='Model element not found.')
 
     def test_function_definitions(self):
         xml = (
@@ -178,8 +180,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' No unit ID provided.')
+            message='No unit ID provided.')
 
         # missing compartment ID
         xml = (
@@ -190,8 +191,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' No compartment ID provided.')
+            message='No compartment ID provided.')
 
         # missing parameter ID
         xml = (
@@ -202,8 +202,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' No parameter ID provided.')
+            message='No parameter ID provided.')
 
         # missing global conversion factor ID
         xml = (
@@ -215,8 +214,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' The model conversionFactor points to non-existent ID.')
+            message='The model conversionFactor points to non-existent ID.')
 
         # missing species ID
         xml = (
@@ -227,8 +225,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' No species ID provided.')
+            message='No species ID provided.')
 
         # missing conversion factor ID
         xml = (
@@ -244,8 +241,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' conversionFactor refers to non-existent ID.')
+            message='conversionFactor refers to non-existent ID.')
 
         # missing reactant ID
         xml = (
@@ -260,8 +256,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards. '
-            'Species ID not existent.')
+            message='Species ID not existent.')
 
         # missing product ID
         xml = (
@@ -276,8 +271,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards. '
-            'Species ID not existent.')
+            message='Species ID not existent.')
 
         # missing modifier ID
         xml = (
@@ -303,8 +297,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards. '
-            'Species ID not existent.')
+            message='Species ID not existent.')
 
     def test_reserved_compartment_id(self):
         # ``Myokit`` is a reserved ID that is used while importing for the
@@ -338,8 +331,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' The provided parameter ID already exists.')
+            message='The provided parameter ID already exists.')
 
         # Coinciding compartment and species IDs
         xml = (
@@ -356,8 +348,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' The provided species ID already exists.')
+            message='The provided species ID already exists.')
 
         # Coinciding parameter and species IDs
         xml = (
@@ -377,8 +368,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' The provided species ID already exists.')
+            message='The provided species ID already exists.')
 
         # Coinciding parameter and reactant stoichiometry IDs
         stoich_id = 'someStoich'
@@ -406,8 +396,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 '
-            'standards. Stoichiometry ID is not unique.')
+            message='Stoichiometry ID is not unique.')
 
         # Coinciding parameter and product stoichiometry IDs
         stoich_id = 'someStoich'
@@ -435,8 +424,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 '
-            'standards. Stoichiometry ID is not unique.')
+            message='Stoichiometry ID is not unique.')
 
     def test_reserved_parameter_id(self):
         # ``globalConversionFactor`` is a reserved ID that is used while
@@ -466,8 +454,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' No <compartment> attribute provided.')
+            message='No <compartment> attribute provided.')
 
     def test_missing_hasOnlySubstanceUnits(self):
         # Tests whether error is thrown when ``hasOnlySubstanceUnits``
@@ -481,8 +468,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' No <hasOnlySubstanceUnits> flag provided.')
+            message='No <hasOnlySubstanceUnits> flag provided.')
 
     def test_missing_constant(self):
         # Tests whether error is thrown when ``constant``
@@ -500,8 +486,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' No <constant> flag provided.')
+            message='No <constant> flag provided.')
 
     def test_missing_boundaryCondition(self):
         # Tests whether error is thrown when ``boundaryCondition``
@@ -519,8 +504,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards.'
-            ' No <boundaryCondition> flag provided.')
+            message='No <boundaryCondition> flag provided.')
 
     def test_reserved_time_id(self):
         # Tests whether an error is thrown when
@@ -662,8 +646,7 @@ class SBMLParserTest(unittest.TestCase):
             '</ns0:model>\n')
         self.assertBad(
             xml=xml,
-            message='The file does not adhere to SBML 3.2 standards. '
-            'Reaction must have at least one reactant or product.')
+            message='Reaction must have at least one reactant or product.')
 
     def test_fast_reaction(self):
         # Tests whether error is thrown when a reaction is flagged as ``fast``.
@@ -1095,10 +1078,150 @@ class SBMLParserEquationsTest(unittest.TestCase):
         cls.model = SBMLParser().parse_file(os.path.join(
             DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
 
-    def test_name(self):
-        # Test the name attribute was parsed correctly
+    def test_parameters(self):
+        # Test all parameters show up in the Myokit model
 
-        self.assertEqual(cls.model.name, 'cookaburra')
+        # expected
+        parameters = [
+            'V',
+            'V_neg',
+            'E',
+            'I',
+            'i_Na',
+            'i_K',
+            'i_L',
+            'm',
+            'h',
+            'n',
+            'E_R',
+            'Cm',
+            'g_Na',
+            'g_K',
+            'g_L',
+            'E_Na',
+            'E_K',
+            'E_L',
+            'V_Na',
+            'V_K',
+            'V_L',
+            'alpha_m',
+            'beta_m',
+            'alpha_h',
+            'beta_h',
+            'alpha_n',
+            'beta_n'
+        ]
+
+        # test whether parameters are in myokit model
+        for param in parameters:
+            self.assertTrue(self.hohu.has_variable('sbml.' + param))
+
+    def test_units(self):
+        # Test units were parsed OK
+
+        # expected
+        param_unit_dict = {
+            'V': myokit.units.V * 10 ** (-3),
+            'V_neg': myokit.units.V * 10 ** (-3),
+            'E': myokit.units.V * 10 ** (-3),
+            'I': None,
+            'i_Na': None,
+            'i_K': None,
+            'i_L': None,
+            'm': None,
+            'h': None,
+            'n': None,
+            'E_R': myokit.units.V * 10 ** (-3),
+            'Cm': None,
+            'g_Na': None,
+            'g_K': None,
+            'g_L': None,
+            'E_Na': myokit.units.V * 10 ** (-3),
+            'E_K': myokit.units.V * 10 ** (-3),
+            'E_L': myokit.units.V * 10 ** (-3),
+            'V_Na': myokit.units.V * 10 ** (-3),
+            'V_K': myokit.units.V * 10 ** (-3),
+            'V_L': myokit.units.V * 10 ** (-3),
+            'alpha_m': None,
+            'beta_m': None,
+            'alpha_h': None,
+            'beta_h': None,
+            'alpha_n': None,
+            'beta_n': None
+        }
+
+        # test whether parameters have correct units
+        for param in param_unit_dict:
+            unit = param_unit_dict[param]
+            self.assertEqual(unit, self.hohu.get('sbml.' + param).unit())
+
+    def test_initial_values(self):
+        # Test the initial values for state variables
+
+        # expected
+        param_value_dict = {
+            'I': 0,
+            'E_R': -75,
+            'Cm': 1,
+            'g_Na': 120,
+            'g_K': 36,
+            'g_L': 0.3,
+            'E_Na': -190,
+            'E_K': -63,
+            'E_L': -85.613
+        }
+
+        # test whether parameters have correct initial values
+        for param in param_value_dict:
+            value = param_value_dict[param]
+            self.assertEqual(value, self.hohu.get('sbml.' + param).value())
+
+    def test_intermediate_expressions(self):
+        # Test the expressions for the intermediary variables
+
+        # expected
+        param_expr_dict = {
+            'V_neg': '-sbml.V',
+            'E': 'sbml.V + sbml.E_R',
+            'i_Na': 'sbml.g_Na * sbml.m ^ 3 * sbml.h * (sbml.V - sbml.V_Na)',
+            'i_K': 'sbml.g_K * sbml.n ^ 4 * (sbml.V - sbml.V_K)',
+            'i_L': 'sbml.g_L * (sbml.V - sbml.V_L)',
+            'V_Na': 'sbml.E_Na - sbml.E_R',
+            'V_K': 'sbml.E_K - sbml.E_R',
+            'V_L': 'sbml.E_L - sbml.E_R',
+            'alpha_m':
+            '0.1 * (sbml.V + 25) / (exp((sbml.V + 25) / 10) - 1)',
+            'beta_m': '4 * exp(sbml.V / 18)',
+            'alpha_h': '0.07 * exp(sbml.V / 20)',
+            'beta_h': '1 / (exp((sbml.V + 30) / 10) + 1)',
+            'alpha_n': '0.01 * (sbml.V + 10) / (exp((sbml.V + 10) / 10) - 1)',
+            'beta_n': '0.125 * exp(sbml.V / 80)'
+        }
+
+        # test whether intermediate expressions are correct
+        for param in param_expr_dict:
+            expr = param_expr_dict[param]
+            self.assertEqual(
+                'sbml.' + param, str(self.hohu.get('sbml.' + param).lhs()))
+            self.assertEqual(expr, str(self.hohu.get('sbml.' + param).rhs()))
+
+    def test_state_expressions(self):
+        # Test the expressions for the states
+
+        # expected
+        param_expr_dict = {
+            'm': 'sbml.alpha_m * (1 - sbml.m) - sbml.beta_m * sbml.m',
+            'h': 'sbml.alpha_h * (1 - sbml.h) - sbml.beta_h * sbml.h',
+            'n': 'sbml.alpha_n * (1 - sbml.n) - sbml.beta_n * sbml.n'
+        }
+
+        # test whether state expressions are correct
+        for param in param_expr_dict:
+            expr = param_expr_dict[param]
+            self.assertEqual(
+                'dot(sbml.%s)' % param,
+                str(self.hohu.get('sbml.' + param).lhs()))
+            self.assertEqual(expr, str(self.hohu.get('sbml.' + param).rhs()))
 
 
 if __name__ == '__main__':

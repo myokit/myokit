@@ -59,7 +59,7 @@ class SBMLParser(object):
 
     def parse(self, root):
         """
-        Parses an SBML document rooted in the given elementtree element and
+        Parses an SBML document rooted in the given ``ElementTree`` element and
         returns a :class:`myokit.Model`.
         """
         try:
@@ -68,6 +68,10 @@ class SBMLParser(object):
             raise SBMLError(str(e))
         except myokit.formats.mathml.MathMLError as e:
             raise SBMLError(str(e))
+        finally:
+            # Remove all references to temporary state
+            del(self._log)
+            del(self._ns)
 
     def _parse_model(self, root):
         """
@@ -76,36 +80,43 @@ class SBMLParser(object):
         # Get logger
         self._log = myokit.formats.TextLogger()
 
+        # Supported namespaces
+        # Other namespaces are allowed, but might not work.
+        supported = (
+            'http://www.sbml.org/sbml/level3/version2/core',
+        )
+
         # Check whether file has SBML 3.2 namespace
         ns = self._get_namespace(root)
-        if ns != 'http://www.sbml.org/sbml/level3/version2/core':
-            raise SBMLError(
-                'The file does not adhere to SBML 3.2 standards. The global'
-                ' namespace is not'
-                ' <http://www.sbml.org/sbml/level3/version2/core>.')
+        if ns not in supported:
+            self._log.warn(
+                'Unknown SBML namespace ' + str(ns) + '. This version of SBML'
+                ' may not be supported.')
+
+        # Store namespace for later identification of elements and attributes.
+        self._ns = '{' + ns + '}'
 
         # Get model
         sbml_model = self._get_model(root)
         if not sbml_model:
-            raise SBMLError(
-                'The file does not adhere to SBML 3.2 standards.'
-                ' No model provided.')
+            raise SBMLError('Model element not found.')
 
         # Get model name
         name = self._get_name(sbml_model)
-        if not name:
+        if name:
+            name = self._convert_name(name)
+        else:
             name = 'Imported SBML model'
 
         # Create myokit model
-        self._model = myokit.Model(self._convert_name(name))
-        self._log.log('Reading model "' + self._model.meta['name'] + '"')
+        model = myokit.Model(name)
+        self._log.log('Reading model "' + name + '"')
 
-        # Add notes, if provided, to model description
+        # If notes are provided, set the as model description
         notes = self._get_notes(sbml_model)
         if notes:
             self._log.log('Converting <model> notes to ascii')
-            self._model.meta['desc'] = html2ascii(notes, width=75)
-            # width = 79 - 4 for tab!
+            model.meta['desc'] = html2ascii(notes, width=75)
 
         # Raise error if function definitions are provided (could be added in
         # another PR)
@@ -126,11 +137,8 @@ class SBMLParser(object):
             for unit_def in unit_defs:
                 unit_id = unit_def.get('id')
                 if not unit_id:
-                    raise SBMLError(
-                        'The file does not adhere to SBML 3.2 standards.'
-                        ' No unit ID provided.')
-                user_unit_dict[
-                    unit_id] = self._convert_unit_def(unit_def)
+                    raise SBMLError('No unit ID provided.')
+                user_unit_dict[unit_id] = self._convert_unit_def(unit_def)
 
         # Get model units
         units = {
@@ -142,11 +150,11 @@ class SBMLParser(object):
             'extentUnit': sbml_model.get('extentUnits'),
         }
         for unit_id, unit in units.items():
-            if unit in user_unit_dict:
-                user_unit_dict[unit_id] = user_unit_dict[unit]
-            else:
-                user_unit_dict[unit_id] = self._convert_sbml_to_myokit_units(
-                    unit)
+            try:
+                unit = user_unit_dict[unit]
+            except KeyError:
+                unit = self._convert_sbml_to_myokit_units(unit)
+            user_unit_dict[unit_id] = unit
 
         # Initialise parameter and species dictionary; maps ids to
         # myokit.Variable objects.
@@ -158,7 +166,8 @@ class SBMLParser(object):
 
         # Add compartments to model
         self._parse_compartments(
-            sbml_model, user_unit_dict, param_and_species_dict, comp_dict)
+            model, sbml_model, user_unit_dict, param_and_species_dict,
+            comp_dict)
 
         # Add parameters to model
         self._parse_parameters(
@@ -200,6 +209,7 @@ class SBMLParser(object):
         time.set_unit(user_unit_dict['timeUnit'])
         time.set_rhs(0.0)  # According to SBML guidelines
         time_id = 'http://www.sbml.org/sbml/symbols/time'  # This ID is not
+
         # protected
         if time_id in param_and_species_dict:
             raise SBMLError(
@@ -211,12 +221,12 @@ class SBMLParser(object):
 
         # Create species reference for all species in reactions for later
         # assignment and rate rules
-        self._species_reference = set()
+        species_reference = set()
 
         # Add Reactions to model
         self._parse_reactions(
             sbml_model, user_unit_dict, param_and_species_dict, comp_dict,
-            species_prop_dict, species_also_in_amount_dict)
+            species_prop_dict, species_also_in_amount_dict, species_reference)
 
         # Add initial assignments to model
         self._parse_initial_assignments(
@@ -231,12 +241,13 @@ class SBMLParser(object):
 
         # Add assignmentRules to model
         self._parse_assignment_rules(
-            sbml_model, param_and_species_dict, species_prop_dict)
+            sbml_model, param_and_species_dict, species_prop_dict,
+            species_reference)
 
         # Add rateRules to model
         self._parse_rate_rules(
             sbml_model, param_and_species_dict, species_prop_dict,
-            species_also_in_amount_dict)
+            species_also_in_amount_dict, species_reference)
 
         # Log warning if constraints are provided
         constraints = self._get_list_of_constraints(sbml_model)
@@ -253,10 +264,11 @@ class SBMLParser(object):
                 " will be ignored for the simulation. Have a look at myokits"
                 " protocol feature for instantaneous state value changes.")
 
-        return self._model
+        return model
 
     def _parse_compartments(
             self,
+            model,
             sbml_model,
             user_unit_dict,
             param_and_species_dict,
@@ -296,8 +308,7 @@ class SBMLParser(object):
                     unit = None
 
             # Create compartment
-            comp_dict[idx] = self._model.add_component(
-                self._convert_name(name))
+            comp_dict[idx] = model.add_component(self._convert_name(name))
 
             # Add size parameter to compartment
             var = comp_dict[idx].add_variable('size')
@@ -312,7 +323,7 @@ class SBMLParser(object):
             raise SBMLError(
                 'The compartment ID <Myokit> is reserved in a myokit'
                 ' import.')
-        comp_dict['Myokit'] = self._model.add_component(name)
+        comp_dict['Myokit'] = model.add_component(name)
 
     def _parse_parameters(
             self,
@@ -455,7 +466,8 @@ class SBMLParser(object):
             param_and_species_dict,
             comp_dict,
             species_prop_dict,
-            species_also_in_amount_dict):
+            species_also_in_amount_dict,
+            species_reference):
         """
         Adds rate expressions for species involved in reactions.
 
@@ -521,7 +533,7 @@ class SBMLParser(object):
                         ids] = stoich_id if stoich_id else stoich
 
                 # Create reference that species is part of a reaction
-                self._species_reference.add(ids)
+                species_reference.add(ids)
 
             # Products
             for product in self._get_list_of_products(reaction):
@@ -572,10 +584,10 @@ class SBMLParser(object):
                         ids] = stoich_id if stoich_id else stoich
 
                 # Create reference that species is part of a reaction
-                self._species_reference.add(ids)
+                species_reference.add(ids)
 
             # Raise error if neither reactants not products is populated
-            if self._species_reference == set():
+            if not species_reference:
                 raise SBMLError(
                     'The file does not adhere to SBML 3.2 standards. '
                     'Reaction must have at least one reactant or product.')
@@ -589,7 +601,7 @@ class SBMLParser(object):
                         'standards. Species ID not existent.')
 
                 # Create reference that species is part of a reaction
-                self._species_reference.add(ids)
+                species_reference.add(ids)
 
             # Raise error if different velocities of reactions are assumed
             is_fast = reaction.get('fast')
@@ -773,11 +785,13 @@ class SBMLParser(object):
             self,
             sbml_model,
             param_and_species_dict,
-            species_prop_dict):
+            species_prop_dict,
+            species_reference,
+            ):
         """Adds assignment rules to variables in model."""
         for rule in self._get_list_of_assignment_rules(sbml_model):
             var = rule.get('variable')
-            if var in self._species_reference:
+            if var in species_reference:
                 if not species_prop_dict[
                         var]['hasBoundaryCondition']:
                     raise SBMLError(
@@ -806,11 +820,13 @@ class SBMLParser(object):
             sbml_model,
             param_and_species_dict,
             species_prop_dict,
-            species_also_in_amount_dict):
+            species_also_in_amount_dict,
+            species_reference,
+            ):
         """Adds rate rules for variables to model."""
         for rule in self._get_list_of_rate_rules(sbml_model):
             var_id = rule.get('variable')
-            if var_id in self._species_reference:
+            if var_id in species_reference:
                 if not species_prop_dict[
                         var_id]['hasBoundaryCondition']:
                     raise SBMLError(
