@@ -123,33 +123,41 @@ class SBMLParser(object):
         model = myokit.Model(name)
         self._log.log('Reading model "' + name + '"')
 
-        # If notes are provided, set the as model description
-        notes = self._get_notes(sbml_model)
-        if notes:
-            self._log.log('Converting <model> notes to ascii')
-            model.meta['desc'] = html2ascii(notes, width=75)
-
-        # Raise error if function definitions are provided (could be added in
-        # another PR)
-        func_defs = self._get_list_of_function_definitions(sbml_model)
-        if func_defs:
+        # Function definitions are not supported.
+        if sbml_model.find(self._path(
+                './', 'listOfFunctionDefinitions', 'functionDefinition')):
             raise SBMLError(
                 'Myokit does not support functionDefinitions. Please insert'
                 ' your function wherever it occurs in yout SBML file and'
                 ' delete the functionDefiniton in the file.')
+
+        # Log warning if constraints are provided
+        if sbml_model.find(self._path(
+                './', 'listOfConstraints', 'constraint')):
+            self._log.warn(
+                'Myokit does not support SBML constraints.  The constraints'
+                ' will be ignored for the simulation.')
+
+        # Log warning if events are provided
+        if sbml_model.find(self._path('./', 'listOfEvents', 'event')):
+            self._log.warn(
+                'Myokit does not support SBML event. The events will be'
+                ' ignored for the simulation. Have a look at myokits protocol'
+                ' feature for instantaneous state value changes.')
+
+        # Notes elements directly inside a model are turned into a description.
+        self._parse_notes(model, sbml_model)
 
         # Create user defined unit reference that maps ids to
         # myokit.Units object
         user_unit_dict = dict()
 
         # Get unit definitions
-        unit_defs = self._get_list_of_unit_definitions(sbml_model)
-        if unit_defs:
-            for unit_def in unit_defs:
-                unit_id = unit_def.get('id')
-                if not unit_id:
-                    raise SBMLError('No unit ID provided.')
-                user_unit_dict[unit_id] = self._convert_unit_def(unit_def)
+        for unit_def in self._get_list_of_unit_definitions(sbml_model):
+            unit_id = unit_def.get('id')
+            if not unit_id:
+                raise SBMLError('No unit ID provided.')
+            user_unit_dict[unit_id] = self._convert_unit_def(unit_def)
 
         # Get model units
         units = {
@@ -213,7 +221,7 @@ class SBMLParser(object):
             species_prop_dict, species_also_in_amount_dict)
 
         # Add time bound variable to model
-        time = comp_dict['Myokit'].add_variable('time')
+        time = comp_dict['myokit'].add_variable('time')
         time.set_binding('time')
         time.set_unit(user_unit_dict['timeUnit'])
         time.set_rhs(0)  # According to SBML guidelines
@@ -258,22 +266,15 @@ class SBMLParser(object):
             sbml_model, param_and_species_dict, species_prop_dict,
             species_also_in_amount_dict, species_reference)
 
-        # Log warning if constraints are provided
-        constraints = self._get_list_of_constraints(sbml_model)
-        if constraints:
-            self._log.warn(
-                'Myokit does not support SBML constraints.  The constraints'
-                ' will be ignored for the simulation.')
-
-        # Log warning if events are provided (could be supported in a later PR)
-        events = self._get_list_of_events(sbml_model)
-        if events:
-            self._log.warn(
-                'Myokit does not support SBML event. The events will be'
-                ' ignored for the simulation. Have a look at myokits protocol'
-                ' feature for instantaneous state value changes.')
-
         return model
+
+    def _parse_notes(self, model, element):
+        """Parses the notes that can be embedded in a model."""
+        notes = element.find(self._path('notes'))
+        if notes:
+            self._log.log('Converting <model> notes to ascii.')
+            notes = ET.tostring(notes).decode()
+            model.meta['desc'] = html2ascii(notes, width=75)
 
     def _parse_compartments(
             self,
@@ -283,17 +284,17 @@ class SBMLParser(object):
             param_and_species_dict,
             comp_dict):
         """
-        Adds compartments to model and creates references in
-        comp_dict. A ``size`` variable is initialised in each compartment
-        and references in param_and_species_dict.
+        Adds compartments to model and creates references in ``comp_dict``. A
+        ``size`` variable is initialised in each compartment and references in
+        param_and_species_dict.
         """
         for comp in self._get_list_of_compartments(sbml_model):
+
+            # Get id (required attribute)
             idx = comp.get('id')
             if not idx:
                 raise SBMLError('No compartment ID provided.')
-            name = comp.get('name')
-            if not name:
-                name = idx
+
             size = comp.get('size')
             unit = comp.get('units')
             if unit:
@@ -314,6 +315,16 @@ class SBMLParser(object):
                 else:
                     unit = None
 
+            # Get nice name, or use id
+            name = comp.get('name')
+            if not name or name == 'myokit':
+                name = idx
+            name = self._convert_name(name)
+            if name == 'myokit':
+                raise SBMLError(
+                    'The name "myokit" cannot be used for compartment names'
+                    ' (or ids, if no name is set).')
+
             # Create compartment
             comp_dict[idx] = model.add_component(self._convert_name(name))
 
@@ -325,11 +336,7 @@ class SBMLParser(object):
             # save size in container for later assignments/reactions
             param_and_species_dict[idx] = var
 
-        name = self._convert_name('myokit')
-        if 'Myokit' in comp_dict:
-            raise SBMLError(
-                'The compartment ID <Myokit> is reserved in a myokit import.')
-        comp_dict['Myokit'] = model.add_component(name)
+        comp_dict['myokit'] = model.add_component('myokit')
 
     def _parse_parameters(
             self,
@@ -338,7 +345,7 @@ class SBMLParser(object):
             param_and_species_dict,
             comp_dict):
         """
-        Adds parameters to `Myokit` compartment in model and creates references
+        Adds parameters to `myokit` compartment in model and creates references
         in `param_and_species_dict`.
         """
         for param in self._get_list_of_parameters(sbml_model):
@@ -352,7 +359,7 @@ class SBMLParser(object):
             unit = self._get_units(param, user_unit_dict)
 
             # add parameter to sbml compartment
-            comp = comp_dict['Myokit']
+            comp = comp_dict['myokit']
             var = comp.add_variable_allow_renaming(self._convert_name(name))
             var.set_unit(unit)
             var.set_rhs(value)
@@ -493,7 +500,7 @@ class SBMLParser(object):
                     try:
                         var = comp_dict[idc].add_variable_allow_renaming(name)
                     except KeyError:
-                        var = comp_dict['Myokit'].add_variable_allow_renaming(
+                        var = comp_dict['myokit'].add_variable_allow_renaming(
                             name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
@@ -536,7 +543,7 @@ class SBMLParser(object):
                     try:
                         var = comp_dict[idc].add_variable_allow_renaming(name)
                     except KeyError:
-                        var = comp_dict['Myokit'].add_variable_allow_renaming(
+                        var = comp_dict['myokit'].add_variable_allow_renaming(
                             name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
@@ -580,8 +587,10 @@ class SBMLParser(object):
             # Get kinetic law
             kinetic_law = self._get_kinetic_law(reaction)
             if kinetic_law:
-                local_params = self._get_list_of_local_parameters(kinetic_law)
-                if local_params:
+
+                # #Local parameters within reactions are not supported
+                if kinetic_law.findall(self._path(
+                        './', 'listOfLocalParameters', 'localParameter')):
                     raise SBMLError(
                         'Myokit does not support the definition of local'
                         ' parameters in reactions. Please move their'
@@ -819,134 +828,59 @@ class SBMLParser(object):
     def _get_model(self, element):
         return element.find(self._path('model'))
 
-    def _get_notes(self, element):
-        notes = element.find(self._path('notes'))
-        if notes:
-            return ET.tostring(notes).decode()
-        return None
-
-    def _get_list_of_function_definitions(self, element):
-        funcs = element.findall(self._path(
-            './', 'listOfFunctionDefinitions', 'functionDefinition'))
-        if funcs:
-            return funcs
-        return None
-
     def _get_list_of_unit_definitions(self, element):
-        units = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfUnitDefinitions', 'unitDefinition'))
-        if units:
-            return units
-        return None
 
     def _get_list_of_compartments(self, element):
-        comps = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfCompartments', 'compartment'))
-        if comps:
-            return comps
-        return []
 
     def _get_list_of_parameters(self, element):
-        params = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfParameters', 'parameter'))
-        if params:
-            return params
-        return []
 
     def _get_list_of_species(self, element):
-        species = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfSpecies', 'species'))
-        if species:
-            return species
-        return []
 
     def _get_list_of_reactions(self, element):
-        reactions = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfReactions', 'reaction'))
-        if reactions:
-            return reactions
-        return []
 
     def _get_list_of_reactants(self, element):
-        reactants = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfReactants', 'speciesReference'))
-        if reactants:
-            return reactants
-        return []
 
     def _get_list_of_products(self, element):
-        products = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfProducts', 'speciesReference'))
-        if products:
-            return products
-        return []
 
     def _get_list_of_modiefiers(self, element):
-        modifiers = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfModifiers', 'modifierSpeciesReference'))
-        if modifiers:
-            return modifiers
-        return []
 
     def _get_kinetic_law(self, element):
-        kinetic_law = element.find(self._path('kineticLaw'))
-        if kinetic_law:
-            return kinetic_law
-        return None
+        return element.find(self._path('kineticLaw'))
 
     def _get_list_of_initial_assignments(self, element):
-        assignments = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfInitialAssignments', 'initialAssignment'))
-        if assignments:
-            return assignments
-        return []
 
     def _get_list_of_algebraic_rules(self, element):
-        rules = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfRules', 'algebraicRule'))
-        if rules:
-            return rules
-        return None
 
     def _get_list_of_assignment_rules(self, element):
-        rules = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfRules', 'assignmentRule'))
-        if rules:
-            return rules
-        return []
 
     def _get_list_of_rate_rules(self, element):
-        rules = element.findall(self._path(
+        return element.findall(self._path(
             './', 'listOfRules', 'rateRule'))
-        if rules:
-            return rules
-        return []
-
-    def _get_list_of_constraints(self, element):
-        constraints = element.findall(self._path(
-            './', 'listOfConstraints', 'constraint'))
-        if constraints:
-            return constraints
-        return None
-
-    def _get_list_of_events(self, element):
-        events = element.findall(self._path('./', 'listOfEvents', 'event'))
-        if events:
-            return events
-        return None
 
     def _get_math(self, element):
-        math = element.find('{' + MATHML_NS + '}math')
-        if math:
-            return math
-        return None
-
-    def _get_list_of_local_parameters(self, element):
-        params = element.findall(self._path(
-            './', 'listOfLocalParameters', 'localParameter'))
-        if params:
-            return params
-        return None
+        return element.find('{' + MATHML_NS + '}math')
 
     def _convert_name(self, name):
         """

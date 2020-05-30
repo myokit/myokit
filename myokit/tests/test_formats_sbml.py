@@ -303,13 +303,10 @@ class SBMLParserTest(unittest.TestCase):
         xml = (
             '<ns0:model id="test" name="test" timeUnits="s">\n'
             '<ns0:listOfCompartments>\n'
-            '<ns0:compartment id="Myokit"/>\n'
+            '<ns0:compartment id="myokit"/>\n'
             '</ns0:listOfCompartments>\n'
             '</ns0:model>\n')
-        self.assertBad(
-            xml=xml,
-            message='The compartment ID <Myokit> is reserved in a myokit'
-            ' import.')
+        self.assertBad(xml=xml, message='The name "myokit".')
 
     def test_coinciding_ids(self):
         # Checks that error is thrown when indentical IDs are used for
