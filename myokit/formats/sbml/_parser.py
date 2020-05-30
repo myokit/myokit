@@ -133,21 +133,20 @@ class SBMLParser(object):
 
         # Function definitions are not supported.
         if sbml_model.find(self._path(
-                './', 'listOfFunctionDefinitions', 'functionDefinition')):
+                'listOfFunctionDefinitions', 'functionDefinition')):
             raise SBMLError(
                 'Myokit does not support functionDefinitions. Please insert'
                 ' your function wherever it occurs in yout SBML file and'
                 ' delete the functionDefiniton in the file.')
 
         # Log warning if constraints are provided
-        if sbml_model.find(self._path(
-                './', 'listOfConstraints', 'constraint')):
+        if sbml_model.find(self._path('listOfConstraints', 'constraint')):
             self._log.warn(
                 'Myokit does not support SBML constraints.  The constraints'
                 ' will be ignored for the simulation.')
 
         # Log warning if events are provided
-        if sbml_model.find(self._path('./', 'listOfEvents', 'event')):
+        if sbml_model.find(self._path('listOfEvents', 'event')):
             self._log.warn(
                 'Myokit does not support SBML event. The events will be'
                 ' ignored for the simulation. Have a look at myokits protocol'
@@ -839,54 +838,47 @@ class SBMLParser(object):
 
     def _get_list_of_unit_definitions(self, element):
         return element.findall(self._path(
-            './', 'listOfUnitDefinitions', 'unitDefinition'))
+            'listOfUnitDefinitions', 'unitDefinition'))
 
     def _get_list_of_compartments(self, element):
-        return element.findall(self._path(
-            './', 'listOfCompartments', 'compartment'))
+        return element.findall(self._path('listOfCompartments', 'compartment'))
 
     def _get_list_of_parameters(self, element):
-        return element.findall(self._path(
-            './', 'listOfParameters', 'parameter'))
+        return element.findall(self._path('listOfParameters', 'parameter'))
 
     def _get_list_of_species(self, element):
-        return element.findall(self._path(
-            './', 'listOfSpecies', 'species'))
+        return element.findall(self._path('listOfSpecies', 'species'))
 
     def _get_list_of_reactions(self, element):
-        return element.findall(self._path(
-            './', 'listOfReactions', 'reaction'))
+        return element.findall(self._path('listOfReactions', 'reaction'))
 
     def _get_list_of_reactants(self, element):
         return element.findall(self._path(
-            './', 'listOfReactants', 'speciesReference'))
+            'listOfReactants', 'speciesReference'))
 
     def _get_list_of_products(self, element):
         return element.findall(self._path(
-            './', 'listOfProducts', 'speciesReference'))
+            'listOfProducts', 'speciesReference'))
 
     def _get_list_of_modiefiers(self, element):
         return element.findall(self._path(
-            './', 'listOfModifiers', 'modifierSpeciesReference'))
+            'listOfModifiers', 'modifierSpeciesReference'))
 
     def _get_kinetic_law(self, element):
         return element.find(self._path('kineticLaw'))
 
     def _get_list_of_initial_assignments(self, element):
         return element.findall(self._path(
-            './', 'listOfInitialAssignments', 'initialAssignment'))
+            'listOfInitialAssignments', 'initialAssignment'))
 
     def _get_list_of_algebraic_rules(self, element):
-        return element.findall(self._path(
-            './', 'listOfRules', 'algebraicRule'))
+        return element.findall(self._path('listOfRules', 'algebraicRule'))
 
     def _get_list_of_assignment_rules(self, element):
-        return element.findall(self._path(
-            './', 'listOfRules', 'assignmentRule'))
+        return element.findall(self._path('listOfRules', 'assignmentRule'))
 
     def _get_list_of_rate_rules(self, element):
-        return element.findall(self._path(
-            './', 'listOfRules', 'rateRule'))
+        return element.findall(self._path('listOfRules', 'rateRule'))
 
     def _get_math(self, element):
         return element.find('{' + MATHML_NS + '}math')
@@ -902,35 +894,35 @@ class SBMLParser(object):
             if not self.re_name.match(name):
                 name = 'x_' + name
             self._log.warn(
-                'Converting name <' + org_name + '> to <' + name + '>.')
+                'Converting name "' + org_name + '" to "' + name + '".')
         return name
 
     def _convert_unit_def(self, unit_def):
         """
-        Converts unit definition into a myokit unit.
+        Converts a unit definition into a :class:`myokit.Unit`.
         """
         # Get composing base units
-        units = unit_def.findall(self._path('./', 'listOfUnits', 'unit'))
+        units = unit_def.findall(self._path('listOfUnits', 'unit'))
         if not units:
             return None
 
         # instantiate unit definition
-        unit_def = myokit.units.dimensionless
+        unit = myokit.units.dimensionless
 
         # construct unit definition from base units
         for baseUnit in units:
             kind = baseUnit.get('kind')
             if not kind:
                 raise SBMLError('No unit kind provided.')
-            myokitUnit = self._convert_sbml_to_myokit_units(kind)
-            myokitUnit *= float(baseUnit.get('multiplier', default=1))
-            myokitUnit *= 10 ** float(baseUnit.get('scale', default=0))
-            myokitUnit **= float(baseUnit.get('exponent', default=1))
+            part = self._convert_sbml_to_myokit_units(kind)
+            part *= float(baseUnit.get('multiplier', default=1))
+            part *= 10 ** float(baseUnit.get('scale', default=0))
+            part **= float(baseUnit.get('exponent', default=1))
 
             # "add" composite unit to unit definition
-            unit_def *= myokitUnit
+            unit *= part
 
-        return unit_def
+        return unit
 
     def _get_units(self, parameter, user_unit_dict):
         """
