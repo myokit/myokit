@@ -39,23 +39,29 @@ class SBMLParser(object):
         self.re_alpha = re.compile(r'[\W]+')
         self.re_white = re.compile(r'[ \t\f\n\r]+')
 
-    def parse_file(self, path):
+    def parse_file(self, path, logger=None):
         """
         Parses the SBML file at ``path`` and returns a :class:`myokit.Model`.
+
+        An optional :class:`myokit.formats.TextLogger` may be passed in to log
+        warnings to.
         """
         # Read file
         try:
-            tree = ET.parse(path)
+            tree = ET.parse(path, logger)
         except Exception as e:
             raise SBMLError('Unable to parse XML: ' + str(e))
 
         # Parse content
         return self.parse(tree.getroot())
 
-    def parse_string(self, text):
+    def parse_string(self, text, logger=None):
         """
         Parses the SBML XML in the string ``text`` and returns a
         :class:`myokit.Model`.
+
+        An optional :class:`myokit.formats.TextLogger` may be passed in to log
+        warnings to.
         """
         # Read string
         try:
@@ -66,13 +72,16 @@ class SBMLParser(object):
         # Parse content
         return self.parse(root)
 
-    def parse(self, root):
+    def parse(self, root, logger=None):
         """
         Parses an SBML document rooted in the given ``ElementTree`` element and
         returns a :class:`myokit.Model`.
+
+        An optional :class:`myokit.formats.TextLogger` may be passed in to log
+        warnings to.
         """
         try:
-            return self._parse_model(root)
+            return self._parse_model(root, logger)
         except SBMLError as e:
             raise SBMLError(str(e))
         except myokit.formats.mathml.MathMLError as e:
@@ -82,12 +91,11 @@ class SBMLParser(object):
             del(self._log)
             del(self._ns)
 
-    def _parse_model(self, root):
+    def _parse_model(self, root, logger=None):
         """
-        Returns a :class:`myokit.Model` based on the SBML file provided.
+        Parses a <model> element in an SBML document.
         """
-        # Get logger
-        self._log = myokit.formats.TextLogger()
+        self._log = myokit.formats.TextLogger() if logger is None else logger
 
         # Supported namespaces
         # Other namespaces are allowed, but might not work.
@@ -589,8 +597,9 @@ class SBMLParser(object):
             if kinetic_law:
 
                 # #Local parameters within reactions are not supported
-                if kinetic_law.findall(self._path(
-                        './', 'listOfLocalParameters', 'localParameter')):
+                local_parameter = kinetic_law.find(self._path(
+                    'listOfLocalParameters', 'localParameter'))
+                if local_parameter is not None:
                     raise SBMLError(
                         'Myokit does not support the definition of local'
                         ' parameters in reactions. Please move their'
