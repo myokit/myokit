@@ -59,7 +59,7 @@ class SBMLParserTest(unittest.TestCase):
     def setUpClass(cls):
         cls.p = myokit.formats.sbml.SBMLParser()
 
-    def assertBad(self, xml, message, lvl='3', v='2'):
+    def assertBad(self, xml, message, lvl=3, v=2):
         """
         Inserts the given ``xml`` into a <model> element, parses it, and checks
         that this raises an exception matching ``message``.
@@ -67,23 +67,23 @@ class SBMLParserTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.formats.sbml.SBMLError, message, self.parse, xml, lvl, v)
 
-    def parse(self, xml, lvl='3', v='2'):
+    def parse(self, xml, lvl=3, v=2):
         """
         Inserts the given ``xml`` into a <model> element, parses it, and
         returns the result.
         """
         return self.p.parse_string(self.wrap(xml, lvl, v))
 
-    def wrap(self, xml_content, level='3', version='2'):
+    def wrap(self, xml_content, level=3, version=2):
         """
         Wraps ``xml_content`` into an SBML document of the specified ``level``
         and ``version``.
         """
-        lv = 'level' + level + '/version' + version
+        lv = 'level' + str(level) + '/version' + str(version)
         return (
             '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
-            ' level="' + level + '"'
-            ' version="' + version + '">'
+            ' level="' + str(level) + '"'
+            ' version="' + str(version) + '">'
             + xml_content +
             '</sbml>'
         )
@@ -104,45 +104,30 @@ class SBMLParserTest(unittest.TestCase):
             xml='<model ',  # incomplete xml
             message='Unable to parse XML: ')
 
-    '''
     def test_level_version(self):
         # Check that unsupported levels/versions trigger warnings
 
         # Supported level
-        #TODO
+        log = myokit.formats.TextLogger()
+        xml = self.wrap('<model id="a" name="a"/>', 3, 2)
+        self.p.parse_string(xml, log)
+        w = '\n'.join(log.warnings())
+        self.assertNotIn('This version of SBML may not be supported', w)
 
         # Unsupported level
         log = myokit.formats.TextLogger()
         xml = self.wrap('<model id="a" name="a"/>', 2, 2)
         self.p.parse_string(xml, log)
+        w = '\n'.join(log.warnings())
+        self.assertIn('This version of SBML may not be supported', w)
 
-        print(log.warnings(), type(log.warnings()))
+        # Unsupported version
+        log = myokit.formats.TextLogger()
+        xml = self.wrap('<model id="a" name="a"/>', 3, 1)
+        self.p.parse_string(xml, log)
+        w = '\n'.join(log.warnings())
+        self.assertIn('This version of SBML may not be supported', w)
 
-        #self.assertIn(log.warnings()
-
-        """
-
-        self.assertBad(
-            xml=' ',
-            message='The file does not adhere to SBML 3.2 standards. The '
-                'global namespace is not'
-                ' <http://www.sbml.org/sbml/level3/version2/core>.',
-            lvl=2)
-        self.assertBad(
-            xml=' ',
-            message='The file does not adhere to SBML 3.2 standards. The '
-                'global namespace is not'
-                ' <http://www.sbml.org/sbml/level3/version2/core>.',
-            lvl=1)
-
-        # Check whether error is thrown for wrong version
-        self.assertBad(
-            xml=' ',
-            message='The file does not adhere to SBML 3.2 standards. The '
-                'global namespace is not'
-                ' <http://www.sbml.org/sbml/level3/version2/core>.',
-            v=1)
-    '''
     def test_no_model(self):
         self.assertBad(xml='', message='Model element not found.')
 
@@ -1062,6 +1047,7 @@ class SBMLParserReactionsTest(unittest.TestCase):
         parameter = self.model.get('myokit.' + parameter)
         unit = None
         self.assertEqual(parameter.unit(), unit)
+
 
 '''
 class SBMLParserEquationsTest(unittest.TestCase):

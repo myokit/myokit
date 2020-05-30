@@ -48,12 +48,12 @@ class SBMLParser(object):
         """
         # Read file
         try:
-            tree = ET.parse(path, logger)
+            tree = ET.parse(path)
         except Exception as e:
             raise SBMLError('Unable to parse XML: ' + str(e))
 
         # Parse content
-        return self.parse(tree.getroot())
+        return self.parse(tree.getroot(), logger)
 
     def parse_string(self, text, logger=None):
         """
@@ -70,7 +70,7 @@ class SBMLParser(object):
             raise SBMLError('Unable to parse XML: ' + str(e))
 
         # Parse content
-        return self.parse(root)
+        return self.parse(root, logger)
 
     def parse(self, root, logger=None):
         """
@@ -112,7 +112,7 @@ class SBMLParser(object):
 
         # Get model
         sbml_model = self._get_model(root)
-        if not sbml_model:
+        if sbml_model is None:
             raise SBMLError('Model element not found.')
 
         # Retrieve or create a model name.
