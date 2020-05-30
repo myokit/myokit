@@ -79,12 +79,11 @@ class SBMLParserTest(unittest.TestCase):
         Wraps ``xml_content`` into an SBML document of the specified ``level``
         and ``version``.
         """
-        ns = ('http://www.sbml.org/sbml/level' + level + '/version' + version
-              + '/core')
+        lv = 'level' + level + '/version' + version
         return (
-            '<sbml xmlns="' + ns + '"'
-            ' xmlns:mathml="http://www.w3.org/1998/Math/MathML" '
-            ' level="' + level + '" version="' + version + '">'
+            '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
+            ' level="' + level + '"'
+            ' version="' + version + '">'
             + xml_content +
             '</sbml>'
         )
@@ -149,27 +148,27 @@ class SBMLParserTest(unittest.TestCase):
 
     def test_function_definitions(self):
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n '
-            '<listOfFunctionDefinitions>\n'
-            '<functionDefinition id="multiply" name="multiply">\n'
-            '<math xmlns="http://www.w3.org/1998/Math/MathML">\n'
-            '<lambda>\n'
-            '<bvar>\n'
-            '<ci> x </ci>\n'
-            '</bvar>\n'
-            '<bvar>\n'
-            '<ci> y </ci>\n'
-            '</bvar>\n'
-            '<apply>\n'
-            '<times/>\n'
-            '<ci> x </ci>\n'
-            '<ci> y </ci>\n'
-            '</apply>\n'
-            '</lambda>\n'
-            '</math>\n'
-            '</functionDefinition>\n'
-            '</listOfFunctionDefinitions>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s"> '
+            '<listOfFunctionDefinitions>'
+            '<functionDefinition id="multiply" name="multiply">'
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '<lambda>'
+            '<bvar>'
+            '<ci> x </ci>'
+            '</bvar>'
+            '<bvar>'
+            '<ci> y </ci>'
+            '</bvar>'
+            '<apply>'
+            '<times/>'
+            '<ci> x </ci>'
+            '<ci> y </ci>'
+            '</apply>'
+            '</lambda>'
+            '</math>'
+            '</functionDefinition>'
+            '</listOfFunctionDefinitions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='Myokit does not support functionDefinitions. Please '
@@ -179,37 +178,37 @@ class SBMLParserTest(unittest.TestCase):
     def test_missing_id(self):
         # missing unit ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfUnitDefinitions>\n'
-            '<unitDefinition>\n'  # here is where an ID is supposed to be
-            '<listOfUnits>\n'
-            '<unit kind="litre" exponent="1" scale="0" multiplier="1"/>\n'
-            '</listOfUnits>\n'
-            '</unitDefinition>\n'
-            '</listOfUnitDefinitions>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfUnitDefinitions>'
+            '<unitDefinition>'  # here is where an ID is supposed to be
+            '<listOfUnits>'
+            '<unit kind="litre" exponent="1" scale="0" multiplier="1"/>'
+            '</listOfUnits>'
+            '</unitDefinition>'
+            '</listOfUnitDefinitions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='No unit ID provided.')
 
         # missing compartment ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment/>\n'  # here is where the ID is missing
-            '</listOfCompartments>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment/>'  # here is where the ID is missing
+            '</listOfCompartments>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='No compartment ID provided.')
 
         # missing parameter ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfParameters>\n'
-            '<parameter/>\n'  # here is where the ID is missing
-            '</listOfParameters>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfParameters>'
+            '<parameter/>'  # here is where the ID is missing
+            '</listOfParameters>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='No parameter ID provided.')
@@ -217,94 +216,94 @@ class SBMLParserTest(unittest.TestCase):
         # missing global conversion factor ID
         xml = (
             '<model id="test" conversionFactor="someFactor" '
-            'timeUnits="s">\n'
-            '<listOfParameters>\n'
-            '<parameter id="someOtherFactor"/>\n'
-            '</listOfParameters>\n'
-            '</model>\n')
+            'timeUnits="s">'
+            '<listOfParameters>'
+            '<parameter id="someOtherFactor"/>'
+            '</listOfParameters>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='The model conversionFactor points to non-existent ID.')
 
         # missing species ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfSpecies>\n'
-            '<species/>\n'  # here is where the ID is missing
-            '</listOfSpecies>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfSpecies>'
+            '<species/>'  # here is where the ID is missing
+            '</listOfSpecies>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='No species ID provided.')
 
         # missing conversion factor ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="someComp" constant="false" boundaryCondition="false"'
-            ' conversionFactor="someFactor"/>\n'
-            '</listOfSpecies>\n'
-            '</model>\n')
+            ' conversionFactor="someFactor"/>'
+            '</listOfSpecies>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='conversionFactor refers to non-existent ID.')
 
         # missing reactant ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfReactions>\n'
-            '<reaction>\n'
-            '<listOfReactants>\n'
-            '<speciesReference species="someSpecies"/>\n'
-            '</listOfReactants>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfReactions>'
+            '<reaction>'
+            '<listOfReactants>'
+            '<speciesReference species="someSpecies"/>'
+            '</listOfReactants>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='Species ID not existent.')
 
         # missing product ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfReactions>\n'
-            '<reaction>\n'
-            '<listOfProducts>\n'
-            '<speciesReference species="someSpecies"/>\n'
-            '</listOfProducts>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfReactions>'
+            '<reaction>'
+            '<listOfProducts>'
+            '<speciesReference species="someSpecies"/>'
+            '</listOfProducts>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='Species ID not existent.')
 
         # missing modifier ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>\n'
-            '</listOfSpecies>\n'
-            '<listOfReactions>\n'
-            '<reaction>\n'
-            '<listOfReactants>\n'
-            '<speciesReference species="someSpecies"/>\n'
-            '</listOfReactants>\n'
-            '<listOfModifiers>\n'
-            '<modifierSpeciesReference species="someOtherSpecies"/>\n'
-            '</listOfModifiers>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction>'
+            '<listOfReactants>'
+            '<speciesReference species="someSpecies"/>'
+            '</listOfReactants>'
+            '<listOfModifiers>'
+            '<modifierSpeciesReference species="someOtherSpecies"/>'
+            '</listOfModifiers>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='Species ID not existent.')
@@ -314,11 +313,11 @@ class SBMLParserTest(unittest.TestCase):
         # myokit compartment.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="myokit"/>\n'
-            '</listOfCompartments>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="myokit"/>'
+            '</listOfCompartments>'
+            '</model>')
         self.assertBad(xml=xml, message='The name "myokit".')
 
     def test_coinciding_ids(self):
@@ -328,14 +327,14 @@ class SBMLParserTest(unittest.TestCase):
         # Coinciding compartment and parameter IDs
         xml = (
             '<model id="test" '
-            'timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someId"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfParameters>\n'
-            '<parameter id="someId"/>\n'
-            '</listOfParameters>\n'
-            '</model>\n')
+            'timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someId"/>'
+            '</listOfCompartments>'
+            '<listOfParameters>'
+            '<parameter id="someId"/>'
+            '</listOfParameters>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='The provided parameter ID already exists.')
@@ -343,16 +342,16 @@ class SBMLParserTest(unittest.TestCase):
         # Coinciding compartment and species IDs
         xml = (
             '<model id="test" '
-            'timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someId"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            'timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someId"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someId" hasOnlySubstanceUnits="true"'
             ' compartment="someId" constant="false"'
-            ' boundaryCondition="true" />\n'
-            '</listOfSpecies>\n'
-            '</model>\n')
+            ' boundaryCondition="true" />'
+            '</listOfSpecies>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='The provided species ID already exists.')
@@ -360,19 +359,19 @@ class SBMLParserTest(unittest.TestCase):
         # Coinciding parameter and species IDs
         xml = (
             '<model id="test" '
-            'timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfParameters>\n'
-            '<parameter id="someId"/>\n'
-            '</listOfParameters>\n'
-            '<listOfSpecies>\n'
+            'timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfParameters>'
+            '<parameter id="someId"/>'
+            '</listOfParameters>'
+            '<listOfSpecies>'
             '<species id="someId" hasOnlySubstanceUnits="true"'
             ' compartment="someComp" constant="false"'
-            ' boundaryCondition="true" />\n'
-            '</listOfSpecies>\n'
-            '</model>\n')
+            ' boundaryCondition="true" />'
+            '</listOfSpecies>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='The provided species ID already exists.')
@@ -380,27 +379,27 @@ class SBMLParserTest(unittest.TestCase):
         # Coinciding parameter and reactant stoichiometry IDs
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfParameters>\n'
-            '<parameter id="' + stoich_id + '"/>\n'
-            '</listOfParameters>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfParameters>'
+            '<parameter id="' + stoich_id + '"/>'
+            '</listOfParameters>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>\n'
-            '</listOfSpecies>\n'
-            '<listOfReactions>\n'
-            '<reaction >\n'
-            '<listOfReactants>\n'
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction >'
+            '<listOfReactants>'
             '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>\n'
-            '</listOfReactants>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            'id="' + stoich_id + '"/>'
+            '</listOfReactants>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='Stoichiometry ID is not unique.')
@@ -408,27 +407,27 @@ class SBMLParserTest(unittest.TestCase):
         # Coinciding parameter and product stoichiometry IDs
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfParameters>\n'
-            '<parameter id="' + stoich_id + '"/>\n'
-            '</listOfParameters>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfParameters>'
+            '<parameter id="' + stoich_id + '"/>'
+            '</listOfParameters>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>\n'
-            '</listOfSpecies>\n'
-            '<listOfReactions>\n'
-            '<reaction >\n'
-            '<listOfProducts>\n'
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction >'
+            '<listOfProducts>'
             '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>\n'
-            '</listOfProducts>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            'id="' + stoich_id + '"/>'
+            '</listOfProducts>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='Stoichiometry ID is not unique.')
@@ -439,11 +438,11 @@ class SBMLParserTest(unittest.TestCase):
 
         xml = (
             '<model id="test" conversionFactor="someFactor" '
-            'timeUnits="s">\n'
-            '<listOfParameters>\n'
-            '<parameter id="globalConversionFactor"/>\n'
-            '</listOfParameters>\n'
-            '</model>\n')
+            'timeUnits="s">'
+            '<listOfParameters>'
+            '<parameter id="globalConversionFactor"/>'
+            '</listOfParameters>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='The ID <globalConversionFactor> is protected in a myokit'
@@ -454,11 +453,11 @@ class SBMLParserTest(unittest.TestCase):
         # attribute is not specified for a species.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfSpecies>\n'
-            '<species id="someSpecies"/>\n'
-            '</listOfSpecies>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfSpecies>'
+            '<species id="someSpecies"/>'
+            '</listOfSpecies>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='No <compartment> attribute provided.')
@@ -468,11 +467,11 @@ class SBMLParserTest(unittest.TestCase):
         # attribute is not specified for a species.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfSpecies>\n'
-            '<species id="someSpecies" compartment="someComp"/>\n'
-            '</listOfSpecies>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfSpecies>'
+            '<species id="someSpecies" compartment="someComp"/>'
+            '</listOfSpecies>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='No <hasOnlySubstanceUnits> flag provided.')
@@ -482,15 +481,15 @@ class SBMLParserTest(unittest.TestCase):
         # attribute is not specified for a species.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true"'
-            ' compartment="someComp"/>\n'
-            '</listOfSpecies>\n'
-            '</model>\n')
+            ' compartment="someComp"/>'
+            '</listOfSpecies>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='No <constant> flag provided.')
@@ -500,15 +499,15 @@ class SBMLParserTest(unittest.TestCase):
         # attribute is not specified for a species.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true"'
-            ' compartment="someComp" constant="false"/>\n'
-            '</listOfSpecies>\n'
-            '</model>\n')
+            ' compartment="someComp" constant="false"/>'
+            '</listOfSpecies>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='No <boundaryCondition> flag provided.')
@@ -521,11 +520,11 @@ class SBMLParserTest(unittest.TestCase):
         # find the time bound variable in the myokit model.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfParameters>\n'
-            '<parameter id="http://www.sbml.org/sbml/symbols/time"/>\n'
-            '</listOfParameters>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfParameters>'
+            '<parameter id="http://www.sbml.org/sbml/symbols/time"/>'
+            '</listOfParameters>'
+            '</model>')
         time_id = 'http://www.sbml.org/sbml/symbols/time'
         self.assertBad(
             xml=xml,
@@ -541,24 +540,24 @@ class SBMLParserTest(unittest.TestCase):
         comp_id = 'someComp'
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="' + comp_id + '"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="' + comp_id + '"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="' + comp_id + '" '
-            'constant="false" boundaryCondition="false"/>\n'
-            '</listOfSpecies>\n'
-            '<listOfReactions>\n'
-            '<reaction compartment="' + comp_id + '">\n'
-            '<listOfReactants>\n'
+            'constant="false" boundaryCondition="false"/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction compartment="' + comp_id + '">'
+            '<listOfReactants>'
             '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>\n'
-            '</listOfReactants>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            'id="' + stoich_id + '"/>'
+            '</listOfReactants>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
 
@@ -567,24 +566,24 @@ class SBMLParserTest(unittest.TestCase):
         comp_id = 'myokit'
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>\n'
-            '</listOfSpecies>\n'
-            '<listOfReactions>\n'
-            '<reaction >\n'
-            '<listOfReactants>\n'
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction >'
+            '<listOfReactants>'
             '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>\n'
-            '</listOfReactants>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            'id="' + stoich_id + '"/>'
+            '</listOfReactants>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
 
@@ -593,24 +592,24 @@ class SBMLParserTest(unittest.TestCase):
         comp_id = 'someComp'
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="' + comp_id + '"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="' + comp_id + '"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="' + comp_id + '" '
-            'constant="false" boundaryCondition="false"/>\n'
-            '</listOfSpecies>\n'
-            '<listOfReactions>\n'
-            '<reaction compartment="' + comp_id + '">\n'
-            '<listOfProducts>\n'
+            'constant="false" boundaryCondition="false"/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction compartment="' + comp_id + '">'
+            '<listOfProducts>'
             '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>\n'
-            '</listOfProducts>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            'id="' + stoich_id + '"/>'
+            '</listOfProducts>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
 
@@ -619,24 +618,24 @@ class SBMLParserTest(unittest.TestCase):
         comp_id = 'myokit'
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>\n'
-            '</listOfSpecies>\n'
-            '<listOfReactions>\n'
-            '<reaction >\n'
-            '<listOfProducts>\n'
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction >'
+            '<listOfProducts>'
             '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>\n'
-            '</listOfProducts>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            'id="' + stoich_id + '"/>'
+            '</listOfProducts>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
 
@@ -645,12 +644,12 @@ class SBMLParserTest(unittest.TestCase):
         # reactants not products.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfReactions>\n'
-            '<reaction>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfReactions>'
+            '<reaction>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='Reaction must have at least one reactant or product.')
@@ -661,23 +660,23 @@ class SBMLParserTest(unittest.TestCase):
         # supported.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>\n'
-            '</listOfSpecies>\n'
-            '<listOfReactions>\n'
-            '<reaction fast="true">\n'
-            '<listOfReactants>\n'
-            '<speciesReference species="someSpecies"/>\n'
-            '</listOfReactants>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction fast="true">'
+            '<listOfReactants>'
+            '<speciesReference species="someSpecies"/>'
+            '</listOfReactants>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='Myokit does not support the conversion of <fast>')
@@ -688,28 +687,28 @@ class SBMLParserTest(unittest.TestCase):
         # Local parameters are currenly not supported in myokit.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">\n'
-            '<listOfCompartments>\n'
-            '<compartment id="someComp"/>\n'
-            '</listOfCompartments>\n'
-            '<listOfSpecies>\n'
+            '<model id="test" name="test" timeUnits="s">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
             '<species id="someSpecies" hasOnlySubstanceUnits="true" '
             'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>\n'
-            '</listOfSpecies>\n'
-            '<listOfReactions>\n'
-            '<reaction>\n'
-            '<listOfReactants>\n'
-            '<speciesReference species="someSpecies"/>\n'
-            '</listOfReactants>\n'
-            '<kineticLaw>\n'
-            '<listOfLocalParameters>\n'
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction>'
+            '<listOfReactants>'
+            '<speciesReference species="someSpecies"/>'
+            '</listOfReactants>'
+            '<kineticLaw>'
+            '<listOfLocalParameters>'
             '<localParameter id="someParameter"/>'
-            '</listOfLocalParameters>\n'
-            '</kineticLaw>\n'
-            '</reaction>\n'
-            '</listOfReactions>\n'
-            '</model>\n')
+            '</listOfLocalParameters>'
+            '</kineticLaw>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
         self.assertBad(
             xml=xml,
             message='does not support the definition of local parameters in')
@@ -732,8 +731,8 @@ class SBMLParserTest(unittest.TestCase):
             '  <reaction>'
             '   <listOfReactants>'
             '    <speciesReference species="someSpecies"/>'
-            '   </listOfReactants>\n'
-            '   <kineticLaw>\n'
+            '   </listOfReactants>'
+            '   <kineticLaw>'
             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
             '    <apply>'
             '     <times/><ci>someParam</ci><ci>someSpecies</ci>'
@@ -742,7 +741,7 @@ class SBMLParserTest(unittest.TestCase):
             '   </kineticLaw>'
             '  </reaction>'
             ' </listOfReactions>'
-            '</model>\n')
+            '</model>')
         self.assertBad(xml=xml, message='Unable to create Name:')
 
 
