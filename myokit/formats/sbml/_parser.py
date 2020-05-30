@@ -107,8 +107,13 @@ class SBMLParser(object):
         if not sbml_model:
             raise SBMLError('Model element not found.')
 
-        # Get model name
-        name = self._get_name(sbml_model)
+        # Retrieve or create a model name.
+        # SBML Models can have an optional name attribute (user friendly name)
+        # or an optional id attribute (not necessarily user friendly) or can
+        # have no name at all.
+        name = sbml_model.get('name')
+        if not name:
+            name = sbml_model.get('id')
         if name:
             name = self._convert_name(name)
         else:
@@ -812,19 +817,7 @@ class SBMLParser(object):
         return split(element.tag)[0]
 
     def _get_model(self, element):
-        model = element.find(self._path('model'))
-        if model:
-            return model
-        return None
-
-    def _get_name(self, element):
-        name = element.get('name')
-        if name:
-            return name
-        name = element.get('id')
-        if name:
-            return name
-        return None
+        return element.find(self._path('model'))
 
     def _get_notes(self, element):
         notes = element.find(self._path('notes'))
