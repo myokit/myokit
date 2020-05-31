@@ -393,23 +393,27 @@ class SBMLParser(object):
         in `param_and_species_dict`.
         """
         for s in self._get_list_of_species(sbml_model):
+            # Get species id
             ids = s.get('id')
             if not ids:
                 raise SBMLError('No species ID provided.')
             name = self._convert_name(ids)
+
+            # Get compartment id
             idc = s.get('compartment')
             if not idc:
                 raise SBMLError('No <compartment> attribute provided.')
-            is_amount = s.get('hasOnlySubstanceUnits')
-            if is_amount is None:
-                raise SBMLError('No <hasOnlySubstanceUnits> flag provided.')
-            is_amount = True if is_amount == 'true' else False
+
+            # Get value and unit
             value = self._get_species_initial_value_in_amount(
                 s, idc, param_and_species_dict)
             unit = self._get_substance_units(s, user_unit_dict)
 
-            # Add variable in amount (needed for reactions, even if
-            # measured in conc.)
+            # This property used to be optional (default False)
+            is_amount = s.get('hasOnlySubstanceUnits', 'false') == 'true'
+
+            # Add variable in amount (needed for reactions, even if measured in
+            # conc.).
             var = comp_dict[idc].add_variable_allow_renaming(name)
             var.set_unit(unit)
             var.set_rhs(value)
@@ -432,16 +436,12 @@ class SBMLParser(object):
                 raise SBMLError('The provided species ID already exists.')
             param_and_species_dict[ids] = var
 
-            # save species properties to container for later assignments/
-            # reactions
-            is_constant = s.get('constant')
-            if is_constant is None:
-                raise SBMLError('No <constant> flag provided.')
-            is_constant = False if is_constant == 'false' else True
-            has_boundary = s.get('boundaryCondition')
-            if has_boundary is None:
-                raise SBMLError('No <boundaryCondition> flag provided.')
-            has_boundary = False if has_boundary == 'false' else True
+            # Constant and boundaryCondition attributes are optional in older
+            # sbml versions
+            is_constant = s.get('constant', 'false') == 'true'
+            has_boundary = s.get('boundaryCondition', 'false') == 'true'
+
+            # Get optional conversion factor
             conv_factor = s.get('conversionFactor')
             if conv_factor:
                 try:
@@ -449,10 +449,12 @@ class SBMLParser(object):
                 except KeyError:
                     raise SBMLError(
                         'conversionFactor refers to non-existent ID.')
-            elif 'globalConversionFactor' in param_and_species_dict:
-                conv_factor = param_and_species_dict['globalConversionFactor']
             else:
-                conv_factor = None
+                conv_factor = param_and_species_dict.get(
+                    'globalConversionFactor', None)
+
+            # Save species properties to container for later assignments/
+            # reactions
             species_prop_dict[ids] = {
                 'compartment': idc,
                 'isAmount': is_amount,

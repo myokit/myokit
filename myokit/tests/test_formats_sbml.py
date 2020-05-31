@@ -447,56 +447,6 @@ class SBMLParserTest(unittest.TestCase):
             xml=xml,
             message='No <compartment> attribute provided.')
 
-    def test_missing_hasOnlySubstanceUnits(self):
-        # Tests whether error is thrown when ``hasOnlySubstanceUnits``
-        # attribute is not specified for a species.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="s">'
-            '<listOfSpecies>'
-            '<species id="someSpecies" compartment="someComp"/>'
-            '</listOfSpecies>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='No <hasOnlySubstanceUnits> flag provided.')
-
-    def test_missing_constant(self):
-        # Tests whether error is thrown when ``constant``
-        # attribute is not specified for a species.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="s">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true"'
-            ' compartment="someComp"/>'
-            '</listOfSpecies>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='No <constant> flag provided.')
-
-    def test_missing_boundaryCondition(self):
-        # Tests whether error is thrown when ``boundaryCondition``
-        # attribute is not specified for a species.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="s">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true"'
-            ' compartment="someComp" constant="false"/>'
-            '</listOfSpecies>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='No <boundaryCondition> flag provided.')
-
     def test_reserved_time_id(self):
         # Tests whether an error is thrown when
         # ``http://www.sbml.org/sbml/symbols/time`` is used as parameter or

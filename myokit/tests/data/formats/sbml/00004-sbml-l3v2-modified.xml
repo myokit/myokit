@@ -126,5 +126,47 @@
         </math>
       </rateRule>
     </listOfRules>
+    <notes>
+      <body xmlns="http://www.w3.org/1999/xhtml">
+        <p>This is an implementation of the Hodgkin-Huxley model of the electrical behavior of the squid axon membrane from:      <br/>
+                <b>A quantitative description of membrane current and its application to conduction and excitation in nerve.</b>
+                <br/>
+          A. L. Hodgkin and A. F. Huxley. (1952 )      <em>Journal of Physiology</em>
+          119(4): pp 500-544; pmID:      <a href="http://www.ncbi.nlm.nih.gov/pubmed/12991237">12991237</a>
+          .      <br/>
+                </p>
+            <p>      <b>Abstract:</b>
+                <br/>
+          This article concludes a series of papers concerned with the flow of electric current through the surface membrane of a giant nerve fibre (Hodgkin,Huxley &amp; Katz, 1952; Hodgkin &amp; Huxley, 1952 a-c). Its general object is to discuss the results of the preceding papers (Part I), to put them into mathematical form (Part II) and to show that they will account for conduction and excitation in quantitative terms (Part III).      </p>
+            <p>This SBML model uses the same formalism as the one described in the paper, contrary to modern versions:      <br/>
+          * V describes the the membrane depolarisation relative to the resting potential of the membrane      <br/>
+          * opposing to modern practice, depolarization is      <em>negative</em>
+          , not      <em>positive</em>
+          , so the sign of V is different      <br/>
+          * inward transmembrane currents are considered positive (inward current positive), contrary to modern use      <br/>
+          The changeable parameters are the equilibrium potentials(      <em>E_R, E_K, E_L, E_Na</em>
+          ), the membrane depolarization (      <em>V</em>
+          ) and the initial sodium and potassium channel activation and inactivation coefficients (      <em>m,h,n</em>
+          ). The initial values of      <em>m,h,n</em>
+          for the model were calculated for      <em>V</em>
+          = 0 using the equations from the article:      <em>n        <sub>t=0</sub>
+            = α_n        <sub>V=0</sub>
+            /(α_n        <sub>V=0</sub>
+            + β_n        <sub>V=0</sub>
+            )        </em>
+          and equivalent expressions for      <em>h</em>
+          and      <em>m</em>
+          .      <br/>
+          For single excitations apply a negative membrane depolarization (V &lt; 0). To achieve oscillatory behavior either change the resting potential to a more positive value or apply a constant negative ionic current (I &lt; 0).      <br/>
+          Two assignments for parameters in the model, alpha_n and alpha_m, are not defined at V=-10 resp. -25 mV. We did not change this to keep the formulas similar to the original publication and as most integrators seem not to have any problem with it. The limits at V=-10 and -25 mV are 0.1 for alpha_n resp. 1 for alpha_m.      <br/>
+          We thank Mark W. Johnson for finding a bug in the model and his helpful comments.      </p>
+            <p>This model originates from BioModels Database: A Database of Annotated Published Models. It is copyright (c) 2005-2009 The BioModels Team.      <br/>
+          For more information see the      <a href="http://www.ebi.ac.uk/biomodels/legal.html" target="_blank">terms of use</a>
+          .      <br/>
+          To cite BioModels Database, please use      <a href="http://www.pubmedcentral.nih.gov/articlerender.fcgi?tool=pubmed&amp;pubmedid=16381960" target="_blank">Le Novère N., Bornstein B., Broicher A., Courtot M., Donizelli M., Dharuri H., Li L., Sauro H., Schilstra M., Shapiro B., Snoep J.L., Hucka M. (2006) BioModels Database: A Free, Centralized Database of Curated, Published, Quantitative Kinetic Models of Biochemical and Cellular Systems Nucleic Acids Res., 34: D689-D691.</a>
+                </p>
+            </body>
+
+    </notes>
   </model>
 </sbml>
