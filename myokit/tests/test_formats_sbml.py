@@ -856,6 +856,11 @@ class SBMLParserReactionsTest(unittest.TestCase):
         number = 2
         self.assertEqual(self.model.count_variables(inter=True), number)
 
+    def test_notes(self):
+        # Test notes are read from model element
+        notes = self.model.meta['desc']
+        self.assertTrue(notes.startswith('This is an implementation of'))
+
     def test_model_name(self):
         # Tests whether model name is set properly.
         name = 'case00004'
