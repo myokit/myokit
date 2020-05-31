@@ -94,6 +94,15 @@ class SBMLParser(object):
     def _parse_model(self, root, logger=None):
         """
         Parses a <model> element in an SBML document.
+
+        General notes:
+
+        - Component and variable names are created from ``id`` attributes, and
+          ``name`` attributes are ignored. (Names are not typically required,
+          while ids are; ids are almost myokit identifiers already (except that
+          they can start with an underscore); and ids are guaranteed to be
+          unique).
+
         """
         self._log = myokit.formats.TextLogger() if logger is None else logger
 
@@ -322,11 +331,8 @@ class SBMLParser(object):
                 else:
                     unit = None
 
-            # Get nice name, or use id
-            name = comp.get('name')
-            if not name or name == 'myokit':
-                name = idx
-            name = self._convert_name(name)
+            # Get name
+            name = self._convert_name(idx)
             if name == 'myokit':
                 raise SBMLError(
                     'The name "myokit" cannot be used for compartment names'
@@ -359,15 +365,13 @@ class SBMLParser(object):
             idp = param.get('id')
             if not idp:
                 raise SBMLError('No parameter ID provided.')
-            name = param.get('name')
-            if not name:
-                name = idp
+            name = self._convert_name(idp)
             value = param.get('value')
             unit = self._get_units(param, user_unit_dict)
 
             # add parameter to sbml compartment
             comp = comp_dict['myokit']
-            var = comp.add_variable_allow_renaming(self._convert_name(name))
+            var = comp.add_variable_allow_renaming(name)
             var.set_unit(unit)
             var.set_rhs(value)
 
@@ -392,9 +396,7 @@ class SBMLParser(object):
             ids = s.get('id')
             if not ids:
                 raise SBMLError('No species ID provided.')
-            name = s.get('name')
-            if not name:
-                name = ids
+            name = self._convert_name(ids)
             idc = s.get('compartment')
             if not idc:
                 raise SBMLError('No <compartment> attribute provided.')
@@ -498,17 +500,12 @@ class SBMLParser(object):
                 else:
                     stoich = float(stoich)
                 stoich_id = reactant.get('id')
-                name = reactant.get('name')
-                if not name:
-                    name = stoich_id
 
                 # If ID exits, create global parameter
                 if stoich_id:
-                    try:
-                        var = comp_dict[idc].add_variable_allow_renaming(name)
-                    except KeyError:
-                        var = comp_dict['myokit'].add_variable_allow_renaming(
-                            name)
+                    name = self._convert_name(stoich_id)
+                    comp = comp_dict.get(idc, comp_dict['myokit'])
+                    var = comp.add_variable_allow_renaming(name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
                     if stoich_id in param_and_species_dict:
@@ -541,17 +538,12 @@ class SBMLParser(object):
                 else:
                     stoich = float(stoich)
                 stoich_id = product.get('id')
-                name = product.get('name')
-                if not name:
-                    name = stoich_id
 
                 # If ID exits, create global parameter
                 if stoich_id:
-                    try:
-                        var = comp_dict[idc].add_variable_allow_renaming(name)
-                    except KeyError:
-                        var = comp_dict['myokit'].add_variable_allow_renaming(
-                            name)
+                    name = self._convert_name(stoich_id)
+                    comp = comp_dict.get(idc, comp_dict['myokit'])
+                    var = comp.add_variable_allow_renaming(name)
                     var.set_unit = myokit.units.dimensionless
                     var.set_rhs(stoich)
                     if stoich_id in param_and_species_dict:
