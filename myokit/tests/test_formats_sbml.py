@@ -742,10 +742,27 @@ class SBMLParserReactionsTest(unittest.TestCase):
         cls.model = myokit.formats.sbml.SBMLParser().parse_file(os.path.join(
             DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
 
-    def test_model_name(self):
-        # Tests whether model name is set properly.
-        name = 'case00004'
-        self.assertEqual(self.model.name(), name)
+    def test_assignment_rules(self):
+        # Tests whether intermediate variables have been assigned with correct
+        # expressions.
+
+        # parameter 1
+        parameter = 'S1_Concentration'
+        parameter = self.model.get('compartment.' + parameter)
+        expression = 'compartment.S1 / compartment.size'
+        self.assertEqual(str(parameter.rhs()), expression)
+
+        # parameter 2
+        parameter = 'S2_Concentration'
+        parameter = self.model.get('compartment.' + parameter)
+        expression = 'compartment.S2 / compartment.size'
+        self.assertEqual(str(parameter.rhs()), expression)
+
+        # parameter 3
+        parameter = 'i_Na'
+        parameter = self.model.get('myokit.' + parameter)
+        expression = 'myokit.g_Na * myokit.m ^ 3'
+        self.assertEqual(str(parameter.rhs()), expression)
 
     def test_compartments(self):
         # Tests whether compartments have been imported properly. Compartments
@@ -763,39 +780,6 @@ class SBMLParserReactionsTest(unittest.TestCase):
         # total number of compartments
         number = 2
         self.assertEqual(self.model.count_components(), number)
-
-    def test_time(self):
-        # Tests whether the time bound variable was set properly
-
-        variable = 'time'
-        self.assertTrue(self.model.has_variable('myokit.' + variable))
-        variable = self.model.get('myokit.' + variable)
-        self.assertTrue(variable.is_bound())
-
-    def test_state_variables(self):
-        # Tests whether all dynamic variables were imported properly.
-
-        # state 1
-        state = 'S1'
-        self.assertTrue(self.model.has_variable('compartment.' + state))
-        state = self.model.get('compartment.' + state)
-        self.assertTrue(state.is_state())
-
-        # state 2
-        state = 'S2'
-        self.assertTrue(self.model.has_variable('compartment.' + state))
-        state = self.model.get('compartment.' + state)
-        self.assertTrue(state.is_state())
-
-        # state 3
-        state = 'V'
-        self.assertTrue(self.model.has_variable('myokit.' + state))
-        state = self.model.get('myokit.' + state)
-        self.assertTrue(state.is_state())
-
-        # total number of states
-        number = 3
-        self.assertEqual(self.model.count_variables(state=True), number)
 
     def test_constant_parameters(self):
         # Tests whether all constant parameters in the file were properly
@@ -847,28 +831,6 @@ class SBMLParserReactionsTest(unittest.TestCase):
         # total number of parameters
         number = 7
         self.assertEqual(self.model.count_variables(const=True), number)
-
-    def test_intermediate_parameters(self):
-        # Tests whether all intermediate parameters in the file were properly
-        # imported.
-
-        # parameter 1
-        parameter = 'S1_Concentration'
-        self.assertTrue(
-            self.model.has_variable('compartment.' + parameter))
-        parameter = self.model.get('compartment.' + parameter)
-        self.assertTrue(parameter.is_intermediary())
-
-        # parameter 2
-        parameter = 'S2_Concentration'
-        self.assertTrue(
-            self.model.has_variable('compartment.' + parameter))
-        parameter = self.model.get('compartment.' + parameter)
-        self.assertTrue(parameter.is_intermediary())
-
-        # total number of parameters
-        number = 2
-        self.assertEqual(self.model.count_variables(inter=True), number)
 
     def test_initial_values(self):
         # Tests whether initial values of constant parameters and state variables
@@ -922,6 +884,33 @@ class SBMLParserReactionsTest(unittest.TestCase):
         initialValue = 1
         self.assertEqual(parameter.eval(), initialValue)
 
+    def test_intermediate_parameters(self):
+        # Tests whether all intermediate parameters in the file were properly
+        # imported.
+
+        # parameter 1
+        parameter = 'S1_Concentration'
+        self.assertTrue(
+            self.model.has_variable('compartment.' + parameter))
+        parameter = self.model.get('compartment.' + parameter)
+        self.assertTrue(parameter.is_intermediary())
+
+        # parameter 2
+        parameter = 'S2_Concentration'
+        self.assertTrue(
+            self.model.has_variable('compartment.' + parameter))
+        parameter = self.model.get('compartment.' + parameter)
+        self.assertTrue(parameter.is_intermediary())
+
+        # total number of parameters
+        number = 2
+        self.assertEqual(self.model.count_variables(inter=True), number)
+
+    def test_model_name(self):
+        # Tests whether model name is set properly.
+        name = 'case00004'
+        self.assertEqual(self.model.name(), name)
+
     def test_rate_expressions(self):
         # Tests whether state variables have been assigned with the correct
         # rate expression. Those may come from a rateRule or reaction.
@@ -951,27 +940,38 @@ class SBMLParserReactionsTest(unittest.TestCase):
         expression = 'myokit.i_Na / myokit.Cm'
         self.assertEqual(str(state.rhs()), expression)
 
-    def test_assignment_rules(self):
-        # Tests whether intermediate variables have been assigned with correct
-        # expressions.
+    def test_state_variables(self):
+        # Tests whether all dynamic variables were imported properly.
 
-        # parameter 1
-        parameter = 'S1_Concentration'
-        parameter = self.model.get('compartment.' + parameter)
-        expression = 'compartment.S1 / compartment.size'
-        self.assertEqual(str(parameter.rhs()), expression)
+        # state 1
+        state = 'S1'
+        self.assertTrue(self.model.has_variable('compartment.' + state))
+        state = self.model.get('compartment.' + state)
+        self.assertTrue(state.is_state())
 
-        # parameter 2
-        parameter = 'S2_Concentration'
-        parameter = self.model.get('compartment.' + parameter)
-        expression = 'compartment.S2 / compartment.size'
-        self.assertEqual(str(parameter.rhs()), expression)
+        # state 2
+        state = 'S2'
+        self.assertTrue(self.model.has_variable('compartment.' + state))
+        state = self.model.get('compartment.' + state)
+        self.assertTrue(state.is_state())
 
-        # parameter 3
-        parameter = 'i_Na'
-        parameter = self.model.get('myokit.' + parameter)
-        expression = 'myokit.g_Na * myokit.m ^ 3'
-        self.assertEqual(str(parameter.rhs()), expression)
+        # state 3
+        state = 'V'
+        self.assertTrue(self.model.has_variable('myokit.' + state))
+        state = self.model.get('myokit.' + state)
+        self.assertTrue(state.is_state())
+
+        # total number of states
+        number = 3
+        self.assertEqual(self.model.count_variables(state=True), number)
+
+    def test_time(self):
+        # Tests whether the time bound variable was set properly
+
+        variable = 'time'
+        self.assertTrue(self.model.has_variable('myokit.' + variable))
+        variable = self.model.get('myokit.' + variable)
+        self.assertTrue(variable.is_bound())
 
     def test_units(self):
         # Tests units parsing.
