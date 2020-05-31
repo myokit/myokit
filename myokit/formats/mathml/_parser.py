@@ -91,7 +91,8 @@ class MathMLParser(object):
     Literals and references
 
     ``<ci>``
-        Becomes a :class:`myokit.Name`.
+        Is converted to a :class:`myokit.Name` by passing the contents of the
+        ``ci`` tag to the ``name_factory``.
     ``<diff>`` (with ``<bvar>`` and ``<degree>``)
         Becomes a :class:`myokit.Derivative`. Only first-order derivatives are
         supported. To check if the derivatives are all time-derivatives, the
@@ -101,9 +102,9 @@ class MathMLParser(object):
         in the tag's attributes (esp. in CellML) the number post-processing
         function can be used.
     ``<csymbol>``
-        Becomes a :class:`myokit.Name`. Only csymbols representing special
-        variables are supported. Using the ``name_factory`` the definitionURL
-        is translated into a :class:`myokit.Name`.
+        Is converted to a :class:`myokit.Name` by passing the contents of its
+        ``definitionURL`` to the ``name_factory``. Note that ``csymbols``
+        representing operators or functions are not supported.
 
     Algebra
 
@@ -948,8 +949,10 @@ class MathMLParser(object):
         if element.text is None:
             raise MathMLError(
                 '<ci> element must contain a variable name.', element)
+
+        symbol = element.text.strip()
         try:
-            return self._vfac(element.text.strip(), element)
+            return self._vfac(symbol, element)
         except Exception as e:
             raise MathMLError('Unable to create Name: ' + str(e), element)
 
@@ -959,7 +962,15 @@ class MathMLParser(object):
         and returns a :class:`myokit.Name` created by the name factory.
         """
         symbol = element.get('definitionURL')
+        if symbol is None:
+            raise MathMLError(
+                '<csymbol> element must contain a definitionURL attribute.',
+                element)
+
+        symbol = symbol.strip()
         try:
             return self._vfac(symbol, element)
         except Exception as e:
-            raise MathMLError('Unable to create Name: ' + str(e), element)
+            raise MathMLError(
+                'Unable to create Name from csymbol: ' + str(e), element)
+
