@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Tests the importer for SBML.
+# Tests Myokit's SBML support.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -32,7 +32,7 @@ except NameError:   # pragma: no python 2 cover
 
 class SBMLImporterTest(unittest.TestCase):
     """
-    Tests various properties of the SBMLParser and SBMLImporter.
+    Tests the SBMLImporter.
     """
 
     def test_info(self):
@@ -45,6 +45,14 @@ class SBMLImporterTest(unittest.TestCase):
         self.assertFalse(i.supports_component())
         self.assertTrue(i.supports_model())
         self.assertFalse(i.supports_protocol())
+
+    def test_hh_model(self):
+        # Tests importing the Hodgkin-Huxley model
+        i = myokit.formats.importer('sbml')
+        model = i.model(os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+
+        v = model.get('myokit.V')
+        self.assertAlmostEqual(v.rhs().eval(), -4.01765286235500341e-03)
 
 
 class SBMLParserTest(unittest.TestCase):
