@@ -73,10 +73,11 @@
     <listOfParameters>
       <parameter id="k1" name="k1" value="0.35"/>
       <parameter id="k2" name="k2" value="180"/>
-      <parameter id="V" name="V" value="0" units="mV" constant="false"/>
+      <parameter id="V" name="V" value="-80" units="mV" constant="false"/>
       <parameter id="i_Na" name="i_Na" constant="false"/>
       <parameter id="g_Na" name="g_Na" value="2"/>
-      <parameter id="m" name="m" value="4"/>
+      <parameter id="m" name="m" value="0.3" constant="false"/>
+      <parameter id="h" name="h" value="0.9999"/>
       <parameter id="Cm" name="Cm" value="1"/>
     </listOfParameters>
     <listOfRules>
@@ -110,14 +111,26 @@
       </assignmentRule>
       <rateRule metaid="metaid_0000048" variable="V">
         <notes>
-          <p xmlns="http://www.w3.org/1999/xhtml">
-        dV/dt = i_Na/Cm</p>
+          <p xmlns="http://www.w3.org/1999/xhtml">dV/dt = i_Na/Cm</p>
         </notes>
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
             <divide/>
             <ci> i_Na </ci>
             <ci> Cm </ci>
+          </apply>
+        </math>
+      </rateRule>
+      <rateRule variable="m">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <apply>
+              <minus/>
+              <cn> 0.5 </cn>
+              <ci> m </ci>
+            </apply>
+            <cn> 0.03 </cn>
           </apply>
         </math>
       </rateRule>

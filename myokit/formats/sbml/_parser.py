@@ -570,7 +570,7 @@ class SBMLParser(object):
                     'Reaction must have at least one reactant or product.')
 
             # Modifiers
-            for modifier in self._get_list_of_modiefiers(reaction):
+            for modifier in self._get_list_of_modifiers(reaction):
                 ids = modifier.get('species')
                 if ids not in param_and_species_dict:
                     raise SBMLError('Species ID not existent.')
@@ -746,8 +746,7 @@ class SBMLParser(object):
 
                 # Update inital value
                 if var.is_state():
-                    value = expr.eval()
-                    var.set_state_value(value)
+                    var.set_state_value(value.eval())
                 else:
                     var.set_rhs(expr)
 
@@ -854,7 +853,7 @@ class SBMLParser(object):
         return element.findall(self._path(
             'listOfProducts', 'speciesReference'))
 
-    def _get_list_of_modiefiers(self, element):
+    def _get_list_of_modifiers(self, element):
         return element.findall(self._path(
             'listOfModifiers', 'modifierSpeciesReference'))
 

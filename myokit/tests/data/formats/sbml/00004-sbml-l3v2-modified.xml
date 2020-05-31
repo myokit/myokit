@@ -33,10 +33,11 @@
     <listOfParameters>
       <parameter id="k1" name="k1" value="0.35" constant="true"/>
       <parameter id="k2" name="k2" value="180" constant="true"/>
-      <parameter id="V" constant="false" name="V" value="0" units="mV"/>
+      <parameter id="V" constant="false" name="V" value="-80" units="mV"/>
       <parameter id="i_Na" constant="false" name="i_Na"/>
       <parameter id="g_Na" value="2" constant="true" name="g_Na"/>
-      <parameter id="m" value="4" constant="true" name="m"/>
+      <parameter id="m" value="0" name="m" constant="false" />
+      <parameter id="h" name="h" constant="true" />
       <parameter id="Cm" name="Cm" value="1" constant="true"/>
     </listOfParameters>
     <listOfReactions>
@@ -113,9 +114,7 @@
       </assignmentRule>
       <rateRule metaid="metaid_0000048" variable="V">
         <notes>
-          <p xmlns="http://www.w3.org/1999/xhtml">
-        dV/dt = i_Na/Cm</p>
-
+          <p xmlns="http://www.w3.org/1999/xhtml">dV/dt = i_Na/Cm</p>
         </notes>
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
@@ -125,7 +124,40 @@
           </apply>
         </math>
       </rateRule>
+      <rateRule variable="m">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <apply>
+              <minus />
+              <cn> 0.5 </cn>
+              <ci> m </ci>
+            </apply>
+            <cn> 0.03 </cn>
+          </apply>
+        </math>
+      </rateRule>
     </listOfRules>
+    <listOfInitialAssignments>
+      <initialAssignment symbol="m">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus />
+            <cn> 0.1 </cn>
+            <cn> 0.2 </cn>
+          </apply>
+        </math>
+      </initialAssignment>
+      <initialAssignment symbol="h">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus />
+            <cn> 1 </cn>
+            <cn> 0.0001 </cn>
+          </apply>
+        </math>
+      </initialAssignment>
+    </listOfInitialAssignments>
     <notes>
       <body xmlns="http://www.w3.org/1999/xhtml">
         <p>This is an implementation of the Hodgkin-Huxley model of the electrical behavior of the squid axon membrane from:      <br/>

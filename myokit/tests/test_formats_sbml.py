@@ -755,107 +755,77 @@ class SBMLDocumentTest(unittest.TestCase):
         parameter = self.model.get('compartment.' + parameter)
         self.assertTrue(parameter.is_constant())
 
-        # parameter 5
-        parameter = 'i_Na'
-        self.assertTrue(self.model.has_variable('myokit.' + parameter))
-        parameter = self.model.get('myokit.' + parameter)
-        self.assertTrue(parameter.is_constant())
-
-        # parameter 5
+        # parameter g_Na
         parameter = 'g_Na'
         self.assertTrue(self.model.has_variable('myokit.' + parameter))
         parameter = self.model.get('myokit.' + parameter)
         self.assertTrue(parameter.is_constant())
 
-        # parameter 6
-        parameter = 'm'
-        self.assertTrue(self.model.has_variable('myokit.' + parameter))
-        parameter = self.model.get('myokit.' + parameter)
-        self.assertTrue(parameter.is_constant())
-
-        # parameter 7
+        # parameter Cm
         parameter = 'Cm'
         self.assertTrue(self.model.has_variable('myokit.' + parameter))
         parameter = self.model.get('myokit.' + parameter)
         self.assertTrue(parameter.is_constant())
 
-        # total number of parameters
-        number = 7
+        # total number of constants
+        number = 6
         self.assertEqual(self.model.count_variables(const=True), number)
 
     def test_initial_values(self):
-        # Tests whether initial values of constant parameters and state variables
-        # have been set properly.
+        # Tests whether initial values of constant parameters and state
+        # variables have been set properly.
 
-        # state 1
-        state = 'S1'
-        state = self.model.get('compartment.' + state)
-        initialValue = 0.15
-        self.assertEqual(state.state_value(), initialValue)
+        # State S1
+        state = self.model.get('compartment.S1')
+        self.assertEqual(state.state_value(), 0.15)
 
-        # state 2
-        state = 'S2'
-        state = self.model.get('compartment.' + state)
-        initialValue = 0
-        self.assertEqual(state.state_value(), initialValue)
+        # State S2
+        state = self.model.get('compartment.S2')
+        self.assertEqual(state.state_value(), 0)
+
+        # State V
+        state = self.model.get('myokit.V')
+        self.assertEqual(state.state_value(), -80)
+
+        # State m
+        state = self.model.get('myokit.m')
+        self.assertAlmostEqual(state.state_value(), 0.3)
 
         # parameter 1
-        parameter = 'k1'
-        parameter = self.model.get('myokit.' + parameter)
-        initialValue = 0.35
-        self.assertEqual(parameter.eval(), initialValue)
+        parameter = self.model.get('myokit.k1')
+        self.assertEqual(parameter.eval(), 0.35)
 
         # parameter 2
-        parameter = 'k2'
-        parameter = self.model.get('myokit.' + parameter)
-        initialValue = 180
-        self.assertEqual(parameter.eval(), initialValue)
+        parameter = self.model.get('myokit.k2')
+        self.assertEqual(parameter.eval(), 180)
 
-        # parameter 3
-        parameter = 'size'
-        parameter = self.model.get('compartment.' + parameter)
-        initialValue = 1
-        self.assertEqual(parameter.eval(), initialValue)
+        # parameter compartment.size
+        parameter = self.model.get('compartment.size')
+        self.assertEqual(parameter.eval(), 1)
 
-        # parameter 4
-        parameter = 'g_Na'
-        parameter = self.model.get('myokit.' + parameter)
-        initialValue = 2
-        self.assertEqual(parameter.eval(), initialValue)
+        # parameter g_Na
+        parameter = self.model.get('myokit.g_Na')
+        self.assertEqual(parameter.eval(), 2)
 
-        # parameter 5
-        parameter = 'm'
-        parameter = self.model.get('myokit.' + parameter)
-        initialValue = 4
-        self.assertEqual(parameter.eval(), initialValue)
+        # parameter Cm
+        parameter = self.model.get('myokit.Cm')
+        self.assertEqual(parameter.eval(), 1)
 
-        # parameter 6
-        parameter = 'Cm'
-        parameter = self.model.get('myokit.' + parameter)
-        initialValue = 1
-        self.assertEqual(parameter.eval(), initialValue)
-
-    def test_intermediate_parameters(self):
-        # Tests whether all intermediate parameters in the file were properly
+    def test_intermediary_variables(self):
+        # Tests whether all intermediary variables in the file were properly
         # imported.
 
-        # parameter 1
-        parameter = 'S1_Concentration'
-        self.assertTrue(
-            self.model.has_variable('compartment.' + parameter))
-        parameter = self.model.get('compartment.' + parameter)
-        self.assertTrue(parameter.is_intermediary())
+        var = self.model.get('compartment.S1_Concentration')
+        self.assertTrue(var.is_intermediary())
 
-        # parameter 2
-        parameter = 'S2_Concentration'
-        self.assertTrue(
-            self.model.has_variable('compartment.' + parameter))
-        parameter = self.model.get('compartment.' + parameter)
-        self.assertTrue(parameter.is_intermediary())
+        var = self.model.get('compartment.S2_Concentration')
+        self.assertTrue(var.is_intermediary())
 
-        # total number of parameters
-        number = 2
-        self.assertEqual(self.model.count_variables(inter=True), number)
+        var = self.model.get('myokit.i_Na')
+        self.assertTrue(var.is_intermediary())
+
+        # total number of intermediary variables
+        self.assertEqual(self.model.count_variables(inter=True), 3)
 
     def test_notes(self):
         # Test notes are read from model element
@@ -877,7 +847,26 @@ class SBMLDocumentTest(unittest.TestCase):
         # Set time units (Only introduced in level 3 version 1)
         old_model.time().set_unit(self.model.time().unit())
 
+        # Update initial states set with initialAssignment (level 3 only)
+        new_value = self.model.get('myokit.m').state_value()
+        self.assertAlmostEqual(
+            old_model.get('myokit.m').state_value(), new_value)
+        old_model.get('myokit.m').set_state_value(new_value)
+
+        # Update initial value set with initialAssignment (level 3 only)
+        self.assertAlmostEqual(
+            old_model.get('myokit.h').eval(),
+            self.model.get('myokit.h').eval(),
+        )
+        old_model.get('myokit.h').set_rhs(
+            self.model.get('myokit.h').rhs().code())
+
         # Now models should be equal
+        if True:
+            with open('new.xml', 'w') as f:
+                f.write(self.model.code())
+            with open('old.xml', 'w') as f:
+                f.write(old_model.code())
         self.assertEqual(self.model.code(), old_model.code())
 
     def test_rate_expressions(self):
@@ -924,15 +913,18 @@ class SBMLDocumentTest(unittest.TestCase):
         state = self.model.get('compartment.' + state)
         self.assertTrue(state.is_state())
 
-        # state 3
-        state = 'V'
-        self.assertTrue(self.model.has_variable('myokit.' + state))
-        state = self.model.get('myokit.' + state)
+        # state V
+        self.assertTrue(self.model.has_variable('myokit.V'))
+        state = self.model.get('myokit.V')
+        self.assertTrue(state.is_state())
+
+        # state m
+        self.assertTrue(self.model.has_variable('myokit.m'))
+        state = self.model.get('myokit.m')
         self.assertTrue(state.is_state())
 
         # total number of states
-        number = 3
-        self.assertEqual(self.model.count_variables(state=True), number)
+        self.assertEqual(self.model.count_variables(state=True), 4)
 
     def test_time(self):
         # Tests whether the time bound variable was set properly
