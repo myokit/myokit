@@ -95,6 +95,76 @@ class SBMLParserTest(unittest.TestCase):
             '</sbml>'
         )
 
+    def test_algebraic_assignments(self):
+        # Tests parsing algebraic assignments (not supported)
+        xml = (
+            '<model>'
+            ' <listOfRules>'
+            '  <algebraicRule>'
+            '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '    <apply>'
+            '    </apply>'
+            '   </math>'
+            '  </algebraicRule>'
+            ' </listOfRules>'
+            '</model>'
+        )
+        self.assertBad(xml, 'Algebraic assignments are not supported')
+
+    def test_constraints(self):
+        # Test parsing constraints (these are ignored)
+
+        xml = (
+            '<model>'
+            ' <listOfConstraints>'
+            '  <constraint>'
+            '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '    <apply> <lt/> <cn> 1 </cn> <ci> S1 </ci> </apply>'
+            '   </math>'
+            '   <message>'
+            '     <p xmlns="http://www.w3.org/1999/xhtml">Out of range.</p>'
+            '   </message>'
+            '  </constraint>'
+            ' </listOfConstraints>'
+            '</model>')
+
+        log = myokit.formats.TextLogger()
+        self.p.parse_string(self.wrap(xml), log)
+        w = '\n'.join(log.warnings())
+        self.assertIn('Ignoring SBML constraints', w)
+
+    def test_events(self):
+        # Test parsing constraints (these are ignored)
+
+        xml = (
+            '<model>'
+            ' <listOfEvents>'
+            '  <event useValuesFromTriggerTime="true">'
+            '   <trigger initialValue="false" persistent="true">'
+            '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '     <apply> <leq/> <ci> P_1 </ci> <ci> P_2 </ci> </apply>'
+            '    </math>'
+            '   </trigger>'
+            '   <listOfEventAssignments>'
+            '    <eventAssignment variable="k2">'
+            '     <math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '      <ci> k2reset </ci>'
+            '     </math>'
+            '    </eventAssignment>'
+            '   </listOfEventAssignments>'
+            '  </event>'
+            ' </listOfEvents>'
+            '</model>')
+
+        log = myokit.formats.TextLogger()
+        self.p.parse_string(self.wrap(xml), log)
+        w = '\n'.join(log.warnings())
+        self.assertIn('Ignoring SBML events', w)
+
+    def test_invalid_file(self):
+        # Check whether error is thrown for invalid xml
+        self.assertBad('<model>', 'Unable to parse XML: ')
+
     def test_parse_file(self):
         # Check whether error is thrown for invalid path
         path = 'some/path'
@@ -104,12 +174,6 @@ class SBMLParserTest(unittest.TestCase):
             message,
             self.p.parse_file,
             path)
-
-    def test_parse_string(self):
-        # Check whether error is thrown for invalid string
-        self.assertBad(
-            xml='<model ',  # incomplete xml
-            message='Unable to parse XML: ')
 
     def test_level_version(self):
         # Check that unsupported levels/versions trigger warnings
@@ -135,8 +199,52 @@ class SBMLParserTest(unittest.TestCase):
         w = '\n'.join(log.warnings())
         self.assertIn('This version of SBML may not be supported', w)
 
-    def test_no_model(self):
+    def test_mathml(self):
+        """Test MathML parsing."""
+
+        xml1 = (
+            '<model name="mathml">'
+            ' <listOfParameters>'
+            '  <parameter id="x" constant="true" />'
+            ' </listOfParameters>'
+            ' <listOfInitialAssignments>'
+            '  <initialAssignment symbol="x">'
+            '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+        )
+        xml2 = (
+            '   </math>'
+            '  </initialAssignment>'
+            ' </listOfInitialAssignments>'
+            '</model>'
+        )
+
+        # Parse valid MathML
+        xml = xml1 + '<cn>5</cn>' + xml2
+        m = self.parse(xml)
+        self.assertEqual(m.get('myokit.x').rhs().eval(), 5)
+
+        # Check that invalid MathML raises an SBMLError
+        xml = xml1 + '<apply><minus /></apply>' + xml2
+        self.assertBad(xml, 'Operator needs at least one operand')
+
+    def test_model(self):
+        """Tests parsing a model."""
+
+        # Name from name attribute
+        m = self.parse('<model id="yes" name="no" />')
+        self.assertEqual(m.name(), 'no')
+
+        # Name from id attribute
+        m = self.parse('<model id="yes" />')
+        self.assertEqual(m.name(), 'yes')
+
+        # Default name
+        m = self.parse('<model />')
+        self.assertEqual(m.name(), 'Imported SBML model')
+
+        # No model
         self.assertBad(xml='', message='Model element not found.')
+        self.assertBad(xml='<hello/>', message='Model element not found.')
 
     def test_function_definitions(self):
         xml = (
@@ -303,7 +411,7 @@ class SBMLParserTest(unittest.TestCase):
         self.assertBad(xml=xml, message='The id "myokit".')
 
     def test_coinciding_ids(self):
-        # Checks that error is thrown when indentical IDs are used for
+        # Checks that an error is thrown when overlapping ids are used for
         # compartment, parameters or species.
 
         # Coinciding compartment and parameter ids

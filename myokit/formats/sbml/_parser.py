@@ -166,17 +166,12 @@ class SBMLParser(object):
         # Constraints are not supported, but can be ignored
         x = element.find(self._path('listOfConstraints', 'constraint'))
         if x is not None:
-            self._log.warn(
-                'Myokit does not support SBML constraints.  The constraints'
-                ' will be ignored for the simulation.')
+            self._log.warn('Ignoring SBML constraints.')
 
         # Events are not supported, but can be ignored
         x = element.find(self._path('listOfEvents', 'event'))
         if x is not None:
-            self._log.warn(
-                'Myokit does not support SBML event. The events will be'
-                ' ignored for the simulation. Have a look at myokits protocol'
-                ' feature for instantaneous state value changes.')
+            self._log.warn('Ignoring SBML events.')
 
         # Notes elements directly inside a model are turned into a description.
         notes = element.find(self._path('notes'))
@@ -669,9 +664,7 @@ class SBMLParser(object):
             initial_value = initial_value.eval() if initial_value else 0
             var.promote(initial_value)
             var.set_unit(unit)
-
-            #TODO: Should this set `expr` instead?
-            var.set_rhs(model.reaction_species[species])
+            var.set_rhs(expr)
 
     def _parse_initial_assignment(self, model, element):
         """Parse an initial assignment of a model variable."""
