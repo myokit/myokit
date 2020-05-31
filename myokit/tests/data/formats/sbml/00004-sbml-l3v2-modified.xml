@@ -19,7 +19,7 @@
       </unitDefinition>
       <unitDefinition id="mV" name="mV" metaid="metaid_0000050">
         <listOfUnits>
-          <unit scale="-3" metaid="_591709" kind="volt"/>
+          <unit kind="volt" exponent="1" scale="-3" multiplier="1" metaid="_591709" />
         </listOfUnits>
       </unitDefinition>
     </listOfUnitDefinitions>

@@ -915,6 +915,8 @@ class SBMLParser(object):
             if not kind:
                 raise SBMLError('No unit kind provided.')
             part = self._convert_sbml_to_myokit_units(kind)
+            # Note: mulitplier, scale, and exponent are required in level 3 but
+            # optional in level 2.
             part *= float(baseUnit.get('multiplier', default=1))
             part *= 10 ** float(baseUnit.get('scale', default=0))
             part **= float(baseUnit.get('exponent', default=1))
