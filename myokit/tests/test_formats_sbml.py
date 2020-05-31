@@ -309,9 +309,7 @@ class SBMLParserTest(unittest.TestCase):
             '<parameter id="someId"/>'
             '</listOfParameters>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='The provided parameter id already exists.')
+        self.assertBad(xml, 'Duplicate parameter id')
 
         # Coinciding compartment and species ids
         xml = (
@@ -326,9 +324,7 @@ class SBMLParserTest(unittest.TestCase):
             ' boundaryCondition="true" />'
             '</listOfSpecies>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='The provided species id already exists.')
+        self.assertBad(xml, 'Duplicate species id')
 
         # Coinciding parameter and species ids
         xml = (
@@ -346,9 +342,7 @@ class SBMLParserTest(unittest.TestCase):
             ' boundaryCondition="true" />'
             '</listOfSpecies>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='The provided species id already exists.')
+        self.assertBad(xml, 'Duplicate species id')
 
         # Coinciding parameter and reactant stoichiometry IDs
         stoich_id = 'someStoich'
@@ -435,21 +429,6 @@ class SBMLParserTest(unittest.TestCase):
         self.assertBad(
             xml=xml,
             message='No <compartment> attribute provided.')
-
-    def test_reserved_time_id(self):
-        # Tests whether an error is thrown when
-        # ``http://www.sbml.org/sbml/symbols/time`` is used as parameter or
-        # species ID. This is the definitionURL used by MathML to identify
-        # the time variable in equations. We use it as an parameter ID to
-        # find the time bound variable in the myokit model.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfParameters>'
-            '<parameter id="http://www.sbml.org/sbml/symbols/time"/>'
-            '</listOfParameters>'
-            '</model>')
-        self.assertBad(xml, 'The id "http://www.sbml.org/sbml/symbols/time"')
 
     def test_stoichiometry_reference(self):
         # Tests whether stoichiometry parameters are linked properly to global

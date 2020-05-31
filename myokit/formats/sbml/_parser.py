@@ -51,9 +51,8 @@ class SBMLParser(object):
 
     """
     def __init__(self):
-        self.re_name = re.compile(r'^[a-zA-Z]+[a-zA-Z0-9_]*$')
-        self.re_alpha = re.compile(r'[\W]+')
-        self.re_white = re.compile(r'[ \t\f\n\r]+')
+        # Regexes for id checking
+        self.re_id = re.compile(r'^[a-zA-Z_]+[a-zA-Z0-9_]*$')
 
     def parse_file(self, path, logger=None):
         """
@@ -141,11 +140,9 @@ class SBMLParser(object):
         # or an optional id attribute (not necessarily user friendly) or can
         # have no name at all.
         name = element.get('name')
-        if not name:
+        if name is None:
             name = element.get('id')
-        if name:
-            name = self._convert_id(name)
-        else:
+        if name is None:
             name = 'Imported SBML model'
 
         # Create myokit model
@@ -234,13 +231,7 @@ class SBMLParser(object):
         time.set_binding('time')
         time.set_unit(model.model_units['timeUnits'])
         time.set_rhs(0)
-        time_id = 'http://www.sbml.org/sbml/symbols/time'
-        if time_id in model.param_and_species:
-            raise SBMLError(
-                'The id "' + time_id + '" can not be used for parameters or'
-                ' species.')
-        model.param_and_species[
-            'http://www.sbml.org/sbml/symbols/time'] = time
+        model.param_and_species['http://www.sbml.org/sbml/symbols/time'] = time
 
         # Add reactions to model
         reactions = element.findall(self._path('listOfReactions', 'reaction'))
@@ -274,15 +265,19 @@ class SBMLParser(object):
 
     def _parse_compartment(self, myokit_model, model, element):
         """
-        Adds compartments to model and creates references in ``components``. A
-        ``size`` variable is initialised in each compartment and references in
-        param_and_species.
+        Adds compartments to model and creates references in ``components``.
+
+        A ``size`` variable is initialised in each compartment and references
+        in param_and_species.
         """
+        #TODO: Given the description above, it sounds like we need a
+        # Compartment object.
+
         # Get id (required attribute)
         idx = element.get('id')
         if not idx:
             raise SBMLError('Required attribute "id" missing in compartment')
-        name = self._convert_id(idx)
+        name = self._convert_id(idx, element)
         if name == 'myokit':
             raise SBMLError(
                 'The id "myokit" cannot be used for compartment names.')
@@ -329,11 +324,9 @@ class SBMLParser(object):
         if idp is None:
             raise SBMLError(
                 'Required attribute "id" missing in parameter.')
-        if not self._is_valid_id(idp):
-            raise SBMLError('Invalid id: "' + str(idp) + '"')
         if idp in model.param_and_species:
-            raise SBMLError('The provided parameter id already exists.')
-        name = self._convert_id(idp)
+            raise SBMLError('Duplicate parameter id: "' + str(idp) + '".')
+        name = self._convert_id(idp, element)
 
         # Create variable (in global 'myokit' component)
         component = myokit_model['myokit']
@@ -359,9 +352,7 @@ class SBMLParser(object):
         ids = element.get('id')
         if ids is None:
             raise SBMLError('No species ID provided.')
-        if not self._is_valid_id(ids):
-            raise SBMLError('Invalid id: "' + str(ids) + '"')
-        name = self._convert_id(ids)
+        name = self._convert_id(ids, element)
 
         # Get compartment id
         idc = element.get('compartment')
@@ -407,7 +398,7 @@ class SBMLParser(object):
 
         # Save species in container for later assignments/reactions
         if ids in model.param_and_species:
-            raise SBMLError('The provided species id already exists.')
+            raise SBMLError('Duplicate species id: "' + ids + '".')
         model.param_and_species[ids] = var
 
         # Constant and boundaryCondition attributes are optional in older
@@ -460,7 +451,9 @@ class SBMLParser(object):
         idc = element.get('compartment')
 
         # Reactants
-        for reactant in self._get_list_of_reactants(element):
+        reactants = element.findall(self._path(
+            'listOfReactants', 'speciesReference'))
+        for reactant in reactants:
             ids = reactant.get('species')
             if ids not in param_and_species:
                 raise SBMLError('Species ID not existent.')
@@ -472,11 +465,11 @@ class SBMLParser(object):
                 stoich = 1
             else:
                 stoich = float(stoich)
-            stoich_id = reactant.get('id')
 
             # If ID exits, create global parameter
+            stoich_id = reactant.get('id')
             if stoich_id:
-                name = self._convert_id(stoich_id)
+                name = self._convert_id(stoich_id, reactant)
                 comp = components.get(idc, components['myokit'])
                 var = comp.add_variable_allow_renaming(name)
                 var.set_unit = myokit.units.dimensionless
@@ -498,7 +491,10 @@ class SBMLParser(object):
             species_reference.add(ids)
 
         # Products
-        for product in self._get_list_of_products(element):
+        products = element.findall(self._path(
+            'listOfProducts', 'speciesReference'))
+        for product in products:
+
             ids = product.get('species')
             if ids not in param_and_species:
                 raise SBMLError('Species ID not existent.')
@@ -510,11 +506,11 @@ class SBMLParser(object):
                 stoich = 1
             else:
                 stoich = float(stoich)
-            stoich_id = product.get('id')
 
             # If ID exits, create global parameter
+            stoich_id = product.get('id')
             if stoich_id:
-                name = self._convert_id(stoich_id)
+                name = self._convert_id(stoich_id, product)
                 comp = components.get(idc, components['myokit'])
                 var = comp.add_variable_allow_renaming(name)
                 var.set_unit = myokit.units.dimensionless
@@ -541,7 +537,9 @@ class SBMLParser(object):
                 'Reaction must have at least one reactant or product.')
 
         # Modifiers
-        for modifier in self._get_list_of_modifiers(element):
+        modifiers = element.findall(self._path(
+            'listOfModifiers', 'modifierSpeciesReference'))
+        for modifier in modifiers:
             ids = modifier.get('species')
             if ids not in param_and_species:
                 raise SBMLError('Species ID not existent.')
@@ -556,85 +554,84 @@ class SBMLParser(object):
                 ' reactions to steady states. Please substitute the steady'
                 ' states as AssigmentRule')
 
-        # Get kinetic law
-        kinetic_law = self._get_kinetic_law(element)
-        if kinetic_law:
+        # Parse kinetic law
+        kinetic_law = element.find(self._path('kineticLaw'))
+        if kinetic_law is None:
+            return
 
-            # #Local parameters within reactions are not supported
-            local_parameter = kinetic_law.find(self._path(
-                'listOfLocalParameters', 'localParameter'))
-            if local_parameter is not None:
-                raise SBMLError(
-                    'Myokit does not support the definition of local'
-                    ' parameters in reactions. Please move their'
-                    ' definition to the <listOfParameters> instead.')
+        # Local parameters within reactions are not supported
+        local_parameter = kinetic_law.find(self._path(
+            'listOfLocalParameters', 'localParameter'))
+        if local_parameter is not None:
+            raise SBMLError(
+                'Myokit does not support the definition of local'
+                ' parameters in reactions. Please move their'
+                ' definition to the <listOfParameters> instead.')
 
-            # get rate expression for reaction
-            expr = kinetic_law.find('{' + MATHML_NS + '}math')
-            if expr is None:
-                return
-            try:
-                expr = parse_mathml_etree(
-                    expr,
-                    lambda x, y: myokit.Name(param_and_species[x]),
-                    lambda x, y: myokit.Number(x))
-            except myokit.formats.mathml._parser.MathMLError as e:
-                raise SBMLError(
-                    'An error occured when importing a kineticLaw: ' + str(e))
+        # get rate expression for reaction
+        expr = kinetic_law.find('{' + MATHML_NS + '}math')
+        if expr is None:
+            return
+        try:
+            expr = parse_mathml_etree(
+                expr,
+                lambda x, y: myokit.Name(param_and_species[x]),
+                lambda x, y: myokit.Number(x))
+        except myokit.formats.mathml._parser.MathMLError as e:
+            raise SBMLError(
+                'An error occured when importing a kineticLaw: ' + str(e))
 
-            # Collect expressions for products
-            for species in products_stoich:
-                # weight with stoichiometry
-                stoich = products_stoich[species]
-                if stoich in param_and_species:
-                    stoich = myokit.Name(param_and_species[stoich])
-                    weighted_expr = myokit.Multiply(stoich, expr)
-                elif stoich == 1:
-                    weighted_expr = expr
-                else:
-                    stoich = myokit.Number(stoich)
-                    weighted_expr = myokit.Multiply(stoich, expr)
+        # Collect expressions for products
+        for species in products_stoich:
 
-                # weight with conversion factor
-                conv_factor = species_prop[species]['conversionFactor']
-                if conv_factor:
-                    weighted_expr = myokit.Multiply(conv_factor, weighted_expr)
+            # Weight with stoichiometry
+            stoich = products_stoich[species]
+            if stoich in param_and_species:
+                stoich = myokit.Name(param_and_species[stoich])
+                weighted_expr = myokit.Multiply(stoich, expr)
+            elif stoich == 1:
+                weighted_expr = expr
+            else:
+                stoich = myokit.Number(stoich)
+                weighted_expr = myokit.Multiply(stoich, expr)
 
-                # add expression to rate expression of species
-                if species in model.reaction_species:
-                    partialExpr = model.reaction_species[species]
-                    model.reaction_species[species] = myokit.Plus(
-                        partialExpr, weighted_expr)
-                else:
-                    model.reaction_species[species] = weighted_expr
+            # Weight with conversion factor
+            conv_factor = species_prop[species]['conversionFactor']
+            if conv_factor:
+                weighted_expr = myokit.Multiply(conv_factor, weighted_expr)
 
-            # Collect expressions for reactants
-            for species in reactants_stoich:
-                # weight with stoichiometry
-                stoich = reactants_stoich[species]
-                if stoich in param_and_species:
-                    stoich = myokit.Name(param_and_species[stoich])
-                    weighted_expr = myokit.Multiply(stoich, expr)
-                elif stoich == 1:
-                    weighted_expr = expr
-                else:
-                    stoich = myokit.Number(stoich)
-                    weighted_expr = myokit.Multiply(stoich, expr)
+            # Add expression to rate expression of species
+            partial_expr = model.reaction_species.get(species, None)
+            if partial_expr is not None:
+                weighted_expr = myokit.Plus(partial_expr, weighted_expr)
+            model.reaction_species[species] = weighted_expr
 
-                # weight with conversion factor
-                conv_factor = species_prop[species]['conversionFactor']
-                if conv_factor:
-                    weighted_expr = myokit.Multiply(conv_factor, weighted_expr)
+        # Collect expressions for reactants
+        for species in reactants_stoich:
 
-                # add (with minus sign) expression to rate
-                # expression of species
-                if species in model.reaction_species:
-                    partialExpr = model.reaction_species[species]
-                    model.reaction_species[species] = myokit.Minus(
-                        partialExpr, weighted_expr)
-                else:
-                    weighted_expr = myokit.PrefixMinus(weighted_expr)
-                    model.reaction_species[species] = weighted_expr
+            # Weight with stoichiometry
+            stoich = reactants_stoich[species]
+            if stoich in param_and_species:
+                stoich = myokit.Name(param_and_species[stoich])
+                weighted_expr = myokit.Multiply(stoich, expr)
+            elif stoich == 1:
+                weighted_expr = expr
+            else:
+                stoich = myokit.Number(stoich)
+                weighted_expr = myokit.Multiply(stoich, expr)
+
+            # weight with conversion factor
+            conv_factor = species_prop[species]['conversionFactor']
+            if conv_factor:
+                weighted_expr = myokit.Multiply(conv_factor, weighted_expr)
+
+            # Add (with minus sign) expression to rate expression of species
+            partial_expr = model.reaction_species.get(species, None)
+            if partial_expr is not None:
+                weighted_expr = myokit.Minus(partial_expr, weighted_expr)
+            else:
+                weighted_expr = myokit.PrefixMinus(weighted_expr)
+            model.reaction_species[species] = weighted_expr
 
     def add_rate_expressions_for_reactions(self, model):
         """Adds rate expressions for species to model."""
@@ -776,40 +773,6 @@ class SBMLParser(object):
         var.promote(value)
         var.set_rhs(expr)
 
-    def _get_list_of_reactants(self, element):
-        return element.findall(self._path(
-            'listOfReactants', 'speciesReference'))
-
-    def _get_list_of_products(self, element):
-        return element.findall(self._path(
-            'listOfProducts', 'speciesReference'))
-
-    def _get_list_of_modifiers(self, element):
-        return element.findall(self._path(
-            'listOfModifiers', 'modifierSpeciesReference'))
-
-    def _get_kinetic_law(self, element):
-        return element.find(self._path('kineticLaw'))
-
-    def _is_valid_id(self, idx):
-        """Checks if an id is a valid SBML identifier."""
-        #TODO
-        return True
-
-    def _convert_id(self, name):
-        """
-        Converts an id to something acceptable to Myokit.
-        """
-        if not self.re_name.match(name):
-            org_name = name
-            name = self.re_white.sub('_', name)
-            name = self.re_alpha.sub('_', name)
-            if not self.re_name.match(name):
-                name = 'x_' + name
-            self._log.warn(
-                'Converting name "' + org_name + '" to "' + name + '".')
-        return name
-
     def _parse_unit_definition(self, element, model):
         """
         Converts a unit definition into a :class:`myokit.Unit`.
@@ -819,9 +782,7 @@ class SBMLParser(object):
         if name is None:
             raise SBMLError(
                 'Required attribute "id" missing in unitDefinition')
-        if not self._is_valid_id(name):
-            raise SBMLError('Invalid id: "' + str(name) + '"')
-        name = self._convert_id(name)
+        name = self._convert_id(name, element)
 
         # Construct Myokit unit
         myokit_unit = myokit.units.dimensionless
@@ -845,15 +806,6 @@ class SBMLParser(object):
         # Store the unit
         model.add_unit(name, myokit_unit)
 
-    def _get_units(self, parameter, user_unit):
-        """
-        Returns :class:myokit.Unit expression of the unit of a parameter.
-        """
-        unit = parameter.get('units')
-        if unit in user_unit:
-            return user_unit[unit]
-        return self._convert_sbml_to_myokit_units(unit)
-
     def _path(self, *tags):
         """
         Returns a string created by prepending the namespace to each tag and
@@ -870,6 +822,23 @@ class SBMLParser(object):
             treated.append(tag)
         return '/'.join(treated)
 
+    def _convert_id(self, text, element=None):
+        """
+        Checks if the given ``text`` is a valid SBML identifier, and returns a
+        string that can be used as a myokit component or variable name.
+        """
+        #TODO: Use element to raise nicer error messages
+
+        if not self.re_id.match(text):
+            raise SBMLError('Invalid id "' + str(text) + '".')
+
+        # Unlike the SBML SId type, Myokit names cannot start with an
+        # underscore
+        if text[:1] == '_':
+            text = 'underscore_' + text
+
+        return text
+
 
 class SBMLModel(object):
     """
@@ -879,6 +848,9 @@ class SBMLModel(object):
 
         # User-defined units (maps ids to myokit.Unit objects)
         self._user_units = {}
+
+        # TODO: The objects below should probably be classes instead of dicts,
+        # and be hidden from the user (but accessible via methods).
 
         # Model units
         self.model_units = {
@@ -906,7 +878,7 @@ class SBMLModel(object):
         # Mapping from parameter or species id to myokit.Variable objects.
         self.param_and_species = {}
 
-        # Mapping from component ids to myokit.Component objects.
+        # Mapping from compartment ids to myokit.Component objects.
         self.components = {}
 
     def add_unit(self, name, unit):
