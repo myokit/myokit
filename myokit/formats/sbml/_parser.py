@@ -204,8 +204,11 @@ class SBMLParser(object):
         for compartment in compartments:
             self._parse_compartment(myokit_model, model, compartment)
 
-        # Add parameters to model
-        self._parse_parameters(myokit_model, model, element)
+        # Parse parameters
+        parameters = element.findall(
+            self._path('listOfParameters', 'parameter'))
+        for parameter in parameters:
+            self._parse_parameter(myokit_model, model, parameter)
 
         # Add reference to global conversion factor
         conv_factor_id = element.get('conversionFactor')
@@ -222,8 +225,9 @@ class SBMLParser(object):
                 raise SBMLError(
                     'The model conversionFactor points to non-existent ID.')
 
-        # Add species to compartments
-        self._parse_species(myokit_model, model, element)
+        # Parse species
+        for species in element.findall(self._path('listOfSpecies', 'species')):
+            self._parse_species(myokit_model, model, species)
 
         # Add time variable to model
         time = model.components['myokit'].add_variable('time')
@@ -238,18 +242,26 @@ class SBMLParser(object):
         model.param_and_species[
             'http://www.sbml.org/sbml/symbols/time'] = time
 
-        # Add Reactions to model
-        self._parse_reactions(myokit_model, model, element)
+        # Add reactions to model
+        reactions = element.findall(self._path('listOfReactions', 'reaction'))
+        for reaction in reactions:
+            self._parse_reaction(myokit_model, model, reaction)
         self.add_rate_expressions_for_reactions(model)
 
-        # Add initial assignments to model
-        self._parse_initial_assignments(model, element)
+        # Parse initial assignments
+        assignments = element.findall(self._path(
+            'listOfInitialAssignments', 'initialAssignment'))
+        for assignment in assignments:
+            self._parse_initial_assignment(model, assignment)
 
-        # Add assignmentRules to model
-        self._parse_assignment_rules(model, element)
+        # Parse assignment rules
+        rules = element.findall(self._path('listOfRules', 'assignmentRule'))
+        for rule in rules:
+            self._parse_assignment_rule(model, rule)
 
-        # Add rateRules to model
-        self._parse_rate_rules(model, element)
+        # Parse rate rules
+        for rule in element.findall(self._path('listOfRules', 'rateRule')):
+            self._parse_rate_rule(model, rule)
 
         return myokit_model
 
@@ -307,129 +319,126 @@ class SBMLParser(object):
         # Save size in container for later assignments/reactions
         model.param_and_species[idx] = var
 
-    def _parse_parameters(self, myokit_model, model, model_element):
+    def _parse_parameter(self, myokit_model, model, element):
         """
         Adds parameters to `myokit` compartment in model and creates references
         in `param_and_species`.
         """
-        for param in self._get_list_of_parameters(model_element):
+        # Check id
+        idp = element.get('id')
+        if idp is None:
+            raise SBMLError(
+                'Required attribute "id" missing in parameter.')
+        if not self._is_valid_id(idp):
+            raise SBMLError('Invalid id: "' + str(idp) + '"')
+        if idp in model.param_and_species:
+            raise SBMLError('The provided parameter id already exists.')
+        name = self._convert_id(idp)
 
-            # Check id
-            idp = param.get('id')
-            if idp is None:
-                raise SBMLError(
-                    'Required attribute "id" missing in parameter.')
-            if not self._is_valid_id(idp):
-                raise SBMLError('Invalid id: "' + str(idp) + '"')
-            if idp in model.param_and_species:
-                raise SBMLError('The provided parameter id already exists.')
-            name = self._convert_id(idp)
+        # Create variable (in global 'myokit' component)
+        component = myokit_model['myokit']
+        var = component.add_variable_allow_renaming(name)
 
-            # Create variable (in global 'myokit' component)
-            component = model.components['myokit']
-            var = component.add_variable_allow_renaming(name)
+        # Get value
+        var.set_rhs(element.get('value'))
 
-            # Get value
-            var.set_rhs(param.get('value'))
+        # Get unit
+        unit = element.get('units')
+        if unit is not None:
+            var.set_unit(model.get_unit(unit))
 
-            # Get unit
-            unit = param.get('units')
-            if unit is not None:
-                var.set_unit(model.get_unit(unit))
+        # Store reference to variable for later assignments/reactions
+        model.param_and_species[idp] = var
 
-            # Store reference to variable for later assignments/reactions
-            model.param_and_species[idp] = var
-
-    def _parse_species(self, myokit_model, model, model_element):
+    def _parse_species(self, myokit_model, model, element):
         """
         Adds species to references compartment in model and creates references
         in `param_and_species`.
         """
-        for element in self._get_list_of_species(model_element):
+        # Get species id
+        ids = element.get('id')
+        if ids is None:
+            raise SBMLError('No species ID provided.')
+        if not self._is_valid_id(ids):
+            raise SBMLError('Invalid id: "' + str(ids) + '"')
+        name = self._convert_id(ids)
 
-            # Get species id
-            ids = element.get('id')
-            if ids is None:
-                raise SBMLError('No species ID provided.')
-            if not self._is_valid_id(ids):
-                raise SBMLError('Invalid id: "' + str(ids) + '"')
-            name = self._convert_id(ids)
+        # Get compartment id
+        idc = element.get('compartment')
+        if not idc:
+            raise SBMLError('No <compartment> attribute provided.')
 
-            # Get compartment id
-            idc = element.get('compartment')
-            if not idc:
-                raise SBMLError('No <compartment> attribute provided.')
+        # Get value
+        value = element.get('initialAmount')
+        if value is None:
+            value = element.get('initialConcentration')
+            if value is not None:
+                volume = param_and_species[compId]
+                value = myokit.Multiply(
+                    myokit.Number(amount), myokit.Name(volume))
 
-            # Get value
-            value = element.get('initialAmount')
-            if value is None:
-                value = element.get('initialConcentration')
-                if value is not None:
-                    volume = param_and_species[compId]
-                    value = myokit.Multiply(
-                        myokit.Number(amount), myokit.Name(volume))
+        # Get unit
+        #TODO: Refactor this: get rid of method call
+        unit = element.get('substanceUnits')
+        if unit is not None:
+            unit = model.get_unit(unit)
 
-            # Get unit
-            #TODO: Refactor this: get rid of method call
-            unit = element.get('substanceUnits')
-            if unit is not None:
-                unit = model.get_unit(unit)
+        # Add variable in amount (needed for reactions, even if measured in
+        # conc.).
+        var = model.components[idc].add_variable_allow_renaming(name)
+        var.set_unit(unit)
+        var.set_rhs(value)
 
-            # Add variable in amount (needed for reactions, even if measured in
-            # conc.).
-            var = model.components[idc].add_variable_allow_renaming(name)
+        # This property used to be optional (default False)
+        #TODO: Should the value-getting code above be based on this?
+        is_amount = element.get('hasOnlySubstanceUnits', 'false') == 'true'
+        if not is_amount:
+            # Save amount variable for later reference
+            model.species_also_in_amount[ids] = var
+
+            # Add variable in units of concentration
+            volume = model.param_and_species[idc]
+            value = myokit.Divide(myokit.Name(var), myokit.Name(volume))
+            unit = unit / volume.unit()
+            var = model.components[idc].add_variable_allow_renaming(
+                name + '_Concentration')
             var.set_unit(unit)
             var.set_rhs(value)
 
-            # This property used to be optional (default False)
-            #TODO: Should the value-getting code above be based on this?
-            is_amount = element.get('hasOnlySubstanceUnits', 'false') == 'true'
-            if not is_amount:
-                # Save amount variable for later reference
-                model.species_also_in_amount[ids] = var
+        # Save species in container for later assignments/reactions
+        if ids in model.param_and_species:
+            raise SBMLError('The provided species id already exists.')
+        model.param_and_species[ids] = var
 
-                # Add variable in units of concentration
-                volume = model.param_and_species[idc]
-                value = myokit.Divide(myokit.Name(var), myokit.Name(volume))
-                unit = unit / volume.unit()
-                var = model.components[idc].add_variable_allow_renaming(
-                    name + '_Concentration')
-                var.set_unit(unit)
-                var.set_rhs(value)
+        # Constant and boundaryCondition attributes are optional in older
+        # sbml versions
+        is_constant = element.get('constant', 'false') == 'true'
+        has_boundary = element.get('boundaryCondition', 'false') == 'true'
 
-            # Save species in container for later assignments/reactions
-            if ids in model.param_and_species:
-                raise SBMLError('The provided species id already exists.')
-            model.param_and_species[ids] = var
+        # Get optional conversion factor
+        conv_factor = element.get('conversionFactor')
+        if conv_factor is not None:
+            try:
+                conv_factor = model.param_and_species[conv_factor]
+            except KeyError:
+                raise SBMLError(
+                    'conversionFactor refers to non-existent ID.')
+        else:
+            conv_factor = model.param_and_species.get(
+                'globalConversionFactor', None)
 
-            # Constant and boundaryCondition attributes are optional in older
-            # sbml versions
-            is_constant = element.get('constant', 'false') == 'true'
-            has_boundary = element.get('boundaryCondition', 'false') == 'true'
+        # Save species properties to container for later assignments/
+        # reactions
+        #TODO This screams for an object
+        model.species_prop[ids] = {
+            'compartment': idc,
+            'isAmount': is_amount,
+            'isConstant': is_constant,
+            'hasBoundaryCondition': has_boundary,
+            'conversionFactor': conv_factor,
+        }
 
-            # Get optional conversion factor
-            conv_factor = element.get('conversionFactor')
-            if conv_factor is not None:
-                try:
-                    conv_factor = model.param_and_species[conv_factor]
-                except KeyError:
-                    raise SBMLError(
-                        'conversionFactor refers to non-existent ID.')
-            else:
-                conv_factor = model.param_and_species.get(
-                    'globalConversionFactor', None)
-
-            # Save species properties to container for later assignments/
-            # reactions
-            model.species_prop[ids] = {
-                'compartment': idc,
-                'isAmount': is_amount,
-                'isConstant': is_constant,
-                'hasBoundaryCondition': has_boundary,
-                'conversionFactor': conv_factor,
-            }
-
-    def _parse_reactions(self, myokit_model, model, model_element):
+    def _parse_reaction(self, myokit_model, model, element):
         """
         Adds rate expressions for species involved in reactions.
 
@@ -443,198 +452,189 @@ class SBMLParser(object):
         species_prop = model.species_prop
         species_reference = model.species_reference
 
-        # Create reactant and product reference to build rate equations
-        for reaction in self._get_list_of_reactions(model_element):
-            # Create reaction specific species references
-            reactants_stoich = dict()
-            products_stoich = dict()
+        # Create reaction specific species references
+        reactants_stoich = {}
+        products_stoich = {}
 
-            # Get reactans, products and modifiers
-            idc = reaction.get('compartment')
+        # Get reactans, products and modifiers
+        idc = element.get('compartment')
 
-            # Reactants
-            for reactant in self._get_list_of_reactants(reaction):
-                ids = reactant.get('species')
-                if ids not in param_and_species:
-                    raise SBMLError('Species ID not existent.')
-                stoich = reactant.get('stoichiometry')
-                if stoich is None:
-                    self._log.warn(
-                        'Stoichiometry has not been set in reaction. Continued'
-                        ' initialisation using value 1.')
-                    stoich = 1
-                else:
-                    stoich = float(stoich)
-                stoich_id = reactant.get('id')
+        # Reactants
+        for reactant in self._get_list_of_reactants(element):
+            ids = reactant.get('species')
+            if ids not in param_and_species:
+                raise SBMLError('Species ID not existent.')
+            stoich = reactant.get('stoichiometry')
+            if stoich is None:
+                self._log.warn(
+                    'Stoichiometry has not been set in reaction. Continued'
+                    ' initialisation using value 1.')
+                stoich = 1
+            else:
+                stoich = float(stoich)
+            stoich_id = reactant.get('id')
 
-                # If ID exits, create global parameter
-                if stoich_id:
-                    name = self._convert_id(stoich_id)
-                    comp = components.get(idc, components['myokit'])
-                    var = comp.add_variable_allow_renaming(name)
-                    var.set_unit = myokit.units.dimensionless
-                    var.set_rhs(stoich)
-                    if stoich_id in param_and_species:
-                        raise SBMLError('Stoichiometry ID is not unique.')
-                    param_and_species[stoich_id] = var
+            # If ID exits, create global parameter
+            if stoich_id:
+                name = self._convert_id(stoich_id)
+                comp = components.get(idc, components['myokit'])
+                var = comp.add_variable_allow_renaming(name)
+                var.set_unit = myokit.units.dimensionless
+                var.set_rhs(stoich)
+                if stoich_id in param_and_species:
+                    raise SBMLError('Stoichiometry ID is not unique.')
+                param_and_species[stoich_id] = var
 
-                # Save species behaviour in this reaction
-                is_constant = species_prop[ids]['isConstant']
-                has_boundary = species_prop[ids]['hasBoundaryCondition']
-                if not (is_constant or has_boundary):
-                    # Only if constant and boundaryCondition is False,
-                    # species can change through a reaction
-                    reactants_stoich[ids] = \
-                        stoich_id if stoich_id else stoich
+            # Save species behaviour in this reaction
+            is_constant = species_prop[ids]['isConstant']
+            has_boundary = species_prop[ids]['hasBoundaryCondition']
+            if not (is_constant or has_boundary):
+                # Only if constant and boundaryCondition is False,
+                # species can change through a reaction
+                reactants_stoich[ids] = \
+                    stoich_id if stoich_id else stoich
 
-                # Create reference that species is part of a reaction
-                species_reference.add(ids)
+            # Create reference that species is part of a reaction
+            species_reference.add(ids)
 
-            # Products
-            for product in self._get_list_of_products(reaction):
-                ids = product.get('species')
-                if ids not in param_and_species:
-                    raise SBMLError('Species ID not existent.')
-                stoich = product.get('stoichiometry')
-                if stoich is None:
-                    self._log.warn(
-                        'Stoichiometry has not been set in reaction. Continued'
-                        ' initialisation using value 1.')
-                    stoich = 1
-                else:
-                    stoich = float(stoich)
-                stoich_id = product.get('id')
+        # Products
+        for product in self._get_list_of_products(element):
+            ids = product.get('species')
+            if ids not in param_and_species:
+                raise SBMLError('Species ID not existent.')
+            stoich = product.get('stoichiometry')
+            if stoich is None:
+                self._log.warn(
+                    'Stoichiometry has not been set in reaction. Continued'
+                    ' initialisation using value 1.')
+                stoich = 1
+            else:
+                stoich = float(stoich)
+            stoich_id = product.get('id')
 
-                # If ID exits, create global parameter
-                if stoich_id:
-                    name = self._convert_id(stoich_id)
-                    comp = components.get(idc, components['myokit'])
-                    var = comp.add_variable_allow_renaming(name)
-                    var.set_unit = myokit.units.dimensionless
-                    var.set_rhs(stoich)
-                    if stoich_id in param_and_species:
-                        raise SBMLError('Stoichiometry ID is not unique.')
-                    param_and_species[stoich_id] = var
+            # If ID exits, create global parameter
+            if stoich_id:
+                name = self._convert_id(stoich_id)
+                comp = components.get(idc, components['myokit'])
+                var = comp.add_variable_allow_renaming(name)
+                var.set_unit = myokit.units.dimensionless
+                var.set_rhs(stoich)
+                if stoich_id in param_and_species:
+                    raise SBMLError('Stoichiometry ID is not unique.')
+                param_and_species[stoich_id] = var
 
-                # Save species behaviour in this reaction
-                is_constant = species_prop[ids]['isConstant']
-                has_boundary = species_prop[ids]['hasBoundaryCondition']
-                if not (is_constant or has_boundary):
-                    # Only if constant and boundaryCondition is False,
-                    # species can change through a reaction
-                    products_stoich[ids] = \
-                        stoich_id if stoich_id else stoich
+            # Save species behaviour in this reaction
+            is_constant = species_prop[ids]['isConstant']
+            has_boundary = species_prop[ids]['hasBoundaryCondition']
+            if not (is_constant or has_boundary):
+                # Only if constant and boundaryCondition is False,
+                # species can change through a reaction
+                products_stoich[ids] = \
+                    stoich_id if stoich_id else stoich
 
-                # Create reference that species is part of a reaction
-                species_reference.add(ids)
+            # Create reference that species is part of a reaction
+            species_reference.add(ids)
 
-            # Raise error if neither reactants not products is populated
-            if not species_reference:
+        # Raise error if neither reactants not products is populated
+        if not species_reference:
+            raise SBMLError(
+                'Reaction must have at least one reactant or product.')
+
+        # Modifiers
+        for modifier in self._get_list_of_modifiers(element):
+            ids = modifier.get('species')
+            if ids not in param_and_species:
+                raise SBMLError('Species ID not existent.')
+
+            # Create reference that species is part of a reaction
+            species_reference.add(ids)
+
+        # Raise error if different velocities of reactions are assumed
+        if element.get('fast') == 'true':
+            raise SBMLError(
+                'Myokit does not support the conversion of <fast>'
+                ' reactions to steady states. Please substitute the steady'
+                ' states as AssigmentRule')
+
+        # Get kinetic law
+        kinetic_law = self._get_kinetic_law(element)
+        if kinetic_law:
+
+            # #Local parameters within reactions are not supported
+            local_parameter = kinetic_law.find(self._path(
+                'listOfLocalParameters', 'localParameter'))
+            if local_parameter is not None:
                 raise SBMLError(
-                    'Reaction must have at least one reactant or product.')
+                    'Myokit does not support the definition of local'
+                    ' parameters in reactions. Please move their'
+                    ' definition to the <listOfParameters> instead.')
 
-            # Modifiers
-            for modifier in self._get_list_of_modifiers(reaction):
-                ids = modifier.get('species')
-                if ids not in param_and_species:
-                    raise SBMLError('Species ID not existent.')
-
-                # Create reference that species is part of a reaction
-                species_reference.add(ids)
-
-            # Raise error if different velocities of reactions are assumed
-            if reaction.get('fast') == 'true':
+            # get rate expression for reaction
+            expr = kinetic_law.find('{' + MATHML_NS + '}math')
+            if expr is None:
+                return
+            try:
+                expr = parse_mathml_etree(
+                    expr,
+                    lambda x, y: myokit.Name(param_and_species[x]),
+                    lambda x, y: myokit.Number(x))
+            except myokit.formats.mathml._parser.MathMLError as e:
                 raise SBMLError(
-                    'Myokit does not support the conversion of <fast>'
-                    ' reactions to steady states. Please substitute the steady'
-                    ' states as AssigmentRule')
+                    'An error occured when importing a kineticLaw: ' + str(e))
 
-            # Get kinetic law
-            kinetic_law = self._get_kinetic_law(reaction)
-            if kinetic_law:
+            # Collect expressions for products
+            for species in products_stoich:
+                # weight with stoichiometry
+                stoich = products_stoich[species]
+                if stoich in param_and_species:
+                    stoich = myokit.Name(param_and_species[stoich])
+                    weighted_expr = myokit.Multiply(stoich, expr)
+                elif stoich == 1:
+                    weighted_expr = expr
+                else:
+                    stoich = myokit.Number(stoich)
+                    weighted_expr = myokit.Multiply(stoich, expr)
 
-                # #Local parameters within reactions are not supported
-                local_parameter = kinetic_law.find(self._path(
-                    'listOfLocalParameters', 'localParameter'))
-                if local_parameter is not None:
-                    raise SBMLError(
-                        'Myokit does not support the definition of local'
-                        ' parameters in reactions. Please move their'
-                        ' definition to the <listOfParameters> instead.')
+                # weight with conversion factor
+                conv_factor = species_prop[species]['conversionFactor']
+                if conv_factor:
+                    weighted_expr = myokit.Multiply(conv_factor, weighted_expr)
 
-                # get rate expression for reaction
-                expr = self._get_math(kinetic_law)
-                if expr:
-                    try:
-                        expr = parse_mathml_etree(
-                            expr,
-                            lambda x, y: myokit.Name(
-                                param_and_species[x]),
-                            lambda x, y: myokit.Number(x))
-                    except myokit.formats.mathml._parser.MathMLError as e:
-                        raise SBMLError(
-                            'An error occured when importing the kineticLaw: '
-                            + str(e))
+                # add expression to rate expression of species
+                if species in model.reaction_species:
+                    partialExpr = model.reaction_species[species]
+                    model.reaction_species[species] = myokit.Plus(
+                        partialExpr, weighted_expr)
+                else:
+                    model.reaction_species[species] = weighted_expr
 
-                    # Collect expressions for products
-                    for species in products_stoich:
-                        # weight with stoichiometry
-                        stoich = products_stoich[species]
-                        if stoich in param_and_species:
-                            stoich = myokit.Name(
-                                param_and_species[stoich])
-                            weighted_expr = myokit.Multiply(stoich, expr)
-                        elif stoich == 1:
-                            weighted_expr = expr
-                        else:
-                            stoich = myokit.Number(stoich)
-                            weighted_expr = myokit.Multiply(stoich, expr)
+            # Collect expressions for reactants
+            for species in reactants_stoich:
+                # weight with stoichiometry
+                stoich = reactants_stoich[species]
+                if stoich in param_and_species:
+                    stoich = myokit.Name(param_and_species[stoich])
+                    weighted_expr = myokit.Multiply(stoich, expr)
+                elif stoich == 1:
+                    weighted_expr = expr
+                else:
+                    stoich = myokit.Number(stoich)
+                    weighted_expr = myokit.Multiply(stoich, expr)
 
-                        # weight with conversion factor
-                        conv_factor = species_prop[species][
-                            'conversionFactor']
-                        if conv_factor:
-                            weighted_expr = myokit.Multiply(
-                                conv_factor, weighted_expr)
+                # weight with conversion factor
+                conv_factor = species_prop[species]['conversionFactor']
+                if conv_factor:
+                    weighted_expr = myokit.Multiply(conv_factor, weighted_expr)
 
-                        # add expression to rate expression of species
-                        if species in model.reaction_species:
-                            partialExpr = model.reaction_species[species]
-                            model.reaction_species[species] = myokit.Plus(
-                                partialExpr, weighted_expr)
-                        else:
-                            model.reaction_species[species] = weighted_expr
-
-                    # Collect expressions for reactants
-                    for species in reactants_stoich:
-                        # weight with stoichiometry
-                        stoich = reactants_stoich[species]
-                        if stoich in param_and_species:
-                            stoich = myokit.Name(
-                                param_and_species[stoich])
-                            weighted_expr = myokit.Multiply(stoich, expr)
-                        elif stoich == 1:
-                            weighted_expr = expr
-                        else:
-                            stoich = myokit.Number(stoich)
-                            weighted_expr = myokit.Multiply(stoich, expr)
-
-                        # weight with conversion factor
-                        conv_factor = species_prop[species][
-                            'conversionFactor']
-                        if conv_factor:
-                            weighted_expr = myokit.Multiply(
-                                conv_factor, weighted_expr)
-
-                        # add (with minus sign) expression to rate
-                        # expression of species
-                        if species in model.reaction_species:
-                            partialExpr = model.reaction_species[species]
-                            model.reaction_species[species] = myokit.Minus(
-                                partialExpr, weighted_expr)
-                        else:
-                            weighted_expr = myokit.PrefixMinus(weighted_expr)
-                            model.reaction_species[species] = weighted_expr
+                # add (with minus sign) expression to rate
+                # expression of species
+                if species in model.reaction_species:
+                    partialExpr = model.reaction_species[species]
+                    model.reaction_species[species] = myokit.Minus(
+                        partialExpr, weighted_expr)
+                else:
+                    weighted_expr = myokit.PrefixMinus(weighted_expr)
+                    model.reaction_species[species] = weighted_expr
 
     def add_rate_expressions_for_reactions(self, model):
         """Adds rate expressions for species to model."""
@@ -666,9 +666,8 @@ class SBMLParser(object):
                 unit = extent_unit
             if unit != extent_unit:
                 self._log.warn(
-                    'Myokit does not support extentUnits for reactions. '
-                    'Reactions will have the unit substanceUnit / '
-                    'timeUnit')
+                    'Myokit does not support extentUnits for reactions.'
+                    ' Reactions will have the unit substanceUnit / timeUnit.')
             initial_value = var.rhs()
             initial_value = initial_value.eval() if initial_value else 0
             var.promote(initial_value)
@@ -677,109 +676,105 @@ class SBMLParser(object):
             #TODO: Should this set `expr` instead?
             var.set_rhs(model.reaction_species[species])
 
-    def _parse_initial_assignments(self, model, model_element):
-        """Adds initial assignments to variables in model."""
+    def _parse_initial_assignment(self, model, element):
+        """Parse an initial assignment of a model variable."""
 
-        for assign in self._get_list_of_initial_assignments(model_element):
-            var_id = assign.get('symbol')
-            try:
-                var = model.param_and_species[var_id]
-            except KeyError:
+        var_id = element.get('symbol')
+        try:
+            var = model.param_and_species[var_id]
+        except KeyError:
+            raise SBMLError(
+                'Initial assignment refers to non-existent ID.')
+        expr = element.find('{' + MATHML_NS + '}math')
+        if expr is None:
+            return
+        expr = parse_mathml_etree(
+            expr,
+            lambda x, y: myokit.Name(model.param_and_species[x]),
+            lambda x, y: myokit.Number(x))
+
+        # If species, and it exists in conc. and amount, we update
+        # amount, as conc = amount / size.
+        try:
+            var = model.species_also_in_amount[var_id]
+        except KeyError:
+            pass
+        else:
+            idc = model.species_prop[var_id]['compartment']
+            volume = model.param_and_species[idc]
+            expr = myokit.Multiply(expr, myokit.Name(volume))
+
+        # Update inital value
+        if var.is_state():
+            var.set_state_value(value.eval())
+        else:
+            var.set_rhs(expr)
+
+    def _parse_assignment_rule(self, model, element):
+        """
+        Parses an assignment rule, which sets an equation for a (non-state)
+        variable.
+        """
+
+        var = element.get('variable')
+        if var in model.species_reference:
+            if not model.species_prop[var]['hasBoundaryCondition']:
                 raise SBMLError(
-                    'Initial assignment refers to non-existent ID.')
-            expr = self._get_math(assign)
-            if expr:
-                expr = parse_mathml_etree(
-                    expr,
-                    lambda x, y: myokit.Name(model.param_and_species[x]),
-                    lambda x, y: myokit.Number(x))
+                    'Species is assigned with rule, while being created /'
+                    ' destroyed in reaction. Either set boundaryCondition'
+                    ' to True or remove one of the assignments.')
+        try:
+            var = model.param_and_species[var]
+        except KeyError:
+            raise SBMLError('AssignmentRule refers to non-existent ID.')
+        expr = element.find('{' + MATHML_NS + '}math')
+        if expr:
+            var.set_rhs(parse_mathml_etree(
+                expr,
+                lambda x, y: myokit.Name(model.param_and_species[x]),
+                lambda x, y: myokit.Number(x)
+            ))
 
-                # If species, and it exists in conc. and amount, we update
-                # amount, as conc = amount / size.
-                try:
-                    var = model.species_also_in_amount[var_id]
-                except KeyError:
-                    pass
-                else:
-                    idc = model.species_prop[var_id]['compartment']
-                    volume = model.param_and_species[idc]
-                    expr = myokit.Multiply(expr, myokit.Name(volume))
+    def _parse_rate_rule(self, model, element):
+        """
+        Parses a rate rule, which sets an equation for a state variable.
+        """
 
-                # Update inital value
-                if var.is_state():
-                    var.set_state_value(value.eval())
-                else:
-                    var.set_rhs(expr)
+        var_id = element.get('variable')
+        if var_id in model.species_reference:
+            if not model.species_prop[var_id]['hasBoundaryCondition']:
+                raise SBMLError(
+                    'Species is assigned with rule, while being created /'
+                    ' destroyed in reaction. Either set boundaryCondition'
+                    ' to True or remove one of the assignments.')
+        try:
+            var = model.param_and_species[var_id]
+        except KeyError:
+            raise SBMLError('RateRule refers to non-existent ID.')
+        expr = element.find('{' + MATHML_NS + '}math')
+        if expr is None:
+            return
+        expr = parse_mathml_etree(
+            expr,
+            lambda x, y: myokit.Name(model.param_and_species[x]),
+            lambda x, y: myokit.Number(x)
+        )
 
-    def _parse_assignment_rules(self, model, model_element):
-        """Adds assignment rules to variables in model."""
-        for rule in self._get_list_of_assignment_rules(model_element):
-            var = rule.get('variable')
-            if var in model.species_reference:
-                if not model.species_prop[var]['hasBoundaryCondition']:
-                    raise SBMLError(
-                        'Species is assigned with rule, while being created /'
-                        ' destroyed in reaction. Either set boundaryCondition'
-                        ' to True or remove one of the assignments.')
-            try:
-                var = model.param_and_species[var]
-            except KeyError:
-                raise SBMLError('AssignmentRule refers to non-existent ID.')
-            expr = self._get_math(rule)
-            if expr:
-                var.set_rhs(parse_mathml_etree(
-                    expr,
-                    lambda x, y: myokit.Name(model.param_and_species[x]),
-                    lambda x, y: myokit.Number(x)
-                ))
+        # If species, and it exists in conc. and amount, we update
+        # amount.
+        try:
+            var = model.species_also_in_amount[var_id]
+        except KeyError:
+            pass
+        else:
+            idc = model.species_prop[var_id]['compartment']
+            volume = model.param_and_species[idc]
+            expr = myokit.Divide(expr, myokit.Name(volume))
 
-    def _parse_rate_rules(self, model, model_element):
-        """Adds rate rules for variables to model."""
-
-        for rule in self._get_list_of_rate_rules(model_element):
-            var_id = rule.get('variable')
-            if var_id in model.species_reference:
-                if not model.species_prop[var_id]['hasBoundaryCondition']:
-                    raise SBMLError(
-                        'Species is assigned with rule, while being created /'
-                        ' destroyed in reaction. Either set boundaryCondition'
-                        ' to True or remove one of the assignments.')
-            try:
-                var = model.param_and_species[var_id]
-            except KeyError:
-                raise SBMLError('RateRule refers to non-existent ID.')
-            expr = self._get_math(rule)
-            if expr:
-                expr = parse_mathml_etree(
-                    expr,
-                    lambda x, y: myokit.Name(model.param_and_species[x]),
-                    lambda x, y: myokit.Number(x)
-                )
-
-                # If species, and it exists in conc. and amount, we update
-                # amount.
-                try:
-                    var = model.species_also_in_amount[var_id]
-                except KeyError:
-                    pass
-                else:
-                    idc = model.species_prop[var_id]['compartment']
-                    volume = model.param_and_species[idc]
-                    expr = myokit.Divide(expr, myokit.Name(volume))
-
-                # promote variable to state and set initial value
-                value = var.eval()
-                var.promote(value)
-                var.set_rhs(expr)
-
-    def _get_list_of_parameters(self, element):
-        return element.findall(self._path('listOfParameters', 'parameter'))
-
-    def _get_list_of_species(self, element):
-        return element.findall(self._path('listOfSpecies', 'species'))
-
-    def _get_list_of_reactions(self, element):
-        return element.findall(self._path('listOfReactions', 'reaction'))
+        # promote variable to state and set initial value
+        value = var.eval()
+        var.promote(value)
+        var.set_rhs(expr)
 
     def _get_list_of_reactants(self, element):
         return element.findall(self._path(
@@ -795,19 +790,6 @@ class SBMLParser(object):
 
     def _get_kinetic_law(self, element):
         return element.find(self._path('kineticLaw'))
-
-    def _get_list_of_initial_assignments(self, element):
-        return element.findall(self._path(
-            'listOfInitialAssignments', 'initialAssignment'))
-
-    def _get_list_of_assignment_rules(self, element):
-        return element.findall(self._path('listOfRules', 'assignmentRule'))
-
-    def _get_list_of_rate_rules(self, element):
-        return element.findall(self._path('listOfRules', 'rateRule'))
-
-    def _get_math(self, element):
-        return element.find('{' + MATHML_NS + '}math')
 
     def _is_valid_id(self, idx):
         """Checks if an id is a valid SBML identifier."""
