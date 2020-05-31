@@ -175,36 +175,45 @@ class SBMLParser(object):
 
         # Notes elements directly inside a model are turned into a description.
         notes = element.find(self._path('notes'))
-        if notes:
-            self._parse_notes(myokit_model, notes)
+        if notes is not None:
+            myokit_model.meta['desc'] = self._parse_notes(notes)
 
         # Parse unit definitions
         for unit in element.findall(self._path(
                 'listOfUnitDefinitions', 'unitDefinition')):
             self._parse_unit_definition(unit, model)
 
-        # Get model units
+        # Get global model units
         for key in model.model_units:
             unit = element.get(key)
             if unit is not None:
                 model.model_units[key] = model.get_unit(unit)
 
-        # Add compartments to model
+        # Add special myokit compartment
         model.components['myokit'] = myokit_model.add_component('myokit')
-        compartments = element.findall(
-            self._path('listOfCompartments', 'compartment'))
-        for compartment in compartments:
+
+        # Add time variable
+        time = model.components['myokit'].add_variable('time')
+        time.set_binding('time')
+        time.set_unit(model.model_units['timeUnits'])
+        time.set_rhs(0)
+        model.param_and_species['http://www.sbml.org/sbml/symbols/time'] = time
+
+        # Parse compartments
+        for compartment in element.findall(self._path(
+                'listOfCompartments', 'compartment')):
             self._parse_compartment(myokit_model, model, compartment)
 
         # Parse parameters
-        parameters = element.findall(
-            self._path('listOfParameters', 'parameter'))
-        for parameter in parameters:
+        for parameter in element.findall(self._path(
+                'listOfParameters', 'parameter')):
             self._parse_parameter(myokit_model, model, parameter)
 
         # Add reference to global conversion factor
+        #TODO: This should be stored in a species/model object, so that this
+        # is no longer a reserved name.
         conv_factor_id = element.get('conversionFactor')
-        if conv_factor_id:
+        if conv_factor_id is not None:
             if 'globalConversionFactor' in model.param_and_species:
                 raise SBMLError(
                     'The ID <globalConversionFactor> is protected in a myokit'
@@ -221,28 +230,20 @@ class SBMLParser(object):
         for species in element.findall(self._path('listOfSpecies', 'species')):
             self._parse_species(myokit_model, model, species)
 
-        # Add time variable to model
-        time = model.components['myokit'].add_variable('time')
-        time.set_binding('time')
-        time.set_unit(model.model_units['timeUnits'])
-        time.set_rhs(0)
-        model.param_and_species['http://www.sbml.org/sbml/symbols/time'] = time
-
-        # Add reactions to model
-        reactions = element.findall(self._path('listOfReactions', 'reaction'))
-        for reaction in reactions:
+        # Parse reactions
+        for reaction in element.findall(self._path(
+                'listOfReactions', 'reaction')):
             self._parse_reaction(myokit_model, model, reaction)
         self.add_rate_expressions_for_reactions(model)
 
         # Parse initial assignments
-        assignments = element.findall(self._path(
-            'listOfInitialAssignments', 'initialAssignment'))
-        for assignment in assignments:
+        for assignment in element.findall(self._path(
+                'listOfInitialAssignments', 'initialAssignment')):
             self._parse_initial_assignment(model, assignment)
 
         # Parse assignment rules
-        rules = element.findall(self._path('listOfRules', 'assignmentRule'))
-        for rule in rules:
+        for rule in element.findall(self._path(
+                'listOfRules', 'assignmentRule')):
             self._parse_assignment_rule(model, rule)
 
         # Parse rate rules
@@ -251,12 +252,12 @@ class SBMLParser(object):
 
         return myokit_model
 
-    def _parse_notes(self, model, element):
-        """Parses the notes that can be embedded in a model."""
+    def _parse_notes(self, element):
+        """Parses a notes element, converting to plain text."""
 
         self._log.log('Converting <model> notes to ascii.')
         notes = ET.tostring(element).decode()
-        model.meta['desc'] = html2ascii(notes, width=75)
+        return html2ascii(notes, width=75)
 
     def _parse_compartment(self, myokit_model, model, element):
         """
@@ -364,7 +365,6 @@ class SBMLParser(object):
                     myokit.Number(amount), myokit.Name(volume))
 
         # Get unit
-        #TODO: Refactor this: get rid of method call
         unit = element.get('substanceUnits')
         if unit is not None:
             unit = model.get_unit(unit)
