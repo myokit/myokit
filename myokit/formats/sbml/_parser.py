@@ -675,7 +675,6 @@ class SBMLParser(object):
 
     def _parse_initial_assignment(self, model, element):
         """Parse an initial assignment of a model variable."""
-
         var_id = element.get('symbol')
         try:
             var = model.param_and_species[var_id]
@@ -712,7 +711,6 @@ class SBMLParser(object):
         Parses an assignment rule, which sets an equation for a (non-state)
         variable.
         """
-
         var = element.get('variable')
         if var in model.species_reference:
             if not model.species_prop[var]['hasBoundaryCondition']:
@@ -736,7 +734,6 @@ class SBMLParser(object):
         """
         Parses a rate rule, which sets an equation for a state variable.
         """
-
         var_id = element.get('variable')
         if var_id in model.species_reference:
             if not model.species_prop[var_id]['hasBoundaryCondition']:

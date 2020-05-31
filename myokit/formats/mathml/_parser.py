@@ -103,7 +103,7 @@ class MathMLParser(object):
         function can be used.
     ``<csymbol>``
         Is converted to a :class:`myokit.Name` by passing the contents of its
-        ``definitionURL`` to the ``name_factory``. Note that ``csymbol``s
+        ``definitionURL`` to the ``name_factory``. Note that ``csymbols``
         representing operators or functions are not supported.
 
     Algebra
