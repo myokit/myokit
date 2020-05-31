@@ -51,8 +51,7 @@ class SBMLParserTest(unittest.TestCase):
     """
     Unit tests for the SBMLParser class.
 
-    Further tests are provided in SBMLParserReactionsTest and
-    SBMLParserEquationsTest.
+    Further tests are provided in SBMLModelTest.
     """
 
     @classmethod
@@ -133,7 +132,7 @@ class SBMLParserTest(unittest.TestCase):
 
     def test_function_definitions(self):
         xml = (
-            '<model id="test" name="test" timeUnits="s"> '
+            '<model id="test" name="test" timeUnits="second"> '
             '<listOfFunctionDefinitions>'
             '<functionDefinition id="multiply" name="multiply">'
             '<math xmlns="http://www.w3.org/1998/Math/MathML">'
@@ -154,16 +153,12 @@ class SBMLParserTest(unittest.TestCase):
             '</functionDefinition>'
             '</listOfFunctionDefinitions>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='Myokit does not support functionDefinitions. Please '
-            'insert your function wherever it occurs in yout SBML file and'
-            ' delete the functionDefiniton in the file.')
+        self.assertBad(xml, 'Function definitions are not supported.')
 
     def test_missing_id(self):
         # missing unit ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfUnitDefinitions>'
             '<unitDefinition>'  # here is where an ID is supposed to be
             '<listOfUnits>'
@@ -172,36 +167,30 @@ class SBMLParserTest(unittest.TestCase):
             '</unitDefinition>'
             '</listOfUnitDefinitions>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='No unit ID provided.')
+        self.assertBad(xml, 'attribute "id" missing in unitDefinition')
 
         # missing compartment ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment/>'  # here is where the ID is missing
             '</listOfCompartments>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='No compartment ID provided.')
+        self.assertBad(xml, 'attribute "id" missing in compartment')
 
         # missing parameter ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfParameters>'
             '<parameter/>'  # here is where the ID is missing
             '</listOfParameters>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='No parameter ID provided.')
+        self.assertBad(xml, 'attribute "id" missing in parameter')
 
         # missing global conversion factor ID
         xml = (
             '<model id="test" conversionFactor="someFactor" '
-            'timeUnits="s">'
+            'timeUnits="second">'
             '<listOfParameters>'
             '<parameter id="someOtherFactor"/>'
             '</listOfParameters>'
@@ -212,7 +201,7 @@ class SBMLParserTest(unittest.TestCase):
 
         # missing species ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfSpecies>'
             '<species/>'  # here is where the ID is missing
             '</listOfSpecies>'
@@ -223,7 +212,7 @@ class SBMLParserTest(unittest.TestCase):
 
         # missing conversion factor ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -239,7 +228,7 @@ class SBMLParserTest(unittest.TestCase):
 
         # missing reactant ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfReactions>'
             '<reaction>'
             '<listOfReactants>'
@@ -254,7 +243,7 @@ class SBMLParserTest(unittest.TestCase):
 
         # missing product ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfReactions>'
             '<reaction>'
             '<listOfProducts>'
@@ -269,7 +258,7 @@ class SBMLParserTest(unittest.TestCase):
 
         # missing modifier ID
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -298,21 +287,21 @@ class SBMLParserTest(unittest.TestCase):
         # myokit compartment.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="myokit"/>'
             '</listOfCompartments>'
             '</model>')
-        self.assertBad(xml=xml, message='The name "myokit".')
+        self.assertBad(xml=xml, message='The id "myokit".')
 
     def test_coinciding_ids(self):
         # Checks that error is thrown when indentical IDs are used for
         # compartment, parameters or species.
 
-        # Coinciding compartment and parameter IDs
+        # Coinciding compartment and parameter ids
         xml = (
             '<model id="test" '
-            'timeUnits="s">'
+            'timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someId"/>'
             '</listOfCompartments>'
@@ -322,12 +311,12 @@ class SBMLParserTest(unittest.TestCase):
             '</model>')
         self.assertBad(
             xml=xml,
-            message='The provided parameter ID already exists.')
+            message='The provided parameter id already exists.')
 
-        # Coinciding compartment and species IDs
+        # Coinciding compartment and species ids
         xml = (
             '<model id="test" '
-            'timeUnits="s">'
+            'timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someId"/>'
             '</listOfCompartments>'
@@ -339,12 +328,12 @@ class SBMLParserTest(unittest.TestCase):
             '</model>')
         self.assertBad(
             xml=xml,
-            message='The provided species ID already exists.')
+            message='The provided species id already exists.')
 
-        # Coinciding parameter and species IDs
+        # Coinciding parameter and species ids
         xml = (
             '<model id="test" '
-            'timeUnits="s">'
+            'timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -359,12 +348,12 @@ class SBMLParserTest(unittest.TestCase):
             '</model>')
         self.assertBad(
             xml=xml,
-            message='The provided species ID already exists.')
+            message='The provided species id already exists.')
 
         # Coinciding parameter and reactant stoichiometry IDs
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -392,7 +381,7 @@ class SBMLParserTest(unittest.TestCase):
         # Coinciding parameter and product stoichiometry IDs
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -423,7 +412,7 @@ class SBMLParserTest(unittest.TestCase):
 
         xml = (
             '<model id="test" conversionFactor="someFactor" '
-            'timeUnits="s">'
+            'timeUnits="second">'
             '<listOfParameters>'
             '<parameter id="globalConversionFactor"/>'
             '</listOfParameters>'
@@ -438,7 +427,7 @@ class SBMLParserTest(unittest.TestCase):
         # attribute is not specified for a species.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfSpecies>'
             '<species id="someSpecies"/>'
             '</listOfSpecies>'
@@ -455,16 +444,12 @@ class SBMLParserTest(unittest.TestCase):
         # find the time bound variable in the myokit model.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfParameters>'
             '<parameter id="http://www.sbml.org/sbml/symbols/time"/>'
             '</listOfParameters>'
             '</model>')
-        time_id = 'http://www.sbml.org/sbml/symbols/time'
-        self.assertBad(
-            xml=xml,
-            message='Using the ID <%s> for parameters or species ' % time_id
-            + 'leads import errors.')
+        self.assertBad(xml, 'The id "http://www.sbml.org/sbml/symbols/time"')
 
     def test_stoichiometry_reference(self):
         # Tests whether stoichiometry parameters are linked properly to global
@@ -475,7 +460,7 @@ class SBMLParserTest(unittest.TestCase):
         comp_id = 'someComp'
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="' + comp_id + '"/>'
             '</listOfCompartments>'
@@ -501,7 +486,7 @@ class SBMLParserTest(unittest.TestCase):
         comp_id = 'myokit'
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -527,7 +512,7 @@ class SBMLParserTest(unittest.TestCase):
         comp_id = 'someComp'
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="' + comp_id + '"/>'
             '</listOfCompartments>'
@@ -553,7 +538,7 @@ class SBMLParserTest(unittest.TestCase):
         comp_id = 'myokit'
         stoich_id = 'someStoich'
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -579,7 +564,7 @@ class SBMLParserTest(unittest.TestCase):
         # reactants not products.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfReactions>'
             '<reaction>'
             '</reaction>'
@@ -595,7 +580,7 @@ class SBMLParserTest(unittest.TestCase):
         # supported.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -622,7 +607,7 @@ class SBMLParserTest(unittest.TestCase):
         # Local parameters are currenly not supported in myokit.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             '<listOfCompartments>'
             '<compartment id="someComp"/>'
             '</listOfCompartments>'
@@ -653,7 +638,7 @@ class SBMLParserTest(unittest.TestCase):
         # non-existent parameters.
 
         xml = (
-            '<model id="test" name="test" timeUnits="s">'
+            '<model id="test" name="test" timeUnits="second">'
             ' <listOfCompartments>'
             '  <compartment id="someComp"/>'
             ' </listOfCompartments>'
@@ -862,11 +847,10 @@ class SBMLDocumentTest(unittest.TestCase):
             self.model.get('myokit.h').rhs().code())
 
         # Now models should be equal
-        if True:
-            with open('new.xml', 'w') as f:
-                f.write(self.model.code())
-            with open('old.xml', 'w') as f:
-                f.write(old_model.code())
+        #with open('new.xml', 'w') as f:
+        #    f.write(self.model.code())
+        #with open('old.xml', 'w') as f:
+        #    f.write(old_model.code())
         self.assertEqual(self.model.code(), old_model.code())
 
     def test_rate_expressions(self):
@@ -876,11 +860,11 @@ class SBMLDocumentTest(unittest.TestCase):
         # state 1
         state = 'S1'
         state = self.model.get('compartment.' + state)
-        expression = str(
-            '-1 * (compartment.size * myokit.k1 * '
-            + 'compartment.S1_Concentration) + compartment.size * myokit.k2'
-            + ' * compartment.S2_Concentration ^ 2')
-        self.assertEqual(str(state.rhs()), expression)
+        expression = (
+            '-(compartment.size * myokit.k1 * compartment.S1_Concentration)'
+            ' + compartment.size * myokit.k2'
+            ' * compartment.S2_Concentration ^ 2')
+        self.assertEqual(state.rhs().code(), expression)
 
         # state 2
         state = 'S2'
