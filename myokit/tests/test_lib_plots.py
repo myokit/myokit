@@ -25,9 +25,8 @@ class LibPlotTest(unittest.TestCase):
     """
 
     def test_simulation_times(self):
-        """
-        Test the simulation times() plots (has several modes).
-        """
+        # Test the simulation times() plots (has several modes).
+
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
@@ -86,9 +85,8 @@ class LibPlotTest(unittest.TestCase):
             ValueError, plots.simulation_times, st, rt, ev, mode='xxx')
 
     def test_current_arrows(self):
-        """
-        Test the current arrows plot.
-        """
+        # Test the current arrows plot.
+
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
@@ -119,9 +117,8 @@ class LibPlotTest(unittest.TestCase):
         plt.show()
 
     def test_cumulative_current(self):
-        """
-        Test the cumulative current plot.
-        """
+        # Test the cumulative current plot.
+
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
@@ -169,6 +166,12 @@ class LibPlotTest(unittest.TestCase):
         # Normalise currents
         plt.figure()
         plots.cumulative_current(d, currents, normalise=True)
+        plt.legend()
+        plt.show()
+
+        # Normalise currents and set maximum number of currents shown
+        plt.figure()
+        plots.cumulative_current(d, currents, normalise=True, max_currents=3)
         plt.legend()
         plt.show()
 
