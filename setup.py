@@ -86,7 +86,7 @@ setup(
     },
 
     # Classifiers for pypi
-    classifiers = [
+    classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
