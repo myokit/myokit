@@ -52,7 +52,6 @@ class SBMLImporterTest(unittest.TestCase):
         with WarningCollector() as w:
             model = i.model(
                 os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
-        self.assertEqual(w.count(), 1)
         self.assertIn('Unknown SBML namespace', w.text())
 
         v = model.get('myokit.V')
@@ -1110,4 +1109,6 @@ class SBMLDocumentTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()
