@@ -8,6 +8,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import collections
+import warnings
 
 from lxml import etree
 
@@ -709,18 +710,20 @@ class CellMLParser(object):
             # Find units in component
             try:
                 units = component.find_units(units)
-            except myokit.formats.cellml.v1.UnsupportedUnitsError:
-                raise CellMLParsingError(
-                    'Unsupported unit "' + str(units) + '" referenced inside a'
-                    ' MathML equation (4.4.3.2).', element)
-
+                units = units.myokit_unit()
+            except myokit.formats.cellml.v1.UnitsError as e:
+                warnings.warn(
+                    'The units "' + str(units) + '" (referenced inside a'
+                    ' MathML equation) are not supported and have been'
+                    ' replaced by `dimensionless`. (' + str(e) + ')')
+                units = myokit.units.dimensionless
             except myokit.formats.cellml.v1.CellMLError:
                 raise CellMLParsingError(
                     'Unknown unit "' + str(units) + '" referenced inside a'
                     ' MathML equation (4.4.3.2).', element)
 
             # Create and return
-            return myokit.Number(value, units.myokit_unit())
+            return myokit.Number(value, units)
 
         # Create parser
         p = myokit.formats.mathml.MathMLParser(
@@ -980,8 +983,7 @@ class CellMLParser(object):
             raise CellMLParsingError(
                 'Unit offset must be a real number (5.4.2.6).', element)
         if x != 0:
-            raise CellMLParsingError(
-                'Units with non-zero offsets are not supported.', element)
+            raise myokit.formats.cellml.v1.UnsupportedUnitOffsetError
 
         # Check allowed content
         self._check_allowed_content(
@@ -1028,8 +1030,14 @@ class CellMLParser(object):
 
         # Parse content
         myokit_unit = myokit.units.dimensionless
-        for child in children:
-            myokit_unit *= self._parse_unit(child, owner)
+        try:
+            for child in children:
+                myokit_unit *= self._parse_unit(child, owner)
+        except myokit.formats.cellml.v1.UnitsError as e:
+            warnings.warn(
+                'Unable to parse definition for units "' + str(name) + '",'
+                ' using `dimensionless` instead. (' + str(e) + ')')
+            myokit_unit = myokit.units.dimensionless
 
         # Add units to owner
         try:
@@ -1064,7 +1072,15 @@ class CellMLParser(object):
 
         # Create variable (validates name, units, and name uniqueness)
         try:
-            variable = component.add_variable(name, units, pub, pri)
+            try:
+                variable = component.add_variable(name, units, pub, pri)
+            except myokit.formats.cellml.v1.UnitsError as e:
+                warnings.warn(
+                    'The units "' + str(units) + '" (assigned to a variable)'
+                    ' are not supported and have been replaced by'
+                    ' `dimensionless`. (' + str(e) + ')')
+                units = 'dimensionless'
+                variable = component.add_variable(name, units, pub, pri)
 
             # Check cmeta id
             cmeta_id = self._check_cmeta_id(element)

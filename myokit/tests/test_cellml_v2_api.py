@@ -1611,8 +1611,10 @@ class TestCellML2Units(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'must be a real number',
             cellml.Units.parse_unit_row, 'metre', exponent='bert')
-        self.assertRaisesRegex(
-            cellml.CellMLError, 'Non-integer unit exponents',
+
+        # Test unsupported (non-integer) exponent
+        self.assertRaises(
+            cellml.UnsupportedUnitExponentError,
             cellml.Units.parse_unit_row, 'metre', exponent=1.23)
 
         # Test multiplier

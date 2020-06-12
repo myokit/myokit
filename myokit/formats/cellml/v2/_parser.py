@@ -7,6 +7,8 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import warnings
+
 from lxml import etree
 
 import myokit
@@ -702,9 +704,15 @@ class CellMLParser(object):
                 'Defining new base units is not supported.', element)
 
         # Parse content
-        myokit_unit = myokit.units.dimensionless
-        for child in children:
-            myokit_unit *= self._parse_unit(child, owner)
+        try:
+            myokit_unit = myokit.units.dimensionless
+            for child in children:
+                myokit_unit *= self._parse_unit(child, owner)
+        except myokit.formats.cellml.v2.UnitsError as e:
+            warnings.warn(
+                'Unable to parse definition for units "' + str(name) + '",'
+                ' using `dimensionless` instead. (' + str(e) + ')')
+            myokit_unit = myokit.units.dimensionless
 
         # Add units to owner
         try:

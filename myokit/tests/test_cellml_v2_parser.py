@@ -10,6 +10,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
+import warnings
 
 import myokit
 import myokit.formats.cellml.v2 as v2
@@ -617,6 +618,18 @@ class TestCellMLParser(unittest.TestCase):
              '  <unit />'
              '</units>')
         self.assertBad(x, 'must have a units attribute')
+
+        # Non-integer exponents are not supported: treated as dimensionless
+        x = ('<units name="unsup">'
+             '  <unit units="volt" />'
+             '  <unit units="ampere" exponent="2.34" />'
+             '</units>')
+        with warnings.catch_warnings(record=True) as c:
+            m = self.parse(x)
+        text = '\n'.join([str(warning) for warning in c])
+        self.assertIn('non-integer exponent', text)
+        self.assertEqual(
+            myokit.units.dimensionless, m.find_units('unsup').myokit_unit())
 
     def test_units(self):
         # Test parsing a units definition

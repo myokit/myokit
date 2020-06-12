@@ -1418,7 +1418,7 @@ def test_documentation(args):
     ok = test_doc_coverage_index(modules, classes, functions)
 
     # Check if they're all shown somewhere
-    ok = ok and test_doc_coverage(classes, functions)
+    ok = test_doc_coverage(classes, functions) and ok
 
     # Terminate if failed
     if not ok:

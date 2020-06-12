@@ -162,8 +162,8 @@ class TestCellML1Component(unittest.TestCase):
 
         # Test creating a variable with celsius
         c = cellml.Model('m').add_component('c')
-        self.assertRaisesRegex(
-            cellml.UnsupportedUnitsError, 'celsius',
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
             c.add_variable, 'v', 'celsius')
 
         # Rest of creation is tested in variable test
@@ -1243,8 +1243,8 @@ class TestCellML1Units(unittest.TestCase):
             cellml.Units.find_units, 'wooster')
 
         # Test lookup of unsupported units
-        self.assertRaisesRegex(
-            cellml.UnsupportedUnitsError, 'celsius',
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
             cellml.Units.find_units, 'celsius')
 
     def test_myokit_unit(self):
@@ -1282,7 +1282,17 @@ class TestCellML1Units(unittest.TestCase):
             cellml.Units.parse_unit_row, 'wooster')
         self.assertRaisesRegex(
             cellml.CellMLError, 'Unknown units name',
-            cellml.Units.parse_unit_row, 'muppet', context=m)
+            cellml.Units.parse_unit_row, 'muppet', context=c)
+
+        # Unsupported base unit
+        u = cellml.Units.parse_unit_row(
+            'meter', prefix='milli', exponent=2, multiplier=1.234)
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
+            cellml.Units.parse_unit_row, 'celsius')
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
+            cellml.Units.parse_unit_row, 'celsius', context=c)
 
         # Test prefixes
         u = cellml.Units.parse_unit_row('meter', 'micro')
@@ -1313,8 +1323,8 @@ class TestCellML1Units(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'must be a real number',
             cellml.Units.parse_unit_row, 'meter', exponent='bert')
-        self.assertRaisesRegex(
-            cellml.CellMLError, 'Non-integer unit exponents',
+        self.assertRaises(
+            cellml.UnsupportedUnitExponentError,
             cellml.Units.parse_unit_row, 'meter', exponent=1.23)
 
         # Test multiplier

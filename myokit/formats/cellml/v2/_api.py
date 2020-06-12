@@ -160,6 +160,21 @@ class CellMLError(myokit.MyokitError):
     """
 
 
+class UnitsError(CellMLError):
+    """
+    Raised when unsupported unit features are used.
+    """
+
+
+class UnsupportedUnitExponentError(UnitsError):
+    """
+    Raised when units with non-integer exponents are used.
+    """
+    def __init__(self):
+        super(UnsupportedUnitExponentError, self).__init__(
+            'Units with non-integer exponents are not supported.')
+
+
 class Component(AnnotatableElement):
     """
     Represents a model component; should not be created directly but only via
@@ -1219,8 +1234,7 @@ class Units(object):
 
             # Only integers are supported by Myokit
             if not myokit._feq(e, int(e)):
-                raise CellMLError(
-                    'Non-integer unit exponents are not supported.')
+                raise UnsupportedUnitExponentError
 
             # Apply exponent to unit
             unit **= int(e)

@@ -175,14 +175,38 @@ class CellMLError(myokit.MyokitError):
     """
 
 
-class UnsupportedUnitsError(CellMLError):
+class UnitsError(CellMLError):
     """
-    Raised when unsupported units are used.
+    Raised when unsupported unit features are used.
+    """
+
+
+class UnsupportedBaseUnitsError(UnitsError):
+    """
+    Raised when unsupported base units are used.
     """
     def __init__(self, units):
         self.units = units
-        super(UnsupportedUnitsError, self).__init__(
-            'Unsupported units "' + units + '".')
+        super(UnsupportedBaseUnitsError, self).__init__(
+            'Unsupported base units "' + units + '".')
+
+
+class UnsupportedUnitExponentError(UnitsError):
+    """
+    Raised when units with non-integer exponents are used.
+    """
+    def __init__(self):
+        super(UnsupportedUnitExponentError, self).__init__(
+            'Non-integer unit exponents are not supported.')
+
+
+class UnsupportedUnitOffsetError(UnitsError):
+    """
+    Raised when units with non-zero offsets are used.
+    """
+    def __init__(self):
+        super(UnsupportedUnitOffsetError, self).__init__(
+            'Units with non-zero offsets are not supported.')
 
 
 class Component(AnnotatableElement):
@@ -429,7 +453,7 @@ class Model(AnnotatableElement):
 
     Support notes for 1.0 and 1.1:
 
-    - Units that require an offset (celsius and fahrenheit) are not supported.
+    - Units with offsets are not supported, including the base units "celsius".
     - Units with a non-integer exponent are not supported.
     - Defining new base units is not supported.
     - Reactions are not supported.
@@ -1195,7 +1219,7 @@ class Units(object):
         """
         # Check for unsupported units
         if name == 'celsius':
-            raise UnsupportedUnitsError('celsius')
+            raise UnsupportedBaseUnitsError('celsius')
 
         # Check if we have a cached object for this
         obj = cls._si_unit_objects.get(name, None)
@@ -1308,8 +1332,7 @@ class Units(object):
                 raise CellMLError(
                     'Unit exponent must be a real number (5.4.2.4).')
             if not myokit._feq(e, int(e)):
-                raise CellMLError(
-                    'Non-integer unit exponents are not supported.')
+                raise UnsupportedUnitExponentError
 
             # Apply exponent to unit
             unit **= int(e)
@@ -1473,10 +1496,10 @@ class Variable(AnnotatableElement):
         # Check and store units
         try:
             self._units = component.find_units(units)
-        except UnsupportedUnitsError as e:
-            raise UnsupportedUnitsError(
-                'Variable units attribute references the unsupported units'
-                ' "' + e.units + '".')
+        except UnsupportedBaseUnitsError as e:
+            raise UnsupportedBaseUnitsError(
+                'Variable units attribute references the unsupported base'
+                ' units "' + e.units + '".')
         except CellMLError:
             raise CellMLError(
                 'Variable units attribute must reference a units element in'
