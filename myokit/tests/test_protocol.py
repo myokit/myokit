@@ -304,7 +304,6 @@ class ProtocolTest(unittest.TestCase):
             p.create_log_for_interval(0, 2000, for_drawing=True)
         self.assertIn('deprecated', w.text())
 
-
     def test_log_for_times(self):
         # Test the method Protocol.log_for_times()
         # Relies on PacingSystem

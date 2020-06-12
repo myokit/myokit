@@ -14,7 +14,7 @@ import unittest
 import myokit
 import myokit.lib.multi as multi
 
-from shared import DIR_DATA
+from shared import DIR_DATA, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -91,9 +91,11 @@ class LibMultiTest(unittest.TestCase):
         x = c.add_variable('x')
         x.set_rhs(0)
 
-        self.assertRaises(myokit.IncompatibleModelError, multi.time, m)
-        x.set_binding('time')
-        self.assertEqual(x, multi.time(m))
+        with WarningCollector() as w:
+            self.assertRaises(myokit.IncompatibleModelError, multi.time, m)
+            x.set_binding('time')
+            self.assertEqual(x, multi.time(m))
+        self.assertIn('deprecated', w.text())
 
     def test_label(self):
         # Test the label() method that returns a labelled variable.
@@ -103,9 +105,12 @@ class LibMultiTest(unittest.TestCase):
         x = c.add_variable('x')
         x.set_rhs(0)
 
-        self.assertRaises(myokit.IncompatibleModelError, multi.label, m, 'x')
-        x.set_label('x')
-        self.assertEqual(x, multi.label(m, 'x'))
+        with WarningCollector() as w:
+            self.assertRaises(
+                myokit.IncompatibleModelError, multi.label, m, 'x')
+            x.set_label('x')
+            self.assertEqual(x, multi.label(m, 'x'))
+        self.assertIn('deprecated', w.text())
 
     def test_binding(self):
         # Test the binding() method that returns a bound variable.
@@ -115,9 +120,12 @@ class LibMultiTest(unittest.TestCase):
         x = c.add_variable('x')
         x.set_rhs(0)
 
-        self.assertRaises(myokit.IncompatibleModelError, multi.binding, m, 'x')
-        x.set_binding('x')
-        self.assertEqual(x, multi.binding(m, 'x'))
+        with WarningCollector() as w:
+            self.assertRaises(
+                myokit.IncompatibleModelError, multi.binding, m, 'x')
+            x.set_binding('x')
+            self.assertEqual(x, multi.binding(m, 'x'))
+        self.assertIn('deprecated', w.text())
 
     def test_unit(self):
         # Test the unit() method that returns a unit conversion factor.

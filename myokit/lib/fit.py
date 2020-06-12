@@ -2060,6 +2060,7 @@ class _Worker(multiprocessing.Process):
             fout.close()
             ferr.close()
 
+
 def xnes(
         f, bounds, hint=None, n=None, parallel=False, target=1e-6,
         max_iter=1000, callback=None, verbose=False, args=None):

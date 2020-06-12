@@ -76,7 +76,7 @@ class ModelTest(unittest.TestCase):
 
         # Dot operator is not allowed
         self.assertRaisesRegex(
-            myokit.InvalidFunction, 'dot\(\) operator',
+            myokit.InvalidFunction, r'dot\(\) operator',
             m.add_function, 'fdot', ('a', ), 'dot(a)')
 
         # Unused argument
@@ -424,7 +424,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid state argument
         self.assertRaisesRegex(
-            ValueError, 'list of \(8\)', m.format_state, [1, 2, 3])
+            ValueError, r'list of \(8\)', m.format_state, [1, 2, 3])
 
         # Test with second state argument
         self.assertEqual(
@@ -441,7 +441,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid second state argument
         self.assertRaisesRegex(
-            ValueError, 'list of \(8\)', m.format_state,
+            ValueError, r'list of \(8\)', m.format_state,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
     def test_format_state_derivatives(self):
@@ -477,7 +477,8 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid state argument
         self.assertRaisesRegex(
-            ValueError, 'list of \(8\)', m.format_state_derivatives, [1, 2, 3])
+            ValueError, r'list of \(8\)',
+            m.format_state_derivatives, [1, 2, 3])
 
         # Test with derivs argument
         self.assertEqual(
@@ -495,7 +496,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid derivs argument
         self.assertRaisesRegex(
-            ValueError, 'list of \(8\)', m.format_state_derivatives,
+            ValueError, r'list of \(8\)', m.format_state_derivatives,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
     def test_get(self):

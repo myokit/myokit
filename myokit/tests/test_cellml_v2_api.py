@@ -645,7 +645,7 @@ class TestCellML2Model(unittest.TestCase):
         t.set_equation(myokit.Equation(
             myokit.Name(t), myokit.Number(1, myokit.units.second)))
         self.assertRaisesRegex(
-            cellml.CellMLError, 'free variable, but has equation \(set by.',
+            cellml.CellMLError, r'free variable, but has equation \(set by.',
             m.validate)
         t.set_equation(None)
         m.validate()
@@ -653,7 +653,7 @@ class TestCellML2Model(unittest.TestCase):
         # Non-free via initial value
         t.set_initial_value(3)
         self.assertRaisesRegex(
-            cellml.CellMLError, 'variable, but has initial value \(set by',
+            cellml.CellMLError, r'variable, but has initial value \(set by',
             m.validate)
         t.set_initial_value(None)
         m.validate()
@@ -1502,7 +1502,7 @@ class TestCellML2Variable(unittest.TestCase):
         v.set_equation(myokit.Equation(
             myokit.Name(v), myokit.Number(2, myokit.units.volt)))
         self.assertRaisesRegex(
-            cellml.CellMLError, 'both a \(non-ODE\) equation and an initial',
+            cellml.CellMLError, r'both a \(non-ODE\) equation and an initial',
             m.validate)
 
         # Even if initial value is remote
@@ -1514,7 +1514,7 @@ class TestCellML2Variable(unittest.TestCase):
         m.validate()
         m.add_connection(v, v2)
         self.assertRaisesRegex(
-            cellml.CellMLError, 'both a \(non-ODE\) equation and an initial',
+            cellml.CellMLError, r'both a \(non-ODE\) equation and an initial',
             m.validate)
 
     def test_string_conversion(self):
