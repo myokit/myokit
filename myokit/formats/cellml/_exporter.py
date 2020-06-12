@@ -10,6 +10,8 @@ from __future__ import print_function, unicode_literals
 import myokit
 import myokit.lib.guess
 
+import warnings
+
 
 info = """
 Generates a CellML model.
@@ -58,24 +60,15 @@ class CellMLExporter(myokit.formats.Exporter):
             raise ValueError(
                 'Only versions 1.0, 1.1, and 2.0 are supported.')
 
-        # Clear log
-        log = self.logger()
-        log.clear()
-        log.clear_warnings()
-        log.log('Exporting model to CellML ' + version + '...')
-
         # Embed protocol
         if protocol is not None:
             model = model.clone()
-            if myokit.lib.guess.add_embedded_protocol(model, protocol):
-                log.log('Added embedded stimulus protocol.')
-            else:
-                log.warn('Unable to embed stimulus protocol.')
+            if not myokit.lib.guess.add_embedded_protocol(model, protocol):
+                warnings.warn('Unable to embed stimulus protocol.')
 
         # Export
         cellml_model = cellml.Model.from_myokit_model(model, version)
         cellml.write_file(path, cellml_model)
-        log.log('Model written to ' + str(path))
 
     def supports_model(self):
         """

@@ -57,12 +57,6 @@ class CellMLImporter(myokit.formats.Importer):
             cellml.NS_CELLML_2_0: v2.CellMLParser,
         }
 
-        # Clear logger and warnings
-        log = self.logger()
-        log.clear()
-        log.clear_warnings()
-        log.log('Importing ' + str(path))
-
         # Open XML file
         try:
             parser = etree.XMLParser(remove_comments=True)
@@ -84,16 +78,9 @@ class CellMLImporter(myokit.formats.Importer):
         parser = parser()
 
         try:
-            # Parse CellML model
+            # Parse and validate CellML model
             cellml_model = parser.parse(root)
-
-            # Log warnings, if any
-            warnings = cellml_model.validate()
-            for warning in warnings:
-                log.warn(warning)
-
-            # Log result
-            log.log('Import successful.')
+            cellml_model.validate()
 
             # Create and return Myokit model
             return cellml_model.myokit_model()

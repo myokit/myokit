@@ -14,7 +14,7 @@ import unittest
 import myokit
 import myokit.formats.cellml.v1 as cellml
 
-from shared import TemporaryDirectory
+from shared import TemporaryDirectory, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -35,6 +35,7 @@ class TestCellMLWriter(unittest.TestCase):
         c1.set_cmeta_id('commponnent')
         v1 = c1.add_variable('v', 'volt')
         v1.set_cmeta_id('variiable')
+        v1.set_initial_value(3)
 
         xml = cellml.write_string(m1)
         m2 = cellml.parse_string(xml)
@@ -220,6 +221,10 @@ class TestCellMLWriter(unittest.TestCase):
         p = c.add_variable('p', 'ampere')
         s = c.add_variable('s', 'kilogram')
         q = c.add_variable('q', 'mole')
+        r.set_initial_value(1)
+        p.set_initial_value(1)
+        s.set_initial_value(1)
+        q.set_initial_value(1)
 
         xml = cellml.write_string(m)
         reg = re.compile(b'<variable [^>]*name="[\w]+"')
@@ -273,6 +278,7 @@ class TestCellMLWriter(unittest.TestCase):
         c = m1.add_component('ccc')
         c.add_units('flibbit', u2)
         p = c.add_variable('p', 'flibbit')
+        p.set_rhs(myokit.Number(1, u2))
         d = m1.add_component('ddd')
         q = d.add_variable('q', 'flibbit')
         q.set_rhs(myokit.Number(2, u1))
@@ -298,8 +304,9 @@ class TestCellMLWriter(unittest.TestCase):
         r = c.add_variable('r', 'ampere', private_interface='out')
         p.set_initial_value(1)
 
-        xml = cellml.write_string(m1)
-        m2 = cellml.parse_string(xml)
+        with WarningCollector():
+            xml = cellml.write_string(m1)
+            m2 = cellml.parse_string(xml)
 
         p, q, r = m2['c']['p'], m2['c']['q'], m2['c']['r']
         self.assertEqual(p.units().name(), 'mole')

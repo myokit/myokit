@@ -163,7 +163,8 @@ class TestCellMLParser(unittest.TestCase):
              '  <variable name="x" units="volt" public_interface="in" />'
              '</component>'
              '<component name="b">'
-             '  <variable name="y" units="volt" public_interface="out" />'
+             '  <variable name="y" units="volt" public_interface="out"'
+             '            initial_value="1" />'
              '</component>')
 
         # Parse valid connection
@@ -782,9 +783,12 @@ class TestCellMLParser(unittest.TestCase):
 
         # Create mini model with 2 rdf tags and 3 annotations
         x = ('<component name="a">'
-             '  <variable name="x" units="volt" cmeta:id="x" />'
-             '  <variable name="y" units="volt" cmeta:id="yzie" />'
-             '  <variable name="z" units="volt" cmeta:id="zed" />'
+             '  <variable name="x" units="volt" cmeta:id="x"'
+             '            initial_value="1" />'
+             '  <variable name="y" units="volt" cmeta:id="yzie"'
+             '            initial_value="1" />'
+             '  <variable name="z" units="volt" cmeta:id="zed"'
+             '            initial_value="1" />'
              '</component>')
         y = r1
         y += d1a + 'x' + d1b + b1 + 'membrane_voltage' + b2 + d2
@@ -825,7 +829,8 @@ class TestCellMLParser(unittest.TestCase):
 
         # Model code
         x = ('<component name="a">'
-             '  <variable name="x" units="volt" cmeta:id="x" />'
+             '  <variable name="x" units="volt" cmeta:id="x"'
+             '            initial_value="1" />'
              '</component>')
 
         # Check that parser survives all kinds of half-formed annotations

@@ -9,10 +9,11 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import unittest
-import warnings
 
 import myokit
 import myokit.formats.cellml.v1 as cellml
+
+from shared import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -509,20 +510,19 @@ class TestCellML1Model(unittest.TestCase):
         c = m.add_component('c')
         x = c.add_variable('x', 'mole')
         y = c.add_variable('y', 'liter')
-        warn = m.validate()
-        warn = '\n'.join(warn)
-        self.assertIn('No value set for Variable[@name="x"]', warn)
-        self.assertIn('No value set for Variable[@name="y"]', warn)
-        self.assertIn('More than one variable does not have a value', warn)
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('No value set for Variable[@name="x"]', w.text())
+        self.assertIn('No value set for Variable[@name="y"]', w.text())
+        self.assertIn('More than one variable does not have a value', w.text())
 
         # Free variable has a value, but other value does not
         x.set_initial_value(0.1)
-        m.validate()
         m.set_free_variable(x)
-        warn = m.validate()
-        warn = '\n'.join(warn)
-        self.assertIn('No value set for Variable[@name="y"]', warn)
-        self.assertIn('No value is defined for the variable "y"', warn)
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('No value set for Variable[@name="y"]', w.text())
+        self.assertIn('No value is defined for the variable "y"', w.text())
 
         # Free variable must be known if state is used
         y.set_rhs(myokit.Name(x))
@@ -703,8 +703,9 @@ class TestCellML1ModelConversion(unittest.TestCase):
         # Test evaluating states of model
         m = myokit.load_model('example')
         cm = cellml.Model.from_myokit_model(m)
-        warnings = cm.validate()
-        self.assertEqual(len(warnings), 0)
+        with WarningCollector() as w:
+            cm.validate()
+        self.assertFalse(w.has_warnings())
 
         # Recreate myokit model and test states
         mm = cm.myokit_model()
@@ -942,11 +943,10 @@ class TestCellML1ModelConversion(unittest.TestCase):
         by.set_rhs(myokit.Name(bx))
 
         # Convert and check warning was raised
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             m = cm.myokit_model()
-        text = '\n'.join([str(warning) for warning in c])
         self.assertIn(
-            'Unable to determine unit conversion factor for b.x', text)
+            'Unable to determine unit conversion factor for b.x', w.text())
 
         # Check variable RHS
         ax, bx, by = m.get('a.x'), m.get('b.x'), m.get('b.y')
@@ -1192,8 +1192,9 @@ class TestCellML1Variable(unittest.TestCase):
         bt = b.add_variable('toim', 'dimensionless', 'in')
         m.add_connection(t, bt)
 
-        warn = m.validate()
-        self.assertIn('not connected', warn[0])
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('not connected', w.text())
 
         # States must define two values
         m.add_connection(ax, bx)
@@ -1204,8 +1205,9 @@ class TestCellML1Variable(unittest.TestCase):
         bx.set_rhs(myokit.Number(1, 'meter'))
         m.validate()
         bx.set_initial_value(None)
-        warn = m.validate()
-        self.assertIn('has no initial value', warn[0])
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('has no initial value', w.text())
 
 
 class TestCellML1Units(unittest.TestCase):

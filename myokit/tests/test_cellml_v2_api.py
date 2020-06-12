@@ -13,6 +13,8 @@ import unittest
 import myokit
 import myokit.formats.cellml.v2 as cellml
 
+from shared import WarningCollector
+
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
@@ -244,6 +246,7 @@ class TestCellML2Model(unittest.TestCase):
         self.assertIn(d, cs)
 
         # Rest of creation is tested in component test
+
     def test_add_connection(self):
         # Tests adding connections
 
@@ -574,7 +577,9 @@ class TestCellML2Model(unittest.TestCase):
         y = c1.add_variable('y', 'mole')
         c2 = m.add_component('c2')
         z = c2.add_variable('z', 'mole', 'public')
-        warn = '\n'.join(m.validate())
+        with WarningCollector() as w:
+            m.validate()
+        warn = w.text()
         self.assertIn('No value set for Variable[@name="x"]', warn)
         self.assertIn('No value set for Variable[@name="y"]', warn)
         self.assertIn('No value set for Variable[@name="z"]', warn)
@@ -582,7 +587,9 @@ class TestCellML2Model(unittest.TestCase):
 
         # Two without a definition
         z.set_initial_value(3)
-        warn = '\n'.join(m.validate())
+        with WarningCollector() as w:
+            m.validate()
+        warn = w.text()
         self.assertIn('No value set for Variable[@name="x"]', warn)
         self.assertIn('No value set for Variable[@name="y"]', warn)
         self.assertIn('More than one variable does not have a value', warn)
@@ -590,7 +597,9 @@ class TestCellML2Model(unittest.TestCase):
 
         # Only one without a definition, via connection
         m.add_connection(x, z)
-        warn = '\n'.join(m.validate())
+        with WarningCollector() as w:
+            m.validate()
+        warn = w.text()
         self.assertIn('No value set for Variable[@name="y"]', warn)
         self.assertNotIn('More than one variable does not have a value', warn)
 
@@ -719,6 +728,7 @@ class TestCellML2ModelConversion(unittest.TestCase):
     """
     Tests for converting between Myokit and CellML models.
     """
+
     def model(self, name=None):
         """ Creates and returns a model with a time variable. """
         m = myokit.Model(name)
@@ -872,8 +882,9 @@ class TestCellML2ModelConversion(unittest.TestCase):
         m = myokit.load_model('example')
         cm = cellml.Model.from_myokit_model(m)
 
-        warnings = cm.validate()
-        self.assertEqual(len(warnings), 0)
+        with WarningCollector() as w:
+            cm.validate()
+        self.assertFalse(w.has_warnings())
 
         # Recreate myokit model and test states
         mm = cm.myokit_model()
@@ -994,11 +1005,13 @@ class TestCellML2ModelConversion(unittest.TestCase):
         m = cellml.Model('m')
         c = m.add_component('c')
         x = c.add_variable('x', 'second')
-        model = m.myokit_model()
+        with WarningCollector():
+            model = m.myokit_model()
         self.assertIsNotNone(model.time())
 
         # Try again (test that original model wasn't affected)
-        model = m.myokit_model()
+        with WarningCollector():
+            model = m.myokit_model()
         self.assertIsNotNone(model.time())
 
         # Setting initial value should stop this variable from becoming the voi
@@ -1476,7 +1489,6 @@ class TestCellML2Variable(unittest.TestCase):
         m = cellml.Model('m')
         m.add_units('v_per_s', myokit.units.volt / myokit.units.second)
         c = m.add_component('c')
-        t = c.add_variable('t', 'second')
         v = c.add_variable('v', 'volt', 'public')
         v.set_equation(myokit.Equation(
             myokit.Derivative(myokit.Name(v)),
