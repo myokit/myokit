@@ -18,7 +18,7 @@ import myokit.formats.cellml as cellml
 
 from myokit.formats.cellml import CellMLImporterError
 
-from shared import TemporaryDirectory, DIR_FORMATS
+from shared import TemporaryDirectory, DIR_FORMATS, WarningCollector
 
 # CellML dir
 DIR = os.path.join(DIR_FORMATS, 'cellml')
@@ -65,27 +65,30 @@ class CellMLExporterTest(unittest.TestCase):
         # 1. Export without a protocol
         with TemporaryDirectory() as d:
             path = d.path('model.cellml')
-            e.model(path, m1)
+            with WarningCollector() as w:
+                e.model(path, m1)
             m2 = i.model(path)
-        self.assertFalse(e.logger().has_warnings())
+        self.assertFalse(w.has_warnings())
         self.assertTrue(isinstance(m2.get('engine.pace').rhs(), myokit.Number))
 
         # 2. Export with protocol, but without variable bound to pacing
         m1.get('engine.pace').set_binding(None)
         with TemporaryDirectory() as d:
             path = d.path('model.cellml')
-            e.model(path, m1, p1)
+            with WarningCollector() as w:
+                e.model(path, m1, p1)
             m2 = i.model(path)
-        self.assertTrue(e.logger().has_warnings())
+        self.assertTrue(w.has_warnings())
         self.assertTrue(isinstance(m2.get('engine.pace').rhs(), myokit.Number))
 
         # 3. Export with protocol and variable bound to pacing
         m1.get('engine.pace').set_binding('pace')
         with TemporaryDirectory() as d:
             path = d.path('model.cellml')
-            e.model(path, m1, p1)
+            with WarningCollector() as w:
+                e.model(path, m1, p1)
             m2 = i.model(path)
-        self.assertFalse(e.logger().has_warnings())
+        self.assertFalse(w.has_warnings())
         rhs = m2.get('membrane.i_stim').rhs()
         self.assertTrue(rhs, myokit.Multiply)
         self.assertTrue(isinstance(rhs[0], myokit.Piecewise))
@@ -553,11 +556,14 @@ class CellMLImporterTest(unittest.TestCase):
 
             # Import
             i = formats.importer('cellml')
-            i.model(path)
+            with WarningCollector() as w:
+                i.model(path)
 
             # Check warning was raised
-            self.assertIn('not connected', next(i.logger().warnings()))
+            self.assertIn('not connected', w.text())
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()

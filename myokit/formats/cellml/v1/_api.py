@@ -393,7 +393,7 @@ class Component(AnnotatableElement):
         """
         return iter(self._units.values())
 
-    def _validate(self, warnings):
+    def _validate(self):
         """
         Validates this component, raising a :class:`CellMLError` if any errors
         are found.
@@ -408,7 +408,7 @@ class Component(AnnotatableElement):
 
         # Validate variables
         for v in self._variables.values():
-            v._validate(warnings)
+            v._validate()
 
         # If this component has states, check that it also has a free variable
         # in the local component.
@@ -1135,15 +1135,10 @@ class Model(AnnotatableElement):
         """
         Validates this model, raising a :class:`CellMLError` if an errors are
         found.
-
-        Returns a list of warnings generated during validation.
         """
-        # Warnings
-        warnings = []
-
         # Validate components and variables
         for c in self._components.values():
-            c._validate(warnings)
+            c._validate()
 
         # Check at most one variable doesn't have a source (one free variable
         # is allowed)
@@ -1155,18 +1150,15 @@ class Model(AnnotatableElement):
                         free.add(v)
 
         if len(free) > 1:
-            warnings.append('More than one variable does not have a value.')
+            warnings.warn('More than one variable does not have a value.')
 
         elif self._free_variable is not None and len(free) == 1:
             free = free.pop()
             if self._free_variable is not free:
-                warnings.append(
+                warnings.warn(
                     'No value is defined for the variable "'
                     + free.name() + '", but "' + self._free_variable.name()
                     + '" is listed as the free variable.')
-
-        # Return warnings
-        return warnings
 
     def version(self):
         """
@@ -1716,7 +1708,7 @@ class Variable(AnnotatableElement):
         """
         return self._units
 
-    def _validate(self, warnings):
+    def _validate(self):
         """
         Validates this variable, raising a :class:`CellMLError` if any errors
         are found.
@@ -1726,7 +1718,7 @@ class Variable(AnnotatableElement):
         if self._public_interface == 'in' or self._private_interface == 'in':
             i = 'public' if self._public_interface == 'in' else 'private'
             if self._source is None:
-                warnings.append(
+                warnings.warn(
                     str(self) + ' has ' + i + '_interface="in", but is not'
                     ' connected to a variable with an appropriate "out"')
 
@@ -1734,7 +1726,7 @@ class Variable(AnnotatableElement):
         elif self._is_state:
 
             if self._initial_value is None:
-                warnings.append(
+                warnings.warn(
                     'State ' + str(self) + ' has no initial value.')
 
             if self._rhs is None:
@@ -1744,7 +1736,7 @@ class Variable(AnnotatableElement):
         # Check that other variables define a value
         elif self._rhs is None:
             if self._initial_value is None and not self._is_free:
-                warnings.append('No value set for ' + str(self) + '.')
+                warnings.warn('No value set for ' + str(self) + '.')
 
         # And only one value
         elif self._initial_value is not None:

@@ -12,6 +12,8 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import re
+import warnings
+
 import xml.etree.ElementTree as ET
 
 import myokit
@@ -54,12 +56,9 @@ class SBMLParser(object):
         # Regexes for id checking
         self.re_id = re.compile(r'^[a-zA-Z_]+[a-zA-Z0-9_]*$')
 
-    def parse_file(self, path, logger=None):
+    def parse_file(self, path):
         """
         Parses the SBML file at ``path`` and returns a :class:`myokit.Model`.
-
-        An optional :class:`myokit.formats.TextLogger` may be passed in to log
-        warnings to.
         """
         # Read file
         try:
@@ -68,15 +67,12 @@ class SBMLParser(object):
             raise SBMLError('Unable to parse XML: ' + str(e))
 
         # Parse content
-        return self.parse(tree.getroot(), logger)
+        return self.parse(tree.getroot())
 
-    def parse_string(self, text, logger=None):
+    def parse_string(self, text):
         """
         Parses the SBML XML in the string ``text`` and returns a
         :class:`myokit.Model`.
-
-        An optional :class:`myokit.formats.TextLogger` may be passed in to log
-        warnings to.
         """
         # Read string
         try:
@@ -85,33 +81,27 @@ class SBMLParser(object):
             raise SBMLError('Unable to parse XML: ' + str(e))
 
         # Parse content
-        return self.parse(root, logger)
+        return self.parse(root)
 
-    def parse(self, root, logger=None):
+    def parse(self, root):
         """
         Parses an SBML document rooted in the given ``ElementTree`` element and
         returns a :class:`myokit.Model`.
-
-        An optional :class:`myokit.formats.TextLogger` may be passed in to log
-        warnings to.
         """
         try:
-            return self._parse_document(root, logger)
+            return self._parse_document(root)
         except SBMLError as e:
             raise SBMLError(str(e))
         except myokit.formats.mathml.MathMLError as e:
             raise SBMLError(str(e))
         finally:
             # Remove all references to temporary state
-            del(self._log)
             del(self._ns)
 
-    def _parse_document(self, element, logger=None):
+    def _parse_document(self, element):
         """
         Parses an SBML document.
         """
-        self._log = myokit.formats.TextLogger() if logger is None else logger
-
         # Supported namespaces
         # Other namespaces are allowed, but might not work.
         supported = (
@@ -121,7 +111,7 @@ class SBMLParser(object):
         # Check whether document declares a supported namespace
         self._ns = split(element.tag)[0]
         if self._ns not in supported:
-            self._log.warn(
+            warnings.warn(
                 'Unknown SBML namespace ' + str(self._ns) + '. This version of'
                 ' SBML may not be supported.')
 
@@ -129,9 +119,9 @@ class SBMLParser(object):
         model = element.find(self._path('model'))
         if model is None:
             raise SBMLError('Model element not found.')
-        return self._parse_model(model, logger)
+        return self._parse_model(model)
 
-    def _parse_model(self, element, logger):
+    def _parse_model(self, element):
         """
         Parses a <model> element in an SBML document.
         """
@@ -147,7 +137,6 @@ class SBMLParser(object):
 
         # Create myokit model
         myokit_model = myokit.Model(name)
-        self._log.log('Reading model "' + name + '"')
 
         # Create SBML model for storing parsing info
         model = SBMLModel()
@@ -166,12 +155,12 @@ class SBMLParser(object):
         # Constraints are not supported, but can be ignored
         x = element.find(self._path('listOfConstraints', 'constraint'))
         if x is not None:
-            self._log.warn('Ignoring SBML constraints.')
+            warnings.warn('Ignoring SBML constraints.')
 
         # Events are not supported, but can be ignored
         x = element.find(self._path('listOfEvents', 'event'))
         if x is not None:
-            self._log.warn('Ignoring SBML events.')
+            warnings.warn('Ignoring SBML events.')
 
         # Notes elements directly inside a model are turned into a description.
         notes = element.find(self._path('notes'))
@@ -255,7 +244,6 @@ class SBMLParser(object):
     def _parse_notes(self, element):
         """Parses a notes element, converting to plain text."""
 
-        self._log.log('Converting <model> notes to ascii.')
         notes = ET.tostring(element).decode()
         return html2ascii(notes, width=75)
 
@@ -454,7 +442,7 @@ class SBMLParser(object):
                 raise SBMLError('Species ID not existent.')
             stoich = reactant.get('stoichiometry')
             if stoich is None:
-                self._log.warn(
+                warnings.warn(
                     'Stoichiometry has not been set in reaction. Continued'
                     ' initialisation using value 1.')
                 stoich = 1
@@ -495,7 +483,7 @@ class SBMLParser(object):
                 raise SBMLError('Species ID not existent.')
             stoich = product.get('stoichiometry')
             if stoich is None:
-                self._log.warn(
+                warnings.warn(
                     'Stoichiometry has not been set in reaction. Continued'
                     ' initialisation using value 1.')
                 stoich = 1
@@ -657,7 +645,7 @@ class SBMLParser(object):
             if unit is None:
                 unit = extent_unit
             if unit != extent_unit:
-                self._log.warn(
+                warnings.warn(
                     'Myokit does not support extentUnits for reactions.'
                     ' Reactions will have the unit substanceUnit / timeUnit.')
             initial_value = var.rhs()

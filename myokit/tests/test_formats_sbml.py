@@ -15,7 +15,7 @@ import myokit
 import myokit.formats
 import myokit.formats.sbml
 
-from shared import DIR_FORMATS
+from shared import DIR_FORMATS, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -49,7 +49,11 @@ class SBMLImporterTest(unittest.TestCase):
     def test_hh_model(self):
         # Tests importing the Hodgkin-Huxley model
         i = myokit.formats.importer('sbml')
-        model = i.model(os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+        with WarningCollector() as w:
+            model = i.model(
+                os.path.join(DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+        self.assertEqual(w.count(), 1)
+        self.assertIn('Unknown SBML namespace', w.text())
 
         v = model.get('myokit.V')
         self.assertAlmostEqual(v.rhs().eval(), -4.01765286235500341e-03)
@@ -128,10 +132,9 @@ class SBMLParserTest(unittest.TestCase):
             ' </listOfConstraints>'
             '</model>')
 
-        log = myokit.formats.TextLogger()
-        self.p.parse_string(self.wrap(xml), log)
-        w = '\n'.join(log.warnings())
-        self.assertIn('Ignoring SBML constraints', w)
+        with WarningCollector() as w:
+            self.p.parse_string(self.wrap(xml))
+        self.assertIn('Ignoring SBML constraints', w.text())
 
     def test_events(self):
         # Test parsing constraints (these are ignored)
@@ -156,10 +159,9 @@ class SBMLParserTest(unittest.TestCase):
             ' </listOfEvents>'
             '</model>')
 
-        log = myokit.formats.TextLogger()
-        self.p.parse_string(self.wrap(xml), log)
-        w = '\n'.join(log.warnings())
-        self.assertIn('Ignoring SBML events', w)
+        with WarningCollector() as w:
+            self.p.parse_string(self.wrap(xml))
+        self.assertIn('Ignoring SBML events', w.text())
 
     def test_invalid_file(self):
         # Check whether error is thrown for invalid xml
@@ -179,25 +181,22 @@ class SBMLParserTest(unittest.TestCase):
         # Check that unsupported levels/versions trigger warnings
 
         # Supported level
-        log = myokit.formats.TextLogger()
         xml = self.wrap('<model id="a" name="a"/>', 3, 2)
-        self.p.parse_string(xml, log)
-        w = '\n'.join(log.warnings())
-        self.assertNotIn('This version of SBML may not be supported', w)
+        with WarningCollector() as w:
+            self.p.parse_string(xml)
+        self.assertNotIn('This version of SBML may not be supported', w.text())
 
         # Unsupported level
-        log = myokit.formats.TextLogger()
         xml = self.wrap('<model id="a" name="a"/>', 2, 2)
-        self.p.parse_string(xml, log)
-        w = '\n'.join(log.warnings())
-        self.assertIn('This version of SBML may not be supported', w)
+        with WarningCollector() as w:
+            self.p.parse_string(xml)
+        self.assertIn('This version of SBML may not be supported', w.text())
 
         # Unsupported version
-        log = myokit.formats.TextLogger()
         xml = self.wrap('<model id="a" name="a"/>', 3, 1)
-        self.p.parse_string(xml, log)
-        w = '\n'.join(log.warnings())
-        self.assertIn('This version of SBML may not be supported', w)
+        with WarningCollector() as w:
+            self.p.parse_string(xml)
+        self.assertIn('This version of SBML may not be supported', w.text())
 
     def test_mathml(self):
         """Test MathML parsing."""
@@ -394,9 +393,10 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='Species ID not existent.')
+        with WarningCollector() as w:
+            self.assertBad(xml=xml, message='Species ID not existent.')
+        self.assertEqual(w.count(), 1)
+        self.assertIn('Stoichiometry has not been set', w.text())
 
     def test_reserved_compartment_id(self):
         # ``Myokit`` is a reserved ID that is used while importing for the
@@ -484,9 +484,10 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='Stoichiometry ID is not unique.')
+        with WarningCollector() as w:
+            self.assertBad(xml=xml, message='Stoichiometry ID is not unique.')
+        self.assertEqual(w.count(), 1)
+        self.assertIn('Stoichiometry has not been set', w.text())
 
         # Coinciding parameter and product stoichiometry IDs
         stoich_id = 'someStoich'
@@ -512,9 +513,10 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='Stoichiometry ID is not unique.')
+        with WarningCollector() as w:
+            self.assertBad(xml=xml, message='Stoichiometry ID is not unique.')
+        self.assertEqual(w.count(), 1)
+        self.assertIn('Stoichiometry has not been set', w.text())
 
     def test_reserved_parameter_id(self):
         # ``globalConversionFactor`` is a reserved ID that is used while
@@ -573,8 +575,10 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        model = self.parse(xml)
+        with WarningCollector() as w:
+            model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+        self.assertEqual(w.count(), 1)
 
         # Check that reactant stoichiometry is added as parameter to <myokit>
         # compartment, if no compartment is referenced
@@ -599,8 +603,10 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        model = self.parse(xml)
+        with WarningCollector() as w:
+            model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+        self.assertEqual(w.count(), 1)
 
         # Check that product stoichiometry is added as parameter to referenced
         # compartment
@@ -625,8 +631,10 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        model = self.parse(xml)
+        with WarningCollector() as w:
+            model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+        self.assertEqual(w.count(), 1)
 
         # Check that product stoichiometry is added as parameter to <myokit>
         # compartment, if no compartment is referenced
@@ -651,8 +659,10 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        model = self.parse(xml)
+        with WarningCollector() as w:
+            model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+        self.assertEqual(w.count(), 1)
 
     def test_missing_reactants_products(self):
         # Tests whether error is thrown when reaction does neither provide
@@ -692,9 +702,11 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='Myokit does not support the conversion of <fast>')
+        with WarningCollector() as w:
+            self.assertBad(
+                xml=xml,
+                message='Myokit does not support the conversion of <fast>')
+        self.assertEqual(w.count(), 1)
 
     def test_local_parameters(self):
         # Tests whether error is thrown when a reaction has
@@ -724,9 +736,11 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        self.assertBad(
-            xml=xml,
-            message='does not support the definition of local parameters in')
+        with WarningCollector() as w:
+            self.assertBad(
+                xml=xml,
+                message='does not support the definition of local parameters')
+        self.assertEqual(w.count(), 1)
 
     def test_bad_kinetic_law(self):
         # Tests whether an error is thrown if a kinetic law refers to
@@ -757,7 +771,9 @@ class SBMLParserTest(unittest.TestCase):
             '  </reaction>'
             ' </listOfReactions>'
             '</model>')
-        self.assertBad(xml=xml, message='Unable to create Name:')
+        with WarningCollector() as w:
+            self.assertBad(xml=xml, message='Unable to create Name:')
+        self.assertEqual(w.count(), 1)
 
 
 class SBMLDocumentTest(unittest.TestCase):
@@ -770,8 +786,10 @@ class SBMLDocumentTest(unittest.TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        cls.model = myokit.formats.sbml.SBMLParser().parse_file(os.path.join(
-            DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
+        p = myokit.formats.sbml.SBMLParser()
+        with WarningCollector():
+            cls.model = p.parse_file(os.path.join(
+                DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
 
     def test_assignment_rules(self):
         # Tests whether intermediate variables have been assigned with correct
@@ -921,8 +939,10 @@ class SBMLDocumentTest(unittest.TestCase):
         # Test loading the same model in an older SBML format.
 
         # Parse model in older format
-        old_model = myokit.formats.sbml.SBMLParser().parse_file(os.path.join(
-            DIR_FORMATS, 'sbml', '00004-sbml-l2v1-modified.xml'))
+        p = myokit.formats.sbml.SBMLParser()
+        with WarningCollector():
+            old_model = p.parse_file(os.path.join(
+                DIR_FORMATS, 'sbml', '00004-sbml-l2v1-modified.xml'))
 
         # Set time units (Only introduced in level 3 version 1)
         old_model.time().set_unit(self.model.time().unit())

@@ -15,7 +15,7 @@ import numpy as np
 import myokit
 import myokit.lib.markov as markov
 
-from shared import DIR_DATA
+from shared import DIR_DATA, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -65,8 +65,10 @@ class LinearModelTest(unittest.TestCase):
             self.assertIn(p, parameters)
 
         # Test deprecated MarkovModel class
-        m2 = markov.MarkovModel(model, states, parameters, current)
+        with WarningCollector() as w:
+            m2 = markov.MarkovModel(model, states, parameters, current)
         self.assertEqual(type(m2), markov.AnalyticalSimulation)
+        self.assertIn('deprecated', w.text())
 
         # State doesn't exist
         self.assertRaisesRegex(
@@ -195,8 +197,10 @@ class LinearModelTest(unittest.TestCase):
         markov.LinearModel.from_component(model.get('ina'))
 
         # Test deprecated MarkovModel class
-        m = markov.MarkovModel.from_component(model.get('ina'))
+        with WarningCollector() as w:
+            m = markov.MarkovModel.from_component(model.get('ina'))
         self.assertEqual(type(m), markov.AnalyticalSimulation)
+        self.assertIn('deprecated', w.text())
 
         # Test partially automatic creation
         states = [

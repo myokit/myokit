@@ -16,7 +16,7 @@ import unittest
 
 import myokit
 
-from shared import TemporaryDirectory
+from shared import TemporaryDirectory, WarningCollector
 
 
 # Unit testing in Python 2 and 3
@@ -76,7 +76,7 @@ class ModelTest(unittest.TestCase):
 
         # Dot operator is not allowed
         self.assertRaisesRegex(
-            myokit.InvalidFunction, 'dot\(\) operator',
+            myokit.InvalidFunction, r'dot\(\) operator',
             m.add_function, 'fdot', ('a', ), 'dot(a)')
 
         # Unused argument
@@ -424,7 +424,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid state argument
         self.assertRaisesRegex(
-            ValueError, 'list of \(8\)', m.format_state, [1, 2, 3])
+            ValueError, r'list of \(8\)', m.format_state, [1, 2, 3])
 
         # Test with second state argument
         self.assertEqual(
@@ -441,7 +441,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid second state argument
         self.assertRaisesRegex(
-            ValueError, 'list of \(8\)', m.format_state,
+            ValueError, r'list of \(8\)', m.format_state,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
     def test_format_state_derivatives(self):
@@ -477,7 +477,8 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid state argument
         self.assertRaisesRegex(
-            ValueError, 'list of \(8\)', m.format_state_derivatives, [1, 2, 3])
+            ValueError, r'list of \(8\)',
+            m.format_state_derivatives, [1, 2, 3])
 
         # Test with derivs argument
         self.assertEqual(
@@ -495,7 +496,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with invalid derivs argument
         self.assertRaisesRegex(
-            ValueError, 'list of \(8\)', m.format_state_derivatives,
+            ValueError, r'list of \(8\)', m.format_state_derivatives,
             [1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3])
 
     def test_get(self):
@@ -1045,7 +1046,9 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m.count_components(), 3)
 
         # Test deprecated name
-        m.merge_interdependent_components()
+        with WarningCollector() as wc:
+            m.merge_interdependent_components()
+        self.assertIn('deprecated', wc.text())
         self.assertEqual(m.count_components(), 3)
 
         # Create interdependent components
@@ -1150,7 +1153,9 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(len(e.splitlines()), 4)
 
         # Test deprecated alias
-        m.show_line(m.get('ina.INa'))
+        with WarningCollector() as wc:
+            m.show_line(m.get('ina.INa'))
+        self.assertIn('deprecated', wc.text())
 
     def test_str(self):
         # Test conversion to string

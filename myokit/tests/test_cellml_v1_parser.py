@@ -10,13 +10,12 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
-import warnings
 
 import myokit
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v1 as v1
 
-from shared import TemporaryDirectory, DIR_FORMATS
+from shared import TemporaryDirectory, DIR_FORMATS, WarningCollector
 
 # CellML directory
 DIR = os.path.join(DIR_FORMATS, 'cellml')
@@ -163,7 +162,8 @@ class TestCellMLParser(unittest.TestCase):
              '  <variable name="x" units="volt" public_interface="in" />'
              '</component>'
              '<component name="b">'
-             '  <variable name="y" units="volt" public_interface="out" />'
+             '  <variable name="y" units="volt" public_interface="out"'
+             '            initial_value="1" />'
              '</component>')
 
         # Parse valid connection
@@ -427,12 +427,12 @@ class TestCellMLParser(unittest.TestCase):
              '  <relationship_ref relationship="encapsulation" />'
              '  <component_ref component="a" />'
              '</group>')
-        self.assertBad(x + y, 'must have at least one child \(6.4.3.2\)')
+        self.assertBad(x + y, r'must have at least one child \(6.4.3.2\)')
         y = ('<group>'
              '  <relationship_ref relationship="containment" />'
              '  <component_ref component="a" />'
              '</group>')
-        self.assertBad(x + y, 'must have at least one child \(6.4.3.2\)')
+        self.assertBad(x + y, r'must have at least one child \(6.4.3.2\)')
 
         # But it's fine for extension types
         y = ('<group xmlns:x="x">'
@@ -600,10 +600,9 @@ class TestCellMLParser(unittest.TestCase):
 
         # Unsupported units: Warning
         y = '<apply><eq /><ci>x</ci><cn cellml:units="celsius">2</cn></apply>'
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             self.parse(x + y + z)
-        text = '\n'.join([str(warning) for warning in c])
-        self.assertIn('celsius', text)
+        self.assertIn('celsius', w.text())
 
         # Items outside of MathML namespace
         y = '<cellml:component name="bertie" />'
@@ -782,9 +781,12 @@ class TestCellMLParser(unittest.TestCase):
 
         # Create mini model with 2 rdf tags and 3 annotations
         x = ('<component name="a">'
-             '  <variable name="x" units="volt" cmeta:id="x" />'
-             '  <variable name="y" units="volt" cmeta:id="yzie" />'
-             '  <variable name="z" units="volt" cmeta:id="zed" />'
+             '  <variable name="x" units="volt" cmeta:id="x"'
+             '            initial_value="1" />'
+             '  <variable name="y" units="volt" cmeta:id="yzie"'
+             '            initial_value="1" />'
+             '  <variable name="z" units="volt" cmeta:id="zed"'
+             '            initial_value="1" />'
              '</component>')
         y = r1
         y += d1a + 'x' + d1b + b1 + 'membrane_voltage' + b2 + d2
@@ -825,7 +827,8 @@ class TestCellMLParser(unittest.TestCase):
 
         # Model code
         x = ('<component name="a">'
-             '  <variable name="x" units="volt" cmeta:id="x" />'
+             '  <variable name="x" units="volt" cmeta:id="x"'
+             '            initial_value="1" />'
              '</component>')
 
         # Check that parser survives all kinds of half-formed annotations
@@ -952,10 +955,9 @@ class TestCellMLParser(unittest.TestCase):
              '  <unit units="meter" />'
              '  <unit units="volt" offset="0.1" />'
              '</units>')
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             m = self.parse(x)
-        text = '\n'.join([str(warning) for warning in c])
-        self.assertIn('non-zero offsets are not supported', text)
+        self.assertIn('non-zero offsets are not supported', w.text())
         self.assertEqual(
             myokit.units.dimensionless, m.find_units('nonzero').myokit_unit())
 
@@ -964,10 +966,9 @@ class TestCellMLParser(unittest.TestCase):
              '  <unit units="meter" />'
              '  <unit units="ampere" exponent="2.34" />'
              '</units>')
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             m = self.parse(x)
-        text = '\n'.join([str(warning) for warning in c])
-        self.assertIn('Non-integer', text)
+        self.assertIn('Non-integer', w.text())
         self.assertEqual(
             myokit.units.dimensionless, m.find_units('unsup').myokit_unit())
 
@@ -994,10 +995,9 @@ class TestCellMLParser(unittest.TestCase):
              '  <unit units="meter" />'
              '  <unit units="celsius" />'
              '</units>')
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             m = self.parse(x)
-        text = '\n'.join([str(warning) for warning in c])
-        self.assertIn('celsius', text)
+        self.assertIn('celsius', w.text())
         self.assertEqual(
             myokit.units.dimensionless, m.find_units('wooster').myokit_unit())
 
@@ -1116,10 +1116,9 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(u('weber'), myokit.units.weber)
 
         # Celsius is not supported
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             self.assertEqual(u('celsius'), myokit.units.dimensionless)
-        text = '\n'.join([str(warning) for warning in c])
-        self.assertIn('celsius', text)
+        self.assertIn('celsius', w.text())
 
     def test_variable(self):
         # Tests parsing variables
@@ -1141,13 +1140,14 @@ class TestCellMLParser(unittest.TestCase):
         # Unsupported units are ignored
         x = '<variable name="x" units="celsius" initial_value="3" />'
         x = '<component name="a">' + x + '</component>'
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             x = self.parse(x)['a']['x']
-        text = '\n'.join([str(warning) for warning in c])
-        self.assertIn('celsius', text)
+        self.assertIn('celsius', w.text())
 
         self.assertEqual(x.units().myokit_unit(), myokit.units.dimensionless)
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()
