@@ -216,8 +216,6 @@ class FittingTest(unittest.TestCase):
         # p2 = 0.20 / 3.802 ~ 0.0526
         cls._hint = [0.0269, 0.052]
 
-        print('I have been run')
-
     @staticmethod
     def _score(guess):
         try:
