@@ -10,12 +10,11 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
-import warnings
 
 import myokit
 import myokit.formats.cellml.v2 as v2
 
-from shared import TemporaryDirectory, DIR_FORMATS
+from shared import TemporaryDirectory, DIR_FORMATS, WarningCollector
 
 # CellML directory
 DIR = os.path.join(DIR_FORMATS, 'cellml')
@@ -624,10 +623,9 @@ class TestCellMLParser(unittest.TestCase):
              '  <unit units="volt" />'
              '  <unit units="ampere" exponent="2.34" />'
              '</units>')
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             m = self.parse(x)
-        text = '\n'.join([str(warning) for warning in c])
-        self.assertIn('non-integer exponent', text)
+        self.assertIn('non-integer exponent', w.text())
         self.assertEqual(
             myokit.units.dimensionless, m.find_units('unsup').myokit_unit())
 

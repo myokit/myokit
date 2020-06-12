@@ -1858,8 +1858,13 @@ def test_unit(args=None):
     import os
     import sys
     import unittest
+    import warnings
 
     print('Running tests with ' + sys.executable)
+
+    # Don't hide repeat warnings: This makes it possible to check that warnings
+    # are being raised in a consistent manner.
+    warnings.simplefilter('always')
 
     if test_in_repo():
         path = os.path.join('myokit', 'tests')
