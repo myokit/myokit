@@ -13,7 +13,7 @@ import unittest
 import myokit
 import myokit.formats
 
-from shared import TemporaryDirectory, WarningCollector
+from shared import TemporaryDirectory
 
 # Unit testing in Python 2 and 3
 try:
