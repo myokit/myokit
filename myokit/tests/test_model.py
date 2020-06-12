@@ -16,7 +16,7 @@ import unittest
 
 import myokit
 
-from shared import TemporaryDirectory
+from shared import TemporaryDirectory, WarningCollector
 
 
 # Unit testing in Python 2 and 3
@@ -1045,7 +1045,9 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m.count_components(), 3)
 
         # Test deprecated name
-        m.merge_interdependent_components()
+        with WarningCollector() as wc:
+            m.merge_interdependent_components()
+        self.assertIn('deprecated', wc.text())
         self.assertEqual(m.count_components(), 3)
 
         # Create interdependent components
@@ -1150,7 +1152,9 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(len(e.splitlines()), 4)
 
         # Test deprecated alias
-        m.show_line(m.get('ina.INa'))
+        with WarningCollector() as wc:
+            m.show_line(m.get('ina.INa'))
+        self.assertIn('deprecated', wc.text())
 
     def test_str(self):
         # Test conversion to string

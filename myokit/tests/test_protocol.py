@@ -13,6 +13,8 @@ import unittest
 
 import myokit
 
+from shared import WarningCollector
+
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
@@ -125,7 +127,9 @@ class ProtocolTest(unittest.TestCase):
         # Deprecated method Protocol.guess_duration()
 
         p = myokit.Protocol()
-        self.assertEqual(p.characteristic_time(), p.guess_duration())
+        with WarningCollector() as w:
+            self.assertEqual(p.characteristic_time(), p.guess_duration())
+        self.assertIn('deprecated', w.text())
 
     def test_in_words(self):
         # Test :meth:`Protocol.in_words()`.
@@ -296,7 +300,10 @@ class ProtocolTest(unittest.TestCase):
         self.assertRaises(ValueError, p.log_for_interval, 100, 0)
 
         # Test deprecated alias
-        p.create_log_for_interval(0, 2000, for_drawing=True)
+        with WarningCollector() as w:
+            p.create_log_for_interval(0, 2000, for_drawing=True)
+        self.assertIn('deprecated', w.text())
+
 
     def test_log_for_times(self):
         # Test the method Protocol.log_for_times()
@@ -321,7 +328,9 @@ class ProtocolTest(unittest.TestCase):
         self.assertEqual(len(d['pace']), 0)
 
         # Deprecated alias
-        p.create_log_for_times([])
+        with WarningCollector() as w:
+            p.create_log_for_times([])
+        self.assertIn('deprecated', w.text())
 
     def test_pickling(self):
         # Test protocol pickling
@@ -443,4 +452,6 @@ class ProtocolTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()
