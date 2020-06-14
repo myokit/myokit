@@ -30,7 +30,7 @@ class AnsiCExporter(myokit.formats.TemplatedRunnableExporter):
         protocol.
     """
     def post_export_info(self):
-        return '\n'.join(
+        return '\n'.join((
             'To compile in gcc, use::',
             '',
             '    gcc -Wall -lm -lsundials_cvode -lsundials_nvecserial sim.c -o sim',    # noqa
@@ -47,7 +47,7 @@ class AnsiCExporter(myokit.formats.TemplatedRunnableExporter):
             '    plt.figure()',
             '    plt.plot(T, V)',
             '    plt.show()',
-        )
+        ))
 
     def _dir(self, root):
         return os.path.join(root, 'ansic', 'template')
@@ -77,7 +77,7 @@ class AnsiCEulerExporter(myokit.formats.TemplatedRunnableExporter):
     No labeled variables are required.
     """
     def post_export_info(self):
-        return '\n'.join(
+        return '\n'.join((
             'To compile using gcc::',
             '',
             '    gcc -Wall -lm euler.c -o euler',
@@ -94,7 +94,7 @@ class AnsiCEulerExporter(myokit.formats.TemplatedRunnableExporter):
             '    plt.figure()',
             '    plt.plot(T, V)',
             '    plt.show()',
-        )
+        ))
 
     def _dir(self, root):
         return os.path.join(root, 'ansic', 'template')
@@ -138,7 +138,7 @@ class AnsiCCableExporter(myokit.formats.TemplatedRunnableExporter):
     At the boundaries, V is substituted for V_last or V_next.
     """
     def post_export_info(self):
-        return '\n'.join(
+        return '\n'.join((
             'To compile using gcc::',
             '',
             '    gcc -Wall -lm cable.c -o cable',
@@ -157,7 +157,7 @@ class AnsiCCableExporter(myokit.formats.TemplatedRunnableExporter):
             '    for i in range(0, n):',
             '        x.plot(d["time"], z*i, d.get(str(i) + "_V"))',
             '    plt.show()',
-        )
+        ))
 
     def _dir(self, root):
         return os.path.join(root, 'ansic', 'template')

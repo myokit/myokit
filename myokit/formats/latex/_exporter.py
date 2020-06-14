@@ -114,13 +114,13 @@ class PosterExporter(myokit.formats.Exporter):
         super(PosterExporter, self).__init__()
 
     def post_export_info(self):
-        return '\n'.join(
+        return '\n'.join((
             'To create a pdf using pdflatex::',
             '',
             '  pdflatex filename.tex',
             '',
             'This may require installing some latex packages.',
-        )
+        ))
 
     def model(self, path, model, protocol=None):
         """
