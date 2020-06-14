@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import warnings
 
 _line_width = 79
 
@@ -351,21 +352,24 @@ def mmt_export(exporter, source, target):
         print('Model read successfully')
 
     # Export model or runnable
-    if exporter.supports_model():
-        # Export model
-        print('Exporting model')
-        if name == 'cellml':
-            exporter.model(target, model, protocol)
+    with warnings.catch_warnings(record=True) as ws:
+        if exporter.supports_model():
+            # Export model
+            print('Exporting model')
+            if name == 'cellml':
+                exporter.model(target, model, protocol)
+            else:
+                exporter.model(target, model)
         else:
-            exporter.model(target, model)
-    else:
-        # Export runnable
-        print('Exporting runnable')
-        if protocol is None:
-            print('No protocol found.')
-        else:
-            print('Using embedded protocol.')
-        exporter.runnable(target, model, protocol)
+            # Export runnable
+            print('Exporting runnable')
+            if protocol is None:
+                print('No protocol found.')
+            else:
+                print('Using embedded protocol.')
+            exporter.runnable(target, model, protocol)
+    for w in ws:
+        print('Warning: ' + str(w.message))
     print('Export successful')
 
     info = exporter.post_export_info()
@@ -710,7 +714,10 @@ def mmt_import(importer, source, target=None):
     print(str(importer.__class__.__name__))
 
     # Import
-    model = importer.model(source)
+    with warnings.catch_warnings(record=True) as ws:
+        model = importer.model(source)
+    for w in ws:
+        print('Warning: ' + str(w.message))
 
     # Try to split off an embedded protocol
     protocol = myokit.lib.guess.remove_embedded_protocol(model)
