@@ -47,11 +47,6 @@ class CellMLExporterTest(unittest.TestCase):
         self.assertTrue(e.supports_model())
         self.assertFalse(e.supports_runnable())
 
-    def test_info(self):
-        # Test if the exporter implements info()
-        e = formats.exporter('cellml')
-        self.assertIsInstance(e.info(), basestring)
-
     def test_stimulus_generation(self):
         # Tests if protocols allow a stimulus current to be added
 
@@ -461,11 +456,6 @@ class CellMLImporterTest(unittest.TestCase):
         self.assertFalse(i.supports_component())
         self.assertTrue(i.supports_model())
         self.assertFalse(i.supports_protocol())
-
-    def test_info(self):
-        # Test if the importer implements info()
-        i = formats.importer('cellml')
-        self.assertIsInstance(i.info(), basestring)
 
     def test_model_1_0_dot(self):
         # This is beeler-reuter but with a dot() in an expression

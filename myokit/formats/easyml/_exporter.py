@@ -25,11 +25,6 @@ class EasyMLExporter(myokit.formats.Exporter):
     """ # noqa
     # To test the output, you'll need `$ limpet_fe.py model_file`
 
-    def info(self):
-        """ See :meth:`myokit.formats.Exporter.info()`. """
-        import inspect
-        return inspect.getdoc(self)
-
     def model(self, path, model):
         """
         Exports a :class:`myokit.Model` in EasyML format, writing the result to

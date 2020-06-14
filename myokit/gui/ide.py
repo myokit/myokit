@@ -482,7 +482,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 return
 
             e = myokit.formats.exporter(name)
-            e.logger().log(e.info())
             if not e.supports_model():
                 raise Exception('Exporter does not support export of model')
 
@@ -542,7 +541,9 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             try:
                 e.runnable(path, m, p)
                 msg = 'Export successful.'
-                e.logger().log(e.info())
+                info = e.post_export_info()
+                if info:
+                    self._console.write(info)
             except myokit.ExportError:
                 msg = 'Export failed.'
             self._console.write(msg + '\n' + e.logger().text())

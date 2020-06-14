@@ -64,11 +64,6 @@ class ChannelMLTest(unittest.TestCase):
         cs = [c for c in m.components()]
         self.assertEqual(len(cs), 2)
 
-    def test_info(self):
-        """ Test :meth:`ChannelMLImporter.info()`. """
-        i = myokit.formats.importer('channelml')
-        self.assertIsInstance(i.info(), basestring)
-
     def test_error_handling(self):
         """
         Test various errors when loading ChannelML files.

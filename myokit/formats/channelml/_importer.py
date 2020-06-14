@@ -85,9 +85,6 @@ class ChannelMLImporter(formats.Importer):
         """
         return self._parse(path, model)
 
-    def info(self):
-        return "Loads a channel model definition from a ChannelML file."
-
     def model(self, path):
         """
         Imports a ChannelML file from ``path`` and returns the channel as a

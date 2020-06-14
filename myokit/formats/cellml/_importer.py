@@ -15,15 +15,6 @@ import myokit.formats
 import myokit.mxml
 
 
-info = """
-Creates a myokit.Model definition from a CellML file.
-
-CellML versions 1.0, 1.1, and 2.0 are supported, though with some limitations
-(for full support information, see myokit.formats.cellml.v1.api.Model and
-myokit.formats.cellml.v2.api.Model).
-""".strip()
-
-
 class CellMLImporterError(myokit.ImportError):
     """
     Raised if an error occurs when importing CellML.
@@ -37,12 +28,6 @@ class CellMLImporter(myokit.formats.Importer):
     """
     def __init__(self, verbose=False):
         super(CellMLImporter, self).__init__()
-
-    def info(self):
-        """
-        Returns a string containing information about this importer.
-        """
-        return info
 
     def model(self, path):
         """

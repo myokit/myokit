@@ -35,10 +35,6 @@ class OpenCLExporter(myokit.formats.TemplatedRunnableExporter):
     """
     _use_rl = False
 
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
-
     def _dir(self, root):
         return os.path.join(root, 'opencl', 'template')
 

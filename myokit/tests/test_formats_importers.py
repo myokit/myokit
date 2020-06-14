@@ -63,10 +63,6 @@ class AxonTest(unittest.TestCase):
         self.assertTrue(i.supports_protocol())
         i.protocol(os.path.join(DIR_FORMATS, 'abf-v1.abf'))
 
-    def test_info(self):
-        i = formats.importer('abf')
-        self.assertIsInstance(i.info(), basestring)
-
 
 if __name__ == '__main__':
     unittest.main()
