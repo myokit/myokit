@@ -89,7 +89,7 @@ before_install:
 # Install Myokit and extra testing dependencies
 install:
   - pip install --upgrade pip;
-  - if [[ $MYOKIT_BASIC == true ]]; pip install .; else pip install .[optional]; fi;
+  - if [[ $MYOKIT_BASIC == true ]]; then pip install .; else pip install .[optional]; fi;
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then pip install .[dev]; fi;
   - if [[ $MYOKIT_DOC == true ]]; then pip install .[docs,gui]; fi;
