@@ -33,6 +33,10 @@ CellML Model API
 
 .. autoclass:: Units
 
+.. autoclass:: UnitsError
+
+.. autoclass:: UnsupportedUnitExponentError
+
 .. autoclass:: AnnotatableElement
 
 .. autoclass:: CellMLError

@@ -1962,9 +1962,9 @@ def format_parse_error(ex, source=None):
     if ex.line > 0 and source is not None:
         if isinstance(source, basestring) and os.path.isfile(source):
             # Re-open file, find line
-            f = open(source, 'r')
-            for i in range(0, ex.line):
-                line = next(f)
+            with open(source, 'r') as f:
+                for i in range(0, ex.line):
+                    line = next(f)
             line = line.rstrip()
         else:
             i = 0

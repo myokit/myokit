@@ -13,12 +13,6 @@ from __future__ import print_function, unicode_literals
 import myokit.formats
 
 
-info = """
-Loads a Model definition from an SBML file. Warning: Not all SBML features
-are supported.
-"""
-
-
 class SBMLImporter(myokit.formats.Importer):
     """
     This :class:`Importer <myokit.formats.Importer>` loads model definitions
@@ -27,10 +21,6 @@ class SBMLImporter(myokit.formats.Importer):
     def __init__(self):
         super(SBMLImporter, self).__init__()
 
-    def info(self):
-        """See :meth:`myokit.formats.Importer.info`."""
-        return info
-
     def supports_model(self):
         """See :meth:`myokit.formats.Importer.supports_model`."""
         return True
@@ -38,4 +28,4 @@ class SBMLImporter(myokit.formats.Importer):
     def model(self, path):
         """See :meth:`myokit.formats.Importer.model`."""
         parser = myokit.formats.sbml.SBMLParser()
-        return parser.parse_file(path, self.logger())
+        return parser.parse_file(path)

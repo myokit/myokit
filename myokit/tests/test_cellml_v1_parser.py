@@ -15,7 +15,7 @@ import myokit
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v1 as v1
 
-from shared import TemporaryDirectory, DIR_FORMATS
+from shared import TemporaryDirectory, DIR_FORMATS, WarningCollector
 
 # CellML directory
 DIR = os.path.join(DIR_FORMATS, 'cellml')
@@ -162,7 +162,8 @@ class TestCellMLParser(unittest.TestCase):
              '  <variable name="x" units="volt" public_interface="in" />'
              '</component>'
              '<component name="b">'
-             '  <variable name="y" units="volt" public_interface="out" />'
+             '  <variable name="y" units="volt" public_interface="out"'
+             '            initial_value="1" />'
              '</component>')
 
         # Parse valid connection
@@ -426,12 +427,12 @@ class TestCellMLParser(unittest.TestCase):
              '  <relationship_ref relationship="encapsulation" />'
              '  <component_ref component="a" />'
              '</group>')
-        self.assertBad(x + y, 'must have at least one child \(6.4.3.2\)')
+        self.assertBad(x + y, r'must have at least one child \(6.4.3.2\)')
         y = ('<group>'
              '  <relationship_ref relationship="containment" />'
              '  <component_ref component="a" />'
              '</group>')
-        self.assertBad(x + y, 'must have at least one child \(6.4.3.2\)')
+        self.assertBad(x + y, r'must have at least one child \(6.4.3.2\)')
 
         # But it's fine for extension types
         y = ('<group xmlns:x="x">'
@@ -597,9 +598,11 @@ class TestCellMLParser(unittest.TestCase):
         y = '<apply><eq /><ci>x</ci><cn cellml:units="vlop">-80</cn></apply>'
         self.assertBad(x + y + z, 'Unknown unit "vlop" referenced')
 
-        # Unsupported units
+        # Unsupported units: Warning
         y = '<apply><eq /><ci>x</ci><cn cellml:units="celsius">2</cn></apply>'
-        self.assertBad(x + y + z, 'Unsupported unit "celsius" referenced')
+        with WarningCollector() as w:
+            self.parse(x + y + z)
+        self.assertIn('celsius', w.text())
 
         # Items outside of MathML namespace
         y = '<cellml:component name="bertie" />'
@@ -778,9 +781,12 @@ class TestCellMLParser(unittest.TestCase):
 
         # Create mini model with 2 rdf tags and 3 annotations
         x = ('<component name="a">'
-             '  <variable name="x" units="volt" cmeta:id="x" />'
-             '  <variable name="y" units="volt" cmeta:id="yzie" />'
-             '  <variable name="z" units="volt" cmeta:id="zed" />'
+             '  <variable name="x" units="volt" cmeta:id="x"'
+             '            initial_value="1" />'
+             '  <variable name="y" units="volt" cmeta:id="yzie"'
+             '            initial_value="1" />'
+             '  <variable name="z" units="volt" cmeta:id="zed"'
+             '            initial_value="1" />'
              '</component>')
         y = r1
         y += d1a + 'x' + d1b + b1 + 'membrane_voltage' + b2 + d2
@@ -821,7 +827,8 @@ class TestCellMLParser(unittest.TestCase):
 
         # Model code
         x = ('<component name="a">'
-             '  <variable name="x" units="volt" cmeta:id="x" />'
+             '  <variable name="x" units="volt" cmeta:id="x"'
+             '            initial_value="1" />'
              '</component>')
 
         # Check that parser survives all kinds of half-formed annotations
@@ -943,11 +950,27 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(
             m.find_units('wooster').myokit_unit(), myokit.units.volt)
 
-        # Non-zero offsets are not supported
-        x = ('<units name="wooster">'
+        # Non-zero offsets are not supported: treated as dimensionless
+        x = ('<units name="nonzero">'
+             '  <unit units="meter" />'
              '  <unit units="volt" offset="0.1" />'
              '</units>')
-        self.assertBad(x, 'non-zero offsets are not supported')
+        with WarningCollector() as w:
+            m = self.parse(x)
+        self.assertIn('non-zero offsets are not supported', w.text())
+        self.assertEqual(
+            myokit.units.dimensionless, m.find_units('nonzero').myokit_unit())
+
+        # Non-integer exponents are not supported: treated as dimensionless
+        x = ('<units name="unsup">'
+             '  <unit units="meter" />'
+             '  <unit units="ampere" exponent="2.34" />'
+             '</units>')
+        with WarningCollector() as w:
+            m = self.parse(x)
+        self.assertIn('Non-integer', w.text())
+        self.assertEqual(
+            myokit.units.dimensionless, m.find_units('unsup').myokit_unit())
 
         # Offset must be a number
         x = ('<units name="wooster">'
@@ -966,6 +989,17 @@ class TestCellMLParser(unittest.TestCase):
              '  <unit />'
              '</units>')
         self.assertBad(x, 'must have a units attribute')
+
+        # Unsupported base units raise a warning, are treated as dimensionless
+        x = ('<units name="wooster">'
+             '  <unit units="meter" />'
+             '  <unit units="celsius" />'
+             '</units>')
+        with WarningCollector() as w:
+            m = self.parse(x)
+        self.assertIn('celsius', w.text())
+        self.assertEqual(
+            myokit.units.dimensionless, m.find_units('wooster').myokit_unit())
 
     def test_units(self):
         # Test parsing a units definition
@@ -987,8 +1021,12 @@ class TestCellMLParser(unittest.TestCase):
         self.assertBad(x, 'must be either "yes" or "no"')
 
         # New base units are not supported
-        x = '<units name="wooster" base_units="yes" />'
-        self.assertBad(x, 'Defining new base units is not supported')
+        x = '<units name="base" base_units="yes" />'
+        with WarningCollector() as w:
+            m = self.parse(x)
+        self.assertIn('new base unit', w.text())
+        self.assertEqual(
+            m.find_units('base').myokit_unit(), myokit.units.dimensionless)
 
         # CellML errors are converted to parse errors
         x = '<units name="123"><unit units="volt" /></units>'
@@ -1082,9 +1120,9 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(u('weber'), myokit.units.weber)
 
         # Celsius is not supported
-        self.assertRaisesRegex(
-            v1.CellMLParsingError, 'unsupported units "celsius"',
-            u, 'celsius')
+        with WarningCollector() as w:
+            self.assertEqual(u('celsius'), myokit.units.dimensionless)
+        self.assertIn('celsius', w.text())
 
     def test_variable(self):
         # Tests parsing variables
@@ -1103,6 +1141,17 @@ class TestCellMLParser(unittest.TestCase):
         x = '<component name="a"><variable name="1" units="volt"/></component>'
         self.assertBad(x, 'valid CellML identifier')
 
+        # Unsupported units are ignored
+        x = '<variable name="x" units="celsius" initial_value="3" />'
+        x = '<component name="a">' + x + '</component>'
+        with WarningCollector() as w:
+            x = self.parse(x)['a']['x']
+        self.assertIn('celsius', w.text())
+
+        self.assertEqual(x.units().myokit_unit(), myokit.units.dimensionless)
+
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()

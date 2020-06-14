@@ -124,12 +124,3 @@ obtain e.g. an :class:`Exporter` via
 
 .. autofunction:: register_external_ewriter
 
-Logging
-=======
-
-Importers and exporters maintain a log of their actions using the TextLogger
-class described below. If anything goes wrong, these logs should contain a
-more detailed error message than a simple exception.
-
-.. autoclass:: TextLogger
-

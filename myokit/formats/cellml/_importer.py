@@ -15,15 +15,6 @@ import myokit.formats
 import myokit.mxml
 
 
-info = """
-Creates a myokit.Model definition from a CellML file.
-
-CellML versions 1.0, 1.1, and 2.0 are supported, though with some limitations
-(for full support information, see myokit.formats.cellml.v1.api.Model and
-myokit.formats.cellml.v2.api.Model).
-""".strip()
-
-
 class CellMLImporterError(myokit.ImportError):
     """
     Raised if an error occurs when importing CellML.
@@ -38,12 +29,6 @@ class CellMLImporter(myokit.formats.Importer):
     def __init__(self, verbose=False):
         super(CellMLImporter, self).__init__()
 
-    def info(self):
-        """
-        Returns a string containing information about this importer.
-        """
-        return info
-
     def model(self, path):
         """
         Reads a CellML file and returns a:class:`myokit.Model`.
@@ -56,12 +41,6 @@ class CellMLImporter(myokit.formats.Importer):
             cellml.NS_CELLML_1_1: v1.CellMLParser,
             cellml.NS_CELLML_2_0: v2.CellMLParser,
         }
-
-        # Clear logger and warnings
-        log = self.logger()
-        log.clear()
-        log.clear_warnings()
-        log.log('Importing ' + str(path))
 
         # Open XML file
         try:
@@ -84,16 +63,9 @@ class CellMLImporter(myokit.formats.Importer):
         parser = parser()
 
         try:
-            # Parse CellML model
+            # Parse and validate CellML model
             cellml_model = parser.parse(root)
-
-            # Log warnings, if any
-            warnings = cellml_model.validate()
-            for warning in warnings:
-                log.warn(warning)
-
-            # Log result
-            log.log('Import successful.')
+            cellml_model.validate()
 
             # Create and return Myokit model
             return cellml_model.myokit_model()

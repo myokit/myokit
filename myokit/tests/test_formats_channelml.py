@@ -15,7 +15,7 @@ import myokit
 import myokit.formats
 import myokit.formats.channelml
 
-from shared import DIR_FORMATS
+from shared import DIR_FORMATS, WarningCollector
 
 # ChannelML dir
 DIR = os.path.join(DIR_FORMATS, 'channelml')
@@ -64,11 +64,6 @@ class ChannelMLTest(unittest.TestCase):
         cs = [c for c in m.components()]
         self.assertEqual(len(cs), 2)
 
-    def test_info(self):
-        """ Test :meth:`ChannelMLImporter.info()`. """
-        i = myokit.formats.importer('channelml')
-        self.assertIsInstance(i.info(), basestring)
-
     def test_error_handling(self):
         """
         Test various errors when loading ChannelML files.
@@ -98,13 +93,11 @@ class ChannelMLTest(unittest.TestCase):
             os.path.join(DIR, 'ch-04-no-cvr.channelml'))
 
         # Multiple current_voltage_relation elements
-        i.logger().clear_warnings()
-        self.assertEqual(len(list(i.logger().warnings())), 0)
-        m = i.model(os.path.join(DIR, 'ch-05-two-cvrs.channelml'))
+        with WarningCollector() as w:
+            m = i.model(os.path.join(DIR, 'ch-05-two-cvrs.channelml'))
         m.validate()
-        warnings = list(i.logger().warnings())
-        self.assertEqual(len(warnings), 1)
-        self.assertIn('Multiple current voltage relations', warnings[0])
+        self.assertEqual(w.count(), 1)
+        self.assertIn('Multiple current voltage relations', w.text())
 
         # No q10 information
         m = i.model(os.path.join(DIR, 'ch-06-no-q10.channelml'))
@@ -126,31 +119,27 @@ class ChannelMLTest(unittest.TestCase):
             os.path.join(DIR, 'ch-09-no-open-to-closed.channelml'))
 
         # Unreadable closed-to-open expression
-        i.logger().clear_warnings()
-        self.assertEqual(len(list(i.logger().warnings())), 0)
-        m = i.model(
-            os.path.join(DIR, 'ch-10-tco-bad-expression.channelml'))
+        with WarningCollector() as w:
+            m = i.model(
+                os.path.join(DIR, 'ch-10-tco-bad-expression.channelml'))
 
         # > RHS Should not be set
         self.assertRaises(myokit.MissingRhsError, m.validate)
 
         # > Warning should be generated
-        warnings = list(i.logger().warnings())
-        self.assertEqual(len(warnings), 1)
-        self.assertIn('expression for closed-to-open', warnings[0])
+        self.assertEqual(w.count(), 1)
+        self.assertIn('expression for closed-to-open', w.text())
 
         # > Unparsed expression should be in meta-data
         self.assertEqual('bort', m.get('Nav1_3.m.alpha').meta['expression'])
 
         # Unreadable open-to-closed expression
-        i.logger().clear_warnings()
-        self.assertEqual(len(list(i.logger().warnings())), 0)
-        m = i.model(
-            os.path.join(DIR, 'ch-11-toc-bad-expression.channelml'))
+        with WarningCollector() as w:
+            m = i.model(
+                os.path.join(DIR, 'ch-11-toc-bad-expression.channelml'))
         self.assertRaises(myokit.MissingRhsError, m.validate)
-        warnings = list(i.logger().warnings())
-        self.assertEqual(len(warnings), 1)
-        self.assertIn('expression for open-to-closed', warnings[0])
+        self.assertEqual(w.count(), 1)
+        self.assertIn('expression for open-to-closed', w.text())
         self.assertEqual('bort', m.get('Nav1_3.m.beta').meta['expression'])
 
         # No transitions or steady-state/time-course for a gate
@@ -162,25 +151,21 @@ class ChannelMLTest(unittest.TestCase):
             os.path.join(DIR, 'ch-13-no-time-course.channelml'))
 
         # Unreadable steady-state expression
-        i.logger().clear_warnings()
-        self.assertEqual(len(list(i.logger().warnings())), 0)
-        m = i.model(
-            os.path.join(DIR, 'ch-14-inf-bad-expression.channelml'))
+        with WarningCollector() as w:
+            m = i.model(
+                os.path.join(DIR, 'ch-14-inf-bad-expression.channelml'))
         self.assertRaises(myokit.MissingRhsError, m.validate)
-        warnings = list(i.logger().warnings())
-        self.assertEqual(len(warnings), 1)
-        self.assertIn('expression for steady state', warnings[0])
+        self.assertEqual(w.count(), 1)
+        self.assertIn('expression for steady state', w.text())
         self.assertEqual('mill', m.get('Nav1_3.h.inf').meta['expression'])
 
         # Unreadable time-constant expression
-        i.logger().clear_warnings()
-        self.assertEqual(len(list(i.logger().warnings())), 0)
-        m = i.model(
-            os.path.join(DIR, 'ch-15-tau-bad-expression.channelml'))
+        with WarningCollector() as w:
+            m = i.model(
+                os.path.join(DIR, 'ch-15-tau-bad-expression.channelml'))
         self.assertRaises(myokit.MissingRhsError, m.validate)
-        warnings = list(i.logger().warnings())
-        self.assertEqual(len(warnings), 1)
-        self.assertIn('expression for time course', warnings[0])
+        self.assertEqual(w.count(), 1)
+        self.assertIn('expression for time course', w.text())
         self.assertEqual('house', m.get('Nav1_3.h.tau').meta['expression'])
 
         # No gates
@@ -189,14 +174,12 @@ class ChannelMLTest(unittest.TestCase):
             os.path.join(DIR, 'ch-16-no-gates.channelml'))
 
         # Invalid name
-        i.logger().clear_warnings()
-        self.assertEqual(len(list(i.logger().warnings())), 0)
-        m = i.model(
-            os.path.join(DIR, 'ch-17-invalid-name.channelml'))
+        with WarningCollector() as w:
+            m = i.model(
+                os.path.join(DIR, 'ch-17-invalid-name.channelml'))
         m.validate()
-        warnings = list(i.logger().warnings())
-        self.assertEqual(len(warnings), 1)
-        self.assertIn('Invalid name', warnings[0])
+        self.assertEqual(w.count(), 1)
+        self.assertIn('Invalid name', w.text())
 
     def test_c_style_if(self):
         """ Test parsing of a c-style cond?then:else expression. """

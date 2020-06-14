@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import warnings
 
 _line_width = 79
 
@@ -333,45 +334,47 @@ def mmt_export(exporter, source, target):
     # Get exporter
     name = exporter
     exporter = myokit.formats.exporter(name)
-
-    # Set to auto-print
-    logger = exporter.logger()
-    logger.set_live(True)
-    logger.log_flair(str(exporter.__class__.__name__))
+    print(str(exporter.__class__.__name__))
 
     # Parse input file
     try:
-        logger.log('Reading model from ' + myokit.format_path(source))
+        print('Reading model from ' + myokit.format_path(source))
         model, protocol, script = myokit.load(source)
     except myokit.ParseError as ex:
-        logger.log(myokit.format_parse_error(ex, source))
+        print(myokit.format_parse_error(ex, source))
         sys.exit(1)
 
     # Must have model
     if model is None:
-        logger.log('Error: Imported file must contain model definition.')
+        print('Error: Imported file must contain model definition.')
         sys.exit(1)
     else:
-        logger.log('Model read successfully')
+        print('Model read successfully')
 
     # Export model or runnable
-    if exporter.supports_model():
-        # Export model
-        logger.log('Exporting model')
-        if name == 'cellml':
-            exporter.model(target, model, protocol)
+    with warnings.catch_warnings(record=True) as ws:
+        if exporter.supports_model():
+            # Export model
+            print('Exporting model')
+            if name == 'cellml':
+                exporter.model(target, model, protocol)
+            else:
+                exporter.model(target, model)
         else:
-            exporter.model(target, model)
-    else:
-        # Export runnable
-        logger.log('Exporting runnable')
-        if protocol is None:
-            logger.log('No protocol found.')
-        else:
-            logger.log('Using embedded protocol.')
-        exporter.runnable(target, model, protocol)
-    logger.log_flair('Export successful')
-    logger.log(exporter.info())
+            # Export runnable
+            print('Exporting runnable')
+            if protocol is None:
+                print('No protocol found.')
+            else:
+                print('Using embedded protocol.')
+            exporter.runnable(target, model, protocol)
+    for w in ws:
+        print('Warning: ' + str(w.message))
+    print('Export successful')
+
+    info = exporter.post_export_info()
+    if info:
+        print(info)
 
 
 def add_export_parser(subparsers):
@@ -708,20 +711,13 @@ def mmt_import(importer, source, target=None):
 
     # Get importer
     importer = myokit.formats.importer(importer)
-
-    # Get logger
-    logger = importer.logger()
-
-    # If a target is specified, set the importer to live logging mode
-    if target:
-        logger.set_live(True)
-    logger.log_flair(str(importer.__class__.__name__))
+    print(str(importer.__class__.__name__))
 
     # Import
-    model = importer.model(source)
-
-    # Print any warnings
-    logger.log_warnings()
+    with warnings.catch_warnings(record=True) as ws:
+        model = importer.model(source)
+    for w in ws:
+        print('Warning: ' + str(w.message))
 
     # Try to split off an embedded protocol
     protocol = myokit.lib.guess.remove_embedded_protocol(model)
@@ -736,9 +732,9 @@ def mmt_import(importer, source, target=None):
     # If a target is specified, save the output
     if target:
         # Save or output model to new location
-        logger.log('Saving output to ' + str(target))
+        print('Saving output to ' + str(target))
         myokit.save(target, model, protocol, script)
-        logger.log('Done.')
+        print('Done.')
     else:
         # Write it to screen
         print(myokit.save(None, model, protocol, script))
@@ -1418,7 +1414,7 @@ def test_documentation(args):
     ok = test_doc_coverage_index(modules, classes, functions)
 
     # Check if they're all shown somewhere
-    ok = ok and test_doc_coverage(classes, functions)
+    ok = test_doc_coverage(classes, functions) and ok
 
     # Terminate if failed
     if not ok:
@@ -1858,8 +1854,13 @@ def test_unit(args=None):
     import os
     import sys
     import unittest
+    import warnings
 
     print('Running tests with ' + sys.executable)
+
+    # Don't hide repeat warnings: This makes it possible to check that warnings
+    # are being raised in a consistent manner.
+    warnings.simplefilter('always')
 
     if test_in_repo():
         path = os.path.join('myokit', 'tests')

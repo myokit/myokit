@@ -175,14 +175,38 @@ class CellMLError(myokit.MyokitError):
     """
 
 
-class UnsupportedUnitsError(CellMLError):
+class UnitsError(CellMLError):
     """
-    Raised when unsupported units are used.
+    Raised when unsupported unit features are used.
+    """
+
+
+class UnsupportedBaseUnitsError(UnitsError):
+    """
+    Raised when unsupported base units are used.
     """
     def __init__(self, units):
         self.units = units
-        super(UnsupportedUnitsError, self).__init__(
-            'Unsupported units "' + units + '".')
+        super(UnsupportedBaseUnitsError, self).__init__(
+            'Unsupported base units "' + units + '".')
+
+
+class UnsupportedUnitExponentError(UnitsError):
+    """
+    Raised when units with non-integer exponents are used.
+    """
+    def __init__(self):
+        super(UnsupportedUnitExponentError, self).__init__(
+            'Non-integer unit exponents are not supported.')
+
+
+class UnsupportedUnitOffsetError(UnitsError):
+    """
+    Raised when units with non-zero offsets are used.
+    """
+    def __init__(self):
+        super(UnsupportedUnitOffsetError, self).__init__(
+            'Units with non-zero offsets are not supported.')
 
 
 class Component(AnnotatableElement):
@@ -369,7 +393,7 @@ class Component(AnnotatableElement):
         """
         return iter(self._units.values())
 
-    def _validate(self, warnings):
+    def _validate(self):
         """
         Validates this component, raising a :class:`CellMLError` if any errors
         are found.
@@ -384,7 +408,7 @@ class Component(AnnotatableElement):
 
         # Validate variables
         for v in self._variables.values():
-            v._validate(warnings)
+            v._validate()
 
         # If this component has states, check that it also has a free variable
         # in the local component.
@@ -429,7 +453,7 @@ class Model(AnnotatableElement):
 
     Support notes for 1.0 and 1.1:
 
-    - Units that require an offset (celsius and fahrenheit) are not supported.
+    - Units with offsets are not supported, including the base units "celsius".
     - Units with a non-integer exponent are not supported.
     - Defining new base units is not supported.
     - Reactions are not supported.
@@ -1111,15 +1135,10 @@ class Model(AnnotatableElement):
         """
         Validates this model, raising a :class:`CellMLError` if an errors are
         found.
-
-        Returns a list of warnings generated during validation.
         """
-        # Warnings
-        warnings = []
-
         # Validate components and variables
         for c in self._components.values():
-            c._validate(warnings)
+            c._validate()
 
         # Check at most one variable doesn't have a source (one free variable
         # is allowed)
@@ -1131,18 +1150,15 @@ class Model(AnnotatableElement):
                         free.add(v)
 
         if len(free) > 1:
-            warnings.append('More than one variable does not have a value.')
+            warnings.warn('More than one variable does not have a value.')
 
         elif self._free_variable is not None and len(free) == 1:
             free = free.pop()
             if self._free_variable is not free:
-                warnings.append(
+                warnings.warn(
                     'No value is defined for the variable "'
                     + free.name() + '", but "' + self._free_variable.name()
                     + '" is listed as the free variable.')
-
-        # Return warnings
-        return warnings
 
     def version(self):
         """
@@ -1195,7 +1211,7 @@ class Units(object):
         """
         # Check for unsupported units
         if name == 'celsius':
-            raise UnsupportedUnitsError('celsius')
+            raise UnsupportedBaseUnitsError('celsius')
 
         # Check if we have a cached object for this
         obj = cls._si_unit_objects.get(name, None)
@@ -1308,8 +1324,7 @@ class Units(object):
                 raise CellMLError(
                     'Unit exponent must be a real number (5.4.2.4).')
             if not myokit._feq(e, int(e)):
-                raise CellMLError(
-                    'Non-integer unit exponents are not supported.')
+                raise UnsupportedUnitExponentError
 
             # Apply exponent to unit
             unit **= int(e)
@@ -1473,10 +1488,10 @@ class Variable(AnnotatableElement):
         # Check and store units
         try:
             self._units = component.find_units(units)
-        except UnsupportedUnitsError as e:
-            raise UnsupportedUnitsError(
-                'Variable units attribute references the unsupported units'
-                ' "' + e.units + '".')
+        except UnsupportedBaseUnitsError as e:
+            raise UnsupportedBaseUnitsError(
+                'Variable units attribute references the unsupported base'
+                ' units "' + e.units + '".')
         except CellMLError:
             raise CellMLError(
                 'Variable units attribute must reference a units element in'
@@ -1693,7 +1708,7 @@ class Variable(AnnotatableElement):
         """
         return self._units
 
-    def _validate(self, warnings):
+    def _validate(self):
         """
         Validates this variable, raising a :class:`CellMLError` if any errors
         are found.
@@ -1703,7 +1718,7 @@ class Variable(AnnotatableElement):
         if self._public_interface == 'in' or self._private_interface == 'in':
             i = 'public' if self._public_interface == 'in' else 'private'
             if self._source is None:
-                warnings.append(
+                warnings.warn(
                     str(self) + ' has ' + i + '_interface="in", but is not'
                     ' connected to a variable with an appropriate "out"')
 
@@ -1711,7 +1726,7 @@ class Variable(AnnotatableElement):
         elif self._is_state:
 
             if self._initial_value is None:
-                warnings.append(
+                warnings.warn(
                     'State ' + str(self) + ' has no initial value.')
 
             if self._rhs is None:
@@ -1721,7 +1736,7 @@ class Variable(AnnotatableElement):
         # Check that other variables define a value
         elif self._rhs is None:
             if self._initial_value is None and not self._is_free:
-                warnings.append('No value set for ' + str(self) + '.')
+                warnings.warn('No value set for ' + str(self) + '.')
 
         # And only one value
         elif self._initial_value is not None:

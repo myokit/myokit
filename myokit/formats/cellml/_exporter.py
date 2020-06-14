@@ -10,15 +10,7 @@ from __future__ import print_function, unicode_literals
 import myokit
 import myokit.lib.guess
 
-
-info = """
-Generates a CellML model.
-
-Supports versions 1.0, 1.1, and 2.0.
-
-Along with the model, an optional pacing protocol can be passed in that will be
-embedded in the model code.
-""".strip()
+import warnings
 
 
 class CellMLExporter(myokit.formats.Exporter):
@@ -27,9 +19,6 @@ class CellMLExporter(myokit.formats.Exporter):
     """
     def __init__(self):
         super(CellMLExporter, self).__init__()
-
-    def info(self):
-        return info
 
     def model(self, path, model, protocol=None, version='1.0'):
         """
@@ -58,24 +47,15 @@ class CellMLExporter(myokit.formats.Exporter):
             raise ValueError(
                 'Only versions 1.0, 1.1, and 2.0 are supported.')
 
-        # Clear log
-        log = self.logger()
-        log.clear()
-        log.clear_warnings()
-        log.log('Exporting model to CellML ' + version + '...')
-
         # Embed protocol
         if protocol is not None:
             model = model.clone()
-            if myokit.lib.guess.add_embedded_protocol(model, protocol):
-                log.log('Added embedded stimulus protocol.')
-            else:
-                log.warn('Unable to embed stimulus protocol.')
+            if not myokit.lib.guess.add_embedded_protocol(model, protocol):
+                warnings.warn('Unable to embed stimulus protocol.')
 
         # Export
         cellml_model = cellml.Model.from_myokit_model(model, version)
         cellml.write_file(path, cellml_model)
-        log.log('Model written to ' + str(path))
 
     def supports_model(self):
         """
@@ -88,9 +68,6 @@ class CellML1Exporter(CellMLExporter):
     """
     This:class:`Exporter <myokit.formats.Exporter>` creates a CellML 1.0 model.
     """
-    def info(self):
-        return 'Exports to CellML 1.0.'
-
     def model(self, path, model, protocol=None):
         super(CellML1Exporter, self).model(path, model, protocol, '1.0')
 
@@ -99,9 +76,6 @@ class CellML2Exporter(CellMLExporter):
     """
     This:class:`Exporter <myokit.formats.Exporter>` creates a CellML 2.0 model.
     """
-    def info(self):
-        return 'Exports to CellML 2.0.'
-
     def model(self, path, model, protocol=None):
         super(CellML2Exporter, self).model(path, model, protocol, '2.0')
 

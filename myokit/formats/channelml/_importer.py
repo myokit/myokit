@@ -12,6 +12,8 @@ import textwrap
 import xml.dom
 import xml.dom.minidom
 
+import warnings
+
 try:
     # Python 2
     from cStringIO import StringIO
@@ -82,9 +84,6 @@ class ChannelMLImporter(formats.Importer):
         The created :class:`myokit.Component` is returned.
         """
         return self._parse(path, model)
-
-    def info(self):
-        return "Loads a channel model definition from a ChannelML file."
 
     def model(self, path):
         """
@@ -169,7 +168,7 @@ class ChannelMLImporter(formats.Importer):
             raise ChannelMLError(
                 'Channel model must contain a current voltage relation.')
         elif len(cvr) > 1:
-            self.logger().warn(
+            warnings.warn(
                 'Multiple current voltage relations found, ignoring all but'
                 ' first.')
         cvr = cvr[0]
@@ -249,7 +248,7 @@ class ChannelMLImporter(formats.Importer):
                 try:
                     tcovar.set_rhs(self._parse_expression(expr, tcovar))
                 except myokit.ParseError as e:
-                    self.logger().warn(
+                    warnings.warn(
                         'Error parsing expression for closed-to-open'
                         ' transition in gate <' + gname + '>: '
                         + myokit.format_parse_error(e))
@@ -262,7 +261,7 @@ class ChannelMLImporter(formats.Importer):
                 try:
                     tocvar.set_rhs(self._parse_expression(expr, tocvar))
                 except myokit.ParseError as e:
-                    self.logger().warn(
+                    warnings.warn(
                         'Error parsing expression for open-to-closed'
                         ' transition in gate <' + gname + '>: '
                         + myokit.format_parse_error(e))
@@ -291,7 +290,7 @@ class ChannelMLImporter(formats.Importer):
                 try:
                     ssvar.set_rhs(self._parse_expression(expr, ssvar))
                 except myokit.ParseError as e:
-                    self.logger().warn(
+                    warnings.warn(
                         'Error parsing expression for steady state in gate <'
                         + gname + '>: ' + myokit.format_parse_error(e))
                     ssvar.meta['expression'] = str(expr)
@@ -303,7 +302,7 @@ class ChannelMLImporter(formats.Importer):
                 try:
                     tcvar.set_rhs(self._parse_expression(expr, tcvar))
                 except myokit.ParseError as e:
-                    self.logger().warn(
+                    warnings.warn(
                         'Error parsing expression for time course in gate <'
                         + gname + '>: ' + myokit.format_parse_error(e))
                     tcvar.meta['expression'] = str(expr)
@@ -424,7 +423,7 @@ class ChannelMLImporter(formats.Importer):
         try:
             myokit.check_name(name)
         except myokit.InvalidNameError as e:
-            self.logger().warn('Invalid name: ' + str(e))
+            warnings.warn('Invalid name: ' + str(e))
             self.generated_name_index += 1
             name = 'generated_name_' + str(self.generated_name_index)
         return name

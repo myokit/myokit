@@ -2039,8 +2039,9 @@ class _Worker(multiprocessing.Process):
         # Worker processes should never write to stdout or stderr.
         # This can lead to unsafe situations if they have been redicted to
         # a GUI task such as writing to the IDE console.
-        sys.stdout = open(os.devnull, 'w')
-        sys.stderr = open(os.devnull, 'w')
+        stdout, stderr = sys.stdout, sys.stderr
+        sys.stdout = fout = open(os.devnull, 'w')
+        sys.stderr = ferr = open(os.devnull, 'w')
         try:
             for k in range(self._max_tasks):
                 i, x = self._tasks.get()
@@ -2054,6 +2055,10 @@ class _Worker(multiprocessing.Process):
         except (Exception, KeyboardInterrupt, SystemExit):
             self._errors.put((self.pid, traceback.format_exc()))
             self._error.set()
+        finally:
+            sys.stdout, sys.stderr = stdout, stderr
+            fout.close()
+            ferr.close()
 
 
 def xnes(

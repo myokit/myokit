@@ -9,6 +9,7 @@ from __future__ import print_function, unicode_literals
 
 import collections
 import re
+import warnings
 
 import myokit
 
@@ -160,6 +161,21 @@ class CellMLError(myokit.MyokitError):
     """
 
 
+class UnitsError(CellMLError):
+    """
+    Raised when unsupported unit features are used.
+    """
+
+
+class UnsupportedUnitExponentError(UnitsError):
+    """
+    Raised when units with non-integer exponents are used.
+    """
+    def __init__(self):
+        super(UnsupportedUnitExponentError, self).__init__(
+            'Units with non-integer exponents are not supported.')
+
+
 class Component(AnnotatableElement):
     """
     Represents a model component; should not be created directly but only via
@@ -272,7 +288,7 @@ class Component(AnnotatableElement):
     def __str__(self):
         return 'Component[@name="' + self._name + '"]'
 
-    def _validate(self, warnings):
+    def _validate(self):
         """
         Validates this component, raising a :class:`CellMLError` if any errors
         are found.
@@ -984,15 +1000,11 @@ class Model(AnnotatableElement):
         """
         Validates this model, raising a :class:`CellMLError` if an errors are
         found.
-
-        Returns a list of warnings generated during validation.
         """
-        # Warnings
-        warnings = []
 
         # Validate components and variables
         for c in self._components.values():
-            c._validate(warnings)
+            c._validate()
 
         # Collect all connected variable sets for validation
         csets = set()
@@ -1004,18 +1016,18 @@ class Model(AnnotatableElement):
         free = set()
         for cset in csets:
             # Validate cset
-            cset._validate(warnings)
+            cset._validate()
 
             # Check if free
             if cset.equation() is None and cset.initial_value() is None:
                 free.add(cset)
                 if self._voi not in cset:
                     for var in cset:
-                        warnings.append('No value set for ' + str(var) + '.')
+                        warnings.warn('No value set for ' + str(var) + '.')
 
         # Check that there's at most one free variable.
         if len(free) > 1:
-            warnings.append('More than one variable does not have a value.')
+            warnings.warn('More than one variable does not have a value.')
 
         # Check that the variable of integration is a free variable
         voi = self.variable_of_integration()
@@ -1035,9 +1047,6 @@ class Model(AnnotatableElement):
                 else:
                     msg += 'initial value (set by ' + str(var) + ').'
             raise CellMLError(msg)
-
-        # Return warnings
-        return warnings
 
     def variable_of_integration(self):
         """
@@ -1219,8 +1228,7 @@ class Units(object):
 
             # Only integers are supported by Myokit
             if not myokit._feq(e, int(e)):
-                raise CellMLError(
-                    'Non-integer unit exponents are not supported.')
+                raise UnsupportedUnitExponentError
 
             # Apply exponent to unit
             unit **= int(e)
@@ -1776,7 +1784,7 @@ class ConnectedVariableSet(object):
         self._initial_value = value
         self._initial_value_variable = None if value is None else variable
 
-    def _validate(self, warnings):
+    def _validate(self):
         """
         Validates this variable set, raising a CellMLError if errors are found.
         """

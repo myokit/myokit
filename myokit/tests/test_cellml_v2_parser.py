@@ -14,7 +14,7 @@ import unittest
 import myokit
 import myokit.formats.cellml.v2 as v2
 
-from shared import TemporaryDirectory, DIR_FORMATS
+from shared import TemporaryDirectory, DIR_FORMATS, WarningCollector
 
 # CellML directory
 DIR = os.path.join(DIR_FORMATS, 'cellml')
@@ -510,7 +510,7 @@ class TestCellMLParser(unittest.TestCase):
         # Tests for overdefined variables
 
         # Initial value and equation for state
-        x = ('<component name="a">'
+        x = ('<component name="overdefined">'
              '  <variable name="time" units="dimensionless" />'
              '  <variable name="x" units="dimensionless" initial_value="2" />'
              '  <math xmlns="http://www.w3.org/1998/Math/MathML">')
@@ -528,12 +528,15 @@ class TestCellMLParser(unittest.TestCase):
         z = ('  </math>'
              '</component>')
         m = self.parse(x + a + z)
-        v = m['a']['x']
+        v = m['overdefined']['x']
         self.assertEqual(v.rhs(), myokit.Number(3))
         self.assertEqual(v.initial_value(), myokit.Number(2))
 
         # Initial value and equation for a non-state
         b = ('    <apply>'
+             '      <eq /><ci>time</ci><cn cellml:units="dimensionless">1</cn>'
+             '    </apply>'
+             '    <apply>'
              '      <eq /><ci>x</ci><cn cellml:units="dimensionless">2</cn>'
              '    </apply>')
         self.assertBad(x + b + z, 'equation and an initial value')
@@ -618,22 +621,29 @@ class TestCellMLParser(unittest.TestCase):
              '</units>')
         self.assertBad(x, 'must have a units attribute')
 
+        # Non-integer exponents are not supported: treated as dimensionless
+        x = ('<units name="unsup">'
+             '  <unit units="volt" />'
+             '  <unit units="ampere" exponent="2.34" />'
+             '</units>')
+        with WarningCollector() as w:
+            m = self.parse(x)
+        self.assertIn('non-integer exponent', w.text())
+        self.assertEqual(
+            myokit.units.dimensionless, m.find_units('unsup').myokit_unit())
+
     def test_units(self):
         # Test parsing a units definition
 
         # Valid has already been testsed
 
-        # Base units attribute is allowed be no
-        x = ('<units name="wooster" base_units="no">'
-             '  <unit units="volt" />'
-             '</units>')
-        m = self.parse(x)
-        self.assertEqual(
-            m.find_units('wooster').myokit_unit(), myokit.units.volt)
-
         # New base units are not supported
-        x = '<units name="wooster" />'
-        self.assertBad(x, 'Defining new base units is not supported')
+        x = '<units name="base" />'
+        with WarningCollector() as w:
+            m = self.parse(x)
+        self.assertIn('new base units', w.text())
+        self.assertEqual(
+            m.find_units('base').myokit_unit(), myokit.units.dimensionless)
 
         # CellML errors are converted to parse errors
         x = '<units name="123"><unit units="volt" /></units>'
@@ -707,8 +717,6 @@ class TestCellMLParser(unittest.TestCase):
     def test_variable(self):
         # Tests parsing variables
 
-        # Valid has already been tested
-
         # Must have a name
         x = '<component name="a"><variable units="volt"/></component>'
         self.assertBad(x, 'must have a name attribute')
@@ -718,9 +726,12 @@ class TestCellMLParser(unittest.TestCase):
         self.assertBad(x, 'must have a units attribute')
 
         # CellML errors are converted to parsing errors
-        x = '<component name="a"><variable name="1" units="volt"/></component>'
+        x = '<variable name="1" units="volt"/>'
+        x = '<component name="a">' + x + '</component>'
         self.assertBad(x, 'valid CellML identifier')
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()

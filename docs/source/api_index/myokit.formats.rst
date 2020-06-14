@@ -16,7 +16,6 @@ myokit.formats
 - :meth:`myokit.formats.register_external_importer`
 - :meth:`myokit.formats.register_external_exporter`
 - :class:`myokit.formats.TemplatedRunnableExporter`
-- :class:`myokit.formats.TextLogger`
 
 myokit.formats.ansic
 --------------------
@@ -65,7 +64,10 @@ myokit.formats.cellml.v1
 - :meth:`myokit.formats.cellml.v1.parse_file`
 - :meth:`myokit.formats.cellml.v1.parse_string`
 - :class:`myokit.formats.cellml.v1.Units`
-- :class:`myokit.formats.cellml.v1.UnsupportedUnitsError`
+- :class:`myokit.formats.cellml.v1.UnitsError`
+- :class:`myokit.formats.cellml.v1.UnsupportedBaseUnitsError`
+- :class:`myokit.formats.cellml.v1.UnsupportedUnitExponentError`
+- :class:`myokit.formats.cellml.v1.UnsupportedUnitOffsetError`
 - :class:`myokit.formats.cellml.v1.Variable`
 - :meth:`myokit.formats.cellml.v1.write_file`
 - :meth:`myokit.formats.cellml.v1.write_string`
@@ -88,6 +90,8 @@ myokit.formats.cellml.v2
 - :meth:`myokit.formats.cellml.v2.parse_file`
 - :meth:`myokit.formats.cellml.v2.parse_string`
 - :class:`myokit.formats.cellml.v2.Units`
+- :class:`myokit.formats.cellml.v2.UnitsError`
+- :class:`myokit.formats.cellml.v2.UnsupportedUnitExponentError`
 - :class:`myokit.formats.cellml.v2.Variable`
 - :meth:`myokit.formats.cellml.v2.write_file`
 - :meth:`myokit.formats.cellml.v2.write_string`
@@ -110,7 +114,6 @@ myokit.formats.cuda
 - :class:`myokit.formats.cuda.CudaExpressionWriter`
 - :meth:`myokit.formats.cuda.exporters`
 - :meth:`myokit.formats.cuda.ewriters`
-
 
 myokit.formats.easyml
 ---------------------

@@ -235,8 +235,8 @@ class ExpressionTest(unittest.TestCase):
         # Tests __str__ and __repr__
 
         x = myokit.Plus(myokit.Number(1), myokit.Number(2))
-        self.assertEquals(str(x), '1 + 2')
-        self.assertEquals(repr(x), 'myokit.Expression[1 + 2]')
+        self.assertEqual(str(x), '1 + 2')
+        self.assertEqual(repr(x), 'myokit.Expression[1 + 2]')
 
     def test_tree_str(self):
         # Test :meth:`Expression.tree_str()`.

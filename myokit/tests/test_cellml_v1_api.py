@@ -9,10 +9,11 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import unittest
-import warnings
 
 import myokit
 import myokit.formats.cellml.v1 as cellml
+
+from shared import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -162,8 +163,8 @@ class TestCellML1Component(unittest.TestCase):
 
         # Test creating a variable with celsius
         c = cellml.Model('m').add_component('c')
-        self.assertRaisesRegex(
-            cellml.UnsupportedUnitsError, 'celsius',
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
             c.add_variable, 'v', 'celsius')
 
         # Rest of creation is tested in variable test
@@ -509,20 +510,19 @@ class TestCellML1Model(unittest.TestCase):
         c = m.add_component('c')
         x = c.add_variable('x', 'mole')
         y = c.add_variable('y', 'liter')
-        warn = m.validate()
-        warn = '\n'.join(warn)
-        self.assertIn('No value set for Variable[@name="x"]', warn)
-        self.assertIn('No value set for Variable[@name="y"]', warn)
-        self.assertIn('More than one variable does not have a value', warn)
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('No value set for Variable[@name="x"]', w.text())
+        self.assertIn('No value set for Variable[@name="y"]', w.text())
+        self.assertIn('More than one variable does not have a value', w.text())
 
         # Free variable has a value, but other value does not
         x.set_initial_value(0.1)
-        m.validate()
         m.set_free_variable(x)
-        warn = m.validate()
-        warn = '\n'.join(warn)
-        self.assertIn('No value set for Variable[@name="y"]', warn)
-        self.assertIn('No value is defined for the variable "y"', warn)
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('No value set for Variable[@name="y"]', w.text())
+        self.assertIn('No value is defined for the variable "y"', w.text())
 
         # Free variable must be known if state is used
         y.set_rhs(myokit.Name(x))
@@ -703,8 +703,9 @@ class TestCellML1ModelConversion(unittest.TestCase):
         # Test evaluating states of model
         m = myokit.load_model('example')
         cm = cellml.Model.from_myokit_model(m)
-        warnings = cm.validate()
-        self.assertEqual(len(warnings), 0)
+        with WarningCollector() as w:
+            cm.validate()
+        self.assertFalse(w.has_warnings())
 
         # Recreate myokit model and test states
         mm = cm.myokit_model()
@@ -942,11 +943,10 @@ class TestCellML1ModelConversion(unittest.TestCase):
         by.set_rhs(myokit.Name(bx))
 
         # Convert and check warning was raised
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             m = cm.myokit_model()
-        text = '\n'.join([str(warning) for warning in c])
         self.assertIn(
-            'Unable to determine unit conversion factor for b.x', text)
+            'Unable to determine unit conversion factor for b.x', w.text())
 
         # Check variable RHS
         ax, bx, by = m.get('a.x'), m.get('b.x'), m.get('b.y')
@@ -1192,8 +1192,9 @@ class TestCellML1Variable(unittest.TestCase):
         bt = b.add_variable('toim', 'dimensionless', 'in')
         m.add_connection(t, bt)
 
-        warn = m.validate()
-        self.assertIn('not connected', warn[0])
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('not connected', w.text())
 
         # States must define two values
         m.add_connection(ax, bx)
@@ -1204,8 +1205,9 @@ class TestCellML1Variable(unittest.TestCase):
         bx.set_rhs(myokit.Number(1, 'meter'))
         m.validate()
         bx.set_initial_value(None)
-        warn = m.validate()
-        self.assertIn('has no initial value', warn[0])
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('has no initial value', w.text())
 
 
 class TestCellML1Units(unittest.TestCase):
@@ -1243,8 +1245,8 @@ class TestCellML1Units(unittest.TestCase):
             cellml.Units.find_units, 'wooster')
 
         # Test lookup of unsupported units
-        self.assertRaisesRegex(
-            cellml.UnsupportedUnitsError, 'celsius',
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
             cellml.Units.find_units, 'celsius')
 
     def test_myokit_unit(self):
@@ -1282,7 +1284,17 @@ class TestCellML1Units(unittest.TestCase):
             cellml.Units.parse_unit_row, 'wooster')
         self.assertRaisesRegex(
             cellml.CellMLError, 'Unknown units name',
-            cellml.Units.parse_unit_row, 'muppet', context=m)
+            cellml.Units.parse_unit_row, 'muppet', context=c)
+
+        # Unsupported base unit
+        u = cellml.Units.parse_unit_row(
+            'meter', prefix='milli', exponent=2, multiplier=1.234)
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
+            cellml.Units.parse_unit_row, 'celsius')
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
+            cellml.Units.parse_unit_row, 'celsius', context=c)
 
         # Test prefixes
         u = cellml.Units.parse_unit_row('meter', 'micro')
@@ -1313,8 +1325,8 @@ class TestCellML1Units(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'must be a real number',
             cellml.Units.parse_unit_row, 'meter', exponent='bert')
-        self.assertRaisesRegex(
-            cellml.CellMLError, 'Non-integer unit exponents',
+        self.assertRaises(
+            cellml.UnsupportedUnitExponentError,
             cellml.Units.parse_unit_row, 'meter', exponent=1.23)
 
         # Test multiplier
@@ -1568,4 +1580,6 @@ class TestCellML1Methods(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()

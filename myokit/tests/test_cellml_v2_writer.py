@@ -14,7 +14,7 @@ import unittest
 import myokit
 import myokit.formats.cellml.v2 as cellml
 
-from shared import TemporaryDirectory
+from shared import TemporaryDirectory, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -213,6 +213,10 @@ class TestCellMLWriter(unittest.TestCase):
         p = c.add_variable('p', 'ampere')
         s = c.add_variable('s', 'kilogram')
         q = c.add_variable('q', 'mole')
+        r.set_initial_value(1)
+        p.set_initial_value(2)
+        q.set_initial_value(3)
+        s.set_initial_value(4)
 
         xml = cellml.write_string(m)
         reg = re.compile(b'<variable [^>]*name="[\w]+"')
@@ -262,8 +266,9 @@ class TestCellMLWriter(unittest.TestCase):
         r = c.add_variable('r', 'ampere', interface='private')
         p.set_initial_value(1)
 
-        xml = cellml.write_string(m1)
-        m2 = cellml.parse_string(xml)
+        with WarningCollector():
+            xml = cellml.write_string(m1)
+            m2 = cellml.parse_string(xml)
 
         p, q, r = m2['c']['p'], m2['c']['q'], m2['c']['r']
         self.assertEqual(p.units().name(), 'mole')
@@ -310,4 +315,6 @@ class TestCellMLWriter(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()

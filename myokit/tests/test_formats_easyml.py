@@ -15,7 +15,7 @@ import myokit
 import myokit.formats
 import myokit.formats.easyml
 
-from shared import TemporaryDirectory, DIR_DATA
+from shared import TemporaryDirectory, WarningCollector, DIR_DATA
 
 # Unit testing in Python 2 and 3
 try:
@@ -47,7 +47,11 @@ class EasyMLExporterTest(unittest.TestCase):
             e.model(path, model1)
 
             # Test with model containing markov models
-            e.model(path, model2)
+            with WarningCollector() as c:
+                e.model(path, model2)
+            self.assertIn('unsupported function: atan', c.text())
+            self.assertIn('unsupported function: sin', c.text())
+            self.assertEqual(c.count(), 6)
 
             # Test with extra bound variables
             model1.get('membrane.C').set_binding('hello')
@@ -69,7 +73,7 @@ class EasyMLExporterTest(unittest.TestCase):
 
         # Create model re-using tau and inf
         m = myokit.parse_model(
-            '''
+            """
             [[model]]
             m.V = -80
             c.x = 0.1
@@ -86,7 +90,7 @@ class EasyMLExporterTest(unittest.TestCase):
             dot(x) = (inf - x) / tau
             dot(y) = (inf - y) / tau
             I = x * y * (m.V - 50)
-            ''')
+            """)
 
         # Export, and read back in
         e = myokit.formats.easyml.EasyMLExporter()
@@ -107,13 +111,9 @@ class EasyMLExporterTest(unittest.TestCase):
         e = myokit.formats.exporter('easyml')
         self.assertIsInstance(e, myokit.formats.easyml.EasyMLExporter)
 
-    def test_easyml_exporter_info(self):
-        # Tests the info() method returns a string
-
+    def test_capability_reporting(self):
+        # Tests if the correct capabilities are reported
         e = myokit.formats.easyml.EasyMLExporter()
-        self.assertIsInstance(e.info(), basestring)
-
-        # Test the supports_model method
         self.assertTrue(e.supports_model())
 
 
@@ -160,10 +160,12 @@ class EasyMLExpressionWriterTest(unittest.TestCase):
 
         # Quotient
         x = myokit.Quotient(a, b)
-        self.assertEqual(w.ex(x), 'floor(c.a / 12.0)')
+        with WarningCollector() as c:
+            self.assertEqual(w.ex(x), 'floor(c.a / 12.0)')
         # Remainder
         x = myokit.Remainder(a, b)
-        self.assertEqual(w.ex(x), 'c.a - 12.0 * (floor(c.a / 12.0))')
+        with WarningCollector() as c:
+            self.assertEqual(w.ex(x), 'c.a - 12.0 * (floor(c.a / 12.0))')
 
         # Power
         x = myokit.Power(a, b)
@@ -185,33 +187,35 @@ class EasyMLExpressionWriterTest(unittest.TestCase):
         self.assertEqual(w.ex(x), 'log10(12.0)')
 
         # Sin
-        x = myokit.Sin(b)
-        self.assertEqual(w.ex(x), 'sin(12.0)')
-        # Cos
-        x = myokit.Cos(b)
-        self.assertEqual(w.ex(x), 'cos(12.0)')
-        # Tan
-        x = myokit.Tan(b)
-        self.assertEqual(w.ex(x), 'tan(12.0)')
-        # ASin
-        x = myokit.ASin(b)
-        self.assertEqual(w.ex(x), 'asin(12.0)')
-        # ACos
-        x = myokit.ACos(b)
-        self.assertEqual(w.ex(x), 'acos(12.0)')
-        # ATan
-        x = myokit.ATan(b)
-        self.assertEqual(w.ex(x), 'atan(12.0)')
+        with WarningCollector() as c:
+            x = myokit.Sin(b)
+            self.assertEqual(w.ex(x), 'sin(12.0)')
+            # Cos
+            x = myokit.Cos(b)
+            self.assertEqual(w.ex(x), 'cos(12.0)')
+            # Tan
+            x = myokit.Tan(b)
+            self.assertEqual(w.ex(x), 'tan(12.0)')
+            # ASin
+            x = myokit.ASin(b)
+            self.assertEqual(w.ex(x), 'asin(12.0)')
+            # ACos
+            x = myokit.ACos(b)
+            self.assertEqual(w.ex(x), 'acos(12.0)')
+            # ATan
+            x = myokit.ATan(b)
+            self.assertEqual(w.ex(x), 'atan(12.0)')
 
-        # Floor
-        x = myokit.Floor(b)
-        self.assertEqual(w.ex(x), 'floor(12.0)')
-        # Ceil
-        x = myokit.Ceil(b)
-        self.assertEqual(w.ex(x), 'ceil(12.0)')
-        # Abs
-        x = myokit.Abs(b)
-        self.assertEqual(w.ex(x), 'fabs(12.0)')
+        with WarningCollector() as c:
+            # Floor
+            x = myokit.Floor(b)
+            self.assertEqual(w.ex(x), 'floor(12.0)')
+            # Ceil
+            x = myokit.Ceil(b)
+            self.assertEqual(w.ex(x), 'ceil(12.0)')
+            # Abs
+            x = myokit.Abs(b)
+            self.assertEqual(w.ex(x), 'fabs(12.0)')
 
         # Equal
         x = myokit.Equal(a, b)
@@ -266,4 +270,6 @@ class EasyMLExpressionWriterTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()
