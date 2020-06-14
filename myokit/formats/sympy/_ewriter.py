@@ -7,7 +7,10 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import sympy as sp
+try:
+    import sympy as sp
+except ImportError:
+    pass
 
 import myokit.formats
 
@@ -24,6 +27,10 @@ class SymPyExpressionWriter(myokit.formats.ExpressionWriter):
 
         self._flhs = None
         self.set_lhs_function(lambda lhs: str(lhs))
+
+        # Import sympy again, will trigger error if can't be done.
+        import sympy
+        del(sympy)
 
     def set_lhs_function(self, f):
         """
