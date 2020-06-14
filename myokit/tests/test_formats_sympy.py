@@ -335,7 +335,6 @@ class SymPyReadWriteTest(unittest.TestCase):
             print('Sympy not found, skipping test.')
             return
 
-
         # Test writing and reading with a model
         a = self._a
         ca = sp.Symbol('c.a')
@@ -363,6 +362,7 @@ class SymPyReadWriteTest(unittest.TestCase):
         except ImportError:
             print('Sympy not found, skipping test.')
             return
+        del(sp)
 
         w = myokit.formats.ewriter('sympy')
         self.assertIsInstance(w, mypy.SymPyExpressionWriter)
