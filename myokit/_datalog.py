@@ -844,7 +844,7 @@ class DataLog(OrderedDict):
         ``tmax``. If no value for ``tmax`` is given the final value in the log
         is used.
 
-        *This function requires scipy to be installed.* It works by
+        This method works by
 
           1. Finding the indices corresponding to ``tmin`` and ``tmax``.
           2. Creating a spline interpolant with all the data from ``tmin`` to
