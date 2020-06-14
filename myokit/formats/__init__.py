@@ -30,13 +30,12 @@ class Exporter(object):
     def __init__(self):
         super(Exporter, self).__init__()
 
-    def info(self):
+    def post_export_info(self):
         """
-        Returns a string containing information about this exporter.
-
-        *This should be implemented by each subclass.*
+        Optional method that returns a string containing information about this
+        exporter, to be shown after the export is completed.
         """
-        raise NotImplementedError
+        return ''
 
     def _test_writable_dir(self, path):
         """
@@ -334,14 +333,6 @@ class Importer(object):
 
         The created :class:`myokit.Component` is returned. A
         :class:`myokit.ImportError` will be raised if any errors occur.
-        """
-        raise NotImplementedError
-
-    def info(self):
-        """
-        Returns a string containing information about this exporter.
-
-        *This should be implemented by each subclass.*
         """
         raise NotImplementedError
 

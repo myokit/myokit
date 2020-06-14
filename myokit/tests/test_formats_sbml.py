@@ -35,10 +35,6 @@ class SBMLImporterTest(unittest.TestCase):
     Tests the SBMLImporter.
     """
 
-    def test_info(self):
-        i = myokit.formats.importer('sbml')
-        self.assertIsInstance(i.info(), basestring)
-
     def test_capability_reporting(self):
         # Test if the right capabilities are reported.
         i = myokit.formats.importer('sbml')

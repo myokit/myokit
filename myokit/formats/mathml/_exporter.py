@@ -18,13 +18,12 @@ from ._ewriter import MathMLExpressionWriter
 class XMLExporter(myokit.formats.Exporter):
     """
     This :class:`Exporter <myokit.formats.Exporter>` generates an XML file
-    containing a model's equations, encoded in Content MathML. This is an XML
-    format containing the bare equations, without any formatting. It can be
-    used to exchange equations with MathML supporting applications.
+    containing a model's equations, encoded in Content MathML.
+
+    This is an XML format containing the bare equations, without any
+    formatting. It can be used to exchange equations with MathML supporting
+    applications.
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
 
     def model(self, path, model, protocol=None):
         """
@@ -66,13 +65,11 @@ class XMLExporter(myokit.formats.Exporter):
 class HTMLExporter(myokit.formats.Exporter):
     """
     This :class:`Exporter <myokit.formats.Exporter>` generates a HTML file
-    displaying a model's equations. The equations are encoded using
-    Presentation MathML. This format can be viewed in most modern browsers, but
-    is less suitable as an exchange format.
+    displaying a model's equations.
+
+    The equations are encoded using Presentation MathML. This format can be
+    viewed in most modern browsers, but is less suitable as an exchange format.
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
 
     def model(self, path, model, protocol=None):
         """

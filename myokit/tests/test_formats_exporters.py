@@ -39,7 +39,7 @@ class ExportTest(unittest.TestCase):
         Test a given exporter `e`.
         """
         # Test info method.
-        self.assertIsInstance(e.info(), basestring)
+        self.assertIsInstance(e.post_export_info(), basestring)
 
         # Load model, protocol
         m, p = model, protocol

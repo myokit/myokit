@@ -111,13 +111,8 @@ class EasyMLExporterTest(unittest.TestCase):
         e = myokit.formats.exporter('easyml')
         self.assertIsInstance(e, myokit.formats.easyml.EasyMLExporter)
 
-    def test_easyml_exporter_info(self):
-        # Tests the info() method returns a string
-
-        e = myokit.formats.easyml.EasyMLExporter()
-        self.assertIsInstance(e.info(), basestring)
-
-        # Test the supports_model method
+    def test_capability_reporting(self):
+        # Tests if the correct capabilities are reported
         self.assertTrue(e.supports_model())
 
 

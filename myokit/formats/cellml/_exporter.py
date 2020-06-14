@@ -13,25 +13,12 @@ import myokit.lib.guess
 import warnings
 
 
-info = """
-Generates a CellML model.
-
-Supports versions 1.0, 1.1, and 2.0.
-
-Along with the model, an optional pacing protocol can be passed in that will be
-embedded in the model code.
-""".strip()
-
-
 class CellMLExporter(myokit.formats.Exporter):
     """
     This:class:`Exporter <myokit.formats.Exporter>` creates a CellML model.
     """
     def __init__(self):
         super(CellMLExporter, self).__init__()
-
-    def info(self):
-        return info
 
     def model(self, path, model, protocol=None, version='1.0'):
         """
@@ -81,9 +68,6 @@ class CellML1Exporter(CellMLExporter):
     """
     This:class:`Exporter <myokit.formats.Exporter>` creates a CellML 1.0 model.
     """
-    def info(self):
-        return 'Exports to CellML 1.0.'
-
     def model(self, path, model, protocol=None):
         super(CellML1Exporter, self).model(path, model, protocol, '1.0')
 
@@ -92,9 +76,6 @@ class CellML2Exporter(CellMLExporter):
     """
     This:class:`Exporter <myokit.formats.Exporter>` creates a CellML 2.0 model.
     """
-    def info(self):
-        return 'Exports to CellML 2.0.'
-
     def model(self, path, model, protocol=None):
         super(CellML2Exporter, self).model(path, model, protocol, '2.0')
 
