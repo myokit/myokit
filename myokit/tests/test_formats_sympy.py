@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the importers for various formats
 #
@@ -27,14 +27,6 @@ class SymPyReadWriteTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Test sympy presence
-        try:
-            import sympy
-        except ImportError:
-            print('Sympy not found, skipping test.')
-            return
-        del(sympy)
-
         # Create a model with a variable
         cls._model = myokit.Model()
         component = cls._model.add_component('c')
@@ -47,8 +39,13 @@ class SymPyReadWriteTest(unittest.TestCase):
 
     def test_reader_writer(self):
         # Test using the proper reader/writer
-        import sympy as sp
+        try:
+            import sympy as sp
+        except ImportError:
+            print('Sympy not found, skipping test.')
+            return
 
+        # Create writer and reader
         w = mypy.SymPyExpressionWriter()
         r = mypy.SymPyExpressionReader(self._model)
 
@@ -332,7 +329,12 @@ class SymPyReadWriteTest(unittest.TestCase):
 
     def test_read_write(self):
         # Test using the read() and write() methods
-        import sympy as sp
+        try:
+            import sympy as sp
+        except ImportError:
+            print('Sympy not found, skipping test.')
+            return
+
 
         # Test writing and reading with a model
         a = self._a
@@ -356,6 +358,11 @@ class SymPyReadWriteTest(unittest.TestCase):
 
     def test_access_via_myokit_formats(self):
         # Test access via formats.ewriter.
+        try:
+            import sympy as sp
+        except ImportError:
+            print('Sympy not found, skipping test.')
+            return
 
         w = myokit.formats.ewriter('sympy')
         self.assertIsInstance(w, mypy.SymPyExpressionWriter)

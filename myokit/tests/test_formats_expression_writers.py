@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the expression writer classes.
 #
@@ -38,16 +38,20 @@ class ExpressionWriterTest(unittest.TestCase):
     """ Test shared expression writer functionality. """
 
     def test_ewriter_interface(self):
-        """ Test listing and creating expression writers. """
+        # Test listing and creating expression writers.
+
+        # Test listing
         es = myokit.formats.ewriters()
         self.assertTrue(len(es) > 0)
+
+        # Create one of each
         for e in es:
             self.assertIsInstance(e, basestring)
             e = myokit.formats.ewriter(e)
             self.assertTrue(isinstance(e, myokit.formats.ExpressionWriter))
 
     def test_unknown(self):
-        """ Test requesting an unknown expression writer. """
+        # Test requesting an unknown expression writer.
         # Test fetching using ewriter method
         self.assertRaisesRegex(
             KeyError, 'Expression writer not found', myokit.formats.ewriter,
