@@ -694,14 +694,15 @@ class CellMLParser(object):
         self._check_id(element)
 
         # Check allowed content
-        self._check_allowed_content(
-            element, ['unit'], ['name', 'base_units'], name)
+        self._check_allowed_content(element, ['unit'], ['name'], name)
 
         # Check the units definition has children
         children = element.findall(self._join('unit'))
         if not children:
-            raise CellMLParsingError(
-                'Defining new base units is not supported.', element)
+            warnings.warn(
+                'Unable to parse definition for units "' + str(name) + '",'
+                ' using `dimensionless instead. (Defining new base units is'
+                ' not supported.)')
 
         # Parse content
         try:

@@ -637,17 +637,13 @@ class TestCellMLParser(unittest.TestCase):
 
         # Valid has already been testsed
 
-        # Base units attribute is allowed be no
-        x = ('<units name="wooster" base_units="no">'
-             '  <unit units="volt" />'
-             '</units>')
-        m = self.parse(x)
-        self.assertEqual(
-            m.find_units('wooster').myokit_unit(), myokit.units.volt)
-
         # New base units are not supported
-        x = '<units name="wooster" />'
-        self.assertBad(x, 'Defining new base units is not supported')
+        x = '<units name="base" />'
+        with WarningCollector() as w:
+            m = self.parse(x)
+        self.assertIn('new base units', w.text())
+        self.assertEqual(
+            m.find_units('base').myokit_unit(), myokit.units.dimensionless)
 
         # CellML errors are converted to parse errors
         x = '<units name="123"><unit units="volt" /></units>'

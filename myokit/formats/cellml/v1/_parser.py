@@ -1007,10 +1007,7 @@ class CellMLParser(object):
 
         # Check if this is a base unit (not supported)
         base = element.attrib.get('base_units', 'no')
-        if base == 'yes':
-            raise CellMLParsingError(
-                'Defining new base units is not supported.', element)
-        elif base != 'no':
+        if base not in ('yes', 'no'):
             raise CellMLParsingError(
                 'Base units attribute must be either "yes" or "no".', element)
 
@@ -1024,9 +1021,15 @@ class CellMLParser(object):
         # Check the units definition has children
         children = element.findall(self._join('unit'))
         if not children:
-            raise CellMLParsingError(
-                'Units element with base_units="no" must contain at least one'
-                ' child unit element.')
+            if base == 'yes':
+                warnings.warn(
+                    'Unable to parse definition for units "' + str(name) + '",'
+                    ' using `dimensionless` instead. (Defining new base units'
+                    ' is not supported.)')
+            else:
+                raise CellMLParsingError(
+                    'Units element with base_units="no" must contain at least'
+                    ' one child unit element.')
 
         # Parse content
         myokit_unit = myokit.units.dimensionless
