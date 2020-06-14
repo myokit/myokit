@@ -30,7 +30,7 @@ class MatlabExporter(myokit.formats.TemplatedRunnableExporter):
         pacing mechanism.
     """
     def post_export_info(self):
-        return 'To run simulations, run the file ``main.m``.'
+        return 'To run simulations, run the file main.m.'
 
     def _dir(self, root):
         return os.path.join(root, 'matlab', 'template')

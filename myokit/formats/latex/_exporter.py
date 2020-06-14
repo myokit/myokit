@@ -28,12 +28,12 @@ class PdfExporter(myokit.formats.Exporter):
         return text.replace('_', '\_')
 
     def post_export_info(self):
-        return '\n'.join(
+        return '\n'.join((
             'To create a pdf using pdflatex::',
             '',
             '  pdflatex filename.tex',
             '',
-        )
+        ))
 
     def model(self, path, model, protocol=None):
         """

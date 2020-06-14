@@ -113,6 +113,7 @@ class EasyMLExporterTest(unittest.TestCase):
 
     def test_capability_reporting(self):
         # Tests if the correct capabilities are reported
+        e = myokit.formats.easyml.EasyMLExporter()
         self.assertTrue(e.supports_model())
 
 
