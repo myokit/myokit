@@ -1028,8 +1028,6 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(
             m.find_units('base').myokit_unit(), myokit.units.dimensionless)
 
-
-
         # CellML errors are converted to parse errors
         x = '<units name="123"><unit units="volt" /></units>'
         self.assertBad(x, 'valid CellML identifier')
