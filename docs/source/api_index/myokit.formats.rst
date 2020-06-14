@@ -16,7 +16,6 @@ myokit.formats
 - :meth:`myokit.formats.register_external_importer`
 - :meth:`myokit.formats.register_external_exporter`
 - :class:`myokit.formats.TemplatedRunnableExporter`
-- :class:`myokit.formats.TextLogger`
 
 myokit.formats.ansic
 --------------------
