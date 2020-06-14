@@ -68,8 +68,8 @@ matrix:
         # Basic install test
         - python: "3.8"
           env:
-            - MYOKIT_UNIT=true
             - MYOKIT_BASIC=true
+            - MYOKIT_UNIT=true
 
 # Install CVODE dependencies
 before_install:
