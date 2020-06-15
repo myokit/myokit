@@ -181,7 +181,7 @@ def compare(model1, model2):
 
 def add_compare_parser(subparsers):
     """
-    Adds a subcommand parser for the `compare` command.
+    Adds a subcommand parser for the ``compare`` command.
     """
     parser = subparsers.add_parser(
         'compare',
@@ -257,7 +257,7 @@ def debug(source, variable, deps=False):
 
 def add_debug_parser(subparsers):
     """
-    Adds a subcommand parser for the `debug` command.
+    Adds a subcommand parser for the ``debug`` command.
     """
     parser = subparsers.add_parser(
         'debug',
@@ -304,7 +304,7 @@ def evaluate(expression):
 
 def add_eval_parser(subparsers):
     """
-    Adds a subcommand parser for the `eval` command.
+    Adds a subcommand parser for the ``eval`` command.
     """
     parser = subparsers.add_parser(
         'eval',
@@ -379,7 +379,7 @@ def mmt_export(exporter, source, target):
 
 def add_export_parser(subparsers):
     """
-    Adds a subcommand parser for the `export` command.
+    Adds a subcommand parser for the ``export`` command.
     """
     import myokit
     import myokit.formats
@@ -423,7 +423,7 @@ def gde(filename):
 
 def add_gde_parser(subparsers):
     """
-    Adds a subcommand parser for the `gde` command.
+    Adds a subcommand parser for the ``gde`` command.
     """
     parser = subparsers.add_parser(
         'gde',
@@ -662,7 +662,7 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
 
 def add_ide_parser(subparsers):
     """
-    Adds a subcommand parser for the `compare` command.
+    Adds a subcommand parser for the ``compare`` command.
     """
     parser = subparsers.add_parser(
         'ide',
@@ -742,7 +742,7 @@ def mmt_import(importer, source, target=None):
 
 def add_import_parser(subparsers):
     """
-    Adds a subcommand parser for the `import` command.
+    Adds a subcommand parser for the ``import`` command.
     """
     import myokit
     import myokit.formats
@@ -790,7 +790,7 @@ def log(filenames):
 
 def add_log_parser(subparsers):
     """
-    Adds a subcommand parser for the `log` command.
+    Adds a subcommand parser for the ``log`` command.
     """
     import argparse
 
@@ -823,7 +823,7 @@ def opencl():
 
 def add_opencl_parser(subparsers):
     """
-    Adds a subcommand parser for the `opencl` command.
+    Adds a subcommand parser for the ``opencl`` command.
     """
     parser = subparsers.add_parser(
         'opencl',
@@ -944,7 +944,7 @@ def opencl_select():
 
 def add_opencl_select_parser(subparsers):
     """
-    Adds a subcommand parser for the `opencl_select` command.
+    Adds a subcommand parser for the ``opencl_select`` command.
     """
     parser = subparsers.add_parser(
         'opencl-select',
@@ -988,7 +988,7 @@ def reset(force=False):
 
 def add_reset_parser(subparsers):
     """
-    Adds a subcommand parser for the `reset` command.
+    Adds a subcommand parser for the ``reset`` command.
     """
     parser = subparsers.add_parser(
         'reset',
@@ -1086,7 +1086,7 @@ def run(source, debug, debugfile):
 
 def add_run_parser(subparsers):
     """
-    Adds a subcommand parser for the `run` command.
+    Adds a subcommand parser for the ``run`` command.
     """
     parser = subparsers.add_parser(
         'run',
@@ -1176,7 +1176,7 @@ def step(source, ref, ini, raw):
 
 def add_step_parser(subparsers):
     """
-    Adds a subcommand parser for the `step` command.
+    Adds a subcommand parser for the ``step`` command.
     """
     parser = subparsers.add_parser(
         'step',
@@ -1233,7 +1233,7 @@ def sundials():
 
 def add_sundials_parser(subparsers):
     """
-    Adds a subcommand parser for the `sundials` command.
+    Adds a subcommand parser for the ``sundials`` command.
     """
     parser = subparsers.add_parser(
         'sundials',
@@ -1264,7 +1264,7 @@ def system():
 
 def add_system_parser(subparsers):
     """
-    Adds a subcommand parser for the `system` command.
+    Adds a subcommand parser for the ``system`` command.
     """
     parser = subparsers.add_parser(
         'system',
@@ -1885,7 +1885,7 @@ def version(raw=False):
 
 def add_version_parser(subparsers):
     """
-    Adds a subcommand parser for the `version` command.
+    Adds a subcommand parser for the ``version`` command.
     """
     parser = subparsers.add_parser(
         'version',
@@ -2016,7 +2016,7 @@ def video(src, key, dst, fps, colormap):
 
 def add_video_parser(subparsers):
     """
-    Adds a subcommand parser for the `video` command.
+    Adds a subcommand parser for the ``video`` command.
     """
     import myokit
 
