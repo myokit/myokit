@@ -338,7 +338,8 @@ class CellMLWriter(object):
             if myokit._feq(multiplier, int(multiplier)):
                 rows[0].attrib['multiplier'] = str(int(multiplier))
             else:
-                rows[0].attrib['multiplier'] = myokit.strfloat(multiplier)
+                rows[0].attrib['multiplier'] = myokit.strfloat(
+                    multiplier).strip()
 
     def _variable(self, parent, variable):
         """
@@ -362,7 +363,7 @@ class CellMLWriter(object):
         # Add initial value
         if variable.initial_value() is not None:
             element.attrib['initial_value'] = myokit.strfloat(
-                variable.initial_value())
+                variable.initial_value()).strip()
 
         # Add cmeta id
         cid = variable.cmeta_id()
