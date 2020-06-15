@@ -147,6 +147,7 @@ class CModule(object):
             runtime = libd
             if platform.system() == 'Windows':  # pragma: no linux cover
                 if libd is not None:
+                    runtime = None
 
                     # Determine strategy
                     try:
@@ -167,8 +168,8 @@ class CModule(object):
                         path = os.environ.get('path', '')
                         if path is None:
                             path = ''
-                        os.environ['path'] = os.pathsep.join(
-                            path, [x for x in libd if x not in path])
+                        to_add = [x for x in libd if x not in path]
+                        os.environ['path'] = os.pathsep.join([path] + to_add)
 
             # Create extension
             ext = Extension(

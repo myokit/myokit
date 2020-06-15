@@ -6,8 +6,9 @@ branches:
 environment:
 
   matrix:
-    - PYTHON: "C:\\Python38-x64"
+    - PYTHON: "C:\\Python27-x64"
     - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python38-x64"
 
 install:
   - "%PYTHON%\\python.exe -c \"import sys; print(sys.version)\""
