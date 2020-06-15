@@ -7,59 +7,9 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import os
-
 from lxml import etree
 
 import myokit
-from ._ewriter import MathMLExpressionWriter
-
-
-class XMLExporter(myokit.formats.Exporter):
-    """
-    This :class:`Exporter <myokit.formats.Exporter>` generates an XML file
-    containing a model's equations, encoded in Content MathML.
-
-    This is an XML format containing the bare equations, without any
-    formatting. It can be used to exchange equations with MathML supporting
-    applications.
-    """
-
-    def model(self, path, model, protocol=None):
-        """
-        Export the model to an xml document.
-        """
-        path = os.path.abspath(os.path.expanduser(path))
-
-        # Create model xml element
-        root = etree.Element('math')
-        root.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
-
-        # Create expression writer
-        writer = MathMLExpressionWriter()
-        writer.set_mode(presentation=False)
-        writer.set_time_variable(model.time())
-
-        # Write equations
-        for var in model.variables(deep=True):
-            writer.eq(var.eq(), root)
-
-        # Write xml to file
-        doc = etree.ElementTree(root)
-        doc.write(path, encoding='utf-8', method='xml')
-
-        # Pretty output
-        if True:
-            import xml.dom.minidom as m
-            xml = m.parse(path)
-            with open(path, 'wb') as f:
-                f.write(xml.toprettyxml(encoding='utf-8'))
-
-    def supports_model(self):
-        """
-        Returns ``True``.
-        """
-        return True
 
 
 class HTMLExporter(myokit.formats.Exporter):
@@ -91,7 +41,8 @@ class HTMLExporter(myokit.formats.Exporter):
         heading.text = name
 
         # Create expression writer
-        writer = MathMLExpressionWriter()
+        import myokit.formats.mathml
+        writer = myokit.formats.mathml.MathMLExpressionWriter()
         writer.set_mode(presentation=True)
         writer.set_time_variable(model.time())
 

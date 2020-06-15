@@ -12,7 +12,8 @@ from lxml import etree
 
 import myokit
 import myokit.formats
-import myokit.mxml
+
+from myokit.formats.xml import split
 
 
 class CellMLImporterError(myokit.ImportError):
@@ -53,7 +54,7 @@ class CellMLImporter(myokit.formats.Importer):
         root = tree.getroot()
 
         # Detect namespace, create appropriate parser
-        ns, el = myokit.mxml.split(root.tag)
+        ns, el = split(root.tag)
         try:
             parser = parsers[ns]
         except KeyError:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Tests some methods from myokit.mxml
+# Tests the HTML support functions.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -10,7 +10,7 @@ from __future__ import print_function, unicode_literals
 
 import unittest
 
-import myokit
+import myokit.formats.html
 
 
 html = """
@@ -122,7 +122,7 @@ class AsciifierTest(unittest.TestCase):
 
         # Compare line by line
         asc = iter(ascii.splitlines())
-        for line1 in myokit.mxml.html2ascii(html).splitlines():
+        for line1 in myokit.formats.html.html2ascii(html).splitlines():
             # Next line will raise exception if the result is longer than ascii
             line2 = next(asc)
             # Check if lines are equal

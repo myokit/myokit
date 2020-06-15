@@ -8,7 +8,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
-from myokit.mxml import split
+from myokit.formats.xml import split
 
 
 def parse_mathml_string(s):
