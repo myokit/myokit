@@ -140,10 +140,13 @@ class Simulation(myokit.CModule):
         if platform.system() != 'Windows':  # pragma: no windows cover
             libs.append('m')
 
-        # Create extension
+        # Define library paths
+        # Note: Sundials path on windows already includes local binaries
         libd = list(myokit.SUNDIALS_LIB)
         incd = list(myokit.SUNDIALS_INC)
         incd.append(myokit.DIR_CFUNC)
+
+        # Create extension
         self._sim = self._compile(module_name, fname, args, libs, libd, incd)
 
         # Set default tolerance values
