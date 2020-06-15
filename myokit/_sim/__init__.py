@@ -112,11 +112,17 @@ class CModule(object):
             src_file = os.path.join(d_cache, src_file)
             self._export(tpl, tpl_vars, src_file)
 
+            # Ensure headers can be read from myokit/_sim
+            if incd is None:
+                incd = []
+            incd.append(myokit.DIR_CFUNC)
+            print(myokit.DIR_CFUNC)
+
             # Inputs must all be strings
             name = str(name)
             src_file = str(src_file)
+            incd = [str(x) for x in incd]
             libd = None if libd is None else [str(x) for x in libd]
-            incd = None if incd is None else [str(x) for x in incd]
             libs = None if libs is None else [str(x) for x in libs]
             carg = None if carg is None else [str(x) for x in carg]
             larg = None if larg is None else [str(x) for x in larg]
