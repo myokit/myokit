@@ -122,6 +122,12 @@ myokit.formats.easyml
 - :meth:`myokit.formats.easyml.exporters`
 - :meth:`myokit.formats.easyml.ewriters`
 
+myokit.formats.html
+-------------------
+- :meth:`myokit.formats.html.exporters`
+- :class:`myokit.formats.html.HTMLExporter`
+- :meth:`myokit.formats.html.html2ascii`
+
 myokit.formats.latex
 ---------------------
 - :meth:`myokit.formats.latex.exporters`
@@ -132,15 +138,12 @@ myokit.formats.latex
 
 myokit.formats.mathml
 ---------------------
-- :meth:`myokit.formats.mathml.exporters`
 - :meth:`myokit.formats.mathml.ewriters`
-- :class:`myokit.formats.mathml.HTMLExporter`
 - :class:`myokit.formats.mathml.MathMLError`
 - :class:`myokit.formats.mathml.MathMLExpressionWriter`
 - :class:`myokit.formats.mathml.MathMLParser`
 - :meth:`myokit.formats.mathml.parse_mathml_etree`
 - :meth:`myokit.formats.mathml.parse_mathml_string`
-- :class:`myokit.formats.mathml.XMLExporter`
 
 myokit.formats.matlab
 ---------------------
@@ -190,3 +193,10 @@ myokit.formats.sympy
 myokit.formats.wcp
 --------------------
 - :class:`myokit.formats.wcp.WcpFile`
+
+myokit.formats.xml
+-------------------
+- :meth:`myokit.formats.xml.exporters`
+- :meth:`myokit.formats.xml.split`
+- :class:`myokit.formats.xml.XMLExporter`
+
