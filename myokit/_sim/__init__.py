@@ -145,18 +145,30 @@ class CModule(object):
             # unconventional linux sundials installations, but not on windows
             # as this can lead to a weird error in setuptools
             runtime = libd
-            if (platform.system() == 'Windows'
-                    and libd is not None):          # pragma: no linux cover
-                runtime = None
+            if platform.system() == 'Windows':  # pragma: no linux cover
+                if libd is not None:
 
-                # Instead, add libd to path on windows
-                try:
-                    path = os.environ['path']
-                except KeyError:
-                    path = ''
-                to_add = [x for x in libd if x not in path]
-                if to_add:
-                    os.environ['path'] = os.pathsep.join([path] + to_add)
+                    # Determine strategy
+                    try:
+                        os.add_dll_directory
+                        use_add_dll_directory = True
+                    except AttributeError:
+                        use_add_dll_directory = False
+
+                    # Make windows search the libd directories
+                    if use_add_dll_directory:
+                        # Python 3.8 and up
+                        for path in libd:
+                            if os.path.isdir(path):
+                                os.add_dll_directory(path)
+
+                    else:
+                        # Older versions: add libd to path
+                        path = os.environ.get('path', '')
+                        if path is None:
+                            path = ''
+                        os.environ['path'] = os.pathsep.join(
+                            path, [x for x in libd if x not in path])
 
             # Create extension
             ext = Extension(
