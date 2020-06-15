@@ -16,7 +16,7 @@ import myokit.formats.mathml
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v2
 
-from myokit.mxml import split
+from myokit.formats.xml import split
 
 
 def parse_file(path):

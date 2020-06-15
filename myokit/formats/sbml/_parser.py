@@ -19,8 +19,9 @@ import xml.etree.ElementTree as ET
 import myokit
 import myokit.units
 import myokit.formats
-from myokit.mxml import html2ascii, split
+from myokit.formats.html import html2ascii
 from myokit.formats.mathml import parse_mathml_etree
+from myokit.formats.xml import split
 
 MATHML_NS = 'http://www.w3.org/1998/Math/MathML'
 
@@ -917,3 +918,4 @@ class SBMLModel(object):
         'watt': myokit.units.W,
         'weber': myokit.units.Wb,
     }
+

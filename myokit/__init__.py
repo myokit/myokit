@@ -585,7 +585,6 @@ from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
 # importing the modules specifically (like os and os.path).
 # All modules imported here must report so in their docs
 from . import ( # noqa
-    mxml,
     pacing,
     units,  # Also loads all common unit names
 )
