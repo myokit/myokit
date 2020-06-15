@@ -101,23 +101,27 @@ class CModule(object):
         list ``carg``, and linker args in ``larg``.
         """
         src_file = self._source_file()
+        working_dir = os.getcwd()
         d_cache = tempfile.mkdtemp('myokit')
         try:
             # Create output directories
             d_build = os.path.join(d_cache, 'build')
-            d_modul = os.path.join(d_cache, 'module')
             os.makedirs(d_build)
-            os.makedirs(d_modul)
 
             # Export c file
             src_file = os.path.join(d_cache, src_file)
             self._export(tpl, tpl_vars, src_file)
 
+            # Ensure headers can be read from myokit/_sim
+            if incd is None:
+                incd = []
+            incd.append(myokit.DIR_CFUNC)
+
             # Inputs must all be strings
             name = str(name)
             src_file = str(src_file)
+            incd = [str(x) for x in incd]
             libd = None if libd is None else [str(x) for x in libd]
-            incd = None if incd is None else [str(x) for x in incd]
             libs = None if libs is None else [str(x) for x in libs]
             carg = None if carg is None else [str(x) for x in carg]
             larg = None if larg is None else [str(x) for x in larg]
@@ -166,19 +170,17 @@ class CModule(object):
                 extra_link_args=larg,
             )
 
-            # Compile, catch output
+            # Compile in build directory, catch output
             with myokit.SubCapture() as s:
                 try:
+                    os.chdir(d_build)
                     setup(
                         name=name,
                         description='Temporary module',
                         ext_modules=[ext],
                         script_args=[
-                            str('build'),
-                            str('--build-base=' + d_build),
-                            str('install'),
-                            str('--install-lib=' + d_modul),
-                            str('--old-and-unmanageable'),
+                            str('build_ext'),
+                            str('--inplace'),
                         ])
                 except (Exception, SystemExit) as e:    # pragma: no cover
                     s.disable()
@@ -190,16 +192,15 @@ class CModule(object):
                     captured = s.text().strip()
                     t.extend(['    ' + x for x in captured.splitlines()])
                     raise myokit.CompilationError('\n'.join(t))
-                finally:
-                    # Delete egg, if created
-                    egg = name + '.egg-info'
-                    if os.path.exists(egg):
-                        myokit._rmtree(egg)
 
             # Include module (and refresh in case 2nd model is loaded)
-            return load_module(name, d_modul)
+            return load_module(name, d_build)
 
         finally:
+            # Revert changes to working directory
+            os.chdir(working_dir)
+
+            # Delete cached module
             try:
                 myokit._rmtree(d_cache)
             except Exception:   # pragma: no cover

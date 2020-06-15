@@ -201,7 +201,7 @@ LICENSE_HTML = """
 import os, inspect  # noqa
 try:
     frame = inspect.currentframe()
-    DIR_MYOKIT = os.path.dirname(inspect.getfile(frame))
+    DIR_MYOKIT = os.path.abspath(os.path.dirname(inspect.getfile(frame)))
 finally:
     # Always manually delete frame
     # https://docs.python.org/2/library/inspect.html#the-interpreter-stack
