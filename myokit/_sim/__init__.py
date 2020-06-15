@@ -116,7 +116,6 @@ class CModule(object):
             if incd is None:
                 incd = []
             incd.append(myokit.DIR_CFUNC)
-            print(myokit.DIR_CFUNC)
 
             # Inputs must all be strings
             name = str(name)
