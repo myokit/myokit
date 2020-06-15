@@ -44,6 +44,7 @@ class Compiler(myokit.CModule):
 
         # Create back-end
         mname = 'myokit_compiler_info_' + str(Compiler._index)
+        mname += '_' + str(myokit._pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
         try:

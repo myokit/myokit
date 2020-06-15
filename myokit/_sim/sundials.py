@@ -45,6 +45,7 @@ class Sundials(myokit.CModule):
 
         # Create Sundials back-end
         mname = 'myokit_sundials_info_' + str(Sundials._index)
+        mname += '_' + str(myokit._pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
         try:
