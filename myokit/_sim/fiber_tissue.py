@@ -341,6 +341,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Unique simulation id
         FiberTissueSimulation._index += 1
         mname = 'myokit_sim_fiber_tissue_' + str(FiberTissueSimulation._index)
+        mname += '_' + str(myokit._pid_hash())
 
         # Arguments
         args = {

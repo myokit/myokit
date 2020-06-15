@@ -277,6 +277,7 @@ class SimulationOpenCL(myokit.CModule):
         # Create back-end
         SimulationOpenCL._index += 1
         mname = 'myokit_sim_opencl_' + str(SimulationOpenCL._index)
+        mname += '_' + str(myokit._pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {
             'module_name': mname,
