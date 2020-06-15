@@ -61,9 +61,8 @@ setup(
         'lxml',
         'matplotlib>=1.5',
         'numpy',
-        'scipy',
+        'scipy',            # Used in data log, and data log viewer
         'setuptools',
-        'sympy',            # Used in formats.sympy
         # PyQT or PySide?
         # (PySide is pip installable, Travis can get PyQt from apt)
     ],
@@ -79,6 +78,7 @@ setup(
         ],
         'optional': [
             'cma',                      # Used in lib.fit
+            'sympy',                    # Used in formats.sympy
         ],
         'gui': ['pyqt5', 'sip'],
         'pyqt': ['pyqt5', 'sip'],

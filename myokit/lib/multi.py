@@ -11,6 +11,16 @@ import myokit
 import os
 
 
+#
+# Deprecated since 2020-06-14
+#
+import warnings
+warnings.warn(
+    'The module myokit.lib.multi is deprecated: it will be removed in future'
+    ' versions of Myokit.'
+)
+
+
 def iterdir(path, guarantee_model_names=True):
     """
     Iterates over a directory yielding tuples ``(model, protocol)`` where
