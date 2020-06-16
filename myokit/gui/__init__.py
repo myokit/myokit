@@ -77,11 +77,9 @@ if pyqt5:
         # was already set.
         pass
     else:   # pragma: no cover
-        try:
+        v = [float(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
             matplotlib.rcParams['backend.qt5'] = 'PyQt5'
-        except KeyError:
-            # This is no longer allowed / necessary in matplotlib 3.1.0
-            pass
     import matplotlib.backends.backend_qt5agg as matplotlib_backend
 
     # Set backend variables
@@ -104,11 +102,9 @@ elif pyside2:
         # was already set.
         pass
     else:   # pragma: no cover
-        try:
+        v = [float(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
             matplotlib.rcParams['backend.qt5'] = 'PySide2'
-        except KeyError:
-            # This is no longer allowed / necessary in matplotlib 3.1.0
-            pass
     import matplotlib.backends.backend_qt5agg as matplotlib_backend  # noqa
 
     # Set backend variables
@@ -200,11 +196,9 @@ elif pyqt4:
         # was already set.
         pass
     else:   # pragma: no cover
-        try:
+        v = [float(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
             matplotlib.rcParams['backend.qt4'] = 'PyQt4'
-        except KeyError:
-            # This is no longer allowed / necessary in matplotlib 3.1.0
-            pass
     import matplotlib.backends.backend_qt4agg as matplotlib_backend
 
     # Set backend variables
@@ -290,11 +284,9 @@ elif pyside:
         # was already set.
         pass
     else:   # pragma: no cover
-        try:
+        v = [float(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
             matplotlib.rcParams['backend.qt4'] = 'PySide'
-        except KeyError:
-            # This is no longer allowed / necessary in matplotlib 3.1.0
-            pass
     import matplotlib.backends.backend_qt4agg as matplotlib_backend  # noqa
 
     # Set backend variables
