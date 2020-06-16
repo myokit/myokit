@@ -77,6 +77,8 @@ if pyqt5:
         # was already set.
         pass
     else:   # pragma: no cover
+        # The method below was deprecated by matplotlib version 2.2, released
+        # in 2018. So probably fine to remove this (and similar) after 2023
         v = [float(x) for x in matplotlib.__version__.split('.')]
         if v[0] < 3 and v[1] < 3:
             matplotlib.rcParams['backend.qt5'] = 'PyQt5'
