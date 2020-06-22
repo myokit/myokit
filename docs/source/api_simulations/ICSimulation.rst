@@ -3,6 +3,7 @@
 *****************************
 Initial-condition sensitivity
 *****************************
-.. module:: myokit
+
+.. currentmodule:: myokit
 
 .. autoclass:: ICSimulation

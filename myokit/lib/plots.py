@@ -2,10 +2,8 @@
 # Creates common graphs
 # Uses matplotlib
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -266,7 +264,8 @@ def current_arrows(log, voltage, currents, axes=None):
 
 
 def cumulative_current(
-        log, currents, axes=None, labels=None, colors=None, integrate=False):
+        log, currents, axes=None, labels=None, colors=None, integrate=False,
+        normalise=False, max_currents=None):
     """
     Plots a number of currents, one on top of the other, with the positive and
     negative parts of the current plotted separately.
@@ -292,6 +291,12 @@ def cumulative_current(
         current.
     ``integrate``
         Set this to ``True`` to plot total carried charge instead of currents.
+    ``normalise``
+        Set this to ``True`` to normalise the graph at every point, so that the
+        relative contribution of each current is shown.
+    ``max_currents``
+        Set this to any integer n to display only the first n currents, and
+        group the rest together in a remainder current.
 
     The best results are obtained if relatively constant currents are specified
     early. Another rule of thumb is to specify the currents roughly in the
@@ -312,42 +317,65 @@ def cumulative_current(
 
     # Get currents or charges
     if integrate:
-        signals = [log.integrate(c) for c in currents]
+        pos = np.array([log.integrate(c) for c in currents])
     else:
-        signals = [log[c] for c in currents]
+        pos = np.array([log[c] for c in currents])
+
+    # Split positive and negative
+    neg = np.minimum(pos, 0)
+    pos = np.maximum(pos, 0)
+
+    # Normalise
+    if normalise:
+        pos /= np.sum(pos, axis=0)
+        neg /= -np.sum(neg, axis=0)
+
+    # Number of currents to show
+    if max_currents is None:
+        show_remainder = False
+        nc = len(currents)
+    else:
+        show_remainder = True
+        max_currents = int(max_currents)
+        nc = 1 + max_currents
 
     # Colors
-    n = len(currents)
     if colors:
-        while len(colors) < n:
+        while len(colors) < nc:
             colors.extend(colors)
     else:
         # Colormap
-        cmap = matplotlib.cm.get_cmap(name='Spectral')
-        colors = [cmap(i) for i in np.linspace(0.9, 0.1, len(currents))]
-
-    # Offsets
-    op = on = 0
+        cmap = matplotlib.cm.get_cmap(name='tab20')
+        colors = [cmap(i) for i in range(nc)]
 
     # Plot
-    for k, c in enumerate(currents):
+    op = on = 0
+    for k in range(nc):
+        if k == max_currents:
+            # Color and label for remainder
+            color = '#cccccc'
+            label = 'Remainder'
 
-        # Get color
-        color = colors[k]
+            # Positive and negative remainder parts
+            p = op + np.sum(pos[k:], axis=0)
+            n = on + np.sum(neg[k:], axis=0)
 
-        # Get label
-        if labels:
-            label = labels[k]
         else:
-            if integrate:
-                label = 'Q(' + c[c.find('.') + 1:] + ')'
-            else:
-                label = c[c.find('.') + 1:]
+            # Get color
+            color = colors[k]
 
-        # Split signal
-        s = signals[k]
-        p = np.maximum(s, 0) + op
-        n = np.minimum(s, 0) + on
+            # Get label
+            if labels:
+                label = labels[k]
+            else:
+                c = currents[k]
+                if integrate:
+                    label = 'Q(' + c[c.find('.') + 1:] + ')'
+                else:
+                    label = c[c.find('.') + 1:]
+
+            # Get positive and negative parts
+            p, n = op + pos[k], on + neg[k]
 
         # Plot!
         axes.fill_between(t, p, op, facecolor=color)
@@ -357,4 +385,3 @@ def cumulative_current(
         axes.plot(t, n, color='k', lw=1)
         on = n
         op = p
-

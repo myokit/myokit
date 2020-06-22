@@ -4,7 +4,7 @@
 Running long simulations
 ************************
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 Simulations can take a long time to run. In these cases, it's desirable to have
 some form of communication between the simulation back-end (running in C or

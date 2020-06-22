@@ -4,7 +4,7 @@
 Jacobians
 *********
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 
 Myokit contains two classes designed to calculate Jacobian matrices. Given a

@@ -1,10 +1,8 @@
 #
 # Containers for time-series of 1d and 2d rectangular data arrays.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -246,7 +244,7 @@ class DataBlock1d(object):
         try:
             # Newer numpy wants rcond=None
             cv = np.linalg.lstsq(A, x, rcond=None)[0][0]
-        except TypeError:
+        except TypeError:   # pragma: no cover
             cv = np.linalg.lstsq(A, x)[0][0]
 
         # Return

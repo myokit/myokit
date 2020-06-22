@@ -1,17 +1,14 @@
 #
 # Defines the python classes that represent a pacing protocol.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
 
-import sys
 import numpy as np
 
 
@@ -158,10 +155,8 @@ class Protocol(object):
         Deprecated alias of :meth:`log_for_interval`.
         """
         # Deprecated since 2019-01-09
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `create_log_for_interval` is deprecated.'
             ' Please use `log_for_interval` instead.')
         return self.log_for_interval(a, b, for_drawing)
@@ -171,13 +166,18 @@ class Protocol(object):
         Deprecated alias of :meth:`log_for_times`.
         """
         # Deprecated since 2019-01-09
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `create_log_for_times` is deprecated.'
             ' Please use `log_for_times` instead.')
         return self.log_for_times(times)
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if not isinstance(other, Protocol):
+            return False
+        return self.code() == other.code()
 
     def events(self):
         """
@@ -199,9 +199,8 @@ class Protocol(object):
         This method now returns the value given by :meth:`characteristic_time`.
         """
         # Deprecated since 2016-02-06
-        import logging
-        logger = logging.getLogger('myokit')
-        logger.warning(
+        import warnings
+        warnings.warn(
             'The method Protocol.guess_duration() is deprecated: it will be'
             ' removed in future versions of Myokit. Please use the method'
             ' `characteristic_time` instead.'
@@ -281,7 +280,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if e and _eq(t, e._start):
+            if e and myokit._feq(t, e._start):
                 t = e._start
 
         return True
@@ -324,7 +323,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if _eq(t, e._start):
+            if myokit._feq(t, e._start):
                 t = e._start
 
             # Check for periodic events
@@ -384,9 +383,15 @@ class Protocol(object):
         The time points in the log will be ``a`` and ``b``, and any time in
         between at which the pacing value changes.
 
-        If ``for_drawing`` is set to ``True`` each time value between ``a`` and
-        ``b`` will be listed twice, so that a vertical line can be drawn from
-        the old to the new pacing value.
+        If ``for_drawing`` is set to ``True`` each time value where the
+        protocol changes will be listed twice, so that a vertical line can be
+        drawn from the old to the new pacing value.
+
+        Note that the points returned are from ``a`` to ``b`` inclusive (the
+        interval ``[a, b]``), and so if ``b`` coincides with the end of the
+        protocol a point ``(b, 0)`` will be included in the output (protocol
+        steps are defined as half-open, so include their starting point but not
+        their end point).
         """
         # Test the input
         a, b = float(a), float(b)
@@ -409,11 +414,11 @@ class Protocol(object):
         pace.append(v)
         while t < b:
             t = min(p.next_time(), b)
-            if for_drawing:
-                if t != b:
-                    time.append(t)
-                    pace.append(v)
-            v = p.advance(t)
+            w = p.advance(t)
+            if for_drawing and v != w:
+                time.append(t)
+                pace.append(v)
+            v = w
             time.append(t)
             pace.append(v)
         return log
@@ -461,6 +466,14 @@ class Protocol(object):
             e = e._next
 
         return lo, hi
+
+    def __reduce__(self):
+        """
+        Pickles the Protocol.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        return (myokit.parse_protocol, (self.code(), ))
 
     def schedule(self, level, start, duration, period=0, multiplier=0):
         """
@@ -774,23 +787,20 @@ class PacingSystem(object):
         if new_time < self._time:
             raise ValueError('New time cannot be before the current time.')
 
-        # Get smallest difference from 1
-        epsilon = sys.float_info.epsilon
-
         # Set the new internal time
         self._time = new_time
 
         # Advance pacing system
-        while _geq(new_time, self._tnext):
+        while myokit._fgeq(new_time, self._tnext):
 
             # Active event finished
-            if self._fire and _geq(self._tnext, self._tdown):
+            if self._fire and myokit._fgeq(self._tnext, self._tdown):
                 self._fire = None
                 self._pace = 0
 
             # New event starting
             e = self._protocol._head
-            if e and _geq(new_time, e._start):
+            if e and myokit._fgeq(new_time, e._start):
                 self._protocol.pop()
                 self._fire = e
                 self._tdown = e._start + e._duration
@@ -807,7 +817,7 @@ class PacingSystem(object):
                 # If so, then set tdown (which is always calculated) to the
                 # next event start (which may be user-specified).
                 x = self._protocol._head
-                if x and _eq(self._tdown, x._start):
+                if x and myokit._feq(self._tdown, x._start):
                     self._tdown = x._start
 
             # Next stopping time
@@ -846,19 +856,4 @@ class NotASequenceError(myokit.MyokitError):
 class NotAnUnbrokenSequenceError(myokit.MyokitError):
     """ Error raised exclusively by is_unbroken_sequence_exception(). """
     pass
-
-
-def _eq(a, b):
-    """
-    Checks if ``a`` and ``b`` are equal, or so close to each other that the
-    difference could be a single floating point rounding error.
-    """
-    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
-
-
-def _geq(a, b):
-    """
-    Checks if ``a >= b``, but using ``_eq`` instead of ``=``.
-    """
-    return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
 

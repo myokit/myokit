@@ -1,30 +1,30 @@
 #
 # This hidden module contains the GUI elements used throughout Myokit.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 # Library imports
+import logging
 import os
-import sys
-import signal
-
-# Detect platform
 import platform
-platform = platform.system()
+import signal
+import sys
 
 # Myokit imports
-import myokit  # noqa
+import myokit
+
+# Detect platform
+platform = platform.system()
 
 # Select Qt library to use
 pyqt4 = False
 pyqt5 = False
 pyside = False
+pyside2 = False
 
 # Allow overriding automatic selection
 if myokit.FORCE_PYQT5:
@@ -33,6 +33,8 @@ elif myokit.FORCE_PYQT4:
     pyqt4 = True
 elif myokit.FORCE_PYSIDE:
     pyside = True
+elif myokit.FORCE_PYSIDE2:
+    pyside2 = True
 else:
     # Automatic selection
     try:
@@ -40,14 +42,19 @@ else:
         pyqt5 = True
     except ImportError:
         try:
-            import PyQt4  # noqa
-            pyqt4 = True
+            import PySide2  # noqa
+            pyside2 = True
         except ImportError:
             try:
-                import PySide  # noqa
-                pyside = True
+                import PyQt4  # noqa
+                pyqt4 = True
             except ImportError:
-                raise ImportError('Unable to find PyQt5, PyQt4 or PySide')
+                try:
+                    import PySide  # noqa
+                    pyside = True
+                except ImportError:
+                    raise ImportError(
+                        'Unable to find PyQt5, PyQt4, PySide2 or PySide')
 
 # Import and configure Qt
 if pyqt5:
@@ -60,18 +67,63 @@ if pyqt5:
     QtCore.Signal = QtCore.pyqtSignal
     QtCore.Slot = QtCore.pyqtSlot
     QtCore.Property = QtCore.pyqtProperty
+
+    # Configure Matplotlib for use with PyQt5
     import matplotlib
-    matplotlib.use('Qt5Agg')
-    matplotlib.rcParams['backend.qt5'] = 'PyQt5'
+    try:
+        matplotlib.use('Qt5Agg')
+    except ImportError:
+        # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
+        # was already set.
+        pass
+    else:   # pragma: no cover
+        # The method below was deprecated by matplotlib version 2.2, released
+        # in 2018. So probably fine to remove this (and similar) after 2023
+        v = [float(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
+            matplotlib.rcParams['backend.qt5'] = 'PyQt5'
     import matplotlib.backends.backend_qt5agg as matplotlib_backend
 
     # Set backend variables
     backend = 'PyQt5'
     qtversion = 5
 
+elif pyside2:
+
+    # Load PySide2
+    # Load main classes
+    from PySide2 import QtGui, QtWidgets, QtCore
+    from PySide2.QtCore import Qt
+
+    # Configure Matplotlib for use with PySide2
+    import matplotlib
+    try:
+        matplotlib.use('Qt5Agg')
+    except ImportError:
+        # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
+        # was already set.
+        pass
+    else:   # pragma: no cover
+        v = [float(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
+            matplotlib.rcParams['backend.qt5'] = 'PySide2'
+    import matplotlib.backends.backend_qt5agg as matplotlib_backend  # noqa
+
+    # Set backend variables
+    backend = 'PySide2'
+    qtversion = 5
+
 elif pyqt4:
 
     # Load PyQt4
+
+    # Deprecated since 2019-09-11
+    logger = logging.getLogger('myokit')
+    logger.warning(
+        'PyQt4 support has been deprecated. Please upgrade to PyQt5 or'
+        ' Pyside2.'
+    )
+
     # Set PyQt to "API 2"
     import sip
     sip.setapi('QString', 2)
@@ -139,8 +191,16 @@ elif pyqt4:
 
     # Configure Matplotlib for use with PyQt4
     import matplotlib
-    matplotlib.use('Qt4Agg')
-    matplotlib.rcParams['backend.qt4'] = 'PyQt4'
+    try:
+        matplotlib.use('Qt4Agg')
+    except ImportError:
+        # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
+        # was already set.
+        pass
+    else:   # pragma: no cover
+        v = [float(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
+            matplotlib.rcParams['backend.qt4'] = 'PyQt4'
     import matplotlib.backends.backend_qt4agg as matplotlib_backend
 
     # Set backend variables
@@ -150,6 +210,14 @@ elif pyqt4:
 elif pyside:
 
     # Load PySide
+
+    # Deprecated since 2019-09-11
+    logger = logging.getLogger('myokit')
+    logger.warning(
+        'PySide support has been deprecated. Please upgrade to PyQt5 or'
+        ' Pyside2.'
+    )
+
     # Load main classes
     from PySide import QtGui, QtCore
     from PySide.QtCore import Qt
@@ -211,8 +279,16 @@ elif pyside:
 
     # Configure Matplotlib for use with PySide
     import matplotlib
-    matplotlib.use('Qt4Agg')
-    matplotlib.rcParams['backend.qt4'] = 'PySide'
+    try:
+        matplotlib.use('Qt4Agg')
+    except ImportError:
+        # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
+        # was already set.
+        pass
+    else:   # pragma: no cover
+        v = [float(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
+            matplotlib.rcParams['backend.qt4'] = 'PySide'
     import matplotlib.backends.backend_qt4agg as matplotlib_backend  # noqa
 
     # Set backend variables

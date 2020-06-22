@@ -1,35 +1,14 @@
 #
 # Sympy expression reader
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
 import myokit.formats
-
-from sympy.core.symbol import Symbol
-from sympy.core.numbers import Number, NegativeOne
-from sympy.core.add import Add
-from sympy.core.mul import Mul
-from sympy.core.mod import Mod
-from sympy.core.power import Pow
-from sympy.functions.elementary.trigonometric import (
-    sin, cos, tan, asin, acos, atan)
-from sympy.functions.elementary.exponential import exp, log
-from sympy.functions.elementary.integers import floor, ceiling
-from sympy.functions.elementary.complexes import Abs
-from sympy.logic.boolalg import Not
-from sympy.core.relational import (
-    Equality, Unequality, StrictGreaterThan, StrictLessThan,
-    GreaterThan, LessThan)
-from sympy.logic.boolalg import And, Or
-from sympy.functions.elementary.piecewise import Piecewise
-from sympy.logic.boolalg import BooleanTrue, BooleanFalse
 
 
 class SymPyExpressionReader(object):
@@ -47,6 +26,7 @@ class SymPyExpressionReader(object):
         """
         Converts the Sympy expression ``e`` to a :class:`myokit.Expression`.
         """
+        from sympy.core.numbers import Number
         try:
             action = self._op_map[type(e)]
         except KeyError:
@@ -67,6 +47,23 @@ class SymPyExpressionReader(object):
         Creates and returns a mapping of sympy object types to handling
         methods.
         """
+        from sympy.core.symbol import Symbol
+        from sympy.core.add import Add
+        from sympy.core.mul import Mul
+        from sympy.core.mod import Mod
+        from sympy.core.power import Pow
+        from sympy.functions.elementary.trigonometric import (
+            sin, cos, tan, asin, acos, atan)
+        from sympy.functions.elementary.exponential import exp, log
+        from sympy.functions.elementary.integers import floor, ceiling
+        from sympy.functions.elementary.complexes import Abs
+        from sympy.logic.boolalg import Not
+        from sympy.core.relational import (
+            Equality, Unequality, StrictGreaterThan, StrictLessThan,
+            GreaterThan, LessThan)
+        from sympy.logic.boolalg import And, Or
+        from sympy.functions.elementary.piecewise import Piecewise
+
         return {
             Symbol: self._ex_name,
             Add: self._ex_plus,
@@ -115,6 +112,7 @@ class SymPyExpressionReader(object):
         return myokit.Plus(self.ex(a), self.ex(b))
 
     def _ex_multiply(self, e):
+        from sympy.core.numbers import NegativeOne
         a, b = e.as_two_terms()
         if type(a) == NegativeOne:
             return myokit.PrefixMinus(self.ex(b))
@@ -189,6 +187,8 @@ class SymPyExpressionReader(object):
         return myokit.Or(*[self.ex(x) for x in e.args])
 
     def _ex_piecewise(self, e):
+        from sympy.logic.boolalg import BooleanTrue, BooleanFalse
+
         args = []
         n = len(e.args) - 1
         for k, pair in enumerate(e.args):

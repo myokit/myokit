@@ -4,7 +4,7 @@
 Units
 *****
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 Model variables can declare their units using the syntax explained in
 :ref:`syntax/model/units`. Internally, units are represented as

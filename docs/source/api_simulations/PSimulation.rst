@@ -3,6 +3,7 @@
 *********************
 Parameter sensitivity
 *********************
-.. module:: myokit
+
+.. currentmodule:: myokit
 
 .. autoclass:: PSimulation

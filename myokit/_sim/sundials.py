@@ -1,14 +1,13 @@
 #
 # Sundials information class
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import logging
 import os
 
 import myokit
@@ -46,6 +45,7 @@ class Sundials(myokit.CModule):
 
         # Create Sundials back-end
         mname = 'myokit_sundials_info_' + str(Sundials._index)
+        mname += '_' + str(myokit._pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
         try:
@@ -108,8 +108,17 @@ class Sundials(myokit.CModule):
         # Get version from sundials header
         version = Sundials.version()
         if version is not None:
-            version = [int(x) for x in version.split('.')]
-            version = version[0] * 10000 + version[1] * 100 + version[2]
+            try:
+                # Version can be x.y.z-dev
+                if '-' in version:  # pragma: no cover
+                    version = version[:version.index('-')]
+                version = [int(x) for x in version.split('.')]
+                version = version[0] * 10000 + version[1] * 100 + version[2]
+            except Exception:   # pragma: no cover
+                log = logging.getLogger(__name__)
+                log.warning(
+                    'Unable to parse sundials version: ' + str(version))
+                version = None
         return version
 
 

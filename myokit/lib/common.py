@@ -4,10 +4,8 @@
 # Some functions in this module require a recent version of scipy (i.e. the
 # method scipy.optimize.curve_fit must exist).
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -25,9 +23,8 @@ except NameError:   # pragma: no python 2 cover
 #
 # Deprecated since 2018-04-16
 #
-import logging
-logger = logging.getLogger('myokit')
-logger.warning(
+import warnings
+warnings.warn(
     'The module myokit.lib.common is deprecated: it will be removed in future'
     ' versions of Myokit.'
 )

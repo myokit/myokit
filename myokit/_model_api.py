@@ -1,10 +1,8 @@
 #
 # Defines the python classes that represent a Myokit model.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -616,6 +614,9 @@ class VarOwner(ModelPart, VarProvider):
     def __getitem__(self, key):
         return self._variables[key]
 
+    def __iter__(self):
+        return iter(self._variables.values())
+
     def __len__(self):
         return len(self._variables)
 
@@ -766,29 +767,44 @@ class Model(ObjectWithMeta, VarProvider):
     """
     def __init__(self, name=None):
         super(Model, self).__init__()
+
         # A dictionary of components
         self._components = {}
+
         # The model's state variables
         self._state = []
+
         # The model's current state (list of floats)
         self._current_state = []
+
         # A dict mapping binding names to variables
         self._bindings = {}
+
         # A dict mapping label names to variables
         self._labels = {}
+
         # A set of user functions
         self._user_functions = {}
+
         # A list of warnings about the model's integrity
         self._warnings = []
-        # A list of unique names (for easier export)
-        # Some names may be taken up by system functions etc
+
+        # A list of names that can't be used as unames()
         self._reserved_unames = set()
         self.reserve_unique_names(*myokit.KEYWORDS)
+
+        # A dict mapping `prefix` strings to `prepend` strings. When generating
+        # unames any uname startinhg with `prefix` will be prepended by
+        # `prepend`.
+        self._reserved_uname_prefixes = {}
+
         # A dictionary token_start : (token, object) relating some (not all!)
         #  tokens to a model. Will be filled by parser when reading a model.
         self._tokens = {}
+
         # Validation status: True, False or None (not tested)
         self._valid = None
+
         # Name meta property
         if name:
             self.meta['name'] = str(name)
@@ -899,10 +915,7 @@ class Model(ObjectWithMeta, VarProvider):
         Returns the variable with the binding label ``binding``. If no such
         variable is found, ``None`` is returned.
         """
-        try:
-            return self._bindings[binding]
-        except KeyError:
-            return None
+        return self._bindings.get(binding, None)
 
     def bindings(self):
         """
@@ -911,6 +924,20 @@ class Model(ObjectWithMeta, VarProvider):
         """
         # New dict allows removing labels using this iterator
         return dict(self._bindings).items()
+
+    def bindingx(self, binding):
+        """
+        Returns the variable with the binding label ``binding``, raising a
+        :class:`myokit.IncompatibleModelError` if no such variable is found.
+
+        See :meth:`Model.binding()`.
+        """
+        try:
+            return self._bindings[binding]
+        except KeyError:
+            raise myokit.IncompatibleModelError(
+                self.name(),
+                'No variable found with binding "' + str(binding) + '".')
 
     def check_units(self, mode=myokit.UNIT_TOLERANT):
         """
@@ -992,14 +1019,16 @@ class Model(ObjectWithMeta, VarProvider):
                 e *= t
 
             if v != e and v is not None and e is not None:
-                raise myokit.IncompatibleUnitError(
-                    'Incompatible units in <' + var.qname()
-                    + '> Variable unit ' + str(v)
-                    + ' differs from calculated unit ' + str(e) + '.')
+                msg = 'Incompatible units in <' + var.qname() + '>'
+                if var._token is not None:
+                    msg += ' on line ' + str(var._token[2])
+                msg += '. Variable unit ' + v.clarify()
+                msg += ' differs from calculated unit ' + e.clarify() + '.'
+                raise myokit.IncompatibleUnitError(msg, var._token)
 
     def clone(self):
         """
-        Returns a deep clone of this model.
+        Returns a (deep) clone of this model.
         """
         clone = Model()
 
@@ -1026,8 +1055,12 @@ class Model(ObjectWithMeta, VarProvider):
         for k, c in self._components.items():
             c._clone2(clone[k], lhsmap)
 
-        # Copy unique names
+        # Copy unique names and unique name prefixes
         clone.reserve_unique_names(*iter(self._reserved_unames))
+        for prefix, prepend in self._reserved_uname_prefixes.items():
+            clone.reserve_unique_name_prefix(prefix, prepend)
+
+        # Return
         return clone
 
     def code(self, line_numbers=False):
@@ -1173,19 +1206,30 @@ class Model(ObjectWithMeta, VarProvider):
            variables claiming the disputed name.
         2. If problems persist, a suffix ``_i`` will be added, where ``i`` is
            the first integer which doesn't result in clashing names.
+
+        In addition, the method will avoid names listed using
+        :meth:`reserve_unique_names()` and names starting with a prefix listed
+        using :meth:`reserve_unique_prefix()`.
         """
+        # Don't suggest names started with registered prefixes
+        def prepend(name):
+            for prefix, prepend in self._reserved_uname_prefixes.items():
+                if name.startswith(prefix):
+                    return prepend + name
+            return name
+
         # Gather disputed names
         allnames = set(self._reserved_unames)
         disputed = set()
         for comp in self.components():
-            name = comp._name
+            name = prepend(comp._name)
             if name not in disputed:
                 if name in allnames:
                     disputed.add(name)
                 else:
                     allnames.add(name)
             for var in comp.variables(deep=True):
-                name = var._name
+                name = prepend(var._name)
                 if name not in disputed:
                     if name in allnames:
                         disputed.add(name)
@@ -1196,7 +1240,7 @@ class Model(ObjectWithMeta, VarProvider):
         for comp in sorted(self.components(), key=lambda x: x.name()):
 
             # Set names for component
-            name = comp._name
+            name = prepend(comp._name)
             if name in disputed:
                 i = 1
                 root = name + '_'
@@ -1210,9 +1254,9 @@ class Model(ObjectWithMeta, VarProvider):
             # Set names for variables
             for var in sorted(comp.variables(deep=True),
                               key=lambda x: x.qname()):
-                name = var._name
+                name = prepend(var._name)
                 if name in disputed:
-                    name = var.qname().replace('.', '_')
+                    name = prepend(var.qname().replace('.', '_'))
                     if name in allnames:
                         i = 1
                         root = name + '_'
@@ -1230,6 +1274,23 @@ class Model(ObjectWithMeta, VarProvider):
                 for v in c.variables(deep=deep, sort=sort):
                     yield v
         return stream(self)
+
+    def __eq__(self, other):
+        """
+        Checks if this model equals the ``other`` model.
+
+        This checks equality of code(), but also unique names and unique name
+        prefixes.
+        """
+        if self is other:
+            return True
+        if not isinstance(other, Model):
+            return False
+        if self._reserved_unames != other._reserved_unames:
+            return False
+        if self._reserved_uname_prefixes != other._reserved_uname_prefixes:
+            return False
+        return self.code() == other.code()
 
     def eval_state_derivatives(
             self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
@@ -1310,40 +1371,51 @@ class Model(ObjectWithMeta, VarProvider):
         # Return calculated state
         return out
 
-    def expressions_for(self, variable):
+    def expressions_for(self, *variables):
         """
+        Determines the expressions needed to evaluate one or more variables.
+
         Returns a tuple ``(eqs, args)`` where ``eqs`` is a list of Equation
         objects in solvable order containing the minimal set of equations
         needed to evaluate the given ``variable`` and ``args`` is a list of
         the state variables and bound variables these expressions require as
         input.
         """
-        # Get variable, expression
-        if not isinstance(variable, ModelPart):
-            variable = self.get(variable)
-        expression = variable.rhs()
+        # Make sure all variables are (locally owned) Variable objects
+        temp = []
+        for variable in variables:
+            if isinstance(variable, myokit.Variable):
+                temp.append(self.get(variable.qname()))
+            elif isinstance(variable, myokit.LhsExpression):
+                temp.append(self.get(variable.var().qname()))
+            else:
+                temp.append(self.get(variable))
+        variables = temp
+        del(temp)
 
         # Get shallow dependencies of all required equations
-        shallow = {}
+        # Use ordered dict to get consistent output
+        shallow = OrderedDict()
         arguments = []
-        equations = {}
+        equations = OrderedDict()
 
         def add_dep(lhs):
             if lhs in shallow or lhs in arguments:
                 return
             var = lhs.var()
-            if var.is_state() or var.is_bound():
+            if var.is_bound() or (var.is_state() and not lhs.is_derivative()):
                 arguments.append(lhs)
                 return
             rhs = var.rhs()
-            dps = rhs.references()
+            dps = sorted(rhs.references(), key=str)
             shallow[lhs] = dps
             equations[lhs] = rhs
             for dep in dps:
                 add_dep(dep)
 
-        for lhs in expression.references():
-            add_dep(lhs)
+        for variable in variables:
+            for lhs in sorted(variable.rhs().references(), key=str):
+                add_dep(lhs)
 
         # Filter out dependencies on arguments
         for dps in shallow.values():
@@ -1367,8 +1439,13 @@ class Model(ObjectWithMeta, VarProvider):
                     if lhs in dps:
                         dps.remove(lhs)
 
-        # Add final equation and return
-        eq_list.append(Equation(variable.lhs(), variable.rhs()))
+        # Add final equations and return
+        for variable in variables:
+            eq = variable.eq()
+            if eq not in eq_list:
+                eq_list.append(eq)
+        eq_list = myokit.EquationList(eq_list)
+
         return (eq_list, arguments)
 
     def format_state(self, state=None, state2=None):
@@ -1563,15 +1640,15 @@ class Model(ObjectWithMeta, VarProvider):
 
         return t
 
+    def __iter__(self):
+        return iter(self._components.values())
+
     def label(self, label):
         """
-        Returns the variable with the given label. If no variable is labelled
-        as ``label`` it returns ``None``.
+        Returns the variable with the given ``label``, or ``None`` if no such
+        variable can be found.
         """
-        try:
-            return self._labels[label]
-        except KeyError:
-            return None
+        return self._labels.get(label, None)
 
     def labels(self):
         """
@@ -1579,6 +1656,20 @@ class Model(ObjectWithMeta, VarProvider):
         """
         # New dict allows removing labels using this iterator
         return dict(self._labels).items()
+
+    def labelx(self, label):
+        """
+        Returns the variable with the label ``label``, raising a
+        :class:`myokit.IncompatibleModelError` if no such variable is found.
+
+        See :meth:`Model.label()`.
+        """
+        try:
+            return self._labels[label]
+        except KeyError:
+            raise myokit.IncompatibleModelError(
+                self.name(),
+                'No variable found with label "' + str(label) + '".')
 
     def __len__(self):
         return len(self._components)
@@ -1797,7 +1888,7 @@ class Model(ObjectWithMeta, VarProvider):
             a = f(b)
             b = g(c)
 
-        The set returned for ``a`` will include ``b`` and ``c``. So while ``a``
+        the set returned for ``a`` will include ``b`` and ``c``. So while ``a``
         here depends on both ``b`` and ``c``, ``b``'s sole dependency on ``c``
         means ``a`` can be calculated if just ``c`` is known. To filter out the
         dependency on ``b``, set ``filter_encompassed`` to ``True``. Note that
@@ -2037,10 +2128,8 @@ class Model(ObjectWithMeta, VarProvider):
         Deprecated alias of :meth:`resolve_interdependent_components`.
         """
         # Deprecated since 2018-05-30
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `merge_interdependent_components` is deprecated.'
             ' Please use `resolve_interdependent_components` instead.')
         self.resolve_interdependent_components()
@@ -2092,6 +2181,21 @@ class Model(ObjectWithMeta, VarProvider):
         for var in unused:
             var.set_binding(None)
         return variables
+
+    def __reduce__(self):
+        """
+        Pickles the model.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        return (
+            myokit.parse_model,
+            (self.code(), ),
+            (
+                self._reserved_unames,
+                self._reserved_uname_prefixes,
+            ),
+        )
 
     def _register_binding(self, label, variable=None):
         """
@@ -2189,12 +2293,71 @@ class Model(ObjectWithMeta, VarProvider):
         finally:
             self._valid = None
 
+    def remove_derivative_references(self):
+        """
+        Scans this model's RHS for any references to derivatives and removes
+        them by introducing a new variable.
+
+        For example, given a (partial) model::
+
+            [ernie]
+            dot(x) = (12 - x) / 5
+
+            [bert]
+            y = 1 + dot(x)
+
+        this method will update the model to::
+
+            [ernie]
+            dot_x = (12 - x) / 5
+            dot(x) = dot_x
+
+            [bert]
+            y = 1 + dot_x
+
+        """
+        # Get time unit
+        time = self.time()
+        if time is not None:
+            time_unit = time.unit()
+
+        # Scan all states
+        for state in self._state:
+
+            # Search for references to dot(state)
+            refs = list(state.refs_by())
+
+            if refs:
+                # If found, add a new variable to represent dot(state)
+                var = state.parent().add_variable_allow_renaming(
+                    'dot_' + state.name())
+                var.set_rhs(state.rhs())
+
+                # Set unit for new variable
+                if state.unit() is not None and time_unit is not None:
+                    var.set_unit(state.unit() / time_unit)
+
+                # Move nested variables
+                for child in list(state.variables()):
+                    state.move_variable(child, var)
+
+                # Update state RHS
+                state.set_rhs(myokit.Name(var))
+
+                # Update all referring equations
+                subst = {state.lhs(): var.lhs()}
+                for ref in refs:
+                    ref.set_rhs(ref.rhs().clone(subst=subst))
+
     def __repr__(self):
         """
         Returns a representation of this model in the form
         ``<Model(model_name)>``.
         """
-        return '<Model(' + self.name() + ')>'
+        try:
+            return '<Model(' + self.meta['name'] + ')>'
+        except KeyError:
+            return '<Unnamed Model>'
 
     def reserve_unique_names(self, *unames):
         """
@@ -2208,6 +2371,23 @@ class Model(ObjectWithMeta, VarProvider):
         """
         for name in unames:
             self._reserved_unames.add(name)
+
+    def reserve_unique_name_prefix(self, prefix, prepend):
+        """
+        Indicates a ``prefix`` that won't be used in unique names (unames).
+
+        When creating a unique name, any variable starting with ``prefix`` will
+        be prepended with the string ``prepend``.
+        """
+        prefix = str(prefix)
+        prepend = str(prepend)
+        if prefix == '':
+            raise ValueError('Unique name prefix cannot be empty.')
+        if prepend == '':
+            raise ValueError('String to prepend cannot be empty.')
+        if prepend.startswith(prefix):
+            raise ValueError('String to prepend cannot start with prefix.')
+        self._reserved_uname_prefixes[prefix] = prepend
 
     def _reset_indices(self):
         """
@@ -2269,6 +2449,15 @@ class Model(ObjectWithMeta, VarProvider):
                 pass
         else:
             self.meta['name'] = str(name)
+
+    def __setstate__(self, state):
+        """
+        Called after unpickling.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__setstate__
+        """
+        self._reserved_unames = state[0]
+        self._reserved_uname_prefixes = state[1]
 
     def set_state(self, state):
         """
@@ -2361,10 +2550,8 @@ class Model(ObjectWithMeta, VarProvider):
         Deprecated alias of :meth:`show_line_of`.
         """
         # Deprecated since 2018-05-30
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `show_line` is deprecated and will be removed in'
             ' future versions of Myokit. Please use `show_line_of` instead.')
         self.show_line_of(var)
@@ -2598,93 +2785,6 @@ class Model(ObjectWithMeta, VarProvider):
         # Return
         return out
 
-    def solvable_subset(self, *args):
-        """
-        This method is deprecated and will be removed in future versions of
-        Myokit.
-
-        Returns all equations dependent on one or more :class:`LhsExpression`
-        objects in a solvable order. The resulting equations are stored in an
-        :class:`EquationList`.
-
-        The returned equations can be used to recalculate the model
-        expressions, given new values for the variables in ``args``.
-
-        The input arguments can be given as :class:`LhsExpression` objects or
-        string names of variables.
-        """
-        # Deprecated since 2018-11-08
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
-            'The method `solvable_subset` is deprecated: it will be removed in'
-            ' future versions of Myokit.')
-
-        # 1. Get set of root lhs objects
-        msg = 'All input arguments to solvable_subset must be' \
-              ' LhsExpression objects or string names of variables'
-        roots = set()
-        for lhs in args:
-            if isinstance(lhs, basestring):
-                lhs = self.get(lhs)
-                if not isinstance(lhs, myokit.Variable):
-                    raise ValueError(msg)
-                lhs = lhs.lhs()
-            if not isinstance(lhs, myokit.LhsExpression):
-                raise ValueError(msg)
-            roots.add(lhs)
-
-        # 2. Get subtree starting at those roots
-        def add_to_subtree(var, tree):
-            lhs = var.lhs()
-            if lhs in subtree:
-                return
-            subtree.add(lhs)
-            for kid in var.refs_by():   # Can never be state value
-                add_to_subtree(kid, tree)
-        subtree = set()
-        for lhs in roots:
-            subtree.add(lhs)
-            if lhs.is_state_value():    # Roots may contain state values
-                for var in lhs.var().refs_by(state_refs=True):
-                    add_to_subtree(var, subtree)
-                # Iterator doesn't return self rep when dot(x) = f(x)
-                # So add dot(x) manually if it references x.
-                var = lhs.var()
-                if lhs in var.rhs().references():
-                    add_to_subtree(var, subtree)
-            else:
-                for var in lhs.var().refs_by():
-                    add_to_subtree(var, subtree)
-
-        # 3. Get map of references within subtree
-        deps = {}
-        for lhs in subtree:
-            if lhs in roots:
-                continue
-            dps = set()
-            for ref in lhs.rhs().references():
-                if ref in subtree and ref not in roots:
-                    dps.add(ref)
-            deps[lhs] = dps
-
-        # 4. Get solvable list of equations
-        eqs = EquationList()
-        while deps:
-            todo = set()
-            for lhs, dps in deps.items():
-                if not dps:
-                    todo.add(lhs)
-            if not todo:
-                raise RuntimeError('Equation ordering failed.')
-            for lhs in todo:
-                del(deps[lhs])
-                eqs.append(Equation(lhs, lhs.rhs()))
-            for lhs, dps in deps.items():
-                deps[lhs] -= todo
-        return eqs
-
     def state(self):
         """
         Returns the current state of the model as a list of floating point
@@ -2782,6 +2882,19 @@ class Model(ObjectWithMeta, VarProvider):
             return self._bindings['time']
         except KeyError:
             return None
+
+    def timex(self):
+        """
+        Returns this model's time variable, raising a
+        :class:`myokit.IncompatibleModelError` if no time variable is found.
+
+        See :meth:`Model.time()`.
+        """
+        try:
+            return self._bindings['time']
+        except KeyError:
+            raise myokit.IncompatibleModelError(
+                self.name(), 'No time variable found.')
 
     def time_unit(self, mode=myokit.UNIT_TOLERANT):
         """
@@ -3003,10 +3116,14 @@ class Model(ObjectWithMeta, VarProvider):
         out.append('Showing: ' + var.qname() + '  (' + kind + ')')
         if spacer is not None:
             out.append(spacer)
+        unit = var.unit()
+        if unit is not None:
+            out.append('in ' + str(unit))
+            if spacer is not None:
+                out.append(spacer)
         desc = var.meta.get('desc')
         if desc is not None:
-            if desc is not None:
-                out.append('desc: ' + str(desc))
+            out.append('desc: ' + str(desc))
             if spacer is not None:
                 out.append(spacer)
         return (var, out)
@@ -3026,7 +3143,10 @@ class Model(ObjectWithMeta, VarProvider):
 
 class Component(VarOwner):
     """
-    A Component acts as a container of :class:`variables <Variable>`.
+    A model component, containing several :class:`variables <Variable>`.
+
+    Components should not be created directly, but only via
+    :meth:`Model.add_component()`.
 
     Variables can be accessed using the ``comp['var_name']`` syntax or through
     the iterator methods.
@@ -3110,9 +3230,11 @@ class Component(VarOwner):
                 'Can not delete component <' + self.qname() + '>'
                 ' it is used by components '
                 + ' and '.join(['<' + c.qname() + '>' for c in reffers]))
+
         # No problem? Then delete all variables from component
         for var in self.variables():
             var._delete(recursive=True, whole_component=True)
+
         # Delete links to parent
         super(Component, self)._delete()
 
@@ -3138,14 +3260,18 @@ class Component(VarOwner):
         """
         pre = t * TAB
         b.write(pre + '[' + self.name() + ']\n')
+
         # Append meta properties
         self._code_meta(b, t)
+
         # Append aliases
-        for alias, var in self._alias_map.items():
+        for alias, var in sorted(self._alias_map.items()):
             b.write(pre + 'use ' + var.qname() + ' as ' + alias + '\n')
+
         # Append values
         for v in self.variables(sort=True):
             v._code(b, t)
+
         b.write(pre + '\n')
 
     def qname(self, hide=None):
@@ -3217,7 +3343,10 @@ class Component(VarOwner):
 
 class Variable(VarOwner):
     """
-    Represents a variable.
+    Represents a model variable.
+
+    Variables should not be created directly, but only via
+    :meth:`Component.add_variable()` or :meth:`Variable.add_variable()`.
 
     Each variable has a single defining equation. For state variables, this
     equation has a derivative on the left-hand side (lhs), for all other
@@ -3394,6 +3523,95 @@ class Variable(VarOwner):
         for var in self.variables(sort=True):
             var._code(b, t)
 
+    def convert_unit(self, new_unit, helpers=None):
+        """
+        Converts the units this variable is expressed in to ``new_unit``.
+
+        Unit conversion proceeds in the following steps:
+
+        1. A scaling factor is determined (see below).
+        2. The variable's RHS is multiplied by this factor
+        3. For state variables, the current state value is also updated.
+        4. All references to the variable in the model equations are divided
+           by the scaling factor.
+        5. If the time variable is updated, all derivative equations are
+           updated.
+
+        The scaling factor is determined using
+        :meth:`myokit.Unit.conversion_factor(old_unit, new_unit, helpers)`,
+        where ``old_unit`` is the current variable unit (as determined by
+        ``variable.unit(myokit.UNIT_STRICT)``).
+
+        For state variables, as with ordinary variables, the ``new_unit``
+        should be the unit of the variable itself (and not of its time
+        derivative).
+
+        Arguments:
+
+        ``new_unit``
+            The new unit this variable should be in. Given either as a
+            :class:`myokit.Unit` or as a string that can be converted to a unit
+            using :class:`myokit.parse_unit(new_unit)`.
+        ``helpers=None``
+            An optional list of conversion factors, which the method will
+            attempt to use if the new and old units are incompatible. Each
+            factor should be specified as a :class:`myokit.Quantity` or
+            something that can be converted to a Quantity e.g. a string
+            ``1 [uF/cm^2]`` or a :class:`myokit.Number()`.
+
+        Note that this method will assume the expression is currently in the
+        unit returned by :meth:`Variable.unit()`. It will not check whether the
+        current RHS expression evaluates to the correct units.
+        """
+        # Check new unit
+        if not isinstance(new_unit, myokit.Unit):
+            new_unit = myokit.parse_unit(new_unit)
+
+        # Get current unit
+        old_unit = self.unit(myokit.UNIT_STRICT)
+
+        # Check if units are equal
+        if new_unit == old_unit:
+            return
+
+        # Determine scaling factor (from old to new)
+        fw = myokit.Unit.conversion_factor(old_unit, new_unit, helpers)
+        fw = myokit.Number(fw)
+
+        # Update the variable unit
+        self.set_unit(new_unit)
+
+        # Update the variable's definition
+        self.set_rhs(myokit.Multiply(self.rhs(), fw))
+
+        # For states, update the current/initial value
+        if self._is_state:
+            self.set_state_value(self.state_value() * float(fw))
+
+        # Update all references to the variable
+        old_ref = myokit.Name(self)
+        new_ref = myokit.Divide(old_ref, fw)
+        for var in self.refs_by(self._is_state):
+            var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
+
+        # For states, also update references to their derivatives
+        if self._is_state:
+            old_ref = myokit.Derivative(myokit.Name(self))
+            new_ref = myokit.Divide(old_ref, fw)
+            for var in self.refs_by(False):
+                var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
+
+        # For the time variable, update all state RHS's, and any references to
+        # derivatives
+        model = self.parent(Model)
+        if self == model.time():
+            for var in model.states():
+                var.set_rhs(myokit.Divide(var.rhs(), fw))
+                old_ref = myokit.Derivative(myokit.Name(var))
+                new_ref = myokit.Multiply(old_ref, fw)
+                for ref in var.refs_by(False):
+                    ref.set_rhs(ref.rhs().clone(subst={old_ref: new_ref}))
+
     def _delete(self, recursive=False, whole_component=False):
         """
         Tells this variable that it's going to be deleted.
@@ -3422,6 +3640,7 @@ class Variable(VarOwner):
             if self in refs:
                 # Self-ref is allowed
                 refs.remove(self)
+
             if recursive:
                 # Refs from child variables are allowed
                 okay = set([x for x in refs if x.has_ancestor(self)])
@@ -3430,12 +3649,14 @@ class Variable(VarOwner):
                 # Nested variables can not be referred to by outside variables,
                 # so this action doesn't have to be repeated for the nested
                 # variables.
+
             if whole_component:
                 # Refs from within the same component are okay
                 comp = self.parent(Component)
                 okay = set([x for x in refs if x.parent(Component) == comp])
                 refs = refs.difference(okay)
                 del(okay)
+
             if refs:
                 raise myokit.IntegrityError(
                     'Variable <' + self.qname() + '>'
@@ -3457,8 +3678,14 @@ class Variable(VarOwner):
         if self.is_state():
             self.demote()
 
+        # Remove any bindings or labels
+        self.set_binding(None)
+        self.set_label(None)
+
         # Delete child variables
         if recursive:
+            for kid in kids:
+                kid.set_rhs(0)
             for kid in kids:
                 # Call this method for each kid (and cascade to kid-kids)
                 kid._delete(recursive=True, whole_component=whole_component)
@@ -3825,15 +4052,18 @@ class Variable(VarOwner):
         if binding is not None:
             # Check name
             binding = check_name(binding)
+
             # Check for existing binding
             if self._binding is not None:
                 raise myokit.InvalidBindingError(
                     'The variable <' + self.qname() + '>'
                     ' is already bound to "' + self._binding + '".')
+
             # Check if not a state
             if self._indice is not None:
                 raise myokit.InvalidBindingError(
                     'State variables cannot be bound to an external value.')
+
         # Set binding (model checks uniqueness)
         model = self.model()
         try:
@@ -3846,6 +4076,7 @@ class Variable(VarOwner):
         finally:
             # Clear cache and cache of dependent variables
             self._reset_cache(bubble=True)
+
             # Reset model validation
             model._reset_validation()
 
@@ -3862,13 +4093,16 @@ class Variable(VarOwner):
                 self.model()._register_label(self._label, None)
                 self._label = None
             return
+
         # Check name
         label = check_name(label)
+
         # Check for existing label or binding
         if self._label:
             raise myokit.InvalidLabelError(
                 'The variable <' + self.qname() + '>'
                 ' already has a label "' + self._label + '".')
+
         # Set label (model checks uniqueness)
         self.model()._register_label(label, self)
         self._label = label
@@ -4089,6 +4323,17 @@ class Equation(object):
         else:
             return self.lhs == other.lhs and self.rhs == other.rhs
 
+    def clone(self, subst=None, expand=False, retain=None):
+        """
+        Clones this equation.
+
+        See :meth:`myokit.Expression.clone()` for details of the arguments.
+        """
+        return Equation(
+            self.lhs.clone(subst, expand, retain),
+            self.rhs.clone(subst, expand, retain),
+        )
+
     def code(self):
         b = StringIO()
         self.lhs._code(b, None)
@@ -4109,6 +4354,9 @@ class Equation(object):
 
     def __str__(self):
         return self.code()
+
+    def __repr__(self):
+        return '<Equation ' + str(self) + '>'
 
 
 class EquationList(list, VarProvider):

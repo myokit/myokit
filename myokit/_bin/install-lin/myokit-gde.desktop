@@ -5,6 +5,6 @@ Encoding=UTF-8
 Name=Graph Data Extractor
 Name[en_US]=Graph Data Extractor
 Comment=Extracts data from graphs
-Exec=python -m myokit gde %f
+Exec=<?=python?> -m myokit gde %f
 Icon=<?=icons?>/icon-gde.png
 MimeType=text/x-myokit-gde;

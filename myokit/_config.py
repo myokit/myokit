@@ -2,10 +2,8 @@
 # Loads settings from configuration file in user home directory or attempts to
 # guess best settings.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -132,17 +130,14 @@ def _create(path):
 
     if system == 'Windows':     # pragma: no linux cover
         # All windowses
-        c32 = 'C:\\Program Files\\'
-        c64 = 'C:\\Program Files (x86)\\'
+        c64 = 'C:\\Program Files\\'
         config.set('opencl', 'lib', ';'.join([
-            # Note: Must keep this list in sync with the list below
+            # Note: Must keep this list in sync with the list in
             # .appveyor.ps1 install script
             'C:\\Intel\\OpenCL\\sdk\\lib\\x86',
-            'C:\\Intel\\OpenCL\\sdk\\lib\\x64',
-            c32 + 'AMD APP SDK\\2.9\\bin\\x86',
-            c64 + 'AMD APP SDK\\2.9\\bin\\x86',
-            c32 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v7.0\\lib\\Win32',
-            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v7.0\\lib\\Win32',
+            c64 + 'Intel\\OpenCL SDK\\6.3\\lib\\x64',
+            c64 + 'AMD APP SDK\\2.9\\bin\\x64',
+            c64 + 'NVIDIA GPU Computing Toolkit\CUDA\\v10.1\\lib\\x64',
         ]))
     else:
         # Linux and mac
@@ -160,14 +155,12 @@ def _create(path):
 
     if system == 'Windows':     # pragma: no linux cover
         # All windowses
-        c32 = 'C:\\Program Files\\'
-        c64 = 'C:\\Program Files (x86)\\'
+        c64 = 'C:\\Program Files\\'
         config.set('opencl', 'inc', ';'.join([
             'C:\\Intel\\OpenCL\\sdk\\include',
-            #c32 + 'AMD APP SDK\\2.9\\include',
-            #c64 + 'AMD APP SDK\\2.9\\include',
-            #c32 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v7.0\\include',
-            #c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v7.0\\include',
+            c64 + 'Intel\\OpenCL SDK\\6.3\\include',
+            c64 + 'AMD APP SDK\\2.9\\include',
+            c64 + 'NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\include',
         ]))
     else:
         # Linux and mac
@@ -231,18 +224,26 @@ def _load():
     # GUI Backend
     if config.has_option('gui', 'backend'):
         x = config.get('gui', 'backend').strip().lower()
-        if x == 'pyside':
-            myokit.FORCE_PYSIDE = True
-            myokit.FORCE_PYQT4 = False
-            myokit.FORCE_PYQT5 = False
-        elif x == 'pyqt' or x == 'pyqt4':
-            myokit.FORCE_PYSIDE = False
+        if x == 'pyqt' or x == 'pyqt4':
             myokit.FORCE_PYQT4 = True
             myokit.FORCE_PYQT5 = False
-        elif x == 'pyqt5':
             myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE2 = False
+        elif x == 'pyqt5':
             myokit.FORCE_PYQT4 = False
             myokit.FORCE_PYQT5 = True
+            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE2 = False
+        elif x == 'pyside':
+            myokit.FORCE_PYQT4 = False
+            myokit.FORCE_PYQT5 = False
+            myokit.FORCE_PYSIDE = True
+            myokit.FORCE_PYSIDE2 = False
+        elif x == 'pyside2':
+            myokit.FORCE_PYQT4 = False
+            myokit.FORCE_PYQT5 = False
+            myokit.FORCE_PYSIDE = False
+            myokit.FORCE_PYSIDE2 = True
         #else:
         # If empty or invalid, don't adjust the settings!
 

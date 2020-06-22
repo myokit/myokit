@@ -1,17 +1,18 @@
 #
 # Imports a channel model from a ChannelML file.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
 import textwrap
-from xml.dom import minidom
+import xml.dom
+import xml.dom.minidom
+
+import warnings
 
 try:
     # Python 2
@@ -23,7 +24,39 @@ except ImportError:
 import myokit
 from myokit import formats
 from myokit import Name, Number, Minus, Multiply, Divide, Power
-from myokit.mxml import dom_child, dom_next
+
+
+def dom_child(node):
+    """
+    Returns the first child element of the given DOM node.
+
+    Returns ``None`` if no such node is found.
+    """
+    enode = xml.dom.Node.ELEMENT_NODE
+    e = node.firstChild
+    while e is not None:
+        if e.nodeType == enode:
+            return e
+        e = e.nextSibling
+    return None
+
+
+def dom_next(node, selector=False):
+    """
+    Returns the next sibling element after the given DOM node.
+
+    If the optional selector is given it searches for an element of a
+    particular type.
+
+    Returns ``None`` if no such node is found.
+    """
+    enode = xml.dom.Node.ELEMENT_NODE
+    e = node.nextSibling
+    while e is not None:
+        if e.nodeType == enode:
+            return e
+        e = e.nextSibling
+    return None
 
 
 class ChannelMLError(myokit.ImportError):
@@ -51,9 +84,6 @@ class ChannelMLImporter(formats.Importer):
         The created :class:`myokit.Component` is returned.
         """
         return self._parse(path, model)
-
-    def info(self):
-        return "Loads a channel model definition from a ChannelML file."
 
     def model(self, path):
         """
@@ -92,7 +122,7 @@ class ChannelMLImporter(formats.Importer):
 
         # Parse XML
         path = os.path.abspath(os.path.expanduser(path))
-        dom = minidom.parse(path)
+        dom = xml.dom.minidom.parse(path)
 
         # Get channelml tag
         root = dom.getElementsByTagName('channelml')
@@ -138,7 +168,7 @@ class ChannelMLImporter(formats.Importer):
             raise ChannelMLError(
                 'Channel model must contain a current voltage relation.')
         elif len(cvr) > 1:
-            self.logger().warn(
+            warnings.warn(
                 'Multiple current voltage relations found, ignoring all but'
                 ' first.')
         cvr = cvr[0]
@@ -218,7 +248,7 @@ class ChannelMLImporter(formats.Importer):
                 try:
                     tcovar.set_rhs(self._parse_expression(expr, tcovar))
                 except myokit.ParseError as e:
-                    self.logger().warn(
+                    warnings.warn(
                         'Error parsing expression for closed-to-open'
                         ' transition in gate <' + gname + '>: '
                         + myokit.format_parse_error(e))
@@ -231,7 +261,7 @@ class ChannelMLImporter(formats.Importer):
                 try:
                     tocvar.set_rhs(self._parse_expression(expr, tocvar))
                 except myokit.ParseError as e:
-                    self.logger().warn(
+                    warnings.warn(
                         'Error parsing expression for open-to-closed'
                         ' transition in gate <' + gname + '>: '
                         + myokit.format_parse_error(e))
@@ -260,7 +290,7 @@ class ChannelMLImporter(formats.Importer):
                 try:
                     ssvar.set_rhs(self._parse_expression(expr, ssvar))
                 except myokit.ParseError as e:
-                    self.logger().warn(
+                    warnings.warn(
                         'Error parsing expression for steady state in gate <'
                         + gname + '>: ' + myokit.format_parse_error(e))
                     ssvar.meta['expression'] = str(expr)
@@ -272,7 +302,7 @@ class ChannelMLImporter(formats.Importer):
                 try:
                     tcvar.set_rhs(self._parse_expression(expr, tcvar))
                 except myokit.ParseError as e:
-                    self.logger().warn(
+                    warnings.warn(
                         'Error parsing expression for time course in gate <'
                         + gname + '>: ' + myokit.format_parse_error(e))
                     tcvar.meta['expression'] = str(expr)
@@ -393,7 +423,7 @@ class ChannelMLImporter(formats.Importer):
         try:
             myokit.check_name(name)
         except myokit.InvalidNameError as e:
-            self.logger().warn('Invalid name: ' + str(e))
+            warnings.warn('Invalid name: ' + str(e))
             self.generated_name_index += 1
             name = 'generated_name_' + str(self.generated_name_index)
         return name

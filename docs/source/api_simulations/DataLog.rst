@@ -3,7 +3,7 @@
 *********
 Data logs
 *********
-.. module:: myokit
+.. currentmodule:: myokit
 
 Simulations log their results in a :class:`DataLog`. This is a versatile
 logging class which makes few assumptions about the type of data being logged.

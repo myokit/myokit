@@ -10,3 +10,9 @@ __pycache__
 
 # Jupyter notebooks
 .ipynb_checkpoints
+
+# Virtual environments
+venv
+
+# DS Store
+.DS_Store 

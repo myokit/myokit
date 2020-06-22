@@ -1,10 +1,8 @@
 #
 # C Compiler information class
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -46,6 +44,7 @@ class Compiler(myokit.CModule):
 
         # Create back-end
         mname = 'myokit_compiler_info_' + str(Compiler._index)
+        mname += '_' + str(myokit._pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
         try:
@@ -74,14 +73,23 @@ class Compiler(myokit.CModule):
         return Compiler._instance
 
     @staticmethod
-    def info():
+    def info(debug=False):
         """
         Returns a string with information about the compiler found on this
         system, or ``None`` if no compiler could be found.
+
+        If ``debug`` is set to ``True``, compilation errors will be printed to
+        stdout.
         """
         try:
             return Compiler._get_instance().compiler()
-        except NoCompilerError:  # pragma: no cover
+        except NoCompilerError as e:  # pragma: no cover
+            if debug:
+                print(e)
+                if Compiler._message is None:
+                    print('No further error message available.')
+                else:
+                    print(Compiler._message)
             return None
 
 

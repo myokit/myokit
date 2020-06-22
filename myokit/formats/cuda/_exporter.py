@@ -1,10 +1,8 @@
 #
 # Exports to a CUDA kernel
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -33,9 +31,6 @@ class CudaKernelExporter(myokit.formats.TemplatedRunnableExporter):
     that remain hidden when using double precision single cell simulations on
     the CPU.
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
 
     def _dir(self, root):
         return os.path.join(root, 'cuda', 'template')
@@ -59,9 +54,6 @@ class CudaKernelRLExporter(myokit.formats.TemplatedRunnableExporter):
     labelled as ``membrane_potential``, and a value must be bound to
     ``diffusion_current`` (see :class:`CudaKernelExporter` for details).
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
 
     def _dir(self, root):
         return os.path.join(root, 'cuda', 'template')

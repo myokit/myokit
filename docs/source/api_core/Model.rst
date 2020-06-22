@@ -4,7 +4,7 @@
 ``Model``
 *********
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 The central object in Myokit is the :class:`Model`. In most scenario's, models
 are created by :ref:`parsing <api/io>` a file in

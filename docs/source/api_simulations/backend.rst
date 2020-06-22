@@ -9,7 +9,7 @@ the fly. To do this, Myokit utilises a number of modules detailed here.
 Back-end classes
 ----------------
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 .. autoclass:: CModule
     :private-members:

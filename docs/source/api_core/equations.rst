@@ -4,12 +4,12 @@
 Equations
 *********
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 While the internal storage of equations may differ, when they are returned
 equations are usually in the form of an :class:`Equation` object.
 
-.. autoclass:: myokit.Equation
+.. autoclass:: Equation
    :undoc-members:
    :inherited-members:
 

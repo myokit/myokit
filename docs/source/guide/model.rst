@@ -4,7 +4,7 @@
 Model structure
 ***************
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 The core of a myokit :class:`model <Model>` is a set of :class:`variables
 <Variable>` and the equations that define them. For convenience, variables are

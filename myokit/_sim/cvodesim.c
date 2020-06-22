@@ -10,10 +10,8 @@
 # potential   A variable from the model used to track threshold crossings
 # -----------------------------------------------------------------------------
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 import myokit
 import myokit.formats.ansic as ansic
@@ -1198,6 +1196,7 @@ sim_step(PyObject *self, PyObject *args)
         }
 
         /* Check if we're finished */
+        if (ESys_eq(engine_time, tmax)) engine_time = tmax;
         if (engine_time >= tmax) break;
 
         /* Perform any Python signal handling */
@@ -1277,7 +1276,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
 
     /* Temporary object: decref before re-using for another var :) */
     /* (Unless you get them using PyList_GetItem...) */
-    flt = NULL;   /* PyFloat
+    flt = NULL;   /* PyFloat */
 
     /* Create state vectors */
     y = N_VNew_Serial(N_STATE);

@@ -7,9 +7,8 @@ environment:
 
   matrix:
     - PYTHON: "C:\\Python27-x64"
-    - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35-x64"
-    - PYTHON: "C:\\Python36-x64"
+    - PYTHON: "C:\\Python38-x64"
 
 install:
   - powershell -Command .appveyor.ps1
@@ -21,7 +20,7 @@ build: off
 
 test_script:
   - "%PYTHON%\\python.exe -m myokit system"
-  - "%PYTHON%\\python.exe test unit"
+  - "%PYTHON%\\python.exe -m myokit test unit"
 
 # Cache files downloaded by .appveyor.ps1 (dependent on ps1 file)
 cache:

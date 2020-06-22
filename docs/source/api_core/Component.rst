@@ -4,7 +4,7 @@
 ``Component``
 *************
 
-.. module:: myokit
+.. currentmodule:: myokit
 .. autoclass:: Component
    :undoc-members:
    :inherited-members:

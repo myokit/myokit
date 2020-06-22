@@ -1,10 +1,8 @@
 #
 # Cable simulation using a simple forward Euler implementation
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -184,6 +182,7 @@ class Simulation1d(myokit.CModule):
         # Unique simulation id
         Simulation1d._index += 1
         module_name = 'myokit_sim1d_' + str(Simulation1d._index)
+        module_name += '_' + str(myokit._pid_hash())
 
         # Arguments
         args = {

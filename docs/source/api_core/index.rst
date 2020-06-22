@@ -4,7 +4,7 @@
 API :: Core
 ***********
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 The heart of Myokit's API has the following components:
 
@@ -45,7 +45,6 @@ section of the documentation.
     equations
     units
     io
-    mxml
     misc
     settings
     exceptions

@@ -1,10 +1,8 @@
 #
 # OpenCL information class
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -47,14 +45,18 @@ class OpenCL(myokit.CModule):
         # Create back-end and cache it
         OpenCL._index += 1
         mname = 'myokit_opencl_info_' + str(OpenCL._index)
+        mname += '_' + str(myokit._pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
 
         # Define libraries
         libs = []
+        flags = []
         import platform
-        if platform.system() != 'Darwin':     # pragma: no osx cover
+        if platform.system() != 'Darwin':   # pragma: no osx cover
             libs.append('OpenCL')
+        else:                               # pragma: no cover
+            flags.append('-framework OpenCL')
 
         # Add include / linker paths
         libd = list(myokit.OPENCL_LIB)
@@ -81,7 +83,7 @@ class OpenCL(myokit.CModule):
         try:
             OpenCL._message = None
             OpenCL._instance = self._compile(
-                mname, fname, args, libs, libd, incd)
+                mname, fname, args, libs, libd, incd, larg=flags)
         except myokit.CompilationError as e:
             OpenCL._instance = False
             OpenCL._message = str(e)

@@ -1,4 +1,4 @@
-[![travis](https://travis-ci.org/MichaelClerx/myokit.svg?branch=master)](https://travis-ci.org/MichaelClerx/myokit)
+[![travis](https://travis-ci.com/MichaelClerx/myokit.svg?branch=master)](https://travis-ci.com/MichaelClerx/myokit)
 [![appveyor](https://ci.appveyor.com/api/projects/status/u2e6bc6tklgxyyra/branch/master?svg=true)](https://ci.appveyor.com/project/MichaelClerx/myokit)
 [![codecov](https://codecov.io/gh/MichaelClerx/myokit/branch/master/graph/badge.svg)](https://codecov.io/gh/MichaelClerx/myokit)
 [![Documentation Status](https://readthedocs.org/projects/myokit/badge/?version=latest)](https://myokit.readthedocs.io/?badge=latest)
@@ -14,18 +14,28 @@ More information, including examples and an installation guide, is available on 
 
 ## Install
 
-To install Myokit, run
+To install Myokit, using PyQt5 for Myokit's GUI components, run:
+
+    pip install myokit[pyqt]
+    
+to use PySide2 instead, run:
+    
+    pip install myokit[pyside]
+    
+If you're not planning to use the GUI components (for example to run simulations on a server), you can simply install with
 
     pip install myokit
 
-On linux and windows, start menu icons can then be added by running
+On Linux and Windows, start menu icons can be added by running
 
     python -m myokit icons
 
-To run single-cell simulations, [CVODE](https://computation.llnl.gov/projects/sundials/sundials-software) must be installed (windows binaries are included in the pip install).
+To run single-cell simulations, [CVODE](https://computation.llnl.gov/projects/sundials/sundials-software) must be installed (but Windows users can skip this step, as binaries are included in the pip install).
 In addition, Myokit needs a working C/C++ compiler to be present on the system.
 
-For the graphical parts (such as the IDE) to work, you'll also need to have either PyQt4, PyQt5, or PySide installed (PySide2 is not yet supported).
+Existing Myokit installations can be upgraded using
+
+    pip install --upgrade myokit
 
 For full details, see [http://myokit.org/install](http://myokit.org/install).
 
@@ -47,3 +57,7 @@ To see what else Myokit can do, type
 
     myokit -h
 
+
+## Citing Myokit
+
+If you use Myokit in your research, please cite it using the information in our [CITATION file](./CITATION).

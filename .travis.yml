@@ -3,8 +3,9 @@
 #
 sudo: required
 
-# Test on Ubuntu 14
-dist: trusty
+# Test on Ubuntu 16
+os: linux
+dist: xenial
 
 language: python
 
@@ -21,7 +22,8 @@ branches:
 #       --> Version shipped with Ubuntu LTS 14.04 (supported until 2019)
 # 2.7   --> Latest 2.7 version. At the moment 2.7.14 on travis (2018-10-31)
 # 3.0-3.3 --> Bad initial versions of Python 3; Not supported
-# 3.4-3.6 --> Works
+# 3.4     --> No longer supported by pip (2019-03)
+# 3.5-3.8 --> Works
 
 matrix:
     # Always put true env variable first, for nicer overview on travis website
@@ -31,42 +33,43 @@ matrix:
           language: generic
           env:
             - MYOKIT_UNIT=true
-        # Unit tests on Ubuntu
-        - os: linux
-          python: "2.7"
-          env:
-            - MYOKIT_UNIT=true
-        - os: linux
-          python: "2.7.6"
-          env:
-            - MYOKIT_UNIT=true
-        - os: linux
-          python: "3.4"
-          env:
-            - MYOKIT_UNIT=true
-        - os: linux
-          python: "3.5"
-          env:
-            - MYOKIT_UNIT=true
-        - os: linux
-          python: "3.6"
-          env:
-            - MYOKIT_UNIT=true
-        # Cover checking
-        - os: linux
-          python: "3.6"
-          env:
-            - MYOKIT_COVER=true
         # Style checking
-        - os: linux
-          python: "3.6"
+        - python: "3.8"
           env:
             - MYOKIT_STYLE=true
         # Doctests
-        - os: linux
-          python: "3.6"
+        - python: "3.8"
           env:
             - MYOKIT_DOC=true
+        # Cover checking
+        - python: "3.8"
+          env:
+            - MYOKIT_COVER=true
+        # Unit tests on Ubuntu
+        - python: "2.7.6"
+          dist: trusty
+          env:
+            - MYOKIT_UNIT=true
+        - python: "2.7"
+          env:
+            - MYOKIT_UNIT=true
+        - python: "3.5"
+          env:
+            - MYOKIT_UNIT=true
+        - python: "3.6"
+          env:
+            - MYOKIT_UNIT=true
+        - python: "3.7"
+          env:
+            - MYOKIT_UNIT=true
+        - python: "3.8"
+          env:
+            - MYOKIT_UNIT=true
+        # Basic install test
+        - python: "3.8"
+          env:
+            - MYOKIT_BASIC=true
+            - MYOKIT_UNIT=true
 
 # Install CVODE dependencies
 before_install:
@@ -78,13 +81,15 @@ before_install:
     fi;
   # OS/X
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update-reset;
+      brew upgrade python2;
       brew install sundials;
     fi;
 
 # Install Myokit and extra testing dependencies
 install:
   - pip install --upgrade pip;
-  - pip install .[optional];
+  - if [[ $MYOKIT_BASIC == true ]]; then pip install .; else pip install .[optional]; fi;
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then pip install .[dev]; fi;
   - if [[ $MYOKIT_DOC == true ]]; then pip install .[docs,gui]; fi;
@@ -95,13 +100,15 @@ before_script:
 
 # Run tests
 script:
-  - if [[ $MYOKIT_UNIT == true ]]; then python test unit; fi;
-  - if [[ $MYOKIT_COVER == true ]]; then coverage run test unit --nosub; fi;
+  - if [[ $MYOKIT_UNIT == true ]]; then python -m myokit test unit; fi;
+  - if [[ $MYOKIT_COVER == true ]]; then coverage3 run -m myokit test unit; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then
         python -m flake8 --version;
         python -m flake8;
     fi;
-  - if [[ $MYOKIT_DOC == true ]]; then python test doc; fi;
+  - if [[ $MYOKIT_DOC == true ]]; then
+        python -m myokit test doc;
+    fi;
 
 # Compile coverage report
 after_success:

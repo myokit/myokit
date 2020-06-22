@@ -1,10 +1,8 @@
 #
 # Exports model definitions to Latex files.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -19,11 +17,6 @@ class PdfExporter(myokit.formats.Exporter):
     """
     This :class:`Exporter <myokit.formats.Exporter>` exports model equations to
     a simple latex document.
-
-    To create a pdf using pdflatex::
-
-        pdflatex filename.tex
-
     """
     def __init__(self):
         super(PdfExporter, self).__init__()
@@ -34,9 +27,13 @@ class PdfExporter(myokit.formats.Exporter):
         """
         return text.replace('_', '\_')
 
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
+    def post_export_info(self):
+        return '\n'.join((
+            'To create a pdf using pdflatex::',
+            '',
+            '  pdflatex filename.tex',
+            '',
+        ))
 
     def model(self, path, model, protocol=None):
         """
@@ -112,20 +109,18 @@ class PosterExporter(myokit.formats.Exporter):
     This :class:`Exporter <myokit.formats.Exporter>` exports model equations to
     a terrifying poster format, designed to strike fear into the heart of its
     beholders.
-
-    To create a pdf using pdflatex::
-
-        pdflatex filename.tex
-
-    The poster class requires a couple of latex classes you may need to
-    install.
     """
     def __init__(self):
         super(PosterExporter, self).__init__()
 
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
+    def post_export_info(self):
+        return '\n'.join((
+            'To create a pdf using pdflatex::',
+            '',
+            '  pdflatex filename.tex',
+            '',
+            'This may require installing some latex packages.',
+        ))
 
     def model(self, path, model, protocol=None):
         """

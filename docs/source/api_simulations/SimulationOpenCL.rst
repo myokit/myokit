@@ -3,7 +3,8 @@
 *****************
 OpenCL Simulation
 *****************
-.. module:: myokit
+
+.. currentmodule:: myokit
 
 Myokit provides a simulation engine for parallelized multi-cellular
 simulations, implemented using OpenCL. The engine can handle 1d and 2d

@@ -109,12 +109,18 @@ base class for expression writers is described below:
 .. autoclass:: ExpressionWriter
     :private-members:
 
-Logging
-=======
+Registering external formats
+============================
 
-Importers and exporters maintain a log of their actions using the TextLogger
-class described below. If anything goes wrong, these logs should contain a
-more detailed error message than a simple exception.
+The importers, exporters, and expression writers that are packed with Myokit
+are automatically detected at start-up. To register classes defined outside of
+the ``myokit`` module, use the functions below. After registering, you can
+obtain e.g. an :class:`Exporter` via
+``myokit.formats.exporter(my_external_exporter)``.
 
-.. autoclass:: TextLogger
+.. autofunction:: register_external_importer
+
+.. autofunction:: register_external_exporter
+
+.. autofunction:: register_external_ewriter
 

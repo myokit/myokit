@@ -1,10 +1,8 @@
 #
 # Tools for working with Hodgkin-Huxley style ion channel models
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -194,11 +192,13 @@ class HHModel(object):
 
         # Freeze remaining, non-current-model states
         s = self._model.state()   # Get state values before changing anything!
-        for k, state in enumerate(self._model.states()):
+        # Note: list() cast is required so that we iterate over a static list,
+        # otherwise we can get issues because the iterator depends on the model
+        # (which we're changing).
+        for k, state in enumerate(list(self._model.states())):
             if state not in self._states:
                 state.demote()
                 state.set_rhs(s[k])
-        del(s)
 
         # Unbind everything except time
         for label, var in self._model.bindings():
@@ -752,11 +752,11 @@ class AnalyticalSimulation(object):
             if len(log.keys()) > len(self._log_keys):
                 raise ValueError('Invalid log: contains extra keys.')
             try:
-                key = self._time_key
+                key = self._time_key    # Note: error msg below uses `key`
                 offset = len(log[key])
-                zeros = np.zeros(log_times.shape)
                 for key in self._log_keys:
-                    log[key] = np.concatenate((log[key], zeros))
+                    log[key] = np.concatenate((
+                        log[key], np.zeros(log_times.shape)))
             except KeyError:
                 raise ValueError(
                     'Invalid log: missing entry for <' + str(key) + '>.')
@@ -781,8 +781,6 @@ class AnalyticalSimulation(object):
 
                 # Update pacing
                 self._membrane_potential = self._pacing.advance(tnext)
-                self._cached_matrices = None
-                self._cached_solution = None
 
         # Return
         return log
@@ -799,6 +797,8 @@ class AnalyticalSimulation(object):
             The times to evaluate at.
         ``tnext``
             The final time to move to.
+        ``offset``
+            The offset in the ``times`` array to log in
 
         """
         # Simulate with fixed V
@@ -848,11 +848,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
-        if np.any(state < 0):
+        if np.any(state < 0) or np.any(state > 1):
             raise ValueError(
-                'The fraction of channels in a state cannot be negative.')
-        if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+                'All states must be in the range [0, 1].')
         self._default_state = state
 
     def set_membrane_potential(self, v):
@@ -883,11 +881,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
-        if np.any(state < 0):
+        if np.any(state < 0) or np.any(state > 1):
             raise ValueError(
-                'The fraction of channels in a state cannot be negative.')
-        if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+                'All states must be in the range [0, 1].')
         self._state = state
 
     def solve(self, times):
@@ -944,6 +940,8 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
     RHS will be replaced by an expression of the form
     ``dot(x) = (x_inf - x) / tau_x``, where ``x_inf`` and ``tau_x`` are the
     new variables.
+
+    See also: :meth:`get_alpha_and_beta()`.
 
     Arguments:
 
@@ -1004,9 +1002,12 @@ def get_alpha_and_beta(x, v=None):
     ``beta`` if so.
 
     Here, ``alpha(v)`` and ``beta(v)`` represent the forward and backward
-    reaction rates for ``x``, and must depend on the variable ``v`` but not on
-    any state variables (with the possible exception of ``v``, which may or may
-    not be a state variable).
+    reaction rates for ``x``. Both may depend on ``v``, but not on any (other)
+    state variable.
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
 
     Arguments:
 
@@ -1016,7 +1017,8 @@ def get_alpha_and_beta(x, v=None):
         An optional :class:`myokit.Variable` representing the membrane
         potential. If not given, the label ``membrane_potential`` will be used
         to determine ``v``. If ``v=None`` and no membrane potential can be
-        found an error will be raised.
+        found an error will be raised. Membrane potential is typically
+        specified as a state, but this is not a requirement.
 
     Returns a tuple ``(alpha, beta)`` if successful, or ``None`` if not. Both
     ``alpha`` and ``beta`` are :class:`myokit.Variable` objects.
@@ -1078,15 +1080,15 @@ def get_alpha_and_beta(x, v=None):
     # Check membrane potential variable is known.
     if v is None:
         v = model.label('membrane_potential')
-        if v is None:
-            raise ValueError(
-                'Membrane potential must be given as `v` or by setting the'
-                ' label `membrane_potential` in the model.')
     else:
         # Ensure v is a variable, and from the cloned model
         if isinstance(v, myokit.Variable):
             v = v.qname()
         v = model.get(v)
+    if v is None:
+        raise ValueError(
+            'Membrane potential must be given as `v` or by setting the'
+            ' label `membrane_potential` in the model.')
 
     # Check alpha and beta
     for term in (alpha, beta):
@@ -1100,11 +1102,6 @@ def get_alpha_and_beta(x, v=None):
             if state != v and rhs.depends_on(myokit.Name(state)):
                 return None
 
-        # Check that x_inf and tau_x depend on v (which may or may not be a
-        # state)
-        if not rhs.depends_on(myokit.Name(v)):
-            return None
-
     # Looks good!
     return (alpha, beta)
 
@@ -1112,13 +1109,16 @@ def get_alpha_and_beta(x, v=None):
 def get_inf_and_tau(x, v=None):
     """
     Tests if the given ``x`` is a state variable with an expression of the form
-    ``(x_inf(v) - x) / tau_x(v)``, and returns the variables for ``x_inf`` and
+    ``(x_inf - x) / tau_x``, and returns the variables for ``x_inf`` and
     ``x_tau`` if so.
 
-    Here, ``x_inf(v)`` and ``tau_x(v)`` represent the steady-state and time
-    constant of ``x``, and must depend on the variable ``v`` but not on any
-    state variables (with the possible exception of ``v``, which may or may not
-    be a state variable).
+    Here, ``x_inf`` and ``tau_x`` represent the steady-state and time
+    constant of ``x``. Both may depend on ``v``, but not on any (other) state
+    variable.
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
 
     Arguments:
 
@@ -1128,7 +1128,8 @@ def get_inf_and_tau(x, v=None):
         An optional :class:`myokit.Variable` representing the membrane
         potential. If not given, the label ``membrane_potential`` will be used
         to determine ``v``. If ``v=None`` and no membrane potential can be
-        found an error will be raised.
+        found an error will be raised. Membrane potential is typically
+        specified as a state, but this is not a requirement.
 
     Returns:
 
@@ -1174,15 +1175,15 @@ def get_inf_and_tau(x, v=None):
     # Check membrane potential variable is known.
     if v is None:
         v = model.label('membrane_potential')
-        if v is None:
-            raise ValueError(
-                'Membrane potential must be given as `v` or by setting the'
-                ' label `membrane_potential` in the model.')
     else:
         # Ensure v is a variable, and from the cloned model
         if isinstance(v, myokit.Variable):
             v = v.qname()
         v = model.get(v)
+    if v is None:
+        raise ValueError(
+            'Membrane potential must be given as `v` or by setting the'
+            ' label `membrane_potential` in the model.')
 
     # Check xinf and xtau
     for term in (xinf, xtau):
@@ -1195,11 +1196,6 @@ def get_inf_and_tau(x, v=None):
         for state in model.states():
             if state != v and rhs.depends_on(myokit.Name(state)):
                 return None
-
-        # Check that x_inf and tau_x depend on v (which may or may not be a
-        # state)
-        if not rhs.depends_on(myokit.Name(v)):
-            return None
 
     # Looks good!
     return xinf, xtau
@@ -1286,6 +1282,10 @@ def has_alpha_beta_form(x, v=None):
     both ``alpha`` and ``beta`` depend on ``v``, and (2) check that they don't
     depend on any state variables (not counting ``v``).
 
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
+
     Arguments:
 
     ``x``
@@ -1312,6 +1312,10 @@ def has_inf_tau_form(x, v=None):
     If the optional argument ``v`` is given, the method will (1) check that
     both ``x_inf`` and ``tau_x`` depend on ``v``, and (2) check that they don't
     depend on any state variables (not counting ``v``).
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
 
     Arguments:
 

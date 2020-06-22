@@ -2,19 +2,16 @@
 # This hidden module contains the core functions dealing with simulations and
 # the data they generate.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 # Library imports
 import os
-import sys
-import shutil
 import platform
+import sys
 import tempfile
 import traceback
 
@@ -87,8 +84,8 @@ class CModule(object):
         else:
             return self._export(tpl, tpl_vars)
 
-    def _compile(
-            self, name, tpl, tpl_vars, libs, libd=None, incd=None, flags=None):
+    def _compile(self, name, tpl, tpl_vars, libs, libd=None, incd=None,
+                 carg=None, larg=None):
         """
         Compiles a source template into a module and returns it.
 
@@ -101,34 +98,39 @@ class CModule(object):
         Any C libraries needed for compilation should be given in the sequence
         type ``libs``. Library dirs and include dirs can be passed in using
         ``libd`` and ``incd``. Extra compiler arguments can be given in the
-        list ``flags``.
+        list ``carg``, and linker args in ``larg``.
         """
         src_file = self._source_file()
+        working_dir = os.getcwd()
         d_cache = tempfile.mkdtemp('myokit')
         try:
             # Create output directories
             d_build = os.path.join(d_cache, 'build')
-            d_modul = os.path.join(d_cache, 'module')
             os.makedirs(d_build)
-            os.makedirs(d_modul)
 
             # Export c file
             src_file = os.path.join(d_cache, src_file)
             self._export(tpl, tpl_vars, src_file)
 
+            # Ensure headers can be read from myokit/_sim
+            if incd is None:
+                incd = []
+            incd.append(myokit.DIR_CFUNC)
+
             # Inputs must all be strings
             name = str(name)
             src_file = str(src_file)
-            flags = None if flags is None else [str(x) for x in flags]
+            incd = [str(x) for x in incd]
             libd = None if libd is None else [str(x) for x in libd]
-            incd = None if incd is None else [str(x) for x in incd]
             libs = None if libs is None else [str(x) for x in libs]
+            carg = None if carg is None else [str(x) for x in carg]
+            larg = None if larg is None else [str(x) for x in larg]
 
             # Uncomment to debug C89 issues
             '''
-            if flags is None:
-                flags = []
-            flags.extend([
+            if carg is None:
+                carg = []
+            carg.extend([
                 #'-Wall',
                 #'-Wextra',
                 #'-Werror=strict-prototypes',
@@ -143,18 +145,31 @@ class CModule(object):
             # unconventional linux sundials installations, but not on windows
             # as this can lead to a weird error in setuptools
             runtime = libd
-            if (platform.system() == 'Windows'
-                    and libd is not None):          # pragma: no linux cover
-                runtime = None
+            if platform.system() == 'Windows':  # pragma: no linux cover
+                if libd is not None:
+                    runtime = None
 
-                # Instead, add libd to path on windows
-                try:
-                    path = os.environ['path']
-                except KeyError:
-                    path = ''
-                to_add = [x for x in libd if x not in path]
-                if to_add:
-                    os.environ['path'] = os.pathsep.join([path] + to_add)
+                    # Determine strategy
+                    try:
+                        os.add_dll_directory
+                        use_add_dll_directory = True
+                    except AttributeError:
+                        use_add_dll_directory = False
+
+                    # Make windows search the libd directories
+                    if use_add_dll_directory:
+                        # Python 3.8 and up
+                        for path in libd:
+                            if os.path.isdir(path):
+                                os.add_dll_directory(path)
+
+                    else:
+                        # Older versions: add libd to path
+                        path = os.environ.get('path', '')
+                        if path is None:
+                            path = ''
+                        to_add = [x for x in libd if x not in path]
+                        os.environ['path'] = os.pathsep.join([path] + to_add)
 
             # Create extension
             ext = Extension(
@@ -164,24 +179,23 @@ class CModule(object):
                 library_dirs=libd,
                 runtime_library_dirs=runtime,
                 include_dirs=incd,
-                extra_compile_args=flags,
+                extra_compile_args=carg,
+                extra_link_args=larg,
             )
 
-            # Compile, catch output
+            # Compile in build directory, catch output
             with myokit.SubCapture() as s:
                 try:
+                    os.chdir(d_build)
                     setup(
                         name=name,
                         description='Temporary module',
                         ext_modules=[ext],
                         script_args=[
-                            str('build'),
-                            str('--build-base=' + d_build),
-                            str('install'),
-                            str('--install-lib=' + d_modul),
-                            str('--old-and-unmanageable'),
+                            str('build_ext'),
+                            str('--inplace'),
                         ])
-                except (Exception, SystemExit) as e:
+                except (Exception, SystemExit) as e:    # pragma: no cover
                     s.disable()
                     t = ['Unable to compile.', 'Error message:']
                     t.append(str(e))
@@ -191,17 +205,17 @@ class CModule(object):
                     captured = s.text().strip()
                     t.extend(['    ' + x for x in captured.splitlines()])
                     raise myokit.CompilationError('\n'.join(t))
-                finally:
-                    egg = name + '.egg-info'
-                    if os.path.exists(egg):
-                        shutil.rmtree(egg)
 
             # Include module (and refresh in case 2nd model is loaded)
-            return load_module(name, d_modul)
+            return load_module(name, d_build)
 
         finally:
+            # Revert changes to working directory
+            os.chdir(working_dir)
+
+            # Delete cached module
             try:
-                shutil.rmtree(d_cache)
+                myokit._rmtree(d_cache)
             except Exception:   # pragma: no cover
                 pass
 

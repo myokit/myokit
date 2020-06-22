@@ -18,10 +18,8 @@
 # native_math     True if the native maths functions should be used
 # -----------------------------------------------------------------------------
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 import myokit
 import myokit.formats.opencl as opencl
@@ -36,9 +34,13 @@ tab = '    '
 #include "pacing.h"
 #include "mcl.h"
 
-
 // Show debug output
 //#define MYOKIT_DEBUG
+
+// C89 Doesn't have isnan
+#ifndef isnan
+    #define isnan(arg) (arg != arg)
+#endif
 
 #define n_state_f <?= str(modelf.count_states()) ?>
 #define n_state_t <?= str(modelt.count_states()) ?>

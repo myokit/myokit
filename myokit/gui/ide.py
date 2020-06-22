@@ -2,10 +2,8 @@
 # Graphical interface to myokit. Allows mmt files to be created, modified and
 # run.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -14,12 +12,15 @@ from __future__ import print_function, unicode_literals
 import gc
 import os
 import sys
+import textwrap
 import traceback
+import warnings
 
 # Myokit
 import myokit
 import myokit.formats
 import myokit.lib.deps
+import myokit.lib.guess
 
 # Qt imports
 from myokit.gui import QtWidgets, QtGui, QtCore, Qt
@@ -75,11 +76,14 @@ ABOUT = '<h1>' + TITLE + '</h1>' + """
 FILTER_ALL = 'All files (*.*)'
 FILTER_MMT_SAVE = 'Myokit mmt files (*.mmt)'
 FILTER_MMT = 'Myokit mmt files (*.mmt);;' + FILTER_ALL
-FILTER_CELLML = 'CellML file (*.cellml *.xml);;' + FILTER_ALL
-FILTER_HTML = 'HTHML file (*.html *.htm);;' + FILTER_ALL
-FILTER_LATEX = 'Tex file (*.tex)' + FILTER_ALL
+
 FILTER_ABF = 'Axon files (*.abf *.pro);; Axon Binary File (*.abf)' \
     + ';;Axon Protocol File (*.pro);;' + FILTER_ALL
+FILTER_CELLML = 'CellML file (*.cellml *.xml);;' + FILTER_ALL
+FILTER_CHANNELML = 'ChannelML file (*.channelml *.xml);;' + FILTER_ALL
+FILTER_HTML = 'HTML file (*.html *.htm);;' + FILTER_ALL
+FILTER_LATEX = 'Tex file (*.tex)' + FILTER_ALL
+FILTER_SBML = 'SBML file (*.sbml *.xml)' + FILTER_ALL
 
 
 # Application icon
@@ -285,6 +289,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self._console.write('Units ok! (checked in tolerant mode)')
         except myokit.IncompatibleUnitError as e:
             self._console.write(str(e))
+
+            # Jump to error, if possible
+            token = e.token()
+            if token is None:
+                return
+            line, char = token[2], token[3]
+            self._editor_tabs.setCurrentWidget(self._model_editor)
+            self.statusBar().showMessage(
+                'Jumping to (' + str(line) + ',' + str(char) + ').')
+            self._model_editor.jump_to(line - 1, char)
         except Exception:
             self.show_exception()
 
@@ -300,6 +314,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self._console.write('Units ok! (checked in strict mode)')
         except myokit.IncompatibleUnitError as e:
             self._console.write(str(e))
+
+            # Jump to error, if possible
+            token = e.token()
+            if token is None:
+                return
+            line, char = token[2], token[3]
+            self._editor_tabs.setCurrentWidget(self._model_editor)
+            self.statusBar().showMessage(
+                'Jumping to (' + str(line) + ',' + str(char) + ').')
+            self._model_editor.jump_to(line - 1, char)
         except Exception:
             self.show_exception()
 
@@ -449,16 +473,19 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
         ``name``
             The exporter name
-        ``filter``
+        ``glob``
             A filter for the file selection method.
+
         """
         try:
             m = self.model(errors_in_console=True)
             if m is False:
                 return
+
             e = myokit.formats.exporter(name)
             if not e.supports_model():
                 raise Exception('Exporter does not support export of model')
+
             filename = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 'Select file to export to',
@@ -466,13 +493,31 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 filter=glob)[0]
             if not filename:
                 return
-            try:
-                e.model(filename, m)
-                msg = 'Export successful.'
-                e.logger().log(e.info())
-            except myokit.ExportError:
-                msg = 'Export failed.'
-            self._console.write(msg + '\n' + e.logger().text())
+
+            ex = None
+            with warnings.catch_warnings(record=True) as ws:
+                try:
+                    if name in ('cellml1', 'cellml2'):
+                        p = self.protocol(errors_in_console=True)
+                        if p is False:
+                            p = None
+                        e.model(filename, m, p)
+                    else:
+                        e.model(filename, m)
+                except myokit.ExportError as ex:
+                    pass
+            for w in ws:
+                self._console.write('Warning: ' + str(w.message))
+
+            if ex is None:
+                self._console.write('Export successful.')
+                info = e.post_export_info()
+                if info:
+                    self._console.write(info)
+            else:
+                self._console.write('Export failed.')
+                self._console.write(str(ex))
+
         except Exception:
             self.show_exception()
 
@@ -494,22 +539,36 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             p = self.protocol(errors_in_console=True)
             if p is False:
                 return
+
             # Create exporter & test compatibility
             e = myokit.formats.exporter(name)
             if not e.supports_runnable():
                 raise Exception('Exporter does not support export of runnable')
+
             # Select dir
             path = QtWidgets.QFileDialog.getSaveFileName(
                 self, 'Create directory', self._path)[0]
             if not path:
                 return
-            try:
-                e.runnable(path, m, p)
-                msg = 'Export successful.'
-                e.logger().log(e.info())
-            except myokit.ExportError:
-                msg = 'Export failed.'
-            self._console.write(msg + '\n' + e.logger().text())
+
+            ex = None
+            with warnings.catch_warnings(record=True) as ws:
+                try:
+                    e.runnable(path, m, p)
+                except myokit.ExportError as ex:
+                    pass
+            for w in ws:
+                self._console.write('Warning: ' + str(w.message))
+
+            if ex is None:
+                self._console.write('Export successful.')
+                info = e.post_export_info()
+                if info:
+                    self._console.write(info)
+            else:
+                self._console.write('Export failed.')
+                self._console.write(str(ex))
+
         except Exception:
             self.show_exception()
 
@@ -552,82 +611,128 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self, 'Open ABF file', self._path, filter=FILTER_ABF)[0]
             if not filename:
                 return
-            # Load file
+
+            # Create importer
             i = myokit.formats.importer('abf')
-            try:
-                protocol = i.protocol(filename)
-                # Import okay, update interface
-                self.new_file()
-                self._protocol_editor.setPlainText(protocol.code())
-                self._console.write(
-                    'Protocol imported successfully.\n' + i.logger().text())
-                # Set working directory to file's path
-                self._path = os.path.dirname(filename)
-                os.chdir(self._path)
-                # Save settings file
+
+            # Import
+            exception = None
+            with warnings.catch_warnings(record=True) as ws:
                 try:
-                    self.save_config()
-                except Exception:
-                    pass
-                # Update interface
-                self._tool_save.setEnabled(True)
-                self.update_window_title()
-            except myokit.ImportError:
-                self._console.write(
-                    'Protocol import failed.\n' + i.logger().text())
+                    protocol = i.protocol(filename)
+                except myokit.ImportError as ex:
+                    exception = ex
+            for w in ws:
+                self._console.write('Warning: ' + str(w.message))
+
+            # Handle failure
+            if exception is not None:
+                self._console.write('Protocol import failed.')
+                self._console.write(str(exception))
                 self.statusBar().showMessage('Protocol import failed.')
+                return
+
+            # Import okay, update interface
+            self.new_file()
+            self._protocol_editor.setPlainText(protocol.code())
+            self._console.write('Protocol imported successfully.')
+
+            # Set working directory to file's path
+            self._path = os.path.dirname(filename)
+            os.chdir(self._path)
+
+            # Save settings file
+            try:
+                self.save_config()
+            except Exception:
+                pass
+
+            # Update interface
+            self._tool_save.setEnabled(True)
+            self.update_window_title()
+
         except Exception:
             self.show_exception()
 
-    def action_import_cellml(self):
+    def action_import_model(self, name, glob=None):
         """
-        Imports a CellML model
+        Imports a model definition.
+
+        Arguments:
+
+        ``name``
+            The name of the importer to use.
+        ``glob``
+            A filter for file selection.
+
         """
         try:
             if not self.prompt_save_changes(cancel=True):
                 return
             filename = QtWidgets.QFileDialog.getOpenFileName(
-                self,
-                'Open CellML file',
-                self._path,
-                filter=FILTER_CELLML)[0]
+                self, 'Select model file', self._path, filter=glob)[0]
             if not filename:
                 return
+
+            # Set working directory to file's path
+            self._path = os.path.dirname(filename)
+            os.chdir(self._path)
+
             # Load file
-            i = myokit.formats.importer('cellml')
-            try:
-                model = i.model(filename)
-                # Import okay, update interface
-                self.new_file()
-                self._model_editor.setPlainText(model.code())
-                # Write log to console
-                i.logger().log_warnings()
-                self._console.write(
-                    'Model imported successfully.\n' + i.logger().text())
-                # Set working directory to file's path
-                self._path = os.path.dirname(filename)
-                os.chdir(self._path)
-                # Save settings file
+            i = myokit.formats.importer(name)
+
+            # Import the model
+            exception = None
+            with warnings.catch_warnings(record=True) as ws:
                 try:
-                    self.save_config()
-                except Exception:
-                    pass
-                # Update interface
-                self._tool_save.setEnabled(True)
-                self.update_window_title()
-            except myokit.ImportError as e:
-                # Write output to console
-                i.logger().log_warnings()
-                self._console.write(
-                    'Model import failed.\n' + i.logger().text()
-                    + '\n\nModel import failed.\n' + str(e))
+                    model = i.model(filename)
+                except myokit.ImportError as e:
+                    exception = e
+            for w in ws:
+                self._console.write('Warning: ' + str(w.message))
+
+            # Import failed?
+            if exception is not None:
+                self._console.write('Model import failed.')
+                self._console.write(str(exception))
                 self.statusBar().showMessage('Model import failed.')
+                return
+
+            # Try to split off protocol
+            protocol = myokit.lib.guess.remove_embedded_protocol(model)
+
+            # No protocol? Then create one
+            if protocol is None:
+                protocol = myokit.default_protocol(model)
+
+            # Get default script
+            script = myokit.default_script(model)
+
+            # Import okay, update interface
+            self.new_file()
+            self._model_editor.setPlainText(model.code())
+            self._protocol_editor.setPlainText(protocol.code())
+            self._script_editor.setPlainText(script)
+
+            # Write log to console
+            self._console.write('Model imported successfully.')
+
+            # Save settings file
+            try:
+                self.save_config()
+            except Exception:
+                pass
+
+            # Update interface
+            self._tool_save.setEnabled(True)
+            self.update_window_title()
+
         except Exception:
             self.show_exception()
 
     def action_jump_to_error(self):
         """
-        Jump tot the last error in the model tab.
+        Jump to the last error in the model tab.
         """
         try:
             # Check for error
@@ -967,8 +1072,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         Validates the model and, if the model is valid, the protocol.
         """
         try:
-            if not self.model(console=True):
-                return
+            self.model(console=True)
             self.protocol(console=True)
         except Exception:
             self.show_exception()
@@ -1553,17 +1657,39 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_preview_protocol.triggered.connect(
             self.action_preview_protocol)
         self._menu_view.addAction(self._tool_preview_protocol)
+
         #
         # Convert menu
         #
         self._menu_convert = self._menu.addMenu('&Convert')
+
         # Convert > Import CellML
         self._tool_import_cellml = QtWidgets.QAction(
             'Import model from CellML', self)
         self._tool_import_cellml.setStatusTip(
             'Import a model definition from a CellML file.')
-        self._tool_import_cellml.triggered.connect(self.action_import_cellml)
+        self._tool_import_cellml.triggered.connect(
+            lambda: self.action_import_model('cellml', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_import_cellml)
+        # Convert > Export CellML 1
+        self._tool_export_cellml1 = QtWidgets.QAction(
+            'Export model to CellML 1.0', self)
+        self._tool_export_cellml1.setStatusTip(
+            'Export a model definition to a CellML 1.0 document.')
+        self._tool_export_cellml1.triggered.connect(
+            lambda: self.action_export_model('cellml1', FILTER_CELLML))
+        self._menu_convert.addAction(self._tool_export_cellml1)
+        # Convert > Export CellML 2
+        self._tool_export_cellml2 = QtWidgets.QAction(
+            'Export model to CellML 2.0', self)
+        self._tool_export_cellml2.setStatusTip(
+            'Export a model definition to a CellML 2.0 document.')
+        self._tool_export_cellml2.triggered.connect(
+            lambda: self.action_export_model('cellml2', FILTER_CELLML))
+        self._menu_convert.addAction(self._tool_export_cellml2)
+
+        # Convert > ----
+        self._menu_convert.addSeparator()
         # Convert > Import ABF
         self._tool_import_abf = QtWidgets.QAction(
             'Import protocol from ABF', self)
@@ -1572,16 +1698,25 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_import_abf.triggered.connect(
             self.action_import_abf_protocol)
         self._menu_convert.addAction(self._tool_import_abf)
+        # Convert > Import ChannelML
+        self._tool_import_channelml = QtWidgets.QAction(
+            'Import model from ChannelML', self)
+        self._tool_import_channelml.setStatusTip(
+            'Import a channel model from ChannelML.')
+        self._tool_import_channelml.triggered.connect(
+            lambda: self.action_import_model('channelml', FILTER_CHANNELML))
+        self._menu_convert.addAction(self._tool_import_channelml)
+        # Convert > Import SBML
+        self._tool_import_sbml = QtWidgets.QAction(
+            'Import model from SBML', self)
+        self._tool_import_sbml.setStatusTip(
+            'Import a model from SBML.')
+        self._tool_import_sbml.triggered.connect(
+            lambda: self.action_import_model('sbml', FILTER_SBML))
+        self._menu_convert.addAction(self._tool_import_sbml)
+
         # Convert > ----
         self._menu_convert.addSeparator()
-        # Convert > Export CellML
-        self._tool_export_cellml = QtWidgets.QAction(
-            'Export model to CellML', self)
-        self._tool_export_cellml.setStatusTip(
-            'Export a model definition to a CellML document')
-        self._tool_export_cellml.triggered.connect(
-            lambda: self.action_export_model('cellml', FILTER_CELLML))
-        self._menu_convert.addAction(self._tool_export_cellml)
         # Convert > Export HTML
         self._tool_export_html = QtWidgets.QAction(
             'Export model to HTML', self)
@@ -1599,8 +1734,10 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_latex.triggered.connect(
             lambda: self.action_export_model('latex-article', FILTER_LATEX))
         self._menu_convert.addAction(self._tool_export_latex)
+
         # Convert > ----
         self._menu_convert.addSeparator()
+
         # Convert > Ansic
         self._tool_export_ansic = QtWidgets.QAction('Export to Ansi C', self)
         self._tool_export_ansic.setStatusTip(
@@ -1608,6 +1745,35 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_ansic.triggered.connect(
             lambda: self.action_export_runnable('ansic'))
         self._menu_convert.addAction(self._tool_export_ansic)
+
+        # Convert > CUDA
+        self._tool_export_cuda = QtWidgets.QAction(
+            'Export to CUDA kernel', self)
+        self._tool_export_cuda.setStatusTip(
+            'Export a model definition to a CUDA kernel program.')
+        self._tool_export_cuda.triggered.connect(
+            lambda: self.action_export_runnable('cuda-kernel'))
+        self._menu_convert.addAction(self._tool_export_cuda)
+
+        # Convert > CUDA RL
+        self._tool_export_cuda_rl = QtWidgets.QAction(
+            'Export to CUDA kernel with RL updates', self)
+        self._tool_export_cuda_rl.setStatusTip(
+            'Export a model definition to a CUDA kernel program using'
+            ' Rush-Larsen updates where possible.')
+        self._tool_export_cuda_rl.triggered.connect(
+            lambda: self.action_export_runnable('cuda-kernel-rl'))
+        self._menu_convert.addAction(self._tool_export_cuda_rl)
+
+        # Convert > EasyML
+        self._tool_export_easyml = QtWidgets.QAction(
+            'Export to EasyML (Carp)', self)
+        self._tool_export_easyml.setStatusTip(
+            'Export to an EasyML script for use with Carp/Carpentry.')
+        self._tool_export_easyml.triggered.connect(
+            lambda: self.action_export_model('easyml'))
+        self._menu_convert.addAction(self._tool_export_easyml)
+
         # Convert > Matlab
         self._tool_export_matlab = QtWidgets.QAction(
             'Export to Matlab/Octave', self)
@@ -1616,13 +1782,26 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_matlab.triggered.connect(
             lambda: self.action_export_runnable('matlab'))
         self._menu_convert.addAction(self._tool_export_matlab)
+
         # Convert > OpenCL
-        self._tool_export_opencl = QtWidgets.QAction('Export to OpenCL', self)
+        self._tool_export_opencl = QtWidgets.QAction(
+            'Export to OpenCL kernel', self)
         self._tool_export_opencl.setStatusTip(
-            'Export a model definition to an OpenCL kernel program.')
+            'Export a model definition to an OpenCL kernel program using')
         self._tool_export_opencl.triggered.connect(
             lambda: self.action_export_runnable('opencl'))
         self._menu_convert.addAction(self._tool_export_opencl)
+
+        # Convert > OpenCL RL
+        self._tool_export_opencl_rl = QtWidgets.QAction(
+            'Export to OpenCL kernel with RL updates', self)
+        self._tool_export_opencl_rl.setStatusTip(
+            'Export a model definition to an OpenCL kernel program using'
+            ' Rush-Larsen updates where possible.')
+        self._tool_export_opencl_rl.triggered.connect(
+            lambda: self.action_export_runnable('opencl-rl'))
+        self._menu_convert.addAction(self._tool_export_opencl_rl)
+
         # Convert > Python
         self._tool_export_python = QtWidgets.QAction('Export to Python', self)
         self._tool_export_python.setStatusTip(
@@ -1630,6 +1809,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_python.triggered.connect(
             lambda: self.action_export_runnable('python'))
         self._menu_convert.addAction(self._tool_export_python)
+
         #
         # Analysis menu
         #
@@ -1645,6 +1825,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Analysis > Check units strict
         self._tool_units_strict = QtWidgets.QAction(
             'Check units (&strict)', self)
+        self._tool_units_strict.setShortcut('F9')
         self._tool_units_strict.setStatusTip(
             'Check this model\'s units in strict mode.')
         self._tool_units_strict.triggered.connect(
@@ -1653,6 +1834,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Analysis > Check units tolerant
         self._tool_units_tolerant = QtWidgets.QAction(
             'Check units (&tolerant)', self)
+        self._tool_units_tolerant.setShortcut('F10')
         self._tool_units_tolerant.setStatusTip(
             'Check this model\'s units in tolerant mode.')
         self._tool_units_tolerant.triggered.connect(
@@ -1868,6 +2050,13 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 filename = config.get('files', 'file')
                 if os.path.isfile(filename):
                     self._file = filename
+            if config.has_option('files', 'path'):
+                path = config.get('files', 'path')
+                if os.path.isdir(path):
+                    # Note: If self._file is a valid file this will be loaded,
+                    # which will change _path again. But if no last file is
+                    # set, this option is used.
+                    self._path = path
             self._recent_files = []
             for i in range(0, N_RECENT_FILES):
                 opt = 'recent_' + str(i)
@@ -2138,6 +2327,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
         # Current and recent files
         config.add_section('files')
+        config.set('files', 'path', self._path)
         config.set('files', 'file', self._file)
         for k, filename in enumerate(self._recent_files):
             config.set('files', 'recent_' + str(k), filename)
@@ -2261,10 +2451,18 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays the last exception.
         """
+        # Textwrap the final line
+        e1 = traceback.format_exc().splitlines()
+        e2 = e1[-1]
+        e1 = e1[:-1]
+        e2 = textwrap.wrap(e2, width=80)
+        text = '\n'.join(e1 + e2)
+
+        # Show the exception
         QtWidgets.QMessageBox.warning(
             self, TITLE,
             '<h1>An error has occurred.</h1>'
-            '<pre>' + traceback.format_exc() + '</pre>')
+            '<pre>' + text + '</pre>')
 
     def update_navigator(self):
         """

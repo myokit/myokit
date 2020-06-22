@@ -4,7 +4,7 @@
 Expressions
 ***********
 
-.. module:: myokit
+.. currentmodule:: myokit
 
 Mathematical expressions in Myokit are represented as trees of
 :class:`Expression` objects. For example the expression `5 + 2` is represented
@@ -194,9 +194,6 @@ Miscellaneous
 
 .. _api/myokit.Remainder:
 .. autoclass:: Remainder
-
-.. _api/myokit.UnsupportedFunction:
-.. autoclass:: UnsupportedFunction
 
 .. _api/myokit.UserFunction:
 .. autoclass:: UserFunction
