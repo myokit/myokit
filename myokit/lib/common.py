@@ -484,8 +484,10 @@ class Recovery(object):
             raise ValueError('This method requires a valid model.')
         # Clone model & variables
         self._model = model.clone()
+
         # Get time variable
         self._tvar = self._model.time()
+
         # Check conductance variables
         self._vars = []
         if isinstance(var, (basestring, myokit.Variable)):
@@ -498,6 +500,7 @@ class Recovery(object):
                     'The variable name(s) given as var must be given as fully'
                     ' qualified names <component.variable>.')
             self._vars.append(self._model.get(v))
+
         # Check membrane potential
         if vvar is None:
             self._vvar = self._model.label('membrane_potential')
@@ -513,10 +516,12 @@ class Recovery(object):
                     'The variable name vvar must be given as a fully qualified'
                     ' variable name <component.var>.')
             self._vvar = self._model.get(vvar)
+
         # Update membrane potential variable
         if self._vvar.is_state():
             self._vvar.demote()
         self._vvar.set_binding(None)
+
         # Set voltages
         self.set_holding_potential()
         self.set_step_potential()
@@ -533,8 +538,10 @@ class Recovery(object):
         # Times to wait
         twaits = np.exp(
             np.linspace(np.log(self._tmin), np.log(self._tmax), self._nt))
+
         # Variables to log
         log_vars = [x.qname() for x in self._vars]
+
         # Run simulations
         self._vvar.set_rhs(self._vhold)     # Make V a constant
         s = myokit.Simulation(self._model)
@@ -851,6 +858,7 @@ class StrengthDuration(object):
     def __init__(self, model, ivar, vvar=None):
         # Clone model
         self._model = model.clone()
+
         # Get stimulus current variable
         self._ivar = self._model.get(ivar)
 
@@ -915,10 +923,10 @@ class StrengthDuration(object):
 
     def run(self, debug=False):
         """
-        Runs the experiment, returns a :class:`myokit.DataLog` with the
-        entries `durations` and `amplitudes`, where the value in `amplitudes`
-        is the minimum strength required to create a depolarization at the
-        corresponding duration.
+        Runs the experiment, returning a :class:`myokit.DataLog` with the
+        entries ``durations`` and ``amplitudes`` where the value in
+        ``amplitudes`` is the minimum strength required to create a
+        depolarisation at the corresponding duration.
         """
         if self._data is None:
             self._run(debug)
@@ -930,13 +938,17 @@ class StrengthDuration(object):
         """
         if debug:
             import traceback
+
         # Create simulation
         s = myokit.Simulation(self._model)
+
         # Variables to log
         vvar = self._vvar.qname()
+
         # Output data
         durations = np.array(self._durations, copy=True)
         amplitudes = np.zeros(durations.shape)
+
         # Test every duration
         for k, duration in enumerate(durations):
             if debug:
@@ -944,6 +956,7 @@ class StrengthDuration(object):
             s.set_protocol(myokit.pacing.blocktrain(self._time + 1, duration))
             a1 = self._amin
             a2 = self._amax
+
             # Test minimum amplitude
             s.reset()
             s.set_constant(self._avar, a1)
@@ -956,6 +969,7 @@ class StrengthDuration(object):
                 t1 = False
             if debug:
                 print(t1)
+
             # Test maximum amplitude
             s.reset()
             s.set_constant(self._avar, a2)
@@ -974,6 +988,7 @@ class StrengthDuration(object):
                 if debug:
                     print('> no zero crossing')
                 continue
+
             # Zero must lie in between. Start bisection search
             a = 0.5 * a1 + 0.5 * a2
             for j in range(0, self._precision):
@@ -994,6 +1009,7 @@ class StrengthDuration(object):
             amplitudes[k] = a
             if debug:
                 print('> ' + str(a))
+
         # Set output data
         self._data = myokit.DataLog()
         self._data['duration'] = durations
