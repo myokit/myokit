@@ -860,7 +860,7 @@ class StrengthDuration(object):
         self._model = model.clone()
 
         # Get stimulus current variable
-        self._ivar = self._model.get(ivar)
+        self._ivar = self._model.get(ivar.qname())
 
         # Get membrane potential variable
         if vvar is None:
