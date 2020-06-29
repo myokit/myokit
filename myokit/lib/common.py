@@ -864,7 +864,7 @@ class StrengthDuration(object):
 
         # Get membrane potential variable
         if vvar is None:
-            self._vvar = model.label('membrane_potential')
+            self._vvar = self._model.label('membrane_potential')
             if self._vvar is None:
                 raise ValueError(
                     'This method requires the membrane potential variable to'
@@ -873,7 +873,7 @@ class StrengthDuration(object):
         else:
             if isinstance(vvar, myokit.Variable):
                 vvar = vvar.qname()
-            self._vvar = model.get(vvar)
+            self._vvar = self._model.get(vvar)
 
         # Get time variable
         self._tvar = self._model.time()
@@ -924,9 +924,9 @@ class StrengthDuration(object):
     def run(self, debug=False):
         """
         Runs the experiment, returning a :class:`myokit.DataLog` with the
-        entries ``durations`` and ``amplitudes`` where the value in
-        ``amplitudes`` is the minimum strength required to create a
-        depolarisation at the corresponding duration.
+        entries ``duration`` and ``strength``, where each strenght is the
+        minimum required to create a depolarisation at the corresponding
+        duration.
         """
         if self._data is None:
             self._run(debug)
