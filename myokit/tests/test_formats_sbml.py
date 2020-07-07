@@ -13,7 +13,7 @@ import unittest
 
 import myokit
 import myokit.formats
-import myokit.formats.sbml
+from myokit.formats.sbml import SBMLParser, SBMLParsingError
 
 from shared import DIR_FORMATS, WarningCollector
 
@@ -30,6 +30,7 @@ except NameError:   # pragma: no python 2 cover
     basestring = str
 
 
+'''
 class SBMLImporterTest(unittest.TestCase):
     """
     Tests the SBMLImporter.
@@ -52,18 +53,17 @@ class SBMLImporterTest(unittest.TestCase):
 
         v = model.get('myokit.V')
         self.assertAlmostEqual(v.rhs().eval(), -4.01765286235500341e-03)
+'''
 
 
 class SBMLParserTest(unittest.TestCase):
     """
     Unit tests for the SBMLParser class.
-
-    Further tests are provided in SBMLModelTest.
     """
 
     @classmethod
     def setUpClass(cls):
-        cls.p = myokit.formats.sbml.SBMLParser()
+        cls.p = SBMLParser()
 
     def assertBad(self, xml, message, lvl=3, v=2):
         """
@@ -71,11 +71,11 @@ class SBMLParserTest(unittest.TestCase):
         that this raises an exception matching ``message``.
         """
         self.assertRaisesRegex(
-            myokit.formats.sbml.SBMLError, message, self.parse, xml, lvl, v)
+            SBMLParsingError, message, self.parse, xml, lvl, v)
 
     def parse(self, xml, lvl=3, v=2):
         """
-        Inserts the given ``xml`` into a <model> element, parses it, and
+        Inserts the given ``xml`` into an <sbml> element, parses it, and
         returns the result.
         """
         return self.p.parse_string(self.wrap(xml, lvl, v))
@@ -94,7 +94,122 @@ class SBMLParserTest(unittest.TestCase):
             '</sbml>'
         )
 
-    def test_algebraic_assignments(self):
+    def test_duplicate_sids(self):
+        # Checks that an error is thrown when an SId is used twice.
+        # Nearly every object can have an SId, but Myokit only checks:
+        #  compartments, species, parameters, TODO TODO TODO
+        # In this test, we cross-test:
+        #  - TODO
+        #  - TODO
+        # Units do not have SIds.
+
+        '''
+        # Coinciding compartment and parameter ids
+        xml = (
+            '<model id="test" '
+            'timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="someId"/>'
+            '</listOfCompartments>'
+            '<listOfParameters>'
+            '<parameter id="someId"/>'
+            '</listOfParameters>'
+            '</model>')
+        self.assertBad(xml, 'Duplicate parameter id')
+
+        # Coinciding compartment and species ids
+        xml = (
+            '<model id="test" '
+            'timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="someId"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
+            '<species id="someId" hasOnlySubstanceUnits="true"'
+            ' compartment="someId" constant="false"'
+            ' boundaryCondition="true" />'
+            '</listOfSpecies>'
+            '</model>')
+        self.assertBad(xml, 'Duplicate species id')
+
+        # Coinciding parameter and species ids
+        xml = (
+            '<model id="test" '
+            'timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfParameters>'
+            '<parameter id="someId"/>'
+            '</listOfParameters>'
+            '<listOfSpecies>'
+            '<species id="someId" hasOnlySubstanceUnits="true"'
+            ' compartment="someComp" constant="false"'
+            ' boundaryCondition="true" />'
+            '</listOfSpecies>'
+            '</model>')
+        self.assertBad(xml, 'Duplicate species id')
+
+        # Coinciding parameter and reactant stoichiometry IDs
+        stoich_id = 'someStoich'
+        xml = (
+            '<model id="test" name="test" timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfParameters>'
+            '<parameter id="' + stoich_id + '"/>'
+            '</listOfParameters>'
+            '<listOfSpecies>'
+            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction >'
+            '<listOfReactants>'
+            '<speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>'
+            '</listOfReactants>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
+        with WarningCollector() as w:
+            self.assertBad(xml=xml, message='Stoichiometry ID is not unique.')
+        self.assertEqual(w.count(), 1)
+        self.assertIn('Stoichiometry has not been set', w.text())
+
+        # Coinciding parameter and product stoichiometry IDs
+        stoich_id = 'someStoich'
+        xml = (
+            '<model id="test" name="test" timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfParameters>'
+            '<parameter id="' + stoich_id + '"/>'
+            '</listOfParameters>'
+            '<listOfSpecies>'
+            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction >'
+            '<listOfProducts>'
+            '<speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>'
+            '</listOfProducts>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
+        with WarningCollector() as w:
+            self.assertBad(xml=xml, message='Stoichiometry ID is not unique.')
+        self.assertEqual(w.count(), 1)
+        self.assertIn('Stoichiometry has not been set', w.text())
+        '''
+
+    def test_parse_algebraic_assignment(self):
         # Tests parsing algebraic assignments (not supported)
         xml = (
             '<model>'
@@ -110,7 +225,36 @@ class SBMLParserTest(unittest.TestCase):
         )
         self.assertBad(xml, 'Algebraic assignments are not supported')
 
-    def test_constraints(self):
+    def test_parse_compartment(self):
+        # Test parsing compartments
+
+        a = '<model><listOfCompartments>'
+        b = '</listOfCompartments></model>'
+
+        # Test simple compartment
+        x = '<compartment id="a" />'
+        m = self.parse(a + x + b)
+        self.assertEqual(m.compartment('a').sid(), 'a')
+
+        # Missing id
+        xml = (
+            '<model>'
+            ' <listOfCompartments>'
+            '  <compartment/>'
+            ' </listOfCompartments>'
+            '</model>')
+        self.assertBad(xml, 'required attribute "id"')
+
+        # Invalid id
+        xml = (
+            '<model>'
+            ' <listOfCompartments>'
+            '  <compartment id="123" />'
+            ' </listOfCompartments>'
+            '</model>')
+        self.assertBad(xml, 'Invalid SId')
+
+    def test_parse_constraint(self):
         # Test parsing constraints (these are ignored)
 
         xml = (
@@ -131,8 +275,8 @@ class SBMLParserTest(unittest.TestCase):
             self.p.parse_string(self.wrap(xml))
         self.assertIn('Ignoring SBML constraints', w.text())
 
-    def test_events(self):
-        # Test parsing constraints (these are ignored)
+    def test_parse_events(self):
+        # Test parsing events (these are ignored)
 
         xml = (
             '<model>'
@@ -158,22 +302,8 @@ class SBMLParserTest(unittest.TestCase):
             self.p.parse_string(self.wrap(xml))
         self.assertIn('Ignoring SBML events', w.text())
 
-    def test_invalid_file(self):
-        # Check whether error is thrown for invalid xml
-        self.assertBad('<model>', 'Unable to parse XML: ')
-
     def test_parse_file(self):
-        # Check whether error is thrown for invalid path
-        path = 'some/path'
-        message = 'Unable to parse XML: '
-        self.assertRaisesRegex(
-            myokit.formats.sbml.SBMLError,
-            message,
-            self.p.parse_file,
-            path)
-
-    def test_level_version(self):
-        # Check that unsupported levels/versions trigger warnings
+        # Tests parse_file()
 
         # Supported level
         xml = self.wrap('<model id="a" name="a"/>', 3, 2)
@@ -193,8 +323,47 @@ class SBMLParserTest(unittest.TestCase):
             self.p.parse_string(xml)
         self.assertIn('This version of SBML may not be supported', w.text())
 
-    def test_mathml(self):
-        """Test MathML parsing."""
+        # Check whether error is thrown for invalid path
+        path = 'some/path'
+        message = 'Unable to parse XML: '
+        self.assertRaisesRegex(
+            SBMLParsingError,
+            message,
+            self.p.parse_file,
+            path)
+
+        # Check whether error is thrown for invalid xml
+        self.assertBad('<model>', 'Unable to parse XML: ')
+
+    def test_function_definitions(self):
+        # Function definitions are not supported
+
+        xml = (
+            '<model id="test" name="test" timeUnits="second"> '
+            ' <listOfFunctionDefinitions>'
+            '  <functionDefinition id="multiply" name="multiply">'
+            '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '    <lambda>'
+            '     <bvar>'
+            '      <ci> x </ci>'
+            '     </bvar>'
+            '     <bvar>'
+            '      <ci> y </ci>'
+            '     </bvar>'
+            '     <apply>'
+            '      <times/>'
+            '       <ci> x </ci>'
+            '       <ci> y </ci>'
+            '     </apply>'
+            '    </lambda>'
+            '   </math>'
+            '  </functionDefinition>'
+            ' </listOfFunctionDefinitions>'
+            '</model>')
+        self.assertBad(xml, 'Function definitions are not supported.')
+    '''
+    def test_parse_mathml(self):
+        # Test MathML parsing.
 
         xml1 = (
             '<model name="mathml">'
@@ -217,12 +386,13 @@ class SBMLParserTest(unittest.TestCase):
         m = self.parse(xml)
         self.assertEqual(m.get('myokit.x').rhs().eval(), 5)
 
-        # Check that invalid MathML raises an SBMLError
+        # Check that invalid MathML raises an SBMLParsingError
         xml = xml1 + '<apply><minus /></apply>' + xml2
         self.assertBad(xml, 'Operator needs at least one operand')
+    '''
 
-    def test_model(self):
-        """Tests parsing a model."""
+    def test_parse_model(self):
+        # Tests parsing a model.
 
         # Name from name attribute
         m = self.parse('<model id="yes" name="no" />')
@@ -236,66 +406,181 @@ class SBMLParserTest(unittest.TestCase):
         m = self.parse('<model />')
         self.assertEqual(m.name(), 'Imported SBML model')
 
+        # Notes
+        m = self.parse(
+            '<model>'
+            ' <notes>'
+            '  <body xmlns="http://www.w3.org/1999/xhtml">'
+            '   <h1>This is a bunch of notes</h1>'
+            '   <div><p>With sentences like this one</p></div>'
+            '   <p>And a<br />line break</p>'
+            '  </body>'
+            ' </notes>'
+            '</model>'
+        )
+        self.assertIn('sentences like this one', m.notes())
+
         # No model
         self.assertBad(xml='', message='Model element not found.')
         self.assertBad(xml='<hello/>', message='Model element not found.')
 
-    def test_function_definitions(self):
+    def test_parse_parameter(self):
+        # Tests parsing parameters
+
+        a = '<model><listOfParameters>'
+        b = '</listOfParameters></model>'
+
+        # Named
+        x = '<parameter id="a" /><parameter id="b" />'
+        m = self.parse(a + x + b)
+        self.assertEqual(m.parameter('a').sid(), 'a')
+        self.assertEqual(m.parameter('b').sid(), 'b')
+
+        # With value and units
+        x = ('<parameter id="c" value="2" />'
+             '<parameter id="d" units="volt" />'
+             '<parameter id="e" units="ampere" value="-1.2e-3" />')
+        m = self.parse(a + x + b)
+        c = m.parameter('c')
+        d = m.parameter('d')
+        e = m.parameter('e')
+        self.assertEqual(c.sid(), 'c')
+        self.assertIsNone(c.units())
+        self.assertEqual(c.value(), 2)
+        self.assertIsInstance(c.value(), float)
+        self.assertEqual(d.sid(), 'd')
+        self.assertEqual(d.units().myokit_unit(), myokit.units.volt)
+        self.assertIsNone(d.value())
+        self.assertEqual(e.sid(), 'e')
+        self.assertEqual(e.units().myokit_unit(), myokit.units.ampere)
+        self.assertEqual(e.value(), -1.2e-3)
+        self.assertIsInstance(e.value(), float)
+
+        # Missing id
+        x = '<parameter/>'
+        self.assertBad(a + x + b, 'required attribute "id"')
+
+        # Invalid id
+        x = '<parameter id="123" />'
+        self.assertBad(a + x + b, 'Invalid SId')
+
+    def test_parse_species(self):
+        # Tests parsing species
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="comp" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>')
+        b = (' </listOfSpecies>'
+             '</model>')
+
+        # Simple species
+        x = '<species compartment="comp" id="spec" />'
+        m = self.parse(a + x + b)
+        comp = m.compartment('comp')
+        spec = comp.species('spec')
+        self.assertTrue(spec.sid() == 'spec')
+
+        # Missing id
+        x = '<species compartment="comp" />'
+        self.assertBad(a + x + b, 'required attribute "id"')
+
+        # Invalid id
+        x = '<species compartment="comp" id="456" />'
+        self.assertBad(a + x + b, 'Invalid SId')
+
+        # Missing compartment
+        x = '<species id="spec" />'
+        self.assertBad(a + x + b, 'required attribute "compartment"')
+
+        # Unknown compartment
+        x = '<species id="spec" compartment="hello" />'
+        self.assertBad(a + x + b, 'unknown compartment')
+
+    def test_parse_unit(self):
+        # Tests parsing units
+
+        a = '<model><listOfUnitDefinitions>'
+        b = '</listOfUnitDefinitions></model>'
+
+        # Dimensionless units
+        xml = '<unitDefinition id="dimless" />'
+        m = self.parse(a + xml + b)
+        u = m.unit('dimless').myokit_unit()
+        self.assertEqual(u, myokit.units.dimensionless)
+
+        # Dimensionless units
         xml = (
-            '<model id="test" name="test" timeUnits="second"> '
-            '<listOfFunctionDefinitions>'
-            '<functionDefinition id="multiply" name="multiply">'
-            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
-            '<lambda>'
-            '<bvar>'
-            '<ci> x </ci>'
-            '</bvar>'
-            '<bvar>'
-            '<ci> y </ci>'
-            '</bvar>'
-            '<apply>'
-            '<times/>'
-            '<ci> x </ci>'
-            '<ci> y </ci>'
-            '</apply>'
-            '</lambda>'
-            '</math>'
-            '</functionDefinition>'
-            '</listOfFunctionDefinitions>'
-            '</model>')
-        self.assertBad(xml, 'Function definitions are not supported.')
+            '<unitDefinition id="dimless">'
+            ' <listOfUnits />'
+            '</unitDefinition>')
+        m = self.parse(a + xml + b)
+        u = m.unit('dimless').myokit_unit()
+        self.assertEqual(u, myokit.units.dimensionless)
+
+        # Full featured units
+        xml = (
+            '<unitDefinition id="centimeter">'
+            ' <listOfUnits>'
+            '  <unit kind="meter" scale="-2" />'
+            ' </listOfUnits>'
+            '</unitDefinition>'
+            '<unitDefinition id="supervolt">'
+            ' <listOfUnits>'
+            '  <unit kind="volt" multiplier="2.3" scale="3" exponent="2" />'
+            '  <unit kind="meter" exponent="-1" />'
+            ' </listOfUnits>'
+            '</unitDefinition>')
+        m = self.parse(a + xml + b)
+        u = m.unit('centimeter').myokit_unit()
+        self.assertEqual(u, myokit.units.cm)
+        u = m.unit('supervolt').myokit_unit()
+        sv = (myokit.units.volt * 2.3e3)**2 / myokit.units.meter
+        self.assertEqual(u, sv)
+
+        # Parameter with custom unit
+        x = ('<model>'
+             ' <listOfUnitDefinitions>'
+             '  <unitDefinition id="centimeter">'
+             '   <listOfUnits>'
+             '    <unit kind="meter" scale="-2" />'
+             '   </listOfUnits>'
+             '  </unitDefinition>'
+             ' </listOfUnitDefinitions>'
+             ' <listOfParameters>'
+             '  <parameter id="a" units="centimeter" />'
+             ' </listOfParameters>'
+             '</model>')
+        m = self.parse(x)
+        u = m.parameter('a').units().myokit_unit()
+        self.assertEqual(u, myokit.units.cm)
+
+        # Missing id
+        xml = '<unitDefinition />'
+        self.assertBad(a + xml + b, 'required attribute "id"')
+
+        # Invalid id
+        xml = '<unitDefinition id="123" />'
+        self.assertBad(a + xml + b, 'Invalid UnitSId')
+
+
+
+
+
+
+
+
+
+
+'''
+
 
     def test_missing_id(self):
-        # missing unit ID
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfUnitDefinitions>'
-            '<unitDefinition>'  # here is where an ID is supposed to be
-            '<listOfUnits>'
-            '<unit kind="litre" exponent="1" scale="0" multiplier="1"/>'
-            '</listOfUnits>'
-            '</unitDefinition>'
-            '</listOfUnitDefinitions>'
-            '</model>')
-        self.assertBad(xml, 'attribute "id" missing in unitDefinition')
+        #TODO: Merge this into appropriate methods
 
-        # missing compartment ID
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment/>'  # here is where the ID is missing
-            '</listOfCompartments>'
-            '</model>')
-        self.assertBad(xml, 'attribute "id" missing in compartment')
 
-        # missing parameter ID
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfParameters>'
-            '<parameter/>'  # here is where the ID is missing
-            '</listOfParameters>'
-            '</model>')
-        self.assertBad(xml, 'attribute "id" missing in parameter')
+
 
         # missing global conversion factor ID
         xml = (
@@ -405,113 +690,6 @@ class SBMLParserTest(unittest.TestCase):
             '</model>')
         self.assertBad(xml=xml, message='The id "myokit".')
 
-    def test_coinciding_ids(self):
-        # Checks that an error is thrown when overlapping ids are used for
-        # compartment, parameters or species.
-
-        # Coinciding compartment and parameter ids
-        xml = (
-            '<model id="test" '
-            'timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someId"/>'
-            '</listOfCompartments>'
-            '<listOfParameters>'
-            '<parameter id="someId"/>'
-            '</listOfParameters>'
-            '</model>')
-        self.assertBad(xml, 'Duplicate parameter id')
-
-        # Coinciding compartment and species ids
-        xml = (
-            '<model id="test" '
-            'timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someId"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someId" hasOnlySubstanceUnits="true"'
-            ' compartment="someId" constant="false"'
-            ' boundaryCondition="true" />'
-            '</listOfSpecies>'
-            '</model>')
-        self.assertBad(xml, 'Duplicate species id')
-
-        # Coinciding parameter and species ids
-        xml = (
-            '<model id="test" '
-            'timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfParameters>'
-            '<parameter id="someId"/>'
-            '</listOfParameters>'
-            '<listOfSpecies>'
-            '<species id="someId" hasOnlySubstanceUnits="true"'
-            ' compartment="someComp" constant="false"'
-            ' boundaryCondition="true" />'
-            '</listOfSpecies>'
-            '</model>')
-        self.assertBad(xml, 'Duplicate species id')
-
-        # Coinciding parameter and reactant stoichiometry IDs
-        stoich_id = 'someStoich'
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfParameters>'
-            '<parameter id="' + stoich_id + '"/>'
-            '</listOfParameters>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>'
-            '</listOfSpecies>'
-            '<listOfReactions>'
-            '<reaction >'
-            '<listOfReactants>'
-            '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>'
-            '</listOfReactants>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            self.assertBad(xml=xml, message='Stoichiometry ID is not unique.')
-        self.assertEqual(w.count(), 1)
-        self.assertIn('Stoichiometry has not been set', w.text())
-
-        # Coinciding parameter and product stoichiometry IDs
-        stoich_id = 'someStoich'
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfParameters>'
-            '<parameter id="' + stoich_id + '"/>'
-            '</listOfParameters>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>'
-            '</listOfSpecies>'
-            '<listOfReactions>'
-            '<reaction >'
-            '<listOfProducts>'
-            '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>'
-            '</listOfProducts>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            self.assertBad(xml=xml, message='Stoichiometry ID is not unique.')
-        self.assertEqual(w.count(), 1)
-        self.assertIn('Stoichiometry has not been set', w.text())
 
     def test_reserved_parameter_id(self):
         # ``globalConversionFactor`` is a reserved ID that is used while
@@ -781,7 +959,7 @@ class SBMLDocumentTest(unittest.TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        p = myokit.formats.sbml.SBMLParser()
+        p = SBMLParser()
         with WarningCollector():
             cls.model = p.parse_file(os.path.join(
                 DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
@@ -920,21 +1098,11 @@ class SBMLDocumentTest(unittest.TestCase):
         # total number of intermediary variables
         self.assertEqual(self.model.count_variables(inter=True), 3)
 
-    def test_notes(self):
-        # Test notes are read from model element
-        notes = self.model.meta['desc']
-        self.assertTrue(notes.startswith('This is an implementation of'))
-
-    def test_model_name(self):
-        # Tests whether model name is set properly.
-        name = 'case00004'
-        self.assertEqual(self.model.name(), name)
-
     def test_older_version(self):
         # Test loading the same model in an older SBML format.
 
         # Parse model in older format
-        p = myokit.formats.sbml.SBMLParser()
+        p = SBMLParser()
         with WarningCollector():
             old_model = p.parse_file(os.path.join(
                 DIR_FORMATS, 'sbml', '00004-sbml-l2v1-modified.xml'))
@@ -1102,7 +1270,7 @@ class SBMLDocumentTest(unittest.TestCase):
         parameter = self.model.get('myokit.' + parameter)
         unit = None
         self.assertEqual(parameter.unit(), unit)
-
+'''
 
 if __name__ == '__main__':
     import warnings
