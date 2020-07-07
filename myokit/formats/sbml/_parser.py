@@ -538,15 +538,6 @@ class SBMLParser(object):
         # 'constant' are required in level 3, but optional in level 2 (default
         # is false for all three).
 
-        # Get compartment
-        compartment = element.get('compartment')
-        try:
-            compartment = model.compartment(compartment)
-        except KeyError:
-            raise SBMLParsingError(
-                'Reference to unknown compartment "' + compartment + '" in '
-                + self._tag(element) + '.', element)
-
         # Check if it's an amount or a concentration
         amount = element.get('hasOnlySubstanceUnits', 'false') == 'true'
 
@@ -556,6 +547,9 @@ class SBMLParser(object):
 
         # Create
         try:
+            # Get compartment
+            compartment = model.compartment(element.get('compartment'))
+
             # Create
             species = model.add_species(
                 compartment, element.get('id'), amount, constant, boundary)
@@ -818,7 +812,7 @@ class Compartment(Quantity):
 
     def set_size_units(self, units):
         """Sets the units for this compartment's size."""
-        self._units = units
+        self._size_units = units
 
     def sid(self):
         """Returns this compartment's sid."""
@@ -843,6 +837,12 @@ class Compartment(Quantity):
         else:
             # Other values are allowed, but have no model attribute
             return myokit.units.dimensionless
+
+    def spatial_dimensions(self):
+        """
+        Returns this compartment's spatial dimensions, or ``None`` if not set.
+        """
+        return self._spatial_dimensions
 
 
 class Model(object):
@@ -939,7 +939,7 @@ class Model(object):
         u = self._units[unitsid] = unit
         return u
 
-    def area_units(self, units):
+    def area_units(self):
         """
         Returns the default compartment size units for 2-dimensional
         compartments, or dimensionless if not set.
@@ -976,8 +976,14 @@ class Model(object):
             raise SBMLError('Unknown units "' + str(unitsid) + '".')
 
     def compartment(self, sid):
-        """Returns the compartment with the given sid."""
-        return self._compartments[sid]
+        """
+        Returns the compartment with the given sid, raises an
+        :class:`SBMLError` if not found.
+        """
+        try:
+            return self._compartments[sid]
+        except KeyError:
+            raise SBMLError('Unknown compartment "' + str(sid) + '".')
 
     def conversion_factor(self):
         """
@@ -993,7 +999,7 @@ class Model(object):
         """
         return self._extent_units
 
-    def length_units(self, units):
+    def length_units(self):
         """
         Returns the default compartment size units for 1-dimensional
         compartments, or dimensionless if not set.
@@ -1369,14 +1375,14 @@ class Model(object):
         """Returns the species with the given id."""
         return self._species[sid]
 
-    def substance_units(self, units):
+    def substance_units(self):
         """
         Returns the default units for reaction amounts (not concentrations), or
         dimensionless if not set.
         """
         return self._substance_units
 
-    def time_units(self, units):
+    def time_units(self):
         """Returns the default units for time, or dimensionless if not set."""
         return self._time_units
 
@@ -1387,7 +1393,7 @@ class Model(object):
         except KeyError:
             return self.base_unit(unitsid)
 
-    def volume_units(self, units):
+    def volume_units(self):
         """
         Returns the default compartment size units for 3-dimensional
         compartments, or dimensionless if not set.

@@ -237,22 +237,46 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(m.compartment('a').sid(), 'a')
 
         # Missing id
-        xml = (
-            '<model>'
-            ' <listOfCompartments>'
-            '  <compartment/>'
-            ' </listOfCompartments>'
-            '</model>')
-        self.assertBad(xml, 'required attribute "id"')
+        x = '<compartment/>'
+        self.assertBad(a + x + b, 'required attribute "id"')
 
         # Invalid id
-        xml = (
-            '<model>'
+        x = '<compartment id="123" />'
+        self.assertBad(a + x + b, 'Invalid SId')
+
+        # Spatial dimensions and model default units
+        x = (
+            '<model lengthUnits="volt" areaUnits="gram" volumeUnits="lux">'
             ' <listOfCompartments>'
-            '  <compartment id="123" />'
+            '  <compartment id="c" />'
+            '  <compartment id="s1" spatialDimensions="1" />'
+            '  <compartment id="s2" spatialDimensions="2" />'
+            '  <compartment id="s3" spatialDimensions="3" />'
+            '  <compartment id="d" spatialDimensions="1.4" units="henry" />'
             ' </listOfCompartments>'
             '</model>')
-        self.assertBad(xml, 'Invalid SId')
+        m = self.parse(x)
+        c = m.compartment('c')
+        self.assertEqual(c.spatial_dimensions(), None)
+        self.assertEqual(c.size_units(), myokit.units.dimensionless)
+        c = m.compartment('s1')
+        self.assertEqual(c.spatial_dimensions(), 1)
+        self.assertEqual(c.size_units(), myokit.units.volt)
+        c = m.compartment('s2')
+        self.assertEqual(c.spatial_dimensions(), 2)
+        self.assertEqual(c.size_units(), myokit.units.g)
+        c = m.compartment('s3')
+        self.assertEqual(c.spatial_dimensions(), 3)
+        self.assertEqual(c.size_units(), myokit.units.lux)
+        c = m.compartment('d')
+        self.assertEqual(c.spatial_dimensions(), 1.4)
+        self.assertEqual(c.size_units(), myokit.units.henry)
+
+        # Initial value for size
+        x = '<compartment id="x" size="1.32" />'
+        m = self.parse(a + x + b)
+        c = m.compartment('x')
+        self.assertEqual(c.initial_value(), myokit.Number(1.32))
 
     def test_parse_constraint(self):
         # Test parsing constraints (these are ignored)
@@ -504,7 +528,7 @@ class SBMLParserTest(unittest.TestCase):
 
         # Unknown compartment
         x = '<species id="spec" compartment="hello" />'
-        self.assertBad(a + x + b, 'unknown compartment')
+        self.assertBad(a + x + b, 'Unknown compartment')
 
     def test_parse_unit(self):
         # Tests parsing units and unit definitions
