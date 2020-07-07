@@ -70,9 +70,12 @@ class SBMLParser(object):
     Support notes:
 
     - SBML older than Level 2 version 1 is unlikely to work.
-    - Units "celsius" are not supported.
+    - Algebraic rules are not supported.
+    - Constraints are not supported.
     - Events are not supported.
     - Function definitions are not supported.
+    - Local parameters in reactions are not supported.
+    - Units "celsius" are not supported.
 
     """
 
@@ -1000,6 +1003,31 @@ class Model(object):
     def myokit_model(self):
         """Converts this model to a :class:`myokit.Model`."""
         raise NotImplementedError
+
+        # Proposed strategy:
+        #
+        # - Names are sids, unless it starts with an underscore then we need a
+        #   resolution strategy
+        # - Components are 'parameters', 'species', 'stoichiometries', etc.,
+        #   rather than compartments?
+        # - Parameters with rate equations are ODEs, parameters without rate
+        #   equations have their value() if set, otherwise initial_value()
+        # - Stoichiometries all get a variable, set same way as parameters
+        # - Species all get a variable for their amount, with a value set
+        #   either from value(), initial_value(), or from a reaction
+        # - Compartment sizes all get a variable, set same way as parameters
+        # - Species that are concentrations get a 2nd variable, dividing by the
+        #   compartment size
+        #
+        #   Question: Should there be a method that's called at the end of
+        #   parsing that sets value/initial_value for all species based on
+        #   reactions?
+        #   If species are set with rules, does that set concentration or
+        #   amount?
+
+        #
+        # Bits of old code follow below
+        #
 
         '''
         # Unlike the SBML SId type, Myokit names cannot start with an
