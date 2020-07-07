@@ -97,11 +97,11 @@ class SBMLParserTest(unittest.TestCase):
     def test_duplicate_sids(self):
         # Checks that an error is thrown when an SId is used twice.
         # Nearly every object can have an SId, but Myokit only checks:
-        #  compartments, species, parameters, TODO TODO TODO
+        #  compartments, species, species references, reactions, parameters
         # In this test, we cross-test:
         #  - TODO
         #  - TODO
-        # Units do not have SIds.
+        # Units do not have SIds, but their own UnitSIds.
 
         '''
         # Coinciding compartment and parameter ids
@@ -361,10 +361,11 @@ class SBMLParserTest(unittest.TestCase):
             ' </listOfFunctionDefinitions>'
             '</model>')
         self.assertBad(xml, 'Function definitions are not supported.')
-    '''
-    def test_parse_mathml(self):
-        # Test MathML parsing.
 
+    def test_parse_initial_assignment(self):
+        # Test parsing initial assignments.
+
+        '''
         xml1 = (
             '<model name="mathml">'
             ' <listOfParameters>'
@@ -389,7 +390,7 @@ class SBMLParserTest(unittest.TestCase):
         # Check that invalid MathML raises an SBMLParsingError
         xml = xml1 + '<apply><minus /></apply>' + xml2
         self.assertBad(xml, 'Operator needs at least one operand')
-    '''
+        '''
 
     def test_parse_model(self):
         # Tests parsing a model.
@@ -446,15 +447,15 @@ class SBMLParserTest(unittest.TestCase):
         e = m.parameter('e')
         self.assertEqual(c.sid(), 'c')
         self.assertIsNone(c.units())
-        self.assertEqual(c.value(), 2)
-        self.assertIsInstance(c.value(), float)
+        self.assertIsInstance(c.initial_value(), myokit.Number)
+        self.assertEqual(c.initial_value().eval(), 2)
         self.assertEqual(d.sid(), 'd')
-        self.assertEqual(d.units().myokit_unit(), myokit.units.volt)
-        self.assertIsNone(d.value())
+        self.assertEqual(d.units(), myokit.units.volt)
+        self.assertIsNone(d.initial_value())
         self.assertEqual(e.sid(), 'e')
-        self.assertEqual(e.units().myokit_unit(), myokit.units.ampere)
-        self.assertEqual(e.value(), -1.2e-3)
-        self.assertIsInstance(e.value(), float)
+        self.assertEqual(e.units(), myokit.units.ampere)
+        self.assertEqual(e.initial_value().eval(), -1.2e-3)
+        self.assertIsInstance(e.initial_value(), myokit.Number)
 
         # Missing id
         x = '<parameter/>'
@@ -463,6 +464,14 @@ class SBMLParserTest(unittest.TestCase):
         # Invalid id
         x = '<parameter id="123" />'
         self.assertBad(a + x + b, 'Invalid SId')
+
+    def test_parse_reaction(self):
+        # Test parsing reactions, species references, kinetic laws
+        pass
+
+    def test_parse_rule(self):
+        # Tests parsing assignment rules and rate rules
+        pass
 
     def test_parse_species(self):
         # Tests parsing species
@@ -478,8 +487,7 @@ class SBMLParserTest(unittest.TestCase):
         # Simple species
         x = '<species compartment="comp" id="spec" />'
         m = self.parse(a + x + b)
-        comp = m.compartment('comp')
-        spec = comp.species('spec')
+        spec = m.species('spec')
         self.assertTrue(spec.sid() == 'spec')
 
         # Missing id
@@ -499,7 +507,7 @@ class SBMLParserTest(unittest.TestCase):
         self.assertBad(a + x + b, 'unknown compartment')
 
     def test_parse_unit(self):
-        # Tests parsing units
+        # Tests parsing units and unit definitions
 
         a = '<model><listOfUnitDefinitions>'
         b = '</listOfUnitDefinitions></model>'
@@ -507,8 +515,7 @@ class SBMLParserTest(unittest.TestCase):
         # Dimensionless units
         xml = '<unitDefinition id="dimless" />'
         m = self.parse(a + xml + b)
-        u = m.unit('dimless').myokit_unit()
-        self.assertEqual(u, myokit.units.dimensionless)
+        self.assertEqual(m.unit('dimless'), myokit.units.dimensionless)
 
         # Dimensionless units
         xml = (
@@ -516,8 +523,7 @@ class SBMLParserTest(unittest.TestCase):
             ' <listOfUnits />'
             '</unitDefinition>')
         m = self.parse(a + xml + b)
-        u = m.unit('dimless').myokit_unit()
-        self.assertEqual(u, myokit.units.dimensionless)
+        self.assertEqual(m.unit('dimless'), myokit.units.dimensionless)
 
         # Full featured units
         xml = (
@@ -533,11 +539,9 @@ class SBMLParserTest(unittest.TestCase):
             ' </listOfUnits>'
             '</unitDefinition>')
         m = self.parse(a + xml + b)
-        u = m.unit('centimeter').myokit_unit()
-        self.assertEqual(u, myokit.units.cm)
-        u = m.unit('supervolt').myokit_unit()
+        self.assertEqual(m.unit('centimeter'), myokit.units.cm)
         sv = (myokit.units.volt * 2.3e3)**2 / myokit.units.meter
-        self.assertEqual(u, sv)
+        self.assertEqual(m.unit('supervolt'), sv)
 
         # Parameter with custom unit
         x = ('<model>'
@@ -553,8 +557,7 @@ class SBMLParserTest(unittest.TestCase):
              ' </listOfParameters>'
              '</model>')
         m = self.parse(x)
-        u = m.parameter('a').units().myokit_unit()
-        self.assertEqual(u, myokit.units.cm)
+        self.assertEqual(m.parameter('a').units(), myokit.units.cm)
 
         # Missing id
         xml = '<unitDefinition />'

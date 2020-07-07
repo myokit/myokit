@@ -142,44 +142,6 @@ class SBMLParser(object):
             # Remove all references to temporary state
             del(self._ns)
 
-    def _parse_rule(self, element, model, rate=False):
-        """Parses an assignment or rate rule."""
-
-        # Check required attributes
-        self._check_required_attributes(element, 'variable')
-
-        # Check that variable refers to an assignable
-        var = element.get('variable')
-        try:
-            var = model.assignable(var)
-
-            # Check that this assignable can be changed with assignment rules
-            if isinstance(var, Species):
-                if not var.boundary():
-                    raise SBMLParsingError(
-                        'Assignment or rate rule set for species that is'
-                        ' created or destroyed in a reaction.', element)
-            # TODO: Could also gather 'constant' attributes for all, and check
-            # here. But maybe we're not all that interested in validation...
-
-            # Find mathematics
-            expr = element.find('{' + NS_MATHML + '}math')
-            if expr is None:
-                # This is allowed, so that SBML extensions can do mysterious
-                # things.
-                warnings.warn('Rule does not define any mathematics')
-                return
-
-            # Parse rule and apply
-            var.set_value(parse_mathml_etree(
-                expr,
-                lambda x, y: myokit.Name(model.assignable(x)),
-                lambda x, y: myokit.Number(x)
-            ), rate)
-
-        except SBMLError, MathMLError as e:
-            raise SBMLParsingError('Unable to parse rule: ' + str(e), element)
-
     def _parse_compartment(self, element, model):
         """Parses a ``compartment`` element."""
         #TODO: Given the description above, it sounds like we need a
@@ -259,7 +221,7 @@ class SBMLParser(object):
                 lambda x, y: myokit.Number(x)
             ))
 
-        except SBMLError, MathMLError as e:
+        except (SBMLError, MathMLError) as e:
             raise SBMLParsingError(
                 'Unable to parse initial assignment: ' + str(e), element)
 
@@ -285,7 +247,7 @@ class SBMLParser(object):
                 expr,
                 lambda x, y: myokit.Name(reaction.species(x)),
                 lambda x, y: myokit.Number(x))
-        except SBMLError, MathMLError as e:
+        except (SBMLError, MathMLError) as e:
             raise SBMLParsingError(
                 'Unable to parse kinetic law: ' + str(e), element)
 
@@ -390,7 +352,7 @@ class SBMLParser(object):
                 factor = model.parameter(factor)
             except SBMLError:
                 raise SBMLParsingError(
-                    'Model conversion factor "' + str(factor) + '" does not;
+                    'Model conversion factor "' + str(factor) + '" does not'
                     ' refer to a parameter SId.', element)
             model.set_conversion_factor(factor)
 
@@ -459,6 +421,7 @@ class SBMLParser(object):
                     raise SBMLParsingError(
                         'Unable to convert parameter value "' + str(value)
                         + '" to float.', element)
+
                 parameter.set_initial_value(myokit.Number(value, unit))
 
         except SBMLError as e:
@@ -467,9 +430,8 @@ class SBMLParser(object):
                 element)
 
     def _parse_reaction(self, element, model):
-        """
-        Parses a ``reaction`` element.
-        """
+        """Parses a ``reaction`` element."""
+
         # Check required attributes
         self._check_required_attributes(element, 'id')
         # The attribute 'reversible' is also required, but doesn't affect the
@@ -477,7 +439,7 @@ class SBMLParser(object):
         # The attribute 'compartment' is not required, and doesn't affect the
         # maths, so we ignore it here.
 
-        # The 'fast' attribute is removed in L3V2 and is not supported
+        # The 'fast' attribute was removed in L3V2 and is not supported here
         if element.get('fast') == 'true':
             raise SBMLParsingError(
                 'Reactions with fast="true" are not supported.', element)
@@ -524,6 +486,44 @@ class SBMLParser(object):
         else:
             reaction.set_kinetic_law(kinetic_law)
 
+    def _parse_rule(self, element, model, rate=False):
+        """Parses an assignment or rate rule."""
+
+        # Check required attributes
+        self._check_required_attributes(element, 'variable')
+
+        # Check that variable refers to an assignable
+        var = element.get('variable')
+        try:
+            var = model.assignable(var)
+
+            # Check that this assignable can be changed with assignment rules
+            if isinstance(var, Species):
+                if not var.boundary():
+                    raise SBMLParsingError(
+                        'Assignment or rate rule set for species that is'
+                        ' created or destroyed in a reaction.', element)
+            # TODO: Could also gather 'constant' attributes for all, and check
+            # here. But maybe we're not all that interested in validation...
+
+            # Find mathematics
+            expr = element.find('{' + NS_MATHML + '}math')
+            if expr is None:
+                # This is allowed, so that SBML extensions can do mysterious
+                # things.
+                warnings.warn('Rule does not define any mathematics')
+                return
+
+            # Parse rule and apply
+            var.set_value(parse_mathml_etree(
+                expr,
+                lambda x, y: myokit.Name(model.assignable(x)),
+                lambda x, y: myokit.Number(x)
+            ), rate)
+
+        except (SBMLError, MathMLError) as e:
+            raise SBMLParsingError('Unable to parse rule: ' + str(e), element)
+
     def _parse_species(self, element, model):
         """
         Adds species to references compartment in model and creates references
@@ -541,7 +541,7 @@ class SBMLParser(object):
             compartment = model.compartment(compartment)
         except KeyError:
             raise SBMLParsingError(
-                'Reference to unknown compartment "' + c + '" in '
+                'Reference to unknown compartment "' + compartment + '" in '
                 + self._tag(element) + '.', element)
 
         # Check if it's an amount or a concentration
@@ -578,7 +578,7 @@ class SBMLParser(object):
                         'Unable to convert initial species value to float "'
                             + str(value) + '".', element)
 
-                unit = species.units() # Units above, or default ones
+                unit = species.units()  # Local or model default
                 species.set_initial_value(myokit.Number(value, unit))
 
             # Set conversion factor if provided (must refer to a parameter)
@@ -666,7 +666,7 @@ class SBMLParser(object):
 
         # Get base unit (must be a predefined type)
         try:
-            unit = model.base_unit(element.get('kind')).myokit_unit()
+            unit = model.base_unit(element.get('kind'))
         except SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse unit kind: ' + str(e), element)
@@ -720,6 +720,66 @@ class SBMLParser(object):
             tag += '[@id=' + str(sid) + ']'
 
         return tag
+
+
+class Quantity(object):
+    """
+    Base class for anything that has a numerical value in an SBML model, and
+    can be set by rules, reactions, or initial assignments.
+    """
+    def __init__(self):
+
+        # Expression for initial value (myokit.Expression)
+        self._initial_value = None
+
+        # Expression for value (myokit.Expression)
+        self._value = None
+
+        # Whether or not this is a rate
+        self._is_rate = False
+
+    def initial_value(self):
+        """
+        Returns an expression for this quantity's initial value, or ``None`` if
+        not set.
+        """
+        return self._initial_value
+
+    def rate(self):
+        """
+        Returns ``True`` only if this quantity's value is defined through a
+        rate.
+        """
+        return self._is_rate
+
+    def set_initial_value(self, value):
+        """
+        Sets a :class:`myokit.Expression` for this quantity's initial value.
+        """
+        self._initial_value = value
+
+    def set_value(self, value, rate=False):
+        """
+        Sets a :class:`myokit.Expression` for this quantity's value.
+
+        Arguments:
+
+        ``value``
+            An expression
+        ``rate``
+            Set to ``True`` if the expression gives the rate of change of this
+            variable.
+
+        """
+        self._value = value
+        self._is_rate = bool(rate)
+
+    def value(self):
+        """
+        Returns an expression for this quantity's value, or ``None`` if not
+        set.
+        """
+        return self._value
 
 
 class Compartment(Quantity):
@@ -811,6 +871,12 @@ class Model(object):
         self._parameters = {}
         self._species = {}
 
+        # Reactions (map from sids to objects)
+        self._reactions = {}
+
+        # Assignables: Compartments, species, species references, parameters
+        self._assignables = {}
+
         # Default compartment size units
         self._length_units = myokit.units.dimensionless
         self._area_units = myokit.units.dimensionless
@@ -847,7 +913,7 @@ class Model(object):
         return r
 
     def add_species(
-            self, comparment, sid, amount=False, constant=False,
+            self, compartment, sid, amount=False, constant=False,
             boundary=False):
         """
         Adds a species to this model (located in the given ``compartment``).
@@ -867,7 +933,7 @@ class Model(object):
         if unitsid in self._units:
             raise SBMLError(
                 'Duplicate UnitSId: "' + str(unitsid) + '".')
-        u = self._units[unitsid] = Unit(unitsid, unit)
+        u = self._units[unitsid] = unit
         return u
 
     def area_units(self, units):
@@ -892,22 +958,19 @@ class Model(object):
                 ' model.')
 
     def base_unit(self, unitsid):
-        """Returns an SBML base unit."""
-
+        """
+        Returns an SBML base unit, raises an :class:`SBMLError` if not found or
+        not supported.
+        """
         # Check this base unit is supported
         if unitsid == 'celsius':
             raise SBMLError('The units "celsius" are not supported.')
+
+        # Find and return
         try:
-            myokit_unit = self._base_units[unitsid]
+           return self._base_units[unitsid]
         except KeyError:
             raise SBMLError('Unknown units "' + str(unitsid) + '".')
-
-        # Return a Unit object
-        try:
-            return self._units[unitsid]
-        except KeyError:
-            u = self._units[unitsid] = Unit(unitsid, myokit_unit)
-            return u
 
     def compartment(self, sid):
         """Returns the compartment with the given sid."""
@@ -1357,7 +1420,7 @@ class Parameter(Quantity):
 
     """
     def __init__(self, model, sid):
-        super(SpeciesReference, self).__init__()
+        super(Parameter, self).__init__()
 
         self._model = model
         self._sid = sid
@@ -1590,90 +1653,5 @@ class SpeciesReference(Quantity):
 
     def sid(self):
         """Returns this species reference's SId, or ``None`` if not set."""
-        return self._sid
-
-
-class Quantity(object):
-    """
-    Base class for anything that has a numerical value in an SBML model, and
-    can be set by rules, reactions, or initial assignments.
-    """
-    def __init__(self):
-
-        # Expression for initial value (myokit.Expression)
-        self.initial_value = None
-
-        # Expression for value (myokit.Expression)
-        self._value = None
-
-        # Whether or not this is a rate
-        self._is_rate = False
-
-    def initial_value(self):
-        """
-        Returns an expression for this quantity's initial value, or ``None`` if
-        not set.
-        """
-        return self._initial
-
-    def rate(self):
-        """
-        Returns ``True`` only if this quantity's value is defined through a
-        rate.
-        """
-        return self._is_rate
-
-    def set_initial_value(self, value):
-        """
-        Sets a :class:`myokit.Expression` for this quantity's initial value.
-        """
-        self._initial_value = value
-
-    def set_value(self, value, rate=False):
-        """
-        Sets a :class:`myokit.Expression` for this quantity's value.
-
-        Arguments:
-
-        ``value``
-            An expression
-        ``rate``
-            Set to ``True`` if the expression gives the rate of change of this
-            variable.
-
-        """
-        self._value = value
-        self._is_rate = bool(rate)
-
-    def value(self):
-        """
-        Returns an expression for this quantity's value, or ``None`` if not
-        set.
-        """
-        return self._expression
-
-
-class Unit(object):
-    """
-    Represents a named unit in SBML.
-
-    Arguments:
-
-    ``sid``
-        This unit's UnitSId.
-    ``myokit_unit``
-        The :class:`myokit.Unit` that this unit represents.
-
-    """
-    def __init__(self, sid, myokit_unit):
-        self._sid = sid
-        self._myokit_unit = myokit_unit
-
-    def myokit_unit(self):
-        """Returns the :class:`myokit.Unit` represented by this unit."""
-        return self._myokit_unit
-
-    def sid(self):
-        """Returns this unit's UnitSId."""
         return self._sid
 
