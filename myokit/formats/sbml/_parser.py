@@ -1,7 +1,7 @@
 #
 # Converts SBML to Myokit expressions, using an ElementTree implementation.
 #
-# Only partial SBML support (Based on SBML level 3 version 2) is provided.
+# Only partial SBML support (based on SBML level 3 version 2) is provided.
 # The SBML file format specifications can be found here
 # http://sbml.org/Documents/Specifications.
 #
