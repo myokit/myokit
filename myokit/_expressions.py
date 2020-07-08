@@ -2457,6 +2457,7 @@ class Unit(object):
                     ' [g, m, s, A, K, cd, mol].')
             self._x = [float(x) for x in exponents]
             self._m = float(multiplier)
+
         self._hash = None
         self._repr = None
 
@@ -2498,23 +2499,6 @@ class Unit(object):
         return r1 + ' (or ' + r2 + ')'
 
     @staticmethod
-    def _close(a, b, reltol, abstol):
-        """
-        Test whether two numbers are equal.
-
-        Differs from :meth:`myokit._feq` in that it tries to answer the
-        question "is the result of a reasonable number of operations close to
-        another number". Whereas `_feq` aims to deal with numbers that are
-        numerically indistinguishable but still have a slightly different
-        representation.
-        """
-        # Quick check, plus handles infinity
-        if a == b:
-            return True
-        # Difference is compared against relative and absolute norm
-        return abs(a - b) <= max(reltol * max(abs(a), abs(b)), abstol)
-
-    @staticmethod
     def close(unit1, unit2, reltol=1e-9, abstol=1e-9):
         """
         Checks whether the given units are close enough to be considered equal.
@@ -2547,7 +2531,7 @@ class Unit(object):
         # Compare multipliers in log10 space. This means we can still easily
         # distinguish between e.g. pF and nF, but we lose the ability to tell
         # the difference between e.g. [F (1)] and [F (1.00000000000001)]
-        return Unit._close(unit1._m, unit2._m, reltol, abstol)
+        return myokit._close(unit1._m, unit2._m, reltol, abstol)
 
     @staticmethod
     def close_exponent(unit1, unit2, reltol=1e-9, abstol=1e-9):
@@ -2563,7 +2547,7 @@ class Unit(object):
 
         """
         for i, a in enumerate(unit1._x):
-            if not Unit._close(a, unit2._x[i], reltol, abstol):
+            if not myokit._close(a, unit2._x[i], reltol, abstol):
                 return False
         return True
 
@@ -2677,7 +2661,7 @@ class Unit(object):
             raise myokit.IncompatibleUnitError(msg + '.')
 
         # Create Quantity and return
-        fw = myokit._round_if_int(fw)
+        fw = myokit._fround(fw)
         return Quantity(fw, unit2 / unit1)
 
     @staticmethod
@@ -2726,9 +2710,13 @@ class Unit(object):
     def __hash__(self):
         # Creates a hash for this Unit
 
-        if not self._hash:
-            self._hash = hash(
-                ','.join([repr(x) for x in self._x]) + 'e' + repr(self._m))
+        # This uses self._str with rounding, to get hashes that are the same
+        # for units that are close (but note that the __eq__ check will still
+        # tell them apart). It cannot use str(self) because that can involve
+        # hashing to look up a preferred representation.
+
+        if self._hash is None:
+            self._hash = hash(self._str(True))
         return self._hash
 
     @staticmethod
@@ -2835,7 +2823,7 @@ class Unit(object):
         # Evaluates ``self ^ other``
 
         f = float(f)
-        e = [myokit._round_if_int(f * x) for x in self._x]
+        e = [myokit._fround(f * x) for x in self._x]
         return Unit(e, self._m * f)
 
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
@@ -2904,40 +2892,8 @@ class Unit(object):
         """
         Returns this unit formatted in the base SI units.
         """
-        if not self._repr:
-
-            # SI unit names
-            si = ['g', 'm', 's', 'A', 'K', 'cd', 'mol']
-
-            # Get unit parts
-            pos = []
-            neg = []
-            for k, x in enumerate(self._x):
-                x = myokit._round_if_int(x)
-                if x != 0:
-                    y = si[k]
-                    xabs = abs(x)
-                    if xabs > 1:
-                        y += '^' + str(xabs)
-                    if x > 0:
-                        pos.append(y)
-                    else:
-                        neg.append(y)
-            u = '*'.join(pos) if pos else '1'
-            for x in neg:
-                u += '/' + str(x)
-
-            # Add conversion factor
-            if self._m != 0:
-                m = 10**self._m
-                m = myokit._round_if_int(m)
-                if m < 1e6:
-                    m = str(m)
-                else:
-                    m = '{:<1.0e}'.format(m)
-                u += ' (' + m + ')'
-            self._repr = '[' + u + ']'
-
+        if self._repr is None:
+            self._repr = self._str(False)
         return self._repr
 
     def __rmul__(self, other):
@@ -2951,33 +2907,94 @@ class Unit(object):
 
         return Unit([-a for a in self._x], math.log10(other) - self._m)
 
+    def _str(self, use_close_for_rounding):
+        """
+        String representation without preferred representations, that will
+        round to nearby ints if ``use_close_for_rounding=True``.
+        """
+        # Rounding
+        rnd = myokit._cround if use_close_for_rounding else myokit._fround
+
+        # SI unit names
+        si = ['g', 'm', 's', 'A', 'K', 'cd', 'mol']
+
+        # Get unit parts
+        pos = []
+        neg = []
+        for k, x in enumerate(self._x):
+            x = rnd(x)
+            if x != 0:
+                y = si[k]
+                xabs = abs(x)
+                if xabs > 1:
+                    y += '^' + str(xabs)
+                if x > 0:
+                    pos.append(y)
+                else:
+                    neg.append(y)
+        u = '*'.join(pos) if pos else '1'
+        for x in neg:
+            u += '/' + str(x)
+
+        # Add conversion factor
+        m = self._m
+        if m != 0:
+            m = rnd(m)
+            m = 10**m
+            if m >=1:
+                m = rnd(m)
+            if m < 1e6:
+                m = str(m)
+            else:
+                m = '{:<1.0e}'.format(m)
+            u += ' (' + m + ')'
+        return '[' + u + ']'
+
     def __str__(self):
+
+        # Strategy 1: Try simple look-up (using _feq float comparison)
         try:
             return '[' + Unit._preferred_representations[self] + ']'
         except KeyError:
-            try:
-                # Find representation without multiplier, add multiplier and
-                # store as preferred representation.
-                # "Without multiplier" here means times 1000^kilo_exponent,
-                # because kilos are defined with a multiplier of 1000
-                m = 3 * self._x[0]
-                u = Unit(list(self._x), m)
-                rep = Unit._preferred_representations[u]
-                m = 10**(self._m - m)
-                if m >= 1 and myokit._feq(m, int(m)):
-                    m = int(m)
+            pass
+
+        # Strategy 2: Find a representation for a unit that's close to this one
+        rep = None
+        for unit, test in Unit._preferred_representations.items():
+            if Unit.close(self, unit):
+                rep = '[' + test + ']'
+                break
+
+        # Strategy 3: Try finding a representation for the exponent and adding
+        # a multiplier to that.
+        if rep is None:
+
+            # Because kilos are defined with a multiplier of 1000, the
+            # "multiplier free" value is actually given by
+            # 10**(3 * gram exponent)
+            m = 3 * self._x[0]
+            u = Unit(list(self._x), m)
+            rep = Unit._preferred_representations.get(u, None)
+
+            # Add multiplier part
+            if rep is not None:
+                m = myokit._cround(self._m - m)
+                m = 10**m
+                if m >= 1:
+                    m = myokit._cround(m)
                 if m < 1e6:
                     m = str(m)
                 else:
                     m = '{:<1.0e}'.format(m)
                 rep = '[' + rep + ' (' + m + ')]'
-                Unit._preferred_representations[self] = rep[1:-1]
-                return rep
-            except KeyError:
-                # Get plain representation, store as preferred
-                rep = self.__repr__()
-                Unit._preferred_representations[self] = rep[1:-1]
-                return rep
+
+        # Strategy 4: Build a new representation
+        if rep is None:
+            rep = self._str(True)
+
+        # Store new representation and return
+        Unit._preferred_representations[self] = rep[1:-1]
+        return rep
 
     def __truediv__(self, other):
         # Evaluates self / other if future division is active.

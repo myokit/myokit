@@ -347,6 +347,14 @@ class MyokitUnitTest(unittest.TestCase):
         nn = myokit.units.N * 1e7
         self.assertEqual(str(nn), '[N (1e+07)]')
 
+        # Unit very similar to a known unit
+        c = myokit.units.V
+        d = c * 1.000000001
+        self.assertFalse(c == d)
+        self.assertTrue(myokit.Unit.close(c, d))
+        self.assertEqual(str(c), '[V]')
+        self.assertEqual(str(d), '[V]')
+
     def test_repr(self):
         # Test :meth:`Unit.repr()`.
 
