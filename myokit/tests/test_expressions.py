@@ -149,24 +149,6 @@ class ExpressionTest(unittest.TestCase):
         self.assertEqual(m[2], '  1 + 2 * (3 + 4 * (5 [mV] + 6 [A]))')
         self.assertEqual(m[3], '                    ~~~~~~~~~~~~~~')
 
-        # Special case: invalid power or sqrt
-        x = myokit.parse_expression('1 + 2 * 3 [mV] ^ 1.4')
-        with self.assertRaises(myokit.IncompatibleUnitError) as e:
-            x.eval_unit()
-        m = str(e.exception).splitlines()
-        self.assertEqual(len(m), 4)
-        self.assertEqual(m[2], '  1 + 2 * 3 [mV] ^ 1.4')
-        self.assertEqual(m[3], '          ~~~~~~~~~~~~')
-
-        # Special case: invalid power or sqrt
-        x = myokit.parse_expression('1 + 2 * sqrt(3 [mV])')
-        with self.assertRaises(myokit.IncompatibleUnitError) as e:
-            x.eval_unit()
-        m = str(e.exception).splitlines()
-        self.assertEqual(len(m), 4)
-        self.assertEqual(m[2], '  1 + 2 * sqrt(3 [mV])')
-        self.assertEqual(m[3], '          ~~~~~~~~~~~~')
-
     def test_int_conversion(self):
         # Test conversion of expressions to int.
 
@@ -1534,9 +1516,7 @@ class SqrtTest(unittest.TestCase):
         # Test in tolerant mode
         #self.assertEqual(z.rhs().eval_unit(), None)
         x.set_unit(myokit.units.volt)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'non-integer exponents',
-            z.rhs().eval_unit)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt**0.5)
         x.set_unit(myokit.units.volt ** 2)
         self.assertEqual(z.rhs().eval_unit(), myokit.units.volt)
         x.set_unit(None)
@@ -1546,9 +1526,7 @@ class SqrtTest(unittest.TestCase):
         s = myokit.UNIT_STRICT
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.dimensionless)
         x.set_unit(myokit.units.volt)
-        self.assertRaisesRegex(
-            myokit.IncompatibleUnitError, 'non-integer exponents',
-            z.rhs().eval_unit, s)
+        self.assertEqual(z.rhs().eval_unit(), myokit.units.volt**0.5)
         x.set_unit(myokit.units.volt ** 2)
         self.assertEqual(z.rhs().eval_unit(s), myokit.units.volt)
         x.set_unit(None)

@@ -1014,11 +1014,16 @@ class Model(ObjectWithMeta, VarProvider):
                 raise myokit.IntegrityError('No RHS set for ' + var.qname())
             e = e.eval_unit(mode)
 
+            # No unit? Then allow (in strict mode v and e are never None)
+            if v is None or e is None:
+                continue
+
             # Rhs unit from a state? Then multiply by time to get var's unit
-            if t is not None and e is not None and var.is_state():
+            if t is not None and var.is_state():
                 e *= t
 
-            if v != e and v is not None and e is not None:
+            # Compare loosely
+            if not myokit.Unit.close(v, e):
                 msg = 'Incompatible units in <' + var.qname() + '>'
                 if var._token is not None:
                     msg += ' on line ' + str(var._token[2])

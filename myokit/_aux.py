@@ -1483,7 +1483,7 @@ def _round_if_int(x):
     so, rounds it to that integer.
     """
     ix = round(x)
-    return ix if _feq(x, ix) else x
+    return int(ix) if _feq(x, ix) else x
 
 
 def _rmtree(path):

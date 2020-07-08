@@ -2455,7 +2455,7 @@ class Unit(object):
                 raise ValueError(
                     'Unit must have exactly seven exponents set:'
                     ' [g, m, s, A, K, cd, mol].')
-            self._x = [int(x) for x in exponents]
+            self._x = [float(x) for x in exponents]
             self._m = float(multiplier)
         self._hash = None
         self._repr = None
@@ -2463,11 +2463,12 @@ class Unit(object):
     @staticmethod
     def can_convert(unit1, unit2):
         """
-        Returns true if the given units differ only by a multiplication. For
-        example, ``[m/s]`` can be converted to ``[miles/hour]`` but not to
-        ``[kg]``.
+        Returns ``True`` if the given units differ only by a multiplication.
+
+        For example, ``[m/s]`` can be converted to ``[miles/hour]`` but not to
+        ``[kg]``. This method is an alias of :meth:`close_exponent`.
         """
-        return unit1._x == unit2._x
+        return Unit.close_exponent(unit1, unit2)
 
     def clarify(self):
         """
@@ -2497,12 +2498,82 @@ class Unit(object):
         return r1 + ' (or ' + r2 + ')'
 
     @staticmethod
+    def _close(a, b, reltol, abstol):
+        """
+        Test whether two numbers are equal.
+
+        Differs from :meth:`myokit._feq` in that it tries to answer the
+        question "is the result of a reasonable number of operations close to
+        another number". Whereas `_feq` aims to deal with numbers that are
+        numerically indistinguishable but still have a slightly different
+        representation.
+        """
+        # Quick check, plus handles infinity
+        if a == b:
+            return True
+        # Difference is compared against relative and absolute norm
+        return abs(a - b) <= max(reltol * max(abs(a), abs(b)), abstol)
+
+    @staticmethod
+    def close(unit1, unit2, reltol=1e-9, abstol=1e-9):
+        """
+        Checks whether the given units are close enough to be considered equal.
+
+        Note that this differs from ``unit1 is unit2`` (which checks if they
+        are the same object) and ``unit1 == unit2`` (which will check if they
+        are the same unit to machine precision).
+
+        The check for closeness is made with a relative tolerance of ``reltol``
+        and absolute tolerance of ``abstol``, using::
+
+            abs(a - b) <= max(reltol * max(abs(a), abs(b)), abstol)
+
+        Unit exponents are stored as floating point numbers and compared
+        directly. Unit multipliers are stored as ``log10(multiplier)``, and
+        compared without transforming back. As a result, units such as ``pF``
+        won't be considered close to ``nF``, but units such as ``[F]`` will be
+        considered close to ``[F (1.000000001)]``.
+        """
+        if unit1 is unit2:
+            return True
+
+        # Compare exponents using normal representation, and with absolute
+        # tolerance so that tiny differences from 0 are also picked up. Note
+        # that this means we can't tell the difference between e.g. m^(1e-10)
+        # and m^(1e-11), but that is fine.
+        if not Unit.close_exponent(unit1, unit2, reltol, abstol):
+            return False
+
+        # Compare multipliers in log10 space. This means we can still easily
+        # distinguish between e.g. pF and nF, but we lose the ability to tell
+        # the difference between e.g. [F (1)] and [F (1.00000000000001)]
+        return Unit._close(unit1._m, unit2._m, reltol, abstol)
+
+    @staticmethod
+    def close_exponent(unit1, unit2, reltol=1e-9, abstol=1e-9):
+        """
+        Returns ``True`` if the exponent of ``unit1`` is close to that of
+        ``unit2``.
+
+        Exponents are stored internally as floating point numbers, and the
+        check for closeness if made with a relative tolerance of ``reltol`` and
+        absolute tolerance of ``abstol``, using::
+
+            abs(a - b) <= max(reltol * max(abs(a), abs(b)), abstol)
+
+        """
+        for i, a in enumerate(unit1._x):
+            if not Unit._close(a, unit2._x[i], reltol, abstol):
+                return False
+        return True
+
+    @staticmethod
     def conversion_factor(unit1, unit2, helpers=None):
         """
         Returns a :class:`myokit.Quantity` ``c`` to convert from ``unit1`` to
         ``unit2``, such that ``1 [unit1] * c = 1 [unit2]``.
 
-        For example:
+        For example::
 
             >>> import myokit
             >>> myokit.Unit.conversion_factor('m', 'km')
@@ -2518,7 +2589,7 @@ class Unit(object):
         Conversions between incompatible units can be performed if one or
         multiple helper :class:`Quantity` objects are passed in.
 
-        For example:
+        For example::
 
             >>> import myokit
             >>> myokit.Unit.conversion_factor(
@@ -2528,6 +2599,9 @@ class Unit(object):
         Where::
 
             1 [uA/cm^2] = 1 [cm^2/uF] * 1 [uA/uF]
+
+        Note that this method uses the :meth:`close()` and
+        :meth:`close_exponent` comparisons to see if units are equal.
 
         Arguments:
 
@@ -2569,13 +2643,13 @@ class Unit(object):
                 factors.append(factor)
         del(helpers)
 
-        # Simplest case: units are equal
-        if unit1 == unit2:
+        # Simplest case: units are (almost) equal
+        if Unit.close(unit1, unit2):
             return Quantity(1)
 
         # Get conversion factor
         fw = None
-        if unit1._x == unit2._x:
+        if Unit.close_exponent(unit1, unit2):
 
             # Directly convertible
             fw = 10**(unit1._m - unit2._m)
@@ -2585,12 +2659,12 @@ class Unit(object):
             for factor in factors:
 
                 unit1a = unit1 * factor.unit()
-                if unit1a._x == unit2._x:
+                if Unit.close_exponent(unit1a, unit2):
                     fw = 10**(unit1a._m - unit2._m) * factor.value()
                     break
 
                 unit1a = unit1 / factor.unit()
-                if unit1a._x == unit2._x:
+                if Unit.close_exponent(unit1a, unit2):
                     fw = 10**(unit1a._m - unit2._m) / factor.value()
                     break
 
@@ -2628,11 +2702,15 @@ class Unit(object):
     def __eq__(self, other):
         if not isinstance(other, Unit):
             return False
-        return self._x == other._x and self._m == other._m
+
+        for i, x in enumerate(self._x):
+            if not myokit._feq(x, other._x[i]):
+                return False
+        return myokit._feq(self._m, other._m)
 
     def exponents(self):
         """
-        Returns the list of this unit's exponents.
+        Returns a list containing this unit's exponents.
         """
         return list(self._x)
 
@@ -2650,7 +2728,7 @@ class Unit(object):
 
         if not self._hash:
             self._hash = hash(
-                ','.join([str(x) for x in self._x]) + 'e' + str(self._m))
+                ','.join([repr(x) for x in self._x]) + 'e' + repr(self._m))
         return self._hash
 
     @staticmethod
@@ -2685,8 +2763,7 @@ class Unit(object):
         if not isinstance(other, Unit):
             return Unit(list(self._x), self._m + math.log10(float(other)))
         return Unit(
-            [a + b for a, b in zip(self._x, other._x)],
-            self._m + other._m)
+            [a + b for a, b in zip(self._x, other._x)], self._m + other._m)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -2759,13 +2836,7 @@ class Unit(object):
 
         f = float(f)
         e = [myokit._round_if_int(f * x) for x in self._x]
-        for x in e:
-            if not x == int(x):
-                raise TypeError(
-                    'Unit exponentiation (' + repr(self) + ') ^ '
-                    + str(f) + ' failed: would result in non-integer'
-                    + ' exponents, which is not supported.')
-        return Unit([int(x) for x in e], self._m * f)
+        return Unit(e, self._m * f)
 
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
         return self.__rtruediv__(other)
@@ -2842,6 +2913,7 @@ class Unit(object):
             pos = []
             neg = []
             for k, x in enumerate(self._x):
+                x = myokit._round_if_int(x)
                 if x != 0:
                     y = si[k]
                     xabs = abs(x)
@@ -2858,8 +2930,7 @@ class Unit(object):
             # Add conversion factor
             if self._m != 0:
                 m = 10**self._m
-                if myokit._feq(m, int(m)):
-                    m = int(m)
+                m = myokit._round_if_int(m)
                 if m < 1e6:
                     m = str(m)
                 else:

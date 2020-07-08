@@ -40,6 +40,49 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertFalse(myokit.Unit.can_convert(
             myokit.units.volt, myokit.units.ampere))
 
+    def test_close(self):
+        # Test the "close" method, to see if units are highly similar
+
+        # Test for base unit without a prefix
+        m = myokit.units.m
+        m_close = m * (1 - 1e-15)
+        m_far = m * 2
+        not_m = m_close / m
+
+        self.assertTrue(myokit.Unit.close(m, m))
+        self.assertTrue(myokit.Unit.close(m, m_close))
+        self.assertTrue(myokit.Unit.close(m_close, m))
+        self.assertTrue(myokit.Unit.close(m_close, m_close))
+        self.assertFalse(myokit.Unit.close(m, m_far))
+        self.assertFalse(myokit.Unit.close(m, not_m))
+
+        # Test for base unit with a prefix.
+        # (Note that e.g. mV actually doesn't have an "m" when represented in
+        # the base units Myokit uses!)
+        mm = myokit.Unit.parse_simple('mm')
+        mm_close = mm * (1 - 1e-15)
+        mm_far = mm * 2
+        not_mm = mm_close / mm
+
+        self.assertTrue(myokit.Unit.close(m, m))
+        self.assertTrue(myokit.Unit.close(m, m_close))
+        self.assertTrue(myokit.Unit.close(m_close, m))
+        self.assertTrue(myokit.Unit.close(m_close, m_close))
+        self.assertFalse(myokit.Unit.close(m, m_far))
+        self.assertFalse(myokit.Unit.close(m, not_m))
+
+        # Test tiny, but feasible, units
+        pF2 = myokit.units.pF**2
+        not_pF2 = pF2 * 1.0001
+        self.assertTrue(myokit.Unit.close(pF2, pF2))
+        self.assertTrue(myokit.Unit.close(not_pF2, not_pF2))
+        self.assertFalse(myokit.Unit.close(not_pF2, pF2))
+        self.assertFalse(myokit.Unit.close(pF2, not_pF2))
+
+        # The next test is not a requirement, but tests the current behaviour:
+        u = myokit.units.m * 1.000000001
+        self.assertTrue(myokit.Unit.close(u, myokit.units.m))
+
     def test_conversion_factor(self):
         # Test :meth:`Unit.conversion_factor()`.
 
@@ -251,6 +294,15 @@ class MyokitUnitTest(unittest.TestCase):
         # Unknown unit
         self.assertRaisesRegex(
             KeyError, 'Unknown unit', myokit.Unit.parse_simple, 'Frog')
+
+    def test_powers(self):
+        # Fractional powers are allowed now
+
+        m2 = myokit.units.m**2
+        s15 = myokit.units.s**1.5
+        mol123 = myokit.units.mol**1.23
+        x = m2 * s15 / mol123
+        self.assertEqual(x.exponents(), [0, 2, 1.5, 0, 0, 0, -1.23])
 
     def test_register_errors(self):
         # Test errors for Unit.register (rest is already used a lot).
