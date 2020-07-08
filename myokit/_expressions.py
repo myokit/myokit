@@ -2941,7 +2941,7 @@ class Unit(object):
         if m != 0:
             m = rnd(m)
             m = 10**m
-            if m >=1:
+            if m >= 1:
                 m = rnd(m)
             if m < 1e6:
                 m = str(m)

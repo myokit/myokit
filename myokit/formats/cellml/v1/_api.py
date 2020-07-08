@@ -76,10 +76,10 @@ def create_unit_name(unit):
         name, multiplier = name, ''
 
     # Could also be because it's g*m/mol^2
-    # (Exponents are integers, so don't need to deal with floats here)
     name = name.replace('^', '')
     name = name.replace('/', '_per_')
     name = name.replace('*', '_')
+    name = name.replace('.', '_dot_')
 
     # Remove "1_" from "1_per_mV"
     if name[:2] == '1_':
@@ -189,15 +189,6 @@ class UnsupportedBaseUnitsError(UnitsError):
         self.units = units
         super(UnsupportedBaseUnitsError, self).__init__(
             'Unsupported base units "' + units + '".')
-
-
-class UnsupportedUnitExponentError(UnitsError):
-    """
-    Raised when units with non-integer exponents are used.
-    """
-    def __init__(self):
-        super(UnsupportedUnitExponentError, self).__init__(
-            'Non-integer unit exponents are not supported.')
 
 
 class UnsupportedUnitOffsetError(UnitsError):
@@ -454,7 +445,6 @@ class Model(AnnotatableElement):
     Support notes for 1.0 and 1.1:
 
     - Units with offsets are not supported, including the base units "celsius".
-    - Units with a non-integer exponent are not supported.
     - Defining new base units is not supported.
     - Reactions are not supported.
     - Models that take derivatives with respect to more than one variable are
@@ -1323,11 +1313,9 @@ class Units(object):
             except ValueError:
                 raise CellMLError(
                     'Unit exponent must be a real number (5.4.2.4).')
-            if not myokit._feq(e, int(e)):
-                raise UnsupportedUnitExponentError
 
             # Apply exponent to unit
-            unit **= int(e)
+            unit **= e
 
         # Handle multiplier
         if multiplier is not None:

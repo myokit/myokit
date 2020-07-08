@@ -15,8 +15,6 @@ from ._api import (     # noqa
     Component,
     Model,
     Units,
-    UnitsError,
-    UnsupportedUnitExponentError,
     Variable,
     is_basic_real_number_string,
     is_identifier,

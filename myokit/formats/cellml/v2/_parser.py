@@ -705,15 +705,9 @@ class CellMLParser(object):
                 ' not supported.)')
 
         # Parse content
-        try:
-            myokit_unit = myokit.units.dimensionless
-            for child in children:
-                myokit_unit *= self._parse_unit(child, owner)
-        except myokit.formats.cellml.v2.UnitsError as e:
-            warnings.warn(
-                'Unable to parse definition for units "' + str(name) + '",'
-                ' using `dimensionless` instead. (' + str(e) + ')')
-            myokit_unit = myokit.units.dimensionless
+        myokit_unit = myokit.units.dimensionless
+        for child in children:
+            myokit_unit *= self._parse_unit(child, owner)
 
         # Add units to owner
         try:

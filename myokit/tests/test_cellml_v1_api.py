@@ -627,11 +627,11 @@ class TestCellML1ModelConversion(unittest.TestCase):
         self.assertEqual(
             cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
 
-        # But evaluated units can have errors
-        y.set_rhs('1 [mV] ^ 1.2')    # Not supported by Myokit's unit system
+        # ...and units can have fractional exponents
+        y.set_rhs('1 [mV] ^ 1.2')
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(
-            cm['c2']['y'].units().myokit_unit(), myokit.units.dimensionless)
+            cm['c2']['y'].units().myokit_unit(), myokit.units.mV**1.2)
 
     def test_m2c_nested_variables(self):
         # Test nested variables are handled, and name conflicts are handled
@@ -1325,9 +1325,6 @@ class TestCellML1Units(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'must be a real number',
             cellml.Units.parse_unit_row, 'meter', exponent='bert')
-        self.assertRaises(
-            cellml.UnsupportedUnitExponentError,
-            cellml.Units.parse_unit_row, 'meter', exponent=1.23)
 
         # Test multiplier
         u = cellml.Units.parse_unit_row('meter', multiplier=1.234)

@@ -17,7 +17,6 @@ from ._api import (     # noqa
     Units,
     UnitsError,
     UnsupportedBaseUnitsError,
-    UnsupportedUnitExponentError,
     UnsupportedUnitOffsetError,
     Variable,
     is_valid_identifier,
