@@ -2370,16 +2370,20 @@ def _expr_error_message(owner, e):
 
 class Unit(object):
     """
-    Defines a unit.
+    Represents a unit.
 
-    Each unit consists of
+    Most users won't want to create units, but instead use e.g.
+    ``myokit.parse_unit('kg/mV')`` or ``myokit.units.mV``.
 
-      * A list of seven integers: these are the exponents for the basic SI
+    Each Unit consists of
+
+      * A list of seven floats: these are the exponents for the basic SI
         units: ``[g, m, s, A, K, cd, mol]``. Gram is used instead of the SI
         defined kilogram to create a more coherent syntax.
       * A multiplier. This includes both quantifiers (such as milli, kilo, Mega
         etc) and conversion factors (for example 1inch = 2.54cm). Multipliers
-        are specified in powers of 10.
+        are specified in powers of 10, e.g. to create an inch use the
+        multiplier log10(2.54).
 
     There are two ways to create a unit:
 
