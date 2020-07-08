@@ -2514,13 +2514,13 @@ class Unit(object):
         The check for closeness is made with a relative tolerance of ``reltol``
         and absolute tolerance of ``abstol``, using::
 
-            abs(a - b) <= max(reltol * max(abs(a), abs(b)), abstol)
+            abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
 
         Unit exponents are stored as floating point numbers and compared
         directly. Unit multipliers are stored as ``log10(multiplier)``, and
-        compared without transforming back. As a result, units such as ``pF``
-        won't be considered close to ``nF``, but units such as ``[F]`` will be
-        considered close to ``[F (1.000000001)]``.
+        compared without transforming back. As a result, units such as
+        ``[nF]^2`` won't be considered close to ``[pF]^2``, but units such as
+        ``[F]`` will be considered close to ``[F] * (1 + 1e-12)``.
         """
         if unit1 is unit2:
             return True
@@ -2547,7 +2547,7 @@ class Unit(object):
         check for closeness if made with a relative tolerance of ``reltol`` and
         absolute tolerance of ``abstol``, using::
 
-            abs(a - b) <= max(reltol * max(abs(a), abs(b)), abstol)
+            abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
 
         """
         for i, a in enumerate(unit1._x):

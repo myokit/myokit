@@ -1468,14 +1468,14 @@ def _feq(a, b):
     each other that the difference could be a single rounding error.
     """
     # Note the initial == check handles infinity
-    return a == b or abs(a - b) <= max(abs(a), abs(b)) * sys.float_info.epsilon
+    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
 
 
 def _fgeq(a, b):
     """
     Checks if ``a >= b``, but using :meth:`myokit._feq` instead of ``=``.
     """
-    return a >= b or abs(a - b) <= max(abs(a), abs(b)) * sys.float_info.epsilon
+    return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
 
 
 def _fround(x):
@@ -1498,7 +1498,7 @@ def _close(a, b, reltol=1e-9, abstol=1e-9):
     point representation.
     """
     # Note the initial == check handles infinity
-    return a == b or abs(a - b) <= max(reltol * max(abs(a), abs(b)), abstol)
+    return a == b or abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
 
 
 def _cround(x, reltol=1e-9, abstol=1e-9):
