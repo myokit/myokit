@@ -179,15 +179,38 @@ class AuxTest(unittest.TestCase):
 
         # Test rounding
         self.assertNotEqual(49, y)
-        self.assertEqual(49, myokit._round_if_int(y))
-        self.assertNotEqual(49, myokit._round_if_int(x))
-        self.assertEqual(0.5, myokit._round_if_int(0.5))
+        self.assertEqual(49, myokit._fround(y))
+        self.assertNotEqual(49, myokit._fround(x))
+        self.assertEqual(0.5, myokit._fround(0.5))
+        self.assertIsInstance(myokit._fround(y), int)
 
         # Try with negative numbers
         self.assertNotEqual(-49, -y)
-        self.assertEqual(-49, myokit._round_if_int(-y))
-        self.assertNotEqual(-49, myokit._round_if_int(-x))
-        self.assertEqual(-0.5, myokit._round_if_int(-0.5))
+        self.assertEqual(-49, myokit._fround(-y))
+        self.assertNotEqual(-49, myokit._fround(-x))
+        self.assertEqual(-0.5, myokit._fround(-0.5))
+
+        # Test that _close allows bigger errors
+        x = 49
+        y = x * (1 + 1e-11)
+        self.assertNotEqual(x, y)
+        self.assertFalse(myokit._feq(x, y))
+        self.assertTrue(myokit._close(x, y))
+
+        # And that close thinks everything small is equal
+        x = 1e-16
+        y = 1e-12
+        self.assertNotEqual(x, y)
+        self.assertFalse(myokit._feq(x, y))
+        self.assertTrue(myokit._close(x, y))
+
+        # Test rounding based on closeness
+        x = 49
+        y = x * (1 + 1e-11)
+        self.assertNotEqual(x, y)
+        self.assertEqual(x, myokit._cround(y))
+        self.assertIsInstance(myokit._cround(y), int)
+        self.assertNotEqual(x, myokit._cround(49.001))
 
     def test_format_float_dict(self):
         # Test myokit.format_float_dict.

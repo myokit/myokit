@@ -511,16 +511,20 @@ from ._aux import (  # noqa
     # Benchmarking
     Benchmarker,
 
-    # Misc
+    # Floating point
+    _close,
+    _cround,
     _feq,
     _fgeq,
+    _fround,
     format_float_dict,
+    strfloat,
+
+    # Misc
     format_path,
     _lvsd,
     _pid_hash,
     _rmtree,
-    _round_if_int,
-    strfloat,
 
     # Snapshot creation for replicability
     pack_snapshot,

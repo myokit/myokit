@@ -1467,23 +1467,47 @@ def _feq(a, b):
     Checks if floating point numbers ``a`` and ``b`` are equal, or so close to
     each other that the difference could be a single rounding error.
     """
-    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+    # Note the initial == check handles infinity
+    return a == b or abs(a - b) <= max(abs(a), abs(b)) * sys.float_info.epsilon
 
 
 def _fgeq(a, b):
     """
     Checks if ``a >= b``, but using :meth:`myokit._feq` instead of ``=``.
     """
-    return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
+    return a >= b or abs(a - b) <= max(abs(a), abs(b)) * sys.float_info.epsilon
 
 
-def _round_if_int(x):
+def _fround(x):
     """
     Checks if a float ``x`` is within 1 rounding error of an integer, and if
-    so, rounds it to that integer.
+    so, converts it to that integer.
     """
-    ix = round(x)
-    return int(ix) if _feq(x, ix) else x
+    ix = int(round(x))
+    return ix if _feq(x, ix) else x
+
+
+def _close(a, b, reltol=1e-9, abstol=1e-9):
+    """
+    Test whether two numbers are close enough to be considered equal.
+
+    Differs from :meth:`myokit._feq` in that it tries to answer the question
+    "are two number resulting from various calculations close enough to be
+    considered equal". Whereas `_feq` aims to deal with numbers that are
+    numerically indistinguishable but still have a slightly different floating
+    point representation.
+    """
+    # Note the initial == check handles infinity
+    return a == b or abs(a - b) <= max(reltol * max(abs(a), abs(b)), abstol)
+
+
+def _cround(x, reltol=1e-9, abstol=1e-9):
+    """
+    Checks if a float ``x`` is close to an integer with :meth:`close()`, and if
+    so, converts it to that integer.
+    """
+    ix = int(round(x))
+    return ix if _close(x, ix, reltol, abstol) else x
 
 
 def _rmtree(path):
