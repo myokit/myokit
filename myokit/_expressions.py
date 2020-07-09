@@ -1343,10 +1343,7 @@ class Power(InfixExpression):
         if unit1 is None:
             return None
 
-        try:
-            return unit1 ** self._op2.eval()
-        except TypeError as e:
-            raise EvalUnitError(self, str(e))
+        return unit1 ** self._op2.eval()
 
 
 class Function(Expression):
@@ -1461,10 +1458,7 @@ class Sqrt(Function):
         unit = self._operands[0]._eval_unit(mode)
         if unit is None:
             return None
-        try:
-            return unit ** 0.5
-        except TypeError as e:
-            raise EvalUnitError(self, str(e))
+        return unit ** 0.5
 
 
 class Sin(UnaryDimensionlessFunction):
