@@ -804,11 +804,18 @@ class TestCellML2ModelConversion(unittest.TestCase):
         self.assertEqual(
             cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
 
-        # ...and can have float exponents
+        # ...and can have non-integer exponents
         y.set_rhs('1 [mV] ^ 1.2')
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(
             cm['c2']['y'].units().myokit_unit(), myokit.units.mV ** 1.2)
+
+        # If a variable doesn't have units, the RHS will be inspected. This can
+        # lead to unit errors, which should be ignored
+        y.set_rhs('1 [mV] + 3 [A]')
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(
+            cm['c2']['y'].units().myokit_unit(), myokit.units.dimensionless)
 
     def test_m2c_nested_variables(self):
         # Test nested variables are handled, and name conflicts are handled
