@@ -30,7 +30,8 @@ matrix:
     include:
         # Unit tests on OS/X, running first because this one's slow
         - os: osx
-          language: generic
+          osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
+          language: shell
           env:
             - MYOKIT_UNIT=true
         # Style checking
@@ -82,7 +83,6 @@ before_install:
   # OS/X
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew update-reset;
-      brew upgrade python2;
       brew install sundials;
     fi;
 
