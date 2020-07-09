@@ -35,8 +35,6 @@ CellML Model API
 
 .. autoclass:: UnsupportedBaseUnitsError
 
-.. autoclass:: UnsupportedUnitExponentError
-
 .. autoclass:: UnsupportedUnitOffsetError
 
 .. autofunction:: clean_identifier

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the Model class.
 #
@@ -256,6 +256,21 @@ class ModelTest(unittest.TestCase):
             self.assertIsNotNone(token)
             self.assertEqual(token[2], 3)
             self.assertEqual(token[3], 0)
+
+        # Test comparison with floating point issues
+        m = myokit.parse_model('\n'.join([
+            '[[model]]',
+            '[a]',
+            'x = 1 [cm^3] bind time',
+            '    in [cm^3]',
+            'y = 2 [day]',
+            '    in [day]',
+            'z = 3 [day^3]',
+            '    in [day^3]',
+            'a = (x / y / y / y) * z',
+            '    in [cm^3]',
+        ]))
+        m.check_units(s)
 
     def test_clone(self):
         # Test :meth:`Model.clone()
