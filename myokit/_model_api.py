@@ -941,23 +941,26 @@ class Model(ObjectWithMeta, VarProvider):
 
     def check_units(self, mode=myokit.UNIT_TOLERANT):
         """
-        Checks the units used in this model. Models can specify units in two
-        ways:
+        Checks the units used in this model.
 
-        1. By setting a Variable unit. This is done using the ``in`` keyword in
-           ``mmt`` syntax or through the method
-           :meth:`myokit.Variable.set_unit()`. This specifies the unit the
-           variable's value should be in.
-        2. By adding units to the literals in variables' right hand
-           expressions. This is done using square brackets in ``mmt`` syntax
-           (for example ``5 [m] / 10 [s]``) or by adding a unit when creating
-           a Number object, for example ``Number(2, myokit.parse_unit('mV')``.
+        Models can specify units in two ways:
 
-        Per variable, the unit check proceeds in two steps:
+        1. By setting variable units. This is done using the ``in`` keyword in
+           ``mmt`` syntax or through :meth:`myokit.Variable.set_unit()`. This
+           specifies the unit that a variable's value should be in.
+        2. By adding units to literals. This is done using square brackets in
+           ``mmt`` syntax (for example ``5 [m] / 10 [s]``) or by adding a unit
+           when creating a Number object, for example
+           ``myokit.Number(2, myokit.units.mV)``.
 
-        1. The unit resulting from the variable's RHS is evaluated. This may
-           trigger an :class:`myokit.IncompatibleUnitExpression` if any
-           inompatibilities are found in the expression (see below).
+        When checking a model's units, this method loops over all variables and
+        performs two checks:
+
+        1. The unit resulting from the variable's RHS is evaluated. This
+           involves checking rules such as "in ``x + y``, ``x`` and ``y`` must
+           have the same units, or "in ``exp(x)`` the units of ``x`` must be
+           ``dimensionless``". A :class:`myokit.IncompatibleUnitExpression`
+           will be raised if any inompatibilities are found.
         2. The calculated unit is compared with the variable unit. An
            ``IncompatibleUnitError`` will be triggered if the two units don't
            match.
@@ -967,8 +970,8 @@ class Model(ObjectWithMeta, VarProvider):
         In strict mode (``mode=myokit.UNIT_STRICT``), all unspecified units in
         expressions are treated as "dimensionless". For example, the expression
         ``5 * V`` where ``V`` is in ``[mV]`` will be treated as dimensionless
-        times millivolt (or ``[1] * [mV] in mmt syntax), resulting in the unit
-        ``[mV]``.
+        times millivolt (or ``[1] * [mV]`` in mmt syntax), resulting in the
+        unit ``[mV]``.
         The expression ``5 + V`` will be interpreted as dimensionless plus
         millivolt, and will raise an error.
         In strict mode, functions such as ``sin`` and ``exp`` will check that
@@ -996,8 +999,8 @@ class Model(ObjectWithMeta, VarProvider):
         checking ``x = 5 [mV]`` because ``x`` is dimensionless while ``5 [mV]``
         has units ``[mV]``. In tolerant mode, no error will be raised. When
         tolerantly evaluating ``y = 3[A] + x`` it will be assumed that ``x`` is
-        also in ``[A]``, because no variable unit is given that says otherwise,
-        despite the RHS of ``x`` having units ``mV``.
+        also in ``[A]``, because no variable unit is given that says otherwise
+        (despite the RHS of ``x`` having units ``mV``).
         """
         # Get time unit
         t = self.time_unit(mode)
