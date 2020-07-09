@@ -1018,7 +1018,9 @@ class Model(ObjectWithMeta, VarProvider):
             e = e.eval_unit(mode)
 
             # No unit? Then allow (in strict mode v and e are never None)
-            if v is None or e is None:
+            if v is None or e is None:  # pragma: no cover
+                # Adding a print() here shows this line is hit, coverage still
+                # disagrees. Puzzled.
                 continue
 
             # Rhs unit from a state? Then multiply by time to get var's unit
