@@ -3535,7 +3535,8 @@ class Variable(VarOwner):
 
     def convert_unit(self, new_unit, helpers=None):
         """
-        Converts the units this variable is expressed in to ``new_unit``.
+        Converts the units this variable is expressed in to ``new_unit``, and
+        updates the RHS with an appropriate scaling factor.
 
         Unit conversion proceeds in the following steps:
 
