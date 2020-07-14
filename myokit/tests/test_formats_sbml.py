@@ -209,8 +209,8 @@ class SBMLParserTest(unittest.TestCase):
         self.assertIn('Stoichiometry has not been set', w.text())
         '''
 
-    def test_parse_algebraic_assignment(self):
-        # Tests parsing algebraic assignments (not supported)
+    def test_parse_algebraic_rule(self):
+        # Tests parsing algebraic rules (not supported)
         xml = (
             '<model>'
             ' <listOfRules>'
@@ -223,7 +223,7 @@ class SBMLParserTest(unittest.TestCase):
             ' </listOfRules>'
             '</model>'
         )
-        self.assertBad(xml, 'Algebraic assignments are not supported')
+        self.assertBad(xml, 'Algebraic rules are not supported')
 
     def test_parse_compartment(self):
         # Test parsing compartments
@@ -389,35 +389,60 @@ class SBMLParserTest(unittest.TestCase):
     def test_parse_initial_assignment(self):
         # Test parsing initial assignments.
 
-        '''
-        xml1 = (
-            '<model name="mathml">'
-            ' <listOfParameters>'
-            '  <parameter id="x" constant="true" />'
-            ' </listOfParameters>'
-            ' <listOfInitialAssignments>'
-            '  <initialAssignment symbol="x">'
-            '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
-        )
-        xml2 = (
-            '   </math>'
-            '  </initialAssignment>'
-            ' </listOfInitialAssignments>'
-            '</model>'
-        )
+        # Set a parameter value
+        a = ('<model name="mathml">'
+             ' <listOfParameters>'
+             '  <parameter id="x" constant="true" />'
+             ' </listOfParameters>'
+             ' <listOfInitialAssignments>')
+        b = ('  <initialAssignment symbol="x">'
+             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <cn>5</cn>'
+             '   </math>'
+             '  </initialAssignment>')
+        c = (' </listOfInitialAssignments>'
+             '</model>')
+        p = self.parse(a + b + c).parameter('x')
+        self.assertEqual(p.initial_value(), myokit.Number(5))
 
-        # Parse valid MathML
-        xml = xml1 + '<cn>5</cn>' + xml2
-        m = self.parse(xml)
-        self.assertEqual(m.get('myokit.x').rhs().eval(), 5)
+        # Reset a parameter value
+        x = ('<model name="mathml">'
+             ' <listOfParameters>'
+             '  <parameter id="x" value="3" constant="true" />'
+             ' </listOfParameters>'
+             ' <listOfInitialAssignments>')
+        p = self.parse(x + c).parameter('x')
+        self.assertEqual(p.initial_value(), myokit.Number(3))
+        p = self.parse(x + b + c).parameter('x')
+        self.assertEqual(p.initial_value(), myokit.Number(5))
 
-        # Check that invalid MathML raises an SBMLParsingError
-        xml = xml1 + '<apply><minus /></apply>' + xml2
-        self.assertBad(xml, 'Operator needs at least one operand')
-        '''
+        # No maths: warning
+        y = '<initialAssignment symbol="x"></initialAssignment>'
+        with WarningCollector() as w:
+            p = self.parse(x + y + c).parameter('x')
+        self.assertIn('nitial assignment does not define any math', w.text())
+        self.assertEqual(p.initial_value(), myokit.Number(3))
+
+        # Invalid maths: error
+        x = ('  <initialAssignment symbol="x">'
+             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply><power /><cn>1</cn></apply>'
+             '   </math>'
+             '  </initialAssignment>')
+        self.assertBad(a + x + c, 'Unable to parse initial assignment: Expect')
+
+        #TODO
+        # Set a species amount
+        # Set a species concentration
+        # Set a compartment size
+        # Set a stoichiometry
 
     def test_parse_model(self):
         # Tests parsing a model.
+
+        # No model
+        self.assertBad(xml='', message='Model element not found.')
+        self.assertBad(xml='<hello/>', message='Model element not found.')
 
         # Name from name attribute
         m = self.parse('<model id="yes" name="no" />')
@@ -445,9 +470,12 @@ class SBMLParserTest(unittest.TestCase):
         )
         self.assertIn('sentences like this one', m.notes())
 
-        # No model
-        self.assertBad(xml='', message='Model element not found.')
-        self.assertBad(xml='<hello/>', message='Model element not found.')
+        # Global units: length, area, volume, substance, extent, time
+        # Non-existent unit
+        #TODO
+
+        # Global conversion factor
+        #TODO
 
     def test_parse_parameter(self):
         # Tests parsing parameters
@@ -491,6 +519,15 @@ class SBMLParserTest(unittest.TestCase):
 
     def test_parse_reaction(self):
         # Test parsing reactions, species references, kinetic laws
+
+        #TODO
+        # Kinetic law: valid
+        # Kinetic law: using species not used in reaction
+        # Kinetic law: local parameters are not supported
+        # Kinetic law: unable to parse kinetic law
+        # Kinetic law: missing
+
+        #TODO
         pass
 
     def test_parse_rule(self):
@@ -502,24 +539,23 @@ class SBMLParserTest(unittest.TestCase):
 
         a = ('<model>'
              ' <listOfCompartments>'
-             '  <compartment id="comp" />'
+             '  <compartment id="c" />'
              ' </listOfCompartments>'
              ' <listOfSpecies>')
         b = (' </listOfSpecies>'
              '</model>')
 
         # Simple species
-        x = '<species compartment="comp" id="spec" />'
-        m = self.parse(a + x + b)
-        spec = m.species('spec')
-        self.assertTrue(spec.sid() == 'spec')
+        x = '<species compartment="c" id="spec" />'
+        s0 = self.parse(a + x + b).species('spec')
+        self.assertTrue(s0.sid() == 'spec')
 
         # Missing id
-        x = '<species compartment="comp" />'
+        x = '<species compartment="c" />'
         self.assertBad(a + x + b, 'required attribute "id"')
 
         # Invalid id
-        x = '<species compartment="comp" id="456" />'
+        x = '<species compartment="c" id="456" />'
         self.assertBad(a + x + b, 'Invalid SId')
 
         # Missing compartment
@@ -529,6 +565,47 @@ class SBMLParserTest(unittest.TestCase):
         # Unknown compartment
         x = '<species id="spec" compartment="hello" />'
         self.assertBad(a + x + b, 'Unknown compartment')
+
+        # Amount or concentration
+        self.assertFalse(s0.amount())
+        x = '<species compartment="c" id="s" hasOnlySubstanceUnits="false" />'
+        s = self.parse(a + x + b).species('s')
+        self.assertFalse(s.amount())
+        x = '<species compartment="c" id="s" hasOnlySubstanceUnits="true" />'
+        s = self.parse(a + x + b).species('s')
+        self.assertTrue(s.amount())
+
+        # Boundary
+        self.assertFalse(s0.boundary())
+        x = '<species compartment="c" id="s" boundary="false" />'
+        s = self.parse(a + x + b).species('s')
+        self.assertFalse(s.boundary())
+        x = '<species compartment="c" id="s" boundary="true" />'
+        s = self.parse(a + x + b).species('s')
+        self.assertTrue(s.boundary())
+
+        # Constant
+        self.assertFalse(s0.constant())
+        x = '<species compartment="c" id="s" constant="false" />'
+        s = self.parse(a + x + b).species('s')
+        self.assertFalse(s.constant())
+        x = '<species compartment="c" id="s" constant="true" />'
+        s = self.parse(a + x + b).species('s')
+        self.assertTrue(s.constant())
+
+        # Substance units
+        self.assertEqual(s0.substance_units(), myokit.units.dimensionless)
+        x = '<species compartment="c" id="s" substanceUnits="volt" />'
+        s = self.parse(a + x + b).species('s')
+        self.assertEqual(s.substance_units(), myokit.units.volt)
+        x = ('<species compartment="c" id="s"'
+             ' substanceUnits="volt" hasOnlySubstanceUnits="true" />')
+        s = self.parse(a + x + b).species('s')
+        self.assertEqual(s.substance_units(), myokit.units.volt)
+
+        # Initial amount / concentration
+        # Conversion factor parameter
+        #TODO
 
     def test_parse_unit(self):
         # Tests parsing units and unit definitions

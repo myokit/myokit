@@ -76,6 +76,8 @@ class SBMLParser(object):
     - Function definitions are not supported.
     - Local parameters in reactions are not supported.
     - Units "celsius" are not supported.
+    - Since SBML does not support units in equations, variable units will be
+      set, but RHS units will not.
 
     """
 
@@ -156,6 +158,10 @@ class SBMLParser(object):
         # level 2 (default true). If constant is false then the compartment's
         # size can be changed.
 
+        # Note: Any place we check required attributes, we could also check for
+        # allowed attributes (e.g. errors for unrecognised ones). Bit tricky
+        # for multiple SBML versions. For now we're being lenient.
+
         sid = element.get('id')
         try:
             # Create compartment
@@ -187,10 +193,8 @@ class SBMLParser(object):
                         'Unable to convert size "' + str(size) + '" to float.',
                         element)
 
-                # Get units (might be units above, or based on model defaults
-                # for the spatial dimensions)
-                units = compartment.size_units()
-                compartment.set_initial_value(myokit.Number(size, units))
+                # Ignore units in RHS
+                compartment.set_initial_value(myokit.Number(size))
 
         except SBMLError as e:
             raise SBMLParsingError(
@@ -223,6 +227,15 @@ class SBMLParser(object):
                 lambda x, y: myokit.Name(model.assignable(x)),
                 lambda x, y: myokit.Number(x)
             ))
+
+            # Note: In any place we parse mathematics, we could also check that
+            # there's nothing after the mathematics. E.g.
+            #   <math xmlns="..">
+            #    <cn>1</cn>
+            #    <cn>2</cn>
+            #   </math>
+            # is currently allowed because only the first statement is read.
+            # But for now we're being lenient.
 
         except (SBMLError, MathMLError) as e:
             raise SBMLParsingError(
@@ -267,25 +280,14 @@ class SBMLParser(object):
         if name is None:
             name = 'Imported SBML model'
 
-        # Create myokit model
-        #TODO: Delay until after
-        myokit_model = myokit.Model(name)
-
         # Create SBML model
         model = Model(name)
-
-        # Function definitions are not supported.
-        x = element.find(self._path(
-            'listOfFunctionDefinitions', 'functionDefinition'))
-        if x is not None:
-            raise SBMLParsingError(
-                'Function definitions are not supported.', x)
 
         # Algebraic rules are not supported
         x = element.find(self._path('listOfRules', 'algebraicRule'))
         if x is not None:
             raise SBMLParsingError(
-                'Algebraic assignments are not supported.', x)
+                'Algebraic rules are not supported.', x)
 
         # Constraints are not supported, but will be ignored
         x = element.find(self._path('listOfConstraints', 'constraint'))
@@ -297,15 +299,17 @@ class SBMLParser(object):
         if x is not None:
             warnings.warn('Ignoring SBML events.')
 
+        # Function definitions are not supported.
+        x = element.find(self._path(
+            'listOfFunctionDefinitions', 'functionDefinition'))
+        if x is not None:
+            raise SBMLParsingError(
+                'Function definitions are not supported.', x)
+
         # Parse notes element (converts HTML to plain text)
         notes = element.find(self._path('notes'))
         if notes is not None:
             self._parse_notes(notes, model)
-
-            #TODO: Delay
-            notes = model.notes()
-            if notes:
-                myokit_model.meta['desc'] = notes
 
         # Parse unit definitions
         for unit in element.findall(self._path(
@@ -425,7 +429,8 @@ class SBMLParser(object):
                         'Unable to convert parameter value "' + str(value)
                         + '" to float.', element)
 
-                parameter.set_initial_value(myokit.Number(value, unit))
+                # Ignore unit
+                parameter.set_initial_value(myokit.Number(value))
 
         except SBMLError as e:
             raise SBMLParsingError(
@@ -545,6 +550,9 @@ class SBMLParser(object):
         constant = element.get('constant', 'false') == 'true'
         boundary = element.get('boundary', 'false') == 'true'
 
+        # Note: In lines like the above we could raise an error if the value
+        # isn't 'true' or false', but for now we're being lenient.
+
         # Create
         try:
             # Get compartment
@@ -555,12 +563,10 @@ class SBMLParser(object):
                 compartment, element.get('id'), amount, constant, boundary)
 
             # Set units, if provided
-            unit = element.get('substanceUnits')
-            if unit is not None:
-                unit = model.unit(unit)
-                if not amount:
-                    unit /= compartment.unit()
-                species.set_units(unit)
+            units = element.get('substanceUnits')
+            if units is not None:
+                # Set substance units, not concentration units
+                species.set_substance_units(model.unit(units))
 
             # Set initial amount if provided
             if amount:
@@ -575,8 +581,8 @@ class SBMLParser(object):
                         'Unable to convert initial species value to float "'
                             + str(value) + '".', element)
 
-                unit = species.units()  # Local or model default
-                species.set_initial_value(myokit.Number(value, unit))
+                # Ignore units in equations
+                species.set_initial_value(myokit.Number(value))
 
             # Set conversion factor if provided (must refer to a parameter)
             factor = element.get('conversionFactor')
@@ -898,21 +904,24 @@ class Model(object):
     def add_compartment(self, sid):
         """Adds an SBML compartment to this model."""
         self._register_sid(sid)
-        c = self._compartments[sid] = Compartment(self, sid)
+        c = Compartment(self, sid)
+        self._compartments[sid] = c
         self._assignables[sid] = c
         return c
 
     def add_parameter(self, sid):
         """Adds a parameter to this model."""
         self._register_sid(sid)
-        p = self._parameters[sid] = Parameter(self, sid)
+        p = Parameter(self, sid)
+        self._parameters[sid] = p
         self._assignables[sid] = p
         return p
 
     def add_reaction(self, sid):
         """Adds a reaction to this model."""
         self._register_sid(sid)
-        r = self._reactions[sid] = Reaction(self, sid)
+        r = Reaction(self, sid)
+        self._reactions[sid] = r
         return r
 
     def add_species(
@@ -923,7 +932,8 @@ class Model(object):
         """
         self._register_sid(sid)
         s = Species(compartment, sid, amount, constant, boundary)
-        self._species[sid] = self._assignables[sid] = s
+        self._species[sid] = s
+        self._assignables[sid] = s
         return s
 
     def add_unit(self, unitsid, unit):
@@ -953,7 +963,7 @@ class Model(object):
         given SId.
         """
         try:
-            return self._assignable(sid)
+            return self._assignables[sid]
         except KeyError:
             raise SBMLError(
                 'The given SId "' + str(sid) + '" does not refer to a'
@@ -1031,6 +1041,11 @@ class Model(object):
         #   If species are set with rules, does that set concentration or
         #   amount?
 
+
+        # Create myokit model
+        myokit_model = myokit.Model(self.name())
+
+
         #
         # Bits of old code follow below
         #
@@ -1059,6 +1074,11 @@ class Model(object):
         time.set_unit(model.model_units['timeUnits'])
         time.set_rhs(0)
         model.param_and_species['http://www.sbml.org/sbml/symbols/time'] = time
+
+
+        notes = model.notes()
+        if notes:
+            myokit_model.meta['desc'] = notes
         '''
 
         #
@@ -1617,6 +1637,13 @@ class Species(Quantity):
 
         # Optional conversion factor from substance to extent units
         self._conversion_factor = None
+
+    def amount(self):
+        """
+        Returns ``True`` only if this species is defined as an amount (not a
+        concentration).
+        """
+        return self._amount
 
     def boundary(self):
         """Returns ``True`` only if this species is at a reaction boundary."""
