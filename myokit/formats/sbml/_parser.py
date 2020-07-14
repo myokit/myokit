@@ -34,7 +34,7 @@ _re_id = re.compile(r'^[a-zA-Z_]+[a-zA-Z0-9_]*$')
 
 
 class SBMLError(Exception):
-    """Raised if something goes wrong with creating an SBML model."""
+    """Raised if something goes wrong when working with an SBML model."""
 
 
 class SBMLParsingError(myokit.ImportError):
@@ -579,7 +579,7 @@ class SBMLParser(object):
                 except ValueError:
                     raise SBMLParsingError(
                         'Unable to convert initial species value to float "'
-                            + str(value) + '".', element)
+                        + str(value) + '".', element)
 
                 # Ignore units in equations
                 species.set_initial_value(myokit.Number(value))
@@ -981,7 +981,7 @@ class Model(object):
 
         # Find and return
         try:
-           return self._base_units[unitsid]
+            return self._base_units[unitsid]
         except KeyError:
             raise SBMLError('Unknown units "' + str(unitsid) + '".')
 
@@ -1041,10 +1041,8 @@ class Model(object):
         #   If species are set with rules, does that set concentration or
         #   amount?
 
-
         # Create myokit model
         myokit_model = myokit.Model(self.name())
-
 
         #
         # Bits of old code follow below

@@ -8,14 +8,15 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import os
+# import os
 import unittest
 
 import myokit
 import myokit.formats
 from myokit.formats.sbml import SBMLParser, SBMLParsingError
 
-from shared import DIR_FORMATS, WarningCollector
+# from shared import DIR_FORMATS, WarningCollector
+from shared import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -669,22 +670,9 @@ class SBMLParserTest(unittest.TestCase):
         self.assertBad(a + xml + b, 'Invalid UnitSId')
 
 
-
-
-
-
-
-
-
-
-'''
-
-
+    '''
     def test_missing_id(self):
         #TODO: Merge this into appropriate methods
-
-
-
 
         # missing global conversion factor ID
         xml = (

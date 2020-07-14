@@ -5,13 +5,10 @@ SBML
 ****
 
 Import of model definitions is provided from SBML level 3 version 2 files.
+Older versions (including level 2) are also partially supported, although this
+will raise warnings.
 
-Limitations:
-
-  - The function definition feature of SBML is not supported.
-  - The algebraic rule feature of SBML is not supported.
-  - The constraint feature of SBML is not supported.
-  - The events feature of SBML is not supported. External stimuli can be added by hand with :class:`myokit.Protocol`.
+Not all SBML features are supported, as documented in the :class:`SBMLParser`.
 
 API
 ===
@@ -25,10 +22,10 @@ The standard API for importing is provided:
 .. autoclass:: SBMLImporter
     :inherited-members:
 
-.. autoclass:: SBMLError
-
 Parsing
 =======
 
 .. autoclass:: SBMLParser
+
+.. autoclass:: SBMLParsingError
 

@@ -171,9 +171,9 @@ myokit.formats.python
 myokit.formats.sbml
 -------------------
 - :meth:`myokit.formats.sbml.importers`
-- :class:`myokit.formats.sbml.SBMLError`
 - :class:`myokit.formats.sbml.SBMLImporter`
 - :class:`myokit.formats.sbml.SBMLParser`
+- :class:`myokit.formats.sbml.SBMLParsingError`
 
 myokit.formats.stan
 -------------------
