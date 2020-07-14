@@ -669,7 +669,6 @@ class SBMLParserTest(unittest.TestCase):
         xml = '<unitDefinition id="123" />'
         self.assertBad(a + xml + b, 'Invalid UnitSId')
 
-
     '''
     def test_missing_id(self):
         #TODO: Merge this into appropriate methods
@@ -1363,6 +1362,7 @@ class SBMLDocumentTest(unittest.TestCase):
         unit = None
         self.assertEqual(parameter.unit(), unit)
 '''
+
 
 if __name__ == '__main__':
     import warnings
