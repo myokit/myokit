@@ -61,18 +61,20 @@ class Expression(object):
         # Store operands
         self._operands = () if operands is None else operands
 
-        # Cached values
-        # These _could_ be calculated immediatly, since they won't change in
-        # the object's lifetime. However, it turns out to be faster to only
-        # evaluate them the first time they're requested.
-        self._cached_hash = None
-        self._cached_polish = None
-        self._cached_validation = None
-
         # Store references
         self._references = set()
         for op in self._operands:
             self._references |= op._references
+
+        # Cached results:
+        # Since expressions are immutable, the results of many methods can be
+        # cached. These could be evaluated initially, but it's more efficient
+        # to way until a first request.
+        self._cached_hash = None
+        self._cached_polish = None
+        self._cached_validation = None
+        self._cached_unit_tolerant = None
+        self._cached_unit_strict = None
 
     def __bool__(self):     # pragma: no python 2 cover
         """ Python 3 method to determine the outcome of "if expression". """
@@ -154,7 +156,7 @@ class Expression(object):
 
     def depends_on(self, lhs):
         """
-        Returns True if this :class:`Expression` depends on the given
+        Returns ``True`` if this :class:`Expression` depends on the given
         :class:`LhsExpresion`.
 
         Only dependencies appearing directly in the expression are checked.
@@ -283,13 +285,36 @@ class Expression(object):
         The method is intended to be used to check the units in a model, so
         every branch of an expression is evaluated, even if it won't affect the
         final result.
+
+        In strict mode, this method will always either return a
+        :class:`myokit.Unit` or raise an :class:`myokit.IncompatibleUnitError`.
+        In tolerant mode, ``None`` will be returned if the units are unknown.
         """
-        try:
-            return self._eval_unit(mode)
-        except EvalUnitError as e:
-            message = _expr_error_message(self, e)
-            token = e.expr._token
-        raise myokit.IncompatibleUnitError(message, token)
+        # Get cached unit or error
+        if mode == myokit.UNIT_STRICT:
+            result = self._cached_unit_strict
+        else:
+            result = self._cached_unit_tolerant
+
+        # Evaluate and cache
+        if result is None:
+            try:
+                result = self._eval_unit(mode)
+            except EvalUnitError as e:
+                result = myokit.IncompatibleUnitError(
+                    _expr_error_message(self, e),
+                    e.expr._token
+                )
+
+            if mode == myokit.UNIT_STRICT:
+                self._unit_strict = result
+            else:
+                self._unit_tolerant = result
+
+        # Raise error or return
+        if isinstance(result, myokit.IncompatibleUnitError):
+            raise result
+        return result
 
     def _eval_unit(self, mode):
         """
