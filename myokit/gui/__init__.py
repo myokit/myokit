@@ -79,7 +79,7 @@ if pyqt5:
     else:   # pragma: no cover
         # The method below was deprecated by matplotlib version 2.2, released
         # in 2018. So probably fine to remove this (and similar) after 2023
-        v = [float(x) for x in matplotlib.__version__.split('.')]
+        v = [int(x) for x in matplotlib.__version__.split('.')]
         if v[0] < 3 and v[1] < 3:
             matplotlib.rcParams['backend.qt5'] = 'PyQt5'
     import matplotlib.backends.backend_qt5agg as matplotlib_backend
@@ -100,11 +100,11 @@ elif pyside2:
     try:
         matplotlib.use('Qt5Agg')
     except ImportError:
-        # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
+        # In matplotlib 3.3.0 this raises ImportErrors if a previous backend
         # was already set.
         pass
     else:   # pragma: no cover
-        v = [float(x) for x in matplotlib.__version__.split('.')]
+        v = [int(x) for x in matplotlib.__version__.split('.')]
         if v[0] < 3 and v[1] < 3:
             matplotlib.rcParams['backend.qt5'] = 'PySide2'
     import matplotlib.backends.backend_qt5agg as matplotlib_backend  # noqa
@@ -194,11 +194,11 @@ elif pyqt4:
     try:
         matplotlib.use('Qt4Agg')
     except ImportError:
-        # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
+        # In matplotlib 3.3.0 this raises ImportErrors if a previous backend
         # was already set.
         pass
     else:   # pragma: no cover
-        v = [float(x) for x in matplotlib.__version__.split('.')]
+        v = [int(x) for x in matplotlib.__version__.split('.')]
         if v[0] < 3 and v[1] < 3:
             matplotlib.rcParams['backend.qt4'] = 'PyQt4'
     import matplotlib.backends.backend_qt4agg as matplotlib_backend
@@ -282,11 +282,11 @@ elif pyside:
     try:
         matplotlib.use('Qt4Agg')
     except ImportError:
-        # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
+        # In matplotlib 3.3.0 this raises ImportErrors if a previous backend
         # was already set.
         pass
     else:   # pragma: no cover
-        v = [float(x) for x in matplotlib.__version__.split('.')]
+        v = [int(x) for x in matplotlib.__version__.split('.')]
         if v[0] < 3 and v[1] < 3:
             matplotlib.rcParams['backend.qt4'] = 'PySide'
     import matplotlib.backends.backend_qt4agg as matplotlib_backend  # noqa

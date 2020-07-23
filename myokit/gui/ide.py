@@ -36,7 +36,6 @@ from . import vargrapher
 # Matplotlib.pyplot must be imported _after_ myokit.gui has set the backend
 import matplotlib
 matplotlib.interactive(True)        # Allows plt.show()
-import matplotlib.pyplot as plt     # noqa -- Make flake8 ignore this line
 
 # ConfigParser in Python 2 and 3
 try:
@@ -387,6 +386,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays a component dependency graph
         """
+        import matplotlib.pyplot as plt
         try:
             model = self.model(errors_in_console=True)
             if not model:
@@ -864,6 +864,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays a preview of the current protocol.
         """
+        import matplotlib.pyplot as plt
         try:
             p = self.protocol(errors_in_console=True)
             if p is False:
@@ -1032,6 +1033,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays a state dependency matrix.
         """
+        import matplotlib.pyplot as plt
         try:
             # Validate model
             model = self.model(errors_in_console=True)
@@ -1103,6 +1105,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays a variable dependency graph
         """
+        import matplotlib.pyplot as plt
         try:
             model = self.model(errors_in_console=True)
             if not model:
