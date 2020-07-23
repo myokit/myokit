@@ -58,6 +58,7 @@ myokit
 - :class:`myokit.IncompatibleUnitError`
 - :class:`myokit.InfixCondition`
 - :class:`myokit.InfixExpression`
+- :class:`myokit.InitialValue`
 - :class:`myokit.IntegrityError`
 - :class:`myokit.InvalidBindingError`
 - :class:`myokit.InvalidDataLogError`
@@ -108,6 +109,7 @@ myokit
 - :meth:`myokit.parse_protocol`
 - :meth:`myokit.parse_state`
 - :meth:`myokit.parse_unit`
+- :class:`myokit.PartialDerivative`
 - :class:`myokit.Piecewise`
 - :class:`myokit.Plus`
 - :class:`myokit.Power`

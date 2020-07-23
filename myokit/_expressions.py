@@ -489,8 +489,8 @@ class Expression(object):
 
         """
         # Check LHS
-        if not isinstance(myokit.Name, lhs):
-            return ValueError(
+        if not isinstance(lhs, Name):
+            raise ValueError(
                 'Partial derivatives can only be taken with respect to a'
                 ' myokit.Name.')
 
@@ -513,7 +513,7 @@ class Expression(object):
 
         # Result zero? Then ensure it has the right unit
         if derivative is None:
-            derivative = myokit.Number(0, self._partial_derivative_unit(lhs))
+            derivative = Number(0, self._partial_derivative_unit(lhs))
 
         return derivative
 
@@ -535,11 +535,15 @@ class Expression(object):
         """
         try:
             unit1 = self.eval_unit(myokit.UNIT_TOLERANT)
-            unit2 = lhs.var.unit()
-        except myokit.IncompatibleUnitError:
+            unit2 = lhs.var().unit()
+        except myokit.IncompatibleUnitError as e:
             return None
-        if unit1 is None or unit2 is None:
+        if unit1 is None and unit2 is None:
             return None
+        if unit1 is None:
+            return 1 / unit2
+        if unit2 is None:
+            return unit1
         return unit1 / unit2
 
     def _polish(self):
@@ -843,6 +847,10 @@ class Number(Expression):
         """
         return self._unit
 
+    def value(self):
+        """Returns the value of this number."""
+        return self._value
+
 
 class LhsExpression(Expression):
     """
@@ -977,10 +985,10 @@ class Name(LhsExpression):
         if lhs == self:
             # dx/dx = 1, with units U/U = dimensionless
             return myokit.Number(1, myokit.units.dimensionless)
-        elif lhs.var().is_bound():
+        elif self._value.is_bound():
             # Bound variables are external, so do not depend on any LHS
             return None
-        elif lhs.var().is_constant():
+        elif self._value.is_constant():
             # Constants do not depend on the LHS (which has been temporarily
             # bound if constant, see :meth:`Expression.derivative()`.
             return None
@@ -1138,10 +1146,10 @@ class PartialDerivative(LhsExpression):
 
     def __init__(self, var1, var2):
         super(PartialDerivative, self).__init__((var1, var2))
-        if not isinstance(var1, Name):
+        if not isinstance(var1, (Name, Derivative)):
             raise IntegrityError(
                 'The first argument to a partial derivative must be a'
-                ' variable name.', self._token)
+                ' variable name or a dot() operator.', self._token)
         if not isinstance(var2, (Name, InitialValue)):
             raise IntegrityError(
                 'The second argument to a partial derivative must be a'
@@ -1170,6 +1178,7 @@ class PartialDerivative(LhsExpression):
     def _code(self, b, c):
         b.write('partial(')
         self._var1._code(b, c)
+        b.write(', ')
         self._var2._code(b, c)
         b.write(')')
 
@@ -1209,9 +1218,9 @@ class PartialDerivative(LhsExpression):
         return None
 
     def _tree_str(self, b, n):
-        b.write(
-            ' ' * n + 'partial('
-            + str(self._var1._value) + ', ' + str(self._var2._value) + ')\n')
+        b.write(' ' * n + 'partial\n')
+        self._var1._tree_str(b, n + self._treeDent)
+        self._var2._tree_str(b, n + self._treeDent)
 
     def var(self):
         """
@@ -1221,9 +1230,6 @@ class PartialDerivative(LhsExpression):
         derivative is taken.
         """
         return self._var1._value
-
-    def _validate(self, trail):
-        super(PartialDerivative, self)._validate(trail)
 
 
 class InitialValue(LhsExpression):
@@ -1240,7 +1246,7 @@ class InitialValue(LhsExpression):
     __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
 
     def __init__(self, var):
-        super(InitialValue, self).__init__((var))
+        super(InitialValue, self).__init__((var, ))
         if not isinstance(var, Name):
             raise IntegrityError(
                 'The first argument to an initial condition must be a variable'
@@ -1304,9 +1310,9 @@ class InitialValue(LhsExpression):
         return self._var._value
 
     def _validate(self, trail):
-        super(InitialCondition, self)._validate(trail)
+        super(InitialValue, self)._validate(trail)
         # Check if value is the name of a state variable
-        var = self._op.var()
+        var = self._var._value
         if not (isinstance(var, myokit.Variable) and var.is_state()):
             raise IntegrityError(
                 'Initial conditions can only be defined for state variables.',
@@ -1424,6 +1430,7 @@ class InfixExpression(Expression):
     *Abstract class, extends:* :class:`Expression`
     """
     _rep = None      # Operator representation (+, *, et)
+    _spaces_round_operator = True
 
     def __init__(self, left, right):
         super(InfixExpression, self).__init__((left, right))
@@ -1454,10 +1461,11 @@ class InfixExpression(Expression):
             b.write(')')
         else:
             self._op1._code(b, c)
-        b.write(' ')
+        if self._spaces_round_operator:
+            b.write(' ')
         b.write(self._rep)
-        b.write(' ')
-        #if self.bracket(self._op2):
+        if self._spaces_round_operator:
+            b.write(' ')
         if self._op2._rbp > LITERAL and self._op2._rbp <= self._rbp:
             b.write('(')
             self._op2._code(b, c)
@@ -1665,10 +1673,10 @@ class Divide(InfixExpression):
             return Divide(op1, self._op2)
         elif op1 is None:
             # -(f g') / g^2
-            return PrefixMinus(Divide(
-                Multiply(self._op1, op2),
+            return Divide(
+                Multiply(PrefixMinus(self._op1), op2),
                 Power(self._op2, Number(2))
-            ))
+            )
 
         # (f' g - f g') / g^2
         return Divide(
@@ -1811,13 +1819,14 @@ class Remainder(InfixExpression):
             return None
         elif op1 is None:
             # -b' floor(a/b)
-            return PrefixMinus(Multiply(op2, Floor(self._op1, self._op2)))
+            return Multiply(
+                PrefixMinus(op2), Floor(Divide(self._op1, self._op2)))
         elif op2 is None:
             # a'
             return op1
 
         # a' - b' floor(a/b)
-        return Minus(op1, Multiply(op2, Floor(self._op1, self._op2)))
+        return Minus(op1, Multiply(op2, Floor(Divide(self._op1, self._op2))))
 
 
 class Power(InfixExpression):
@@ -1833,6 +1842,7 @@ class Power(InfixExpression):
     """
     _rbp = POWER
     _rep = '^'
+    _spaces_round_operator = False
 
     def _eval(self, subst, precision):
         try:
@@ -1882,14 +1892,18 @@ class Power(InfixExpression):
             return None
 
         if op2 is None:
-            # Note that unit for 1 in b-1 must be dimensionless
-            return Multiply(
-                Multiply(
-                    self._op2,
-                    Power(self._op1, Minus(self._op2, Number(1))),
-                ),
-                op1,
-            )
+            # Tweaks: x^number --> reduce number by 1; and x^2 becomes x
+            if isinstance(self._op2, Number):
+                if self._op2.value() == 2:
+                    new_power = self._op1
+                elif self._op2.value() == 1:
+                    return op1
+                else:
+                    new_power = Number(self._op2.value() - 1, self._op2.unit())
+                    new_power = Power(self._op1, new_power)
+            else:
+                new_power = Power(self._op1, Minus(self._op2, Number(1)))
+            return Multiply(Multiply(self._op2, new_power), op1)
 
         if op1 is None:
             return Divide(Multiply(self, op2), Log(self._op1))
@@ -2081,7 +2095,7 @@ class Cos(UnaryDimensionlessFunction):
         dop = op._partial_derivative(lhs)
         if dop is None:
             return None
-        return PrefixMinus(Multiply(Sin(op), dop))
+        return Multiply(PrefixMinus(Sin(op)), dop)
 
 
 class Tan(UnaryDimensionlessFunction):
@@ -2295,7 +2309,7 @@ class Log(Function):
     def _partial_derivative(self, lhs):
 
         if len(self._operands) == 1:
-            # One operand: natural logarithm
+            # One operand: natural logarithm: a' / a
             op = self._operands[0]
             dop = op._partial_derivative(lhs)
             if dop is None:
@@ -2315,11 +2329,11 @@ class Log(Function):
                 return Divide(dop1, Multiply(op1, Log(op2)))
 
             elif dop1 is None:
-                # b' = 0 --> -(a' ln(b)) / (a ln(a)^2)
-                return PrefixMinus(Divide(
-                    Multiply(dop2, Log(op1)),
+                # b' = 0 --> -a' ln(b) / (a ln(a)^2)
+                return Divide(
+                    Multiply(PrefixMinus(dop2), Log(op1)),
                     Multiply(op2, Power(Log(op2), Number(2))),
-                ))
+                )
 
             # Full form:
             #   b' / (b * ln(a)) - (a' ln(b)) / (a ln(a)^2)
@@ -2353,10 +2367,10 @@ class Log10(UnaryDimensionlessFunction):
 
     def _partial_derivative(self, lhs):
         op = self._operands[0]
-        dop = op1._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs)
         if dop is None:
             return None
-        return Divide(dop1, Multiply(op1, Log(Number(10))))
+        return Divide(dop, Multiply(op, Log(Number(10))))
 
 
 class Floor(Function):
@@ -2671,7 +2685,8 @@ class Piecewise(Function):
         for i, _if in enumerate(self._i):
             new_ops[2 * i] = _if
             new_ops[2 * i + 1] = zero if ops[i] is None else ops[i]
-        new_ops[-1] = zero if ops[i] is None else ops[i]
+        new_ops[-1] = zero if ops[-1] is None else ops[-1]
+        return Piecewise(*new_ops)
 
     def pieces(self):
         """
