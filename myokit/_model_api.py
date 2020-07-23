@@ -895,10 +895,10 @@ class Model(ObjectWithMeta, VarProvider):
             if isinstance(ref, myokit.Derivative):
                 raise myokit.InvalidFunction(
                     'The dot() operator cannot be used in user functions.')
-            if self._rhs.contains_type(myokit.PartialDerivative):
+            if template.contains_type(myokit.PartialDerivative):
                 raise myokit.InvalidFunction(
                     'The partial() operator cannot be used in user functions.')
-            if self._rhs.contains_type(myokit.InitialValue):
+            if template.contains_type(myokit.InitialValue):
                 raise myokit.InvalidFunction(
                     'The init() operator cannot be used in user functions.')
 
