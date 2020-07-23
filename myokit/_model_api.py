@@ -38,16 +38,19 @@ def check_name(name):
     # But the regex restriction means their format is compatible with ascii.
     # Check str compatibility
     name = str(name)
+
     # Check name syntax
     if NAME.match(name) is None:
         raise myokit.InvalidNameError(
             'The name <' + str(name) + '> is  invalid. The first character of'
             ' a name should be a letter from the range [a-zA-Z]. Any'
             ' subsequent characters can be taken from the set [a-zA-Z0-9_].')
+
     # Check for keywords
     if name in myokit.KEYWORDS:
         raise myokit.InvalidNameError(
             'The name <' + str(name) + '> is a reserved keyword.')
+
     return name
 
 
@@ -876,7 +879,9 @@ class Model(ObjectWithMeta, VarProvider):
         if not isinstance(template, myokit.Expression):
             template = myokit.parse_expression(template)
 
-        # Check function uniqueness. Add number of arguments to name to allow
+        # TODO: Check name does not conflict with an existing function #584
+
+        # Check signature uniqueness. Add number of arguments to name to allow
         # overloading
         uname = name + '(' + str(n) + ')'
         if uname in self._user_functions:
@@ -890,6 +895,12 @@ class Model(ObjectWithMeta, VarProvider):
             if isinstance(ref, myokit.Derivative):
                 raise myokit.InvalidFunction(
                     'The dot() operator cannot be used in user functions.')
+            if self._rhs.contains_type(myokit.PartialDerivative):
+                raise myokit.InvalidFunction(
+                    'The partial() operator cannot be used in user functions.')
+            if self._rhs.contains_type(myokit.InitialValue):
+                raise myokit.InvalidFunction(
+                    'The init() operator cannot be used in user functions.')
 
         # Check for unused arguments, undeclared arguments
         ref_names = set([x._value for x in refs])
@@ -2923,6 +2934,17 @@ class Model(ObjectWithMeta, VarProvider):
             return None
         return time.unit(mode)
 
+    def _unused_label(self):
+        """
+        Generates and returns a label/binding not currently used by this model.
+        """
+        for i in range(250):
+            label = 'automatically_generated_label_' + myokit._pid_hash()
+            if (label not in self._labels) and (label not in self._bindings):
+                return label
+        raise RuntimeError(     # pragma: no cover
+            'Unable to generate a unique unused label or binding.')
+
     def user_functions(self):
         """
         Returns a dictionary mapping this model's user function names to their
@@ -4238,6 +4260,24 @@ class Variable(VarOwner):
             raise myokit.MissingRhsError(self)
         self._rhs.validate()
 
+        # Partial derivatives are not allowed in an RHS
+        if self._rhs.contains_type(myokit.PartialDerivative):
+            raise myokit.InvalidRhsError(
+                'Partial derivatives may not appear in expressions set as'
+                ' right-hand side of a variable.')
+
+        # Initial values are not allowed in an RHS
+        if self._rhs.contains_type(myokit.InitialValue):
+            raise myokit.InvalidRhsError(
+                'Initial value operators may not appear in expressions set as'
+                ' right-hand side of a variable.')
+
+        # Conditions are not allowed as an RHS
+        if isinstance(self._rhs, myokit.Condition):
+            raise myokit.InvalidRhsError(
+                'The right-hand side expression for a variable can not be a'
+                ' condition.')
+
         # Check state variables
         is_state = self._indice is not None
         is_deriv = self.lhs().is_derivative()
@@ -4384,10 +4424,14 @@ class EquationList(list, VarProvider):
 
 class UserFunction(object):
     """
-    Defines a user function. User functions are not ``Expression`` objects, but
-    template expressions that are converted upon parsing. They allow common
-    functions (for example a boltzman function) to be used in string
-    expressions.
+    Represents a user function.
+
+    ``UserFunction`` objects should not be created directly, but only via
+    :meth:`Model.add_function()`.
+
+    User functions are not ``Expression`` objects, but template expressions
+    that are converted upon parsing. They allow common functions (for example
+    a boltzman function) to be used in string expressions.
 
     Arguments:
 

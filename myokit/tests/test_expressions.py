@@ -672,7 +672,7 @@ class DerivativeTest(unittest.TestCase):
 
         # Derivative of something other than a name: never allowed
         self.assertRaisesRegex(
-            myokit.IntegrityError, 'named variables', myokit.Derivative,
+            myokit.IntegrityError, 'on variables', myokit.Derivative,
             myokit.Number(1))
 
     def test_bracket(self):
