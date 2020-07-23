@@ -805,7 +805,7 @@ class SBMLDocumentTest(unittest.TestCase):
         # parameter 3
         parameter = 'i_Na'
         parameter = self.model.get('myokit.' + parameter)
-        expression = 'myokit.g_Na * myokit.m ^ 3'
+        expression = 'myokit.g_Na * myokit.m^3'
         self.assertEqual(str(parameter.rhs()), expression)
 
     def test_compartments(self):
@@ -973,7 +973,7 @@ class SBMLDocumentTest(unittest.TestCase):
         expression = (
             '-(compartment.size * myokit.k1 * compartment.S1_Concentration)'
             ' + compartment.size * myokit.k2'
-            ' * compartment.S2_Concentration ^ 2')
+            ' * compartment.S2_Concentration^2')
         self.assertEqual(state.rhs().code(), expression)
 
         # state 2
@@ -983,7 +983,7 @@ class SBMLDocumentTest(unittest.TestCase):
             '2 * (compartment.size * myokit.k1 * '
             + 'compartment.S1_Concentration) - 2 * '
             + '(compartment.size * myokit.k2 '
-            + '* compartment.S2_Concentration ^ 2)')
+            + '* compartment.S2_Concentration^2)')
         self.assertEqual(str(state.rhs()), expression)
 
         # state 3

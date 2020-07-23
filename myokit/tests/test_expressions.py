@@ -1065,7 +1065,8 @@ class PartialDerivativeTest(unittest.TestCase):
         # Tests PartialDerivative.__repr__()
         n = myokit.Name('v')
         p = myokit.PartialDerivative(n, n)
-        self.assertEqual(repr(p), '<Partial(<Name(u\'v\')>, <Name(u\'v\')>)>')
+        self.assertEqual(
+            repr(p), '<Partial(' + repr(n) + ', ' + repr(n) + ')>')
 
     def test_rhs(self):
         # Tests PartialDerivative.rhs()
@@ -1165,7 +1166,7 @@ class InitialValueTest(unittest.TestCase):
         # Tests InitialValue.__repr__()
         n = myokit.Name('v')
         i = myokit.InitialValue(n)
-        self.assertEqual(repr(i), '<Init(<Name(u\'v\')>)>')
+        self.assertEqual(repr(i), '<Init(' + repr(n) + ')>')
 
     def test_rhs(self):
         # Tests InitialValue.rhs()
@@ -2122,7 +2123,7 @@ class PowerTest(unittest.TestCase):
             'ina.m^ina.INa * ('
             'log(ina.m) * partial(ina.INa, membrane.C) + '
             'ina.INa / ina.m * partial(ina.m, membrane.C))')
-        V.set_rhs('1 [mV] ^ 1')
+        V.set_rhs('1 [mV]^1')
         p = V.rhs().partial_derivative(C.lhs())
         self.assertTrue(p.is_number(0))
         self.assertEqual(p.unit(), myokit.parse_unit('mV/pF'))
@@ -2137,7 +2138,7 @@ class PowerTest(unittest.TestCase):
         # Test with spaces
         x = myokit.PrefixMinus(x)
         self.assertEqual(x.tree_str(), '-\n  ^\n    1\n    2\n')
-        x = myokit.parse_expression('1 ^ (2 ^ 3)')
+        x = myokit.parse_expression('1^(2^3)')
         self.assertEqual(x.tree_str(), '^\n  1\n  ^\n    2\n    3\n')
 
 
