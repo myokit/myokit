@@ -432,10 +432,37 @@ class SBMLParserTest(unittest.TestCase):
              '  </initialAssignment>')
         self.assertBad(a + x + c, 'Unable to parse initial assignment: Expect')
 
+        # Set a compartment size
+        a = ('<model name="mathml">')
+        b = (' <listOfCompartments>'
+             '  <compartment id="c" />'
+             ' </listOfCompartments>')
+        c = (' <listOfInitialAssignments>'
+             '  <initialAssignment symbol="c">'
+             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <cn>1.23</cn>'
+             '   </math>'
+             '  </initialAssignment>'
+             ' </listOfInitialAssignments>')
+        d = ('</model>')
+        m = self.parse(a + b + c + d)
+        self.assertEqual(
+            m.compartment('c').initial_value(), myokit.Number((1.23)))
+
+        # Reset a compartment size
+        b = ('<listOfCompartments>'
+             '<compartment id="c" size="12" />'
+             '</listOfCompartments>')
+        m = self.parse(a + b + d)
+        self.assertEqual(
+            m.compartment('c').initial_value(), myokit.Number((12)))
+        m = self.parse(a + b + c + d)
+        self.assertEqual(
+            m.compartment('c').initial_value(), myokit.Number((1.23)))
+
         #TODO
         # Set a species amount
         # Set a species concentration
-        # Set a compartment size
         # Set a stoichiometry
 
     def test_parse_model(self):
@@ -472,11 +499,52 @@ class SBMLParserTest(unittest.TestCase):
         self.assertIn('sentences like this one', m.notes())
 
         # Global units: length, area, volume, substance, extent, time
-        # Non-existent unit
-        #TODO
+        m = self.parse('<model />')
+        self.assertEqual(m.length_units(), myokit.units.dimensionless)
+        self.assertEqual(m.area_units(), myokit.units.dimensionless)
+        self.assertEqual(m.volume_units(), myokit.units.dimensionless)
+        self.assertEqual(m.substance_units(), myokit.units.dimensionless)
+        self.assertEqual(m.extent_units(), myokit.units.dimensionless)
+        self.assertEqual(m.time_units(), myokit.units.dimensionless)
+
+        m = self.parse(
+            '<model'
+            ' lengthUnits="meter"'
+            ' areaUnits="meter_squared"'
+            ' volumeUnits="candela"'
+            ' substanceUnits="coulomb"'
+            ' extentUnits="hertz"'
+            ' timeUnits="second"'
+            '>'
+            ' <listOfUnitDefinitions>'
+            '  <unitDefinition id="meter_squared">'
+            '   <listOfUnits>'
+            '    <unit kind="meter" exponent="2" />'
+            '   </listOfUnits>'
+            '  </unitDefinition>'
+            ' </listOfUnitDefinitions>'
+            '</model>'
+        )
+        self.assertEqual(m.length_units(), myokit.units.m)
+        self.assertEqual(m.area_units(), myokit.units.m**2)
+        self.assertEqual(m.volume_units(), myokit.units.candela)
+        self.assertEqual(m.substance_units(), myokit.units.coulomb)
+        self.assertEqual(m.extent_units(), myokit.units.hertz)
+        self.assertEqual(m.time_units(), myokit.units.s)
+
+        self.assertBad('<model areaUnits="meter_squared" />', 'Unknown units')
 
         # Global conversion factor
-        #TODO
+        m = self.parse('<model />')
+        self.assertIsNone(m.conversion_factor())
+        m = self.parse(
+            '<model conversionFactor="x">'
+            ' <listOfParameters>'
+            '  <parameter id="x" />'
+            ' </listOfParameters>'
+            '</model>'
+        )
+        self.assertEqual(m.conversion_factor(), m.parameter('x'))
 
     def test_parse_parameter(self):
         # Tests parsing parameters

@@ -149,8 +149,6 @@ class SBMLParser(object):
 
     def _parse_compartment(self, element, model):
         """Parses a ``compartment`` element."""
-        #TODO: Given the description above, it sounds like we need a
-        # Compartment object.
 
         # Check required attributes
         self._check_required_attributes(element, 'id')
@@ -802,6 +800,7 @@ class Compartment(Quantity):
 
     """
     def __init__(self, model, sid):
+        super(Compartment, self).__init__()
         self._model = model
         self._sid = sid
 
