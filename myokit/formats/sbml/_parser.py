@@ -19,9 +19,9 @@ import xml.etree.ElementTree as ET
 import myokit
 import myokit.units
 import myokit.formats
-from myokit.formats.html import html2ascii
-from myokit.formats.mathml import parse_mathml_etree, MathMLError
-from myokit.formats.xml import split
+import myokit.formats.mathml
+import myokit.formats.html
+import myokit.formats.xml
 
 
 # Namespaces
@@ -31,6 +31,33 @@ NS_SBML_3_2 = 'http://www.sbml.org/sbml/level3/version2/core'
 
 # Regex for id checking
 _re_id = re.compile(r'^[a-zA-Z_]+[a-zA-Z0-9_]*$')
+
+
+def _parse_mathml(expr, name_generator):
+    """
+    Parses the MathML expression ``expr`` and wraps any errors in an SBMLError.
+    """
+    def name(x, y):
+        try:
+            return name_generator(x, y)
+        except KeyError:
+            raise SBMLError(
+                'Unknown or inaccessible symbol in MathML: "' + str(x) + '".')
+
+    try:
+        return myokit.formats.mathml.parse_mathml_etree(
+            expr, name, lambda x, y: myokit.Number(x))
+    except myokit.formats.mathml.MathMLError as e:
+        raise SBMLError('Unable to parse MathML: ' + str(e))
+
+    # Note: In any place we parse mathematics, we could also check that
+    # there's nothing after the mathematics. E.g.
+    #   <math xmlns="..">
+    #    <cn>1</cn>
+    #    <cn>2</cn>
+    #   </math>
+    # is currently allowed because only the first statement is read.
+    # But for now we're being lenient.
 
 
 class SBMLError(Exception):
@@ -130,7 +157,7 @@ class SBMLParser(object):
         )
 
         # Check whether document declares a supported namespace
-        self._ns = split(element.tag)[0]
+        self._ns = myokit.formats.xml.split(element.tag)[0]
         try:
             if self._ns not in supported:
                 warnings.warn(
@@ -168,7 +195,12 @@ class SBMLParser(object):
             # Get units, if given
             units = element.get('units')
             if units is not None:
-                compartment.set_size_units(model.unit(units))
+                try:
+                    units = model.unit(units)
+                except KeyError:
+                    raise SBMLParsingError(
+                        'Unknown units "' + units + '".', element)
+                compartment.set_size_units(units)
 
             # Get spatial dimensions, if given
             dim = element.get('spatialDimensions')
@@ -209,7 +241,13 @@ class SBMLParser(object):
         var = element.get('symbol')
         try:
             var = model.assignable(var)
+        except KeyError:
+            raise SBMLParsingError(
+                'Unable to parse rule: The given SId "' + str(var) + '" does'
+                ' not refer to a Compartment, Species, SpeciesReference, or'
+                ' Parameter in this model.')
 
+        try:
             # Find mathematics
             expr = element.find('{' + NS_MATHML + '}math')
             if expr is None:
@@ -220,26 +258,16 @@ class SBMLParser(object):
                 return
 
             # Parse rule and apply
-            var.set_initial_value(parse_mathml_etree(
+            var.set_initial_value(_parse_mathml(
                 expr,
                 lambda x, y: myokit.Name(model.assignable(x)),
-                lambda x, y: myokit.Number(x)
             ))
 
-            # Note: In any place we parse mathematics, we could also check that
-            # there's nothing after the mathematics. E.g.
-            #   <math xmlns="..">
-            #    <cn>1</cn>
-            #    <cn>2</cn>
-            #   </math>
-            # is currently allowed because only the first statement is read.
-            # But for now we're being lenient.
-
-        except (SBMLError, MathMLError) as e:
+        except SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse initial assignment: ' + str(e), element)
 
-    def _parse_kinetic_law(self, element, reaction):
+    def _parse_kinetic_law(self, element, model, reaction):
         """
         Parses the ``kinetic_law`` element used in reactions and returns the
         resulting :class:`myokit.Expression``.
@@ -252,16 +280,21 @@ class SBMLParser(object):
         if x is not None:
             raise SBMLParsingError('Local parameters are not supported.', x)
 
+        # Kinetic law is not allowed use species unless they're defined in the
+        # reaction.
+        def name(x, y):
+            obj = model.assignable(x)
+            if isinstance(obj, Species):
+                obj = reaction.species(x)
+            return myokit.Name(obj)
+
         # Find and parse expression
         expr = element.find('{' + NS_MATHML + '}math')
         if expr is None:
-            return
+            return None
         try:
-            expr = parse_mathml_etree(
-                expr,
-                lambda x, y: myokit.Name(reaction.species(x)),
-                lambda x, y: myokit.Number(x))
-        except (SBMLError, MathMLError) as e:
+            return _parse_mathml(expr, name)
+        except SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse kinetic law: ' + str(e), element)
 
@@ -341,6 +374,9 @@ class SBMLParser(object):
             if units is not None:
                 model.set_time_units(model.unit(units))
 
+        except KeyError as e:
+            raise SBMLParsingError(
+                'Unknown units "' + str(e.args[0]) + '".', element)
         except SBMLError as e:
             raise SBMLParsingError(
                 'Error parsing model element: ' + str(e), element)
@@ -395,7 +431,7 @@ class SBMLParser(object):
         """Parses a model's ``notes`` element, converting it to plain text."""
 
         notes = ET.tostring(element).decode()
-        notes = html2ascii(notes, width=75)
+        notes = myokit.formats.html.html2ascii(notes, width=75)
         if notes:
             model.set_notes(notes)
 
@@ -414,7 +450,11 @@ class SBMLParser(object):
             # Get optional units
             unit = element.get('units')
             if unit is not None:
-                unit = model.unit(unit)
+                try:
+                    unit = model.unit(unit)
+                except KeyError:
+                    raise SBMLParsingError(
+                        'Unknown units "' + unit + '".', element)
                 parameter.set_units(unit)
 
             # Get optional initial value
@@ -486,9 +526,10 @@ class SBMLParser(object):
         # Parse kinetic law
         kinetic_law = element.find(self._path('kineticLaw'))
         if kinetic_law is not None:
-            kinetic_law = self._parse_kinetic_law(kinetic_law, model)
+            kinetic_law = self._parse_kinetic_law(kinetic_law, model, reaction)
         if kinetic_law is None:
-            warnings.warn('Ignoring a reaction without a kinetic_law.')
+            warnings.warn(
+                'No kinetic law set for reaction "' + reaction.sid() + '".')
         else:
             reaction.set_kinetic_law(kinetic_law)
 
@@ -502,7 +543,13 @@ class SBMLParser(object):
         var = element.get('variable')
         try:
             var = model.assignable(var)
+        except KeyError:
+            raise SBMLParsingError(
+                'Unable to parse rule: The given SId "' + str(var) + '" does'
+                ' not refer to a Compartment, Species, SpeciesReference, or'
+                ' Parameter in this model.')
 
+        try:
             # Check that this assignable can be changed with assignment rules
             if isinstance(var, Species):
                 if not var.boundary():
@@ -521,13 +568,12 @@ class SBMLParser(object):
                 return
 
             # Parse rule and apply
-            var.set_value(parse_mathml_etree(
+            var.set_value(_parse_mathml(
                 expr,
                 lambda x, y: myokit.Name(model.assignable(x)),
-                lambda x, y: myokit.Number(x)
             ), rate)
 
-        except (SBMLError, MathMLError) as e:
+        except SBMLError as e:
             raise SBMLParsingError('Unable to parse rule: ' + str(e), element)
 
     def _parse_species(self, element, model):
@@ -551,29 +597,47 @@ class SBMLParser(object):
         # Note: In lines like the above we could raise an error if the value
         # isn't 'true' or false', but for now we're being lenient.
 
+        # Get compartment
+        compartment = element.get('compartment')
+        try:
+            compartment = model.compartment(compartment)
+        except KeyError:
+            raise SBMLParsingError(
+                'Unknown compartment "' + compartment + '"', element)
+
         # Create
         try:
-            # Get compartment
-            compartment = model.compartment(element.get('compartment'))
-
-            # Create
             species = model.add_species(
                 compartment, element.get('id'), amount, constant, boundary)
 
             # Set units, if provided
             units = element.get('substanceUnits')
             if units is not None:
+                try:
+                    units = model.unit(units)
+                except KeyError:
+                    raise SBMLParsingError(
+                        'Unknown units "' + units + '"', element)
+
                 # Set substance units, not concentration units
-                species.set_substance_units(model.unit(units))
+                species.set_substance_units(units)
 
             # Set initial amount if provided
             if amount:
+                if element.get('initialConcentration') is not None:
+                    raise SBMLParsingError(
+                        'Species with hasOnlySubstanceUnits="true" cannot set'
+                        ' initialConcentration.')
                 value = element.get('initialAmount')
             else:
+                if element.get('initialAmount') is not None:
+                    raise SBMLParsingError(
+                        'Species with hasOnlySubstanceUnits="false" cannot set'
+                        ' initialAmount.')
                 value = element.get('initialConcentration')
             if value is not None:
                 try:
-                    value = float(dimensions)
+                    value = float(value)
                 except ValueError:
                     raise SBMLParsingError(
                         'Unable to convert initial species value to float "'
@@ -585,7 +649,13 @@ class SBMLParser(object):
             # Set conversion factor if provided (must refer to a parameter)
             factor = element.get('conversionFactor')
             if factor is not None:
-                species.set_conversion_factor(model.parameter(factor))
+                try:
+                    factor = model.parameter(factor)
+                except KeyError:
+                    raise SBMLParsingError(
+                        'Unknown parameter "' + str(factor) + '" set as'
+                        ' conversion factor.', element)
+                species.set_conversion_factor(factor)
 
         except SBMLError as e:
             raise SBMLParsingError(
@@ -605,7 +675,7 @@ class SBMLParser(object):
             species = model.species(species)
         except KeyError:
             raise SBMLParsingError(
-                'Reference to unknwon species "' + species + '"', element)
+                'Reference to unknown species "' + species + '"', element)
 
         # Get optional SId
         sid = element.get('id')
@@ -703,7 +773,7 @@ class SBMLParser(object):
         Returns an element's name, but changes the syntax from ``{...}tag`` to
         ``sbml:tag`` for SBML elements.
         """
-        ns, el = split(element.tag)
+        ns, el = myokit.formats.xml.split(element.tag)
 
         # Replace known namespaces
         if ns is None:
@@ -849,6 +919,9 @@ class Compartment(Quantity):
         """
         return self._spatial_dimensions
 
+    def __str__(self):
+        return '<Compartment ' + str(self._sid) + '>'
+
 
 class Model(object):
     """
@@ -961,38 +1034,23 @@ class Model(object):
         :class:`SpeciesReference`, or :class:`Parameter` referenced by the
         given SId.
         """
-        try:
-            return self._assignables[sid]
-        except KeyError:
-            raise SBMLError(
-                'The given SId "' + str(sid) + '" does not refer to a'
-                ' Compartment, Species, SpeciesReference, or Parameter in this'
-                ' model.')
+        return self._assignables[sid]
 
     def base_unit(self, unitsid):
         """
-        Returns an SBML base unit, raises an :class:`SBMLError` if not found or
-        not supported.
+        Returns an SBML base unit, raises an :class:`SBMLError` if not
+        supported.
         """
         # Check this base unit is supported
         if unitsid == 'celsius':
             raise SBMLError('The units "celsius" are not supported.')
 
         # Find and return
-        try:
-            return self._base_units[unitsid]
-        except KeyError:
-            raise SBMLError('Unknown units "' + str(unitsid) + '".')
+        return self._base_units[unitsid]
 
     def compartment(self, sid):
-        """
-        Returns the compartment with the given sid, raises an
-        :class:`SBMLError` if not found.
-        """
-        try:
-            return self._compartments[sid]
-        except KeyError:
-            raise SBMLError('Unknown compartment "' + str(sid) + '".')
+        """Returns the compartment with the given sid."""
+        return self._compartments[sid]
 
     def conversion_factor(self):
         """
@@ -1324,14 +1382,12 @@ class Model(object):
         return self._notes
 
     def parameter(self, sid):
-        """
-        Returns the parameter with the given id, raises an SBMLError if not
-        found.
-        """
-        try:
-            return self._parameters[sid]
-        except KeyError:
-            raise SBMLError('Unknown parameter "' + str(sid) + '".')
+        """Returns the :class:`Parameter` with the given id."""
+        return self._parameters[sid]
+
+    def reaction(self, sid):
+        """Returns the :class:`Reaction` with the given id."""
+        return self._reactions[sid]
 
     def _register_sid(self, sid):
         """
@@ -1387,6 +1443,11 @@ class Model(object):
         Sets the default compartment size units for 3-dimensional compartments.
         """
         self._volume_units = units
+
+    def __str__(self):
+        if self._name is None:
+            return '<SBMLModel>'
+        return '<SBMLModel ' + str(self._name) + '>'
 
     def species(self, sid):
         """Returns the species with the given id."""
@@ -1485,6 +1546,9 @@ class Parameter(Quantity):
         """Returns this parameter's sid."""
         return self._sid
 
+    def __str__(self):
+        return '<Parameter ' + str(self._sid) + '>'
+
     def units(self):
         """Returns the units this parameter is in, or ``None`` if not set."""
         return self._units
@@ -1522,11 +1586,9 @@ class Reaction(object):
         """Adds a modifier to this reaction and returns the created object."""
         if sid is not None:
             self._model._register_sid(sid)
-        ref = SpeciesReference(species, sid)
+        ref = ModifierSpeciesReference(species, sid)
         self._modifiers.append(ref)
         self._species[species.sid()] = species
-        if sid is not None:
-            self._model._assignables[sid] = ref
         return ref
 
     def add_product(self, species, sid=None):
@@ -1587,15 +1649,18 @@ class Reaction(object):
         """
         self._kinetic_law = expression
 
+    def sid(self):
+        """Returns this reaction's sid."""
+        return self._sid
+
     def species(self, sid):
         """
-        Finds and returns a :class:`Species` used in this reaction, raises an
-        :class:`SBMLError` if not found.
+        Finds and returns a :class:`Species` used in this reaction.
         """
-        try:
-            return self._species[sid]
-        except KeyError:
-            raise SBMLError('Unknown species "' + str(sid) + '".')
+        return self._species[sid]
+
+    def __str__(self):
+        return '<Reaction ' + str(self._sid) + '>'
 
 
 class Species(Quantity):
@@ -1678,6 +1743,9 @@ class Species(Quantity):
         """Returns this species's sid."""
         return self._sid
 
+    def __str__(self):
+        return '<Species ' + str(self._sid) + '>'
+
     def substance_units(self):
         """
         Returns the units an amount of this species (not a concentration) is
@@ -1690,7 +1758,8 @@ class Species(Quantity):
 
 class SpeciesReference(Quantity):
     """
-    Represents a reference to a species in an SBML reaction.
+    Represents a reference to a reactant or product species in an SBML
+    reaction.
 
     A species reference acts as a :class:`Quantity`, where the value represents
     the species' stoichiometry.
@@ -1701,6 +1770,24 @@ class SpeciesReference(Quantity):
 
     def __init__(self, species, sid=None):
         super(SpeciesReference, self).__init__()
+
+        self._species = species
+        self._sid = sid
+
+    def species(self):
+        """Returns the species this object refers to."""
+        return self._species
+
+    def sid(self):
+        """Returns this species reference's SId, or ``None`` if not set."""
+        return self._sid
+
+
+class ModifierSpeciesReference(object):
+    """Represents a reference to a modifier species in an SBML reaction."""
+
+    def __init__(self, species, sid=None):
+        super(ModifierSpeciesReference, self).__init__()
 
         self._species = species
         self._sid = sid

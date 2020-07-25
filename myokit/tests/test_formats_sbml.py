@@ -13,6 +13,7 @@ import unittest
 
 import myokit
 import myokit.formats
+import myokit.formats.sbml
 from myokit.formats.sbml import SBMLParser, SBMLParsingError
 
 # from shared import DIR_FORMATS, WarningCollector
@@ -235,6 +236,7 @@ class SBMLParserTest(unittest.TestCase):
         # Test simple compartment
         x = '<compartment id="a" />'
         m = self.parse(a + x + b)
+        c = m.compartment('a')
         self.assertEqual(m.compartment('a').sid(), 'a')
 
         # Missing id
@@ -430,7 +432,19 @@ class SBMLParserTest(unittest.TestCase):
              '     <apply><power /><cn>1</cn></apply>'
              '   </math>'
              '  </initialAssignment>')
-        self.assertBad(a + x + c, 'Unable to parse initial assignment: Expect')
+        self.assertBad(a + x + c, 'Unable to parse MathML: Expect')
+
+        # Missing symbol: error
+        x = '<initialAssignment />'
+        self.assertBad(a + x + c, 'required attribute "symbol"')
+
+        # Invalid/unknown symbol
+        x = ('  <initialAssignment symbol="blue">'
+             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <cn>5</cn>'
+             '   </math>'
+             '  </initialAssignment>')
+        self.assertBad(a + x + c, 'SId "blue" does not refer to')
 
         # Set a compartment size
         a = ('<model name="mathml">')
@@ -460,10 +474,74 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(
             m.compartment('c').initial_value(), myokit.Number((1.23)))
 
-        #TODO
-        # Set a species amount
-        # Set a species concentration
+        # Set a species amount (or concentration)
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>')
+        b = (' <listOfSpecies>'
+             '  <species id="s" compartment="c" />'
+             ' </listOfSpecies>')
+        c = (' <listOfInitialAssignments>'
+             '  <initialAssignment symbol="s">'
+             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <cn>4.5</cn>'
+             '   </math>'
+             '  </initialAssignment>'
+             ' </listOfInitialAssignments>')
+        d = ('</model>')
+        m = self.parse(a + b + c + d)
+        s = m.species('s')
+        self.assertEqual(s.initial_value(), myokit.Number(4.5))
+
+        # Reset a species amount (or concentration)
+        b = (' <listOfSpecies>'
+             '  <species id="s" compartment="c" initialConcentration="3" />'
+             ' </listOfSpecies>')
+        m = self.parse(a + b + d)
+        s = m.species('s')
+        self.assertEqual(s.initial_value(), myokit.Number(3))
+        m = self.parse(a + b + c + d)
+        s = m.species('s')
+        self.assertEqual(s.initial_value(), myokit.Number(4.5))
+
         # Set a stoichiometry
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="s" compartment="c" />'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>')
+        b = ('    <speciesReference species="s" id="sr" />')
+        c = ('   </listOfReactants>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply><ci>s</ci></apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        d = (' <listOfInitialAssignments>'
+             '  <initialAssignment symbol="sr">'
+             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <cn>4.51</cn>'
+             '   </math>'
+             '  </initialAssignment>'
+             ' </listOfInitialAssignments>')
+        e = ('</model>')
+        sr = self.parse(a + b + c + d + e).reaction('r').reactants()[0]
+        self.assertEqual(sr.initial_value(), myokit.Number(4.51))
+
+        # Reset a stoichiometry
+        b = '<speciesReference species="s" id="sr" stoichiometry="2" />'
+        sr = self.parse(a + b + c + e).reaction('r').reactants()[0]
+        self.assertEqual(sr.initial_value(), myokit.Number(2))
+        sr = self.parse(a + b + c + d + e).reaction('r').reactants()[0]
+        self.assertEqual(sr.initial_value(), myokit.Number(4.51))
 
     def test_parse_model(self):
         # Tests parsing a model.
@@ -589,18 +667,154 @@ class SBMLParserTest(unittest.TestCase):
     def test_parse_reaction(self):
         # Test parsing reactions, species references, kinetic laws
 
-        #TODO
-        # Kinetic law: valid
-        # Kinetic law: using species not used in reaction
-        # Kinetic law: local parameters are not supported
-        # Kinetic law: unable to parse kinetic law
-        # Kinetic law: missing
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="S1" compartment="c" />'
+             '  <species id="S2" compartment="c" />'
+             '  <species id="S3" compartment="c" />'
+             '  <species id="S4" compartment="c" />'
+             ' </listOfSpecies>'
+             ' <listOfParameters>'
+             '  <parameter id="k1" value="3" />'
+             ' </listOfParameters>'
+             ' <listOfReactions>')
+        b = ('  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="S1" stoichiometry="2" id="r1" />'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="S2" stoichiometry="5" id="r2" />'
+             '   </listOfProducts>'
+             '   <listOfModifiers>'
+             '    <modifierSpeciesReference species="S3" id="r3" />'
+             '   </listOfModifiers>')
+        c = ('   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <times/>'
+             '      <ci> c </ci>'
+             '      <ci> k1 </ci>'
+             '      <ci> S1 </ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>')
+        d = ('  </reaction>')
+        e = (' </listOfReactions>'
+             '</model>')
 
-        #TODO
-        pass
+        # Parse valid reaction
+        m = self.parse(a + b + c + d + e)
+        r = m.reaction('r')
+        self.assertEqual(r.sid(), 'r')
+
+        # Check reaction knows S1, S2, S3 but not S4
+        self.assertEqual(r.species('S1'), m.species('S1'))
+        self.assertEqual(r.species('S2'), m.species('S2'))
+        self.assertEqual(r.species('S3'), m.species('S3'))
+        self.assertRaises(KeyError, r.species, 'S4')
+        m.species('S4')
+
+        # Check reactants, products, modifiers
+        s1r = r.reactants()
+        self.assertEqual(len(s1r), 1)
+        s1r = s1r[0]
+        self.assertEqual(s1r.species(), m.species('S1'))
+        self.assertEqual(s1r.initial_value(), myokit.Number(2))
+        s2r = r.products()
+        self.assertEqual(len(s2r), 1)
+        s2r = s2r[0]
+        self.assertEqual(s2r.species(), m.species('S2'))
+        self.assertEqual(s2r.initial_value(), myokit.Number(5))
+        s3r = r.modifiers()
+        self.assertEqual(len(s3r), 1)
+        s3r = s3r[0]
+        self.assertEqual(s3r.species(), m.species('S3'))
+        with self.assertRaises(AttributeError):
+            s3r.initial_value()
+
+        # Reactants and products are assignable, modifier is not
+        self.assertEqual(m.assignable('r1'), s1r)
+        self.assertEqual(m.assignable('r2'), s2r)
+        self.assertRaises(KeyError, m.assignable, 'r3')
+
+        # Check kinetic law
+        self.assertEqual(
+            r.kinetic_law().code(),
+            '<Compartment c> * <Parameter k1> * <Species S1>')
+
+        # Fast=true raises an error
+        self.assertBad(
+            a + '<reaction id="r" fast="true" />' + e, 'not supported')
+
+        # Reactions must have a valid id
+        self.assertBad(a + '<reaction />' + e, 'required attribute "id"')
+        self.assertBad(a + '<reaction id="" />' + e, 'Invalid SId')
+
+        # Reactions must have a product or reactant
+        x = ('<reaction id="r" />')
+        self.assertBad(a + x + e, 'at least one reactant or product')
+
+        # Missing or empty kinetic law is ignored
+        with WarningCollector() as w:
+            self.parse(a + b + d + e)
+        self.assertEqual(w.count(), 1)
+        self.assertIn('No kinetic law set for reaction "r"', w.text())
+        x = '<kineticLaw />'
+        with WarningCollector() as w:
+            m = self.parse(a + b + x + d + e)
+        self.assertEqual(w.count(), 1)
+        self.assertIn('No kinetic law set for reaction "r"', w.text())
+
+        # Kinetic law: using species not used in reaction
+        x = ('<kineticLaw>'
+             ' <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '  <apply><ci>S4</ci></apply>'
+             ' </math>'
+             '</kineticLaw>')
+        self.assertBad(a + b + x + d + e, 'Unknown or inaccessible')
+
+        # Kinetic law: local parameters are not supported
+        x = ('<kineticLaw>'
+             ' <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '  <apply><ci>k</ci></apply>'
+             ' </math>'
+             ' <listOfLocalParameters>'
+             '  <localParameter id="k" value="3.4" />'
+             ' </listOfLocalParameters>'
+             '</kineticLaw>')
+        self.assertBad(a + b + x + d + e, 'Local parameters')
+
+        # Kinetic law: invalid MathML
+        x = ('<kineticLaw>'
+             ' <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '  <apply><species>S3</species></apply>'
+             ' </math>'
+             '</kineticLaw>')
+        self.assertBad(a + b + x + d + e, 'Unsupported element')
+
+        # Unknown species in species reference
+        x = ('<reaction id="r">'
+             ' <listOfReactants>'
+             '  <speciesReference species="S1" stoichiometry="2" id="r1" />'
+             '  <speciesReference species="S5" stoichiometry="5" id="r2" />'
+             ' </listOfReactants>')
+        self.assertBad(a + x + c + d + e, 'unknown species "S5"')
+
+        # Invalid stoichiometry
+        x = ('<reaction id="r">'
+             ' <listOfReactants>'
+             '  <speciesReference species="S1" stoichiometry="2" id="r1" />'
+             '  <speciesReference species="S2" stoichiometry="one" id="r2" />'
+             ' </listOfReactants>')
+        self.assertBad(a + x + c + d + e, 'Unable to convert stoichiometry')
 
     def test_parse_rule(self):
         # Tests parsing assignment rules and rate rules
+
+        #TODO: See parse_initial_assignment
         pass
 
     def test_parse_species(self):
@@ -612,6 +826,9 @@ class SBMLParserTest(unittest.TestCase):
              ' </listOfCompartments>'
              ' <listOfSpecies>')
         b = (' </listOfSpecies>'
+             ' <listOfParameters>'
+             '  <parameter id="p" />'
+             ' </listOfParameters>'
              '</model>')
 
         # Simple species
@@ -672,9 +889,37 @@ class SBMLParserTest(unittest.TestCase):
         s = self.parse(a + x + b).species('s')
         self.assertEqual(s.substance_units(), myokit.units.volt)
 
-        # Initial amount / concentration
+        # Initial amount
+        x = ('<species compartment="c" id="s"'
+             ' hasOnlySubstanceUnits="true" initialAmount="3" />')
+        s = self.parse(a + x + b).species('s')
+        self.assertEqual(s.initial_value(), myokit.Number(3))
+
+        # Initial amount, but should have concentration
+        x = ('<species compartment="c" id="s"'
+             ' hasOnlySubstanceUnits="false" initialAmount="3" />')
+        self.assertBad(a + x + b, 'cannot set')
+
+        # Initial concentration
+        x = ('<species compartment="c" id="s"'
+             ' hasOnlySubstanceUnits="false" initialConcentration="1.2" />')
+        s = self.parse(a + x + b).species('s')
+        self.assertEqual(s.initial_value(), myokit.Number(1.2))
+
+        # Initial concentration, but should have amount
+        x = ('<species compartment="c" id="s"'
+             ' hasOnlySubstanceUnits="true" initialConcentration="3" />')
+        self.assertBad(a + x + b, 'cannot set')
+
         # Conversion factor parameter
-        #TODO
+        x = ('<species compartment="c" id="s" conversionFactor="p" />')
+        m = self.parse(a + x + b)
+        s = m.species('s')
+        self.assertEqual(s.conversion_factor(), m.parameter('p'))
+
+        # Conversion factor points to unknown parameter
+        x = ('<species compartment="c" id="s" conversionFactor="q" />')
+        self.assertBad(a + x + b, 'Unknown parameter')
 
     def test_parse_unit(self):
         # Tests parsing units and unit definitions
@@ -738,105 +983,6 @@ class SBMLParserTest(unittest.TestCase):
         self.assertBad(a + xml + b, 'Invalid UnitSId')
 
     '''
-    def test_missing_id(self):
-        #TODO: Merge this into appropriate methods
-
-        # missing global conversion factor ID
-        xml = (
-            '<model id="test" conversionFactor="someFactor" '
-            'timeUnits="second">'
-            '<listOfParameters>'
-            '<parameter id="someOtherFactor"/>'
-            '</listOfParameters>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='The model conversionFactor points to non-existent ID.')
-
-        # missing species ID
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfSpecies>'
-            '<species/>'  # here is where the ID is missing
-            '</listOfSpecies>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='No species ID provided.')
-
-        # missing conversion factor ID
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            ' conversionFactor="someFactor"/>'
-            '</listOfSpecies>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='conversionFactor refers to non-existent ID.')
-
-        # missing reactant ID
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfReactions>'
-            '<reaction>'
-            '<listOfReactants>'
-            '<speciesReference species="someSpecies"/>'
-            '</listOfReactants>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='Species ID not existent.')
-
-        # missing product ID
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfReactions>'
-            '<reaction>'
-            '<listOfProducts>'
-            '<speciesReference species="someSpecies"/>'
-            '</listOfProducts>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='Species ID not existent.')
-
-        # missing modifier ID
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>'
-            '</listOfSpecies>'
-            '<listOfReactions>'
-            '<reaction>'
-            '<listOfReactants>'
-            '<speciesReference species="someSpecies"/>'
-            '</listOfReactants>'
-            '<listOfModifiers>'
-            '<modifierSpeciesReference species="someOtherSpecies"/>'
-            '</listOfModifiers>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            self.assertBad(xml=xml, message='Species ID not existent.')
-        self.assertEqual(w.count(), 1)
-        self.assertIn('Stoichiometry has not been set', w.text())
-
     def test_reserved_compartment_id(self):
         # ``Myokit`` is a reserved ID that is used while importing for the
         # myokit compartment.
@@ -848,7 +994,6 @@ class SBMLParserTest(unittest.TestCase):
             '</listOfCompartments>'
             '</model>')
         self.assertBad(xml=xml, message='The id "myokit".')
-
 
     def test_reserved_parameter_id(self):
         # ``globalConversionFactor`` is a reserved ID that is used while
@@ -865,20 +1010,6 @@ class SBMLParserTest(unittest.TestCase):
             xml=xml,
             message='The ID <globalConversionFactor> is protected in a myokit'
             ' SBML import. Please rename IDs.')
-
-    def test_missing_compartment(self):
-        # Tests whether error is thrown when ``compartment``
-        # attribute is not specified for a species.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfSpecies>'
-            '<species id="someSpecies"/>'
-            '</listOfSpecies>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='No <compartment> attribute provided.')
 
     def test_stoichiometry_reference(self):
         # Tests whether stoichiometry parameters are linked properly to global
@@ -994,117 +1125,6 @@ class SBMLParserTest(unittest.TestCase):
         with WarningCollector() as w:
             model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
-        self.assertEqual(w.count(), 1)
-
-    def test_missing_reactants_products(self):
-        # Tests whether error is thrown when reaction does neither provide
-        # reactants not products.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfReactions>'
-            '<reaction>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='Reaction must have at least one reactant or product.')
-
-    def test_fast_reaction(self):
-        # Tests whether error is thrown when a reaction is flagged as ``fast``.
-        # Myokit treats all reactions equal, so fast reactions are not
-        # supported.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>'
-            '</listOfSpecies>'
-            '<listOfReactions>'
-            '<reaction fast="true">'
-            '<listOfReactants>'
-            '<speciesReference species="someSpecies"/>'
-            '</listOfReactants>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            self.assertBad(
-                xml=xml,
-                message='Myokit does not support the conversion of <fast>')
-        self.assertEqual(w.count(), 1)
-
-    def test_local_parameters(self):
-        # Tests whether error is thrown when a reaction has
-        # ``localParameters``.
-        # Local parameters are currenly not supported in myokit.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>'
-            '</listOfSpecies>'
-            '<listOfReactions>'
-            '<reaction>'
-            '<listOfReactants>'
-            '<speciesReference species="someSpecies"/>'
-            '</listOfReactants>'
-            '<kineticLaw>'
-            '<listOfLocalParameters>'
-            '<localParameter id="someParameter"/>'
-            '</listOfLocalParameters>'
-            '</kineticLaw>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            self.assertBad(
-                xml=xml,
-                message='does not support the definition of local parameters')
-        self.assertEqual(w.count(), 1)
-
-    def test_bad_kinetic_law(self):
-        # Tests whether an error is thrown if a kinetic law refers to
-        # non-existent parameters.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            ' <listOfCompartments>'
-            '  <compartment id="someComp"/>'
-            ' </listOfCompartments>'
-            ' <listOfSpecies>'
-            '  <species id="someSpecies" hasOnlySubstanceUnits="true" '
-            '            compartment="someComp" constant="false"'
-            '            boundaryCondition="false" />'
-            ' </listOfSpecies>'
-            ' <listOfReactions>'
-            '  <reaction>'
-            '   <listOfReactants>'
-            '    <speciesReference species="someSpecies"/>'
-            '   </listOfReactants>'
-            '   <kineticLaw>'
-            '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
-            '    <apply>'
-            '     <times/><ci>someParam</ci><ci>someSpecies</ci>'
-            '    </apply>'
-            '   </math>'
-            '   </kineticLaw>'
-            '  </reaction>'
-            ' </listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            self.assertBad(xml=xml, message='Unable to create Name:')
         self.assertEqual(w.count(), 1)
 
 
