@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the dependency resolving and sorting to solvable order in the myokit
 # core.
