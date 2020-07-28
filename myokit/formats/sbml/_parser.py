@@ -1105,14 +1105,6 @@ class Model(object):
         # Bits of old code follow below
         #
 
-        '''
-        # Unlike the SBML SId type, Myokit names cannot start with an
-        # underscore
-        if text[:1] == '_':
-            text = 'underscore_' + text
-        return text
-        '''
-
         #
         # Model
         #
@@ -1136,10 +1128,10 @@ class Model(object):
             myokit_model.meta['desc'] = notes
         '''
 
-        #
-        # Compartment
-        #
-
+        # Add compartments to myokit model
+        for idx, compartment in self.compartments.items():
+            # Create component for compartment
+            component = myokit_model.add_component(idx)
         '''
         if name == 'myokit':
             raise SBMLError(
@@ -1800,3 +1792,14 @@ class ModifierSpeciesReference(object):
         """Returns this species reference's SId, or ``None`` if not set."""
         return self._sid
 
+
+def convert_name(name):
+    """
+    Converts SBML name to myokit compatible name.
+
+    Unlike the SBML SId type, Myokit names cannot start with an
+    underscore.
+    """
+    if text[:1] == '_':
+        text = 'underscore_' + text
+    return text
