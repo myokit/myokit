@@ -877,6 +877,12 @@ class Compartment(Quantity):
         self._spatial_dimensions = None
         self._size_units = None
 
+        self._species = {}
+
+    def add_species(self, species):
+        """Adds a reference to species to compartment."""
+        self._species[species.sid()] = species
+
     def set_spatial_dimensions(self, dimensions):
         """
         Sets the dimensionality of this compartment's size (usually 1, 2, or
@@ -918,6 +924,10 @@ class Compartment(Quantity):
         Returns this compartment's spatial dimensions, or ``None`` if not set.
         """
         return self._spatial_dimensions
+
+    def species(self, ids):
+        """Returns species with given ID in the compartment."""
+        return self._species[ids]
 
     def __str__(self):
         return '<Compartment ' + str(self._sid) + '>'
@@ -1006,6 +1016,10 @@ class Model(object):
         s = Species(compartment, sid, amount, constant, boundary)
         self._species[sid] = s
         self._assignables[sid] = s
+
+        # Create a reference to the species also in the compartment object
+        compartment.add_species(s)
+
         return s
 
     def add_unit(self, unitsid, unit):
@@ -1065,6 +1079,19 @@ class Model(object):
         set.
         """
         return self._extent_units
+
+    def _get_component(self, myokit_model, compartment):
+        """
+        Returns the component of the myokit_model specfied by a
+        :class:`Compartment`.
+        """
+        # Get compartment id
+        sid = compartment.sid()
+
+        # Get component object from myokit model
+        component = myokit_model.get(sid)
+
+        return component
 
     def length_units(self):
         """
@@ -1172,25 +1199,15 @@ class Model(object):
         # Retrieve name in case it was altered
         myokit_component_name = myokit_component.name()
 
+        # Add species to components
+        for sid, species in self._species.items():
+            # Get component
+            component = self._get_component(
+                myokit_model, species.compartment())
 
-        '''
-        if name == 'myokit':
-            raise SBMLError(
-                'The id "myokit" cannot be used for compartment names.')
+            # Add species to component
+            var = component  # what name ? amount/conc
 
-        # Create component for compartment
-        component = myokit_model.add_component(name)
-        model.components[idx] = component
-
-        # Add size parameter to compartment
-        var = component.add_variable('size')
-        var.set_unit(unit)
-        var.set_rhs(size)
-        '''
-
-        #
-        # Species
-        #
         '''
         value = element.get('initialAmount')
         if value is None:
@@ -1729,6 +1746,9 @@ class Species(Quantity):
         self._constant = bool(constant)
         self._boundary = bool(boundary)
 
+        self._initial_amount = None
+        self._initial_conc = None
+
         # Units for the amount, not the concentration
         self._units = None
 
@@ -1745,6 +1765,10 @@ class Species(Quantity):
     def boundary(self):
         """Returns ``True`` only if this species is at a reaction boundary."""
         return self._boundary
+
+    def compartment(self):
+        """Returns the :class:`Compartment` that this species is in."""
+        return self._compartment
 
     def constant(self):
         """Returns ``True`` only if this species is constant."""
@@ -1763,12 +1787,36 @@ class Species(Quantity):
             return self._conversion_factor
         return self._compartment._model.conversion_factor()
 
+    def initial_amount(self):
+        """
+        Returns initial value of species in amount.
+        """
+        return self._initial_amount
+
+    def initial_concentration(self):
+        """
+        Returns initial value of species in concentration.
+        """
+        return self._initial_conc
+
     def set_conversion_factor(self, factor):
         """
         Sets a :class:`Parameter` as conversion factor for this species,
         see :meth:`conversion_factor()`.
         """
         self._conversion_factor = factor
+
+    def set_initial_amount(self, value):
+        """
+        Sets initial value of species in amount.
+        """
+        self._initial_amount = value
+
+    def set_initial_concentration(self, value):
+        """
+        Sets initial value of species in concentration.
+        """
+        self._initial_conc = value
 
     def set_substance_units(self, units):
         """Sets the units this species amount (not concentration) is in."""
