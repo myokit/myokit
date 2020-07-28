@@ -1074,7 +1074,15 @@ class Model(object):
         return self._length_units
 
     def myokit_model(self):
-        """Converts this model to a :class:`myokit.Model`."""
+        """
+        Converts this model to a :class:`myokit.Model`.
+
+        SBML IDs are used for naming components and variables. If an ID starts
+        with an underscore, the myokit name will be converter to
+        `underscore<name>`.
+
+        Compartments defined by the SBML file are mapped to myokit.Components.
+        """
         raise NotImplementedError
 
         # Proposed strategy:
@@ -1129,9 +1137,31 @@ class Model(object):
         '''
 
         # Add compartments to myokit model
-        for idx, compartment in self.compartments.items():
+        for sid, compartment in self._compartments.items():
             # Create component for compartment
-            component = myokit_model.add_component(idx)
+            component = myokit_model.add_component(convert_name(sid))
+
+            # Add size parameter for compartment
+            var = component.add_variable(convert_name(sid))
+
+            # Set initial value
+            # If no initial value specified, it's fine to pass None
+            var.set_rhs(compartment.initial_value())
+
+            # Set unit
+            var.set_unit(compartment.size_units())
+
+            if compartment.rate():
+                # Promote variable to rate
+                var.promote(state_value=compartment.initial_value())
+
+            if compartment.value():
+                # Set rhs expression
+                # If no rhs is specified, we don't want to overwrite the
+                # initial value
+                var.set_rhs(compartment.value())
+
+
         '''
         if name == 'myokit':
             raise SBMLError(
