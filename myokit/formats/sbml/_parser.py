@@ -1083,7 +1083,6 @@ class Model(object):
 
         Compartments defined by the SBML file are mapped to myokit.Components.
         """
-        raise NotImplementedError
 
         # Proposed strategy:
         #
@@ -1136,7 +1135,7 @@ class Model(object):
             myokit_model.meta['desc'] = notes
         '''
 
-        # Add compartments to myokit model
+        # Add SBML compartments to myokit model
         for sid, compartment in self._compartments.items():
             # Create component for compartment
             component = myokit_model.add_component(convert_name(sid))
@@ -1160,6 +1159,18 @@ class Model(object):
                 # If no rhs is specified, we don't want to overwrite the
                 # initial value
                 var.set_rhs(compartment.value())
+
+        # Add myokit compartment to model to store time bound variable
+        # and global parameters
+        # Create default name of component
+        myokit_component_name = 'myokit'
+
+        # Add component
+        myokit_component = myokit_model.add_component_allow_renaming(
+            myokit_component_name)
+
+        # Retrieve name in case it was altered
+        myokit_component_name = myokit_component.name()
 
 
         '''
@@ -1394,6 +1405,8 @@ class Model(object):
             var.set_unit(unit)
             var.set_rhs(expr)
         '''
+
+        return myokit_model
 
     def name(self):
         """Returns this model's name."""
@@ -1830,6 +1843,7 @@ def convert_name(name):
     Unlike the SBML SId type, Myokit names cannot start with an
     underscore.
     """
-    if text[:1] == '_':
-        text = 'underscore_' + text
-    return text
+    if name[:1] == '_':
+        name = 'underscore_' + name
+    return name
+

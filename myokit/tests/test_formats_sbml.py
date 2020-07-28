@@ -8,7 +8,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-# import os
+import os
 import unittest
 
 import myokit
@@ -17,7 +17,7 @@ import myokit.formats.sbml
 from myokit.formats.sbml import SBMLParser, SBMLParsingError
 
 # from shared import DIR_FORMATS, WarningCollector
-from shared import WarningCollector
+from shared import DIR_FORMATS, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -1450,6 +1450,39 @@ class SBMLDocumentTest(unittest.TestCase):
         unit = None
         self.assertEqual(parameter.unit(), unit)
 '''
+
+
+class TestParserMyokitModel(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        p = SBMLParser()
+        with WarningCollector():
+            # Parse SBML model
+            model = p.parse_file(os.path.join(
+                DIR_FORMATS, 'sbml', 'HodgkinHuxley.xml'))
+
+            # Convert model to myokit model
+            cls.model = model.myokit_model()
+
+    def test_compartments(self):
+        # Tests whether compartments have been imported properly. Compartments
+        # should include the compartments in the SBML file, plus a myokit
+        # compartment for the global parameters.
+
+        print(self.model.code())
+
+        # compartment 1
+        comp = 'unit_compartment'
+        self.assertTrue(self.model.has_component(comp))
+
+        # compartment 2
+        comp = 'myokit'
+        self.assertTrue(self.model.has_component(comp))
+
+        # total number of compartments
+        number = 2
+        self.assertEqual(self.model.count_components(), number)
 
 
 if __name__ == '__main__':
