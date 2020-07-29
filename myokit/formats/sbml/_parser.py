@@ -403,6 +403,10 @@ class SBMLParser(object):
             self._parse_compartment(compartment, model)
 
         # Parse species
+        # This does not set the initial value of the species just yet, as the
+        # initial concentration may be set indirectly by specifying the
+        # initial amount. It is then necessary to know the initial compartment
+        # size which may be set by an assignment.
         for species in element.findall(self._path('listOfSpecies', 'species')):
             self._parse_species(species, model)
 
@@ -424,6 +428,11 @@ class SBMLParser(object):
         # Parse rate rules
         for rule in element.findall(self._path('listOfRules', 'rateRule')):
             self._parse_rule(rule, model, True)
+
+        # Parse species part 2
+        # Set the initial value of the species
+        for species in model._species:
+            self._set_species_initial_value(species)
 
         return model
 
@@ -578,8 +587,7 @@ class SBMLParser(object):
 
     def _parse_species(self, element, model):
         """
-        Adds species to references compartment in model and creates references
-        in `param_and_species`.
+        Adds species to references compartment in model.
         """
         # Check required attributes (note: constant is also required in L3)
         self._check_required_attributes(element, 'id', 'compartment')
@@ -622,19 +630,16 @@ class SBMLParser(object):
                 # Set substance units, not concentration units
                 species.set_substance_units(units)
 
+            # Check that not both initialAmount and initialConcentration are
+            # provided
+            if (element.get('initialAmount') is not None) and (
+                    element.get('initialConcentration') is not None):
+                raise SBMLParsingError(
+                    'Species cannot set both an initialAmount and an'
+                    ' initialConcentration.')
+
             # Set initial amount if provided
-            if amount:
-                if element.get('initialConcentration') is not None:
-                    raise SBMLParsingError(
-                        'Species with hasOnlySubstanceUnits="true" cannot set'
-                        ' initialConcentration.')
-                value = element.get('initialAmount')
-            else:
-                if element.get('initialAmount') is not None:
-                    raise SBMLParsingError(
-                        'Species with hasOnlySubstanceUnits="false" cannot set'
-                        ' initialAmount.')
-                value = element.get('initialConcentration')
+            value = element.get('initialAmount')
             if value is not None:
                 try:
                     value = float(value)
@@ -644,7 +649,20 @@ class SBMLParser(object):
                         + str(value) + '".', element)
 
                 # Ignore units in equations
-                species.set_initial_value(myokit.Number(value))
+                species.set_initial_amount(myokit.Number(value))
+
+            # Set initial concentration if provided
+            value = element.get('initialConcentration')
+            if value is not None:
+                try:
+                    value = float(value)
+                except ValueError:
+                    raise SBMLParsingError(
+                        'Unable to convert initial species value to float "'
+                        + str(value) + '".', element)
+
+                # Ignore units in equations
+                species.set_initial_concentration(myokit.Number(value))
 
             # Set conversion factor if provided (must refer to a parameter)
             factor = element.get('conversionFactor')
@@ -661,6 +679,43 @@ class SBMLParser(object):
             raise SBMLParsingError(
                 'Unable to parse ' + self._tag(element) + ': ' + str(e),
                 element)
+
+    def _set_species_initial_value(self, species):
+        """
+        Sets the initial value of a species based on the extracted
+        `initialAmount`/`initialConcentration`, `hasOnlySubstanceUnits`
+        attributes and the initial value of the compartment size.
+
+        Note that the initialAmount and initialConcentration cannot be set
+        simulatenously. So we set the initial value to the non-None value.
+        """
+        # Get parsed initial amount
+        value = species.initial_amount()
+
+        if value:
+            # Get initial compartment size
+            compartment = species.compartment()
+            size = compartment.initial_value()
+
+            # Set initial concentration
+            species.set_initial_concentration(myokit.Divide(value, size))
+
+        # Get parsed initial concentration
+        value = species.initial_concentration()
+
+        if value:
+            # Get initial compartment size
+            compartment = species.compartment()
+            size = compartment.initial_value()
+
+            # Set initial amount
+            species.set_initial_amount(myokit.Multiply(value, size))
+
+        # Set initial value to initial amount / initial concentration
+        if species.amount:
+            species.set_initial_value(species.initial_amount())
+        else:
+            species.set_initial_value(species.initial_concentration())
 
     def _parse_species_reference(self, element, model, reaction, ref_type):
         """Parses a ``speciesReference`` element inside a reaction."""
