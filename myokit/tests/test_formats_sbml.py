@@ -1210,6 +1210,42 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
         species = 'compartment.S2_concentration'
         self.assertTrue(self.model.has_variable(species))
 
+    def test_parameters_exist(self):
+        # Tests whether parameters have been imported properly. Parameters
+        # should be imported to the 'myokit' component.
+
+        # Parameter 1
+        parameter = 'myokit.k1'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 2
+        parameter = 'myokit.k2'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 3
+        parameter = 'myokit.V'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 4
+        parameter = 'myokit.i_Na'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 5
+        parameter = 'myokit.g_Na'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 6
+        parameter = 'myokit.m'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 7
+        parameter = 'myokit.h'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 8
+        parameter = 'myokit.Cm'
+        self.assertTrue(self.model.has_variable(parameter))
+
     def test_number_variables_in_components(self):
         # Test that no untested variables are in the components.
 
@@ -1220,6 +1256,15 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
 
         # Asssert that exactly n variables are in component
         component = self.model.get('compartment')
+        self.assertEqual(component.count_variables(), n)
+
+        # Check 'myokit' component
+        # Expected number of variables
+        # [k1, k2, V, i_Na, g_Na, m, h, Cm]
+        n = 8
+
+        # Asssert that exactly n variables are in component
+        component = self.model.get('myokit')
         self.assertEqual(component.count_variables(), n)
 
 
@@ -1248,30 +1293,6 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
     #     species = self.model.get('compartment.S2_concentration')
     #     self.assertEqual(species.eval(), expected_conc)
 
-    def test_parameters_exist(self):
-        # Tests whether species have been imported properly. Species should
-        # exist in amount, and if hasOnlySubstanceUnits is False also in
-        # concentration.
-
-        print(self.model.code())
-
-        # Species 1
-        # In amount
-        species = 'compartment.S1_amount'
-        self.assertTrue(self.model.has_variable(species))
-
-        # In concentration
-        species = 'compartment.S1_concentration'
-        self.assertTrue(self.model.has_variable(species))
-
-        # Species 1
-        # In amount
-        species = 'compartment.S2_amount'
-        self.assertTrue(self.model.has_variable(species))
-
-        # In concentration
-        species = 'compartment.S2_concentration'
-        self.assertTrue(self.model.has_variable(species))
 
 '''
     def test_constant_parameters(self):

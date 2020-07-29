@@ -1143,7 +1143,7 @@ class Model(object):
         '''
 
         # Add SBML compartments to myokit model
-        for sid, compartment in self._compartments.items():
+        for sid in self._compartments.keys():
             # Create component for compartment
             component = myokit_model.add_component_allow_renaming(
                 convert_name(sid))
@@ -1154,8 +1154,16 @@ class Model(object):
             # Add component size to compartment
             var = component.add_variable_allow_renaming('size')
 
-            # Set initial compartment size
-            var.set_rhs(compartment.initial_value())
+            # # Set initial compartment size
+            # var.set_rhs(compartment.initial_value())
+
+            # if compartment.rate():
+            #     # Promote to rate
+            #     var.promote(var.eval())
+
+            # if compartment.value():
+            #     # Set assignment rule or rate rule for compartment size
+            #     var.set_rhs(compartment.value())
 
             # Add size variable to reference list
             variable_references[sid] = var
@@ -1181,25 +1189,27 @@ class Model(object):
             component = component_references[compartment_sid]
 
             # Add species in amount to component
+            # (needed for reactions, even if species is defined in
+            # concentration)
             var = component.add_variable_allow_renaming(
                 sid + '_amount')
 
-            # Add initial amount of species
-            # Get initial value
-            value = species.initial_value()
+            # # Add initial amount of species
+            # # Get initial value
+            # value = species.initial_value()
 
-            # Need to convert intial value if
-            # 1. the species is in amount but initial value units are not
-            # 2. the species and the initial value is in concentration
-            if species.amount() != species.units_initial_value():
-                # Get initial compartment size
-                size = compartment.initial_value()
+            # # Need to convert intial value if
+            # # 1. the species is in amount but initial value units are not
+            # # 2. the species and the initial value is in concentration
+            # if species.amount() != species.units_initial_value():
+            #     # Get initial compartment size
+            #     size = compartment.initial_value()
 
-                # Convert initial value from concentration to amount
-                value = myokit.Multiply(value, size)
+            #     # Convert initial value from concentration to amount
+            #     value = myokit.Multiply(value, size)
 
-            # Set initial value
-            var.set_rhs(value)
+            # # Set initial value
+            # var.set_rhs(value)
 
             # Add reference to amount variable
             variable_references[sid + '_amount'] = var
@@ -1219,7 +1229,18 @@ class Model(object):
                     myokit.Name(size))
                 var.set_rhs(rhs)
 
-            # Add reference species (either in amount or concentration)
+            # Add reference to species (either in amount or concentration)
+            variable_references[sid] = var
+
+        # Add parameters to myokit component
+        for sid in self._parameters.keys():
+            # Get myokit component
+            component = component_references[myokit_component_name]
+
+            # Add parameter to component
+            var = component.add_variable_allow_renaming(sid)
+
+            # Add reference to parameter
             variable_references[sid] = var
 
         '''
