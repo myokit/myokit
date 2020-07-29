@@ -403,10 +403,6 @@ class SBMLParser(object):
             self._parse_compartment(compartment, model)
 
         # Parse species
-        # This does not set the initial value of the species just yet, as the
-        # initial concentration may be set indirectly by specifying the
-        # initial amount. It is then necessary to know the initial compartment
-        # size which may be set by an assignment.
         for species in element.findall(self._path('listOfSpecies', 'species')):
             self._parse_species(species, model)
 
@@ -428,11 +424,6 @@ class SBMLParser(object):
         # Parse rate rules
         for rule in element.findall(self._path('listOfRules', 'rateRule')):
             self._parse_rule(rule, model, True)
-
-        # Parse species part 2
-        # Set the initial value of the species
-        for species in model._species.values():
-            self._set_species_initial_value(species)
 
         return model
 
@@ -638,8 +629,12 @@ class SBMLParser(object):
                     'Species cannot set both an initialAmount and an'
                     ' initialConcentration.')
 
-            # Set initial amount if provided
+            # Get initial value
             value = element.get('initialAmount')
+            if value is None:
+                value = element.get('initialConcentration')
+
+            # Set initial value
             if value is not None:
                 try:
                     value = float(value)
@@ -649,20 +644,7 @@ class SBMLParser(object):
                         + str(value) + '".', element)
 
                 # Ignore units in equations
-                species.set_initial_amount(myokit.Number(value))
-
-            # Set initial concentration if provided
-            value = element.get('initialConcentration')
-            if value is not None:
-                try:
-                    value = float(value)
-                except ValueError:
-                    raise SBMLParsingError(
-                        'Unable to convert initial species value to float "'
-                        + str(value) + '".', element)
-
-                # Ignore units in equations
-                species.set_initial_concentration(myokit.Number(value))
+                species.set_initial_value(myokit.Number(value))
 
             # Set conversion factor if provided (must refer to a parameter)
             factor = element.get('conversionFactor')
@@ -945,12 +927,6 @@ class Compartment(Quantity):
         self._spatial_dimensions = None
         self._size_units = None
 
-        self._species = {}
-
-    def add_species(self, species):
-        """Adds a reference to species to compartment."""
-        self._species[species.sid()] = species
-
     def set_spatial_dimensions(self, dimensions):
         """
         Sets the dimensionality of this compartment's size (usually 1, 2, or
@@ -992,10 +968,6 @@ class Compartment(Quantity):
         Returns this compartment's spatial dimensions, or ``None`` if not set.
         """
         return self._spatial_dimensions
-
-    def species(self, ids):
-        """Returns species with given ID in the compartment."""
-        return self._species[ids]
 
     def __str__(self):
         return '<Compartment ' + str(self._sid) + '>'
@@ -1084,9 +1056,6 @@ class Model(object):
         s = Species(compartment, sid, amount, constant, boundary)
         self._species[sid] = s
         self._assignables[sid] = s
-
-        # Create a reference to the species also in the compartment object
-        compartment.add_species(s)
 
         return s
 
@@ -1814,9 +1783,6 @@ class Species(Quantity):
         self._constant = bool(constant)
         self._boundary = bool(boundary)
 
-        self._initial_amount = None
-        self._initial_conc = None
-
         # Units for the amount, not the concentration
         self._units = None
 
@@ -1855,36 +1821,12 @@ class Species(Quantity):
             return self._conversion_factor
         return self._compartment._model.conversion_factor()
 
-    def initial_amount(self):
-        """
-        Returns initial value of species in amount.
-        """
-        return self._initial_amount
-
-    def initial_concentration(self):
-        """
-        Returns initial value of species in concentration.
-        """
-        return self._initial_conc
-
     def set_conversion_factor(self, factor):
         """
         Sets a :class:`Parameter` as conversion factor for this species,
         see :meth:`conversion_factor()`.
         """
         self._conversion_factor = factor
-
-    def set_initial_amount(self, value):
-        """
-        Sets initial value of species in amount.
-        """
-        self._initial_amount = value
-
-    def set_initial_concentration(self, value):
-        """
-        Sets initial value of species in concentration.
-        """
-        self._initial_conc = value
 
     def set_substance_units(self, units):
         """Sets the units this species amount (not concentration) is in."""
