@@ -718,14 +718,14 @@ class SBMLParser(object):
         if value:
             # Update initial amount and concentration according to assignment
             # rule (for consistency)
-            if species.amount:
+            if species.amount():
                 species.set_initial_amount(value)
                 species.set_initial_concentration(myokit.Divide(value, size))
             else:
                 species.set_initial_amount(myokit.Multiply(value, size))
                 species.set_initial_concentration(value)
         else:
-            if species.amount:
+            if species.amount():
                 species.set_initial_value(species.initial_amount())
             else:
                 species.set_initial_value(species.initial_concentration())
