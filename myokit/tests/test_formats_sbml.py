@@ -895,21 +895,11 @@ class SBMLParserTest(unittest.TestCase):
         s = self.parse(a + x + b).species('s')
         self.assertEqual(s.initial_value(), myokit.Number(3))
 
-        # Initial amount, but should have concentration
-        x = ('<species compartment="c" id="s"'
-             ' hasOnlySubstanceUnits="false" initialAmount="3" />')
-        self.assertBad(a + x + b, 'cannot set')
-
         # Initial concentration
         x = ('<species compartment="c" id="s"'
              ' hasOnlySubstanceUnits="false" initialConcentration="1.2" />')
         s = self.parse(a + x + b).species('s')
         self.assertEqual(s.initial_value(), myokit.Number(1.2))
-
-        # Initial concentration, but should have amount
-        x = ('<species compartment="c" id="s"'
-             ' hasOnlySubstanceUnits="true" initialConcentration="3" />')
-        self.assertBad(a + x + b, 'cannot set')
 
         # Conversion factor parameter
         x = ('<species compartment="c" id="s" conversionFactor="p" />')
