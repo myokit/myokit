@@ -1154,6 +1154,9 @@ class Model(object):
             # Add component size to compartment
             var = component.add_variable_allow_renaming('size')
 
+            # Set initial compartment size
+            var.set_rhs(compartment.initial_value())
+
             # Add size variable to reference list
             variable_references[sid] = var
 
@@ -1181,18 +1184,42 @@ class Model(object):
             var = component.add_variable_allow_renaming(
                 sid + '_amount')
 
+            # Add initial amount of species
+            # Get initial value
+            value = species.initial_value()
+
+            # Need to convert intial value if
+            # 1. the species is in amount but initial value units are not
+            # 2. the species and the initial value is in concentration
+            if species.amount() != species.units_initial_value():
+                # Get initial compartment size
+                size = compartment.initial_value()
+
+                # Convert initial value from concentration to amount
+                value = myokit.Multiply(value, size)
+
+            # Set initial value
+            var.set_rhs(value)
+
+            # Add reference to amount variable
+            variable_references[sid + '_amount'] = var
+
             # Add species in concentration if measured in concentration
             if not species.amount():
-                # Add reference to amount variable
-                variable_references[sid + '_amount'] = var
-
                 # Add species in concentration
                 var = component.add_variable_allow_renaming(
                     sid + '_concentration')
 
-            # Add reference to concentration variable
-            # NOTE: sid is not altered, because this sid is the one that
-            # other SBML entries will refer to
+                # Get myokit size variable
+                size = variable_references[compartment_sid]
+
+                # Define RHS of concentration as amount / size
+                rhs = myokit.Divide(
+                    myokit.Name(variable_references[sid + '_amount']),
+                    myokit.Name(size))
+                var.set_rhs(rhs)
+
+            # Add reference species (either in amount or concentration)
             variable_references[sid] = var
 
         '''

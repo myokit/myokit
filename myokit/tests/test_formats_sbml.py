@@ -1177,6 +1177,14 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
         number = 2
         self.assertEqual(self.model.count_components(), number)
 
+    def test_compartment_initial_size(self):
+        # Tests whether species have been initialised with the correct values.
+
+        # Compartment 1
+        expected_size = 1
+        size = self.model.get('compartment.size')
+        self.assertEqual(size.eval(), expected_size)
+
     def test_species_exist(self):
         # Tests whether species have been imported properly. Species should
         # exist in amount, and if hasOnlySubstanceUnits is False also in
@@ -1201,6 +1209,31 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
         # In concentration
         species = 'compartment.S2_concentration'
         self.assertTrue(self.model.has_variable(species))
+
+    def test_species_initial_value(self):
+        # Tests whether species have been initialised with the correct values.
+
+        # Species 1
+        # Initial amount
+        expected_amount = 0.15
+        species = self.model.get('compartment.S1_amount')
+        self.assertEqual(species.eval(), expected_amount)
+
+        # Initial concentration
+        expected_conc = 0.15 / 1
+        species = self.model.get('compartment.S1_concentration')
+        self.assertEqual(species.eval(), expected_conc)
+
+        # Species 2
+        # Initial amount
+        expected_amount = 0
+        species = self.model.get('compartment.S2_amount')
+        self.assertEqual(species.eval(), expected_amount)
+
+        # Initial concentration
+        expected_conc = 0 / 1
+        species = self.model.get('compartment.S2_concentration')
+        self.assertEqual(species.eval(), expected_conc)
 
 
 '''
@@ -1487,7 +1520,7 @@ class SBMLHodgkinHuxleyExampleTest(unittest.TestCase):
             # Convert model to myokit model
             cls.model = model.myokit_model()
 
-    def test_compartments(self):
+    def test_compartments_exist(self):
         # Tests whether compartments have been imported properly. Compartments
         # should include the compartments in the SBML file, plus a myokit
         # compartment for the global parameters.
@@ -1503,6 +1536,9 @@ class SBMLHodgkinHuxleyExampleTest(unittest.TestCase):
         # total number of compartments
         number = 2
         self.assertEqual(self.model.count_components(), number)
+
+
+
 
 
 if __name__ == '__main__':
