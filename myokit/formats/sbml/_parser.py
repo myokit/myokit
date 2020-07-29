@@ -1117,19 +1117,6 @@ class Model(object):
         """
         return self._extent_units
 
-    def _get_component(self, myokit_model, compartment):
-        """
-        Returns the component of the myokit_model specfied by a
-        :class:`Compartment`.
-        """
-        # Get compartment id
-        sid = compartment.sid()
-
-        # Get component object from myokit model
-        component = myokit_model.get(sid)
-
-        return component
-
     def length_units(self):
         """
         Returns the default compartment size units for 1-dimensional
@@ -1172,19 +1159,11 @@ class Model(object):
         # Create myokit model
         myokit_model = myokit.Model(self.name())
 
-        #
-        # Bits of old code follow below
-        #
-
-        #
-        # Model
-        #
+        # Create reference container that links sid's to myokit object
+        component_references = {}
+        variable_references = {}
 
         '''
-        # Add special myokit compartment
-        #TODO: Delay until later
-        model.components['myokit'] = myokit_model.add_component('myokit')
-
         # Add time variable
         #TODO: Delay until later
         time = model.components['myokit'].add_variable('time')
@@ -1202,48 +1181,55 @@ class Model(object):
         # Add SBML compartments to myokit model
         for sid, compartment in self._compartments.items():
             # Create component for compartment
-            component = myokit_model.add_component(convert_name(sid))
+            component = myokit_model.add_component_allow_renaming(
+                convert_name(sid))
 
-            # Add size parameter for compartment
-            var = component.add_variable(convert_name(sid))
+            # Add component to reference list
+            component_references[sid] = component
 
-            # Set initial value
-            # If no initial value specified, it's fine to pass None
-            var.set_rhs(compartment.initial_value())
+            # Add component size to compartment
+            var = component.add_variable_allow_renaming('size')
 
-            # Set unit
-            var.set_unit(compartment.size_units())
+            # Add size variable to reference list
+            variable_references[sid] = var
 
-            if compartment.rate():
-                # Promote variable to rate
-                var.promote(state_value=compartment.initial_value())
-
-            if compartment.value():
-                # Set rhs expression
-                # If no rhs is specified, we don't want to overwrite the
-                # initial value
-                var.set_rhs(compartment.value())
-
-        # Add myokit compartment to model to store time bound variable
+        # Add myokit component to model to store time bound variable
         # and global parameters
+
         # Create default name of component
         myokit_component_name = 'myokit'
 
         # Add component
-        myokit_component = myokit_model.add_component_allow_renaming(
+        component = myokit_model.add_component_allow_renaming(
             myokit_component_name)
 
-        # Retrieve name in case it was altered
-        myokit_component_name = myokit_component.name()
+        # Add myokit component to referece list
+        component_references[myokit_component_name] = component
 
         # Add species to components
         for sid, species in self._species.items():
-            # Get component
-            component = self._get_component(
-                myokit_model, species.compartment())
+            # Get component from reference list
+            compartment = species.compartment()
+            compartment_sid = compartment.sid()
+            component = component_references[compartment_sid]
 
-            # Add species to component
-            var = component  # what name ? amount/conc
+            # Add species in amount to component
+            var = component.add_variable_allow_renaming(
+                sid + '_amount')
+
+            # Add species in concentration if measured in concentration
+            if not species.amount():
+                # Add reference to amount variable
+                variable_references[sid + '_amount'] = var
+
+                # Add species in concentration
+                var = component.add_variable_allow_renaming(
+                    sid + '_concentration')
+
+            # Add reference to concentration variable
+            # NOTE: sid is not altered, because this sid is the one that
+            # other SBML entries will refer to
+            variable_references[sid] = var
 
         '''
         value = element.get('initialAmount')

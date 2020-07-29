@@ -1116,9 +1116,10 @@ class SBMLParserTest(unittest.TestCase):
             model = self.parse(xml)
         self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
         self.assertEqual(w.count(), 1)
+'''
 
 
-class SBMLDocumentTest(unittest.TestCase):
+class SBMLTestSuiteExampleTest(unittest.TestCase):
     """
     Tests parsing an SBML file with species, compartments, and reactions, as
     well as assignment rules.
@@ -1130,32 +1131,36 @@ class SBMLDocumentTest(unittest.TestCase):
     def setUpClass(cls):
         p = SBMLParser()
         with WarningCollector():
-            cls.model = p.parse_file(os.path.join(
+            # Parse SBML model
+            model = p.parse_file(os.path.join(
                 DIR_FORMATS, 'sbml', '00004-sbml-l3v2-modified.xml'))
 
-    def test_assignment_rules(self):
-        # Tests whether intermediate variables have been assigned with correct
-        # expressions.
+            # Convert model to myokit model
+            cls.model = model.myokit_model()
 
-        # parameter 1
-        parameter = 'S1_Concentration'
-        parameter = self.model.get('compartment.' + parameter)
-        expression = 'compartment.S1 / compartment.size'
-        self.assertEqual(str(parameter.rhs()), expression)
+    # def test_assignment_rules(self):
+    #     # Tests whether intermediate variables have been assigned with correct
+    #     # expressions.
 
-        # parameter 2
-        parameter = 'S2_Concentration'
-        parameter = self.model.get('compartment.' + parameter)
-        expression = 'compartment.S2 / compartment.size'
-        self.assertEqual(str(parameter.rhs()), expression)
+    #     # parameter 1
+    #     parameter = 'S1_Concentration'
+    #     parameter = self.model.get('compartment.' + parameter)
+    #     expression = 'compartment.S1 / compartment.size'
+    #     self.assertEqual(str(parameter.rhs()), expression)
 
-        # parameter 3
-        parameter = 'i_Na'
-        parameter = self.model.get('myokit.' + parameter)
-        expression = 'myokit.g_Na * myokit.m ^ 3'
-        self.assertEqual(str(parameter.rhs()), expression)
+    #     # parameter 2
+    #     parameter = 'S2_Concentration'
+    #     parameter = self.model.get('compartment.' + parameter)
+    #     expression = 'compartment.S2 / compartment.size'
+    #     self.assertEqual(str(parameter.rhs()), expression)
 
-    def test_compartments(self):
+    #     # parameter 3
+    #     parameter = 'i_Na'
+    #     parameter = self.model.get('myokit.' + parameter)
+    #     expression = 'myokit.g_Na * myokit.m ^ 3'
+    #     self.assertEqual(str(parameter.rhs()), expression)
+
+    def test_compartments_exist(self):
         # Tests whether compartments have been imported properly. Compartments
         # should include the compartments in the SBML file, plus a myokit
         # compartment for the global parameters.
@@ -1172,6 +1177,33 @@ class SBMLDocumentTest(unittest.TestCase):
         number = 2
         self.assertEqual(self.model.count_components(), number)
 
+    def test_species_exist(self):
+        # Tests whether species have been imported properly. Species should
+        # exist in amount, and if hasOnlySubstanceUnits is False also in
+        # concentration.
+
+        print(self.model.code())
+
+        # Species 1
+        # In amount
+        species = 'compartment.S1_amount'
+        self.assertTrue(self.model.has_variable(species))
+
+        # In concentration
+        species = 'compartment.S1_concentration'
+        self.assertTrue(self.model.has_variable(species))
+
+        # Species 1
+        # In amount
+        species = 'compartment.S2_amount'
+        self.assertTrue(self.model.has_variable(species))
+
+        # In concentration
+        species = 'compartment.S2_concentration'
+        self.assertTrue(self.model.has_variable(species))
+
+
+'''
     def test_constant_parameters(self):
         # Tests whether all constant parameters in the file were properly
         # imported.
@@ -1442,7 +1474,7 @@ class SBMLDocumentTest(unittest.TestCase):
 '''
 
 
-class TestParserMyokitModel(unittest.TestCase):
+class SBMLHodgkinHuxleyExampleTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -1459,8 +1491,6 @@ class TestParserMyokitModel(unittest.TestCase):
         # Tests whether compartments have been imported properly. Compartments
         # should include the compartments in the SBML file, plus a myokit
         # compartment for the global parameters.
-
-        print(self.model.code())
 
         # compartment 1
         comp = 'unit_compartment'
