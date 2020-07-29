@@ -263,6 +263,12 @@ class SBMLParser(object):
                 lambda x, y: myokit.Name(model.assignable(x)),
             ))
 
+            # Indicate for species that the units of the inital value are
+            # correct (initialAssignments are meant to assign the value
+            # in the correct units amount/concentration)
+            if isinstance(var, Species):
+                var.set_units_initial_value(True)
+
         except SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse initial assignment: ' + str(e), element)
@@ -629,10 +635,18 @@ class SBMLParser(object):
                     'Species cannot set both an initialAmount and an'
                     ' initialConcentration.')
 
-            # Get initial value
+            # Get initial amount
             value = element.get('initialAmount')
+
+            # Indicate whether units of initial value are correct
+            species.set_units_initial_value(species.amount())
+
+            # If initial amount is not provided, get initial concentration
             if value is None:
                 value = element.get('initialConcentration')
+
+                # Indicate whether units of initial value are correct
+                species.set_units_initial_value(not species.amount())
 
             # Set initial value
             if value is not None:
@@ -661,56 +675,6 @@ class SBMLParser(object):
             raise SBMLParsingError(
                 'Unable to parse ' + self._tag(element) + ': ' + str(e),
                 element)
-
-    def _set_species_initial_value(self, species):
-        """
-        Sets the initial value of a species based on the extracted
-        `initialAmount`/`initialConcentration`, `hasOnlySubstanceUnits`
-        attributes and the initial value of the compartment size.
-
-        Note that 1. initialAssignemnts overrule initialAmount and
-        initialConcentration, so if the initial value is non-None we update
-        the initial amount and initial concentration accordingly, 2. the
-        initialAmount and initialConcentration cannot be set
-        simulatenously. So we set the initial value to the non-None value,
-        if it hasn't been set by an initialAssignment.
-
-        """
-        # Get initial compartment size
-        compartment = species.compartment()
-        size = compartment.initial_value()
-
-        # Get intitial amount
-        value = species.initial_amount()
-
-        # Set initial concentration
-        if value and size:
-            species.set_initial_concentration(myokit.Divide(value, size))
-
-        # Get initial concentration
-        value = species.initial_concentration()
-
-        # Set initial amount
-        if value and size:
-            species.set_initial_amount(myokit.Multiply(value, size))
-
-        # Get initial value (only non-None if initialAssignment exists)
-        value = species.initial_value()
-
-        if value and size:
-            # Update initial amount and concentration according to assignment
-            # rule (for consistency)
-            if species.amount():
-                species.set_initial_amount(value)
-                species.set_initial_concentration(myokit.Divide(value, size))
-            else:
-                species.set_initial_amount(myokit.Multiply(value, size))
-                species.set_initial_concentration(value)
-        else:
-            if species.amount():
-                species.set_initial_value(species.initial_amount())
-            else:
-                species.set_initial_value(species.initial_concentration())
 
     def _parse_species_reference(self, element, model, reaction, ref_type):
         """Parses a ``speciesReference`` element inside a reaction."""
@@ -1775,6 +1739,10 @@ class Species(Quantity):
         # Optional conversion factor from substance to extent units
         self._conversion_factor = None
 
+        # Flag whether initial value is in correct units
+        # (amount or concentration)
+        self._units_initial_value = True
+
     def amount(self):
         """
         Returns ``True`` only if this species is defined as an amount (not a
@@ -1817,6 +1785,16 @@ class Species(Quantity):
     def set_substance_units(self, units):
         """Sets the units this species amount (not concentration) is in."""
         self._units = units
+
+    def set_units_initial_value(self, flag):
+        """Sets a flag whether the units of the initial value are correct."""
+        self._units_initial_value = flag
+
+    def units_initial_value(self):
+        """
+        Returns a boolean flag whether the initial value has the correct units.
+        """
+        return self._units_initial_value
 
     def sid(self):
         """Returns this species's sid."""
