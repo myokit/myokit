@@ -1232,6 +1232,39 @@ class SBMLTestMyokitModel(unittest.TestCase):
         var = m.get('c.size')
         self.assertEqual(var.eval(), 5)
 
+    def test_compartment_size_value(self):
+        # Tests whether setting the value of the size variable works.
+
+        a = '<model><listOfCompartments>' \
+            + '<compartment id="c" size="10"/>' \
+            + '</listOfCompartments>'
+
+        b = '</model>'
+
+        # Test I: assignmentRule
+        x = '<listOfParameters>' + \
+            '  <parameter id="V" value="1.2">' + \
+            '  </parameter>' + \
+            '</listOfParameters>' + \
+            '<listOfRules>' + \
+            '  <assignmentRule variable="c"> ' + \
+            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
+            '      <apply>' + \
+            '        <plus/>' + \
+            '        <ci> V </ci>' + \
+            '        <cn> 5 </cn>' + \
+            '      </apply>' + \
+            '    </math>' + \
+            '  </assignmentRule>' + \
+            '</listOfRules>'
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check initial value of size
+        var = m.get('c.size')
+        self.assertEqual(var.eval(), 5)
+
     def test_existing_myokit_compartment(self):
         # Tests whether renaming of 'myokit' compartment works.
 

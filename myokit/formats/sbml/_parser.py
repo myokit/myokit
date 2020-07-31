@@ -1127,6 +1127,9 @@ class Model(object):
         component_references = {}
         variable_references = {}
 
+        # Create reference from Model expressions to myokit model expressions
+        expression_references = {}
+
         '''
         notes = model.notes()
         if notes:
@@ -1153,6 +1156,7 @@ class Model(object):
 
             # Add size variable to reference list
             variable_references[sid] = var
+            expression_references[myokit.Name(compartment)] = myokit.Name(var)
 
         # Add myokit component to model to store time bound variable
         # and global parameters
@@ -1201,7 +1205,9 @@ class Model(object):
             # var.set_rhs(value)
 
             # Add reference to amount variable
+            # Needed for reactions regardless of what the true units are
             variable_references[sid + '_amount'] = var
+            expression_references[sid + '_amount'] = myokit.Name(var)
 
             # Add species in concentration if measured in concentration
             if not species.amount():
@@ -1209,20 +1215,22 @@ class Model(object):
                 var = component.add_variable_allow_renaming(
                     sid + '_concentration')
 
-                # Get myokit size variable
+                # Get myokit amount and size variable
+                amount = variable_references[sid + '_amount']
                 size = variable_references[compartment_sid]
 
                 # Set unit of concentration
-                var.set_unit(species.substance_units() / size.unit())
+                var.set_unit(amount.unit() / size.unit())
 
                 # Define RHS of concentration as amount / size
                 rhs = myokit.Divide(
-                    myokit.Name(variable_references[sid + '_amount']),
+                    myokit.Name(amount),
                     myokit.Name(size))
                 var.set_rhs(rhs)
 
             # Add reference to species (either in amount or concentration)
             variable_references[sid] = var
+            expression_references[myokit.Name(species)] = myokit.Name(var)
 
         # Add parameters to myokit component
         for sid, parameter in self._parameters.items():
@@ -1237,6 +1245,7 @@ class Model(object):
 
             # Add reference to parameter
             variable_references[sid] = var
+            expression_references[myokit.Name(parameter)] = myokit.Name(var)
 
         # Add time variable to myokit component
         component = component_references[myokit_component_name]
@@ -1252,7 +1261,8 @@ class Model(object):
         # Add reference to time variable
         # (SBML referes to time by a csymbol:
         # 'http://www.sbml.org/sbml/symbols/time/')
-        variable_references['http://www.sbml.org/sbml/symbols/time'] = var
+        variable_references[
+            'http://www.sbml.org/sbml/symbols/time'] = var
 
         # Set RHS of compartment sizes
         for sid, compartment in self._compartments.items():
@@ -1264,8 +1274,19 @@ class Model(object):
             # we have to map between sid and variables)
             expr = compartment.initial_value()
             if expr:
-                var.set_rhs(expr.clone(subst=variable_references))
+                var.set_rhs(expr.clone(
+                    subst=variable_references))
 
+            if compartment.rate():
+                # Promote size to state varibale
+                var.promote(state_value=var.eval())
+
+            # Set RHS
+            # (assignmentRule overwrites initialAssignment)
+            expr = compartment.value()
+            if expr:
+                var.set_rhs(expr.clone(
+                    subst=variable_references))
 
         '''
         value = element.get('initialAmount')
