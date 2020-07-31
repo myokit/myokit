@@ -1225,12 +1225,15 @@ class Model(object):
             variable_references[sid] = var
 
         # Add parameters to myokit component
-        for sid in self._parameters.keys():
+        for sid, parameter in self._parameters.items():
             # Get myokit component
             component = component_references[myokit_component_name]
 
             # Add parameter to component
             var = component.add_variable_allow_renaming(sid)
+
+            # Set unit of parameter
+            var.set_unit(parameter.units())
 
             # Add reference to parameter
             variable_references[sid] = var

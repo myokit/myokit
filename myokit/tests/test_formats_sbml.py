@@ -1132,6 +1132,47 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(amount.unit(), myokit.units.kg)
         self.assertEqual(conc.unit(), myokit.units.kg / myokit.units.meter)
 
+    def test_myokit_model_parameter_exist(self):
+        # Tests whether initialisation of parameters works properly.
+
+        a = '<model><listOfParameters>'
+        b = '</listOfParameters></model>'
+
+        x = '<parameter id="a" /><parameter id="b" />'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check that model created parameters in 'myokit' component
+        self.assertTrue(m.has_variable('myokit.a'))
+        self.assertTrue(m.has_variable('myokit.b'))
+
+        # Checl that total number of parameters is 3
+        # [a, b, time]
+        self.assertEqual(m.count_variables(), 3)
+
+    def test_myokit_model_parameter_units(self):
+        # Tests whether parameter units are set properly.
+
+        a = '<model><listOfParameters>'
+        b = '</listOfParameters></model>'
+
+        x = ('<parameter id="c" value="2" />'
+             '<parameter id="d" units="volt" />'
+             '<parameter id="e" units="ampere" value="-1.2e-3" />')
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Get parameters
+        c = m.get('myokit.c')
+        d = m.get('myokit.d')
+        e = m.get('myokit.e')
+
+        # Check that units are set properly
+        self.assertIsNone(c.unit())
+        self.assertEqual(d.unit(), myokit.units.volt)
+        self.assertEqual(e.unit(), myokit.units.ampere)
+
+
     '''
     def test_reserved_compartment_id(self):
         # ``Myokit`` is a reserved ID that is used while importing for the
