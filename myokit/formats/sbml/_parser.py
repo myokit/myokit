@@ -597,7 +597,7 @@ class SBMLParser(object):
 
         # Check if constant, and if at a reaction boundary
         constant = element.get('constant', 'false') == 'true'
-        boundary = element.get('boundary', 'false') == 'true'
+        boundary = element.get('boundaryCondition', 'false') == 'true'
 
         # Note: In lines like the above we could raise an error if the value
         # isn't 'true' or false', but for now we're being lenient.
