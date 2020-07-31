@@ -1232,7 +1232,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         var = m.get('c.size')
         self.assertEqual(var.eval(), 5)
 
-    def test_compartment_size_value(self):
+    def test_compartment_size_values(self):
         # Tests whether setting the value of the size variable works.
 
         a = '<model><listOfCompartments>' \
@@ -1263,6 +1263,33 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
         # Check initial value of size
         var = m.get('c.size')
+        self.assertEqual(var.eval(), 6.2)
+
+        # Test II: rateRule
+        x = '<listOfParameters>' + \
+            '  <parameter id="V" value="1.2">' + \
+            '  </parameter>' + \
+            '</listOfParameters>' + \
+            '<listOfRules>' + \
+            '  <rateRule variable="c"> ' + \
+            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
+            '      <apply>' + \
+            '        <plus/>' + \
+            '        <ci> V </ci>' + \
+            '        <cn> 5 </cn>' + \
+            '      </apply>' + \
+            '    </math>' + \
+            '  </rateRule>' + \
+            '</listOfRules>'
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check that size is state variable
+        var = m.get('c.size')
+        self.assertTrue(var.is_state())
+
+        # Check that value is set correctly
         self.assertEqual(var.eval(), 6.2)
 
     def test_existing_myokit_compartment(self):
@@ -1408,6 +1435,45 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
     def test_parameter_initial_values(self):
         # Tests whether initial values of parameters are set correctly.
+
+        a = '<model>'
+        b = '</model>'
+
+        # Test I: Initial value set by parameter
+        x = '<listOfParameters>' + \
+            '  <parameter id="V" value="1.2">' + \
+            '  </parameter>' + \
+            '</listOfParameters>'
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check initial value of parameter
+        var = m.get('myokit.V')
+        self.assertEqual(var.eval(), 1.2)
+
+        # Test II: Initial value set by initialAssignment
+        x = '<listOfParameters>' + \
+            '  <parameter id="V" value="1.2">' + \
+            '  </parameter>' + \
+            '</listOfParameters>' + \
+            '<listOfInitialAssignments>' + \
+            '  <initialAssignment symbol="V">' + \
+            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
+            '      <cn>5</cn>' + \
+            '    </math>' + \
+            '  </initialAssignment>' + \
+            '</listOfInitialAssignments>'
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check initial value of size
+        var = m.get('myokit.V')
+        self.assertEqual(var.eval(), 5)
+
+    def test_parameter_values(self):
+        # Tests whether values of parameters are set correctly.
 
         a = '<model>'
         b = '</model>'
