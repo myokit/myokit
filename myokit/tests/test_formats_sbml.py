@@ -1172,6 +1172,27 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(d.unit(), myokit.units.volt)
         self.assertEqual(e.unit(), myokit.units.ampere)
 
+    def test_myokit_model_time(self):
+        # Tests whether time variable is created properly.
+
+        a = '<model timeUnits="second"><listOfParameters>'
+        b = '</listOfParameters></model>'
+
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check that time variable exists
+        self.assertTrue(m.has_variable('myokit.time'))
+
+        # Check that unit is set
+        var = m.get('myokit.time')
+        self.assertEqual(var.unit(), myokit.units.second)
+
+        # Check that initial value is set
+        self.assertEqual(var.eval(), 0)
+
+
+
 
     '''
     def test_reserved_compartment_id(self):
