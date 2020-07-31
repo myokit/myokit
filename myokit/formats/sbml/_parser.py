@@ -1187,23 +1187,6 @@ class Model(object):
             # Set unit of amount
             var.set_unit(species.substance_units())
 
-            # # Add initial amount of species
-            # # Get initial value
-            # value = species.initial_value()
-
-            # # Need to convert intial value if
-            # # 1. the species is in amount but initial value units are not
-            # # 2. the species and the initial value is in concentration
-            # if species.amount() != species.units_initial_value():
-            #     # Get initial compartment size
-            #     size = compartment.initial_value()
-
-            #     # Convert initial value from concentration to amount
-            #     value = myokit.Multiply(value, size)
-
-            # # Set initial value
-            # var.set_rhs(value)
-
             # Add reference to amount variable
             # Needed for reactions regardless of what the true units are
             variable_references[sid + '_amount'] = var
@@ -1246,6 +1229,35 @@ class Model(object):
             # Add reference to parameter
             variable_references[sid] = var
             expression_references[myokit.Name(parameter)] = myokit.Name(var)
+
+        # Add stoichiometries from reactions
+        for reaction in self._reactions.values():
+            # Get all reactants and products (modifier do not have
+            # stoichiometries)
+            species_referencres = reaction.reactants() + reaction.products()
+
+            for species_reference in species_referencres:
+                # Get sid
+                sid = species_reference.sid()
+
+                if sid:
+                    # Get component
+                    species = species_reference.species()
+                    compartment = species.compartment()
+                    compartment_sid = compartment.sid()
+                    component = component_references[compartment_sid]
+
+                    # Add variable to component
+                    var = component.add_variable_allow_renaming(sid)
+
+                    # Set unit of variable
+                    # (SBML defines stoichiometries as dimensionless)
+                    var.set_unit(myokit.units.dimensionless)
+
+                    # Add reference to variable
+                    variable_references[sid] = var
+                    expression_references[
+                        myokit.Name(species_reference)] = myokit.Name(var)
 
         # Add time variable to myokit component
         component = component_references[myokit_component_name]

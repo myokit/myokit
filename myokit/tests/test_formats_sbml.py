@@ -1626,6 +1626,52 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Check value of parameter
         self.assertEqual(var.eval(), 6.2)
 
+    def test_stoichiometries_exist(self):
+        # Tests whether stoichiometries are created properly.
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" />'
+             '  <species id="s2" compartment="c" />'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="s1" id="sr" />'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="s2" id="sp" />'
+             '   </listOfProducts>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <plus/>'
+             '      <ci>s1</ci>'
+             '      <ci>s2</ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        # d = (' <listOfInitialAssignments>'
+        #      '  <initialAssignment symbol="sr">'
+        #      '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+        #      '     <cn>4.51</cn>'
+        #      '   </math>'
+        #      '  </initialAssignment>'
+        #      ' </listOfInitialAssignments>')
+        b = ('</model>')
+
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check that stoichiometry variables exists
+        self.assertTrue(m.has_variable('c.sr'))
+        self.assertTrue(m.has_variable('c.sp'))
+
     def test_time(self):
         # Tests whether time variable is created properly.
 
