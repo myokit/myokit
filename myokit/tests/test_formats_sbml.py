@@ -1349,6 +1349,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
     def test_species_units(self):
         # Tests whether species units are set properly.
+
         a = ('<model>'
              ' <listOfCompartments>'
              '  <compartment id="c" />'
@@ -1388,6 +1389,48 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
         self.assertEqual(amount.unit(), myokit.units.kg)
         self.assertEqual(conc.unit(), myokit.units.kg / myokit.units.meter)
+
+    def test_species_initial_values(self):
+        # Tests whether initial values of species is set properly.
+        a = ('<model>'
+             '  <listOfCompartments>'
+             '    <compartment id="c" size="10"/>'
+             '  </listOfCompartments>'
+             '  <listOfSpecies>'
+             '    <species compartment="c" id="spec"'
+             '      initialConcentration="2.1"/>'
+             '  </listOfSpecies>')
+        b = ('</model>')
+
+        # Test I: Set by species
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check that intial values are set
+        amount = m.get('c.spec_amount')
+        conc = m.get('c.spec_concentration')
+
+        self.assertEqual(amount.eval(), 21)
+        self.assertEqual(conc.eval(), 2.1)
+
+        # Test II: Set by initialAssignment
+        x = ('<listOfInitialAssignments>'
+             '  <initialAssignment symbol="spec">'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '      <cn>5</cn>'
+             '    </math>'
+             '  </initialAssignment>'
+             '</listOfInitialAssignments>')
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check that intial values are set
+        amount = m.get('c.spec_amount')
+        conc = m.get('c.spec_concentration')
+
+        self.assertEqual(amount.eval(), 50)
+        self.assertEqual(conc.eval(), 5)
 
     def test_parameter_exist(self):
         # Tests whether initialisation of parameters works properly.
