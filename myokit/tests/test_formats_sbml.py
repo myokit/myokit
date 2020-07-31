@@ -1263,7 +1263,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
         # Check initial value of size
         var = m.get('c.size')
-        self.assertEqual(var.eval(), 5)
+        self.assertEqual(var.eval(), 6.2)
 
     def test_existing_myokit_compartment(self):
         # Tests whether renaming of 'myokit' compartment works.
@@ -1405,6 +1405,45 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertIsNone(c.unit())
         self.assertEqual(d.unit(), myokit.units.volt)
         self.assertEqual(e.unit(), myokit.units.ampere)
+
+    def test_parameter_initial_values(self):
+        # Tests whether initial values of parameters are set correctly.
+
+        a = '<model>'
+        b = '</model>'
+
+        # Test I: Initial value set by parameter
+        x = '<listOfParameters>' + \
+            '  <parameter id="V" value="1.2">' + \
+            '  </parameter>' + \
+            '</listOfParameters>'
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check initial value of parameter
+        var = m.get('myokit.V')
+        self.assertEqual(var.eval(), 1.2)
+
+        # Test II: Initial value set by initialAssignment
+        x = '<listOfParameters>' + \
+            '  <parameter id="V" value="1.2">' + \
+            '  </parameter>' + \
+            '</listOfParameters>' + \
+            '<listOfInitialAssignments>' + \
+            '  <initialAssignment symbol="V">' + \
+            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
+            '      <cn>5</cn>' + \
+            '    </math>' + \
+            '  </initialAssignment>' + \
+            '</listOfInitialAssignments>'
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check initial value of size
+        var = m.get('myokit.V')
+        self.assertEqual(var.eval(), 5)
 
     def test_time(self):
         # Tests whether time variable is created properly.
