@@ -1149,7 +1149,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
             '</sbml>'
         )
 
-    def test_myokit_model_compartments_exist(self):
+    def test_compartments_exist(self):
         # Tests compartment conversion from SBML to myokit model.
 
         a = '<model><listOfCompartments>'
@@ -1170,7 +1170,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # (component 'a' and 'myokit')
         self.assertEqual(m.count_components(), 2)
 
-    def test_myokit_model_compartment_size_exists(self):
+    def test_compartment_size_exists(self):
         # Tests whether compartment size variable is created.
 
         a = '<model><listOfCompartments>'
@@ -1184,7 +1184,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Check that size variable exists
         self.assertTrue(m.has_variable('c.size'))
 
-    def test_myokit_model_compartment_size_unit(self):
+    def test_compartment_size_unit(self):
         # Tests whether compartment size variable units are set correctly.
 
         a = '<model><listOfCompartments>'
@@ -1199,7 +1199,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         var = m.get('c.size')
         self.assertEqual(var.unit(), myokit.units.meter)
 
-    def test_myokit_model_compartment_size_initial_value(self):
+    def test_compartment_size_initial_value(self):
         # Tests whether setting the intial value of size variable works.
 
         a = '<model><listOfCompartments>' \
@@ -1232,7 +1232,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         var = m.get('c.size')
         self.assertEqual(var.eval(), 5)
 
-    def test_myokit_model_existing_myokit_compartment(self):
+    def test_existing_myokit_compartment(self):
         # Tests whether renaming of 'myokit' compartment works.
 
         a = '<model><listOfCompartments>'
@@ -1253,7 +1253,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # (component 'a' and 'myokit')
         self.assertEqual(m.count_components(), 2)
 
-    def test_myokit_model_species_exist(self):
+    def test_species_exist(self):
         # Tests whether species initialisation in amount and concentration
         # works.
         a = ('<model>'
@@ -1291,7 +1291,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         component = m.get('c')
         self.assertEqual(component.count_variables(), 3)
 
-    def test_myokit_model_species_units(self):
+    def test_species_units(self):
         # Tests whether species units are set properly.
         a = ('<model>'
              ' <listOfCompartments>'
@@ -1333,7 +1333,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(amount.unit(), myokit.units.kg)
         self.assertEqual(conc.unit(), myokit.units.kg / myokit.units.meter)
 
-    def test_myokit_model_parameter_exist(self):
+    def test_parameter_exist(self):
         # Tests whether initialisation of parameters works properly.
 
         a = '<model><listOfParameters>'
@@ -1351,7 +1351,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # [a, b, time]
         self.assertEqual(m.count_variables(), 3)
 
-    def test_myokit_model_parameter_units(self):
+    def test_parameter_units(self):
         # Tests whether parameter units are set properly.
 
         a = '<model><listOfParameters>'
@@ -1373,7 +1373,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(d.unit(), myokit.units.volt)
         self.assertEqual(e.unit(), myokit.units.ampere)
 
-    def test_myokit_model_time(self):
+    def test_time(self):
         # Tests whether time variable is created properly.
 
         a = '<model timeUnits="second"><listOfParameters>'
