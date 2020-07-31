@@ -1180,6 +1180,9 @@ class Model(object):
             var = component.add_variable_allow_renaming(
                 sid + '_amount')
 
+            # Set unit of amount
+            var.set_unit(species.substance_units())
+
             # # Add initial amount of species
             # # Get initial value
             # value = species.initial_value()
@@ -1208,6 +1211,9 @@ class Model(object):
 
                 # Get myokit size variable
                 size = variable_references[compartment_sid]
+
+                # Set unit of concentration
+                var.set_unit(species.substance_units() / size.unit())
 
                 # Define RHS of concentration as amount / size
                 rhs = myokit.Divide(
