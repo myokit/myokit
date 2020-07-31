@@ -863,10 +863,10 @@ class SBMLParserTest(unittest.TestCase):
 
         # Boundary
         self.assertFalse(s0.boundary())
-        x = '<species compartment="c" id="s" boundary="false" />'
+        x = '<species compartment="c" id="s" boundaryCondition="false" />'
         s = self.parse(a + x + b).species('s')
         self.assertFalse(s.boundary())
-        x = '<species compartment="c" id="s" boundary="true" />'
+        x = '<species compartment="c" id="s" boundaryCondition="true" />'
         s = self.parse(a + x + b).species('s')
         self.assertTrue(s.boundary())
 
@@ -1432,6 +1432,62 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(amount.eval(), 50)
         self.assertEqual(conc.eval(), 5)
 
+    def test_species_values(self):
+        # Tests whether values of species is set properly. This does not
+        # include rate expressions from reactions.
+
+        a = ('<model>'
+             '  <listOfCompartments>'
+             '    <compartment id="c" size="10"/>'
+             '  </listOfCompartments>'
+             '  <listOfSpecies>'
+             '    <species compartment="c" id="spec"'
+             '      initialConcentration="2.1" boundaryCondition="true"/>'
+             '  </listOfSpecies>')
+        b = ('</model>')
+
+        # Test I: Set by assignmentRule
+        x = ('<listOfRules>'
+             '  <assignmentRule variable="spec"> '
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '      <apply>'
+             '        <plus/>'
+             '        <ci> c </ci>'
+             '        <cn> 5 </cn>'
+             '      </apply>'
+             '    </math>'
+             '  </assignmentRule>'
+             '</listOfRules>')
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check that intial values are set
+        amount = m.get('c.spec_amount')
+        conc = m.get('c.spec_concentration')
+
+        self.assertEqual(amount.eval(), 150)
+        self.assertEqual(conc.eval(), 15)
+
+        # Test II: Set by initialAssignment
+        x = ('<listOfInitialAssignments>'
+             '  <initialAssignment symbol="spec">'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '      <cn>5</cn>'
+             '    </math>'
+             '  </initialAssignment>'
+             '</listOfInitialAssignments>')
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check that intial values are set
+        amount = m.get('c.spec_amount')
+        conc = m.get('c.spec_concentration')
+
+        self.assertEqual(amount.eval(), 50)
+        self.assertEqual(conc.eval(), 5)
+
     def test_parameter_exist(self):
         # Tests whether initialisation of parameters works properly.
 
@@ -1446,7 +1502,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertTrue(m.has_variable('myokit.a'))
         self.assertTrue(m.has_variable('myokit.b'))
 
-        # Checl that total number of parameters is 3
+        # Check that total number of parameters is 3
         # [a, b, time]
         self.assertEqual(m.count_variables(), 3)
 
