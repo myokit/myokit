@@ -1234,9 +1234,9 @@ class Model(object):
         for reaction in self._reactions.values():
             # Get all reactants and products (modifier do not have
             # stoichiometries)
-            species_referencres = reaction.reactants() + reaction.products()
+            species_references = reaction.reactants() + reaction.products()
 
-            for species_reference in species_referencres:
+            for species_reference in species_references:
                 # Get sid
                 sid = species_reference.sid()
 
@@ -1288,7 +1288,7 @@ class Model(object):
                     subst=expression_references))
 
             if compartment.rate():
-                # Promote size to state varibale
+                # Promote size to state variable
                 var.promote(state_value=var.eval())
 
             # Set RHS
@@ -1324,7 +1324,7 @@ class Model(object):
                 var.set_rhs(expr.clone(subst=expression_references))
 
             if species.rate():
-                # Promote species to be state variable
+                # Promote species to state variable
                 var.promote(var.eval())
 
             # Set RHS (reactions are dealt with elsewhere)
@@ -1355,7 +1355,7 @@ class Model(object):
                     subst=expression_references))
 
             if parameter.rate():
-                # Promote size to state varibale
+                # Promote parameter to state variable
                 var.promote(state_value=var.eval())
 
             # Set RHS
@@ -1364,6 +1364,39 @@ class Model(object):
             if expr:
                 var.set_rhs(expr.clone(
                     subst=expression_references))
+
+        # Set RHS of stoichiometries
+        for reaction in self._reactions.values():
+            # Get all reactants and products (modifier do not have
+            # stoichiometries)
+            species_references = reaction.reactants() + reaction.products()
+
+            for species_reference in species_references:
+                # Get sid
+                sid = species_reference.sid()
+
+                # Get stoichiometry variable
+                try:
+                    var = variable_references[sid]
+                except KeyError:
+                    continue
+
+                # Set initial value
+                expr = species_reference.initial_value()
+                if expr:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+
+                if species_reference.rate():
+                    # Promote stoichiometry to state variable
+                    var.promote(state_value=var.eval())
+
+                # Set RHS
+                # (assignmentRule overwrites initialAssignment)
+                expr = species_reference.value()
+                if expr:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
 
         '''
         value = element.get('initialAmount')
