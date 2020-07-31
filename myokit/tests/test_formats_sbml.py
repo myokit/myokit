@@ -1462,31 +1462,35 @@ class SBMLTestMyokitModel(unittest.TestCase):
         m = self.parse(a + x + b)
         m = m.myokit_model()
 
-        # Check that intial values are set
+        # Check that values are set
         amount = m.get('c.spec_amount')
         conc = m.get('c.spec_concentration')
 
         self.assertEqual(amount.eval(), 150)
         self.assertEqual(conc.eval(), 15)
 
-        # Test II: Set by initialAssignment
-        x = ('<listOfInitialAssignments>'
-             '  <initialAssignment symbol="spec">'
+        # Test II: Set by rateRule
+        x = ('<listOfRules>'
+             '  <rateRule variable="spec"> '
              '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <cn>5</cn>'
+             '      <apply>'
+             '        <plus/>'
+             '        <ci> c </ci>'
+             '        <cn> 5 </cn>'
+             '      </apply>'
              '    </math>'
-             '  </initialAssignment>'
-             '</listOfInitialAssignments>')
+             '  </rateRule>'
+             '</listOfRules>')
 
         m = self.parse(a + x + b)
         m = m.myokit_model()
 
         # Check that intial values are set
-        amount = m.get('c.spec_amount')
+        damount = m.get('c.spec_amount')
         conc = m.get('c.spec_concentration')
 
-        self.assertEqual(amount.eval(), 50)
-        self.assertEqual(conc.eval(), 5)
+        self.assertEqual(damount.eval(), 150)
+        self.assertEqual(conc.eval(), 2.1)
 
     def test_parameter_exist(self):
         # Tests whether initialisation of parameters works properly.
