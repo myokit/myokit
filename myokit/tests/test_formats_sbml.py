@@ -1656,13 +1656,6 @@ class SBMLTestMyokitModel(unittest.TestCase):
              '   </kineticLaw>'
              '  </reaction>'
              ' </listOfReactions>')
-        # d = (' <listOfInitialAssignments>'
-        #      '  <initialAssignment symbol="sr">'
-        #      '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
-        #      '     <cn>4.51</cn>'
-        #      '   </math>'
-        #      '  </initialAssignment>'
-        #      ' </listOfInitialAssignments>')
         b = ('</model>')
 
         m = self.parse(a + b)
@@ -1671,6 +1664,73 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Check that stoichiometry variables exists
         self.assertTrue(m.has_variable('c.sr'))
         self.assertTrue(m.has_variable('c.sp'))
+
+    def test_stoichiometries_initial_value(self):
+        # Tests whether initial values of stoichiometries are set properly.
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" />'
+             '  <species id="s2" compartment="c" />'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="s1" id="sr" stoichiometry="2.1"/>'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="s2" id="sp" stoichiometry="3.5"/>'
+             '   </listOfProducts>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <plus/>'
+             '      <ci>s1</ci>'
+             '      <ci>s2</ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        b = ('</model>')
+
+        # Test I: Set by speciesReference
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check that initial values are set properly
+        stoich_reactant = m.get('c.sr')
+        stoich_product = m.get('c.sp')
+
+        self.assertEqual(stoich_reactant.eval(), 2.1)
+        self.assertEqual(stoich_product.eval(), 3.5)
+
+        # Test I: Set by initialAssignment
+        x = (' <listOfInitialAssignments>'
+             '  <initialAssignment symbol="sr">'
+             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <cn>4.51</cn>'
+             '   </math>'
+             '  </initialAssignment>'
+             '  <initialAssignment symbol="sp">'
+             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <cn>6</cn>'
+             '   </math>'
+             '  </initialAssignment>'
+             ' </listOfInitialAssignments>')
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check that initial values are set properly
+        stoich_reactant = m.get('c.sr')
+        stoich_product = m.get('c.sp')
+
+        self.assertEqual(stoich_reactant.eval(), 4.51)
+        self.assertEqual(stoich_product.eval(), 6)
 
     def test_time(self):
         # Tests whether time variable is created properly.
@@ -1765,8 +1825,6 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
         # Tests whether species have been imported properly. Species should
         # exist in amount, and if hasOnlySubstanceUnits is False also in
         # concentration.
-
-        print(self.model.code())
 
         # Species 1
         # In amount
