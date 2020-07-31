@@ -1254,6 +1254,19 @@ class Model(object):
         # 'http://www.sbml.org/sbml/symbols/time/')
         variable_references['http://www.sbml.org/sbml/symbols/time'] = var
 
+        # Set RHS of compartment sizes
+        for sid, compartment in self._compartments.items():
+            # Get myokit variable
+            var = variable_references[sid]
+
+            # Set initial value
+            # (Because myokit names do not necessarily coincide with sid's,
+            # we have to map between sid and variables)
+            expr = compartment.initial_value()
+            if expr:
+                var.set_rhs(expr.clone(subst=variable_references))
+
+
         '''
         value = element.get('initialAmount')
         if value is None:

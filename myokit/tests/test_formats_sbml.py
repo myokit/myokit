@@ -993,28 +993,42 @@ class SBMLParserTest(unittest.TestCase):
         # (component 'a' and 'myokit')
         self.assertEqual(m.count_components(), 2)
 
-    def test_myokit_model_compartment_size(self):
-        # Tests whether compartment size variable is created and units are set
-        # correctly.
+    def test_myokit_model_compartment_size_exists(self):
+        # Tests whether compartment size variable is created.
 
-        # Test I: No size unit provided
-        a = '<model><listOfCompartments>'
-        b = '</listOfCompartments></model>'
+        a = '<model><listOfCompartments>' \
+            + '<compartment id="c" size="10"/>' \
+            + '</listOfCompartments>'
 
-        # Test simple compartment
-        x = '<compartment id="c" />'
+        b = '</model>'
+
+        # Test 1: Initial value assigned from compartment
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check initial value of size
+        var = m.get('c.size')
+        self.assertEqual(var.eval(), 10)
+
+        # Test 2: Initial value assigned by initialAssignment
+        x = '<listOfInitialAssignments>' + \
+            '  <initialAssignment symbol="c">' + \
+            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
+            '      <cn>5</cn>' + \
+            '    </math>' + \
+            '  </initialAssignment>' + \
+            '</listOfInitialAssignments>'
+
         m = self.parse(a + x + b)
         m = m.myokit_model()
 
-        # Test that size variable exists
-        component = m.get('c')
-        self.assertTrue(component.has_variable('size'))
+        # Check initial value of size
+        var = m.get('c.size')
+        self.assertEqual(var.eval(), 5)
 
-        # Check that units are set correctly
-        var = component.get('size')
-        self.assertEqual(var.unit(), myokit.units.dimensionless)
+    def test_myokit_model_compartment_size_unit(self):
+        # Tests whether compartment size variable units are set correctly.
 
-        # Test II: Size unit provided
         a = '<model><listOfCompartments>'
         b = '</listOfCompartments></model>'
 
@@ -1023,16 +1037,27 @@ class SBMLParserTest(unittest.TestCase):
         m = self.parse(a + x + b)
         m = m.myokit_model()
 
-        # Test that size variable exists
-        component = m.get('c')
-        self.assertTrue(component.has_variable('size'))
+        # Check that units are set correctly
+        var = m.get('c.size')
+        self.assertEqual(var.unit(), myokit.units.meter)
+
+    def test_myokit_model_compartment_size_initial_value(self):
+        # Tests whether setting the intial value of size variable works.
+
+        a = '<model><listOfCompartments>'
+        b = '</listOfCompartments></model>'
+
+        # Test simple compartment
+        x = '<compartment id="c" units="meter"/>'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
 
         # Check that units are set correctly
-        var = component.get('size')
+        var = m.get('c.size')
         self.assertEqual(var.unit(), myokit.units.meter)
 
     def test_myokit_model_existing_myokit_compartment(self):
-        # Tests that renaming of 'myokit' compartment works.
+        # Tests whether renaming of 'myokit' compartment works.
 
         a = '<model><listOfCompartments>'
         b = '</listOfCompartments></model>'
@@ -1191,6 +1216,8 @@ class SBMLParserTest(unittest.TestCase):
         # Check that initial value is set
         self.assertEqual(var.eval(), 0)
 
+        # Chet that variable is time bound
+        self.assertTrue(var.binding(), 'time')
 
 
 
