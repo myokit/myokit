@@ -1775,7 +1775,8 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
             cls.model = model.myokit_model()
 
     # def test_assignment_rules(self):
-    #     # Tests whether intermediate variables have been assigned with correct
+    #     # Tests whether intermediate variables have been assigned with
+    # correct
     #     # expressions.
 
     #     # parameter 1
@@ -1814,7 +1815,8 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
         self.assertEqual(self.model.count_components(), number)
 
     # def test_compartment_initial_size(self):
-    #     # Tests whether species have been initialised with the correct values.
+    #     # Tests whether species have been initialised with the correct
+    # values.
 
     #     # Compartment 1
     #     expected_size = 1
@@ -1903,9 +1905,9 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
         component = self.model.get('myokit')
         self.assertEqual(component.count_variables(), n)
 
-
     # def test_species_initial_value(self):
-    #     # Tests whether species have been initialised with the correct values.
+    #     # Tests whether species have been initialised with the correct
+    # values.
 
     #     # Species 1
     #     # Initial amount
@@ -2338,7 +2340,6 @@ class SBMLHodgkinHuxleyExampleTest(unittest.TestCase):
         # Parameter 26
         parameter = 'myokit.beta_n'
         self.assertTrue(self.model.has_variable(parameter))
-
 
 
 if __name__ == '__main__':
