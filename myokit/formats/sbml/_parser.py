@@ -1128,22 +1128,16 @@ class Model(object):
         variable_references = {}
 
         '''
-        # Add time variable
-        #TODO: Delay until later
-        time = model.components['myokit'].add_variable('time')
-        time.set_binding('time')
-        time.set_unit(model.model_units['timeUnits'])
-        time.set_rhs(0)
-        model.param_and_species['http://www.sbml.org/sbml/symbols/time'] = time
-
-
         notes = model.notes()
         if notes:
             myokit_model.meta['desc'] = notes
         '''
+        # Instantiate component and variable objects first without assigning
+        # RHS expressions. Myokit objects may have to be renamed, so
+        # expressions are added in a second step.
 
         # Add SBML compartments to myokit model
-        for sid in self._compartments.keys():
+        for sid, compartment in self._compartments.items():
             # Create component for compartment
             component = myokit_model.add_component_allow_renaming(
                 convert_name(sid))
@@ -1151,19 +1145,11 @@ class Model(object):
             # Add component to reference list
             component_references[sid] = component
 
-            # Add component size to compartment
+            # Add compartment size to component
             var = component.add_variable_allow_renaming('size')
 
-            # # Set initial compartment size
-            # var.set_rhs(compartment.initial_value())
-
-            # if compartment.rate():
-            #     # Promote to rate
-            #     var.promote(var.eval())
-
-            # if compartment.value():
-            #     # Set assignment rule or rate rule for compartment size
-            #     var.set_rhs(compartment.value())
+            # Set unit of size variable
+            var.set_unit(compartment.size_units())
 
             # Add size variable to reference list
             variable_references[sid] = var
@@ -1242,6 +1228,22 @@ class Model(object):
 
             # Add reference to parameter
             variable_references[sid] = var
+
+        # Add time variable to myokit component
+        component = component_references[myokit_component_name]
+        var = component.add_variable_allow_renaming('time')
+
+        # Bind time variable to time in myokit model
+        var.set_binding('time')
+
+        # Set time unit and initial value (SBML default: t=0)
+        var.set_unit(self.time_units())
+        var.set_rhs(0)
+
+        # Add reference to time variable
+        # (SBML referes to time by a csymbol:
+        # 'http://www.sbml.org/sbml/symbols/time/')
+        variable_references['http://www.sbml.org/sbml/symbols/time'] = var
 
         '''
         value = element.get('initialAmount')

@@ -993,6 +993,44 @@ class SBMLParserTest(unittest.TestCase):
         # (component 'a' and 'myokit')
         self.assertEqual(m.count_components(), 2)
 
+    def test_myokit_model_compartment_size(self):
+        # Tests whether compartment size variable is created and units are set
+        # correctly.
+
+        # Test I: No size unit provided
+        a = '<model><listOfCompartments>'
+        b = '</listOfCompartments></model>'
+
+        # Test simple compartment
+        x = '<compartment id="c" />'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Test that size variable exists
+        component = m.get('c')
+        self.assertTrue(component.has_variable('size'))
+
+        # Check that units are set correctly
+        var = component.get('size')
+        self.assertEqual(var.unit(), myokit.units.dimensionless)
+
+        # Test II: Size unit provided
+        a = '<model><listOfCompartments>'
+        b = '</listOfCompartments></model>'
+
+        # Test simple compartment
+        x = '<compartment id="c" units="meter"/>'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Test that size variable exists
+        component = m.get('c')
+        self.assertTrue(component.has_variable('size'))
+
+        # Check that units are set correctly
+        var = component.get('size')
+        self.assertEqual(var.unit(), myokit.units.meter)
+
     def test_myokit_model_existing_myokit_compartment(self):
         # Tests that renaming of 'myokit' compartment works.
 
@@ -1344,8 +1382,8 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
 
         # Check 'myokit' component
         # Expected number of variables
-        # [k1, k2, V, i_Na, g_Na, m, h, Cm]
-        n = 8
+        # [k1, k2, V, i_Na, g_Na, m, h, Cm, time]
+        n = 9
 
         # Asssert that exactly n variables are in component
         component = self.model.get('myokit')
