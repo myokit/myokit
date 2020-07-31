@@ -1270,8 +1270,6 @@ class Model(object):
             var = variable_references[sid]
 
             # Set initial value
-            # (Because myokit names do not necessarily coincide with sid's,
-            # we have to map between sid and variables)
             expr = compartment.initial_value()
             if expr:
                 var.set_rhs(expr.clone(
@@ -1288,14 +1286,57 @@ class Model(object):
                 var.set_rhs(expr.clone(
                     subst=expression_references))
 
+        # Set RHS of species (initalAssignemnt, assignmentRule, rateRule)
+        # NOTE: Concentration is already set by (amount / size). So we
+        # only set RHS of amount here.
+        for sid, species in self._species.items():
+            # Get myokit variable
+            # We only adapt amount of species
+            var = variable_references[sid + '_amount']
+
+            # Set initial value
+            expr = species.initial_value()
+            if expr:
+                # Need to convert initial value if
+                # 1. the species is in amount but initial value units are not
+                # 2. the species and the initial value is in concentration
+                if species.amount() != species.units_initial_value():
+                    # Get initial compartment size
+                    compartment = species.compartment()
+                    size = compartment.initial_value()
+
+                    # Convert initial value from concentration to amount
+                    expr = myokit.Multiply(expr, size)
+
+                # Set initial value
+                var.set_rhs(expr.clone(subst=expression_references))
+
+            if species.rate():
+                # Promote species to be state variable
+                var.promote(var.eval())
+
+            # Set RHS (reactions are dealt with elsewhere)
+            expr = species.value()
+            if expr:
+                # Need to convert initial value if species is measured in
+                # concentration (assignments match unit of measurement)
+                if not species.amount():
+                    # Get initial compartment size
+                    compartment = species.compartment()
+                    size = compartment.initial_value()
+
+                    # Convert initial value from concentration to amount
+                    expr = myokit.Multiply(expr, size)
+
+                # Set initial value
+                var.set_rhs(expr.clone(subst=expression_references))
+
         # Set RHS of parameters
         for sid, parameter in self._parameters.items():
             # Get myokit variable
             var = variable_references[sid]
 
             # Set initial value
-            # (Because myokit names do not necessarily coincide with sid's,
-            # we have to map between sid and variables)
             expr = parameter.initial_value()
             if expr:
                 var.set_rhs(expr.clone(
@@ -1311,7 +1352,6 @@ class Model(object):
             if expr:
                 var.set_rhs(expr.clone(
                     subst=expression_references))
-
 
         '''
         value = element.get('initialAmount')
