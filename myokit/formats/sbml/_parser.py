@@ -1275,7 +1275,7 @@ class Model(object):
             expr = compartment.initial_value()
             if expr:
                 var.set_rhs(expr.clone(
-                    subst=variable_references))
+                    subst=expression_references))
 
             if compartment.rate():
                 # Promote size to state varibale
@@ -1286,7 +1286,32 @@ class Model(object):
             expr = compartment.value()
             if expr:
                 var.set_rhs(expr.clone(
-                    subst=variable_references))
+                    subst=expression_references))
+
+        # Set RHS of parameters
+        for sid, parameter in self._parameters.items():
+            # Get myokit variable
+            var = variable_references[sid]
+
+            # Set initial value
+            # (Because myokit names do not necessarily coincide with sid's,
+            # we have to map between sid and variables)
+            expr = parameter.initial_value()
+            if expr:
+                var.set_rhs(expr.clone(
+                    subst=expression_references))
+
+            if parameter.rate():
+                # Promote size to state varibale
+                var.promote(state_value=var.eval())
+
+            # Set RHS
+            # (assignmentRule overwrites initialAssignment)
+            expr = parameter.value()
+            if expr:
+                var.set_rhs(expr.clone(
+                    subst=expression_references))
+
 
         '''
         value = element.get('initialAmount')
