@@ -972,6 +972,88 @@ class SBMLParserTest(unittest.TestCase):
         xml = '<unitDefinition id="123" />'
         self.assertBad(a + xml + b, 'Invalid UnitSId')
 
+    def test_myokit_model_compartments_exist(self):
+        # Tests compartment conversion from SBML to myokit model.
+
+        a = '<model><listOfCompartments>'
+        b = '</listOfCompartments></model>'
+
+        # Test simple compartment
+        x = '<compartment id="a" />'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check whether component 'a' exists
+        self.assertTrue(m.has_component('a'))
+
+        # Check whether component 'myokit' exists
+        self.assertTrue(m.has_component('myokit'))
+
+        # Check that number of components is as expected
+        # (component 'a' and 'myokit')
+        self.assertEqual(m.count_components(), 2)
+
+    def test_myokit_model_existing_myokit_compartment(self):
+        # Tests that renaming of 'myokit' compartment works.
+
+        a = '<model><listOfCompartments>'
+        b = '</listOfCompartments></model>'
+
+        # Test simple compartment
+        x = '<compartment id="myokit" />'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check whether component 'a' exists
+        self.assertTrue(m.has_component('myokit'))
+
+        # Check whether component 'myokit' exists
+        self.assertTrue(m.has_component('myokit_1'))
+
+        # Check that number of components is as expected
+        # (component 'a' and 'myokit')
+        self.assertEqual(m.count_components(), 2)
+
+    def test_myokit_model_species_exist(self):
+        # Tests whether species initialisation in amount and concentration
+        # works.
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>')
+        b = (' </listOfSpecies>'
+             '</model>')
+
+        # Species in amount
+        x = '<species compartment="c" id="spec" hasOnlySubstanceUnits="true"/>'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check whether species exists in amount
+        self.assertTrue(m.has_variable('c.spec_amount'))
+
+        # Check that component has 2 variables
+        # [size, spec_amount]
+        component = m.get('c')
+        self.assertEqual(component.count_variables(), 2)
+
+        # Species in concentration
+        x = '<species compartment="c" id="spec" />'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check whether species exists in amount and concentration
+        self.assertTrue(m.has_variable('c.spec_amount'))
+        self.assertTrue(m.has_variable('c.spec_concentration'))
+
+        # Check that component has 3 variables
+        # [size, spec_amount, spec_concentration]
+        component = m.get('c')
+        self.assertEqual(component.count_variables(), 3)
+
+
+
     '''
     def test_reserved_compartment_id(self):
         # ``Myokit`` is a reserved ID that is used while importing for the
@@ -1212,8 +1294,10 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
 
     def test_parameters_exist(self):
         # Tests whether parameters have been imported properly. Parameters
-        # should be imported to the 'myokit' component.
+        # should be imported to the 'myokit' component, except the 'size'
+        # parameters
 
+        #
         # Parameter 1
         parameter = 'myokit.k1'
         self.assertTrue(self.model.has_variable(parameter))
@@ -1595,7 +1679,113 @@ class SBMLHodgkinHuxleyExampleTest(unittest.TestCase):
         number = 2
         self.assertEqual(self.model.count_components(), number)
 
+    def test_parameters_exist(self):
+        # Tests whether parameters have been imported properly. Parameters
+        # should be imported to the 'myokit' component.
 
+        # Parameter 1
+        parameter = 'myokit.V'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 2
+        parameter = 'myokit.V_neg'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 3
+        parameter = 'myokit.E'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 4
+        parameter = 'myokit.I'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 5
+        parameter = 'myokit.i_Na'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 6
+        parameter = 'myokit.i_K'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 7
+        parameter = 'myokit.m'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 8
+        parameter = 'myokit.h'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 9
+        parameter = 'myokit.n'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 10
+        parameter = 'myokit.E_R'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 11
+        parameter = 'myokit.Cm'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 12
+        parameter = 'myokit.g_Na'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 13
+        parameter = 'myokit.g_K'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 14
+        parameter = 'myokit.g_L'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 15
+        parameter = 'myokit.E_Na'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 16
+        parameter = 'myokit.E_K'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 17
+        parameter = 'myokit.E_L'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 18
+        parameter = 'myokit.V_Na'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 19
+        parameter = 'myokit.V_K'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 20
+        parameter = 'myokit.V_L'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 21
+        parameter = 'myokit.alpha_m'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 22
+        parameter = 'myokit.beta_m'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 23
+        parameter = 'myokit.alpha_h'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 24
+        parameter = 'myokit.beta_h'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 25
+        parameter = 'myokit.alpha_n'
+        self.assertTrue(self.model.has_variable(parameter))
+
+        # Parameter 26
+        parameter = 'myokit.beta_n'
+        self.assertTrue(self.model.has_variable(parameter))
 
 
 
