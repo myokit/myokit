@@ -972,6 +972,183 @@ class SBMLParserTest(unittest.TestCase):
         xml = '<unitDefinition id="123" />'
         self.assertBad(a + xml + b, 'Invalid UnitSId')
 
+    '''
+    def test_reserved_compartment_id(self):
+        # ``Myokit`` is a reserved ID that is used while importing for the
+        # myokit compartment.
+
+        xml = (
+            '<model id="test" name="test" timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="myokit"/>'
+            '</listOfCompartments>'
+            '</model>')
+        self.assertBad(xml=xml, message='The id "myokit".')
+
+    def test_reserved_parameter_id(self):
+        # ``globalConversionFactor`` is a reserved ID that is used while
+        # importing the global conversion factor.
+
+        xml = (
+            '<model id="test" conversionFactor="someFactor" '
+            'timeUnits="second">'
+            '<listOfParameters>'
+            '<parameter id="globalConversionFactor"/>'
+            '</listOfParameters>'
+            '</model>')
+        self.assertBad(
+            xml=xml,
+            message='The ID <globalConversionFactor> is protected in a myokit'
+            ' SBML import. Please rename IDs.')
+
+    def test_stoichiometry_reference(self):
+        # Tests whether stoichiometry parameters are linked properly to global
+        # variables.
+
+        # Check that reactant stoichiometry is added as parameter to referenced
+        # compartment
+        comp_id = 'someComp'
+        stoich_id = 'someStoich'
+        xml = (
+            '<model id="test" name="test" timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="' + comp_id + '"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
+            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="' + comp_id + '" '
+            'constant="false" boundaryCondition="false"/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction compartment="' + comp_id + '">'
+            '<listOfReactants>'
+            '<speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>'
+            '</listOfReactants>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
+        with WarningCollector() as w:
+            model = self.parse(xml)
+        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+        self.assertEqual(w.count(), 1)
+
+        # Check that reactant stoichiometry is added as parameter to <myokit>
+        # compartment, if no compartment is referenced
+        comp_id = 'myokit'
+        stoich_id = 'someStoich'
+        xml = (
+            '<model id="test" name="test" timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
+            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction >'
+            '<listOfReactants>'
+            '<speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>'
+            '</listOfReactants>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
+        with WarningCollector() as w:
+            model = self.parse(xml)
+        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+        self.assertEqual(w.count(), 1)
+
+        # Check that product stoichiometry is added as parameter to referenced
+        # compartment
+        comp_id = 'someComp'
+        stoich_id = 'someStoich'
+        xml = (
+            '<model id="test" name="test" timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="' + comp_id + '"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
+            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="' + comp_id + '" '
+            'constant="false" boundaryCondition="false"/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction compartment="' + comp_id + '">'
+            '<listOfProducts>'
+            '<speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>'
+            '</listOfProducts>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
+        with WarningCollector() as w:
+            model = self.parse(xml)
+        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+        self.assertEqual(w.count(), 1)
+
+        # Check that product stoichiometry is added as parameter to <myokit>
+        # compartment, if no compartment is referenced
+        comp_id = 'myokit'
+        stoich_id = 'someStoich'
+        xml = (
+            '<model id="test" name="test" timeUnits="second">'
+            '<listOfCompartments>'
+            '<compartment id="someComp"/>'
+            '</listOfCompartments>'
+            '<listOfSpecies>'
+            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
+            'compartment="someComp" constant="false" boundaryCondition="false"'
+            '/>'
+            '</listOfSpecies>'
+            '<listOfReactions>'
+            '<reaction >'
+            '<listOfProducts>'
+            '<speciesReference species="someSpecies" '
+            'id="' + stoich_id + '"/>'
+            '</listOfProducts>'
+            '</reaction>'
+            '</listOfReactions>'
+            '</model>')
+        with WarningCollector() as w:
+            model = self.parse(xml)
+        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
+        self.assertEqual(w.count(), 1)
+'''
+
+
+class SBMLTestMyokitModel(unittest.TestCase):
+    """
+    Unit tests for Model.myokit_model method.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.p = SBMLParser()
+
+    def parse(self, xml, lvl=3, v=2):
+        """
+        Inserts the given ``xml`` into an <sbml> element, parses it, and
+        returns the result.
+        """
+        return self.p.parse_string(self.wrap(xml, lvl, v))
+
+    def wrap(self, xml_content, level=3, version=2):
+        """
+        Wraps ``xml_content`` into an SBML document of the specified ``level``
+        and ``version``.
+        """
+        lv = 'level' + str(level) + '/version' + str(version)
+        return (
+            '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
+            ' level="' + str(level) + '"'
+            ' version="' + str(version) + '">'
+            + xml_content +
+            '</sbml>'
+        )
+
     def test_myokit_model_compartments_exist(self):
         # Tests compartment conversion from SBML to myokit model.
 
@@ -995,6 +1172,35 @@ class SBMLParserTest(unittest.TestCase):
 
     def test_myokit_model_compartment_size_exists(self):
         # Tests whether compartment size variable is created.
+
+        a = '<model><listOfCompartments>'
+        b = '</listOfCompartments></model>'
+
+        # Test simple compartment
+        x = '<compartment id="c" />'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check that size variable exists
+        self.assertTrue(m.has_variable('c.size'))
+
+    def test_myokit_model_compartment_size_unit(self):
+        # Tests whether compartment size variable units are set correctly.
+
+        a = '<model><listOfCompartments>'
+        b = '</listOfCompartments></model>'
+
+        # Test simple compartment
+        x = '<compartment id="c" units="meter"/>'
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check that units are set correctly
+        var = m.get('c.size')
+        self.assertEqual(var.unit(), myokit.units.meter)
+
+    def test_myokit_model_compartment_size_initial_value(self):
+        # Tests whether setting the intial value of size variable works.
 
         a = '<model><listOfCompartments>' \
             + '<compartment id="c" size="10"/>' \
@@ -1025,36 +1231,6 @@ class SBMLParserTest(unittest.TestCase):
         # Check initial value of size
         var = m.get('c.size')
         self.assertEqual(var.eval(), 5)
-
-    def test_myokit_model_compartment_size_unit(self):
-        # Tests whether compartment size variable units are set correctly.
-
-        a = '<model><listOfCompartments>'
-        b = '</listOfCompartments></model>'
-
-        # Test simple compartment
-        x = '<compartment id="c" units="meter"/>'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that units are set correctly
-        var = m.get('c.size')
-        self.assertEqual(var.unit(), myokit.units.meter)
-
-    def test_myokit_model_compartment_size_initial_value(self):
-        # Tests whether setting the intial value of size variable works.
-
-        a = '<model><listOfCompartments>'
-        b = '</listOfCompartments></model>'
-
-        # Test simple compartment
-        x = '<compartment id="c" units="meter"/>'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that units are set correctly
-        var = m.get('c.size')
-        self.assertEqual(var.unit(), myokit.units.meter)
 
     def test_myokit_model_existing_myokit_compartment(self):
         # Tests whether renaming of 'myokit' compartment works.
@@ -1218,154 +1394,6 @@ class SBMLParserTest(unittest.TestCase):
 
         # Chet that variable is time bound
         self.assertTrue(var.binding(), 'time')
-
-
-
-    '''
-    def test_reserved_compartment_id(self):
-        # ``Myokit`` is a reserved ID that is used while importing for the
-        # myokit compartment.
-
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="myokit"/>'
-            '</listOfCompartments>'
-            '</model>')
-        self.assertBad(xml=xml, message='The id "myokit".')
-
-    def test_reserved_parameter_id(self):
-        # ``globalConversionFactor`` is a reserved ID that is used while
-        # importing the global conversion factor.
-
-        xml = (
-            '<model id="test" conversionFactor="someFactor" '
-            'timeUnits="second">'
-            '<listOfParameters>'
-            '<parameter id="globalConversionFactor"/>'
-            '</listOfParameters>'
-            '</model>')
-        self.assertBad(
-            xml=xml,
-            message='The ID <globalConversionFactor> is protected in a myokit'
-            ' SBML import. Please rename IDs.')
-
-    def test_stoichiometry_reference(self):
-        # Tests whether stoichiometry parameters are linked properly to global
-        # variables.
-
-        # Check that reactant stoichiometry is added as parameter to referenced
-        # compartment
-        comp_id = 'someComp'
-        stoich_id = 'someStoich'
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="' + comp_id + '"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="' + comp_id + '" '
-            'constant="false" boundaryCondition="false"/>'
-            '</listOfSpecies>'
-            '<listOfReactions>'
-            '<reaction compartment="' + comp_id + '">'
-            '<listOfReactants>'
-            '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>'
-            '</listOfReactants>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            model = self.parse(xml)
-        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
-        self.assertEqual(w.count(), 1)
-
-        # Check that reactant stoichiometry is added as parameter to <myokit>
-        # compartment, if no compartment is referenced
-        comp_id = 'myokit'
-        stoich_id = 'someStoich'
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>'
-            '</listOfSpecies>'
-            '<listOfReactions>'
-            '<reaction >'
-            '<listOfReactants>'
-            '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>'
-            '</listOfReactants>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            model = self.parse(xml)
-        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
-        self.assertEqual(w.count(), 1)
-
-        # Check that product stoichiometry is added as parameter to referenced
-        # compartment
-        comp_id = 'someComp'
-        stoich_id = 'someStoich'
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="' + comp_id + '"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="' + comp_id + '" '
-            'constant="false" boundaryCondition="false"/>'
-            '</listOfSpecies>'
-            '<listOfReactions>'
-            '<reaction compartment="' + comp_id + '">'
-            '<listOfProducts>'
-            '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>'
-            '</listOfProducts>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            model = self.parse(xml)
-        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
-        self.assertEqual(w.count(), 1)
-
-        # Check that product stoichiometry is added as parameter to <myokit>
-        # compartment, if no compartment is referenced
-        comp_id = 'myokit'
-        stoich_id = 'someStoich'
-        xml = (
-            '<model id="test" name="test" timeUnits="second">'
-            '<listOfCompartments>'
-            '<compartment id="someComp"/>'
-            '</listOfCompartments>'
-            '<listOfSpecies>'
-            '<species id="someSpecies" hasOnlySubstanceUnits="true" '
-            'compartment="someComp" constant="false" boundaryCondition="false"'
-            '/>'
-            '</listOfSpecies>'
-            '<listOfReactions>'
-            '<reaction >'
-            '<listOfProducts>'
-            '<speciesReference species="someSpecies" '
-            'id="' + stoich_id + '"/>'
-            '</listOfProducts>'
-            '</reaction>'
-            '</listOfReactions>'
-            '</model>')
-        with WarningCollector() as w:
-            model = self.parse(xml)
-        self.assertTrue(model.has_variable(comp_id + '.' + stoich_id))
-        self.assertEqual(w.count(), 1)
-'''
 
 
 class SBMLTestSuiteExampleTest(unittest.TestCase):
