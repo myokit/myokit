@@ -679,6 +679,14 @@ class SBMLParserTest(unittest.TestCase):
         x = '<parameter id="123" />'
         self.assertBad(a + x + b, 'Invalid SId')
 
+        # Bad units
+        x = '<parameter id="x" units="made-up" />'
+        self.assertBad(a + x + b, 'Unknown units')
+
+        # Bad value
+        x = '<parameter id="x" value="made-up" />'
+        self.assertBad(a + x + b, 'Unable to convert parameter value')
+
     def test_parse_reaction(self):
         # Test parsing reactions, species references, kinetic laws
 
