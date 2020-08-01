@@ -1123,9 +1123,13 @@ class Model(object):
         # Create myokit model
         myokit_model = myokit.Model(self.name())
 
-        # Create reference container that links sid's to myokit object
+        # Create reference container that links sid's to myokit objects
         component_references = {}
         variable_references = {}
+
+        # Create additional container for species variables in amount
+        # (Reactions define rates exclusively for amount of species)
+        species_amount_references = {}
 
         # Create reference from Model expressions to myokit model expressions
         expression_references = {}
@@ -1188,9 +1192,7 @@ class Model(object):
             var.set_unit(species.substance_units())
 
             # Add reference to amount variable
-            # Needed for reactions regardless of what the true units are
-            variable_references[sid + '_amount'] = var
-            expression_references[sid + '_amount'] = myokit.Name(var)
+            species_amount_references[sid] = var
 
             # Add species in concentration if measured in concentration
             if not species.amount():
@@ -1199,7 +1201,7 @@ class Model(object):
                     sid + '_concentration')
 
                 # Get myokit amount and size variable
-                amount = variable_references[sid + '_amount']
+                amount = species_amount_references[sid]
                 size = variable_references[compartment_sid]
 
                 # Set unit of concentration
@@ -1304,7 +1306,7 @@ class Model(object):
         for sid, species in self._species.items():
             # Get myokit variable
             # We only adapt amount of species
-            var = variable_references[sid + '_amount']
+            var = species_amount_references[sid]
 
             # Set initial value
             expr = species.initial_value()
@@ -1397,6 +1399,68 @@ class Model(object):
                 if expr:
                     var.set_rhs(expr.clone(
                         subst=expression_references))
+
+        # Set RHS of species changed by reactions
+        for reaction in self._reactions.values():
+            # Get kinetic law
+            kinetic_law = reaction.kinetic_law()
+
+            if kinetic_law is None:
+                # Skip to the next reaction
+                continue
+
+            for reactant in reaction.reactants():
+                # Get species object
+                species = reactant.species()
+
+                if species.constant() or species.boundary():
+                    # Species is not altered by the reaction
+                    # Skip to the next reactant
+                    continue
+
+                # Instantiate rate expression
+                expr = kinetic_law.clone()
+
+                # Get stoichiometry of reactant
+                try:
+                    stoichiometry = variable_references[reactant.sid()]
+                except KeyError:
+                    stoichiometry = reactant.initial_value()
+
+                if stoichiometry:
+                    # Weight rate expression by stoichiometry
+                    expr = myokit.Multiply(stoichiometry, expr)
+
+                conversion_factor = species.conversion_factor()
+                if conversion_factor:
+                    # Convert rate expression from units of reaction extent
+                    # to amount units
+                    expr = myokit.Multiply(conversion_factor, expr)
+
+                # Get myokit amount variable
+                var = species_amount_references[species.sid()]
+
+                if not var.is_state():
+                    # Promote amount to state variable
+                    try:
+                        var.promote(state_value=var.eval())
+                        var.set_rhs(None)
+                    except AttributeError:
+                        var.promote()
+                        var.set_rhs(None)
+
+                if var.rhs().eval():
+                    # Add rate contributions
+                    expr = myokit.Plus(var.rhs(), expr)
+
+                # Set RHS
+                var.set_rhs(expr.clone(subst=expression_references))
+
+
+
+
+
+
 
         '''
         value = element.get('initialAmount')
