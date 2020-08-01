@@ -1839,6 +1839,55 @@ class SBMLTestMyokitModel(unittest.TestCase):
         var = m.get('c.sp')
         self.assertEqual(var.eval(), 9.23)
 
+    def test_reaction_expression(self):
+        # Tests whether species reaction rate expressions are set correctly.
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" initialAmount="2" />'
+             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="s1"/>'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="s2"/>'
+             '   </listOfProducts>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <plus/>'
+             '      <ci>s1</ci>'
+             '      <ci>s2</ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        b = ('</model>')
+
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check that species are state variables
+        var = m.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = m.get('c.s2_amount')
+        self.assertTrue(var.is_state())
+
+        # Check value of stoichiometries
+        var = m.get('c.s1_amount')
+        self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
+
+        var = m.get('c.s2_amount')
+        self.assertEqual(var.eval(), 2 / 1.2 + 1.5)
+
     def test_time(self):
         # Tests whether time variable is created properly.
 
@@ -1908,8 +1957,6 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
         # Tests whether compartments have been imported properly. Compartments
         # should include the compartments in the SBML file, plus a myokit
         # compartment for the global parameters.
-
-        print(self.model.code())
 
         # compartment 1
         comp = 'compartment'
