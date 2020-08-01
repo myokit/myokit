@@ -28,4 +28,5 @@ class SBMLImporter(myokit.formats.Importer):
     def model(self, path):
         """See :meth:`myokit.formats.Importer.model`."""
         parser = myokit.formats.sbml.SBMLParser()
-        return parser.parse_file(path)
+        model = parser.parse_file(path)
+        return model.myokit_model()
