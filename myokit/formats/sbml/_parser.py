@@ -397,7 +397,7 @@ class SBMLParser(object):
         if factor is not None:
             try:
                 factor = model.parameter(factor)
-            except SBMLError:
+            except KeyError:
                 raise SBMLParsingError(
                     'Model conversion factor "' + str(factor) + '" does not'
                     ' refer to a parameter SId.', element)
