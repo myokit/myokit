@@ -275,6 +275,10 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(c.spatial_dimensions(), 1.4)
         self.assertEqual(c.size_units(), myokit.units.henry)
 
+        # Unknown units
+        x = '<compartment id="x" units="made-up" />'
+        self.assertBad(a + x + b, 'Unknown units')
+
         # Initial value for size
         x = '<compartment id="x" size="1.32" />'
         m = self.parse(a + x + b)
