@@ -621,6 +621,9 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(m.time_units(), myokit.units.s)
 
         self.assertBad('<model areaUnits="meter_squared" />', 'Unknown units')
+        self.assertBad(
+            '<model areaUnits="celsius" />',
+            'The units "celsius" are not supported.')
 
         # Global conversion factor
         m = self.parse('<model />')
@@ -633,6 +636,8 @@ class SBMLParserTest(unittest.TestCase):
             '</model>'
         )
         self.assertEqual(m.conversion_factor(), m.parameter('x'))
+
+        self.assertBad('<model conversionFactor="x" />', 'Model conversion factor')
 
     def test_parse_parameter(self):
         # Tests parsing parameters
