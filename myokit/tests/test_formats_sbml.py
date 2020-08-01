@@ -1732,6 +1732,113 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(stoich_reactant.eval(), 4.51)
         self.assertEqual(stoich_product.eval(), 6)
 
+    def test_stoichiometry_values(self):
+        # Tests whether values of parameters are set correctly.
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfParameters>'
+             '  <parameter id="V" value="10.23">'
+             '  </parameter>'
+             ' </listOfParameters>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" />'
+             '  <species id="s2" compartment="c" />'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="s1" id="sr" stoichiometry="2.1"/>'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="s2" id="sp" stoichiometry="3.5"/>'
+             '   </listOfProducts>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <plus/>'
+             '      <ci>s1</ci>'
+             '      <ci>s2</ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        b = ('</model>')
+
+        # Test I: Set by assignmentRule
+        x = ('<listOfRules>'
+             '  <assignmentRule variable="sr"> '
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '      <apply>'
+             '        <plus/>'
+             '        <ci> V </ci>'
+             '        <cn> 5 </cn>'
+             '      </apply>'
+             '    </math>'
+             '  </assignmentRule>'
+             '  <assignmentRule variable="sp"> '
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '      <apply>'
+             '        <plus/>'
+             '        <ci> V </ci>'
+             '        <cn> 3.81 </cn>'
+             '      </apply>'
+             '    </math>'
+             '  </assignmentRule>'
+             '</listOfRules>')
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check value of stoichiometries
+        var = m.get('c.sr')
+        self.assertEqual(var.eval(), 15.23)
+
+        var = m.get('c.sp')
+        self.assertAlmostEqual(var.eval(), 14.04)
+
+        # Test II: Set by rateRule
+        x = ('<listOfRules>'
+             '  <rateRule variable="sr"> '
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '      <apply>'
+             '        <plus/>'
+             '        <ci> V </ci>'
+             '        <cn> 3 </cn>'
+             '      </apply>'
+             '    </math>'
+             '  </rateRule>'
+             '  <rateRule variable="sp"> '
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '      <apply>'
+             '        <minus/>'
+             '        <ci> V </ci>'
+             '        <cn> 1 </cn>'
+             '      </apply>'
+             '    </math>'
+             '  </rateRule>'
+             '</listOfRules>')
+
+        m = self.parse(a + x + b)
+        m = m.myokit_model()
+
+        # Check that stoichiometries are state variables
+        var = m.get('c.sr')
+        self.assertTrue(var.is_state())
+
+        var = m.get('c.sp')
+        self.assertTrue(var.is_state())
+
+        # Check value of stoichiometries
+        var = m.get('c.sr')
+        self.assertEqual(var.eval(), 13.23)
+
+        var = m.get('c.sp')
+        self.assertEqual(var.eval(), 9.23)
+
     def test_time(self):
         # Tests whether time variable is created properly.
 
@@ -1801,6 +1908,8 @@ class SBMLTestSuiteExampleTest(unittest.TestCase):
         # Tests whether compartments have been imported properly. Compartments
         # should include the compartments in the SBML file, plus a myokit
         # compartment for the global parameters.
+
+        print(self.model.code())
 
         # compartment 1
         comp = 'compartment'
