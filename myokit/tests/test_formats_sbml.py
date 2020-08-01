@@ -32,7 +32,6 @@ except NameError:   # pragma: no python 2 cover
     basestring = str
 
 
-'''
 class SBMLImporterTest(unittest.TestCase):
     """
     Tests the SBMLImporter.
@@ -55,7 +54,6 @@ class SBMLImporterTest(unittest.TestCase):
 
         v = model.get('myokit.V')
         self.assertAlmostEqual(v.rhs().eval(), -4.01765286235500341e-03)
-'''
 
 
 class SBMLParserTest(unittest.TestCase):
