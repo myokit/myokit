@@ -1450,13 +1450,61 @@ class Model(object):
                         var.set_rhs(None)
 
                 if var.rhs().eval():
+                    # Subtract rate contributions
+                    # (Reaction removes species from compartment)
+                    expr = myokit.Minus(var.rhs(), expr)
+                else:
+                    expr = myokit.PrefixMinus(expr)
+
+                # Set RHS
+                var.set_rhs(expr.clone(subst=expression_references))
+
+            for product in reaction.products():
+                # Get species object
+                species = product.species()
+
+                if species.constant() or species.boundary():
+                    # Species is not altered by the reaction
+                    # Skip to the next product
+                    continue
+
+                # Instantiate rate expression
+                expr = kinetic_law.clone()
+
+                # Get stoichiometry of product
+                try:
+                    stoichiometry = variable_references[product.sid()]
+                except KeyError:
+                    stoichiometry = product.initial_value()
+
+                if stoichiometry:
+                    # Weight rate expression by stoichiometry
+                    expr = myokit.Multiply(stoichiometry, expr)
+
+                conversion_factor = species.conversion_factor()
+                if conversion_factor:
+                    # Convert rate expression from units of reaction extent
+                    # to amount units
+                    expr = myokit.Multiply(conversion_factor, expr)
+
+                # Get myokit amount variable
+                var = species_amount_references[species.sid()]
+
+                if not var.is_state():
+                    # Promote amount to state variable
+                    try:
+                        var.promote(state_value=var.eval())
+                        var.set_rhs(None)
+                    except AttributeError:
+                        var.promote()
+                        var.set_rhs(None)
+
+                if var.rhs().eval():
                     # Add rate contributions
                     expr = myokit.Plus(var.rhs(), expr)
 
                 # Set RHS
                 var.set_rhs(expr.clone(subst=expression_references))
-
-
 
 
 
