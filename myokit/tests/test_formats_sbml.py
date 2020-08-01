@@ -279,6 +279,14 @@ class SBMLParserTest(unittest.TestCase):
         x = '<compartment id="x" units="made-up" />'
         self.assertBad(a + x + b, 'Unknown units')
 
+        # Spatial dimensions that cannot be converted to float
+        x = '<compartment id="x" spatialDimensions="made-up" />'
+        self.assertBad(a + x + b, 'Unable to convert spatial dimensions value')
+
+        # Size that cannot be converted to float
+        x = '<compartment id="x" size="made-up" />'
+        self.assertBad(a + x + b, 'Unable to convert size')
+
         # Initial value for size
         x = '<compartment id="x" size="1.32" />'
         m = self.parse(a + x + b)
