@@ -11,6 +11,8 @@ from __future__ import print_function, unicode_literals
 import os
 import unittest
 
+import numpy as np
+
 import myokit
 import myokit.formats
 import myokit.formats.sbml
@@ -2286,6 +2288,55 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
         # Chet that variable is time bound
         self.assertTrue(var.binding(), 'time')
+
+
+class SBMLTestSuiteExamplesTest(unittest.TestCase):
+    """
+    Tests whether forward simulation of test cases from the SBML test suite
+    coincides with the provided time-series data.
+
+    Test Suite examples were taken from http://sbml.org/Facilities/Database/.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.importer = myokit.formats.importer('sbml')
+
+    def get_sbml_file(self, case):
+        return os.path.join(
+            DIR_FORMATS, 'sbml', 'model', case + '-sbml-l3v2.xml')
+
+    def get_results(self, case):
+        path = os.path.join(DIR_FORMATS, 'sbml', 'result', case + '-results.csv')
+        data = np.genfromtxt(path, delimiter=',')
+
+        # Eliminate title row
+        data = data[1:, :]
+
+        return data
+
+    def test_case_00001(self):
+        model = self.importer.model(self.get_sbml_file('00001'))
+
+        results = self.get_results('00001')
+        times = results[:, 0]
+        s1 = results[:, 1]
+        print(s1)
+        s2 = results[:, 2]
+
+        sim = myokit.Simulation(model)
+        output = sim.run(
+            duration=times[-1] + 1,
+            log=['compartment.S1_concentration', 'compartment.S2_concentration'],
+            log_times=times)
+
+        s1_sim = np.array(output['compartment.S1_concentration'])
+
+        self.assertTrue(np.testing.assert_almost_equal(s1_sim, s1))
+
+        s2_sim = np.array(output['compartment.S2_concentration'])
+
+        self.assertTrue(np.testing.assert_almost_equal(s2_sim, s2))
 
 
 class SBMLTestSuiteExampleTest(unittest.TestCase):
