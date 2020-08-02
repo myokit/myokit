@@ -1217,6 +1217,10 @@ class SBMLParserTest(unittest.TestCase):
         s = self.parse(a + x + b).species('s')
         self.assertEqual(s.substance_units(), myokit.units.volt)
 
+        # Invalid units
+        x = '<species compartment="c" id="s" substanceUnits="made-up" />'
+        self.assertBad(a + x + b, 'Unknown units')
+
         # Initial amount
         x = ('<species compartment="c" id="s"'
              ' hasOnlySubstanceUnits="true" initialAmount="3" />')
@@ -1228,6 +1232,19 @@ class SBMLParserTest(unittest.TestCase):
              ' hasOnlySubstanceUnits="false" initialConcentration="1.2" />')
         s = self.parse(a + x + b).species('s')
         self.assertEqual(s.initial_value(), myokit.Number(1.2))
+
+        # Set both initial amount and concentration
+        x = ('<species compartment="c" id="s"'
+             ' hasOnlySubstanceUnits="true" initialAmount="3"'
+             ' initialConcentration="10"/>')
+        self.assertBad(
+            a + x + b, 'Species cannot set both an initialAmount and an')
+
+        # Invalid initial value
+        x = ('<species compartment="c" id="s"'
+             ' hasOnlySubstanceUnits="true" initialAmount="made-up" />')
+        self.assertBad(
+            a + x + b, 'Unable to convert initial species value to float "')
 
         # Conversion factor parameter
         x = ('<species compartment="c" id="s" conversionFactor="p" />')
