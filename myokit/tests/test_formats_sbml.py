@@ -2102,12 +2102,168 @@ class SBMLTestMyokitModel(unittest.TestCase):
         var = m.get('c.s2_amount')
         self.assertTrue(var.is_state())
 
-        # Check value of stoichiometries
+        # Check rates
         var = m.get('c.s1_amount')
         self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
 
         var = m.get('c.s2_amount')
         self.assertEqual(var.eval(), 2 / 1.2 + 1.5)
+
+    def test_reaction_no_kinteic_law(self):
+        # Tests whether missing kinetic law is handled correctly.
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" initialAmount="2" />'
+             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="s1"/>'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="s2"/>'
+             '   </listOfProducts>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        b = ('</model>')
+
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check that species are state variables
+        var = m.get('c.s1_amount')
+        self.assertFalse(var.is_state())
+
+        var = m.get('c.s2_amount')
+        self.assertFalse(var.is_state())
+
+        # Check rates
+        var = m.get('c.s1_amount')
+        self.assertEqual(var.eval(), 2)
+
+        var = m.get('c.s2_amount')
+        self.assertEqual(var.eval(), 1.2 * 1.5)
+
+    def test_reaction_boundary_species(self):
+        # Tests whether rate of boundary species remains unaltered.
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" initialAmount="2" />'
+             '  <species id="s2" compartment="c" initialAmount="2"'
+             '    boundaryCondition="true"/>'
+             '  <species id="s3" compartment="c" initialConcentration="1.5"'
+             '    boundaryCondition="true"/>'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="s1"/>'
+             '    <speciesReference species="s2"/>'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="s3"/>'
+             '   </listOfProducts>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <plus/>'
+             '      <ci>s1</ci>'
+             '      <ci>s3</ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        b = ('</model>')
+
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check that species are state variables
+        var = m.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = m.get('c.s2_amount')
+        self.assertFalse(var.is_state())
+
+        var = m.get('c.s3_amount')
+        self.assertFalse(var.is_state())
+
+        # Check rates
+        var = m.get('c.s1_amount')
+        self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
+
+        var = m.get('c.s2_amount')
+        self.assertEqual(var.eval(), 2)
+
+        var = m.get('c.s3_amount')
+        self.assertEqual(var.eval(), 1.2 * 1.5)
+
+    def reaction_conversion_factor(self):
+        # Tests whether rate contributions are converted correctly.
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfParameters>'
+             '  <parameter id="x" value="1.2">'
+             '  </parameter>'
+             '  <parameter id="y" value="3">'
+             '  </parameter>'
+             ' </listOfParameters>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" initialAmount="2"'
+             '    conversionFactor="x"/>'
+             '  <species id="s2" compartment="c" initialConcentration="1.5"'
+             '    conversionFactor="y"/>'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="s1"/>'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="s2"/>'
+             '   </listOfProducts>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <plus/>'
+             '      <ci>s1</ci>'
+             '      <ci>s2</ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        b = ('</model>')
+
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check that species are state variables
+        var = m.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = m.get('c.s2_amount')
+        self.assertTrue(var.is_state())
+
+        # Check rates
+        var = m.get('c.s1_amount')
+        self.assertEqual(var.eval(), -1.2 * (2 / 1.2 + 1.5))
+
+        var = m.get('c.s2_amount')
+        self.assertEqual(var.eval(), 3 * (2 / 1.2 + 1.5))
 
     def test_time(self):
         # Tests whether time variable is created properly.
