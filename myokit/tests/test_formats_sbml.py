@@ -837,8 +837,313 @@ class SBMLParserTest(unittest.TestCase):
     def test_parse_rule(self):
         # Tests parsing assignment rules and rate rules
 
-        #TODO: See parse_initial_assignment
-        pass
+        # Set a parameter value
+        a = ('<model name="mathml">'
+             ' <listOfParameters>'
+             '  <parameter id="x" constant="true" value="3"/>'
+             '  <parameter id="y" constant="true" value="5"/>'
+             ' </listOfParameters>')
+        b = ('</model>')
+
+        p = self.parse(a + b).parameter('x')
+        self.assertEqual(p.initial_value(), myokit.Number(3))
+
+        p = self.parse(a + b).parameter('y')
+        self.assertEqual(p.initial_value(), myokit.Number(5))
+
+        # Set RHS with assignmentRule or rateRule
+        x = ('<listOfRules>'
+             '  <assignmentRule variable="x">'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '    <apply>'
+             '      <times/>'
+             '      <ci> y </ci>'
+             '      <cn> 3 </cn>'
+             '    </apply>'
+             '  </math>'
+             '  </assignmentRule>'
+             '  <rateRule variable="y">'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '    <apply>'
+             '      <times/>'
+             '      <ci> y </ci>'
+             '      <apply>'
+             '        <power/>'
+             '        <ci> x </ci>'
+             '        <cn> 2 </cn>'
+             '      </apply>'
+             '    </apply>'
+             '  </math>'
+             '  </rateRule>'
+             '</listOfRules>')
+
+        px = self.parse(a + x + b).parameter('x')
+        py = self.parse(a + x + b).parameter('y')
+
+        self.assertEqual(px.initial_value(), myokit.Number(3))
+        self.assertEqual(py.initial_value(), myokit.Number(5))
+
+        self.assertFalse(px.rate())
+        self.assertTrue(py.rate())
+
+        expr = myokit.Multiply(myokit.Name(py), myokit.Number(3))
+        self.assertEqual(px.value().code(), expr.code())
+
+        expr = myokit.Multiply(
+            myokit.Name(py),
+            myokit.Power(myokit.Name(px), myokit.Number(2)))
+        self.assertEqual(py.value().code(), expr.code())
+
+        # Set a compartment size
+        a = ('<model name="mathml">'
+             ' <listOfCompartments>'
+             '  <compartment id="cx" size="10"/>'
+             '  <compartment id="cy" size="5"/>'
+             ' </listOfCompartments>')
+        b = ('</model>')
+
+        p = self.parse(a + b).compartment('cx')
+        self.assertEqual(p.initial_value(), myokit.Number(10))
+
+        p = self.parse(a + b).compartment('cy')
+        self.assertEqual(p.initial_value(), myokit.Number(5))
+
+        # Set RHS with assignmentRule or rateRule
+        x = ('<listOfRules>'
+             '  <assignmentRule variable="cx">'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '    <apply>'
+             '      <times/>'
+             '      <ci> cy </ci>'
+             '      <cn> 3 </cn>'
+             '    </apply>'
+             '  </math>'
+             '  </assignmentRule>'
+             '  <rateRule variable="cy">'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '    <apply>'
+             '      <times/>'
+             '      <ci> cy </ci>'
+             '      <apply>'
+             '        <power/>'
+             '        <ci> cx </ci>'
+             '        <cn> 2 </cn>'
+             '      </apply>'
+             '    </apply>'
+             '  </math>'
+             '  </rateRule>'
+             '</listOfRules>')
+
+        px = self.parse(a + x + b).compartment('cx')
+        py = self.parse(a + x + b).compartment('cy')
+
+        self.assertEqual(px.initial_value(), myokit.Number(10))
+        self.assertEqual(py.initial_value(), myokit.Number(5))
+
+        self.assertFalse(px.rate())
+        self.assertTrue(py.rate())
+
+        expr = myokit.Multiply(myokit.Name(py), myokit.Number(3))
+        self.assertEqual(px.value().code(), expr.code())
+
+        expr = myokit.Multiply(
+            myokit.Name(py),
+            myokit.Power(myokit.Name(px), myokit.Number(2)))
+        self.assertEqual(py.value().code(), expr.code())
+
+        # Set a species amount (or concentration)
+        a = ('<model name="mathml">'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="10"/>'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="sx" compartment="c" initialAmount="3.4"'
+             '    boundaryCondition="true"/>'
+             '  <species id="sy" compartment="c" initialConcentration="1.2"'
+             '    boundaryCondition="true"/>'
+             ' </listOfSpecies>')
+        b = ('</model>')
+
+        p = self.parse(a + b).species('sx')
+        self.assertEqual(p.initial_value(), myokit.Number(3.4))
+
+        p = self.parse(a + b).species('sy')
+        self.assertEqual(p.initial_value(), myokit.Number(1.2))
+
+        # Set RHS with assignmentRule or rateRule
+        x = ('<listOfRules>'
+             '  <assignmentRule variable="sx">'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '    <apply>'
+             '      <times/>'
+             '      <ci> sy </ci>'
+             '      <cn> 3 </cn>'
+             '    </apply>'
+             '  </math>'
+             '  </assignmentRule>'
+             '  <rateRule variable="sy">'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '    <apply>'
+             '      <times/>'
+             '      <ci> sy </ci>'
+             '      <apply>'
+             '        <power/>'
+             '        <ci> sx </ci>'
+             '        <cn> 2 </cn>'
+             '      </apply>'
+             '    </apply>'
+             '  </math>'
+             '  </rateRule>'
+             '</listOfRules>')
+
+        px = self.parse(a + x + b).species('sx')
+        py = self.parse(a + x + b).species('sy')
+
+        self.assertEqual(px.initial_value(), myokit.Number(3.4))
+        self.assertEqual(py.initial_value(), myokit.Number(1.2))
+
+        self.assertFalse(px.rate())
+        self.assertTrue(py.rate())
+
+        expr = myokit.Multiply(myokit.Name(py), myokit.Number(3))
+        self.assertEqual(px.value().code(), expr.code())
+
+        expr = myokit.Multiply(
+            myokit.Name(py),
+            myokit.Power(myokit.Name(px), myokit.Number(2)))
+        self.assertEqual(py.value().code(), expr.code())
+
+        # Non-boundary species
+        y = ('<model name="mathml">'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="10"/>'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="sx" compartment="c" initialAmount="3.4"/>'
+             '  <species id="sy" compartment="c" initialConcentration="1.2"/>'
+             ' </listOfSpecies>')
+
+        self.assertBad(
+            y + x + b, 'Assignment or rate rule set for species that is')
+
+        # Set a stoichiometry
+        a = ('<model name="mathml">'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="10"/>'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" />'
+             '  <species id="s2" compartment="c" />'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="s1" id="sx" stoichiometry="2.1"/>'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="s2" id="sy" stoichiometry="3.5"/>'
+             '   </listOfProducts>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <plus/>'
+             '      <ci>s1</ci>'
+             '      <ci>s2</ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        b = ('</model>')
+
+        reaction = self.parse(a + x + b).reaction('r')
+        px = reaction.reactants().pop()
+        py = reaction.products().pop()
+
+        self.assertEqual(px.initial_value(), myokit.Number(2.1))
+        self.assertEqual(py.initial_value(), myokit.Number(3.5))
+
+        # Set RHS with assignmentRule or rateRule
+        x = ('<listOfRules>'
+             '  <assignmentRule variable="sx">'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '    <apply>'
+             '      <times/>'
+             '      <ci> sy </ci>'
+             '      <cn> 3 </cn>'
+             '    </apply>'
+             '  </math>'
+             '  </assignmentRule>'
+             '  <rateRule variable="sy">'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '    <apply>'
+             '      <times/>'
+             '      <ci> sy </ci>'
+             '      <apply>'
+             '        <power/>'
+             '        <ci> sx </ci>'
+             '        <cn> 2 </cn>'
+             '      </apply>'
+             '    </apply>'
+             '  </math>'
+             '  </rateRule>'
+             '</listOfRules>')
+
+        reaction = self.parse(a + x + b).reaction('r')
+        px = reaction.reactants().pop()
+        py = reaction.products().pop()
+
+        self.assertEqual(px.initial_value(), myokit.Number(2.1))
+        self.assertEqual(py.initial_value(), myokit.Number(3.5))
+
+        self.assertFalse(px.rate())
+        self.assertTrue(py.rate())
+
+        expr = myokit.Multiply(myokit.Name(py), myokit.Number(3))
+        self.assertEqual(px.value().code(), expr.code())
+
+        expr = myokit.Multiply(
+            myokit.Name(py),
+            myokit.Power(myokit.Name(px), myokit.Number(2)))
+        self.assertEqual(py.value().code(), expr.code())
+
+        # No maths: warning
+        a = ('<model name="mathml">'
+             ' <listOfParameters>'
+             '  <parameter id="x" constant="true" value="3"/>'
+             '  <parameter id="y" constant="true" value="5"/>'
+             ' </listOfParameters>')
+        b = ('</model>')
+
+        x = ('<listOfRules>'
+             '  <assignmentRule variable="x">'
+             '  </assignmentRule>'
+             '</listOfRules>')
+        with WarningCollector() as w:
+            p = self.parse(a + x + b).parameter('x')
+        self.assertIn('Rule does not define any mathematics', w.text())
+
+        x = ('<listOfRules>'
+             '  <rateRule variable="y">'
+             '  </rateRule>'
+             '</listOfRules>')
+        with WarningCollector() as w:
+            p = self.parse(a + x + b).parameter('y')
+        self.assertIn('Rule does not define any mathematics', w.text())
+
+        # Missing symbol: error
+        x = ('<listOfRules>'
+             '  <rateRule>'
+             '  </rateRule>'
+             '</listOfRules>')
+        self.assertBad(a + x + b, 'Element')
+
+        # Invalid/unknown symbol
+        x = ('<listOfRules>'
+             '  <rateRule variable="blue">'
+             '  </rateRule>'
+             '</listOfRules>')
+        self.assertBad(a + x + b, 'SId "blue" does not refer to')
 
     def test_parse_species(self):
         # Tests parsing species
