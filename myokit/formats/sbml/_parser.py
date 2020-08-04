@@ -11,6 +11,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import collections
 import re
 import warnings
 
@@ -958,19 +959,19 @@ class Model(object):
         # Units are the only things that can have a UnitSId
         self._units = {}
 
-        # Stores used SIds
+        # Used SIds
         self._sids = set()
-
-        # Compartments, parameters, species (all maps from sids to objects)
-        self._compartments = {}
-        self._parameters = {}
-        self._species = {}
-
-        # Reactions (map from sids to objects)
-        self._reactions = {}
 
         # Assignables: Compartments, species, species references, parameters
         self._assignables = {}
+
+        # Compartments, parameters, species (all maps from sids to objects)
+        self._compartments = collections.OrderedDict()
+        self._parameters = collections.OrderedDict()
+        self._species = collections.OrderedDict()
+
+        # Reactions (map from sids to objects)
+        self._reactions = collections.OrderedDict()
 
         # Default compartment size units
         self._length_units = myokit.units.dimensionless
@@ -1218,9 +1219,7 @@ class Model(object):
             species_references = reaction.reactants() + reaction.products()
 
             for species_reference in species_references:
-                # Get sid
                 sid = species_reference.sid()
-
                 if sid is not None:
                     # Get component
                     species = species_reference.species()
@@ -1702,7 +1701,7 @@ class Reaction(object):
         self._modifiers = []
 
         # All species involved in this reaction (sid to object)
-        self._species = {}
+        self._species = collections.OrderedDict()
 
         # The kinetic law specifying this reaction's rate (if set)
         self._kinetic_law = None
