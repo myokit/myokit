@@ -2383,6 +2383,36 @@ class SBMLTestSuiteExamplesTest(unittest.TestCase):
         s2_sim = np.array(output['compartment.S2_amount'])
         np.testing.assert_almost_equal(s2_sim, s2, decimal=4)
 
+    def test_case_01103(self):
+        #
+        # From the SBML Test Suite settings:
+        #
+        # start: 0
+        # duration: 10
+        # steps: 100
+        # variables: X
+        # absolute: 0.0001
+        # relative: 0.0001
+        # amount: X
+        # concentration:
+
+        case = '01103'
+
+        model = self.importer.model(self.get_sbml_file(case))
+
+        results = self.get_results(case)
+        times = results[:, 0]
+        x = results[:, 1]
+
+        sim = myokit.Simulation(model)
+        output = sim.run(
+            duration=times[-1] + 1,
+            log=['default_compartment.X_amount'],
+            log_times=times)
+
+        x_sim = np.array(output['default_compartment.X_amount'])
+        np.testing.assert_almost_equal(x_sim, x, decimal=4)
+
 
 class SBMLTestSuiteExampleTest(unittest.TestCase):
     """
