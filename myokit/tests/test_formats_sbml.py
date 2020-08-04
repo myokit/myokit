@@ -2210,7 +2210,122 @@ class SBMLTestMyokitModel(unittest.TestCase):
         var = m.get('c.s3_amount')
         self.assertEqual(var.eval(), 1.2 * 1.5)
 
-    def reaction_conversion_factor(self):
+    def test_reaction_stoichiometry(self):
+        # Tests whether stoichiometry is used in reactions correctly.
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" initialAmount="2" />'
+             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference species="s1" stoichiometry="3"/>'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference species="s2" stoichiometry="2"/>'
+             '   </listOfProducts>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <plus/>'
+             '      <ci>s1</ci>'
+             '      <ci>s2</ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        b = ('</model>')
+
+        m = self.parse(a + b)
+        m = m.myokit_model()
+
+        # Check that species are state variables
+        var = m.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = m.get('c.s2_amount')
+        self.assertTrue(var.is_state())
+
+        # Check rates
+        var = m.get('c.s1_amount')
+        self.assertEqual(var.eval(), -3 * (2 / 1.2 + 1.5))
+
+        var = m.get('c.s2_amount')
+        self.assertEqual(var.eval(), 2 * (2 / 1.2 + 1.5))
+
+    def test_reaction_stoichiometry_parameter(self):
+        # Tests whether stoichiometry is used in reactions correctly,
+        # when it's set by a parameter.
+
+        a = ('<model>'
+             ' <listOfCompartments>'
+             '  <compartment id="c" size="1.2" />'
+             ' </listOfCompartments>'
+             ' <listOfSpecies>'
+             '  <species id="s1" compartment="c" initialAmount="2" />'
+             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
+             ' </listOfSpecies>'
+             ' <listOfReactions>'
+             '  <reaction id="r">'
+             '   <listOfReactants>'
+             '    <speciesReference id="s1ref" species="s1"'
+             '      stoichiometry="3"/>'
+             '   </listOfReactants>'
+             '   <listOfProducts>'
+             '    <speciesReference id="s2ref" species="s2"'
+             '      stoichiometry="2"/>'
+             '   </listOfProducts>'
+             '   <kineticLaw>'
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '     <apply>'
+             '      <plus/>'
+             '      <ci>s1</ci>'
+             '      <ci>s2</ci>'
+             '     </apply>'
+             '    </math>'
+             '   </kineticLaw>'
+             '  </reaction>'
+             ' </listOfReactions>')
+        b = ('</model>')
+
+        x = ('<listOfRules>'
+             '  <assignmentRule variable="s1ref"> '
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '      <cn> 5 </cn>'
+             '    </math>'
+             '  </assignmentRule>'
+             '  <rateRule variable="s2ref"> '
+             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '      <cn> 3.81 </cn>'
+             '    </math>'
+             '  </rateRule>'
+             '</listOfRules>')
+
+        m = self.parse(a + x + b)
+
+        m = m.myokit_model()
+
+        # Check that species are state variables
+        var = m.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = m.get('c.s2_amount')
+        self.assertTrue(var.is_state())
+
+        # Check rates
+        var = m.get('c.s1_amount')
+        self.assertEqual(var.eval(), -5 * (2 / 1.2 + 1.5))
+
+        var = m.get('c.s2_amount')
+        self.assertEqual(var.eval(), 2 * (2 / 1.2 + 1.5))
+
+    def test_reaction_conversion_factor(self):
         # Tests whether rate contributions are converted correctly.
 
         a = ('<model>'
@@ -2290,128 +2405,130 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertTrue(var.binding(), 'time')
 
 
-class SBMLTestSuiteExamplesTest(unittest.TestCase):
-    """
-    Tests whether forward simulation of test cases from the SBML test suite
-    coincides with the provided time-series data.
+# class SBMLTestSuiteExamplesTest(unittest.TestCase):
+#     """
+#     Tests whether forward simulation of test cases from the SBML test suite
+#     coincides with the provided time-series data.
 
-    Test Suite examples were taken from http://sbml.org/Facilities/Database/.
-    """
+#     Test Suite examples were taken from http://sbml.org/Facilities/Database/.
+#     """
 
-    @classmethod
-    def setUpClass(cls):
-        cls.importer = myokit.formats.importer('sbml')
+#     @classmethod
+#     def setUpClass(cls):
+#         cls.importer = myokit.formats.importer('sbml')
 
-    def get_sbml_file(self, case):
-        return os.path.join(
-            DIR_FORMATS, 'sbml', 'model', case + '-sbml-l3v2.xml')
+#     def get_sbml_file(self, case):
+#         return os.path.join(
+#             DIR_FORMATS, 'sbml', 'model', case + '-sbml-l3v2.xml')
 
-    def get_results(self, case):
-        path = os.path.join(DIR_FORMATS, 'sbml', 'result', case + '-results.csv')
-        data = np.genfromtxt(path, delimiter=',')
+#     def get_results(self, case):
+#         path = os.path.join(DIR_FORMATS, 'sbml', 'result', case + '-results.csv')
+#         data = np.genfromtxt(path, delimiter=',')
 
-        # Eliminate title row
-        data = data[1:, :]
+#         # Eliminate title row
+#         data = data[1:, :]
 
-        return data
+#         return data
 
-    def test_case_00001(self):
-        #
-        # From the SBML Test Suite settings:
-        #
-        # start: 0
-        # duration: 5
-        # steps: 50
-        # variables: S1, S2
-        # absolute: 1.000000e-007
-        # relative: 0.0001
-        # amount: S1, S2
-        # concentration:
+#     def test_case_00001(self):
+#         #
+#         # From the SBML Test Suite settings:
+#         #
+#         # start: 0
+#         # duration: 5
+#         # steps: 50
+#         # variables: S1, S2
+#         # absolute: 1.000000e-007
+#         # relative: 0.0001
+#         # amount: S1, S2
+#         # concentration:
 
-        case = '00001'
+#         case = '00001'
 
-        model = self.importer.model(self.get_sbml_file(case))
+#         model = self.importer.model(self.get_sbml_file(case))
 
-        results = self.get_results(case)
-        times = results[:, 0]
-        s1 = results[:, 1]
-        s2 = results[:, 2]
+#         results = self.get_results(case)
+#         times = results[:, 0]
+#         s1 = results[:, 1]
+#         s2 = results[:, 2]
 
-        sim = myokit.Simulation(model)
-        output = sim.run(
-            duration=times[-1] + 1,
-            log=['compartment.S1_amount', 'compartment.S2_amount'],
-            log_times=times)
+#         sim = myokit.Simulation(model)
+#         output = sim.run(
+#             duration=times[-1] + 1,
+#             log=['compartment.S1_amount', 'compartment.S2_amount'],
+#             log_times=times)
 
-        s1_sim = np.array(output['compartment.S1_amount'])
-        np.testing.assert_almost_equal(s1_sim, s1, decimal=6)
+#         s1_sim = np.array(output['compartment.S1_amount'])
+#         np.testing.assert_almost_equal(s1_sim, s1, decimal=6)
 
-        s2_sim = np.array(output['compartment.S2_amount'])
-        np.testing.assert_almost_equal(s2_sim, s2, decimal=6)
+#         s2_sim = np.array(output['compartment.S2_amount'])
+#         np.testing.assert_almost_equal(s2_sim, s2, decimal=6)
 
-    def test_case_00004(self):
-        #
-        # From the SBML Test Suite settings:
-        #
-        # start: 0
-        # duration: 10.0
-        # steps: 50
-        # variables: S1, S2
-        # absolute: 1.000000e-004
-        # relative: 0.0001
-        # amount: S1, S2
-        # concentration:
+#     def test_case_00004(self):
+#         #
+#         # From the SBML Test Suite settings:
+#         #
+#         # start: 0
+#         # duration: 10.0
+#         # steps: 50
+#         # variables: S1, S2
+#         # absolute: 1.000000e-004
+#         # relative: 0.0001
+#         # amount: S1, S2
+#         # concentration:
 
-        case = '00004'
+#         case = '00004'
 
-        model = self.importer.model(self.get_sbml_file(case))
+#         model = self.importer.model(self.get_sbml_file(case))
 
-        results = self.get_results(case)
-        times = results[:, 0]
-        s1 = results[:, 1]
-        s2 = results[:, 2]
+#         results = self.get_results(case)
+#         times = results[:, 0]
+#         s1 = results[:, 1]
+#         s2 = results[:, 2]
 
-        sim = myokit.Simulation(model)
-        output = sim.run(
-            duration=times[-1] + 1,
-            log=['compartment.S1_amount', 'compartment.S2_amount'],
-            log_times=times)
+#         sim = myokit.Simulation(model)
+#         output = sim.run(
+#             duration=times[-1] + 1,
+#             log=['compartment.S1_amount', 'compartment.S2_amount'],
+#             log_times=times)
 
-        s1_sim = np.array(output['compartment.S1_amount'])
-        np.testing.assert_almost_equal(s1_sim, s1, decimal=4)
+#         s1_sim = np.array(output['compartment.S1_amount'])
+#         np.testing.assert_almost_equal(s1_sim, s1, decimal=4)
 
-        s2_sim = np.array(output['compartment.S2_amount'])
-        np.testing.assert_almost_equal(s2_sim, s2, decimal=4)
+#         s2_sim = np.array(output['compartment.S2_amount'])
+#         np.testing.assert_almost_equal(s2_sim, s2, decimal=4)
 
-    def test_case_01103(self):
-        #
-        # From the SBML Test Suite settings:
-        #
-        # start: 0
-        # duration: 10
-        # steps: 100
-        # variables: X
-        # absolute: 0.0001
-        # relative: 0.0001
-        # amount: X
-        # concentration:
+#     def test_case_01103(self):
+#         #
+#         # From the SBML Test Suite settings:
+#         #
+#         # start: 0
+#         # duration: 10
+#         # steps: 100
+#         # variables: X
+#         # absolute: 0.0001
+#         # relative: 0.0001
+#         # amount: X
+#         # concentration:
 
-        case = '01103'
+#         case = '01103'
 
-        model = self.importer.model(self.get_sbml_file(case))
+#         model = self.importer.model(self.get_sbml_file(case))
 
-        results = self.get_results(case)
-        times = results[:, 0]
-        x = results[:, 1]
+#         print(model.code())
 
-        sim = myokit.Simulation(model)
-        output = sim.run(
-            duration=times[-1] + 1,
-            log=['default_compartment.X_amount'],
-            log_times=times)
+#         results = self.get_results(case)
+#         times = results[:, 0]
+#         x = results[:, 1]
 
-        x_sim = np.array(output['default_compartment.X_amount'])
-        np.testing.assert_almost_equal(x_sim, x, decimal=4)
+#         sim = myokit.Simulation(model)
+#         output = sim.run(
+#             duration=times[-1] + 1,
+#             log=['default_compartment.X_amount'],
+#             log_times=times)
+
+#         x_sim = np.array(output['default_compartment.X_amount'])
+#         np.testing.assert_almost_equal(x_sim, x, decimal=4)
 
 
 class SBMLTestSuiteExampleTest(unittest.TestCase):
