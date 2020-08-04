@@ -2321,7 +2321,6 @@ class SBMLTestSuiteExamplesTest(unittest.TestCase):
         results = self.get_results('00001')
         times = results[:, 0]
         s1 = results[:, 1]
-        print(s1)
         s2 = results[:, 2]
 
         sim = myokit.Simulation(model)
@@ -2331,12 +2330,10 @@ class SBMLTestSuiteExamplesTest(unittest.TestCase):
             log_times=times)
 
         s1_sim = np.array(output['compartment.S1_concentration'])
-
-        self.assertTrue(np.testing.assert_almost_equal(s1_sim, s1))
+        np.testing.assert_almost_equal(s1_sim, s1, decimal=6)
 
         s2_sim = np.array(output['compartment.S2_concentration'])
-
-        self.assertTrue(np.testing.assert_almost_equal(s2_sim, s2))
+        np.testing.assert_almost_equal(s2_sim, s2, decimal=6)
 
 
 class SBMLTestSuiteExampleTest(unittest.TestCase):
