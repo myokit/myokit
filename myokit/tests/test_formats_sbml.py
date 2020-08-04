@@ -639,7 +639,8 @@ class SBMLParserTest(unittest.TestCase):
         )
         self.assertEqual(m.conversion_factor(), m.parameter('x'))
 
-        self.assertBad('<model conversionFactor="x" />', 'Model conversion factor')
+        self.assertBad(
+            '<model conversionFactor="x" />', 'Model conversion factor')
 
     def test_parse_parameter(self):
         # Tests parsing parameters
