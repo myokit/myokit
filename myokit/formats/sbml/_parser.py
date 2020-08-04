@@ -1428,14 +1428,18 @@ class Model(object):
                 except KeyError:
                     stoichiometry = reactant.initial_value()
 
-                if stoichiometry is not None:
+                if stoichiometry:
                     # Weight rate expression by stoichiometry
                     expr = myokit.Multiply(stoichiometry, expr)
 
-                conversion_factor = species.conversion_factor()
-                if conversion_factor:
+                if species.conversion_factor():
+                    # Get conversion factor variable
+                    sid = species.conversion_factor().sid()
+                    conversion_factor = variable_references[sid]
+
                     # Convert rate expression from units of reaction extent
                     # to amount units
+                    conversion_factor = myokit.Name(conversion_factor)
                     expr = myokit.Multiply(conversion_factor, expr)
 
                 # Get myokit amount variable
@@ -1483,10 +1487,14 @@ class Model(object):
                     # Weight rate expression by stoichiometry
                     expr = myokit.Multiply(stoichiometry, expr)
 
-                conversion_factor = species.conversion_factor()
-                if conversion_factor:
+                if species.conversion_factor():
+                    # Get conversion factor variable
+                    sid = species.conversion_factor().sid()
+                    conversion_factor = variable_references[sid]
+
                     # Convert rate expression from units of reaction extent
                     # to amount units
+                    conversion_factor = myokit.Name(conversion_factor)
                     expr = myokit.Multiply(conversion_factor, expr)
 
                 # Get myokit amount variable
