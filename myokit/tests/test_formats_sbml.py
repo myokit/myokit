@@ -2422,7 +2422,8 @@ class SBMLTestSuiteExamplesTest(unittest.TestCase):
             DIR_FORMATS, 'sbml', 'model', case + '-sbml-l3v2.xml')
 
     def get_results(self, case):
-        path = os.path.join(DIR_FORMATS, 'sbml', 'result', case + '-results.csv')
+        path = os.path.join(
+            DIR_FORMATS, 'sbml', 'result', case + '-results.csv')
         data = np.genfromtxt(path, delimiter=',')
 
         # Eliminate title row
