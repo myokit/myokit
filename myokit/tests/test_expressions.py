@@ -1145,7 +1145,7 @@ class InitialValueTest(unittest.TestCase):
         # Tests InitialValue.code()
         n = myokit.Name('v')
         i = myokit.InitialValue(n)
-        self.assertEqual(i.code(), 'init(str:v)')
+        self.assertEqual(i.code(), 'initial(str:v)')
 
     def test_equal(self):
         # Tests InitialValue.__equal__()
@@ -1179,7 +1179,7 @@ class InitialValueTest(unittest.TestCase):
         # Tests InitialValue.__repr__()
         n = myokit.Name('v')
         i = myokit.InitialValue(n)
-        self.assertEqual(repr(i), '<Init(' + repr(n) + ')>')
+        self.assertEqual(repr(i), '<Initial(' + repr(n) + ')>')
 
     def test_rhs(self):
         # Tests InitialValue.rhs()

@@ -121,6 +121,8 @@ class ExpressionWriter(object):
         return {
             myokit.Name: self._ex_name,
             myokit.Derivative: self._ex_derivative,
+            myokit.PartialDerivative: self._ex_partial_derivative,
+            myokit.InitialValue: self._ex_initial_value,
             myokit.Number: self._ex_number,
             myokit.PrefixPlus: self._ex_prefix_plus,
             myokit.PrefixMinus: self._ex_prefix_minus,

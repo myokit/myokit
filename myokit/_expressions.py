@@ -1243,6 +1243,13 @@ class PartialDerivative(LhsExpression):
         self._var2._code(b, c)
         b.write(')')
 
+    def dependent_expression(self):
+        """
+        Returns the expression that a derivative is taken of, i.e. "y" in
+        "dy/dx".
+        """
+        return self._var1
+
     def __eq__(self, other):
         if type(other) != PartialDerivative:
             return False
@@ -1256,6 +1263,13 @@ class PartialDerivative(LhsExpression):
         elif unit1 is None:
             return 1 / unit2
         return unit1 / unit2
+
+    def independent_expression(self):
+        """
+        Returns the expression that a derivative is taken to, i.e. "x" in
+        "dy/dx".
+        """
+        return self._var2
 
     def _partial_derivative(self, lhs, inspect):
         raise NotImplementedError(
@@ -1288,7 +1302,7 @@ class PartialDerivative(LhsExpression):
         See :meth:`LhsExpression.var()`.
 
         As with time-derivatives, this returns the variable of which a
-        derivative is taken.
+        derivative is taken (i.e. the dependent variable "y" in "dy/dx").
         """
         return self._var1._value
 
@@ -1330,7 +1344,7 @@ class InitialValue(LhsExpression):
         return InitialValue(self._var.clone(subst, expand, retain))
 
     def _code(self, b, c):
-        b.write('init(')
+        b.write('initial(')
         self._var._code(b, c)
         b.write(')')
 
@@ -1351,7 +1365,7 @@ class InitialValue(LhsExpression):
         self._var._polishb(b)
 
     def __repr__(self):
-        return '<Init(' + repr(self._var) + ')>'
+        return '<Initial(' + repr(self._var) + ')>'
 
     def rhs(self):
         """
