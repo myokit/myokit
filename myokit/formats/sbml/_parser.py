@@ -1423,11 +1423,12 @@ class Model(object):
 
                 # Get stoichiometry of reactant
                 try:
-                    stoichiometry = variable_references[reactant.sid()]
+                    stoichiometry = myokit.Name(
+                        variable_references[reactant.sid()])
                 except KeyError:
                     stoichiometry = reactant.initial_value()
 
-                if stoichiometry:
+                if stoichiometry is not None:
                     # Weight rate expression by stoichiometry
                     expr = myokit.Multiply(stoichiometry, expr)
 
@@ -1473,7 +1474,8 @@ class Model(object):
 
                 # Get stoichiometry of product
                 try:
-                    stoichiometry = variable_references[product.sid()]
+                    stoichiometry = myokit.Name(
+                        variable_references[product.sid()])
                 except KeyError:
                     stoichiometry = product.initial_value()
 
