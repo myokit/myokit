@@ -1099,29 +1099,13 @@ class Model(object):
         Compartments defined by the SBML file are mapped to myokit.Components.
         """
 
-        # Proposed strategy:
-        #
-        # - Names are sids, unless it starts with an underscore then we need a
-        #   resolution strategy
-        # - Components are 'parameters', 'species', 'stoichiometries', etc.,
-        #   rather than compartments?
-        # - Parameters with rate equations are ODEs, parameters without rate
-        #   equations have their value() if set, otherwise initial_value()
-        # - Stoichiometries all get a variable, set same way as parameters
-        # - Species all get a variable for their amount, with a value set
-        #   either from value(), initial_value(), or from a reaction
-        # - Compartment sizes all get a variable, set same way as parameters
-        # - Species that are concentrations get a 2nd variable, dividing by the
-        #   compartment size
-        #
-        #   Question: Should there be a method that's called at the end of
-        #   parsing that sets value/initial_value for all species based on
-        #   reactions?
-        #   If species are set with rules, does that set concentration or
-        #   amount?
-
         # Create myokit model
         myokit_model = myokit.Model(self.name())
+
+        # Add notes
+        notes = self.notes()
+        if notes:
+            myokit_model.meta['desc'] = notes
 
         # Create reference container that links sid's to myokit objects
         component_references = {}
@@ -1134,11 +1118,6 @@ class Model(object):
         # Create reference from Model expressions to myokit model expressions
         expression_references = {}
 
-        '''
-        notes = model.notes()
-        if notes:
-            myokit_model.meta['desc'] = notes
-        '''
         # Instantiate component and variable objects first without assigning
         # RHS expressions. Myokit objects may have to be renamed, so
         # expressions are added in a second step.
