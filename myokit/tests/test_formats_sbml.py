@@ -2316,6 +2316,18 @@ class SBMLTestSuiteExamplesTest(unittest.TestCase):
         return data
 
     def test_case_00001(self):
+        #
+        # From the SBML Suite settings:
+        #
+        # start: 0
+        # duration: 5
+        # steps: 50
+        # variables: S1, S2
+        # absolute: 1.000000e-007
+        # relative: 0.0001
+        # amount: S1, S2
+        # concentration:
+
         model = self.importer.model(self.get_sbml_file('00001'))
 
         results = self.get_results('00001')
@@ -2326,14 +2338,34 @@ class SBMLTestSuiteExamplesTest(unittest.TestCase):
         sim = myokit.Simulation(model)
         output = sim.run(
             duration=times[-1] + 1,
-            log=['compartment.S1_concentration', 'compartment.S2_concentration'],
+            log=['compartment.S1_amount', 'compartment.S2_amount'],
             log_times=times)
 
-        s1_sim = np.array(output['compartment.S1_concentration'])
+        s1_sim = np.array(output['compartment.S1_amount'])
         np.testing.assert_almost_equal(s1_sim, s1, decimal=6)
 
-        s2_sim = np.array(output['compartment.S2_concentration'])
+        s2_sim = np.array(output['compartment.S2_amount'])
         np.testing.assert_almost_equal(s2_sim, s2, decimal=6)
+
+    # def test_case_00001(self):
+    #     model = self.importer.model(self.get_sbml_file('00001'))
+
+    #     results = self.get_results('00001')
+    #     times = results[:, 0]
+    #     s1 = results[:, 1]
+    #     s2 = results[:, 2]
+
+    #     sim = myokit.Simulation(model)
+    #     output = sim.run(
+    #         duration=times[-1] + 1,
+    #         log=['compartment.S1_concentration', 'compartment.S2_concentration'],
+    #         log_times=times)
+
+    #     s1_sim = np.array(output['compartment.S1_concentration'])
+    #     np.testing.assert_almost_equal(s1_sim, s1, decimal=6)
+
+    #     s2_sim = np.array(output['compartment.S2_concentration'])
+    #     np.testing.assert_almost_equal(s2_sim, s2, decimal=6)
 
 
 class SBMLTestSuiteExampleTest(unittest.TestCase):
