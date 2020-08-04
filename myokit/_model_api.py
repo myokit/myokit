@@ -4262,19 +4262,19 @@ class Variable(VarOwner):
 
         # Partial derivatives are not allowed in an RHS
         if self._rhs.contains_type(myokit.PartialDerivative):
-            raise myokit.InvalidRhsError(
+            raise myokit.IntegrityError(
                 'Partial derivatives may not appear in expressions set as'
                 ' right-hand side of a variable.')
 
         # Initial values are not allowed in an RHS
         if self._rhs.contains_type(myokit.InitialValue):
-            raise myokit.InvalidRhsError(
+            raise myokit.IntegrityError(
                 'Initial value operators may not appear in expressions set as'
                 ' right-hand side of a variable.')
 
         # Conditions are not allowed as an RHS
         if isinstance(self._rhs, myokit.Condition):
-            raise myokit.InvalidRhsError(
+            raise myokit.IntegrityError(
                 'The right-hand side expression for a variable can not be a'
                 ' condition.')
 

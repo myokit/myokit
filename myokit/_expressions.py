@@ -167,14 +167,42 @@ class Expression(object):
                 return True
         return False
 
-    def depends_on(self, lhs):
+    def depends_on(self, lhs, deep=False):
         """
         Returns ``True`` if this :class:`Expression` depends on the given
         :class:`LhsExpresion`.
 
-        Only dependencies appearing directly in the expression are checked.
+        With ``deep=False`` (default), only dependencies appearing directly in
+        the expression are checked. With ``deep=True`` the method also checks
+        the right-hand side equation defined in the model for any
+        :class:`Name` or :class:`Derivative` it encounters.
         """
-        return lhs in self._references
+        # Shallow check
+        if not deep:
+            return lhs in self._references
+
+        # Determine if this variable has a (deep) dependency on the given lhs
+        dependent = False
+        done = set()
+        todo = set(self._references)
+        while todo:
+            ref = todo.pop()
+            if ref == lhs:
+                dependent = True
+            elif ref._has_partials or ref._has_initials:
+                # Partial derivatives and initial values have no rhs
+                continue
+            var = ref.var()
+            if not isinstance(var, myokit.Variable):
+                # Values that are not variables count as independent
+                continue
+            elif ref.is_state_value() or var.is_bound():
+                # State values and bound variables have no rhs
+                continue
+            else:
+                todo.update(var.rhs()._references - done)
+
+        return dependent
 
     def __eq__(self, other):
         if type(self) != type(other):
@@ -436,18 +464,57 @@ class Expression(object):
         """
         return self._rep
 
-    def partial_derivative(self, lhs):
+    def partial_derivative(self, lhs, inspect=True):
         """
-        Returns an expression representing the derivative of this expression
-        with respect to the given :class:`Name` ``lhs``.
+        Returns an expression representing the partial derivative of this
+        expression with respect to the expression ``lhs``.
 
-        The returned expression may contain :class:`PartialDerivative` objects
-        representing the derivative of a state or intermediary variable with
-        respect to the given ``lhs``.
+        Expressions involving variables
+        -------------------------------
+        Expressions involving variables are handled using the following rules:
+
+        - the partial derivative of any :class:`Name` with respect to an
+          identical ``Name`` returns a :class:`myokit.Number()` with value
+          ``1`` and units ``None``.
+        - the partial derivative of a :class:`Name` or :class:`Derivative`
+          ``x`` with respect to a :class:`Name` ``y`` (such that ``x != y``)
+          depends on the variables pointed to by ``x`` and ``y``, and the value
+          of the ``inspect`` argument, as explained below.
+        - taking partial derivatives of partial derivatives or initial values
+          is not supported.
+        - partial derivatives can only be taken with respect with :class:`Name`
+          expressions.
+
+        With ``inspect=False``, the partial derivative of a ``Name`` or
+        ``Derivative`` ``x`` with respect to ``y``, where ``x != y``, will be
+        returned as an expression object ``PartialDerivative(x ,y)``.
+
+        If ``inspect=True`` (which is the default), a :class:`Number` with
+        value zero and appropriate units will be returned instead if ``x != y``
+        and:
+
+        - ``x`` is a :class:`Name` referring to a state or bound variable;
+        - ``x`` is a :class:`Name` referring to some variable which does
+          not depend on ``y`` in the model, directly or indirectly;
+        - ``x`` is a :class:`Derivative`, such that the corresponding
+          right-hand side equation in the model does not depend on ``y``,
+          directly or indirectly;
+
+        in all other cases the result is an object ``PartialDerivative(x, y)``.
+
+        The above rules will be applied recursively, so that calling
+        ``partial_derivative(y)`` on e.g. ``Plus(y, x)`` will return either
+        ``Number(1)`` or ``Plus(Number(1), PartialDerivative(x, y))``.
+
+        Simplification
+        --------------
 
         Some effort is made to eliminate expressions that evaluate to zero, but
         no further simplification is performed. Multiplications by 1 are
         preserved as these can provide valuable unit information.
+
+        Conditional expressions
+        -----------------------
 
         When calculating derivatives, the following simplifying assumptions are
         made with respect to conditional expressions:
@@ -457,6 +524,9 @@ class Expression(object):
           are ignored. Instead, the method simply returns a similar conditional
           expression with the original operands replaced by their derivatives,
           e.g. ``if(condition, a, b)`` becomes ``if(condition, a', b')``.
+
+        Discontinuous functions
+        -----------------------
 
         Similarly, some functions are discontinuous so that their derivatives
         are undefined at certain points, but this method returns the
@@ -479,13 +549,14 @@ class Expression(object):
           for ``x < 0``, and undefined for ``x == 0``, but this method will
           return ``f'(x)`` for ``x >= 0`` and ``-f'(x)``s for ``x < 0``.
 
-        Finally:
+        Non-integer powers
+        ------------------
 
-        - Since ``a(x)^b(x)`` is undefined for non-integer ``b(x)`` when
-          ``a(x) < 0``, the derivative of ``a(x)^b(x)`` is only defined if
-          ``a(x) >= 0`` or ``b'(x) = 0``. No errors or warnings are given if
-          the derivative is undefined, until the equations are evaluated (note
-          that at this point evaluation of ``a(x)^b(x)`` will also fail).
+        Since ``a(x)^b(x)`` is undefined for non-integer ``b(x)`` when
+        `a(x) < 0``, the derivative of ``a(x)^b(x)`` is only defined if
+        ``a(x) >= 0`` or ``b'(x) = 0``. No errors or warnings are given if the
+        derivative is undefined, until the equations are evaluated (note that
+        at this point evaluation of ``a(x)^b(x)`` will also fail).
 
         """
         # Check LHS
@@ -495,21 +566,7 @@ class Expression(object):
                 ' myokit.Name.')
 
         # Get derivative or None for 0
-        try:
-            # Derivative w.r.t. constant? Then temporarily bind it so that it
-            # won't appear as a constant for the duration of the _derivative
-            # routines.
-            temporary_binding = False
-            var = lhs.var()
-            if var.is_constant():
-                var.set_binding(var.model()._unused_label())
-                temporary_binding = True
-
-            derivative = self._partial_derivative(lhs)
-
-        finally:
-            if temporary_binding:
-                var.set_binding(None)
+        derivative = self._partial_derivative(lhs, bool(inspect))
 
         # Result zero? Then ensure it has the right unit
         if derivative is None:
@@ -517,7 +574,7 @@ class Expression(object):
 
         return derivative
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         """
         Internal version of ``partial_derivative()``, can assume lhs is a Name
         that refers to a non-constant variable; and can return None if this
@@ -535,9 +592,10 @@ class Expression(object):
         """
         try:
             unit1 = self.eval_unit(myokit.UNIT_TOLERANT)
-            unit2 = lhs.var().unit()
         except myokit.IncompatibleUnitError as e:
-            return None
+            unit1 = None
+        unit2 = lhs.var().unit()
+
         if unit1 is None and unit2 is None:
             return None
         if unit1 is None:
@@ -831,7 +889,7 @@ class Number(Expression):
         """See :meth:`Expression.is_number()`."""
         return (value is None) or (value == self._value)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         return None
 
     def _polishb(self, b):
@@ -981,19 +1039,17 @@ class Name(LhsExpression):
         """See: meth:`Expression.is_state_value()`."""
         return self._value.is_state()
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
+
+        # Derivative w.r.t. self is one
         if lhs == self:
-            # dx/dx = 1, with units U/U = dimensionless
-            return myokit.Number(1, myokit.units.dimensionless)
-        elif self._value.is_bound():
-            # Bound variables are external, so do not depend on any LHS
-            return None
-        elif self._value.is_constant():
-            # Constants do not depend on the LHS (which has been temporarily
-            # bound if constant, see :meth:`Expression.derivative()`.
-            return None
-        else:
+            return Number(1)
+
+        # Outside of inspect mode, always return a partial derivative. In
+        # inspect mode, allow None to be returned if RHS doesn't depend on lhs.
+        if (not inspect) or self.depends_on(lhs, deep=True):
             return PartialDerivative(self, lhs)
+        return None
 
     def _polishb(self, b):
         if isinstance(self._value, basestring):
@@ -1099,8 +1155,13 @@ class Derivative(LhsExpression):
         """See :meth:`Expression.is_derivative()`."""
         return (var is None) or (var == self._op._value)
 
-    def _partial_derivative(self, lhs):
-        return PartialDerivative(self, lhs)
+    def _partial_derivative(self, lhs, inspect):
+
+        # Outside of inspect mode, always return a partial derivative. In
+        # inspect mode, allow None to be returned if RHS doesn't depend on lhs.
+        if (not inspect) or self.depends_on(lhs, deep=True):
+            return PartialDerivative(self, lhs)
+        return None
 
     def _polishb(self, b):
         b.write('dot ')
@@ -1196,7 +1257,7 @@ class PartialDerivative(LhsExpression):
             return 1 / unit2
         return unit1 / unit2
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         raise NotImplementedError(
             'Partial derivatives of partial derivatives are not supported.')
 
@@ -1281,7 +1342,7 @@ class InitialValue(LhsExpression):
     def _eval_unit(self, mode):
         return self._var._eval_unit(mode)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         raise NotImplementedError(
             'Partial derivatives of initial conditions are not supported.')
 
@@ -1380,11 +1441,8 @@ class PrefixPlus(PrefixExpression):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
-        op = self._op._partial_derivative(lhs)
-        if op is None:
-            return None
-        return PrefixPlus(op)
+    def _partial_derivative(self, lhs, inspect):
+        return self._op._partial_derivative(lhs, inspect)
 
     def _polishb(self, b):
         self._op._polishb(b)
@@ -1409,11 +1467,9 @@ class PrefixMinus(PrefixExpression):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
-        op = self._op._partial_derivative(lhs)
-        if op is None:
-            return None
-        return PrefixMinus(op)
+    def _partial_derivative(self, lhs, inspect):
+        op = self._op._partial_derivative(lhs, inspect)
+        return None if op is None else PrefixMinus(op)
 
     def _polishb(self, b):
         b.write('~ ')
@@ -1524,9 +1580,9 @@ class Plus(InfixExpression):
             self, 'Addition requires equal units, got '
             + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
-    def _partial_derivative(self, lhs):
-        op1 = self._op1._partial_derivative(lhs)
-        op2 = self._op2._partial_derivative(lhs)
+    def _partial_derivative(self, lhs, inspect):
+        op1 = self._op1._partial_derivative(lhs, inspect)
+        op2 = self._op2._partial_derivative(lhs, inspect)
         if op1 is None:
             return op2  # Could be None
         if op2 is None:
@@ -1572,9 +1628,9 @@ class Minus(InfixExpression):
             self, 'Subtraction requires equal units, got '
             + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
-    def _partial_derivative(self, lhs):
-        op1 = self._op1._partial_derivative(lhs)
-        op2 = self._op2._partial_derivative(lhs)
+    def _partial_derivative(self, lhs, inspect):
+        op1 = self._op1._partial_derivative(lhs, inspect)
+        op2 = self._op2._partial_derivative(lhs, inspect)
         if op2 is None:
             return op1  # Could be None
         if op1 is None:
@@ -1616,9 +1672,9 @@ class Multiply(InfixExpression):
 
         return unit1 * unit2
 
-    def _partial_derivative(self, lhs):
-        op1 = self._op1._partial_derivative(lhs)
-        op2 = self._op2._partial_derivative(lhs)
+    def _partial_derivative(self, lhs, inspect):
+        op1 = self._op1._partial_derivative(lhs, inspect)
+        op2 = self._op2._partial_derivative(lhs, inspect)
         if op1 is None and op2 is None:
             return None
         elif op2 is None:
@@ -1662,9 +1718,9 @@ class Divide(InfixExpression):
 
         return unit1 / unit2
 
-    def _partial_derivative(self, lhs):
-        op1 = self._op1._partial_derivative(lhs)
-        op2 = self._op2._partial_derivative(lhs)
+    def _partial_derivative(self, lhs, inspect):
+        op1 = self._op1._partial_derivative(lhs, inspect)
+        op2 = self._op2._partial_derivative(lhs, inspect)
 
         if op1 is None and op2 is None:
             return None
@@ -1737,7 +1793,7 @@ class Quotient(InfixExpression):
 
         return unit1 / unit2
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         # The result of a // b is always flat, with discontinuous jumps
         # whenever a = k*b (for an integer k). As a result, the derivatives
         # d/da(a//b) and d/db(a//b) are either zero (most of the time) or
@@ -1803,7 +1859,7 @@ class Remainder(InfixExpression):
         self._op2._eval_unit(mode)  # Also check op2!
         return unit1
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         # Since
         #   a(x) % b(x) is defined as a(x) - b(x) * floor(a(x) / b(x))
         # its derivative is
@@ -1812,8 +1868,8 @@ class Remainder(InfixExpression):
         # simplifies to
         #   a' - b' floor(a/b)
 
-        op1 = self._op1._partial_derivative(lhs)
-        op2 = self._op2._partial_derivative(lhs)
+        op1 = self._op1._partial_derivative(lhs, inspect)
+        op2 = self._op2._partial_derivative(lhs, inspect)
 
         if op1 is None and op2 is None:
             return None
@@ -1866,7 +1922,7 @@ class Power(InfixExpression):
 
         return unit1 ** self._op2.eval()
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         # The general rule is derived using a(x)^b(x) = e^(ln(a(x)) * b(x)).
         # This only works when ln(a(x)) is defined, so when a(x) >= 0. But this
         # is OK, as a(x)^b(x) is only defined for fractional b(x) if a(x) >= 0!
@@ -1885,8 +1941,8 @@ class Power(InfixExpression):
         # If b does not depend on the lhs, we use the reduced form i.e. the
         # general power rule.
         #
-        op1 = self._op1._partial_derivative(lhs)
-        op2 = self._op2._partial_derivative(lhs)
+        op1 = self._op1._partial_derivative(lhs, inspect)
+        op2 = self._op2._partial_derivative(lhs, inspect)
 
         if op1 is None and op2 is None:
             return None
@@ -2030,9 +2086,9 @@ class Sqrt(Function):
             return None
         return unit ** 0.5
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
         return Divide(dop, Multiply(Number(2), self))
@@ -2060,9 +2116,9 @@ class Sin(UnaryDimensionlessFunction):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
         return Multiply(Cos(op), dop)
@@ -2090,9 +2146,9 @@ class Cos(UnaryDimensionlessFunction):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
         return Multiply(PrefixMinus(Sin(op)), dop)
@@ -2117,9 +2173,9 @@ class Tan(UnaryDimensionlessFunction):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
         return Divide(dop, Power(Cos(op), Number(2)))
@@ -2144,9 +2200,9 @@ class ASin(UnaryDimensionlessFunction):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
         return Divide(dop, Sqrt(Minus(Number(1), Power(op, Number(2)))))
@@ -2171,9 +2227,9 @@ class ACos(UnaryDimensionlessFunction):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
         return Divide(
@@ -2206,9 +2262,9 @@ class ATan(UnaryDimensionlessFunction):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
         return Divide(dop, Plus(Number(1), Power(op, Number(2))))
@@ -2233,9 +2289,9 @@ class Exp(UnaryDimensionlessFunction):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
         return Multiply(self, dop)
@@ -2306,12 +2362,12 @@ class Log(Function):
 
         return myokit.units.dimensionless
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
 
         if len(self._operands) == 1:
             # One operand: natural logarithm: a' / a
             op = self._operands[0]
-            dop = op._partial_derivative(lhs)
+            dop = op._partial_derivative(lhs, inspect)
             if dop is None:
                 return None
             return Divide(dop, op)
@@ -2320,8 +2376,8 @@ class Log(Function):
             # Two operands: log_a(b) = Log(b, a)
             op1 = self._operands[0]     # b
             op2 = self._operands[1]     # a
-            dop1 = op1._partial_derivative(lhs)     # b'
-            dop2 = op2._partial_derivative(lhs)     # a'
+            dop1 = op1._partial_derivative(lhs, inspect)     # b'
+            dop2 = op2._partial_derivative(lhs, inspect)     # a'
             if dop1 is None and dop2 is None:
                 return None
             elif dop2 is None:
@@ -2365,9 +2421,9 @@ class Log10(UnaryDimensionlessFunction):
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
         return Divide(dop, Multiply(op, Log(Number(10))))
@@ -2398,7 +2454,7 @@ class Floor(Function):
     def _eval_unit(self, mode):
         return self._operands[0]._eval_unit(mode)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         # Floor is stepwise constant, so it's derivative is zero except when
         # the value of its operand is an integer. Here we simplify and just say
         # the derivative is always zero.
@@ -2430,7 +2486,7 @@ class Ceil(Function):
     def _eval_unit(self, mode):
         return self._operands[0]._eval_unit(mode)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         # Ceil is stepwise constant, so it's derivative is zero except when
         # the value of its operand is an integer. Here we simplify and just say
         # the derivative is always zero.
@@ -2462,13 +2518,13 @@ class Abs(Function):
     def _eval_unit(self, mode):
         return self._operands[0]._eval_unit(mode)
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         # The derivative of abs(f(x)) is f'(x) for x > 0, -f'(x) for x < 0, and
         # undefined if x == 0. Here we simplify and say it's f'(x) if x >= 0.
 
         # Get derivative of operand
         op = self._operands[0]
-        dop = op._partial_derivative(lhs)
+        dop = op._partial_derivative(lhs, inspect)
         if dop is None:
             return None
 
@@ -2542,9 +2598,9 @@ class If(Function):
     def is_conditional(self):
         return True
 
-    def _partial_derivative(self, lhs):
-        op1 = self._t._partial_derivative(lhs)
-        op2 = self._e._partial_derivative(lhs)
+    def _partial_derivative(self, lhs, inspect):
+        op1 = self._t._partial_derivative(lhs, inspect)
+        op2 = self._e._partial_derivative(lhs, inspect)
 
         # Return None if both None, or if() if both expressions
         if op1 is None and op2 is None:
@@ -2663,10 +2719,10 @@ class Piecewise(Function):
     def is_conditional(self):
         return True
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
 
         # Evaluate derivatives of the (m + 1) expressions
-        ops = [op._partial_derivative(lhs) for op in self._e]
+        ops = [op._partial_derivative(lhs, inspect) for op in self._e]
 
         # Count the number of Nones
         n_zeroes = sum([1 if op is None else 0 for op in ops])
@@ -2704,7 +2760,7 @@ class Condition(object):
     condition.
     """
 
-    def _partial_derivative(self, lhs):
+    def _partial_derivative(self, lhs, inspect):
         raise NotImplementedError(
             'Conditions do not have partial derivatives.')
 

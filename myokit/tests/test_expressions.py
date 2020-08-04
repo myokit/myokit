@@ -36,7 +36,7 @@ pd_model = myokit.parse_model("""
         bind time
 
     [membrane]
-    dot(V) = ina.INa / C
+    dot(V) = (ina.I1 + ina.I2) / C
         in [mV]
     C = 10 [pF]
         in [pF]
@@ -61,7 +61,9 @@ pd_model = myokit.parse_model("""
     E2 = E3 / 3 in [mV]
     E3 = 100 [mV] in [mV]
     g = 16 [nS] in [nS]
-    INa = g * m^3 * (V - E)
+    I1 = 0.6 * g * m^3 * (V - E)
+        in [pA]
+    I2 = 0.4 * g * m^3 * (V - E)
         in [pA]
 """)
 
@@ -222,25 +224,16 @@ class ExpressionTest(unittest.TestCase):
         m.check_units(myokit.UNIT_STRICT)
 
         # Direct dependence on a constant
-        ina = m.get('ina.INa')
+        i = m.get('ina.I1')
         E = m.get('ina.E')
-        d = ina.rhs().partial_derivative(E.lhs())
-        self.assertEqual(
-            d.code(),
-            'ina.g * (3 * ina.m^2'
-            ' * partial(ina.m, ina.E)) * (membrane.V - ina.E) + '
-            'ina.g * ina.m^3'
-            ' * (partial(membrane.V, ina.E) - 1)')
+        d = i.rhs().partial_derivative(E.lhs())
+        self.assertEqual(d.code(), '0.6 * ina.g * ina.m^3 * -1')
 
-        # Dependence on a constant via another 'constant'
+        # Dependence on a constant via another constant
         E3 = m.get('ina.E3')
-        d = ina.rhs().partial_derivative(E3.lhs())
+        d = i.rhs().partial_derivative(E3.lhs())
         self.assertEqual(
-            d.code(),
-            'ina.g * (3 * ina.m^2'
-            ' * partial(ina.m, ina.E3)) * (membrane.V - ina.E) + '
-            'ina.g * ina.m^3'
-            ' * (partial(membrane.V, ina.E3) - partial(ina.E, ina.E3))')
+            d.code(), '0.6 * ina.g * ina.m^3 * -partial(ina.E, ina.E3)')
 
         # Correct unit gets set for None
         p = E3.rhs().partial_derivative(E.lhs())
@@ -262,14 +255,23 @@ class ExpressionTest(unittest.TestCase):
         self.assertTrue(p.is_number(0))
         self.assertEqual(p.unit(), myokit.units.mV)
 
+        # Except if there are unit errors
+        E3.set_unit('mV')
+        E3.set_rhs('4 [mV] + 2 [pA]')
+        E.set_unit('mV')
+        E.set_rhs('1 [mV] + E3')
+        p = E3.rhs().partial_derivative(E.lhs())
+        self.assertTrue(p.is_number(0))
+        self.assertEqual(p.unit(), 1 / myokit.units.mV)
+
         # Only Names are allowed
         self.assertRaisesRegex(
             ValueError, 'only be taken with respect to a myokit.Name',
-            ina.rhs().partial_derivative, myokit.Number(3))
+            i.rhs().partial_derivative, myokit.Number(3))
         V = m.get('membrane.V')
         self.assertRaisesRegex(
             ValueError, 'only be taken with respect to a myokit.Name',
-            ina.rhs().partial_derivative, V.lhs())
+            i.rhs().partial_derivative, V.lhs())
 
     def test_pyfunc(self):
         # Test the pyfunc() method.
@@ -736,25 +738,31 @@ class NameTest(unittest.TestCase):
     def test_partial_derivative(self):
         # Test getting partial derivatives from names
 
-        # States return a PartialDerivative
-        m = pd_model
-        C = myokit.Name(m.get('membrane.C'))
-        V = myokit.Name(m.get('membrane.V'))
-        self.assertEqual(
-            V.partial_derivative(C),
-            myokit.PartialDerivative(V, C))
-
-        # Intermediary variables return a PartialDerivative
-        I = myokit.Name(m.get('ina.INa'))
-        self.assertEqual(
-            I.partial_derivative(C),
-            myokit.PartialDerivative(I, C))
-
         # Bound variables return 0
+        m = pd_model
         t = myokit.Name(m.get('engine.time'))
+        C = myokit.Name(m.get('membrane.C'))
         self.assertEqual(
             t.partial_derivative(C),
             myokit.Number(0, myokit.units.ms / myokit.units.pF))
+
+        # States return None
+        V = myokit.Name(m.get('membrane.V'))
+        self.assertEqual(
+            V.partial_derivative(C),
+            myokit.Number(0, myokit.units.mV / myokit.units.pF))
+
+        # Intermediary variables return None if they don't depend on the lhs
+        I = myokit.Name(m.get('ina.I1'))
+        self.assertEqual(
+            I.partial_derivative(C),
+            myokit.Number(0, myokit.units.pA / myokit.units.pF))
+
+        # Intermediary variables return partial if they do depend on the lhs
+        g = myokit.Name(m.get('ina.g'))
+        self.assertEqual(
+            I.partial_derivative(g),
+            myokit.PartialDerivative(I, g))
 
         # Literal constants return 0
         a = myokit.Name(m.get('ina.a'))
@@ -928,7 +936,6 @@ class DerivativeTest(unittest.TestCase):
 
     def test_partial_derivative(self):
         # Tests Derivative.partial_derivative()
-
         m = pd_model
         V = m.get('membrane.V')
         C = m.get('membrane.C').lhs()
@@ -1022,6 +1029,7 @@ class PartialDerivativeTest(unittest.TestCase):
         self.assertEqual(p, p.clone())
         self.assertFalse(p is p.clone())
         self.assertEqual(p.clone(subst={n: m}), myokit.PartialDerivative(m, m))
+        self.assertEqual(p.clone(subst={p: m}), m)
 
     def test_code(self):
         # Tests PartialDerivative.code()
@@ -1039,19 +1047,22 @@ class PartialDerivativeTest(unittest.TestCase):
         self.assertEqual(p, q)
         self.assertFalse(p is q)
         self.assertNotEqual(p, r)
+        self.assertNotEqual(p, n)
 
     def test_eval_unit(self):
         # Tests PartialDerivative.eval_unit()
         m = pd_model.clone()
-        V = myokit.Name(m.get('membrane.V'))
+        V = m.get('membrane.V')
         C = myokit.Name(m.get('membrane.C'))
-        p = V.partial_derivative(C)
-        self.assertEqual(p.eval_unit(), myokit.units.mV / myokit.units.pF)
-        V.var().set_unit(None)
-        self.assertEqual(p.eval_unit(), 1 / myokit.units.pF)
+        p = V.rhs().partial_derivative(C)
+        self.assertEqual(p.eval_unit(), myokit.units.pA / myokit.units.pF**2)
+        m.get('ina.I1').set_unit(None)
+        m.get('ina.I2').set_unit(None)
+        self.assertEqual(p.eval_unit(), 1 / (myokit.units.pF**2))
         C.var().set_unit(None)
         self.assertEqual(p.eval_unit(), None)
-        V.var().set_unit('mV')
+        m.get('ina.I1').set_unit('mV')
+        m.get('ina.I2').set_unit('mV')
         self.assertEqual(p.eval_unit(), myokit.units.mV)
 
     def test_partial_derivative(self):
@@ -1128,6 +1139,7 @@ class InitialValueTest(unittest.TestCase):
         self.assertEqual(i, i.clone())
         self.assertFalse(i is i.clone())
         self.assertEqual(i.clone(subst={n: m}), myokit.InitialValue(m))
+        self.assertEqual(i.clone(subst={i: m}), m)
 
     def test_code(self):
         # Tests InitialValue.code()
@@ -1145,6 +1157,7 @@ class InitialValueTest(unittest.TestCase):
         self.assertEqual(i, j)
         self.assertFalse(i is j)
         self.assertNotEqual(i, k)
+        self.assertNotEqual(i, m)
 
     def test_eval_unit(self):
         # Tests InitialValue.eval_unit()
@@ -1282,10 +1295,14 @@ class PrefixPlusTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('+ina.m')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), '+partial(ina.m, membrane.C)')
+        g = m.get('ina.g')
+        V.set_rhs('+ina.I1')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        V.set_rhs('+4')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertTrue(p.is_number(0))
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test PrefixPlus.tree_str()
@@ -1383,10 +1400,14 @@ class PrefixMinusTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('-ina.m')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), '-partial(ina.m, membrane.C)')
+        g = m.get('ina.g')
+        V.set_rhs('-ina.I1')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), '-partial(ina.I1, ina.g)')
+        V.set_rhs('-4')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertTrue(p.is_number(0))
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test PrefixMinus.tree_str()
@@ -1522,22 +1543,22 @@ class PlusTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('2 + ina.m')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'partial(ina.m, membrane.C)')
-        V.set_rhs('ina.m + 2')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'partial(ina.m, membrane.C)')
-        V.set_rhs('ina.m + ina.INa')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('2 + ina.I1')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        V.set_rhs('ina.I1 + 2')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        V.set_rhs('ina.I1 + ina.I2')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
-            'partial(ina.m, membrane.C) + partial(ina.INa, membrane.C)')
+            'partial(ina.I1, ina.g) + partial(ina.I2, ina.g)')
         V.set_rhs('1 [mV/ms] + 4 [mV/ms]')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/pF'))
+        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/nS'))
 
     def test_tree_str(self):
         # Test Plus.tree_str().
@@ -1622,22 +1643,21 @@ class MinusTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('2 - ina.m')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), '-partial(ina.m, membrane.C)')
-        V.set_rhs('ina.m - 2')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'partial(ina.m, membrane.C)')
-        V.set_rhs('ina.m - ina.INa')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('2 - ina.I1')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), '-partial(ina.I1, ina.g)')
+        V.set_rhs('ina.I1 - 2')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        V.set_rhs('ina.I1 - ina.I2')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(),
-            'partial(ina.m, membrane.C) - partial(ina.INa, membrane.C)')
+            p.code(), 'partial(ina.I1, ina.g) - partial(ina.I2, ina.g)')
         V.set_rhs('1 [mV/ms] - 4 [mV/ms]')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/pF'))
+        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/nS'))
 
     def test_tree_str(self):
         # Test Minus.tree_str().
@@ -1709,23 +1729,23 @@ class MultiplyTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('2 * ina.m')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), '2 * partial(ina.m, membrane.C)')
-        V.set_rhs('ina.m * 2')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'partial(ina.m, membrane.C) * 2')
-        V.set_rhs('ina.m * ina.INa')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('2 * ina.I1')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), '2 * partial(ina.I1, ina.g)')
+        V.set_rhs('ina.I1 * 2')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g) * 2')
+        V.set_rhs('ina.I1 * ina.I2')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
-            'partial(ina.m, membrane.C) * ina.INa + '
-            'ina.m * partial(ina.INa, membrane.C)')
+            'partial(ina.I1, ina.g) * ina.I2 + '
+            'ina.I1 * partial(ina.I2, ina.g)')
         V.set_rhs('1 [mV] * 4 [1/ms]')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/pF'))
+        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/nS'))
 
     def test_tree_str(self):
         # Test Multiply.tree_str().
@@ -1810,24 +1830,24 @@ class DivideTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('2 / ina.m')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), '-2 * partial(ina.m, membrane.C) / ina.m^2')
-        V.set_rhs('ina.m / 2')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'partial(ina.m, membrane.C) / 2')
-        V.set_rhs('ina.m / ina.INa')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('2 / ina.I1')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), '-2 * partial(ina.I1, ina.g) / ina.I1^2')
+        V.set_rhs('ina.I1 / 2')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g) / 2')
+        V.set_rhs('ina.I1 / ina.I2')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
-            '(partial(ina.m, membrane.C) * ina.INa'
-            ' - ina.m * partial(ina.INa, membrane.C))'
-            ' / ina.INa^2')
+            '(partial(ina.I1, ina.g) * ina.I2'
+            ' - ina.I1 * partial(ina.I2, ina.g))'
+            ' / ina.I2^2')
         V.set_rhs('1 [mV] / 4 [ms]')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/pF'))
+        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/nS'))
 
 
 class QuotientTest(unittest.TestCase):
@@ -1886,12 +1906,11 @@ class QuotientTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('2 / ina.m')
-        V.set_rhs('ina.m // ina.INa')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('ina.I1 // ina.I2')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), myokit.parse_unit('1/pA/pF'))
+        self.assertEqual(p.unit(), myokit.parse_unit('1/nS'))
 
     def test_tree_str(self):
         # Test Quotient.tree_str().
@@ -1963,24 +1982,24 @@ class RemainderTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('2 % ina.m')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('2 % ina.I1')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), '-partial(ina.m, membrane.C) * floor(2 / ina.m)')
-        V.set_rhs('ina.m % 2')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'partial(ina.m, membrane.C)')
-        V.set_rhs('ina.m % ina.INa')
-        p = V.rhs().partial_derivative(C.lhs())
+            p.code(), '-partial(ina.I1, ina.g) * floor(2 / ina.I1)')
+        V.set_rhs('ina.I1 % 2')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        V.set_rhs('ina.I1 % ina.I2')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
-            'partial(ina.m, membrane.C) - '
-            'partial(ina.INa, membrane.C) * floor(ina.m / ina.INa)')
+            'partial(ina.I1, ina.g) - '
+            'partial(ina.I2, ina.g) * floor(ina.I1 / ina.I2)')
         V.set_rhs('1 [mV/ms] % 4 [1]')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/pF'))
+        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/nS'))
 
     def test_tree_str(self):
         # Test Remainder.tree_str().
@@ -2102,31 +2121,35 @@ class PowerTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('ina.m^3')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), '3 * ina.m^2 * partial(ina.m, membrane.C)')
-        V.set_rhs('ina.m^2')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), '2 * ina.m * partial(ina.m, membrane.C)')
-        V.set_rhs('ina.m^1')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'partial(ina.m, membrane.C)')
-        V.set_rhs('2^ina.m')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('ina.I1^(2 * 3)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), '2^ina.m * partial(ina.m, membrane.C) / log(2)')
-        V.set_rhs('ina.m^ina.INa')
-        p = V.rhs().partial_derivative(C.lhs())
+            p.code(), '2 * 3 * ina.I1^(2 * 3 - 1) * partial(ina.I1, ina.g)')
+        V.set_rhs('ina.I1^3')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), '3 * ina.I1^2 * partial(ina.I1, ina.g)')
+        V.set_rhs('ina.I1^2')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), '2 * ina.I1 * partial(ina.I1, ina.g)')
+        V.set_rhs('ina.I1^1')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        V.set_rhs('2^ina.I1')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(
+            p.code(), '2^ina.I1 * partial(ina.I1, ina.g) / log(2)')
+        V.set_rhs('ina.I1^ina.I2')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
-            'ina.m^ina.INa * ('
-            'log(ina.m) * partial(ina.INa, membrane.C) + '
-            'ina.INa / ina.m * partial(ina.m, membrane.C))')
+            'ina.I1^ina.I2 * ('
+            'log(ina.I1) * partial(ina.I2, ina.g) + '
+            'ina.I2 / ina.I1 * partial(ina.I1, ina.g))')
         V.set_rhs('1 [mV]^1')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), myokit.parse_unit('mV/pF'))
+        self.assertEqual(p.unit(), myokit.units.mV / myokit.units.nS)
 
     def test_tree_str(self):
         # Test Power.tree_str().
@@ -2224,15 +2247,15 @@ class SqrtTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('sqrt(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('sqrt(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.m, membrane.C) / (2 * sqrt(ina.m))')
+            p.code(), 'partial(ina.I1, ina.g) / (2 * sqrt(ina.I1))')
         V.set_rhs('sqrt(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test Sqrt.tree_str().
@@ -2339,15 +2362,15 @@ class ExpTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-        V.set_rhs('exp(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('exp(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), 'exp(ina.m) * partial(ina.m, membrane.C)')
+            p.code(), 'exp(ina.I1) * partial(ina.I1, ina.g)')
         V.set_rhs('exp(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test Exp.tree_str().
@@ -2513,38 +2536,38 @@ class LogTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
+        g = m.get('ina.g')
 
         # One operand
-        V.set_rhs('log(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'partial(ina.m, membrane.C) / ina.m')
+        V.set_rhs('log(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g) / ina.I1')
         V.set_rhs('log(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
         # Two operands
-        V.set_rhs('log(ina.m, 3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        V.set_rhs('log(ina.I1, 3)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.m, membrane.C) / (ina.m * log(3))')
-        V.set_rhs('log(2, ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(
-            p.code(),
-            '-partial(ina.m, membrane.C) * log(2) / (ina.m * log(ina.m)^2)')
-        V.set_rhs('log(membrane.V, ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
+            p.code(), 'partial(ina.I1, ina.g) / (ina.I1 * log(3))')
+        V.set_rhs('log(2, ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
-            'partial(membrane.V, membrane.C) / (membrane.V * log(ina.m)) - '
-            'partial(ina.m, membrane.C) * log(membrane.V) / ('
-            'ina.m * log(ina.m)^2)')
+            '-partial(ina.I1, ina.g) * log(2) / (ina.I1 * log(ina.I1)^2)')
+        V.set_rhs('log(ina.I2, ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(
+            p.code(),
+            'partial(ina.I2, ina.g) / (ina.I2 * log(ina.I1)) - '
+            'partial(ina.I1, ina.g) * log(ina.I2) / ('
+            'ina.I1 * log(ina.I1)^2)')
         V.set_rhs('log(3, 2)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test Log.tree_str().
@@ -2572,16 +2595,16 @@ class Log10Test(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
+        g = m.get('ina.g')
 
-        V.set_rhs('log10(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
+        V.set_rhs('log10(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.m, membrane.C) / (ina.m * log(10))')
+            p.code(), 'partial(ina.I1, ina.g) / (ina.I1 * log(10))')
         V.set_rhs('log10(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test Log10.tree_str().
@@ -2602,15 +2625,15 @@ class SinTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
+        g = m.get('ina.g')
 
-        V.set_rhs('sin(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'cos(ina.m) * partial(ina.m, membrane.C)')
+        V.set_rhs('sin(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'cos(ina.I1) * partial(ina.I1, ina.g)')
         V.set_rhs('sin(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test Sin.tree_str().
@@ -2631,15 +2654,14 @@ class CosTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-
-        V.set_rhs('cos(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), '-sin(ina.m) * partial(ina.m, membrane.C)')
+        g = m.get('ina.g')
+        V.set_rhs('cos(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), '-sin(ina.I1) * partial(ina.I1, ina.g)')
         V.set_rhs('cos(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test Cos.tree_str().
@@ -2660,15 +2682,14 @@ class TanTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-
-        V.set_rhs('tan(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
-        self.assertEqual(p.code(), 'partial(ina.m, membrane.C) / cos(ina.m)^2')
+        g = m.get('ina.g')
+        V.set_rhs('tan(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(p.code(), 'partial(ina.I1, ina.g) / cos(ina.I1)^2')
         V.set_rhs('tan(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test Tan.tree_str().
@@ -2689,16 +2710,15 @@ class ASinTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
-
-        V.set_rhs('asin(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
+        g = m.get('ina.g')
+        V.set_rhs('asin(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.m, membrane.C) / sqrt(1 - ina.m^2)')
+            p.code(), 'partial(ina.I1, ina.g) / sqrt(1 - ina.I1^2)')
         V.set_rhs('asin(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test ASin.tree_str().
@@ -2719,16 +2739,16 @@ class ACosTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
+        g = m.get('ina.g')
 
-        V.set_rhs('acos(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
+        V.set_rhs('acos(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), '-partial(ina.m, membrane.C) / sqrt(1 - ina.m^2)')
+            p.code(), '-partial(ina.I1, ina.g) / sqrt(1 - ina.I1^2)')
         V.set_rhs('acos(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test ACos.tree_str().
@@ -2749,16 +2769,16 @@ class ATanTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
+        g = m.get('ina.g')
 
-        V.set_rhs('atan(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
+        V.set_rhs('atan(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.m, membrane.C) / (1 + ina.m^2)')
+            p.code(), 'partial(ina.I1, ina.g) / (1 + ina.I1^2)')
         V.set_rhs('atan(3)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test ATan.tree_str().
@@ -2904,18 +2924,35 @@ class AbsTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
+        g = m.get('ina.g')
 
-        V.set_rhs('abs(ina.m)')
-        p = V.rhs().partial_derivative(C.lhs())
+        # Operand with derivative, and units
+        V.set_rhs('abs(ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
-            'if(ina.m >= 0, partial(ina.m, membrane.C), '
-            '-partial(ina.m, membrane.C))')
+            'if(ina.I1 >= 0 [pA], partial(ina.I1, ina.g),'
+            ' -partial(ina.I1, ina.g))')
+        # Operand with derivative, no units
+        i = m.get('ina.I1')
+        i.set_unit(None)
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(
+            p.code(),
+            'if(ina.I1 >= 0, partial(ina.I1, ina.g), -partial(ina.I1, ina.g))')
+        # Operand with derivative, and invalid units
+        V.set_rhs('abs(ina.I1 + 2 [pF])')
+        i.set_unit('pA')
+        p = V.rhs().partial_derivative(g.lhs())
+        self.assertEqual(
+            p.code(),
+            'if(ina.I1 + 2 [pF] >= 0, partial(ina.I1, ina.g), '
+            '-partial(ina.I1, ina.g))')
+        # Operand without derivative or units
         V.set_rhs('abs(-13.2)')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), 1 / myokit.units.pF)
+        self.assertEqual(p.unit(), 1 / myokit.units.nS)
 
     def test_tree_str(self):
         # Test Abs.tree_str().
@@ -3373,26 +3410,26 @@ class IfTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
+        g = m.get('ina.g')
 
-        V.set_rhs('if(1 == 1, ina.INa, 7 [pA])')
-        p = V.rhs().partial_derivative(C.lhs())
+        V.set_rhs('if(1 == 1, ina.I1, 7 [pA])')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), 'if(1 == 1, partial(ina.INa, membrane.C), 0 [A/F])')
-        V.set_rhs('if(1 == 1, 7 [pA], ina.INa)')
-        p = V.rhs().partial_derivative(C.lhs())
+            p.code(), 'if(1 == 1, partial(ina.I1, ina.g), 0 [mV])')
+        V.set_rhs('if(1 == 1, 7 [pA], ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
-            p.code(), 'if(1 == 1, 0 [A/F], partial(ina.INa, membrane.C))')
-        V.set_rhs('if(1 == 1, 2 * ina.INa, ina.INa)')
-        p = V.rhs().partial_derivative(C.lhs())
+            p.code(), 'if(1 == 1, 0 [mV], partial(ina.I1, ina.g))')
+        V.set_rhs('if(1 == 1, 2 * ina.I1, ina.I2)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
-            'if(1 == 1, 2 * partial(ina.INa, membrane.C), '
-            'partial(ina.INa, membrane.C))')
+            'if(1 == 1, 2 * partial(ina.I1, ina.g), '
+            'partial(ina.I2, ina.g))')
         V.set_rhs('if(1 == 1, 4 [mV/ms], 7 [mV/ms])')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/pF'))
+        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/nS'))
 
     def test_piecewise_conversion(self):
         # Test If.piecewise().
@@ -3577,36 +3614,36 @@ class PiecewiseTest(unittest.TestCase):
 
         m = pd_model.clone()
         V = m.get('membrane.V')
-        C = m.get('membrane.C')
+        g = m.get('ina.g')
 
-        V.set_rhs('piecewise(1 == 1, ina.INa, 2 == 2, 3 [pA], 7 [pA])')
-        p = V.rhs().partial_derivative(C.lhs())
+        V.set_rhs('piecewise(1 == 1, ina.I1, 2 == 2, 3 [pA], 7 [pA])')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
             'piecewise('
-            '1 == 1, partial(ina.INa, membrane.C), '
-            '2 == 2, 0 [A/F], '
-            '0 [A/F])')
-        V.set_rhs('piecewise(1 == 1, 7 [pA], 2 == 2, 3 [pA], ina.INa)')
-        p = V.rhs().partial_derivative(C.lhs())
+            '1 == 1, partial(ina.I1, ina.g), '
+            '2 == 2, 0 [mV], '
+            '0 [mV])')
+        V.set_rhs('piecewise(1 == 1, 7 [pA], 2 == 2, 3 [pA], ina.I1)')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
             'piecewise('
-            '1 == 1, 0 [A/F], '
-            '2 == 2, 0 [A/F], '
-            'partial(ina.INa, membrane.C))')
-        V.set_rhs('piecewise(1 == 1, 2 * ina.INa, 2 == 2, ina.INa, 3 [pA])')
-        p = V.rhs().partial_derivative(C.lhs())
+            '1 == 1, 0 [mV], '
+            '2 == 2, 0 [mV], '
+            'partial(ina.I1, ina.g))')
+        V.set_rhs('piecewise(1 == 1, 2 * ina.I1, 2 == 2, ina.I1, 3 [pA])')
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertEqual(
             p.code(),
             'piecewise('
-            '1 == 1, 2 * partial(ina.INa, membrane.C), '
-            '2 == 2, partial(ina.INa, membrane.C), '
-            '0 [A/F])')
+            '1 == 1, 2 * partial(ina.I1, ina.g), '
+            '2 == 2, partial(ina.I1, ina.g), '
+            '0 [mV])')
         V.set_rhs('piecewise(1 == 1, 4 [mV/ms], 7 [mV/ms])')
-        p = V.rhs().partial_derivative(C.lhs())
+        p = V.rhs().partial_derivative(g.lhs())
         self.assertTrue(p.is_number(0))
-        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/pF'))
+        self.assertEqual(p.unit(), myokit.parse_unit('mV/ms/nS'))
 
 
 class EquationTest(unittest.TestCase):
@@ -3683,45 +3720,6 @@ class EquationTest(unittest.TestCase):
         eq1 = myokit.Equation(myokit.Name(x), myokit.Number('3'))
         self.assertEqual(str(eq1), 'c.x = 3')
         self.assertEqual(repr(eq1), '<Equation c.x = 3>')
-
-
-class UserFunctionTest(unittest.TestCase):
-    """ Tests :class:`UserFunction`. """
-
-    def test_user_function(self):
-        # Test :class:`UserFunction` creation and methods.
-
-        # Create without arguments
-        f = myokit.UserFunction('bert', [], myokit.Number(12))
-        args = list(f.arguments())
-        self.assertEqual(len(args), 0)
-        self.assertEqual(f.convert([]), myokit.Number(12))
-
-        # Create with one argument
-        f = myokit.UserFunction(
-            'x', [myokit.Name('a')], myokit.parse_expression('1 + a'))
-        self.assertEqual(len(list(f.arguments())), 1)
-        args = {myokit.Name('a'): myokit.Number(3)}
-        self.assertEqual(f.convert(args).eval(), 4)
-
-        # Create with two argument
-        f = myokit.UserFunction(
-            'x', [myokit.Name('a'), myokit.Name('b')],
-            myokit.parse_expression('a + b'))
-        self.assertEqual(len(list(f.arguments())), 2)
-        args = {
-            myokit.Name('a'): myokit.Number(3),
-            myokit.Name('b'): myokit.Number(4)
-        }
-        self.assertEqual(f.convert(args), myokit.parse_expression('3 + 4'))
-
-        # Call with wrong arguments
-        del(args[myokit.Name('a')])
-        self.assertRaisesRegex(
-            ValueError, 'Wrong number', f.convert, args)
-        args[myokit.Name('c')] = myokit.Number(100)
-        self.assertRaisesRegex(
-            ValueError, 'Missing input argument', f.convert, args)
 
 
 if __name__ == '__main__':
