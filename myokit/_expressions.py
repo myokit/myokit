@@ -192,17 +192,148 @@ class Expression(object):
             elif ref._has_partials or ref._has_initials:
                 # Partial derivatives and initial values have no rhs
                 continue
-            var = ref.var()
-            if not isinstance(var, myokit.Variable):
+            elif not ref._proper:
                 # Values that are not variables count as independent
                 continue
-            elif ref.is_state_value() or var.is_bound():
+            var = ref.var()
+            if ref.is_state_value() or var.is_bound():
                 # State values and bound variables have no rhs
                 continue
             else:
                 todo.update(var.rhs()._references - done)
 
         return dependent
+
+    def diff(self, lhs, independent_states=True):
+        """
+        Returns an expression representing the partial derivative of this
+        expression with respect to the expression ``lhs``.
+
+        The argument ``lhs`` must be a :class:`Name` or a
+        :class:`InitialValue`, taking derivatives with respect to
+        a class:`Derivative` or :class:`PartialDerivative` is not supported.
+
+        Expressions involving variables
+        -------------------------------
+        Partial derivatives are determined recursively. If, at any point in
+        this recursion, a :class:`Name` or :class:`Derivative` is encountered,
+        this is handled in the following way:
+
+        - The partial derivative of any :class:`Name` with respect to an
+          identical ``Name`` is 1 (without units / dimensionless).
+        - The partial derivative of a :class:`Name` referencing a state
+          variable is zero if ``independent_states=True``, but will otherwise
+          be represented as a :class:`PartialDerivative`.
+        - The partial derivative of a :class:`Derivative`, and the partial
+          derivative of a :class:`Name` referencing a non-state variable, will
+          both be determined based on the corresponding right-hand side
+          expression. If this references the ``lhs`` a ``PartialDerivative``
+          will be returned. If it does not reference the ``lhs`` and
+          ``independent_states=True``, then zero will be returned. If it does
+          not reference the ``lhs``, but ``independent_states=False`` and one
+          or more states are referenced, a :class:`PartialDerivative` will be
+          returned.
+        - The partial derivative of a :class:`Name` referencing a bound
+          variable is zero.
+
+        Simplification
+        --------------
+
+        Some effort is made to eliminate expressions that evaluate to zero, but
+        no further simplification is performed. Multiplications by 1 are
+        preserved as these can provide valuable unit information.
+
+        Conditional expressions
+        -----------------------
+
+        When calculating derivatives, the following simplifying assumptions are
+        made with respect to conditional expressions:
+
+        - When evaluating conditional expressions (:class:`If` and
+          :class:`Piecewise`), the discontinuities at the condition boundaries
+          are ignored. Instead, the method simply returns a similar conditional
+          expression with the original operands replaced by their derivatives,
+          e.g. ``if(condition, a, b)`` becomes ``if(condition, a', b')``.
+
+        Discontinuous functions
+        -----------------------
+
+        Similarly, some functions are discontinuous so that their derivatives
+        are undefined at certain points, but this method returns the
+        right-derivative for those points. In particular:
+
+        - The true derivative of ``floor(x)`` is zero when ``x`` is not an
+          integer and undefined if it is, but this method always returns zero.
+        - Similarly, the true derivative of ``ceil(x)`` is undefined when ``x``
+          is an integer, but this method always returns zero.
+        - The true derivative of an integer division ``a // b`` with respect to
+          either ``a`` or ``b`` is zero when ``a`` is not an integer multiple
+          of ``b``, and otherwise undefined; but this method always returns
+          zero.
+        - The true derivative of the remainder operation
+          ``a(x) % b(x) = a - b * floor(a / b)`` is
+          ``da/dx - db/dx * floor(a/b) - b * d/dx floor(a/b)``, but (as above)
+          this method assumes the derivative of the floor function is zero, and
+          so will always return ``da/dx - db/dx * floor(a/b)``.
+        - The true derivative of ``abs(f(x))`` is f'(x) for ``x > 0``, -f'(x)
+          for ``x < 0``, and undefined for ``x == 0``, but this method will
+          return ``f'(x)`` for ``x >= 0`` and ``-f'(x)``s for ``x < 0``.
+
+        Non-integer powers
+        ------------------
+
+        Since ``a(x)^b(x)`` is undefined for non-integer ``b(x)`` when
+        `a(x) < 0``, the derivative of ``a(x)^b(x)`` is only defined if
+        ``a(x) >= 0`` or ``b'(x) = 0``. No errors or warnings are given if the
+        derivative is undefined, until the equations are evaluated (note that
+        at this point evaluation of ``a(x)^b(x)`` will also fail).
+
+        """
+        # Check LHS
+        if not isinstance(lhs, (Name, InitialValue)):
+            raise ValueError(
+                'Partial derivatives can only be taken with respect to a'
+                ' myokit.Name or myokit.InitialValue.')
+
+        # Get derivative or None for 0
+        derivative = self._diff(lhs, bool(independent_states))
+
+        # Result zero? Then ensure it has the right unit
+        if derivative is None:
+            derivative = Number(0, self._diff_unit(lhs))
+
+        return derivative
+
+    def _diff(self, lhs, idstates):
+        """
+        Internal version of ``diff()``.
+
+        Assumes lhs is a Name; and will return None if this expression does not
+        depend on ``lhs``.
+        """
+        raise NotImplementedError
+
+    def _diff_unit(self, lhs):
+        """
+        Returns the unit that the derivative of this expression w.r.t. the
+        given ``lhs`` _should_ be in.
+
+        This is used by both :meth:`diff()` and several implementations of
+        :meth:`_diff()`.
+        """
+        try:
+            unit1 = self.eval_unit(myokit.UNIT_TOLERANT)
+        except myokit.IncompatibleUnitError as e:
+            unit1 = None
+        unit2 = lhs.var().unit()
+
+        if unit1 is None and unit2 is None:
+            return None
+        if unit1 is None:
+            return 1 / unit2
+        if unit2 is None:
+            return unit1
+        return unit1 / unit2
 
     def __eq__(self, other):
         if type(self) != type(other):
@@ -463,146 +594,6 @@ class Expression(object):
         '*')
         """
         return self._rep
-
-    def partial_derivative(self, lhs, inspect=True):
-        """
-        Returns an expression representing the partial derivative of this
-        expression with respect to the expression ``lhs``.
-
-        Expressions involving variables
-        -------------------------------
-        Expressions involving variables are handled using the following rules:
-
-        - the partial derivative of any :class:`Name` with respect to an
-          identical ``Name`` returns a :class:`myokit.Number()` with value
-          ``1`` and units ``None``.
-        - the partial derivative of a :class:`Name` or :class:`Derivative`
-          ``x`` with respect to a :class:`Name` ``y`` (such that ``x != y``)
-          depends on the variables pointed to by ``x`` and ``y``, and the value
-          of the ``inspect`` argument, as explained below.
-        - taking partial derivatives of partial derivatives or initial values
-          is not supported.
-        - partial derivatives can only be taken with respect with :class:`Name`
-          expressions.
-
-        With ``inspect=False``, the partial derivative of a ``Name`` or
-        ``Derivative`` ``x`` with respect to ``y``, where ``x != y``, will be
-        returned as an expression object ``PartialDerivative(x ,y)``.
-
-        If ``inspect=True`` (which is the default), a :class:`Number` with
-        value zero and appropriate units will be returned instead if ``x != y``
-        and:
-
-        - ``x`` is a :class:`Name` referring to a state or bound variable;
-        - ``x`` is a :class:`Name` referring to some variable which does
-          not depend on ``y`` in the model, directly or indirectly;
-        - ``x`` is a :class:`Derivative`, such that the corresponding
-          right-hand side equation in the model does not depend on ``y``,
-          directly or indirectly;
-
-        in all other cases the result is an object ``PartialDerivative(x, y)``.
-
-        The above rules will be applied recursively, so that calling
-        ``partial_derivative(y)`` on e.g. ``Plus(y, x)`` will return either
-        ``Number(1)`` or ``Plus(Number(1), PartialDerivative(x, y))``.
-
-        Simplification
-        --------------
-
-        Some effort is made to eliminate expressions that evaluate to zero, but
-        no further simplification is performed. Multiplications by 1 are
-        preserved as these can provide valuable unit information.
-
-        Conditional expressions
-        -----------------------
-
-        When calculating derivatives, the following simplifying assumptions are
-        made with respect to conditional expressions:
-
-        - When evaluating conditional expressions (:class:`If` and
-          :class:`Piecewise`), the discontinuities at the condition boundaries
-          are ignored. Instead, the method simply returns a similar conditional
-          expression with the original operands replaced by their derivatives,
-          e.g. ``if(condition, a, b)`` becomes ``if(condition, a', b')``.
-
-        Discontinuous functions
-        -----------------------
-
-        Similarly, some functions are discontinuous so that their derivatives
-        are undefined at certain points, but this method returns the
-        right-derivative for those points. In particular:
-
-        - The true derivative of ``floor(x)`` is zero when ``x`` is not an
-          integer and undefined if it is, but this method always returns zero.
-        - Similarly, the true derivative of ``ceil(x)`` is undefined when ``x``
-          is an integer, but this method always returns zero.
-        - The true derivative of an integer division ``a // b`` with respect to
-          either ``a`` or ``b`` is zero when ``a`` is not an integer multiple
-          of ``b``, and otherwise undefined; but this method always returns
-          zero.
-        - The true derivative of the remainder operation
-          ``a(x) % b(x) = a - b * floor(a / b)`` is
-          ``da/dx - db/dx * floor(a/b) - b * d/dx floor(a/b)``, but (as above)
-          this method assumes the derivative of the floor function is zero, and
-          so will always return ``da/dx - db/dx * floor(a/b)``.
-        - The true derivative of ``abs(f(x))`` is f'(x) for ``x > 0``, -f'(x)
-          for ``x < 0``, and undefined for ``x == 0``, but this method will
-          return ``f'(x)`` for ``x >= 0`` and ``-f'(x)``s for ``x < 0``.
-
-        Non-integer powers
-        ------------------
-
-        Since ``a(x)^b(x)`` is undefined for non-integer ``b(x)`` when
-        `a(x) < 0``, the derivative of ``a(x)^b(x)`` is only defined if
-        ``a(x) >= 0`` or ``b'(x) = 0``. No errors or warnings are given if the
-        derivative is undefined, until the equations are evaluated (note that
-        at this point evaluation of ``a(x)^b(x)`` will also fail).
-
-        """
-        # Check LHS
-        if not isinstance(lhs, Name):
-            raise ValueError(
-                'Partial derivatives can only be taken with respect to a'
-                ' myokit.Name.')
-
-        # Get derivative or None for 0
-        derivative = self._partial_derivative(lhs, bool(inspect))
-
-        # Result zero? Then ensure it has the right unit
-        if derivative is None:
-            derivative = Number(0, self._partial_derivative_unit(lhs))
-
-        return derivative
-
-    def _partial_derivative(self, lhs, inspect):
-        """
-        Internal version of ``partial_derivative()``, can assume lhs is a Name
-        that refers to a non-constant variable; and can return None if this
-        expression does not depend on ``lhs``.
-        """
-        raise NotImplementedError
-
-    def _partial_derivative_unit(self, lhs):
-        """
-        Returns the unit that the partial derivative of this expression w.r.t.
-        the given ``lhs`` _should_ be in.
-
-        This is used by both :meth:`partial_derivative()` and several
-        implementations of :meth:`_partial_derivative()`.
-        """
-        try:
-            unit1 = self.eval_unit(myokit.UNIT_TOLERANT)
-        except myokit.IncompatibleUnitError as e:
-            unit1 = None
-        unit2 = lhs.var().unit()
-
-        if unit1 is None and unit2 is None:
-            return None
-        if unit1 is None:
-            return 1 / unit2
-        if unit2 is None:
-            return unit1
-        return unit1 / unit2
 
     def _polish(self):
         """
@@ -866,6 +857,9 @@ class Number(Expression):
         """
         return Number(myokit.Unit.convert(self._value, self._unit, unit), unit)
 
+    def _diff(self, lhs, idstates):
+        return None
+
     def _eval(self, subst, precision):
         if precision == myokit.SINGLE_PRECISION:
             return numpy.float32(self._value)
@@ -888,9 +882,6 @@ class Number(Expression):
     def is_number(self, value=None):
         """See :meth:`Expression.is_number()`."""
         return (value is None) or (value == self._value)
-
-    def _partial_derivative(self, lhs, inspect):
-        return None
 
     def _polishb(self, b):
         b.write(self._str)
@@ -968,6 +959,7 @@ class Name(LhsExpression):
         super(Name, self).__init__()
         self._value = value
         self._references = set([self])
+        self._proper = isinstance(self._value, myokit.Variable)
 
     def bracket(self, op=None):
         """See :meth:`Expression.bracket()`."""
@@ -979,7 +971,7 @@ class Name(LhsExpression):
         """See :meth:`Expression.clone()`."""
         if subst and self in subst:
             return subst[self]
-        if expand and isinstance(self._value, myokit.Variable):
+        if expand and self._proper:
             if not self._value.is_state():
                 if (retain is None) or (
                         self not in retain
@@ -990,7 +982,7 @@ class Name(LhsExpression):
         return Name(self._value)
 
     def _code(self, b, c):
-        if isinstance(self._value, myokit.Variable):
+        if self._proper:
             if self._value.is_nested():
                 b.write(self._value.name())
             else:
@@ -1008,21 +1000,40 @@ class Name(LhsExpression):
             # And sneaky abuse of the expression system
             b.write(str(self._value))
 
+    def _diff(self, lhs, idstates):
+
+        # Derivative w.r.t. self is one
+        if lhs == self:
+            return Number(1)
+
+        # Value isn't a variable? Then always return an object
+        if not self._proper:
+            return PartialDerivative(self, lhs)
+
+        # If idstates=False, a state variable reference returns an object, and
+        # any intermediary variable is dependent on the lhs (via a state)
+        if not idstates:
+            if self._value.is_state() or self._value.is_intermediary():
+                return PartialDerivative(self, lhs)
+
+        # Otherwise, check for dependency (includes checks on this variable!)
+        if self.depends_on(lhs, deep=True):
+            return PartialDerivative(self, lhs)
+        return None
+
     def _eval_unit(self, mode):
 
-        # Try getting unit from variable, if linked
-        if isinstance(self._value, myokit.Variable):
-            return self._value.unit(mode)
-
+        if self._proper:
             # Note: Don't get it from the variable's RHS!
             # If the variable unit isn't specified:
             #  1. In tolerant mode a None will propagate without errors
             #  2. In strict mode, it is dimensionless (and if the RHS thinks
             #     otherwise the RHS is wrong).
             # In addition, for e.g. derivatives this can lead to cycles.
+            return self._value.unit(mode)
 
-        # Unlinked name or no unit found, return dimensionless or None
-        if mode == myokit.UNIT_STRICT:
+        # Improper name, return dimensionless or None
+        elif mode == myokit.UNIT_STRICT:
             return myokit.units.dimensionless
         return None
 
@@ -1037,19 +1048,7 @@ class Name(LhsExpression):
 
     def is_state_value(self):
         """See: meth:`Expression.is_state_value()`."""
-        return self._value.is_state()
-
-    def _partial_derivative(self, lhs, inspect):
-
-        # Derivative w.r.t. self is one
-        if lhs == self:
-            return Number(1)
-
-        # Outside of inspect mode, always return a partial derivative. In
-        # inspect mode, allow None to be returned if RHS doesn't depend on lhs.
-        if (not inspect) or self.depends_on(lhs, deep=True):
-            return PartialDerivative(self, lhs)
-        return None
+        return self._proper and self._value.is_state()
 
     def _polishb(self, b):
         if isinstance(self._value, basestring):
@@ -1069,10 +1068,12 @@ class Name(LhsExpression):
 
     def rhs(self):
         """See :meth:`LhsExpression.rhs()`."""
-        if self._value.is_state():
-            return Number(self._value.state_value())
-        elif self._value.lhs() == self:
-            return self._value.rhs()
+        if self._proper:
+            if self._value.is_state():
+                return Number(self._value.state_value())
+            elif self._value.lhs() == self:
+                return self._value.rhs()
+        return None
 
     def _tree_str(self, b, n):
         b.write(' ' * n + str(self._value) + '\n')
@@ -1081,7 +1082,7 @@ class Name(LhsExpression):
         super(Name, self)._validate(trail)
         # Check value: String is allowed at construction for debugging, but
         # not here!
-        if not isinstance(self._value, myokit.Variable):
+        if not self._proper:
             raise IntegrityError(
                 'Name value "' + repr(self._value) + '" is not an instance of'
                 ' class myokit.Variable', self._token)
@@ -1108,6 +1109,7 @@ class Derivative(LhsExpression):
                 'The dot() operator can only be used on variables.',
                 self._token)
         self._op = op
+        self._proper = self._op._proper
         self._references = set([self])
 
     def bracket(self, op):
@@ -1127,6 +1129,28 @@ class Derivative(LhsExpression):
         self._op._code(b, c)
         b.write(')')
 
+    def _diff(self, lhs, idstates):
+        # Value isn't a variable? Then always return an object
+        if not self._proper:
+            return PartialDerivative(self, lhs)
+
+        # Get rhs
+        rhs = self._op._value.rhs()
+
+        # Not treating states as independent: then return object if any of the
+        # RHS's references are to intermediary or state variables
+        if not idstates:
+            for ref in rhs._references:
+                var = ref.var()
+                if (ref == lhs or (not ref._proper) or
+                        var.is_intermediary() or var.is_state()):
+                    return PartialDerivative(self, lhs)
+
+        # Check for dependencies in RHS
+        if rhs.depends_on(lhs, deep=True):
+            return PartialDerivative(self, lhs)
+        return None
+
     def __eq__(self, other):
         if type(other) != Derivative:
             return False
@@ -1139,7 +1163,7 @@ class Derivative(LhsExpression):
         # Get denomenator
         unit2 = \
             myokit.units.dimensionless if mode == myokit.UNIT_STRICT else None
-        if self._op._value is not None:
+        if self._proper:
             model = self._op._value.model()
             if model is not None:
                 unit2 = model.time_unit(mode)
@@ -1155,14 +1179,6 @@ class Derivative(LhsExpression):
         """See :meth:`Expression.is_derivative()`."""
         return (var is None) or (var == self._op._value)
 
-    def _partial_derivative(self, lhs, inspect):
-
-        # Outside of inspect mode, always return a partial derivative. In
-        # inspect mode, allow None to be returned if RHS doesn't depend on lhs.
-        if (not inspect) or self.depends_on(lhs, deep=True):
-            return PartialDerivative(self, lhs)
-        return None
-
     def _polishb(self, b):
         b.write('dot ')
         self._op._polishb(b)
@@ -1172,7 +1188,9 @@ class Derivative(LhsExpression):
 
     def rhs(self):
         """See :meth:`LhsExpression.rhs()`."""
-        return self._op._value.rhs()
+        if self._proper:
+            return self._op._value.rhs()
+        return None
 
     def _tree_str(self, b, n):
         b.write(' ' * n + 'dot(' + str(self._op._value) + ')\n')
@@ -1183,9 +1201,9 @@ class Derivative(LhsExpression):
 
     def _validate(self, trail):
         super(Derivative, self)._validate(trail)
+        # Check that value is a variable has already been performed by name
         # Check if value is the name of a state variable
-        var = self._op.var()
-        if not (isinstance(var, myokit.Variable) and var.is_state()):
+        if not self._op._value.is_state():
             raise IntegrityError(
                 'Derivatives can only be defined for state variables.',
                 self._token)
@@ -1250,6 +1268,10 @@ class PartialDerivative(LhsExpression):
         """
         return self._var1
 
+    def _diff(self, lhs, idstates):
+        raise NotImplementedError(
+            'Partial derivatives of partial derivatives are not supported.')
+
     def __eq__(self, other):
         if type(other) != PartialDerivative:
             return False
@@ -1270,10 +1292,6 @@ class PartialDerivative(LhsExpression):
         "dy/dx".
         """
         return self._var2
-
-    def _partial_derivative(self, lhs, inspect):
-        raise NotImplementedError(
-            'Partial derivatives of partial derivatives are not supported.')
 
     def _polishb(self, b):
         b.write('partial ')
@@ -1348,6 +1366,10 @@ class InitialValue(LhsExpression):
         self._var._code(b, c)
         b.write(')')
 
+    def _diff(self, lhs, idstates):
+        raise NotImplementedError(
+            'Partial derivatives of initial conditions are not supported.')
+
     def __eq__(self, other):
         if type(other) != InitialValue:
             return False
@@ -1355,10 +1377,6 @@ class InitialValue(LhsExpression):
 
     def _eval_unit(self, mode):
         return self._var._eval_unit(mode)
-
-    def _partial_derivative(self, lhs, inspect):
-        raise NotImplementedError(
-            'Partial derivatives of initial conditions are not supported.')
 
     def _polishb(self, b):
         b.write('init ')
@@ -1449,14 +1467,14 @@ class PrefixPlus(PrefixExpression):
     """
     _rep = '+'
 
+    def _diff(self, lhs, idstates):
+        return self._op._diff(lhs, idstates)
+
     def _eval(self, subst, precision):
         try:
             return self._op._eval(subst, precision)
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
-        return self._op._partial_derivative(lhs, inspect)
 
     def _polishb(self, b):
         self._op._polishb(b)
@@ -1475,15 +1493,15 @@ class PrefixMinus(PrefixExpression):
     """
     _rep = '-'
 
+    def _diff(self, lhs, idstates):
+        op = self._op._diff(lhs, idstates)
+        return None if op is None else PrefixMinus(op)
+
     def _eval(self, subst, precision):
         try:
             return -self._op._eval(subst, precision)
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
-        op = self._op._partial_derivative(lhs, inspect)
-        return None if op is None else PrefixMinus(op)
 
     def _polishb(self, b):
         b.write('~ ')
@@ -1571,6 +1589,15 @@ class Plus(InfixExpression):
     _rep = '+'
     _description = 'Addition'
 
+    def _diff(self, lhs, idstates):
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+        if op1 is None:
+            return op2  # Could be None
+        if op2 is None:
+            return op1  # Definitely not None
+        return Plus(op1, op2)
+
     def _eval(self, subst, precision):
         try:
             return (
@@ -1594,15 +1621,6 @@ class Plus(InfixExpression):
             self, 'Addition requires equal units, got '
             + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
-    def _partial_derivative(self, lhs, inspect):
-        op1 = self._op1._partial_derivative(lhs, inspect)
-        op2 = self._op2._partial_derivative(lhs, inspect)
-        if op1 is None:
-            return op2  # Could be None
-        if op2 is None:
-            return op1  # Definitely not None
-        return Plus(op1, op2)
-
 
 class Minus(InfixExpression):
     """
@@ -1618,6 +1636,16 @@ class Minus(InfixExpression):
     _rbp = SUM
     _rep = '-'
     _description = 'Subtraction'
+
+    def _diff(self, lhs, idstates):
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+        if op2 is None:
+            return op1  # Could be None
+        if op1 is None:
+            # Op2 is not None, so need to return -op2
+            return PrefixMinus(op2)
+        return Minus(op1, op2)
 
     def _eval(self, subst, precision):
         try:
@@ -1642,16 +1670,6 @@ class Minus(InfixExpression):
             self, 'Subtraction requires equal units, got '
             + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
-    def _partial_derivative(self, lhs, inspect):
-        op1 = self._op1._partial_derivative(lhs, inspect)
-        op2 = self._op2._partial_derivative(lhs, inspect)
-        if op2 is None:
-            return op1  # Could be None
-        if op1 is None:
-            # Op2 is not None, so need to return -op2
-            return PrefixMinus(op2)
-        return Minus(op1, op2)
-
 
 class Multiply(InfixExpression):
     """
@@ -1666,6 +1684,17 @@ class Multiply(InfixExpression):
     """
     _rbp = PRODUCT
     _rep = '*'
+
+    def _diff(self, lhs, idstates):
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+        if op1 is None and op2 is None:
+            return None
+        elif op2 is None:
+            return Multiply(op1, self._op2)     # f' g
+        elif op1 is None:
+            return Multiply(self._op1, op2)     # f g'
+        return Plus(Multiply(op1, self._op2), Multiply(self._op1, op2))
 
     def _eval(self, subst, precision):
         try:
@@ -1686,17 +1715,6 @@ class Multiply(InfixExpression):
 
         return unit1 * unit2
 
-    def _partial_derivative(self, lhs, inspect):
-        op1 = self._op1._partial_derivative(lhs, inspect)
-        op2 = self._op2._partial_derivative(lhs, inspect)
-        if op1 is None and op2 is None:
-            return None
-        elif op2 is None:
-            return Multiply(op1, self._op2)     # f' g
-        elif op1 is None:
-            return Multiply(self._op1, op2)     # f g'
-        return Plus(Multiply(op1, self._op2), Multiply(self._op1, op2))
-
 
 class Divide(InfixExpression):
     """
@@ -1711,6 +1729,28 @@ class Divide(InfixExpression):
     """
     _rbp = PRODUCT
     _rep = '/'
+
+    def _diff(self, lhs, idstates):
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+
+        if op1 is None and op2 is None:
+            return None
+        elif op2 is None:
+            # g f' / g^2 = f' / g
+            return Divide(op1, self._op2)
+        elif op1 is None:
+            # -(f g') / g^2
+            return Divide(
+                Multiply(PrefixMinus(self._op1), op2),
+                Power(self._op2, Number(2))
+            )
+
+        # (f' g - f g') / g^2
+        return Divide(
+            Minus(Multiply(op1, self._op2), Multiply(self._op1, op2)),
+            Power(self._op2, Number(2))
+        )
 
     def _eval(self, subst, precision):
         try:
@@ -1731,28 +1771,6 @@ class Divide(InfixExpression):
             return 1 / unit2
 
         return unit1 / unit2
-
-    def _partial_derivative(self, lhs, inspect):
-        op1 = self._op1._partial_derivative(lhs, inspect)
-        op2 = self._op2._partial_derivative(lhs, inspect)
-
-        if op1 is None and op2 is None:
-            return None
-        elif op2 is None:
-            # g f' / g^2 = f' / g
-            return Divide(op1, self._op2)
-        elif op1 is None:
-            # -(f g') / g^2
-            return Divide(
-                Multiply(PrefixMinus(self._op1), op2),
-                Power(self._op2, Number(2))
-            )
-
-        # (f' g - f g') / g^2
-        return Divide(
-            Minus(Multiply(op1, self._op2), Multiply(self._op1, op2)),
-            Power(self._op2, Number(2))
-        )
 
 
 class Quotient(InfixExpression):
@@ -1788,6 +1806,19 @@ class Quotient(InfixExpression):
     _rbp = PRODUCT
     _rep = '//'
 
+    def _diff(self, lhs, idstates):
+        # The result of a // b is always flat, with discontinuous jumps
+        # whenever a = k*b (for an integer k). As a result, the derivatives
+        # d/da(a//b) and d/db(a//b) are either zero (most of the time) or
+        # undefined (at the jumps). Notably, outside of the jump points, the
+        # line a//b is flat, so does not depend on a, b, a', or b'!
+        #
+        # Alternatively, a // b = floor(a / b).
+        #
+        # Here we ignore the discontinuities in favour of a left or right
+        # derivative, and simply return zero for all points.
+        return None
+
     def _eval(self, subst, precision):
         try:
             return (
@@ -1806,19 +1837,6 @@ class Quotient(InfixExpression):
             return 1 / unit2
 
         return unit1 / unit2
-
-    def _partial_derivative(self, lhs, inspect):
-        # The result of a // b is always flat, with discontinuous jumps
-        # whenever a = k*b (for an integer k). As a result, the derivatives
-        # d/da(a//b) and d/db(a//b) are either zero (most of the time) or
-        # undefined (at the jumps). Notably, outside of the jump points, the
-        # line a//b is flat, so does not depend on a, b, a', or b'!
-        #
-        # Alternatively, a // b = floor(a / b).
-        #
-        # Here we ignore the discontinuities in favour of a left or right
-        # derivative, and simply return zero for all points.
-        return None
 
 
 class Remainder(InfixExpression):
@@ -1859,21 +1877,7 @@ class Remainder(InfixExpression):
     _rbp = PRODUCT
     _rep = '%'
 
-    def _eval(self, subst, precision):
-        try:
-            return (
-                self._op1._eval(subst, precision)
-                % self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:  # pragma: no cover
-            raise EvalError(self, subst, e)
-
-    def _eval_unit(self, mode):
-        # 14 pizzas / 5 kids = 2 pizzas / kid + 4 pizzas
-        unit1 = self._op1._eval_unit(mode)
-        self._op2._eval_unit(mode)  # Also check op2!
-        return unit1
-
-    def _partial_derivative(self, lhs, inspect):
+    def _diff(self, lhs, idstates):
         # Since
         #   a(x) % b(x) is defined as a(x) - b(x) * floor(a(x) / b(x))
         # its derivative is
@@ -1882,8 +1886,8 @@ class Remainder(InfixExpression):
         # simplifies to
         #   a' - b' floor(a/b)
 
-        op1 = self._op1._partial_derivative(lhs, inspect)
-        op2 = self._op2._partial_derivative(lhs, inspect)
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
 
         if op1 is None and op2 is None:
             return None
@@ -1897,6 +1901,20 @@ class Remainder(InfixExpression):
 
         # a' - b' floor(a/b)
         return Minus(op1, Multiply(op2, Floor(Divide(self._op1, self._op2))))
+
+    def _eval(self, subst, precision):
+        try:
+            return (
+                self._op1._eval(subst, precision)
+                % self._op2._eval(subst, precision))
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
+            raise EvalError(self, subst, e)
+
+    def _eval_unit(self, mode):
+        # 14 pizzas / 5 kids = 2 pizzas / kid + 4 pizzas
+        unit1 = self._op1._eval_unit(mode)
+        self._op2._eval_unit(mode)  # Also check op2!
+        return unit1
 
 
 class Power(InfixExpression):
@@ -1914,29 +1932,7 @@ class Power(InfixExpression):
     _rep = '^'
     _spaces_round_operator = False
 
-    def _eval(self, subst, precision):
-        try:
-            return (
-                self._op1._eval(subst, precision)
-                ** self._op2._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:  # pragma: no cover
-            raise EvalError(self, subst, e)
-
-    def _eval_unit(self, mode):
-        unit1 = self._op1._eval_unit(mode)
-        unit2 = self._op2._eval_unit(mode)
-
-        # In strict mode, check 2nd unit is dimensionless
-        if unit2 != myokit.units.dimensionless and mode == myokit.UNIT_STRICT:
-            raise EvalUnitError(
-                self, 'Exponent in Power must be dimensionless.')
-
-        if unit1 is None:
-            return None
-
-        return unit1 ** self._op2.eval()
-
-    def _partial_derivative(self, lhs, inspect):
+    def _diff(self, lhs, idstates):
         # The general rule is derived using a(x)^b(x) = e^(ln(a(x)) * b(x)).
         # This only works when ln(a(x)) is defined, so when a(x) >= 0. But this
         # is OK, as a(x)^b(x) is only defined for fractional b(x) if a(x) >= 0!
@@ -1955,8 +1951,8 @@ class Power(InfixExpression):
         # If b does not depend on the lhs, we use the reduced form i.e. the
         # general power rule.
         #
-        op1 = self._op1._partial_derivative(lhs, inspect)
-        op2 = self._op2._partial_derivative(lhs, inspect)
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
 
         if op1 is None and op2 is None:
             return None
@@ -1982,6 +1978,28 @@ class Power(InfixExpression):
             Multiply(Log(self._op1), op2),
             Multiply(Divide(self._op2, self._op1), op1)
         ))
+
+    def _eval(self, subst, precision):
+        try:
+            return (
+                self._op1._eval(subst, precision)
+                ** self._op2._eval(subst, precision))
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
+            raise EvalError(self, subst, e)
+
+    def _eval_unit(self, mode):
+        unit1 = self._op1._eval_unit(mode)
+        unit2 = self._op2._eval_unit(mode)
+
+        # In strict mode, check 2nd unit is dimensionless
+        if unit2 != myokit.units.dimensionless and mode == myokit.UNIT_STRICT:
+            raise EvalUnitError(
+                self, 'Exponent in Power must be dimensionless.')
+
+        if unit1 is None:
+            return None
+
+        return unit1 ** self._op2.eval()
 
 
 class Function(Expression):
@@ -2088,6 +2106,13 @@ class Sqrt(Function):
     """
     _fname = 'sqrt'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Multiply(Number(2), self))
+
     def _eval(self, subst, precision):
         try:
             return numpy.sqrt(self._operands[0]._eval(subst, precision))
@@ -2099,13 +2124,6 @@ class Sqrt(Function):
         if unit is None:
             return None
         return unit ** 0.5
-
-    def _partial_derivative(self, lhs, inspect):
-        op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
-        if dop is None:
-            return None
-        return Divide(dop, Multiply(Number(2), self))
 
 
 class Sin(UnaryDimensionlessFunction):
@@ -2124,18 +2142,18 @@ class Sin(UnaryDimensionlessFunction):
     """
     _fname = 'sin'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Multiply(Cos(op), dop)
+
     def _eval(self, subst, precision):
         try:
             return numpy.sin(self._operands[0]._eval(subst, precision))
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
-        op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
-        if dop is None:
-            return None
-        return Multiply(Cos(op), dop)
 
 
 class Cos(UnaryDimensionlessFunction):
@@ -2154,18 +2172,18 @@ class Cos(UnaryDimensionlessFunction):
     """
     _fname = 'cos'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Multiply(PrefixMinus(Sin(op)), dop)
+
     def _eval(self, subst, precision):
         try:
             return numpy.cos(self._operands[0]._eval(subst, precision))
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
-        op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
-        if dop is None:
-            return None
-        return Multiply(PrefixMinus(Sin(op)), dop)
 
 
 class Tan(UnaryDimensionlessFunction):
@@ -2181,18 +2199,18 @@ class Tan(UnaryDimensionlessFunction):
     """
     _fname = 'tan'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Power(Cos(op), Number(2)))
+
     def _eval(self, subst, precision):
         try:
             return numpy.tan(self._operands[0]._eval(subst, precision))
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
-        op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
-        if dop is None:
-            return None
-        return Divide(dop, Power(Cos(op), Number(2)))
 
 
 class ASin(UnaryDimensionlessFunction):
@@ -2208,18 +2226,18 @@ class ASin(UnaryDimensionlessFunction):
     """
     _fname = 'asin'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Sqrt(Minus(Number(1), Power(op, Number(2)))))
+
     def _eval(self, subst, precision):
         try:
             return numpy.arcsin(self._operands[0]._eval(subst, precision))
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
-        op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
-        if dop is None:
-            return None
-        return Divide(dop, Sqrt(Minus(Number(1), Power(op, Number(2)))))
 
 
 class ACos(UnaryDimensionlessFunction):
@@ -2235,21 +2253,21 @@ class ACos(UnaryDimensionlessFunction):
     """
     _fname = 'acos'
 
-    def _eval(self, subst, precision):
-        try:
-            return numpy.arccos(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:  # pragma: no cover
-            raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
+    def _diff(self, lhs, idstates):
         op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
+        dop = op._diff(lhs, idstates)
         if dop is None:
             return None
         return Divide(
             PrefixMinus(dop),
             Sqrt(Minus(Number(1), Power(op, Number(2))))
         )
+
+    def _eval(self, subst, precision):
+        try:
+            return numpy.arccos(self._operands[0]._eval(subst, precision))
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
+            raise EvalError(self, subst, e)
 
 
 class ATan(UnaryDimensionlessFunction):
@@ -2270,18 +2288,18 @@ class ATan(UnaryDimensionlessFunction):
     """
     _fname = 'atan'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Plus(Number(1), Power(op, Number(2))))
+
     def _eval(self, subst, precision):
         try:
             return numpy.arctan(self._operands[0]._eval(subst, precision))
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
-        op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
-        if dop is None:
-            return None
-        return Divide(dop, Plus(Number(1), Power(op, Number(2))))
 
 
 class Exp(UnaryDimensionlessFunction):
@@ -2297,18 +2315,18 @@ class Exp(UnaryDimensionlessFunction):
     """
     _fname = 'exp'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Multiply(self, dop)
+
     def _eval(self, subst, precision):
         try:
             return numpy.exp(self._operands[0]._eval(subst, precision))
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
-        op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
-        if dop is None:
-            return None
-        return Multiply(self, dop)
 
 
 class Log(Function):
@@ -2332,6 +2350,45 @@ class Log(Function):
     """
     _fname = 'log'
     _nargs = [1, 2]
+
+    def _diff(self, lhs, idstates):
+
+        if len(self._operands) == 1:
+            # One operand: natural logarithm: a' / a
+            op = self._operands[0]
+            dop = op._diff(lhs, idstates)
+            if dop is None:
+                return None
+            return Divide(dop, op)
+
+        else:
+            # Two operands: log_a(b) = Log(b, a)
+            op1 = self._operands[0]     # b
+            op2 = self._operands[1]     # a
+            dop1 = op1._diff(lhs, idstates)     # b'
+            dop2 = op2._diff(lhs, idstates)     # a'
+            if dop1 is None and dop2 is None:
+                return None
+            elif dop2 is None:
+                # a' = 0 --> b' / (b * ln(a))
+                return Divide(dop1, Multiply(op1, Log(op2)))
+
+            elif dop1 is None:
+                # b' = 0 --> -a' ln(b) / (a ln(a)^2)
+                return Divide(
+                    Multiply(PrefixMinus(dop2), Log(op1)),
+                    Multiply(op2, Power(Log(op2), Number(2))),
+                )
+
+            # Full form:
+            #   b' / (b * ln(a)) - (a' ln(b)) / (a ln(a)^2)
+            return Minus(
+                Divide(dop1, Multiply(op1, Log(op2))),
+                Divide(
+                    Multiply(dop2, Log(op1)),
+                    Multiply(op2, Power(Log(op2), Number(2))),
+                )
+            )
 
     def _eval(self, subst, precision):
         try:
@@ -2376,45 +2433,6 @@ class Log(Function):
 
         return myokit.units.dimensionless
 
-    def _partial_derivative(self, lhs, inspect):
-
-        if len(self._operands) == 1:
-            # One operand: natural logarithm: a' / a
-            op = self._operands[0]
-            dop = op._partial_derivative(lhs, inspect)
-            if dop is None:
-                return None
-            return Divide(dop, op)
-
-        else:
-            # Two operands: log_a(b) = Log(b, a)
-            op1 = self._operands[0]     # b
-            op2 = self._operands[1]     # a
-            dop1 = op1._partial_derivative(lhs, inspect)     # b'
-            dop2 = op2._partial_derivative(lhs, inspect)     # a'
-            if dop1 is None and dop2 is None:
-                return None
-            elif dop2 is None:
-                # a' = 0 --> b' / (b * ln(a))
-                return Divide(dop1, Multiply(op1, Log(op2)))
-
-            elif dop1 is None:
-                # b' = 0 --> -a' ln(b) / (a ln(a)^2)
-                return Divide(
-                    Multiply(PrefixMinus(dop2), Log(op1)),
-                    Multiply(op2, Power(Log(op2), Number(2))),
-                )
-
-            # Full form:
-            #   b' / (b * ln(a)) - (a' ln(b)) / (a ln(a)^2)
-            return Minus(
-                Divide(dop1, Multiply(op1, Log(op2))),
-                Divide(
-                    Multiply(dop2, Log(op1)),
-                    Multiply(op2, Power(Log(op2), Number(2))),
-                )
-            )
-
 
 class Log10(UnaryDimensionlessFunction):
     """
@@ -2429,18 +2447,18 @@ class Log10(UnaryDimensionlessFunction):
     """
     _fname = 'log10'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Multiply(op, Log(Number(10))))
+
     def _eval(self, subst, precision):
         try:
             return numpy.log10(self._operands[0]._eval(subst, precision))
         except (ArithmeticError, ValueError) as e:  # pragma: no cover
             raise EvalError(self, subst, e)
-
-    def _partial_derivative(self, lhs, inspect):
-        op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
-        if dop is None:
-            return None
-        return Divide(dop, Multiply(op, Log(Number(10))))
 
 
 class Floor(Function):
@@ -2459,6 +2477,12 @@ class Floor(Function):
     """
     _fname = 'floor'
 
+    def _diff(self, lhs, idstates):
+        # Floor is stepwise constant, so it's derivative is zero except when
+        # the value of its operand is an integer. Here we simplify and just say
+        # the derivative is always zero.
+        return None
+
     def _eval(self, subst, precision):
         try:
             return numpy.floor(self._operands[0]._eval(subst, precision))
@@ -2467,12 +2491,6 @@ class Floor(Function):
 
     def _eval_unit(self, mode):
         return self._operands[0]._eval_unit(mode)
-
-    def _partial_derivative(self, lhs, inspect):
-        # Floor is stepwise constant, so it's derivative is zero except when
-        # the value of its operand is an integer. Here we simplify and just say
-        # the derivative is always zero.
-        return None
 
 
 class Ceil(Function):
@@ -2491,6 +2509,12 @@ class Ceil(Function):
     """
     _fname = 'ceil'
 
+    def _diff(self, lhs, idstates):
+        # Ceil is stepwise constant, so it's derivative is zero except when
+        # the value of its operand is an integer. Here we simplify and just say
+        # the derivative is always zero.
+        return None
+
     def _eval(self, subst, precision):
         try:
             return numpy.ceil(self._operands[0]._eval(subst, precision))
@@ -2499,12 +2523,6 @@ class Ceil(Function):
 
     def _eval_unit(self, mode):
         return self._operands[0]._eval_unit(mode)
-
-    def _partial_derivative(self, lhs, inspect):
-        # Ceil is stepwise constant, so it's derivative is zero except when
-        # the value of its operand is an integer. Here we simplify and just say
-        # the derivative is always zero.
-        return None
 
 
 class Abs(Function):
@@ -2523,22 +2541,13 @@ class Abs(Function):
     """
     _fname = 'abs'
 
-    def _eval(self, subst, precision):
-        try:
-            return numpy.abs(self._operands[0]._eval(subst, precision))
-        except (ArithmeticError, ValueError) as e:  # pragma: no cover
-            raise EvalError(self, subst, e)
-
-    def _eval_unit(self, mode):
-        return self._operands[0]._eval_unit(mode)
-
-    def _partial_derivative(self, lhs, inspect):
+    def _diff(self, lhs, idstates):
         # The derivative of abs(f(x)) is f'(x) for x > 0, -f'(x) for x < 0, and
         # undefined if x == 0. Here we simplify and say it's f'(x) if x >= 0.
 
         # Get derivative of operand
         op = self._operands[0]
-        dop = op._partial_derivative(lhs, inspect)
+        dop = op._diff(lhs, idstates)
         if dop is None:
             return None
 
@@ -2550,6 +2559,15 @@ class Abs(Function):
 
         # Return if
         return If(MoreEqual(op, Number(0, unit)), dop, PrefixMinus(dop))
+
+    def _eval(self, subst, precision):
+        try:
+            return numpy.abs(self._operands[0]._eval(subst, precision))
+        except (ArithmeticError, ValueError) as e:  # pragma: no cover
+            raise EvalError(self, subst, e)
+
+    def _eval_unit(self, mode):
+        return self._operands[0]._eval_unit(mode)
 
 
 class If(Function):
@@ -2582,6 +2600,23 @@ class If(Function):
         """
         return self._i
 
+    def _diff(self, lhs, idstates):
+        op1 = self._t._diff(lhs, idstates)
+        op2 = self._e._diff(lhs, idstates)
+
+        # Return None if both None, or if() if both expressions
+        if op1 is None and op2 is None:
+            return None
+        elif op1 is not None and op2 is not None:
+            return If(self._i, op1, op2)
+
+        # If only one is None, create a zero with the correct units
+        zero = Number(0, self._diff_unit(lhs))
+        if op1 is None:
+            return If(self._i, zero, op2)
+        else:
+            return If(self._i, op1, zero)
+
     def _eval(self, subst, precision):
         if self._i._eval(subst, precision):
             return self._t._eval(subst, precision)
@@ -2611,23 +2646,6 @@ class If(Function):
 
     def is_conditional(self):
         return True
-
-    def _partial_derivative(self, lhs, inspect):
-        op1 = self._t._partial_derivative(lhs, inspect)
-        op2 = self._e._partial_derivative(lhs, inspect)
-
-        # Return None if both None, or if() if both expressions
-        if op1 is None and op2 is None:
-            return None
-        elif op1 is not None and op2 is not None:
-            return If(self._i, op1, op2)
-
-        # If only one is None, create a zero with the correct units
-        zero = Number(0, self._partial_derivative_unit(lhs))
-        if op1 is None:
-            return If(self._i, zero, op2)
-        else:
-            return If(self._i, op1, zero)
 
     def piecewise(self):
         """
@@ -2706,6 +2724,31 @@ class Piecewise(Function):
         """
         return iter(self._i)
 
+    def _diff(self, lhs, idstates):
+
+        # Evaluate derivatives of the (m + 1) expressions
+        ops = [op._diff(lhs, idstates) for op in self._e]
+
+        # Count the number of Nones
+        n_zeroes = sum([1 if op is None else 0 for op in ops])
+
+        # Return None if all None
+        if n_zeroes == len(ops):
+            return None
+
+        # Create zero to use if any of the expressions are None
+        zero = None
+        if n_zeroes > 0:
+            zero = Number(0, self._diff_unit(lhs))
+
+        # Create and return piecewise
+        new_ops = [0] * (2 * len(self._i) + 1)
+        for i, _if in enumerate(self._i):
+            new_ops[2 * i] = _if
+            new_ops[2 * i + 1] = zero if ops[i] is None else ops[i]
+        new_ops[-1] = zero if ops[-1] is None else ops[-1]
+        return Piecewise(*new_ops)
+
     def _eval(self, subst, precision):
         for k, cond in enumerate(self._i):
             if cond._eval(subst, precision):
@@ -2733,31 +2776,6 @@ class Piecewise(Function):
     def is_conditional(self):
         return True
 
-    def _partial_derivative(self, lhs, inspect):
-
-        # Evaluate derivatives of the (m + 1) expressions
-        ops = [op._partial_derivative(lhs, inspect) for op in self._e]
-
-        # Count the number of Nones
-        n_zeroes = sum([1 if op is None else 0 for op in ops])
-
-        # Return None if all None
-        if n_zeroes == len(ops):
-            return None
-
-        # Create zero to use if any of the expressions are None
-        zero = None
-        if n_zeroes > 0:
-            zero = Number(0, self._partial_derivative_unit(lhs))
-
-        # Create and return piecewise
-        new_ops = [0] * (2 * len(self._i) + 1)
-        for i, _if in enumerate(self._i):
-            new_ops[2 * i] = _if
-            new_ops[2 * i + 1] = zero if ops[i] is None else ops[i]
-        new_ops[-1] = zero if ops[-1] is None else ops[-1]
-        return Piecewise(*new_ops)
-
     def pieces(self):
         """
         Returns an iterator over the pieces in this Piecewise.
@@ -2774,7 +2792,7 @@ class Condition(object):
     condition.
     """
 
-    def _partial_derivative(self, lhs, inspect):
+    def _diff(self, lhs, idstates):
         raise NotImplementedError(
             'Conditions do not have partial derivatives.')
 

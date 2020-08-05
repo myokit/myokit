@@ -1250,7 +1250,7 @@ class PythonExpressionWriterTest(unittest.TestCase):
         self.assertEqual(w.ex(x), 'partial(c.a, c.a)')
         # Initial value
         x = myokit.InitialValue(a)
-        self.assertEqual(w.ex(x), 'intial(c.a)')
+        self.assertEqual(w.ex(x), 'initial(c.a)')
 
         # Number
         b = myokit.Number(3)

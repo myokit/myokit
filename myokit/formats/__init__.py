@@ -180,6 +180,12 @@ class ExpressionWriter(object):
     def _ex_derivative(self, e):
         raise NotImplementedError
 
+    def _ex_partial_derivative(self, e):
+        raise NotImplementedError
+
+    def _ex_initial_value(self, e):
+        raise NotImplementedError
+
     def _ex_number(self, e):
         raise NotImplementedError
 
