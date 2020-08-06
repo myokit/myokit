@@ -108,7 +108,7 @@ class ExpressionTest(unittest.TestCase):
         E3 = m.get('ina.E3')
         d = i.rhs().diff(E3.lhs())
         self.assertEqual(
-            d.code(), '0.6 * ina.g * ina.m^3 * -partial(ina.E, ina.E3)')
+            d.code(), '0.6 * ina.g * ina.m^3 * -diff(ina.E, ina.E3)')
 
         # Correct unit gets set for None
         p = E3.rhs().diff(E.lhs())
@@ -1068,7 +1068,7 @@ class PartialDerivativeTest(unittest.TestCase):
         # Tests PartialDerivative.code()
         n = myokit.Name('v')
         p = myokit.PartialDerivative(n, n)
-        self.assertEqual(p.code(), 'partial(str:v, str:v)')
+        self.assertEqual(p.code(), 'diff(str:v, str:v)')
 
     def test_diff(self):
         # Tests PartialDerivative.diff()
@@ -1110,7 +1110,7 @@ class PartialDerivativeTest(unittest.TestCase):
         n = myokit.Name('v')
         p = myokit.PartialDerivative(n, n)
         self.assertEqual(
-            repr(p), '<Partial(' + repr(n) + ', ' + repr(n) + ')>')
+            repr(p), '<PartialDerivative(' + repr(n) + ', ' + repr(n) + ')>')
 
     def test_rhs(self):
         # Tests PartialDerivative.rhs()
@@ -1178,7 +1178,7 @@ class InitialValueTest(unittest.TestCase):
         # Tests InitialValue.code()
         n = myokit.Name('v')
         i = myokit.InitialValue(n)
-        self.assertEqual(i.code(), 'initial(str:v)')
+        self.assertEqual(i.code(), 'init(str:v)')
 
     def test_diff(self):
         # Tests InitialValue.diff()
@@ -1212,7 +1212,7 @@ class InitialValueTest(unittest.TestCase):
         # Tests InitialValue.__repr__()
         n = myokit.Name('v')
         i = myokit.InitialValue(n)
-        self.assertEqual(repr(i), '<Initial(' + repr(n) + ')>')
+        self.assertEqual(repr(i), '<InitialValue(' + repr(n) + ')>')
 
     def test_rhs(self):
         # Tests InitialValue.rhs()
@@ -1291,7 +1291,7 @@ class PrefixPlusTest(unittest.TestCase):
         g = m.get('ina.g')
         V.set_rhs('+ina.I1')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g)')
         V.set_rhs('+4')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -1395,7 +1395,7 @@ class PrefixMinusTest(unittest.TestCase):
         g = m.get('ina.g')
         V.set_rhs('-ina.I1')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), '-partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), '-diff(ina.I1, ina.g)')
         V.set_rhs('-4')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -1500,14 +1500,14 @@ class PlusTest(unittest.TestCase):
         g = m.get('ina.g')
         V.set_rhs('2 + ina.I1')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g)')
         V.set_rhs('ina.I1 + 2')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g)')
         V.set_rhs('ina.I1 + ina.I2')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.I1, ina.g) + partial(ina.I2, ina.g)')
+            p.code(), 'diff(ina.I1, ina.g) + diff(ina.I2, ina.g)')
         V.set_rhs('1 [mV/ms] + 4 [mV/ms]')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -1616,14 +1616,14 @@ class MinusTest(unittest.TestCase):
         g = m.get('ina.g')
         V.set_rhs('2 - ina.I1')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), '-partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), '-diff(ina.I1, ina.g)')
         V.set_rhs('ina.I1 - 2')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g)')
         V.set_rhs('ina.I1 - ina.I2')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.I1, ina.g) - partial(ina.I2, ina.g)')
+            p.code(), 'diff(ina.I1, ina.g) - diff(ina.I2, ina.g)')
         V.set_rhs('1 [mV/ms] - 4 [mV/ms]')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -1715,16 +1715,16 @@ class MultiplyTest(unittest.TestCase):
         g = m.get('ina.g')
         V.set_rhs('2 * ina.I1')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), '2 * partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), '2 * diff(ina.I1, ina.g)')
         V.set_rhs('ina.I1 * 2')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g) * 2')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g) * 2')
         V.set_rhs('ina.I1 * ina.I2')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
-            'partial(ina.I1, ina.g) * ina.I2 + '
-            'ina.I1 * partial(ina.I2, ina.g)')
+            'diff(ina.I1, ina.g) * ina.I2 + '
+            'ina.I1 * diff(ina.I2, ina.g)')
         V.set_rhs('1 [mV] * 4 [1/ms]')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -1804,16 +1804,16 @@ class DivideTest(unittest.TestCase):
         g = m.get('ina.g')
         V.set_rhs('2 / ina.I1')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), '-2 * partial(ina.I1, ina.g) / ina.I1^2')
+        self.assertEqual(p.code(), '-2 * diff(ina.I1, ina.g) / ina.I1^2')
         V.set_rhs('ina.I1 / 2')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g) / 2')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g) / 2')
         V.set_rhs('ina.I1 / ina.I2')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
-            '(partial(ina.I1, ina.g) * ina.I2'
-            ' - ina.I1 * partial(ina.I2, ina.g))'
+            '(diff(ina.I1, ina.g) * ina.I2'
+            ' - ina.I1 * diff(ina.I2, ina.g))'
             ' / ina.I2^2')
         V.set_rhs('1 [mV] / 4 [ms]')
         p = V.rhs().diff(g.lhs())
@@ -1969,16 +1969,16 @@ class RemainderTest(unittest.TestCase):
         V.set_rhs('2 % ina.I1')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), '-partial(ina.I1, ina.g) * floor(2 / ina.I1)')
+            p.code(), '-diff(ina.I1, ina.g) * floor(2 / ina.I1)')
         V.set_rhs('ina.I1 % 2')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g)')
         V.set_rhs('ina.I1 % ina.I2')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
-            'partial(ina.I1, ina.g) - '
-            'partial(ina.I2, ina.g) * floor(ina.I1 / ina.I2)')
+            'diff(ina.I1, ina.g) - '
+            'diff(ina.I2, ina.g) * floor(ina.I1 / ina.I2)')
         V.set_rhs('1 [mV/ms] % 4 [1]')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2093,27 +2093,27 @@ class PowerTest(unittest.TestCase):
         V.set_rhs('ina.I1^(2 * 3)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), '2 * 3 * ina.I1^(2 * 3 - 1) * partial(ina.I1, ina.g)')
+            p.code(), '2 * 3 * ina.I1^(2 * 3 - 1) * diff(ina.I1, ina.g)')
         V.set_rhs('ina.I1^3')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), '3 * ina.I1^2 * partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), '3 * ina.I1^2 * diff(ina.I1, ina.g)')
         V.set_rhs('ina.I1^2')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), '2 * ina.I1 * partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), '2 * ina.I1 * diff(ina.I1, ina.g)')
         V.set_rhs('ina.I1^1')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g)')
         V.set_rhs('2^ina.I1')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), '2^ina.I1 * partial(ina.I1, ina.g) / log(2)')
+            p.code(), '2^ina.I1 * diff(ina.I1, ina.g) / log(2)')
         V.set_rhs('ina.I1^ina.I2')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
             'ina.I1^ina.I2 * ('
-            'log(ina.I1) * partial(ina.I2, ina.g) + '
-            'ina.I2 / ina.I1 * partial(ina.I1, ina.g))')
+            'log(ina.I1) * diff(ina.I2, ina.g) + '
+            'ina.I2 / ina.I1 * diff(ina.I1, ina.g))')
         V.set_rhs('1 [mV]^1')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2247,7 +2247,7 @@ class SqrtTest(unittest.TestCase):
         V.set_rhs('sqrt(ina.I1)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.I1, ina.g) / (2 * sqrt(ina.I1))')
+            p.code(), 'diff(ina.I1, ina.g) / (2 * sqrt(ina.I1))')
         V.set_rhs('sqrt(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2352,7 +2352,7 @@ class ExpTest(unittest.TestCase):
         V.set_rhs('exp(ina.I1)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'exp(ina.I1) * partial(ina.I1, ina.g)')
+            p.code(), 'exp(ina.I1) * diff(ina.I1, ina.g)')
         V.set_rhs('exp(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2500,7 +2500,7 @@ class LogTest(unittest.TestCase):
         # One operand
         V.set_rhs('log(ina.I1)')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g) / ina.I1')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g) / ina.I1')
         V.set_rhs('log(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2510,18 +2510,18 @@ class LogTest(unittest.TestCase):
         V.set_rhs('log(ina.I1, 3)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.I1, ina.g) / (ina.I1 * log(3))')
+            p.code(), 'diff(ina.I1, ina.g) / (ina.I1 * log(3))')
         V.set_rhs('log(2, ina.I1)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
-            '-partial(ina.I1, ina.g) * log(2) / (ina.I1 * log(ina.I1)^2)')
+            '-diff(ina.I1, ina.g) * log(2) / (ina.I1 * log(ina.I1)^2)')
         V.set_rhs('log(ina.I2, ina.I1)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
-            'partial(ina.I2, ina.g) / (ina.I2 * log(ina.I1)) - '
-            'partial(ina.I1, ina.g) * log(ina.I2) / ('
+            'diff(ina.I2, ina.g) / (ina.I2 * log(ina.I1)) - '
+            'diff(ina.I1, ina.g) * log(ina.I2) / ('
             'ina.I1 * log(ina.I1)^2)')
         V.set_rhs('log(3, 2)')
         p = V.rhs().diff(g.lhs())
@@ -2627,7 +2627,7 @@ class Log10Test(unittest.TestCase):
         V.set_rhs('log10(ina.I1)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.I1, ina.g) / (ina.I1 * log(10))')
+            p.code(), 'diff(ina.I1, ina.g) / (ina.I1 * log(10))')
         V.set_rhs('log10(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2656,7 +2656,7 @@ class SinTest(unittest.TestCase):
 
         V.set_rhs('sin(ina.I1)')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'cos(ina.I1) * partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), 'cos(ina.I1) * diff(ina.I1, ina.g)')
         V.set_rhs('sin(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2684,7 +2684,7 @@ class CosTest(unittest.TestCase):
         g = m.get('ina.g')
         V.set_rhs('cos(ina.I1)')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), '-sin(ina.I1) * partial(ina.I1, ina.g)')
+        self.assertEqual(p.code(), '-sin(ina.I1) * diff(ina.I1, ina.g)')
         V.set_rhs('cos(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2712,7 +2712,7 @@ class TanTest(unittest.TestCase):
         g = m.get('ina.g')
         V.set_rhs('tan(ina.I1)')
         p = V.rhs().diff(g.lhs())
-        self.assertEqual(p.code(), 'partial(ina.I1, ina.g) / cos(ina.I1)^2')
+        self.assertEqual(p.code(), 'diff(ina.I1, ina.g) / cos(ina.I1)^2')
         V.set_rhs('tan(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2741,7 +2741,7 @@ class ASinTest(unittest.TestCase):
         V.set_rhs('asin(ina.I1)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.I1, ina.g) / sqrt(1 - ina.I1^2)')
+            p.code(), 'diff(ina.I1, ina.g) / sqrt(1 - ina.I1^2)')
         V.set_rhs('asin(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2771,7 +2771,7 @@ class ACosTest(unittest.TestCase):
         V.set_rhs('acos(ina.I1)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), '-partial(ina.I1, ina.g) / sqrt(1 - ina.I1^2)')
+            p.code(), '-diff(ina.I1, ina.g) / sqrt(1 - ina.I1^2)')
         V.set_rhs('acos(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2801,7 +2801,7 @@ class ATanTest(unittest.TestCase):
         V.set_rhs('atan(ina.I1)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'partial(ina.I1, ina.g) / (1 + ina.I1^2)')
+            p.code(), 'diff(ina.I1, ina.g) / (1 + ina.I1^2)')
         V.set_rhs('atan(3)')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -2935,23 +2935,23 @@ class AbsTest(unittest.TestCase):
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
-            'if(ina.I1 >= 0 [pA], partial(ina.I1, ina.g),'
-            ' -partial(ina.I1, ina.g))')
+            'if(ina.I1 >= 0 [pA], diff(ina.I1, ina.g),'
+            ' -diff(ina.I1, ina.g))')
         # Operand with derivative, no units
         i = m.get('ina.I1')
         i.set_unit(None)
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
-            'if(ina.I1 >= 0, partial(ina.I1, ina.g), -partial(ina.I1, ina.g))')
+            'if(ina.I1 >= 0, diff(ina.I1, ina.g), -diff(ina.I1, ina.g))')
         # Operand with derivative, and invalid units
         V.set_rhs('abs(ina.I1 + 2 [pF])')
         i.set_unit('pA')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
-            'if(ina.I1 + 2 [pF] >= 0, partial(ina.I1, ina.g), '
-            '-partial(ina.I1, ina.g))')
+            'if(ina.I1 + 2 [pF] >= 0, diff(ina.I1, ina.g), '
+            '-diff(ina.I1, ina.g))')
         # Operand without derivative or units
         V.set_rhs('abs(-13.2)')
         p = V.rhs().diff(g.lhs())
@@ -3395,17 +3395,17 @@ class IfTest(unittest.TestCase):
         V.set_rhs('if(1 == 1, ina.I1, 7 [pA])')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'if(1 == 1, partial(ina.I1, ina.g), 0 [mV])')
+            p.code(), 'if(1 == 1, diff(ina.I1, ina.g), 0 [mV])')
         V.set_rhs('if(1 == 1, 7 [pA], ina.I1)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
-            p.code(), 'if(1 == 1, 0 [mV], partial(ina.I1, ina.g))')
+            p.code(), 'if(1 == 1, 0 [mV], diff(ina.I1, ina.g))')
         V.set_rhs('if(1 == 1, 2 * ina.I1, ina.I2)')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
-            'if(1 == 1, 2 * partial(ina.I1, ina.g), '
-            'partial(ina.I2, ina.g))')
+            'if(1 == 1, 2 * diff(ina.I1, ina.g), '
+            'diff(ina.I2, ina.g))')
         V.set_rhs('if(1 == 1, 4 [mV/ms], 7 [mV/ms])')
         p = V.rhs().diff(g.lhs())
         self.assertTrue(p.is_number(0))
@@ -3562,7 +3562,7 @@ class PiecewiseTest(unittest.TestCase):
         self.assertEqual(
             p.code(),
             'piecewise('
-            '1 == 1, partial(ina.I1, ina.g), '
+            '1 == 1, diff(ina.I1, ina.g), '
             '2 == 2, 0 [mV], '
             '0 [mV])')
         V.set_rhs('piecewise(1 == 1, 7 [pA], 2 == 2, 3 [pA], ina.I1)')
@@ -3572,14 +3572,14 @@ class PiecewiseTest(unittest.TestCase):
             'piecewise('
             '1 == 1, 0 [mV], '
             '2 == 2, 0 [mV], '
-            'partial(ina.I1, ina.g))')
+            'diff(ina.I1, ina.g))')
         V.set_rhs('piecewise(1 == 1, 2 * ina.I1, 2 == 2, ina.I1, 3 [pA])')
         p = V.rhs().diff(g.lhs())
         self.assertEqual(
             p.code(),
             'piecewise('
-            '1 == 1, 2 * partial(ina.I1, ina.g), '
-            '2 == 2, partial(ina.I1, ina.g), '
+            '1 == 1, 2 * diff(ina.I1, ina.g), '
+            '2 == 2, diff(ina.I1, ina.g), '
             '0 [mV])')
         V.set_rhs('piecewise(1 == 1, 4 [mV/ms], 7 [mV/ms])')
         p = V.rhs().diff(g.lhs())

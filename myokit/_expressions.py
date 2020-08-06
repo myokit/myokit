@@ -1255,7 +1255,7 @@ class PartialDerivative(LhsExpression):
         )
 
     def _code(self, b, c):
-        b.write('partial(')
+        b.write('diff(')
         self._var1._code(b, c)
         b.write(', ')
         self._var2._code(b, c)
@@ -1294,12 +1294,13 @@ class PartialDerivative(LhsExpression):
         return self._var2
 
     def _polishb(self, b):
-        b.write('partial ')
+        b.write('diff ')
         self._var1._polishb(b)
         self._var2._polishb(b)
 
     def __repr__(self):
-        return '<Partial(' + repr(self._var1) + ', ' + repr(self._var2) + ')>'
+        return ('<PartialDerivative(' + repr(self._var1) + ', '
+                + repr(self._var2) + ')>')
 
     def rhs(self):
         """
@@ -1362,7 +1363,7 @@ class InitialValue(LhsExpression):
         return InitialValue(self._var.clone(subst, expand, retain))
 
     def _code(self, b, c):
-        b.write('initial(')
+        b.write('init(')
         self._var._code(b, c)
         b.write(')')
 
@@ -1383,7 +1384,7 @@ class InitialValue(LhsExpression):
         self._var._polishb(b)
 
     def __repr__(self):
-        return '<Initial(' + repr(self._var) + ')>'
+        return '<InitialValue(' + repr(self._var) + ')>'
 
     def rhs(self):
         """
