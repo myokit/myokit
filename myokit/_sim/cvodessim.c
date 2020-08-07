@@ -1,17 +1,18 @@
 <?
 # cvodessim.c
 #
-# A pype template for a single cell CVODES-based simulation that calculates
-# sensitivities of variables ``v`` w.r.t. parameters or initial conditions.
+# A pype template for a single cell CVODES-based simulation that can calculate
+# sensitivities of variables ``v`` w.r.t. parameters or initial conditions and
+# perform root-finding.
 #
 # Required variables
 # -----------------------------------------------------------------------------
 # module_name A module name
 # model       A myokit model
-# potential   A variable from the model used to track threshold crossings
-# variables   A list of variables v to calculate dv/dp for
-# parameters  A list of parameters p to calculate dv/dp for
-# initials    A list of states x to calculate dv/dx0 for
+# apd_var     A variable from the model used to track threshold crossings (or
+#             None)
+# variables   A list of names/derivatives v to calculate dv/dp for
+# parameters  A list of names/initial values p to calculate dv/dp for
 # -----------------------------------------------------------------------------
 #
 # This file is part of Myokit.
@@ -28,14 +29,19 @@ model.create_unique_names()
 w = ansic.AnsiCExpressionWriter()
 
 # Calculating sensitivities?
-use_sensitivities = len(variables) > 0 and len(parameters) + len(initials) > 0
+use_sensitivities = len(variables) > 0
 
 # List of all "independent expressions", i.e. the expressions "p" that we take a derivative "dx/dp" to
-indep_expr = []
-for p in parameters:
-    indep_expr.append(myokit.Name(p))
-for p in initials:
-    indep_expr.append(myokit.InitialValue(myokit.Name(p)))
+indep_expr = parameters
+
+# Lists of sensitivities, split into parameters/initials
+parameters = []
+initials = []
+for p in indep_expr:
+    if isinstance(p, myokit.Name):
+        parameters.append(p.var())
+    else:
+        initials.append(p.var())
 
 # Set of all parameter variables (like parameters, but unordered - does _not_ include initials)
 parameter_set = set(parameters)
@@ -124,10 +130,15 @@ equations = model.solvable_order()
 sensitivity_output_equations = []
 if use_sensitivities:
     # Get expressions needed to evaluate the variables we want to output
-    # derivatives of. We don't need to add states into this list, these are
-    # already available
-    output_equations, _ = model.expressions_for(
-        *(var for var in variables if not var.is_state()))
+    # derivatives of.
+    # First, get variables instead of LhsExpressions. Ignore Name(state), as we
+    # already have these, and convert Derivative(Name(state)) into variables.
+    output_variables = [
+        lhs.var() for lhs in variables
+        if not (isinstance(lhs, myokit.Name) and lhs.var().is_state())]
+    # Now call expressions_for, which will return expressions to evaluate the
+    # rhs for each variable (i.e. the dot(x) rhs for states).
+    output_equations, _ = model.expressions_for(*output_variables)
 
     # Gather output expressions for each parameter or initial value we want
     # sensitivities w.r.t.
@@ -569,7 +580,7 @@ if var is not None:
 /*
  * Root finding function
  */<?
-root_finding_indice = potential.indice() if potential is not None else 0
+root_finding_indice = apd_var.indice() if apd_var is not None else 0
 ?>
 static int
 root_finding(realtype t, N_Vector y, realtype *gout, void *user_data)
@@ -1324,20 +1335,18 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
                 /* Write sensitivity matrix to log */
 <?
 def write_sens_matrix(t, sy):
-
     print(tab*t + 'l1 = PyTuple_New(' + str(len(variables)) +');')
     print(tab*t + 'if (l1 == NULL) return sim_clean();')
 
-    for i, var in enumerate(variables):
+    for i, e1 in enumerate(variables):
+        var = e1.var()
         print()
         print(tab*t + 'l2 = PyTuple_New(N_SENS);')
         print(tab*t + 'if (l2 == NULL) return sim_clean();')
         print()
 
-        # TODO: Allow derivatives here too, #593
         for j, e2 in enumerate(indep_expr):
-            e1 = myokit.Name(var)
-            if var.is_state():
+            if e1.is_name() and e1.var().is_state():
                 print(tab*t + 'flt = PyFloat_FromDouble(NV_Ith_S(' + sy + '[' + str(j) + '], ' + str(var.indice()) + '));')
             else:
                 pd = myokit.PartialDerivative(e1, e2)

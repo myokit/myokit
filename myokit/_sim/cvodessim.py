@@ -1,5 +1,6 @@
 #
-# CVODES-driven single cell simulation with sensitivities
+# CVODES-driven single cell simulation with optional sensitivities and root
+# finding
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -15,14 +16,11 @@ import platform
 SOURCE_FILE = 'cvodessim.c'
 
 
-class SimulationS1(myokit.CModule):
+class Simulation(myokit.CModule):
     """
-    Runs single cell simulations using the CVODES solver (see [1]); to
-    calculate the solution to an ODE system as well as the state variables'
-    sensitivity to selected parameters or initial conditions.
-
-    Sensitivities are calculated using CVODES's forward-sensitivity analysis
-    method.
+    Runs single cell simulations using the CVODES solver (see [1]); CVODES uses
+    an implicit multi-step method to achieve high accuracy and stability with
+    adaptive step sizes.
 
     The model passed to the simulation is cloned and stored internally, so
     changes to the original model object will not affect the simulation. A
@@ -34,6 +32,8 @@ class SimulationS1(myokit.CModule):
     - the current simulation time
     - the current state
     - the default state
+    - the sensitivities of selected variables with respect to the current state
+      (optional)
 
     When a simulation is created, the simulation time is set to 0 and both the
     current and the default state are copied from the model.
@@ -48,6 +48,16 @@ class SimulationS1(myokit.CModule):
     simulation time but will update the current *and the default state*. This
     allows you to pre-pace, run a simulation, reset to the pre-paced state, run
     another simulation etc.
+
+    Sensitivities of model variables with respect to parameters (any unbound
+    model variable defined as a literal constant) or initial values of states
+    can be calculated using the ``sensitivities`` argument. If set, this should
+    be a tuple ``(variables, parameters)`` such that ``variables`` is a list of
+    variables whose sensitivity to any variable in the list ``parameters`` will
+    be determined. In addition to variables, sensitivities of time-derivatives
+    of state variables can be determined. Acceptable values in the parameters
+    list are any variable that's literal (does not depend on other variables),
+    or :class:`myokit.InitialValue` expressions.
 
     To get action potential duration (APD) measurements, the simulation can be
     run with threshold crossing detection. To enable this, the membrane
@@ -82,16 +92,16 @@ class SimulationS1(myokit.CModule):
     ``protocol``
         An optional :class:`myokit.Protocol` to use as input for variables
         bound to ``pace``.
-    ``variables``
-        A list of :class:`myokit.Variable` objects or qualified variable names,
-        specifying the variables ``v`` for which to calculate ``dv/dp`` and/or
-        ``dv/dx0``.
-    ``parameters``
-        A list of :class:`myokit.Variable` objects or qualified variable names,
-        specifying the parameters ``p`` for which to calculate ``dv/dp``.
-    ``initials``
-        A list of :class:`myokit.Variable` objects or qualified variable names,
-        specifying the state variables ``x`` for which to calculate ``dv/dx0``.
+    ``sensitivities``
+        An optional tuple ``(variables, parameters)`` where ``variables``
+        specifies variables to return derivatives of, and ``parameters`` is a
+        list of variables or initial conditions to calculate derivatives _to_.
+        Each entry in ``variables`` must be a :class:`myokit.Variable`, a
+        :class:`myokit.Name`, a :class:`myokit.Derivative`, or a string with
+        either a fully qualified variable name or a ``dot()`` expression.
+        Each entry in ``parameters`` must be a :class:`myokit.Variable`, a
+        :class:`myokit.Name`, a :class:`myokit.InitialValue`, or a string with
+        either a fully qualified variable name or an ``init()`` expression.
     ``apd_var``
         An optional :class:`myokit.Variable` or qualified variable name to use
         for APD calculations.
@@ -103,9 +113,8 @@ class SimulationS1(myokit.CModule):
     """
     _index = 0  # Simulation id
 
-    def __init__(self, model, protocol=None, variables=None, parameters=None,
-                 initials=None, apd_var=None):
-        super(SimulationS1, self).__init__()
+    def __init__(self, model, protocol=None, sensitivities=None, apd_var=None):
+        super(Simulation, self).__init__()
 
         # Require a valid model
         if not model.is_valid():
@@ -119,76 +128,90 @@ class SimulationS1(myokit.CModule):
         self.set_protocol(protocol)
         del(protocol)
 
-        # Check variables
-        #TODO: Check aren't time or pace
-        if variables is None or len(variables) == 0:
-            raise ValueError(
-                'No variables selected to calculate sensitivities of.')
-        self._variables = []
-        for var in variables:
-            if isinstance(var, myokit.Variable):
-                var = var.qname()
-            var = self._model.get(var)
-            if var in self._variables:
+        # Check sensitivity arguments
+        self._sensitivities = (sensitivities is not None)
+        self._s_variables = []
+        self._s_parameters = []
+        if self._sensitivities:
+            try:
+                s_variables, s_parameters = sensitivities
+                s_variables = list(s_variables)
+                s_parameters = list(s_parameters)
+            except Exception:
                 raise ValueError(
-                    'Duplicate entry in `variables`: ' + var.qname())
-            self._variables.append(var)
-        del(variables)
+                    'The argument "sensitivities" must be a tuple containing'
+                    ' two lists, or None.')
+            if len(s_variables) == 0 or len(s_parameters) == 0:
+                raise ValueError(
+                    'The argument "sensitivities" must be a tuple containing'
+                    ' two non-empty lists, or None.')
 
-        # Check parameters
-        #TODO: Check aren't time or pace
-        if parameters is None:
-            parameters = []
-        self._parameters = []
-        for var in parameters:
-            if isinstance(var, myokit.Variable):
-                var = var.qname()
-            var = self._model.get(var)
-            if var in self._parameters:
-                raise ValueError(
-                    'Duplicate entry in `parameters`: ' + var.qname())
-            if var.is_state():
-                raise ValueError(
-                    'Variables listed in `parameters` cannot be states.')
-            if not var.is_literal():
-                raise ValueError(
-                    'All variables in `parameters` must be literals: they can'
-                    ' not refer to other variables in their RHS.')
-            self._parameters.append(var)
-        del(parameters)
+            # Check variables, make sure all are Name or Derivative objects
+            # from the cloned model.
+            for x in s_variables:
+                deriv = False
+                if isinstance(x, myokit.Variable):
+                    var = self._model.get(x.qname())
+                elif isinstance(x, myokit.Name):
+                    var = self._model.get(x.var().qname())
+                elif isinstance(x, myokit.Derivative):
+                    deriv = True
+                    var = self._model.get(x.var().qname())
+                else:
+                    x = str(x)
+                    if x[:4] == 'dot(' and x[-1:] == ')':
+                        deriv = True
+                        var = x = x[4:-1]
+                    var = self._model.get(x)
+                lhs = myokit.Name(var)
+                if deriv:
+                    lhs = myokit.Derivative(lhs)
+                    if not var.is_state():
+                        raise ValueError(
+                            'Sensitivity of ' + lhs.code() + ' requested, but '
+                            + var.qname() + ' is not a state variable.')
+                elif var.is_bound():
+                    raise ValueError(
+                        'Sensitivities cannot be calculated for bound'
+                        ' variables (got ' + str(var.qname()) + ').')
+                # Note: constants are fine, just not very useful! But may be
+                # easy, e.g. when working with multiple models.
+                self._s_variables.append(lhs)
+            del(s_variables)
 
-        # Check initials
-        if initials is None:
-            initials = []
-        self._initials = []
-        for var in initials:
-            if isinstance(var, myokit.Variable):
-                var = var.qname()
-            var = self._model.get(var)
-            if var in self._initials:
-                raise ValueError(
-                    'Duplicate entry in `initials`: ' + var.qname())
-            if not var.is_state():
-                raise ValueError(
-                    'Variables listed in `initials` must be states.')
-            self._initials.append(var)
-        del(initials)
-
-        # Doing sensitivity analysis?
-        self._sensitivities_enabled = True
-        if len(self._parameters) + len(self._initials) == 0:
-            if len(self._variables) == 0:
-                self._sensitivities_enabled = False
-            else:
-                raise ValueError(
-                    'Variables passed in for sensitivity analysis, but no'
-                    ' parameters or initial conditions selected to calculate'
-                    ' sensitivities to.')
-        elif len(self._variables) == 0:
-            raise ValueError(
-                'Parameters and/or initial conditions selected to calculate'
-                ' sensitivities to, but no variables selected to log'
-                ' sensitivities for.')
+            # Check parameters, make sure all are Name or InitialValue objects
+            # from the cloned model.
+            for x in s_parameters:
+                init = False
+                if isinstance(x, myokit.Variable):
+                    var = self._model.get(x.qname())
+                elif isinstance(x, myokit.Name):
+                    var = self._model.get(x.var().qname())
+                elif isinstance(x, myokit.InitialValue):
+                    init = True
+                    var = self._model.get(x.var().qname())
+                else:
+                    x = str(x)
+                    if x[:5] == 'init(' and x[-1:] == ')':
+                        init = True
+                        x = x[5:-1]
+                    var = self._model.get(x)
+                lhs = myokit.Name(var)
+                if init:
+                    lhs = myokit.InitialValue(myokit.Name(var))
+                    if not var.is_state():
+                        raise ValueError(
+                            'Sensitivity with respect to ' + lhs.code() +
+                            ' requested, but ' + var.qname() + ' is not a'
+                            ' state variable.')
+                elif not var.is_literal():
+                    raise ValueError(
+                        'Sensitivity with respect to ' + var.qname() +
+                        ' requested, but this is not a literal variable (it'
+                        ' depends on other variables).')
+                self._s_parameters.append(lhs)
+            del(s_parameters)
+        del(sensitivities)
 
         # Check potential and threshold values
         if apd_var is None:
@@ -211,18 +234,17 @@ class SimulationS1(myokit.CModule):
         self._time = 0
 
         # Unique simulation id
-        SimulationS1._index += 1
-        module_name = 'myokit_sims1_' + str(SimulationS1._index)
+        Simulation._index += 1
+        module_name = 'myokit_sim_' + str(Simulation._index)
         module_name += '_' + str(myokit._pid_hash())
 
         # Arguments
         args = {
             'module_name': module_name,
             'model': self._model,
-            'potential': self._apd_var,
-            'variables': self._variables,
-            'parameters': self._parameters,
-            'initials': self._initials,
+            'apd_var': self._apd_var,
+            'variables': self._s_variables,
+            'parameters': self._s_parameters,
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
 
@@ -449,7 +471,7 @@ class SimulationS1(myokit.CModule):
 
         # List of sensitivity results
         sensitivity_list = None
-        if self._sensitivities_enabled:
+        if self._sensitivities:
             sensitivity_list = []
 
         # Threshold for APD measurement
@@ -578,7 +600,7 @@ class SimulationS1(myokit.CModule):
             apds['duration'] = dr
 
         # Return
-        if self._sensitivities_enabled:
+        if self._sensitivities:
             if root_list is not None:
                 return log, sensitivity_list, apds
             else:

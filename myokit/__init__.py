@@ -579,8 +579,7 @@ from ._sim.opencl import (  # noqa
     OpenCLInfo,
     OpenCLPlatformInfo,
 )
-from ._sim.cvodesim import Simulation       # noqa
-from ._sim.cvodessim import SimulationS1    # noqa
+from ._sim.cvodessim import Simulation      # noqa
 from ._sim.cable import Simulation1d        # noqa
 from ._sim.rhs import RhsBenchmarker        # noqa
 from ._sim.icsim import ICSimulation        # noqa
