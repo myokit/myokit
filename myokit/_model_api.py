@@ -1396,6 +1396,9 @@ class Model(ObjectWithMeta, VarProvider):
         """
         Determines the expressions needed to evaluate one or more variables.
 
+        If state variables are included in the list, "evaluating" the variable
+        is interpreted as evaluating its derivative.
+
         Returns a tuple ``(eqs, args)`` where ``eqs`` is a list of Equation
         objects in solvable order containing the minimal set of equations
         needed to evaluate the given ``variable`` and ``args`` is a list of
