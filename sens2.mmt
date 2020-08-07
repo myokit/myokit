@@ -1,0 +1,21 @@
+[[script]]
+import myokit
+import numpy as np
+import matplotlib.pyplot as plt
+
+m, p, _ = myokit.load('example')
+
+# Run a simulation
+s = myokit.ICSimulation(m, p)
+d, e = s.run(1000)
+
+# Plot the results
+plt.figure()
+plt.subplot(2, 1, 1)
+plt.plot(d.time(), d['membrane.V'])
+
+plt.subplot(2, 1, 2)
+plt.plot(d.time(), e[:, 0, 7])
+
+plt.show()
+

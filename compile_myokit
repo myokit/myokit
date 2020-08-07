@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#gcc -Wall -lm -lsundials_cvode -lsundials_nvecserial sim.c -o sim
+gcc -Wall -lm -lsundials_cvodes -lsundials_nvecserial sens.c -o sens

@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+gcc -lm -lsundials_cvodes -lsundials_nvecserial cvsRoberts_FSA_dns.c -o cvsRoberts_FSA_dns
