@@ -170,11 +170,154 @@ if use_sensitivities:
 #include <sundials/sundials_types.h>
 #include "pacing.h"
 
-#define N_STATE <?= model.count_states() ?>
+
+
+
+
+
+/*
+ * Model error flags
+ */
+typedef int Model_Flag;
+#define Model_OK                             0
+#define Model_OUT_OF_MEMORY                 -1
+// General
+#define Model_INVALID_MODEL                 -10
+// ESys_Populate
+// ESys_AdvanceTime
+// ESys_ScheduleEvent
+
+/*
+ * Sets a python exception based on a model flag.
+ *
+ * Arguments
+ *  flag : The model flag to base the message on.
+ */
+void
+Model_SetPyErr(Model_Flag flag)
+{
+    switch(flag) {
+    case Model_OK:
+        break;
+    case Model_OUT_OF_MEMORY:
+        PyErr_SetString(PyExc_Exception, "Model error: Memory allocation failed.");
+        break;
+    // General
+    case Model_INVALID_MODEL:
+        PyErr_SetString(PyExc_Exception, "Model error: Invalid model pointer provided.");
+        break;
+    // Populate
+    // Unknown
+    default:
+    {
+        int i = (int)flag;
+        char buffer[1024];
+        sprintf(buffer, "Model error: Unlisted error %d", i);
+        PyErr_SetString(PyExc_Exception, buffer);
+        break;
+    }};
+}
+
+/*
+ * Model object.
+ */
+struct Model_Mem {
+    int n_state;
+    int n_sens;
+    int cvode;
+
+    /*
+    double level;       // The stimulus level (non-zero, dimensionless, normal range [0,1])
+    double duration;    // The stimulus duration
+    double start;       // The time this stimulus starts
+    double period;      // The period with which it repeats (or 0 if it doesn't)
+    double multiplier;  // The number of times this period occurs (or 0 if it doesn't)
+    double ostart;      // The event start set when the event was created
+    double operiod;     // The period set when the event was created
+    double omultiplier; // The multiplier set when the event was created
+    struct EventMem* next;
+    */
+};
+typedef struct Model_Mem* Model;
+
+/*
+ *
+ *
+ * Arguments
+ *  flag : The address of a model flag or NULL.
+ *
+ * Returns a Model.
+ */
+Model Model_Create(Model_Flag* flag)
+{
+    /* Allocate */
+    Model m = (Model)malloc(sizeof(struct Model_Mem));
+    if (m == 0) {
+        if(flag != 0) *flag = Model_OUT_OF_MEMORY;
+        return 0;
+    }
+
+    /* Number of states */
+    m->n_state = <?= model.count_states() ?>;
+
+    /* Number of variables/initial states to calculate sensitivities w.r.t. */
+    m->n_sens = <?= len(indep_expr) ?>;
+
+    /* Whether or not to use CVodes for this model */
+    m->cvode = <?= 1 if model.count_states() > 0 else 0 ?>;
+
+
+    /* Set flag to indicate success */
+    if (flag != 0) *flag = Model_OK;
+
+    /* Return newly created model */
+    return m;
+}
+
+/*
+ *
+ *
+ * Arguments
+ *  model : The model to destroy.
+ *
+ * Returns a model flag.
+ */
+Model_Flag
+Model_Destroy(Model model)
+{
+    if(model == NULL) return Model_INVALID_MODEL;
+    /*if(sys->events != NULL) {
+        free(sys->events);
+        sys->events = NULL;
+    }*/
+    free(model);
+    return Model_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define N_SENS <?= len(indep_expr) ?>
+
+
 #define USE_CVODE <?= 1 if model.count_states() > 0 else 0 ?>
 
-/* Pacing */
+/* Model */
+Model model;                /* A model object */
+
+/* Protocol */
 ESys epacing;               /* Event-based pacing system */
 FSys fpacing;               /* Fixed-form pacing system */
 
@@ -743,16 +886,16 @@ sim_clean()
         free(rootsfound); rootsfound = NULL;
 
         /* Free CVode space */
-        N_VDestroy_Serial(y); y = NULL;
-        N_VDestroy_Serial(dy_log); dy_log = NULL;
+        if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
+        if (dy_log != NULL) { N_VDestroy_Serial(dy_log); dy_log = NULL; }
         if (USE_CVODE && !dynamic_logging) {
-            N_VDestroy_Serial(y_log); y_log = NULL;
+            if (y_log != NULL) { N_VDestroy_Serial(y_log); y_log = NULL; }
         }
         if (N_SENS) {
-            N_VDestroyVectorArray(sy, N_SENS); sy = NULL;
-            N_VDestroyVectorArray(sdy_log, N_SENS); sdy_log = NULL;
+            if (sy != NULL) { N_VDestroyVectorArray(sy, N_SENS); sy = NULL; }
+            if (sdy_log != NULL) { N_VDestroyVectorArray(sdy_log, N_SENS); sdy_log = NULL; }
             if (USE_CVODE && !dynamic_logging) {
-                N_VDestroyVectorArray(sy_log, N_SENS); sy_log = NULL;
+                if (sy_log != NULL) { N_VDestroyVectorArray(sy_log, N_SENS); sy_log = NULL; }
             }
         }
 
@@ -768,6 +911,9 @@ sim_clean()
         /* Free pacing system space */
         ESys_Destroy(epacing); epacing = NULL;
         FSys_Destroy(fpacing); fpacing = NULL;
+
+        /* Free model space */
+        Model_Destroy(model); model = NULL;
 
         /* No longer running */
         running = 0;
@@ -796,6 +942,7 @@ sim_init(PyObject *self, PyObject *args)
     int flag;
     int flag_cvode;
     int log_first_point;
+    Model_Flag flag_model;
     ESys_Flag flag_epacing;
     FSys_Flag flag_fpacing;
     Py_ssize_t pos;
@@ -829,6 +976,7 @@ sim_init(PyObject *self, PyObject *args)
     sy_log = NULL;
     sdy_log = NULL;
     cvode_mem = NULL;
+    model = NULL;
     epacing = NULL;
     fpacing = NULL;
     log_times = NULL;
@@ -911,15 +1059,22 @@ sim_init(PyObject *self, PyObject *args)
        steals ownership: No need to decref.
     */
 
+    /* Set string for updating lists/arrays using Python interface. */
+    list_update_str = PyUnicode_FromString("append");
+
+    /* Create model */
+    model = Model_Create(&flag_model);
+    if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+
     /* Create state vector */
-    y = N_VNew_Serial(N_STATE);
+    y = N_VNew_Serial(model->n_state);
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         return sim_clean();
     }
 
     /* Create state vector copy for error handling */
-    y_last = N_VNew_Serial(N_STATE);
+    y_last = N_VNew_Serial(model->n_state);
     if (check_cvode_flag((void*)y_last, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create last-state vector.");
         return sim_clean();
@@ -950,7 +1105,7 @@ sim_init(PyObject *self, PyObject *args)
     } else {
         /* Logging at fixed points:
            Keep y_log as a separate N_Vector for cvode interpolation */
-        y_log = N_VNew_Serial(N_STATE);
+        y_log = N_VNew_Serial(model->n_state);
         if (check_cvode_flag((void*)y_log, "N_VNew_Serial", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to create state vector for logging.");
             return sim_clean();
@@ -968,7 +1123,7 @@ sim_init(PyObject *self, PyObject *args)
        In both logging modes, the need arises to call rhs() manually, and so we
        need to create a dy_log vector to pass in (and an sdy_log vector array).
     */
-    dy_log = N_VNew_Serial(N_STATE);
+    dy_log = N_VNew_Serial(model->n_state);
     if (check_cvode_flag((void*)dy_log, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create derivatives vector for logging.");
         return sim_clean();
@@ -989,7 +1144,7 @@ sim_init(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "'state_in' must be a list.");
         return sim_clean();
     }
-    for(i=0; i<N_STATE; i++) {
+    for(i=0; i<model->n_state; i++) {
         flt = PyList_GetItem(state_in, i);    /* Don't decref! */
         if (!PyFloat_Check(flt)) {
             char errstr[200];
@@ -1175,71 +1330,71 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
 
     /* Create solver
      * Using Backward differentiation and Newton iteration */
-    #if USE_CVODE > 0
-    #if MYOKIT_SUNDIALS_VERSION >= 40000
-        cvode_mem = CVodeCreate(CV_BDF);
-    #else
-        cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
-    #endif
-    if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+    if (USE_CVODE) {
+        #if MYOKIT_SUNDIALS_VERSION >= 40000
+            cvode_mem = CVodeCreate(CV_BDF);
+        #else
+            cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+        #endif
+        if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
 
-    /* Initialise solver memory, specify the rhs */
-    flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
-    if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+        /* Initialise solver memory, specify the rhs */
+        flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
+        if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
-    /* Set absolute and relative tolerances */
-    flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
-    if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
+        /* Set absolute and relative tolerances */
+        flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
+        if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
 
-    /* Set a maximum step size (or 0.0 for none) */
+        /* Set a maximum step size (or 0.0 for none) */
 
-    flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
-    if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
+        flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
+        if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
 
-    /* Set a minimum step size (or 0.0 for none) */
-    flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
-    if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
+        /* Set a minimum step size (or 0.0 for none) */
+        flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
+        if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-    #if MYOKIT_SUNDIALS_VERSION >= 30000
-        /* Create dense matrix for use in linear solves */
-        sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
-        if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+        #if MYOKIT_SUNDIALS_VERSION >= 30000
+            /* Create dense matrix for use in linear solves */
+            sundense_matrix = SUNDenseMatrix(model->n_state, model->n_state);
+            if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
 
-        /* Create dense linear solver object with matrix */
-        sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
-        if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+            /* Create dense linear solver object with matrix */
+            sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
+            if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
 
-        /* Attach the matrix and solver to cvode */
-        flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
-        if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
-    #else
-        /* Create dense matrix for use in linear solves */
-        flag_cvode = CVDense(cvode_mem, N_STATE);
-        if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
-    #endif
+            /* Attach the matrix and solver to cvode */
+            flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+            if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
+        #else
+            /* Create dense matrix for use in linear solves */
+            flag_cvode = CVDense(cvode_mem, model->n_state);
+            if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+        #endif
 
-    /* Activate forward sensitivity computations */
-    if (N_SENS) {
-        /* TODO: NULL here is the place to insert a user function to calculate the
-           RHS of the sensitivity ODE */
-        /*flag_cvode = CVodeSensInit(cvode_mem, N_SENS, CV_SIMULTANEOUS, rhs1, sy);*/
-        flag_cvode = CVodeSensInit(cvode_mem, N_SENS, CV_SIMULTANEOUS, NULL, sy);
-        if (check_cvode_flag(&flag_cvode, "CVodeSensInit", 1)) return sim_clean();
+        /* Activate forward sensitivity computations */
+        if (N_SENS) {
+            /* TODO: NULL here is the place to insert a user function to calculate the
+               RHS of the sensitivity ODE */
+            /*flag_cvode = CVodeSensInit(cvode_mem, N_SENS, CV_SIMULTANEOUS, rhs1, sy);*/
+            flag_cvode = CVodeSensInit(cvode_mem, N_SENS, CV_SIMULTANEOUS, NULL, sy);
+            if (check_cvode_flag(&flag_cvode, "CVodeSensInit", 1)) return sim_clean();
 
-        /* Attach user data */
-        flag_cvode = CVodeSetUserData(cvode_mem, udata);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetUserData", 1)) return sim_clean();
+            /* Attach user data */
+            flag_cvode = CVodeSetUserData(cvode_mem, udata);
+            if (check_cvode_flag(&flag_cvode, "CVodeSetUserData", 1)) return sim_clean();
 
-        /* Set parameter scales used in tolerances */
-        flag_cvode = CVodeSetSensParams(cvode_mem, udata->p, pbar, NULL);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetSensParams", 1)) return sim_clean();
+            /* Set parameter scales used in tolerances */
+            flag_cvode = CVodeSetSensParams(cvode_mem, udata->p, pbar, NULL);
+            if (check_cvode_flag(&flag_cvode, "CVodeSetSensParams", 1)) return sim_clean();
 
-        /* Set sensitivity tolerances calculating method (using pbar) */
-        flag_cvode = CVodeSensEEtolerances(cvode_mem);
-        if (check_cvode_flag(&flag_cvode, "CVodeSensEEtolerances", 1)) return sim_clean();
-    }
+            /* Set sensitivity tolerances calculating method (using pbar) */
+            flag_cvode = CVodeSensEEtolerances(cvode_mem);
+            if (check_cvode_flag(&flag_cvode, "CVodeSensEEtolerances", 1)) return sim_clean();
+        }
 
-    #endif
+    } /* if model.CVODE */
 
     /* Benchmarking? Then set engine_realtime to 0.0 */
     if (benchtime != Py_None) {
@@ -1248,9 +1403,6 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         /* Tell sim_step to set engine_starttime */
         engine_starttime = -1;
     }
-
-    /* Set string for updating lists/arrays using Python interface. */
-    list_update_str = PyUnicode_FromString("append");
 
     /* Set logging points */
     if (log_interval > 0) {
@@ -1371,15 +1523,13 @@ write_sens_matrix(4, 'sy')
     }
 
     /* Root finding enabled? (cvode-mode only) */
-    #if USE_CVODE
-    if (PySequence_Check(root_list)) {
+    if (USE_CVODE && PySequence_Check(root_list)) {
         /* Set threshold */
         rootfinding_threshold = root_threshold;
         /* Initialize root function with 1 component */
         flag_cvode = CVodeRootInit(cvode_mem, 1, root_finding);
         if (check_cvode_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
     }
-    #endif
 
     /* Done! */
     Py_RETURN_NONE;
@@ -1421,42 +1571,42 @@ sim_step(PyObject *self, PyObject *args)
     while(1) {
 
         /* Back-up current y (no allocation, this is fast) */
-        for(i=0; i<N_STATE; i++) {
+        for(i=0; i<model->n_state; i++) {
             NV_Ith_S(y_last, i) = NV_Ith_S(y, i);
         }
 
         /* Store engine time before step */
         engine_time_last = engine_time;
 
-        #if USE_CVODE
+        if (USE_CVODE) {
 
-        /* Take a single ODE step */
-        flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
+            /* Take a single ODE step */
+            flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
 
-        /* Check for errors */
-        if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
-            /* Something went wrong... Set outputs and return */
-            for(i=0; i<N_STATE; i++) {
-                PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
-                /* PyList_SetItem steals a reference: no need to decref the double! */
+            /* Check for errors */
+            if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+                /* Something went wrong... Set outputs and return */
+                for(i=0; i<model->n_state; i++) {
+                    PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
+                    /* PyList_SetItem steals a reference: no need to decref the double! */
+                }
+                PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
+                PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
+                PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
+                PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
+                return sim_clean();
             }
-            PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
-            PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
-            PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
-            PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
-            return sim_clean();
+
+        } else {
+
+            /* Just jump to next event */
+            /* Note 1: To stay compatible with cvode-mode, don't jump to the
+               next log time (if tlog < tnext) */
+            /* Note 2: tnext can be infinity, so don't always jump there. */
+            engine_time = (tmax > tnext) ? tnext : tmax;
+            flag_cvode = CV_SUCCESS;
+
         }
-
-        #else
-
-        /* Just jump to next event */
-        /* Note 1: To stay compatible with cvode-mode, don't jump to the
-           next log time (if tlog < tnext) */
-        /* Note 2: tnext can be infinity, so don't always jump there. */
-        engine_time = (tmax > tnext) ? tnext : tmax;
-        flag_cvode = CV_SUCCESS;
-
-        #endif
 
         /* Check if progress is being made */
         if(engine_time == engine_time_last) {
@@ -1477,39 +1627,42 @@ sim_step(PyObject *self, PyObject *args)
         /* If we got to this point without errors... */
         if ((flag_cvode == CV_SUCCESS) || (flag_cvode == CV_ROOT_RETURN)) {
 
-            /* Next event time exceeded? (Can't happen in cvode-free mode) */
-            #if USE_CVODE
-            if (engine_time > tnext) {
+            /* Interpolation and root finding */
+            if (USE_CVODE) {
 
-                /* Go back to engine_time=tnext */
-                flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
-                if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
-                if (N_SENS) {
-                    flag_cvode = CVodeGetSensDky(cvode_mem, tnext, 0, sy);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                /* Next event time exceeded? */
+                if (engine_time > tnext) {
+
+                    /* Go back to engine_time=tnext */
+                    flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
+                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                    if (N_SENS) {
+                        flag_cvode = CVodeGetSensDky(cvode_mem, tnext, 0, sy);
+                        if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                    }
+                    engine_time = tnext;
+                    /* Require reinit (after logging) */
+                    flag_reinit = 1;
+
+                /* Root found */
+                } else if (flag_cvode == CV_ROOT_RETURN) {
+
+                    /* Store found roots */
+                    flag_root = CVodeGetRootInfo(cvode_mem, rootsfound);
+                    if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
+                    flt = PyTuple_New(2);
+                    PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); /* Steals reference, so this is ok */
+                    PyTuple_SetItem(flt, 1, PyLong_FromLong(rootsfound[0]));
+                    ret = PyObject_CallMethodObjArgs(root_list, list_update_str, flt, NULL);
+                    Py_DECREF(flt); flt = NULL;
+                    Py_XDECREF(ret);
+                    if (ret == NULL) {
+                        PyErr_SetString(PyExc_Exception, "Call to append() failed on root finding list.");
+                        return sim_clean();
+                    }
+                    ret = NULL;
                 }
-                engine_time = tnext;
-                /* Require reinit (after logging) */
-                flag_reinit = 1;
-
-            } else if (flag_cvode == CV_ROOT_RETURN) {
-
-                /* Store found roots */
-                flag_root = CVodeGetRootInfo(cvode_mem, rootsfound);
-                if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
-                flt = PyTuple_New(2);
-                PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); /* Steals reference, so this is ok */
-                PyTuple_SetItem(flt, 1, PyLong_FromLong(rootsfound[0]));
-                ret = PyObject_CallMethodObjArgs(root_list, list_update_str, flt, NULL);
-                Py_DECREF(flt); flt = NULL;
-                Py_XDECREF(ret);
-                if (ret == NULL) {
-                    PyErr_SetString(PyExc_Exception, "Call to append() failed on root finding list.");
-                    return sim_clean();
-                }
-                ret = NULL;
             }
-            #endif
 
             /* Periodic logging or point-list logging */
             if (!dynamic_logging && engine_time > tlog) {
@@ -1536,14 +1689,14 @@ sim_step(PyObject *self, PyObject *args)
                 while (engine_time > tlog) {
 
                     /* Get interpolated y(tlog) */
-                    #if USE_CVODE
-                    flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
-                    if (N_SENS) {
-                        flag_cvode = CVodeGetSensDky(cvode_mem, tlog, 0, sy_log);
-                        if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                    if (USE_CVODE) {
+                        flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
+                        if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                        if (N_SENS) {
+                            flag_cvode = CVodeGetSensDky(cvode_mem, tlog, 0, sy_log);
+                            if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                        }
                     }
-                    #endif
                     /* If cvode-free mode, the state can't change so we don't
                        need to do anything here */
 
@@ -1673,9 +1826,8 @@ write_sens_matrix(5, 'sy')
 
             }
 
-            /* Reinitialize if needed (cvode-mode only) */
-            #if USE_CVODE
-            if (flag_reinit) {
+            /* Reinitialize CVODE if needed (cvode-mode only) */
+            if (USE_CVODE && flag_reinit) {
                 flag_reinit = 0;
                 /* Re-init */
                 flag_cvode = CVodeReInit(cvode_mem, engine_time, y);
@@ -1683,7 +1835,6 @@ write_sens_matrix(5, 'sy')
                 flag_cvode = CVodeSensReInit(cvode_mem, CV_SIMULTANEOUS, sy);
                 if (check_cvode_flag(&flag_cvode, "CVodeSensReInit", 1)) return sim_clean();
             }
-            #endif
         }
 
         /* Check if we're finished */
@@ -1705,7 +1856,7 @@ write_sens_matrix(5, 'sy')
     }
 
     /* Set final state */
-    for(i=0; i<N_STATE; i++) {
+    for(i=0; i<model->n_state; i++) {
         PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y, i)));
         /* PyList_SetItem steals a reference: no need to decref the double! */
     }
@@ -1733,11 +1884,14 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     double time_in;
     double pace_in;
     char errstr[200];
+    Model_Flag flag_model;
     PyObject *state;
     PyObject *deriv;
     PyObject *flt;
+    Model m;
     N_Vector y;
     N_Vector dy;
+    /* TODO: CREATE OWN UDATA HERE */
 
     /* Start */
     success = 0;
@@ -1758,6 +1912,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     }
 
     /* From this point on, no more direct returning: use goto error */
+    m = NULL;
     y = NULL;      /* A cvode SERIAL vector */
     dy = NULL;     /* A cvode SERIAL vector */
     udata = NULL;  /* The user data, containing parameter values */
@@ -1770,13 +1925,20 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     /* (Unless you get them using PyList_GetItem...) */
     flt = NULL;   /* PyFloat */
 
+    /* Create model */
+    m = Model_Create(&flag_model);
+    if (flag_model != Model_OK) {
+        Model_SetPyErr(flag_model);
+        goto error;
+    }
+
     /* Create state vectors */
-    y = N_VNew_Serial(N_STATE);
+    y = N_VNew_Serial(m->n_state);
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         goto error;
     }
-    dy = N_VNew_Serial(N_STATE);
+    dy = N_VNew_Serial(m->n_state);
     if (check_cvode_flag((void*)dy, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state derivatives vector.");
         goto error;
@@ -1786,7 +1948,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     update_constants();
 
     /* Set initial values */
-    for (iState = 0; iState < N_STATE; iState++) {
+    for (iState = 0; iState < m->n_state; iState++) {
         flt = PySequence_GetItem(state, iState); /* Remember to decref! */
         if (!PyFloat_Check(flt)) {
             Py_XDECREF(flt); flt = NULL;
@@ -1820,7 +1982,7 @@ for var in initials:
     rhs(engine_time, y, dy, udata);
 
     /* Set output values */
-    for(i=0; i<N_STATE; i++) {
+    for(i=0; i<model->n_state; i++) {
         flt = PyFloat_FromDouble(NV_Ith_S(dy, i));
         if (flt == NULL) {
             PyErr_SetString(PyExc_Exception, "Unable to create float.");
@@ -1834,12 +1996,15 @@ for var in initials:
     /* Finished succesfully, free memory and return */
     success = 1;
 error:
+    /* Free model space */
+    Model_Destroy(m);
+
     /* Free CVODE space */
-    N_VDestroy_Serial(y); y = NULL;
-    N_VDestroy_Serial(dy); dy = NULL;
+    if (y != NULL) { N_VDestroy_Serial(y); }
+    if (dy != NULL) { N_VDestroy_Serial(dy); }
 
     /* Free udata space */
-    free(udata); udata = NULL;
+    free(udata);
 
     /* Return */
     if (success) {
