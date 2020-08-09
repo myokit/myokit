@@ -170,7 +170,7 @@ ESys_SetPyErr(ESys_Flag flag)
  * event queue. The `start` time and possible the `multiplier` are then updated
  * to the new values and the event is rescheduled back into the queue.
  */
-struct EventMem {
+struct ESys_Event_mem {
     double level;       // The stimulus level (non-zero, dimensionless, normal range [0,1])
     double duration;    // The stimulus duration
     double start;       // The time this stimulus starts
@@ -179,9 +179,9 @@ struct EventMem {
     double ostart;      // The event start set when the event was created
     double operiod;     // The period set when the event was created
     double omultiplier; // The multiplier set when the event was created
-    struct EventMem* next;
+    struct ESys_Event_mem* next;
 };
-#define Event struct EventMem*
+#define ESys_Event struct ESys_Event_mem*
 
 /*
  * Adds an event to an event queue.
@@ -193,10 +193,10 @@ struct EventMem {
  *
  * Returns the new head of the event queue
  */
-static Event
-ESys_ScheduleEvent(Event head, Event add, ESys_Flag* flag)
+static ESys_Event
+ESys_ScheduleEvent(ESys_Event head, ESys_Event add, ESys_Flag* flag)
 {
-    Event e;    // Needs to be declared here for visual C
+    ESys_Event e;    // Needs to be declared here for visual C
     *flag = ESys_OK;
     add->next = 0;
     if (add == 0) return head;
@@ -223,9 +223,9 @@ ESys_ScheduleEvent(Event head, Event add, ESys_Flag* flag)
 struct ESys_Mem {
     Py_ssize_t n_events;   // The number of events in this system
     double time;    // The current time
-    Event events;   // The events, stored as an array
-    Event head;     // The head of the event queue
-    Event fire;     // The currently active event
+    ESys_Event events;   // The events, stored as an array
+    ESys_Event head;     // The head of the event queue
+    ESys_Event fire;     // The currently active event
     double tnext;   // The time of the next event start or finish
     double tdown;   // The time the active event is over
     double level;   // The current output value
@@ -293,8 +293,8 @@ ESys_Destroy(ESys sys)
 ESys_Flag
 ESys_Reset(ESys sys)
 {
-    Event next;     // Need to be declared here for C89 Visual C
-    Event head;
+    ESys_Event next;     // Need to be declared here for C89 Visual C
+    ESys_Event head;
     int i;
     ESys_Flag flag;
 
@@ -344,8 +344,8 @@ ESys_Populate(ESys sys, PyObject* protocol)
 {
     int i;
     Py_ssize_t n;
-    Event events;
-    Event e;
+    ESys_Event events;
+    ESys_Event e;
 
     if(sys == 0) return ESys_INVALID_SYSTEM;
     if (sys->n_events != -1) return ESys_POPULATED_SYSTEM;
@@ -369,7 +369,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
         // since they are tested by the Python code already!
         if(n > 0) {
             PyObject *item, *attr;
-            events = (Event)malloc(n*sizeof(struct EventMem));
+            events = (ESys_Event)malloc(n*sizeof(struct ESys_Event_mem));
             e = events;
             for(i=0; i<n; i++) {
                 item = PyList_GetItem(list, i); // Don't decref!
