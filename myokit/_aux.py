@@ -1388,11 +1388,10 @@ def step(model, initial=None, reference=None, ignore_errors=False):
                     # "Small" error, or numerical error
                     rel_err = abs(x - y) / max(abs(x), abs(y))
                     n_eps = rel_err / sys.float_info.epsilon
-                    if n_eps < 10:
-                        if n_eps > 1:
-                            line += ' ~ ' + str(round(n_eps, 1)) + ' epsilon'
-                        else:
-                            line += ' <= 1 epsilon'
+                    if n_eps > 1:
+                        line += ' ~ ' + str(round(n_eps, 1)) + ' eps'
+                    else:
+                        line += ' <= 1 epsilon'
                     if n_eps > 1:
                         warnings += 1
                         mark_error = True
