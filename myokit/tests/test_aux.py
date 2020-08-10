@@ -585,30 +585,16 @@ class AuxTest(unittest.TestCase):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))
 
-        # Add small mismatch
-        m2.get('ina.m').set_rhs(
-            myokit.Multiply(m2.get('ina.m').rhs(), myokit.Number(1 + 1e-15)))
-        # Add large mismatch
-        m2.get('isi.f').set_rhs(
-            myokit.Multiply(m2.get('isi.f').rhs(), myokit.Number(2)))
-        # Add huge mismatch
-        m2.get('ix1.x1').set_rhs(
-            myokit.Multiply(m2.get('ix1.x1').rhs(), myokit.Number(100)))
-        # Add sign issue
-        m2.get('ina.j').set_rhs('-(' + m2.get('ina.j').rhs().code() + ')')
-        # Add insignficant mismatch
-
-
         # Test comparison against stored data
         ref = [
-            -3.97224086575331868e-04,
+            -3.97224086575331868e-04,       # Numerically indistinguishable
             -1.56608433137725457e-09,
-            7.48738392280519777e-02,
+            7.48738392280519777e-02,        # Tiny error
             -1.78891889478854579e-03,
-            3.06255006833574140e-04,
+            3.06255006833574140e-04,        # Sign error
             -5.11993904291850035e-06,
-            3.76748229376431740e-04,
-            -3.21682814207918156e-05,
+            3.76748229376431740e-04,        # Large error
+            -3.21682814207918156e-05,       # Exponent
         ]
         x = myokit.step(m1, reference=ref).splitlines()
         y = [
@@ -632,7 +618,7 @@ class AuxTest(unittest.TestCase):
             '',
             'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
             '                                        3.06255006833574140e-04'
-            ' X !!!',
+            ' sign',
             '                                       ^^^^^^^^^^^^^^^^^^^^^^^^',
             'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
             '                                       -5.11993904291850035e-06',
@@ -643,7 +629,7 @@ class AuxTest(unittest.TestCase):
             '                                        ^^^^^^^^^^^^^^^^^^^^^^^',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '                                       -3.21682814207918156e-05'
-            ' X !!!',
+            ' exponent',
             '                                                           ^^^^',
             'Found (3) large mismatches between output and reference values.',
             'Found (1) small mismatches.',

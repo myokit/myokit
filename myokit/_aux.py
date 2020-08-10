@@ -11,7 +11,6 @@ from __future__ import print_function, unicode_literals
 
 import array
 import fnmatch
-import math
 import os
 import re
 import shutil
@@ -1366,13 +1365,13 @@ def step(model, initial=None, reference=None, ignore_errors=False):
                     log.append('')
                 else:
                     errors += 1
-                    log.append(line + ' X !!!')
+                    log.append(line + ' sign')
                     log.append(h + '^' * 24)
 
             # Different exponent, huge error
             elif xx[-4:] != yy[-4:]:
                 errors += 1
-                log.append(line + ' X !!!')
+                log.append(line + ' exponent')
                 log.append(i + '^^^^')
 
             # Large error, small error, or no error
@@ -1391,7 +1390,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
                     if n_eps > 1:
                         line += ' ~ ' + str(round(n_eps, 1)) + ' eps'
                     else:
-                        line += ' <= 1 epsilon'
+                        line += ' <= 1 eps'
                     if n_eps > 1:
                         warnings += 1
                         mark_error = True
