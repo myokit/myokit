@@ -16,11 +16,14 @@ b = myokit.Benchmarker()
 s = myokit.Simulation(m, p, sensitivities)
 print(b.time())
 b.reset()
-d, e = s.run(3000, log_interval=1)
+d, e = s.run(3000)#, log_interval=1)
 e = np.array(e)
 print(b.time())
 
 print(e.shape)
+
+plt.figure()
+plt.plot(d.time(), d['ina.INa'])
 
 
 plt.figure()

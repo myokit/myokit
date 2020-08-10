@@ -57,7 +57,10 @@ def s_index(var):
         return len(parameters) + initials.index(var)
 
 # Define lhs function
-def v(var, use_parameter_vector=True):
+def v(var, use_parameter_vector=True, prepend_model=True):
+
+    # Preprend model-> ?
+    pre = 'model->' if prepend_model else ''
 
     # Derivative
     if isinstance(var, myokit.Derivative):
@@ -69,7 +72,7 @@ def v(var, use_parameter_vector=True):
         j = str(s_index(var.independent_expression().var()))
         if isinstance(i, myokit.Name):
             if not i.var().is_state():
-                return 'S' + j + '_V_' + i.var().uname()
+                return pre + 'S' + j + '_V_' + i.var().uname()
             return 'NV_Ith_S(yS[' + j + '], ' + str(i.var().indice()) + ')'
         else:
             return 'NV_Ith_S(ySdot[' + j + '], ' + str(i.var().indice()) + ')'
@@ -87,13 +90,13 @@ def v(var, use_parameter_vector=True):
         if use_parameter_vector:
             return 'fdata->p[' + str(s_index(var)) + ']'
         else:
-            return 'AP_' + var.uname()
+            return pre + 'AP_' + var.uname()
 
     # Handle constants and intermediary variables
     if var.is_constant():
-        return 'AC_' + var.uname()
+        return pre + 'AC_' + var.uname()
     else:
-        return 'AV_' + var.uname()
+        return pre + 'AV_' + var.uname()
 w.set_lhs_function(v)
 
 # Tab
@@ -168,7 +171,10 @@ if use_sensitivities:
     #include <cvodes/cvodes_dense.h>
 #endif
 #include <sundials/sundials_types.h>
+
 #include "pacing.h"
+
+
 
 
 
@@ -222,56 +228,108 @@ Model_SetPyErr(Model_Flag flag)
  * Model object.
  */
 struct Model_Mem {
+    /* Number of states */
     int n_state;
-    int n_sens;
-    int cvode;
 
-    /*
-    double level;       // The stimulus level (non-zero, dimensionless, normal range [0,1])
-    double duration;    // The stimulus duration
-    double start;       // The time this stimulus starts
-    double period;      // The period with which it repeats (or 0 if it doesn't)
-    double multiplier;  // The number of times this period occurs (or 0 if it doesn't)
-    double ostart;      // The event start set when the event was created
-    double operiod;     // The period set when the event was created
-    double omultiplier; // The multiplier set when the event was created
-    struct EventMem* next;
-    */
+    /* Whether or not to this is an ODE model */
+    int is_ode;
+
+    /* Number of sensitivities (y in dx/dy) */
+    int n_sens;
+
+    /* Bound variables */
+<?
+for var in model.variables(bound=True, deep=True):
+    print(tab + 'realtype ' + v(var, False, False) + ';')
+?>
+    /* Literal constants */
+<?
+for var in model.variables(const=True, deep=True):
+    if var.is_literal() and var.lhs() not in parameter_dependent_constants:
+        print(tab + 'realtype ' + v(var, False, False) + ';')
+?>
+    /* Derived constants */
+<?
+for var in model.variables(const=True, deep=True):
+    if not var.is_literal() and var.lhs() not in parameter_dependent_constants:
+        print(tab + 'realtype ' + v(var, False, False) + ';')
+?>
+    /* Parameters and parameter-dependent constants */
+<?
+for var in parameter_dependent_constants:
+        print(tab + 'realtype ' + v(var, False, False) + ';')
+?>
+    /* Intermediary variables */
+<?
+for var in model.variables(inter=True, deep=True):
+    print(tab + 'realtype ' + v(var, False, False) + ';')
+?>
+    /* State variables. */
+<?
+#for var in model.variables(state=True):
+#    print(tab + 'realtype ' + v(var, False, False) + ';')
+?>
+    /* Sensitivity output variables */
+<?
+for eqs in sensitivity_output_equations:
+    for eq in eqs:
+        if not eq.lhs.dependent_expression().is_derivative():
+            print(tab + 'realtype ' + v(eq.lhs, False, False) + ';')
+?>
 };
 typedef struct Model_Mem* Model;
 
 /*
- *
+ * Creates and returns a model struct.
  *
  * Arguments
  *  flag : The address of a model flag or NULL.
  *
- * Returns a Model.
+ * Returns a Model pointer.
  */
 Model Model_Create(Model_Flag* flag)
 {
     /* Allocate */
-    Model m = (Model)malloc(sizeof(struct Model_Mem));
-    if (m == 0) {
+    Model model = (Model)malloc(sizeof(struct Model_Mem));
+    if (model == 0) {
         if(flag != 0) *flag = Model_OUT_OF_MEMORY;
         return 0;
     }
 
     /* Number of states */
-    m->n_state = <?= model.count_states() ?>;
+    model->n_state = <?= model.count_states() ?>;
+
+    /* Whether or not this model is an ODE */
+    model->is_ode = <?= 1 if model.count_states() > 0 else 0 ?>;
 
     /* Number of variables/initial states to calculate sensitivities w.r.t. */
-    m->n_sens = <?= len(indep_expr) ?>;
+    model->n_sens = <?= len(indep_expr) ?>;
 
-    /* Whether or not to use CVodes for this model */
-    m->cvode = <?= 1 if model.count_states() > 0 else 0 ?>;
+    /* Set default values of bound variables */
+<?
+for var in model.variables(bound=True, deep=True):
+    print(tab + v(var) + ' = 0;')
+?>
+    /* Set default values of literal constants TODO: DROP THIS */
+<?
+for var in model.variables(const=True, deep=True):
+    if var.is_literal() and var.lhs() not in parameter_dependent_constants:
+        print(tab + v(var) + ' = ' + myokit.strfloat(var.rhs().eval()) + ';')
+for var in parameters:
+        print(tab + v(var, False) + ' = ' + myokit.strfloat(var.rhs().eval()) + ';')
+?>
+
+
+
+
+
 
 
     /* Set flag to indicate success */
     if (flag != 0) *flag = Model_OK;
 
     /* Return newly created model */
-    return m;
+    return model;
 }
 
 /*
@@ -309,20 +367,20 @@ Model_Destroy(Model model)
 
 
 
-#define N_SENS <?= len(indep_expr) ?>
 
 
-#define USE_CVODE <?= 1 if model.count_states() > 0 else 0 ?>
 
-/* Model */
-Model model;                /* A model object */
-
-/* Protocol */
-ESys epacing;               /* Event-based pacing system */
-FSys fpacing;               /* Fixed-form pacing system */
 
 /*
- * Check sundials flags, set python error
+ * Define type for "user data" that will hold parameter values if doing
+ * sensitivity analysis.
+ */
+typedef struct {
+    realtype *p;
+} *UserData;
+
+/*
+ * Check sundials flags, set python error.
  *  flagvalue : The value to check
  *  funcname : The name of the function that returned the flag
  *  opt : Mode selector
@@ -436,31 +494,17 @@ static long engine_evaluations = 0;
 static long engine_steps = 0;
 
 /*
- * Declare constants and intermediary variables.
- * If doing sensitivity analysis, the default values of the parameters are set
- * here too.
+ * Declare model and protocol variables
  */
-<?
-for var in model.variables(state=False, deep=True):
-    if var.is_literal():
-        print('static realtype ' + v(var, False) + ' = ' + myokit.strfloat(var.rhs().eval()) + ';')
-    else:
-        print('static realtype ' + v(var) + ';')
-?>
-/*
- * Declare sensitivity output variables
- */
-<?
-for eqs in sensitivity_output_equations:
-    for eq in eqs:
-        if not eq.lhs.dependent_expression().is_derivative():
-            print('static realtype ' + v(eq.lhs) + ';')
+Model model;                /* A model object */
+ESys epacing;               /* Event-based pacing system */
+FSys fpacing;               /* Fixed-form pacing system */
 
-?>
-/* Define type for "user data" that will hold parameter values */
-typedef struct {
-    realtype p[N_SENS];
-} *UserData;
+
+
+
+
+
 
 /*
  * Set values of calculated constants
@@ -853,7 +897,7 @@ SUNLinearSolver sundense_solver;    /* Linear solver object */
 #endif
 
 /* Parameter/initial-condition scales */
-realtype pbar[N_SENS];  /* One number per parameter/initial condition, giving something in the expected magnitude of the param/init */
+realtype* pbar;             /* One number per parameter/initial condition, giving something in the expected magnitude of the param/init */
 
 /* Root finding */
 int* rootsfound;     /* Used to store found roots */
@@ -888,14 +932,14 @@ sim_clean()
         /* Free CVode space */
         if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
         if (dy_log != NULL) { N_VDestroy_Serial(dy_log); dy_log = NULL; }
-        if (USE_CVODE && !dynamic_logging) {
+        if (model != NULL && model->is_ode && !dynamic_logging) {
             if (y_log != NULL) { N_VDestroy_Serial(y_log); y_log = NULL; }
         }
-        if (N_SENS) {
-            if (sy != NULL) { N_VDestroyVectorArray(sy, N_SENS); sy = NULL; }
-            if (sdy_log != NULL) { N_VDestroyVectorArray(sdy_log, N_SENS); sdy_log = NULL; }
-            if (USE_CVODE && !dynamic_logging) {
-                if (sy_log != NULL) { N_VDestroyVectorArray(sy_log, N_SENS); sy_log = NULL; }
+        if (model != NULL && model->n_sens) {
+            if (sy != NULL) { N_VDestroyVectorArray(sy, model->n_sens); sy = NULL; }
+            if (sdy_log != NULL) { N_VDestroyVectorArray(sdy_log, model->n_sens); sdy_log = NULL; }
+            if (model->is_ode && !dynamic_logging) {
+                if (sy_log != NULL) { N_VDestroyVectorArray(sy_log, model->n_sens); sy_log = NULL; }
             }
         }
 
@@ -905,8 +949,12 @@ sim_clean()
         SUNMatDestroy(sundense_matrix); sundense_matrix = NULL;
         #endif
 
-        /* Free user data */
-        free(udata); udata = NULL;
+        /* Free user data and parameter scale array*/
+        free(pbar);
+        if (udata != NULL) {
+            free(udata->p);
+            free(udata); udata = NULL;
+        }
 
         /* Free pacing system space */
         ESys_Destroy(epacing); epacing = NULL;
@@ -1081,8 +1129,8 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /* Create sensitivity vector array */
-    if (N_SENS) {
-        sy = N_VCloneVectorArray(N_SENS, y);
+    if (model->n_sens) {
+        sy = N_VCloneVectorArray(model->n_sens, y);
         if (check_cvode_flag((void*)sy, "N_VCloneVectorArray", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to allocate space to store sensitivities.");
             return sim_clean();
@@ -1097,7 +1145,7 @@ sim_init(PyObject *self, PyObject *args)
        values from y as used for the integration. But if we need to interpolate
        times in the past, we need a vector y (and sy if using sensitivities) to
        store the state at time of logging in. */
-    if (dynamic_logging || !USE_CVODE) {
+    if (dynamic_logging || !model->is_ode) {
         /* Dynamic logging or cvode-free mode: don't interpolate,
            so let y_log point to y */
         y_log = y;
@@ -1110,8 +1158,8 @@ sim_init(PyObject *self, PyObject *args)
             PyErr_SetString(PyExc_Exception, "Failed to create state vector for logging.");
             return sim_clean();
         }
-        if (N_SENS) {
-            sy_log = N_VCloneVectorArray(N_SENS, y);
+        if (model->n_sens) {
+            sy_log = N_VCloneVectorArray(model->n_sens, y);
             if (check_cvode_flag((void*)sy_log, "N_VCloneVectorArray", 0)) {
                 PyErr_SetString(PyExc_Exception, "Failed to create state sensitivity vector array for logging.");
                 return sim_clean();
@@ -1128,8 +1176,8 @@ sim_init(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "Failed to create derivatives vector for logging.");
         return sim_clean();
     }
-    if (N_SENS) {
-        sdy_log = N_VCloneVectorArray(N_SENS, y);
+    if (model->n_sens) {
+        sdy_log = N_VCloneVectorArray(model->n_sens, y);
         if (check_cvode_flag((void*)sdy_log, "N_VCloneVectorArray", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to create derivatives sensitivity vector array for logging.");
             return sim_clean();
@@ -1160,7 +1208,7 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /* Set initial sensitivities to zero, or to 1 for initial conditions */
-    for(i=0; i<N_SENS; i++) {
+    for(i=0; i<model->n_sens; i++) {
         N_VConst(RCONST(0.0), sy[i]);
     }
 <?
@@ -1169,7 +1217,7 @@ for var in initials:
 ?>
     /*
     if (!dynamic_logging) {
-        for(i=0; i<N_SENS; i++) {
+        for(i=0; i<model->n_sens; i++) {
             N_VConst(RCONST(0.0), sy_log[i]);
         }
 <?
@@ -1181,9 +1229,15 @@ for var in initials:
     /* Create and fill vector with parameter/initial condition values */
     udata = (UserData)malloc(sizeof *udata);
     if (udata == 0) {
+        PyErr_SetString(PyExc_Exception, "Unable to create user data object to store parameter values.");
+        return sim_clean();
+    }
+    udata->p = (realtype*)malloc(sizeof(realtype) * model->n_sens);
+    if (udata->p == 0) {
         PyErr_SetString(PyExc_Exception, "Unable to allocate space to store parameter values.");
         return sim_clean();
     }
+
 <?
 # Parameters are set to the global value, which can be changed by set_constant
 for var in parameters:
@@ -1193,9 +1247,15 @@ for var in parameters:
 for var in initials:
     print(tab + 'udata->p[' + str(s_index(var)) + '] = NV_Ith_S(y, ' + str(var.indice()) + ');')
 ?>
+
     /* Create parameter scaling vector, for error control */
     /* TODO: Let the user provide this? */
-    for(i=0; i<N_SENS; i++) {
+    pbar = (realtype*)malloc(sizeof(realtype) * model->n_sens);
+    if (pbar == 0) {
+        PyErr_SetString(PyExc_Exception, "Unable to allocate space to store parameter scales.");
+        return sim_clean();
+    }
+    for(i=0; i<model->n_sens; i++) {
         pbar[i] = (udata->p[i] == 0.0 ? 1.0 : udata->p[i]);
     }
 
@@ -1279,7 +1339,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     }
 
     /* Check logging list for sensitivities */
-    if (N_SENS) {
+    if (model->n_sens) {
         if (!PyList_Check(sens_list)) {
             PyErr_SetString(PyExc_Exception, "'sens_list' must be a list.");
             return sim_clean();
@@ -1330,7 +1390,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
 
     /* Create solver
      * Using Backward differentiation and Newton iteration */
-    if (USE_CVODE) {
+    if (model->is_ode) {
         #if MYOKIT_SUNDIALS_VERSION >= 40000
             cvode_mem = CVodeCreate(CV_BDF);
         #else
@@ -1374,11 +1434,11 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
         #endif
 
         /* Activate forward sensitivity computations */
-        if (N_SENS) {
+        if (model->n_sens) {
             /* TODO: NULL here is the place to insert a user function to calculate the
                RHS of the sensitivity ODE */
-            /*flag_cvode = CVodeSensInit(cvode_mem, N_SENS, CV_SIMULTANEOUS, rhs1, sy);*/
-            flag_cvode = CVodeSensInit(cvode_mem, N_SENS, CV_SIMULTANEOUS, NULL, sy);
+            /*flag_cvode = CVodeSensInit(cvode_mem, model->n_sens, CV_SIMULTANEOUS, rhs1, sy);*/
+            flag_cvode = CVodeSensInit(cvode_mem, model->n_sens, CV_SIMULTANEOUS, NULL, sy);
             if (check_cvode_flag(&flag_cvode, "CVodeSensInit", 1)) return sim_clean();
 
             /* Attach user data */
@@ -1478,7 +1538,7 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
             flt = NULL;
             ret = NULL;
 
-            if (N_SENS) {
+            if (model->n_sens) {
                 /* Calculate sensitivities to output */
 
                 /* TODO: Call the rhs function that sets sdy_log */
@@ -1493,7 +1553,7 @@ def write_sens_matrix(t, sy):
     for i, e1 in enumerate(variables):
         var = e1.var()
         print()
-        print(tab*t + 'l2 = PyTuple_New(N_SENS);')
+        print(tab*t + 'l2 = PyTuple_New(model->n_sens);')
         print(tab*t + 'if (l2 == NULL) return sim_clean();')
         print()
 
@@ -1523,7 +1583,7 @@ write_sens_matrix(4, 'sy')
     }
 
     /* Root finding enabled? (cvode-mode only) */
-    if (USE_CVODE && PySequence_Check(root_list)) {
+    if (model->is_ode && PySequence_Check(root_list)) {
         /* Set threshold */
         rootfinding_threshold = root_threshold;
         /* Initialize root function with 1 component */
@@ -1578,7 +1638,7 @@ sim_step(PyObject *self, PyObject *args)
         /* Store engine time before step */
         engine_time_last = engine_time;
 
-        if (USE_CVODE) {
+        if (model->is_ode) {
 
             /* Take a single ODE step */
             flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
@@ -1628,7 +1688,7 @@ sim_step(PyObject *self, PyObject *args)
         if ((flag_cvode == CV_SUCCESS) || (flag_cvode == CV_ROOT_RETURN)) {
 
             /* Interpolation and root finding */
-            if (USE_CVODE) {
+            if (model->is_ode) {
 
                 /* Next event time exceeded? */
                 if (engine_time > tnext) {
@@ -1636,7 +1696,7 @@ sim_step(PyObject *self, PyObject *args)
                     /* Go back to engine_time=tnext */
                     flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
                     if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
-                    if (N_SENS) {
+                    if (model->n_sens) {
                         flag_cvode = CVodeGetSensDky(cvode_mem, tnext, 0, sy);
                         if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
                     }
@@ -1644,23 +1704,31 @@ sim_step(PyObject *self, PyObject *args)
                     /* Require reinit (after logging) */
                     flag_reinit = 1;
 
-                /* Root found */
-                } else if (flag_cvode == CV_ROOT_RETURN) {
-
-                    /* Store found roots */
-                    flag_root = CVodeGetRootInfo(cvode_mem, rootsfound);
-                    if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
-                    flt = PyTuple_New(2);
-                    PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); /* Steals reference, so this is ok */
-                    PyTuple_SetItem(flt, 1, PyLong_FromLong(rootsfound[0]));
-                    ret = PyObject_CallMethodObjArgs(root_list, list_update_str, flt, NULL);
-                    Py_DECREF(flt); flt = NULL;
-                    Py_XDECREF(ret);
-                    if (ret == NULL) {
-                        PyErr_SetString(PyExc_Exception, "Call to append() failed on root finding list.");
-                        return sim_clean();
+                } else {
+                    /* Get current sensitivity vector */
+                    if (model->n_sens) {
+                        flag_cvode = CVodeGetSens(cvode_mem, &engine_time, sy);
+                        if (check_cvode_flag(&flag_cvode, "CVodeGetSens", 1)) return sim_clean();
                     }
-                    ret = NULL;
+
+                    /* Root found */
+                    if (flag_cvode == CV_ROOT_RETURN) {
+
+                        /* Store found roots */
+                        flag_root = CVodeGetRootInfo(cvode_mem, rootsfound);
+                        if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
+                        flt = PyTuple_New(2);
+                        PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); /* Steals reference, so this is ok */
+                        PyTuple_SetItem(flt, 1, PyLong_FromLong(rootsfound[0]));
+                        ret = PyObject_CallMethodObjArgs(root_list, list_update_str, flt, NULL);
+                        Py_DECREF(flt); flt = NULL;
+                        Py_XDECREF(ret);
+                        if (ret == NULL) {
+                            PyErr_SetString(PyExc_Exception, "Call to append() failed on root finding list.");
+                            return sim_clean();
+                        }
+                        ret = NULL;
+                    }
                 }
             }
 
@@ -1689,10 +1757,10 @@ sim_step(PyObject *self, PyObject *args)
                 while (engine_time > tlog) {
 
                     /* Get interpolated y(tlog) */
-                    if (USE_CVODE) {
+                    if (model->is_ode) {
                         flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
                         if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
-                        if (N_SENS) {
+                        if (model->n_sens) {
                             flag_cvode = CVodeGetSensDky(cvode_mem, tlog, 0, sy_log);
                             if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
                         }
@@ -1717,7 +1785,7 @@ sim_step(PyObject *self, PyObject *args)
                     }
                     ret = flt = NULL;
 
-                    if (N_SENS) {
+                    if (model->n_sens) {
                         /* Calculate sensitivities to output */
                         calculate_sensitivity_outputs(engine_time, y, dy_log, sy_log, sdy_log, udata);
 
@@ -1810,13 +1878,11 @@ write_sens_matrix(6, 'sy_log')
                     ret = NULL;
                 }
 
-                if (N_SENS) {
-                    /* Get current sensitivities */
-                    flag_cvode = CVodeGetSens(cvode_mem, &engine_time, sy_log);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetSens", 1)) return sim_clean();
+                if (model->n_sens) {
 
                     /* Calculate sensitivities to output */
                     calculate_sensitivity_outputs(engine_time, y, dy_log, sy, sdy_log, udata);
+
 
                     /* Write sensitivity matrix to log */
 <?
@@ -1827,7 +1893,7 @@ write_sens_matrix(5, 'sy')
             }
 
             /* Reinitialize CVODE if needed (cvode-mode only) */
-            if (USE_CVODE && flag_reinit) {
+            if (model->is_ode && flag_reinit) {
                 flag_reinit = 0;
                 /* Re-init */
                 flag_cvode = CVodeReInit(cvode_mem, engine_time, y);
@@ -1996,15 +2062,16 @@ for var in initials:
     /* Finished succesfully, free memory and return */
     success = 1;
 error:
-    /* Free model space */
-    Model_Destroy(m);
-
     /* Free CVODE space */
     if (y != NULL) { N_VDestroy_Serial(y); }
     if (dy != NULL) { N_VDestroy_Serial(dy); }
 
     /* Free udata space */
+    free(udata->p);
     free(udata);
+
+    /* Free model space */
+    Model_Destroy(m);
 
     /* Return */
     if (success) {

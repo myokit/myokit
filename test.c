@@ -14,18 +14,265 @@
     #include <cvodes/cvodes_dense.h>
 #endif
 #include <sundials/sundials_types.h>
+
 #include "pacing.h"
 
-#define N_STATE 8
-#define N_SENS 3
-#define USE_CVODE 1
 
-/* Pacing */
-ESys epacing;               /* Event-based pacing system */
-FSys fpacing;               /* Fixed-form pacing system */
+
+
+
+
+
 
 /*
- * Check sundials flags, set python error
+ * Model error flags
+ */
+typedef int Model_Flag;
+#define Model_OK                             0
+#define Model_OUT_OF_MEMORY                 -1
+// General
+#define Model_INVALID_MODEL                 -10
+// ESys_Populate
+// ESys_AdvanceTime
+// ESys_ScheduleEvent
+
+/*
+ * Sets a python exception based on a model flag.
+ *
+ * Arguments
+ *  flag : The model flag to base the message on.
+ */
+void
+Model_SetPyErr(Model_Flag flag)
+{
+    switch(flag) {
+    case Model_OK:
+        break;
+    case Model_OUT_OF_MEMORY:
+        PyErr_SetString(PyExc_Exception, "Model error: Memory allocation failed.");
+        break;
+    // General
+    case Model_INVALID_MODEL:
+        PyErr_SetString(PyExc_Exception, "Model error: Invalid model pointer provided.");
+        break;
+    // Populate
+    // Unknown
+    default:
+    {
+        int i = (int)flag;
+        char buffer[1024];
+        sprintf(buffer, "Model error: Unlisted error %d", i);
+        PyErr_SetString(PyExc_Exception, buffer);
+        break;
+    }};
+}
+
+/*
+ * Model object.
+ */
+struct Model_Mem {
+    /* Number of states */
+    int n_state;
+
+    /* Whether or not to this is an ODE model */
+    int is_ode;
+
+    /* Number of sensitivities (y in dx/dy) */
+    int n_sens;
+
+    /* Bound variables */
+    realtype AV_time;
+    realtype AV_pace;
+
+    /* Literal constants */
+    realtype AC_C;
+    realtype AC_stim_amplitude;
+    realtype AC_i_diff;
+    realtype AC_PNa_K;
+    realtype AC_p1;
+    realtype AC_gKp;
+    realtype AC_gb;
+    realtype AC_Eb;
+    realtype AC_K_o;
+    realtype AC_K_i;
+    realtype AC_Na_o;
+    realtype AC_Na_i;
+    realtype AC_Ca_o;
+    realtype AC_R;
+    realtype AC_T;
+    realtype AC_F;
+
+    /* Derived constants */
+    realtype AC_gK;
+    realtype AC_ik_IK_E;
+    realtype AC_ENa;
+    realtype AC_xp1;
+    realtype AC_ik1_E;
+    realtype AC_gK1;
+    realtype AC_RTF;
+
+    /* Parameters and parameter-dependent constants */
+    realtype AP_gNa;
+    realtype AP_gCa;
+
+    /* Intermediary variables */
+    realtype AV_i_ion;
+    realtype AV_i_stim;
+    realtype AV_ik_x_alpha;
+    realtype AV_ik_x_beta;
+    realtype AV_xi;
+    realtype AV_IK;
+    realtype AV_a;
+    realtype AV_ina_m_alpha;
+    realtype AV_ina_m_beta;
+    realtype AV_ina_h_alpha;
+    realtype AV_ina_h_beta;
+    realtype AV_ina_j_alpha;
+    realtype AV_ina_j_beta;
+    realtype AV_INa;
+    realtype AV_Kp;
+    realtype AV_IKp;
+    realtype AV_ica_E;
+    realtype AV_ica_d_alpha;
+    realtype AV_ica_d_beta;
+    realtype AV_ica_f_alpha;
+    realtype AV_ica_f_beta;
+    realtype AV_ICa;
+    realtype AV_g;
+    realtype AV_ik1_g_alpha;
+    realtype AV_ik1_g_beta;
+    realtype AV_IK1;
+    realtype AV_Ib;
+
+    /* State variables. */
+
+    /* Sensitivity output variables */
+    realtype S0_V_ina_m_alpha;
+    realtype S0_V_ina_m_beta;
+    realtype S0_V_INa;
+    realtype S1_V_ina_m_alpha;
+    realtype S1_V_ina_m_beta;
+    realtype S1_V_INa;
+    realtype S2_V_ina_m_alpha;
+    realtype S2_V_ina_m_beta;
+    realtype S2_V_INa;
+
+};
+typedef struct Model_Mem* Model;
+
+/*
+ * Creates and returns a model struct.
+ *
+ * Arguments
+ *  flag : The address of a model flag or NULL.
+ *
+ * Returns a Model pointer.
+ */
+Model Model_Create(Model_Flag* flag)
+{
+    /* Allocate */
+    Model model = (Model)malloc(sizeof(struct Model_Mem));
+    if (model == 0) {
+        if(flag != 0) *flag = Model_OUT_OF_MEMORY;
+        return 0;
+    }
+
+    /* Number of states */
+    model->n_state = 8;
+
+    /* Whether or not this model is an ODE */
+    model->is_ode = 1;
+
+    /* Number of variables/initial states to calculate sensitivities w.r.t. */
+    model->n_sens = 3;
+
+    /* Set default values of bound variables */
+    model->AV_time = 0;
+    model->AV_pace = 0;
+
+    /* Set default values of literal constants TODO: DROP THIS */
+    model->AC_C = 1.0;
+    model->AC_stim_amplitude = -80.0;
+    model->AC_i_diff = 0.0;
+    model->AC_PNa_K = 0.01833;
+    model->AC_p1 = 1.56;
+    model->AC_gKp = 0.0183;
+    model->AC_gb = 0.03921;
+    model->AC_Eb = -59.87;
+    model->AC_K_o = 5.4;
+    model->AC_K_i = 145.0;
+    model->AC_Na_o = 140.0;
+    model->AC_Na_i = 10.0;
+    model->AC_Ca_o = 1.8;
+    model->AC_R = 8314.0;
+    model->AC_T = 310.0;
+    model->AC_F = 96500.0;
+    model->AP_gNa = 16.0;
+    model->AP_gCa = 0.09;
+
+
+
+
+
+
+
+
+    /* Set flag to indicate success */
+    if (flag != 0) *flag = Model_OK;
+
+    /* Return newly created model */
+    return model;
+}
+
+/*
+ *
+ *
+ * Arguments
+ *  model : The model to destroy.
+ *
+ * Returns a model flag.
+ */
+Model_Flag
+Model_Destroy(Model model)
+{
+    if(model == NULL) return Model_INVALID_MODEL;
+    /*if(sys->events != NULL) {
+        free(sys->events);
+        sys->events = NULL;
+    }*/
+    free(model);
+    return Model_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+ * Define type for "user data" that will hold parameter values if doing
+ * sensitivity analysis.
+ */
+typedef struct {
+    realtype *p;
+} *UserData;
+
+/*
+ * Check sundials flags, set python error.
  *  flagvalue : The value to check
  *  funcname : The name of the function that returned the flag
  *  opt : Mode selector
@@ -139,82 +386,17 @@ static long engine_evaluations = 0;
 static long engine_steps = 0;
 
 /*
- * Declare constants and intermediary variables.
- * If doing sensitivity analysis, the default values of the parameters are set
- * here too.
+ * Declare model and protocol variables
  */
-static realtype AC_C = 1.0;
-static realtype AV_i_ion;
-static realtype AV_i_stim;
-static realtype AC_stim_amplitude = -80.0;
-static realtype AC_i_diff = 0.0;
-static realtype AV_ik_x_alpha;
-static realtype AV_ik_x_beta;
-static realtype AV_xi;
-static realtype AV_IK;
-static realtype AC_gK;
-static realtype AC_ik_IK_E;
-static realtype AC_PNa_K = 0.01833;
-static realtype AC_ENa;
-static realtype AV_a;
-static realtype AV_ina_m_alpha;
-static realtype AV_ina_m_beta;
-static realtype AV_ina_h_alpha;
-static realtype AV_ina_h_beta;
-static realtype AV_ina_j_alpha;
-static realtype AV_ina_j_beta;
-static realtype AP_gNa = 16.0;
-static realtype AV_INa;
-static realtype AC_p1 = 1.56;
-static realtype AC_xp1;
-static realtype AC_gKp = 0.0183;
-static realtype AV_Kp;
-static realtype AV_IKp;
-static realtype AV_ica_E;
-static realtype AV_ica_d_alpha;
-static realtype AV_ica_d_beta;
-static realtype AV_ica_f_alpha;
-static realtype AV_ica_f_beta;
-static realtype AP_gCa = 0.09;
-static realtype AV_ICa;
-static realtype AC_ik1_E;
-static realtype AC_gK1;
-static realtype AV_g;
-static realtype AV_ik1_g_alpha;
-static realtype AV_ik1_g_beta;
-static realtype AV_IK1;
-static realtype AC_gb = 0.03921;
-static realtype AC_Eb = -59.87;
-static realtype AV_Ib;
-static realtype AC_K_o = 5.4;
-static realtype AC_K_i = 145.0;
-static realtype AC_Na_o = 140.0;
-static realtype AC_Na_i = 10.0;
-static realtype AC_Ca_o = 1.8;
-static realtype AC_RTF;
-static realtype AC_R = 8314.0;
-static realtype AC_T = 310.0;
-static realtype AC_F = 96500.0;
-static realtype AV_time;
-static realtype AV_pace;
+Model model;                /* A model object */
+ESys epacing;               /* Event-based pacing system */
+FSys fpacing;               /* Fixed-form pacing system */
 
-/*
- * Declare sensitivity output variables
- */
-static realtype S0_V_ina_m_alpha;
-static realtype S0_V_ina_m_beta;
-static realtype S0_V_INa;
-static realtype S1_V_ina_m_alpha;
-static realtype S1_V_ina_m_beta;
-static realtype S1_V_INa;
-static realtype S2_V_ina_m_alpha;
-static realtype S2_V_ina_m_beta;
-static realtype S2_V_INa;
 
-/* Define type for "user data" that will hold parameter values */
-typedef struct {
-    realtype p[N_SENS];
-} *UserData;
+
+
+
+
 
 /*
  * Set values of calculated constants
@@ -222,13 +404,13 @@ typedef struct {
 static void
 update_constants(void)
 {
-    AC_RTF = AC_R * AC_T / AC_F;
-    AC_gK = 0.282 * sqrt(AC_K_o / 5.4);
-    AC_ik_IK_E = AC_RTF * log((AC_K_o + AC_PNa_K * AC_Na_o) / (AC_K_i + AC_PNa_K * AC_Na_i));
-    AC_ENa = AC_RTF * log(AC_Na_o / AC_Na_i);
-    AC_xp1 = 2.0 + AC_p1;
-    AC_ik1_E = AC_RTF * log(AC_K_o / AC_K_i);
-    AC_gK1 = 0.6047 * sqrt(AC_K_o / 5.4);
+    model->AC_RTF = model->AC_R * model->AC_T / model->AC_F;
+    model->AC_gK = 0.282 * sqrt(model->AC_K_o / 5.4);
+    model->AC_ik_IK_E = model->AC_RTF * log((model->AC_K_o + model->AC_PNa_K * model->AC_Na_o) / (model->AC_K_i + model->AC_PNa_K * model->AC_Na_i));
+    model->AC_ENa = model->AC_RTF * log(model->AC_Na_o / model->AC_Na_i);
+    model->AC_xp1 = 2.0 + model->AC_p1;
+    model->AC_ik1_E = model->AC_RTF * log(model->AC_K_o / model->AC_K_i);
+    model->AC_gK1 = 0.6047 * sqrt(model->AC_K_o / 5.4);
 }
 
 /*
@@ -259,57 +441,57 @@ rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
     }
 
     /* ib */
-    AV_Ib = AC_gb * (NV_Ith_S(y, 0) - AC_Eb);
+    model->AV_Ib = model->AC_gb * (NV_Ith_S(y, 0) - model->AC_Eb);
     
     /* engine */
-    AV_pace = engine_pace;
-    AV_time = t;
+    model->AV_pace = engine_pace;
+    model->AV_time = t;
     
     /* ik */
-    AV_xi = ((NV_Ith_S(y, 0) < (-100.0)) ? 1.0 : ((NV_Ith_S(y, 0) == (-77.0)) ? 2.837 * 0.04 / exp(0.04 * (NV_Ith_S(y, 0) + 35.0)) : 2.837 * (exp(0.04 * (NV_Ith_S(y, 0) + 77.0)) - 1.0) / ((NV_Ith_S(y, 0) + 77.0) * exp(0.04 * (NV_Ith_S(y, 0) + 35.0)))));
-    AV_ik_x_alpha = 0.0005 * exp(0.083 * (NV_Ith_S(y, 0) + 50.0)) / (1.0 + exp(0.057 * (NV_Ith_S(y, 0) + 50.0)));
-    AV_ik_x_beta = 0.0013 * exp((-0.06) * (NV_Ith_S(y, 0) + 20.0)) / (1.0 + exp((-0.04) * (NV_Ith_S(y, 0) + 20.0)));
-    NV_Ith_S(ydot, 6) = AV_ik_x_alpha * (1.0 - NV_Ith_S(y, 6)) - AV_ik_x_beta * NV_Ith_S(y, 6);
-    AV_IK = AC_gK * AV_xi * NV_Ith_S(y, 6) * (NV_Ith_S(y, 0) - AC_ik_IK_E);
+    model->AV_xi = ((NV_Ith_S(y, 0) < (-100.0)) ? 1.0 : ((NV_Ith_S(y, 0) == (-77.0)) ? 2.837 * 0.04 / exp(0.04 * (NV_Ith_S(y, 0) + 35.0)) : 2.837 * (exp(0.04 * (NV_Ith_S(y, 0) + 77.0)) - 1.0) / ((NV_Ith_S(y, 0) + 77.0) * exp(0.04 * (NV_Ith_S(y, 0) + 35.0)))));
+    model->AV_ik_x_alpha = 0.0005 * exp(0.083 * (NV_Ith_S(y, 0) + 50.0)) / (1.0 + exp(0.057 * (NV_Ith_S(y, 0) + 50.0)));
+    model->AV_ik_x_beta = 0.0013 * exp((-0.06) * (NV_Ith_S(y, 0) + 20.0)) / (1.0 + exp((-0.04) * (NV_Ith_S(y, 0) + 20.0)));
+    NV_Ith_S(ydot, 6) = model->AV_ik_x_alpha * (1.0 - NV_Ith_S(y, 6)) - model->AV_ik_x_beta * NV_Ith_S(y, 6);
+    model->AV_IK = model->AC_gK * model->AV_xi * NV_Ith_S(y, 6) * (NV_Ith_S(y, 0) - model->AC_ik_IK_E);
     
     /* ina */
-    AV_a = 1.0 - 1.0 / (1.0 + exp((-(NV_Ith_S(y, 0) + 40.0)) / 0.24));
-    AV_ina_m_alpha = 0.32 * (NV_Ith_S(y, 0) + 47.13) / (1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)));
-    AV_ina_m_beta = 0.08 * exp((-NV_Ith_S(y, 0)) / 11.0);
-    NV_Ith_S(ydot, 1) = AV_ina_m_alpha * (1.0 - NV_Ith_S(y, 1)) - AV_ina_m_beta * NV_Ith_S(y, 1);
-    AV_ina_j_alpha = AV_a * ((-127140.0) * exp(0.2444 * NV_Ith_S(y, 0)) - 3.474e-05 * exp((-0.04391) * NV_Ith_S(y, 0))) * (NV_Ith_S(y, 0) + 37.78) / (1.0 + exp(0.311 * (NV_Ith_S(y, 0) + 79.23)));
-    AV_ina_j_beta = AV_a * (0.1212 * exp((-0.01052) * NV_Ith_S(y, 0)) / (1.0 + exp((-0.1378) * (NV_Ith_S(y, 0) + 40.14)))) + (1.0 - AV_a) * (0.3 * exp((-2.535e-07) * NV_Ith_S(y, 0)) / (1.0 + exp((-0.1) * (NV_Ith_S(y, 0) + 32.0))));
-    NV_Ith_S(ydot, 3) = AV_ina_j_alpha * (1.0 - NV_Ith_S(y, 3)) - AV_ina_j_beta * NV_Ith_S(y, 3);
-    AV_INa = fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(y, 3) * (NV_Ith_S(y, 0) - AC_ENa) + 1e-05 * NV_Ith_S(ydot, 1);
-    AV_ina_h_alpha = AV_a * 0.135 * exp((80.0 + NV_Ith_S(y, 0)) / (-6.8));
-    AV_ina_h_beta = AV_a * (AC_xp1 * exp(0.079 * NV_Ith_S(y, 0)) + 310000.0 * exp(0.35 * NV_Ith_S(y, 0))) + (1.0 - AV_a) / (0.13 * (1.0 + exp((NV_Ith_S(y, 0) + 10.66) / (-11.1))));
-    NV_Ith_S(ydot, 2) = AV_ina_h_alpha * (1.0 - NV_Ith_S(y, 2)) - AV_ina_h_beta * NV_Ith_S(y, 2);
+    model->AV_a = 1.0 - 1.0 / (1.0 + exp((-(NV_Ith_S(y, 0) + 40.0)) / 0.24));
+    model->AV_ina_m_alpha = 0.32 * (NV_Ith_S(y, 0) + 47.13) / (1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)));
+    model->AV_ina_m_beta = 0.08 * exp((-NV_Ith_S(y, 0)) / 11.0);
+    NV_Ith_S(ydot, 1) = model->AV_ina_m_alpha * (1.0 - NV_Ith_S(y, 1)) - model->AV_ina_m_beta * NV_Ith_S(y, 1);
+    model->AV_ina_j_alpha = model->AV_a * ((-127140.0) * exp(0.2444 * NV_Ith_S(y, 0)) - 3.474e-05 * exp((-0.04391) * NV_Ith_S(y, 0))) * (NV_Ith_S(y, 0) + 37.78) / (1.0 + exp(0.311 * (NV_Ith_S(y, 0) + 79.23)));
+    model->AV_ina_j_beta = model->AV_a * (0.1212 * exp((-0.01052) * NV_Ith_S(y, 0)) / (1.0 + exp((-0.1378) * (NV_Ith_S(y, 0) + 40.14)))) + (1.0 - model->AV_a) * (0.3 * exp((-2.535e-07) * NV_Ith_S(y, 0)) / (1.0 + exp((-0.1) * (NV_Ith_S(y, 0) + 32.0))));
+    NV_Ith_S(ydot, 3) = model->AV_ina_j_alpha * (1.0 - NV_Ith_S(y, 3)) - model->AV_ina_j_beta * NV_Ith_S(y, 3);
+    model->AV_INa = fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(y, 3) * (NV_Ith_S(y, 0) - model->AC_ENa) + 1e-05 * NV_Ith_S(ydot, 1);
+    model->AV_ina_h_alpha = model->AV_a * 0.135 * exp((80.0 + NV_Ith_S(y, 0)) / (-6.8));
+    model->AV_ina_h_beta = model->AV_a * (model->AC_xp1 * exp(0.079 * NV_Ith_S(y, 0)) + 310000.0 * exp(0.35 * NV_Ith_S(y, 0))) + (1.0 - model->AV_a) / (0.13 * (1.0 + exp((NV_Ith_S(y, 0) + 10.66) / (-11.1))));
+    NV_Ith_S(ydot, 2) = model->AV_ina_h_alpha * (1.0 - NV_Ith_S(y, 2)) - model->AV_ina_h_beta * NV_Ith_S(y, 2);
     
     /* ica */
-    AV_ica_E = 7.7 - 13.0287 * log(NV_Ith_S(y, 7) / AC_Ca_o);
-    AV_ica_d_alpha = 0.095 * exp((-0.01) * (NV_Ith_S(y, 0) - 5.0)) / (1.0 + exp((-0.072) * (NV_Ith_S(y, 0) - 5.0)));
-    AV_ica_d_beta = 0.07 * exp((-0.017) * (NV_Ith_S(y, 0) + 44.0)) / (1.0 + exp(0.05 * (NV_Ith_S(y, 0) + 44.0)));
-    NV_Ith_S(ydot, 4) = AV_ica_d_alpha * (1.0 - NV_Ith_S(y, 4)) - AV_ica_d_beta * NV_Ith_S(y, 4);
-    AV_ica_f_alpha = 0.012 * exp((-0.008) * (NV_Ith_S(y, 0) + 28.0)) / (1.0 + exp(0.15 * (NV_Ith_S(y, 0) + 28.0)));
-    AV_ica_f_beta = 0.0065 * exp((-0.02) * (NV_Ith_S(y, 0) + 30.0)) / (1.0 + exp((-0.2) * (NV_Ith_S(y, 0) + 30.0)));
-    NV_Ith_S(ydot, 5) = AV_ica_f_alpha * (1.0 - NV_Ith_S(y, 5)) - AV_ica_f_beta * NV_Ith_S(y, 5);
-    AV_ICa = fdata->p[1] * NV_Ith_S(y, 4) * NV_Ith_S(y, 5) * (NV_Ith_S(y, 0) - AV_ica_E);
-    NV_Ith_S(ydot, 7) = (-0.0001) * AV_ICa + 0.07 * (0.0001 - NV_Ith_S(y, 7));
+    model->AV_ica_E = 7.7 - 13.0287 * log(NV_Ith_S(y, 7) / model->AC_Ca_o);
+    model->AV_ica_d_alpha = 0.095 * exp((-0.01) * (NV_Ith_S(y, 0) - 5.0)) / (1.0 + exp((-0.072) * (NV_Ith_S(y, 0) - 5.0)));
+    model->AV_ica_d_beta = 0.07 * exp((-0.017) * (NV_Ith_S(y, 0) + 44.0)) / (1.0 + exp(0.05 * (NV_Ith_S(y, 0) + 44.0)));
+    NV_Ith_S(ydot, 4) = model->AV_ica_d_alpha * (1.0 - NV_Ith_S(y, 4)) - model->AV_ica_d_beta * NV_Ith_S(y, 4);
+    model->AV_ica_f_alpha = 0.012 * exp((-0.008) * (NV_Ith_S(y, 0) + 28.0)) / (1.0 + exp(0.15 * (NV_Ith_S(y, 0) + 28.0)));
+    model->AV_ica_f_beta = 0.0065 * exp((-0.02) * (NV_Ith_S(y, 0) + 30.0)) / (1.0 + exp((-0.2) * (NV_Ith_S(y, 0) + 30.0)));
+    NV_Ith_S(ydot, 5) = model->AV_ica_f_alpha * (1.0 - NV_Ith_S(y, 5)) - model->AV_ica_f_beta * NV_Ith_S(y, 5);
+    model->AV_ICa = fdata->p[1] * NV_Ith_S(y, 4) * NV_Ith_S(y, 5) * (NV_Ith_S(y, 0) - model->AV_ica_E);
+    NV_Ith_S(ydot, 7) = (-0.0001) * model->AV_ICa + 0.07 * (0.0001 - NV_Ith_S(y, 7));
     
     /* ik1 */
-    AV_ik1_g_alpha = 1.02 / (1.0 + exp(0.2385 * (NV_Ith_S(y, 0) - AC_ik1_E - 59.215)));
-    AV_ik1_g_beta = (0.49124 * exp(0.08032 * (NV_Ith_S(y, 0) - AC_ik1_E + 5.476)) + 1.0 * exp(0.06175 * (NV_Ith_S(y, 0) - AC_ik1_E - 594.31))) / (1.0 + exp((-0.5143) * (NV_Ith_S(y, 0) - AC_ik1_E + 4.753)));
-    AV_g = AV_ik1_g_alpha / (AV_ik1_g_alpha + AV_ik1_g_beta);
-    AV_IK1 = AC_gK1 * AV_g * (NV_Ith_S(y, 0) - AC_ik1_E);
+    model->AV_ik1_g_alpha = 1.02 / (1.0 + exp(0.2385 * (NV_Ith_S(y, 0) - model->AC_ik1_E - 59.215)));
+    model->AV_ik1_g_beta = (0.49124 * exp(0.08032 * (NV_Ith_S(y, 0) - model->AC_ik1_E + 5.476)) + 1.0 * exp(0.06175 * (NV_Ith_S(y, 0) - model->AC_ik1_E - 594.31))) / (1.0 + exp((-0.5143) * (NV_Ith_S(y, 0) - model->AC_ik1_E + 4.753)));
+    model->AV_g = model->AV_ik1_g_alpha / (model->AV_ik1_g_alpha + model->AV_ik1_g_beta);
+    model->AV_IK1 = model->AC_gK1 * model->AV_g * (NV_Ith_S(y, 0) - model->AC_ik1_E);
     
     /* ikp */
-    AV_Kp = 1.0 / (1.0 + exp((7.488 - NV_Ith_S(y, 0)) / 5.98));
-    AV_IKp = AC_gKp * AV_Kp * (NV_Ith_S(y, 0) - AC_ik1_E);
+    model->AV_Kp = 1.0 / (1.0 + exp((7.488 - NV_Ith_S(y, 0)) / 5.98));
+    model->AV_IKp = model->AC_gKp * model->AV_Kp * (NV_Ith_S(y, 0) - model->AC_ik1_E);
     
     /* membrane */
-    AV_i_ion = AV_INa + AV_IK + AV_Ib + AV_IKp + AV_IK1 + AV_ICa;
-    AV_i_stim = AV_pace * AC_stim_amplitude;
-    NV_Ith_S(ydot, 0) = (-(1.0 / AC_C)) * (AV_i_ion + AC_i_diff + AV_i_stim);
+    model->AV_i_ion = model->AV_INa + model->AV_IK + model->AV_Ib + model->AV_IKp + model->AV_IK1 + model->AV_ICa;
+    model->AV_i_stim = model->AV_pace * model->AC_stim_amplitude;
+    NV_Ith_S(ydot, 0) = (-(1.0 / model->AC_C)) * (model->AV_i_ion + model->AC_i_diff + model->AV_i_stim);
     
 
     engine_evaluations++;
@@ -392,22 +574,22 @@ calculate_sensitivity_outputs(realtype t, N_Vector y, N_Vector ydot,
         }
     }
     /* Sensitivity w.r.t. ina.gNa */
-    S0_V_ina_m_alpha = (0.32 * NV_Ith_S(yS[0], 0) * (1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13))) - 0.32 * (NV_Ith_S(y, 0) + 47.13) * (-(exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)) * ((-0.1) * NV_Ith_S(yS[0], 0))))) / pow(1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)), 2.0);
-    S0_V_ina_m_beta = 0.08 * (exp((-NV_Ith_S(y, 0)) / 11.0) * ((-NV_Ith_S(yS[0], 0)) / 11.0));
-    NV_Ith_S(ySdot[0], 1) = S0_V_ina_m_alpha * (1.0 - NV_Ith_S(y, 1)) + AV_ina_m_alpha * (-NV_Ith_S(yS[0], 1)) - (S0_V_ina_m_beta * NV_Ith_S(y, 1) + AV_ina_m_beta * NV_Ith_S(yS[0], 1));
-    S0_V_INa = (((1.0 * pow(NV_Ith_S(y, 1), 3.0) + fdata->p[0] * (3.0 * pow(NV_Ith_S(y, 1), 2.0) * NV_Ith_S(yS[0], 1))) * NV_Ith_S(y, 2) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(yS[0], 2)) * NV_Ith_S(y, 3) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(yS[0], 3)) * (NV_Ith_S(y, 0) - AC_ENa) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(y, 3) * NV_Ith_S(yS[0], 0) + 1e-05 * NV_Ith_S(ySdot[0], 1);
+    model->S0_V_ina_m_alpha = (0.32 * NV_Ith_S(yS[0], 0) * (1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13))) - 0.32 * (NV_Ith_S(y, 0) + 47.13) * (-(exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)) * ((-0.1) * NV_Ith_S(yS[0], 0))))) / pow(1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)), 2.0);
+    model->S0_V_ina_m_beta = 0.08 * (exp((-NV_Ith_S(y, 0)) / 11.0) * ((-NV_Ith_S(yS[0], 0)) / 11.0));
+    NV_Ith_S(ySdot[0], 1) = model->S0_V_ina_m_alpha * (1.0 - NV_Ith_S(y, 1)) + model->AV_ina_m_alpha * (-NV_Ith_S(yS[0], 1)) - (model->S0_V_ina_m_beta * NV_Ith_S(y, 1) + model->AV_ina_m_beta * NV_Ith_S(yS[0], 1));
+    model->S0_V_INa = (((1.0 * pow(NV_Ith_S(y, 1), 3.0) + fdata->p[0] * (3.0 * pow(NV_Ith_S(y, 1), 2.0) * NV_Ith_S(yS[0], 1))) * NV_Ith_S(y, 2) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(yS[0], 2)) * NV_Ith_S(y, 3) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(yS[0], 3)) * (NV_Ith_S(y, 0) - model->AC_ENa) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(y, 3) * NV_Ith_S(yS[0], 0) + 1e-05 * NV_Ith_S(ySdot[0], 1);
 
     /* Sensitivity w.r.t. ica.gCa */
-    S1_V_ina_m_alpha = (0.32 * NV_Ith_S(yS[1], 0) * (1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13))) - 0.32 * (NV_Ith_S(y, 0) + 47.13) * (-(exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)) * ((-0.1) * NV_Ith_S(yS[1], 0))))) / pow(1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)), 2.0);
-    S1_V_ina_m_beta = 0.08 * (exp((-NV_Ith_S(y, 0)) / 11.0) * ((-NV_Ith_S(yS[1], 0)) / 11.0));
-    NV_Ith_S(ySdot[1], 1) = S1_V_ina_m_alpha * (1.0 - NV_Ith_S(y, 1)) + AV_ina_m_alpha * (-NV_Ith_S(yS[1], 1)) - (S1_V_ina_m_beta * NV_Ith_S(y, 1) + AV_ina_m_beta * NV_Ith_S(yS[1], 1));
-    S1_V_INa = ((fdata->p[0] * (3.0 * pow(NV_Ith_S(y, 1), 2.0) * NV_Ith_S(yS[1], 1)) * NV_Ith_S(y, 2) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(yS[1], 2)) * NV_Ith_S(y, 3) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(yS[1], 3)) * (NV_Ith_S(y, 0) - AC_ENa) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(y, 3) * NV_Ith_S(yS[1], 0) + 1e-05 * NV_Ith_S(ySdot[1], 1);
+    model->S1_V_ina_m_alpha = (0.32 * NV_Ith_S(yS[1], 0) * (1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13))) - 0.32 * (NV_Ith_S(y, 0) + 47.13) * (-(exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)) * ((-0.1) * NV_Ith_S(yS[1], 0))))) / pow(1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)), 2.0);
+    model->S1_V_ina_m_beta = 0.08 * (exp((-NV_Ith_S(y, 0)) / 11.0) * ((-NV_Ith_S(yS[1], 0)) / 11.0));
+    NV_Ith_S(ySdot[1], 1) = model->S1_V_ina_m_alpha * (1.0 - NV_Ith_S(y, 1)) + model->AV_ina_m_alpha * (-NV_Ith_S(yS[1], 1)) - (model->S1_V_ina_m_beta * NV_Ith_S(y, 1) + model->AV_ina_m_beta * NV_Ith_S(yS[1], 1));
+    model->S1_V_INa = ((fdata->p[0] * (3.0 * pow(NV_Ith_S(y, 1), 2.0) * NV_Ith_S(yS[1], 1)) * NV_Ith_S(y, 2) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(yS[1], 2)) * NV_Ith_S(y, 3) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(yS[1], 3)) * (NV_Ith_S(y, 0) - model->AC_ENa) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(y, 3) * NV_Ith_S(yS[1], 0) + 1e-05 * NV_Ith_S(ySdot[1], 1);
 
     /* Sensitivity w.r.t. init(ica.Ca_i) */
-    S2_V_ina_m_alpha = (0.32 * NV_Ith_S(yS[2], 0) * (1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13))) - 0.32 * (NV_Ith_S(y, 0) + 47.13) * (-(exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)) * ((-0.1) * NV_Ith_S(yS[2], 0))))) / pow(1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)), 2.0);
-    S2_V_ina_m_beta = 0.08 * (exp((-NV_Ith_S(y, 0)) / 11.0) * ((-NV_Ith_S(yS[2], 0)) / 11.0));
-    NV_Ith_S(ySdot[2], 1) = S2_V_ina_m_alpha * (1.0 - NV_Ith_S(y, 1)) + AV_ina_m_alpha * (-NV_Ith_S(yS[2], 1)) - (S2_V_ina_m_beta * NV_Ith_S(y, 1) + AV_ina_m_beta * NV_Ith_S(yS[2], 1));
-    S2_V_INa = ((fdata->p[0] * (3.0 * pow(NV_Ith_S(y, 1), 2.0) * NV_Ith_S(yS[2], 1)) * NV_Ith_S(y, 2) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(yS[2], 2)) * NV_Ith_S(y, 3) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(yS[2], 3)) * (NV_Ith_S(y, 0) - AC_ENa) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(y, 3) * NV_Ith_S(yS[2], 0) + 1e-05 * NV_Ith_S(ySdot[2], 1);
+    model->S2_V_ina_m_alpha = (0.32 * NV_Ith_S(yS[2], 0) * (1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13))) - 0.32 * (NV_Ith_S(y, 0) + 47.13) * (-(exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)) * ((-0.1) * NV_Ith_S(yS[2], 0))))) / pow(1.0 - exp((-0.1) * (NV_Ith_S(y, 0) + 47.13)), 2.0);
+    model->S2_V_ina_m_beta = 0.08 * (exp((-NV_Ith_S(y, 0)) / 11.0) * ((-NV_Ith_S(yS[2], 0)) / 11.0));
+    NV_Ith_S(ySdot[2], 1) = model->S2_V_ina_m_alpha * (1.0 - NV_Ith_S(y, 1)) + model->AV_ina_m_alpha * (-NV_Ith_S(yS[2], 1)) - (model->S2_V_ina_m_beta * NV_Ith_S(y, 1) + model->AV_ina_m_beta * NV_Ith_S(yS[2], 1));
+    model->S2_V_INa = ((fdata->p[0] * (3.0 * pow(NV_Ith_S(y, 1), 2.0) * NV_Ith_S(yS[2], 1)) * NV_Ith_S(y, 2) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(yS[2], 2)) * NV_Ith_S(y, 3) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(yS[2], 3)) * (NV_Ith_S(y, 0) - model->AC_ENa) + fdata->p[0] * pow(NV_Ith_S(y, 1), 3.0) * NV_Ith_S(y, 2) * NV_Ith_S(y, 3) * NV_Ith_S(yS[2], 0) + 1e-05 * NV_Ith_S(ySdot[2], 1);
 
 
     return 0;
@@ -419,8 +601,8 @@ calculate_sensitivity_outputs(realtype t, N_Vector y, N_Vector ydot,
 static int
 update_bindings(realtype t)
 {
-    AV_time = t;
-    AV_pace = engine_pace;
+    model->AV_time = t;
+    model->AV_pace = engine_pace;
 
     return 0;
 }
@@ -566,7 +748,7 @@ SUNLinearSolver sundense_solver;    /* Linear solver object */
 #endif
 
 /* Parameter/initial-condition scales */
-realtype pbar[N_SENS];  /* One number per parameter/initial condition, giving something in the expected magnitude of the param/init */
+realtype* pbar;             /* One number per parameter/initial condition, giving something in the expected magnitude of the param/init */
 
 /* Root finding */
 int* rootsfound;     /* Used to store found roots */
@@ -599,16 +781,16 @@ sim_clean()
         free(rootsfound); rootsfound = NULL;
 
         /* Free CVode space */
-        N_VDestroy_Serial(y); y = NULL;
-        N_VDestroy_Serial(dy_log); dy_log = NULL;
-        if (USE_CVODE && !dynamic_logging) {
-            N_VDestroy_Serial(y_log); y_log = NULL;
+        if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
+        if (dy_log != NULL) { N_VDestroy_Serial(dy_log); dy_log = NULL; }
+        if (model != NULL && model->is_ode && !dynamic_logging) {
+            if (y_log != NULL) { N_VDestroy_Serial(y_log); y_log = NULL; }
         }
-        if (N_SENS) {
-            N_VDestroyVectorArray(sy, N_SENS); sy = NULL;
-            N_VDestroyVectorArray(sdy_log, N_SENS); sdy_log = NULL;
-            if (USE_CVODE && !dynamic_logging) {
-                N_VDestroyVectorArray(sy_log, N_SENS); sy_log = NULL;
+        if (model != NULL && model->n_sens) {
+            if (sy != NULL) { N_VDestroyVectorArray(sy, model->n_sens); sy = NULL; }
+            if (sdy_log != NULL) { N_VDestroyVectorArray(sdy_log, model->n_sens); sdy_log = NULL; }
+            if (model->is_ode && !dynamic_logging) {
+                if (sy_log != NULL) { N_VDestroyVectorArray(sy_log, model->n_sens); sy_log = NULL; }
             }
         }
 
@@ -618,12 +800,19 @@ sim_clean()
         SUNMatDestroy(sundense_matrix); sundense_matrix = NULL;
         #endif
 
-        /* Free user data */
-        free(udata); udata = NULL;
+        /* Free user data and parameter scale array*/
+        free(pbar);
+        if (udata != NULL) {
+            free(udata->p);
+            free(udata); udata = NULL;
+        }
 
         /* Free pacing system space */
         ESys_Destroy(epacing); epacing = NULL;
         FSys_Destroy(fpacing); fpacing = NULL;
+
+        /* Free model space */
+        Model_Destroy(model); model = NULL;
 
         /* No longer running */
         running = 0;
@@ -652,6 +841,7 @@ sim_init(PyObject *self, PyObject *args)
     int flag;
     int flag_cvode;
     int log_first_point;
+    Model_Flag flag_model;
     ESys_Flag flag_epacing;
     FSys_Flag flag_fpacing;
     Py_ssize_t pos;
@@ -685,6 +875,7 @@ sim_init(PyObject *self, PyObject *args)
     sy_log = NULL;
     sdy_log = NULL;
     cvode_mem = NULL;
+    model = NULL;
     epacing = NULL;
     fpacing = NULL;
     log_times = NULL;
@@ -767,23 +958,30 @@ sim_init(PyObject *self, PyObject *args)
        steals ownership: No need to decref.
     */
 
+    /* Set string for updating lists/arrays using Python interface. */
+    list_update_str = PyUnicode_FromString("append");
+
+    /* Create model */
+    model = Model_Create(&flag_model);
+    if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+
     /* Create state vector */
-    y = N_VNew_Serial(N_STATE);
+    y = N_VNew_Serial(model->n_state);
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         return sim_clean();
     }
 
     /* Create state vector copy for error handling */
-    y_last = N_VNew_Serial(N_STATE);
+    y_last = N_VNew_Serial(model->n_state);
     if (check_cvode_flag((void*)y_last, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create last-state vector.");
         return sim_clean();
     }
 
     /* Create sensitivity vector array */
-    if (N_SENS) {
-        sy = N_VCloneVectorArray(N_SENS, y);
+    if (model->n_sens) {
+        sy = N_VCloneVectorArray(model->n_sens, y);
         if (check_cvode_flag((void*)sy, "N_VCloneVectorArray", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to allocate space to store sensitivities.");
             return sim_clean();
@@ -798,7 +996,7 @@ sim_init(PyObject *self, PyObject *args)
        values from y as used for the integration. But if we need to interpolate
        times in the past, we need a vector y (and sy if using sensitivities) to
        store the state at time of logging in. */
-    if (dynamic_logging || !USE_CVODE) {
+    if (dynamic_logging || !model->is_ode) {
         /* Dynamic logging or cvode-free mode: don't interpolate,
            so let y_log point to y */
         y_log = y;
@@ -806,13 +1004,13 @@ sim_init(PyObject *self, PyObject *args)
     } else {
         /* Logging at fixed points:
            Keep y_log as a separate N_Vector for cvode interpolation */
-        y_log = N_VNew_Serial(N_STATE);
+        y_log = N_VNew_Serial(model->n_state);
         if (check_cvode_flag((void*)y_log, "N_VNew_Serial", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to create state vector for logging.");
             return sim_clean();
         }
-        if (N_SENS) {
-            sy_log = N_VCloneVectorArray(N_SENS, y);
+        if (model->n_sens) {
+            sy_log = N_VCloneVectorArray(model->n_sens, y);
             if (check_cvode_flag((void*)sy_log, "N_VCloneVectorArray", 0)) {
                 PyErr_SetString(PyExc_Exception, "Failed to create state sensitivity vector array for logging.");
                 return sim_clean();
@@ -824,13 +1022,13 @@ sim_init(PyObject *self, PyObject *args)
        In both logging modes, the need arises to call rhs() manually, and so we
        need to create a dy_log vector to pass in (and an sdy_log vector array).
     */
-    dy_log = N_VNew_Serial(N_STATE);
+    dy_log = N_VNew_Serial(model->n_state);
     if (check_cvode_flag((void*)dy_log, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create derivatives vector for logging.");
         return sim_clean();
     }
-    if (N_SENS) {
-        sdy_log = N_VCloneVectorArray(N_SENS, y);
+    if (model->n_sens) {
+        sdy_log = N_VCloneVectorArray(model->n_sens, y);
         if (check_cvode_flag((void*)sdy_log, "N_VCloneVectorArray", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to create derivatives sensitivity vector array for logging.");
             return sim_clean();
@@ -845,7 +1043,7 @@ sim_init(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "'state_in' must be a list.");
         return sim_clean();
     }
-    for(i=0; i<N_STATE; i++) {
+    for(i=0; i<model->n_state; i++) {
         flt = PyList_GetItem(state_in, i);    /* Don't decref! */
         if (!PyFloat_Check(flt)) {
             char errstr[200];
@@ -861,14 +1059,14 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /* Set initial sensitivities to zero, or to 1 for initial conditions */
-    for(i=0; i<N_SENS; i++) {
+    for(i=0; i<model->n_sens; i++) {
         N_VConst(RCONST(0.0), sy[i]);
     }
     NV_Ith_S(sy[2], 7) = 1.0;
 
     /*
     if (!dynamic_logging) {
-        for(i=0; i<N_SENS; i++) {
+        for(i=0; i<model->n_sens; i++) {
             N_VConst(RCONST(0.0), sy_log[i]);
         }
         NV_Ith_S(sy_log[2], 7) = 1.0;
@@ -878,16 +1076,28 @@ sim_init(PyObject *self, PyObject *args)
     /* Create and fill vector with parameter/initial condition values */
     udata = (UserData)malloc(sizeof *udata);
     if (udata == 0) {
+        PyErr_SetString(PyExc_Exception, "Unable to create user data object to store parameter values.");
+        return sim_clean();
+    }
+    udata->p = (realtype*)malloc(sizeof(realtype) * model->n_sens);
+    if (udata->p == 0) {
         PyErr_SetString(PyExc_Exception, "Unable to allocate space to store parameter values.");
         return sim_clean();
     }
-    udata->p[0] = AP_gNa;
-    udata->p[1] = AP_gCa;
+
+    udata->p[0] = model->AP_gNa;
+    udata->p[1] = model->AP_gCa;
     udata->p[2] = NV_Ith_S(y, 7);
+
 
     /* Create parameter scaling vector, for error control */
     /* TODO: Let the user provide this? */
-    for(i=0; i<N_SENS; i++) {
+    pbar = (realtype*)malloc(sizeof(realtype) * model->n_sens);
+    if (pbar == 0) {
+        PyErr_SetString(PyExc_Exception, "Unable to allocate space to store parameter scales.");
+        return sim_clean();
+    }
+    for(i=0; i<model->n_sens; i++) {
         pbar[i] = (udata->p[i] == 0.0 ? 1.0 : udata->p[i]);
     }
 
@@ -959,41 +1169,41 @@ sim_init(PyObject *self, PyObject *args)
 
     /* Check bound variables */
     j = i;
-    i += log_add(log_dict, logs, vars, i, "engine.time", &AV_time);
-    i += log_add(log_dict, logs, vars, i, "engine.pace", &AV_pace);
+    i += log_add(log_dict, logs, vars, i, "engine.time", &model->AV_time);
+    i += log_add(log_dict, logs, vars, i, "engine.pace", &model->AV_pace);
 
     log_bound = (i > j);
 
     /* Remaining variables will require an extra rhs() call to evaluate their
        values at every log point */
     j = i;
-    i += log_add(log_dict, logs, vars, i, "membrane.i_ion", &AV_i_ion);
-    i += log_add(log_dict, logs, vars, i, "membrane.i_stim", &AV_i_stim);
-    i += log_add(log_dict, logs, vars, i, "ik.x.alpha", &AV_ik_x_alpha);
-    i += log_add(log_dict, logs, vars, i, "ik.x.beta", &AV_ik_x_beta);
-    i += log_add(log_dict, logs, vars, i, "ik.xi", &AV_xi);
-    i += log_add(log_dict, logs, vars, i, "ik.IK", &AV_IK);
-    i += log_add(log_dict, logs, vars, i, "ina.a", &AV_a);
-    i += log_add(log_dict, logs, vars, i, "ina.m.alpha", &AV_ina_m_alpha);
-    i += log_add(log_dict, logs, vars, i, "ina.m.beta", &AV_ina_m_beta);
-    i += log_add(log_dict, logs, vars, i, "ina.h.alpha", &AV_ina_h_alpha);
-    i += log_add(log_dict, logs, vars, i, "ina.h.beta", &AV_ina_h_beta);
-    i += log_add(log_dict, logs, vars, i, "ina.j.alpha", &AV_ina_j_alpha);
-    i += log_add(log_dict, logs, vars, i, "ina.j.beta", &AV_ina_j_beta);
-    i += log_add(log_dict, logs, vars, i, "ina.INa", &AV_INa);
-    i += log_add(log_dict, logs, vars, i, "ikp.Kp", &AV_Kp);
-    i += log_add(log_dict, logs, vars, i, "ikp.IKp", &AV_IKp);
-    i += log_add(log_dict, logs, vars, i, "ica.E", &AV_ica_E);
-    i += log_add(log_dict, logs, vars, i, "ica.d.alpha", &AV_ica_d_alpha);
-    i += log_add(log_dict, logs, vars, i, "ica.d.beta", &AV_ica_d_beta);
-    i += log_add(log_dict, logs, vars, i, "ica.f.alpha", &AV_ica_f_alpha);
-    i += log_add(log_dict, logs, vars, i, "ica.f.beta", &AV_ica_f_beta);
-    i += log_add(log_dict, logs, vars, i, "ica.ICa", &AV_ICa);
-    i += log_add(log_dict, logs, vars, i, "ik1.g", &AV_g);
-    i += log_add(log_dict, logs, vars, i, "ik1.g.alpha", &AV_ik1_g_alpha);
-    i += log_add(log_dict, logs, vars, i, "ik1.g.beta", &AV_ik1_g_beta);
-    i += log_add(log_dict, logs, vars, i, "ik1.IK1", &AV_IK1);
-    i += log_add(log_dict, logs, vars, i, "ib.Ib", &AV_Ib);
+    i += log_add(log_dict, logs, vars, i, "membrane.i_ion", &model->AV_i_ion);
+    i += log_add(log_dict, logs, vars, i, "membrane.i_stim", &model->AV_i_stim);
+    i += log_add(log_dict, logs, vars, i, "ik.x.alpha", &model->AV_ik_x_alpha);
+    i += log_add(log_dict, logs, vars, i, "ik.x.beta", &model->AV_ik_x_beta);
+    i += log_add(log_dict, logs, vars, i, "ik.xi", &model->AV_xi);
+    i += log_add(log_dict, logs, vars, i, "ik.IK", &model->AV_IK);
+    i += log_add(log_dict, logs, vars, i, "ina.a", &model->AV_a);
+    i += log_add(log_dict, logs, vars, i, "ina.m.alpha", &model->AV_ina_m_alpha);
+    i += log_add(log_dict, logs, vars, i, "ina.m.beta", &model->AV_ina_m_beta);
+    i += log_add(log_dict, logs, vars, i, "ina.h.alpha", &model->AV_ina_h_alpha);
+    i += log_add(log_dict, logs, vars, i, "ina.h.beta", &model->AV_ina_h_beta);
+    i += log_add(log_dict, logs, vars, i, "ina.j.alpha", &model->AV_ina_j_alpha);
+    i += log_add(log_dict, logs, vars, i, "ina.j.beta", &model->AV_ina_j_beta);
+    i += log_add(log_dict, logs, vars, i, "ina.INa", &model->AV_INa);
+    i += log_add(log_dict, logs, vars, i, "ikp.Kp", &model->AV_Kp);
+    i += log_add(log_dict, logs, vars, i, "ikp.IKp", &model->AV_IKp);
+    i += log_add(log_dict, logs, vars, i, "ica.E", &model->AV_ica_E);
+    i += log_add(log_dict, logs, vars, i, "ica.d.alpha", &model->AV_ica_d_alpha);
+    i += log_add(log_dict, logs, vars, i, "ica.d.beta", &model->AV_ica_d_beta);
+    i += log_add(log_dict, logs, vars, i, "ica.f.alpha", &model->AV_ica_f_alpha);
+    i += log_add(log_dict, logs, vars, i, "ica.f.beta", &model->AV_ica_f_beta);
+    i += log_add(log_dict, logs, vars, i, "ica.ICa", &model->AV_ICa);
+    i += log_add(log_dict, logs, vars, i, "ik1.g", &model->AV_g);
+    i += log_add(log_dict, logs, vars, i, "ik1.g.alpha", &model->AV_ik1_g_alpha);
+    i += log_add(log_dict, logs, vars, i, "ik1.g.beta", &model->AV_ik1_g_beta);
+    i += log_add(log_dict, logs, vars, i, "ik1.IK1", &model->AV_IK1);
+    i += log_add(log_dict, logs, vars, i, "ib.Ib", &model->AV_Ib);
 
     log_inter = (i > j);
 
@@ -1004,7 +1214,7 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /* Check logging list for sensitivities */
-    if (N_SENS) {
+    if (model->n_sens) {
         if (!PyList_Check(sens_list)) {
             PyErr_SetString(PyExc_Exception, "'sens_list' must be a list.");
             return sim_clean();
@@ -1055,71 +1265,71 @@ sim_init(PyObject *self, PyObject *args)
 
     /* Create solver
      * Using Backward differentiation and Newton iteration */
-    #if USE_CVODE > 0
-    #if MYOKIT_SUNDIALS_VERSION >= 40000
-        cvode_mem = CVodeCreate(CV_BDF);
-    #else
-        cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
-    #endif
-    if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+    if (model->is_ode) {
+        #if MYOKIT_SUNDIALS_VERSION >= 40000
+            cvode_mem = CVodeCreate(CV_BDF);
+        #else
+            cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+        #endif
+        if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
 
-    /* Initialise solver memory, specify the rhs */
-    flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
-    if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+        /* Initialise solver memory, specify the rhs */
+        flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
+        if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
-    /* Set absolute and relative tolerances */
-    flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
-    if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
+        /* Set absolute and relative tolerances */
+        flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
+        if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
 
-    /* Set a maximum step size (or 0.0 for none) */
+        /* Set a maximum step size (or 0.0 for none) */
 
-    flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
-    if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
+        flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
+        if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
 
-    /* Set a minimum step size (or 0.0 for none) */
-    flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
-    if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
+        /* Set a minimum step size (or 0.0 for none) */
+        flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
+        if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-    #if MYOKIT_SUNDIALS_VERSION >= 30000
-        /* Create dense matrix for use in linear solves */
-        sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
-        if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+        #if MYOKIT_SUNDIALS_VERSION >= 30000
+            /* Create dense matrix for use in linear solves */
+            sundense_matrix = SUNDenseMatrix(model->n_state, model->n_state);
+            if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
 
-        /* Create dense linear solver object with matrix */
-        sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
-        if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+            /* Create dense linear solver object with matrix */
+            sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
+            if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
 
-        /* Attach the matrix and solver to cvode */
-        flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
-        if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
-    #else
-        /* Create dense matrix for use in linear solves */
-        flag_cvode = CVDense(cvode_mem, N_STATE);
-        if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
-    #endif
+            /* Attach the matrix and solver to cvode */
+            flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+            if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
+        #else
+            /* Create dense matrix for use in linear solves */
+            flag_cvode = CVDense(cvode_mem, model->n_state);
+            if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+        #endif
 
-    /* Activate forward sensitivity computations */
-    if (N_SENS) {
-        /* TODO: NULL here is the place to insert a user function to calculate the
-           RHS of the sensitivity ODE */
-        /*flag_cvode = CVodeSensInit(cvode_mem, N_SENS, CV_SIMULTANEOUS, rhs1, sy);*/
-        flag_cvode = CVodeSensInit(cvode_mem, N_SENS, CV_SIMULTANEOUS, NULL, sy);
-        if (check_cvode_flag(&flag_cvode, "CVodeSensInit", 1)) return sim_clean();
+        /* Activate forward sensitivity computations */
+        if (model->n_sens) {
+            /* TODO: NULL here is the place to insert a user function to calculate the
+               RHS of the sensitivity ODE */
+            /*flag_cvode = CVodeSensInit(cvode_mem, model->n_sens, CV_SIMULTANEOUS, rhs1, sy);*/
+            flag_cvode = CVodeSensInit(cvode_mem, model->n_sens, CV_SIMULTANEOUS, NULL, sy);
+            if (check_cvode_flag(&flag_cvode, "CVodeSensInit", 1)) return sim_clean();
 
-        /* Attach user data */
-        flag_cvode = CVodeSetUserData(cvode_mem, udata);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetUserData", 1)) return sim_clean();
+            /* Attach user data */
+            flag_cvode = CVodeSetUserData(cvode_mem, udata);
+            if (check_cvode_flag(&flag_cvode, "CVodeSetUserData", 1)) return sim_clean();
 
-        /* Set parameter scales used in tolerances */
-        flag_cvode = CVodeSetSensParams(cvode_mem, udata->p, pbar, NULL);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetSensParams", 1)) return sim_clean();
+            /* Set parameter scales used in tolerances */
+            flag_cvode = CVodeSetSensParams(cvode_mem, udata->p, pbar, NULL);
+            if (check_cvode_flag(&flag_cvode, "CVodeSetSensParams", 1)) return sim_clean();
 
-        /* Set sensitivity tolerances calculating method (using pbar) */
-        flag_cvode = CVodeSensEEtolerances(cvode_mem);
-        if (check_cvode_flag(&flag_cvode, "CVodeSensEEtolerances", 1)) return sim_clean();
-    }
+            /* Set sensitivity tolerances calculating method (using pbar) */
+            flag_cvode = CVodeSensEEtolerances(cvode_mem);
+            if (check_cvode_flag(&flag_cvode, "CVodeSensEEtolerances", 1)) return sim_clean();
+        }
 
-    #endif
+    } /* if model.CVODE */
 
     /* Benchmarking? Then set engine_realtime to 0.0 */
     if (benchtime != Py_None) {
@@ -1128,9 +1338,6 @@ sim_init(PyObject *self, PyObject *args)
         /* Tell sim_step to set engine_starttime */
         engine_starttime = -1;
     }
-
-    /* Set string for updating lists/arrays using Python interface. */
-    list_update_str = PyUnicode_FromString("append");
 
     /* Set logging points */
     if (log_interval > 0) {
@@ -1206,7 +1413,7 @@ sim_init(PyObject *self, PyObject *args)
             flt = NULL;
             ret = NULL;
 
-            if (N_SENS) {
+            if (model->n_sens) {
                 /* Calculate sensitivities to output */
 
                 /* TODO: Call the rhs function that sets sdy_log */
@@ -1216,7 +1423,7 @@ sim_init(PyObject *self, PyObject *args)
                 l1 = PyTuple_New(2);
                 if (l1 == NULL) return sim_clean();
 
-                l2 = PyTuple_New(N_SENS);
+                l2 = PyTuple_New(model->n_sens);
                 if (l2 == NULL) return sim_clean();
 
                 flt = PyFloat_FromDouble(NV_Ith_S(sy[0], 0));
@@ -1235,18 +1442,18 @@ sim_init(PyObject *self, PyObject *args)
                 flag = PyTuple_SetItem(l1, 0, l2); /* Steals reference to l2 */
                 l2 = NULL; flt = NULL;
 
-                l2 = PyTuple_New(N_SENS);
+                l2 = PyTuple_New(model->n_sens);
                 if (l2 == NULL) return sim_clean();
 
-                flt = PyFloat_FromDouble(S0_V_INa);
+                flt = PyFloat_FromDouble(model->S0_V_INa);
                 if (flt == NULL) return sim_clean();
                 flag = PyTuple_SetItem(l2, 0, flt); /* Steals reference to flt */
                 if (flag < 0) return sim_clean();
-                flt = PyFloat_FromDouble(S1_V_INa);
+                flt = PyFloat_FromDouble(model->S1_V_INa);
                 if (flt == NULL) return sim_clean();
                 flag = PyTuple_SetItem(l2, 1, flt); /* Steals reference to flt */
                 if (flag < 0) return sim_clean();
-                flt = PyFloat_FromDouble(S2_V_INa);
+                flt = PyFloat_FromDouble(model->S2_V_INa);
                 if (flt == NULL) return sim_clean();
                 flag = PyTuple_SetItem(l2, 2, flt); /* Steals reference to flt */
                 if (flag < 0) return sim_clean();
@@ -1263,15 +1470,13 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /* Root finding enabled? (cvode-mode only) */
-    #if USE_CVODE
-    if (PySequence_Check(root_list)) {
+    if (model->is_ode && PySequence_Check(root_list)) {
         /* Set threshold */
         rootfinding_threshold = root_threshold;
         /* Initialize root function with 1 component */
         flag_cvode = CVodeRootInit(cvode_mem, 1, root_finding);
         if (check_cvode_flag(&flag_cvode, "CVodeRootInit", 1)) return sim_clean();
     }
-    #endif
 
     /* Done! */
     Py_RETURN_NONE;
@@ -1313,42 +1518,42 @@ sim_step(PyObject *self, PyObject *args)
     while(1) {
 
         /* Back-up current y (no allocation, this is fast) */
-        for(i=0; i<N_STATE; i++) {
+        for(i=0; i<model->n_state; i++) {
             NV_Ith_S(y_last, i) = NV_Ith_S(y, i);
         }
 
         /* Store engine time before step */
         engine_time_last = engine_time;
 
-        #if USE_CVODE
+        if (model->is_ode) {
 
-        /* Take a single ODE step */
-        flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
+            /* Take a single ODE step */
+            flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
 
-        /* Check for errors */
-        if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
-            /* Something went wrong... Set outputs and return */
-            for(i=0; i<N_STATE; i++) {
-                PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
-                /* PyList_SetItem steals a reference: no need to decref the double! */
+            /* Check for errors */
+            if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+                /* Something went wrong... Set outputs and return */
+                for(i=0; i<model->n_state; i++) {
+                    PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
+                    /* PyList_SetItem steals a reference: no need to decref the double! */
+                }
+                PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
+                PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
+                PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
+                PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
+                return sim_clean();
             }
-            PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
-            PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
-            PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
-            PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
-            return sim_clean();
+
+        } else {
+
+            /* Just jump to next event */
+            /* Note 1: To stay compatible with cvode-mode, don't jump to the
+               next log time (if tlog < tnext) */
+            /* Note 2: tnext can be infinity, so don't always jump there. */
+            engine_time = (tmax > tnext) ? tnext : tmax;
+            flag_cvode = CV_SUCCESS;
+
         }
-
-        #else
-
-        /* Just jump to next event */
-        /* Note 1: To stay compatible with cvode-mode, don't jump to the
-           next log time (if tlog < tnext) */
-        /* Note 2: tnext can be infinity, so don't always jump there. */
-        engine_time = (tmax > tnext) ? tnext : tmax;
-        flag_cvode = CV_SUCCESS;
-
-        #endif
 
         /* Check if progress is being made */
         if(engine_time == engine_time_last) {
@@ -1369,39 +1574,50 @@ sim_step(PyObject *self, PyObject *args)
         /* If we got to this point without errors... */
         if ((flag_cvode == CV_SUCCESS) || (flag_cvode == CV_ROOT_RETURN)) {
 
-            /* Next event time exceeded? (Can't happen in cvode-free mode) */
-            #if USE_CVODE
-            if (engine_time > tnext) {
+            /* Interpolation and root finding */
+            if (model->is_ode) {
 
-                /* Go back to engine_time=tnext */
-                flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
-                if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
-                if (N_SENS) {
-                    flag_cvode = CVodeGetSensDky(cvode_mem, tnext, 0, sy);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                /* Next event time exceeded? */
+                if (engine_time > tnext) {
+
+                    /* Go back to engine_time=tnext */
+                    flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
+                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                    if (model->n_sens) {
+                        flag_cvode = CVodeGetSensDky(cvode_mem, tnext, 0, sy);
+                        if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                    }
+                    engine_time = tnext;
+                    /* Require reinit (after logging) */
+                    flag_reinit = 1;
+
+                } else {
+                    /* Get current sensitivity vector */
+                    if (model->n_sens) {
+                        flag_cvode = CVodeGetSens(cvode_mem, &engine_time, sy);
+                        if (check_cvode_flag(&flag_cvode, "CVodeGetSens", 1)) return sim_clean();
+                    }
+
+                    /* Root found */
+                    if (flag_cvode == CV_ROOT_RETURN) {
+
+                        /* Store found roots */
+                        flag_root = CVodeGetRootInfo(cvode_mem, rootsfound);
+                        if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
+                        flt = PyTuple_New(2);
+                        PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); /* Steals reference, so this is ok */
+                        PyTuple_SetItem(flt, 1, PyLong_FromLong(rootsfound[0]));
+                        ret = PyObject_CallMethodObjArgs(root_list, list_update_str, flt, NULL);
+                        Py_DECREF(flt); flt = NULL;
+                        Py_XDECREF(ret);
+                        if (ret == NULL) {
+                            PyErr_SetString(PyExc_Exception, "Call to append() failed on root finding list.");
+                            return sim_clean();
+                        }
+                        ret = NULL;
+                    }
                 }
-                engine_time = tnext;
-                /* Require reinit (after logging) */
-                flag_reinit = 1;
-
-            } else if (flag_cvode == CV_ROOT_RETURN) {
-
-                /* Store found roots */
-                flag_root = CVodeGetRootInfo(cvode_mem, rootsfound);
-                if (check_cvode_flag(&flag_root, "CVodeGetRootInfo", 1)) return sim_clean();
-                flt = PyTuple_New(2);
-                PyTuple_SetItem(flt, 0, PyFloat_FromDouble(engine_time)); /* Steals reference, so this is ok */
-                PyTuple_SetItem(flt, 1, PyLong_FromLong(rootsfound[0]));
-                ret = PyObject_CallMethodObjArgs(root_list, list_update_str, flt, NULL);
-                Py_DECREF(flt); flt = NULL;
-                Py_XDECREF(ret);
-                if (ret == NULL) {
-                    PyErr_SetString(PyExc_Exception, "Call to append() failed on root finding list.");
-                    return sim_clean();
-                }
-                ret = NULL;
             }
-            #endif
 
             /* Periodic logging or point-list logging */
             if (!dynamic_logging && engine_time > tlog) {
@@ -1428,14 +1644,14 @@ sim_step(PyObject *self, PyObject *args)
                 while (engine_time > tlog) {
 
                     /* Get interpolated y(tlog) */
-                    #if USE_CVODE
-                    flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
-                    if (N_SENS) {
-                        flag_cvode = CVodeGetSensDky(cvode_mem, tlog, 0, sy_log);
-                        if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                    if (model->is_ode) {
+                        flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
+                        if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                        if (model->n_sens) {
+                            flag_cvode = CVodeGetSensDky(cvode_mem, tlog, 0, sy_log);
+                            if (check_cvode_flag(&flag_cvode, "CVodeGetSensDky", 1)) return sim_clean();
+                        }
                     }
-                    #endif
                     /* If cvode-free mode, the state can't change so we don't
                        need to do anything here */
 
@@ -1456,7 +1672,7 @@ sim_step(PyObject *self, PyObject *args)
                     }
                     ret = flt = NULL;
 
-                    if (N_SENS) {
+                    if (model->n_sens) {
                         /* Calculate sensitivities to output */
                         calculate_sensitivity_outputs(engine_time, y, dy_log, sy_log, sdy_log, udata);
 
@@ -1464,7 +1680,7 @@ sim_step(PyObject *self, PyObject *args)
                         l1 = PyTuple_New(2);
                         if (l1 == NULL) return sim_clean();
 
-                        l2 = PyTuple_New(N_SENS);
+                        l2 = PyTuple_New(model->n_sens);
                         if (l2 == NULL) return sim_clean();
 
                         flt = PyFloat_FromDouble(NV_Ith_S(sy_log[0], 0));
@@ -1483,18 +1699,18 @@ sim_step(PyObject *self, PyObject *args)
                         flag = PyTuple_SetItem(l1, 0, l2); /* Steals reference to l2 */
                         l2 = NULL; flt = NULL;
 
-                        l2 = PyTuple_New(N_SENS);
+                        l2 = PyTuple_New(model->n_sens);
                         if (l2 == NULL) return sim_clean();
 
-                        flt = PyFloat_FromDouble(S0_V_INa);
+                        flt = PyFloat_FromDouble(model->S0_V_INa);
                         if (flt == NULL) return sim_clean();
                         flag = PyTuple_SetItem(l2, 0, flt); /* Steals reference to flt */
                         if (flag < 0) return sim_clean();
-                        flt = PyFloat_FromDouble(S1_V_INa);
+                        flt = PyFloat_FromDouble(model->S1_V_INa);
                         if (flt == NULL) return sim_clean();
                         flag = PyTuple_SetItem(l2, 1, flt); /* Steals reference to flt */
                         if (flag < 0) return sim_clean();
-                        flt = PyFloat_FromDouble(S2_V_INa);
+                        flt = PyFloat_FromDouble(model->S2_V_INa);
                         if (flt == NULL) return sim_clean();
                         flag = PyTuple_SetItem(l2, 2, flt); /* Steals reference to flt */
                         if (flag < 0) return sim_clean();
@@ -1591,19 +1807,17 @@ sim_step(PyObject *self, PyObject *args)
                     ret = NULL;
                 }
 
-                if (N_SENS) {
-                    /* Get current sensitivities */
-                    flag_cvode = CVodeGetSens(cvode_mem, &engine_time, sy_log);
-                    if (check_cvode_flag(&flag_cvode, "CVodeGetSens", 1)) return sim_clean();
+                if (model->n_sens) {
 
                     /* Calculate sensitivities to output */
                     calculate_sensitivity_outputs(engine_time, y, dy_log, sy, sdy_log, udata);
+
 
                     /* Write sensitivity matrix to log */
                     l1 = PyTuple_New(2);
                     if (l1 == NULL) return sim_clean();
 
-                    l2 = PyTuple_New(N_SENS);
+                    l2 = PyTuple_New(model->n_sens);
                     if (l2 == NULL) return sim_clean();
 
                     flt = PyFloat_FromDouble(NV_Ith_S(sy[0], 0));
@@ -1622,18 +1836,18 @@ sim_step(PyObject *self, PyObject *args)
                     flag = PyTuple_SetItem(l1, 0, l2); /* Steals reference to l2 */
                     l2 = NULL; flt = NULL;
 
-                    l2 = PyTuple_New(N_SENS);
+                    l2 = PyTuple_New(model->n_sens);
                     if (l2 == NULL) return sim_clean();
 
-                    flt = PyFloat_FromDouble(S0_V_INa);
+                    flt = PyFloat_FromDouble(model->S0_V_INa);
                     if (flt == NULL) return sim_clean();
                     flag = PyTuple_SetItem(l2, 0, flt); /* Steals reference to flt */
                     if (flag < 0) return sim_clean();
-                    flt = PyFloat_FromDouble(S1_V_INa);
+                    flt = PyFloat_FromDouble(model->S1_V_INa);
                     if (flt == NULL) return sim_clean();
                     flag = PyTuple_SetItem(l2, 1, flt); /* Steals reference to flt */
                     if (flag < 0) return sim_clean();
-                    flt = PyFloat_FromDouble(S2_V_INa);
+                    flt = PyFloat_FromDouble(model->S2_V_INa);
                     if (flt == NULL) return sim_clean();
                     flag = PyTuple_SetItem(l2, 2, flt); /* Steals reference to flt */
                     if (flag < 0) return sim_clean();
@@ -1649,9 +1863,8 @@ sim_step(PyObject *self, PyObject *args)
 
             }
 
-            /* Reinitialize if needed (cvode-mode only) */
-            #if USE_CVODE
-            if (flag_reinit) {
+            /* Reinitialize CVODE if needed (cvode-mode only) */
+            if (model->is_ode && flag_reinit) {
                 flag_reinit = 0;
                 /* Re-init */
                 flag_cvode = CVodeReInit(cvode_mem, engine_time, y);
@@ -1659,7 +1872,6 @@ sim_step(PyObject *self, PyObject *args)
                 flag_cvode = CVodeSensReInit(cvode_mem, CV_SIMULTANEOUS, sy);
                 if (check_cvode_flag(&flag_cvode, "CVodeSensReInit", 1)) return sim_clean();
             }
-            #endif
         }
 
         /* Check if we're finished */
@@ -1681,7 +1893,7 @@ sim_step(PyObject *self, PyObject *args)
     }
 
     /* Set final state */
-    for(i=0; i<N_STATE; i++) {
+    for(i=0; i<model->n_state; i++) {
         PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y, i)));
         /* PyList_SetItem steals a reference: no need to decref the double! */
     }
@@ -1709,11 +1921,14 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     double time_in;
     double pace_in;
     char errstr[200];
+    Model_Flag flag_model;
     PyObject *state;
     PyObject *deriv;
     PyObject *flt;
+    Model m;
     N_Vector y;
     N_Vector dy;
+    /* TODO: CREATE OWN UDATA HERE */
 
     /* Start */
     success = 0;
@@ -1734,6 +1949,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     }
 
     /* From this point on, no more direct returning: use goto error */
+    m = NULL;
     y = NULL;      /* A cvode SERIAL vector */
     dy = NULL;     /* A cvode SERIAL vector */
     udata = NULL;  /* The user data, containing parameter values */
@@ -1746,13 +1962,20 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     /* (Unless you get them using PyList_GetItem...) */
     flt = NULL;   /* PyFloat */
 
+    /* Create model */
+    m = Model_Create(&flag_model);
+    if (flag_model != Model_OK) {
+        Model_SetPyErr(flag_model);
+        goto error;
+    }
+
     /* Create state vectors */
-    y = N_VNew_Serial(N_STATE);
+    y = N_VNew_Serial(m->n_state);
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         goto error;
     }
-    dy = N_VNew_Serial(N_STATE);
+    dy = N_VNew_Serial(m->n_state);
     if (check_cvode_flag((void*)dy, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state derivatives vector.");
         goto error;
@@ -1762,7 +1985,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     update_constants();
 
     /* Set initial values */
-    for (iState = 0; iState < N_STATE; iState++) {
+    for (iState = 0; iState < m->n_state; iState++) {
         flt = PySequence_GetItem(state, iState); /* Remember to decref! */
         if (!PyFloat_Check(flt)) {
             Py_XDECREF(flt); flt = NULL;
@@ -1781,8 +2004,8 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "Unable to allocate space to store parameter values.");
         return sim_clean();
     }
-    udata->p[0] = AP_gNa;
-    udata->p[1] = AP_gCa;
+    udata->p[0] = model->AP_gNa;
+    udata->p[1] = model->AP_gCa;
     udata->p[2] = NV_Ith_S(y, 7);
 
 
@@ -1794,7 +2017,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     rhs(engine_time, y, dy, udata);
 
     /* Set output values */
-    for(i=0; i<N_STATE; i++) {
+    for(i=0; i<model->n_state; i++) {
         flt = PyFloat_FromDouble(NV_Ith_S(dy, i));
         if (flt == NULL) {
             PyErr_SetString(PyExc_Exception, "Unable to create float.");
@@ -1809,11 +2032,15 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     success = 1;
 error:
     /* Free CVODE space */
-    N_VDestroy_Serial(y); y = NULL;
-    N_VDestroy_Serial(dy); dy = NULL;
+    if (y != NULL) { N_VDestroy_Serial(y); }
+    if (dy != NULL) { N_VDestroy_Serial(dy); }
 
     /* Free udata space */
-    free(udata); udata = NULL;
+    free(udata->p);
+    free(udata);
+
+    /* Free model space */
+    Model_Destroy(m);
 
     /* Return */
     if (success) {
@@ -1841,75 +2068,75 @@ sim_set_constant(PyObject *self, PyObject *args)
     }
 
     if(strcmp("membrane.C", name) == 0) {
-        AC_C = value;
+        model->AC_C = value;
         Py_RETURN_NONE;
     }
     if(strcmp("membrane.i_stim.stim_amplitude", name) == 0) {
-        AC_stim_amplitude = value;
+        model->AC_stim_amplitude = value;
         Py_RETURN_NONE;
     }
     if(strcmp("membrane.i_diff", name) == 0) {
-        AC_i_diff = value;
+        model->AC_i_diff = value;
         Py_RETURN_NONE;
     }
     if(strcmp("ik.IK.PNa_K", name) == 0) {
-        AC_PNa_K = value;
+        model->AC_PNa_K = value;
         Py_RETURN_NONE;
     }
     if(strcmp("ina.gNa", name) == 0) {
-        AP_gNa = value;
+        model->AP_gNa = value;
         Py_RETURN_NONE;
     }
     if(strcmp("ina.p1", name) == 0) {
-        AC_p1 = value;
+        model->AC_p1 = value;
         Py_RETURN_NONE;
     }
     if(strcmp("ikp.gKp", name) == 0) {
-        AC_gKp = value;
+        model->AC_gKp = value;
         Py_RETURN_NONE;
     }
     if(strcmp("ica.gCa", name) == 0) {
-        AP_gCa = value;
+        model->AP_gCa = value;
         Py_RETURN_NONE;
     }
     if(strcmp("ib.gb", name) == 0) {
-        AC_gb = value;
+        model->AC_gb = value;
         Py_RETURN_NONE;
     }
     if(strcmp("ib.Eb", name) == 0) {
-        AC_Eb = value;
+        model->AC_Eb = value;
         Py_RETURN_NONE;
     }
     if(strcmp("cell.K_o", name) == 0) {
-        AC_K_o = value;
+        model->AC_K_o = value;
         Py_RETURN_NONE;
     }
     if(strcmp("cell.K_i", name) == 0) {
-        AC_K_i = value;
+        model->AC_K_i = value;
         Py_RETURN_NONE;
     }
     if(strcmp("cell.Na_o", name) == 0) {
-        AC_Na_o = value;
+        model->AC_Na_o = value;
         Py_RETURN_NONE;
     }
     if(strcmp("cell.Na_i", name) == 0) {
-        AC_Na_i = value;
+        model->AC_Na_i = value;
         Py_RETURN_NONE;
     }
     if(strcmp("cell.Ca_o", name) == 0) {
-        AC_Ca_o = value;
+        model->AC_Ca_o = value;
         Py_RETURN_NONE;
     }
     if(strcmp("cell.R", name) == 0) {
-        AC_R = value;
+        model->AC_R = value;
         Py_RETURN_NONE;
     }
     if(strcmp("cell.T", name) == 0) {
-        AC_T = value;
+        model->AC_T = value;
         Py_RETURN_NONE;
     }
     if(strcmp("cell.F", name) == 0) {
-        AC_F = value;
+        model->AC_F = value;
         Py_RETURN_NONE;
     }
 
@@ -1960,7 +2187,7 @@ static PyMethodDef SimMethods[] = {
 
     static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
-        "myokit_sim_1_3638055208987718257",       /* m_name */
+        "myokit_sim_1_3296641241251908260",       /* m_name */
         "Generated CVODESim module",/* m_doc */
         -1,                         /* m_size */
         SimMethods,                 /* m_methods */
@@ -1970,15 +2197,15 @@ static PyMethodDef SimMethods[] = {
         NULL,                       /* m_free */
     };
 
-    PyMODINIT_FUNC PyInit_myokit_sim_1_3638055208987718257(void) {
+    PyMODINIT_FUNC PyInit_myokit_sim_1_3296641241251908260(void) {
         return PyModule_Create(&moduledef);
     }
 
 #else
 
     PyMODINIT_FUNC
-    initmyokit_sim_1_3638055208987718257(void) {
-        (void) Py_InitModule("myokit_sim_1_3638055208987718257", SimMethods);
+    initmyokit_sim_1_3296641241251908260(void) {
+        (void) Py_InitModule("myokit_sim_1_3296641241251908260", SimMethods);
     }
 
 #endif
