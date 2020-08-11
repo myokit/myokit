@@ -2513,7 +2513,8 @@ class Model(ObjectWithMeta, VarProvider):
         varname = var.lhs().code()
 
         # Add references
-        deps = rhs.references()
+        deps = list(rhs.references())
+        deps.sort(key=lambda x: x.code())
         if deps:
             n = max([len(x.code()) for x in deps])
             for dep in deps:

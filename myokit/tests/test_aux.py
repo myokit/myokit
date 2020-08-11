@@ -555,28 +555,28 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
             'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
             '                                       -3.97224086575331814e-04',
-            '                                                               ',
+            '',
             'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
             '                                       -1.56608433137725457e-09',
-            '                                                               ',
+            '',
             'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
             '                                        7.48738392280519083e-02',
-            '                                                               ',
+            '',
             'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
             '                                       -1.78891889478854579e-03',
-            '                                                               ',
+            '',
             'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
             '                                       -3.06255006833574140e-04',
-            '                                                               ',
+            '',
             'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
             '                                       -5.11993904291850035e-06',
-            '                                                               ',
+            '',
             'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
             '                                        1.88374114688215870e-04',
-            '                                                               ',
+            '',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '                                       -3.21682814207918156e-07',
-            '                                                               ',
+            '',
             'Model check completed without errors.',
             '-' * 79,
         ]
@@ -585,51 +585,51 @@ class AuxTest(unittest.TestCase):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))
 
-        # Add small mismatch
-        m2.get('ina.m').set_rhs(
-            myokit.Multiply(m2.get('ina.m').rhs(), myokit.Number(1 + 1e-15)))
-        # Add large mismatch
-        m2.get('isi.f').set_rhs(
-            myokit.Multiply(m2.get('isi.f').rhs(), myokit.Number(2)))
-        # Add huge mismatch
-        m2.get('ix1.x1').set_rhs(
-            myokit.Multiply(m2.get('ix1.x1').rhs(), myokit.Number(100)))
-        # Add sign issue
-        m2.get('ina.j').set_rhs('-(' + m2.get('ina.j').rhs().code() + ')')
-
-        # Test comparison against another model
-        x = myokit.step(m1, reference=m2).splitlines()
+        # Test comparison against stored data
+        ref = [
+            -3.97224086575331868e-04,       # Numerically indistinguishable
+            -1.56608433137725457e-09,
+            7.48738392280519777e-02,        # Tiny error
+            -1.78891889478854579e-03,
+            3.06255006833574140e-04,        # Sign error
+            -5.11993904291850035e-06,
+            3.76748229376431740e-04,        # Large error
+            -3.21682814207918156e-05,       # Exponent
+        ]
+        x = myokit.step(m1, reference=ref).splitlines()
         y = [
             'Evaluating state vector derivatives...',
             '-' * 79,
             'Name         Initial value             Derivative at t=0       ',
             '-' * 79,
             'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
-            '                                       -3.97224086575331814e-04',
-            '                                                               ',
+            '                                       -3.97224086575331868e-04'
+            ' <= 1 eps',
+            '',
             'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
             '                                       -1.56608433137725457e-09',
-            '                                                               ',
+            '',
             'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
-            '                                        7.48738392280519915e-02',
+            '                                        7.48738392280519777e-02'
+            ' ~ 4.2 eps',
             '                                                        ^^^^^^^',
             'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
             '                                       -1.78891889478854579e-03',
-            '                                                               ',
+            '',
             'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
             '                                        3.06255006833574140e-04'
-            ' X !!!',
+            ' sign',
             '                                       ^^^^^^^^^^^^^^^^^^^^^^^^',
             'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
             '                                       -5.11993904291850035e-06',
-            '                                                               ',
+            '',
             'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
             '                                        3.76748229376431740e-04'
             ' X',
             '                                        ^^^^^^^^^^^^^^^^^^^^^^^',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '                                       -3.21682814207918156e-05'
-            ' X !!!',
+            ' exponent',
             '                                                           ^^^^',
             'Found (3) large mismatches between output and reference values.',
             'Found (1) small mismatches.',
@@ -660,10 +660,10 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
             'c.x    1.00000000000000000e+00  -0.00000000000000000e+00',
             '                                 0.00000000000000000e+00',
-            '                                                        ',
+            '',
             'c.y    1.00000000000000000e+00   0.00000000000000000e+00',
             '                                 0.00000000000000000e+00',
-            '                                                        ',
+            '',
             'Model check completed without errors.',
             '-' * 79,
         ]
