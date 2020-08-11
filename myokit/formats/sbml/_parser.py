@@ -11,6 +11,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import collections
 import re
 import warnings
 
@@ -958,19 +959,19 @@ class Model(object):
         # Units are the only things that can have a UnitSId
         self._units = {}
 
-        # Stores used SIds
+        # Used SIds
         self._sids = set()
-
-        # Compartments, parameters, species (all maps from sids to objects)
-        self._compartments = {}
-        self._parameters = {}
-        self._species = {}
-
-        # Reactions (map from sids to objects)
-        self._reactions = {}
 
         # Assignables: Compartments, species, species references, parameters
         self._assignables = {}
+
+        # Compartments, parameters, species (all maps from sids to objects)
+        self._compartments = collections.OrderedDict()
+        self._parameters = collections.OrderedDict()
+        self._species = collections.OrderedDict()
+
+        # Reactions (map from sids to objects)
+        self._reactions = collections.OrderedDict()
 
         # Default compartment size units
         self._length_units = myokit.units.dimensionless
@@ -1218,10 +1219,8 @@ class Model(object):
             species_references = reaction.reactants() + reaction.products()
 
             for species_reference in species_references:
-                # Get sid
                 sid = species_reference.sid()
-
-                if sid:
+                if sid is not None:
                     # Get component
                     species = species_reference.species()
                     compartment = species.compartment()
@@ -1264,7 +1263,7 @@ class Model(object):
 
             # Set initial value
             expr = compartment.initial_value()
-            if expr:
+            if expr is not None:
                 var.set_rhs(expr.clone(
                     subst=expression_references))
 
@@ -1275,7 +1274,7 @@ class Model(object):
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
             expr = compartment.value()
-            if expr:
+            if expr is not None:
                 var.set_rhs(expr.clone(
                     subst=expression_references))
 
@@ -1289,7 +1288,7 @@ class Model(object):
 
             # Set initial value
             expr = species.initial_value()
-            if expr:
+            if expr is not None:
                 # Need to convert initial value if
                 # 1. the species is in amount but initial value units are not
                 # 2. the species and the initial value is in concentration
@@ -1310,7 +1309,7 @@ class Model(object):
 
             # Set RHS (reactions are dealt with elsewhere)
             expr = species.value()
-            if expr:
+            if expr is not None:
                 # Need to convert initial value if species is measured in
                 # concentration (assignments match unit of measurement)
                 if not species.amount():
@@ -1331,7 +1330,7 @@ class Model(object):
 
             # Set initial value
             expr = parameter.initial_value()
-            if expr:
+            if expr is not None:
                 var.set_rhs(expr.clone(
                     subst=expression_references))
 
@@ -1342,7 +1341,7 @@ class Model(object):
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
             expr = parameter.value()
-            if expr:
+            if expr is not None:
                 var.set_rhs(expr.clone(
                     subst=expression_references))
 
@@ -1364,7 +1363,7 @@ class Model(object):
 
                 # Set initial value
                 expr = species_reference.initial_value()
-                if expr:
+                if expr is not None:
                     var.set_rhs(expr.clone(
                         subst=expression_references))
 
@@ -1375,7 +1374,7 @@ class Model(object):
                 # Set RHS
                 # (assignmentRule overwrites initialAssignment)
                 expr = species_reference.value()
-                if expr:
+                if expr is not None:
                     var.set_rhs(expr.clone(
                         subst=expression_references))
 
@@ -1407,13 +1406,14 @@ class Model(object):
                 except KeyError:
                     stoichiometry = reactant.initial_value()
 
-                if stoichiometry:
+                if stoichiometry is not None:
                     # Weight rate expression by stoichiometry
                     expr = myokit.Multiply(stoichiometry, expr)
 
-                if species.conversion_factor():
+                factor = species.conversion_factor()
+                if factor is not None:
                     # Get conversion factor variable
-                    sid = species.conversion_factor().sid()
+                    sid = factor.sid()
                     conversion_factor = variable_references[sid]
 
                     # Convert rate expression from units of reaction extent
@@ -1462,7 +1462,7 @@ class Model(object):
                 except KeyError:
                     stoichiometry = product.initial_value()
 
-                if stoichiometry:
+                if stoichiometry is not None:
                     # Weight rate expression by stoichiometry
                     expr = myokit.Multiply(stoichiometry, expr)
 
@@ -1701,7 +1701,7 @@ class Reaction(object):
         self._modifiers = []
 
         # All species involved in this reaction (sid to object)
-        self._species = {}
+        self._species = collections.OrderedDict()
 
         # The kinetic law specifying this reaction's rate (if set)
         self._kinetic_law = None
