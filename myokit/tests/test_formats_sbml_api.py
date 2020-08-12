@@ -114,6 +114,10 @@ class TestModel(unittest.TestCase):
             model.base_unit,
             'celsius')
 
+        # Check bad base unit
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', model.base_unit, 'some unit')
+
     def test_compartment(self):
 
         model = sbml.Model(name='model')
@@ -302,6 +306,52 @@ class TestModel(unittest.TestCase):
         model.set_substance_units(myokit.units.s)
 
         self.assertEqual(model.substance_units(), myokit.units.s)
+
+    def test_unit(self):
+
+        model = sbml.Model(name='model')
+
+        # Check bad units
+        unitsid = 'some_unit'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'The unit SID <', model.unit, unitsid)
+
+        # Check base unit
+        unitsid = 'ampere'
+        self.assertEqual(model.unit(unitsid), myokit.units.A)
+
+        # Check invalid unitsid for user-defined unit
+        unitsid = ';'
+        unit = myokit.units.dimensionless
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid UnitSId "', model.add_unit, unitsid, unit)
+
+        # Check unitsid for user-defined unit that coincides with base unit
+        unitsid = 'ampere'
+        unit = myokit.units.dimensionless
+        self.assertRaisesRegex(
+            sbml.SBMLError,
+            'User unit overrides built-in unit: "',
+            model.add_unit,
+            unitsid,
+            unit)
+
+        # Check invalid user-defined unit
+        unitsid = 'some_unit'
+        unit = 'ampere'
+        self.assertRaisesRegex(
+            sbml.SBMLError,
+            'Unit "',
+            model.add_unit,
+            unitsid,
+            unit)
+
+        # Check good user-defined unit
+        unitsid = 'some_unit'
+        unit = myokit.units.A
+        model.add_unit(unitsid, unit)
+
+        self.assertEqual(model.unit(unitsid), unit)
 
 
 class SBMLTestMyokitModel(unittest.TestCase):
