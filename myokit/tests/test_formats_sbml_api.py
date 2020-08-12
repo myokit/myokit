@@ -61,6 +61,57 @@ class TestModel(unittest.TestCase):
         self.assertIsNotNone(model.assignable(p_sid))
         self.assertIsNotNone(model.assignable(s_sid))
 
+    def test_base_unit(self):
+
+        model = sbml.Model(name='model')
+
+        # Check all base units
+        self.assertEqual(
+            model.base_unit('ampere'), myokit.units.A)
+        self.assertEqual(
+            model.base_unit('avogadro'),
+            myokit.parse_unit('1 (6.02214179e23)'))
+        self.assertEqual(model.base_unit('becquerel'), myokit.units.Bq)
+        self.assertEqual(model.base_unit('candela'), myokit.units.cd)
+        self.assertEqual(model.base_unit('coulomb'), myokit.units.C)
+        self.assertEqual(
+            model.base_unit('dimensionless'), myokit.units.dimensionless)
+        self.assertEqual(model.base_unit('farad'), myokit.units.F)
+        self.assertEqual(model.base_unit('gram'), myokit.units.g)
+        self.assertEqual(model.base_unit('gray'), myokit.units.Gy)
+        self.assertEqual(model.base_unit('henry'), myokit.units.H)
+        self.assertEqual(model.base_unit('hertz'), myokit.units.Hz)
+        self.assertEqual(model.base_unit('item'), myokit.units.dimensionless)
+        self.assertEqual(model.base_unit('joule'), myokit.units.J)
+        self.assertEqual(model.base_unit('katal'), myokit.units.kat)
+        self.assertEqual(model.base_unit('kelvin'), myokit.units.K)
+        self.assertEqual(model.base_unit('kilogram'), myokit.units.kg)
+        self.assertEqual(model.base_unit('liter'), myokit.units.L)
+        self.assertEqual(model.base_unit('litre'), myokit.units.L)
+        self.assertEqual(model.base_unit('lumen'), myokit.units.lm)
+        self.assertEqual(model.base_unit('lux'), myokit.units.lux)
+        self.assertEqual(model.base_unit('meter'), myokit.units.m)
+        self.assertEqual(model.base_unit('metre'), myokit.units.m)
+        self.assertEqual(model.base_unit('mole'), myokit.units.mol)
+        self.assertEqual(model.base_unit('newton'), myokit.units.N)
+        self.assertEqual(model.base_unit('ohm'), myokit.units.ohm)
+        self.assertEqual(model.base_unit('pascal'), myokit.units.Pa)
+        self.assertEqual(model.base_unit('radian'), myokit.units.rad)
+        self.assertEqual(model.base_unit('second'), myokit.units.s)
+        self.assertEqual(model.base_unit('siemens'), myokit.units.S)
+        self.assertEqual(model.base_unit('sievert'), myokit.units.Sv)
+        self.assertEqual(model.base_unit('steradian'), myokit.units.sr)
+        self.assertEqual(model.base_unit('tesla'), myokit.units.T)
+        self.assertEqual(model.base_unit('volt'), myokit.units.V)
+        self.assertEqual(model.base_unit('watt'), myokit.units.W)
+        self.assertEqual(model.base_unit('weber'), myokit.units.Wb)
+
+        # Check celsius (not supported)
+        self.assertRaisesRegex(
+            sbml.SBMLError,
+            'The units "celsius" are not supported.',
+            model.base_unit,
+            'celsius')
 
 class SBMLTestMyokitModel(unittest.TestCase):
     """
