@@ -1605,6 +1605,31 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(self.p.value(), expr)
 
 
+class TestReaction(unittest.TestCase):
+    """
+    Unit tests for :class:`Reaction`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.model = sbml.Model(name='model')
+        cls.sid = 'reaction'
+        cls.r = cls.model.add_reaction(sid=cls.sid)
+
+    def test_kinetic_law(self):
+
+        # Check bad kinetic law
+        expr = '2 * s'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.r.set_kinetic_law, expr)
+
+        # Check good kinetic law
+        expr = myokit.Multiply(myokit.Number(2), myokit.Name('s'))
+        self.r.set_kinetic_law(expr)
+
+        self.assertEqual(self.r.kinetic_law(), expr)
+
+
 if __name__ == '__main__':
     import warnings
     warnings.simplefilter('always')
