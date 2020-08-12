@@ -219,6 +219,10 @@ class Model(object):
         """
         Adds a species to this model (located in the given ``compartment``).
         """
+        if not isinstance(compartment, sbml.Compartment):
+            raise sbml.SBMLError(
+                '<' + compartment + '> needs to be instance of'
+                'myokit.formats.sbml.Compartment')
         self._register_sid(sid)
         s = Species(compartment, sid, is_amount, is_constant, is_boundary)
         self._species[sid] = s
