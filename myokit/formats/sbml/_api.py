@@ -925,7 +925,7 @@ class Parameter(Quantity):
         if not isinstance(units, myokit.Unit):
             raise sbml.SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
-        
+
         self._units = units
 
     def sid(self):
@@ -1033,6 +1033,11 @@ class Reaction(object):
         """
         Sets this reaction's kinetic law (as a :class:`myokit.Expression`).
         """
+        if not isinstance(expression, myokit.Expression):
+            raise sbml.SBMLError(
+                '<' + str(expression) + '> needs to be an instance of '
+                'myokit.Expression.')
+
         self._kinetic_law = expression
 
     def sid(self):
