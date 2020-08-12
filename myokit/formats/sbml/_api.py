@@ -752,13 +752,17 @@ class Model(object):
         if not isinstance(units, myokit.Unit):
             raise sbml.SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
-        
+
         self._extent_units = units
 
     def set_length_units(self, units):
         """
         Sets the default compartment size units for 1-dimensional compartments.
         """
+        if not isinstance(units, myokit.Unit):
+            raise sbml.SBMLError(
+                '<' + str(units) + '> needs to be instance of myokit.Unit')
+        
         self._length_units = units
 
     def set_notes(self, notes=None):
