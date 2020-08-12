@@ -140,6 +140,24 @@ class TestModel(unittest.TestCase):
         self.assertIsInstance(
             model.conversion_factor(), sbml.Parameter)
 
+    def test_extent_units(self):
+
+        model = sbml.Model(name='model')
+
+        # Test default
+        self.assertEqual(model.extent_units(), myokit.units.dimensionless)
+
+        # Test bad extent units
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', model.set_extent_units, 'mg')
+
+        # Test good extent units
+        model.set_extent_units(myokit.units.g)
+
+        self.assertEqual(model.extent_units(), myokit.units.g)
+
+
+
 class SBMLTestMyokitModel(unittest.TestCase):
     """
     Unit tests for Model.myokit_model method.
