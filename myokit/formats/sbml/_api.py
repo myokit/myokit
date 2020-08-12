@@ -68,7 +68,7 @@ class Quantity(object):
             raise sbml.SBMLError(
                 '<' + str(value) + '> needs to be an instance of '
                 'myokit.Expression.')
-        
+
         self._value = value
         self._is_rate = bool(is_rate)
 
@@ -922,6 +922,10 @@ class Parameter(Quantity):
 
     def set_units(self, units):
         """Sets this parameters units to the given ``Units``."""
+        if not isinstance(units, myokit.Unit):
+            raise sbml.SBMLError(
+                '<' + str(units) + '> needs to be instance of myokit.Unit')
+        
         self._units = units
 
     def sid(self):
