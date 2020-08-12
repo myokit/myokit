@@ -33,7 +33,7 @@ class Quantity(object):
         """
         return self._initial_value
 
-    def rate(self):
+    def is_rate(self):
         """
         Returns ``True`` only if this quantity's value is defined through a
         rate.
@@ -46,7 +46,7 @@ class Quantity(object):
         """
         self._initial_value = value
 
-    def set_value(self, value, rate=False):
+    def set_value(self, value, is_rate=False):
         """
         Sets a :class:`myokit.Expression` for this quantity's value.
 
@@ -60,7 +60,7 @@ class Quantity(object):
 
         """
         self._value = value
-        self._is_rate = bool(rate)
+        self._is_rate = bool(is_rate)
 
     def value(self):
         """
@@ -469,7 +469,7 @@ class Model(object):
                 var.set_rhs(expr.clone(
                     subst=expression_references))
 
-            if compartment.rate():
+            if compartment.is_rate():
                 # Promote size to state variable
                 var.promote(state_value=var.eval())
 
@@ -505,7 +505,7 @@ class Model(object):
                 # Set initial value
                 var.set_rhs(expr.clone(subst=expression_references))
 
-            if species.rate():
+            if species.is_rate():
                 # Promote species to state variable
                 var.promote(var.eval())
 
@@ -536,7 +536,7 @@ class Model(object):
                 var.set_rhs(expr.clone(
                     subst=expression_references))
 
-            if parameter.rate():
+            if parameter.is_rate():
                 # Promote parameter to state variable
                 var.promote(state_value=var.eval())
 
@@ -569,7 +569,7 @@ class Model(object):
                     var.set_rhs(expr.clone(
                         subst=expression_references))
 
-                if species_reference.rate():
+                if species_reference.is_rate():
                     # Promote stoichiometry to state variable
                     var.promote(state_value=var.eval())
 
