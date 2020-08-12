@@ -1618,6 +1618,9 @@ class TestReaction(unittest.TestCase):
 
     def test_kinetic_law(self):
 
+        # Check default
+        self.assertIsNone(self.r.kinetic_law())
+
         # Check bad kinetic law
         expr = '2 * s'
         self.assertRaisesRegex(
@@ -1628,6 +1631,53 @@ class TestReaction(unittest.TestCase):
         self.r.set_kinetic_law(expr)
 
         self.assertEqual(self.r.kinetic_law(), expr)
+
+    def test_modifiers(self):
+
+        # Check bad species
+        sid = 'modifier'
+        species = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.r.add_modifier, species, sid)
+
+        # Check invalid sid
+        sid = ';'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid SId "', self.r.add_modifier, species, sid)
+
+        # Check good sid
+        sid = 'modifier'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_modifier(species, sid)
+
+        self.assertEqual(len(self.r.modifiers()), 1)
+        self.assertIsInstance(
+            self.r.modifiers()[0], sbml.ModifierSpeciesReference)
+
+        # Check duplicate sid
+        sid = 'modifier'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate SId "', self.r.add_modifier, species, sid)
 
 
 if __name__ == '__main__':
