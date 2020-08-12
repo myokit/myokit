@@ -113,6 +113,33 @@ class TestModel(unittest.TestCase):
             model.base_unit,
             'celsius')
 
+    def test_compartment(self):
+
+        model = sbml.Model(name='model')
+
+        sid = 'compartment'
+        model.add_compartment(sid)
+
+        self.assertIsInstance(model.compartment(sid), sbml.Compartment)
+
+    def test_conversion_factor(self):
+
+        model = sbml.Model(name='model')
+
+        # Test default value
+        self.assertIsNone(model.conversion_factor())
+
+        # Bad conversion factor
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', model.set_conversion_factor, 10)
+
+        # Good conversion factor
+        factor = sbml.Parameter(model, 'parameter')
+        model.set_conversion_factor(factor)
+
+        self.assertIsInstance(
+            model.conversion_factor(), sbml.Parameter)
+
 class SBMLTestMyokitModel(unittest.TestCase):
     """
     Unit tests for Model.myokit_model method.
