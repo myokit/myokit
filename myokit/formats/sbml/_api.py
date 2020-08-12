@@ -2,7 +2,7 @@ import collections
 import re
 
 import myokit
-from myokit.formats.sbml import SBMLError
+import myokit.formats.sbml as sbml
 import myokit.units
 
 
@@ -229,12 +229,12 @@ class Model(object):
     def add_unit(self, unitsid, unit):
         """Adds a user unit with the given ``unitsid`` and myokit ``unit``."""
         if not _re_id.match(unitsid):
-            raise SBMLError('Invalid UnitSId "' + str(unitsid) + '".')
+            raise sbml.SBMLError('Invalid UnitSId "' + str(unitsid) + '".')
         if unitsid in self._base_units or unitsid == 'celsius':
-            raise SBMLError(
+            raise sbml.SBMLError(
                 'User unit overrides built-in unit: "' + str(unitsid) + '".')
         if unitsid in self._units:
-            raise SBMLError(
+            raise sbml.SBMLError(
                 'Duplicate UnitSId: "' + str(unitsid) + '".')
         u = self._units[unitsid] = unit
         return u
@@ -261,7 +261,7 @@ class Model(object):
         """
         # Check this base unit is supported
         if unitsid == 'celsius':
-            raise SBMLError('The units "celsius" are not supported.')
+            raise sbml.SBMLError('The units "celsius" are not supported.')
 
         # Find and return
         return self._base_units[unitsid]
@@ -721,9 +721,9 @@ class Model(object):
         raises an error if it's not.
         """
         if not _re_id.match(sid):
-            raise SBMLError('Invalid SId "' + str(sid) + '".')
+            raise sbml.SBMLError('Invalid SId "' + str(sid) + '".')
         if sid in self._sids:
-            raise SBMLError('Duplicate SId "' + str(sid) + '".')
+            raise sbml.SBMLError('Duplicate SId "' + str(sid) + '".')
         self._sids.add(sid)
 
     def set_area_units(self, units):
