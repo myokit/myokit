@@ -198,7 +198,7 @@ class SBMLParser(object):
             if units is not None:
                 try:
                     units = model.unit(units)
-                except KeyError:
+                except SBMLError:
                     raise SBMLParsingError(
                         'Unknown units "' + units + '".', element)
                 compartment.set_size_units(units)
@@ -381,9 +381,6 @@ class SBMLParser(object):
             if units is not None:
                 model.set_time_units(model.unit(units))
 
-        except KeyError as e:
-            raise SBMLParsingError(
-                'Unknown units "' + str(e.args[0]) + '".', element)
         except SBMLError as e:
             raise SBMLParsingError(
                 'Error parsing model element: ' + str(e), element)
@@ -459,7 +456,7 @@ class SBMLParser(object):
             if unit is not None:
                 try:
                     unit = model.unit(unit)
-                except KeyError:
+                except SBMLError:
                     raise SBMLParsingError(
                         'Unknown units "' + unit + '".', element)
                 parameter.set_units(unit)
@@ -625,7 +622,7 @@ class SBMLParser(object):
             if units is not None:
                 try:
                     units = model.unit(units)
-                except KeyError:
+                except SBMLError:
                     raise SBMLParsingError(
                         'Unknown units "' + units + '"', element)
 
