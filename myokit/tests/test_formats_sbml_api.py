@@ -156,7 +156,6 @@ class TestModel(unittest.TestCase):
 
         self.assertEqual(model.extent_units(), myokit.units.g)
 
-
     def test_length_units(self):
 
         model = sbml.Model(name='model')
@@ -172,6 +171,13 @@ class TestModel(unittest.TestCase):
         model.set_length_units(myokit.units.meter)
 
         self.assertEqual(model.length_units(), myokit.units.meter)
+
+    def test_name(self):
+
+        name = 'model'
+        model = sbml.Model(name=name)
+
+        self.assertEqual(model.name(), name)
 
 
 class SBMLTestMyokitModel(unittest.TestCase):
