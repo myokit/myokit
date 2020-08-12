@@ -783,6 +783,10 @@ class Model(object):
 
     def set_time_units(self, units):
         """Sets the time units used throughout the model."""
+        if not isinstance(units, myokit.Unit):
+            raise sbml.SBMLError(
+                '<' + str(units) + '> needs to be instance of myokit.Unit')
+
         self._time_units = units
 
     def set_volume_units(self, units):
