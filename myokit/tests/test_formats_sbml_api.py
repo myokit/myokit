@@ -300,12 +300,12 @@ class TestModel(unittest.TestCase):
 
         # Test bad time units
         self.assertRaisesRegex(
-            sbml.SBMLError, '<', model.set_substance_units, 's')
+            sbml.SBMLError, '<', model.set_time_units, 's')
 
         # Test good time units
-        model.set_substance_units(myokit.units.s)
+        model.set_time_units(myokit.units.s)
 
-        self.assertEqual(model.substance_units(), myokit.units.s)
+        self.assertEqual(model.time_units(), myokit.units.s)
 
     def test_unit(self):
 
@@ -352,6 +352,22 @@ class TestModel(unittest.TestCase):
         model.add_unit(unitsid, unit)
 
         self.assertEqual(model.unit(unitsid), unit)
+
+    def test_volume_units(self):
+
+        model = sbml.Model(name='model')
+
+        # Test default
+        self.assertEqual(model.volume_units(), myokit.units.dimensionless)
+
+        # Test bad volume units
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', model.set_volume_units, 'L')
+
+        # Test good volume units
+        model.set_volume_units(myokit.units.L)
+
+        self.assertEqual(model.volume_units(), myokit.units.L)
 
 
 class SBMLTestMyokitModel(unittest.TestCase):
