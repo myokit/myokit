@@ -240,6 +240,10 @@ class Model(object):
         if unitsid in self._units:
             raise sbml.SBMLError(
                 'Duplicate UnitSId: "' + str(unitsid) + '".')
+        if not isinstance(unit, myokit.Unit):
+            raise sbml.SBMLError(
+                'Unit "' + str(unit) + '" needs to be instance of myokit.Unit')
+        
         u = self._units[unitsid] = unit
         return u
 
@@ -267,8 +271,12 @@ class Model(object):
         if unitsid == 'celsius':
             raise sbml.SBMLError('The units "celsius" are not supported.')
 
-        # Find and return
-        return self._base_units[unitsid]
+        try:
+            # Find and return
+            return self._base_units[unitsid]
+        except KeyError:
+            raise sbml.SBMLError(
+                '<' + unitsid + '> is not an SBML base unit.')
 
     def compartment(self, sid):
         """Returns the compartment with the given sid."""
@@ -820,7 +828,12 @@ class Model(object):
         try:
             return self._units[unitsid]
         except KeyError:
-            return self.base_unit(unitsid)
+            try:
+                return self.base_unit(unitsid)
+            except sbml.SBMLError:
+                raise sbml.SBMLError(
+                    'The unit SID <' + unitsid + '> does not exist in the '
+                    'model.')
 
     def volume_units(self):
         """
