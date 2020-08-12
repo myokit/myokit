@@ -886,8 +886,8 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(px.initial_value(), myokit.Number(3))
         self.assertEqual(py.initial_value(), myokit.Number(5))
 
-        self.assertFalse(px.rate())
-        self.assertTrue(py.rate())
+        self.assertFalse(px.is_rate())
+        self.assertTrue(py.is_rate())
 
         expr = myokit.Multiply(myokit.Name(py), myokit.Number(3))
         self.assertEqual(px.value().code(), expr.code())
@@ -943,8 +943,8 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(px.initial_value(), myokit.Number(10))
         self.assertEqual(py.initial_value(), myokit.Number(5))
 
-        self.assertFalse(px.rate())
-        self.assertTrue(py.rate())
+        self.assertFalse(px.is_rate())
+        self.assertTrue(py.is_rate())
 
         expr = myokit.Multiply(myokit.Name(py), myokit.Number(3))
         self.assertEqual(px.value().code(), expr.code())
@@ -1005,8 +1005,8 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(px.initial_value(), myokit.Number(3.4))
         self.assertEqual(py.initial_value(), myokit.Number(1.2))
 
-        self.assertFalse(px.rate())
-        self.assertTrue(py.rate())
+        self.assertFalse(px.is_rate())
+        self.assertTrue(py.is_rate())
 
         expr = myokit.Multiply(myokit.Name(py), myokit.Number(3))
         self.assertEqual(px.value().code(), expr.code())
@@ -1099,8 +1099,8 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(px.initial_value(), myokit.Number(2.1))
         self.assertEqual(py.initial_value(), myokit.Number(3.5))
 
-        self.assertFalse(px.rate())
-        self.assertTrue(py.rate())
+        self.assertFalse(px.is_rate())
+        self.assertTrue(py.is_rate())
 
         expr = myokit.Multiply(myokit.Name(py), myokit.Number(3))
         self.assertEqual(px.value().code(), expr.code())
