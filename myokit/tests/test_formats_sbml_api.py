@@ -28,6 +28,21 @@ except NameError:   # pragma: no python 2 cover
     basestring = str
 
 
+class TestCompartment(unittest.TestCase):
+    """
+    Unit tests for :class:`Compartment`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        model = sbml.Model(name='model')
+        cls.sid = 'compartment'
+        cls.c = model.add_compartment(sid=cls.sid)
+
+    def test_sid(self):
+        self.assertEqual(self.c.sid(), self.sid)
+
+
 class TestModel(unittest.TestCase):
     """
     Unit tests for :class:`Model`.
