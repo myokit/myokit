@@ -1037,7 +1037,7 @@ class Reaction(object):
         Sets this reaction's kinetic law (as a :class:`myokit.Expression`).
         """
         if not isinstance(expression, myokit.Expression):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(expression) + '> needs to be an instance of '
                 'myokit.Expression.')
 
