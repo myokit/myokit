@@ -104,6 +104,22 @@ class TestCompartment(unittest.TestCase):
 
         self.assertEqual(self.c.spatial_dimensions(), dim)
 
+    def test_value(self):
+
+        # Check default value
+        self.assertIsNone(self.c.value())
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.c.set_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.c.set_value(expr)
+
+        self.assertEqual(self.c.value(), expr)
+
 
 class TestModel(unittest.TestCase):
     """
