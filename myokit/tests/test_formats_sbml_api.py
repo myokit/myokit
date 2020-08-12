@@ -12,7 +12,7 @@ import unittest
 
 import myokit
 import myokit.formats
-import myokit.formats.sbml
+import myokit.formats.sbml as sbml
 from myokit.formats.sbml import SBMLParser
 
 # Unit testing in Python 2 and 3
@@ -26,6 +26,40 @@ try:
     basestring
 except NameError:   # pragma: no python 2 cover
     basestring = str
+
+
+class TestModel(unittest.TestCase):
+    """
+    Unit tests for :class:`Model`.
+    """
+
+    def test_area_units(self):
+
+        model = sbml.Model(name='model')
+
+        area_units = myokit.units.meter ** 2
+        model.set_area_units(area_units)
+
+        self.assertEqual(model.area_units(), area_units)
+
+    def test_assignable(self):
+
+        model = sbml.Model(name='model')
+
+        # Add assignables to model
+        c_sid = 'compartment'
+        model.add_compartment(c_sid)
+
+        p_sid = 'parameters'
+        model.add_parameter(p_sid)
+
+        s_sid = 'species'
+        model.add_species(compartment=c_sid, sid=s_sid)
+
+        # Check that all assignables are accessible
+        self.assertIsNotNone(model.assignable(c_sid))
+        self.assertIsNotNone(model.assignable(p_sid))
+        self.assertIsNotNone(model.assignable(s_sid))
 
 
 class SBMLTestMyokitModel(unittest.TestCase):
