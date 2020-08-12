@@ -54,7 +54,8 @@ class TestModel(unittest.TestCase):
         model.add_parameter(p_sid)
 
         s_sid = 'species'
-        model.add_species(compartment=c_sid, sid=s_sid)
+        comp = sbml.Compartment(model=model, sid=c_sid)
+        model.add_species(compartment=comp, sid=s_sid)
 
         # Check that all assignables are accessible
         self.assertIsNotNone(model.assignable(c_sid))
@@ -218,6 +219,57 @@ class TestModel(unittest.TestCase):
         sid = 'parameter'
         self.assertRaisesRegex(
             sbml.SBMLError, 'Duplicate SId "', model.add_parameter, sid)
+
+    def test_reaction(self):
+
+        model = sbml.Model(name='model')
+
+        # Test bad sid
+        sid = ';'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid SId "', model.add_reaction, sid)
+
+        # Test good sid
+        sid = 'reaction'
+        model.add_reaction(sid)
+
+        self.assertIsInstance(model.reaction(sid), sbml.Reaction)
+
+        # Test duplicate sid
+        sid = 'reaction'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate SId "', model.add_reaction, sid)
+
+    def test_species(self):
+
+        model = sbml.Model(name='model')
+
+        # Test bad compartment
+        comp = 'some compartment'
+        sid = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', model.add_species, comp, sid)
+
+        # Test bad sid
+        c_sid = 'compartment'
+        comp = sbml.Compartment(model=model, sid=c_sid)
+        sid = ';'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid SId "', model.add_species, comp, sid)
+
+        # Test good sid
+        c_sid = 'compartment'
+        comp = sbml.Compartment(model=model, sid=c_sid)
+        sid = 'species'
+
+        model.add_species(compartment=comp, sid=sid)
+
+        self.assertIsInstance(model.species(sid), sbml.Species)
+
+        # Test duplicate sid
+        sid = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate SId "', model.add_species, comp, sid)
 
 
 class SBMLTestMyokitModel(unittest.TestCase):
