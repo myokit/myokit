@@ -762,7 +762,7 @@ class Model(object):
         if not isinstance(units, myokit.Unit):
             raise sbml.SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
-        
+
         self._length_units = units
 
     def set_notes(self, notes=None):
@@ -1026,6 +1026,10 @@ class Species(Quantity):
     def __init__(self, compartment, sid, is_amount, is_constant, is_boundary):
         super(Species, self).__init__()
 
+        if not isinstance(compartment, sbml.Compartment):
+            raise sbml.SBMLError(
+                '<' + compartment + '> needs to be instance of'
+                'myokit.formats.sbml.Compartment')
         self._compartment = compartment
 
         self._sid = sid
