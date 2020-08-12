@@ -278,14 +278,30 @@ class TestModel(unittest.TestCase):
         # Test default
         self.assertEqual(model.substance_units(), myokit.units.dimensionless)
 
-        # Test bad length units
+        # Test bad substance units
         self.assertRaisesRegex(
             sbml.SBMLError, '<', model.set_substance_units, 'mg')
 
-        # Test good length units
+        # Test good substance units
         model.set_substance_units(myokit.units.g)
 
         self.assertEqual(model.substance_units(), myokit.units.g)
+
+    def test_time_units(self):
+
+        model = sbml.Model(name='model')
+
+        # Test default
+        self.assertEqual(model.time_units(), myokit.units.dimensionless)
+
+        # Test bad time units
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', model.set_substance_units, 's')
+
+        # Test good time units
+        model.set_substance_units(myokit.units.s)
+
+        self.assertEqual(model.substance_units(), myokit.units.s)
 
 
 class SBMLTestMyokitModel(unittest.TestCase):
