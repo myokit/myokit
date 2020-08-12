@@ -271,6 +271,22 @@ class TestModel(unittest.TestCase):
         self.assertRaisesRegex(
             sbml.SBMLError, 'Duplicate SId "', model.add_species, comp, sid)
 
+    def test_substance_units(self):
+
+        model = sbml.Model(name='model')
+
+        # Test default
+        self.assertEqual(model.substance_units(), myokit.units.dimensionless)
+
+        # Test bad length units
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', model.set_substance_units, 'mg')
+
+        # Test good length units
+        model.set_substance_units(myokit.units.g)
+
+        self.assertEqual(model.substance_units(), myokit.units.g)
+
 
 class SBMLTestMyokitModel(unittest.TestCase):
     """
