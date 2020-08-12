@@ -35,12 +35,74 @@ class TestCompartment(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        model = sbml.Model(name='model')
+        cls.model = sbml.Model(name='model')
         cls.sid = 'compartment'
-        cls.c = model.add_compartment(sid=cls.sid)
+        cls.c = cls.model.add_compartment(sid=cls.sid)
+
+    def test_initial_value(self):
+
+        # Check default initial value
+        self.assertIsNone(self.c.initial_value())
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.c.set_initial_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.c.set_initial_value(expr)
+
+        self.assertEqual(self.c.initial_value(), expr)
 
     def test_sid(self):
         self.assertEqual(self.c.sid(), self.sid)
+
+    def test_size_units(self):
+
+        # Check default units
+        unit = myokit.units.dimensionless
+        self.assertEqual(self.c.size_units(), unit)
+
+        # Check spatial dimensions = 1
+        self.c.set_spatial_dimensions(dimensions=1)
+        unit = myokit.units.meter
+        self.model.set_length_units(unit)
+
+        self.assertEqual(self.c.size_units(), unit)
+
+        # Check spatial dimensions = 2
+        self.c.set_spatial_dimensions(dimensions=2)
+        unit = myokit.units.meter**2
+        self.model.set_area_units(unit)
+
+        self.assertEqual(self.c.size_units(), unit)
+
+        # Check spatial dimensions = 3
+        self.c.set_spatial_dimensions(dimensions=3)
+        unit = myokit.units.L
+        self.model.set_volume_units(unit)
+
+        self.assertEqual(self.c.size_units(), unit)
+
+        # Check bad size units
+        unit = 'mL'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.c.set_size_units, unit)
+
+        # Check valid size units
+        unit = myokit.units.L * 1E-3
+        self.c.set_size_units(unit)
+
+        self.assertEqual(self.c.size_units(), unit)
+
+    def test_spatial_dimensions(self):
+
+        # Test valid dimensions
+        dim = 2.31
+        self.c.set_spatial_dimensions(dim)
+
+        self.assertEqual(self.c.spatial_dimensions(), dim)
 
 
 class TestModel(unittest.TestCase):
