@@ -117,10 +117,21 @@ class TestModel(unittest.TestCase):
 
         model = sbml.Model(name='model')
 
+        # Test bad sid
+        sid = ';'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid SId "', model.add_compartment, sid)
+
+        # Test good sid
         sid = 'compartment'
         model.add_compartment(sid)
 
         self.assertIsInstance(model.compartment(sid), sbml.Compartment)
+
+        # Test duplicate sid
+        sid = 'compartment'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate SId "', model.add_compartment, sid)
 
     def test_conversion_factor(self):
 
@@ -178,6 +189,35 @@ class TestModel(unittest.TestCase):
         model = sbml.Model(name=name)
 
         self.assertEqual(model.name(), name)
+
+    def test_notes(self):
+
+        model = sbml.Model(name='model')
+
+        notes = 'Here are some notes.'
+        model.set_notes(notes)
+
+        self.assertEqual(model.notes(), notes)
+
+    def test_parameter(self):
+
+        model = sbml.Model(name='model')
+
+        # Test bad sid
+        sid = ';'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid SId "', model.add_parameter, sid)
+
+        # Test good sid
+        sid = 'parameter'
+        model.add_parameter(sid)
+
+        self.assertIsInstance(model.parameter(sid), sbml.Parameter)
+
+        # Test duplicate sid
+        sid = 'parameter'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate SId "', model.add_parameter, sid)
 
 
 class SBMLTestMyokitModel(unittest.TestCase):
