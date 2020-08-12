@@ -741,7 +741,7 @@ class Model(object):
             raise sbml.SBMLError(
                 '<' + str(factor) + '> needs to be instance of'
                 'myokit.formats.sbml.Parameter.')
-                
+
         self._conversion_factor = factor
 
     def set_extent_units(self, units):
@@ -749,6 +749,10 @@ class Model(object):
         Sets the default units for "reaction extent", i.e. for the kinetic law
         equations in reactions.
         """
+        if not isinstance(units, myokit.Unit):
+            raise sbml.SBMLError(
+                '<' + str(units) + '> needs to be instance of myokit.Unit')
+        
         self._extent_units = units
 
     def set_length_units(self, units):
