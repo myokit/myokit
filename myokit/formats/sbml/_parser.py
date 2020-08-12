@@ -559,7 +559,7 @@ class SBMLParser(object):
         try:
             # Check that this assignable can be changed with assignment rules
             if isinstance(var, sbml.Species):
-                if not var.boundary():
+                if not var.is_boundary():
                     raise SBMLParsingError(
                         'Assignment or rate rule set for species that is'
                         ' created or destroyed in a reaction.', element)
@@ -594,11 +594,11 @@ class SBMLParser(object):
         # is false for all three).
 
         # Check if it's an amount or a concentration
-        amount = element.get('hasOnlySubstanceUnits', 'false') == 'true'
+        is_amount = element.get('hasOnlySubstanceUnits', 'false') == 'true'
 
         # Check if constant, and if at a reaction boundary
-        constant = element.get('constant', 'false') == 'true'
-        boundary = element.get('boundaryCondition', 'false') == 'true'
+        is_constant = element.get('constant', 'false') == 'true'
+        is_boundary = element.get('boundaryCondition', 'false') == 'true'
 
         # Note: In lines like the above we could raise an error if the value
         # isn't 'true' or false', but for now we're being lenient.
@@ -614,7 +614,11 @@ class SBMLParser(object):
         # Create
         try:
             species = model.add_species(
-                compartment, element.get('id'), amount, constant, boundary)
+                compartment,
+                element.get('id'),
+                is_amount,
+                is_constant,
+                is_boundary)
 
             # Set units, if provided
             units = element.get('substanceUnits')
@@ -640,14 +644,14 @@ class SBMLParser(object):
             value = element.get('initialAmount')
 
             # Indicate whether units of initial value are correct
-            species.set_units_initial_value(species.amount())
+            species.set_units_initial_value(species.is_amount())
 
             # If initial amount is not provided, get initial concentration
             if value is None:
                 value = element.get('initialConcentration')
 
                 # Indicate whether units of initial value are correct
-                species.set_units_initial_value(not species.amount())
+                species.set_units_initial_value(not species.is_amount())
 
             # Set initial value
             if value is not None:
