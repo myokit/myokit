@@ -1184,31 +1184,31 @@ class SBMLParserTest(unittest.TestCase):
         self.assertBad(a + x + b, 'Unknown compartment')
 
         # Amount or concentration
-        self.assertFalse(s0.amount())
+        self.assertFalse(s0.is_amount())
         x = '<species compartment="c" id="s" hasOnlySubstanceUnits="false" />'
         s = self.parse(a + x + b).species('s')
-        self.assertFalse(s.amount())
+        self.assertFalse(s.is_amount())
         x = '<species compartment="c" id="s" hasOnlySubstanceUnits="true" />'
         s = self.parse(a + x + b).species('s')
-        self.assertTrue(s.amount())
+        self.assertTrue(s.is_amount())
 
         # Boundary
-        self.assertFalse(s0.boundary())
+        self.assertFalse(s0.is_boundary())
         x = '<species compartment="c" id="s" boundaryCondition="false" />'
         s = self.parse(a + x + b).species('s')
-        self.assertFalse(s.boundary())
+        self.assertFalse(s.is_boundary())
         x = '<species compartment="c" id="s" boundaryCondition="true" />'
         s = self.parse(a + x + b).species('s')
-        self.assertTrue(s.boundary())
+        self.assertTrue(s.is_boundary())
 
         # Constant
-        self.assertFalse(s0.constant())
+        self.assertFalse(s0.is_constant())
         x = '<species compartment="c" id="s" constant="false" />'
         s = self.parse(a + x + b).species('s')
-        self.assertFalse(s.constant())
+        self.assertFalse(s.is_constant())
         x = '<species compartment="c" id="s" constant="true" />'
         s = self.parse(a + x + b).species('s')
-        self.assertTrue(s.constant())
+        self.assertTrue(s.is_constant())
 
         # Substance units
         self.assertEqual(s0.substance_units(), myokit.units.dimensionless)
