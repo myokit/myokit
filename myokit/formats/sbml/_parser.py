@@ -21,7 +21,7 @@ import myokit.units
 import myokit.formats
 import myokit.formats.html
 import myokit.formats.mathml
-import myokit.formats.sbml as sbml
+import myokit.formats.sbml
 import myokit.formats.xml
 
 
@@ -42,14 +42,15 @@ def _parse_mathml(expr, name_generator):
         try:
             return name_generator(x, y)
         except KeyError:
-            raise SBMLError(
+            raise myokit.formats.sbml.SBMLError(
                 'Unknown or inaccessible symbol in MathML: "' + str(x) + '".')
 
     try:
         return myokit.formats.mathml.parse_mathml_etree(
             expr, name, lambda x, y: myokit.Number(x))
     except myokit.formats.mathml.MathMLError as e:
-        raise SBMLError('Unable to parse MathML: ' + str(e))
+        raise myokit.formats.sbml.SBMLError(
+            'Unable to parse MathML: ' + str(e))
 
     # Note: In any place we parse mathematics, we could also check that
     # there's nothing after the mathematics. E.g.
@@ -59,10 +60,6 @@ def _parse_mathml(expr, name_generator):
     #   </math>
     # is currently allowed because only the first statement is read.
     # But for now we're being lenient.
-
-
-class SBMLError(Exception):
-    """Raised if something goes wrong when working with an SBML model."""
 
 
 class SBMLParsingError(myokit.ImportError):
@@ -198,7 +195,7 @@ class SBMLParser(object):
             if units is not None:
                 try:
                     units = model.unit(units)
-                except SBMLError:
+                except myokit.formats.sbml.SBMLError:
                     raise SBMLParsingError(
                         'Unknown units "' + units + '".', element)
                 compartment.set_size_units(units)
@@ -227,7 +224,7 @@ class SBMLParser(object):
                 # Ignore units in RHS
                 compartment.set_initial_value(myokit.Number(size))
 
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse compartment "' + sid + '": ' + str(e),
                 element)
@@ -267,10 +264,10 @@ class SBMLParser(object):
             # Indicate for species that the units of the inital value are
             # correct (initialAssignments are meant to assign the value
             # in the correct units amount/concentration)
-            if isinstance(var, sbml.Species):
+            if isinstance(var, myokit.formats.sbml.Species):
                 var.set_units_initial_value(True)
 
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse initial assignment: ' + str(e), element)
 
@@ -291,7 +288,7 @@ class SBMLParser(object):
         # reaction.
         def name(x, y):
             obj = model.assignable(x)
-            if isinstance(obj, sbml.Species):
+            if isinstance(obj, myokit.formats.sbml.Species):
                 obj = reaction.species(x)
             return myokit.Name(obj)
 
@@ -301,7 +298,7 @@ class SBMLParser(object):
             return None
         try:
             return _parse_mathml(expr, name)
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse kinetic law: ' + str(e), element)
 
@@ -319,7 +316,7 @@ class SBMLParser(object):
             name = 'Imported SBML model'
 
         # Create SBML model
-        model = sbml.Model(name)
+        model = myokit.formats.sbml.Model(name)
 
         # Algebraic rules are not supported
         x = element.find(self._path('listOfRules', 'algebraicRule'))
@@ -381,7 +378,7 @@ class SBMLParser(object):
             if units is not None:
                 model.set_time_units(model.unit(units))
 
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Error parsing model element: ' + str(e), element)
 
@@ -456,7 +453,7 @@ class SBMLParser(object):
             if unit is not None:
                 try:
                     unit = model.unit(unit)
-                except SBMLError:
+                except myokit.formats.sbml.SBMLError:
                     raise SBMLParsingError(
                         'Unknown units "' + unit + '".', element)
                 parameter.set_units(unit)
@@ -474,7 +471,7 @@ class SBMLParser(object):
                 # Ignore unit
                 parameter.set_initial_value(myokit.Number(value))
 
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse ' + self._tag(element) + ': ' + str(e),
                 element)
@@ -497,7 +494,7 @@ class SBMLParser(object):
         # Create
         try:
             reaction = model.add_reaction(element.get('id'))
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse ' + self._tag(element) + ': ' + str(e),
                 element)
@@ -507,19 +504,22 @@ class SBMLParser(object):
         for x in element.findall(self._path(
                 'listOfReactants', 'speciesReference')):
             self._parse_species_reference(
-                x, model, reaction, sbml.SpeciesReference.REACTANT)
+                x, model, reaction, 
+                myokit.formats.sbml.SpeciesReference.REACTANT)
             have_reactant_or_product = True
 
         for x in element.findall(self._path(
                 'listOfProducts', 'speciesReference')):
             self._parse_species_reference(
-                x, model, reaction, sbml.SpeciesReference.PRODUCT)
+                x, model, reaction, 
+                myokit.formats.sbml.SpeciesReference.PRODUCT)
             have_reactant_or_product = True
 
         for x in element.findall(self._path(
                 'listOfModifiers', 'modifierSpeciesReference')):
             self._parse_species_reference(
-                x, model, reaction, sbml.SpeciesReference.MODIFIER)
+                x, model, reaction,
+                myokit.formats.sbml.SpeciesReference.MODIFIER)
 
         # Raise error if neither reactants nor products is populated
         if not have_reactant_or_product:
@@ -555,7 +555,7 @@ class SBMLParser(object):
 
         try:
             # Check that this assignable can be changed with assignment rules
-            if isinstance(var, sbml.Species):
+            if isinstance(var, myokit.formats.sbml.Species):
                 if not var.is_boundary():
                     raise SBMLParsingError(
                         'Assignment or rate rule set for species that is'
@@ -577,7 +577,7 @@ class SBMLParser(object):
                 lambda x, y: myokit.Name(model.assignable(x)),
             ), rate)
 
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError('Unable to parse rule: ' + str(e), element)
 
     def _parse_species(self, element, model):
@@ -622,7 +622,7 @@ class SBMLParser(object):
             if units is not None:
                 try:
                     units = model.unit(units)
-                except SBMLError:
+                except myokit.formats.sbml.SBMLError:
                     raise SBMLParsingError(
                         'Unknown units "' + units + '"', element)
 
@@ -673,7 +673,7 @@ class SBMLParser(object):
                         ' conversion factor.', element)
                 species.set_conversion_factor(factor)
 
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse ' + self._tag(element) + ': ' + str(e),
                 element)
@@ -698,9 +698,9 @@ class SBMLParser(object):
 
         try:
             # Create
-            if ref_type == sbml.SpeciesReference.REACTANT:
+            if ref_type == myokit.formats.sbml.SpeciesReference.REACTANT:
                 reference = reaction.add_reactant(species, sid)
-            elif ref_type == sbml.SpeciesReference.PRODUCT:
+            elif ref_type == myokit.formats.sbml.SpeciesReference.PRODUCT:
                 reference = reaction.add_product(species, sid)
             else:
                 # Modifier references require no further parsing
@@ -717,7 +717,7 @@ class SBMLParser(object):
                         + str(stoichiometry) + '" to float.', element)
                 reference.set_initial_value(myokit.Number(stoichiometry))
 
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse species reference: ' + str(e), element)
 
@@ -738,7 +738,7 @@ class SBMLParser(object):
         sid = element.get('id')
         try:
             model.add_unit(sid, myokit_unit)
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse unit definition for "' + sid + '": ' + str(e),
                 element)
@@ -754,7 +754,7 @@ class SBMLParser(object):
         # Get base unit (must be a predefined type)
         try:
             unit = model.base_unit(element.get('kind'))
-        except SBMLError as e:
+        except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse unit kind: ' + str(e), element)
 

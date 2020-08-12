@@ -2,12 +2,15 @@ import collections
 import re
 
 import myokit
-import myokit.formats.sbml as sbml
 import myokit.units
 
 
 # Regex for id checking
 _re_id = re.compile(r'^[a-zA-Z_]+[a-zA-Z0-9_]*$')
+
+
+class SBMLError(Exception):
+    """Raised if something goes wrong when working with an SBML model."""
 
 
 class Quantity(object):
@@ -45,7 +48,7 @@ class Quantity(object):
         Sets a :class:`myokit.Expression` for this quantity's initial value.
         """
         if not isinstance(value, myokit.Expression):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(value) + '> needs to be an instance of '
                 'myokit.Expression.')
 
@@ -65,7 +68,7 @@ class Quantity(object):
 
         """
         if not isinstance(value, myokit.Expression):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(value) + '> needs to be an instance of '
                 'myokit.Expression.')
 
@@ -115,7 +118,7 @@ class Compartment(Quantity):
     def set_size_units(self, units):
         """Sets the units for this compartment's size."""
         if not isinstance(units, myokit.Unit):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._size_units = units
@@ -233,8 +236,8 @@ class Model(object):
         """
         Adds a species to this model (located in the given ``compartment``).
         """
-        if not isinstance(compartment, sbml.Compartment):
-            raise sbml.SBMLError(
+        if not isinstance(compartment, Compartment):
+            raise SBMLError(
                 '<' + compartment + '> needs to be instance of'
                 'myokit.formats.sbml.Compartment')
         self._register_sid(sid)
@@ -247,15 +250,15 @@ class Model(object):
     def add_unit(self, unitsid, unit):
         """Adds a user unit with the given ``unitsid`` and myokit ``unit``."""
         if not _re_id.match(unitsid):
-            raise sbml.SBMLError('Invalid UnitSId "' + str(unitsid) + '".')
+            raise SBMLError('Invalid UnitSId "' + str(unitsid) + '".')
         if unitsid in self._base_units or unitsid == 'celsius':
-            raise sbml.SBMLError(
+            raise SBMLError(
                 'User unit overrides built-in unit: "' + str(unitsid) + '".')
         if unitsid in self._units:
-            raise sbml.SBMLError(
+            raise SBMLError(
                 'Duplicate UnitSId: "' + str(unitsid) + '".')
         if not isinstance(unit, myokit.Unit):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 'Unit "' + str(unit) + '" needs to be instance of myokit.Unit')
 
         u = self._units[unitsid] = unit
@@ -283,13 +286,13 @@ class Model(object):
         """
         # Check this base unit is supported
         if unitsid == 'celsius':
-            raise sbml.SBMLError('The units "celsius" are not supported.')
+            raise SBMLError('The units "celsius" are not supported.')
 
         try:
             # Find and return
             return self._base_units[unitsid]
         except KeyError:
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + unitsid + '> is not an SBML base unit.')
 
     def compartment(self, sid):
@@ -747,9 +750,9 @@ class Model(object):
         raises an error if it's not.
         """
         if not _re_id.match(sid):
-            raise sbml.SBMLError('Invalid SId "' + str(sid) + '".')
+            raise SBMLError('Invalid SId "' + str(sid) + '".')
         if sid in self._sids:
-            raise sbml.SBMLError('Duplicate SId "' + str(sid) + '".')
+            raise SBMLError('Duplicate SId "' + str(sid) + '".')
         self._sids.add(sid)
 
     def set_area_units(self, units):
@@ -764,7 +767,7 @@ class Model(object):
         see :meth:`Species.conversion_factor()`.
         """
         if not isinstance(factor, Parameter):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(factor) + '> needs to be instance of'
                 'myokit.formats.sbml.Parameter.')
 
@@ -776,7 +779,7 @@ class Model(object):
         equations in reactions.
         """
         if not isinstance(units, myokit.Unit):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._extent_units = units
@@ -786,7 +789,7 @@ class Model(object):
         Sets the default compartment size units for 1-dimensional compartments.
         """
         if not isinstance(units, myokit.Unit):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._length_units = units
@@ -798,7 +801,7 @@ class Model(object):
     def set_substance_units(self, units):
         """Sets the default units for reaction amounts (not concentrations)."""
         if not isinstance(units, myokit.Unit):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._substance_units = units
@@ -806,7 +809,7 @@ class Model(object):
     def set_time_units(self, units):
         """Sets the time units used throughout the model."""
         if not isinstance(units, myokit.Unit):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._time_units = units
@@ -816,7 +819,7 @@ class Model(object):
         Sets the default compartment size units for 3-dimensional compartments.
         """
         if not isinstance(units, myokit.Unit):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
 
         self._volume_units = units
@@ -848,8 +851,8 @@ class Model(object):
         except KeyError:
             try:
                 return self.base_unit(unitsid)
-            except sbml.SBMLError:
-                raise sbml.SBMLError(
+            except SBMLError:
+                raise SBMLError(
                     'The unit SID <' + unitsid + '> does not exist in the '
                     'model.')
 
@@ -923,9 +926,9 @@ class Parameter(Quantity):
     def set_units(self, units):
         """Sets this parameters units to the given ``Units``."""
         if not isinstance(units, myokit.Unit):
-            raise sbml.SBMLError(
+            raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
-        
+
         self._units = units
 
     def sid(self):
@@ -1073,8 +1076,8 @@ class Species(Quantity):
     def __init__(self, compartment, sid, is_amount, is_constant, is_boundary):
         super(Species, self).__init__()
 
-        if not isinstance(compartment, sbml.Compartment):
-            raise sbml.SBMLError(
+        if not isinstance(compartment, Compartment):
+            raise SBMLError(
                 '<' + compartment + '> needs to be instance of'
                 'myokit.formats.sbml.Compartment')
         self._compartment = compartment

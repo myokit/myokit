@@ -14,11 +14,11 @@ from ._api import (  # noqa
     Parameter,
     Quantity,
     Reaction,
+    SBMLError,
     Species,
     SpeciesReference)
 from ._importer import SBMLImporter
 from ._parser import (  # noqa
-    SBMLError,
     SBMLParsingError,
     SBMLParser)
 
