@@ -44,6 +44,10 @@ class Quantity(object):
         """
         Sets a :class:`myokit.Expression` for this quantity's initial value.
         """
+        if not isinstance(value, myokit.Expression):
+            raise sbml.SBMLError(
+                '<' + str(value) + '> needs to be an instance of '
+                'myokit.Expression.')
         self._initial_value = value
 
     def set_value(self, value, is_rate=False):
@@ -104,6 +108,10 @@ class Compartment(Quantity):
 
     def set_size_units(self, units):
         """Sets the units for this compartment's size."""
+        if not isinstance(units, myokit.Unit):
+            raise sbml.SBMLError(
+                '<' + str(units) + '> needs to be instance of myokit.Unit')
+
         self._size_units = units
 
     def sid(self):
@@ -804,7 +812,7 @@ class Model(object):
         if not isinstance(units, myokit.Unit):
             raise sbml.SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
-        
+
         self._volume_units = units
 
     def __str__(self):
