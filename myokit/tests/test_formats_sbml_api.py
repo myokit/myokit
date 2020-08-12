@@ -1677,7 +1677,8 @@ class TestReaction(unittest.TestCase):
             is_constant=False,
             is_boundary=False)
         self.assertRaisesRegex(
-            sbml.SBMLError, 'Duplicate SId "', self.r.add_modifier, species, sid)
+            sbml.SBMLError, 'Duplicate SId "', self.r.add_modifier, species,
+            sid)
 
 
 if __name__ == '__main__':
