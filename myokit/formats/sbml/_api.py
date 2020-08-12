@@ -243,7 +243,7 @@ class Model(object):
         if not isinstance(unit, myokit.Unit):
             raise sbml.SBMLError(
                 'Unit "' + str(unit) + '" needs to be instance of myokit.Unit')
-        
+
         u = self._units[unitsid] = unit
         return u
 
@@ -801,6 +801,10 @@ class Model(object):
         """
         Sets the default compartment size units for 3-dimensional compartments.
         """
+        if not isinstance(units, myokit.Unit):
+            raise sbml.SBMLError(
+                '<' + str(units) + '> needs to be instance of myokit.Unit')
+        
         self._volume_units = units
 
     def __str__(self):
