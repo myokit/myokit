@@ -973,6 +973,10 @@ class Reaction(object):
 
     def add_modifier(self, species, sid=None):
         """Adds a modifier to this reaction and returns the created object."""
+        if not isinstance(species, Species):
+            raise SBMLError(
+                '<' + str(species) + '> needs to be an instance of '
+                'myokit.formats.sbml.Species')
         if sid is not None:
             self._model._register_sid(sid)
         ref = ModifierSpeciesReference(species, sid)
