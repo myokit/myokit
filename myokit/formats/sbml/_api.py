@@ -775,6 +775,10 @@ class Model(object):
 
     def set_substance_units(self, units):
         """Sets the default units for reaction amounts (not concentrations)."""
+        if not isinstance(units, myokit.Unit):
+            raise sbml.SBMLError(
+                '<' + str(units) + '> needs to be instance of myokit.Unit')
+
         self._substance_units = units
 
     def set_time_units(self, units):
