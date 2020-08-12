@@ -48,6 +48,7 @@ class Quantity(object):
             raise sbml.SBMLError(
                 '<' + str(value) + '> needs to be an instance of '
                 'myokit.Expression.')
+
         self._initial_value = value
 
     def set_value(self, value, is_rate=False):
@@ -63,6 +64,11 @@ class Quantity(object):
             variable.
 
         """
+        if not isinstance(value, myokit.Expression):
+            raise sbml.SBMLError(
+                '<' + str(value) + '> needs to be an instance of '
+                'myokit.Expression.')
+        
         self._value = value
         self._is_rate = bool(is_rate)
 
