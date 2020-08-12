@@ -214,13 +214,13 @@ class Model(object):
         return r
 
     def add_species(
-            self, compartment, sid, amount=False, constant=False,
-            boundary=False):
+            self, compartment, sid, is_amount=False, is_constant=False,
+            is_boundary=False):
         """
         Adds a species to this model (located in the given ``compartment``).
         """
         self._register_sid(sid)
-        s = Species(compartment, sid, amount, constant, boundary)
+        s = Species(compartment, sid, is_amount, is_constant, is_boundary)
         self._species[sid] = s
         self._assignables[sid] = s
 
@@ -377,7 +377,7 @@ class Model(object):
             species_amount_references[sid] = var
 
             # Add species in concentration if measured in concentration
-            if not species.amount():
+            if not species.is_amount():
                 # Add species in concentration
                 var = component.add_variable_allow_renaming(
                     sid + '_concentration')
@@ -494,7 +494,7 @@ class Model(object):
                 # Need to convert initial value if
                 # 1. the species is in amount but initial value units are not
                 # 2. the species and the initial value is in concentration
-                if species.amount() != species.units_initial_value():
+                if species.is_amount() != species.units_initial_value():
                     # Get initial compartment size
                     compartment = species.compartment()
                     size = compartment.initial_value()
@@ -514,7 +514,7 @@ class Model(object):
             if expr is not None:
                 # Need to convert initial value if species is measured in
                 # concentration (assignments match unit of measurement)
-                if not species.amount():
+                if not species.is_amount():
                     # Get initial compartment size
                     compartment = species.compartment()
                     size = compartment.initial_value()
@@ -593,7 +593,7 @@ class Model(object):
                 # Get species object
                 species = reactant.species()
 
-                if species.constant() or species.boundary():
+                if species.is_constant() or species.is_boundary():
                     # Species is not altered by the reaction
                     # Skip to the next reactant
                     continue
@@ -649,7 +649,7 @@ class Model(object):
                 # Get species object
                 species = product.species()
 
-                if species.constant() or species.boundary():
+                if species.is_constant() or species.is_boundary():
                     # Species is not altered by the reaction
                     # Skip to the next product
                     continue
@@ -1000,25 +1000,25 @@ class Species(Quantity):
         The :class:`Compartment` that this species is in.
     ``sid``
         This species's SId.
-    ``amount``
+    ``is_amount``
         Whether this species value is represented as an amount (if false, it is
         represented as a concentration, which depends on the size of the
         compartment it is in).
-    ``constant``
+    ``is_constant``
         Whether or not this species is constant.
-    ``boundary``
+    ``is_boundary``
         Whether or not this species is at the boundary of a reaction.
 
     """
-    def __init__(self, compartment, sid, amount, constant, boundary):
+    def __init__(self, compartment, sid, is_amount, is_constant, is_boundary):
         super(Species, self).__init__()
 
         self._compartment = compartment
 
         self._sid = sid
-        self._amount = bool(amount)
-        self._constant = bool(constant)
-        self._boundary = bool(boundary)
+        self._is_amount = bool(is_amount)
+        self._is_constant = bool(is_constant)
+        self._is_boundary = bool(is_boundary)
 
         # Units for the amount, not the concentration
         self._units = None
@@ -1030,24 +1030,24 @@ class Species(Quantity):
         # (amount or concentration)
         self._units_initial_value = True
 
-    def amount(self):
+    def is_amount(self):
         """
         Returns ``True`` only if this species is defined as an amount (not a
         concentration).
         """
-        return self._amount
+        return self._is_amount
 
-    def boundary(self):
+    def is_boundary(self):
         """Returns ``True`` only if this species is at a reaction boundary."""
-        return self._boundary
+        return self._is_boundary
 
     def compartment(self):
         """Returns the :class:`Compartment` that this species is in."""
         return self._compartment
 
-    def constant(self):
+    def is_constant(self):
         """Returns ``True`` only if this species is constant."""
-        return self._constant
+        return self._is_constant
 
     def conversion_factor(self):
         """
