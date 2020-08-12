@@ -1534,6 +1534,77 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertTrue(var.binding(), 'time')
 
 
+class TestParameter(unittest.TestCase):
+    """
+    Unit tests for :class:`Parameter`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.model = sbml.Model(name='model')
+        cls.sid = 'parameter'
+        cls.p = cls.model.add_parameter(sid=cls.sid)
+
+    def test_initial_value(self):
+
+        # Check default initial value
+        self.assertIsNone(self.p.initial_value())
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.p.set_initial_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.p.set_initial_value(expr)
+
+        self.assertEqual(self.p.initial_value(), expr)
+
+    def test_is_rate(self):
+
+        # Check default
+        self.assertFalse(self.p.is_rate())
+
+        # Check setting rate to true
+        expr = myokit.Number(2)
+        self.p.set_value(value=expr, is_rate=True)
+
+        self.assertTrue(self.p.is_rate())
+
+    def test_sid(self):
+        self.assertEqual(self.p.sid(), self.sid)
+
+    def test_units(self):
+
+        # Check default units
+        self.assertIsNone(self.p.units())
+
+        # Check bad size units
+        unit = 'mL'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.p.set_units, unit)
+
+        # Check valid size units
+        unit = myokit.units.L * 1E-3
+        self.p.set_units(unit)
+
+        self.assertEqual(self.p.units(), unit)
+
+    def test_value(self):
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.p.set_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.p.set_value(expr)
+
+        self.assertEqual(self.p.value(), expr)
+
+
 if __name__ == '__main__':
     import warnings
     warnings.simplefilter('always')
