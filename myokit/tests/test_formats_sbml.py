@@ -622,10 +622,12 @@ class SBMLParserTest(unittest.TestCase):
         self.assertEqual(m.extent_units(), myokit.units.hertz)
         self.assertEqual(m.time_units(), myokit.units.s)
 
-        self.assertBad('<model areaUnits="meter_squared" />', 'Unknown units')
+        self.assertBad(
+            '<model areaUnits="meter_squared" />',
+            'Error parsing model element: ')
         self.assertBad(
             '<model areaUnits="celsius" />',
-            'The units "celsius" are not supported.')
+            'Error parsing model element: ')
 
         # Global conversion factor
         m = self.parse('<model />')
