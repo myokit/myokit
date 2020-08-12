@@ -737,6 +737,11 @@ class Model(object):
         Sets a :class:`Parameter` as global conversion factor for species,
         see :meth:`Species.conversion_factor()`.
         """
+        if not isinstance(factor, Parameter):
+            raise sbml.SBMLError(
+                '<' + str(factor) + '> needs to be instance of'
+                'myokit.formats.sbml.Parameter.')
+                
         self._conversion_factor = factor
 
     def set_extent_units(self, units):
