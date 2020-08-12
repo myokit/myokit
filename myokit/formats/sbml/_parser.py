@@ -504,14 +504,14 @@ class SBMLParser(object):
         for x in element.findall(self._path(
                 'listOfReactants', 'speciesReference')):
             self._parse_species_reference(
-                x, model, reaction, 
+                x, model, reaction,
                 myokit.formats.sbml.SpeciesReference.REACTANT)
             have_reactant_or_product = True
 
         for x in element.findall(self._path(
                 'listOfProducts', 'speciesReference')):
             self._parse_species_reference(
-                x, model, reaction, 
+                x, model, reaction,
                 myokit.formats.sbml.SpeciesReference.PRODUCT)
             have_reactant_or_product = True
 
