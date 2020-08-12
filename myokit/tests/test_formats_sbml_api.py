@@ -157,6 +157,22 @@ class TestModel(unittest.TestCase):
         self.assertEqual(model.extent_units(), myokit.units.g)
 
 
+    def test_length_units(self):
+
+        model = sbml.Model(name='model')
+
+        # Test default
+        self.assertEqual(model.length_units(), myokit.units.dimensionless)
+
+        # Test bad length units
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', model.set_length_units, 'm')
+
+        # Test good length units
+        model.set_length_units(myokit.units.meter)
+
+        self.assertEqual(model.length_units(), myokit.units.meter)
+
 
 class SBMLTestMyokitModel(unittest.TestCase):
     """
