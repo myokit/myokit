@@ -55,6 +55,17 @@ class TestCompartment(unittest.TestCase):
 
         self.assertEqual(self.c.initial_value(), expr)
 
+    def test_is_rate(self):
+
+        # Check default
+        self.assertFalse(self.c.is_rate())
+
+        # Check setting rate to true
+        expr = myokit.Number(2)
+        self.c.set_value(value=expr, is_rate=True)
+
+        self.assertTrue(self.c.is_rate())
+
     def test_sid(self):
         self.assertEqual(self.c.sid(), self.sid)
 
@@ -105,9 +116,6 @@ class TestCompartment(unittest.TestCase):
         self.assertEqual(self.c.spatial_dimensions(), dim)
 
     def test_value(self):
-
-        # Check default value
-        self.assertIsNone(self.c.value())
 
         # Check bad value
         expr = 2
