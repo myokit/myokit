@@ -29,3 +29,31 @@ Parsing
 
 .. autoclass:: SBMLParsingError
 
+SBML Model API
+==============
+
+.. autoclass:: Compartment
+    :inherited-members:
+
+.. autoclass:: Model
+
+.. autoclass:: ModifierSpeciesReference
+    :inherited-members:
+
+.. autoclass:: Parameter
+    :inherited-members:
+
+.. autoclass:: Quantity
+    :inherited-members:
+
+.. autoclass:: Reaction
+
+.. autoclass:: SBMLError
+    :inherited-members:
+
+.. autoclass:: Species
+    :inherited-members:
+
+.. autoclass:: SpeciesReference
+    :inherited-members:
+
