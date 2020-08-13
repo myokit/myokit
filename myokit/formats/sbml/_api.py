@@ -1246,6 +1246,11 @@ class ModifierSpeciesReference(object):
     def __init__(self, species, sid=None):
         super(ModifierSpeciesReference, self).__init__()
 
+        if not isinstance(species, Species):
+            raise SBMLError(
+                '<' + species + '> needs to be instance of'
+                'myokit.formats.sbml.Species')
+
         self._species = species
         self._sid = sid
 
