@@ -1184,6 +1184,10 @@ class Species(Quantity):
 
     def set_substance_units(self, units):
         """Sets the units this species amount (not concentration) is in."""
+        if not isinstance(units, myokit.Unit):
+            raise SBMLError(
+                '<' + str(units) + '> needs to be instance of myokit.Unit')
+        
         self._units = units
 
     def sid(self):
