@@ -989,6 +989,10 @@ class Reaction(object):
         Adds a reaction product to this reaction and returns the created
         object.
         """
+        if not isinstance(species, Species):
+            raise SBMLError(
+                '<' + str(species) + '> needs to be an instance of '
+                'myokit.formats.sbml.Species')
         if sid is not None:
             self._model._register_sid(sid)
         ref = SpeciesReference(species, sid)
