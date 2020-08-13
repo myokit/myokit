@@ -1160,6 +1160,11 @@ class Species(Quantity):
         Sets a :class:`Parameter` as conversion factor for this species,
         see :meth:`conversion_factor()`.
         """
+        if not isinstance(factor, Parameter):
+            raise SBMLError(
+                '<' + str(factor) + '> needs to be instance of'
+                'myokit.formats.sbml.Parameter.')
+
         self._conversion_factor = factor
 
     def set_substance_units(self, units):
