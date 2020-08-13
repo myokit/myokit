@@ -1868,7 +1868,7 @@ class TestSpecies(unittest.TestCase):
 
         self.assertTrue(species.is_boundary())
 
-        # Test is concentration
+        # Test is not boundary
         sid = 'species'
         species = sbml.Species(
             compartment=self.c, sid=sid, is_amount=False, is_constant=False,
@@ -1881,6 +1881,30 @@ class TestSpecies(unittest.TestCase):
         self.assertRaisesRegex(
             sbml.SBMLError, 'Is_boundary <', sbml.Species, self.c,
             sid, False, False, 'No')
+
+    def test_is_constant(self):
+
+        # Test is constant
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=True,
+            is_boundary=False)
+
+        self.assertTrue(species.is_constant())
+
+        # Test is not constant
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertFalse(species.is_boundary())
+
+        # Test bad constant
+        sid = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Is_constant <', sbml.Species, self.c,
+            sid, False,'No', False)
 
 
 if __name__ == '__main__':
