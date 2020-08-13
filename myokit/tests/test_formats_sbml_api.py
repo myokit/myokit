@@ -1973,6 +1973,43 @@ class TestSpecies(unittest.TestCase):
         species.set_correct_initial_value(True)
         self.assertTrue(species.correct_initial_value())
 
+    def test_initial_value(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check default initial value
+        self.assertIsNone(species.initial_value())
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_initial_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        species.set_initial_value(expr)
+
+        self.assertEqual(species.initial_value(), expr)
+
+    def test_is_rate(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check default
+        self.assertFalse(species.is_rate())
+
+        # Check setting rate to true
+        expr = myokit.Number(2)
+        species.set_value(value=expr, is_rate=True)
+
+        self.assertTrue(species.is_rate())
+
     def test_sid(self):
         sid = 'species'
         species = sbml.Species(
@@ -2008,6 +2045,24 @@ class TestSpecies(unittest.TestCase):
         species.set_substance_units(unit)
 
         self.assertEqual(species.substance_units(), unit)
+
+    def test_value(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        species.set_value(expr)
+
+        self.assertEqual(species.value(), expr)
 
 
 if __name__ == '__main__':
