@@ -1882,6 +1882,25 @@ class TestSpecies(unittest.TestCase):
             sbml.SBMLError, 'Is_boundary <', sbml.Species, self.c,
             sid, False, False, 'No')
 
+    def test_compartment(self):
+
+        # Bad compartment
+        sid = 'species'
+        comp = 'compartment'
+
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.Species, comp,
+            sid, False, 'No', False)
+
+        # Test good compartment
+        sid = 'species'
+        comp = self.c
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=True,
+            is_boundary=False)
+
+        self.assertEqual(species.compartment(), self.c)
+
     def test_is_constant(self):
 
         # Test is constant
@@ -1904,7 +1923,7 @@ class TestSpecies(unittest.TestCase):
         sid = 'species'
         self.assertRaisesRegex(
             sbml.SBMLError, 'Is_constant <', sbml.Species, self.c,
-            sid, False,'No', False)
+            sid, False, 'No', False)
 
 
 if __name__ == '__main__':
