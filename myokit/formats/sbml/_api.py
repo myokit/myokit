@@ -1187,7 +1187,7 @@ class Species(Quantity):
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
-        
+
         self._units = units
 
     def sid(self):
@@ -1221,6 +1221,11 @@ class SpeciesReference(Quantity):
 
     def __init__(self, species, sid=None):
         super(SpeciesReference, self).__init__()
+
+        if not isinstance(species, Species):
+            raise SBMLError(
+                '<' + species + '> needs to be instance of'
+                'myokit.formats.sbml.Species')
 
         self._species = species
         self._sid = sid
