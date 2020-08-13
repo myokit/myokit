@@ -1776,6 +1776,9 @@ class TestReaction(unittest.TestCase):
             sbml.SBMLError, 'Duplicate SId "', self.r.add_reactant, species,
             sid)
 
+    def test_sid(self):
+        self.assertEqual(self.r.sid(), self.sid)
+
 
 if __name__ == '__main__':
     import warnings
