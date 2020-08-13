@@ -1102,10 +1102,12 @@ class Species(Quantity):
                 'Is_amount <' + str(is_amount) + '> needs to be a boolean.')
         if not isinstance(is_constant, bool):
             raise SBMLError(
-                'Is_constant <' + str(is_constant) + '> needs to be a boolean.')
+                'Is_constant <' + str(is_constant) + '> needs to be a boolean.'
+            )
         if not isinstance(is_boundary, bool):
             raise SBMLError(
-                'Is_boundary <' + str(is_boundary) + '> needs to be a boolean.')
+                'Is_boundary <' + str(is_boundary) + '> needs to be a boolean.'
+            )
         self._compartment = compartment
 
         self._sid = sid
