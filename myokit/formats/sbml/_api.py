@@ -1097,6 +1097,15 @@ class Species(Quantity):
             raise SBMLError(
                 '<' + compartment + '> needs to be instance of'
                 'myokit.formats.sbml.Compartment')
+        if not isinstance(is_amount, bool):
+            raise SBMLError(
+                'Is_amount <' + str(is_amount) + '> needs to be a boolean.')
+        if not isinstance(is_constant, bool):
+            raise SBMLError(
+                'Is_constant <' + str(is_constant) + '> needs to be a boolean.')
+        if not isinstance(is_boundary, bool):
+            raise SBMLError(
+                'Is_boundary <' + str(is_boundary) + '> needs to be a boolean.')
         self._compartment = compartment
 
         self._sid = sid
