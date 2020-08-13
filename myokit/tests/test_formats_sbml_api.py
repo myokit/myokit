@@ -2132,6 +2132,33 @@ class TestSpeciesReference(unittest.TestCase):
         self.assertEqual(self.sr.value(), expr)
 
 
+class TestModifierSpeciesReference(unittest.TestCase):
+    """
+    Unit tests for :class:`ModifierSpeciesReference`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        model = sbml.Model(name='model')
+        comp = model.add_compartment(sid='compartment')
+        cls.species = sbml.Species(comp, 'species', False, False, False)
+        cls.sid = 'modifier_species_reference'
+        cls.sr = sbml.ModifierSpeciesReference(cls.species, cls.sid)
+
+    def test_sid(self):
+        self.assertEqual(self.sr.sid(), self.sid)
+
+    def test_species(self):
+
+        # Check bad species
+        species = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.SpeciesReference, species)
+
+        # Check good species
+        self.assertEqual(self.sr.species(), self.species)
+
+
 if __name__ == '__main__':
     import warnings
     warnings.simplefilter('always')
