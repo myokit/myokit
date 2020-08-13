@@ -2065,6 +2065,73 @@ class TestSpecies(unittest.TestCase):
         self.assertEqual(species.value(), expr)
 
 
+class TestSpeciesReference(unittest.TestCase):
+    """
+    Unit tests for :class:`SpeciesReference`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        model = sbml.Model(name='model')
+        comp = model.add_compartment(sid='compartment')
+        cls.species = sbml.Species(comp, 'species', False, False, False)
+        cls.sid = 'species_reference'
+        cls.sr = sbml.SpeciesReference(cls.species, cls.sid)
+
+    def test_initial_value(self):
+
+        # Check default initial value
+        self.assertIsNone(self.sr.initial_value())
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.sr.set_initial_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.sr.set_initial_value(expr)
+
+        self.assertEqual(self.sr.initial_value(), expr)
+
+    def test_is_rate(self):
+
+        # Check default
+        self.assertFalse(self.sr.is_rate())
+
+        # Check setting rate to true
+        expr = myokit.Number(2)
+        self.sr.set_value(value=expr, is_rate=True)
+
+        self.assertTrue(self.sr.is_rate())
+
+    def test_sid(self):
+        self.assertEqual(self.sr.sid(), self.sid)
+
+    def test_species(self):
+
+        # Check bad species
+        species = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.SpeciesReference, species)
+
+        # Check good species
+        self.assertEqual(self.sr.species(), self.species)
+
+    def test_value(self):
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.sr.set_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.sr.set_value(expr)
+
+        self.assertEqual(self.sr.value(), expr)
+
+
 if __name__ == '__main__':
     import warnings
     warnings.simplefilter('always')
