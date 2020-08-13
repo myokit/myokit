@@ -1951,6 +1951,28 @@ class TestSpecies(unittest.TestCase):
 
         self.assertEqual(species.conversion_factor(), factor)
 
+    def test_correct_initial_value(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check default
+        self.assertTrue(species.correct_initial_value())
+
+        # Check bad input
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_correct_initial_value, 'Yes')
+
+        # Check not correct units
+        species.set_correct_initial_value(False)
+        self.assertFalse(species.correct_initial_value())
+
+        # Check correct units
+        species.set_correct_initial_value(True)
+        self.assertTrue(species.correct_initial_value())
+
 
 if __name__ == '__main__':
     import warnings
