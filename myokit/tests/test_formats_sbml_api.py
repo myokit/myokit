@@ -1858,6 +1858,30 @@ class TestSpecies(unittest.TestCase):
             sbml.SBMLError, 'Is_amount <', sbml.Species, self.c,
             sid, 'No', False, False)
 
+    def test_is_boundary(self):
+
+        # Test is boundary
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=True)
+
+        self.assertTrue(species.is_boundary())
+
+        # Test is concentration
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertFalse(species.is_boundary())
+
+        # Test bad boundary
+        sid = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Is_boundary <', sbml.Species, self.c,
+            sid, False, False, 'No')
+
 
 if __name__ == '__main__':
     import warnings
