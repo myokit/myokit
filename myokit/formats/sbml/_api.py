@@ -523,7 +523,7 @@ class Model(object):
                 # Need to convert initial value if
                 # 1. the species is in amount but initial value units are not
                 # 2. the species and the initial value is in concentration
-                if species.is_amount() != species.units_initial_value():
+                if species.is_amount() != species.correct_initial_value():
                     # Get initial compartment size
                     compartment = species.compartment()
                     size = compartment.initial_value()
@@ -1121,7 +1121,7 @@ class Species(Quantity):
 
         # Flag whether initial value is in correct units
         # (amount or concentration)
-        self._units_initial_value = True
+        self._correct_initial_value = True
 
     def is_amount(self):
         """
@@ -1155,6 +1155,12 @@ class Species(Quantity):
             return self._conversion_factor
         return self._compartment._model.conversion_factor()
 
+    def correct_initial_value(self):
+        """
+        Returns a boolean flag whether the initial value has the correct units.
+        """
+        return self._correct_initial_value
+
     def set_conversion_factor(self, factor):
         """
         Sets a :class:`Parameter` as conversion factor for this species,
@@ -1167,19 +1173,16 @@ class Species(Quantity):
 
         self._conversion_factor = factor
 
+    def set_correct_initial_value(self, correct_units):
+        """Sets a flag whether the units of the initial value are correct."""
+        if not isinstance(correct_units, bool):
+            raise SBMLError(
+                'Is_amount <' + str(correct_units) + '> needs to be a boolean.')
+        self._correct_initial_value = correct_units
+
     def set_substance_units(self, units):
         """Sets the units this species amount (not concentration) is in."""
         self._units = units
-
-    def set_units_initial_value(self, flag):
-        """Sets a flag whether the units of the initial value are correct."""
-        self._units_initial_value = flag
-
-    def units_initial_value(self):
-        """
-        Returns a boolean flag whether the initial value has the correct units.
-        """
-        return self._units_initial_value
 
     def sid(self):
         """Returns this species's sid."""

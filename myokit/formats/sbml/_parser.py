@@ -265,7 +265,7 @@ class SBMLParser(object):
             # correct (initialAssignments are meant to assign the value
             # in the correct units amount/concentration)
             if isinstance(var, myokit.formats.sbml.Species):
-                var.set_units_initial_value(True)
+                var.set_correct_initial_value(True)
 
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
@@ -641,14 +641,14 @@ class SBMLParser(object):
             value = element.get('initialAmount')
 
             # Indicate whether units of initial value are correct
-            species.set_units_initial_value(species.is_amount())
+            species.set_correct_initial_value(species.is_amount())
 
             # If initial amount is not provided, get initial concentration
             if value is None:
                 value = element.get('initialConcentration')
 
                 # Indicate whether units of initial value are correct
-                species.set_units_initial_value(not species.is_amount())
+                species.set_correct_initial_value(not species.is_amount())
 
             # Set initial value
             if value is not None:
