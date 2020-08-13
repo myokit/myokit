@@ -1981,6 +1981,34 @@ class TestSpecies(unittest.TestCase):
 
         self.assertEqual(species.sid(), sid)
 
+    def test_substance_units(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check default substance units
+        unit = myokit.units.dimensionless
+        self.assertEqual(species.substance_units(), unit)
+
+        # Check bad units
+        unit = 'mg'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_substance_units, unit)
+
+        # Check model substance units
+        unit = myokit.units.g
+        self.model.set_substance_units(unit)
+
+        self.assertEqual(species.substance_units(), unit)
+
+        # Check species subtance units
+        unit = myokit.units.g * 1E-3
+        species.set_substance_units(unit)
+
+        self.assertEqual(species.substance_units(), unit)
+
 
 if __name__ == '__main__':
     import warnings
