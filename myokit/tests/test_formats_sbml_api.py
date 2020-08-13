@@ -1824,6 +1824,41 @@ class TestReaction(unittest.TestCase):
         self.assertIsInstance(self.r.species(sid), sbml.Species)
 
 
+class TestSpecies(unittest.TestCase):
+    """
+    Unit tests for :class:`Species`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.model = sbml.Model(name='model')
+        cls.c = cls.model.add_compartment(sid='compartment')
+
+    def test_is_amount(self):
+
+        # Test is amount
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=True, is_constant=False,
+            is_boundary=False)
+
+        self.assertTrue(species.is_amount())
+
+        # Test is concentration
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertFalse(species.is_amount())
+
+        # Test bad amount
+        sid = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Is_amount <', sbml.Species, self.c,
+            sid, 'No', False, False)
+
+
 if __name__ == '__main__':
     import warnings
     warnings.simplefilter('always')
