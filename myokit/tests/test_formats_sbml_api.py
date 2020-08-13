@@ -1973,6 +1973,14 @@ class TestSpecies(unittest.TestCase):
         species.set_correct_initial_value(True)
         self.assertTrue(species.correct_initial_value())
 
+    def test_sid(self):
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertEqual(species.sid(), sid)
+
 
 if __name__ == '__main__':
     import warnings
