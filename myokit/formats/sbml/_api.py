@@ -1179,7 +1179,8 @@ class Species(Quantity):
         """Sets a flag whether the units of the initial value are correct."""
         if not isinstance(correct_units, bool):
             raise SBMLError(
-                'Is_amount <' + str(correct_units) + '> needs to be a boolean.')
+                'Is_amount <' + str(correct_units) + '> needs to be a boolean.'
+                )
         self._correct_initial_value = correct_units
 
     def set_substance_units(self, units):
