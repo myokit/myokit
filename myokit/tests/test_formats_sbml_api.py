@@ -1925,6 +1925,32 @@ class TestSpecies(unittest.TestCase):
             sbml.SBMLError, 'Is_constant <', sbml.Species, self.c,
             sid, False, 'No', False)
 
+    def test_conversion_factor(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Test default value
+        self.assertIsNone(species.conversion_factor())
+
+        # Bad conversion factor
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_conversion_factor, 10)
+
+        # Good model conversion factor
+        factor = sbml.Parameter(self.model, 'parameter')
+        self.model.set_conversion_factor(factor)
+
+        self.assertEqual(species.conversion_factor(), factor)
+
+        # Good species conversion factor
+        factor = sbml.Parameter(self.model, 'parameter 2')
+        species.set_conversion_factor(factor)
+
+        self.assertEqual(species.conversion_factor(), factor)
+
 
 if __name__ == '__main__':
     import warnings
