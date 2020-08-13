@@ -397,7 +397,7 @@ class Model(object):
             # (needed for reactions, even if species is defined in
             # concentration)
             var = component.add_variable_allow_renaming(
-                sid + '_amount')
+                convert_name(sid + '_amount'))
 
             # Set unit of amount
             var.set_unit(species.substance_units())
@@ -409,7 +409,7 @@ class Model(object):
             if not species.is_amount():
                 # Add species in concentration
                 var = component.add_variable_allow_renaming(
-                    sid + '_concentration')
+                    convert_name(sid + '_concentration'))
 
                 # Get myokit amount and size variable
                 amount = species_amount_references[sid]
@@ -434,7 +434,7 @@ class Model(object):
             component = component_references[myokit_component_name]
 
             # Add parameter to component
-            var = component.add_variable_allow_renaming(sid)
+            var = component.add_variable_allow_renaming(convert_name(sid))
 
             # Set unit of parameter
             var.set_unit(parameter.units())
@@ -459,7 +459,8 @@ class Model(object):
                     component = component_references[compartment_sid]
 
                     # Add variable to component
-                    var = component.add_variable_allow_renaming(sid)
+                    var = component.add_variable_allow_renaming(
+                        convert_name(sid))
 
                     # Set unit of variable
                     # (SBML defines stoichiometries as dimensionless)
@@ -1180,7 +1181,7 @@ class Species(Quantity):
         if not isinstance(correct_units, bool):
             raise SBMLError(
                 'Is_amount <' + str(correct_units) + '> needs to be a boolean.'
-                )
+            )
         self._correct_initial_value = correct_units
 
     def set_substance_units(self, units):
