@@ -2153,7 +2153,7 @@ class TestModifierSpeciesReference(unittest.TestCase):
         # Check bad species
         species = 'species'
         self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.SpeciesReference, species)
+            sbml.SBMLError, '<', sbml.ModifierSpeciesReference, species)
 
         # Check good species
         self.assertEqual(self.sr.species(), self.species)
