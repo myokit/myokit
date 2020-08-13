@@ -1779,6 +1779,50 @@ class TestReaction(unittest.TestCase):
     def test_sid(self):
         self.assertEqual(self.r.sid(), self.sid)
 
+    def test_species(self):
+
+        # Add modifier species
+        sid = 'modifier_species'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid=sid,
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_modifier(species, sid)
+
+        # Check that species are accessible
+        self.assertIsInstance(self.r.species(sid), sbml.Species)
+
+        # Add product species
+        sid = 'product_species'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid=sid,
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_product(species, sid)
+
+        # Check that species are accessible
+        self.assertIsInstance(self.r.species(sid), sbml.Species)
+
+        # Add reactant species
+        sid = 'reactant_species'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid=sid,
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_reactant(species, sid)
+
+        # Check that species are accessible
+        self.assertIsInstance(self.r.species(sid), sbml.Species)
+
 
 if __name__ == '__main__':
     import warnings
