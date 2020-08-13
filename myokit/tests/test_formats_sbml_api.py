@@ -1680,6 +1680,54 @@ class TestReaction(unittest.TestCase):
             sbml.SBMLError, 'Duplicate SId "', self.r.add_modifier, species,
             sid)
 
+    def test_products(self):
+
+        # Check bad species
+        sid = 'product'
+        species = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.r.add_product, species, sid)
+
+        # Check invalid sid
+        sid = ';'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid SId "', self.r.add_product, species, sid)
+
+        # Check good sid
+        sid = 'product'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_product(species, sid)
+
+        self.assertEqual(len(self.r.products()), 1)
+        self.assertIsInstance(
+            self.r.products()[0], sbml.SpeciesReference)
+
+        # Check duplicate sid
+        sid = 'product'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate SId "', self.r.add_product, species,
+            sid)
+
 
 if __name__ == '__main__':
     import warnings
