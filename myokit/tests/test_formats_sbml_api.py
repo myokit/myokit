@@ -39,6 +39,13 @@ class TestCompartment(unittest.TestCase):
         cls.sid = 'compartment'
         cls.c = cls.model.add_compartment(sid=cls.sid)
 
+    def test_bad_model(self):
+
+        model = 'model'
+        sid = 'compartment'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.Compartment, model, sid)
+
     def test_initial_value(self):
 
         # Check default initial value
@@ -114,6 +121,10 @@ class TestCompartment(unittest.TestCase):
         self.c.set_spatial_dimensions(dim)
 
         self.assertEqual(self.c.spatial_dimensions(), dim)
+
+    def test_string_representation(self):
+
+        self.assertEqual(str(self.c), '<Compartment ' + self.sid + '>')
 
     def test_value(self):
 
@@ -376,6 +387,19 @@ class TestModel(unittest.TestCase):
         self.assertRaisesRegex(
             sbml.SBMLError, 'Duplicate SId "', model.add_species, comp, sid)
 
+    def test_string_representation(self):
+
+        # Check no name provided
+        model = sbml.Model(name=None)
+
+        self.assertEqual(str(model), '<SBMLModel>')
+
+        # Check name provided
+        name = 'model'
+        model = sbml.Model(name='model')
+
+        self.assertEqual(str(model), '<SBMLModel ' + name + '>')
+
     def test_substance_units(self):
 
         model = sbml.Model(name='model')
@@ -453,6 +477,12 @@ class TestModel(unittest.TestCase):
         model.add_unit(unitsid, unit)
 
         self.assertEqual(model.unit(unitsid), unit)
+
+        # Check duplicate unitsid
+        unitsid = 'some_unit'
+        unit = myokit.units.A
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate UnitSId: "', model.add_unit, unitsid, unit)
 
     def test_volume_units(self):
 
@@ -1572,6 +1602,13 @@ class TestParameter(unittest.TestCase):
         cls.sid = 'parameter'
         cls.p = cls.model.add_parameter(sid=cls.sid)
 
+    def test_bad_model(self):
+
+        model = 'model'
+        sid = 'parameter'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.Parameter, model, sid)
+
     def test_initial_value(self):
 
         # Check default initial value
@@ -1601,6 +1638,9 @@ class TestParameter(unittest.TestCase):
 
     def test_sid(self):
         self.assertEqual(self.p.sid(), self.sid)
+
+    def test_string_representation(self):
+        self.assertEqual(str(self.p), '<Parameter ' + self.sid + '>')
 
     def test_units(self):
 
@@ -1642,6 +1682,13 @@ class TestReaction(unittest.TestCase):
         cls.model = sbml.Model(name='model')
         cls.sid = 'reaction'
         cls.r = cls.model.add_reaction(sid=cls.sid)
+
+    def test_bad_model(self):
+
+        model = 'model'
+        sid = 'reaction'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.Reaction, model, sid)
 
     def test_kinetic_law(self):
 
@@ -1850,6 +1897,9 @@ class TestReaction(unittest.TestCase):
         # Check that species are accessible
         self.assertIsInstance(self.r.species(sid), sbml.Species)
 
+    def test_string_representation(self):
+        self.assertEqual(str(self.r), '<Reaction ' + self.sid + '>')
+
 
 class TestSpecies(unittest.TestCase):
     """
@@ -2044,6 +2094,14 @@ class TestSpecies(unittest.TestCase):
             is_boundary=False)
 
         self.assertEqual(species.sid(), sid)
+
+    def test_string_representation(self):
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertEqual(str(species), '<Species ' + sid + '>')
 
     def test_substance_units(self):
 
