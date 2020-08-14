@@ -101,8 +101,14 @@ class Compartment(Quantity):
     """
     def __init__(self, model, sid):
         super(Compartment, self).__init__()
+
+        if not isinstance(model, Model):
+            raise SBMLError(
+                '<' + str(model) + '> needs to be an instance of '
+                'myokit.formats.sbml.Model.')
+
         self._model = model
-        self._sid = sid
+        self._sid = str(sid)
 
         self._spatial_dimensions = None
         self._size_units = None
@@ -154,7 +160,7 @@ class Compartment(Quantity):
         return self._spatial_dimensions
 
     def __str__(self):
-        return '<Compartment ' + str(self._sid) + '>'
+        return '<Compartment ' + self._sid + '>'
 
 
 class Model(object):
@@ -167,9 +173,11 @@ class Model(object):
         A user-friendly name for this model.
 
     """
-    def __init__(self, name):
+    def __init__(self, name=None):
 
-        self._name = convert_name(name)
+        self._name = name
+        if self._name:
+            self._name = convert_name(str(name))
 
         # Optional notes
         self._notes = None
@@ -209,6 +217,9 @@ class Model(object):
 
     def add_compartment(self, sid):
         """Adds an SBML compartment to this model."""
+
+        sid = str(sid)
+
         self._register_sid(sid)
         c = Compartment(self, sid)
         self._compartments[sid] = c
@@ -217,6 +228,9 @@ class Model(object):
 
     def add_parameter(self, sid):
         """Adds a parameter to this model."""
+
+        sid = str(sid)
+
         self._register_sid(sid)
         p = Parameter(self, sid)
         self._parameters[sid] = p
@@ -240,6 +254,8 @@ class Model(object):
             raise SBMLError(
                 '<' + compartment + '> needs to be instance of'
                 'myokit.formats.sbml.Compartment')
+
+        sid = str(sid) if sid else sid
         self._register_sid(sid)
         s = Species(compartment, sid, is_amount, is_constant, is_boundary)
         self._species[sid] = s
@@ -751,9 +767,9 @@ class Model(object):
         raises an error if it's not.
         """
         if not _re_id.match(sid):
-            raise SBMLError('Invalid SId "' + str(sid) + '".')
+            raise SBMLError('Invalid SId "' + sid + '".')
         if sid in self._sids:
-            raise SBMLError('Duplicate SId "' + str(sid) + '".')
+            raise SBMLError('Duplicate SId "' + sid + '".')
         self._sids.add(sid)
 
     def set_area_units(self, units):
@@ -920,8 +936,13 @@ class Parameter(Quantity):
     def __init__(self, model, sid):
         super(Parameter, self).__init__()
 
+        if not isinstance(model, Model):
+            raise SBMLError(
+                '<' + str(model) + '> needs to be an instance of '
+                'myokit.formats.sbml.Model.')
+
         self._model = model
-        self._sid = sid
+        self._sid = str(sid)
         self._units = None
 
     def set_units(self, units):
@@ -937,7 +958,7 @@ class Parameter(Quantity):
         return self._sid
 
     def __str__(self):
-        return '<Parameter ' + str(self._sid) + '>'
+        return '<Parameter ' + self._sid + '>'
 
     def units(self):
         """Returns the units this parameter is in, or ``None`` if not set."""
@@ -958,8 +979,14 @@ class Reaction(object):
 
     """
     def __init__(self, model, sid):
+
+        if not isinstance(model, Model):
+            raise SBMLError(
+                '<' + str(model) + '> needs to be an instance of '
+                'myokit.formats.sbml.Model.')
+
         self._model = model
-        self._sid = sid
+        self._sid = str(sid)
 
         # Reactants, reaction products, and modifiers: all as SpeciesReference
         self._reactants = []
@@ -978,6 +1005,8 @@ class Reaction(object):
             raise SBMLError(
                 '<' + str(species) + '> needs to be an instance of '
                 'myokit.formats.sbml.Species')
+
+        sid = str(sid) if sid else sid
         if sid is not None:
             self._model._register_sid(sid)
         ref = ModifierSpeciesReference(species, sid)
@@ -994,6 +1023,8 @@ class Reaction(object):
             raise SBMLError(
                 '<' + str(species) + '> needs to be an instance of '
                 'myokit.formats.sbml.Species')
+
+        sid = str(sid) if sid else sid
         if sid is not None:
             self._model._register_sid(sid)
         ref = SpeciesReference(species, sid)
@@ -1009,6 +1040,8 @@ class Reaction(object):
             raise SBMLError(
                 '<' + str(species) + '> needs to be an instance of '
                 'myokit.formats.sbml.Species')
+
+        sid = str(sid) if sid else sid
         if sid is not None:
             self._model._register_sid(sid)
         ref = SpeciesReference(species, sid)
@@ -1067,7 +1100,7 @@ class Reaction(object):
         return self._species[sid]
 
     def __str__(self):
-        return '<Reaction ' + str(self._sid) + '>'
+        return '<Reaction ' + self._sid + '>'
 
 
 class Species(Quantity):
@@ -1111,7 +1144,7 @@ class Species(Quantity):
             )
         self._compartment = compartment
 
-        self._sid = sid
+        self._sid = str(sid)
         self._is_amount = bool(is_amount)
         self._is_constant = bool(is_constant)
         self._is_boundary = bool(is_boundary)
@@ -1197,7 +1230,7 @@ class Species(Quantity):
         return self._sid
 
     def __str__(self):
-        return '<Species ' + str(self._sid) + '>'
+        return '<Species ' + self._sid + '>'
 
     def substance_units(self):
         """
@@ -1230,7 +1263,7 @@ class SpeciesReference(Quantity):
                 'myokit.formats.sbml.Species')
 
         self._species = species
-        self._sid = sid
+        self._sid = str(sid) if sid else sid
 
     def species(self):
         """Returns the species this object refers to."""
@@ -1253,7 +1286,7 @@ class ModifierSpeciesReference(object):
                 'myokit.formats.sbml.Species')
 
         self._species = species
-        self._sid = sid
+        self._sid = str(sid) if sid else sid
 
     def species(self):
         """Returns the species this object refers to."""
