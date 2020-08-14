@@ -1324,16 +1324,33 @@ class TestSBMLParser(unittest.TestCase):
         self.assertBad(a + xml + b, 'Unable to parse unit attributes')
 
     def test_tag(self):
+        # Tests handling of different namespaces.
 
-        pass
-        # #TODO:
+        # Create content that raises a missing ID error and therefore
+        # tags the component.
+        xml_content = (
+            '<model>'
+            ' <listOfCompartments>'
+            '  <compartment />'
+            ' </listOfCompartments>'
+            '</model>')
 
-        # sbml_file = (
-        #     '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
-        #     ' level="' + str(level) + '"'
-        #     ' version="' + str(version) + '">'
-        #     + xml_content +
-        #     '</sbml>'
+        # Test SBML 3.2 namespace
+        level = 3
+        version = 2
+        lv = 'level' + str(level) + '/version' + str(version)
+        sbml_file = (
+            '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
+            ' level="' + str(level) + '"'
+            ' version="' + str(version) + '">'
+            + xml_content +
+            '</sbml>')
+
+        tag = 'sbml:compartment'
+        message = 'Element ' + tag + ' is missing required'
+
+        self.assertRaisesRegex(
+            SBMLParsingError, message, self.p.parse_string, sbml_file)
 
 
 '''
