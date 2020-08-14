@@ -1347,6 +1347,17 @@ class SBMLParserTest(unittest.TestCase):
             '</unitDefinition>')
         self.assertBad(a + xml + b, 'Unable to parse unit attributes')
 
+    def test_tag(self):
+
+        pass
+        # #TODO:
+
+        # sbml_file = (
+        #     '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
+        #     ' level="' + str(level) + '"'
+        #     ' version="' + str(version) + '">'
+        #     + xml_content +
+        #     '</sbml>'
 
 class SBMLTestSuiteExamplesTest(unittest.TestCase):
     """
