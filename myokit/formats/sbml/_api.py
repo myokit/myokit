@@ -169,7 +169,7 @@ class Model(object):
     """
     def __init__(self, name):
 
-        self._name = name
+        self._name = convert_name(name)
 
         # Optional notes
         self._notes = None
@@ -1272,6 +1272,6 @@ def convert_name(name):
     underscore.
     """
     if name[:1] == '_':
-        name = 'underscore_' + name
+        name = 'underscore' + name
     return name
 

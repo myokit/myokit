@@ -504,23 +504,30 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_compartments_exist(self):
         # Tests compartment conversion from SBML to myokit model.
 
-        a = '<model><listOfCompartments>'
-        b = '</listOfCompartments></model>'
-
         # Test simple compartment
-        x = '<compartment id="a" />'
-        m = self.parse(a + x + b)
+        m = sbml.Model(name='model')
+        sid = 'compartment'
+        m.add_compartment(sid=sid)
         m = m.myokit_model()
 
         # Check whether component 'a' exists
-        self.assertTrue(m.has_component('a'))
+        self.assertTrue(m.has_component(sid))
 
         # Check whether component 'myokit' exists
+        sid = 'myokit'
         self.assertTrue(m.has_component('myokit'))
 
         # Check that number of components is as expected
         # (component 'a' and 'myokit')
         self.assertEqual(m.count_components(), 2)
+
+        # Test compartment sid with leading underscore
+        m = sbml.Model(name='model')
+        sid = '_compartment'
+        m.add_compartment(sid=sid)
+        m = m.myokit_model()
+
+        self.assertTrue(m.has_component('underscore' + sid))
 
     def test_compartment_size_exists(self):
         # Tests whether compartment size variable is created.
@@ -660,6 +667,26 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Check that number of components is as expected
         # (component 'a' and 'myokit')
         self.assertEqual(m.count_components(), 2)
+
+    def test_name(self):
+
+        # Test regular name
+        name = 'model'
+        m = sbml.Model(name=name)
+        m = m.myokit_model()
+
+        self.assertEqual(m.name(), name)
+
+        # Test name with leading underscore
+        name = '_model'
+        m = sbml.Model(name=name)
+        m = m.myokit_model()
+
+        self.assertEqual(m.name(), 'underscore' + name)
+
+    def test_notes(self):
+
+        pass
 
     def test_species_exist(self):
         # Tests whether species initialisation in amount and concentration
