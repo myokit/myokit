@@ -437,7 +437,7 @@ class SBMLParserTest(unittest.TestCase):
              '     <apply><power /><cn>1</cn></apply>'
              '   </math>'
              '  </initialAssignment>')
-        self.assertBad(a + x + c, 'Unable to parse MathML: Expect')
+        self.assertBad(a + x + c, r'Expecting 2 operand\(s\), got 1 for power')
 
         # Missing symbol: error
         x = '<initialAssignment />'

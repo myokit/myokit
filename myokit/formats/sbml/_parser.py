@@ -14,7 +14,7 @@ from __future__ import print_function, unicode_literals
 import re
 import warnings
 
-import xml.etree.ElementTree as ET
+from lxml import etree
 
 import myokit
 import myokit.units
@@ -122,7 +122,8 @@ class SBMLParser(object):
         """
         # Read file
         try:
-            tree = ET.parse(path)
+            parser = etree.XMLParser(remove_comments=True)
+            tree = etree.parse(path, parser=parser)
         except Exception as e:
             raise SBMLParsingError('Unable to parse XML: ' + str(e))
 
@@ -136,7 +137,7 @@ class SBMLParser(object):
         """
         # Read string
         try:
-            root = ET.fromstring(text)
+            root = etree.fromstring(text)
         except Exception as e:
             raise SBMLParsingError('Unable to parse XML: ' + str(e))
 
@@ -431,7 +432,7 @@ class SBMLParser(object):
     def _parse_notes(self, element, model):
         """Parses a model's ``notes`` element, converting it to plain text."""
 
-        notes = ET.tostring(element).decode()
+        notes = etree.tostring(element).decode()
         notes = myokit.formats.html.html2ascii(notes, width=75)
         if notes:
             model.set_notes(notes)
