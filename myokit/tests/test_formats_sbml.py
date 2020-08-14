@@ -105,7 +105,7 @@ class SBMLParserTest(unittest.TestCase):
         #  - TODO
         # Units do not have SIds, but their own UnitSIds.
 
-        '''
+
         # Coinciding compartment and parameter ids
         xml = (
             '<model id="test" '
@@ -117,7 +117,7 @@ class SBMLParserTest(unittest.TestCase):
             '<parameter id="someId"/>'
             '</listOfParameters>'
             '</model>')
-        self.assertBad(xml, 'Duplicate parameter id')
+        self.assertBad(xml, 'Unable to parse compartment "')
 
         # Coinciding compartment and species ids
         xml = (
@@ -132,7 +132,7 @@ class SBMLParserTest(unittest.TestCase):
             ' boundaryCondition="true" />'
             '</listOfSpecies>'
             '</model>')
-        self.assertBad(xml, 'Duplicate species id')
+        self.assertBad(xml, 'Unable to parse ')
 
         # Coinciding parameter and species ids
         xml = (
@@ -150,7 +150,7 @@ class SBMLParserTest(unittest.TestCase):
             ' boundaryCondition="true" />'
             '</listOfSpecies>'
             '</model>')
-        self.assertBad(xml, 'Duplicate species id')
+        self.assertBad(xml, 'Unable to parse ')
 
         # Coinciding parameter and reactant stoichiometry IDs
         stoich_id = 'someStoich'
@@ -168,7 +168,7 @@ class SBMLParserTest(unittest.TestCase):
             '/>'
             '</listOfSpecies>'
             '<listOfReactions>'
-            '<reaction >'
+            '<reaction id="reaction">'
             '<listOfReactants>'
             '<speciesReference species="someSpecies" '
             'id="' + stoich_id + '"/>'
@@ -176,10 +176,7 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        with WarningCollector() as w:
-            self.assertBad(xml=xml, message='Stoichiometry ID is not unique.')
-        self.assertEqual(w.count(), 1)
-        self.assertIn('Stoichiometry has not been set', w.text())
+        self.assertBad(xml=xml, message='Unable to parse ')
 
         # Coinciding parameter and product stoichiometry IDs
         stoich_id = 'someStoich'
@@ -197,7 +194,7 @@ class SBMLParserTest(unittest.TestCase):
             '/>'
             '</listOfSpecies>'
             '<listOfReactions>'
-            '<reaction >'
+            '<reaction id="reaction">'
             '<listOfProducts>'
             '<speciesReference species="someSpecies" '
             'id="' + stoich_id + '"/>'
@@ -205,11 +202,7 @@ class SBMLParserTest(unittest.TestCase):
             '</reaction>'
             '</listOfReactions>'
             '</model>')
-        with WarningCollector() as w:
-            self.assertBad(xml=xml, message='Stoichiometry ID is not unique.')
-        self.assertEqual(w.count(), 1)
-        self.assertIn('Stoichiometry has not been set', w.text())
-        '''
+        self.assertBad(xml=xml, message='Unable to parse ')
 
     def test_parse_algebraic_rule(self):
         # Tests parsing algebraic rules (not supported)
@@ -1135,6 +1128,16 @@ class SBMLParserTest(unittest.TestCase):
         with WarningCollector() as w:
             p = self.parse(a + x + b).parameter('y')
         self.assertIn('Rule does not define any mathematics', w.text())
+
+        # Bad maths: error
+        x = ('<listOfRules>'
+             '  <assignmentRule variable="sx">'
+             '  <math xmlns="http://www.w3.org/1998/Math/MathML">'
+             '   some invalid maths'
+             '  </math>'
+             '  </assignmentRule>'
+             '</listOfRules>')
+        self.assertBad(a + x + b, 'Unable to parse rule: ')
 
         # Missing symbol: error
         x = ('<listOfRules>'
