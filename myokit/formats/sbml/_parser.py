@@ -790,17 +790,10 @@ class SBMLParser(object):
         Returns an element's name, but changes the syntax from ``{...}tag`` to
         ``sbml:tag`` for SBML elements.
         """
-        ns, el = myokit.formats.xml.split(element.tag)
+        _, el = myokit.formats.xml.split(element.tag)
 
         # Replace known namespaces
-        if ns is None:
-            tag = el
-        elif ns == self._ns:
-            tag = 'sbml:' + el
-        elif ns == NS_MATHML:
-            tag = 'mathml:' + el
-        else:
-            tag = '{' + ns + '}' + el
+        tag = 'sbml:' + el
 
         # Add id if known
         sid = element.get('id', element.get('unitsid'))
