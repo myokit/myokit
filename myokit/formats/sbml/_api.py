@@ -31,15 +31,15 @@ class Quantity(object):
 
     def initial_value(self):
         """
-        Returns an expression for this quantity's initial value, or ``None`` if
-        not set.
+        Returns a :class:`myokit.Expression` for this quantity's initial value,
+         or ``None`` if not set.
         """
         return self._initial_value
 
     def is_rate(self):
         """
-        Returns ``True`` only if this quantity's value is defined through a
-        rate.
+        Returns ``True`` if this quantity's value is defined through a rate,
+        else ``False``.
         """
         return self._is_rate
 
@@ -77,8 +77,8 @@ class Quantity(object):
 
     def value(self):
         """
-        Returns an expression for this quantity's value, or ``None`` if not
-        set.
+        Returns a :class:`myokit.Expression` for this quantity's value, or
+        ``None`` if not set.
         """
         return self._value
 
@@ -94,7 +94,7 @@ class Compartment(Quantity):
     Arguments:
 
     ``model``
-        The model this compartment is in.
+        The :class:`myokit.formats.sbml.Model` this compartment is in.
     ``sid``
         This compartment's SId.
 
@@ -122,7 +122,7 @@ class Compartment(Quantity):
         self._spatial_dimensions = float(dimensions)
 
     def set_size_units(self, units):
-        """Sets the units for this compartment's size."""
+        """Sets the :class:`myokit.Unit` for this compartment's size."""
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
@@ -135,7 +135,7 @@ class Compartment(Quantity):
 
     def size_units(self):
         """
-        Returns the units this compartment's size is in.
+        Returns the units of this compartment's size.
 
         If not set explicitly, the units will be retrieved from the model. If
         not set there either, units of dimensionless are returned.
@@ -216,7 +216,7 @@ class Model(object):
         self._conversion_factor = None
 
     def add_compartment(self, sid):
-        """Adds an SBML compartment to this model."""
+        """Adds a :class:`myokit.formats.sbml.Compartment` to this model."""
 
         sid = str(sid)
 
@@ -227,7 +227,7 @@ class Model(object):
         return c
 
     def add_parameter(self, sid):
-        """Adds a parameter to this model."""
+        """Adds a :class:`myokit.formats.sbml.Parameter` to this model."""
 
         sid = str(sid)
 
@@ -238,7 +238,7 @@ class Model(object):
         return p
 
     def add_reaction(self, sid):
-        """Adds a reaction to this model."""
+        """Adds a :class:`myokit.formats.sbml.Reaction` to this model."""
         self._register_sid(sid)
         r = Reaction(self, sid)
         self._reactions[sid] = r
@@ -248,7 +248,8 @@ class Model(object):
             self, compartment, sid, is_amount=False, is_constant=False,
             is_boundary=False):
         """
-        Adds a species to this model (located in the given ``compartment``).
+        Adds a :class:`myokit.formats.sbml.Species` to this model (located in
+        the given ``compartment``).
         """
         if not isinstance(compartment, Compartment):
             raise SBMLError(
