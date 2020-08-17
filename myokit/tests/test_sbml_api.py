@@ -482,7 +482,8 @@ class TestModel(unittest.TestCase):
         unitsid = 'some_unit'
         unit = myokit.units.A
         self.assertRaisesRegex(
-            sbml.SBMLError, 'Duplicate UnitSId: "', model.add_unit, unitsid, unit)
+            sbml.SBMLError, 'Duplicate UnitSId: "',
+            model.add_unit, unitsid, unit)
 
     def test_volume_units(self):
 
@@ -575,16 +576,10 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
     def test_compartment_size_unit(self):
         # Tests whether compartment size variable units are set correctly.
-
-        a = '<model><listOfCompartments>'
-        b = '</listOfCompartments></model>'
-
-        # Test simple compartment
-        x = '<compartment id="c" units="meter"/>'
-        m = self.parse(a + x + b)
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_size_units(myokit.units.m)
         m = m.myokit_model()
-
-        # Check that units are set correctly
         var = m.get('c.size')
         self.assertEqual(var.unit(), myokit.units.meter)
 
@@ -716,7 +711,13 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
     def test_notes(self):
 
-        pass
+        # Test that notes are set as meta data
+        n = 'These are some notes'
+        m = sbml.Model()
+        m.set_notes(n)
+        m = m.myokit_model()
+
+        self.assertEqual(m.meta['desc'], n)
 
     def test_species_exist(self):
         # Tests whether species initialisation in amount and concentration
