@@ -84,14 +84,6 @@ class SBMLParser(object):
     Parses SBML models, creating an SBML Model structure that can be converted
     to a :class:`myokit.Model` object.
 
-    General notes:
-
-    - Component and variable names are created from ``id`` attributes, and
-      ``name`` attributes are ignored. (Names are not typically required,
-      while ids are; ids are almost myokit identifiers already (except that
-      they can start with an underscore); and ids are guaranteed to be
-      unique).
-
     Support notes:
 
     - SBML older than Level 2 version 1 is unlikely to work.

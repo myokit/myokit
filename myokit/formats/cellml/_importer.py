@@ -24,7 +24,7 @@ class CellMLImporterError(myokit.ImportError):
 
 class CellMLImporter(myokit.formats.Importer):
     """
-    This:class:`Importer <myokit.formats.Importer>` imports a model definition
+    This :class:`Importer <myokit.formats.Importer>` imports a model definition
     from CellML.
     """
     def __init__(self, verbose=False):

@@ -482,8 +482,8 @@ class TestModel(unittest.TestCase):
         unitsid = 'some_unit'
         unit = myokit.units.A
         self.assertRaisesRegex(
-            sbml.SBMLError, 'Duplicate UnitSId: "', model.add_unit, unitsid,
-            unit)
+            sbml.SBMLError, 'Duplicate UnitSId: "',
+            model.add_unit, unitsid, unit)
 
     def test_volume_units(self):
 
@@ -609,14 +609,13 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
     def test_notes(self):
 
-        m = sbml.Model(name='model')
-
-        notes = 'some notes'
-        m.set_notes(notes)
-
+        # Test that notes are set as meta data
+        n = 'These are some notes'
+        m = sbml.Model()
+        m.set_notes(n)
         m = m.myokit_model()
 
-        self.assertEqual(m.meta['desc'], notes)
+        self.assertEqual(m.meta['desc'], n)
 
     def test_species_exist(self):
         # Tests whether species initialisation in amount and concentration

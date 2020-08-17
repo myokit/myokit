@@ -8,18 +8,14 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import os
 import unittest
-
-import numpy as np
 
 import myokit
 import myokit.formats
 import myokit.formats.sbml
 from myokit.formats.sbml import SBMLParser, SBMLParsingError
 
-# from shared import DIR_FORMATS, WarningCollector
-from shared import DIR_FORMATS, WarningCollector
+from shared import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -76,11 +72,7 @@ class TestSBMLParser(unittest.TestCase):
         # Checks that an error is thrown when an SId is used twice.
         # Nearly every object can have an SId, but Myokit only checks:
         #  compartments, species, species references, reactions, parameters
-        # In this test, we cross-test:
-        #  - TODO
-        #  - TODO
         # Units do not have SIds, but their own UnitSIds.
-
 
         # Coinciding compartment and parameter ids
         xml = (

@@ -339,13 +339,13 @@ class Model(object):
 
     def myokit_model(self):
         """
-        Converts this model to a :class:`myokit.Model`.
+        Converts this SBML model to a :class:`myokit.Model`.
 
         SBML IDs are used for naming components and variables. If an ID starts
-        with an underscore, the myokit name will be converter to
+        with an underscore, the myokit name will be converted to
         `underscore<name>`.
 
-        Compartments defined by the SBML file are mapped to myokit.Components.
+        Compartments defined by the SBML file are mapped to Myokit Components.
         """
 
         # Create myokit model
