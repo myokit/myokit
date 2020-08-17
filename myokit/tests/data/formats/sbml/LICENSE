@@ -1,4 +1,5 @@
-The file 00004-sbml-l3v2-modified.xml is adapted from the file 00004-sbml-l3v2.xml downloaded from
+The files starting "00001-sbml", "00004-sbml", and "01103-sbml" were downloaded
+(and/or adapted) from
 
     The SBML Test Suite Database
     http://sbml.org/Facilities/Database/
@@ -6,3 +7,12 @@ The file 00004-sbml-l3v2-modified.xml is adapted from the file 00004-sbml-l3v2.x
 For copyright information, please see
 
     https://github.com/sbmlteam/sbml-test-suite/blob/master/LICENSE.html
+
+
+The file HodgkinHuxley.xml was downloaded from
+
+    BioModels Database: A Database of Annotated Published Models.
+
+For copyright information, please see
+
+    https://www.ebi.ac.uk/biomodels/termsofuse
