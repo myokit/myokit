@@ -5,7 +5,8 @@ CellML
 ******
 
 Methods to import and export CellML 1.0, 1.1, and 2.0 are provided.
-For further CellML functions, see :ref:`CellML API <formats/cellml_v1>`
+For further CellML functions, see :ref:`CellML 1 API <formats/cellml_v1>` and
+:ref:`CellML 2 API <formats/cellml_v2>`.
 
 Importing
 =========
@@ -105,7 +106,6 @@ Imports, exporters, and expression writers
 .. autofunction:: importers
 
 .. autoclass:: CellMLImporter
-    :inherited-members:
 
 .. autoclass:: CellMLImporterError
 
