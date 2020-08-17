@@ -482,7 +482,8 @@ class TestModel(unittest.TestCase):
         unitsid = 'some_unit'
         unit = myokit.units.A
         self.assertRaisesRegex(
-            sbml.SBMLError, 'Duplicate UnitSId: "', model.add_unit, unitsid, unit)
+            sbml.SBMLError, 'Duplicate UnitSId: "', model.add_unit, unitsid,
+            unit)
 
     def test_volume_units(self):
 
@@ -531,19 +532,50 @@ class SBMLTestMyokitModel(unittest.TestCase):
             '</sbml>'
         )
 
-    def test_compartments_exist(self):
+    def test_compartments(self):
         # Tests compartment conversion from SBML to myokit model.
 
-        # Test simple compartment
-        m = sbml.Model(name='model')
+        # Create model with a compartment
+        sbml_model = sbml.Model(name='model')
         sid = 'compartment'
-        m.add_compartment(sid=sid)
-        m = m.myokit_model()
+        comp = sbml_model.add_compartment(sid=sid)
 
-        # Check whether component 'a' exists
+        # Check sid
+        m = sbml_model.myokit_model()
+
         self.assertTrue(m.has_component(sid))
 
-        # Check whether component 'myokit' exists
+        # Check size: initial value
+        value = myokit.Number(3)
+        comp.set_initial_value(value)
+        m = sbml_model.myokit_model()
+        size = m.get(sid + '.size')
+        self.assertEqual(size.rhs(), value)
+
+        # Check size: unit
+        unit = myokit.units.L
+        comp.set_size_units(unit)
+        m = sbml_model.myokit_model()
+        size = m.get(sid + '.size')
+        self.assertEqual(size.unit(), unit)
+
+        # Check size: value, no rate
+        value = myokit.Number(2)
+        comp.set_value(value)
+        m = sbml_model.myokit_model()
+        size = m.get(sid + '.size')
+        self.assertEqual(size.rhs(), value)
+        self.assertFalse(size.is_state())
+
+        # Check size: value, rate
+        value = myokit.Number(10)
+        comp.set_value(value, is_rate=True)
+        m = sbml_model.myokit_model()
+        size = m.get(sid + '.size')
+        self.assertEqual(size.rhs(), value)
+        self.assertTrue(size.is_state())
+
+        # Check 'myokit' component
         sid = 'myokit'
         self.assertTrue(m.has_component('myokit'))
 
@@ -552,151 +584,12 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(m.count_components(), 2)
 
         # Test compartment sid with leading underscore
-        m = sbml.Model(name='model')
+        sbml_model = sbml.Model(name='model')
         sid = '_compartment'
-        m.add_compartment(sid=sid)
-        m = m.myokit_model()
+        sbml_model.add_compartment(sid=sid)
+        m = sbml_model.myokit_model()
 
         self.assertTrue(m.has_component('underscore' + sid))
-
-    def test_compartment_size_exists(self):
-        # Tests whether compartment size variable is created.
-
-        a = '<model><listOfCompartments>'
-        b = '</listOfCompartments></model>'
-
-        # Test simple compartment
-        x = '<compartment id="c" />'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that size variable exists
-        self.assertTrue(m.has_variable('c.size'))
-
-    def test_compartment_size_unit(self):
-        # Tests whether compartment size variable units are set correctly.
-
-        a = '<model><listOfCompartments>'
-        b = '</listOfCompartments></model>'
-
-        # Test simple compartment
-        x = '<compartment id="c" units="meter"/>'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that units are set correctly
-        var = m.get('c.size')
-        self.assertEqual(var.unit(), myokit.units.meter)
-
-    def test_compartment_size_initial_value(self):
-        # Tests whether setting the intial value of size variable works.
-
-        a = '<model><listOfCompartments>' \
-            + '<compartment id="c" size="10"/>' \
-            + '</listOfCompartments>'
-
-        b = '</model>'
-
-        # Test 1: Initial value assigned from compartment
-        m = self.parse(a + b)
-        m = m.myokit_model()
-
-        # Check initial value of size
-        var = m.get('c.size')
-        self.assertEqual(var.eval(), 10)
-
-        # Test 2: Initial value assigned by initialAssignment
-        x = '<listOfInitialAssignments>' + \
-            '  <initialAssignment symbol="c">' + \
-            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
-            '      <cn>5</cn>' + \
-            '    </math>' + \
-            '  </initialAssignment>' + \
-            '</listOfInitialAssignments>'
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check initial value of size
-        var = m.get('c.size')
-        self.assertEqual(var.eval(), 5)
-
-    def test_compartment_size_values(self):
-        # Tests whether setting the value of the size variable works.
-
-        a = '<model><listOfCompartments>' + \
-            '  <compartment id="c" size="10"/>' + \
-            '</listOfCompartments>' + \
-            '<listOfParameters>' + \
-            '  <parameter id="V" value="1.2">' + \
-            '  </parameter>' + \
-            '</listOfParameters>'
-
-        b = '</model>'
-
-        # Test I: Set by assignmentRule
-        x = '<listOfRules>' + \
-            '  <assignmentRule variable="c"> ' + \
-            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
-            '      <apply>' + \
-            '        <plus/>' + \
-            '        <ci> V </ci>' + \
-            '        <cn> 5 </cn>' + \
-            '      </apply>' + \
-            '    </math>' + \
-            '  </assignmentRule>' + \
-            '</listOfRules>'
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check initial value of size
-        var = m.get('c.size')
-        self.assertEqual(var.eval(), 6.2)
-
-        # Test II: Set by rateRule
-        x = '<listOfRules>' + \
-            '  <rateRule variable="c"> ' + \
-            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
-            '      <apply>' + \
-            '        <plus/>' + \
-            '        <ci> V </ci>' + \
-            '        <cn> 5 </cn>' + \
-            '      </apply>' + \
-            '    </math>' + \
-            '  </rateRule>' + \
-            '</listOfRules>'
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that size is state variable
-        var = m.get('c.size')
-        self.assertTrue(var.is_state())
-
-        # Check that value is set correctly
-        self.assertEqual(var.eval(), 6.2)
-
-    def test_existing_myokit_compartment(self):
-        # Tests whether renaming of 'myokit' compartment works.
-
-        a = '<model><listOfCompartments>'
-        b = '</listOfCompartments></model>'
-
-        # Test simple compartment
-        x = '<compartment id="myokit" />'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check whether component 'a' exists
-        self.assertTrue(m.has_component('myokit'))
-
-        # Check whether component 'myokit' exists
-        self.assertTrue(m.has_component('myokit_1'))
-
-        # Check that number of components is as expected
-        # (component 'a' and 'myokit')
-        self.assertEqual(m.count_components(), 2)
 
     def test_name(self):
 
@@ -716,7 +609,14 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
     def test_notes(self):
 
-        pass
+        m = sbml.Model(name='model')
+
+        notes = 'some notes'
+        m.set_notes(notes)
+
+        m = m.myokit_model()
+
+        self.assertEqual(m.meta['desc'], notes)
 
     def test_species_exist(self):
         # Tests whether species initialisation in amount and concentration

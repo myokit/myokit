@@ -372,78 +372,19 @@ class Model(object):
         # expressions are added in a second step.
 
         # Add SBML compartments to myokit model
-        for sid, compartment in self._compartments.items():
-            # Create component for compartment
-            component = myokit_model.add_component_allow_renaming(
-                convert_name(sid))
+        self._add_compartments(
+            myokit_model, component_references, variable_references,
+            expression_references)
 
-            # Add component to reference list
-            component_references[sid] = component
-
-            # Add compartment size to component
-            var = component.add_variable_allow_renaming('size')
-
-            # Set unit of size variable
-            var.set_unit(compartment.size_units())
-
-            # Add size variable to reference list
-            variable_references[sid] = var
-            expression_references[myokit.Name(compartment)] = myokit.Name(var)
-
-        # Add myokit component to model to store time bound variable
-        # and global parameters
-
-        # Create default name of component
-        myokit_component_name = 'myokit'
-
-        # Add component
-        component = myokit_model.add_component_allow_renaming(
-            myokit_component_name)
-
-        # Add myokit component to referece list
-        component_references[myokit_component_name] = component
+        # Add myokit component to model
+        # It stores time bound variable and global parameters
+        myokit_component_name = self._add_myokit_component(
+            myokit_model, component_references)
 
         # Add species to components
-        for sid, species in self._species.items():
-            # Get component from reference list
-            compartment = species.compartment()
-            compartment_sid = compartment.sid()
-            component = component_references[compartment_sid]
-
-            # Add species in amount to component
-            # (needed for reactions, even if species is defined in
-            # concentration)
-            var = component.add_variable_allow_renaming(
-                convert_name(sid + '_amount'))
-
-            # Set unit of amount
-            var.set_unit(species.substance_units())
-
-            # Add reference to amount variable
-            species_amount_references[sid] = var
-
-            # Add species in concentration if measured in concentration
-            if not species.is_amount():
-                # Add species in concentration
-                var = component.add_variable_allow_renaming(
-                    convert_name(sid + '_concentration'))
-
-                # Get myokit amount and size variable
-                amount = species_amount_references[sid]
-                size = variable_references[compartment_sid]
-
-                # Set unit of concentration
-                var.set_unit(amount.unit() / size.unit())
-
-                # Define RHS of concentration as amount / size
-                rhs = myokit.Divide(
-                    myokit.Name(amount),
-                    myokit.Name(size))
-                var.set_rhs(rhs)
-
-            # Add reference to species (either in amount or concentration)
-            variable_references[sid] = var
-            expression_references[myokit.Name(species)] = myokit.Name(var)
+        self._add_species(
+            component_references, species_amount_references,
+            variable_references, expression_references)
 
         # Add parameters to myokit component
         for sid, parameter in self._parameters.items():
@@ -880,6 +821,97 @@ class Model(object):
         compartments, or dimensionless if not set.
         """
         return self._volume_units
+
+    def _add_compartments(
+            self, myokit_model, component_references, variable_references,
+            expression_references):
+        """
+        Creates components for each compartment.
+        """
+        for sid, compartment in self._compartments.items():
+            # Create component for compartment
+            component = myokit_model.add_component_allow_renaming(
+                convert_name(sid))
+
+            # Add component to reference list
+            component_references[sid] = component
+
+            # Add compartment size to component
+            var = component.add_variable_allow_renaming('size')
+
+            # Set unit of size variable
+            var.set_unit(compartment.size_units())
+
+            # Add size variable to reference list
+            variable_references[sid] = var
+            expression_references[myokit.Name(compartment)] = myokit.Name(var)
+
+    def _add_myokit_component(self, myokit_model, component_references):
+        """
+        Creates myokit component. It is used to store global parameters of the
+        model and the time bound variable.
+        """
+
+        # Create default name of component
+        myokit_component_name = 'myokit'
+
+        # Add component
+        component = myokit_model.add_component_allow_renaming(
+            myokit_component_name)
+
+        # Add myokit component to referece list
+        component_references[myokit_component_name] = component
+
+        return myokit_component_name
+
+    def _add_species(
+            self, component_references, species_amount_references,
+            variable_references, expression_references):
+        """
+        Adds amount (and potentially concentration) variables for each species
+        to the respective components.
+        """
+
+        for sid, species in self._species.items():
+            # Get component from reference list
+            compartment = species.compartment()
+            compartment_sid = compartment.sid()
+            component = component_references[compartment_sid]
+
+            # Add species in amount to component
+            # (needed for reactions, even if species is defined in
+            # concentration)
+            var = component.add_variable_allow_renaming(
+                convert_name(sid + '_amount'))
+
+            # Set unit of amount
+            var.set_unit(species.substance_units())
+
+            # Add reference to amount variable
+            species_amount_references[sid] = var
+
+            # Add species in concentration if measured in concentration
+            if not species.is_amount():
+                # Add species in concentration
+                var = component.add_variable_allow_renaming(
+                    convert_name(sid + '_concentration'))
+
+                # Get myokit amount and size variable
+                amount = species_amount_references[sid]
+                size = variable_references[compartment_sid]
+
+                # Set unit of concentration
+                var.set_unit(amount.unit() / size.unit())
+
+                # Define RHS of concentration as amount / size
+                rhs = myokit.Divide(
+                    myokit.Name(amount),
+                    myokit.Name(size))
+                var.set_rhs(rhs)
+
+            # Add reference to species (either in amount or concentration)
+            variable_references[sid] = var
+            expression_references[myokit.Name(species)] = myokit.Name(var)
 
     # SBML base units (except Celsius, because it's not defined in myokit)
     _base_units = {
