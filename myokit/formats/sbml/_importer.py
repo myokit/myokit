@@ -17,15 +17,21 @@ class SBMLImporter(myokit.formats.Importer):
     """
     This :class:`Importer <myokit.formats.Importer>` loads model definitions
     from files in SBML format.
+
+    Not all SBML features are supported, see
+    :class:`myokit.formats.sbml.SBMLParser`.
     """
     def __init__(self):
         super(SBMLImporter, self).__init__()
 
     def supports_model(self):
-        """See :meth:`myokit.formats.Importer.supports_model`."""
+        """Returns ``True``."""
         return True
 
     def model(self, path):
-        """See :meth:`myokit.formats.Importer.model`."""
+        """
+        Reads the SBML model stored at ``path`` and returns a Myokit model.
+        """
         parser = myokit.formats.sbml.SBMLParser()
-        return parser.parse_file(path)
+        model = parser.parse_file(path)
+        return model.myokit_model()
