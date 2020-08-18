@@ -511,6 +511,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def setUpClass(cls):
         cls.p = SBMLParser()
 
+        #
+
     def parse(self, xml, lvl=3, v=2):
         """
         Inserts the given ``xml`` into an <sbml> element, parses it, and
@@ -532,64 +534,280 @@ class SBMLTestMyokitModel(unittest.TestCase):
             '</sbml>'
         )
 
-    def test_compartments(self):
-        # Tests compartment conversion from SBML to myokit model.
+    def test_add_compartments(self):
+        # Tests whether compartments are added properly to the myokit model.
 
-        # Create model with a compartment
-        sbml_model = sbml.Model(name='model')
+        # Create inputs
+        myokit_model = myokit.Model()
+        component_references = {}
+        variable_references = {}
+        expression_references = {}
+
+        # Create sbml.Model with one compartment
+        m = sbml.Model(name='model')
         sid = 'compartment'
-        comp = sbml_model.add_compartment(sid=sid)
-
-        # Check sid
-        m = sbml_model.myokit_model()
-
-        self.assertTrue(m.has_component(sid))
-
-        # Check size: initial value
-        value = myokit.Number(3)
-        comp.set_initial_value(value)
-        m = sbml_model.myokit_model()
-        size = m.get(sid + '.size')
-        self.assertEqual(size.rhs(), value)
-
-        # Check size: unit
+        c = m.add_compartment(sid)
         unit = myokit.units.L
-        comp.set_size_units(unit)
-        m = sbml_model.myokit_model()
-        size = m.get(sid + '.size')
-        self.assertEqual(size.unit(), unit)
+        c.set_size_units(unit)
 
-        # Check size: value, no rate
-        value = myokit.Number(2)
-        comp.set_value(value)
-        m = sbml_model.myokit_model()
-        size = m.get(sid + '.size')
-        self.assertEqual(size.rhs(), value)
-        self.assertFalse(size.is_state())
+        # Add compartment to myokit model
+        m._add_compartments(
+            myokit_model, component_references, variable_references,
+            expression_references)
 
-        # Check size: value, rate
-        value = myokit.Number(10)
-        comp.set_value(value, is_rate=True)
-        m = sbml_model.myokit_model()
-        size = m.get(sid + '.size')
-        self.assertEqual(size.rhs(), value)
-        self.assertTrue(size.is_state())
+        # Check that compartment was added properly
+        self.assertTrue(myokit_model.has_component(sid))
+        self.assertIsInstance(component_references[sid], myokit.Component)
 
-        # Check 'myokit' component
+        # Check size variable is set properly
+        self.assertIn(sid, variable_references.keys())
+        var = variable_references[sid]
+        self.assertIsInstance(var, myokit.Variable)
+        self.assertEqual(var.unit(), unit)
+        self.assertEqual(
+            expression_references[myokit.Name(c)], myokit.Name(var))
+
+    def test_add_myokit_component(self):
+        # Tests whether myokit component is added properly to the myokit model.
+
+        # Create inputs
+        myokit_model = myokit.Model()
+        component_references = {}
+
+        # Create sbml.Model
+        m = sbml.Model(name='model')
+
+        # Add component to myokit model
+        m._add_myokit_component(myokit_model, component_references)
+
+        # Check that myokit component exists
         sid = 'myokit'
-        self.assertTrue(m.has_component('myokit'))
+        self.assertTrue(myokit_model.has_component(sid))
+        self.assertIsInstance(component_references[sid], myokit.Component)
 
-        # Check that number of components is as expected
-        # (component 'a' and 'myokit')
-        self.assertEqual(m.count_components(), 2)
+    def test_add_parameters(self):
+        # Tests whether parameters are added properly to myokit component.
 
-        # Test compartment sid with leading underscore
-        sbml_model = sbml.Model(name='model')
-        sid = '_compartment'
-        sbml_model.add_compartment(sid=sid)
-        m = sbml_model.myokit_model()
+        # Create myokit component
+        myokit_model = myokit.Model()
+        component_references = {}
+        m = sbml.Model(name='model')
+        m._add_myokit_component(myokit_model, component_references)
+        c = component_references['myokit']
 
-        self.assertTrue(m.has_component('underscore' + sid))
+        # Create remaining inputs
+        variable_references = {}
+        expression_references = {}
+
+        # Add parameter to sbml.Model
+        sid = 'parameter'
+        p = m.add_parameter(sid)
+        unit = myokit.units.A
+        p.set_units(unit)
+
+        # Add parameter to myokit model
+        m._add_parameters(c, variable_references, expression_references)
+
+        # Check that parameter is added properly to myokit component
+        self.assertTrue(c.has_variable(sid))
+        self.assertIn(sid, variable_references.keys())
+        var = variable_references[sid]
+        self.assertIsInstance(var, myokit.Variable)
+        self.assertEqual(var.unit(), unit)
+
+    def test_add_species(self):
+        # Tests whether species are added properly to the associated
+        # components.
+
+        # Add compartment to myokit model
+        myokit_model = myokit.Model()
+        component_references = {}
+        variable_references = {}
+        expression_references = {}
+
+        m = sbml.Model(name='model')
+        c_sid = 'compartment'
+        c = m.add_compartment(c_sid)
+        c_unit = myokit.units.L
+        c.set_size_units(c_unit)
+
+        m._add_compartments(
+            myokit_model, component_references, variable_references,
+            expression_references)
+
+        # Create remaining inputs
+        species_amount_references = {}
+
+        # Case I: Species in concentration
+        # Add species to sbml.Model
+        sid = 'species'
+        s = m.add_species(c, sid)
+        s_unit = myokit.units.g
+        s.set_substance_units(s_unit)
+
+        # Add species to myokit model
+        m._add_species(
+            component_references, species_amount_references,
+            variable_references, expression_references)
+
+        # Check species has been added in amount and concentration
+        comp = component_references[c_sid]
+        self.assertTrue(comp.has_variable(sid + '_amount'))
+        self.assertTrue(comp.has_variable(sid + '_concentration'))
+
+        # Check that variable reference points to concentration and
+        # units are set properly
+        self.assertIn(sid, variable_references.keys())
+        var = variable_references[sid]
+        self.assertEqual(var.unit(), s_unit / c_unit)
+
+        # Check that amount variable is referenced in species_amount_references
+        # and that units are set properly
+        self.assertIn(sid, species_amount_references.keys())
+        var = species_amount_references[sid]
+        self.assertEqual(var.unit(), s_unit)
+
+        # Case II: Species in amount
+        # Add species to sbml.Model
+        sid = 'species_2'
+        s = m.add_species(c, sid, is_amount=True)
+        s_unit = myokit.units.g
+        s.set_substance_units(s_unit)
+
+        # Add species to myokit model
+        m._add_species(
+            component_references, species_amount_references,
+            variable_references, expression_references)
+
+        # Check species has been added in amount and concentration
+        comp = component_references[c_sid]
+        self.assertTrue(comp.has_variable(sid + '_amount'))
+        self.assertFalse(comp.has_variable(sid + '_concentration'))
+
+        # Check that variable reference points to amount and
+        # units are set properly
+        self.assertIn(sid, variable_references.keys())
+        var = variable_references[sid]
+        self.assertEqual(var.unit(), s_unit)
+
+        # Check that amount variable is referenced in species_amount_references
+        # and that units are set properly
+        self.assertIn(sid, species_amount_references.keys())
+        var = species_amount_references[sid]
+        self.assertEqual(var.unit(), s_unit)
+
+    def test_add_stoichiometries(self):
+        # Tests whether stoichiometries are added properly to the associated
+        # component.
+
+        # Add compartment and species to myokit model
+        myokit_model = myokit.Model()
+        component_references = {}
+        variable_references = {}
+        expression_references = {}
+        species_amount_references = {}
+
+        m = sbml.Model(name='model')
+        c_sid = 'compartment'
+        c = m.add_compartment(c_sid)
+
+        m._add_compartments(
+            myokit_model, component_references, variable_references,
+            expression_references)
+
+        sid = 'species'
+        s = m.add_species(c, sid)
+
+        m._add_species(
+            component_references, species_amount_references,
+            variable_references, expression_references)
+
+        # Case I: No stoichiometry reference
+        # Add reaction to sbml.Model
+        sid = 'reaction'
+        r = m.add_reaction(sid)
+        r_sid = None
+        r.add_reactant(species=s, sid=r_sid)
+        p_sid = None
+        r.add_product(species=s, sid=p_sid)
+
+        # Add stoichiometries to myokit model
+        m._add_stoichiometries(
+            component_references, variable_references, expression_references)
+
+        # Check that stoichiometries do not exist in myokit model and are not
+        # referenced in variable_references
+        comp = component_references[c_sid]
+        self.assertFalse(comp.has_variable(str(r_sid)))
+        self.assertFalse(comp.has_variable(str(p_sid)))
+        self.assertNotIn(r_sid, variable_references.keys())
+        self.assertNotIn(p_sid, variable_references.keys())
+
+        # Case II: Existing stoichiometry reference
+        # Add reaction to sbml.Model
+        sid = 'reaction_2'
+        r = m.add_reaction(sid)
+        r_sid = 'reactant'
+        rs = r.add_reactant(species=s, sid=r_sid)
+        p_sid = 'product'
+        ps = r.add_product(species=s, sid=p_sid)
+
+        # Add stoichiometries to myokit model
+        m._add_stoichiometries(
+            component_references, variable_references, expression_references)
+
+        # Check that stoichiometries exist in myokit model and are
+        # referenced in variable_references
+        comp = component_references[c_sid]
+        self.assertTrue(comp.has_variable(str(r_sid)))
+        self.assertTrue(comp.has_variable(str(p_sid)))
+        self.assertIn(r_sid, variable_references.keys())
+        self.assertIn(p_sid, variable_references.keys())
+
+        # Check that their units are set to dimensionless
+        # and that their expressions are referenced
+        unit = myokit.units.dimensionless
+        var = variable_references[r_sid]
+        self.assertEqual(var.unit(), unit)
+        self.assertEqual(
+            expression_references[myokit.Name(rs)], myokit.Name(var))
+        var = variable_references[p_sid]
+        self.assertEqual(var.unit(), unit)
+        self.assertEqual(
+            expression_references[myokit.Name(ps)], myokit.Name(var))
+
+        # Check that stoichiometries are referenced in
+
+    def test_add_time(self):
+        # Tests whether time bound variable is added properly to myokit
+        # component.
+
+        # Create myokit component
+        myokit_model = myokit.Model()
+        component_references = {}
+        m = sbml.Model(name='model')
+        m._add_myokit_component(myokit_model, component_references)
+        c = component_references['myokit']
+
+        # Create remaining inputs
+        variable_references = {}
+
+        # Add time bound variable to myokit model
+        unit = myokit.units.s
+        m.set_time_units(unit)
+        m._add_time(c, variable_references)
+
+        # Check that time bound variable exists in myokit component
+        self.assertTrue(c.has_variable('time'))
+
+        # Check that variable is referenced under csymbol
+        sid = 'http://www.sbml.org/sbml/symbols/time'
+        self.assertIn(sid, variable_references.keys())
+
+        # Check that variable has correct units and initial value
+        var = variable_references[sid]
+        self.assertEqual(var.rhs(), myokit.Number(0))
+        self.assertEqual(var.unit(), unit)
 
     def test_name(self):
 
