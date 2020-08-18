@@ -387,303 +387,35 @@ class Model(object):
             variable_references, expression_references)
 
         # Add parameters to myokit component
-        for sid, parameter in self._parameters.items():
-            # Get myokit component
-            component = component_references[myokit_component_name]
-
-            # Add parameter to component
-            var = component.add_variable_allow_renaming(convert_name(sid))
-
-            # Set unit of parameter
-            var.set_unit(parameter.units())
-
-            # Add reference to parameter
-            variable_references[sid] = var
-            expression_references[myokit.Name(parameter)] = myokit.Name(var)
+        self._add_parameters(
+            component_references[myokit_component_name], variable_references,
+            expression_references)
 
         # Add stoichiometries from reactions
-        for reaction in self._reactions.values():
-            # Get all reactants and products (modifier do not have
-            # stoichiometries)
-            species_references = reaction.reactants() + reaction.products()
-
-            for species_reference in species_references:
-                sid = species_reference.sid()
-                if sid is not None:
-                    # Get component
-                    species = species_reference.species()
-                    compartment = species.compartment()
-                    compartment_sid = compartment.sid()
-                    component = component_references[compartment_sid]
-
-                    # Add variable to component
-                    var = component.add_variable_allow_renaming(
-                        convert_name(sid))
-
-                    # Set unit of variable
-                    # (SBML defines stoichiometries as dimensionless)
-                    var.set_unit(myokit.units.dimensionless)
-
-                    # Add reference to variable
-                    variable_references[sid] = var
-                    expression_references[
-                        myokit.Name(species_reference)] = myokit.Name(var)
+        self._add_stoichiometries(
+            component_references, variable_references, expression_references)
 
         # Add time variable to myokit component
-        component = component_references[myokit_component_name]
-        var = component.add_variable_allow_renaming('time')
-
-        # Bind time variable to time in myokit model
-        var.set_binding('time')
-
-        # Set time unit and initial value (SBML default: t=0)
-        var.set_unit(self.time_units())
-        var.set_rhs(0)
-
-        # Add reference to time variable
-        # (SBML referes to time by a csymbol:
-        # 'http://www.sbml.org/sbml/symbols/time/')
-        variable_references[
-            'http://www.sbml.org/sbml/symbols/time'] = var
+        self._add_time(
+            component_references[myokit_component_name], variable_references)
 
         # Set RHS of compartment sizes
-        for sid, compartment in self._compartments.items():
-            # Get myokit variable
-            var = variable_references[sid]
-
-            # Set initial value
-            expr = compartment.initial_value()
-            if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
-
-            if compartment.is_rate():
-                # Promote size to state variable
-                var.promote(state_value=var.eval())
-
-            # Set RHS
-            # (assignmentRule overwrites initialAssignment)
-            expr = compartment.value()
-            if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+        self._set_rhs_sizes(variable_references, expression_references)
 
         # Set RHS of species (initalAssignemnt, assignmentRule, rateRule)
-        # NOTE: Concentration is already set by (amount / size). So we
-        # only set RHS of amount here.
-        for sid, species in self._species.items():
-            # Get myokit variable
-            # We only adapt amount of species
-            var = species_amount_references[sid]
-
-            # Set initial value
-            expr = species.initial_value()
-            if expr is not None:
-                # Need to convert initial value if
-                # 1. the species is in amount but initial value units are not
-                # 2. the species and the initial value is in concentration
-                if species.is_amount() != species.correct_initial_value():
-                    # Get initial compartment size
-                    compartment = species.compartment()
-                    size = compartment.initial_value()
-
-                    # Convert initial value from concentration to amount
-                    expr = myokit.Multiply(expr, size)
-
-                # Set initial value
-                var.set_rhs(expr.clone(subst=expression_references))
-
-            if species.is_rate():
-                # Promote species to state variable
-                var.promote(var.eval())
-
-            # Set RHS (reactions are dealt with elsewhere)
-            expr = species.value()
-            if expr is not None:
-                # Need to convert initial value if species is measured in
-                # concentration (assignments match unit of measurement)
-                if not species.is_amount():
-                    # Get initial compartment size
-                    compartment = species.compartment()
-                    size = compartment.initial_value()
-
-                    # Convert initial value from concentration to amount
-                    expr = myokit.Multiply(expr, size)
-
-                # Set initial value
-                var.set_rhs(expr.clone(subst=expression_references))
+        self._set_rhs_species(species_amount_references, expression_references)
 
         # Set RHS of parameters
-        for sid, parameter in self._parameters.items():
-            # Get myokit variable
-            var = variable_references[sid]
-
-            # Set initial value
-            expr = parameter.initial_value()
-            if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
-
-            if parameter.is_rate():
-                # Promote parameter to state variable
-                var.promote(state_value=var.eval())
-
-            # Set RHS
-            # (assignmentRule overwrites initialAssignment)
-            expr = parameter.value()
-            if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+        self._set_rhs_parameters(variable_references, expression_references)
 
         # Set RHS of stoichiometries
-        for reaction in self._reactions.values():
-            # Get all reactants and products (modifier do not have
-            # stoichiometries)
-            species_references = reaction.reactants() + reaction.products()
-
-            for species_reference in species_references:
-                # Get sid
-                sid = species_reference.sid()
-
-                # Get stoichiometry variable
-                try:
-                    var = variable_references[sid]
-                except KeyError:
-                    continue
-
-                # Set initial value
-                expr = species_reference.initial_value()
-                if expr is not None:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
-
-                if species_reference.is_rate():
-                    # Promote stoichiometry to state variable
-                    var.promote(state_value=var.eval())
-
-                # Set RHS
-                # (assignmentRule overwrites initialAssignment)
-                expr = species_reference.value()
-                if expr is not None:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
+        self._set_rhs_stoichiometries(
+            variable_references, expression_references)
 
         # Set RHS of species changed by reactions
-        for reaction in self._reactions.values():
-            # Get kinetic law
-            kinetic_law = reaction.kinetic_law()
-
-            if kinetic_law is None:
-                # Skip to the next reaction
-                continue
-
-            for reactant in reaction.reactants():
-                # Get species object
-                species = reactant.species()
-
-                if species.is_constant() or species.is_boundary():
-                    # Species is not altered by the reaction
-                    # Skip to the next reactant
-                    continue
-
-                # Instantiate rate expression
-                expr = kinetic_law.clone()
-
-                # Get stoichiometry of reactant
-                try:
-                    stoichiometry = myokit.Name(
-                        variable_references[reactant.sid()])
-                except KeyError:
-                    stoichiometry = reactant.initial_value()
-
-                if stoichiometry is not None:
-                    # Weight rate expression by stoichiometry
-                    expr = myokit.Multiply(stoichiometry, expr)
-
-                factor = species.conversion_factor()
-                if factor is not None:
-                    # Get conversion factor variable
-                    sid = factor.sid()
-                    conversion_factor = variable_references[sid]
-
-                    # Convert rate expression from units of reaction extent
-                    # to amount units
-                    conversion_factor = myokit.Name(conversion_factor)
-                    expr = myokit.Multiply(conversion_factor, expr)
-
-                # Get myokit amount variable
-                var = species_amount_references[species.sid()]
-
-                if not var.is_state():
-                    # Promote amount to state variable
-                    try:
-                        var.promote(state_value=var.eval())
-                        var.set_rhs(None)
-                    except AttributeError:
-                        var.promote()
-                        var.set_rhs(None)
-
-                if var.rhs().eval():
-                    # Subtract rate contributions
-                    # (Reaction removes species from compartment)
-                    expr = myokit.Minus(var.rhs(), expr)
-                else:
-                    expr = myokit.PrefixMinus(expr)
-
-                # Set RHS
-                var.set_rhs(expr.clone(subst=expression_references))
-
-            for product in reaction.products():
-                # Get species object
-                species = product.species()
-
-                if species.is_constant() or species.is_boundary():
-                    # Species is not altered by the reaction
-                    # Skip to the next product
-                    continue
-
-                # Instantiate rate expression
-                expr = kinetic_law.clone()
-
-                # Get stoichiometry of product
-                try:
-                    stoichiometry = myokit.Name(
-                        variable_references[product.sid()])
-                except KeyError:
-                    stoichiometry = product.initial_value()
-
-                if stoichiometry is not None:
-                    # Weight rate expression by stoichiometry
-                    expr = myokit.Multiply(stoichiometry, expr)
-
-                if species.conversion_factor():
-                    # Get conversion factor variable
-                    sid = species.conversion_factor().sid()
-                    conversion_factor = variable_references[sid]
-
-                    # Convert rate expression from units of reaction extent
-                    # to amount units
-                    conversion_factor = myokit.Name(conversion_factor)
-                    expr = myokit.Multiply(conversion_factor, expr)
-
-                # Get myokit amount variable
-                var = species_amount_references[species.sid()]
-
-                if not var.is_state():
-                    # Promote amount to state variable
-                    try:
-                        var.promote(state_value=var.eval())
-                        var.set_rhs(None)
-                    except AttributeError:
-                        var.promote()
-                        var.set_rhs(None)
-
-                if var.rhs().eval():
-                    # Add rate contributions
-                    expr = myokit.Plus(var.rhs(), expr)
-
-                # Set RHS
-                var.set_rhs(expr.clone(subst=expression_references))
+        self._set_reactions(
+            variable_references, species_amount_references,
+            expression_references)
 
         return myokit_model
 
@@ -864,12 +596,32 @@ class Model(object):
 
         return myokit_component_name
 
+    def _add_parameters(
+            self, component, variable_references, expression_references):
+        """
+        Adds global parameters to the myokit component.
+        """
+
+        for sid, parameter in self._parameters.items():
+            # Add parameter to component
+            var = component.add_variable_allow_renaming(convert_name(sid))
+
+            # Set unit of parameter
+            var.set_unit(parameter.units())
+
+            # Add reference to parameter
+            variable_references[sid] = var
+            expression_references[myokit.Name(parameter)] = myokit.Name(var)
+
     def _add_species(
             self, component_references, species_amount_references,
             variable_references, expression_references):
         """
         Adds amount (and potentially concentration) variables for each species
         to the respective components.
+
+        RHS of species concentration is defined as species amount / size
+        compartment.
         """
 
         for sid, species in self._species.items():
@@ -912,6 +664,346 @@ class Model(object):
             # Add reference to species (either in amount or concentration)
             variable_references[sid] = var
             expression_references[myokit.Name(species)] = myokit.Name(var)
+
+    def _add_stoichiometries(
+            self, component_references, variable_references,
+            expression_references):
+        """
+        Adds stoichiometry parameters to the 'compartment' component to which
+        the species belongs.
+        """
+
+        for reaction in self._reactions.values():
+            # Get all reactants and products (modifier do not have
+            # stoichiometries)
+            species_references = reaction.reactants() + reaction.products()
+
+            for species_reference in species_references:
+                sid = species_reference.sid()
+                if sid is not None:
+                    # Get component
+                    species = species_reference.species()
+                    compartment = species.compartment()
+                    compartment_sid = compartment.sid()
+                    component = component_references[compartment_sid]
+
+                    # Add variable to component
+                    var = component.add_variable_allow_renaming(
+                        convert_name(sid))
+
+                    # Set unit of variable
+                    # (SBML defines stoichiometries as dimensionless)
+                    var.set_unit(myokit.units.dimensionless)
+
+                    # Add reference to variable
+                    variable_references[sid] = var
+                    expression_references[
+                        myokit.Name(species_reference)] = myokit.Name(var)
+
+    def _add_time(self, component, variable_references):
+        """
+        Adds time bound variable to the myokit compartment.
+        """
+
+        # Add variable
+        var = component.add_variable_allow_renaming('time')
+
+        # Bind time variable to time in myokit model
+        var.set_binding('time')
+
+        # Set time unit and initial value (SBML default: t=0)
+        var.set_unit(self.time_units())
+        var.set_rhs(0)
+
+        # Add reference to time variable
+        # (SBML referes to time by a csymbol:
+        # 'http://www.sbml.org/sbml/symbols/time/')
+        variable_references[
+            'http://www.sbml.org/sbml/symbols/time'] = var
+
+    def _set_rhs_sizes(self, variable_references, expression_references):
+        """
+        Sets right hand side of compartments' size variables.
+        """
+
+        for sid, compartment in self._compartments.items():
+            # Get myokit variable
+            var = variable_references[sid]
+
+            # Set initial value
+            expr = compartment.initial_value()
+            if expr is not None:
+                var.set_rhs(expr.clone(
+                    subst=expression_references))
+
+            if compartment.is_rate():
+                # Promote size to state variable
+                var.promote(state_value=var.eval())
+
+            # Set RHS
+            # (assignmentRule overwrites initialAssignment)
+            expr = compartment.value()
+            if expr is not None:
+                var.set_rhs(expr.clone(
+                    subst=expression_references))
+
+    def _set_reactions(
+            self, variable_references, species_amount_references,
+            expression_references):
+
+        for reaction in self._reactions.values():
+
+            if reaction.kinetic_law() is None:
+                # Skip to the next reaction
+                continue
+
+            # Set right hand side of reactants
+            self._set_rhs_reactants(
+                reaction, variable_references, species_amount_references,
+                expression_references)
+
+            # Set right hand side of products
+            self._set_rhs_products(
+                reaction, variable_references, species_amount_references,
+                expression_references)
+
+    def _set_rhs_reactants(
+            self, reaction, variable_references, species_amount_references,
+            expression_references):
+        """
+        Sets right hand side of species acting as reactants in a reaction.
+        """
+
+        for reactant in reaction.reactants():
+            # Get species object
+            species = reactant.species()
+
+            if species.is_constant() or species.is_boundary():
+                # Species is not altered by the reaction
+                # Skip to the next reactant
+                continue
+
+            # Instantiate rate expression
+            expr = reaction.kinetic_law().clone()
+
+            # Get stoichiometry of reactant
+            try:
+                stoichiometry = myokit.Name(
+                    variable_references[reactant.sid()])
+            except KeyError:
+                stoichiometry = reactant.initial_value()
+
+            if stoichiometry is not None:
+                # Weight rate expression by stoichiometry
+                expr = myokit.Multiply(stoichiometry, expr)
+
+            factor = species.conversion_factor()
+            if factor is not None:
+                # Get conversion factor variable
+                sid = factor.sid()
+                conversion_factor = variable_references[sid]
+
+                # Convert rate expression from units of reaction extent
+                # to amount units
+                conversion_factor = myokit.Name(conversion_factor)
+                expr = myokit.Multiply(conversion_factor, expr)
+
+            # Get myokit amount variable
+            var = species_amount_references[species.sid()]
+
+            if not var.is_state():
+                # Promote amount to state variable
+                try:
+                    var.promote(state_value=var.eval())
+                    var.set_rhs(None)
+                except AttributeError:
+                    var.promote()
+                    var.set_rhs(None)
+
+            if var.rhs().eval():
+                # Subtract rate contributions
+                # (Reaction removes species from compartment)
+                expr = myokit.Minus(var.rhs(), expr)
+            else:
+                expr = myokit.PrefixMinus(expr)
+
+            # Set RHS
+            var.set_rhs(expr.clone(subst=expression_references))
+
+    def _set_rhs_products(
+            self, reaction, variable_references, species_amount_references,
+            expression_references):
+        """
+        Sets right hand side of species acting as products in a reaction.
+        """
+
+        for product in reaction.products():
+            # Get species object
+            species = product.species()
+
+            if species.is_constant() or species.is_boundary():
+                # Species is not altered by the reaction
+                # Skip to the next product
+                continue
+
+            # Instantiate rate expression
+            expr = reaction.kinetic_law().clone()
+
+            # Get stoichiometry of product
+            try:
+                stoichiometry = myokit.Name(
+                    variable_references[product.sid()])
+            except KeyError:
+                stoichiometry = product.initial_value()
+
+            if stoichiometry is not None:
+                # Weight rate expression by stoichiometry
+                expr = myokit.Multiply(stoichiometry, expr)
+
+            if species.conversion_factor():
+                # Get conversion factor variable
+                sid = species.conversion_factor().sid()
+                conversion_factor = variable_references[sid]
+
+                # Convert rate expression from units of reaction extent
+                # to amount units
+                conversion_factor = myokit.Name(conversion_factor)
+                expr = myokit.Multiply(conversion_factor, expr)
+
+            # Get myokit amount variable
+            var = species_amount_references[species.sid()]
+
+            if not var.is_state():
+                # Promote amount to state variable
+                try:
+                    var.promote(state_value=var.eval())
+                    var.set_rhs(None)
+                except AttributeError:
+                    var.promote()
+                    var.set_rhs(None)
+
+            if var.rhs().eval():
+                # Add rate contributions
+                expr = myokit.Plus(var.rhs(), expr)
+
+            # Set RHS
+            var.set_rhs(expr.clone(subst=expression_references))
+
+    def _set_rhs_species(
+            self, species_amount_references, expression_references):
+        """
+        Sets right hand side of species amount variables defined by
+        assignments.
+
+        Rate expressions defined by reactions are dealt with in
+        :meth:`_set_reactions`.
+        """
+
+        for sid, species in self._species.items():
+            # Get myokit variable
+            # We only adapt amount of species
+            var = species_amount_references[sid]
+
+            # Set initial value
+            expr = species.initial_value()
+            if expr is not None:
+                # Need to convert initial value if
+                # 1. the species is in amount but initial value units are not
+                # 2. the species and the initial value is in concentration
+                if species.is_amount() != species.correct_initial_value():
+                    # Get initial compartment size
+                    compartment = species.compartment()
+                    size = compartment.initial_value()
+
+                    # Convert initial value from concentration to amount
+                    expr = myokit.Multiply(expr, size)
+
+                # Set initial value
+                var.set_rhs(expr.clone(subst=expression_references))
+
+            if species.is_rate():
+                # Promote species to state variable
+                var.promote(var.eval())
+
+            # Set RHS (reactions are dealt with elsewhere)
+            expr = species.value()
+            if expr is not None:
+                # Need to convert initial value if species is measured in
+                # concentration (assignments match unit of measurement)
+                if not species.is_amount():
+                    # Get initial compartment size
+                    compartment = species.compartment()
+                    size = compartment.initial_value()
+
+                    # Convert initial value from concentration to amount
+                    expr = myokit.Multiply(expr, size)
+
+                # Set initial value
+                var.set_rhs(expr.clone(subst=expression_references))
+
+    def _set_rhs_parameters(self, variable_references, expression_references):
+        """
+        Sets right hand side of global parameters.
+        """
+
+        for sid, parameter in self._parameters.items():
+            # Get myokit variable
+            var = variable_references[sid]
+
+            # Set initial value
+            expr = parameter.initial_value()
+            if expr is not None:
+                var.set_rhs(expr.clone(
+                    subst=expression_references))
+
+            if parameter.is_rate():
+                # Promote parameter to state variable
+                var.promote(state_value=var.eval())
+
+            # Set RHS
+            # (assignmentRule overwrites initialAssignment)
+            expr = parameter.value()
+            if expr is not None:
+                var.set_rhs(expr.clone(
+                    subst=expression_references))
+
+    def _set_rhs_stoichiometries(
+            self, variable_references, expression_references):
+        """
+        Sets right hand side of stoichiometry variables.
+        """
+
+        for reaction in self._reactions.values():
+            # Get all reactants and products (modifier do not have
+            # stoichiometries)
+            species_references = reaction.reactants() + reaction.products()
+
+            for species_reference in species_references:
+                # Get sid
+                sid = species_reference.sid()
+
+                # Get stoichiometry variable
+                try:
+                    var = variable_references[sid]
+                except KeyError:
+                    continue
+
+                # Set initial value
+                expr = species_reference.initial_value()
+                if expr is not None:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+
+                if species_reference.is_rate():
+                    # Promote stoichiometry to state variable
+                    var.promote(state_value=var.eval())
+
+                # Set RHS
+                # (assignmentRule overwrites initialAssignment)
+                expr = species_reference.value()
+                if expr is not None:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
 
     # SBML base units (except Celsius, because it's not defined in myokit)
     _base_units = {
