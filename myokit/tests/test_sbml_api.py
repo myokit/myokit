@@ -1688,10 +1688,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_time(self):
         # Tests whether time variable is created properly.
 
-        a = '<model timeUnits="second"><listOfParameters>'
-        b = '</listOfParameters></model>'
-
-        m = self.parse(a + b)
+        m = sbml.Model()
+        m.set_time_units(myokit.units.s)
         m = m.myokit_model()
 
         # Check that time variable exists
