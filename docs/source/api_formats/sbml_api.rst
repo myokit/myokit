@@ -1,6 +1,6 @@
 .. _formats/sbml_api:
 
-.. module:: myokit.formats.sbml
+.. currentmodule:: myokit.formats.sbml
 
 ********
 SBML API
