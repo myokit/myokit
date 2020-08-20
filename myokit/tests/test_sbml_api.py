@@ -502,6 +502,659 @@ class TestModel(unittest.TestCase):
         self.assertEqual(model.volume_units(), myokit.units.L)
 
 
+class TestParameter(unittest.TestCase):
+    """
+    Unit tests for :class:`Parameter`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.model = sbml.Model(name='model')
+        cls.sid = 'parameter'
+        cls.p = cls.model.add_parameter(sid=cls.sid)
+
+    def test_bad_model(self):
+
+        model = 'model'
+        sid = 'parameter'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.Parameter, model, sid)
+
+    def test_initial_value(self):
+
+        # Check default initial value
+        self.assertIsNone(self.p.initial_value())
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.p.set_initial_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.p.set_initial_value(expr)
+
+        self.assertEqual(self.p.initial_value(), expr)
+
+    def test_is_rate(self):
+
+        # Check default
+        self.assertFalse(self.p.is_rate())
+
+        # Check setting rate to true
+        expr = myokit.Number(2)
+        self.p.set_value(value=expr, is_rate=True)
+
+        self.assertTrue(self.p.is_rate())
+
+    def test_sid(self):
+        self.assertEqual(self.p.sid(), self.sid)
+
+    def test_string_representation(self):
+        self.assertEqual(str(self.p), '<Parameter ' + self.sid + '>')
+
+    def test_units(self):
+
+        # Check default units
+        self.assertIsNone(self.p.units())
+
+        # Check bad size units
+        unit = 'mL'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.p.set_units, unit)
+
+        # Check valid size units
+        unit = myokit.units.L * 1E-3
+        self.p.set_units(unit)
+
+        self.assertEqual(self.p.units(), unit)
+
+    def test_value(self):
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.p.set_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.p.set_value(expr)
+
+        self.assertEqual(self.p.value(), expr)
+
+
+class TestReaction(unittest.TestCase):
+    """
+    Unit tests for :class:`Reaction`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.model = sbml.Model(name='model')
+        cls.sid = 'reaction'
+        cls.r = cls.model.add_reaction(sid=cls.sid)
+
+    def test_bad_model(self):
+
+        model = 'model'
+        sid = 'reaction'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.Reaction, model, sid)
+
+    def test_kinetic_law(self):
+
+        # Check default
+        self.assertIsNone(self.r.kinetic_law())
+
+        # Check bad kinetic law
+        expr = '2 * s'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.r.set_kinetic_law, expr)
+
+        # Check good kinetic law
+        expr = myokit.Multiply(myokit.Number(2), myokit.Name('s'))
+        self.r.set_kinetic_law(expr)
+
+        self.assertEqual(self.r.kinetic_law(), expr)
+
+    def test_modifiers(self):
+
+        # Check bad species
+        sid = 'modifier'
+        species = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.r.add_modifier, species, sid)
+
+        # Check invalid sid
+        sid = ';'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid SId "', self.r.add_modifier, species, sid)
+
+        # Check good sid
+        sid = 'modifier'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_modifier(species, sid)
+
+        self.assertEqual(len(self.r.modifiers()), 1)
+        self.assertIsInstance(
+            self.r.modifiers()[0], sbml.ModifierSpeciesReference)
+
+        # Check duplicate sid
+        sid = 'modifier'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate SId "', self.r.add_modifier, species,
+            sid)
+
+    def test_products(self):
+
+        # Check bad species
+        sid = 'product'
+        species = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.r.add_product, species, sid)
+
+        # Check invalid sid
+        sid = ';'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid SId "', self.r.add_product, species, sid)
+
+        # Check good sid
+        sid = 'product'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_product(species, sid)
+
+        self.assertEqual(len(self.r.products()), 1)
+        self.assertIsInstance(
+            self.r.products()[0], sbml.SpeciesReference)
+
+        # Check duplicate sid
+        sid = 'product'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate SId "', self.r.add_product, species,
+            sid)
+
+    def test_reactants(self):
+
+        # Check bad species
+        sid = 'reactant'
+        species = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.r.add_reactant, species, sid)
+
+        # Check invalid sid
+        sid = ';'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Invalid SId "', self.r.add_reactant, species, sid)
+
+        # Check good sid
+        sid = 'reactant'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_reactant(species, sid)
+
+        self.assertEqual(len(self.r.reactants()), 1)
+        self.assertIsInstance(
+            self.r.reactants()[0], sbml.SpeciesReference)
+
+        # Check duplicate sid
+        sid = 'reactant'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid='species',
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Duplicate SId "', self.r.add_reactant, species,
+            sid)
+
+    def test_sid(self):
+        self.assertEqual(self.r.sid(), self.sid)
+
+    def test_species(self):
+
+        # Add modifier species
+        sid = 'modifier_species'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid=sid,
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_modifier(species, sid)
+
+        # Check that species are accessible
+        self.assertIsInstance(self.r.species(sid), sbml.Species)
+
+        # Add product species
+        sid = 'product_species'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid=sid,
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_product(species, sid)
+
+        # Check that species are accessible
+        self.assertIsInstance(self.r.species(sid), sbml.Species)
+
+        # Add reactant species
+        sid = 'reactant_species'
+        compartment = sbml.Compartment(self.model, sid='compartment')
+        species = sbml.Species(
+            compartment=compartment,
+            sid=sid,
+            is_amount=False,
+            is_constant=False,
+            is_boundary=False)
+        self.r.add_reactant(species, sid)
+
+        # Check that species are accessible
+        self.assertIsInstance(self.r.species(sid), sbml.Species)
+
+    def test_string_representation(self):
+        self.assertEqual(str(self.r), '<Reaction ' + self.sid + '>')
+
+
+class TestSpecies(unittest.TestCase):
+    """
+    Unit tests for :class:`Species`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.model = sbml.Model(name='model')
+        cls.c = cls.model.add_compartment(sid='compartment')
+
+    def test_is_amount(self):
+
+        # Test is amount
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=True, is_constant=False,
+            is_boundary=False)
+
+        self.assertTrue(species.is_amount())
+
+        # Test is concentration
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertFalse(species.is_amount())
+
+        # Test bad amount
+        sid = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Is_amount <', sbml.Species, self.c,
+            sid, 'No', False, False)
+
+    def test_is_boundary(self):
+
+        # Test is boundary
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=True)
+
+        self.assertTrue(species.is_boundary())
+
+        # Test is not boundary
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertFalse(species.is_boundary())
+
+        # Test bad boundary
+        sid = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Is_boundary <', sbml.Species, self.c,
+            sid, False, False, 'No')
+
+    def test_compartment(self):
+
+        # Bad compartment
+        sid = 'species'
+        comp = 'compartment'
+
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.Species, comp,
+            sid, False, 'No', False)
+
+        # Test good compartment
+        sid = 'species'
+        comp = self.c
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=True,
+            is_boundary=False)
+
+        self.assertEqual(species.compartment(), self.c)
+
+    def test_is_constant(self):
+
+        # Test is constant
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=True,
+            is_boundary=False)
+
+        self.assertTrue(species.is_constant())
+
+        # Test is not constant
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertFalse(species.is_boundary())
+
+        # Test bad constant
+        sid = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Is_constant <', sbml.Species, self.c,
+            sid, False, 'No', False)
+
+    def test_conversion_factor(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Test default value
+        self.assertIsNone(species.conversion_factor())
+
+        # Bad conversion factor
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_conversion_factor, 10)
+
+        # Good model conversion factor
+        factor = sbml.Parameter(self.model, 'parameter')
+        self.model.set_conversion_factor(factor)
+
+        self.assertEqual(species.conversion_factor(), factor)
+
+        # Good species conversion factor
+        factor = sbml.Parameter(self.model, 'parameter 2')
+        species.set_conversion_factor(factor)
+
+        self.assertEqual(species.conversion_factor(), factor)
+
+    def test_correct_initial_value(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check default
+        self.assertTrue(species.correct_initial_value())
+
+        # Check bad input
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_correct_initial_value, 'Yes')
+
+        # Check not correct units
+        species.set_correct_initial_value(False)
+        self.assertFalse(species.correct_initial_value())
+
+        # Check correct units
+        species.set_correct_initial_value(True)
+        self.assertTrue(species.correct_initial_value())
+
+    def test_initial_value(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check default initial value
+        self.assertIsNone(species.initial_value())
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_initial_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        species.set_initial_value(expr)
+
+        self.assertEqual(species.initial_value(), expr)
+
+    def test_is_rate(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check default
+        self.assertFalse(species.is_rate())
+
+        # Check setting rate to true
+        expr = myokit.Number(2)
+        species.set_value(value=expr, is_rate=True)
+
+        self.assertTrue(species.is_rate())
+
+    def test_sid(self):
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertEqual(species.sid(), sid)
+
+    def test_string_representation(self):
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        self.assertEqual(str(species), '<Species ' + sid + '>')
+
+    def test_substance_units(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check default substance units
+        unit = myokit.units.dimensionless
+        self.assertEqual(species.substance_units(), unit)
+
+        # Check bad units
+        unit = 'mg'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_substance_units, unit)
+
+        # Check model substance units
+        unit = myokit.units.g
+        self.model.set_substance_units(unit)
+
+        self.assertEqual(species.substance_units(), unit)
+
+        # Check species subtance units
+        unit = myokit.units.g * 1E-3
+        species.set_substance_units(unit)
+
+        self.assertEqual(species.substance_units(), unit)
+
+    def test_value(self):
+
+        sid = 'species'
+        species = sbml.Species(
+            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
+            is_boundary=False)
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', species.set_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        species.set_value(expr)
+
+        self.assertEqual(species.value(), expr)
+
+
+class TestSpeciesReference(unittest.TestCase):
+    """
+    Unit tests for :class:`SpeciesReference`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        model = sbml.Model(name='model')
+        comp = model.add_compartment(sid='compartment')
+        cls.species = sbml.Species(comp, 'species', False, False, False)
+        cls.sid = 'species_reference'
+        cls.sr = sbml.SpeciesReference(cls.species, cls.sid)
+
+    def test_initial_value(self):
+
+        # Check default initial value
+        self.assertIsNone(self.sr.initial_value())
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.sr.set_initial_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.sr.set_initial_value(expr)
+
+        self.assertEqual(self.sr.initial_value(), expr)
+
+    def test_is_rate(self):
+
+        # Check default
+        self.assertFalse(self.sr.is_rate())
+
+        # Check setting rate to true
+        expr = myokit.Number(2)
+        self.sr.set_value(value=expr, is_rate=True)
+
+        self.assertTrue(self.sr.is_rate())
+
+    def test_sid(self):
+        self.assertEqual(self.sr.sid(), self.sid)
+
+    def test_species(self):
+
+        # Check bad species
+        species = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.SpeciesReference, species)
+
+        # Check good species
+        self.assertEqual(self.sr.species(), self.species)
+
+    def test_value(self):
+
+        # Check bad value
+        expr = 2
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', self.sr.set_value, expr)
+
+        # Check good value
+        expr = myokit.Number(2)
+        self.sr.set_value(expr)
+
+        self.assertEqual(self.sr.value(), expr)
+
+
+class TestModifierSpeciesReference(unittest.TestCase):
+    """
+    Unit tests for :class:`ModifierSpeciesReference`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        model = sbml.Model(name='model')
+        comp = model.add_compartment(sid='compartment')
+        cls.species = sbml.Species(comp, 'species', False, False, False)
+        cls.sid = 'modifier_species_reference'
+        cls.sr = sbml.ModifierSpeciesReference(cls.species, cls.sid)
+
+    def test_sid(self):
+        self.assertEqual(self.sr.sid(), self.sid)
+
+    def test_species(self):
+
+        # Check bad species
+        species = 'species'
+        self.assertRaisesRegex(
+            sbml.SBMLError, '<', sbml.ModifierSpeciesReference, species)
+
+        # Check good species
+        self.assertEqual(self.sr.species(), self.species)
+
+
 class SBMLTestMyokitModel(unittest.TestCase):
     """
     Unit tests for Model.myokit_model method.
@@ -510,8 +1163,6 @@ class SBMLTestMyokitModel(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.p = SBMLParser()
-
-        #
 
     def parse(self, xml, lvl=3, v=2):
         """
@@ -838,17 +1489,11 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_species_exist(self):
         # Tests whether species initialisation in amount and concentration
         # works.
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>')
-        b = (' </listOfSpecies>'
-             '</model>')
 
         # Species in amount
-        x = '<species compartment="c" id="spec" hasOnlySubstanceUnits="true"/>'
-        m = self.parse(a + x + b)
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        s = m.add_species(c, 'spec', is_amount=True)
         m = m.myokit_model()
 
         # Check whether species exists in amount
@@ -860,8 +1505,9 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(component.count_variables(), 2)
 
         # Species in concentration
-        x = '<species compartment="c" id="spec" />'
-        m = self.parse(a + x + b)
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        s = m.add_species(c, 'spec', is_amount=False)
         m = m.myokit_model()
 
         # Check whether species exists in amount and concentration
@@ -1704,659 +2350,6 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
         # Chet that variable is time bound
         self.assertTrue(var.binding(), 'time')
-
-
-class TestParameter(unittest.TestCase):
-    """
-    Unit tests for :class:`Parameter`.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.model = sbml.Model(name='model')
-        cls.sid = 'parameter'
-        cls.p = cls.model.add_parameter(sid=cls.sid)
-
-    def test_bad_model(self):
-
-        model = 'model'
-        sid = 'parameter'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.Parameter, model, sid)
-
-    def test_initial_value(self):
-
-        # Check default initial value
-        self.assertIsNone(self.p.initial_value())
-
-        # Check bad value
-        expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.p.set_initial_value, expr)
-
-        # Check good value
-        expr = myokit.Number(2)
-        self.p.set_initial_value(expr)
-
-        self.assertEqual(self.p.initial_value(), expr)
-
-    def test_is_rate(self):
-
-        # Check default
-        self.assertFalse(self.p.is_rate())
-
-        # Check setting rate to true
-        expr = myokit.Number(2)
-        self.p.set_value(value=expr, is_rate=True)
-
-        self.assertTrue(self.p.is_rate())
-
-    def test_sid(self):
-        self.assertEqual(self.p.sid(), self.sid)
-
-    def test_string_representation(self):
-        self.assertEqual(str(self.p), '<Parameter ' + self.sid + '>')
-
-    def test_units(self):
-
-        # Check default units
-        self.assertIsNone(self.p.units())
-
-        # Check bad size units
-        unit = 'mL'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.p.set_units, unit)
-
-        # Check valid size units
-        unit = myokit.units.L * 1E-3
-        self.p.set_units(unit)
-
-        self.assertEqual(self.p.units(), unit)
-
-    def test_value(self):
-
-        # Check bad value
-        expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.p.set_value, expr)
-
-        # Check good value
-        expr = myokit.Number(2)
-        self.p.set_value(expr)
-
-        self.assertEqual(self.p.value(), expr)
-
-
-class TestReaction(unittest.TestCase):
-    """
-    Unit tests for :class:`Reaction`.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.model = sbml.Model(name='model')
-        cls.sid = 'reaction'
-        cls.r = cls.model.add_reaction(sid=cls.sid)
-
-    def test_bad_model(self):
-
-        model = 'model'
-        sid = 'reaction'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.Reaction, model, sid)
-
-    def test_kinetic_law(self):
-
-        # Check default
-        self.assertIsNone(self.r.kinetic_law())
-
-        # Check bad kinetic law
-        expr = '2 * s'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.r.set_kinetic_law, expr)
-
-        # Check good kinetic law
-        expr = myokit.Multiply(myokit.Number(2), myokit.Name('s'))
-        self.r.set_kinetic_law(expr)
-
-        self.assertEqual(self.r.kinetic_law(), expr)
-
-    def test_modifiers(self):
-
-        # Check bad species
-        sid = 'modifier'
-        species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.r.add_modifier, species, sid)
-
-        # Check invalid sid
-        sid = ';'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid='species',
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Invalid SId "', self.r.add_modifier, species, sid)
-
-        # Check good sid
-        sid = 'modifier'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid='species',
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.r.add_modifier(species, sid)
-
-        self.assertEqual(len(self.r.modifiers()), 1)
-        self.assertIsInstance(
-            self.r.modifiers()[0], sbml.ModifierSpeciesReference)
-
-        # Check duplicate sid
-        sid = 'modifier'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid='species',
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Duplicate SId "', self.r.add_modifier, species,
-            sid)
-
-    def test_products(self):
-
-        # Check bad species
-        sid = 'product'
-        species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.r.add_product, species, sid)
-
-        # Check invalid sid
-        sid = ';'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid='species',
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Invalid SId "', self.r.add_product, species, sid)
-
-        # Check good sid
-        sid = 'product'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid='species',
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.r.add_product(species, sid)
-
-        self.assertEqual(len(self.r.products()), 1)
-        self.assertIsInstance(
-            self.r.products()[0], sbml.SpeciesReference)
-
-        # Check duplicate sid
-        sid = 'product'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid='species',
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Duplicate SId "', self.r.add_product, species,
-            sid)
-
-    def test_reactants(self):
-
-        # Check bad species
-        sid = 'reactant'
-        species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.r.add_reactant, species, sid)
-
-        # Check invalid sid
-        sid = ';'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid='species',
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Invalid SId "', self.r.add_reactant, species, sid)
-
-        # Check good sid
-        sid = 'reactant'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid='species',
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.r.add_reactant(species, sid)
-
-        self.assertEqual(len(self.r.reactants()), 1)
-        self.assertIsInstance(
-            self.r.reactants()[0], sbml.SpeciesReference)
-
-        # Check duplicate sid
-        sid = 'reactant'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid='species',
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Duplicate SId "', self.r.add_reactant, species,
-            sid)
-
-    def test_sid(self):
-        self.assertEqual(self.r.sid(), self.sid)
-
-    def test_species(self):
-
-        # Add modifier species
-        sid = 'modifier_species'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid=sid,
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.r.add_modifier(species, sid)
-
-        # Check that species are accessible
-        self.assertIsInstance(self.r.species(sid), sbml.Species)
-
-        # Add product species
-        sid = 'product_species'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid=sid,
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.r.add_product(species, sid)
-
-        # Check that species are accessible
-        self.assertIsInstance(self.r.species(sid), sbml.Species)
-
-        # Add reactant species
-        sid = 'reactant_species'
-        compartment = sbml.Compartment(self.model, sid='compartment')
-        species = sbml.Species(
-            compartment=compartment,
-            sid=sid,
-            is_amount=False,
-            is_constant=False,
-            is_boundary=False)
-        self.r.add_reactant(species, sid)
-
-        # Check that species are accessible
-        self.assertIsInstance(self.r.species(sid), sbml.Species)
-
-    def test_string_representation(self):
-        self.assertEqual(str(self.r), '<Reaction ' + self.sid + '>')
-
-
-class TestSpecies(unittest.TestCase):
-    """
-    Unit tests for :class:`Species`.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.model = sbml.Model(name='model')
-        cls.c = cls.model.add_compartment(sid='compartment')
-
-    def test_is_amount(self):
-
-        # Test is amount
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=True, is_constant=False,
-            is_boundary=False)
-
-        self.assertTrue(species.is_amount())
-
-        # Test is concentration
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        self.assertFalse(species.is_amount())
-
-        # Test bad amount
-        sid = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Is_amount <', sbml.Species, self.c,
-            sid, 'No', False, False)
-
-    def test_is_boundary(self):
-
-        # Test is boundary
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=True)
-
-        self.assertTrue(species.is_boundary())
-
-        # Test is not boundary
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        self.assertFalse(species.is_boundary())
-
-        # Test bad boundary
-        sid = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Is_boundary <', sbml.Species, self.c,
-            sid, False, False, 'No')
-
-    def test_compartment(self):
-
-        # Bad compartment
-        sid = 'species'
-        comp = 'compartment'
-
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.Species, comp,
-            sid, False, 'No', False)
-
-        # Test good compartment
-        sid = 'species'
-        comp = self.c
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=True,
-            is_boundary=False)
-
-        self.assertEqual(species.compartment(), self.c)
-
-    def test_is_constant(self):
-
-        # Test is constant
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=True,
-            is_boundary=False)
-
-        self.assertTrue(species.is_constant())
-
-        # Test is not constant
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        self.assertFalse(species.is_boundary())
-
-        # Test bad constant
-        sid = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Is_constant <', sbml.Species, self.c,
-            sid, False, 'No', False)
-
-    def test_conversion_factor(self):
-
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        # Test default value
-        self.assertIsNone(species.conversion_factor())
-
-        # Bad conversion factor
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_conversion_factor, 10)
-
-        # Good model conversion factor
-        factor = sbml.Parameter(self.model, 'parameter')
-        self.model.set_conversion_factor(factor)
-
-        self.assertEqual(species.conversion_factor(), factor)
-
-        # Good species conversion factor
-        factor = sbml.Parameter(self.model, 'parameter 2')
-        species.set_conversion_factor(factor)
-
-        self.assertEqual(species.conversion_factor(), factor)
-
-    def test_correct_initial_value(self):
-
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        # Check default
-        self.assertTrue(species.correct_initial_value())
-
-        # Check bad input
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_correct_initial_value, 'Yes')
-
-        # Check not correct units
-        species.set_correct_initial_value(False)
-        self.assertFalse(species.correct_initial_value())
-
-        # Check correct units
-        species.set_correct_initial_value(True)
-        self.assertTrue(species.correct_initial_value())
-
-    def test_initial_value(self):
-
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        # Check default initial value
-        self.assertIsNone(species.initial_value())
-
-        # Check bad value
-        expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_initial_value, expr)
-
-        # Check good value
-        expr = myokit.Number(2)
-        species.set_initial_value(expr)
-
-        self.assertEqual(species.initial_value(), expr)
-
-    def test_is_rate(self):
-
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        # Check default
-        self.assertFalse(species.is_rate())
-
-        # Check setting rate to true
-        expr = myokit.Number(2)
-        species.set_value(value=expr, is_rate=True)
-
-        self.assertTrue(species.is_rate())
-
-    def test_sid(self):
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        self.assertEqual(species.sid(), sid)
-
-    def test_string_representation(self):
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        self.assertEqual(str(species), '<Species ' + sid + '>')
-
-    def test_substance_units(self):
-
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        # Check default substance units
-        unit = myokit.units.dimensionless
-        self.assertEqual(species.substance_units(), unit)
-
-        # Check bad units
-        unit = 'mg'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_substance_units, unit)
-
-        # Check model substance units
-        unit = myokit.units.g
-        self.model.set_substance_units(unit)
-
-        self.assertEqual(species.substance_units(), unit)
-
-        # Check species subtance units
-        unit = myokit.units.g * 1E-3
-        species.set_substance_units(unit)
-
-        self.assertEqual(species.substance_units(), unit)
-
-    def test_value(self):
-
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        # Check bad value
-        expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_value, expr)
-
-        # Check good value
-        expr = myokit.Number(2)
-        species.set_value(expr)
-
-        self.assertEqual(species.value(), expr)
-
-
-class TestSpeciesReference(unittest.TestCase):
-    """
-    Unit tests for :class:`SpeciesReference`.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        model = sbml.Model(name='model')
-        comp = model.add_compartment(sid='compartment')
-        cls.species = sbml.Species(comp, 'species', False, False, False)
-        cls.sid = 'species_reference'
-        cls.sr = sbml.SpeciesReference(cls.species, cls.sid)
-
-    def test_initial_value(self):
-
-        # Check default initial value
-        self.assertIsNone(self.sr.initial_value())
-
-        # Check bad value
-        expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.sr.set_initial_value, expr)
-
-        # Check good value
-        expr = myokit.Number(2)
-        self.sr.set_initial_value(expr)
-
-        self.assertEqual(self.sr.initial_value(), expr)
-
-    def test_is_rate(self):
-
-        # Check default
-        self.assertFalse(self.sr.is_rate())
-
-        # Check setting rate to true
-        expr = myokit.Number(2)
-        self.sr.set_value(value=expr, is_rate=True)
-
-        self.assertTrue(self.sr.is_rate())
-
-    def test_sid(self):
-        self.assertEqual(self.sr.sid(), self.sid)
-
-    def test_species(self):
-
-        # Check bad species
-        species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.SpeciesReference, species)
-
-        # Check good species
-        self.assertEqual(self.sr.species(), self.species)
-
-    def test_value(self):
-
-        # Check bad value
-        expr = 2
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', self.sr.set_value, expr)
-
-        # Check good value
-        expr = myokit.Number(2)
-        self.sr.set_value(expr)
-
-        self.assertEqual(self.sr.value(), expr)
-
-
-class TestModifierSpeciesReference(unittest.TestCase):
-    """
-    Unit tests for :class:`ModifierSpeciesReference`.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        model = sbml.Model(name='model')
-        comp = model.add_compartment(sid='compartment')
-        cls.species = sbml.Species(comp, 'species', False, False, False)
-        cls.sid = 'modifier_species_reference'
-        cls.sr = sbml.ModifierSpeciesReference(cls.species, cls.sid)
-
-    def test_sid(self):
-        self.assertEqual(self.sr.sid(), self.sid)
-
-    def test_species(self):
-
-        # Check bad species
-        species = 'species'
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', sbml.ModifierSpeciesReference, species)
-
-        # Check good species
-        self.assertEqual(self.sr.species(), self.species)
 
 
 if __name__ == '__main__':
