@@ -1372,8 +1372,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         s2.set_initial_value(myokit.Number(4))
         mm = m.myokit_model()
         sc = mm.get('comp.spec_2_concentration')
-        self.assertFalse(ms.is_state())
-        self.assertEqual(ms.rhs(), myokit.Number(4))
+        self.assertFalse(sc.is_state())
+        self.assertEqual(sc.rhs(), myokit.Number(4))
         sa = mm.get('comp.spec_2_amount')
         self.assertFalse(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
@@ -1396,13 +1396,13 @@ class SBMLTestMyokitModel(unittest.TestCase):
         s2.set_value(myokit.Number(4))
         mm = m.myokit_model()
         sc = mm.get('comp.spec_2_concentration')
-        self.assertFalse(ms.is_state())
-        self.assertEqual(ms.rhs(), myokit.Number(4))
+        self.assertFalse(sc.is_state())
+        self.assertEqual(sc.rhs(), myokit.Number(4))
         sa = mm.get('comp.spec_2_amount')
         self.assertFalse(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
 
-    def test_species_value_rate (self):
+    def test_species_value_rate(self):
         # Tests converting setting species defined through an ODE equation
 
         # Species in amount
@@ -1427,9 +1427,9 @@ class SBMLTestMyokitModel(unittest.TestCase):
         s2.set_value(myokit.Number(4), is_rate=True)
         mm = m.myokit_model()
         sc = mm.get('comp.spec_2_concentration')
-        self.assertTruee(ms.is_state())
-        self.assertEqual(ms.rhs(), myokit.Number(4))
-        self.assertEqual(ms.state_value(), 0)
+        self.assertTrue(sc.is_state())
+        self.assertEqual(sc.rhs(), myokit.Number(4))
+        self.assertEqual(sc.state_value(), 0)
         sa = mm.get('comp.spec_2_amount')
         self.assertFalse(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
