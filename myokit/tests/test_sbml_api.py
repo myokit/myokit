@@ -1218,6 +1218,30 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(
             expression_references[myokit.Name(c)], myokit.Name(var))
 
+        # Check setting size as initial value
+        sm = sbml.Model()
+        c = sm.add_compartment('comp')
+        c.set_initial_value(myokit.Number(2))
+        mm = sm.myokit_model()
+        self.assertEqual(mm.get('comp.size').rhs(), myokit.Number(2))
+        self.assertFalse(mm.get('comp.size').is_state())
+
+        # Check setting size as value
+        sm = sbml.Model()
+        c = sm.add_compartment('comp')
+        c.set_value(myokit.Number(3))
+        mm = sm.myokit_model()
+        self.assertEqual(mm.get('comp.size').rhs(), myokit.Number(3))
+        self.assertFalse(mm.get('comp.size').is_state())
+
+        # Check setting size as rate
+        sm = sbml.Model()
+        c = sm.add_compartment('comp')
+        c.set_value(myokit.Number(1.5), is_rate=True)
+        mm = sm.myokit_model()
+        self.assertEqual(mm.get('comp.size').rhs(), myokit.Number(1.5))
+        self.assertTrue(mm.get('comp.size').is_state())
+
     def test_add_myokit_component(self):
         # Tests whether myokit component is added properly to the myokit model.
 
@@ -1522,43 +1546,22 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_species_units(self):
         # Tests whether species units are set properly.
 
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>')
-        b = (' </listOfSpecies>'
-             '</model>')
-
         # Test I: No substance nor size units provided
-        x = '<species compartment="c" id="spec" />'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that units are set properly
-        amount = m.get('c.spec_amount')
-        conc = m.get('c.spec_concentration')
-
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        s = m.add_species(c, 'spec')
+        mm = m.myokit_model()
+        amount = mm.get('c.spec_amount')
+        conc = mm.get('c.spec_concentration')
         self.assertEqual(amount.unit(), myokit.units.dimensionless)
         self.assertEqual(conc.unit(), myokit.units.dimensionless)
 
         # Test II: Substance and size units provided
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" units="meter"/>'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>')
-        b = (' </listOfSpecies>'
-             '</model>')
-
-        x = '<species compartment="c" id="spec" substanceUnits="kilogram"/>'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that units are set properly
-        amount = m.get('c.spec_amount')
-        conc = m.get('c.spec_concentration')
-
+        c.set_size_units(myokit.units.m)
+        s.set_substance_units(myokit.units.kg)
+        mm = m.myokit_model()
+        amount = mm.get('c.spec_amount')
+        conc = mm.get('c.spec_concentration')
         self.assertEqual(amount.unit(), myokit.units.kg)
         self.assertEqual(conc.unit(), myokit.units.kg / myokit.units.meter)
 
