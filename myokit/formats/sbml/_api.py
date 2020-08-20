@@ -738,7 +738,7 @@ class Model(object):
 
             if compartment.is_rate():
                 # Promote size to state variable
-                var.promote(state_value=var.eval())
+                var.promote(state_value=var.eval() if var.rhs() else 0)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
@@ -813,14 +813,10 @@ class Model(object):
 
             if not var.is_state():
                 # Promote amount to state variable
-                try:
-                    var.promote(state_value=var.eval())
-                    var.set_rhs(None)
-                except AttributeError:
-                    var.promote()
-                    var.set_rhs(None)
+                var.promote(state_value=var.eval() if var.rhs() else 0)
+                var.set_rhs(None)
 
-            if var.rhs().eval():
+            if var.eval():
                 # Subtract rate contributions
                 # (Reaction removes species from compartment)
                 expr = myokit.Minus(var.rhs(), expr)
@@ -875,12 +871,8 @@ class Model(object):
 
             if not var.is_state():
                 # Promote amount to state variable
-                try:
-                    var.promote(state_value=var.eval())
-                    var.set_rhs(None)
-                except AttributeError:
-                    var.promote()
-                    var.set_rhs(None)
+                var.promote(state_value=var.eval() if var.rhs() else 0)
+                var.set_rhs(None)
 
             if var.rhs().eval():
                 # Add rate contributions
@@ -923,7 +915,7 @@ class Model(object):
 
             if species.is_rate():
                 # Promote species to state variable
-                var.promote(var.eval())
+                var.promote(state_value=var.eval() if var.rhs() else 0)
 
             # Set RHS (reactions are dealt with elsewhere)
             expr = species.value()
@@ -958,7 +950,7 @@ class Model(object):
 
             if parameter.is_rate():
                 # Promote parameter to state variable
-                var.promote(state_value=var.eval())
+                var.promote(state_value=var.eval() if var.rhs() else 0)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
@@ -996,7 +988,7 @@ class Model(object):
 
                 if species_reference.is_rate():
                     # Promote stoichiometry to state variable
-                    var.promote(state_value=var.eval())
+                    var.promote(state_value=var.eval() if var.rhs() else 0)
 
                 # Set RHS
                 # (assignmentRule overwrites initialAssignment)
