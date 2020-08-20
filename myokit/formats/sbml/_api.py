@@ -1,4 +1,5 @@
 import collections
+import warnings
 import re
 
 import myokit
@@ -403,7 +404,9 @@ class Model(object):
         self._set_rhs_sizes(variable_references, expression_references)
 
         # Set RHS of species (initalAssignemnt, assignmentRule, rateRule)
-        self._set_rhs_species(species_amount_references, expression_references)
+        self._set_rhs_species(
+            species_amount_references, variable_references,
+            expression_references)
 
         # Set RHS of parameters
         self._set_rhs_parameters(variable_references, expression_references)
@@ -737,8 +740,18 @@ class Model(object):
                     subst=expression_references))
 
             if compartment.is_rate():
+                # Get initial state
+                try:
+                    state_value = var.eval()
+                except AttributeError:
+                    state_value = 1
+                    warnings.warn(
+                        'Size of compartment <' + str(compartment) + '> is '
+                        'promoted to state variable without being assigned '
+                        'with an initial value. Default is set to 1.')
+
                 # Promote size to state variable
-                var.promote(state_value=var.eval() if var.rhs() else 0)
+                var.promote(state_value=state_value)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
@@ -752,7 +765,6 @@ class Model(object):
             expression_references):
 
         for reaction in self._reactions.values():
-
             if reaction.kinetic_law() is None:
                 # Skip to the next reaction
                 continue
@@ -801,7 +813,13 @@ class Model(object):
             if factor is not None:
                 # Get conversion factor variable
                 sid = factor.sid()
-                conversion_factor = variable_references[sid]
+                try:
+                    conversion_factor = variable_references[sid]
+                except KeyError:
+                    raise SBMLError(
+                        'Species <' + str(species) + '> has conversion factor '
+                        '<' + str(factor) + '> which is not referenced in the '
+                        'model.')
 
                 # Convert rate expression from units of reaction extent
                 # to amount units
@@ -812,8 +830,18 @@ class Model(object):
             var = species_amount_references[species.sid()]
 
             if not var.is_state():
-                # Promote amount to state variable
-                var.promote(state_value=var.eval() if var.rhs() else 0)
+                # Get initial state
+                try:
+                    state_value = var.eval()
+                except AttributeError:
+                    state_value = 0
+                    warnings.warn(
+                        'Species <' + str(species) + '> is promoted to state '
+                        'variable without being assigned with an initial '
+                        'value. Default is set to 0.')
+
+                # Promote size to state variable
+                var.promote(state_value=state_value)
                 var.set_rhs(None)
 
             if var.eval():
@@ -856,10 +884,17 @@ class Model(object):
                 # Weight rate expression by stoichiometry
                 expr = myokit.Multiply(stoichiometry, expr)
 
-            if species.conversion_factor():
+            factor = species.conversion_factor()
+            if factor is not None:
                 # Get conversion factor variable
                 sid = species.conversion_factor().sid()
-                conversion_factor = variable_references[sid]
+                try:
+                    conversion_factor = variable_references[sid]
+                except KeyError:
+                    raise SBMLError(
+                        'Species <' + str(species) + '> has conversion factor '
+                        '<' + str(factor) + '> which is not referenced in the '
+                        'model.')
 
                 # Convert rate expression from units of reaction extent
                 # to amount units
@@ -870,8 +905,18 @@ class Model(object):
             var = species_amount_references[species.sid()]
 
             if not var.is_state():
-                # Promote amount to state variable
-                var.promote(state_value=var.eval() if var.rhs() else 0)
+                # Get initial state
+                try:
+                    state_value = var.eval()
+                except AttributeError:
+                    state_value = 0
+                    warnings.warn(
+                        'Species <' + str(species) + '> is promoted to state '
+                        'variable without being assigned with an initial '
+                        'value. Default is set to 0.')
+
+                # Promote size to state variable
+                var.promote(state_value=state_value)
                 var.set_rhs(None)
 
             if var.rhs().eval():
@@ -882,7 +927,8 @@ class Model(object):
             var.set_rhs(expr.clone(subst=expression_references))
 
     def _set_rhs_species(
-            self, species_amount_references, expression_references):
+            self, species_amount_references, variable_references,
+            expression_references):
         """
         Sets right hand side of species amount variables defined by
         assignments.
@@ -905,17 +951,27 @@ class Model(object):
                 if species.is_amount() != species.correct_initial_value():
                     # Get initial compartment size
                     compartment = species.compartment()
-                    size = compartment.initial_value()
+                    size = variable_references[compartment.sid()]
 
                     # Convert initial value from concentration to amount
-                    expr = myokit.Multiply(expr, size)
+                    expr = myokit.Multiply(expr, myokit.Name(size))
 
                 # Set initial value
                 var.set_rhs(expr.clone(subst=expression_references))
 
             if species.is_rate():
-                # Promote species to state variable
-                var.promote(state_value=var.eval() if var.rhs() else 0)
+                # Get initial state
+                try:
+                    state_value = var.eval()
+                except AttributeError:
+                    state_value = 0
+                    warnings.warn(
+                        'Species <' + str(species) + '> is promoted to state '
+                        'variable without being assigned with an initial '
+                        'value. Default is set to 0.')
+
+                # Promote size to state variable
+                var.promote(state_value=state_value)
 
             # Set RHS (reactions are dealt with elsewhere)
             expr = species.value()
@@ -925,10 +981,10 @@ class Model(object):
                 if not species.is_amount():
                     # Get initial compartment size
                     compartment = species.compartment()
-                    size = compartment.initial_value()
+                    size = variable_references[compartment.sid()]
 
                     # Convert initial value from concentration to amount
-                    expr = myokit.Multiply(expr, size)
+                    expr = myokit.Multiply(expr, myokit.Name(size))
 
                 # Set initial value
                 var.set_rhs(expr.clone(subst=expression_references))
@@ -949,8 +1005,18 @@ class Model(object):
                     subst=expression_references))
 
             if parameter.is_rate():
-                # Promote parameter to state variable
-                var.promote(state_value=var.eval() if var.rhs() else 0)
+                # Get initial state
+                try:
+                    state_value = var.eval()
+                except AttributeError:
+                    state_value = 0
+                    warnings.warn(
+                        'Parameter <' + str(parameter) + '> is promoted to '
+                        'state variable without being assigned with an initial'
+                        ' value. Default is set to 1.')
+
+                # Promote size to state variable
+                var.promote(state_value=state_value)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
@@ -987,8 +1053,19 @@ class Model(object):
                         subst=expression_references))
 
                 if species_reference.is_rate():
-                    # Promote stoichiometry to state variable
-                    var.promote(state_value=var.eval() if var.rhs() else 0)
+                    # Get initial state
+                    try:
+                        state_value = var.eval()
+                    except AttributeError:
+                        state_value = 0
+                        warnings.warn(
+                            'Stoichiometry of <' + str(species_reference) + '>'
+                            ' is promoted to state variable without being '
+                            'assigned with an initial value. Default is set to'
+                            ' 1.')
+
+                    # Promote size to state variable
+                    var.promote(state_value=state_value)
 
                 # Set RHS
                 # (assignmentRule overwrites initialAssignment)
