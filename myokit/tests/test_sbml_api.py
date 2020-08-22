@@ -1373,7 +1373,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         mm = m.myokit_model()
         sc = mm.get('comp.spec_2_concentration')
         self.assertFalse(sc.is_state())
-        self.assertEqual(sc.rhs(), myokit.Number(4))
+        self.assertEqual(
+            sc.rhs().code(), 'comp.spec_2_amount / comp.size')
         sa = mm.get('comp.spec_2_amount')
         self.assertFalse(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
@@ -1397,7 +1398,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         mm = m.myokit_model()
         sc = mm.get('comp.spec_2_concentration')
         self.assertFalse(sc.is_state())
-        self.assertEqual(sc.rhs(), myokit.Number(4))
+        self.assertEqual(
+            sc.rhs().code(), 'comp.spec_2_amount / comp.size')
         sa = mm.get('comp.spec_2_amount')
         self.assertFalse(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
@@ -1427,12 +1429,13 @@ class SBMLTestMyokitModel(unittest.TestCase):
         s2.set_value(myokit.Number(4), is_rate=True)
         mm = m.myokit_model()
         sc = mm.get('comp.spec_2_concentration')
-        self.assertTrue(sc.is_state())
-        self.assertEqual(sc.rhs(), myokit.Number(4))
-        self.assertEqual(sc.state_value(), 0)
+        self.assertFalse(sc.is_state())
+        self.assertEqual(
+            sc.rhs().code(), 'comp.spec_2_amount / comp.size')
         sa = mm.get('comp.spec_2_amount')
-        self.assertFalse(sa.is_state())
+        self.assertTrue(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
+        self.assertEqual(sa.state_value(), 0)
 
     def test_add_species(self):
         # Tests whether species are added properly to the associated
