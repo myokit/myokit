@@ -1675,117 +1675,83 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_reaction_stoichiometry(self):
         # Tests whether stoichiometry is used in reactions correctly.
 
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1" stoichiometry="3"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2" stoichiometry="2"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1)
+        sr1.set_initial_value(myokit.Number(3))
+        sr2 = r.add_product(s2)
+        sr2.set_initial_value(myokit.Number(2))
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
 
         # Check that species are state variables
-        var = m.get('c.s1_amount')
+        var = mm.get('c.s1_amount')
         self.assertTrue(var.is_state())
 
-        var = m.get('c.s2_amount')
+        var = mm.get('c.s2_amount')
         self.assertTrue(var.is_state())
 
         # Check rates
-        var = m.get('c.s1_amount')
+        var = mm.get('c.s1_amount')
         self.assertEqual(var.eval(), -3 * (2 / 1.2 + 1.5))
 
-        var = m.get('c.s2_amount')
+        var = mm.get('c.s2_amount')
         self.assertEqual(var.eval(), 2 * (2 / 1.2 + 1.5))
 
     def test_reaction_stoichiometry_parameter(self):
         # Tests whether stoichiometry is used in reactions correctly,
         # when it's set by a parameter.
 
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference id="s1ref" species="s1"'
-             '      stoichiometry="3"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference id="s2ref" species="s2"'
-             '      stoichiometry="2"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        x = ('<listOfRules>'
-             '  <assignmentRule variable="s1ref"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <cn> 5 </cn>'
-             '    </math>'
-             '  </assignmentRule>'
-             '  <rateRule variable="s2ref"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <cn> 3.81 </cn>'
-             '    </math>'
-             '  </rateRule>'
-             '</listOfRules>')
-
-        m = self.parse(a + x + b)
-
-        m = m.myokit_model()
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1, 'sr1')
+        sr1.set_initial_value(myokit.Number(3))
+        sr1.set_value(myokit.Number(5))
+        sr2 = r.add_product(s2, 'sr2')
+        sr2.set_value(value=myokit.Number(3.82), is_rate=True)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
 
         # Check that species are state variables
-        var = m.get('c.s1_amount')
+        var = mm.get('c.s1_amount')
         self.assertTrue(var.is_state())
 
-        var = m.get('c.s2_amount')
+        var = mm.get('c.s2_amount')
         self.assertTrue(var.is_state())
 
-        # Check rates
-        var = m.get('c.s1_amount')
+        # Check whether stoichiometries are state variables
+        var = mm.get('c.sr1')
+        self.assertFalse(var.is_state())
+
+        var = mm.get('c.sr2')
+        self.assertTrue(var.is_state())
+
+        # Check rates of species
+        var = mm.get('c.s1_amount')
         self.assertEqual(var.eval(), -5 * (2 / 1.2 + 1.5))
 
-        var = m.get('c.s2_amount')
-        self.assertEqual(var.eval(), 2 * (2 / 1.2 + 1.5))
+        var = mm.get('c.s2_amount')
+        self.assertEqual(var.eval(), 0 * (2 / 1.2 + 1.5))
+
+        # Check values for stoichiometries
+        var = mm.get('c.sr1')
+        self.assertEqual(var.eval(), 5)
+
+        var = mm.get('c.sr2')
+        self.assertEqual(var.state_value(), 0)
+        self.assertEqual(var.eval(), 3.82)
 
     def test_reaction_stoichiometries_exist(self):
         # Tests whether stoichiometries are created properly.
