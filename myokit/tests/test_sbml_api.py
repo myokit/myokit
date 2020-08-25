@@ -1157,31 +1157,6 @@ class SBMLTestMyokitModel(unittest.TestCase):
     Unit tests for Model.myokit_model method.
     """
 
-    @classmethod
-    def setUpClass(cls):
-        cls.p = SBMLParser()
-
-    def parse(self, xml, lvl=3, v=2):
-        """
-        Inserts the given ``xml`` into an <sbml> element, parses it, and
-        returns the result.
-        """
-        return self.p.parse_string(self.wrap(xml, lvl, v))
-
-    def wrap(self, xml_content, level=3, version=2):
-        """
-        Wraps ``xml_content`` into an SBML document of the specified ``level``
-        and ``version``.
-        """
-        lv = 'level' + str(level) + '/version' + str(version)
-        return (
-            '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
-            ' level="' + str(level) + '"'
-            ' version="' + str(version) + '">'
-            + xml_content +
-            '</sbml>'
-        )
-
     def test_compartments(self):
         # Tests whether compartments are added properly to the myokit model.
 
