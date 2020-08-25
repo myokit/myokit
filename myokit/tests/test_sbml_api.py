@@ -972,6 +972,13 @@ class TestSpecies(unittest.TestCase):
         self.assertEqual(value, expr)
         self.assertTrue(is_amount)
 
+        # Check bad in_amount argument
+        expr = myokit.Number(10.1)
+        self.assertRaisesRegex(
+            sbml.SBMLError,
+            '<in_amount> needs to be an instance of bool or None.',
+            species.set_initial_value, expr, 'Yes')
+
     def test_is_rate(self):
 
         sid = 'species'

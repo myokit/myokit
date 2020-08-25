@@ -465,7 +465,9 @@ class TestSBMLParser(unittest.TestCase):
         d = ('</model>')
         m = self.parse(a + b + c + d)
         s = m.species('s')
-        self.assertEqual(s.initial_value(), myokit.Number(4.5))
+        expr, expr_in_amount = s.initial_value()
+        self.assertEqual(expr, myokit.Number(4.5))
+        self.assertIsNone(expr_in_amount)
 
         # Reset a species amount (or concentration)
         b = (' <listOfSpecies>'
@@ -473,10 +475,14 @@ class TestSBMLParser(unittest.TestCase):
              ' </listOfSpecies>')
         m = self.parse(a + b + d)
         s = m.species('s')
-        self.assertEqual(s.initial_value(), myokit.Number(3))
+        expr, expr_in_amount = s.initial_value()
+        self.assertEqual(expr, myokit.Number(3))
+        self.assertFalse(expr_in_amount)
         m = self.parse(a + b + c + d)
         s = m.species('s')
-        self.assertEqual(s.initial_value(), myokit.Number(4.5))
+        expr, expr_in_amount = s.initial_value()
+        self.assertEqual(expr, myokit.Number(4.5))
+        self.assertIsNone(expr_in_amount)
 
         # Set a stoichiometry
         a = ('<model>'
@@ -931,10 +937,14 @@ class TestSBMLParser(unittest.TestCase):
         b = ('</model>')
 
         p = self.parse(a + b).species('sx')
-        self.assertEqual(p.initial_value(), myokit.Number(3.4))
+        expr, expr_in_amount = p.initial_value()
+        self.assertEqual(expr, myokit.Number(3.4))
+        self.assertTrue(expr_in_amount)
 
         p = self.parse(a + b).species('sy')
-        self.assertEqual(p.initial_value(), myokit.Number(1.2))
+        expr, expr_in_amount = p.initial_value()
+        self.assertEqual(expr, myokit.Number(1.2))
+        self.assertFalse(expr_in_amount)
 
         # Set RHS with assignmentRule or rateRule
         x = ('<listOfRules>'
@@ -965,8 +975,13 @@ class TestSBMLParser(unittest.TestCase):
         px = self.parse(a + x + b).species('sx')
         py = self.parse(a + x + b).species('sy')
 
-        self.assertEqual(px.initial_value(), myokit.Number(3.4))
-        self.assertEqual(py.initial_value(), myokit.Number(1.2))
+        expr, expr_in_amount = px.initial_value()
+        self.assertEqual(expr, myokit.Number(3.4))
+        self.assertTrue(expr_in_amount)
+
+        expr, expr_in_amount = py.initial_value()
+        self.assertEqual(expr, myokit.Number(1.2))
+        self.assertFalse(expr_in_amount)
 
         self.assertFalse(px.is_rate())
         self.assertTrue(py.is_rate())
@@ -1205,13 +1220,17 @@ class TestSBMLParser(unittest.TestCase):
         x = ('<species compartment="c" id="s"'
              ' hasOnlySubstanceUnits="true" initialAmount="3" />')
         s = self.parse(a + x + b).species('s')
-        self.assertEqual(s.initial_value(), myokit.Number(3))
+        expr, expr_in_amount = s.initial_value()
+        self.assertEqual(expr, myokit.Number(3))
+        self.assertTrue(expr_in_amount)
 
         # Initial concentration
         x = ('<species compartment="c" id="s"'
              ' hasOnlySubstanceUnits="false" initialConcentration="1.2" />')
         s = self.parse(a + x + b).species('s')
-        self.assertEqual(s.initial_value(), myokit.Number(1.2))
+        expr, expr_in_amount = s.initial_value()
+        self.assertEqual(expr, myokit.Number(1.2))
+        self.assertFalse(expr_in_amount)
 
         # Set both initial amount and concentration
         x = ('<species compartment="c" id="s"'

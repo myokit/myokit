@@ -254,12 +254,6 @@ class SBMLParser(object):
                 lambda x, y: myokit.Name(model.assignable(x)),
             ))
 
-            # Indicate for species that the units of the inital value are
-            # correct (initialAssignments are meant to assign the value
-            # in the correct units amount/concentration)
-            if isinstance(var, myokit.formats.sbml.Species):
-                var.set_correct_initial_value(True)
-
         except myokit.formats.sbml.SBMLError as e:
             raise SBMLParsingError(
                 'Unable to parse initial assignment: ' + str(e), element)

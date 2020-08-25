@@ -946,8 +946,8 @@ class Model(object):
             expr, expr_in_amount = species.initial_value()
             if expr is not None:
                 # Need to convert initial value if initial value is provided
-                # concentration
-                if not expr_in_amount:
+                # in concentration
+                if expr_in_amount is False:
                     # Get initial compartment size
                     compartment = species.compartment()
                     size = variable_references[compartment.sid()]
@@ -1403,20 +1403,21 @@ class Species(Quantity):
 
         self._conversion_factor = factor
 
-    def set_initial_value(self, value, in_amount=False):
+    def set_initial_value(self, value, in_amount=None):
         """
         Sets a :class:`myokit.Expression` for this species' initial value.
 
         `in_amount` is a boolean that indicates whether the initial value is
-        measured in amount (True) or concentration (False).
+        measured in amount (True) or concentration (False). If set to `None`
+        value is treated to have the same units as the species.
         """
         if not isinstance(value, myokit.Expression):
             raise SBMLError(
                 '<' + str(value) + '> needs to be an instance of '
                 'myokit.Expression.')
-        if not isinstance(in_amount, bool):
+        if (in_amount is not None) and (not isinstance(in_amount, bool)):
             raise SBMLError(
-                '<in_amount> needs to be an instance of bool.')
+                '<in_amount> needs to be an instance of bool or None.')
 
         self._initial_value = value
         self._initial_value_in_amount = in_amount
