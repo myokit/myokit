@@ -633,15 +633,15 @@ class SBMLParser(object):
             # Get initial amount
             value = element.get('initialAmount')
 
-            # Indicate whether units of initial value are correct
-            species.set_correct_initial_value(species.is_amount())
+            # Indicate whether units of initial value are in amount
+            value_in_amount = True
 
             # If initial amount is not provided, get initial concentration
             if value is None:
                 value = element.get('initialConcentration')
 
                 # Indicate whether units of initial value are correct
-                species.set_correct_initial_value(not species.is_amount())
+                value_in_amount = False
 
             # Set initial value
             if value is not None:
@@ -653,7 +653,8 @@ class SBMLParser(object):
                         + str(value) + '".', element)
 
                 # Ignore units in equations
-                species.set_initial_value(myokit.Number(value))
+                species.set_initial_value(
+                    myokit.Number(value), value_in_amount)
 
             # Set conversion factor if provided (must refer to a parameter)
             factor = element.get('conversionFactor')

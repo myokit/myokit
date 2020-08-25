@@ -943,12 +943,11 @@ class Model(object):
             var = species_amount_references[sid]
 
             # Set initial value
-            expr = species.initial_value()
+            expr, expr_in_amount = species.initial_value()
             if expr is not None:
-                # Need to convert initial value if
-                # 1. the species is in amount but initial value units are not
-                # 2. the species and the initial value is in concentration
-                if species.is_amount() != species.correct_initial_value():
+                # Need to convert initial value if initial value is provided
+                # concentration
+                if not expr_in_amount:
                     # Get initial compartment size
                     compartment = species.compartment()
                     size = variable_references[compartment.sid()]
@@ -1349,9 +1348,8 @@ class Species(Quantity):
         # Optional conversion factor from substance to extent units
         self._conversion_factor = None
 
-        # Flag whether initial value is in correct units
-        # (amount or concentration)
-        self._correct_initial_value = True
+        # Flag whether initial value is provided in amount or concentration
+        self._initial_value_in_amount = None
 
     def is_amount(self):
         """
@@ -1367,6 +1365,14 @@ class Species(Quantity):
     def compartment(self):
         """Returns the :class:`Compartment` that this species is in."""
         return self._compartment
+
+    def initial_value(self):
+        """
+        Returns a :class:`myokit.Expression` (or None) for this species'
+        initial value, and a boolean indicating whether initial value is
+        provided in amount (True) or in concentration (False).
+        """
+        return self._initial_value, self._initial_value_in_amount
 
     def is_constant(self):
         """Returns ``True`` only if this species is constant."""
@@ -1385,12 +1391,6 @@ class Species(Quantity):
             return self._conversion_factor
         return self._compartment._model.conversion_factor()
 
-    def correct_initial_value(self):
-        """
-        Returns a boolean flag whether the initial value has the correct units.
-        """
-        return self._correct_initial_value
-
     def set_conversion_factor(self, factor):
         """
         Sets a :class:`Parameter` as conversion factor for this species,
@@ -1403,13 +1403,23 @@ class Species(Quantity):
 
         self._conversion_factor = factor
 
-    def set_correct_initial_value(self, correct_units):
-        """Sets a flag whether the units of the initial value are correct."""
-        if not isinstance(correct_units, bool):
+    def set_initial_value(self, value, in_amount=False):
+        """
+        Sets a :class:`myokit.Expression` for this species' initial value.
+
+        `in_amount` is a boolean that indicates whether the initial value is
+        measured in amount (True) or concentration (False).
+        """
+        if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                'Is_amount <' + str(correct_units) + '> needs to be a boolean.'
-            )
-        self._correct_initial_value = correct_units
+                '<' + str(value) + '> needs to be an instance of '
+                'myokit.Expression.')
+        if not isinstance(in_amount, bool):
+            raise SBMLError(
+                '<in_amount> needs to be an instance of bool.')
+
+        self._initial_value = value
+        self._initial_value_in_amount = in_amount
 
     def set_substance_units(self, units):
         """Sets the units this species amount (not concentration) is in."""

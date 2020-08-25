@@ -939,28 +939,6 @@ class TestSpecies(unittest.TestCase):
 
         self.assertEqual(species.conversion_factor(), factor)
 
-    def test_correct_initial_value(self):
-
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        # Check default
-        self.assertTrue(species.correct_initial_value())
-
-        # Check bad input
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_correct_initial_value, 'Yes')
-
-        # Check not correct units
-        species.set_correct_initial_value(False)
-        self.assertFalse(species.correct_initial_value())
-
-        # Check correct units
-        species.set_correct_initial_value(True)
-        self.assertTrue(species.correct_initial_value())
-
     def test_initial_value(self):
 
         sid = 'species'
@@ -969,18 +947,30 @@ class TestSpecies(unittest.TestCase):
             is_boundary=False)
 
         # Check default initial value
-        self.assertIsNone(species.initial_value())
+        expr, is_amount = species.initial_value()
+        self.assertIsNone(expr)
+        self.assertIsNone(is_amount)
 
         # Check bad value
         expr = 2
         self.assertRaisesRegex(
             sbml.SBMLError, '<', species.set_initial_value, expr)
 
-        # Check good value
+        # Check good value (default in_amount=False)
         expr = myokit.Number(2)
         species.set_initial_value(expr)
+        value, is_amount = species.initial_value()
 
-        self.assertEqual(species.initial_value(), expr)
+        self.assertEqual(value, expr)
+        self.assertFalse(is_amount)
+
+        # Check good value
+        expr = myokit.Number(10.1)
+        species.set_initial_value(expr, in_amount=True)
+        value, is_amount = species.initial_value()
+
+        self.assertEqual(value, expr)
+        self.assertTrue(is_amount)
 
     def test_is_rate(self):
 
@@ -1357,15 +1347,27 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_species_initial_value(self):
         # Tests converting setting species defined through an initial value
 
-        # Species in amount
+        # I: Species in amount
         m = sbml.Model()
         c = m.add_compartment('comp')
+        c.set_initial_value(myokit.Number(2))
         s1 = m.add_species(c, 'spec_1', is_amount=True)
-        s1.set_initial_value(myokit.Number(3))
+
+        # Initial value in amount
+        s1.set_initial_value(value=myokit.Number(3), in_amount=True)
         mm = m.myokit_model()
         ms = mm.get('comp.spec_1_amount')
         self.assertFalse(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
+
+        # Initial value in concentration
+        s1.set_initial_value(value=myokit.Number(3), in_amount=False)
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertFalse(ms.is_state())
+        self.assertEqual(
+            ms.rhs().code(), '3 * comp.size')
+        self.assertEqual(ms.eval(), 3 * 2)
 
         # Species in concentration
         s2 = m.add_species(c, 'spec_2', is_amount=False)
@@ -1407,9 +1409,11 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_species_value_rate(self):
         # Tests converting setting species defined through an ODE equation
 
-        # Species in amount
+        # I: No initial compartment size
         m = sbml.Model()
         c = m.add_compartment('comp')
+
+        # Species in amount
         s1 = m.add_species(c, 'spec_1', is_amount=True)
         s1.set_value(myokit.Number(3), is_rate=True)
         mm = m.myokit_model()
@@ -1422,7 +1426,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         ms = mm.get('comp.spec_1_amount')
         self.assertTrue(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
-        self.assertEqual(ms.state_value(), 7)
+        self.assertEqual(ms.state_value(), 0)
 
         # Species in concentration
         s2 = m.add_species(c, 'spec_2', is_amount=False)
@@ -1437,86 +1441,40 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
         self.assertEqual(sa.state_value(), 0)
 
-    def test_add_species(self):
-        # Tests whether species are added properly to the associated
-        # components.
+        # I: Set compartment size
+        m = sbml.Model()
+        c = m.add_compartment('comp')
+        c.set_initial_value(myokit.Number(2))
 
-        # Add compartment to myokit model
-        myokit_model = myokit.Model()
-        component_references = {}
-        variable_references = {}
-        expression_references = {}
+        # Species in amount
+        s1 = m.add_species(c, 'spec_1', is_amount=True)
+        s1.set_value(myokit.Number(3), is_rate=True)
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertTrue(ms.is_state())
+        self.assertEqual(ms.rhs(), myokit.Number(3))
+        self.assertEqual(ms.state_value(), 0)
+        s1.set_initial_value(myokit.Number(7))
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertTrue(ms.is_state())
+        self.assertEqual(ms.rhs(), myokit.Number(3))
+        self.assertEqual(ms.state_value(), 7 * 2)
 
-        m = sbml.Model(name='model')
-        c_sid = 'compartment'
-        c = m.add_compartment(c_sid)
-        c_unit = myokit.units.L
-        c.set_size_units(c_unit)
-
-        m._add_compartments(
-            myokit_model, component_references, variable_references,
-            expression_references)
-
-        # Create remaining inputs
-        species_amount_references = {}
-
-        # Case I: Species in concentration
-        # Add species to sbml.Model
-        sid = 'species'
-        s = m.add_species(c, sid)
-        s_unit = myokit.units.g
-        s.set_substance_units(s_unit)
-
-        # Add species to myokit model
-        m._add_species(
-            component_references, species_amount_references,
-            variable_references, expression_references)
-
-        # Check species has been added in amount and concentration
-        comp = component_references[c_sid]
-        self.assertTrue(comp.has_variable(sid + '_amount'))
-        self.assertTrue(comp.has_variable(sid + '_concentration'))
-
-        # Check that variable reference points to concentration and
-        # units are set properly
-        self.assertIn(sid, variable_references.keys())
-        var = variable_references[sid]
-        self.assertEqual(var.unit(), s_unit / c_unit)
-
-        # Check that amount variable is referenced in species_amount_references
-        # and that units are set properly
-        self.assertIn(sid, species_amount_references.keys())
-        var = species_amount_references[sid]
-        self.assertEqual(var.unit(), s_unit)
-
-        # Case II: Species in amount
-        # Add species to sbml.Model
-        sid = 'species_2'
-        s = m.add_species(c, sid, is_amount=True)
-        s_unit = myokit.units.g
-        s.set_substance_units(s_unit)
-
-        # Add species to myokit model
-        m._add_species(
-            component_references, species_amount_references,
-            variable_references, expression_references)
-
-        # Check species has been added in amount and concentration
-        comp = component_references[c_sid]
-        self.assertTrue(comp.has_variable(sid + '_amount'))
-        self.assertFalse(comp.has_variable(sid + '_concentration'))
-
-        # Check that variable reference points to amount and
-        # units are set properly
-        self.assertIn(sid, variable_references.keys())
-        var = variable_references[sid]
-        self.assertEqual(var.unit(), s_unit)
-
-        # Check that amount variable is referenced in species_amount_references
-        # and that units are set properly
-        self.assertIn(sid, species_amount_references.keys())
-        var = species_amount_references[sid]
-        self.assertEqual(var.unit(), s_unit)
+        # Species in concentration
+        s2 = m.add_species(c, 'spec_2', is_amount=False)
+        s2.set_value(myokit.Number(4), is_rate=True)
+        mm = m.myokit_model()
+        sc = mm.get('comp.spec_2_concentration')
+        self.assertFalse(sc.is_state())
+        self.assertEqual(
+            sc.rhs().code(), 'comp.spec_2_amount / comp.size')
+        s2.set_initial_value(myokit.Number(6))
+        mm = m.myokit_model()
+        sa = mm.get('comp.spec_2_amount')
+        self.assertTrue(sa.is_state())
+        self.assertEqual(sa.rhs().code(), '4 * comp.size')
+        self.assertEqual(sa.state_value(), 6 * 2)
 
     def test_species_units(self):
         # Tests whether species units are set properly.
@@ -1543,50 +1501,31 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_reaction_expression(self):
         # Tests whether species reaction rate expressions are set correctly.
 
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_product(s2)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
 
         # Check that species are state variables
-        var = m.get('c.s1_amount')
+        var = mm.get('c.s1_amount')
         self.assertTrue(var.is_state())
 
-        var = m.get('c.s2_amount')
+        var = mm.get('c.s2_amount')
         self.assertTrue(var.is_state())
 
         # Check rates
-        var = m.get('c.s1_amount')
+        var = mm.get('c.s1_amount')
         self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
 
-        var = m.get('c.s2_amount')
+        var = mm.get('c.s2_amount')
         self.assertEqual(var.eval(), 2 / 1.2 + 1.5)
 
     def test_reaction_no_kinetic_law(self):
