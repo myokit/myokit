@@ -1408,7 +1408,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         ms = mm.get('comp.spec_1_amount')
         self.assertTrue(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
-        self.assertEqual(ms.state_value(), 0)
+        self.assertEqual(ms.state_value(), 7)
 
         # Species in concentration
         s2 = m.add_species(c, 'spec_2', is_amount=False)
@@ -1441,7 +1441,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         ms = mm.get('comp.spec_1_amount')
         self.assertTrue(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
-        self.assertEqual(ms.state_value(), 7 * 2)
+        self.assertEqual(ms.state_value(), 7)
 
         # Species in concentration
         s2 = m.add_species(c, 'spec_2', is_amount=False)
@@ -1590,7 +1590,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         s2 = m.add_species(compartment=c, sid='s2', is_boundary=True)
         s2.set_initial_value(myokit.Number(2), in_amount=True)
         s3 = m.add_species(compartment=c, sid='s3', is_boundary=True)
-        s3.set_initial_value(myokit.Number(1.5))
+        s3.set_initial_value(myokit.Number(1.5), in_amount=False)
         r = m.add_reaction('r')
         r.add_reactant(s1)
         r.add_reactant(s2)
@@ -1610,6 +1610,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
         # Check rhs
         var = mm.get('c.s1_amount')
+        self.assertEqual(
+            var.rhs().code(), '-(c.s1_concentration + c.s3_concentration)')
         self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
 
         var = mm.get('c.s2_amount')
@@ -1794,8 +1796,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         sr1.set_value(myokit.Plus(myokit.Name(p), myokit.Number(5)))
         sr2 = r.add_product(s2, 'sr2')
         sr2.set_initial_value(myokit.Number(3.5))
-        sr1.set_value(
-            myokit.Plus(myokit.Name(p), myokit.Number(1)), True)
+        sr2.set_value(
+            myokit.Minus(myokit.Name(p), myokit.Number(1)), True)
         r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
         mm = m.myokit_model()
 

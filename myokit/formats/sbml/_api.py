@@ -947,6 +947,9 @@ class Model(object):
             if expr is not None:
                 # Need to convert initial value if initial value is provided
                 # in concentration
+                if expr_in_amount is None:
+                    expr_in_amount = species.is_amount()
+
                 if expr_in_amount is False:
                     # Get initial compartment size
                     compartment = species.compartment()
