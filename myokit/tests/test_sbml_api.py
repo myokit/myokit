@@ -1531,100 +1531,69 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_reaction_no_kinetic_law(self):
         # Tests whether missing kinetic law is handled correctly.
 
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2"/>'
-             '   </listOfProducts>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_product(s2)
+        mm = m.myokit_model()
 
         # Check that species are state variables
-        var = m.get('c.s1_amount')
+        var = mm.get('c.s1_amount')
         self.assertFalse(var.is_state())
 
-        var = m.get('c.s2_amount')
+        var = mm.get('c.s2_amount')
         self.assertFalse(var.is_state())
 
         # Check rates
-        var = m.get('c.s1_amount')
+        var = mm.get('c.s1_amount')
         self.assertEqual(var.eval(), 2)
 
-        var = m.get('c.s2_amount')
+        var = mm.get('c.s2_amount')
         self.assertEqual(var.eval(), 1.2 * 1.5)
 
     def test_reaction_boundary_species(self):
         # Tests whether rate of boundary species remains unaltered.
 
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialAmount="2"'
-             '    boundaryCondition="true"/>'
-             '  <species id="s3" compartment="c" initialConcentration="1.5"'
-             '    boundaryCondition="true"/>'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1"/>'
-             '    <speciesReference species="s2"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s3"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s3</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(compartment=c, sid='s2', is_boundary=True)
+        s2.set_initial_value(myokit.Number(2), in_amount=True)
+        s3 = m.add_species(compartment=c, sid='s3', is_boundary=True)
+        s3.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_reactant(s2)
+        r.add_product(s3)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s3)))
+        mm = m.myokit_model()
 
         # Check that species are state variables
-        var = m.get('c.s1_amount')
+        var = mm.get('c.s1_amount')
         self.assertTrue(var.is_state())
 
-        var = m.get('c.s2_amount')
+        var = mm.get('c.s2_amount')
         self.assertFalse(var.is_state())
 
-        var = m.get('c.s3_amount')
+        var = mm.get('c.s3_amount')
         self.assertFalse(var.is_state())
 
-        # Check rates
-        var = m.get('c.s1_amount')
+        # Check rhs
+        var = mm.get('c.s1_amount')
         self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
 
-        var = m.get('c.s2_amount')
+        var = mm.get('c.s2_amount')
         self.assertEqual(var.eval(), 2)
 
-        var = m.get('c.s3_amount')
+        var = mm.get('c.s3_amount')
         self.assertEqual(var.eval(), 1.2 * 1.5)
 
     def test_reaction_conversion_factor(self):
