@@ -1,4 +1,5 @@
 import collections
+import warnings
 import re
 
 import myokit
@@ -403,7 +404,9 @@ class Model(object):
         self._set_rhs_sizes(variable_references, expression_references)
 
         # Set RHS of species (initalAssignemnt, assignmentRule, rateRule)
-        self._set_rhs_species(species_amount_references, expression_references)
+        self._set_rhs_species(
+            species_amount_references, variable_references,
+            expression_references)
 
         # Set RHS of parameters
         self._set_rhs_parameters(variable_references, expression_references)
@@ -628,7 +631,13 @@ class Model(object):
             # Get component from reference list
             compartment = species.compartment()
             compartment_sid = compartment.sid()
-            component = component_references[compartment_sid]
+            try:
+                component = component_references[compartment_sid]
+            except KeyError:
+                raise SBMLError(
+                    'The <' + str(compartment) + '> for <' + str(species) + '>'
+                    ' is not referenced in model. Please use the '
+                    '`add_compartment` method to reference a compartment.')
 
             # Add species in amount to component
             # (needed for reactions, even if species is defined in
@@ -685,7 +694,15 @@ class Model(object):
                     species = species_reference.species()
                     compartment = species.compartment()
                     compartment_sid = compartment.sid()
-                    component = component_references[compartment_sid]
+                    try:
+                        component = component_references[compartment_sid]
+                    except KeyError:
+                        raise SBMLError(
+                            'The <' + str(compartment) + '> of <' +
+                            str(species) + '> in <' + str(reaction) + '> is '
+                            'not referenced in the model. Please use the '
+                            '`add_compartment` method to reference the '
+                            'compartment.')
 
                     # Add variable to component
                     var = component.add_variable_allow_renaming(
@@ -733,26 +750,49 @@ class Model(object):
             # Set initial value
             expr = compartment.initial_value()
             if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+                try:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Initial value for the size of <' + str(compartment) +
+                        '> contains unreferenced parameters/variables. Please'
+                        ' use e.g. the `add_parameter` method to add reference'
+                        ' to parameters in the model.')
 
             if compartment.is_rate():
+                # Get initial state
+                try:
+                    state_value = var.eval()
+                except AttributeError:
+                    state_value = 1
+                    warnings.warn(
+                        'Size of compartment <' + str(compartment) + '> is '
+                        'promoted to state variable without being assigned '
+                        'with an initial value. Default is set to 1.')
+
                 # Promote size to state variable
-                var.promote(state_value=var.eval())
+                var.promote(state_value=state_value)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
             expr = compartment.value()
             if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+                try:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Value for the size of <' + str(compartment) +
+                        '> contains unreferenced parameters/variables. Please'
+                        ' use e.g. the `add_parameter` method to add reference'
+                        ' to parameters in the model.')
 
     def _set_reactions(
             self, variable_references, species_amount_references,
             expression_references):
 
         for reaction in self._reactions.values():
-
             if reaction.kinetic_law() is None:
                 # Skip to the next reaction
                 continue
@@ -801,7 +841,13 @@ class Model(object):
             if factor is not None:
                 # Get conversion factor variable
                 sid = factor.sid()
-                conversion_factor = variable_references[sid]
+                try:
+                    conversion_factor = variable_references[sid]
+                except KeyError:
+                    raise SBMLError(
+                        'Species <' + str(species) + '> has conversion factor '
+                        '<' + str(factor) + '> which is not referenced in the '
+                        'model.')
 
                 # Convert rate expression from units of reaction extent
                 # to amount units
@@ -809,18 +855,30 @@ class Model(object):
                 expr = myokit.Multiply(conversion_factor, expr)
 
             # Get myokit amount variable
-            var = species_amount_references[species.sid()]
+            try:
+                var = species_amount_references[species.sid()]
+            except KeyError:
+                raise SBMLError(
+                    'Kinetic law of <' + str(reaction) + '> contains '
+                    'unreferenced species <' + str(species) + '>. Please, '
+                    'use the `add_species` method to reference species.')
 
             if not var.is_state():
-                # Promote amount to state variable
+                # Get initial state
                 try:
-                    var.promote(state_value=var.eval())
-                    var.set_rhs(None)
+                    state_value = var.eval()
                 except AttributeError:
-                    var.promote()
-                    var.set_rhs(None)
+                    state_value = 0
+                    warnings.warn(
+                        'Species <' + str(species) + '> is promoted to state '
+                        'variable without being assigned with an initial '
+                        'value. Default is set to 0.')
 
-            if var.rhs().eval():
+                # Promote size to state variable
+                var.promote(state_value=state_value)
+                var.set_rhs(None)
+
+            if var.eval():
                 # Subtract rate contributions
                 # (Reaction removes species from compartment)
                 expr = myokit.Minus(var.rhs(), expr)
@@ -828,7 +886,14 @@ class Model(object):
                 expr = myokit.PrefixMinus(expr)
 
             # Set RHS
-            var.set_rhs(expr.clone(subst=expression_references))
+            try:
+                var.set_rhs(expr.clone(subst=expression_references))
+            except AttributeError:
+                raise SBMLError(
+                    'Reaction rate expression of <' + str(reaction) + '> for <'
+                    + str(species) + '> contains unreferenced parameters/'
+                    'variables. Please use e.g. the `add_parameter` method to '
+                    'add reference to parameters in the model.')
 
     def _set_rhs_products(
             self, reaction, variable_references, species_amount_references,
@@ -860,10 +925,17 @@ class Model(object):
                 # Weight rate expression by stoichiometry
                 expr = myokit.Multiply(stoichiometry, expr)
 
-            if species.conversion_factor():
+            factor = species.conversion_factor()
+            if factor is not None:
                 # Get conversion factor variable
                 sid = species.conversion_factor().sid()
-                conversion_factor = variable_references[sid]
+                try:
+                    conversion_factor = variable_references[sid]
+                except KeyError:
+                    raise SBMLError(
+                        'Species <' + str(species) + '> has conversion factor '
+                        '<' + str(factor) + '> which is not referenced in the '
+                        'model.')
 
                 # Convert rate expression from units of reaction extent
                 # to amount units
@@ -871,26 +943,46 @@ class Model(object):
                 expr = myokit.Multiply(conversion_factor, expr)
 
             # Get myokit amount variable
-            var = species_amount_references[species.sid()]
+            try:
+                var = species_amount_references[species.sid()]
+            except KeyError:
+                raise SBMLError(
+                    'Kinetic law of <' + str(reaction) + '> contains '
+                    'unreferenced species <' + str(species) + '>. Please, '
+                    'use the `add_species` method to reference species.')
 
             if not var.is_state():
-                # Promote amount to state variable
+                # Get initial state
                 try:
-                    var.promote(state_value=var.eval())
-                    var.set_rhs(None)
+                    state_value = var.eval()
                 except AttributeError:
-                    var.promote()
-                    var.set_rhs(None)
+                    state_value = 0
+                    warnings.warn(
+                        'Species <' + str(species) + '> is promoted to state '
+                        'variable without being assigned with an initial '
+                        'value. Default is set to 0.')
+
+                # Promote size to state variable
+                var.promote(state_value=state_value)
+                var.set_rhs(None)
 
             if var.rhs().eval():
                 # Add rate contributions
                 expr = myokit.Plus(var.rhs(), expr)
 
             # Set RHS
-            var.set_rhs(expr.clone(subst=expression_references))
+            try:
+                var.set_rhs(expr.clone(subst=expression_references))
+            except AttributeError:
+                raise SBMLError(
+                    'Reaction rate expression of <' + str(reaction) + '> for <'
+                    + str(species) + '> contains unreferenced parameters/'
+                    'variables. Please use e.g. the `add_parameter` method to '
+                    'add reference to parameters in the model.')
 
     def _set_rhs_species(
-            self, species_amount_references, expression_references):
+            self, species_amount_references, variable_references,
+            expression_references):
         """
         Sets right hand side of species amount variables defined by
         assignments.
@@ -905,41 +997,65 @@ class Model(object):
             var = species_amount_references[sid]
 
             # Set initial value
-            expr = species.initial_value()
+            expr, expr_in_amount = species.initial_value()
             if expr is not None:
-                # Need to convert initial value if
-                # 1. the species is in amount but initial value units are not
-                # 2. the species and the initial value is in concentration
-                if species.is_amount() != species.correct_initial_value():
-                    # Get initial compartment size
-                    compartment = species.compartment()
-                    size = compartment.initial_value()
+                # Need to convert initial value if initial value is provided
+                # in concentration
+                if expr_in_amount is None:
+                    expr_in_amount = species.is_amount()
 
-                    # Convert initial value from concentration to amount
-                    expr = myokit.Multiply(expr, size)
+                try:
+                    if expr_in_amount is False:
+                        # Get initial compartment size
+                        compartment = species.compartment()
+                        size = variable_references[compartment.sid()]
 
-                # Set initial value
-                var.set_rhs(expr.clone(subst=expression_references))
+                        # Convert initial value from concentration to amount
+                        expr = myokit.Multiply(expr, myokit.Name(size))
+
+                    # Set initial value
+                    var.set_rhs(expr.clone(subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Initial value of <' + str(species) + '> contains '
+                        'unreferenced parameters/variables. Please use e.g. '
+                        'the `add_parameter` method to reference expressions.')
 
             if species.is_rate():
-                # Promote species to state variable
-                var.promote(var.eval())
+                # Get initial state
+                try:
+                    state_value = var.eval()
+                except AttributeError:
+                    state_value = 0
+                    warnings.warn(
+                        'Species <' + str(species) + '> is promoted to state '
+                        'variable without being assigned with an initial '
+                        'value. Default is set to 0.')
+
+                # Promote size to state variable
+                var.promote(state_value=state_value)
 
             # Set RHS (reactions are dealt with elsewhere)
             expr = species.value()
             if expr is not None:
                 # Need to convert initial value if species is measured in
                 # concentration (assignments match unit of measurement)
-                if not species.is_amount():
-                    # Get initial compartment size
-                    compartment = species.compartment()
-                    size = compartment.initial_value()
+                try:
+                    if not species.is_amount():
+                        # Get initial compartment size
+                        compartment = species.compartment()
+                        size = variable_references[compartment.sid()]
 
-                    # Convert initial value from concentration to amount
-                    expr = myokit.Multiply(expr, size)
+                        # Convert initial value from concentration to amount
+                        expr = myokit.Multiply(expr, myokit.Name(size))
 
-                # Set initial value
-                var.set_rhs(expr.clone(subst=expression_references))
+                    # Set initial value
+                    var.set_rhs(expr.clone(subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Value of <' + str(species) + '> contains '
+                        'unreferenced parameters/variables. Please use e.g. '
+                        'the `add_parameter` method to reference expressions.')
 
     def _set_rhs_parameters(self, variable_references, expression_references):
         """
@@ -953,19 +1069,43 @@ class Model(object):
             # Set initial value
             expr = parameter.initial_value()
             if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+                try:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Initial value of <' + str(parameter) +
+                        '> contains unreferenced parameters/variables. Please'
+                        ' use e.g. the `add_parameter` method to add reference'
+                        ' to parameters in the model.')
 
             if parameter.is_rate():
-                # Promote parameter to state variable
-                var.promote(state_value=var.eval())
+                # Get initial state
+                try:
+                    state_value = var.eval()
+                except AttributeError:
+                    state_value = 0
+                    warnings.warn(
+                        'Parameter <' + str(parameter) + '> is promoted to '
+                        'state variable without being assigned with an initial'
+                        ' value. Default is set to 1.')
+
+                # Promote size to state variable
+                var.promote(state_value=state_value)
 
             # Set RHS
             # (assignmentRule overwrites initialAssignment)
             expr = parameter.value()
             if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+                try:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Value of <' + str(parameter) + '> contains '
+                        'unreferenced parameters/variables. Please use e.g.'
+                        ' the `add_parameter` method to add reference '
+                        'to parameters in the model.')
 
     def _set_rhs_stoichiometries(
             self, variable_references, expression_references):
@@ -982,28 +1122,56 @@ class Model(object):
                 # Get sid
                 sid = species_reference.sid()
 
-                # Get stoichiometry variable
-                try:
-                    var = variable_references[sid]
-                except KeyError:
+                # If sid does not exist, there is no rhs to set
+                if sid is None:
                     continue
+
+                # Get stoichiometry variable
+                var = variable_references[sid]
 
                 # Set initial value
                 expr = species_reference.initial_value()
                 if expr is not None:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
+                    try:
+                        var.set_rhs(expr.clone(
+                            subst=expression_references))
+                    except AttributeError:
+                        raise SBMLError(
+                            'Initial value of <' + str(species_reference) +
+                            '> (initial stoichiometry) contains unreferenced '
+                            'parameters/variables. Please use e.g. the '
+                            '`add_parameter` method to add reference to '
+                            'parameters in the model.')
 
                 if species_reference.is_rate():
-                    # Promote stoichiometry to state variable
-                    var.promote(state_value=var.eval())
+                    # Get initial state
+                    try:
+                        state_value = var.eval()
+                    except AttributeError:
+                        state_value = 0
+                        warnings.warn(
+                            'Stoichiometry of <' + str(species_reference) + '>'
+                            ' is promoted to state variable without being '
+                            'assigned with an initial value. Default is set to'
+                            ' 1.')
+
+                    # Promote size to state variable
+                    var.promote(state_value=state_value)
 
                 # Set RHS
                 # (assignmentRule overwrites initialAssignment)
                 expr = species_reference.value()
                 if expr is not None:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
+                    try:
+                        var.set_rhs(expr.clone(
+                            subst=expression_references))
+                    except AttributeError:
+                        raise SBMLError(
+                            'Value of <' + str(species_reference) + '> '
+                            '(stroichiometry) contains unreferenced parameters'
+                            '/variables. Please use e.g. the `add_parameter` '
+                            'method to add reference to parameters in the '
+                            'model.')
 
     # SBML base units (except Celsius, because it's not defined in myokit)
     _base_units = {
@@ -1280,9 +1448,8 @@ class Species(Quantity):
         # Optional conversion factor from substance to extent units
         self._conversion_factor = None
 
-        # Flag whether initial value is in correct units
-        # (amount or concentration)
-        self._correct_initial_value = True
+        # Flag whether initial value is provided in amount or concentration
+        self._initial_value_in_amount = None
 
     def is_amount(self):
         """
@@ -1298,6 +1465,14 @@ class Species(Quantity):
     def compartment(self):
         """Returns the :class:`Compartment` that this species is in."""
         return self._compartment
+
+    def initial_value(self):
+        """
+        Returns a :class:`myokit.Expression` (or None) for this species'
+        initial value, and a boolean indicating whether initial value is
+        provided in amount (True) or in concentration (False).
+        """
+        return self._initial_value, self._initial_value_in_amount
 
     def is_constant(self):
         """Returns ``True`` only if this species is constant."""
@@ -1316,12 +1491,6 @@ class Species(Quantity):
             return self._conversion_factor
         return self._compartment._model.conversion_factor()
 
-    def correct_initial_value(self):
-        """
-        Returns a boolean flag whether the initial value has the correct units.
-        """
-        return self._correct_initial_value
-
     def set_conversion_factor(self, factor):
         """
         Sets a :class:`Parameter` as conversion factor for this species,
@@ -1334,13 +1503,24 @@ class Species(Quantity):
 
         self._conversion_factor = factor
 
-    def set_correct_initial_value(self, correct_units):
-        """Sets a flag whether the units of the initial value are correct."""
-        if not isinstance(correct_units, bool):
+    def set_initial_value(self, value, in_amount=None):
+        """
+        Sets a :class:`myokit.Expression` for this species' initial value.
+
+        `in_amount` is a boolean that indicates whether the initial value is
+        measured in amount (True) or concentration (False). If set to `None`
+        value is treated to have the same units as the species.
+        """
+        if not isinstance(value, myokit.Expression):
             raise SBMLError(
-                'Is_amount <' + str(correct_units) + '> needs to be a boolean.'
-            )
-        self._correct_initial_value = correct_units
+                '<' + str(value) + '> needs to be an instance of '
+                'myokit.Expression.')
+        if (in_amount is not None) and (not isinstance(in_amount, bool)):
+            raise SBMLError(
+                '<in_amount> needs to be an instance of bool or None.')
+
+        self._initial_value = value
+        self._initial_value_in_amount = in_amount
 
     def set_substance_units(self, units):
         """Sets the units this species amount (not concentration) is in."""
@@ -1397,6 +1577,9 @@ class SpeciesReference(Quantity):
     def sid(self):
         """Returns this species reference's SId, or ``None`` if not set."""
         return self._sid
+
+    def __str__(self):
+        return '<SpeciesReference ' + self._sid + '>'
 
 
 class ModifierSpeciesReference(object):

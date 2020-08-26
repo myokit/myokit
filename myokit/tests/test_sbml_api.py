@@ -13,7 +13,6 @@ import unittest
 import myokit
 import myokit.formats
 import myokit.formats.sbml as sbml
-from myokit.formats.sbml import SBMLParser
 
 # Unit testing in Python 2 and 3
 try:
@@ -502,1210 +501,6 @@ class TestModel(unittest.TestCase):
         self.assertEqual(model.volume_units(), myokit.units.L)
 
 
-class SBMLTestMyokitModel(unittest.TestCase):
-    """
-    Unit tests for Model.myokit_model method.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.p = SBMLParser()
-
-        #
-
-    def parse(self, xml, lvl=3, v=2):
-        """
-        Inserts the given ``xml`` into an <sbml> element, parses it, and
-        returns the result.
-        """
-        return self.p.parse_string(self.wrap(xml, lvl, v))
-
-    def wrap(self, xml_content, level=3, version=2):
-        """
-        Wraps ``xml_content`` into an SBML document of the specified ``level``
-        and ``version``.
-        """
-        lv = 'level' + str(level) + '/version' + str(version)
-        return (
-            '<sbml xmlns="http://www.sbml.org/sbml/' + lv + '/core"'
-            ' level="' + str(level) + '"'
-            ' version="' + str(version) + '">'
-            + xml_content +
-            '</sbml>'
-        )
-
-    def test_add_compartments(self):
-        # Tests whether compartments are added properly to the myokit model.
-
-        # Create inputs
-        myokit_model = myokit.Model()
-        component_references = {}
-        variable_references = {}
-        expression_references = {}
-
-        # Create sbml.Model with one compartment
-        m = sbml.Model(name='model')
-        sid = 'compartment'
-        c = m.add_compartment(sid)
-        unit = myokit.units.L
-        c.set_size_units(unit)
-
-        # Add compartment to myokit model
-        m._add_compartments(
-            myokit_model, component_references, variable_references,
-            expression_references)
-
-        # Check that compartment was added properly
-        self.assertTrue(myokit_model.has_component(sid))
-        self.assertIsInstance(component_references[sid], myokit.Component)
-
-        # Check size variable is set properly
-        self.assertIn(sid, variable_references.keys())
-        var = variable_references[sid]
-        self.assertIsInstance(var, myokit.Variable)
-        self.assertEqual(var.unit(), unit)
-        self.assertEqual(
-            expression_references[myokit.Name(c)], myokit.Name(var))
-
-    def test_add_myokit_component(self):
-        # Tests whether myokit component is added properly to the myokit model.
-
-        # Create inputs
-        myokit_model = myokit.Model()
-        component_references = {}
-
-        # Create sbml.Model
-        m = sbml.Model(name='model')
-
-        # Add component to myokit model
-        m._add_myokit_component(myokit_model, component_references)
-
-        # Check that myokit component exists
-        sid = 'myokit'
-        self.assertTrue(myokit_model.has_component(sid))
-        self.assertIsInstance(component_references[sid], myokit.Component)
-
-    def test_add_parameters(self):
-        # Tests whether parameters are added properly to myokit component.
-
-        # Create myokit component
-        myokit_model = myokit.Model()
-        component_references = {}
-        m = sbml.Model(name='model')
-        m._add_myokit_component(myokit_model, component_references)
-        c = component_references['myokit']
-
-        # Create remaining inputs
-        variable_references = {}
-        expression_references = {}
-
-        # Add parameter to sbml.Model
-        sid = 'parameter'
-        p = m.add_parameter(sid)
-        unit = myokit.units.A
-        p.set_units(unit)
-
-        # Add parameter to myokit model
-        m._add_parameters(c, variable_references, expression_references)
-
-        # Check that parameter is added properly to myokit component
-        self.assertTrue(c.has_variable(sid))
-        self.assertIn(sid, variable_references.keys())
-        var = variable_references[sid]
-        self.assertIsInstance(var, myokit.Variable)
-        self.assertEqual(var.unit(), unit)
-
-    def test_add_species(self):
-        # Tests whether species are added properly to the associated
-        # components.
-
-        # Add compartment to myokit model
-        myokit_model = myokit.Model()
-        component_references = {}
-        variable_references = {}
-        expression_references = {}
-
-        m = sbml.Model(name='model')
-        c_sid = 'compartment'
-        c = m.add_compartment(c_sid)
-        c_unit = myokit.units.L
-        c.set_size_units(c_unit)
-
-        m._add_compartments(
-            myokit_model, component_references, variable_references,
-            expression_references)
-
-        # Create remaining inputs
-        species_amount_references = {}
-
-        # Case I: Species in concentration
-        # Add species to sbml.Model
-        sid = 'species'
-        s = m.add_species(c, sid)
-        s_unit = myokit.units.g
-        s.set_substance_units(s_unit)
-
-        # Add species to myokit model
-        m._add_species(
-            component_references, species_amount_references,
-            variable_references, expression_references)
-
-        # Check species has been added in amount and concentration
-        comp = component_references[c_sid]
-        self.assertTrue(comp.has_variable(sid + '_amount'))
-        self.assertTrue(comp.has_variable(sid + '_concentration'))
-
-        # Check that variable reference points to concentration and
-        # units are set properly
-        self.assertIn(sid, variable_references.keys())
-        var = variable_references[sid]
-        self.assertEqual(var.unit(), s_unit / c_unit)
-
-        # Check that amount variable is referenced in species_amount_references
-        # and that units are set properly
-        self.assertIn(sid, species_amount_references.keys())
-        var = species_amount_references[sid]
-        self.assertEqual(var.unit(), s_unit)
-
-        # Case II: Species in amount
-        # Add species to sbml.Model
-        sid = 'species_2'
-        s = m.add_species(c, sid, is_amount=True)
-        s_unit = myokit.units.g
-        s.set_substance_units(s_unit)
-
-        # Add species to myokit model
-        m._add_species(
-            component_references, species_amount_references,
-            variable_references, expression_references)
-
-        # Check species has been added in amount and concentration
-        comp = component_references[c_sid]
-        self.assertTrue(comp.has_variable(sid + '_amount'))
-        self.assertFalse(comp.has_variable(sid + '_concentration'))
-
-        # Check that variable reference points to amount and
-        # units are set properly
-        self.assertIn(sid, variable_references.keys())
-        var = variable_references[sid]
-        self.assertEqual(var.unit(), s_unit)
-
-        # Check that amount variable is referenced in species_amount_references
-        # and that units are set properly
-        self.assertIn(sid, species_amount_references.keys())
-        var = species_amount_references[sid]
-        self.assertEqual(var.unit(), s_unit)
-
-    def test_add_stoichiometries(self):
-        # Tests whether stoichiometries are added properly to the associated
-        # component.
-
-        # Add compartment and species to myokit model
-        myokit_model = myokit.Model()
-        component_references = {}
-        variable_references = {}
-        expression_references = {}
-        species_amount_references = {}
-
-        m = sbml.Model(name='model')
-        c_sid = 'compartment'
-        c = m.add_compartment(c_sid)
-
-        m._add_compartments(
-            myokit_model, component_references, variable_references,
-            expression_references)
-
-        sid = 'species'
-        s = m.add_species(c, sid)
-
-        m._add_species(
-            component_references, species_amount_references,
-            variable_references, expression_references)
-
-        # Case I: No stoichiometry reference
-        # Add reaction to sbml.Model
-        sid = 'reaction'
-        r = m.add_reaction(sid)
-        r_sid = None
-        r.add_reactant(species=s, sid=r_sid)
-        p_sid = None
-        r.add_product(species=s, sid=p_sid)
-
-        # Add stoichiometries to myokit model
-        m._add_stoichiometries(
-            component_references, variable_references, expression_references)
-
-        # Check that stoichiometries do not exist in myokit model and are not
-        # referenced in variable_references
-        comp = component_references[c_sid]
-        self.assertFalse(comp.has_variable(str(r_sid)))
-        self.assertFalse(comp.has_variable(str(p_sid)))
-        self.assertNotIn(r_sid, variable_references.keys())
-        self.assertNotIn(p_sid, variable_references.keys())
-
-        # Case II: Existing stoichiometry reference
-        # Add reaction to sbml.Model
-        sid = 'reaction_2'
-        r = m.add_reaction(sid)
-        r_sid = 'reactant'
-        rs = r.add_reactant(species=s, sid=r_sid)
-        p_sid = 'product'
-        ps = r.add_product(species=s, sid=p_sid)
-
-        # Add stoichiometries to myokit model
-        m._add_stoichiometries(
-            component_references, variable_references, expression_references)
-
-        # Check that stoichiometries exist in myokit model and are
-        # referenced in variable_references
-        comp = component_references[c_sid]
-        self.assertTrue(comp.has_variable(str(r_sid)))
-        self.assertTrue(comp.has_variable(str(p_sid)))
-        self.assertIn(r_sid, variable_references.keys())
-        self.assertIn(p_sid, variable_references.keys())
-
-        # Check that their units are set to dimensionless
-        # and that their expressions are referenced
-        unit = myokit.units.dimensionless
-        var = variable_references[r_sid]
-        self.assertEqual(var.unit(), unit)
-        self.assertEqual(
-            expression_references[myokit.Name(rs)], myokit.Name(var))
-        var = variable_references[p_sid]
-        self.assertEqual(var.unit(), unit)
-        self.assertEqual(
-            expression_references[myokit.Name(ps)], myokit.Name(var))
-
-        # Check that stoichiometries are referenced in
-
-    def test_add_time(self):
-        # Tests whether time bound variable is added properly to myokit
-        # component.
-
-        # Create myokit component
-        myokit_model = myokit.Model()
-        component_references = {}
-        m = sbml.Model(name='model')
-        m._add_myokit_component(myokit_model, component_references)
-        c = component_references['myokit']
-
-        # Create remaining inputs
-        variable_references = {}
-
-        # Add time bound variable to myokit model
-        unit = myokit.units.s
-        m.set_time_units(unit)
-        m._add_time(c, variable_references)
-
-        # Check that time bound variable exists in myokit component
-        self.assertTrue(c.has_variable('time'))
-
-        # Check that variable is referenced under csymbol
-        sid = 'http://www.sbml.org/sbml/symbols/time'
-        self.assertIn(sid, variable_references.keys())
-
-        # Check that variable has correct units and initial value
-        var = variable_references[sid]
-        self.assertEqual(var.rhs(), myokit.Number(0))
-        self.assertEqual(var.unit(), unit)
-
-    def test_name(self):
-
-        # Test regular name
-        name = 'model'
-        m = sbml.Model(name=name)
-        m = m.myokit_model()
-
-        self.assertEqual(m.name(), name)
-
-        # Test name with leading underscore
-        name = '_model'
-        m = sbml.Model(name=name)
-        m = m.myokit_model()
-
-        self.assertEqual(m.name(), 'underscore' + name)
-
-    def test_notes(self):
-
-        # Test that notes are set as meta data
-        n = 'These are some notes'
-        m = sbml.Model()
-        m.set_notes(n)
-        m = m.myokit_model()
-
-        self.assertEqual(m.meta['desc'], n)
-
-    def test_species_exist(self):
-        # Tests whether species initialisation in amount and concentration
-        # works.
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>')
-        b = (' </listOfSpecies>'
-             '</model>')
-
-        # Species in amount
-        x = '<species compartment="c" id="spec" hasOnlySubstanceUnits="true"/>'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check whether species exists in amount
-        self.assertTrue(m.has_variable('c.spec_amount'))
-
-        # Check that component has 2 variables
-        # [size, spec_amount]
-        component = m.get('c')
-        self.assertEqual(component.count_variables(), 2)
-
-        # Species in concentration
-        x = '<species compartment="c" id="spec" />'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check whether species exists in amount and concentration
-        self.assertTrue(m.has_variable('c.spec_amount'))
-        self.assertTrue(m.has_variable('c.spec_concentration'))
-
-        # Check that component has 3 variables
-        # [size, spec_amount, spec_concentration]
-        component = m.get('c')
-        self.assertEqual(component.count_variables(), 3)
-
-    def test_species_units(self):
-        # Tests whether species units are set properly.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>')
-        b = (' </listOfSpecies>'
-             '</model>')
-
-        # Test I: No substance nor size units provided
-        x = '<species compartment="c" id="spec" />'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that units are set properly
-        amount = m.get('c.spec_amount')
-        conc = m.get('c.spec_concentration')
-
-        self.assertEqual(amount.unit(), myokit.units.dimensionless)
-        self.assertEqual(conc.unit(), myokit.units.dimensionless)
-
-        # Test II: Substance and size units provided
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" units="meter"/>'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>')
-        b = (' </listOfSpecies>'
-             '</model>')
-
-        x = '<species compartment="c" id="spec" substanceUnits="kilogram"/>'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that units are set properly
-        amount = m.get('c.spec_amount')
-        conc = m.get('c.spec_concentration')
-
-        self.assertEqual(amount.unit(), myokit.units.kg)
-        self.assertEqual(conc.unit(), myokit.units.kg / myokit.units.meter)
-
-    def test_species_initial_values(self):
-        # Tests whether initial values of species is set properly.
-        a = ('<model>'
-             '  <listOfCompartments>'
-             '    <compartment id="c" size="10"/>'
-             '  </listOfCompartments>'
-             '  <listOfSpecies>'
-             '    <species compartment="c" id="spec"'
-             '      initialConcentration="2.1"/>'
-             '  </listOfSpecies>')
-        b = ('</model>')
-
-        # Test I: Set by species
-        m = self.parse(a + b)
-        m = m.myokit_model()
-
-        # Check that intial values are set
-        amount = m.get('c.spec_amount')
-        conc = m.get('c.spec_concentration')
-
-        self.assertEqual(amount.eval(), 21)
-        self.assertEqual(conc.eval(), 2.1)
-
-        # Test II: Set by initialAssignment
-        x = ('<listOfInitialAssignments>'
-             '  <initialAssignment symbol="spec">'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <cn>5</cn>'
-             '    </math>'
-             '  </initialAssignment>'
-             '</listOfInitialAssignments>')
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that intial values are set
-        amount = m.get('c.spec_amount')
-        conc = m.get('c.spec_concentration')
-
-        self.assertEqual(amount.eval(), 50)
-        self.assertEqual(conc.eval(), 5)
-
-    def test_species_values(self):
-        # Tests whether values of species is set properly. This does not
-        # include rate expressions from reactions.
-
-        a = ('<model>'
-             '  <listOfCompartments>'
-             '    <compartment id="c" size="10"/>'
-             '  </listOfCompartments>'
-             '  <listOfSpecies>'
-             '    <species compartment="c" id="spec"'
-             '      initialConcentration="2.1" boundaryCondition="true"/>'
-             '  </listOfSpecies>')
-        b = ('</model>')
-
-        # Test I: Set by assignmentRule
-        x = ('<listOfRules>'
-             '  <assignmentRule variable="spec"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <apply>'
-             '        <plus/>'
-             '        <ci> c </ci>'
-             '        <cn> 5 </cn>'
-             '      </apply>'
-             '    </math>'
-             '  </assignmentRule>'
-             '</listOfRules>')
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that values are set
-        amount = m.get('c.spec_amount')
-        conc = m.get('c.spec_concentration')
-
-        self.assertEqual(amount.eval(), 150)
-        self.assertEqual(conc.eval(), 15)
-
-        # Test II: Set by rateRule
-        x = ('<listOfRules>'
-             '  <rateRule variable="spec"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <apply>'
-             '        <plus/>'
-             '        <ci> c </ci>'
-             '        <cn> 5 </cn>'
-             '      </apply>'
-             '    </math>'
-             '  </rateRule>'
-             '</listOfRules>')
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that intial values are set
-        damount = m.get('c.spec_amount')
-        conc = m.get('c.spec_concentration')
-
-        self.assertEqual(damount.eval(), 150)
-        self.assertEqual(conc.eval(), 2.1)
-
-    def test_parameter_exist(self):
-        # Tests whether initialisation of parameters works properly.
-
-        a = '<model><listOfParameters>'
-        b = '</listOfParameters></model>'
-
-        x = '<parameter id="a" /><parameter id="b" />'
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that model created parameters in 'myokit' component
-        self.assertTrue(m.has_variable('myokit.a'))
-        self.assertTrue(m.has_variable('myokit.b'))
-
-        # Check that total number of parameters is 3
-        # [a, b, time]
-        self.assertEqual(m.count_variables(), 3)
-
-    def test_parameter_units(self):
-        # Tests whether parameter units are set properly.
-
-        a = '<model><listOfParameters>'
-        b = '</listOfParameters></model>'
-
-        x = ('<parameter id="c" value="2" />'
-             '<parameter id="d" units="volt" />'
-             '<parameter id="e" units="ampere" value="-1.2e-3" />')
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Get parameters
-        c = m.get('myokit.c')
-        d = m.get('myokit.d')
-        e = m.get('myokit.e')
-
-        # Check that units are set properly
-        self.assertIsNone(c.unit())
-        self.assertEqual(d.unit(), myokit.units.volt)
-        self.assertEqual(e.unit(), myokit.units.ampere)
-
-    def test_parameter_initial_values(self):
-        # Tests whether initial values of parameters are set correctly.
-
-        a = '<model>'
-        b = '</model>'
-
-        # Test I: Initial value set by parameter
-        x = '<listOfParameters>' + \
-            '  <parameter id="V" value="1.2">' + \
-            '  </parameter>' + \
-            '</listOfParameters>'
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check initial value of parameter
-        var = m.get('myokit.V')
-        self.assertEqual(var.eval(), 1.2)
-
-        # Test II: Initial value set by initialAssignment
-        x = '<listOfParameters>' + \
-            '  <parameter id="V" value="1.2">' + \
-            '  </parameter>' + \
-            '</listOfParameters>' + \
-            '<listOfInitialAssignments>' + \
-            '  <initialAssignment symbol="V">' + \
-            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
-            '      <cn>5</cn>' + \
-            '    </math>' + \
-            '  </initialAssignment>' + \
-            '</listOfInitialAssignments>'
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check initial value of parameter
-        var = m.get('myokit.V')
-        self.assertEqual(var.eval(), 5)
-
-    def test_parameter_values(self):
-        # Tests whether values of parameters are set correctly.
-
-        a = '<model>' + \
-            '  <listOfParameters>' + \
-            '    <parameter id="V" value="1.2">' + \
-            '    </parameter>' + \
-            '    <parameter id="K" value="3">' + \
-            '    </parameter>' + \
-            '  </listOfParameters>'
-        b = '</model>'
-
-        # Test I: Set by assignmentRule
-        x = '<listOfRules>' + \
-            '  <assignmentRule variable="V"> ' + \
-            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
-            '      <apply>' + \
-            '        <plus/>' + \
-            '        <ci> K </ci>' + \
-            '        <cn> 5 </cn>' + \
-            '      </apply>' + \
-            '    </math>' + \
-            '  </assignmentRule>' + \
-            '</listOfRules>'
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check value of parameter
-        var = m.get('myokit.V')
-        self.assertEqual(var.eval(), 8)
-
-        # Test II: Set by rateRule
-        x = '<listOfRules>' + \
-            '  <rateRule variable="V"> ' + \
-            '    <math xmlns="http://www.w3.org/1998/Math/MathML">' + \
-            '      <apply>' + \
-            '        <plus/>' + \
-            '        <ci> V </ci>' + \
-            '        <cn> 5 </cn>' + \
-            '      </apply>' + \
-            '    </math>' + \
-            '  </rateRule>' + \
-            '</listOfRules>'
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that parameter is state variable
-        var = m.get('myokit.V')
-        self.assertTrue(var.is_state())
-
-        # Check value of parameter
-        self.assertEqual(var.eval(), 6.2)
-
-    def test_stoichiometries_exist(self):
-        # Tests whether stoichiometries are created properly.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" />'
-             '  <species id="s2" compartment="c" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1" id="sr" />'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2" id="sp" />'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
-
-        # Check that stoichiometry variables exists
-        self.assertTrue(m.has_variable('c.sr'))
-        self.assertTrue(m.has_variable('c.sp'))
-
-    def test_stoichiometries_initial_value(self):
-        # Tests whether initial values of stoichiometries are set properly.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" />'
-             '  <species id="s2" compartment="c" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1" id="sr" stoichiometry="2.1"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2" id="sp" stoichiometry="3.5"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        # Test I: Set by speciesReference
-        m = self.parse(a + b)
-        m = m.myokit_model()
-
-        # Check that initial values are set properly
-        stoich_reactant = m.get('c.sr')
-        stoich_product = m.get('c.sp')
-
-        self.assertEqual(stoich_reactant.eval(), 2.1)
-        self.assertEqual(stoich_product.eval(), 3.5)
-
-        # Test I: Set by initialAssignment
-        x = (' <listOfInitialAssignments>'
-             '  <initialAssignment symbol="sr">'
-             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <cn>4.51</cn>'
-             '   </math>'
-             '  </initialAssignment>'
-             '  <initialAssignment symbol="sp">'
-             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <cn>6</cn>'
-             '   </math>'
-             '  </initialAssignment>'
-             ' </listOfInitialAssignments>')
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that initial values are set properly
-        stoich_reactant = m.get('c.sr')
-        stoich_product = m.get('c.sp')
-
-        self.assertEqual(stoich_reactant.eval(), 4.51)
-        self.assertEqual(stoich_product.eval(), 6)
-
-    def test_stoichiometry_values(self):
-        # Tests whether values of parameters are set correctly.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfParameters>'
-             '  <parameter id="V" value="10.23">'
-             '  </parameter>'
-             ' </listOfParameters>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" />'
-             '  <species id="s2" compartment="c" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1" id="sr" stoichiometry="2.1"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2" id="sp" stoichiometry="3.5"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        # Test I: Set by assignmentRule
-        x = ('<listOfRules>'
-             '  <assignmentRule variable="sr"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <apply>'
-             '        <plus/>'
-             '        <ci> V </ci>'
-             '        <cn> 5 </cn>'
-             '      </apply>'
-             '    </math>'
-             '  </assignmentRule>'
-             '  <assignmentRule variable="sp"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <apply>'
-             '        <plus/>'
-             '        <ci> V </ci>'
-             '        <cn> 3.81 </cn>'
-             '      </apply>'
-             '    </math>'
-             '  </assignmentRule>'
-             '</listOfRules>')
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check value of stoichiometries
-        var = m.get('c.sr')
-        self.assertEqual(var.eval(), 15.23)
-
-        var = m.get('c.sp')
-        self.assertAlmostEqual(var.eval(), 14.04)
-
-        # Test II: Set by rateRule
-        x = ('<listOfRules>'
-             '  <rateRule variable="sr"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <apply>'
-             '        <plus/>'
-             '        <ci> V </ci>'
-             '        <cn> 3 </cn>'
-             '      </apply>'
-             '    </math>'
-             '  </rateRule>'
-             '  <rateRule variable="sp"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <apply>'
-             '        <minus/>'
-             '        <ci> V </ci>'
-             '        <cn> 1 </cn>'
-             '      </apply>'
-             '    </math>'
-             '  </rateRule>'
-             '</listOfRules>')
-
-        m = self.parse(a + x + b)
-        m = m.myokit_model()
-
-        # Check that stoichiometries are state variables
-        var = m.get('c.sr')
-        self.assertTrue(var.is_state())
-
-        var = m.get('c.sp')
-        self.assertTrue(var.is_state())
-
-        # Check value of stoichiometries
-        var = m.get('c.sr')
-        self.assertEqual(var.eval(), 13.23)
-
-        var = m.get('c.sp')
-        self.assertEqual(var.eval(), 9.23)
-
-    def test_reaction_expression(self):
-        # Tests whether species reaction rate expressions are set correctly.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
-
-        # Check that species are state variables
-        var = m.get('c.s1_amount')
-        self.assertTrue(var.is_state())
-
-        var = m.get('c.s2_amount')
-        self.assertTrue(var.is_state())
-
-        # Check rates
-        var = m.get('c.s1_amount')
-        self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
-
-        var = m.get('c.s2_amount')
-        self.assertEqual(var.eval(), 2 / 1.2 + 1.5)
-
-    def test_reaction_no_kinteic_law(self):
-        # Tests whether missing kinetic law is handled correctly.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2"/>'
-             '   </listOfProducts>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
-
-        # Check that species are state variables
-        var = m.get('c.s1_amount')
-        self.assertFalse(var.is_state())
-
-        var = m.get('c.s2_amount')
-        self.assertFalse(var.is_state())
-
-        # Check rates
-        var = m.get('c.s1_amount')
-        self.assertEqual(var.eval(), 2)
-
-        var = m.get('c.s2_amount')
-        self.assertEqual(var.eval(), 1.2 * 1.5)
-
-    def test_reaction_boundary_species(self):
-        # Tests whether rate of boundary species remains unaltered.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialAmount="2"'
-             '    boundaryCondition="true"/>'
-             '  <species id="s3" compartment="c" initialConcentration="1.5"'
-             '    boundaryCondition="true"/>'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1"/>'
-             '    <speciesReference species="s2"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s3"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s3</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
-
-        # Check that species are state variables
-        var = m.get('c.s1_amount')
-        self.assertTrue(var.is_state())
-
-        var = m.get('c.s2_amount')
-        self.assertFalse(var.is_state())
-
-        var = m.get('c.s3_amount')
-        self.assertFalse(var.is_state())
-
-        # Check rates
-        var = m.get('c.s1_amount')
-        self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
-
-        var = m.get('c.s2_amount')
-        self.assertEqual(var.eval(), 2)
-
-        var = m.get('c.s3_amount')
-        self.assertEqual(var.eval(), 1.2 * 1.5)
-
-    def test_reaction_stoichiometry(self):
-        # Tests whether stoichiometry is used in reactions correctly.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1" stoichiometry="3"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2" stoichiometry="2"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
-
-        # Check that species are state variables
-        var = m.get('c.s1_amount')
-        self.assertTrue(var.is_state())
-
-        var = m.get('c.s2_amount')
-        self.assertTrue(var.is_state())
-
-        # Check rates
-        var = m.get('c.s1_amount')
-        self.assertEqual(var.eval(), -3 * (2 / 1.2 + 1.5))
-
-        var = m.get('c.s2_amount')
-        self.assertEqual(var.eval(), 2 * (2 / 1.2 + 1.5))
-
-    def test_reaction_stoichiometry_parameter(self):
-        # Tests whether stoichiometry is used in reactions correctly,
-        # when it's set by a parameter.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2" />'
-             '  <species id="s2" compartment="c" initialConcentration="1.5" />'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference id="s1ref" species="s1"'
-             '      stoichiometry="3"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference id="s2ref" species="s2"'
-             '      stoichiometry="2"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        x = ('<listOfRules>'
-             '  <assignmentRule variable="s1ref"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <cn> 5 </cn>'
-             '    </math>'
-             '  </assignmentRule>'
-             '  <rateRule variable="s2ref"> '
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '      <cn> 3.81 </cn>'
-             '    </math>'
-             '  </rateRule>'
-             '</listOfRules>')
-
-        m = self.parse(a + x + b)
-
-        m = m.myokit_model()
-
-        # Check that species are state variables
-        var = m.get('c.s1_amount')
-        self.assertTrue(var.is_state())
-
-        var = m.get('c.s2_amount')
-        self.assertTrue(var.is_state())
-
-        # Check rates
-        var = m.get('c.s1_amount')
-        self.assertEqual(var.eval(), -5 * (2 / 1.2 + 1.5))
-
-        var = m.get('c.s2_amount')
-        self.assertEqual(var.eval(), 2 * (2 / 1.2 + 1.5))
-
-    def test_reaction_conversion_factor(self):
-        # Tests whether rate contributions are converted correctly.
-
-        a = ('<model>'
-             ' <listOfCompartments>'
-             '  <compartment id="c" size="1.2" />'
-             ' </listOfCompartments>'
-             ' <listOfParameters>'
-             '  <parameter id="x" value="1.2">'
-             '  </parameter>'
-             '  <parameter id="y" value="3">'
-             '  </parameter>'
-             ' </listOfParameters>'
-             ' <listOfSpecies>'
-             '  <species id="s1" compartment="c" initialAmount="2"'
-             '    conversionFactor="x"/>'
-             '  <species id="s2" compartment="c" initialConcentration="1.5"'
-             '    conversionFactor="y"/>'
-             ' </listOfSpecies>'
-             ' <listOfReactions>'
-             '  <reaction id="r">'
-             '   <listOfReactants>'
-             '    <speciesReference species="s1"/>'
-             '   </listOfReactants>'
-             '   <listOfProducts>'
-             '    <speciesReference species="s2"/>'
-             '   </listOfProducts>'
-             '   <kineticLaw>'
-             '    <math xmlns="http://www.w3.org/1998/Math/MathML">'
-             '     <apply>'
-             '      <plus/>'
-             '      <ci>s1</ci>'
-             '      <ci>s2</ci>'
-             '     </apply>'
-             '    </math>'
-             '   </kineticLaw>'
-             '  </reaction>'
-             ' </listOfReactions>')
-        b = ('</model>')
-
-        m = self.parse(a + b)
-        m = m.myokit_model()
-
-        # Check that species are state variables
-        var = m.get('c.s1_amount')
-        self.assertTrue(var.is_state())
-
-        var = m.get('c.s2_amount')
-        self.assertTrue(var.is_state())
-
-        # Check rates
-        var = m.get('c.s1_amount')
-        self.assertEqual(var.eval(), -1.2 * (2 / 1.2 + 1.5))
-
-        var = m.get('c.s2_amount')
-        self.assertEqual(var.eval(), 3 * (2 / 1.2 + 1.5))
-
-    def test_time(self):
-        # Tests whether time variable is created properly.
-
-        m = sbml.Model()
-        m.set_time_units(myokit.units.s)
-        m = m.myokit_model()
-
-        # Check that time variable exists
-        self.assertTrue(m.has_variable('myokit.time'))
-
-        # Check that unit is set
-        var = m.get('myokit.time')
-        self.assertEqual(var.unit(), myokit.units.second)
-
-        # Check that initial value is set
-        self.assertEqual(var.eval(), 0)
-
-        # Chet that variable is time bound
-        self.assertTrue(var.binding(), 'time')
-
-
 class TestParameter(unittest.TestCase):
     """
     Unit tests for :class:`Parameter`.
@@ -2143,28 +938,6 @@ class TestSpecies(unittest.TestCase):
 
         self.assertEqual(species.conversion_factor(), factor)
 
-    def test_correct_initial_value(self):
-
-        sid = 'species'
-        species = sbml.Species(
-            compartment=self.c, sid=sid, is_amount=False, is_constant=False,
-            is_boundary=False)
-
-        # Check default
-        self.assertTrue(species.correct_initial_value())
-
-        # Check bad input
-        self.assertRaisesRegex(
-            sbml.SBMLError, '<', species.set_correct_initial_value, 'Yes')
-
-        # Check not correct units
-        species.set_correct_initial_value(False)
-        self.assertFalse(species.correct_initial_value())
-
-        # Check correct units
-        species.set_correct_initial_value(True)
-        self.assertTrue(species.correct_initial_value())
-
     def test_initial_value(self):
 
         sid = 'species'
@@ -2173,18 +946,37 @@ class TestSpecies(unittest.TestCase):
             is_boundary=False)
 
         # Check default initial value
-        self.assertIsNone(species.initial_value())
+        expr, is_amount = species.initial_value()
+        self.assertIsNone(expr)
+        self.assertIsNone(is_amount)
 
         # Check bad value
         expr = 2
         self.assertRaisesRegex(
             sbml.SBMLError, '<', species.set_initial_value, expr)
 
-        # Check good value
+        # Check good value (default in_amount=False)
         expr = myokit.Number(2)
         species.set_initial_value(expr)
+        value, is_amount = species.initial_value()
 
-        self.assertEqual(species.initial_value(), expr)
+        self.assertEqual(value, expr)
+        self.assertFalse(is_amount)
+
+        # Check good value
+        expr = myokit.Number(10.1)
+        species.set_initial_value(expr, in_amount=True)
+        value, is_amount = species.initial_value()
+
+        self.assertEqual(value, expr)
+        self.assertTrue(is_amount)
+
+        # Check bad in_amount argument
+        expr = myokit.Number(10.1)
+        self.assertRaisesRegex(
+            sbml.SBMLError,
+            '<in_amount> needs to be an instance of bool or None.',
+            species.set_initial_value, expr, 'Yes')
 
     def test_is_rate(self):
 
@@ -2357,6 +1149,1020 @@ class TestModifierSpeciesReference(unittest.TestCase):
 
         # Check good species
         self.assertEqual(self.sr.species(), self.species)
+
+
+class SBMLTestMyokitModel(unittest.TestCase):
+    """
+    Unit tests for Model.myokit_model method.
+    """
+
+    def test_compartments(self):
+        # Tests whether compartments are added properly to the myokit model.
+
+        # Check setting initial value for size
+        sm = sbml.Model()
+        c = sm.add_compartment('comp')
+        c.set_initial_value(myokit.Number(2))
+        mm = sm.myokit_model()
+        self.assertTrue(mm.has_component('comp'))
+        self.assertEqual(mm.get('comp.size').rhs(), myokit.Number(2))
+        self.assertFalse(mm.get('comp.size').is_state())
+
+        # Check setting unreferenced initial value parameter for size
+        sm = sbml.Model()
+        p = sbml.Parameter(sm, 'parameter')
+        c = sm.add_compartment('comp')
+        c.set_initial_value(myokit.Name(p))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value for the size of <',
+            sm.myokit_model)
+
+        # Check setting referenced initial value parameter for size
+        sm = sbml.Model()
+        p = sm.add_parameter('parameter')
+        c = sm.add_compartment('comp')
+        c.set_initial_value(myokit.Name(p))
+        mm = sm.myokit_model()
+        self.assertTrue(mm.has_component('comp'))
+        self.assertEqual(mm.get('comp.size').rhs().code(), 'myokit.parameter')
+        self.assertFalse(mm.get('comp.size').is_state())
+
+        # Check setting size as value
+        sm = sbml.Model()
+        c = sm.add_compartment('comp')
+        c.set_value(myokit.Number(3))
+        mm = sm.myokit_model()
+        self.assertEqual(mm.get('comp.size').rhs(), myokit.Number(3))
+        self.assertFalse(mm.get('comp.size').is_state())
+
+        # Check setting unreferenced value parameter for size
+        sm = sbml.Model()
+        p = sbml.Parameter(sm, 'parameter')
+        c = sm.add_compartment('comp')
+        c.set_value(myokit.Name(p))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Value for the size of <',
+            sm.myokit_model)
+
+        # Check setting referenced value parameter for size
+        sm = sbml.Model()
+        p = sm.add_parameter('parameter')
+        c = sm.add_compartment('comp')
+        c.set_value(myokit.Name(p))
+        mm = sm.myokit_model()
+        self.assertTrue(mm.has_component('comp'))
+        self.assertEqual(mm.get('comp.size').rhs().code(), 'myokit.parameter')
+        self.assertFalse(mm.get('comp.size').is_state())
+
+        # Check setting size as rate
+        sm = sbml.Model()
+        c = sm.add_compartment('comp')
+        c.set_value(myokit.Number(1.5), is_rate=True)
+        mm = sm.myokit_model()
+        self.assertEqual(mm.get('comp.size').rhs(), myokit.Number(1.5))
+        self.assertTrue(mm.get('comp.size').is_state())
+
+    def test_name(self):
+
+        # Test regular name
+        name = 'model'
+        m = sbml.Model(name=name)
+        m = m.myokit_model()
+
+        self.assertEqual(m.name(), name)
+
+        # Test name with leading underscore
+        name = '_model'
+        m = sbml.Model(name=name)
+        m = m.myokit_model()
+
+        self.assertEqual(m.name(), 'underscore' + name)
+
+    def test_notes(self):
+
+        # Test that notes are set as meta data
+        n = 'These are some notes'
+        m = sbml.Model()
+        m.set_notes(n)
+        m = m.myokit_model()
+
+        self.assertEqual(m.meta['desc'], n)
+
+    def test_parameters(self):
+        # Tests if parameters are converted
+
+        m = sbml.Model()
+        m.add_parameter('z')
+        m.add_parameter('boat')
+        m.add_parameter('c')
+        m = m.myokit_model()
+
+        # Check that model created parameters in 'myokit' component
+        self.assertTrue(m.has_variable('myokit.z'))
+        self.assertTrue(m.has_variable('myokit.boat'))
+        self.assertTrue(m.has_variable('myokit.c'))
+
+        # Check that total number of parameters is 4 (3 parameters and time)
+        self.assertEqual(m.count_variables(), 4)
+
+    def test_parameters_initial_value(self):
+        # Tests adding parameters set with initial values
+
+        m = sbml.Model()
+        p = m.add_parameter('param')
+        p.set_initial_value(myokit.Number(7))
+        mm = m.myokit_model()
+        pp = mm.get('myokit.param')
+        self.assertFalse(pp.is_state())
+        self.assertEqual(pp.rhs(), myokit.Number(7))
+
+        # Test units
+        self.assertIsNone(pp.unit())
+        p.set_units(myokit.units.pF)
+        mm = m.myokit_model()
+        pp = mm.get('myokit.param')
+        self.assertFalse(pp.is_state())
+        self.assertEqual(pp.rhs(), myokit.Number(7))
+        self.assertEqual(pp.unit(), myokit.units.pF)
+
+        # Unreferenced parameter
+        m = sbml.Model()
+        p_bad = sbml.Parameter(m, 'p_bad')
+        p = m.add_parameter('param')
+        p.set_initial_value(myokit.Name(p_bad))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value of <', m.myokit_model)
+
+    def test_parameters_values(self):
+        # Tests adding parameters set with a value (non-state)
+
+        m = sbml.Model()
+        p = m.add_parameter('param')
+        p.set_value(myokit.Plus(myokit.Number(7), myokit.Number(3)))
+        mm = m.myokit_model()
+        pp = mm.get('myokit.param')
+        self.assertFalse(pp.is_state())
+        self.assertEqual(
+            pp.rhs(), myokit.Plus(myokit.Number(7), myokit.Number(3)))
+
+        # Test units
+        self.assertIsNone(pp.unit())
+        p.set_units(myokit.units.pF)
+        mm = m.myokit_model()
+        pp = mm.get('myokit.param')
+        self.assertFalse(pp.is_state())
+        self.assertEqual(pp.rhs().code(), '7 + 3')
+        self.assertEqual(pp.unit(), myokit.units.pF)
+
+        # Unreferenced parameter
+        m = sbml.Model()
+        p_bad = sbml.Parameter(m, 'p_bad')
+        p = m.add_parameter('param')
+        p.set_value(myokit.Name(p_bad))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Value of <', m.myokit_model)
+
+    def test_parameter_values_rate(self):
+        # Tests adding parameters set with a value (state)
+
+        m = sbml.Model()
+        p = m.add_parameter('param')
+        p.set_value(myokit.Number(3.2), is_rate=True)
+        mm = m.myokit_model()
+        pp = mm.get('myokit.param')
+        self.assertTrue(pp.is_state())
+        self.assertEqual(pp.rhs(), myokit.Number(3.2))
+        self.assertEqual(pp.state_value(), 0)
+
+        # With initial value
+        p.set_initial_value(myokit.Number(1))
+        mm = m.myokit_model()
+        pp = mm.get('myokit.param')
+        self.assertTrue(pp.is_state())
+        self.assertEqual(pp.rhs(), myokit.Number(3.2))
+        self.assertEqual(pp.state_value(), 1)
+
+        # Test units
+        self.assertIsNone(pp.unit())
+        p.set_units(myokit.units.pF)
+        mm = m.myokit_model()
+        pp = mm.get('myokit.param')
+        self.assertTrue(pp.is_state())
+        self.assertEqual(pp.rhs(), myokit.Number(3.2))
+        self.assertEqual(pp.unit(), myokit.units.pF)
+
+        # Unreferenced parameter
+        m = sbml.Model()
+        p_bad = sbml.Parameter(m, 'p_bad')
+        p = m.add_parameter('param')
+        p.set_value(myokit.Name(p_bad), is_rate=True)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Value of <', m.myokit_model)
+
+    def test_species(self):
+        # Tests whether species initialisation in amount and concentration
+        # works.
+
+        # Species in amount
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        m.add_species(c, 's1', is_amount=True)
+        mm = m.myokit_model()
+
+        # Check whether species exists in amount
+        self.assertTrue(mm.has_variable('c.s1_amount'))
+        self.assertFalse(mm.has_variable('c.s1_concentration'))
+
+        # Check that component has 2 variables (compartment size and s1 amount)
+        self.assertEqual(mm.get('c').count_variables(), 2)
+
+        # Species in concentration
+        m.add_species(c, 's2', is_amount=False)
+        mm = m.myokit_model()
+
+        # Check whether species exists in amount and concentration
+        self.assertTrue(mm.has_variable('c.s2_amount'))
+        self.assertTrue(mm.has_variable('c.s2_concentration'))
+
+        # Check that component now has 4 variables
+        self.assertEqual(mm.get('c').count_variables(), 4)
+
+    def test_species_bad_compartment(self):
+        # Tests handling of unreferenced compartment.
+
+        m = sbml.Model()
+        c = sbml.Compartment(m, 'c')
+        m.add_species(c, 's1', is_amount=True)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'The <', m.myokit_model)
+
+    def test_species_initial_value(self):
+        # Tests converting setting species defined through an initial value
+
+        # I: Species in amount
+        m = sbml.Model()
+        c = m.add_compartment('comp')
+        c.set_initial_value(myokit.Number(2))
+        s1 = m.add_species(c, 'spec_1', is_amount=True)
+
+        # Initial value in amount
+        s1.set_initial_value(value=myokit.Number(3), in_amount=True)
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertFalse(ms.is_state())
+        self.assertEqual(ms.rhs(), myokit.Number(3))
+
+        # Initial value in concentration
+        s1.set_initial_value(value=myokit.Number(3), in_amount=False)
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertFalse(ms.is_state())
+        self.assertEqual(
+            ms.rhs().code(), '3 * comp.size')
+        self.assertEqual(ms.eval(), 3 * 2)
+
+        # Species in concentration
+        s2 = m.add_species(c, 'spec_2', is_amount=False)
+        s2.set_initial_value(myokit.Number(4))
+        mm = m.myokit_model()
+        sc = mm.get('comp.spec_2_concentration')
+        self.assertFalse(sc.is_state())
+        self.assertEqual(
+            sc.rhs().code(), 'comp.spec_2_amount / comp.size')
+        sa = mm.get('comp.spec_2_amount')
+        self.assertFalse(sa.is_state())
+        self.assertEqual(sa.rhs().code(), '4 * comp.size')
+
+        # Species in amount: unreferenced parameter
+        p1 = sbml.Parameter(m, 'p1')
+        s1.set_initial_value(value=myokit.Name(p1), in_amount=True)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value of <', m.myokit_model)
+
+        # Species in amount: referenced parameter
+        p1 = m.add_parameter('p1')
+        s1.set_initial_value(value=myokit.Name(p1), in_amount=True)
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertFalse(ms.is_state())
+        self.assertEqual(
+            ms.rhs().code(), 'myokit.p1')
+
+        # Species in concentration: unreferenced parameter
+        p2 = sbml.Parameter(m, 'p2')
+        s2.set_initial_value(value=myokit.Name(p2), in_amount=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value of <', m.myokit_model)
+
+    def test_species_value(self):
+        # Tests converting setting species defined through a normal equation
+
+        # Species in amount
+        m = sbml.Model()
+        c = m.add_compartment('comp')
+        s1 = m.add_species(c, 'spec_1', is_amount=True)
+        s1.set_value(myokit.Number(3))
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertFalse(ms.is_state())
+        self.assertEqual(ms.rhs(), myokit.Number(3))
+
+        # Species in concentration
+        s2 = m.add_species(c, 'spec_2', is_amount=False)
+        s2.set_value(myokit.Number(4))
+        mm = m.myokit_model()
+        sc = mm.get('comp.spec_2_concentration')
+        self.assertFalse(sc.is_state())
+        self.assertEqual(
+            sc.rhs().code(), 'comp.spec_2_amount / comp.size')
+        sa = mm.get('comp.spec_2_amount')
+        self.assertFalse(sa.is_state())
+        self.assertEqual(sa.rhs().code(), '4 * comp.size')
+
+        # Species in amount: bad parameter
+        m = sbml.Model()
+        p = sbml.Parameter(m, 'parameter')
+        c = m.add_compartment('comp')
+        s1 = m.add_species(c, 'spec_1', is_amount=True)
+        s1.set_value(myokit.Name(p))
+        self.assertRaisesRegex(sbml.SBMLError, 'Value of <', m.myokit_model)
+
+        # Species in concentration: bad parameter
+        m = sbml.Model()
+        p = sbml.Parameter(m, 'parameter')
+        c = m.add_compartment('comp')
+        s1 = m.add_species(c, 'spec_1', is_amount=False)
+        s1.set_value(myokit.Name(p))
+        self.assertRaisesRegex(sbml.SBMLError, 'Value of <', m.myokit_model)
+
+    def test_species_value_rate(self):
+        # Tests converting setting species defined through an ODE equation
+
+        # I: No initial compartment size
+        m = sbml.Model()
+        c = m.add_compartment('comp')
+
+        # Species in amount
+        s1 = m.add_species(c, 'spec_1', is_amount=True)
+        s1.set_value(myokit.Number(3), is_rate=True)
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertTrue(ms.is_state())
+        self.assertEqual(ms.rhs(), myokit.Number(3))
+        self.assertEqual(ms.state_value(), 0)
+        s1.set_initial_value(myokit.Number(7))
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertTrue(ms.is_state())
+        self.assertEqual(ms.rhs(), myokit.Number(3))
+        self.assertEqual(ms.state_value(), 7)
+
+        # Species in concentration
+        s2 = m.add_species(c, 'spec_2', is_amount=False)
+        s2.set_value(myokit.Number(4), is_rate=True)
+        mm = m.myokit_model()
+        sc = mm.get('comp.spec_2_concentration')
+        self.assertFalse(sc.is_state())
+        self.assertEqual(
+            sc.rhs().code(), 'comp.spec_2_amount / comp.size')
+        sa = mm.get('comp.spec_2_amount')
+        self.assertTrue(sa.is_state())
+        self.assertEqual(sa.rhs().code(), '4 * comp.size')
+        self.assertEqual(sa.state_value(), 0)
+
+        # I: Set compartment size
+        m = sbml.Model()
+        c = m.add_compartment('comp')
+        c.set_initial_value(myokit.Number(2))
+
+        # Species in amount
+        s1 = m.add_species(c, 'spec_1', is_amount=True)
+        s1.set_value(myokit.Number(3), is_rate=True)
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertTrue(ms.is_state())
+        self.assertEqual(ms.rhs(), myokit.Number(3))
+        self.assertEqual(ms.state_value(), 0)
+        s1.set_initial_value(myokit.Number(7))
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertTrue(ms.is_state())
+        self.assertEqual(ms.rhs(), myokit.Number(3))
+        self.assertEqual(ms.state_value(), 7)
+
+        # Species in concentration
+        s2 = m.add_species(c, 'spec_2', is_amount=False)
+        s2.set_value(myokit.Number(4), is_rate=True)
+        mm = m.myokit_model()
+        sc = mm.get('comp.spec_2_concentration')
+        self.assertFalse(sc.is_state())
+        self.assertEqual(
+            sc.rhs().code(), 'comp.spec_2_amount / comp.size')
+        s2.set_initial_value(myokit.Number(6))
+        mm = m.myokit_model()
+        sa = mm.get('comp.spec_2_amount')
+        self.assertTrue(sa.is_state())
+        self.assertEqual(sa.rhs().code(), '4 * comp.size')
+        self.assertEqual(sa.state_value(), 6 * 2)
+
+    def test_species_units(self):
+        # Tests whether species units are set properly.
+
+        # Test I: No substance nor size units provided
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        s = m.add_species(c, 'spec')
+        mm = m.myokit_model()
+        amount = mm.get('c.spec_amount')
+        conc = mm.get('c.spec_concentration')
+        self.assertEqual(amount.unit(), myokit.units.dimensionless)
+        self.assertEqual(conc.unit(), myokit.units.dimensionless)
+
+        # Test II: Substance and size units provided
+        c.set_size_units(myokit.units.m)
+        s.set_substance_units(myokit.units.kg)
+        mm = m.myokit_model()
+        amount = mm.get('c.spec_amount')
+        conc = mm.get('c.spec_concentration')
+        self.assertEqual(amount.unit(), myokit.units.kg)
+        self.assertEqual(conc.unit(), myokit.units.kg / myokit.units.meter)
+
+    def test_reaction_expression(self):
+        # Tests whether species reaction rate expressions are set correctly.
+
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_product(s2)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
+
+        # Check that species are state variables
+        var = mm.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = mm.get('c.s2_amount')
+        self.assertTrue(var.is_state())
+
+        # Check rates
+        var = mm.get('c.s1_amount')
+        self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
+
+        var = mm.get('c.s2_amount')
+        self.assertEqual(var.eval(), 2 / 1.2 + 1.5)
+
+    def test_reaction_bad_compartment(self):
+        # Tests handling of unreferenced compartment for reactants/products.
+
+        # Bad compartment for reactant
+        m = sbml.Model()
+        c = sbml.Compartment(m, 'compartment')
+        s1 = sbml.Species(c, 's1', False, False, False)
+        r = m.add_reaction('r')
+        r.add_reactant(s1, 'sr1')
+        self.assertRaisesRegex(sbml.SBMLError, 'The <', m.myokit_model)
+
+        # Bad compartment for product
+        m = sbml.Model()
+        c = sbml.Compartment(m, 'compartment')
+        s1 = sbml.Species(c, 's1', False, False, False)
+        r = m.add_reaction('r')
+        r.add_product(s1, 'sr1')
+        self.assertRaisesRegex(sbml.SBMLError, 'The <', m.myokit_model)
+
+    def test_reaction_bad_species(self):
+        # Tests handling of unreferenced species in kinetic law.
+
+        # Bad reactant
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = sbml.Species(c, 's1', False, False, False)
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.set_kinetic_law(myokit.Name(s1))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Kinetic law of <', m.myokit_model)
+
+        # Bad product
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s2 = sbml.Species(c, 's2', False, False, False)
+        r = m.add_reaction('r')
+        r.add_product(s2)
+        r.set_kinetic_law(myokit.Name(s2))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Kinetic law of <', m.myokit_model)
+
+        # Good reactant, bad modifier
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s2 = sbml.Species(c, 's2', False, False, False)
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_modifier(s2)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Reaction rate expression of <', m.myokit_model)
+
+        # Good product, bad modifier
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s2 = sbml.Species(c, 's2', False, False, False)
+        r = m.add_reaction('r')
+        r.add_product(s1)
+        r.add_modifier(s2)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Reaction rate expression of <', m.myokit_model)
+
+    def test_reaction_bad_kinetic_law(self):
+        # Tests handling of unreferenced variables in ketic law.
+        m = sbml.Model()
+        p = sbml.Parameter(m, 'parameter')
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(p)))
+
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Reaction rate expression of <', m.myokit_model)
+
+    def test_reaction_no_kinetic_law(self):
+        # Tests whether missing kinetic law is handled correctly.
+
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_product(s2)
+        mm = m.myokit_model()
+
+        # Check that species are state variables
+        var = mm.get('c.s1_amount')
+        self.assertFalse(var.is_state())
+
+        var = mm.get('c.s2_amount')
+        self.assertFalse(var.is_state())
+
+        # Check rates
+        var = mm.get('c.s1_amount')
+        self.assertEqual(var.eval(), 2)
+
+        var = mm.get('c.s2_amount')
+        self.assertEqual(var.eval(), 1.2 * 1.5)
+
+    def test_reaction_bad_conversion_factor(self):
+        # Tests whether error is thrown when conversion factor is
+        # not referenced in model.
+
+        # Bad conversion factor for reactant
+        m = sbml.Model()
+        px = sbml.Parameter(m, 'x')
+        px.set_value(myokit.Number(1.2))
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s1.set_conversion_factor(px)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_product(s2)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+
+        self.assertRaisesRegex(sbml.SBMLError, 'Species <', m.myokit_model)
+
+        # Bad conversion factor for product
+        m = sbml.Model()
+        px = sbml.Parameter(m, 'x')
+        px.set_value(myokit.Number(1.2))
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        s2.set_conversion_factor(px)
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_product(s2)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+
+        self.assertRaisesRegex(sbml.SBMLError, 'Species <', m.myokit_model)
+
+    def test_reaction_boundary_species(self):
+        # Tests whether rate of boundary species remains unaltered.
+
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(compartment=c, sid='s2', is_boundary=True)
+        s2.set_initial_value(myokit.Number(2), in_amount=True)
+        s3 = m.add_species(compartment=c, sid='s3', is_boundary=True)
+        s3.set_initial_value(myokit.Number(1.5), in_amount=False)
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_reactant(s2)
+        r.add_product(s3)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s3)))
+        mm = m.myokit_model()
+
+        # Check that species are state variables
+        var = mm.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = mm.get('c.s2_amount')
+        self.assertFalse(var.is_state())
+
+        var = mm.get('c.s3_amount')
+        self.assertFalse(var.is_state())
+
+        # Check rhs
+        var = mm.get('c.s1_amount')
+        self.assertEqual(
+            var.rhs().code(), '-(c.s1_concentration + c.s3_concentration)')
+        self.assertEqual(var.eval(), -(2 / 1.2 + 1.5))
+
+        var = mm.get('c.s2_amount')
+        self.assertEqual(var.eval(), 2)
+
+        var = mm.get('c.s3_amount')
+        self.assertEqual(var.eval(), 1.2 * 1.5)
+
+    def test_reaction_conversion_factor(self):
+        # Tests whether rate contributions are converted correctly.
+
+        m = sbml.Model()
+        px = m.add_parameter('x')
+        px.set_value(myokit.Number(1.2))
+        py = m.add_parameter('y')
+        py.set_value(myokit.Number(3))
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s1.set_conversion_factor(px)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        s2.set_conversion_factor(py)
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_product(s2)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
+
+        # Check that species are state variables
+        var = mm.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = mm.get('c.s2_amount')
+        self.assertTrue(var.is_state())
+
+        # Check rates
+        var = mm.get('c.s1_amount')
+        self.assertEqual(var.eval(), -1.2 * (2 / 1.2 + 1.5))
+
+        var = mm.get('c.s2_amount')
+        self.assertEqual(var.eval(), 3 * (2 / 1.2 + 1.5))
+
+    def test_reaction_stoichiometry(self):
+        # Tests whether stoichiometry is used in reactions correctly.
+
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1)
+        sr1.set_initial_value(myokit.Number(3))
+        sr2 = r.add_product(s2)
+        sr2.set_initial_value(myokit.Number(2))
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
+
+        # Check that species are state variables
+        var = mm.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = mm.get('c.s2_amount')
+        self.assertTrue(var.is_state())
+
+        # Check rates
+        var = mm.get('c.s1_amount')
+        self.assertEqual(var.eval(), -3 * (2 / 1.2 + 1.5))
+
+        var = mm.get('c.s2_amount')
+        self.assertEqual(var.eval(), 2 * (2 / 1.2 + 1.5))
+
+    def test_reaction_stoichiometry_parameter(self):
+        # Tests whether stoichiometry is used in reactions correctly,
+        # when it's set by a parameter.
+
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1, 'sr1')
+        sr1.set_initial_value(myokit.Number(3))
+        sr1.set_value(myokit.Number(5))
+        sr2 = r.add_product(s2, 'sr2')
+        sr2.set_value(value=myokit.Number(3.82), is_rate=True)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
+
+        # Check that species are state variables
+        var = mm.get('c.s1_amount')
+        self.assertTrue(var.is_state())
+
+        var = mm.get('c.s2_amount')
+        self.assertTrue(var.is_state())
+
+        # Check whether stoichiometries are state variables
+        var = mm.get('c.sr1')
+        self.assertFalse(var.is_state())
+
+        var = mm.get('c.sr2')
+        self.assertTrue(var.is_state())
+
+        # Check rates of species
+        var = mm.get('c.s1_amount')
+        self.assertEqual(var.eval(), -5 * (2 / 1.2 + 1.5))
+
+        var = mm.get('c.s2_amount')
+        self.assertEqual(var.eval(), 0 * (2 / 1.2 + 1.5))
+
+        # Check values for stoichiometries
+        var = mm.get('c.sr1')
+        self.assertEqual(var.eval(), 5)
+
+        var = mm.get('c.sr2')
+        self.assertEqual(var.state_value(), 0)
+        self.assertEqual(var.eval(), 3.82)
+
+    def test_reaction_stoichiometries_exist(self):
+        # Tests whether stoichiometries are created properly.
+
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s1.set_initial_value(myokit.Number(2), in_amount=True)
+        s2 = m.add_species(c, 's2')
+        s2.set_initial_value(myokit.Number(1.5))
+        r = m.add_reaction('r')
+        r.add_reactant(s1, 'sr1')
+        r.add_product(s2, 'sr2')
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
+
+        # Check that stoichiometry variables exists
+        self.assertTrue(mm.has_variable('c.sr1'))
+        self.assertTrue(mm.has_variable('c.sr2'))
+
+    def test_reaction_stoichiometries_initial_value(self):
+        # Tests whether initial values of stoichiometries are set properly.
+
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s2 = m.add_species(c, 's2')
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1, 'sr1')
+        sr1.set_initial_value(myokit.Number(2.1))
+        sr2 = r.add_product(s2, 'sr2')
+        sr2.set_initial_value(myokit.Number(3.5))
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
+
+        # Check that initial values are set properly
+        stoich_reactant = mm.get('c.sr1')
+        stoich_product = mm.get('c.sr2')
+
+        self.assertEqual(stoich_reactant.eval(), 2.1)
+        self.assertEqual(stoich_product.eval(), 3.5)
+
+        # Bad initial value
+        m = sbml.Model()
+        p = sbml.Parameter(m, 'parameter')
+        c = m.add_compartment('c')
+        s1 = m.add_species(c, 's1')
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1, 'sr1')
+        sr1.set_initial_value(myokit.Name(p))
+        r.set_kinetic_law(myokit.Name(s1))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value of <', m.myokit_model)
+
+    def test_reaction_stoichiometry_values(self):
+        # Tests whether values of parameters are set correctly.
+
+        m = sbml.Model()
+        p = m.add_parameter('V')
+        p.set_value(myokit.Number(10.23))
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s2 = m.add_species(c, 's2')
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1, 'sr1')
+        sr1.set_initial_value(myokit.Number(2.1))
+        sr1.set_value(myokit.Plus(myokit.Name(p), myokit.Number(5)))
+        sr2 = r.add_product(s2, 'sr2')
+        sr2.set_initial_value(myokit.Number(3.5))
+        sr2.set_value(
+            myokit.Minus(myokit.Name(p), myokit.Number(1)), True)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        mm = m.myokit_model()
+
+        # Check that stoichiometries are state/ not state variables
+        var = mm.get('c.sr1')
+        self.assertFalse(var.is_state())
+
+        var = mm.get('c.sr2')
+        self.assertTrue(var.is_state())
+
+        # Check value of stoichiometries
+        var = mm.get('c.sr1')
+        self.assertEqual(var.eval(), 15.23)
+
+        var = mm.get('c.sr2')
+        self.assertEqual(var.state_value(), 3.5)
+        self.assertEqual(var.eval(), 9.23)
+
+        # Bad value
+        m = sbml.Model()
+        p = sbml.Parameter(m, 'parameter')
+        c = m.add_compartment('c')
+        s1 = m.add_species(c, 's1')
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1, 'sr1')
+        sr1.set_value(myokit.Name(p))
+        r.set_kinetic_law(myokit.Name(s1))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Value of <', m.myokit_model)
+
+    def test_reaction_stoichiometries(self):
+        # Tests whether stoichiometries are added properly to the associated
+        # component.
+
+        # Add compartment and species to myokit model
+        myokit_model = myokit.Model()
+        component_references = {}
+        variable_references = {}
+        expression_references = {}
+        species_amount_references = {}
+
+        m = sbml.Model(name='model')
+        c_sid = 'compartment'
+        c = m.add_compartment(c_sid)
+
+        m._add_compartments(
+            myokit_model, component_references, variable_references,
+            expression_references)
+
+        sid = 'species'
+        s = m.add_species(c, sid)
+
+        m._add_species(
+            component_references, species_amount_references,
+            variable_references, expression_references)
+
+        # Case I: No stoichiometry reference
+        # Add reaction to sbml.Model
+        sid = 'reaction'
+        r = m.add_reaction(sid)
+        r_sid = None
+        r.add_reactant(species=s, sid=r_sid)
+        p_sid = None
+        r.add_product(species=s, sid=p_sid)
+
+        # Add stoichiometries to myokit model
+        m._add_stoichiometries(
+            component_references, variable_references, expression_references)
+
+        # Check that stoichiometries do not exist in myokit model and are not
+        # referenced in variable_references
+        comp = component_references[c_sid]
+        self.assertFalse(comp.has_variable(str(r_sid)))
+        self.assertFalse(comp.has_variable(str(p_sid)))
+        self.assertNotIn(r_sid, variable_references.keys())
+        self.assertNotIn(p_sid, variable_references.keys())
+
+        # Case II: Existing stoichiometry reference
+        # Add reaction to sbml.Model
+        sid = 'reaction_2'
+        r = m.add_reaction(sid)
+        r_sid = 'reactant'
+        rs = r.add_reactant(species=s, sid=r_sid)
+        p_sid = 'product'
+        ps = r.add_product(species=s, sid=p_sid)
+
+        # Add stoichiometries to myokit model
+        m._add_stoichiometries(
+            component_references, variable_references, expression_references)
+
+        # Check that stoichiometries exist in myokit model and are
+        # referenced in variable_references
+        comp = component_references[c_sid]
+        self.assertTrue(comp.has_variable(str(r_sid)))
+        self.assertTrue(comp.has_variable(str(p_sid)))
+        self.assertIn(r_sid, variable_references.keys())
+        self.assertIn(p_sid, variable_references.keys())
+
+        # Check that their units are set to dimensionless
+        # and that their expressions are referenced
+        unit = myokit.units.dimensionless
+        var = variable_references[r_sid]
+        self.assertEqual(var.unit(), unit)
+        self.assertEqual(
+            expression_references[myokit.Name(rs)], myokit.Name(var))
+        var = variable_references[p_sid]
+        self.assertEqual(var.unit(), unit)
+        self.assertEqual(
+            expression_references[myokit.Name(ps)], myokit.Name(var))
+
+        # Check that stoichiometries are referenced in
+
+    def test_time(self):
+        # Tests whether time variable is created properly.
+
+        m = sbml.Model()
+        m.set_time_units(myokit.units.ampere)
+        m = m.myokit_model()
+
+        # Check that time variable exists
+        self.assertTrue(m.has_variable('myokit.time'))
+
+        # Check that unit is set
+        var = m.get('myokit.time')
+        self.assertEqual(var.unit(), myokit.units.ampere)
+
+        # Check that initial value is set
+        self.assertEqual(var.eval(), 0)
+
+        # Chet that variable is time bound
+        self.assertTrue(var.binding(), 'time')
+
+    def test_time_2(self):
+        # Tests whether time bound variable is added properly to myokit
+        # component.
+
+        # Create myokit component
+        myokit_model = myokit.Model()
+        component_references = {}
+        m = sbml.Model(name='model')
+        m._add_myokit_component(myokit_model, component_references)
+        c = component_references['myokit']
+
+        # Create remaining inputs
+        variable_references = {}
+
+        # Add time bound variable to myokit model
+        unit = myokit.units.s
+        m.set_time_units(unit)
+        m._add_time(c, variable_references)
+
+        # Check that time bound variable exists in myokit component
+        self.assertTrue(c.has_variable('time'))
+
+        # Check that variable is referenced under csymbol
+        sid = 'http://www.sbml.org/sbml/symbols/time'
+        self.assertIn(sid, variable_references.keys())
+
+        # Check that variable has correct units and initial value
+        var = variable_references[sid]
+        self.assertEqual(var.rhs(), myokit.Number(0))
+        self.assertEqual(var.unit(), unit)
 
 
 if __name__ == '__main__':
