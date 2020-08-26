@@ -1928,27 +1928,6 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(var.state_value(), 0)
         self.assertEqual(var.eval(), 3.82)
 
-    def test_reaction_stoichiometry_unreferenced_parameter(self):
-        # Tests whether stoichiometry is handled in reactions,
-        # when it's set by a unreferenced parameter.
-        pass
-        # TODO:
-        # m = sbml.Model()
-        # p = sbml.Parameter(m, 'parameter')
-        # c = m.add_compartment('c')
-        # c.set_initial_value(myokit.Number(1.2))
-        # s1 = m.add_species(c, 's1')
-        # s1.set_initial_value(myokit.Number(2), in_amount=True)
-        # s2 = m.add_species(c, 's2')
-        # s2.set_initial_value(myokit.Number(1.5))
-        # r = m.add_reaction('r')
-        # sr1 = r.add_reactant(s1, 'sr1')
-        # sr1.set_value(myokit.Name(p))
-        # sr2 = r.add_product(s2, 'sr2')
-        # sr2.set_value(value=myokit.Number(3.82), is_rate=True)
-        # r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
-        # mm = m.myokit_model()
-
     def test_reaction_stoichiometries_exist(self):
         # Tests whether stoichiometries are created properly.
 
@@ -1992,6 +1971,18 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(stoich_reactant.eval(), 2.1)
         self.assertEqual(stoich_product.eval(), 3.5)
 
+        # Bad initial value
+        m = sbml.Model()
+        p = sbml.Parameter(m, 'parameter')
+        c = m.add_compartment('c')
+        s1 = m.add_species(c, 's1')
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1, 'sr1')
+        sr1.set_initial_value(myokit.Name(p))
+        r.set_kinetic_law(myokit.Name(s1))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value of <', m.myokit_model)
+
     def test_reaction_stoichiometry_values(self):
         # Tests whether values of parameters are set correctly.
 
@@ -2027,6 +2018,18 @@ class SBMLTestMyokitModel(unittest.TestCase):
         var = mm.get('c.sr2')
         self.assertEqual(var.state_value(), 3.5)
         self.assertEqual(var.eval(), 9.23)
+
+        # Bad value
+        m = sbml.Model()
+        p = sbml.Parameter(m, 'parameter')
+        c = m.add_compartment('c')
+        s1 = m.add_species(c, 's1')
+        r = m.add_reaction('r')
+        sr1 = r.add_reactant(s1, 'sr1')
+        sr1.set_value(myokit.Name(p))
+        r.set_kinetic_law(myokit.Name(s1))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Value of <', m.myokit_model)
 
     def test_reaction_stoichiometries(self):
         # Tests whether stoichiometries are added properly to the associated

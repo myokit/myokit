@@ -1122,17 +1122,26 @@ class Model(object):
                 # Get sid
                 sid = species_reference.sid()
 
-                # Get stoichiometry variable
-                try:
-                    var = variable_references[sid]
-                except KeyError:
+                # If sid does not exist, there is no rhs to set
+                if sid is None:
                     continue
+
+                # Get stoichiometry variable
+                var = variable_references[sid]
 
                 # Set initial value
                 expr = species_reference.initial_value()
                 if expr is not None:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
+                    try:
+                        var.set_rhs(expr.clone(
+                            subst=expression_references))
+                    except AttributeError:
+                        raise SBMLError(
+                            'Initial value of <' + str(species_reference) +
+                            '> (initial stoichiometry) contains unreferenced '
+                            'parameters/variables. Please use e.g. the '
+                            '`add_parameter` method to add reference to '
+                            'parameters in the model.')
 
                 if species_reference.is_rate():
                     # Get initial state
@@ -1153,8 +1162,16 @@ class Model(object):
                 # (assignmentRule overwrites initialAssignment)
                 expr = species_reference.value()
                 if expr is not None:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
+                    try:
+                        var.set_rhs(expr.clone(
+                            subst=expression_references))
+                    except AttributeError:
+                        raise SBMLError(
+                            'Value of <' + str(species_reference) + '> '
+                            '(stroichiometry) contains unreferenced parameters'
+                            '/variables. Please use e.g. the `add_parameter` '
+                            'method to add reference to parameters in the '
+                            'model.')
 
     # SBML base units (except Celsius, because it's not defined in myokit)
     _base_units = {
@@ -1560,6 +1577,9 @@ class SpeciesReference(Quantity):
     def sid(self):
         """Returns this species reference's SId, or ``None`` if not set."""
         return self._sid
+
+    def __str__(self):
+        return '<SpeciesReference ' + self._sid + '>'
 
 
 class ModifierSpeciesReference(object):
