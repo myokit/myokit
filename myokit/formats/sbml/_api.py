@@ -736,8 +736,15 @@ class Model(object):
             # Set initial value
             expr = compartment.initial_value()
             if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+                try:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Initial value for the size of <' + str(compartment) +
+                        '> contains unreferenced parameters/variables. Please'
+                        ' use e.g. the `add_parameter` method to add reference'
+                        ' to parameters in the model.')
 
             if compartment.is_rate():
                 # Get initial state

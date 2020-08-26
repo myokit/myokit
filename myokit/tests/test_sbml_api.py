@@ -1159,13 +1159,32 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_compartments(self):
         # Tests whether compartments are added properly to the myokit model.
 
-        # Check setting size as initial value
+        # Check setting initial value for size
         sm = sbml.Model()
         c = sm.add_compartment('comp')
         c.set_initial_value(myokit.Number(2))
         mm = sm.myokit_model()
         self.assertTrue(mm.has_component('comp'))
         self.assertEqual(mm.get('comp.size').rhs(), myokit.Number(2))
+        self.assertFalse(mm.get('comp.size').is_state())
+
+        # Check setting unreferenced initial value parameter for size
+        sm = sbml.Model()
+        p = sbml.Parameter(sm, 'parameter')
+        c = sm.add_compartment('comp')
+        c.set_initial_value(myokit.Name(p))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value for the size of <',
+            sm.myokit_model)
+
+        # Check setting referenced initial value parameter for size
+        sm = sbml.Model()
+        p = sm.add_parameter('parameter')
+        c = sm.add_compartment('comp')
+        c.set_initial_value(myokit.Name(p))
+        mm = sm.myokit_model()
+        self.assertTrue(mm.has_component('comp'))
+        self.assertEqual(mm.get('comp.size').rhs().code(), 'myokit.parameter')
         self.assertFalse(mm.get('comp.size').is_state())
 
         # Check setting size as value
@@ -1304,7 +1323,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Species in amount
         m = sbml.Model()
         c = m.add_compartment('c')
-        s1 = m.add_species(c, 's1', is_amount=True)
+        m.add_species(c, 's1', is_amount=True)
         mm = m.myokit_model()
 
         # Check whether species exists in amount
@@ -1315,7 +1334,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(mm.get('c').count_variables(), 2)
 
         # Species in concentration
-        s2 = m.add_species(c, 's2', is_amount=False)
+        m.add_species(c, 's2', is_amount=False)
         mm = m.myokit_model()
 
         # Check whether species exists in amount and concentration
