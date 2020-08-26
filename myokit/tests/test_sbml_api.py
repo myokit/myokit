@@ -1556,6 +1556,25 @@ class SBMLTestMyokitModel(unittest.TestCase):
         var = mm.get('c.s2_amount')
         self.assertEqual(var.eval(), 2 / 1.2 + 1.5)
 
+    def test_reaction_bad_compartment(self):
+        # Tests handling of unreferenced compartment for reactants/products.
+
+        # Bad compartment for reactant
+        m = sbml.Model()
+        c = sbml.Compartment(m, 'compartment')
+        s1 = sbml.Species(c, 's1', False, False, False)
+        r = m.add_reaction('r')
+        r.add_reactant(s1, 'sr1')
+        self.assertRaisesRegex(sbml.SBMLError, 'The <', m.myokit_model)
+
+        # Bad compartment for product
+        m = sbml.Model()
+        c = sbml.Compartment(m, 'compartment')
+        s1 = sbml.Species(c, 's1', False, False, False)
+        r = m.add_reaction('r')
+        r.add_product(s1, 'sr1')
+        self.assertRaisesRegex(sbml.SBMLError, 'The <', m.myokit_model)
+
     def test_reaction_bad_species(self):
         # Tests handling of unreferenced species in kinetic law.
 

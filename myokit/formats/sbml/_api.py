@@ -694,7 +694,15 @@ class Model(object):
                     species = species_reference.species()
                     compartment = species.compartment()
                     compartment_sid = compartment.sid()
-                    component = component_references[compartment_sid]
+                    try:
+                        component = component_references[compartment_sid]
+                    except KeyError:
+                        raise SBMLError(
+                            'The <' + str(compartment) + '> of <' +
+                            str(species) + '> in <' + str(reaction) + '> is '
+                            'not referenced in the model. Please use the '
+                            '`add_compartment` method to reference the '
+                            'compartment.')
 
                     # Add variable to component
                     var = component.add_variable_allow_renaming(
