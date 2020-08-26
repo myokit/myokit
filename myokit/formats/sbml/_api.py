@@ -1004,16 +1004,22 @@ class Model(object):
                 if expr_in_amount is None:
                     expr_in_amount = species.is_amount()
 
-                if expr_in_amount is False:
-                    # Get initial compartment size
-                    compartment = species.compartment()
-                    size = variable_references[compartment.sid()]
+                try:
+                    if expr_in_amount is False:
+                        # Get initial compartment size
+                        compartment = species.compartment()
+                        size = variable_references[compartment.sid()]
 
-                    # Convert initial value from concentration to amount
-                    expr = myokit.Multiply(expr, myokit.Name(size))
+                        # Convert initial value from concentration to amount
+                        expr = myokit.Multiply(expr, myokit.Name(size))
 
-                # Set initial value
-                var.set_rhs(expr.clone(subst=expression_references))
+                    # Set initial value
+                    var.set_rhs(expr.clone(subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Initial value of <' + str(species) + '> contains '
+                        'unreferenced parameters/variables. Please use e.g. '
+                        'the `add_parameter` method to reference expressions.')
 
             if species.is_rate():
                 # Get initial state
@@ -1034,16 +1040,22 @@ class Model(object):
             if expr is not None:
                 # Need to convert initial value if species is measured in
                 # concentration (assignments match unit of measurement)
-                if not species.is_amount():
-                    # Get initial compartment size
-                    compartment = species.compartment()
-                    size = variable_references[compartment.sid()]
+                try:
+                    if not species.is_amount():
+                        # Get initial compartment size
+                        compartment = species.compartment()
+                        size = variable_references[compartment.sid()]
 
-                    # Convert initial value from concentration to amount
-                    expr = myokit.Multiply(expr, myokit.Name(size))
+                        # Convert initial value from concentration to amount
+                        expr = myokit.Multiply(expr, myokit.Name(size))
 
-                # Set initial value
-                var.set_rhs(expr.clone(subst=expression_references))
+                    # Set initial value
+                    var.set_rhs(expr.clone(subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Value of <' + str(species) + '> contains '
+                        'unreferenced parameters/variables. Please use e.g. '
+                        'the `add_parameter` method to reference expressions.')
 
     def _set_rhs_parameters(self, variable_references, expression_references):
         """

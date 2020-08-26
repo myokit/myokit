@@ -1409,6 +1409,27 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertFalse(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
 
+        # Species in amount: unreferenced parameter
+        p1 = sbml.Parameter(m, 'p1')
+        s1.set_initial_value(value=myokit.Name(p1), in_amount=True)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value of <', m.myokit_model)
+
+        # Species in amount: referenced parameter
+        p1 = m.add_parameter('p1')
+        s1.set_initial_value(value=myokit.Name(p1), in_amount=True)
+        mm = m.myokit_model()
+        ms = mm.get('comp.spec_1_amount')
+        self.assertFalse(ms.is_state())
+        self.assertEqual(
+            ms.rhs().code(), 'myokit.p1')
+
+        # Species in concentration: unreferenced parameter
+        p2 = sbml.Parameter(m, 'p2')
+        s2.set_initial_value(value=myokit.Name(p2), in_amount=False)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value of <', m.myokit_model)
+
     def test_species_value(self):
         # Tests converting setting species defined through a normal equation
 
@@ -1433,6 +1454,22 @@ class SBMLTestMyokitModel(unittest.TestCase):
         sa = mm.get('comp.spec_2_amount')
         self.assertFalse(sa.is_state())
         self.assertEqual(sa.rhs().code(), '4 * comp.size')
+
+        # Species in amount: bad parameter
+        m = sbml.Model()
+        p = sbml.Parameter(m, 'parameter')
+        c = m.add_compartment('comp')
+        s1 = m.add_species(c, 'spec_1', is_amount=True)
+        s1.set_value(myokit.Name(p))
+        self.assertRaisesRegex(sbml.SBMLError, 'Value of <', m.myokit_model)
+
+        # Species in concentration: bad parameter
+        m = sbml.Model()
+        p = sbml.Parameter(m, 'parameter')
+        c = m.add_compartment('comp')
+        s1 = m.add_species(c, 'spec_1', is_amount=False)
+        s1.set_value(myokit.Name(p))
+        self.assertRaisesRegex(sbml.SBMLError, 'Value of <', m.myokit_model)
 
     def test_species_value_rate(self):
         # Tests converting setting species defined through an ODE equation
