@@ -13,7 +13,6 @@ import unittest
 import myokit
 import myokit.formats
 import myokit.formats.sbml as sbml
-from myokit.formats.sbml import SBMLParser
 
 # Unit testing in Python 2 and 3
 try:
