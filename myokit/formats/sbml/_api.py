@@ -631,7 +631,13 @@ class Model(object):
             # Get component from reference list
             compartment = species.compartment()
             compartment_sid = compartment.sid()
-            component = component_references[compartment_sid]
+            try:
+                component = component_references[compartment_sid]
+            except KeyError:
+                raise SBMLError(
+                    'The <' + str(compartment) + '> for <' + str(species) + '>'
+                    ' is not referenced in model. Please use the '
+                    '`add_compartment` method to reference a compartment.')
 
             # Add species in amount to component
             # (needed for reactions, even if species is defined in
@@ -929,7 +935,13 @@ class Model(object):
                 expr = myokit.Multiply(conversion_factor, expr)
 
             # Get myokit amount variable
-            var = species_amount_references[species.sid()]
+            try:
+                var = species_amount_references[species.sid()]
+            except KeyError:
+                raise SBMLError(
+                    'Kinetic law of <' + str(reaction) + '> contains '
+                    'unreferenced species <' + str(species) + '>. Please, '
+                    'use the `add_species` method to reference species.')
 
             if not var.is_state():
                 # Get initial state
@@ -951,7 +963,14 @@ class Model(object):
                 expr = myokit.Plus(var.rhs(), expr)
 
             # Set RHS
-            var.set_rhs(expr.clone(subst=expression_references))
+            try:
+                var.set_rhs(expr.clone(subst=expression_references))
+            except AttributeError:
+                raise SBMLError(
+                    'Reaction rate expression of <' + str(reaction) + '> for <'
+                    + str(species) + '> contains unreferenced parameters/'
+                    'variables. Please use e.g. the `add_parameter` method to '
+                    'add reference to parameters in the model.')
 
     def _set_rhs_species(
             self, species_amount_references, variable_references,

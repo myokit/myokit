@@ -1363,6 +1363,15 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Check that component now has 4 variables
         self.assertEqual(mm.get('c').count_variables(), 4)
 
+    def test_species_bad_compartment(self):
+        # Tests handling of unreferenced compartment.
+
+        m = sbml.Model()
+        c = sbml.Compartment(m, 'c')
+        m.add_species(c, 's1', is_amount=True)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'The <', m.myokit_model)
+
     def test_species_initial_value(self):
         # Tests converting setting species defined through an initial value
 
@@ -1550,17 +1559,53 @@ class SBMLTestMyokitModel(unittest.TestCase):
     def test_reaction_bad_species(self):
         # Tests handling of unreferenced species in kinetic law.
 
+        # Bad reactant
         m = sbml.Model()
         c = m.add_compartment('c')
         c.set_initial_value(myokit.Number(1.2))
         s1 = sbml.Species(c, 's1', False, False, False)
-        s2 = m.add_species(c, 's2')
         r = m.add_reaction('r')
         r.add_reactant(s1)
-        r.add_product(s2)
-        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        r.set_kinetic_law(myokit.Name(s1))
         self.assertRaisesRegex(
             sbml.SBMLError, 'Kinetic law of <', m.myokit_model)
+
+        # Bad product
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s2 = sbml.Species(c, 's2', False, False, False)
+        r = m.add_reaction('r')
+        r.add_product(s2)
+        r.set_kinetic_law(myokit.Name(s2))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Kinetic law of <', m.myokit_model)
+
+        # Good reactant, bad modifier
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s2 = sbml.Species(c, 's2', False, False, False)
+        r = m.add_reaction('r')
+        r.add_reactant(s1)
+        r.add_modifier(s2)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Reaction rate expression of <', m.myokit_model)
+
+        # Good product, bad modifier
+        m = sbml.Model()
+        c = m.add_compartment('c')
+        c.set_initial_value(myokit.Number(1.2))
+        s1 = m.add_species(c, 's1')
+        s2 = sbml.Species(c, 's2', False, False, False)
+        r = m.add_reaction('r')
+        r.add_product(s1)
+        r.add_modifier(s2)
+        r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Reaction rate expression of <', m.myokit_model)
 
     def test_reaction_bad_kinetic_law(self):
         # Tests handling of unreferenced variables in ketic law.
