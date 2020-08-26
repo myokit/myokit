@@ -1195,6 +1195,25 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(mm.get('comp.size').rhs(), myokit.Number(3))
         self.assertFalse(mm.get('comp.size').is_state())
 
+        # Check setting unreferenced value parameter for size
+        sm = sbml.Model()
+        p = sbml.Parameter(sm, 'parameter')
+        c = sm.add_compartment('comp')
+        c.set_value(myokit.Name(p))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Value for the size of <',
+            sm.myokit_model)
+
+        # Check setting referenced value parameter for size
+        sm = sbml.Model()
+        p = sm.add_parameter('parameter')
+        c = sm.add_compartment('comp')
+        c.set_value(myokit.Name(p))
+        mm = sm.myokit_model()
+        self.assertTrue(mm.has_component('comp'))
+        self.assertEqual(mm.get('comp.size').rhs().code(), 'myokit.parameter')
+        self.assertFalse(mm.get('comp.size').is_state())
+
         # Check setting size as rate
         sm = sbml.Model()
         c = sm.add_compartment('comp')

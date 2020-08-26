@@ -764,8 +764,15 @@ class Model(object):
             # (assignmentRule overwrites initialAssignment)
             expr = compartment.value()
             if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+                try:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Value for the size of <' + str(compartment) +
+                        '> contains unreferenced parameters/variables. Please'
+                        ' use e.g. the `add_parameter` method to add reference'
+                        ' to parameters in the model.')
 
     def _set_reactions(
             self, variable_references, species_amount_references,
