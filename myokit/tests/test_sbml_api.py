@@ -1285,6 +1285,14 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(pp.rhs(), myokit.Number(7))
         self.assertEqual(pp.unit(), myokit.units.pF)
 
+        # Unreferenced parameter
+        m = sbml.Model()
+        p_bad = sbml.Parameter(m, 'p_bad')
+        p = m.add_parameter('param')
+        p.set_initial_value(myokit.Name(p_bad))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Initial value of <', m.myokit_model)
+
     def test_parameters_values(self):
         # Tests adding parameters set with a value (non-state)
 
@@ -1305,6 +1313,14 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertFalse(pp.is_state())
         self.assertEqual(pp.rhs().code(), '7 + 3')
         self.assertEqual(pp.unit(), myokit.units.pF)
+
+        # Unreferenced parameter
+        m = sbml.Model()
+        p_bad = sbml.Parameter(m, 'p_bad')
+        p = m.add_parameter('param')
+        p.set_value(myokit.Name(p_bad))
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Value of <', m.myokit_model)
 
     def test_parameter_values_rate(self):
         # Tests adding parameters set with a value (state)
@@ -1334,6 +1350,14 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertTrue(pp.is_state())
         self.assertEqual(pp.rhs(), myokit.Number(3.2))
         self.assertEqual(pp.unit(), myokit.units.pF)
+
+        # Unreferenced parameter
+        m = sbml.Model()
+        p_bad = sbml.Parameter(m, 'p_bad')
+        p = m.add_parameter('param')
+        p.set_value(myokit.Name(p_bad), is_rate=True)
+        self.assertRaisesRegex(
+            sbml.SBMLError, 'Value of <', m.myokit_model)
 
     def test_species(self):
         # Tests whether species initialisation in amount and concentration

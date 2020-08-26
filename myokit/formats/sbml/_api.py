@@ -1069,8 +1069,15 @@ class Model(object):
             # Set initial value
             expr = parameter.initial_value()
             if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+                try:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Initial value of <' + str(parameter) +
+                        '> contains unreferenced parameters/variables. Please'
+                        ' use e.g. the `add_parameter` method to add reference'
+                        ' to parameters in the model.')
 
             if parameter.is_rate():
                 # Get initial state
@@ -1090,8 +1097,15 @@ class Model(object):
             # (assignmentRule overwrites initialAssignment)
             expr = parameter.value()
             if expr is not None:
-                var.set_rhs(expr.clone(
-                    subst=expression_references))
+                try:
+                    var.set_rhs(expr.clone(
+                        subst=expression_references))
+                except AttributeError:
+                    raise SBMLError(
+                        'Value of <' + str(parameter) + '> contains '
+                        'unreferenced parameters/variables. Please use e.g.'
+                        ' the `add_parameter` method to add reference '
+                        'to parameters in the model.')
 
     def _set_rhs_stoichiometries(
             self, variable_references, expression_references):
