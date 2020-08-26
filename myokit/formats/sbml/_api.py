@@ -841,7 +841,13 @@ class Model(object):
                 expr = myokit.Multiply(conversion_factor, expr)
 
             # Get myokit amount variable
-            var = species_amount_references[species.sid()]
+            try:
+                var = species_amount_references[species.sid()]
+            except KeyError:
+                raise SBMLError(
+                    'Kinetic law of <' + str(reaction) + '> contains '
+                    'unreferenced species <' + str(species) + '>. Please, '
+                    'use the `add_species` method to reference species.')
 
             if not var.is_state():
                 # Get initial state
@@ -866,7 +872,14 @@ class Model(object):
                 expr = myokit.PrefixMinus(expr)
 
             # Set RHS
-            var.set_rhs(expr.clone(subst=expression_references))
+            try:
+                var.set_rhs(expr.clone(subst=expression_references))
+            except AttributeError:
+                raise SBMLError(
+                    'Reaction rate expression of <' + str(reaction) + '> for <'
+                    + str(species) + '> contains unreferenced parameters/'
+                    'variables. Please use e.g. the `add_parameter` method to '
+                    'add reference to parameters in the model.')
 
     def _set_rhs_products(
             self, reaction, variable_references, species_amount_references,
