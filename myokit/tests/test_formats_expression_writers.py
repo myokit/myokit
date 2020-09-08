@@ -1187,26 +1187,54 @@ class OpenCLExpressionWriterTest(unittest.TestCase):
         # Not
         cond1 = myokit.parse_expression('5 > 3')
         cond2 = myokit.parse_expression('2 < 1')
+        condx = myokit.Number(1.2)
         x = myokit.Not(cond1)
         self.assertEqual(ws.ex(x), '!((5.0f > 3.0f))')
         self.assertEqual(wd.ex(x), '!((5.0 > 3.0))')
         self.assertEqual(wn.ex(x), '!((5.0f > 3.0f))')
+        x = myokit.Not(condx)
+        self.assertEqual(ws.ex(x), '!((1.2f != 0.0f))')
+        self.assertEqual(wd.ex(x), '!((1.2 != 0.0))')
+        self.assertEqual(wn.ex(x), '!((1.2f != 0.0f))')
+
         # And
         x = myokit.And(cond1, cond2)
         self.assertEqual(ws.ex(x), '((5.0f > 3.0f) && (2.0f < 1.0f))')
         self.assertEqual(wd.ex(x), '((5.0 > 3.0) && (2.0 < 1.0))')
         self.assertEqual(wn.ex(x), '((5.0f > 3.0f) && (2.0f < 1.0f))')
+        x = myokit.And(condx, cond2)
+        self.assertEqual(ws.ex(x), '((1.2f != 0.0f) && (2.0f < 1.0f))')
+        self.assertEqual(wd.ex(x), '((1.2 != 0.0) && (2.0 < 1.0))')
+        self.assertEqual(wn.ex(x), '((1.2f != 0.0f) && (2.0f < 1.0f))')
+        x = myokit.And(cond1, condx)
+        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) && (1.2f != 0.0f))')
+        self.assertEqual(wd.ex(x), '((5.0 > 3.0) && (1.2 != 0.0))')
+        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) && (1.2f != 0.0f))')
+
         # Or
         x = myokit.Or(cond1, cond2)
         self.assertEqual(ws.ex(x), '((5.0f > 3.0f) || (2.0f < 1.0f))')
         self.assertEqual(wd.ex(x), '((5.0 > 3.0) || (2.0 < 1.0))')
         self.assertEqual(wn.ex(x), '((5.0f > 3.0f) || (2.0f < 1.0f))')
+        x = myokit.Or(condx, cond2)
+        self.assertEqual(ws.ex(x), '((1.2f != 0.0f) || (2.0f < 1.0f))')
+        self.assertEqual(wd.ex(x), '((1.2 != 0.0) || (2.0 < 1.0))')
+        self.assertEqual(wn.ex(x), '((1.2f != 0.0f) || (2.0f < 1.0f))')
+        x = myokit.Or(cond1, condx)
+        self.assertEqual(ws.ex(x), '((5.0f > 3.0f) || (1.2f != 0.0f))')
+        self.assertEqual(wd.ex(x), '((5.0 > 3.0) || (1.2 != 0.0))')
+        self.assertEqual(wn.ex(x), '((5.0f > 3.0f) || (1.2f != 0.0f))')
 
         # If
         x = myokit.If(cond1, a, b)
         self.assertEqual(ws.ex(x), '((5.0f > 3.0f) ? c.a : 12.0f)')
         self.assertEqual(wd.ex(x), '((5.0 > 3.0) ? c.a : 12.0)')
         self.assertEqual(wn.ex(x), '((5.0f > 3.0f) ? c.a : 12.0f)')
+        x = myokit.If(condx, a, b)
+        self.assertEqual(ws.ex(x), '((2.3f != 0.0f) ? c.a : 12.0f)')
+        self.assertEqual(wd.ex(x), '((2.3 != 0.0) ? c.a : 12.0)')
+        self.assertEqual(wn.ex(x), '((2.3f != 0.0f) ? c.a : 12.0f)')
+
         # Piecewise
         c = myokit.Number(1)
         x = myokit.Piecewise(cond1, a, cond2, b, c)
@@ -1219,6 +1247,16 @@ class OpenCLExpressionWriterTest(unittest.TestCase):
         self.assertEqual(
             wn.ex(x),
             '((5.0f > 3.0f) ? c.a : ((2.0f < 1.0f) ? 12.0f : 1.0f))')
+        x = myokit.Piecewise(condx, a, condx, b, c)
+        self.assertEqual(
+            ws.ex(x),
+            '((1.2f != 0.0f) ? c.a : ((0.0f != 0.0f) ? 12.0f : 1.0f))')
+        self.assertEqual(
+            wd.ex(x),
+            '((1.2 != 0.0) ? c.a : ((1.2 != 0.0) ? 12.0 : 1.0))')
+        self.assertEqual(
+            wn.ex(x),
+            '((1.2f != 0.0f) ? c.a : ((1.2f != 0.0f) ? 12.0f : 1.0f))')
 
         # Test fetching using ewriter method
         w = myokit.formats.ewriter('opencl')
