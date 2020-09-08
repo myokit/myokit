@@ -1136,6 +1136,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                     ' model editing tab.')
                 return
             self._console.write(var.model().show_evaluation_of(var))
+        except myokit.NumericalError as e:
+            self._console.write('Numerical Error' + str(e))
         except Exception:
             self.show_exception()
 
