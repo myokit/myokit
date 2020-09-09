@@ -32,7 +32,7 @@ You now have everything you need to start making changes!
 
 ### E. Merging changes
 
-11. When you feel your code is finished, or at least warrants serious discussion, create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR). Note that development for Myokit happens on the `develop` branch, so you'll have to make a PR from your branch into `develop`.
+11. When you feel your code is finished, or at least warrants serious discussion, create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR).
 12. Once a PR has been created, it will be reviewed, discussed, and if all goes well it'll be merged into the main source code!
 
 Thanks!
