@@ -6,6 +6,7 @@ This page lists the main changes made to Myokit in each release.
 - The changes made with each release are now stored in CHANGELOG.md.
 ### Changed
 - If numerical errors occur when evaluating an expression, the IDE now shows these in the console instead of in a pop-up.
+- Updated licensing info.
 ### Deprecated
 ### Removed
 ### Fixed
