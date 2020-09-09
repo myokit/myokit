@@ -134,9 +134,8 @@ class BasicReferenceTest(DepTest):
     Tests the basics of reference checking
     """
     def test_references(self):
-        """
-        Test the list_reference() method.
-        """
+        # Test the list_reference() method.
+
         # Test if derivative returns correct reference
         y = myokit.Name('y')
         dy = myokit.Derivative(y)
@@ -163,9 +162,8 @@ class ShallowDepTest(DepTest):
     Tests the shallow dependency mapping.
     """
     def test_shallow(self):
-        """
-        Test the basic shallow depmap
-        """
+        # Test the basic shallow depmap
+
         # Easy access to methods
         m = self.m
         d = self.d
@@ -283,12 +281,12 @@ class DeepDepTest(DepTest):
     Tests deep dependency mapping.
     """
     def test_deep(self):
-        """
-        Test with::
+        #
+        # Test with::
+        #
+        #   omit_states=False
+        #
 
-            omit_states=False
-
-        """
         # Easy access to methods
         m = self.m
         d = self.d
@@ -435,12 +433,12 @@ class DeepDepTest(DepTest):
         head('Deep dependency check complete [with state deps]')
 
     def test_deep_no_states(self):
-        """
-        Test with::
+        #
+        # Test with::
+        #
+        #   omit_states=True
+        #
 
-            omit_states=True
-
-        """
         # Easy access to methods
         m = self.m
         d = self.d
@@ -579,13 +577,13 @@ class DeepDepTest(DepTest):
 
     # Tests the deep dependency mapping.
     def test_deep_colnesting(self):
-        """
-        Test with
+        #
+        # Test with
+        #
+        #   omit_states = False
+        #   collapse = True
+        #
 
-            omit_states = False
-            collapse = True
-
-        """
         # Easy access to methods
         m = self.m
         d = self.d
@@ -716,13 +714,13 @@ class DeepDepTest(DepTest):
             ' nesting]')
 
     def test_deep_encompassed(self):
-        """
-        Test with::
+        #
+        # Test with::
+        #
+        #   omit_states = False
+        #   filter_encompassed = True
+        #
 
-            omit_states = False
-            filter_encompassed = True
-
-        """
         # Easy access to methods
         m = self.m
         n = self.n
@@ -828,9 +826,8 @@ class DeepDepTest(DepTest):
             ' vars]')
 
     def test_deep_cyles(self):
-        """
-        Test if the deep test finds cyclical dependencies.
-        """
+        # Test if the deep test finds cyclical dependencies.
+
         m = self.m.clone()
         m.get('cell.Na_i').set_rhs('3 * ina.INa')
         self.assertRaises(
@@ -842,9 +839,8 @@ class ComponentDepTest(DepTest):
     Tests the component dependency mapping methods.
     """
     def test_map_component_dependencies(self):
-        """
-        Test the method ``map_component_dependencies
-        """
+        # Test the method ``map_component_dependencies
+
         depmap = self.m.map_component_dependencies(
             omit_states=False, omit_constants=False)
         # Shorthand functions
@@ -908,9 +904,8 @@ class ComponentDepTest(DepTest):
         has('test', 'membrane')
 
     def test_map_component_io(self):
-        """
-        Test the method ``map_component_io
-        """
+        # Test the method ``map_component_io
+
         d1, d2 = self.m.map_component_io()
 
         # Shorthand functions
@@ -1208,9 +1203,8 @@ class ComponentDepTest(DepTest):
         out('test', d('test.t1'), d('test.t2'))
 
     def test_component_cycles(self):
-        """
-        Test Model.component_cycles().
-        """
+        # Test Model.component_cycles().
+
         # Create structure:
         #
         #         C           A on B
@@ -1451,9 +1445,8 @@ class SolvableOrderTest(DepTest):
             RuntimeError, 'Equation ordering failed.', self.m.solvable_order)
 
     def test_has_interdependent_components(self):
-        """
-        Test Model.has_interdependent_components().
-        """
+        # Test Model.has_interdependent_components().
+
         m = myokit.Model()
         c = m.add_component('c')
         c1 = c.add_variable('c1')
