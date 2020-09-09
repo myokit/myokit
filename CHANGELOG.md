@@ -3,8 +3,6 @@
 This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
-Unreleased
-
 ### Added
 ### Changed
 ### Deprecated
@@ -12,8 +10,7 @@ Unreleased
 ### Fixed
 
 
-## Version 1.31.0
-Released Wed Aug 26 15:23:38 2020.
+## [1.31.0] - 2020-08-26
 
 - A completely rewritten SBML API and parser, by @DavAug, that's capable of handling models that define species and reactions.
 - `Ohm` is now a quantifiable unit in the `mmt` syntax, i.e. `1 [MOhm]`. 
@@ -41,14 +38,12 @@ Released Wed Aug 26 15:23:38 2020.
 - Bugfix to `lib.common.StrenghtDuration`.
 
 
-## Version 1.30.6
-Released Wed Apr 29 11:26:16 2020.
+## [1.30.6] - 2020-04-29
 
 - Fixed bug where GUI CellML export didn't export stimulus current.
 
 
-## Version 1.30.5
-Released Mon Apr 20 12:51:58 2020.
+## [1.30.5] - 2020-04-20
 
 - Added support for CellML 2.0.
 - Rewrote SBML import to use etree instead of DOM.
@@ -57,31 +52,27 @@ Released Mon Apr 20 12:51:58 2020.
 - Now setting OpenCL framework as linker flag on osx.
 
 
-## Version 1.30.4
-Released Fri Mar 27 12:13:35 2020.
+## [1.30.4] - 2020-03-27
 
 - Fixed a bug with running simulations in Spyder on Windows.
 - Added `clone()` and `__repr__()` methods to myokit.Equation.
 - Some fixes and tweaks to CellML 1.0/1.1 API.
 
 
-## Version 1.30.3
-Released Mon Mar 2 11:03:38 2020.
+## [1.30.3] - 2020-03-02
 
 - Small fixes to CellML validation.
 - Fixed typo in units `becquerel`.
 - Added `notanumber` and `infinity` to MathML parser.
 
 
-## Version 1.30.2
-Released Sat Feb 1 19:43:40 2020.
+## [1.30.2] - 2020-02-01
 
 - Removed `myo` script.
 - Fixed EasyML issue for inf/tau variables used by more than one state.
 
 
-## Version 1.30.1
-Released Fri Jan 3 16:31:40 2020.
+## [1.30.1] - 2020-01-03
 
 - Added more import/export options to the IDE menu.
 - Updated `component.code()` to always outout aliases in the same order.
@@ -98,8 +89,7 @@ Released Fri Jan 3 16:31:40 2020.
 - Made CellML API `from_myokit_model` more robust against invalid units.
 
 
-## Version 1.30.0
-Released Mon Dec 30 12:08:56 2019.
+## [1.30.0] - 2019-12-30
 
 - Rewrote CellML import and export, with improved error handling and validation.
 - CellML import now converts hardcoded stimulus equation to Myokit protocol.
@@ -114,23 +104,20 @@ Released Mon Dec 30 12:08:56 2019.
 - Removed myokit.UnsupportedFunction.
 
 
-## Version 1.29.1
-Released Sun Nov 24 12:48:54 2019.
+## [1.29.1] - 2019-11-24
 
 - Added guessing module, with method to guess which variables (if any) represent the membrane potential and stimulus current.
 - Fix for sundials development versions.
 - Fixes for PySide2 support.
 
 
-## Version 1.29.0
-Released Fri Oct 11 16:21:01 2019.
+## [1.29.0] - 2019-10-11
 
 - Myokit is now released under a BSD 3-clause license
 - Bugfix to `myokit step` command line tool.
 
 
-## Version 1.28.9
-Released Wed Sep 11 23:18:57 2019.
+## [1.28.9] - 2019-09-11
 
 - Added PySide2 support.
 - Deprecated PyQt4 and PySide.
@@ -140,8 +127,7 @@ Released Wed Sep 11 23:18:57 2019.
 - Deprecated `lib.multi.time()`, `label()`, and `binding()`.
 
 
-## Version 1.28.8
-Released Tue Sep 3 18:09:01 2019.
+## [1.28.8] - 2019-09-03
 
 - Added method `Variable.convert_unit()` that changes a variable's units and updates the model equations accordingly.
 - `Unit.conversion_factor` now returns a `Quantity` instead of a float, and accepts helper `Quantity` objects for incompatible conversions.
@@ -168,8 +154,7 @@ Released Tue Sep 3 18:09:01 2019.
 - Improved notation of units when complaining about them.
 
 
-## Version 1.28.7
-Released Sat Aug 3 02:53:59 2019.
+## [1.28.7] - 2019-08-03
 
 - Added option to register external formats.
 - Added option to avoid certain prefixes when generating unique variable names.
@@ -177,14 +162,12 @@ Released Sat Aug 3 02:53:59 2019.
 - Removed deprecated method `Model.solvable_subset()`.
 
 
-## Version 1.28.6
-Released Fri Jul 26 14:20:17 2019.
+## [1.28.6] - 2019-07-26
 
 - Added debug option to `myokit compiler` command.
 
 
-## Version 1.28.5
-Released Tue Jul 16 11:17:07 2019.
+## [1.28.5] - 2019-07-16
 
 - Bugfix: Removing variables now also removes their bindings and labels.
 - Added unit tests.
@@ -195,8 +178,7 @@ Released Tue Jul 16 11:17:07 2019.
 - Fixed handling of string encoding in cellml import.
 
 
-## Version 1.28.4
-Released Tue May 28 21:47:10 2019.
+## [1.28.4] - 2019-05-28
 
 - Myokit is now tested on Python 3.7, but no longer on 3.4.
 - Updated default OpenCL paths for windows.
@@ -206,8 +188,7 @@ Released Tue May 28 21:47:10 2019.
 - Added option to cumulative current plot to normalise currents.
 
 
-## Version 1.28.3
-Released Thu May 2 12:41:15 2019.
+## [1.28.3] - 2019-05-02
 
 - Fixed some floating point issues with protocols and pacing.
 - Updated OpenCL code to work with VS 9.
@@ -215,15 +196,13 @@ Released Thu May 2 12:41:15 2019.
 - Added format protocol option to IDE.
 
 
-## Version 1.28.2
-Released Wed Dec 19 19:43:19 2018.
+## [1.28.2] - 2018-12-19
 
 - Improved support for native OpenCL on OS/X.
 - Native maths in OpenCL simulations is now configurable and disabled by default.
 
 
-## Version 1.28.1
-Released Wed Dec 19 00:50:04 2018.
+## [1.28.1] - 2018-12-19
 
 - Added support for Sundials 4.0.0
 - Made SymPy a dependency.
@@ -241,8 +220,7 @@ Released Wed Dec 19 00:50:04 2018.
 - Various minor tweaks and fixes.
 
 
-## Version 1.28.0
-Released Thu Nov 22 22:49:55 2018.
+## [1.28.0] - 2018-11-22
 
 - Added `myokit.lib.hh` module for recognising Hodgkin-Huxley style ion current models and using them in fast analytical simulations.
 - Added Rush-Larsen (RL) option to OpenCLSimulation.
@@ -255,20 +233,17 @@ Released Thu Nov 22 22:49:55 2018.
 - Small bugfixes, documentation updates, etc.
 
 
-## Version 1.27.7
-Released Thu Nov 1 00:19:10 2018.
+## [1.27.7] - 2018-11-01
 
 - Various fixes to make Myokit work with Python 2.7.6 (and later).
 
 
-## Version 1.27.6
-Released Thu Sep 27 15:24:51 2018.
+## [1.27.6] - 2018-09-27
 
 - Now running sundials auto-detection with every `import myokit` if not set in config file.
 
 
-## Version 1.27.5
-Released Thu Sep 20 12:18:33 2018.
+## [1.27.5] - 2018-09-20
 
 - Bugfix to `OpenCL.load_selection`.
 - Added system info command.
@@ -285,8 +260,7 @@ Released Thu Sep 20 12:18:33 2018.
 - Various small bugfixes and tweaks.
 
 
-## Version 1.27.4
-Released Sun Aug 12 22:34:40 2018.
+## [1.27.4] - 2018-08-12
 
 - Added sundials version detection on first run.
 - Moved myokit config files from `~/.myokit` to `~/.config/myokit`.
@@ -294,27 +268,23 @@ Released Sun Aug 12 22:34:40 2018.
 - Fixed test issues on os/x.
 
 
-## Version 1.27.3
-Released Mon Aug 6 13:53:38 2018.
+## [1.27.3] - 2018-08-06
 
 - Updated the way sundials library locations are stored on windows systems.
 
 
-## Version 1.27.2
-Released Sat Aug 4 18:02:15 2018.
+## [1.27.2] - 2018-08-04
 
 - Added script that creates icons for windows.
 - Updated script that creates icons for linux.
 
 
-## Version 1.27.1
-Released Fri Aug 3 18:00:00 2018.
+## [1.27.1] - 2018-08-03
 
 - Placeholder release to fix Pypi issue.
 
 
-## Version 1.27.0
-Released Fri Aug 3 13:51:05 2018.
+## [1.27.0] - 2018-08-03
 
 - Added support for Python 3.4, 3.5, and 3.6.
 - Added support for Sundials 3 (by @teosbpl).
@@ -341,14 +311,12 @@ Released Fri Aug 3 13:51:05 2018.
 - Made IDE show Python version in about screen.
 
 
-## Version 1.26.3
-Released Fri Feb 9 19:24:21 2018.
+## [1.26.3] - 2018-02-09
 
 - Fixed critical bug introduced in version 1.26.2 that stopped Windows simulations from running.
 
 
-## Version 1.26.2
-Released Thu Jan 11 23:49:06 2018.
+## [1.26.2] - 2018-01-11
 
 - Fixed a small bug in `Simulation`'s logging when using the new `log_times` argument.
 - Added Matlab and text file tab to DataLog viewer.
@@ -358,14 +326,12 @@ Released Thu Jan 11 23:49:06 2018.
 - Now setting `runtime_libraries` parameter for all compiled classes (simulations), removing the need to set `LD_LIBRARY_PATH` on some systems.
 
 
-## Version 1.26.1
-Released Fri Nov 24 15:13:19 2017.
+## [1.26.1] - 2017-11-24
 
 - Updated licensing info.
 
 
-## Version 1.26.0
-Released Fri Nov 24 12:22:57 2017.
+## [1.26.0] - 2017-11-24
 
 - Myokit can now be installed as library using `python setup.py develop`.
 - Fixed a bug in the gnome scripts that install icons.
@@ -375,8 +341,7 @@ Released Fri Nov 24 12:22:57 2017.
 - Added a `DataLog.keys_like` method to iterate over 1d or 2d logs.
 
 
-## Version 1.25.3
-Released Fri Oct 6 20:41:10 2017.
+## [1.25.3] - 2017-10-06
 
 - Small tweaks to IDE
 - Fix to `DataLog.fold()` to discard remainder if period doesn't exactly divide the log length.
@@ -389,15 +354,13 @@ Released Fri Oct 6 20:41:10 2017.
 - Fix `fit.cmaes` to work with cma version 2.x
 
 
-## Version 1.25.2
-Released Thu Aug 3 22:24:31 2017.
+## [1.25.2] - 2017-08-03
 
 - Small tweaks to IDE.
 - Fixed bug with saving the time variable in `DataLog.save_csv()`.
 
 
-## Version 1.25.1
-Released Tue Jul 18 12:27:55 2017.
+## [1.25.1] - 2017-07-18
 
 - Added xNES and SNES optimisation methods.
 - Added interface to CMA-ES optimisation method.
@@ -405,8 +368,7 @@ Released Tue Jul 18 12:27:55 2017.
 - Removed `ga()` optimisation method.
 
 
-## Version 1.25.0
-Released Mon Jul 10 12:23:52 2017.
+## [1.25.0] - 2017-07-10
 
 - Added model export to Stan.
 - Added data-clamp to CVODE simulation (works, but generally a bad idea).
@@ -418,32 +380,27 @@ Released Mon Jul 10 12:23:52 2017.
 - Several small fixes to docs.
 
 
-## Version 1.24.4
-Released Thu May 4 15:25:38 2017.
+## [1.24.4] - 2017-05-04
 
 - Bugfix in PyQt4 support.
 
 
-## Version 1.24.3
-Released Wed May 3 22:48:21 2017.
+## [1.24.3] - 2017-05-03
 
 - Fixed PyQt4/5 and PySide compatibility issue that was causing errors in the DataBlock viewer's open function.
 
 
-## Version 1.24.2
-Released Tue Mar 28 11:10:53 2017.
+## [1.24.2] - 2017-03-28
 
 - Added missing #pragma directive to enable double-precision simulations OpenCL.
 
 
-## Version 1.24.1
-Released Mon Oct 24 16:57:01 2016.
+## [1.24.1] - 2016-10-24
 
 - Added support for PyQt5.
 
 
-## Version 1.24.0
-Released Fri Oct 14 11:13:26 2016.
+## [1.24.0] - 2016-10-14
 
 - The IDE now has a model navigator, that displays the model components alphabetically and lets you navigate large models more easily.
 - Fixed a bug in the implementation of `DataBlock1d.grid()`, and updated its documentation: this method returns coordinates for squares where each square represents a data point.
@@ -454,24 +411,21 @@ Released Fri Oct 14 11:13:26 2016.
 - Updated installation instructions on website.
 
 
-## Version 1.23.4
-Released Sun Sep 4 13:01:03 2016.
+## [1.23.4] - 2016-09-04
 
 - Fixed bug (with new numpy) in `DataLog.split_periodic`.
 - Fixed warnings in GDE.
 - Fixed issue with pyside/pyqt difference.
 
 
-## Version 1.23.3
-Released Thu Jul 21 17:25:52 2016.
+## [1.23.3] - 2016-07-21
 
 - Updated documentation and examples.
 - Added extra callback option to pso for detailed feedback.
 - Updated default search paths for Sundials headers and libraries.
 
 
-## Version 1.23.2
-Released Thu Jun 16 00:01:04 2016.
+## [1.23.2] - 2016-06-16
 
 - Small bugfix to IDE.
 - Added `pre()` method to Markov simulations (`AnalyticalSimulation` and `DiscreteSimulation`).
@@ -480,23 +434,20 @@ Released Thu Jun 16 00:01:04 2016.
 - Fixed bug in `SymPyExpressionWriter.eq()` and renamed classes to use SymPy with capital P.
 
 
-## Version 1.23.1
-Released Sun Jun 5 22:38:15 2016.
+## [1.23.1] - 2016-06-05
 
 - Updated documentation.
 - Fixed opencl issue.
 
 
-## Version 1.23.0
-Released Mon May 30 17:13:52 2016.
+## [1.23.0] - 2016-05-30
 
 - Added methods for easier symbolic addition of names/components for situations where exact names aren't important.
 - Bugfix to datalog viewer.
 - Bugfix to vargrapher.
 
 
-## Version 1.22.7
-Released Wed May 25 23:02:44 2016.
+## [1.22.7] - 2016-05-25
 
 - Update to ide: Can now add/remove comments.
 - Bugfixes to protocol reading in `AbfFile`.
@@ -506,22 +457,19 @@ Released Wed May 25 23:02:44 2016.
 - Various tweaks and fixes.
 
 
-## Version 1.22.6
-Released Fri Mar 11 16:07:23 2016.
+## [1.22.6] - 2016-03-11
 
 - Fixed bug in IDE.
 - Fix to windows start menu icons.
 
 
-## Version 1.22.5
-Released Thu Feb 25 18:14:43 2016.
+## [1.22.5] - 2016-02-25
 
 - Updated online examples.
 - Bugfix in deprecated method `Protocol.guess_duration()`.
 
 
-## Version 1.22.4
-Released Wed Feb 24 12:40:16 2016.
+## [1.22.4] - 2016-02-24
 
 - Fixed bug with auto-indenting and smart up/down arrows in IDE.
 - Fixed bug in parsing of indented multi-line meta-data properties.
@@ -530,8 +478,7 @@ Released Wed Feb 24 12:40:16 2016.
 - Updated the docs of both apd methods to make clear that they use fixed thresholds.
 
 
-## Version 1.22.3
-Released Fri Feb 19 16:02:51 2016.
+## [1.22.3] - 2016-02-19
 
 - Added hybrid PSO option to `myokit.lib.fit`.
 - Added option to return multiple particles' results to PSO.
@@ -539,14 +486,12 @@ Released Fri Feb 19 16:02:51 2016.
 - Added BFGS method (interface to scipy) to `myokit.lib.fit`.
 
 
-## Version 1.22.2
-Released Mon Feb 8 21:11:59 2016.
+## [1.22.2] - 2016-02-08
 
 - Small bugfix in markov simulation class.
 
 
-## Version 1.22.1
-Released Mon Feb 8 15:51:42 2016.
+## [1.22.1] - 2016-02-08
 
 - Updates to source highlighting in the IDE.
 - Various small bugfixes.
@@ -555,94 +500,80 @@ Released Mon Feb 8 15:51:42 2016.
 - Both markov model simulation classes can now run simulations based on `myokit.Protocol` objects.
 
 
-## Version 1.22.0
-Released Thu Jan 28 20:16:15 2016.
+## [1.22.0] - 2016-01-28
 
 - Rewrote the Markov model module.
 - Added a method to perform stochastic simulations with Markov models.
 - Various small bugfixes.
 
 
-## Version 1.21.12
-Released Wed Jan 20 00:36:14 2016.
+## [1.21.12] - 2016-01-20
 
 - The CellML export now includes a simple periodic pacing protocol.
 - Various small bugfixes.
 
 
-## Version 1.21.11
-Released Tue Jan 5 00:33:47 2016.
+## [1.21.11] - 2016-01-05
 
 - Tidied up code.
 
 
-## Version 1.21.10
-Released Mon Jan 4 22:53:56 2016.
+## [1.21.10] - 2016-01-04
 
 - Various small bugfixes.
 
 
-## Version 1.21.9
-Released Mon Dec 28 13:15:45 2015.
+## [1.21.9] - 2015-12-28
 
 - Various small bugfixes.
 
 
-## Version 1.21.8
-Released Thu Nov 5 14:21:49 2015.
+## [1.21.8] - 2015-11-05
 
 - Removed option to run `mmt` files in threads (was not used and caused issues with GUI).
 - Giving up on multiprocessing on windows. Adding switches to disable it in the examples.
 - Various bugfixes and improvements.
 
 
-## Version 1.21.7
-Released Tue Oct 27 12:11:18 2015.
+## [1.21.7] - 2015-10-27
 
 - Improved logging in simulations, made it more consistent throughout Myokit.
 
 
-## Version 1.21.6
-Released Fri Oct 23 12:13:32 2015.
+## [1.21.6] - 2015-10-23
 
 - Various small bugfixes, improvements and website updates.
 
 
-## Version 1.21.5
-Released Wed Oct 14 14:31:28 2015.
+## [1.21.5] - 2015-10-14
 
 - Changed the way states are stored in the model (list instead of OrderedDict). Was causing funny bug. Now has less redundant info.
 - Fixed bug in `remove_component()`.
 
 
-## Version 1.21.4
-Released Tue Oct 6 17:22:08 2015.
+## [1.21.4] - 2015-10-06
 
 - Added debug options to openclsim.
 - OpenCL sim can now pace based on rules again, which is far more efficient for large numbers of cells.
 
 
-## Version 1.21.3
-Released Tue Oct 6 09:44:02 2015.
+## [1.21.3] - 2015-10-06
 
 - Various bugfixes.
 
 
-## Version 1.21.2
-Released Mon Oct 5 22:16:48 2015.
+## [1.21.2] - 2015-10-05
 
 - Added OpenCL device selection.
 - Updated cumulative current plot method.
 
 
-## Version 1.21.1
-Released Sat Sep 12 20:55:48 2015.
+## [1.21.1] - 2015-09-12
 
 - Various small bugfixes and improvements.
 
 
-## Version 1.21.0
-Released Fri Sep 4 00:55:24 2015.
+## [1.21.0] - 2015-09-04
 
 - Add Powell's method to fit library.
 - Added model statistics screen to IDE.
@@ -660,16 +591,14 @@ Released Fri Sep 4 00:55:24 2015.
 - Various small bugfixes and improvements.
 
 
-## Version 1.20.5
-Released Mon Jun 1 16:21:41 2015.
+## [1.20.5] - 2015-06-01
 
 - Added Python version check.
 - Fitting library: Adding quadratic polynomial fit used to test local optima.
 - Various small bugfixes.
 
 
-## Version 1.20.4
-Released Mon May 11 14:52:12 2015.
+## [1.20.4] - 2015-05-11
 
 - Improved export of units to CellML.
 - `DataLogViewer` can now open CSV.
@@ -680,46 +609,39 @@ Released Mon May 11 14:52:12 2015.
 - Various small bugfixes and improvements.
 
 
-## Version 1.20.1
-Released Tue Apr 21 16:15:03 2015.
+## [1.20.1] - 2015-04-21
 
 - Various bugs fixed in the IDE.
 
 
-## Version 1.20.0
-Released Wed Apr 8 15:57:41 2015.
+## [1.20.0] - 2015-04-08
 
 - Added 'next' keyword to protocol syntax.
 
 
-## Version 1.19.0
-Released Tue Apr 7 01:51:31 2015.
+## [1.19.0] - 2015-04-07
 
 - Explorer now shows output in IDE console.
 - PSimulation now tracks arbitrary variables dz/dp, no longer only states dy/dp.
 - Various small bugfixes.
 
 
-## Version 1.18.6
-Released Sun Mar 29 15:57:38 2015.
+## [1.18.6] - 2015-03-29
 
 - Various small bugfixes in the GUI.
 
 
-## Version 1.18.5
-Released Tue Mar 24 15:46:01 2015.
+## [1.18.5] - 2015-03-24
 
 - Even more improvements to the GUI.
 
 
-## Version 1.18.4
-Released Mon Mar 23 13:05:39 2015.
+## [1.18.4] - 2015-03-23
 
 - Several improvements to the new GUI.
 
 
-## Version 1.18.3
-Released Wed Mar 18 13:01:02 2015.
+## [1.18.3] - 2015-03-18
 
 - Added new icons for datablock viewer and gde.
 - Update to `settings.py` for CUDA.
@@ -728,23 +650,20 @@ Released Wed Mar 18 13:01:02 2015.
 - Various small bugfixes and improvements.
 
 
-## Version 1.18.2
-Released Mon Mar 16 11:50:41 2015.
+## [1.18.2] - 2015-03-16
 
 - Removed last traces of previous GUI.
 - Fixes to output capturing so that it works on Windows.
 - Various small bugfixes.
 
 
-## Version 1.18.1
-Released Sun Mar 15 11:44:36 2015.
+## [1.18.1] - 2015-03-15
 
 - New IDE seems stable.
 - Added monkey patch for `os.popen` issue on windows.
 
 
-## Version 1.18.0
-Released Sat Mar 14 02:23:33 2015.
+## [1.18.0] - 2015-03-14
 
 - Completely new GUI in QT instead of WX, should solve mac problems, improve performance throughout.
 - Integrated GDE with Myokit classes.
@@ -753,70 +672,60 @@ Released Sat Mar 14 02:23:33 2015.
 - Various small bugfixes.
 
 
-## Version 1.17.4
-Released Mon Mar 9 15:26:30 2015.
+## [1.17.4] - 2015-03-09
 
 - Bugfix in settings.py
 
 
-## Version 1.17.3
-Released Mon Mar 9 15:16:15 2015.
+## [1.17.3] - 2015-03-09
 
 - GDE is now a part of Myokit.
 - Added "monkey patch" for old windows compilers.
 - Some changes for C89 compatibility.
 
 
-## Version 1.17.1
-Released Thu Mar 5 23:00:33 2015.
+## [1.17.1] - 2015-03-05
 
 - SI units named after people are now also accepted when capitalized.
   Never used for output in this fashion.
 
 
-## Version 1.17.0
-Released Thu Mar 5 18:35:19 2015.
+## [1.17.0] - 2015-03-05
 
 - Now allowing (but not guaranteeing correctness of) arbitrary connections in OpenCL sim.
 - Various improvements and bugfixes.
 
 
-## Version 1.16.3
-Released Wed Feb 25 17:43:48 2015.
+## [1.16.3] - 2015-02-25
 
 - Added `Quantity` class for number-with-unit arithmetic.
 - Fix to CellML export of dimensionless variables with a multiplier.
 - Various small bugfixes and improvements.
 
 
-## Version 1.16.2
-Released Sun Feb 22 20:47:28 2015.
+## [1.16.2] - 2015-02-22
 
 - Added current calculating method to Markov model class.
 - Added on multi-model experiment convenience classes.
 
 
-## Version 1.16.1
-Released Thu Feb 19 18:48:08 2015.
+## [1.16.1] - 2015-02-19
 
 - Binds and labels now share a namespace.
 
 
-## Version 1.16.0
-Released Thu Feb 19 18:11:48 2015.
+## [1.16.0] - 2015-02-19
 
 - Added unit conversion method to unit class.
 - Various small bugfixes and improvements.
 
 
-## Version 1.15.0
-Released Thu Feb 5 21:33:58 2015.
+## [1.15.0] - 2015-02-05
 
 - Various small bugfixes and improvements.
 
 
-## Version 1.14.2
-Released Mon Feb 2 13:19:20 2015.
+## [1.14.2] - 2015-02-02
 
 - Added NaN check to `PSimulation`.
 - Added on model comparison method.
@@ -826,8 +735,7 @@ Released Mon Feb 2 13:19:20 2015.
 - Various small bugfixes and improvements.
 
 
-## Version 1.14.1
-Released Sun Jan 25 23:18:57 2015.
+## [1.14.1] - 2015-01-25
 
 - Added partial validation to Markov model class.
 - Moved `OpenCLInfo` into separate object.
@@ -835,8 +743,7 @@ Released Sun Jan 25 23:18:57 2015.
 - Various small bugfixes and improvements.
 
 
-## Version 1.14.0
-Released Fri Jan 16 15:25:38 2015.
+## [1.14.0] - 2015-01-16
 
 - Added Alt-1,2,3 tab switching to GUI.
 - Updates to `DataLog`.
@@ -845,20 +752,17 @@ Released Fri Jan 16 15:25:38 2015.
 - Various small bugfixes and improvements.
 
 
-## Version 1.13.2
-Released Fri Dec 5 17:58:47 2014.
+## [1.13.2] - 2014-12-05
 
 - Various improvements and bugfixes.
 
 
-## Version 1.13.1
-Released Wed Dec 3 12:03:22 2014.
+## [1.13.1] - 2014-12-03
 
 - Fixed a bug with fixed interval logging in CVODE sim.
 
 
-## Version 1.13.0
-Released Sun Nov 30 14:59:20 2014.
+## [1.13.0] - 2014-11-30
 
 - Checked all load/save methods for `expanduser()` after issues during demo in Ghent.
 - Changed `model.var_by_label()` to `model.label()`.
@@ -867,8 +771,7 @@ Released Sun Nov 30 14:59:20 2014.
 - Various improvements and bugfixes.
 
 
-## Version 1.12.2
-Released Wed Nov 19 09:04:00 2014.
+## [1.12.2] - 2014-11-19
 
 - Added `parse_model()` etc methods to parser.
 - Made sure protocol is cloned in all simulations.
@@ -879,14 +782,12 @@ Released Wed Nov 19 09:04:00 2014.
 - Various small bugfixes.
 
 
-## Version 1.12.1
-Released Sat Nov 8 12:59:03 2014.
+## [1.12.1] - 2014-11-08
 
 - Various small bugfixes.
 
 
-## Version 1.12.0
-Released Fri Nov 7 18:21:21 2014.
+## [1.12.0] - 2014-11-07
 
 - Added `ATF` support.
 - Added a Python-based `PacingSystem` to evaluate protocols over time in Python.
@@ -896,8 +797,7 @@ Released Fri Nov 7 18:21:21 2014.
 - Various small bugfixes.
 
 
-## Version 1.11.13
-Released Tue Nov 4 17:15:59 2014.
+## [1.11.13] - 2014-11-04
 
 - Fixed memory use and halting issue in `lib.fit`.
 - Fixed bug in `aux.run()`.
@@ -905,27 +805,23 @@ Released Tue Nov 4 17:15:59 2014.
   This allows saving as csv and is more consistent with what users would expect the simulation to return.
 
 
-## Version 1.11.12
-Released Mon Nov 3 13:20:48 2014.
+## [1.11.12] - 2014-11-03
 
 - Bugfix in PSO code: Initial positions weren't set properly, could end up out of bounds.
 
 
-## Version 1.11.11
-Released Thu Oct 30 16:53:53 2014.
+## [1.11.11] - 2014-10-30
 
 - Made threaded `run()` an option in `settings.py`.
 
 
-## Version 1.11.10
-Released Thu Oct 30 14:36:32 2014.
+## [1.11.10] - 2014-10-30
 
 - Added quick figure method to `abf`.
 - Various small bugfixes.
 
 
-## Version 1.11.9
-Released Sat Oct 18 14:57:55 2014.
+## [1.11.9] - 2014-10-18
 
 - Added PySilence context manager, made `CSilence` extend it.
 - `myokit.run()` now runs the script inside a separate thread.
@@ -934,23 +830,20 @@ Released Sat Oct 18 14:57:55 2014.
 - Various improvements and bugfixes.
 
 
-## Version 1.11.8
-Released Fri Oct 17 13:00:04 2014.
+## [1.11.8] - 2014-10-17
 
 - Added rectangular grid mapping of parameter spaces.
 - Removed custom open dialog from GUI.
 - Various improvements and bugfixes.
 
 
-## Version 1.11.7
-Released Tue Oct 14 16:00:18 2014.
+## [1.11.7] - 2014-10-14
 
 - Added jacobian examples.
 - Various improvements and bugfixes.
 
 
-## Version 1.11.6
-Released Fri Oct 10 18:38:28 2014.
+## [1.11.6] - 2014-10-10
 
 - Added parallelized particle search optimization method (PSO).
 - Made linear system solving much faster.
@@ -960,16 +853,14 @@ Released Fri Oct 10 18:38:28 2014.
 - Various small bugfixes.
 
 
-## Version 1.11.5
-Released Wed Sep 24 15:52:50 2014.
+## [1.11.5] - 2014-09-24
 
 - Added note about csv import to `SimulationLog.save_csv`.
 - Added publications to website. Uploaded hand-outs for workshop.
 - Updated GDE version to 1.3.0.
 
 
-## Version 1.11.4
-Released Mon Sep 22 22:03:55 2014.
+## [1.11.4] - 2014-09-22
 
 - Added hyperbolic functions to CellML import.
 - Updated cellml import: Unused variables without an rhs are now removed, used variables without an rhs are given an automatic rhs of 0. 
@@ -982,135 +873,115 @@ Released Mon Sep 22 22:03:55 2014.
   Added a glob rule for `.xml` to the cellml import in the gui.
 
 
-## Version 1.11.3
-Released Fri Sep 19 12:50:35 2014.
+## [1.11.3] - 2014-09-19
 
 - Moving to next version.
 - Small bugfixes and a `variable.value()` method.
 
 
-## Version 1.11.2
-Released Thu Sep 18 02:37:34 2014.
+## [1.11.2] - 2014-09-18
 
 - Various small bugfixes.
 
 
-## Version 1.11.1
-Released Thu Sep 18 02:10:28 2014.
+## [1.11.1] - 2014-09-18
 
 - Added a formatting option to the `Benchmarker`.
 - Fixed OS/X GUI issues with progress bar.
 
 
-## Version 1.11.0
-Released Mon Sep 15 19:50:09 2014.
+## [1.11.0] - 2014-09-15
 
 - Adding Sympy to formats list.
 - Added sympy exporter and importer.
 - Added `LinearModel` class for working with markov models.
 
 
-## Version 1.10.3
-Released Thu Sep 11 17:17:33 2014.
+## [1.10.3] - 2014-09-11
 
 - Now raising exception when user cancels simulation instead of silent exit.
 - Added zero-step detection to cvode sim that now raises a `SimulationError` after too many consecutive zero steps.
 
 
-## Version 1.10.2
-Released Wed Sep 10 05:13:29 2014.
+## [1.10.2] - 2014-09-10
 
 - Improvement debugging in the GUI: Now shows line numbers of error in script.
 
 
-## Version 1.10.1
-Released Mon Sep 8 18:55:43 2014.
+## [1.10.1] - 2014-09-08
 
 - Fixed bug in error handling.
 
 
-## Version 1.10.0
-Released Sat Aug 30 01:33:52 2014.
+## [1.10.0] - 2014-08-30
 
 - Added Windows installer.
 
 
-## Version 1.9.11
-Released Fri Aug 29 14:21:37 2014.
+## [1.9.11] - 2014-08-29
 
 - Updates to Windows install script.
 
 
-## Version 1.9.10
-Released Wed Aug 27 01:23:41 2014.
+## [1.9.10] - 2014-08-27
 
 - Added (valid) CellML export.
 - Various small bugfixes.
 
 
-## Version 1.9.9
-Released Tue Aug 26 00:54:45 2014.
+## [1.9.9] - 2014-08-26
 
 - Added update script.
 
 
-## Version 1.9.8
-Released Mon Aug 25 01:35:05 2014.
+## [1.9.8] - 2014-08-25
 
 - Various improvements and bugfixes.
 
 
-## Version 1.9.7
-Released Thu Aug 21 12:59:45 2014.
+## [1.9.7] - 2014-08-21
 
 - Fixed bug with dialogs on OS/X.
 - Bundled all scripts into a single script `myo`.
 - Updated installation script for Windows.
 
 
-## Version 1.9.6
-Released Tue Aug 19 13:51:14 2014.
+## [1.9.6] - 2014-08-19
 
 - Fixed bug with dialogs on OS/X
 
 
-## Version 1.9.5
-Released Thu Aug 14 17:30:05 2014.
+## [1.9.5] - 2014-08-14
 
 - Added device info to OpenCL debug output.
 - Improved memory handling in OpenCL simulations.
 - Various small bugfixes.
 
 
-## Version 1.9.4
-Released Wed Aug 13 09:11:36 2014.
+## [1.9.4] - 2014-08-13
 
 - Added a script that installs a desktop icon for the gui under Windows.
 - Added a global `readme.txt`.
 - Various small bugfixes.
 
 
-## Version 1.9.3
-Released Fri Aug 8 18:27:19 2014.
+## [1.9.3] - 2014-08-08
 
 - Various small bugfixes.
 
 
-## Version 1.9.2
-Released Fri Aug 1 15:10:05 2014.
+## [1.9.2] - 2014-08-01
 
 - Improved ABF support.
 - Various small bugfixes.
 
 
-## Version 1.9.1
-Released Thu Jul 31 13:11:48 2014.
+## [1.9.1] - 2014-07-31
 
 - Bugfix in GUI for Windows.
 
 
-## Version 1.9.0
-Released Thu Jul 31 01:43:53 2014.
+## [1.9.0] - 2014-07-31
 
 - Added stable point finding method.
 - Added icons for windows version.
@@ -1118,55 +989,47 @@ Released Thu Jul 31 01:43:53 2014.
 - Changed license to GPL.
 
 
-## Version 1.8.1
-Released Wed Jul 16 09:45:46 2014.
+## [1.8.1] - 2014-07-16
 
 - Various improvements and bugfixes.
 
 
-## Version 1.8.0
-Released Wed Jul 16 01:28:36 2014.
+## [1.8.0] - 2014-07-16
 
 - Updates to website
 - Various small bugfixes.
 
 
-## Version 1.7.5
-Released Thu Jul 10 23:44:44 2014.
+## [1.7.5] - 2014-07-10
 
 - Added method to fold log periodically (based on `split_periodic`).
 - Various small bugfixes.
 
 
-## Version 1.7.4
-Released Tue Jul 8 17:30:13 2014.
+## [1.7.4] - 2014-07-08
 
 - Various small bugfixes.
 
 
-## Version 1.7.3
-Released Mon Jul 7 18:14:49 2014.
+## [1.7.3] - 2014-07-07
 
 - Reinstated logging of derivatives in CVODE simulation.
 - Various small bugfixes.
 
 
-## Version 1.7.2
-Released Mon Jul 7 04:01:56 2014.
+## [1.7.2] - 2014-07-07
 
 - Various small bugfixes.
 
 
-## Version 1.7.1
-Released Mon Jul 7 03:32:53 2014.
+## [1.7.1] - 2014-07-07
 
 - Added load/save methods to DataBlock1d.
 - Made ICSimulation work with DataBlock2d to calculate eigenvalues.
 - Various small bugfixes.
 
 
-## Version 1.7.0
-Released Fri Jul 4 23:43:33 2014.
+## [1.7.0] - 2014-07-04
 
 - Added a JacobianGenerator class.
 - Added a simulation that integrates partial derivatives to find the derivatives of the state w.r.t. the initial conditions.
@@ -1174,29 +1037,25 @@ Released Fri Jul 4 23:43:33 2014.
 - Various small bugfixes.
 
 
-## Version 1.6.2
-Released Wed Jun 18 02:07:47 2014.
+## [1.6.2] - 2014-06-18
 
 - Various small bugfixes.
 
 
-## Version 1.6.1
-Released Fri Jun 13 16:57:02 2014.
+## [1.6.1] - 2014-06-13
 
 - Added IV curve experiment.
 - Improved error detection in CVODE simulation.
 
 
-## Version 1.6.0
-Released Fri Jun 6 21:03:26 2014.
+## [1.6.0] - 2014-06-06
 
 - Added a diffusion on/off switch to the OpenCL simulation.
 - The OpenCL sim can now replace constants by scalar fields.
   This allows it to be used to test parameter influence or to simulate heterogeneity.
 
 
-## Version 1.5.2
-Released Wed Jun 4 17:59:58 2014.
+## [1.5.2] - 2014-06-04
 
 - Better handling of unknown units.
 - Added `eval_state_derivs` option to GUI.
@@ -1208,63 +1067,54 @@ Released Wed Jun 4 17:59:58 2014.
 - Various improvements and bugfixes.
 
 
-## Version 1.5.1
-Released Thu May 8 16:27:25 2014.
+## [1.5.1] - 2014-05-08
 
 - Added method `Model.set_name()`.
 - Updated installer script for GNOME/KDE.
 - Various small bugfixes.
 
 
-## Version 1.5.0
-Released Thu Apr 24 12:42:08 2014.
+## [1.5.0] - 2014-04-24
 
 - Added on Strength-Duration experiment.
 - Added method to create cumulative current/charge plots.
 
 
-## Version 1.4.8
-Released Tue Apr 22 17:50:48 2014.
+## [1.4.8] - 2014-04-22
 
 - Changed `SimulationLog.integrate()` to use left-point rule instead of midpoint rule.
   This makes much more sense for the stimulus current when using CVODE.
 - Various improvements and bugfixes.
 
 
-## Version 1.4.7
-Released Thu Apr 17 13:14:09 2014.
+## [1.4.7] - 2014-04-17
 
 - Various small bugfixes.
 
 
-## Version 1.4.6
-Released Thu Apr 10 18:17:35 2014.
+## [1.4.6] - 2014-04-10
 
 - Added RestitutionExperiment to `lib.common`.
 - Various small bugfixes.
 
 
-## Version 1.4.5
-Released Mon Apr 7 18:51:25 2014.
+## [1.4.5] - 2014-04-07
 
 - Re-organised code.
 - Various small bugfixes.
 
 
-## Version 1.4.4
-Released Thu Mar 27 22:08:43 2014.
+## [1.4.4] - 2014-03-27
 
 - Various improvements and bugfixes.
 
 
-## Version 1.4.3
-Released Mon Mar 17 20:58:48 2014.
+## [1.4.3] - 2014-03-17
 
 - Various small bugfixes.
 
 
-## Version 1.4.2
-Released Tue Mar 11 11:34:50 2014.
+## [1.4.2] - 2014-03-11
 
 - Added unit methods to IDE.
 - Updated the installation guide.
@@ -1273,8 +1123,7 @@ Released Tue Mar 11 11:34:50 2014.
 - Various small bugfixes.
 
 
-## Version 1.4.0
-Released Tue Feb 18 17:33:44 2014.
+## [1.4.0] - 2014-02-18
 
 - Added unit checking methods.
 - Improved CellML unit reading from constants.
@@ -1284,29 +1133,25 @@ Released Tue Feb 18 17:33:44 2014.
 - Various small bugfixes.
 
 
-## Version 1.2.0
-Released Mon Jan 27 14:35:57 2014.
+## [1.2.0] - 2014-01-27
 
 - Changed `[[plot]]` to `[[script]]`.
 - Various improvements and bugfixes.
 
 
-## Version 1.1.0
-Released Fri Jan 24 16:49:08 2014.
+## [1.1.0] - 2014-01-24
 
 - Updated interface of opencl simulations.
 - Added OpenCL-based parameter RangeTester class.
 - Various small bugfixes.
 
 
-## Version 1.0.2
-Released Thu Jan 9 15:31:48 2014.
+## [1.0.2] - 2014-01-09
 
 - Updates to documentation.
 
 
-## Version 1.0.0
-Released Tue Dec 24 20:53:55 2013.
+## [1.0.0] - 2013-12-24
 
 - Improved documentation.
 - Added a 'running simulations' guide.
@@ -1317,22 +1162,19 @@ Released Tue Dec 24 20:53:55 2013.
 - Various small bugfixes.
 
 
-## Version 0.17.2
-Released Thu Dec 19 11:52:00 2013.
+## [0.17.2] - 2013-12-19
 
 - Improved documentation.
 - Various small bugfixes.
 
 
-## Version 0.17.1
-Released Thu Dec 19 11:47:13 2013.
+## [0.17.1] - 2013-12-19
 
 - New model syntax, model stars with: `[[model]]`.
 - Various small bugfixes.
 
 
-## Version 0.17.0
-Released Wed Dec 11 23:44:17 2013.
+## [0.17.0] - 2013-12-11
 
 - Added binary version of `save_state` and `load_state`.
 - Added ProgressPrinter to show progress during long simulations.
@@ -1342,15 +1184,13 @@ Released Wed Dec 11 23:44:17 2013.
 - Various small bugfixes.
 
 
-## Version 0.16.3
-Released Wed Nov 6 12:23:19 2013.
+## [0.16.3] - 2013-11-06
 
 - Improved OpenCL simulation error output.
 - Various improvements and bugfixes.
 
 
-## Version 0.16.2
-Released Fri Nov 1 22:00:13 2013.
+## [0.16.2] - 2013-11-01
 
 - Improvements to GUI.
 - Improved `find_nan` method in OpenCL sim.
@@ -1359,15 +1199,13 @@ Released Fri Nov 1 22:00:13 2013.
 - Various small bugfixes.
 
 
-## Version 0.16.1
-Released Thu Oct 31 18:10:26 2013.
+## [0.16.1] - 2013-10-31
 
 - Refactored code, reduced size of giant modules.
 - Various small bugfixes.
 
 
-## Version 0.16.0
-Released Thu Oct 31 01:52:44 2013.
+## [0.16.0] - 2013-10-31
 
 - Added recovery-from-inactivation experiment.
 - Updated `ActivationExperiment`, added boltzmann fit.
@@ -1377,27 +1215,23 @@ Released Thu Oct 31 01:52:44 2013.
 - Various improvements and bugfixes.
 
 
-## Version 0.15.9
-Released Tue Oct 22 11:40:13 2013.
+## [0.15.9] - 2013-10-22
 
 - Various small bugfixes.
 
 
-## Version 0.15.8
-Released Wed Oct 16 16:48:04 2013.
+## [0.15.8] - 2013-10-16
 
 - Slight optimizations in OpenCL code.
 - Various small bugfixes.
 
 
-## Version 0.15.7
-Released Tue Oct 15 18:22:07 2013.
+## [0.15.7] - 2013-10-15
 
 - Various small bugfixes.
 
 
-## Version 0.15.6
-Released Tue Oct 15 15:36:34 2013.
+## [0.15.6] - 2013-10-15
 
 - Updated step method to accept models as reference.
 - Reinstated `Model.load_state()` method.
@@ -1405,30 +1239,26 @@ Released Tue Oct 15 15:36:34 2013.
 - Various small bugfixes.
 
 
-## Version 0.15.5
-Released Mon Oct 14 21:14:14 2013.
+## [0.15.5] - 2013-10-14
 
 - Added quick var info to gui.
 - Renamed `current_diff` to `diffusion_current`.
 
 
-## Version 0.15.4
-Released Sat Oct 12 17:36:27 2013.
+## [0.15.4] - 2013-10-12
 
 - Added on ChanneML import.
 - FiberTissueSimulation now works with 2D fibers.
 
 
-## Version 0.15.2
-Released Thu Oct 10 21:40:07 2013.
+## [0.15.2] - 2013-10-10
 
 - Added data extraction features to abf format.
 - Added on Fiber-Tissue simulation class.
 - Various improvements and bugfixes.
 
 
-## Version 0.15.0
-Released Wed Sep 18 14:58:30 2013.
+## [0.15.0] - 2013-09-18
 
 - Number of cells to pace can now be set in `OpenCLCableSimulation`.
 - Added function to find origin of NaN errors in an `OpenCLCableSimulation`.
@@ -1441,8 +1271,7 @@ Released Wed Sep 18 14:58:30 2013.
 - Various small bugfixes.
 
 
-## Version 0.14.1
-Released Fri Aug 23 17:01:35 2013.
+## [0.14.1] - 2013-08-23
 
 - Fixed direction convention for diffusion current.
 - Simulation log now has local and global variables (for multi-cell simulations).
@@ -1453,8 +1282,7 @@ Released Fri Aug 23 17:01:35 2013.
 - Various small bugfixes.
 
 
-## Version 0.14.0
-Released Fri Jul 19 18:34:28 2013.
+## [0.14.0] - 2013-07-19
 
 - Various performance boosts.
 - Rewrite of expression classes.
@@ -1465,27 +1293,23 @@ Released Fri Jul 19 18:34:28 2013.
 - Various improvements and bugfixes.
 
 
-## Version 0.13.9
-Released Thu Jun 6 15:42:11 2013.
+## [0.13.9] - 2013-06-06
 
 - Working CUDA kernel export.
 
 
-## Version 0.13.8
-Released Thu Jun 6 15:38:24 2013.
+## [0.13.8] - 2013-06-06
 
 - Various small bugfixes.
 
 
-## Version 0.13.7
-Released Thu Jun 6 13:23:03 2013.
+## [0.13.7] - 2013-06-06
 
 - Added simple Ansi-C forward euler export.
 - Various small bugfixes.
 
 
-## Version 0.13.6
-Released Fri May 31 18:20:00 2013.
+## [0.13.6] - 2013-05-31
 
 - Added progress bars to explorer in gui (F6).
 - Worked on dependency graphs.
@@ -1494,14 +1318,12 @@ Released Fri May 31 18:20:00 2013.
 - Various improvements and bugfixes.
 
 
-## Version 0.13.5
-Released Thu May 23 20:53:10 2013.
+## [0.13.5] - 2013-05-23
 
 - Various improvements and bugfixes.
 
 
-## Version 0.13.4
-Released Thu May 23 00:06:55 2013.
+## [0.13.4] - 2013-05-23
 
 - Made `engine.realtime` contain the elapsed system time, not the absolute system time.
 - Made `SimulationLog` suitable for multi-dimensional data.
@@ -1515,24 +1337,21 @@ Released Thu May 23 00:06:55 2013.
 - Various small bugfixes.
 
 
-## Version 0.13.0
-Released Thu Mar 28 02:21:09 2013.
+## [0.13.0] - 2013-03-28
 
 - Added export to strand/fiber simulation in Ansi-C.
 - Added syntax for binding to external values.
 - Various small bugfixes.
 
 
-## Version 0.12.7
-Released Wed Feb 27 18:18:26 2013.
+## [0.12.7] - 2013-02-27
 
 - Added plotting methods.
 - Added benchmarking to simulation.
 - Various improvements and bugfixes.
 
 
-## Version 0.12.6
-Released Tue Feb 26 14:37:23 2013.
+## [0.12.6] - 2013-02-26
 
 - Refactored `myokit.lib`.
 - Added APD calculating function.
@@ -1542,8 +1361,7 @@ Released Tue Feb 26 14:37:23 2013.
 - Various small bugfixes.
 
 
-## Version 0.12.4
-Released Wed Feb 20 16:01:55 2013.
+## [0.12.4] - 2013-02-20
 
 - Refactored import/export modules.
 - Updated documentation.
@@ -1557,20 +1375,17 @@ Released Wed Feb 20 16:01:55 2013.
 - Various small bugfixes.
 
 
-## Version 0.10.8
-Released Tue Jan 15 14:55:31 2013.
+## [0.10.8] - 2013-01-15
 
 - Bugfix in metadata export.
 
 
-## Version 0.10.7
-Released Tue Jan 15 14:45:32 2013.
+## [0.10.7] - 2013-01-15
 
 - Various improvements and bugfixes.
 
 
-## Version 0.10.6
-Released Tue Jan 15 00:31:58 2013.
+## [0.10.6] - 2013-01-15
 
 - Rewrote cellml import.
 - Worked on methods to fit simplify functions.
@@ -1579,16 +1394,14 @@ Released Tue Jan 15 00:31:58 2013.
 - Various small bugfixes.
 
 
-## Version 0.10.5
-Released Mon Nov 12 14:56:57 2012.
+## [0.10.5] - 2012-11-12
 
 - Added tests.
 - Added `piecewise()` expressions.
 - Various improvements and bugfixes.
 
 
-## Version 0.10.3
-Released Tue Oct 30 12:04:10 2012.
+## [0.10.3] - 2012-10-30
 
 - Improved import and export interfaces.
 - Added `save_state()` method.
@@ -1602,8 +1415,7 @@ Released Tue Oct 30 12:04:10 2012.
 - Various small bugfixes.
 
 
-## Version 0.9.17
-Released Fri Jul 27 18:19:05 2012.
+## [0.9.17] - 2012-07-27
 
 - Added local aliases to syntax.
 - Simplified syntax.
@@ -1622,8 +1434,7 @@ Released Fri Jul 27 18:19:05 2012.
 - Various small bugfixes.
 
 
-## Version 0.9.0
-Released Mon Mar 12 17:46:45 2012.
+## [0.9.0] - 2012-03-12
 
 - First `mmt` syntax, parser and model classes.
 - Initial CellML import.
@@ -1633,9 +1444,7 @@ Released Mon Mar 12 17:46:45 2012.
 - First working GUI.
 
 
-## Version 0.0.0
-Released Mon Dec 19 11:08:50 2011.
+## [0.0.0] - 2011-12-19
 
 - Working on simple model syntax, parser and export to C++.
-
 
