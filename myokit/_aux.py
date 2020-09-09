@@ -1426,13 +1426,16 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     return '\n'.join(log)
 
 
-def strfloat(number, full=False):
+def strfloat(number, full=False, precision=myokit.DOUBLE_PRECISION):
     """
     Turns the given number into a string.
     """
     # Force full precision output
     if full:
-        return myokit.SFDOUBLE.format(float(number))
+        if precision == myokit.SINGLE_PRECISION:
+            return myokit.SFSINGLE.format(float(number))
+        else:
+            return myokit.SFDOUBLE.format(float(number))
 
     # Pass through strings
     if isinstance(number, str):
@@ -1447,9 +1450,12 @@ def strfloat(number, full=False):
     if len(s) < 10:
         return s
 
-    # But if the number is given with lots of decimals, use the highest
-    # precision number possible
-    return myokit.SFDOUBLE.format(number)
+    # But if the number is given with lots of decimals, use the representation
+    # with enough digits to prevent loss of information
+    if precision == myokit.SINGLE_PRECISION:
+        return myokit.SFSINGLE.format(float(number))
+    else:
+        return myokit.SFDOUBLE.format(float(number))
 
 
 def version(raw=False):
