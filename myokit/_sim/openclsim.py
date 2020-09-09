@@ -888,23 +888,26 @@ class SimulationOpenCL(myokit.CModule):
                     'Encountered numerical error at t=' + str(time)
                     + ' in cell (' + ','.join([str(x) for x in icell])
                     + ') when ' + var + '=' + str(value) + '.')
+
+                # Show previous state (and derivatives)
                 n_states = len(states)
                 txt.append('Obtained ' + str(n_states) + ' previous state(s).')
                 if n_states > 1:
                     txt.append('State before:')
-                    txt.append(self._model.format_state(states[1]))
-                txt.append('State during:')
-                txt.append(self._model.format_state(states[0]))
-                if n_states > 1:
-                    txt.append('Evaluating derivatives at state before...')
                     try:
                         derivs = self._model.eval_state_derivatives(
                             states[1], precision=self._precision)
+                        derivs = self._model.format_state_derivatives(
+                                states[1], derivs)
                         txt.append(
-                            self._model.format_state_derivatives(
-                                states[1], derivs))
+                            'Derivatives evaluated WITHOUT diffusion current')
+                        txt.append(derivs)
                     except myokit.NumericalError as ee:
+                        txt.append(self._model.format_state(states[0]))
+                        txt.append('Unable to evaluate derivatives:')
                         txt.append(str(ee))
+                txt.append('State during:')
+                txt.append(self._model.format_state(states[0]))
             except myokit.FindNanError as e:
                 txt.append(
                     'Unable to pinpoint source of NaN, an error occurred:')
