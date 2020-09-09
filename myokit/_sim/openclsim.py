@@ -898,16 +898,18 @@ class SimulationOpenCL(myokit.CModule):
                         derivs = self._model.eval_state_derivatives(
                             states[1], precision=self._precision)
                         derivs = self._model.format_state_derivatives(
-                                states[1], derivs)
+                            states[1], derivs, precision=self._precision)
                         txt.append(
                             'Derivatives evaluated WITHOUT diffusion current')
                         txt.append(derivs)
                     except myokit.NumericalError as ee:
-                        txt.append(self._model.format_state(states[0]))
+                        txt.append(self._model.format_state(
+                            states[0], precision=self._precision))
                         txt.append('Unable to evaluate derivatives:')
                         txt.append(str(ee))
                 txt.append('State during:')
-                txt.append(self._model.format_state(states[0]))
+                txt.append(self._model.format_state(
+                    states[0], precision=self._precision))
             except myokit.FindNanError as e:
                 txt.append(
                     'Unable to pinpoint source of NaN, an error occurred:')
