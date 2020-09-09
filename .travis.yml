@@ -9,11 +9,10 @@ dist: xenial
 
 language: python
 
-# Only build master, develop and PRs
+# Only build main and PRs
 branches:
   only:
-    - master
-    - develop
+    - main
 
 # Python version choices:
 #

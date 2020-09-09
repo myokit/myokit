@@ -1315,7 +1315,6 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     # Log settings
     fmat = myokit.SFDOUBLE
     line_width = 79
-    precision = 10
 
     # Get max variable name width (at least 4, for 'Name' header)
     w = max(4, max([len(v.qname()) for v in model.states()]))
@@ -1348,7 +1347,6 @@ def step(model, initial=None, reference=None, ignore_errors=False):
         g = h + fmat
         errors = 0
         warnings = 0
-        zero = fmat.format(0)[1:]
 
         for r, v in enumerate(model.states()):
             x = values[r]
@@ -1362,39 +1360,54 @@ def step(model, initial=None, reference=None, ignore_errors=False):
             if xx[0] != yy[0]:
 
                 # Ignore if zero
-                if (xx[1:] == yy[1:] == zero):
+                if (_feq(x, 0) and _feq(y, 0)):
                     log.append(line)
-                    log.append(h + ' ' * 24)
+                    log.append('')
                 else:
                     errors += 1
-                    log.append(line + ' X !!!')
+                    log.append(line + ' sign')
                     log.append(h + '^' * 24)
 
             # Different exponent, huge error
             elif xx[-4:] != yy[-4:]:
                 errors += 1
-                log.append(line + ' X !!!')
+                log.append(line + ' exponent')
                 log.append(i + '^^^^')
 
-            # No error of smaller error
+            # Large error, small error, or no error
             else:
-                threshold = 3 + precision  # 3 rubbish chars
-                if xx[0:threshold] != yy[0:threshold]:
+                mark_error = False
+                threshold = 13
+                if xx[:threshold] != yy[:threshold]:
+                    # "Large" error
                     errors += 1
                     line += ' X'
-                else:
-                    if xx[threshold:] != yy[threshold:]:
+                    mark_error = True
+                elif xx != yy:
+                    # "Small" error, or numerical error
+                    rel_err = abs(x - y) / max(abs(x), abs(y))
+                    n_eps = rel_err / sys.float_info.epsilon
+                    if n_eps > 1:
+                        line += ' ~ ' + str(round(n_eps, 1)) + ' eps'
+                    else:
+                        line += ' <= 1 eps'
+                    if n_eps > 1:
                         warnings += 1
+                        mark_error = True
                 log.append(line)
-                line2 = h
-                pos = 0
-                n = len(xx)
-                while pos < n and xx[pos] == yy[pos]:
-                    line2 += ' '
-                    pos += 1
-                for pos in range(pos, n):
-                    line2 += '^'
-                log.append(line2)
+
+                if mark_error:
+                    line2 = h
+                    pos = 0
+                    n = len(xx)
+                    while pos < n and xx[pos] == yy[pos]:
+                        line2 += ' '
+                        pos += 1
+                    for pos in range(pos, n):
+                        line2 += '^'
+                    log.append(line2)
+                else:
+                    log.append('')
 
         # Show large mismatches between model and reference
         if errors > 0:
