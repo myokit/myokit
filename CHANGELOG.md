@@ -4,10 +4,14 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 ### Added
+- The changes made with each release are now stored in CHANGELOG.md.
 ### Changed
+- If numerical errors occur when evaluating an expression, the IDE now shows these in the console instead of in a pop-up.
 ### Deprecated
 ### Removed
 ### Fixed
+- Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.
+- `Model.map_component_io` now respects the `omit_constants` argument for Rush-Larsen variables.
 
 
 ## [1.31.0] - 2020-08-26
