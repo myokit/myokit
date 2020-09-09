@@ -211,8 +211,8 @@ class ShallowDepTest(DepTest):
         has('ica.d.beta.vc.vd', 'membrane.V')
         has('ica.d', 'ica.d', 'ica.d.alpha', 'ica.d.beta')
         has(n('ica.d'))
-        has('ica.f.alpha', 'membrane.V')
-        has('ica.f.beta', 'membrane.V')
+        has('ica.f.alpha')
+        has('ica.f.beta')
         has('ica.f.tau', 'ica.f.alpha', 'ica.f.beta')
         has('ica.f.inf', 'ica.f.alpha', 'ica.f.tau')
         has('ica.f', 'ica.f', 'ica.f.inf', 'ica.f.tau')
@@ -341,13 +341,12 @@ class DeepDepTest(DepTest):
         has('ica.d', 'ica.d', 'ica.d.alpha', 'ica.d.beta', 'ica.d.beta.va',
             'ica.d.beta.vb', 'ica.d.beta.vc', 'ica.d.beta.vc.vd', 'membrane.V')
         has(n('ica.d'))
-        has('ica.f.alpha', 'membrane.V')
-        has('ica.f.beta', 'membrane.V')
-        has('ica.f.tau', 'ica.f.alpha', 'ica.f.beta', 'membrane.V')
-        has('ica.f.inf', 'ica.f.tau', 'ica.f.alpha', 'ica.f.beta',
-            'membrane.V')
+        has('ica.f.alpha')
+        has('ica.f.beta')
+        has('ica.f.tau', 'ica.f.alpha', 'ica.f.beta')
+        has('ica.f.inf', 'ica.f.tau', 'ica.f.alpha', 'ica.f.beta')
         has('ica.f', 'ica.f', 'ica.f.inf', 'ica.f.tau', 'ica.f.alpha',
-            'ica.f.beta', 'membrane.V')
+            'ica.f.beta')
         has(n('ica.f'))
         has('ica.ICa.nest1', 'ica.gCa', 'ica.d', 'ica.f', 'ica.ICa.nest2')
         has('ica.ICa.nest2', 'ica.f')
@@ -642,7 +641,7 @@ class DeepDepTest(DepTest):
         has(n('ica.d'))
         nhas('ica.f.alpha')
         nhas('ica.f.beta')
-        has('ica.f', 'ica.f', 'membrane.V')
+        has('ica.f', 'ica.f')
         has(n('ica.f'))
         ICa = ('ica.ICa', 'ica.gCa', 'ica.d', 'ica.f', 'membrane.V') + E
         has(*ICa)
@@ -764,9 +763,9 @@ class DeepDepTest(DepTest):
         has('ica.d.beta.vc.vd', 'membrane.V')
         has('ica.d', 'ica.d', 'membrane.V')
         has(n('ica.d'))
-        has('ica.f.alpha', 'membrane.V')
-        has('ica.f.beta', 'membrane.V')
-        has('ica.f', 'ica.f', 'membrane.V')
+        has('ica.f.alpha')
+        has('ica.f.beta')
+        has('ica.f', 'ica.f')
         has(n('ica.f'))
         ICa = ('ica.ICa', 'ica.d', 'ica.f', 'membrane.V', 'ica.Ca_i')
         has(*ICa)
@@ -1166,7 +1165,46 @@ class ComponentDepTest(DepTest):
         inn('test')
         out('test')
 
-        # A TFT-RL: No states, Derivatives, No Constants, in RL mode
+        # A TFF-RL: No states, Derivatives, Constants, in RL mode
+        rl_states = {}
+        for state in ['ina.m', 'ina.h', 'ik.x', 'ica.f']:
+            rl_states[self.m.get(state)] = (
+                self.m.get(state + '.inf'), self.m.get(state + '.tau'))
+        d1, d2 = self.m.map_component_io(
+            omit_states=True,
+            omit_derivatives=False,
+            omit_constants=False,
+            rl_states=rl_states,
+        )
+        head('A TFF-RL: No states, Derivatives, Constants, in RL mode')
+        inn('membrane', 'ina.INa', 'ik.IK', 'ib.Ib', 'ikp.IKp',
+            'ik1.IK1', 'ica.ICa', 'engine.pace', d('ina.m'))
+        out('membrane', d('membrane.V'))
+        inn('ina', 'cell.RTF', 'cell.Na_i', 'cell.Na_o', 'cell.K_o')
+        out('ina', 'ina.INa', d('ina.m'), d('ina.h'), d('ina.j'),
+            'ina.m.inf', 'ina.m.tau', 'ina.h.inf', 'ina.h.tau')
+        inn('ik', 'cell.K_o', 'cell.Na_o', 'cell.K_i', 'cell.Na_i', 'cell.RTF',
+            d('ina.m'), d('ina.h'))
+        out('ik', 'ik.x.inf', 'ik.x.tau', 'ik.IK')
+        inn('ikp')
+        out('ikp', 'ikp.IKp')
+        inn('ica', 'cell.Ca_o')
+        out('ica', d('ica.Ca_i'), d('ica.d'), 'ica.f.inf', 'ica.f.tau',
+            'ica.ICa')
+        inn('ik1', 'cell.RTF', 'cell.K_o', 'cell.K_i')
+        out('ik1', 'ik1.IK1')
+        inn('ib')
+        out('ib', 'ib.Ib')
+        inn('cell')
+        out('cell', 'cell.RTF', 'cell.Na_o', 'cell.Na_i', 'cell.K_o',
+            'cell.K_i', 'cell.Ca_o')
+        inn('engine')
+        out('engine', 'engine.pace')
+        inn('test', d('membrane.V'))
+        out('test', d('test.t1'), d('test.t2'))
+
+        # B TFT-RL: No states, Derivatives, No Constants, in RL mode
+        # This is the practical use case
         rl_states = {}
         for state in ['ina.m', 'ina.h', 'ik.x', 'ica.f']:
             rl_states[self.m.get(state)] = (
@@ -1177,7 +1215,7 @@ class ComponentDepTest(DepTest):
             omit_constants=True,
             rl_states=rl_states,
         )
-        head('A TFT-RL: No states, Derivatives, No constants in RL mode')
+        head('B TFT-RL: No states, Derivatives, No constants in RL mode')
         inn('membrane', 'ina.INa', 'ik.IK', 'ib.Ib', 'ikp.IKp',
             'ik1.IK1', 'ica.ICa', 'engine.pace', d('ina.m'))
         out('membrane', d('membrane.V'))
@@ -1189,8 +1227,7 @@ class ComponentDepTest(DepTest):
         inn('ikp')
         out('ikp', 'ikp.IKp')
         inn('ica')
-        out('ica', d('ica.Ca_i'), d('ica.d'), 'ica.f.inf', 'ica.f.tau',
-            'ica.ICa')
+        out('ica', d('ica.Ca_i'), d('ica.d'), 'ica.ICa')
         inn('ik1')
         out('ik1', 'ik1.IK1')
         inn('ib')
