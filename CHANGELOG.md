@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - If numerical errors occur when evaluating an expression, the IDE now shows these in the console instead of in a pop-up.
 - Updated licensing info.
 - `Model.format_state` and `Model.format_state_derivatives` now take a `precision` argument.
+- If errors occur, the `SimulationOpenCL` now displays states using the appropriate precision.
 ### Deprecated
 ### Removed
 ### Fixed
