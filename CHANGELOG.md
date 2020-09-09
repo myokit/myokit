@@ -7,11 +7,13 @@ This page lists the main changes made to Myokit in each release.
 ### Changed
 - If numerical errors occur when evaluating an expression, the IDE now shows these in the console instead of in a pop-up.
 - Updated licensing info.
+- `Model.format_state` and `Model.format_state_derivatives` now take a `precision` argument.
 ### Deprecated
 ### Removed
 ### Fixed
 - Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.
 - `Model.map_component_io` now respects the `omit_constants` argument for Rush-Larsen variables.
+- If `Model.format_state_derivatives` needs to evaluate the derivatives, it will now use the given `state` instead of the model state.
 
 ## [1.31.0] - 2020-08-26
 - A completely rewritten SBML API and parser, by @DavAug, that's capable of handling models that define species and reactions.

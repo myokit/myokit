@@ -1458,13 +1458,24 @@ class Model(ObjectWithMeta, VarProvider):
 
         return (eq_list, arguments)
 
-    def format_state(self, state=None, state2=None):
+    def format_state(self, state=None, state2=None,
+                     precision=myokit.DOUBLE_PRECISION):
         """
         Converts the given list of floating point numbers to a string where
-        each line has the format ``<full_qualified_name> = <float_value>``. If
-        no state is given the one returned by :meth:`state` is used.
+        each line has the format ``<full_qualified_name> = <float_value>``.
 
-        An optional second state can be added for display as ``state2``.
+        Arguments:
+
+        ``state=None``
+            The state to show derivatives for. If no state is given the state
+            returned by :meth:`state` is used.
+        ``state2=None``
+            An optional second state, to be shown next to ``state`` for
+            comparison.
+        ``precision=myokit.DOUBLE_PRECISION``
+            An optional precision argument to pass into :meth:`myokit.strfloat`
+            when formatting the state values.
+
         """
         n = len(self._state)
         if state is not None:
@@ -1474,30 +1485,49 @@ class Model(ObjectWithMeta, VarProvider):
                     + ') floating point numbers.')
         else:
             state = self.state()
+
         if state2 is not None:
             if len(state2) != n:
                 raise ValueError(
                     'Argument `state2` must be a list of (' + str(n)
                     + ') floating point numbers.')
 
+
         out = []
         n = max([len(x.qname()) for x in self.states()])
         for k, var in enumerate(self.states()):
             out.append(
                 var.qname() + ' ' * (n - len(var.qname()))
-                + ' = ' + myokit.strfloat(state[k]))
+                + ' = ' + myokit.strfloat(state[k], precision=precision))
         if state2 is not None:
             n = max([len(x) for x in out])
             for k, var in enumerate(self.states()):
-                out[k] += \
-                    ' ' * (4 + n - len(out[k])) + myokit.strfloat(state2[k])
+                out[k] += (
+                    ' ' * (4 + n - len(out[k]))
+                    + myokit.strfloat(state2[k], precision=precision))
 
         return '\n'.join(out)
 
-    def format_state_derivatives(self, state=None, derivatives=None):
+    def format_state_derivatives(self, state=None, derivatives=None,
+                                 precision=myokit.DOUBLE_PRECISION):
         """
         Like :meth:`format_state` but displays the derivatives along with
         each state's value.
+
+
+        Arguments:
+
+        ``state=None``
+            The state to display. If no state is given the state returned by
+            :meth:`state` is used.
+        ``derivatives=None``
+            An optional list of evaluated derivatives. If not given, the values
+            will be calculed from ``state`` using :meth:`eval_derivatives()`.
+        ``precision=myokit.DOUBLE_PRECISION``
+            An optional precision argument to use when evaluating the state
+            derivatives, and to pass into :meth:`myokit.strfloat` when
+            formatting the state values and derivatives.
+
         """
         n = len(self._state)
         if state is None:
@@ -1506,17 +1536,20 @@ class Model(ObjectWithMeta, VarProvider):
             raise ValueError(
                 'Argument `state` must be a list of (' + str(n)
                 + ') floating point numbers.')
+
         if derivatives is None:
-            derivatives = self.eval_state_derivatives()
+            derivatives = self.eval_state_derivatives(
+                state, precision=precision)
         elif len(derivatives) != n:
             raise ValueError(
                 'Argument `deriv` must be a list of (' + str(n)
                 + ') floating point numbers.')
+
         out = []
         n = max([len(x.qname()) for x in self.states()])
         for i, var in enumerate(self.states()):
-            s = myokit.strfloat(state[i])
-            d = myokit.strfloat(derivatives[i])
+            s = myokit.strfloat(state[i], precision=precision)
+            d = myokit.strfloat(derivatives[i], precision=precision)
             out.append(
                 var.qname() + ' ' * (n - len(var.qname())) + ' = ' + s
                 + ' ' * (24 - len(s)) + '   dot = ' + d)

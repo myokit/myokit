@@ -409,6 +409,8 @@ class ModelTest(unittest.TestCase):
 
     def test_format_state(self):
         # Test Model.format_state()
+
+        self.maxDiff = None
         m = myokit.load_model('example')
 
         # Test without state argument
@@ -425,12 +427,14 @@ class ModelTest(unittest.TestCase):
         )
 
         # Test with state argument
+        state1 = [1, 2, 3, 4, 5, 6, 7, 8]
+        state1[3] = 124.35624574537437
         self.assertEqual(
-            m.format_state([1, 2, 3, 4, 5, 6, 7, 8]),
+            m.format_state(state1),
             'membrane.V = 1\n'
             'ina.m      = 2\n'
             'ina.h      = 3\n'
-            'ina.j      = 4\n'
+            'ina.j      =  1.24356245745374366e+02\n'
             'ica.d      = 5\n'
             'ica.f      = 6\n'
             'ik.x       = 7\n'
@@ -440,6 +444,21 @@ class ModelTest(unittest.TestCase):
         # Test with invalid state argument
         self.assertRaisesRegex(
             ValueError, r'list of \(8\)', m.format_state, [1, 2, 3])
+
+        # Test with precision argument
+        state1 = [1, 2, 3, 4, 5, 6, 7, 8]
+        state1[3] = 124.35624574537437
+        self.assertEqual(
+            m.format_state(state1, precision=myokit.SINGLE_PRECISION),
+            'membrane.V = 1\n'
+            'ina.m      = 2\n'
+            'ina.h      = 3\n'
+            'ina.j      =  1.243562457e+02\n'
+            'ica.d      = 5\n'
+            'ica.f      = 6\n'
+            'ik.x       = 7\n'
+            'ica.Ca_i   = 8'
+        )
 
         # Test with second state argument
         self.assertEqual(
@@ -462,6 +481,7 @@ class ModelTest(unittest.TestCase):
     def test_format_state_derivatives(self):
         # Test Model.format_state_derivatives().
 
+        self.maxDiff = None
         m = myokit.load_model('example')
 
         # Test without arguments
@@ -478,22 +498,37 @@ class ModelTest(unittest.TestCase):
         )
 
         # Test with state argument
+        state1 = [1, 2, 3, 4, 5, 6, 7, 8]
+        state1[2] = 536.46745856785678567845745637
         self.assertEqual(
-            m.format_state_derivatives([1, 2, 3, 4, 5, 6, 7, 8]),
-'membrane.V = 1                          dot = -5.68008003798848027e-02\n' # noqa
-'ina.m      = 2                          dot = -4.94961486033834719e-03\n' # noqa
-'ina.h      = 3                          dot =  9.02025299127830887e-06\n' # noqa
-'ina.j      = 4                          dot = -3.70409866928434243e-04\n' # noqa
-'ica.d      = 5                          dot =  3.68067721821794798e-04\n' # noqa
-'ica.f      = 6                          dot = -3.55010150519739432e-07\n' # noqa
-'ik.x       = 7                          dot = -2.04613933160084307e-07\n' # noqa
-'ica.Ca_i   = 8                          dot = -6.99430692442154227e-06'   # noqa
+            m.format_state_derivatives(state1),
+'membrane.V = 1                          dot =  1.90853168050245158e+07\n' # noqa
+'ina.m      = 2                          dot = -1.56738349674489310e+01\n' # noqa
+'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03\n' # noqa
+'ina.j      = 4                          dot = -1.15731427949362953e+00\n' # noqa
+'ica.d      = 5                          dot = -1.85001944916516836e-01\n' # noqa
+'ica.f      = 6                          dot = -2.15435819790876573e-02\n' # noqa
+'ik.x       = 7                          dot = -1.25154369264425316e-02\n' # noqa
+'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01' # noqa                                       ^ ^^    ^ ---------   ^
         )
 
         # Test with invalid state argument
         self.assertRaisesRegex(
             ValueError, r'list of \(8\)',
             m.format_state_derivatives, [1, 2, 3])
+
+        # Test with state and precision argument
+        self.assertEqual(
+            m.format_state_derivatives(state1, precision=myokit.SINGLE_PRECISION), # noqa
+'membrane.V = 1                          dot =  1.908531715e+07\n' # noqa
+'ina.m      = 2                          dot = -1.567383468e+01\n' # noqa
+'ina.h      =  5.364674586e+02           dot = -3.057292740e+03\n' # noqa
+'ina.j      = 4                          dot = -1.157314420e+00\n' # noqa
+'ica.d      = 5                          dot = -1.850019479e-01\n' # noqa
+'ica.f      = 6                          dot = -2.154358268e-02\n' # noqa
+'ik.x       = 7                          dot = -1.251543604e-02\n' # noqa
+'ica.Ca_i   = 8                          dot = -5.634312366e-01' # noqa                                       ^ ^^    ^ ---------   ^
+        )
 
         # Test with derivs argument
         self.assertEqual(
