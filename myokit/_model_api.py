@@ -1814,8 +1814,10 @@ class Model(ObjectWithMeta, VarProvider):
         if rl_states:
             # Add infs and taus to the component output lists
             for inf, tau in rl_states.values():
-                do[inf.parent(Component)].add(inf.lhs())
-                do[tau.parent(Component)].add(tau.lhs())
+                if not (omit_constants and inf.is_constant()):
+                    do[inf.parent(Component)].add(inf.lhs())
+                if not (omit_constants and tau.is_constant()):
+                    do[tau.parent(Component)].add(tau.lhs())
         else:
             rl_states = {}
 
