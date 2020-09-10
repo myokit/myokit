@@ -117,4 +117,4 @@ after_success:
 notifications:
   email:
     recipients:
-    - michael.clerx@cs.ox.ac.uk
+    - michael.clerx@nottingham.ac.uk
