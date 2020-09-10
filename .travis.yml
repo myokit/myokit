@@ -5,7 +5,7 @@ sudo: required
 
 # Test on Ubuntu 16
 os: linux
-dist: xenial
+dist: bionic
 
 language: python
 
@@ -27,48 +27,8 @@ branches:
 matrix:
     # Always put true env variable first, for nicer overview on travis website
     include:
-        # Unit tests on OS/X, running first because this one's slow
-        - os: osx
-          osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
-          language: shell
-          env:
-            - MYOKIT_UNIT=true
-        # Style checking
         - python: "3.8"
           env:
-            - MYOKIT_STYLE=true
-        # Doctests
-        - python: "3.8"
-          env:
-            - MYOKIT_DOC=true
-        # Cover checking
-        - python: "3.8"
-          env:
-            - MYOKIT_COVER=true
-        # Unit tests on Ubuntu
-        - python: "2.7.6"
-          dist: trusty
-          env:
-            - MYOKIT_UNIT=true
-        - python: "2.7"
-          env:
-            - MYOKIT_UNIT=true
-        - python: "3.5"
-          env:
-            - MYOKIT_UNIT=true
-        - python: "3.6"
-          env:
-            - MYOKIT_UNIT=true
-        - python: "3.7"
-          env:
-            - MYOKIT_UNIT=true
-        - python: "3.8"
-          env:
-            - MYOKIT_UNIT=true
-        # Basic install test
-        - python: "3.8"
-          env:
-            - MYOKIT_BASIC=true
             - MYOKIT_UNIT=true
 
 # Install CVODE dependencies
@@ -78,11 +38,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       sudo apt-get -qq update;
       sudo apt-get install -y libsundials-serial-dev;
-    fi;
-  # OS/X
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      brew update-reset;
-      brew install sundials;
+      sudo apt-get install -y pocl-opencl-icd;
     fi;
 
 # Install Myokit and extra testing dependencies
@@ -96,6 +52,7 @@ install:
 # Show system information
 before_script:
 - python -m myokit system
+- python -m myokit opencl
 
 # Run tests
 script:
