@@ -723,6 +723,12 @@ class AuxTest(unittest.TestCase):
         # Full precision override
         self.assertEqual(
             myokit.strfloat(1.23, True), ' 1.22999999999999998e+00')
+        self.assertEqual(
+            myokit.strfloat(1.23, True, myokit.DOUBLE_PRECISION),
+            ' 1.22999999999999998e+00')
+        self.assertEqual(
+            myokit.strfloat(1.23, True, myokit.SINGLE_PRECISION),
+            ' 1.230000000e+00')
 
     def test_time(self):
         # Test time formatting method.
