@@ -1492,7 +1492,6 @@ class Model(ObjectWithMeta, VarProvider):
                     'Argument `state2` must be a list of (' + str(n)
                     + ') floating point numbers.')
 
-
         out = []
         n = max([len(x.qname()) for x in self.states()])
         for k, var in enumerate(self.states()):
