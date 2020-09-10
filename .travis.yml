@@ -38,7 +38,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       sudo apt-get -qq update;
       sudo apt-get install -y libsundials-serial-dev;
-      sudo apt-get install -y pocl-opencl-icd opencl-headers;
+      sudo apt-get install -y ocl-icd-opencl-dev opencl-headers;
     fi;
 
 # Install Myokit and extra testing dependencies
