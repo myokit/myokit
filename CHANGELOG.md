@@ -1,18 +1,26 @@
 # Changelog
                 
 This page lists the main changes made to Myokit in each release.
+
 ## Unreleased
 ### Added
-- The changes made with each release are now stored in CHANGELOG.md.
+- [#623](https://github.com/MichaelClerx/myokit/pull/623) The changes made with each release are now stored in CHANGELOG.md.
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL` now includes a method `is_paced` and `neighbours` that provide information about the simulated cells.
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.find_nan` now has an option to return a `DataLog` with the final logged variables before the error occurred.
 ### Changed
-- If numerical errors occur when evaluating an expression, the IDE now shows these in the console instead of in a pop-up.
-- Updated licensing info.
+- [#610](https://github.com/MichaelClerx/myokit/pull/610) If numerical errors occur when evaluating an expression, the IDE now shows these in the console instead of in a pop-up.
+- [#623](https://github.com/MichaelClerx/myokit/pull/623) Updated licensing info.
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) `myokit.strfloat` now takes a `precision` argument.
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) `Model.format_state` and `Model.format_state_derivatives` now take a `precision` argument.
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) If errors occur, the `SimulationOpenCL` now displays improved (and hopefully more informative) output.
 ### Deprecated
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
 ### Removed
 ### Fixed
 - [#628](https://github.com/MichaelClerx/myokit/pull/628) The DataBlockViewer now shows a colour bar for 1d simulations.
-- Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.
-- `Model.map_component_io` now respects the `omit_constants` argument for Rush-Larsen variables.
+- [#603](https://github.com/MichaelClerx/myokit/pull/603) Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.
+- [#613](https://github.com/MichaelClerx/myokit/pull/613) `Model.map_component_io` now respects the `omit_constants` argument for Rush-Larsen variables.
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) If `Model.format_state_derivatives` needs to evaluate the derivatives, it will now use the given `state` instead of the model state.
 
 ## [1.31.0] - 2020-08-26
 - A completely rewritten SBML API and parser, by @DavAug, that's capable of handling models that define species and reactions.
