@@ -1117,10 +1117,10 @@ class SimulationOpenCL(myokit.CModule):
                     try:
                         derivs = self._model.eval_state_derivatives(
                             state, bound, self._precision, ignore_errors=False)
-                    except myokit.NumericalError as eval_error:
+                    except myokit.NumericalError as ee:
                         derivs = self._model.eval_state_derivatives(
                             state, bound, self._precision, ignore_errors=True)
-                        eval_error = str(eval_error)
+                        eval_error = str(ee)
 
                     # Show state and derivatives
                     txt.append('State before:')
