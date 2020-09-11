@@ -125,13 +125,21 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._video_scene.single_click.connect(self.event_single_click)
         self._video_scene.double_click.connect(self.event_double_click)
         self._video_view = VideoView(self._video_scene)
+        self._video_view.setMouseTracking(True)
+        self._video_view.setCursor(Qt.CrossCursor)
         #self._video_view.setViewport(QtOpenGL.QGLWidget())
         self._video_pixmap = None
         self._video_item = None
         self._video_frames = None
         self._video_iframe = None
-        self._colormap_pixmap = None
-        self._colormap_item = None
+        # Colorbar widget
+        self._colorbar_width = 20
+        self._colorbar_height = 256
+        self._colorbar_scene = VideoScene()
+        self._colorbar_view = VideoView(self._colorbar_scene)
+        self._colorbar_view.setMaximumWidth(self._colorbar_width)
+        self._colorbar_pixmap = None
+        self._colorbar_item = None
         # Video slider
         self._slider = QtWidgets.QSlider(Qt.Horizontal)
         self._slider.setTickPosition(QtWidgets.QSlider.NoTicks)
@@ -200,9 +208,13 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # Graph area
         self._graph_area = GraphArea()
         self._graph_area.mouse_moved.connect(self.event_mouse_move)
+        # Video and colorbar layout
+        self._video_plus_layout = QtWidgets.QHBoxLayout()
+        self._video_plus_layout.addWidget(self._video_view)
+        self._video_plus_layout.addWidget(self._colorbar_view)
         # Video Layout
         self._video_layout = QtWidgets.QVBoxLayout()
-        self._video_layout.addWidget(self._video_view)
+        self._video_layout.addLayout(self._video_plus_layout)
         self._video_layout.addWidget(self._slider)
         self._video_layout.addLayout(self._control_layout)
         self._video_widget = QtWidgets.QWidget()
@@ -231,9 +243,12 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._resize_timer = QtCore.QTimer()
         self._resize_timer.timeout.connect(self._resize_timeout)
         self._video_view.resize_event.connect(self._resize_started)
+        self._colorbar_view.resize_event.connect(self._resize_started)
         # Attempt to load selected file
         if filename and os.path.isfile(filename):
             self.load_data_file(filename)
+        # Focus on play button
+        self._play_button.setFocus()
 
     def action_about(self):
         """
@@ -443,13 +458,13 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._colormap_select.setCurrentIndex(self._colormap_select.findText(
             self._colormap))
         if self._data:
-            # Update variable display
-            nt, ny, nx = self._data.shape()
-            nx = self._colormap_size
+            # Update colorbar
+            nx = self._colorbar_width
+            ny = self._colorbar_height
             image = myokit.ColorMap.image(self._colormap, nx, ny)
             image = QtGui.QImage(image, nx, ny, QtGui.QImage.Format_ARGB32)
-            self._colormap_pixmap.convertFromImage(image)
-            self._colormap_item.setPixmap(self._colormap_pixmap)  # qt5
+            self._colorbar_pixmap.convertFromImage(image)
+            self._colorbar_item.setPixmap(self._colorbar_pixmap)  # qt5
             self.action_set_variable(self._variable)
 
     def action_set_variable(self, var):
@@ -786,9 +801,8 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
 
         # Update video scene
         nt, ny, nx = self._data.shape()
-        self._colormap_size = max(int(0.05 * nx), 1)
         self._video_scene.clear()
-        self._video_scene.resize(nx, ny, 2 * self._colormap_size)
+        self._video_scene.resize(nx, ny)
         self._video_view.resizeEvent()
         self._video_iframe = 0
 
@@ -798,12 +812,17 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             self._video_pixmap)
         self._video_scene.addItem(self._video_item)
 
-        # Add empty colormap item to video scene
-        self._colormap_pixmap = QtGui.QPixmap(self._colormap_size, ny)
-        self._colormap_item = QtWidgets.QGraphicsPixmapItem(
-            self._colormap_pixmap)
-        self._colormap_item.setPos(nx + self._colormap_size, 0)
-        self._video_scene.addItem(self._colormap_item)
+        # Update colormap scene
+        nx, ny = self._colorbar_width, self._colorbar_height
+        self._colorbar_scene.clear()
+        self._colorbar_scene.resize(nx, ny)
+        self._colorbar_view.resizeEvent()
+
+        # Add empty colormap item to colormap scene
+        self._colorbar_pixmap = QtGui.QPixmap(nx, ny)
+        self._colorbar_item = QtWidgets.QGraphicsPixmapItem(
+            self._colorbar_pixmap)
+        self._colorbar_scene.addItem(self._colorbar_item)
 
         # Move slider to correct position
         self._slider.setMaximum(nt)
@@ -917,7 +936,7 @@ class VideoScene(QtWidgets.QGraphicsScene):
         self._w = None
         self._h = None
         self._p = None
-        self.resize(1, 1, 0)
+        self.resize(1, 1)
 
     def mousePressEvent(self, event):
         """
@@ -951,14 +970,13 @@ class VideoScene(QtWidgets.QGraphicsScene):
         x, y = int(p.x()), int(p.y())
         self.mouse_moved.emit(x, y)
 
-    def resize(self, w, h, p):
+    def resize(self, w, h):
         """
         Resizes the scene to match the given dimensions.
         """
         self._w = float(w)
         self._h = float(h)
-        self._p = float(p)  # Add room for colormap
-        self.setSceneRect(0, 0, self._w + self._p, self._h)
+        self.setSceneRect(0, 0, self._w, self._h)
 
 
 class VideoView(QtWidgets.QGraphicsView):
@@ -971,23 +989,25 @@ class VideoView(QtWidgets.QGraphicsView):
 
     def __init__(self, scene):
         super(VideoView, self).__init__(scene)
-        # Disable scrollbars (they can cause a cyclical resizing event!)
+        # Disable scrollbars
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        # Always track mouse position
-        self.setMouseTracking(True)
-        # Set crosshair cursor
-        self.setCursor(Qt.CrossCursor)
+
         # Set rendering hints
         self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setViewportUpdateMode(
             QtWidgets.QGraphicsView.BoundingRectViewportUpdate)
+
         # Fit scene rect in view
         self.fitInView(self.sceneRect(), keepAspect=True)
         self.setAlignment(Qt.AlignCenter)
+
         # Delayed resizing
         self._resize_timer = QtCore.QTimer()
         self._resize_timer.timeout.connect(self._resize_timeout)
+
+        # No focus (no keyboard, no border)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
     def fitInView(self, rect, keepAspect=False):
         """
@@ -1006,6 +1026,7 @@ class VideoView(QtWidgets.QGraphicsView):
             unity = self.matrix().mapRect(QtCore.QRectF(0, 0, 1, 1))
         w, h = max(1, unity.width()), max(1, unity.height())
         self.scale(1. / w, 1 / h)
+
         # Find the ideal scaling ratio
         viewRect = self.viewport().rect()
         try:
@@ -1017,6 +1038,7 @@ class VideoView(QtWidgets.QGraphicsView):
         yr = viewRect.height() / sceneRect.height()
         if keepAspect:
             xr = min(xr, yr)
+
         # Scale and center
         self.scale(xr, yr)
         self.centerOn(rect.center())
@@ -1035,8 +1057,6 @@ class VideoView(QtWidgets.QGraphicsView):
         """
         Called a few ms after time out.
         """
-        #import time
-        #print(str(time.time()) + 'Resize!')
         self._resize_timer.stop()
         self.fitInView(self.sceneRect(), keepAspect=True)
 

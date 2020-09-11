@@ -10,6 +10,7 @@ This page lists the main changes made to Myokit in each release.
 ### Deprecated
 ### Removed
 ### Fixed
+- [#628](https://github.com/MichaelClerx/myokit/pull/628) The DataBlockViewer now shows a colour bar for 1d simulations.
 - Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.
 - `Model.map_component_io` now respects the `omit_constants` argument for Rush-Larsen variables.
 
