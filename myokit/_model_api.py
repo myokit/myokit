@@ -1310,20 +1310,24 @@ class Model(ObjectWithMeta, VarProvider):
         The values are returned in a list sorted in the same order as the
         state variables.
 
-        If given, the state values given by ``state`` will be used as starting
-        point. Here ``state`` can be any object accepted as input by
-        :meth:``map_to_state()``.
+        Arguments:
 
-        To set the values of external inputs, a dictionary mapping binding
-        labels to values can be passed in as ``inputs``.
+        ``state=None``
+            If given, the state values given by ``state`` will be used as
+            starting point. Here ``state`` can be any object accepted as input
+            by :meth:``map_to_state()``.
+        ``inputs=None``
+            To set the values of external inputs, a dictionary mapping binding
+            labels to values can be passed in as ``inputs``.
+        ``precision``
+            To assist in finding the origins of numerical errors, the equations
+            can be evaluated using single-precision floating point. To do this,
+            set ``precision=myokit.SINGLE_PRECISION``.
+        ``ignore_errors``
+            By default, the evaluation routine raises
+            :class:`myokit.NumericalError` exceptions for invalid operations.
+            To return ``NaN`` instead, set ``ignore_errors=True``.
 
-        To assist in finding the origins of numerical errors, the equations
-        can be evaluated using 32 bit floating point. To do this, set
-        ``precision=myokit.SINGLE_PRECISION``.
-
-        By default, the evaluation routine raises
-        :class:`myokit.NumericalError` exceptions for invalid operations. To
-        return ``NaN`` instead, set ``ignore_errors=True``.
         """
         # Apply new state if required
         if state is not None:
