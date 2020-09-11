@@ -1,6 +1,7 @@
 # Changelog
                 
 This page lists the main changes made to Myokit in each release.
+
 ## Unreleased
 ### Added
 - [#623](https://github.com/MichaelClerx/myokit/pull/623) The changes made with each release are now stored in CHANGELOG.md.
@@ -16,6 +17,7 @@ This page lists the main changes made to Myokit in each release.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
 ### Removed
 ### Fixed
+- [#628](https://github.com/MichaelClerx/myokit/pull/628) The DataBlockViewer now shows a colour bar for 1d simulations.
 - [#603](https://github.com/MichaelClerx/myokit/pull/603) Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.
 - [#613](https://github.com/MichaelClerx/myokit/pull/613) `Model.map_component_io` now respects the `omit_constants` argument for Rush-Larsen variables.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) If `Model.format_state_derivatives` needs to evaluate the derivatives, it will now use the given `state` instead of the model state.
