@@ -518,17 +518,36 @@ class ModelTest(unittest.TestCase):
             m.format_state_derivatives, [1, 2, 3])
 
         # Test with state and precision argument
-        self.assertEqual(
-            m.format_state_derivatives(state1, precision=myokit.SINGLE_PRECISION), # noqa
-'membrane.V = 1                          dot =  1.908531715e+07\n' # noqa
-'ina.m      = 2                          dot = -1.567383468e+01\n' # noqa
-'ina.h      =  5.364674586e+02           dot = -3.057292740e+03\n' # noqa
-'ina.j      = 4                          dot = -1.157314420e+00\n' # noqa
-'ica.d      = 5                          dot = -1.850019479e-01\n' # noqa
-'ica.f      = 6                          dot = -2.154358268e-02\n' # noqa
-'ik.x       = 7                          dot = -1.251543604e-02\n' # noqa
-'ica.Ca_i   = 8                          dot = -5.634312366e-01' # noqa                                       ^ ^^    ^ ---------   ^
-        )
+        # Ignoring some of the middle digits, as they differ on some (but not
+        # all!) travis builds.
+        out = m.format_state_derivatives(
+            state1, precision=myokit.SINGLE_PRECISION).splitlines()
+        self.assertEqual(len(out), 8)
+        self.assertEqual(out[0][:15], 'membrane.V = 1 ')
+        self.assertEqual(out[1][:15], 'ina.m      = 2 ')
+        self.assertEqual(out[2][:29], 'ina.h      =  5.364674586e+02')
+        self.assertEqual(out[3][:15], 'ina.j      = 4 ')
+        self.assertEqual(out[4][:15], 'ica.d      = 5 ')
+        self.assertEqual(out[5][:15], 'ica.f      = 6 ')
+        self.assertEqual(out[6][:15], 'ik.x       = 7 ')
+        self.assertEqual(out[7][:15], 'ica.Ca_i   = 8 ')
+        out = [x[x.index('dot') + 6:] for x in out]
+        self.assertEqual(out[0][:8], ' 1.90853')
+        self.assertEqual(out[1][:8], '-1.56738')
+        self.assertEqual(out[2][:8], '-3.05729')
+        self.assertEqual(out[3][:8], '-1.15731')
+        self.assertEqual(out[4][:8], '-1.85001')
+        self.assertEqual(out[5][:8], '-2.15435')
+        self.assertEqual(out[6][:8], '-1.25154')
+        self.assertEqual(out[7][:8], '-5.63431')
+        self.assertEqual(out[0][12:], 'e+07')
+        self.assertEqual(out[1][12:], 'e+01')
+        self.assertEqual(out[2][12:], 'e+03')
+        self.assertEqual(out[3][12:], 'e+00')
+        self.assertEqual(out[4][12:], 'e-01')
+        self.assertEqual(out[5][12:], 'e-02')
+        self.assertEqual(out[6][12:], 'e-02')
+        self.assertEqual(out[7][12:], 'e-01')
 
         # Test with derivs argument
         self.assertEqual(
