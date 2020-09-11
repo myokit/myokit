@@ -11,7 +11,8 @@ This page lists the main changes made to Myokit in each release.
 - [#623](https://github.com/MichaelClerx/myokit/pull/623) Updated licensing info.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `myokit.strfloat` now takes a `precision` argument.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `Model.format_state` and `Model.format_state_derivatives` now take a `precision` argument.
-- [#622](https://github.com/MichaelClerx/myokit/pull/622) If errors occur, the `SimulationOpenCL` now displays states using the appropriate precision.
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) If errors occur, the `SimulationOpenCL` now displays improved (and hopefully more informative) output.
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.find_nan` now has an option to return a `DataLog` with the final logged variables before the error occurred.
 ### Deprecated
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
 ### Removed
