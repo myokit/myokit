@@ -1096,7 +1096,6 @@ class SimulationOpenCL(myokit.CModule):
                 if neighbours:
                     txt.append('  Connected cells: ' + neighbours_str)
 
-
                 # Show previous state (and derivatives)
                 n_states = len(states)
                 txt.append('Obtained ' + str(n_states) + ' previous state(s).')

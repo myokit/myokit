@@ -5,14 +5,13 @@ This page lists the main changes made to Myokit in each release.
 ### Added
 - [#623](https://github.com/MichaelClerx/myokit/pull/623) The changes made with each release are now stored in CHANGELOG.md.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL` now includes a method `is_paced` and `neighbours` that provide information about the simulated cells.
--
+- [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.find_nan` now has an option to return a `DataLog` with the final logged variables before the error occurred.
 ### Changed
 - [#610](https://github.com/MichaelClerx/myokit/pull/610) If numerical errors occur when evaluating an expression, the IDE now shows these in the console instead of in a pop-up.
 - [#623](https://github.com/MichaelClerx/myokit/pull/623) Updated licensing info.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `myokit.strfloat` now takes a `precision` argument.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `Model.format_state` and `Model.format_state_derivatives` now take a `precision` argument.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) If errors occur, the `SimulationOpenCL` now displays improved (and hopefully more informative) output.
-- [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.find_nan` now has an option to return a `DataLog` with the final logged variables before the error occurred.
 ### Deprecated
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
 ### Removed
