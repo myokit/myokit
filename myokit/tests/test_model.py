@@ -409,6 +409,8 @@ class ModelTest(unittest.TestCase):
 
     def test_format_state(self):
         # Test Model.format_state()
+
+        self.maxDiff = None
         m = myokit.load_model('example')
 
         # Test without state argument
@@ -425,12 +427,14 @@ class ModelTest(unittest.TestCase):
         )
 
         # Test with state argument
+        state1 = [1, 2, 3, 4, 5, 6, 7, 8]
+        state1[3] = 124.35624574537437
         self.assertEqual(
-            m.format_state([1, 2, 3, 4, 5, 6, 7, 8]),
+            m.format_state(state1),
             'membrane.V = 1\n'
             'ina.m      = 2\n'
             'ina.h      = 3\n'
-            'ina.j      = 4\n'
+            'ina.j      =  1.24356245745374366e+02\n'
             'ica.d      = 5\n'
             'ica.f      = 6\n'
             'ik.x       = 7\n'
@@ -440,6 +444,21 @@ class ModelTest(unittest.TestCase):
         # Test with invalid state argument
         self.assertRaisesRegex(
             ValueError, r'list of \(8\)', m.format_state, [1, 2, 3])
+
+        # Test with precision argument
+        state1 = [1, 2, 3, 4, 5, 6, 7, 8]
+        state1[3] = 124.35624574537437
+        self.assertEqual(
+            m.format_state(state1, precision=myokit.SINGLE_PRECISION),
+            'membrane.V = 1\n'
+            'ina.m      = 2\n'
+            'ina.h      = 3\n'
+            'ina.j      =  1.243562457e+02\n'
+            'ica.d      = 5\n'
+            'ica.f      = 6\n'
+            'ik.x       = 7\n'
+            'ica.Ca_i   = 8'
+        )
 
         # Test with second state argument
         self.assertEqual(
@@ -462,6 +481,7 @@ class ModelTest(unittest.TestCase):
     def test_format_state_derivatives(self):
         # Test Model.format_state_derivatives().
 
+        self.maxDiff = None
         m = myokit.load_model('example')
 
         # Test without arguments
@@ -478,22 +498,56 @@ class ModelTest(unittest.TestCase):
         )
 
         # Test with state argument
+        state1 = [1, 2, 3, 4, 5, 6, 7, 8]
+        state1[2] = 536.46745856785678567845745637
         self.assertEqual(
-            m.format_state_derivatives([1, 2, 3, 4, 5, 6, 7, 8]),
-'membrane.V = 1                          dot = -5.68008003798848027e-02\n' # noqa
-'ina.m      = 2                          dot = -4.94961486033834719e-03\n' # noqa
-'ina.h      = 3                          dot =  9.02025299127830887e-06\n' # noqa
-'ina.j      = 4                          dot = -3.70409866928434243e-04\n' # noqa
-'ica.d      = 5                          dot =  3.68067721821794798e-04\n' # noqa
-'ica.f      = 6                          dot = -3.55010150519739432e-07\n' # noqa
-'ik.x       = 7                          dot = -2.04613933160084307e-07\n' # noqa
-'ica.Ca_i   = 8                          dot = -6.99430692442154227e-06'   # noqa
+            m.format_state_derivatives(state1),
+'membrane.V = 1                          dot =  1.90853168050245158e+07\n' # noqa
+'ina.m      = 2                          dot = -1.56738349674489310e+01\n' # noqa
+'ina.h      =  5.36467458567856738e+02   dot = -3.05729251015767022e+03\n' # noqa
+'ina.j      = 4                          dot = -1.15731427949362953e+00\n' # noqa
+'ica.d      = 5                          dot = -1.85001944916516836e-01\n' # noqa
+'ica.f      = 6                          dot = -2.15435819790876573e-02\n' # noqa
+'ik.x       = 7                          dot = -1.25154369264425316e-02\n' # noqa
+'ica.Ca_i   = 8                          dot = -5.63431267451130036e-01' # noqa                                       ^ ^^    ^ ---------   ^
         )
 
         # Test with invalid state argument
         self.assertRaisesRegex(
             ValueError, r'list of \(8\)',
             m.format_state_derivatives, [1, 2, 3])
+
+        # Test with state and precision argument
+        # Ignoring some of the middle digits, as they differ on some (but not
+        # all!) travis builds.
+        out = m.format_state_derivatives(
+            state1, precision=myokit.SINGLE_PRECISION).splitlines()
+        self.assertEqual(len(out), 8)
+        self.assertEqual(out[0][:15], 'membrane.V = 1 ')
+        self.assertEqual(out[1][:15], 'ina.m      = 2 ')
+        self.assertEqual(out[2][:29], 'ina.h      =  5.364674586e+02')
+        self.assertEqual(out[3][:15], 'ina.j      = 4 ')
+        self.assertEqual(out[4][:15], 'ica.d      = 5 ')
+        self.assertEqual(out[5][:15], 'ica.f      = 6 ')
+        self.assertEqual(out[6][:15], 'ik.x       = 7 ')
+        self.assertEqual(out[7][:15], 'ica.Ca_i   = 8 ')
+        out = [x[x.index('dot') + 6:] for x in out]
+        self.assertEqual(out[0][:8], ' 1.90853')
+        self.assertEqual(out[1][:8], '-1.56738')
+        self.assertEqual(out[2][:8], '-3.05729')
+        self.assertEqual(out[3][:8], '-1.15731')
+        self.assertEqual(out[4][:8], '-1.85001')
+        self.assertEqual(out[5][:8], '-2.15435')
+        self.assertEqual(out[6][:8], '-1.25154')
+        self.assertEqual(out[7][:8], '-5.63431')
+        self.assertEqual(out[0][12:], 'e+07')
+        self.assertEqual(out[1][12:], 'e+01')
+        self.assertEqual(out[2][12:], 'e+03')
+        self.assertEqual(out[3][12:], 'e+00')
+        self.assertEqual(out[4][12:], 'e-01')
+        self.assertEqual(out[5][12:], 'e-02')
+        self.assertEqual(out[6][12:], 'e-02')
+        self.assertEqual(out[7][12:], 'e-01')
 
         # Test with derivs argument
         self.assertEqual(
