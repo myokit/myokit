@@ -769,6 +769,23 @@ class DataBlock1d(object):
         """
         return self._time
 
+    def to_log(self, copy=True):
+        """
+        Returns a :class:`myokit.DataLog` containing the same information as
+        this block.
+
+        The data will be copied, unless ``copy`` is set to ``False``.
+        """
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = np.array(self._time, copy=copy)
+        for k, v in self._0d.items():
+            d[k] = np.array(v, copy=copy)
+        for k, v in self._1d.items():
+            for i in range(self._nx):
+                d[str(i) + '.' + k] = np.array(v[:, i], copy=copy)
+        return d
+
     def trace(self, variable, x):
         """
         Returns a 0d time series of the value ``variable``, corresponding to
@@ -1580,6 +1597,29 @@ class DataBlock2d(object):
         directly, no copy is made.
         """
         return self._time
+
+    def to_log(self, copy=True):
+        """
+        Returns a :class:`myokit.DataLog` containing the same information as
+        this block.
+
+        The data will be copied, unless ``copy`` is set to ``False``.
+        """
+        d = myokit.DataLog()
+
+        # Add 0d vectors
+        d.set_time_key('time')
+        d['time'] = np.array(self._time, copy=copy)
+        for k, v in self._0d.items():
+            d[k] = np.array(v, copy=copy)
+
+        # Add 2d fields
+        for k, v in self._2d.items():
+            for x in range(self._nx):
+                s = str(x) + '.'
+                for y in range(self._ny):
+                    d[s + str(y) + '.' + k] = np.array(v[:, y, x], copy=copy)
+        return d
 
     def trace(self, variable, x, y):
         """

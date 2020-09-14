@@ -15,7 +15,7 @@ import numpy as np
 import myokit
 
 from shared import TemporaryDirectory, DIR_DATA, DIR_IO
-from shared import TestReporter, CancellingReporter
+from shared import TestReporter, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -337,6 +337,32 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertTrue(np.all(y[:-1, :-1] == yy))
         self.assertTrue(np.all(z == zz))
 
+    def test_keys(self):
+        # Test the keys0d() and keys1d() methods.
+
+        w = 2
+        time = [1, 2, 3]
+        b1 = myokit.DataBlock1d(w, time)
+
+        # Test keys0d
+        self.assertEqual(len(list(b1.keys0d())), 0)
+        pace = np.array([0, 0, 2])
+        b1.set0d('pace', pace)
+        self.assertEqual(len(list(b1.keys0d())), 1)
+        self.assertIn('pace', b1.keys0d())
+        b1.set0d('poos', pace)
+        self.assertEqual(len(list(b1.keys0d())), 2)
+        self.assertIn('poos', b1.keys0d())
+
+        # Test keys1d
+        self.assertEqual(len(list(b1.keys1d())), 0)
+        x = np.array([[1, 1], [2, 2], [3, 3]])
+        b1.set1d('x', x)
+        self.assertEqual(len(list(b1.keys1d())), 1)
+        y = np.array([[2, 1], [3, 2], [4, 3]])
+        b1.set1d('y', y)
+        self.assertEqual(len(list(b1.keys1d())), 2)
+
     def test_load_bad_file(self):
         # Test loading errors.
 
@@ -464,31 +490,27 @@ class DataBlock1dTest(unittest.TestCase):
         x = np.array([[1, 1], [2, 2], [3, 3], [4, 4]])
         self.assertRaises(ValueError, b1.set1d, 'x', x)
 
-    def test_keys(self):
-        # Test the keys0d() and keys1d() methods.
+    def test_to_log(self):
+        # Test the `DataBlock1d.to_log()` method.
 
-        w = 2
-        time = [1, 2, 3]
-        b1 = myokit.DataBlock1d(w, time)
+        # Create test block
+        b = myokit.DataBlock1d(3, [1, 2, 3, 4])
+        b.set0d('pace', [0, 1, 0, 0])
+        b.set1d('voltage', [[2, 1, 0], [1, 2, 1], [0, 1, 2], [0, 0, 1]])
 
-        # Test keys0d
-        self.assertEqual(len(list(b1.keys0d())), 0)
-        pace = np.array([0, 0, 2])
-        b1.set0d('pace', pace)
-        self.assertEqual(len(list(b1.keys0d())), 1)
-        self.assertIn('pace', b1.keys0d())
-        b1.set0d('poos', pace)
-        self.assertEqual(len(list(b1.keys0d())), 2)
-        self.assertIn('poos', b1.keys0d())
-
-        # Test keys1d
-        self.assertEqual(len(list(b1.keys1d())), 0)
-        x = np.array([[1, 1], [2, 2], [3, 3]])
-        b1.set1d('x', x)
-        self.assertEqual(len(list(b1.keys1d())), 1)
-        y = np.array([[2, 1], [3, 2], [4, 3]])
-        b1.set1d('y', y)
-        self.assertEqual(len(list(b1.keys1d())), 2)
+        # Convert and inspect
+        d = b.to_log()
+        self.assertIn('time', d)
+        self.assertIn('pace', d)
+        self.assertIn('0.voltage', d)
+        self.assertIn('1.voltage', d)
+        self.assertIn('2.voltage', d)
+        self.assertEqual(len(d), 5)
+        self.assertEqual(list(d.time()), [1, 2, 3, 4])
+        self.assertEqual(list(d['pace']), [0, 1, 0, 0])
+        self.assertEqual(list(d['0.voltage']), [2, 1, 0, 0])
+        self.assertEqual(list(d['1.voltage']), [1, 2, 1, 0])
+        self.assertEqual(list(d['2.voltage']), [0, 1, 2, 1])
 
     def test_trace(self):
         w = 2
@@ -1047,9 +1069,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertAlmostEqual(b.largest_eigenvalues('x')[0], 1)
 
     def test_load_bad_file(self):
-        """
-        Test loading errors.
-        """
+        # Test loading errors.
+
         # Not enough files
         path = os.path.join(DIR_IO, 'bad2d-1-not-enough-files.zip')
         self.assertRaisesRegex(
@@ -1134,9 +1155,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertIsNone(b)
 
     def test_save_frame_csv(self):
-        """
-        Test the save_frame_csv() method.
-        """
+        # Test the save_frame_csv() method.
+
         w, h = 2, 3
         time = [1, 2, 3]
         b = myokit.DataBlock2d(w, h, time)
@@ -1169,9 +1189,8 @@ class DataBlock2dTest(unittest.TestCase):
             self.assertEqual(lines[6], '1,2,5')
 
     def test_save_frame_grid(self):
-        """
-        Test the save_frame_grid() method.
-        """
+        # Test the save_frame_grid() method.
+
         w, h = 2, 3
         time = [1, 2, 3]
         b = myokit.DataBlock2d(w, h, time)
@@ -1200,9 +1219,8 @@ class DataBlock2dTest(unittest.TestCase):
             self.assertEqual(lines[2], '4 5')
 
     def test_set0d(self):
-        """
-        Test set0d().
-        """
+        # Test set0d().
+
         w = 2
         h = 3
         time = [1, 2, 3]
@@ -1227,9 +1245,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertRaises(ValueError, b1.set0d, 'pace', np.array([1, 2, 3, 4]))
 
     def test_set2d(self):
-        """
-        Test set2d().
-        """
+        # Test set2d().
+
         w = 2
         h = 3
         time = [1, 2, 3]
@@ -1262,7 +1279,47 @@ class DataBlock2dTest(unittest.TestCase):
         ])
         self.assertRaises(ValueError, b1.set2d, 'x', x)
 
+    def test_to_log(self):
+        # Test the `DataBlock2d.to_log()` method.
+
+        # Create test block
+        b = myokit.DataBlock2d(3, 2, [1, 2, 3, 4])
+        b.set0d('pace', [0, 1, 0, 0])
+        b.set2d(
+            'voltage',
+            [[[2, 1, 0],
+              [1, 0, 0]],
+             [[1, 2, 1],
+              [2, 1, 0]],
+             [[0, 1, 2],
+              [1, 2, 1]],
+             [[0, 0, 1],
+              [0, 1, 2]]]
+        )
+
+        # Convert and inspect
+        d = b.to_log()
+        self.assertIn('time', d)
+        self.assertIn('pace', d)
+        self.assertIn('0.0.voltage', d)
+        self.assertIn('1.0.voltage', d)
+        self.assertIn('2.0.voltage', d)
+        self.assertIn('0.1.voltage', d)
+        self.assertIn('1.1.voltage', d)
+        self.assertIn('2.1.voltage', d)
+        self.assertEqual(len(d), 8)
+        self.assertEqual(list(d.time()), [1, 2, 3, 4])
+        self.assertEqual(list(d['pace']), [0, 1, 0, 0])
+        self.assertEqual(list(d['0.0.voltage']), [2, 1, 0, 0])
+        self.assertEqual(list(d['1.0.voltage']), [1, 2, 1, 0])
+        self.assertEqual(list(d['2.0.voltage']), [0, 1, 2, 1])
+        self.assertEqual(list(d['0.1.voltage']), [1, 2, 1, 0])
+        self.assertEqual(list(d['1.1.voltage']), [0, 1, 2, 1])
+        self.assertEqual(list(d['2.1.voltage']), [0, 0, 1, 2])
+
     def test_trace(self):
+        # Tests the trace() method
+
         w = 2
         h = 3
         time = [1, 2, 3]
@@ -1293,9 +1350,8 @@ class ColorMapTest(unittest.TestCase):
         self.assertIn('red', names)
 
     def test_image(self):
-        """
-        Test the image() method, that returns a colormap representation
-        """
+        # Test the image() method, that returns a colormap representation
+
         # Red colormap
         m = np.array([  # Like colors, but strided together (ARGB32)
             0, 0, 255, 255,
