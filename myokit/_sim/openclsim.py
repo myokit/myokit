@@ -100,8 +100,9 @@ class SimulationOpenCL(myokit.CModule):
     To set up a 1d simulation, the argument ``ncells`` should be given as a
     tuple. In this case, any cell ``i`` will be assumed to be connected to
     cells ``i - 1`` and ``i + 1`` (except at the boundaries).
-    Similarly, if ``ncells`` is a 2-dimensional tuple a grid will be assumed so
-    that each (non-boundary) cell is connected to four neighbours.
+    Similarly, if ``ncells`` is a 2-dimensional tuple ``(nx, ny)`` a grid will
+    be assumed so that each (non-boundary) cell is connected to four
+    neighbours.
     Finally, arbitrary geometries can be used by passing a scalar to ``ncells``
     and specifying the connections with :meth:`set_connections`.
 
@@ -1502,7 +1503,7 @@ class SimulationOpenCL(myokit.CModule):
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index a
         single cell's state is returned. For example ``state(4)`` can be
-        used with a 1d simulation, while ``state(4,2)`` is a valid index in
+        used with a 1d simulation, while ``state(4, 2)`` is a valid index in
         the 2d case.
         """
         if x is None:
