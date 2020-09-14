@@ -15,6 +15,7 @@ This page lists the main changes made to Myokit in each release.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) If errors occur, the `SimulationOpenCL` now displays improved (and hopefully more informative) output.
 ### Deprecated
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
+- [#631](https://github.com/MichaelClerx/myokit/pull/631) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favour of new `from_log` methods.
 ### Removed
 ### Fixed
 - [#628](https://github.com/MichaelClerx/myokit/pull/628) The DataBlockViewer now shows a colour bar for 1d simulations.

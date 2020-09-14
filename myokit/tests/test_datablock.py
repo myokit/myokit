@@ -29,15 +29,14 @@ class DataBlock1dTest(unittest.TestCase):
     Tests the DataBlock1d
     """
     def test_combined(self):
-        """
-        Runs a combined test of:
+        # Runs a combined test of:
+        #
+        # - DataLog to Block conversion
+        # - Access to fields in block
+        # - Saving block to binary file
+        # - Loading block from binary file
+        #
 
-         - DataLog to Block conversion
-         - Access to fields in block
-         - Saving block to binary file
-         - Loading block from binary file
-
-        """
         # Create simulation log with 1d data
         log = myokit.DataLog()
         log.set_time_key('time')
@@ -107,9 +106,8 @@ class DataBlock1dTest(unittest.TestCase):
             self.assertFalse(yb is yc)
 
     def test_bad_constructor(self):
-        """
-        Test bad arguments to a DataBlock1d raise ValueErrors.
-        """
+        # Test bad arguments to a DataBlock1d raise ValueErrors.
+
         # Test valid constructor
         w = 2
         time = [1, 2, 3]
@@ -125,9 +123,8 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertRaises(ValueError, myokit.DataBlock1d, w, [3, 2, 1])
 
     def test_block2d(self):
-        """
-        Test conversion to 2d.
-        """
+        # Test conversion to 2d.
+
         w = 2
         time = [1, 2, 3]
         pace = [0, 0, 2]
@@ -141,9 +138,8 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertTrue(np.all(b2.get2d('x') == x.reshape((3, 1, 2))))
 
     def test_cv(self):
-        """
-        Test the CV method.
-        """
+        # Test the CV method.
+
         b = os.path.join(DIR_DATA, 'cv1d.zip')
         b = myokit.DataBlock1d.load(b)
         self.assertAlmostEqual(b.cv('membrane.V'), 5.95272837350686004e+01)
@@ -166,7 +162,7 @@ class DataBlock1dTest(unittest.TestCase):
         d['x', 2] = down
         d['x', 3] = down
         d['x', 4] = down
-        b = myokit.DataBlock1d.from_DataLog(d)
+        b = myokit.DataBlock1d.from_log(d)
         self.assertEqual(b.cv('x'), 0)
 
         # No propagation: Single-cell stimulus
@@ -179,7 +175,7 @@ class DataBlock1dTest(unittest.TestCase):
         d['x', 3] = np.array(down, copy=True)
         d['x', 4] = np.array(down, copy=True)
         d['x', 1][10:] = 40
-        b = myokit.DataBlock1d.from_DataLog(d)
+        b = myokit.DataBlock1d.from_log(d)
         self.assertEqual(b.cv('x'), 0)
 
         # No propagation: Multi-cell stimulus
@@ -194,37 +190,41 @@ class DataBlock1dTest(unittest.TestCase):
         d['x', 1][10:] = 40
         d['x', 2][10:] = 40
         d['x', 3][10:] = 40
-        b = myokit.DataBlock1d.from_DataLog(d)
+        b = myokit.DataBlock1d.from_log(d)
         self.assertEqual(b.cv('x'), 0)
 
-    def test_from_data_log(self):
-        """
-        Test some edge cases of `DataBlock1d.from_DataLog`.
-        """
+    def test_from_log(self):
+        # Test some edge cases of `DataBlock1d.from_log`.
+
         # Test valid construction
         d = myokit.DataLog()
         d.set_time_key('time')
         d['time'] = [1, 2, 3]
         d['x', 0] = [0, 0, 0]
         d['x', 1] = [1, 1, 2]
-        myokit.DataBlock1d.from_DataLog(d)
+        myokit.DataBlock1d.from_log(d)
+
+        # Deprecated alias
+        with WarningCollector() as wc:
+            myokit.DataBlock1d.from_DataLog(d)
+        self.assertIn('deprecated', wc.text())
 
         # No time key
         d = myokit.DataLog()
         d['time'] = [1, 2, 3]
         d['x', 0] = [0, 0, 0]
         d['x', 1] = [1, 1, 2]
-        self.assertRaises(ValueError, myokit.DataBlock1d.from_DataLog, d)
+        self.assertRaises(ValueError, myokit.DataBlock1d.from_log, d)
 
         # Multi-dimensional time key
         d.set_time_key('0.x')
-        self.assertRaises(ValueError, myokit.DataBlock1d.from_DataLog, d)
+        self.assertRaises(ValueError, myokit.DataBlock1d.from_log, d)
 
         # 2-dimensional stuff
         d.set_time_key('time')
-        myokit.DataBlock1d.from_DataLog(d)
+        myokit.DataBlock1d.from_log(d)
         d['y', 0, 0] = [10, 10, 10]
-        self.assertRaises(ValueError, myokit.DataBlock1d.from_DataLog, d)
+        self.assertRaises(ValueError, myokit.DataBlock1d.from_log, d)
 
         # Mismatched dimensions
         d = myokit.DataLog()
@@ -235,12 +235,11 @@ class DataBlock1dTest(unittest.TestCase):
         d['y', 0] = [2, 0, 0]
         d['y', 1] = [3, 1, 2]
         d['y', 2] = [0, 4, 5]
-        self.assertRaises(ValueError, myokit.DataBlock1d.from_DataLog, d)
+        self.assertRaises(ValueError, myokit.DataBlock1d.from_log, d)
 
     def test_grids(self):
-        """
-        Test conversion of the DataBlock1d to a 2d grid.
-        """
+        # Test conversion of the DataBlock1d to a 2d grid.
+
         # Create simulation log with 1d data
         log = myokit.DataLog()
         log.set_time_key('time')
@@ -339,9 +338,8 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertTrue(np.all(z == zz))
 
     def test_load_bad_file(self):
-        """
-        Test loading errors.
-        """
+        # Test loading errors.
+
         # Not enough files
         path = os.path.join(DIR_IO, 'bad1d-1-not-enough-files.zip')
         self.assertRaisesRegex(
@@ -417,9 +415,8 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertIsNone(b)
 
     def test_set0d(self):
-        """
-        Test set0d().
-        """
+        # Test set0d().
+
         w = 2
         time = [1, 2, 3]
         b1 = myokit.DataBlock1d(w, time)
@@ -443,9 +440,8 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertRaises(ValueError, b1.set0d, 'pace', np.array([1, 2, 3, 4]))
 
     def test_set1d(self):
-        """
-        Test set1d().
-        """
+        # Test set1d().
+
         w = 2
         time = [1, 2, 3]
         b1 = myokit.DataBlock1d(w, time)
@@ -469,9 +465,8 @@ class DataBlock1dTest(unittest.TestCase):
         self.assertRaises(ValueError, b1.set1d, 'x', x)
 
     def test_keys(self):
-        """
-        Test the keys0d() and keys1d() methods.
-        """
+        # Test the keys0d() and keys1d() methods.
+
         w = 2
         time = [1, 2, 3]
         b1 = myokit.DataBlock1d(w, time)
@@ -511,9 +506,8 @@ class DataBlock2dTest(unittest.TestCase):
     """
 
     def test_bad_constructor(self):
-        """
-        Test bad arguments to a DataBlock2d raise ValueErrors.
-        """
+        # Test bad arguments to a DataBlock2d raise ValueErrors.
+
         # Test valid constructor
         w = 2
         h = 3
@@ -531,9 +525,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertRaises(ValueError, myokit.DataBlock2d, w, h, [3, 2, 1])
 
     def test_colors(self):
-        """
-        Test conversion to colors using different color maps.
-        """
+        # Test conversion to colors using different color maps.
+
         w, h = 2, 3
         time = [1, 2, 3]
         b = myokit.DataBlock2d(w, h, time)
@@ -663,9 +656,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertTrue(np.all(c[2] == t2))
 
     def test_combined(self):
-        """
-        Test loading, saving, conversion from data log.
-        """
+        # Test loading, saving, conversion from data log.
+
         # Create simulation log with 1d data
         log = myokit.DataLog()
         log.set_time_key('time')
@@ -740,9 +732,8 @@ class DataBlock2dTest(unittest.TestCase):
             self.assertFalse(yb is yc)
 
     def test_combine(self):
-        """
-        Test the combine() method.
-        """
+        # Test the combine() method.
+
         # Create first data block
         w1, h1 = 2, 3
         t1 = [1, 2, 3]
@@ -857,9 +848,8 @@ class DataBlock2dTest(unittest.TestCase):
             pos2=(1, 1))
 
     def test_from_data_log(self):
-        """
-        Test some edge cases of `DataBlock1d.from_DataLog`.
-        """
+        # Test some edge cases of `DataBlock2d.from_log`.
+
         # Test valid construction
         d = myokit.DataLog()
         d.set_time_key('time')
@@ -870,25 +860,30 @@ class DataBlock2dTest(unittest.TestCase):
         d['x', 1, 1] = [3, 4, 5]
         d['x', 0, 2] = [6, 6, 6]
         d['x', 1, 2] = [7, 7, 2]
-        myokit.DataBlock2d.from_DataLog(d)
+        myokit.DataBlock2d.from_log(d)
+
+        # Deprecated alias
+        with WarningCollector() as wc:
+            myokit.DataBlock2d.from_DataLog(d)
+        self.assertIn('deprecated', wc.text())
 
         # No time key
         d.set_time_key(None)
-        self.assertRaises(ValueError, myokit.DataBlock2d.from_DataLog, d)
+        self.assertRaises(ValueError, myokit.DataBlock2d.from_log, d)
 
         # Bad time key
         d.set_time_key('z')
 
         # Multi-dimensional time key
         d.set_time_key('0.0.x')
-        self.assertRaises(ValueError, myokit.DataBlock2d.from_DataLog, d)
+        self.assertRaises(ValueError, myokit.DataBlock2d.from_log, d)
 
         # 1-dimensional stuff
         d.set_time_key('time')
-        myokit.DataBlock2d.from_DataLog(d)
+        myokit.DataBlock2d.from_log(d)
         d['y', 0] = [10, 10, 10]
         d['y', 1] = [20, 20, 20]
-        self.assertRaises(ValueError, myokit.DataBlock2d.from_DataLog, d)
+        self.assertRaises(ValueError, myokit.DataBlock2d.from_log, d)
 
         # Mismatched dimensions
         d = myokit.DataLog()
@@ -906,15 +901,14 @@ class DataBlock2dTest(unittest.TestCase):
         d['y', 1, 1] = [3, 4, 5]
         d['y', 0, 2] = [6, 6, 6]
         d['y', 1, 2] = [7, 7, 2]
-        myokit.DataBlock2d.from_DataLog(d)
+        myokit.DataBlock2d.from_log(d)
         del(d['0.2.y'])
         del(d['1.2.y'])
-        self.assertRaises(ValueError, myokit.DataBlock2d.from_DataLog, d)
+        self.assertRaises(ValueError, myokit.DataBlock2d.from_log, d)
 
     def test_images(self):
-        """
-        Test the images() method.
-        """
+        # Test the images() method.
+
         w, h = 2, 2
         time = [1, 2]
         b = myokit.DataBlock2d(w, h, time)
@@ -941,9 +935,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertTrue(np.all(c[1] == t1))
 
     def test_is_square(self):
-        """
-        Test the is_square method.
-        """
+        # Test the is_square method.
+
         b = myokit.DataBlock2d(1, 1, [1, 2, 3])
         self.assertTrue(b.is_square())
         b = myokit.DataBlock2d(1, 2, [1, 2, 3])
@@ -952,9 +945,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertTrue(b.is_square())
 
     def test_keys_and_items(self):
-        """
-        Test the keys0d and keys2d methods, plus the items methods.
-        """
+        # Test the keys0d and keys2d methods, plus the items methods.
+
         w = 2
         h = 3
         time = [1, 2, 3]
@@ -990,9 +982,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertEqual(len(dict(b.items2d())), 2)
 
     def test_dominant_eigenvalues(self):
-        """
-        Test the dominant_eigenvalues method.
-        """
+        # Test the dominant_eigenvalues method.
+
         # Won't work on non-square matrix
         b = myokit.DataBlock2d(1, 2, [1])
         self.assertRaises(Exception, b.dominant_eigenvalues, 'x')
@@ -1015,9 +1006,8 @@ class DataBlock2dTest(unittest.TestCase):
             b.dominant_eigenvalues('x')[0], 2 + 0j)
 
     def test_eigenvalues(self):
-        """
-        Test the eigenvalues method.
-        """
+        # Test the eigenvalues method.
+
         # Won't work on non-square matrix
         b = myokit.DataBlock2d(1, 2, [1])
         self.assertRaises(Exception, b.eigenvalues, 'x')
@@ -1038,6 +1028,8 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertAlmostEqual(e[2], 1)
 
     def test_largest_eigenvalues(self):
+        # Test the largest_eigenvalues method.
+
         # Won't work on non-square matrix
         b = myokit.DataBlock2d(1, 2, [1])
         self.assertRaises(Exception, b.largest_eigenvalues, 'x')
