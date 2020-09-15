@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL` now includes a method `is_paced` and `neighbours` that provide information about the simulated cells.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.find_nan` now has an option to return a `DataLog` with the final logged variables before the error occurred.
 - [#632](https://github.com/MichaelClerx/myokit/pull/632) Added methods `DataBlock1d.to_log` and `DataBlock2d.to_log`.
+- [#633](https://github.com/MichaelClerx/myokit/pull/633) DataBlockViewer now shows coordinates and data values in status bar for video and graph view.
 ### Changed
 - [#610](https://github.com/MichaelClerx/myokit/pull/610) If numerical errors occur when evaluating an expression, the IDE now shows these in the console instead of in a pop-up.
 - [#622](https://github.com/MichaelClerx/myokit/pull/622) `myokit.strfloat` now takes a `precision` argument.

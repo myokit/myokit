@@ -121,9 +121,9 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
             pass    # Qt4 uses precise timer by default
         # Video widget
         self._video_scene = VideoScene()
-        self._video_scene.mouse_moved.connect(self.event_mouse_move)
-        self._video_scene.single_click.connect(self.event_single_click)
-        self._video_scene.double_click.connect(self.event_double_click)
+        self._video_scene.mouse_moved.connect(self.event_video_mouse_move)
+        self._video_scene.single_click.connect(self.event_video_single_click)
+        self._video_scene.double_click.connect(self.event_video_double_click)
         self._video_view = VideoView(self._video_scene)
         self._video_view.setMouseTracking(True)
         self._video_view.setCursor(Qt.CrossCursor)
@@ -207,7 +207,9 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         self._control_layout.addWidget(self._colormap_select)
         # Graph area
         self._graph_area = GraphArea()
-        self._graph_area.mouse_moved.connect(self.event_mouse_move)
+        self._graph_area.mouse_moved.connect(self.event_graph_mouse_move)
+        self._graph_area.setMouseTracking(True)
+        self._graph_area.setCursor(Qt.CrossCursor)
         # Video and colorbar layout
         self._video_plus_layout = QtWidgets.QHBoxLayout()
         self._video_plus_layout.addWidget(self._video_view)
@@ -269,14 +271,14 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         if self._timer_paused:
             self._timer_paused = False
-            if self._data:
+            if self._data is not None:
                 self._timer.start()
 
     def action_extract_colormap_image(self):
         """
         Extracts the current colormap to an image file.
         """
-        if not self._data:
+        if self._data is None:
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>No data to export.</h1>'
@@ -316,7 +318,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         Extracts the current frame to a csv file.
         """
-        if not self._data:
+        if self._data is None:
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>No data to export.</h1>'
@@ -336,7 +338,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         Extracts the current frame to an image file.
         """
-        if not self._data:
+        if self._data is None:
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>No data to export.</h1>'
@@ -365,7 +367,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         Extracts the currently displayed graphs to a csv file.
         """
-        if not self._data:
+        if self._data is None:
             QtWidgets.QMessageBox.warning(
                 self, TITLE,
                 '<h1>No data to export.</h1>'
@@ -457,7 +459,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         # Update colormap controls
         self._colormap_select.setCurrentIndex(self._colormap_select.findText(
             self._colormap))
-        if self._data:
+        if self._data is not None:
             # Update colorbar
             nx = self._colorbar_width
             ny = self._colorbar_height
@@ -471,9 +473,9 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         Loads the variable specified by the name ``var`` into the main display.
         """
-        self._variable = str(var)
-        if not self._data:
+        if self._data is None:
             return
+        self._variable = str(var)
         self._variable_select.setCurrentIndex(self._variable_select.findText(
             self._variable))
         self.action_pause_timer()
@@ -513,7 +515,7 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         Starts the timer.
         """
         self._timer_paused = False
-        if self._data:
+        if self._data is not None:
             self._timer.start()
             self._play_button.setIcon(self._play_icon_pause)
 
@@ -617,26 +619,14 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         """
         self.action_set_colormap(str(self._colormap_select.currentText()))
 
-    def event_single_click(self, x, y):
+    def event_graph_mouse_move(self, x, y):
         """
-        Add a graph at the location of the click
+        Graph cursur moved: Display the current cursor position on the graph
+        scene in the status bar.
         """
-        self._graph_area.graph(self._variable, x, y)
-
-    def event_double_click(self, x, y):
-        """
-        Add a frozen graph at the location of the click
-        """
-        self._graph_area.graph(self._variable, x, y)
-        self._graph_area.freeze()
-
-    def event_mouse_move(self, x, y):
-        """
-        Display the current cursor position on the video scene.
-        """
-        F = '{:< 1.3g}'
-        self._label_cursor.setText(
-            '(' + F.format(x) + ', ' + F.format(y) + ')')
+        F = '{:< 1.6g}'
+        x, y = F.format(x), F.format(y)
+        self._label_cursor.setText('(' + x + ', ' + y + ')')
 
     def event_rate_changed(self, e=None):
         """
@@ -650,8 +640,38 @@ class DataBlockViewer(myokit.gui.MyokitApplication):
         Variable is selected by user.
         """
         self._variable = self._variable_select.currentText()
-        if self._data:
+        if self._data is not None:
             self.action_set_variable(self._variable)
+
+    def event_video_single_click(self, x, y):
+        """
+        Video clicked: Add a graph at the location of the click
+        """
+        self._graph_area.graph(self._variable, x, y)
+
+    def event_video_double_click(self, x, y):
+        """
+        Video double clicked: Add a frozen graph at the location of the click
+        """
+        self._graph_area.graph(self._variable, x, y)
+        self._graph_area.freeze()
+
+    def event_video_mouse_move(self, x, y):
+        """
+        Video cursur moved: Display the current cursor position on the video
+        scene in the status bar.
+        """
+        # Cursor position is in scene coordinates, so already matches datablock
+        # dimensions!
+        if self._data is not None:
+            F = '{:< 1.6g}'
+            try:
+                z = self._data.get2d(self._variable)[self._video_iframe, y, x]
+                z = F.format(z)
+            except IndexError:
+                z = '?'
+            x, y = F.format(x), F.format(y)
+            self._label_cursor.setText('(' + x + ', ' + y + ', ' + z + ')')
 
     def keyPressEvent(self, e):
         """
@@ -1072,13 +1092,28 @@ class GraphArea(QtWidgets.QWidget):
 
     def __init__(self):
         super(GraphArea, self).__init__()
+        # DataBlock 2d, and its time vector
         self._data = None
         self._time = None
+
+        # Index (x, y, variable) of temporary graph (if any)
         self._temp_index = None
         self._temp_path = None
+
+        # Map from indices to paths for all frozen graphs
         self._frozen = collections.OrderedDict()
+
+        # Last variable used in temp or frozen graph: used to scale mouse y
+        # coordinate
+        self._last_variable = None
+
+        # Scaling per variable
         self._scaling = {}
+
+        # Current position in time
         self._position = 0
+
+        # Colours for drawing
         self._color_temp = Qt.black
         self._color_cycle = [
             Qt.red,
@@ -1094,6 +1129,9 @@ class GraphArea(QtWidgets.QWidget):
             Qt.darkMagenta,
             Qt.darkYellow,
         ]
+
+        # Scaling factors from pixels to normalised (0, 1) coordinates. Updated
+        # after every resize.
         self._sw = 1.0
         self._sh = 1.0
 
@@ -1104,6 +1142,7 @@ class GraphArea(QtWidgets.QWidget):
         self._frozen = collections.OrderedDict()
         self._scaling = {}
         self._temp_path = self._temp_index = None
+        self._last_variable = None
         self.update()
 
     def freeze(self):
@@ -1121,8 +1160,9 @@ class GraphArea(QtWidgets.QWidget):
         """
         if self._data is None:
             return
+
         # Create index, check for duplicates
-        variable = str(variable)
+        variable = self._last_variable = str(variable)
         x, y = int(x), int(y)
         index = (x, y, variable)
         if index == self._temp_index:
@@ -1131,6 +1171,7 @@ class GraphArea(QtWidgets.QWidget):
             self._temp_index = self._temp_path = None
             self.update()
             return
+
         # Get scaling info
         try:
             ymin, ymax = self._scaling[variable]
@@ -1145,6 +1186,7 @@ class GraphArea(QtWidgets.QWidget):
                 ymin -= 1
                 ymax += 1
             self._scaling[variable] = (ymin, ymax)
+
         # Create path, using real time and scaled y data
         xx = iter(self._tpad)
         yy = (self._data.trace(variable, x, y) - ymin) / (ymax - ymin)
@@ -1157,6 +1199,7 @@ class GraphArea(QtWidgets.QWidget):
             path.lineTo(x, y)
         self._temp_index = index
         self._temp_path = path
+
         # Update!
         self.update()
 
@@ -1166,7 +1209,7 @@ class GraphArea(QtWidgets.QWidget):
         graph area.
         """
         d = myokit.DataLog()
-        if self._data:
+        if self._data is not None:
             d['engine.time'] = self._data.time()
             for index in self._frozen.keys():
                 x, y, variable = index
@@ -1184,11 +1227,26 @@ class GraphArea(QtWidgets.QWidget):
 
     def mouseMoveEvent(self, event):
         """
-        Show mouse position in status bar
+        Trigger mouse moved event with graph coordinates.
         """
+        if self._last_variable is None:
+            return
+
+        # Get normalised x, y coordinates ([0, 1])
         p = event.pos()
-        x, y = float(p.x()), float(p.y())
-        self.mouse_moved.emit(x * self._sw, y * self._sh)
+        x  = float(p.x()) * self._sw
+        y = 1 - float(p.y()) * self._sh
+
+        # Scale x-axis according to time
+        xmin, xmax = self._time[0], self._time[-1]
+        x = xmin + x * (xmax - xmin)
+
+        # Scale y-axis according to last shown variable
+        ymin, ymax = self._scaling[self._last_variable]
+        y = ymin + y * (ymax - ymin)
+
+        # Emit event
+        self.mouse_moved.emit(x, y)
 
     def paintEvent(self, event):
         """
@@ -1196,17 +1254,22 @@ class GraphArea(QtWidgets.QWidget):
         """
         if self._data is None:
             return
+
         # Create painter
         painter = QtGui.QPainter()
         painter.begin(self)
+
         # Fill background
         painter.fillRect(self.rect(), QtGui.QBrush(Qt.white))
+
         # Create coordinate system for graphs
         painter.scale(self.width() / self._tmax, self.height())
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
         # Create pen
         pen = QtGui.QPen()
         pen.setWidth(0)
+
         # Draw frozen graphs
         colors = iter(self._color_cycle)
         for path in self._frozen.values():
@@ -1217,15 +1280,18 @@ class GraphArea(QtWidgets.QWidget):
                 pen.setColor(next(colors))
             painter.setPen(pen)
             painter.drawPath(path)
+
         # Draw temp graph
         if self._temp_path:
             pen.setColor(self._color_temp)
             painter.setPen(pen)
             painter.drawPath(self._temp_path)
+
         # Show time indicator
         pen.setColor(Qt.red)
         painter.setPen(pen)
         painter.drawLine(self._position, 0, self._position, 1)
+
         # Finish
         painter.end()
 
@@ -1254,7 +1320,7 @@ class GraphArea(QtWidgets.QWidget):
         """
         Sets the position of the time indicator.
         """
-        if self._data:
+        if self._data is not None:
             self._position = self._tpad[int(pos)]
             self.update()
 
