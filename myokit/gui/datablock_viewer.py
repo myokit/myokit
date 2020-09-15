@@ -1234,7 +1234,7 @@ class GraphArea(QtWidgets.QWidget):
 
         # Get normalised x, y coordinates ([0, 1])
         p = event.pos()
-        x  = float(p.x()) * self._sw
+        x = float(p.x()) * self._sw
         y = 1 - float(p.y()) * self._sh
 
         # Scale x-axis according to time
