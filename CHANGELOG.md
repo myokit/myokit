@@ -26,33 +26,33 @@ This page lists the main changes made to Myokit in each release.
   - [#628](https://github.com/MichaelClerx/myokit/pull/628) The DataBlockViewer now shows a working colour bar for 1d simulations.
 
 ## [1.31.0] - 2020-08-26
-- A completely rewritten SBML API and parser, by @DavAug, that's capable of handling models that define species and reactions.
-- `Ohm` is now a quantifiable unit in the `mmt` syntax, i.e. `1 [MOhm]`. 
-  This replaces the non-standard `R` unit which has been removed.
-- Unit tests are now included in the PyPI package.
-- A recently introduced bug in the `HHSimulation`'s `steady_state()` method was fixed.
-- Sympy is no longer a required dependency (but still an optional one).
-- Models, protocols, and CVODE simulations can now be pickled, and tests have been added that check that simulations can be run in parallel (even on Windows). 
-  To further aid in this, simulations now include a time and process number dependent hash in their generated-module names.
-- Non-integer exponents are now allowed in the unit system, which compares units with a `close()` method that expects a certain numerical tolerance, instead of using exact comparison.
-- The `myokit.mxml` module has been removed.
-- The cumulative-current plot now has a maximum-number-of-currents option (all further currents will be bundled into one).
-- Model and protocol now support comparison with `==`.
-- Imports and exports now raise warnings instead of using the Myokit textlogger for this.
-- The CellML export now ensures there are no spaces in initial value or unit multiplier attributes.
+- [#536](https://github.com/MichaelClerx/myokit/issues/536) `Ohm` is now a quantifiable unit in the `mmt` syntax, i.e. `1 [MOhm]`. This replaces the non-standard `R` unit which has been removed.
+- [#539](https://github.com/MichaelClerx/myokit/pull/539) Bugfix for simulations that ended at a time numerically indistinguishable from an event time.
+- [#548](https://github.com/MichaelClerx/myokit/pull/548) Models, protocols, and CVODE simulations can now be pickled, and tests have been added that check that simulations can be run in parallel (even on Windows). 
+- [#548](https://github.com/MichaelClerx/myokit/pull/548) Model and protocol now support comparison with `==`.
+- [#553](https://github.com/MichaelClerx/myokit/pull/553) The cumulative-current plot now has a maximum-number-of-currents option (all further currents will be bundled into one).
+- [#556](https://github.com/MichaelClerx/myokit/pull/556) CellML imports now import models that contain unsupported units (but with warnings).
+- [#557](https://github.com/MichaelClerx/myokit/pull/557) Imports and exports now raise warnings instead of using the Myokit textlogger for this.
+- [#559](https://github.com/MichaelClerx/myokit/pull/559), [#541](https://github.com/MichaelClerx/myokit/pull/541) Unit tests are now included in the PyPI package.
+- [#560](https://github.com/MichaelClerx/myokit/pull/560) Sympy is no longer a required dependency (but still an optional one).
+- [#563](https://github.com/MichaelClerx/myokit/pull/563), [#564](https://github.com/MichaelClerx/myokit/pull/564) The `myokit.mxml` module has been removed.
+- [#565](https://github.com/MichaelClerx/myokit/pull/565) Some slight changes to simulation building: Now uses `--inplace` instead of `--old-and-unmanageable` and should delete any temporary files created in the process.
+- [#566](https://github.com/MichaelClerx/myokit/pull/566) Simulations now include a time and process number dependent hash in their generated-module names.
+- [#567](https://github.com/MichaelClerx/myokit/pull/567) Added support for Simulation building on Python 3.8 on Windows.
+- [#569](https://github.com/MichaelClerx/myokit/pull/569) The CellML export now ensures there are no spaces in initial value or unit multiplier attributes.
+- [#570](https://github.com/MichaelClerx/myokit/pull/570) Bugfixes and fewer warnings for various matplotlib versions.
+- [#572](https://github.com/MichaelClerx/myokit/pull/572) Bugfix to `lib.common.StrenghtDuration`.
+- [#574](https://github.com/MichaelClerx/myokit/pull/574)[#599], (https://github.com/MichaelClerx/myokit/pull/599),[#547](https://github.com/MichaelClerx/myokit/pull/547), [#528](https://github.com/MichaelClerx/myokit/pull/528) A completely rewritten SBML API and parser, by @DavAug, that's capable of handling models that define species and reactions.
+- [#576](https://github.com/MichaelClerx/myokit/pull/576) Non-integer exponents are now allowed in the unit system, which compares units with a `close()` method that expects a certain numerical tolerance, instead of using exact comparison.
+- [#576](https://github.com/MichaelClerx/myokit/pull/576) CellML imports now import models with non-integer unit exponents.
+- [#585](https://github.com/MichaelClerx/myokit/pull/585) A recently introduced bug in the `HHSimulation`'s `steady_state()` method was fixed.
+- [#597](https://github.com/MichaelClerx/myokit/pull/597) The output of the `step()` method has been improved, and the method now only warns about relative differences bigger than 1 epsilon.
+- [commit](https://github.com/MichaelClerx/myokit/commit/fc08debb03bd0f2e2d93a52fc0dc9e907448d057) The method `show_evalution_of` now has consistently ordered output.
 - CellML imports treat new base units as dimensionless.
-- CellML imports now import models that contain unsupported units (but with warnings).
-- CellML imports now import models with non-integer unit exponents.
-- The method `show_evalution_of` now has consistently ordered output.
-- The output of the `step()` method has been improved, and the method now only warns about relative differences bigger than 1 epsilon.
-- Some slight changes to simulation building: Now uses `--inplace` instead of `--old-and-unmanageable` and should delete any temporary files created in the process.
 - The IDE now checks the protocol even if the model is invalid or unchanged.
-- Bugfix for simulations that ended at a time numerically indistinguishable from an event time.
-- Bugfixes and fewer warnings for various matplotlib versions.
-- Bugfix to `lib.common.StrenghtDuration`.
 
 ## [1.30.6] - 2020-04-29
-- Fixed bug where GUI CellML export didn't export stimulus current.
+- [#531](https://github.com/MichaelClerx/myokit/pull/531) Fixed bug where GUI CellML export didn't export stimulus current.
 
 ## [1.30.5] - 2020-04-20
 - Added support for CellML 2.0.
