@@ -1110,8 +1110,14 @@ class GraphArea(QtWidgets.QWidget):
         # Scaling per variable
         self._scaling = {}
 
+        # Time scaled to fit
+        self._time_scaled = None
+        self._tmin = 0
+        self._tmax = 1
+        self._trange = self._tmax - self._tmin
+
         # Current position in time
-        self._position = 0
+        self._position = self._tmin
 
         # Colours for drawing
         self._color_temp = Qt.black
@@ -1188,7 +1194,7 @@ class GraphArea(QtWidgets.QWidget):
             self._scaling[variable] = (ymin, ymax)
 
         # Create path, using real time and scaled y data
-        xx = iter(self._tpad)
+        xx = iter(self._time_scaled)
         yy = (self._data.trace(variable, x, y) - ymin) / (ymax - ymin)
         yy = iter(1 - yy)
         path = QtGui.QPainterPath()
@@ -1238,8 +1244,7 @@ class GraphArea(QtWidgets.QWidget):
         y = 1 - float(p.y()) * self._sh
 
         # Scale x-axis according to time
-        xmin, xmax = self._time[0], self._time[-1]
-        x = xmin + x * (xmax - xmin)
+        x = self._tmin + x * self._trange
 
         # Scale y-axis according to last shown variable
         ymin, ymax = self._scaling[self._last_variable]
@@ -1263,7 +1268,7 @@ class GraphArea(QtWidgets.QWidget):
         painter.fillRect(self.rect(), QtGui.QBrush(Qt.white))
 
         # Create coordinate system for graphs
-        painter.scale(self.width() / self._tmax, self.height())
+        painter.scale(self.width(), self.height())
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
         # Create pen
@@ -1290,7 +1295,8 @@ class GraphArea(QtWidgets.QWidget):
         # Show time indicator
         pen.setColor(Qt.red)
         painter.setPen(pen)
-        painter.drawLine(self._position, 0, self._position, 1)
+        t = (self._position - self._tmin) / self._trange
+        painter.drawLine(QtCore.QLineF(t, 0, t, 1))
 
         # Finish
         painter.end()
@@ -1311,17 +1317,24 @@ class GraphArea(QtWidgets.QWidget):
         self.clear()
         self._data = data
         self._time = data.time()
-        tmin, tmax = self._time[0], self._time[-1]
-        tpad = 0.01 * (tmax - tmin)
-        self._tpad = self._time + tpad
-        self._tmax = self._time[-1] + 2 * tpad
+
+        self._tmin = self._time[0]
+        self._tmax = self._time[-1]
+        self._trange = self._tmax - self._tmin
+        tpad = 0.01 * self._trange
+        self._tmin -= tpad
+        self._tmax += tpad
+        self._trange += 2 * tpad
+        self._time_scaled = (self._time - self._tmin) / self._trange
+
+        self._position = self._tmin
 
     def set_position(self, pos):
         """
         Sets the position of the time indicator.
         """
         if self._data is not None:
-            self._position = self._tpad[int(pos)]
+            self._position = self._time[int(pos)]
             self.update()
 
     def sizeHint(self):
