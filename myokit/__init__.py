@@ -91,10 +91,7 @@ import logging  # noqa
 log = logging.getLogger(__name__)
 log.info('Loading Myokit version ' + __version__)
 if not __release__:     # pragma: no cover
-    log.warning(
-        'Using development version of Myokit. This may contain untested'
-        ' features and bugs. Please see http://myokit.org for the latest'
-        ' stable release.')
+    log.warning('Using development version of Myokit (' + __version__ + ').')
 del(log, logging)
 
 
