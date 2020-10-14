@@ -20,6 +20,7 @@ This page lists the main changes made to Myokit in each release.
   - [#632](https://github.com/MichaelClerx/myokit/pull/632) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favour of new `from_log` methods.
 - Removed
 - Fixed
+  - [#650](https://github.com/MichaelClerx/myokit/pull/650) Fix to `myokit.lib.plots.cumulative_current` for normalisation in areas with zero current.
   - [#603](https://github.com/MichaelClerx/myokit/pull/603) Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.
   - [#613](https://github.com/MichaelClerx/myokit/pull/613) `Model.map_component_io` now respects the `omit_constants` argument for Rush-Larsen variables.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) If `Model.format_state_derivatives` needs to evaluate the derivatives, it will now use the given `state` instead of the model state.
