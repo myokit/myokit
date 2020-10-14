@@ -636,6 +636,14 @@ class DataBlock1d(object):
             if progress:
                 progress.exit()
 
+    def remove0d(self, name):
+        """Removes the 0d time-series identified by ``name``."""
+        del(self._0d[name])
+
+    def remove1d(self, name):
+        """Removes the 1d time-series identified by ``name``."""
+        del(self._1d[name])
+
     def save(self, filename):
         """
         Writes this ``DataBlock1d`` to a binary file.
@@ -1415,6 +1423,14 @@ class DataBlock2d(object):
 
             if progress:
                 progress.exit()
+
+    def remove0d(self, name):
+        """Removes the 0d time-series identified by ``name``."""
+        del(self._0d[name])
+
+    def remove2d(self, name):
+        """Removes the 2d time-series identified by ``name``."""
+        del(self._2d[name])
 
     def save(self, filename):
         """

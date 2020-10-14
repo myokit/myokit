@@ -9,6 +9,7 @@ This page lists the main changes made to Myokit in each release.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.find_nan` now has an option to return a `DataLog` with the final logged variables before the error occurred.
   - [#632](https://github.com/MichaelClerx/myokit/pull/632) Added methods `DataBlock1d.to_log` and `DataBlock2d.to_log`.
   - [#633](https://github.com/MichaelClerx/myokit/pull/633) DataBlockViewer now shows mouse coordinates in status bar for video and graph view.
+  - [#652](https://github.com/MichaelClerx/myokit/pull/652) Added methods to remove 1d and 2d traces from `DataBlock1d` and `DataBlock2d`.
 - Changed
   - [#610](https://github.com/MichaelClerx/myokit/pull/610) If numerical errors occur when evaluating an expression, the IDE now shows these in the console instead of in a pop-up.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `myokit.strfloat` now takes a `precision` argument.
@@ -21,6 +22,7 @@ This page lists the main changes made to Myokit in each release.
   - [#632](https://github.com/MichaelClerx/myokit/pull/632) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favour of new `from_log` methods.
 - Removed
 - Fixed
+  - [#650](https://github.com/MichaelClerx/myokit/pull/650) Fix to `myokit.lib.plots.cumulative_current` for normalisation in areas with zero current.
   - [#603](https://github.com/MichaelClerx/myokit/pull/603) Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.
   - [#613](https://github.com/MichaelClerx/myokit/pull/613) `Model.map_component_io` now respects the `omit_constants` argument for Rush-Larsen variables.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) If `Model.format_state_derivatives` needs to evaluate the derivatives, it will now use the given `state` instead of the model state.
