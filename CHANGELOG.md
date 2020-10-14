@@ -15,6 +15,7 @@ This page lists the main changes made to Myokit in each release.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `Model.format_state` and `Model.format_state_derivatives` now take a `precision` argument.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) If errors occur, the `SimulationOpenCL` now displays improved (and hopefully more informative) output.
   - [#623](https://github.com/MichaelClerx/myokit/pull/623) Updated licensing info.
+  - [#653](https://github.com/MichaelClerx/myokit/pull/653) `Model.pyfunc()` now validates the model before running (and fails if the model does not validate).
 - Deprecated
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
   - [#632](https://github.com/MichaelClerx/myokit/pull/632) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favour of new `from_log` methods.

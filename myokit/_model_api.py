@@ -3963,6 +3963,12 @@ class Variable(VarOwner):
         :class:`myokit.LhsExpression` objects in the same order as the function
         arguments.
         """
+        # Expression writer uses unames, so must have called validate() since
+        # last changes
+        model = self.model()
+        if not model.is_valid():
+            model.validate()
+
         # Get expression writer
         if use_numpy:
             import numpy
@@ -3972,7 +3978,7 @@ class Variable(VarOwner):
             w = myokit.python_writer()
 
         # Get arguments, equations
-        eqs, args = self.model().expressions_for(self)
+        eqs, args = model.expressions_for(self)
 
         # Handle function arguments
         func = [w.ex(x) for x in args]
