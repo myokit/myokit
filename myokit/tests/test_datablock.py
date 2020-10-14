@@ -440,6 +440,31 @@ class DataBlock1dTest(unittest.TestCase):
         b = myokit.DataBlock1d.load(path, p)
         self.assertIsNone(b)
 
+    def test_remove0d(self):
+        # Test remove0d().
+
+        # Add new 0d field and remove again
+        b = myokit.DataBlock1d(2, [1, 2, 3])
+        self.assertEqual(b.len0d(), 0)
+        b.set0d('pace', np.array([0, 0, 2]))
+        self.assertEqual(b.len0d(), 1)
+        b.remove0d('pace')
+        self.assertEqual(b.len0d(), 0)
+
+        # Time can't be removed
+        self.assertRaises(KeyError, b.remove0d, 'time')
+
+    def test_remove1d(self):
+        # Test remove1d().
+
+        # Add new 0d field and remove again
+        b = myokit.DataBlock1d(2, [1, 2, 3])
+        self.assertEqual(b.len1d(), 0)
+        b.set1d('z', np.array([[0, 0], [2, 3], [2, 1]]))
+        self.assertEqual(b.len1d(), 1)
+        b.remove1d('z')
+        self.assertEqual(b.len1d(), 0)
+
     def test_set0d(self):
         # Test set0d().
 
@@ -1217,6 +1242,36 @@ class DataBlock2dTest(unittest.TestCase):
             self.assertEqual(lines[0], '0 1\n')
             self.assertEqual(lines[1], '2 3\n')
             self.assertEqual(lines[2], '4 5')
+
+    def test_remove0d(self):
+        # Test remove0d().
+
+        # Add new 0d field and remove again
+        b = myokit.DataBlock2d(2, 3, [1, 2, 3])
+        self.assertEqual(b.len0d(), 0)
+        b.set0d('pace', np.array([0, 0, 2]))
+        self.assertEqual(b.len0d(), 1)
+        b.remove0d('pace')
+        self.assertEqual(b.len0d(), 0)
+
+        # Time can't be removed
+        self.assertRaises(KeyError, b.remove0d, 'time')
+
+    def test_remove2d(self):
+        # Test remove2d().
+
+        # Add new 0d field and remove again
+        b = myokit.DataBlock2d(2, 3, [1, 2, 3])
+        x = np.array([
+            [[1, 2], [3, 4], [5, 6]],
+            [[3, 4], [5, 6], [7, 8]],
+            [[1, 1], [2, 2], [3, 3]]
+        ])
+        self.assertEqual(b.len2d(), 0)
+        b.set2d('x', np.array(x))
+        self.assertEqual(b.len2d(), 1)
+        b.remove2d('x')
+        self.assertEqual(b.len2d(), 0)
 
     def test_set0d(self):
         # Test set0d().
