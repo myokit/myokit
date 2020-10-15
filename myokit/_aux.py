@@ -1333,7 +1333,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     if not reference:
         # Default output: intial value and derivative
         for r, v in enumerate(model.states()):
-            log.append(f.format(v.qname(), v.state_value(), values[r]))
+            log.append(f.format(v.qname(), initial[r], values[r]))
     else:
         # Comparing output
 
@@ -1351,7 +1351,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
         for r, v in enumerate(model.states()):
             x = values[r]
             y = reference[r]
-            log.append(f.format(v.qname(), v.state_value(), x))
+            log.append(f.format(v.qname(), initial[r], x))
             xx = fmat.format(x)
             yy = fmat.format(y)
             line = g.format(y)

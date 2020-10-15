@@ -28,6 +28,7 @@ This page lists the main changes made to Myokit in each release.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) If `Model.format_state_derivatives` needs to evaluate the derivatives, it will now use the given `state` instead of the model state.
   - [#628](https://github.com/MichaelClerx/myokit/pull/628) The DataBlockViewer now shows a working colour bar for 1d simulations.
   - [#638](https://github.com/MichaelClerx/myokit/pull/638) The DataBlockViewer now handles blocks with `t[0] > 0` correctly.
+  - [#655](https://github.com/MichaelClerx/myokit/pull/655) Fixed bug where wrong initial state was shown by `myokit.step()`.
 
 ## [1.31.0] - 2020-08-26
 - [#536](https://github.com/MichaelClerx/myokit/issues/536) `Ohm` is now a quantifiable unit in the `mmt` syntax, i.e. `1 [MOhm]`. This replaces the non-standard `R` unit which has been removed.
