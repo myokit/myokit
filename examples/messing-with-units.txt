@@ -35,3 +35,14 @@ And show off quality of error messages:
 Encountered when evaluating
   1 + 2 + 3 ^ 3 [mV]
           ~~~~~~~~~~
+
+
+Basic unit conversion
+
+x = myokit.Quantity(5, myokit.units.m)
+print(x.convert(myokit.units.cm))
+
+Harder ones
+
+x = myokit.Quantity('1.23e-5 [nL]')
+print(x.convert(myokit.parse_unit('um^3')))
