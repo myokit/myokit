@@ -169,11 +169,11 @@ class MathMLParser(object):
     ``<tanh>``
         Becomes ``(exp(2 * x) - 1) / (exp(2 * x) + 1)``.
     ``<arcsinh>``
-        Becomes ``log(x + sqrt(1 + x*x))``.
+        Becomes ``log(x + sqrt(x*x + 1))``.
     ``<arccosh>``
-        Becomes ``log(x + sqrt(x + 1) * sqrt(x - 1))``.
+        Becomes ``log(x + sqrt(x*x - 1))``.
     ``<arctanh>``
-        Becomes ``0.5 * (log(1 + x) - log(1 - x))``.
+        Becomes ``0.5 * log((1 + x) / (1 - x))``.
     ``<csch>``
         Becomes ``2 / (exp(x) - exp(-x))``.
     ``<sech>``
@@ -181,11 +181,11 @@ class MathMLParser(object):
     ``<coth>``
         Becomes ``(exp(2 * x) + 1) / (exp(2 * x) - 1)``.
     ``<arccsch>``
-        Becomes ``log(sqrt(1 + 1 / x^2) + 1 / x)``.
+        Becomes ``log(1 / x + sqrt(1 / x^2 + 1))``.
     ``<arcsech>``
-        Becomes ``log(sqrt(1 / x - 1) * sqrt(1 / x + 1) + 1 / x)``
+        Becomes ``log(1 / x + sqrt(1 / x^2 - 1))``
     ``<arccoth>``
-        Becomes ``0.5 * (log(1 + 1/x) - log(1 - 1/x))``.
+        Becomes ``0.5 * log((x + 1) / (x - 1))``.
 
     Logic and relations
 
@@ -478,26 +478,24 @@ class MathMLParser(object):
                 myokit.Minus(e2x, self._const(1)),
                 myokit.Plus(e2x, self._const(1)))
         elif name == 'arcsinh':
-            # Inverse hyperbolic sine: asinh(x) = log(x + sqrt(1 + x*x))
+            # Inverse hyperbolic sine: asinh(x) = log(x + sqrt(x*x + 1))
             x = self._eat(element, iterator)[0]
             return myokit.Log(myokit.Plus(x, myokit.Sqrt(myokit.Plus(
-                self._const(1), myokit.Multiply(x, x)))))
+                myokit.Multiply(x, x), self._const(1)))))
         elif name == 'arccosh':
             # Inverse hyperbolic cosine:
-            #   acosh(x) = log(x + sqrt(x + 1) * sqrt(x - 1))
+            #   acosh(x) = log(x + sqrt(x*x - 1))
             x = self._eat(element, iterator)[0]
-            return myokit.Log(
-                myokit.Plus(x, myokit.Multiply(
-                    myokit.Sqrt(myokit.Plus(x, self._const(1))),
-                    myokit.Sqrt(myokit.Minus(x, self._const(1))))))
+            return myokit.Log(myokit.Plus(x, myokit.Sqrt(myokit.Minus(
+                myokit.Multiply(x, x), self._const(1)))))
         elif name == 'arctanh':
             # Inverse hyperbolic tangent:
-            #   atanh(x) = 0.5 * (log(1 + x) - log(1 - x))
+            #   atanh(x) = 0.5 * log((1 + x) / (1 - x))
             x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                self._const(0.5), myokit.Minus(
-                    myokit.Log(myokit.Plus(self._const(1), x)),
-                    myokit.Log(myokit.Minus(self._const(1), x))))
+                self._const(0.5), myokit.Log(myokit.Divide(
+                    myokit.Plus(self._const(1), x),
+                    myokit.Minus(self._const(1), x))))
 
         # Hyperbolic redundant trig
         elif name == 'csch':
@@ -522,51 +520,30 @@ class MathMLParser(object):
                 myokit.Minus(e2x, self._const(1)))
         elif name == 'arccsch':
             # Inverse hyperbolic cosecant:
-            #   arccsch(x) = log(sqrt(1/(x*x) + 1) + 1/x)
+            #   arccsch(x) = log(1 / x + sqrt(1 / x^2 + 1))
             x = self._eat(element, iterator)[0]
-            return myokit.Log(
-                myokit.Plus(
-                    myokit.Sqrt(
-                        myokit.Plus(
-                            myokit.Divide(
-                                self._const(1),
-                                myokit.Multiply(x, x)
-                            ),
-                            self._const(1)
-                        )
-                    ),
-                    myokit.Divide(self._const(1), x))
-            )
+            return myokit.Log(myokit.Plus(
+                myokit.Divide(self._const(1), x),
+                myokit.Sqrt(myokit.Plus(
+                    myokit.Divide(self._const(1), myokit.Multiply(x, x)),
+                    self._const(1)))))
         elif name == 'arcsech':
             # Inverse hyperbolic secant:
-            #   arcsech(x) = log(sqrt(1/(x*x) - 1) + 1/x)
+            #   arcsech(x) = log(1 / x + sqrt(1 / x^2 - 1))
             x = self._eat(element, iterator)[0]
-            return myokit.Log(
-                myokit.Plus(
-                    myokit.Sqrt(
-                        myokit.Minus(
-                            myokit.Divide(
-                                self._const(1),
-                                myokit.Multiply(x, x)
-                            ),
-                            self._const(1)
-                        )
-                    ),
-                    myokit.Divide(self._const(1), x))
-            )
+            return myokit.Log(myokit.Plus(
+                myokit.Divide(self._const(1), x),
+                myokit.Sqrt(myokit.Minus(
+                    myokit.Divide(self._const(1), myokit.Multiply(x, x)),
+                    self._const(1)))))
         elif name == 'arccoth':
             # Inverse hyperbolic cotangent:
-            #   arccoth(x) = 0.5 * (log(3 + 1) - log(3 - 1))
+            #   arccoth(x) = 0.5 * log((x + 1) / (x - 1))
             x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                self._const(0.5),
-                myokit.Log(
-                    myokit.Divide(
+                self._const(0.5), myokit.Log(myokit.Divide(
                         myokit.Plus(x, self._const(1)),
-                        myokit.Minus(x, self._const(1))
-                    )
-                )
-            )
+                        myokit.Minus(x, self._const(1)))))
 
         # Last option: A single atomic inside an apply
         # Do this one last to stop e.g. <apply><times /></apply> returning the
