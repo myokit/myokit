@@ -542,8 +542,8 @@ class MathMLParser(object):
             x = self._eat(element, iterator)[0]
             return myokit.Multiply(
                 self._const(0.5), myokit.Log(myokit.Divide(
-                        myokit.Plus(x, self._const(1)),
-                        myokit.Minus(x, self._const(1)))))
+                    myokit.Plus(x, self._const(1)),
+                    myokit.Minus(x, self._const(1)))))
 
         # Last option: A single atomic inside an apply
         # Do this one last to stop e.g. <apply><times /></apply> returning the
