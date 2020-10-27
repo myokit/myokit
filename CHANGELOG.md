@@ -17,7 +17,7 @@ This page lists the main changes made to Myokit in each release.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) If errors occur, the `SimulationOpenCL` now displays improved (and hopefully more informative) output.
   - [#623](https://github.com/MichaelClerx/myokit/pull/623) Updated licensing info.
   - [#653](https://github.com/MichaelClerx/myokit/pull/653) `Model.pyfunc()` now validates the model before running (and fails if the model does not validate).
-  - [#660](https://github.com/MichaelClerx/myokit/pull/660) When importing MathML, the inverse hyperbolic trig functions are now rendered using slightly different equations.
+  - [#661](https://github.com/MichaelClerx/myokit/pull/661) When importing MathML, the inverse hyperbolic trig functions are now rendered using slightly simpler equations.
 - Deprecated
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
   - [#632](https://github.com/MichaelClerx/myokit/pull/632) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favour of new `from_log` methods.
