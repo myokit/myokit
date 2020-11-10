@@ -30,6 +30,7 @@ This page lists the main changes made to Myokit in each release.
   - [#628](https://github.com/MichaelClerx/myokit/pull/628) The DataBlockViewer now shows a working colour bar for 1d simulations.
   - [#638](https://github.com/MichaelClerx/myokit/pull/638) The DataBlockViewer now handles blocks with `t[0] > 0` correctly.
   - [#655](https://github.com/MichaelClerx/myokit/pull/655) Fixed bug where wrong initial state was shown by `myokit.step()`.
+  - [#663](https://github.com/MichaelClerx/myokit/pull/663) Fixed deprecation warning in `save_state_bin()`.
 
 ## [1.31.0] - 2020-08-26
 - Added

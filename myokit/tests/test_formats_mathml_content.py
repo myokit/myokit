@@ -381,12 +381,12 @@ class ContentMathMLParserTest(unittest.TestCase):
         # No operands
         x = '<apply><exp/></apply>'
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Expecting 1 operand\(s\)', self.p, x)
+            mathml.MathMLError, r'Expecting 1 operand\(s\)', self.p, x)
 
         # Too many operands
         x = '<apply><exp/><cn>1</cn><cn>2</cn></apply>'
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Expecting 1 operand\(s\)', self.p, x)
+            mathml.MathMLError, r'Expecting 1 operand\(s\)', self.p, x)
 
         # Floor
         e = myokit.Floor(b)
