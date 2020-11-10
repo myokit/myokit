@@ -1281,8 +1281,12 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
     info.compress_type = zipfile.ZIP_DEFLATED
 
     # Write to compressed file
+    try:
+        ar = ar.tobytes()
+    except AttributeError:  # pragma: no python 3 cover
+        ar = ar.tostring()
     with zipfile.ZipFile(filename, 'w') as f:
-        f.writestr(info, ar.tostring())
+        f.writestr(info, ar)
 
 
 def step(model, initial=None, reference=None, ignore_errors=False):
