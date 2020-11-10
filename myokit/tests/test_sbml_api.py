@@ -14,6 +14,8 @@ import myokit
 import myokit.formats
 import myokit.formats.sbml as sbml
 
+from shared import WarningCollector
+
 # Unit testing in Python 2 and 3
 try:
     unittest.TestCase.assertRaisesRegex
@@ -1218,7 +1220,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         sm = sbml.Model()
         c = sm.add_compartment('comp')
         c.set_value(myokit.Number(1.5), is_rate=True)
-        mm = sm.myokit_model()
+        with WarningCollector():
+            mm = sm.myokit_model()
         self.assertEqual(mm.get('comp.size').rhs(), myokit.Number(1.5))
         self.assertTrue(mm.get('comp.size').is_state())
 
@@ -1328,7 +1331,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         m = sbml.Model()
         p = m.add_parameter('param')
         p.set_value(myokit.Number(3.2), is_rate=True)
-        mm = m.myokit_model()
+        with WarningCollector():
+            mm = m.myokit_model()
         pp = mm.get('myokit.param')
         self.assertTrue(pp.is_state())
         self.assertEqual(pp.rhs(), myokit.Number(3.2))
@@ -1356,8 +1360,9 @@ class SBMLTestMyokitModel(unittest.TestCase):
         p_bad = sbml.Parameter(m, 'p_bad')
         p = m.add_parameter('param')
         p.set_value(myokit.Name(p_bad), is_rate=True)
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Value of <', m.myokit_model)
+        with WarningCollector():
+            self.assertRaisesRegex(
+                sbml.SBMLError, 'Value of <', m.myokit_model)
 
     def test_species(self):
         # Tests whether species initialisation in amount and concentration
@@ -1505,7 +1510,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Species in amount
         s1 = m.add_species(c, 'spec_1', is_amount=True)
         s1.set_value(myokit.Number(3), is_rate=True)
-        mm = m.myokit_model()
+        with WarningCollector():
+            mm = m.myokit_model()
         ms = mm.get('comp.spec_1_amount')
         self.assertTrue(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
@@ -1520,7 +1526,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Species in concentration
         s2 = m.add_species(c, 'spec_2', is_amount=False)
         s2.set_value(myokit.Number(4), is_rate=True)
-        mm = m.myokit_model()
+        with WarningCollector():
+            mm = m.myokit_model()
         sc = mm.get('comp.spec_2_concentration')
         self.assertFalse(sc.is_state())
         self.assertEqual(
@@ -1538,7 +1545,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Species in amount
         s1 = m.add_species(c, 'spec_1', is_amount=True)
         s1.set_value(myokit.Number(3), is_rate=True)
-        mm = m.myokit_model()
+        with WarningCollector():
+            mm = m.myokit_model()
         ms = mm.get('comp.spec_1_amount')
         self.assertTrue(ms.is_state())
         self.assertEqual(ms.rhs(), myokit.Number(3))
@@ -1553,7 +1561,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Species in concentration
         s2 = m.add_species(c, 'spec_2', is_amount=False)
         s2.set_value(myokit.Number(4), is_rate=True)
-        mm = m.myokit_model()
+        with WarningCollector():
+            mm = m.myokit_model()
         sc = mm.get('comp.spec_2_concentration')
         self.assertFalse(sc.is_state())
         self.assertEqual(
@@ -1671,8 +1680,10 @@ class SBMLTestMyokitModel(unittest.TestCase):
         r.add_reactant(s1)
         r.add_modifier(s2)
         r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Reaction rate expression of <', m.myokit_model)
+        with WarningCollector():
+            self.assertRaisesRegex(
+                sbml.SBMLError, 'Reaction rate expression of <',
+                m.myokit_model)
 
         # Good product, bad modifier
         m = sbml.Model()
@@ -1684,8 +1695,10 @@ class SBMLTestMyokitModel(unittest.TestCase):
         r.add_product(s1)
         r.add_modifier(s2)
         r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Reaction rate expression of <', m.myokit_model)
+        with WarningCollector():
+            self.assertRaisesRegex(
+                sbml.SBMLError, 'Reaction rate expression of <',
+                m.myokit_model)
 
     def test_reaction_bad_kinetic_law(self):
         # Tests handling of unreferenced variables in ketic law.
@@ -1698,8 +1711,10 @@ class SBMLTestMyokitModel(unittest.TestCase):
         r.add_reactant(s1)
         r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(p)))
 
-        self.assertRaisesRegex(
-            sbml.SBMLError, 'Reaction rate expression of <', m.myokit_model)
+        with WarningCollector():
+            self.assertRaisesRegex(
+                sbml.SBMLError, 'Reaction rate expression of <',
+                m.myokit_model)
 
     def test_reaction_no_kinetic_law(self):
         # Tests whether missing kinetic law is handled correctly.
@@ -1897,7 +1912,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         sr2 = r.add_product(s2, 'sr2')
         sr2.set_value(value=myokit.Number(3.82), is_rate=True)
         r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
-        mm = m.myokit_model()
+        with WarningCollector():
+            mm = m.myokit_model()
 
         # Check that species are state variables
         var = mm.get('c.s1_amount')
@@ -1962,7 +1978,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         sr2 = r.add_product(s2, 'sr2')
         sr2.set_initial_value(myokit.Number(3.5))
         r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
-        mm = m.myokit_model()
+        with WarningCollector():
+            mm = m.myokit_model()
 
         # Check that initial values are set properly
         stoich_reactant = mm.get('c.sr1')
@@ -2002,7 +2019,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         sr2.set_value(
             myokit.Minus(myokit.Name(p), myokit.Number(1)), True)
         r.set_kinetic_law(myokit.Plus(myokit.Name(s1), myokit.Name(s2)))
-        mm = m.myokit_model()
+        with WarningCollector():
+            mm = m.myokit_model()
 
         # Check that stoichiometries are state/ not state variables
         var = mm.get('c.sr1')
