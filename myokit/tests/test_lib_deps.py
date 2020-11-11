@@ -23,10 +23,9 @@ except AttributeError:
 class LibDepsTest(unittest.TestCase):
 
     def test_state_dependency_matrix(self):
-        """
-        Test create_ and plot_ state dependency matrix method, to create
-        matrix plot of state interdependencies.
-        """
+        # Test create_ and plot_ state dependency matrix method, to create
+        # matrix plot of state interdependencies.
+
         # Load model
         model = myokit.load_model('example')
 
@@ -100,10 +99,9 @@ class LibDepsTest(unittest.TestCase):
         deps.plot_state_dependency_matrix(model)
 
     def test_component_dependency_graph(self):
-        """
-        Test create_ and plot_ component dependency graph method, to show
-        digraph plot of variable dependencies.
-        """
+        # Test create_ and plot_ component dependency graph method, to show
+        # digraph plot of variable dependencies.
+
         # Load model
         model = myokit.load_model('example')
 
@@ -123,10 +121,9 @@ class LibDepsTest(unittest.TestCase):
         deps.plot_component_dependency_graph(model)
 
     def test_variable_dependency_graph(self):
-        """
-        Test create_ and plot_ variable dependency graph method, to show
-        digraph plot of variable dependencies.
-        """
+        # Test create_ and plot_ variable dependency graph method, to show
+        # digraph plot of variable dependencies.
+
         # Load model
         model = myokit.load_model('example')
 
@@ -144,7 +141,7 @@ class DiGraphTest(unittest.TestCase):
     """
 
     def test_basic(self):
-        """ Test basic DiGraph functions. """
+        # Test basic DiGraph functions.
 
         # Create empty graph
         d = deps.DiGraph()
