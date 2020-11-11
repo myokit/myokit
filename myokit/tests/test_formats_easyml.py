@@ -10,6 +10,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
+import warnings
 
 import myokit
 import myokit.formats
@@ -85,18 +86,18 @@ y_init = 0.9;
 C_init = 0.9;
 
 // hh
+I1 = 3.0 * x * y * (V / 1000.0 - 0.05) * 0.05;
 x_inf = 0.8;
 tau_x = 3.0 * 1000.0;
 alpha_y = 0.1 * 0.001;
 beta_y = 0.2 * 0.001;
-I1 = 3.0 * x * y * (V / 1000.0 - 0.05) * 0.05;
 
 // mm
 diff_C = (mm_beta * O - mm_alpha * C) * 0.001;
+I2 = 2.0 * O * (V / 1000.0 + 0.02) * 0.05;
+O = 1.0 - C;
 mm_alpha = 0.3;
 mm_beta = 0.4;
-O = 1.0 - C;
-I2 = 2.0 * O * (V / 1000.0 + 0.02) * 0.05;
 
 // Sum of currents
 Iion = I1 + I2;
@@ -142,6 +143,7 @@ class EasyMLExporterTest(unittest.TestCase):
 
             # Test with model containing markov models
             with WarningCollector() as c:
+                warnings.simplefilter('always')
                 e.model(path, model2)
             self.assertIn('unsupported function: atan', c.text())
             self.assertIn('unsupported function: sin', c.text())

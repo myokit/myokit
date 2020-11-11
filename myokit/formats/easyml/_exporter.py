@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import collections
 import os
 
 import myokit.formats
@@ -249,8 +250,8 @@ class EasyMLExporter(myokit.formats.Exporter):
             return name.endswith('_init') or name.endswith('_inf')
 
         # Create initial variable names
-        var_to_name = {}
-        for var in model.variables(deep=True):
+        var_to_name = collections.OrderedDict()
+        for var in model.variables(deep=True, sort=True):
 
             # Delay naming of HH variables until their state has a name
             if var in hh_variables:
@@ -281,14 +282,14 @@ class EasyMLExporter(myokit.formats.Exporter):
         reserved = [
             'Iion',
         ]
-        needs_renaming = {}
+        needs_renaming = collections.OrderedDict()
         for keyword in keywords:
             needs_renaming[keyword] = []
         for keyword in reserved:
             needs_renaming[keyword] = []
 
         # Find naming conflicts, create inverse mapping
-        name_to_var = {}
+        name_to_var = collections.OrderedDict()
         for var, name in var_to_name.items():
 
             # Known conflict?
@@ -375,8 +376,9 @@ class EasyMLExporter(myokit.formats.Exporter):
             f.write(eol)
 
             # Write remaining variables
-            for c in model.components():
-                todo = [v for v in c.variables(deep=True) if v not in ignore]
+            for c in model.components(sort=True):
+                todo = c.variables(deep=True, sort=True)
+                todo = [v for v in todo if v not in ignore]
                 if todo:
                     f.write('// ' + c.name() + eol)
                     for v in todo:
@@ -422,7 +424,7 @@ class EasyMLExporter(myokit.formats.Exporter):
             f.write('}.trace()' + eos + eol)
 
             # Make all constants parameters
-            parameters = list(model.variables(const=True))
+            parameters = list(model.variables(const=True, sort=True))
             if parameters:
                 f.write('// Parameters' + eol)
                 f.write('group {' + eol)
