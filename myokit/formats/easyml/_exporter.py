@@ -405,7 +405,7 @@ class EasyMLExporter(myokit.formats.Exporter):
             # Solve all non-Markovian and non-HH variables with CVODE
             cvode_states = [
                 x for x in model.states() if not (
-                x == vm or x in markov_states or x in hh_states)]
+                    x == vm or x in markov_states or x in hh_states)]
             if cvode_states:
                 f.write(
                     '// Solve non-HH and non-Markov states with CVODE' + eol)
