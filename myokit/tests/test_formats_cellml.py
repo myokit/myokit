@@ -554,6 +554,4 @@ class CellMLImporterTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    import warnings
-    warnings.simplefilter('always')
-    unittest.main()
+    unittest.main(warnings='always')
