@@ -68,6 +68,27 @@ class EasyMLExporterTest(unittest.TestCase):
             self.assertRaisesRegex(
                 myokit.ExportError, 'valid model', e.model, path, model1)
 
+    def test_easyml_exporter_static(self):
+        # Tests exporting a model and compares against reference output
+
+        # Export model
+        m = myokit.load_model(os.path.join(DIR_DATA, 'decker-2009.mmt'))
+        e = myokit.formats.easyml.EasyMLExporter()
+        with TemporaryDirectory() as d:
+            path = d.path('easy.model')
+            e.model(path, m)
+            with open(path, 'r') as f:
+                observed = f.readlines()
+
+        # Load expected output
+        with open(os.path.join(DIR_DATA, 'easy.model'), 'r') as f:
+            expected = f.readlines()
+
+        # Compare (line by line, for readable output)
+        for ob, ex in zip(observed, expected):
+            self.assertEqual(ob, ex)
+        self.assertEqual(len(observed), len(expected))
+
     def test_export_reused_variable(self):
         # Tests exporting when an `inf` or other special variable is used twice
 
