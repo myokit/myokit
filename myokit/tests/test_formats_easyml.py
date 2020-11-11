@@ -293,6 +293,12 @@ class EasyMLExpressionWriterTest(unittest.TestCase):
         x = myokit.Divide(a, b)
         self.assertEqual(w.ex(x), 'c.a / 12.0')
 
+        # 1 - exp() and exp() - 1
+        x = myokit.Minus(myokit.Exp(myokit.Number(2)), myokit.Number(1))
+        self.assertEqual(w.ex(x), 'expm1(2.0)')
+        x = myokit.Minus(myokit.Number(1), myokit.Exp(myokit.Number(3)))
+        self.assertEqual(w.ex(x), '-expm1(3.0)')
+
         # Quotient
         x = myokit.Quotient(a, b)
         with WarningCollector() as c:

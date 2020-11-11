@@ -31,7 +31,16 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):
     #def _ex_plus(self, e):
-    #def _ex_minus(self, e):
+
+    def _ex_minus(self, e):
+        if isinstance(e[0], myokit.Exp) and isinstance(e[1], myokit.Number):
+            if e[1].eval() == 1:
+                return 'expm1(' + self.ex(e[0][0]) + ')'
+        if isinstance(e[1], myokit.Exp) and isinstance(e[0], myokit.Number):
+            if e[0].eval() == 1:
+                return '-expm1(' + self.ex(e[1][0]) + ')'
+        return super(EasyMLExpressionWriter, self)._ex_minus(e)
+
     #def _ex_multiply(self, e):
     #def _ex_divide(self, e):
 
