@@ -9,6 +9,7 @@ from __future__ import print_function, unicode_literals
 
 import collections
 import os
+import warnings
 
 import myokit.formats
 import myokit.lib.guess as guess
@@ -91,7 +92,7 @@ class EasyMLExporter(myokit.formats.Exporter):
                 return
             try:
                 var.convert_unit(unit, helpers=helpers)
-            except IncompatibleUnitError:
+            except myokit.IncompatibleUnitError:
                 warnings.warn(
                     'Unable to convert ' + var.qname() + ' to recommended'
                     ' units of ' + str(unit) + '.')

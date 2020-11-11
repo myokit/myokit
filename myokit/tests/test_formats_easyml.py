@@ -10,7 +10,6 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
-import warnings
 
 import myokit
 import myokit.formats
@@ -131,41 +130,32 @@ class EasyMLExporterTest(unittest.TestCase):
     def test_easyml_exporter(self):
         # Tests exporting a model
 
-        model1 = myokit.load_model('example')
-        model2 = myokit.load_model(os.path.join(DIR_DATA, 'heijman-2011.mmt'))
-        e = myokit.formats.easyml.EasyMLExporter()
-
+        model = myokit.load_model('example')
         with TemporaryDirectory() as d:
             path = d.path('easy.model')
 
             # Test with simple model
-            e.model(path, model1)
-
-            # Test with model containing markov models
-            with WarningCollector() as c:
-                warnings.simplefilter('always')
-                e.model(path, model2)
-            self.assertIn('unsupported function: atan', c.text())
-            self.assertIn('unsupported function: sin', c.text())
-            self.assertEqual(c.count(), 6)
+            e = myokit.formats.easyml.EasyMLExporter()
+            e.model(path, model)
 
             # Test with extra bound variables
-            model1.get('membrane.C').set_binding('hello')
-            e.model(path, model1)
+            model.get('membrane.C').set_binding('hello')
+            e.model(path, model)
 
             # Test without V being a state variable
-            v = model1.get('membrane.V')
+            v = model.get('membrane.V')
             v.demote()
             v.set_rhs(3)
-            e.model(path, model1)
+            e.model(path, model)
 
             # Test with invalid model
             v.set_rhs('2 * V')
             self.assertRaisesRegex(
-                myokit.ExportError, 'valid model', e.model, path, model1)
+                myokit.ExportError, 'valid model', e.model, path, model)
 
     def test_easyml_exporter_static(self):
-        # Tests exporting a model and compares against reference output
+        # Tests exporting a model (with HH and markov states) and compares
+        # against reference output.
 
         # Export model
         m = myokit.load_model(os.path.join(DIR_DATA, 'decker-2009.mmt'))
@@ -204,6 +194,23 @@ class EasyMLExporterTest(unittest.TestCase):
         for ob, ex in zip(observed, expected):
             self.assertEqual(ob, ex)
         self.assertEqual(len(observed), len(expected))
+
+        # Test warnings are raised if conversion fails
+        m.get('membrane.V').set_rhs('hh.I1 + mm.I2')
+        m.get('membrane').remove_variable(m.get('membrane.C'))
+        with TemporaryDirectory() as d:
+            path = d.path('easy.model')
+            with WarningCollector() as c:
+                e.model(path, m)
+            self.assertIn('Unable to convert hh.I1', c.text())
+            self.assertIn('Unable to convert mm.I2', c.text())
+
+        m.get('engine.time').set_unit(myokit.units.cm)
+        with TemporaryDirectory() as d:
+            path = d.path('easy.model')
+            with WarningCollector() as c:
+                e.model(path, m)
+            self.assertIn('Unable to convert time units [cm]', c.text())
 
     def test_export_reused_variable(self):
         # Tests exporting when an `inf` or other special variable is used twice
