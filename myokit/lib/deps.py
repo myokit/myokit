@@ -435,6 +435,7 @@ class DiGraph(object):
         """
         # Get layers
         layers = self.cg_layers_dag()
+
         # Set initial positions
         fy = 1.0 / len(layers)
         for i, layer in enumerate(layers):
@@ -448,6 +449,7 @@ class DiGraph(object):
                 for j, node in enumerate(layer):
                     node.y = y
                     node.x = j * fx
+
         # Iteratively update x coordinates using median rule
         max_runs = 100
         for n_runs in range(max_runs):

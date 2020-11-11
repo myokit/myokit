@@ -3612,6 +3612,9 @@ class Variable(VarOwner):
         Note that this method will assume the expression is currently in the
         unit returned by :meth:`Variable.unit()`. It will not check whether the
         current RHS expression evaluates to the correct units.
+
+        Raises a :class:`myokit.IncompatibleUnitError` if the units cannot be
+        converted.'
         """
         # Check new unit
         if not isinstance(new_unit, myokit.Unit):
