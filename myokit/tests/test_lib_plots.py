@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests if the myokit.lib.plots module runs without exceptions, doesn't inspect
 # the output.
@@ -25,9 +25,8 @@ class LibPlotTest(unittest.TestCase):
     """
 
     def test_simulation_times(self):
-        """
-        Test the simulation times() plots (has several modes).
-        """
+        # Test the simulation times() plots (has several modes).
+
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
@@ -43,41 +42,47 @@ class LibPlotTest(unittest.TestCase):
         ev = d['engine.evaluations']
 
         # Stair
-        plt.figure()
+        fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'stair')
         plt.show()
+        plt.close(fig)
         self.assertRaises(ValueError, plots.simulation_times, mode='stair')
 
         # Inverse stair
-        plt.figure()
+        fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'stair_inverse')
         plt.show()
+        plt.close(fig)
         self.assertRaises(
             ValueError, plots.simulation_times, mode='stair_inverse')
 
         # Load
-        plt.figure()
+        fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'load')
         plt.show()
+        plt.close(fig)
         self.assertRaises(ValueError, plots.simulation_times, mode='load')
 
         # Histogram
-        plt.figure()
+        fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'histo')
         plt.show()
+        plt.close(fig)
         self.assertRaises(ValueError, plots.simulation_times, mode='histo')
 
         # Time per step
-        plt.figure()
+        fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'time_per_step')
         plt.show()
+        plt.close(fig)
         self.assertRaises(
             ValueError, plots.simulation_times, mode='time_per_step')
 
         # Evaluations per step
-        plt.figure()
+        fig = plt.figure()
         plots.simulation_times(st, rt, ev, 'eval_per_step')
         plt.show()
+        plt.close(fig)
         self.assertRaises(
             ValueError, plots.simulation_times, mode='eval_per_step')
 
@@ -86,9 +91,8 @@ class LibPlotTest(unittest.TestCase):
             ValueError, plots.simulation_times, st, rt, ev, mode='xxx')
 
     def test_current_arrows(self):
-        """
-        Test the current arrows plot.
-        """
+        # Test the current arrows plot.
+
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
@@ -107,21 +111,22 @@ class LibPlotTest(unittest.TestCase):
         currents = ['ina.INa', 'ik1.IK1', 'ica.ICa', 'dummy.IDummy']
         d = s.run(600, log=['engine.time', 'membrane.V'] + currents)
 
-        plt.figure()
+        fig = plt.figure()
         plots.current_arrows(d, 'membrane.V', currents)
+        plt.close(fig)
         plt.show()
 
         # Massive peak at final point
         d = d.npview()
         d['dummy.IDummy'][-1] = 100
-        plt.figure()
+        fig = plt.figure()
         plots.current_arrows(d, 'membrane.V', currents)
+        plt.close(fig)
         plt.show()
 
     def test_cumulative_current(self):
-        """
-        Test the cumulative current plot.
-        """
+        # Test the cumulative current plot.
+
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
@@ -134,42 +139,55 @@ class LibPlotTest(unittest.TestCase):
         d = s.run(600, log=['engine.time', 'membrane.V'] + currents)
 
         # No extra arguments
-        plt.figure()
+        fig = plt.figure()
         plots.cumulative_current(d, currents)
         plt.legend()
+        plt.close(fig)
         plt.show()
 
         # Labels set
         labels = ['I_Ca', 'I_K', 'I_K1', 'I_Kp', 'I_b']
-        plt.figure()
+        fig = plt.figure()
         plots.cumulative_current(d, currents, labels=labels)
         plt.legend()
+        plt.close(fig)
         plt.show()
 
         # Colors set
         colors = ['green', 'blue', 'yellow', 'brown', 'gray']
-        plt.figure()
+        fig = plt.figure()
         plots.cumulative_current(d, currents, colors=colors)
         plt.legend()
+        plt.close(fig)
         plt.show()
 
         # Not enough colors set (will repeat array)
         colors = ['green', 'blue']
-        plt.figure()
+        fig = plt.figure()
         plots.cumulative_current(d, currents, colors=colors)
         plt.legend()
+        plt.close(fig)
         plt.show()
 
         # Integrate currents to charges
-        plt.figure()
+        fig = plt.figure()
         plots.cumulative_current(d, currents, integrate=True)
         plt.legend()
+        plt.close(fig)
         plt.show()
 
         # Normalise currents
-        plt.figure()
+        fig = plt.figure()
         plots.cumulative_current(d, currents, normalise=True)
         plt.legend()
+        plt.close(fig)
+        plt.show()
+
+        # Normalise currents and set maximum number of currents shown
+        fig = plt.figure()
+        plots.cumulative_current(d, currents, normalise=True, max_currents=3)
+        plt.legend()
+        plt.close(fig)
         plt.show()
 
 

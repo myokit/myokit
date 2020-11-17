@@ -7,7 +7,11 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+from lxml import etree
+
 import myokit
+import myokit.formats.cellml
+
 from myokit.formats.mathml import MathMLExpressionWriter
 
 
@@ -15,36 +19,58 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
     """
     Writes equations for variables using CellML's version of MathML.
 
-    Differences from normal MathML:
-
-     1. Only content MathML is supported
-     2. Variable names are always written as unames.
-     3. Every number defines an attribute cellml:units
-
-    The expression writer requires a single argument ``units``. This should be
-    a mapping of Myokit units to string unit names.
+    To use, create an expression writer, then pass in a method to set good
+    variable names with :meth:`set_lhs_function()`, and a method to look up
+    unit names with :meth:`set_unit_function()`.
     """
-    def __init__(self, units=None):
+    def __init__(self, version='1.0'):
         super(CellMLExpressionWriter, self).__init__()
         super(CellMLExpressionWriter, self).set_mode(presentation=False)
-        self._units = {} if units is None else units
+
+        # Units lookup method
+        self._funits = None
+
+        # Use unames by default
+        self._flhs = lambda x: x.var().uname()
+
+        # Get namespace based on version
+        if version == '1.0':
+            self._ns = myokit.formats.cellml.NS_CELLML_1_0
+        elif version == '1.1':
+            self._ns = myokit.formats.cellml.NS_CELLML_1_1
+        elif version == '2.0':
+            self._ns = myokit.formats.cellml.NS_CELLML_2_0
+        else:
+            raise ValueError('Unknown CellML version: ' + str(version))
+
+        # Namespaces for element creation
+        self._nsmap['cellml'] = self._ns
+
+    def set_unit_function(self, f):
+        """
+        Sets a unit lookup function, which will be used to convert a
+        :class:`myokit.Unit` to a CellML units name.
+        """
+        self._funits = f
 
     def _ex_number(self, e, t):
-        x = self._et.SubElement(t, 'cn')
+        x = etree.SubElement(t, 'cn')
         x.text = self._fnum(e)
-        u = e.unit()
-        x.attrib['cellml:units'] = self._units[u] if u else 'dimensionless'
-
-    def _ex_name(self, e, t):
-        x = self._et.SubElement(t, 'ci')
-        x.text = e.var().uname()
+        unit = e.unit()
+        if self._funits is not None and unit is not None:
+            units = self._funits(e.unit())
+        else:
+            units = 'dimensionless'
+        x.attrib[etree.QName(self._ns, 'units')] = units
 
     def _ex_quotient(self, e, t):
+        # CellML 1.0 subset doesn't contain quotient
         # Note that this _must_ round towards minus infinity!
         # See myokit.Quotient !
         return self.ex(myokit.Floor(myokit.Divide(e[0], e[1])), t)
 
     def _ex_remainder(self, e, t):
+        # CellML 1.0 subset doesn't contain remainder
         # Note that this _must_ use the same round-to-neg-inf convention as
         # myokit.Quotient! Implementation below is consistent with Python
         # convention:
@@ -59,9 +85,3 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
             raise RuntimeError(
                 'Presentation MathML is not supported in CellML.')
 
-    def set_lhs_function(self, f):
-        """
-        This expression writer always uses unames, setting an LHS function is
-        not supported.
-        """
-        raise NotImplementedError

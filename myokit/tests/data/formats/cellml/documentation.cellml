@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Documentation in a model, with a non-ascii characters thrown in -->
+<model name="name" xmlns="http://www.cellml.org/cellml/1.0#">
+    <documentation xmlns="http://cellml.org/tmp-documentation">
+        <article>
+            <articleinfo>
+            <title>Article title</title>
+            <author>
+                <firstname>Michael</firstname>
+                <surname>Clerx</surname>
+                <affiliation>
+                    <shortaffil>University of Oxford</shortaffil>
+                </affiliation>
+            </author>
+            </articleinfo>
+            <section id="sec_status">
+                <title>Model Status</title>
+                <para>This model is fake.</para>
+            </section>
+            <sect1 id="sec_structure">
+                <para>
+                    This is a paragraph.
+                </para>
+                <informalfigure float="0" id="fig_cell_diagram">
+                <mediaobject>
+                    <imageobject>
+                        <objectinfo>
+                            <title>schematic diagram 🔬 </title>
+                        </objectinfo>
+                        <imagedata fileref="fake-model.png"/>
+                    </imageobject>
+                </mediaobject>
+                <caption>A schematic diagram describing the model.</caption>
+                </informalfigure>
+            </sect1>
+        </article>
+    </documentation>
+    <documentation xmlns="http://cellml.org/tmp-documentation">
+        Here's some extra documentation.
+    </documentation>
+</model>

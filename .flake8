@@ -8,6 +8,8 @@ exclude=
     ./myokit.egg-info,
     ./myokit/_exec_old.py,
     ./myokit/formats/python/template,
+    ./build,
+    ./venv,
 ignore=
     # Block comment should start with '# '
     # Not if it's a commented out line

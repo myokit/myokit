@@ -9,11 +9,10 @@ dist: xenial
 
 language: python
 
-# Only build master, develop and PRs
+# Only build main and PRs
 branches:
   only:
-    - master
-    - develop
+    - main
 
 # Python version choices:
 #
@@ -23,26 +22,27 @@ branches:
 # 2.7   --> Latest 2.7 version. At the moment 2.7.14 on travis (2018-10-31)
 # 3.0-3.3 --> Bad initial versions of Python 3; Not supported
 # 3.4     --> No longer supported by pip (2019-03)
-# 3.5-3.7 --> Works
+# 3.5-3.8 --> Works
 
 matrix:
     # Always put true env variable first, for nicer overview on travis website
     include:
         # Unit tests on OS/X, running first because this one's slow
         - os: osx
-          language: generic
+          osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
+          language: shell
           env:
             - MYOKIT_UNIT=true
         # Style checking
-        - python: "3.7"
+        - python: "3.8"
           env:
             - MYOKIT_STYLE=true
         # Doctests
-        - python: "3.7"
+        - python: "3.8"
           env:
             - MYOKIT_DOC=true
         # Cover checking
-        - python: "3.7"
+        - python: "3.8"
           env:
             - MYOKIT_COVER=true
         # Unit tests on Ubuntu
@@ -62,6 +62,14 @@ matrix:
         - python: "3.7"
           env:
             - MYOKIT_UNIT=true
+        - python: "3.8"
+          env:
+            - MYOKIT_UNIT=true
+        # Basic install test
+        - python: "3.8"
+          env:
+            - MYOKIT_BASIC=true
+            - MYOKIT_UNIT=true
 
 # Install CVODE dependencies
 before_install:
@@ -80,7 +88,7 @@ before_install:
 # Install Myokit and extra testing dependencies
 install:
   - pip install --upgrade pip;
-  - pip install .[optional];
+  - if [[ $MYOKIT_BASIC == true ]]; then pip install .; else pip install .[optional]; fi;
   - if [[ $MYOKIT_COVER == true ]]; then pip install coverage codecov; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then pip install .[dev]; fi;
   - if [[ $MYOKIT_DOC == true ]]; then pip install .[docs,gui]; fi;
@@ -91,13 +99,15 @@ before_script:
 
 # Run tests
 script:
-  - if [[ $MYOKIT_UNIT == true ]]; then python run-tests.py unit; fi;
-  - if [[ $MYOKIT_COVER == true ]]; then coverage run run-tests.py unit; fi;
+  - if [[ $MYOKIT_UNIT == true ]]; then python -m myokit test unit; fi;
+  - if [[ $MYOKIT_COVER == true ]]; then coverage3 run -m myokit test unit; fi;
   - if [[ $MYOKIT_STYLE == true ]]; then
         python -m flake8 --version;
         python -m flake8;
     fi;
-  - if [[ $MYOKIT_DOC == true ]]; then python run-tests.py doc; fi;
+  - if [[ $MYOKIT_DOC == true ]]; then
+        python -m myokit test doc;
+    fi;
 
 # Compile coverage report
 after_success:
@@ -107,4 +117,4 @@ after_success:
 notifications:
   email:
     recipients:
-    - michael.clerx@cs.ox.ac.uk
+    - michael.clerx@nottingham.ac.uk

@@ -1,15 +1,13 @@
 branches:
   only:
-    - master
-    - develop
+    - main
 
 environment:
 
   matrix:
     - PYTHON: "C:\\Python27-x64"
     - PYTHON: "C:\\Python35-x64"
-    - PYTHON: "C:\\Python36-x64"
-    - PYTHON: "C:\\Python37-x64"
+    - PYTHON: "C:\\Python38-x64"
 
 install:
   - "%PYTHON%\\python.exe -c \"import sys; print(sys.version)\""
@@ -20,5 +18,5 @@ build: off
 
 test_script:
   - "%PYTHON%\\python.exe -m myokit system"
-  - "%PYTHON%\\python.exe run-tests.py unit"
+  - "%PYTHON%\\python.exe -m myokit test unit"
 

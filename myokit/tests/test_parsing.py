@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the parsing module.
 #
@@ -231,7 +231,7 @@ class PhasedParseTest(unittest.TestCase):
         code = ''
         self.assertRaisesRegex(
             myokit.ParseError,
-            'expecting Segment header "\[\[segment_name]]"',
+            r'expecting Segment header "\[\[segment_name]]"',
             parse, code)
 
         # Unexpected before model
@@ -240,7 +240,7 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ParseError,
-            'Expecting \[\[model]] or \[\[protocol]] or \[\[script]]',
+            r'Expecting \[\[model]] or \[\[protocol]] or \[\[script]]',
             parse, code)
 
         # Unexpected before protocol
@@ -252,7 +252,7 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ParseError,
-            'Expecting \[\[protocol]] or \[\[script]]',
+            r'Expecting \[\[protocol]] or \[\[script]]',
             parse, code)
 
         # Unexpected before script
@@ -265,7 +265,7 @@ class PhasedParseTest(unittest.TestCase):
         )
         self.assertRaisesRegex(
             myokit.ParseError,
-            'Expecting \[\[script]]',
+            r'Expecting \[\[script]]',
             parse, code)
 
         # Bad segment order (same as unexpected after protocol)
@@ -276,7 +276,7 @@ class PhasedParseTest(unittest.TestCase):
             't = 0 bind time\n',
         )
         self.assertRaisesRegex(
-            myokit.ParseError, 'Expecting \[\[script]]', parse, code)
+            myokit.ParseError, r'Expecting \[\[script]]', parse, code)
 
     def test_parse_model(self):
         """
@@ -302,7 +302,7 @@ class PhasedParseTest(unittest.TestCase):
             't = 0 bind time\n',
         )
         self.assertRaisesRegex(
-            myokit.ParseError, 'Expecting \[\[model]]', parse_model, code)
+            myokit.ParseError, r'Expecting \[\[model]]', parse_model, code)
 
     def test_parse_model_from_stream_error(self):
         """ Quick error testing for :meth:`parse_model_from_stream`. """
@@ -327,7 +327,7 @@ class PhasedParseTest(unittest.TestCase):
             't = 0 bind time',
         )
         self.assertRaisesRegex(
-            myokit.ParseError, 'Expecting \[\[model]]', p, code)
+            myokit.ParseError, r'Expecting \[\[model]]', p, code)
 
         # Double meta-data value
         code = (
@@ -806,14 +806,14 @@ class PhasedParseTest(unittest.TestCase):
             '0 0 1 0 0\n',
         )
         self.assertRaisesRegex(
-            myokit.ParseError, 'Expecting \[\[protocol]]',
+            myokit.ParseError, r'Expecting \[\[protocol]]',
             parse_protocol, code)
 
         # Not a protocol (in stream)
         from myokit._parsing import parse_protocol_from_stream, Tokenizer
         stream = Tokenizer(iter(code))
         self.assertRaisesRegex(
-            myokit.ParseError, 'Expecting \[\[protocol]]',
+            myokit.ParseError, r'Expecting \[\[protocol]]',
             parse_protocol_from_stream, stream)
 
         # Test using 'next'
@@ -943,14 +943,14 @@ class PhasedParseTest(unittest.TestCase):
             'print("hi")\n',
         )
         self.assertRaisesRegex(
-            myokit.ParseError, 'Expecting \[\[script]]', parse_script, code)
+            myokit.ParseError, r'Expecting \[\[script]]', parse_script, code)
 
         # Not a script, parsing from stream
         from myokit._parsing import Tokenizer, parse_script_from_stream
         raw = iter(code)
         stream = Tokenizer(raw)
         self.assertRaisesRegex(
-            myokit.ParseError, 'Expecting \[\[script]]',
+            myokit.ParseError, r'Expecting \[\[script]]',
             parse_script_from_stream, stream, raw)
 
     def test_split(self):
@@ -1019,7 +1019,7 @@ class PhasedParseTest(unittest.TestCase):
         # Test with many expected type
         self.assertRaisesRegex(
             myokit.ParseError,
-            'expecting one of \[Plus "\+", Minus "-", Star "\*"]',
+            r'expecting one of \[Plus "\+", Minus "-", Star "\*"]',
             p.unexpected_token, token, [p.PLUS, p.MINUS, p.STAR])
 
     def test_parse_expression(self):

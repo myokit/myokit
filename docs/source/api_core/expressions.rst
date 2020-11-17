@@ -195,9 +195,6 @@ Miscellaneous
 .. _api/myokit.Remainder:
 .. autoclass:: Remainder
 
-.. _api/myokit.UnsupportedFunction:
-.. autoclass:: UnsupportedFunction
-
 .. _api/myokit.UserFunction:
 .. autoclass:: UserFunction
 

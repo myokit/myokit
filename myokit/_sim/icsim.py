@@ -110,6 +110,7 @@ class ICSimulation(myokit.CppModule):
         # Unique simulation id
         ICSimulation._index += 1
         module_name = 'myokit_ICSimulation_' + str(ICSimulation._index)
+        module_name += '_' + str(myokit._pid_hash())
 
         # Arguments
         args = {

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the WCP format module.
 #
@@ -23,9 +23,8 @@ class WcpTest(unittest.TestCase):
     """
 
     def test_data_file(self):
-        """
-        Test basic wcp file reading.
-        """
+        # Test basic wcp file reading.
+
         # Load old file from Maastricht
         fname = 'wcp-file.wcp'
         path = os.path.join(DIR_FORMATS, fname)
@@ -41,9 +40,8 @@ class WcpTest(unittest.TestCase):
         self.assertEqual(len(w.values(0, 0)), 256)
 
     def test_data_log_conversion(self):
-        """
-        Test conversion to a data log.
-        """
+        # Test conversion to a data log.
+
         w = wcp.WcpFile(os.path.join(DIR_FORMATS, 'wcp-file.wcp'))
         d = w.myokit_log()
         keys = ['time']
@@ -55,9 +53,8 @@ class WcpTest(unittest.TestCase):
         self.assertTrue(np.all(d.time() == w.times()))
 
     def test_plot_method(self):
-        """
-        Test the plot method.
-        """
+        # Test the plot method.
+
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')

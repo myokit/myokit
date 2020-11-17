@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the classes in myokit.lib.fit
 #
@@ -13,10 +13,9 @@ import unittest
 import numpy as np
 
 import myokit
-import myokit.lib.fit as fit
 import myokit.lib.markov as markov
 
-from shared import DIR_DATA
+from shared import DIR_DATA, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -29,7 +28,11 @@ class EvaluatorTest(unittest.TestCase):
     """
     Tests the sequential and parallel evaluation classes.
     """
+
     def test_evaluators(self):
+
+        with WarningCollector():
+            import myokit.lib.fit as fit
 
         # Test basic sequential/parallel evaluation
         x = 1 + np.random.random(100)
@@ -50,6 +53,9 @@ class EvaluatorTest(unittest.TestCase):
         self.assertRaises(ValueError, fit.SequentialEvaluator, f_args, 1)
 
     def test_parallel_evaluator(self):
+
+        with WarningCollector():
+            import myokit.lib.fit as fit
 
         # Test parallel execution
         e = fit.ParallelEvaluator(f, max_tasks_per_worker=9)
@@ -94,11 +100,26 @@ class EvaluatorTest(unittest.TestCase):
         self.assertRaisesRegex(
             Exception, 'in subprocess', e.evaluate, range(10))
 
+    def test_parallel_simulations(self):
+        # Test running simulations in parallel
+
+        with WarningCollector():
+            import myokit.lib.fit as fit
+
+        # Test running simulation defined in object
+        s = Sim()
+        e = fit.ParallelEvaluator(s.run, nworkers=4)
+        e.evaluate([1, 2, 3, 4])
+
+        # Test running simulation created inside of score function
+        e = fit.ParallelEvaluator(run_sim, nworkers=4)
+        e.evaluate([1, 2, 3, 4])
+
     def test_worker(self):
-        """
-        Manual test of worker, since cover doesn't pick up on its run method.
-        """
-        from myokit.lib.fit import _Worker as Worker
+        # Manual test of worker, since cover doesn't pick up on its run method.
+
+        with WarningCollector():
+            from myokit.lib.fit import _Worker as Worker
 
         # Create queues for worker
         import multiprocessing
@@ -195,8 +216,6 @@ class FittingTest(unittest.TestCase):
         # p2 = 0.20 / 3.802 ~ 0.0526
         cls._hint = [0.0269, 0.052]
 
-        print('I have been run')
-
     @staticmethod
     def _score(guess):
         try:
@@ -213,9 +232,11 @@ class FittingTest(unittest.TestCase):
             return float('inf')
 
     def test_cmaes(self):
-        """
-        Test if a CMA-ES routine runs without errors.
-        """
+        # Test if a CMA-ES routine runs without errors.
+
+        with WarningCollector():
+            import myokit.lib.fit as fit
+
         # Some CMAES versions import matplotlib...
         import matplotlib
         matplotlib.use('template')
@@ -234,9 +255,10 @@ class FittingTest(unittest.TestCase):
                 parallel=False, target=1)
 
     def test_pso(self):
-        """
-        Test if a PSO routine runs without errors.
-        """
+        # Test if a PSO routine runs without errors.
+        with WarningCollector():
+            import myokit.lib.fit as fit
+
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.pso(
@@ -244,9 +266,10 @@ class FittingTest(unittest.TestCase):
                 parallel=False, max_iter=50)
 
     def test_snes(self):
-        """
-        Test if a SNES routine runs without errors.
-        """
+        # Test if a SNES routine runs without errors.
+        with WarningCollector():
+            import myokit.lib.fit as fit
+
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.snes(
@@ -254,9 +277,10 @@ class FittingTest(unittest.TestCase):
                 parallel=False, max_iter=50)
 
     def test_xnes(self):
-        """
-        Test if a xNES routine runs without errors.
-        """
+        # Test if a xNES routine runs without errors.
+        with WarningCollector():
+            import myokit.lib.fit as fit
+
         np.random.seed(1)
         with np.errstate(all='ignore'):  # Tell numpy not to issue warnings
             x, f = fit.xnes(
@@ -283,10 +307,30 @@ def ioerror_on_five(x):
     return x
 
 
+# Test handling of keyboard interrupts
 def h(x):
     if x == 30:
         raise KeyboardInterrupt
     return 2 * x
+
+
+# Run a simulation, created outside of the called method
+class Sim(object):
+    def __init__(self):
+        m, p, _ = myokit.load('example')
+        self.s = myokit.Simulation(m, p)
+
+    def run(self, x):
+        self.s.run(10)
+        return x
+
+
+# Run a simulation, created inside the called method
+def run_sim(x):
+    m, p, _ = myokit.load('example')
+    s = myokit.Simulation(m, p)
+    s.run(10)
+    return x
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the myokit.lib.multi module.
 #
@@ -12,9 +12,8 @@ import os
 import unittest
 
 import myokit
-import myokit.lib.multi as multi
 
-from shared import DIR_DATA
+from shared import DIR_DATA, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -33,6 +32,9 @@ class LibMultiTest(unittest.TestCase):
 
     def test_iterdir(self):
         # Test the iterdir() method that iterators over model, protocol tuples.
+
+        with WarningCollector():
+            import myokit.lib.multi as multi
 
         # Get all found tuples (model, protocol)
         tuples = [x for x in multi.iterdir(DIR_MULTI)]
@@ -68,6 +70,9 @@ class LibMultiTest(unittest.TestCase):
         # Test the scandir() method that returns a models list and a protocols
         # list.
 
+        with WarningCollector():
+            import myokit.lib.multi as multi
+
         # Get list of models and protocols
         models, protocols = multi.scandir(DIR_MULTI)
         self.assertEqual(len(models), len(protocols), 2)
@@ -86,41 +91,61 @@ class LibMultiTest(unittest.TestCase):
     def test_time(self):
         # Test the time() method that returns the time variable.
 
+        with WarningCollector():
+            import myokit.lib.multi as multi
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
         x.set_rhs(0)
 
-        self.assertRaises(myokit.IncompatibleModelError, multi.time, m)
-        x.set_binding('time')
-        self.assertEqual(x, multi.time(m))
+        with WarningCollector() as w:
+            self.assertRaises(myokit.IncompatibleModelError, multi.time, m)
+            x.set_binding('time')
+            self.assertEqual(x, multi.time(m))
+        self.assertIn('deprecated', w.text())
 
     def test_label(self):
         # Test the label() method that returns a labelled variable.
 
+        with WarningCollector():
+            import myokit.lib.multi as multi
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
         x.set_rhs(0)
 
-        self.assertRaises(myokit.IncompatibleModelError, multi.label, m, 'x')
-        x.set_label('x')
-        self.assertEqual(x, multi.label(m, 'x'))
+        with WarningCollector() as w:
+            self.assertRaises(
+                myokit.IncompatibleModelError, multi.label, m, 'x')
+            x.set_label('x')
+            self.assertEqual(x, multi.label(m, 'x'))
+        self.assertIn('deprecated', w.text())
 
     def test_binding(self):
         # Test the binding() method that returns a bound variable.
 
+        with WarningCollector():
+            import myokit.lib.multi as multi
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
         x.set_rhs(0)
 
-        self.assertRaises(myokit.IncompatibleModelError, multi.binding, m, 'x')
-        x.set_binding('x')
-        self.assertEqual(x, multi.binding(m, 'x'))
+        with WarningCollector() as w:
+            self.assertRaises(
+                myokit.IncompatibleModelError, multi.binding, m, 'x')
+            x.set_binding('x')
+            self.assertEqual(x, multi.binding(m, 'x'))
+        self.assertIn('deprecated', w.text())
 
     def test_unit(self):
         # Test the unit() method that returns a unit conversion factor.
+
+        with WarningCollector():
+            import myokit.lib.multi as multi
 
         m = myokit.Model()
         c = m.add_component('c')

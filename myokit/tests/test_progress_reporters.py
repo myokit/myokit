@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests some of the ProgressReporter classes.
 #
@@ -20,14 +20,14 @@ class ProgressPrinterTests(unittest.TestCase):
     Tests the :class:`ProgressPrinter`.
     """
     def test_progress_printer(self):
-        """ Test basic functionality. """
+        # Test basic functionality.
 
         # Zero call
         with myokit.PyCapture() as c:
             p = myokit.ProgressPrinter()
             self.assertTrue(p.update(0))
         pattern1 = re.compile(
-            '\[[0-9]{1}\.[0-9]{1} minutes\] [0-9]+(.[0-9])? % done')
+            r'\[[0-9]{1}\.[0-9]{1} minutes\] [0-9]+(.[0-9])? % done')
         lines = c.text().splitlines()
         self.assertTrue(len(lines) > 0)
         for line in lines:
@@ -38,8 +38,8 @@ class ProgressPrinterTests(unittest.TestCase):
             p = myokit.ProgressPrinter()
             self.assertTrue(p.update(0.49))
         pattern2 = re.compile(
-            '\[[0-9]{1}\.[0-9]{1} minutes] [0-9]+(.[0-9])? % done,'
-            ' estimated [0-9]{1} seconds remaining')
+            r'\[[0-9]{1}\.[0-9]{1} minutes] [0-9]+(.[0-9])? % done,'
+            r' estimated [0-9]{1} seconds remaining')
         lines = c.text().splitlines()
         self.assertTrue(len(lines) > 0)
         for line in lines:

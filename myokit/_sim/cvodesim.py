@@ -88,7 +88,9 @@ class Simulation(myokit.CModule):
         model = model.clone()
         self._model = model
 
-        # Set protocol (will also set predetermined protocol to None)
+        # Set protocol
+        self._protocol = None
+        self._fixed_form_protocol = None
         self.set_protocol(protocol)
 
         # Check potential and threshold values
@@ -99,8 +101,7 @@ class Simulation(myokit.CModule):
                 apd_var = apd_var.qname()
             self._apd_var = self._model.get(apd_var)
             if not self._apd_var.is_state():
-                raise ValueError(
-                    'The `apd_var` must be a state variable.')
+                raise ValueError('The `apd_var` must be a state variable.')
 
         # Get state and default state from model
         self._state = self._model.state()
@@ -115,6 +116,7 @@ class Simulation(myokit.CModule):
         # Unique simulation id
         Simulation._index += 1
         module_name = 'myokit_sim_' + str(Simulation._index)
+        module_name += '_' + str(myokit._pid_hash())
 
         # Arguments
         args = {
@@ -138,11 +140,21 @@ class Simulation(myokit.CModule):
         if platform.system() != 'Windows':  # pragma: no windows cover
             libs.append('m')
 
-        # Create extension
+        # Define library paths
+        # Note: Sundials path on windows already includes local binaries
         libd = list(myokit.SUNDIALS_LIB)
         incd = list(myokit.SUNDIALS_INC)
         incd.append(myokit.DIR_CFUNC)
+
+        # Create extension
         self._sim = self._compile(module_name, fname, args, libs, libd, incd)
+
+        # Set default tolerance values
+        self._tolerance = None
+        self.set_tolerance()
+
+        # Set default min and max step size
+        self._dtmax = self._dtmin = None
 
     def default_state(self):
         """
@@ -209,6 +221,27 @@ class Simulation(myokit.CModule):
         duration = float(duration)
         self._run(duration, myokit.LOG_NONE, None, None, None, progress, msg)
         self._default_state = self._state
+
+    def __reduce__(self):
+        """
+        Pickles this Simulation.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        apd_var = None if self._apd_var is None else self._apd_var.qname()
+        return (
+            self.__class__,
+            (self._model, self._protocol, apd_var),
+            (
+                self._time,
+                self._state,
+                self._default_state,
+                self._fixed_form_protocol,
+                self._tolerance,
+                self._dtmin,
+                self._dtmax,
+            ),
+        )
 
     def reset(self):
         """
@@ -459,11 +492,14 @@ class Simulation(myokit.CModule):
         if not var.is_literal():
             raise ValueError(
                 'The given variable <' + var.qname() + '> is not a literal.')
+
+        # Update value in internal model: This is required for error handling
+        # (to show the correct values), but also takes care of constants in
+        # pickled/unpickled simulations.
+        self._model.set_value(var.qname(), value)
+
         # Update value in compiled simulation module
         self._sim.set_constant(var.qname(), value)
-        # Update value in internal model (required for error handling to show
-        # the correct values).
-        self._model.set_value(var.qname(), value)
 
     def set_default_state(self, state):
         """
@@ -479,6 +515,11 @@ class Simulation(myokit.CModule):
         dtmax = 0 if dtmax is None else float(dtmax)
         if dtmax < 0:
             dtmax = 0
+
+        # Store internally
+        self._dtmax = dtmax
+
+        # Set in simulation
         self._sim.set_max_step_size(dtmax)
 
     def set_min_step_size(self, dtmin=None):
@@ -489,6 +530,11 @@ class Simulation(myokit.CModule):
         dtmin = 0 if dtmin is None else float(dtmin)
         if dtmin < 0:
             dtmin = 0
+
+        # Store internally
+        self._dtmin = dtmin
+
+        # Set in simulation
         self._sim.set_min_step_size(dtmin)
 
     def set_fixed_form_protocol(self, times=None, values=None):
@@ -554,6 +600,23 @@ class Simulation(myokit.CModule):
         else:
             self._protocol = protocol.clone()
 
+    def __setstate__(self, state):
+        """
+        Called after unpickling.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__setstate__
+        """
+        self._time = state[0]
+        self._state = state[1]
+        self._default_state = state[2]
+        self._fixed_form_protocol = state[3]
+
+        # The following properties need to be set on the internal simulation
+        # object
+        self.set_tolerance(*state[4])
+        self.set_min_step_size(state[5])
+        self.set_max_step_size(state[6])
+
     def set_state(self, state):
         """
         Sets the current state.
@@ -578,6 +641,11 @@ class Simulation(myokit.CModule):
         rel_tol = float(rel_tol)
         if rel_tol <= 0:
             raise ValueError('Relative tolerance must be positive float.')
+
+        # Store tolerance in Python (for pickling)
+        self._tolerance = (abs_tol, rel_tol)
+
+        # Set tolerance in simulation
         self._sim.set_tolerance(abs_tol, rel_tol)
 
     def state(self):
