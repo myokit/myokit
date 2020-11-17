@@ -961,16 +961,15 @@ class TestCellMLParser(unittest.TestCase):
         self.assertEqual(
             myokit.units.dimensionless, m.find_units('nonzero').myokit_unit())
 
-        # Non-integer exponents are not supported: treated as dimensionless
+        # Non-integer exponents are supported
         x = ('<units name="unsup">'
-             '  <unit units="meter" />'
              '  <unit units="ampere" exponent="2.34" />'
              '</units>')
-        with WarningCollector() as w:
-            m = self.parse(x)
-        self.assertIn('Non-integer', w.text())
+        m = self.parse(x)
         self.assertEqual(
-            myokit.units.dimensionless, m.find_units('unsup').myokit_unit())
+            m.find_units('unsup').myokit_unit(),
+            myokit.units.ampere**2.34,
+        )
 
         # Offset must be a number
         x = ('<units name="wooster">'

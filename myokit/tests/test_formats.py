@@ -115,9 +115,8 @@ class ExporterTest(unittest.TestCase):
     various exporter implementations.
     """
     def test_writable_dir(self):
-        """
-        Test :meth:`_test_writable_dir` for existing paths.
-        """
+        # Test :meth:`_test_writable_dir` for existing paths.
+
         m, p, x = myokit.load('example')
         e = myokit.formats.exporter('ansic')
         with TemporaryDirectory() as d:

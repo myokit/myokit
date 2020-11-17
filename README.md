@@ -1,15 +1,16 @@
-[![travis](https://travis-ci.com/MichaelClerx/myokit.svg?branch=master)](https://travis-ci.com/MichaelClerx/myokit)
-[![appveyor](https://ci.appveyor.com/api/projects/status/u2e6bc6tklgxyyra/branch/master?svg=true)](https://ci.appveyor.com/project/MichaelClerx/myokit)
-[![codecov](https://codecov.io/gh/MichaelClerx/myokit/branch/master/graph/badge.svg)](https://codecov.io/gh/MichaelClerx/myokit)
+[![travis](https://travis-ci.com/MichaelClerx/myokit.svg?branch=main)](https://travis-ci.com/MichaelClerx/myokit)
+[![appveyor](https://ci.appveyor.com/api/projects/status/u2e6bc6tklgxyyra/branch/main?svg=true)](https://ci.appveyor.com/project/MichaelClerx/myokit)
+[![codecov](https://codecov.io/gh/MichaelClerx/myokit/branch/main/graph/badge.svg)](https://codecov.io/gh/MichaelClerx/myokit)
 [![Documentation Status](https://readthedocs.org/projects/myokit/badge/?version=latest)](https://myokit.readthedocs.io/?badge=latest)
 
 ![Myokit](http://myokit.org/static/img/logo.png)
 
-[Myokit](http://myokit.org) is an [open-source](https://github.com/MichaelClerx/myokit/blob/master/LICENSE.txt) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
+[Myokit](http://myokit.org) is an [open-source](https://github.com/MichaelClerx/myokit/blob/main/LICENSE.txt) Python-based toolkit that facilitates modeling and simulation of cardiac cellular electrophysiology.
 It's hosted on [GitHub](https://github.com/MichaelClerx/myokit/) and available on [PyPi](https://pypi.org/project/myokit/).
 For the latest documentation, see [myokit.readthedocs.io](https://myokit.readthedocs.io/).
 
 More information, including examples and an installation guide, is available on [myokit.org](http://myokit.org).
+A list of changes introduced in each Myokit release is provided in the [Changelog](https://github.com/MichaelClerx/myokit/blob/main/CHANGELOG.md).
 
 
 ## Install

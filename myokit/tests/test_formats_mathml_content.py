@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the parser and expression writer for content MathML.
 #
@@ -381,12 +381,12 @@ class ContentMathMLParserTest(unittest.TestCase):
         # No operands
         x = '<apply><exp/></apply>'
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Expecting 1 operand\(s\)', self.p, x)
+            mathml.MathMLError, r'Expecting 1 operand\(s\)', self.p, x)
 
         # Too many operands
         x = '<apply><exp/><cn>1</cn><cn>2</cn></apply>'
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Expecting 1 operand\(s\)', self.p, x)
+            mathml.MathMLError, r'Expecting 1 operand\(s\)', self.p, x)
 
         # Floor
         e = myokit.Floor(b)
@@ -801,17 +801,17 @@ class ContentMathMLParserTest(unittest.TestCase):
 
         # Hyperbolic arc sine
         x = self.p('<apply><arcsinh/><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(3 + sqrt(1 + 3*3))')
+        y = myokit.parse_expression('log(3 + sqrt(3*3 + 1))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc cosine
         x = self.p('<apply><arccosh/><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(3 + sqrt(3 + 1) * sqrt(3 - 1))')
+        y = myokit.parse_expression('log(3 + sqrt(3*3 - 1))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc tangent
         x = self.p('<apply><arctanh/><cn>3</cn></apply>')
-        y = myokit.parse_expression('0.5 * (log(1 + 3) - log(1 - 3))')
+        y = myokit.parse_expression('0.5 * log((1 + 3) / (1 - 3))')
         self.assertEqual(x, y)
 
         # Hyperbolic cosecant
@@ -831,17 +831,17 @@ class ContentMathMLParserTest(unittest.TestCase):
 
         # Hyperbolic arc cosecant
         x = self.p('<apply><arccsch/><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(sqrt(1/(3*3) + 1) + 1/3)')
+        y = myokit.parse_expression('log(1/3 + sqrt(1/(3*3) + 1))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc secant
         x = self.p('<apply><arcsech/><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(sqrt(1/(3*3) - 1) + 1/3)')
+        y = myokit.parse_expression('log(1/3 + sqrt(1/(3*3) - 1))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc cotangent
         x = self.p('<apply><arccoth/><cn>3</cn></apply>')
-        y = myokit.parse_expression('0.5 * log((3 + 1)/ (3 - 1))')
+        y = myokit.parse_expression('0.5 * log((3 + 1) / (3 - 1))')
         self.assertEqual(x, y)
 
     def test_unsupported(self):

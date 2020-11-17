@@ -201,7 +201,7 @@ class TestCellMLWriter(unittest.TestCase):
         b = m.add_component('B')
 
         xml = cellml.write_string(m)
-        reg = re.compile(b'<component [^>]*name="[\w]+"')
+        reg = re.compile(b'<component [^>]*name="[\\w]+"')
         items = reg.findall(xml)
         items_sorted = list(sorted(items))
         self.assertEqual(items, items_sorted)
@@ -219,7 +219,7 @@ class TestCellMLWriter(unittest.TestCase):
         s.set_initial_value(4)
 
         xml = cellml.write_string(m)
-        reg = re.compile(b'<variable [^>]*name="[\w]+"')
+        reg = re.compile(b'<variable [^>]*name="[\\w]+"')
         items = reg.findall(xml)
         items_sorted = list(sorted(items))
         self.assertEqual(items, items_sorted)

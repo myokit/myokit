@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the myokit._aux module.
 #
@@ -179,15 +179,38 @@ class AuxTest(unittest.TestCase):
 
         # Test rounding
         self.assertNotEqual(49, y)
-        self.assertEqual(49, myokit._round_if_int(y))
-        self.assertNotEqual(49, myokit._round_if_int(x))
-        self.assertEqual(0.5, myokit._round_if_int(0.5))
+        self.assertEqual(49, myokit._fround(y))
+        self.assertNotEqual(49, myokit._fround(x))
+        self.assertEqual(0.5, myokit._fround(0.5))
+        self.assertIsInstance(myokit._fround(y), int)
 
         # Try with negative numbers
         self.assertNotEqual(-49, -y)
-        self.assertEqual(-49, myokit._round_if_int(-y))
-        self.assertNotEqual(-49, myokit._round_if_int(-x))
-        self.assertEqual(-0.5, myokit._round_if_int(-0.5))
+        self.assertEqual(-49, myokit._fround(-y))
+        self.assertNotEqual(-49, myokit._fround(-x))
+        self.assertEqual(-0.5, myokit._fround(-0.5))
+
+        # Test that _close allows bigger errors
+        x = 49
+        y = x * (1 + 1e-11)
+        self.assertNotEqual(x, y)
+        self.assertFalse(myokit._feq(x, y))
+        self.assertTrue(myokit._close(x, y))
+
+        # And that close thinks everything small is equal
+        x = 1e-16
+        y = 1e-12
+        self.assertNotEqual(x, y)
+        self.assertFalse(myokit._feq(x, y))
+        self.assertTrue(myokit._close(x, y))
+
+        # Test rounding based on closeness
+        x = 49
+        y = x * (1 + 1e-11)
+        self.assertNotEqual(x, y)
+        self.assertEqual(x, myokit._cround(y))
+        self.assertIsInstance(myokit._cround(y), int)
+        self.assertNotEqual(x, myokit._cround(49.001))
 
     def test_format_float_dict(self):
         # Test myokit.format_float_dict.
@@ -522,7 +545,32 @@ class AuxTest(unittest.TestCase):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))
 
-        # Test comparison against another model
+        # Test with an initial state
+        state = [-80, 1e-7, 0.1, 0.9, 0.9, 0.1, 0.9, 0.1]
+        x = myokit.step(m1, initial=state).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name         Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'membrane.V   -8.00000000000000000e+01   1.41230788219242243e+00',
+            'calcium.Cai   9.99999999999999955e-08   1.68235244574188927e-07',
+            'ina.m         1.00000000000000006e-01  -5.12333452433218284e+00',
+            'ina.h         9.00000000000000022e-01   1.30873415607557463e-02',
+            'ina.j         9.00000000000000022e-01   1.43519283896554857e-03',
+            'isi.d         1.00000000000000006e-01  -1.06388689494351027e-02',
+            'isi.f         9.00000000000000022e-01   1.81759609957233962e-03',
+            'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
+            '-' * 79,
+        ]
+        #for i, line in enumerate(y):
+        #    print(line)
+        #    print(x[i])
+        for i, line in enumerate(y):
+            self.assertEqual(line, x[i])
+        self.assertEqual(len(x), len(y))
+
+        # Test comparison against another model (with both models the same)
         m2 = m1.clone()
         x = myokit.step(m1, reference=m2).splitlines()
         y = [
@@ -532,81 +580,118 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
             'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
             '                                       -3.97224086575331814e-04',
-            '                                                               ',
+            '',
             'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
             '                                       -1.56608433137725457e-09',
-            '                                                               ',
+            '',
             'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
             '                                        7.48738392280519083e-02',
-            '                                                               ',
+            '',
             'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
             '                                       -1.78891889478854579e-03',
-            '                                                               ',
+            '',
             'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
             '                                       -3.06255006833574140e-04',
-            '                                                               ',
+            '',
             'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
             '                                       -5.11993904291850035e-06',
-            '                                                               ',
+            '',
             'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
             '                                        1.88374114688215870e-04',
-            '                                                               ',
+            '',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '                                       -3.21682814207918156e-07',
-            '                                                               ',
+            '',
             'Model check completed without errors.',
             '-' * 79,
         ]
 
+        # Test comparison against another model, with an initial state
+        x = myokit.step(m1, reference=m2, initial=state).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name         Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'membrane.V   -8.00000000000000000e+01   1.41230788219242243e+00',
+            '                                        1.41230788219242243e+00',
+            '',
+            'calcium.Cai   9.99999999999999955e-08   1.68235244574188927e-07',
+            '                                        1.68235244574188927e-07',
+            '',
+            'ina.m         1.00000000000000006e-01  -5.12333452433218284e+00',
+            '                                       -5.12333452433218284e+00',
+            '',
+            'ina.h         9.00000000000000022e-01   1.30873415607557463e-02',
+            '                                        1.30873415607557463e-02',
+            '',
+            'ina.j         9.00000000000000022e-01   1.43519283896554857e-03',
+            '                                        1.43519283896554857e-03',
+            '',
+            'isi.d         1.00000000000000006e-01  -1.06388689494351027e-02',
+            '                                       -1.06388689494351027e-02',
+            '',
+            'isi.f         9.00000000000000022e-01   1.81759609957233962e-03',
+            '                                        1.81759609957233962e-03',
+            '',
+            'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
+            '                                       -4.72598388279933061e-03',
+            '',
+            'Model check completed without errors.',
+            '-' * 79,
+        ]
+        #for i, line in enumerate(y):
+        #    print(line)
+        #    print(x[i])
         for i, line in enumerate(y):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))
 
-        # Add small mismatch
-        m2.get('ina.m').set_rhs(
-            myokit.Multiply(m2.get('ina.m').rhs(), myokit.Number(1 + 1e-15)))
-        # Add large mismatch
-        m2.get('isi.f').set_rhs(
-            myokit.Multiply(m2.get('isi.f').rhs(), myokit.Number(2)))
-        # Add huge mismatch
-        m2.get('ix1.x1').set_rhs(
-            myokit.Multiply(m2.get('ix1.x1').rhs(), myokit.Number(100)))
-        # Add sign issue
-        m2.get('ina.j').set_rhs('-(' + m2.get('ina.j').rhs().code() + ')')
-
-        # Test comparison against another model
-        x = myokit.step(m1, reference=m2).splitlines()
+        # Test comparison against stored data
+        ref = [
+            -3.97224086575331868e-04,       # Numerically indistinguishable
+            -1.56608433137725457e-09,
+            7.48738392280519777e-02,        # Tiny error
+            -1.78891889478854579e-03,
+            3.06255006833574140e-04,        # Sign error
+            -5.11993904291850035e-06,
+            3.76748229376431740e-04,        # Large error
+            -3.21682814207918156e-05,       # Exponent
+        ]
+        x = myokit.step(m1, reference=ref).splitlines()
         y = [
             'Evaluating state vector derivatives...',
             '-' * 79,
             'Name         Initial value             Derivative at t=0       ',
             '-' * 79,
             'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
-            '                                       -3.97224086575331814e-04',
-            '                                                               ',
+            '                                       -3.97224086575331868e-04'
+            ' <= 1 eps',
+            '',
             'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
             '                                       -1.56608433137725457e-09',
-            '                                                               ',
+            '',
             'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
-            '                                        7.48738392280519915e-02',
+            '                                        7.48738392280519777e-02'
+            ' ~ 4.2 eps',
             '                                                        ^^^^^^^',
             'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
             '                                       -1.78891889478854579e-03',
-            '                                                               ',
+            '',
             'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
             '                                        3.06255006833574140e-04'
-            ' X !!!',
+            ' sign',
             '                                       ^^^^^^^^^^^^^^^^^^^^^^^^',
             'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
             '                                       -5.11993904291850035e-06',
-            '                                                               ',
+            '',
             'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
             '                                        3.76748229376431740e-04'
             ' X',
             '                                        ^^^^^^^^^^^^^^^^^^^^^^^',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '                                       -3.21682814207918156e-05'
-            ' X !!!',
+            ' exponent',
             '                                                           ^^^^',
             'Found (3) large mismatches between output and reference values.',
             'Found (1) small mismatches.',
@@ -637,10 +722,10 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
             'c.x    1.00000000000000000e+00  -0.00000000000000000e+00',
             '                                 0.00000000000000000e+00',
-            '                                                        ',
+            '',
             'c.y    1.00000000000000000e+00   0.00000000000000000e+00',
             '                                 0.00000000000000000e+00',
-            '                                                        ',
+            '',
             'Model check completed without errors.',
             '-' * 79,
         ]
@@ -679,9 +764,33 @@ class AuxTest(unittest.TestCase):
         x = myokit.Number(1.23)
         self.assertEqual(myokit.strfloat(x), '1.23')
 
+        # Single and double precision
+        self.assertEqual(
+            myokit.strfloat(-1.234, precision=myokit.SINGLE_PRECISION),
+            '-1.234')
+        self.assertEqual(
+            myokit.strfloat(
+                -0.124326562458734682153498731245756e12,
+                precision=myokit.SINGLE_PRECISION),
+            '-1.243265625e+11')
+        self.assertEqual(
+            myokit.strfloat(-1.234, precision=myokit.DOUBLE_PRECISION),
+            '-1.234')
+        self.assertEqual(
+            myokit.strfloat(
+                -0.124326562458734682153498731245756e12,
+                precision=myokit.DOUBLE_PRECISION),
+            '-1.24326562458734680e+11')
+
         # Full precision override
         self.assertEqual(
             myokit.strfloat(1.23, True), ' 1.22999999999999998e+00')
+        self.assertEqual(
+            myokit.strfloat(1.23, True, myokit.DOUBLE_PRECISION),
+            ' 1.22999999999999998e+00')
+        self.assertEqual(
+            myokit.strfloat(1.23, True, myokit.SINGLE_PRECISION),
+            ' 1.230000000e+00')
 
     def test_time(self):
         # Test time formatting method.

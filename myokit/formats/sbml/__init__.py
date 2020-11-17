@@ -7,8 +7,20 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-from ._importer import SBMLImporter  # noqa
-from ._parser import SBMLError, SBMLParser  # noqa
+from ._api import (  # noqa
+    Compartment,
+    Model,
+    ModifierSpeciesReference,
+    Parameter,
+    Quantity,
+    Reaction,
+    SBMLError,
+    Species,
+    SpeciesReference)
+from ._importer import SBMLImporter
+from ._parser import (  # noqa
+    SBMLParsingError,
+    SBMLParser)
 
 
 # Importers

@@ -327,13 +327,13 @@ def cumulative_current(
 
     # Normalise
     if normalise:
-        pos /= np.sum(pos, axis=0)
-        neg /= -np.sum(neg, axis=0)
+        pos /= np.maximum(np.sum(pos, axis=0), 1e-99)
+        neg /= -np.minimum(np.sum(neg, axis=0), -1e-99)
 
     # Number of currents to show
-    if max_currents is None:
+    nc = len(currents)
+    if max_currents is None or max_currents + 1 >= nc:
         show_remainder = False
-        nc = len(currents)
     else:
         show_remainder = True
         max_currents = int(max_currents)

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the Variable class.
 #
@@ -213,6 +213,12 @@ class VariableTest(unittest.TestCase):
         y.set_rhs(4)
         z = c.add_variable('z')
         z.set_rhs('3 * x + y')
+
+        # Invalid model: pyfunc fails
+        self.assertRaises(myokit.IntegrityError, z.pyfunc)
+        t = c.add_variable('time')
+        t.set_rhs(0)
+        t.set_binding('time')
 
         # No states --> No arguments
         f = z.pyfunc(use_numpy=False)

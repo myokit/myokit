@@ -1,34 +1,23 @@
 .. _formats/sbml:
 
+.. module:: myokit.formats.sbml
+
 ****
 SBML
 ****
 
-Import of model definitions is provided from SBML level 3 version 2 files.
+Methods are provided to import model definitions from SBML, based on the level
+3 version 2 specification.
+Older versions (level 2 and up) are partially supported, but may raise
+warnings.
+For further SBML functions, see :ref:`SBML API <formats/sbml_api>`.
 
-Limitations:
-
-  - The function definition feature of SBML is not supported.
-  - The algebraic rule feature of SBML is not supported.
-  - The constraint feature of SBML is not supported.
-  - The events feature of SBML is not supported. External stimuli can be added by hand with :class:`myokit.Protocol`.
-
-API
-===
+Importing
+=========
 
 The standard API for importing is provided:
-
-.. module:: myokit.formats.sbml
 
 .. autofunction:: importers
 
 .. autoclass:: SBMLImporter
-    :inherited-members:
-
-.. autoclass:: SBMLError
-
-Parsing
-=======
-
-.. autoclass:: SBMLParser
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the Compiler detection class.
 #
@@ -25,7 +25,7 @@ class CompilerDetectionTest(unittest.TestCase):
     Tests the compiler detection.
     """
     def test_compiler(self):
-        """ Test the compiler detection. """
+        # Test the compiler detection.
         self.assertIsInstance(myokit.Compiler.info(), basestring)
 
 

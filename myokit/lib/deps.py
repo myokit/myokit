@@ -158,28 +158,19 @@ def plot_state_dependency_matrix(
     # Set tick labels
     names = [i.qname() for i in model.states()]
     a.set_xticks([i + 0.5 for i in range(0, n)])
-    a.set_xticklabels(names)
+    a.set_xticklabels(names, rotation=90)
+    a.xaxis.set_ticks_position('top')
 
     a.set_yticks([i + 0.5 for i in range(0, n)])
     rnames = list(names)
     rnames.reverse()
     a.set_yticklabels(rnames)
-    for tick in a.xaxis.iter_ticks():
-        tick[0].label2On = True
-        tick[0].label1On = False
-        tick[0].label2.set_rotation('vertical')
 
     # Add axes labels
-    a.annotate(
-        'Affecting variable -->',
-        xy=(0, -0.05),
-        xytext=(0, -0.05),
-        xycoords='axes fraction',
-        ha='left',
-        va='center',
-        textcoords='offset points')
+    a.set_xlabel('Affecting variable')
+    a.set_ylabel('Affected variable')
 
-    # Adjust subplot margins
+    # Return
     return a
 
 
@@ -444,6 +435,7 @@ class DiGraph(object):
         """
         # Get layers
         layers = self.cg_layers_dag()
+
         # Set initial positions
         fy = 1.0 / len(layers)
         for i, layer in enumerate(layers):
@@ -457,6 +449,7 @@ class DiGraph(object):
                 for j, node in enumerate(layer):
                     node.y = y
                     node.x = j * fx
+
         # Iteratively update x coordinates using median rule
         max_runs = 100
         for n_runs in range(max_runs):

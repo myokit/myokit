@@ -613,7 +613,7 @@ class LinearModel(object):
         A, _ = self.matrices(membrane_potential, parameters)
 
         # Set up reduced system with full rank: dot(x) = Ay + B
-        B = A[:-1, -1]
+        B = A[:-1, -1:]
         A = A[:-1, :-1] - B
 
         # Check eigenvalues

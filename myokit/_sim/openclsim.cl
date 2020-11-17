@@ -66,7 +66,7 @@ for comp, clist in comp_in.items():
     for bound in bound_variables:
         lhs = bound.lhs()
         if lhs in clist:
-            continue        
+            continue
         for var in comp.variables(deep=True):
             if var.rhs().depends_on(lhs):
                 clist.append(lhs)
@@ -84,7 +84,7 @@ def set_pointers(names=None):
     """
     Tells the expression writer to write the given variable names (given as
     LhsExpression objects) as pointers.
-    
+
     Calling set_pointers a second time clears the first list. Calling with
     ``names=None`` unsets all pointers.
     """
@@ -99,13 +99,13 @@ def v(var):
     """
     if isinstance(var, myokit.Derivative):
         # Explicitly asked for derivative
-        pre = '*' if var in ptrs else ''        
+        pre = '*' if var in ptrs else ''
         return pre + 'D_' + var.var().uname()
     if isinstance(var, myokit.Name):
         var = var.var()
     if var in bound_variables:
         return bound_variables[var]
-    pre = '*' if myokit.Name(var) in ptrs else ''        
+    pre = '*' if myokit.Name(var) in ptrs else ''
     return pre + var.uname()
 w.set_lhs_function(v)
 
@@ -115,7 +115,7 @@ for c in model.components():
     if comp_out[c]:
         # Has output? Then never skip
         continue
-    
+
     # Has variable used in logging? Then never skip
     # Logged states are always outputs, so only check intermediary variables
     skip = True
@@ -180,12 +180,12 @@ print('')
 print('/* Aliases of logged intermediary variables. */')
 for k, var in enumerate(inter_log):
     print('#define ' + var.uname() + ' inter_log[of2 + ' + str(k) + ']')
-    
+
 print('')
 print('/* Aliases of scalar field variables. */')
 for k, var in enumerate(fields):
     print('#define ' + var.uname() + ' field_data[of3 + ' + str(k) + ']')
-    
+
 #print('')
 #print('/* List of components:')
 #for c in model.components():
@@ -297,13 +297,13 @@ __kernel void cell_step(
     const uint iy = get_global_id(1);
     if(ix >= nx) return;
     if(iy >= ny) return;
-    
+
     // Offset of this cell's state in the state vector
     const uint cid = ix + iy * nx;
     const uint of1 = cid * n_state;
     const uint of2 = cid * n_inter;
     const uint of3 = cid * n_field;
-    
+
     // Pacing
 <?
 if diffusion:
@@ -337,7 +337,7 @@ for comp in comp_order:
     args.extend([v(lhs) for lhs in ilist])
     args.extend(['&' + v(lhs) for lhs in olist])
     print(tab + 'calc_' + comp.name() + '(' + ', '.join(args) + ');')
-            
+
 ?>
     /* Perform update */
 <?
@@ -375,7 +375,7 @@ __kernel void diff_step(
     const uint iy = get_global_id(1);
     if(ix >= nx) return;
     if (iy >= ny) return;
-    
+
     // Offset of this cell's Vm in the state vector
     const uint cid = ix + iy * nx;
     const uint of1 = cid * n_state + i_vm;
@@ -398,7 +398,7 @@ __kernel void diff_step(
     } else {
         idiff[cid] = 0;
     }
-    
+
     // Diffusion, y-direction
     if(ny > 1) {
         ofp = of1 + n_state * nx;
@@ -452,13 +452,13 @@ __kernel void diff_arb_step(
     const uint count,
     __global int *cell1,
     __global int *cell2,
-    __global Real *conductance,    
+    __global Real *conductance,
     __global Real *state,
     __global Real *idiff)
 {
     const uint ix = get_global_id(0);
     if(ix >= count) return;
-    
+
     // Cell indices and conductance
     int i1 = cell1[ix];
     int i2 = cell2[ix];
@@ -532,7 +532,7 @@ __kernel void diff_step_fiber_tissue(
     const uint oft = ift * nst + ivt;
     if (cid < nfy) {
         // Connection
-        Real idiff = gft * (state_f[off] - state_t[oft]);        
+        Real idiff = gft * (state_f[off] - state_t[oft]);
         idiff_f[iff] += idiff;
         idiff_t[ift] -= idiff;
     }

@@ -61,18 +61,20 @@ class Expression(object):
         # Store operands
         self._operands = () if operands is None else operands
 
-        # Cached values
-        # These _could_ be calculated immediatly, since they won't change in
-        # the object's lifetime. However, it turns out to be faster to only
-        # evaluate them the first time they're requested.
-        self._cached_hash = None
-        self._cached_polish = None
-        self._cached_validation = None
-
         # Store references
         self._references = set()
         for op in self._operands:
             self._references |= op._references
+
+        # Cached results:
+        # Since expressions are immutable, the results of many methods can be
+        # cached. These could be evaluated initially, but it's more efficient
+        # to way until a first request.
+        self._cached_hash = None
+        self._cached_polish = None
+        self._cached_validation = None
+        self._cached_unit_tolerant = None
+        self._cached_unit_strict = None
 
     def __bool__(self):     # pragma: no python 2 cover
         """ Python 3 method to determine the outcome of "if expression". """
@@ -154,7 +156,7 @@ class Expression(object):
 
     def depends_on(self, lhs):
         """
-        Returns True if this :class:`Expression` depends on the given
+        Returns ``True`` if this :class:`Expression` depends on the given
         :class:`LhsExpresion`.
 
         Only dependencies appearing directly in the expression are checked.
@@ -283,13 +285,36 @@ class Expression(object):
         The method is intended to be used to check the units in a model, so
         every branch of an expression is evaluated, even if it won't affect the
         final result.
+
+        In strict mode, this method will always either return a
+        :class:`myokit.Unit` or raise an :class:`myokit.IncompatibleUnitError`.
+        In tolerant mode, ``None`` will be returned if the units are unknown.
         """
-        try:
-            return self._eval_unit(mode)
-        except EvalUnitError as e:
-            message = _expr_error_message(self, e)
-            token = e.expr._token
-        raise myokit.IncompatibleUnitError(message, token)
+        # Get cached unit or error
+        if mode == myokit.UNIT_STRICT:
+            result = self._cached_unit_strict
+        else:
+            result = self._cached_unit_tolerant
+
+        # Evaluate and cache
+        if result is None:
+            try:
+                result = self._eval_unit(mode)
+            except EvalUnitError as e:
+                result = myokit.IncompatibleUnitError(
+                    _expr_error_message(self, e),
+                    e.expr._token
+                )
+
+            if mode == myokit.UNIT_STRICT:
+                self._unit_strict = result
+            else:
+                self._unit_tolerant = result
+
+        # Raise error or return
+        if isinstance(result, myokit.IncompatibleUnitError):
+            raise result
+        return result
 
     def _eval_unit(self, mode):
         """
@@ -1343,10 +1368,7 @@ class Power(InfixExpression):
         if unit1 is None:
             return None
 
-        try:
-            return unit1 ** self._op2.eval()
-        except TypeError as e:
-            raise EvalUnitError(self, str(e))
+        return unit1 ** self._op2.eval()
 
 
 class Function(Expression):
@@ -1461,10 +1483,7 @@ class Sqrt(Function):
         unit = self._operands[0]._eval_unit(mode)
         if unit is None:
             return None
-        try:
-            return unit ** 0.5
-        except TypeError as e:
-            raise EvalUnitError(self, str(e))
+        return unit ** 0.5
 
 
 class Sin(UnaryDimensionlessFunction):
@@ -2370,16 +2389,20 @@ def _expr_error_message(owner, e):
 
 class Unit(object):
     """
-    Defines a unit.
+    Represents a unit.
 
-    Each unit consists of
+    Most users won't want to create units, but instead use e.g.
+    ``myokit.parse_unit('kg/mV')`` or ``myokit.units.mV``.
 
-      * A list of seven integers: these are the exponents for the basic SI
+    Each Unit consists of
+
+      * A list of seven floats: these are the exponents for the basic SI
         units: ``[g, m, s, A, K, cd, mol]``. Gram is used instead of the SI
         defined kilogram to create a more coherent syntax.
       * A multiplier. This includes both quantifiers (such as milli, kilo, Mega
         etc) and conversion factors (for example 1inch = 2.54cm). Multipliers
-        are specified in powers of 10.
+        are specified in powers of 10, e.g. to create an inch use the
+        multiplier log10(2.54).
 
     There are two ways to create a unit:
 
@@ -2455,19 +2478,21 @@ class Unit(object):
                 raise ValueError(
                     'Unit must have exactly seven exponents set:'
                     ' [g, m, s, A, K, cd, mol].')
-            self._x = [int(x) for x in exponents]
+            self._x = [float(x) for x in exponents]
             self._m = float(multiplier)
+
         self._hash = None
         self._repr = None
 
     @staticmethod
     def can_convert(unit1, unit2):
         """
-        Returns true if the given units differ only by a multiplication. For
-        example, ``[m/s]`` can be converted to ``[miles/hour]`` but not to
-        ``[kg]``.
+        Returns ``True`` if the given units differ only by a multiplication.
+
+        For example, ``[m/s]`` can be converted to ``[miles/hour]`` but not to
+        ``[kg]``. This method is an alias of :meth:`close_exponent`.
         """
-        return unit1._x == unit2._x
+        return Unit.close_exponent(unit1, unit2)
 
     def clarify(self):
         """
@@ -2497,12 +2522,65 @@ class Unit(object):
         return r1 + ' (or ' + r2 + ')'
 
     @staticmethod
+    def close(unit1, unit2, reltol=1e-9, abstol=1e-9):
+        """
+        Checks whether the given units are close enough to be considered equal.
+
+        Note that this differs from ``unit1 is unit2`` (which checks if they
+        are the same object) and ``unit1 == unit2`` (which will check if they
+        are the same unit to machine precision).
+
+        The check for closeness is made with a relative tolerance of ``reltol``
+        and absolute tolerance of ``abstol``, using::
+
+            abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
+
+        Unit exponents are stored as floating point numbers and compared
+        directly. Unit multipliers are stored as ``log10(multiplier)``, and
+        compared without transforming back. As a result, units such as
+        ``[nF]^2`` won't be considered close to ``[pF]^2``, but units such as
+        ``[F]`` will be considered close to ``[F] * (1 + 1e-12)``.
+        """
+        if unit1 is unit2:
+            return True
+
+        # Compare exponents using normal representation, and with absolute
+        # tolerance so that tiny differences from 0 are also picked up. Note
+        # that this means we can't tell the difference between e.g. m^(1e-10)
+        # and m^(1e-11), but that is fine.
+        if not Unit.close_exponent(unit1, unit2, reltol, abstol):
+            return False
+
+        # Compare multipliers in log10 space. This means we can still easily
+        # distinguish between e.g. pF and nF, but we lose the ability to tell
+        # the difference between e.g. [F (1)] and [F (1.00000000000001)]
+        return myokit._close(unit1._m, unit2._m, reltol, abstol)
+
+    @staticmethod
+    def close_exponent(unit1, unit2, reltol=1e-9, abstol=1e-9):
+        """
+        Returns ``True`` if the exponent of ``unit1`` is close to that of
+        ``unit2``.
+
+        Exponents are stored internally as floating point numbers, and the
+        check for closeness if made with a relative tolerance of ``reltol`` and
+        absolute tolerance of ``abstol``, using::
+
+            abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
+
+        """
+        for i, a in enumerate(unit1._x):
+            if not myokit._close(a, unit2._x[i], reltol, abstol):
+                return False
+        return True
+
+    @staticmethod
     def conversion_factor(unit1, unit2, helpers=None):
         """
         Returns a :class:`myokit.Quantity` ``c`` to convert from ``unit1`` to
         ``unit2``, such that ``1 [unit1] * c = 1 [unit2]``.
 
-        For example:
+        For example::
 
             >>> import myokit
             >>> myokit.Unit.conversion_factor('m', 'km')
@@ -2518,7 +2596,7 @@ class Unit(object):
         Conversions between incompatible units can be performed if one or
         multiple helper :class:`Quantity` objects are passed in.
 
-        For example:
+        For example::
 
             >>> import myokit
             >>> myokit.Unit.conversion_factor(
@@ -2528,6 +2606,9 @@ class Unit(object):
         Where::
 
             1 [uA/cm^2] = 1 [cm^2/uF] * 1 [uA/uF]
+
+        Note that this method uses the :meth:`close()` and
+        :meth:`close_exponent` comparisons to see if units are equal.
 
         Arguments:
 
@@ -2545,6 +2626,9 @@ class Unit(object):
             ``1 [uF/cm^2]``.
 
         Returns a :class:`myokit.Quantity`.
+
+        Raises a :class:`myokit.IncompatibleUnitError` if the units cannot be
+        converted.'
         """
         # Check unit1
         if not isinstance(unit1, myokit.Unit):
@@ -2569,13 +2653,13 @@ class Unit(object):
                 factors.append(factor)
         del(helpers)
 
-        # Simplest case: units are equal
-        if unit1 == unit2:
+        # Simplest case: units are (almost) equal
+        if Unit.close(unit1, unit2):
             return Quantity(1)
 
         # Get conversion factor
         fw = None
-        if unit1._x == unit2._x:
+        if Unit.close_exponent(unit1, unit2):
 
             # Directly convertible
             fw = 10**(unit1._m - unit2._m)
@@ -2585,12 +2669,12 @@ class Unit(object):
             for factor in factors:
 
                 unit1a = unit1 * factor.unit()
-                if unit1a._x == unit2._x:
+                if Unit.close_exponent(unit1a, unit2):
                     fw = 10**(unit1a._m - unit2._m) * factor.value()
                     break
 
                 unit1a = unit1 / factor.unit()
-                if unit1a._x == unit2._x:
+                if Unit.close_exponent(unit1a, unit2):
                     fw = 10**(unit1a._m - unit2._m) / factor.value()
                     break
 
@@ -2603,7 +2687,7 @@ class Unit(object):
             raise myokit.IncompatibleUnitError(msg + '.')
 
         # Create Quantity and return
-        fw = myokit._round_if_int(fw)
+        fw = myokit._fround(fw)
         return Quantity(fw, unit2 / unit1)
 
     @staticmethod
@@ -2628,11 +2712,15 @@ class Unit(object):
     def __eq__(self, other):
         if not isinstance(other, Unit):
             return False
-        return self._x == other._x and self._m == other._m
+
+        for i, x in enumerate(self._x):
+            if not myokit._feq(x, other._x[i]):
+                return False
+        return myokit._feq(self._m, other._m)
 
     def exponents(self):
         """
-        Returns the list of this unit's exponents.
+        Returns a list containing this unit's exponents.
         """
         return list(self._x)
 
@@ -2648,9 +2736,13 @@ class Unit(object):
     def __hash__(self):
         # Creates a hash for this Unit
 
-        if not self._hash:
-            self._hash = hash(
-                ','.join([str(x) for x in self._x]) + 'e' + str(self._m))
+        # This uses self._str with rounding, to get hashes that are the same
+        # for units that are close (but note that the __eq__ check will still
+        # tell them apart). It cannot use str(self) because that can involve
+        # hashing to look up a preferred representation.
+
+        if self._hash is None:
+            self._hash = hash(self._str(True))
         return self._hash
 
     @staticmethod
@@ -2685,8 +2777,7 @@ class Unit(object):
         if not isinstance(other, Unit):
             return Unit(list(self._x), self._m + math.log10(float(other)))
         return Unit(
-            [a + b for a, b in zip(self._x, other._x)],
-            self._m + other._m)
+            [a + b for a, b in zip(self._x, other._x)], self._m + other._m)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -2758,14 +2849,8 @@ class Unit(object):
         # Evaluates ``self ^ other``
 
         f = float(f)
-        e = [myokit._round_if_int(f * x) for x in self._x]
-        for x in e:
-            if not x == int(x):
-                raise TypeError(
-                    'Unit exponentiation (' + repr(self) + ') ^ '
-                    + str(f) + ' failed: would result in non-integer'
-                    + ' exponents, which is not supported.')
-        return Unit([int(x) for x in e], self._m * f)
+        e = [myokit._fround(f * x) for x in self._x]
+        return Unit(e, self._m * f)
 
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
         return self.__rtruediv__(other)
@@ -2833,40 +2918,8 @@ class Unit(object):
         """
         Returns this unit formatted in the base SI units.
         """
-        if not self._repr:
-
-            # SI unit names
-            si = ['g', 'm', 's', 'A', 'K', 'cd', 'mol']
-
-            # Get unit parts
-            pos = []
-            neg = []
-            for k, x in enumerate(self._x):
-                if x != 0:
-                    y = si[k]
-                    xabs = abs(x)
-                    if xabs > 1:
-                        y += '^' + str(xabs)
-                    if x > 0:
-                        pos.append(y)
-                    else:
-                        neg.append(y)
-            u = '*'.join(pos) if pos else '1'
-            for x in neg:
-                u += '/' + str(x)
-
-            # Add conversion factor
-            if self._m != 0:
-                m = 10**self._m
-                if myokit._feq(m, int(m)):
-                    m = int(m)
-                if m < 1e6:
-                    m = str(m)
-                else:
-                    m = '{:<1.0e}'.format(m)
-                u += ' (' + m + ')'
-            self._repr = '[' + u + ']'
-
+        if self._repr is None:
+            self._repr = self._str(False)
         return self._repr
 
     def __rmul__(self, other):
@@ -2880,33 +2933,94 @@ class Unit(object):
 
         return Unit([-a for a in self._x], math.log10(other) - self._m)
 
+    def _str(self, use_close_for_rounding):
+        """
+        String representation without preferred representations, that will
+        round to nearby ints if ``use_close_for_rounding=True``.
+        """
+        # Rounding
+        rnd = myokit._cround if use_close_for_rounding else myokit._fround
+
+        # SI unit names
+        si = ['g', 'm', 's', 'A', 'K', 'cd', 'mol']
+
+        # Get unit parts
+        pos = []
+        neg = []
+        for k, x in enumerate(self._x):
+            x = rnd(x)
+            if x != 0:
+                y = si[k]
+                xabs = abs(x)
+                if xabs > 1:
+                    y += '^' + str(xabs)
+                if x > 0:
+                    pos.append(y)
+                else:
+                    neg.append(y)
+        u = '*'.join(pos) if pos else '1'
+        for x in neg:
+            u += '/' + str(x)
+
+        # Add conversion factor
+        m = self._m
+        if m != 0:
+            m = rnd(m)
+            m = 10**m
+            if m >= 1:
+                m = rnd(m)
+            if m < 1e6:
+                m = str(m)
+            else:
+                m = '{:<1.0e}'.format(m)
+            u += ' (' + m + ')'
+        return '[' + u + ']'
+
     def __str__(self):
+
+        # Strategy 1: Try simple look-up (using _feq float comparison)
         try:
             return '[' + Unit._preferred_representations[self] + ']'
         except KeyError:
-            try:
-                # Find representation without multiplier, add multiplier and
-                # store as preferred representation.
-                # "Without multiplier" here means times 1000^kilo_exponent,
-                # because kilos are defined with a multiplier of 1000
-                m = 3 * self._x[0]
-                u = Unit(list(self._x), m)
-                rep = Unit._preferred_representations[u]
-                m = 10**(self._m - m)
-                if m >= 1 and myokit._feq(m, int(m)):
-                    m = int(m)
+            pass
+
+        # Strategy 2: Find a representation for a unit that's close to this one
+        rep = None
+        for unit, test in Unit._preferred_representations.items():
+            if Unit.close(self, unit):
+                rep = '[' + test + ']'
+                break
+
+        # Strategy 3: Try finding a representation for the exponent and adding
+        # a multiplier to that.
+        if rep is None:
+
+            # Because kilos are defined with a multiplier of 1000, the
+            # "multiplier free" value is actually given by
+            # 10**(3 * gram exponent)
+            m = 3 * self._x[0]
+            u = Unit(list(self._x), m)
+            rep = Unit._preferred_representations.get(u, None)
+
+            # Add multiplier part
+            if rep is not None:
+                m = myokit._cround(self._m - m)
+                m = 10**m
+                if m >= 1:
+                    m = myokit._cround(m)
                 if m < 1e6:
                     m = str(m)
                 else:
                     m = '{:<1.0e}'.format(m)
                 rep = '[' + rep + ' (' + m + ')]'
-                Unit._preferred_representations[self] = rep[1:-1]
-                return rep
-            except KeyError:
-                # Get plain representation, store as preferred
-                rep = self.__repr__()
-                Unit._preferred_representations[self] = rep[1:-1]
-                return rep
+
+        # Strategy 4: Build a new representation
+        if rep is None:
+            rep = self._str(True)
+
+        # Store new representation and return
+        Unit._preferred_representations[self] = rep[1:-1]
+        return rep
 
     def __truediv__(self, other):
         # Evaluates self / other if future division is active.

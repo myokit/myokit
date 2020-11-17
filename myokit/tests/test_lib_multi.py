@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the myokit.lib.multi module.
 #
@@ -12,7 +12,6 @@ import os
 import unittest
 
 import myokit
-import myokit.lib.multi as multi
 
 from shared import DIR_DATA, WarningCollector
 
@@ -33,6 +32,9 @@ class LibMultiTest(unittest.TestCase):
 
     def test_iterdir(self):
         # Test the iterdir() method that iterators over model, protocol tuples.
+
+        with WarningCollector():
+            import myokit.lib.multi as multi
 
         # Get all found tuples (model, protocol)
         tuples = [x for x in multi.iterdir(DIR_MULTI)]
@@ -68,6 +70,9 @@ class LibMultiTest(unittest.TestCase):
         # Test the scandir() method that returns a models list and a protocols
         # list.
 
+        with WarningCollector():
+            import myokit.lib.multi as multi
+
         # Get list of models and protocols
         models, protocols = multi.scandir(DIR_MULTI)
         self.assertEqual(len(models), len(protocols), 2)
@@ -86,6 +91,9 @@ class LibMultiTest(unittest.TestCase):
     def test_time(self):
         # Test the time() method that returns the time variable.
 
+        with WarningCollector():
+            import myokit.lib.multi as multi
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
@@ -99,6 +107,9 @@ class LibMultiTest(unittest.TestCase):
 
     def test_label(self):
         # Test the label() method that returns a labelled variable.
+
+        with WarningCollector():
+            import myokit.lib.multi as multi
 
         m = myokit.Model()
         c = m.add_component('c')
@@ -115,6 +126,9 @@ class LibMultiTest(unittest.TestCase):
     def test_binding(self):
         # Test the binding() method that returns a bound variable.
 
+        with WarningCollector():
+            import myokit.lib.multi as multi
+
         m = myokit.Model()
         c = m.add_component('c')
         x = c.add_variable('x')
@@ -129,6 +143,9 @@ class LibMultiTest(unittest.TestCase):
 
     def test_unit(self):
         # Test the unit() method that returns a unit conversion factor.
+
+        with WarningCollector():
+            import myokit.lib.multi as multi
 
         m = myokit.Model()
         c = m.add_component('c')

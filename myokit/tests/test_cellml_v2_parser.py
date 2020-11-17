@@ -621,16 +621,15 @@ class TestCellMLParser(unittest.TestCase):
              '</units>')
         self.assertBad(x, 'must have a units attribute')
 
-        # Non-integer exponents are not supported: treated as dimensionless
+        # Non-integer exponents are supported
         x = ('<units name="unsup">'
-             '  <unit units="volt" />'
              '  <unit units="ampere" exponent="2.34" />'
              '</units>')
-        with WarningCollector() as w:
-            m = self.parse(x)
-        self.assertIn('non-integer exponent', w.text())
+        m = self.parse(x)
         self.assertEqual(
-            myokit.units.dimensionless, m.find_units('unsup').myokit_unit())
+            m.find_units('unsup').myokit_unit(),
+            myokit.units.ampere**2.34
+        )
 
     def test_units(self):
         # Test parsing a units definition

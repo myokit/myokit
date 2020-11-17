@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the protocol output for step protocols where floating point accuracy
 # matters.

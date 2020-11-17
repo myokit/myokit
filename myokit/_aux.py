@@ -1281,8 +1281,12 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
     info.compress_type = zipfile.ZIP_DEFLATED
 
     # Write to compressed file
+    try:
+        ar = ar.tobytes()
+    except AttributeError:  # pragma: no python 3 cover
+        ar = ar.tostring()
     with zipfile.ZipFile(filename, 'w') as f:
-        f.writestr(info, ar.tostring())
+        f.writestr(info, ar)
 
 
 def step(model, initial=None, reference=None, ignore_errors=False):
@@ -1315,7 +1319,6 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     # Log settings
     fmat = myokit.SFDOUBLE
     line_width = 79
-    precision = 10
 
     # Get max variable name width (at least 4, for 'Name' header)
     w = max(4, max([len(v.qname()) for v in model.states()]))
@@ -1334,7 +1337,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     if not reference:
         # Default output: intial value and derivative
         for r, v in enumerate(model.states()):
-            log.append(f.format(v.qname(), v.state_value(), values[r]))
+            log.append(f.format(v.qname(), initial[r], values[r]))
     else:
         # Comparing output
 
@@ -1348,12 +1351,11 @@ def step(model, initial=None, reference=None, ignore_errors=False):
         g = h + fmat
         errors = 0
         warnings = 0
-        zero = fmat.format(0)[1:]
 
         for r, v in enumerate(model.states()):
             x = values[r]
             y = reference[r]
-            log.append(f.format(v.qname(), v.state_value(), x))
+            log.append(f.format(v.qname(), initial[r], x))
             xx = fmat.format(x)
             yy = fmat.format(y)
             line = g.format(y)
@@ -1362,39 +1364,54 @@ def step(model, initial=None, reference=None, ignore_errors=False):
             if xx[0] != yy[0]:
 
                 # Ignore if zero
-                if (xx[1:] == yy[1:] == zero):
+                if (_feq(x, 0) and _feq(y, 0)):
                     log.append(line)
-                    log.append(h + ' ' * 24)
+                    log.append('')
                 else:
                     errors += 1
-                    log.append(line + ' X !!!')
+                    log.append(line + ' sign')
                     log.append(h + '^' * 24)
 
             # Different exponent, huge error
             elif xx[-4:] != yy[-4:]:
                 errors += 1
-                log.append(line + ' X !!!')
+                log.append(line + ' exponent')
                 log.append(i + '^^^^')
 
-            # No error of smaller error
+            # Large error, small error, or no error
             else:
-                threshold = 3 + precision  # 3 rubbish chars
-                if xx[0:threshold] != yy[0:threshold]:
+                mark_error = False
+                threshold = 13
+                if xx[:threshold] != yy[:threshold]:
+                    # "Large" error
                     errors += 1
                     line += ' X'
-                else:
-                    if xx[threshold:] != yy[threshold:]:
+                    mark_error = True
+                elif xx != yy:
+                    # "Small" error, or numerical error
+                    rel_err = abs(x - y) / max(abs(x), abs(y))
+                    n_eps = rel_err / sys.float_info.epsilon
+                    if n_eps > 1:
+                        line += ' ~ ' + str(round(n_eps, 1)) + ' eps'
+                    else:
+                        line += ' <= 1 eps'
+                    if n_eps > 1:
                         warnings += 1
+                        mark_error = True
                 log.append(line)
-                line2 = h
-                pos = 0
-                n = len(xx)
-                while pos < n and xx[pos] == yy[pos]:
-                    line2 += ' '
-                    pos += 1
-                for pos in range(pos, n):
-                    line2 += '^'
-                log.append(line2)
+
+                if mark_error:
+                    line2 = h
+                    pos = 0
+                    n = len(xx)
+                    while pos < n and xx[pos] == yy[pos]:
+                        line2 += ' '
+                        pos += 1
+                    for pos in range(pos, n):
+                        line2 += '^'
+                    log.append(line2)
+                else:
+                    log.append('')
 
         # Show large mismatches between model and reference
         if errors > 0:
@@ -1413,13 +1430,16 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     return '\n'.join(log)
 
 
-def strfloat(number, full=False):
+def strfloat(number, full=False, precision=myokit.DOUBLE_PRECISION):
     """
     Turns the given number into a string.
     """
     # Force full precision output
     if full:
-        return myokit.SFDOUBLE.format(float(number))
+        if precision == myokit.SINGLE_PRECISION:
+            return myokit.SFSINGLE.format(float(number))
+        else:
+            return myokit.SFDOUBLE.format(float(number))
 
     # Pass through strings
     if isinstance(number, str):
@@ -1434,9 +1454,12 @@ def strfloat(number, full=False):
     if len(s) < 10:
         return s
 
-    # But if the number is given with lots of decimals, use the highest
-    # precision number possible
-    return myokit.SFDOUBLE.format(number)
+    # But if the number is given with lots of decimals, use the representation
+    # with enough digits to prevent loss of information
+    if precision == myokit.SINGLE_PRECISION:
+        return myokit.SFSINGLE.format(float(number))
+    else:
+        return myokit.SFDOUBLE.format(float(number))
 
 
 def version(raw=False):
@@ -1467,6 +1490,7 @@ def _feq(a, b):
     Checks if floating point numbers ``a`` and ``b`` are equal, or so close to
     each other that the difference could be a single rounding error.
     """
+    # Note the initial == check handles infinity
     return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
 
 
@@ -1477,13 +1501,36 @@ def _fgeq(a, b):
     return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
 
 
-def _round_if_int(x):
+def _fround(x):
     """
     Checks if a float ``x`` is within 1 rounding error of an integer, and if
-    so, rounds it to that integer.
+    so, converts it to that integer.
     """
-    ix = round(x)
+    ix = int(round(x))
     return ix if _feq(x, ix) else x
+
+
+def _close(a, b, reltol=1e-9, abstol=1e-9):
+    """
+    Test whether two numbers are close enough to be considered equal.
+
+    Differs from :meth:`myokit._feq` in that it tries to answer the question
+    "are two number resulting from various calculations close enough to be
+    considered equal". Whereas `_feq` aims to deal with numbers that are
+    numerically indistinguishable but still have a slightly different floating
+    point representation.
+    """
+    # Note the initial == check handles infinity
+    return a == b or abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
+
+
+def _cround(x, reltol=1e-9, abstol=1e-9):
+    """
+    Checks if a float ``x`` is close to an integer with :meth:`close()`, and if
+    so, converts it to that integer.
+    """
+    ix = int(round(x))
+    return ix if _close(x, ix, reltol, abstol) else x
 
 
 def _rmtree(path):

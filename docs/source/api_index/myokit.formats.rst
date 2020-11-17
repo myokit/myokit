@@ -66,7 +66,6 @@ myokit.formats.cellml.v1
 - :class:`myokit.formats.cellml.v1.Units`
 - :class:`myokit.formats.cellml.v1.UnitsError`
 - :class:`myokit.formats.cellml.v1.UnsupportedBaseUnitsError`
-- :class:`myokit.formats.cellml.v1.UnsupportedUnitExponentError`
 - :class:`myokit.formats.cellml.v1.UnsupportedUnitOffsetError`
 - :class:`myokit.formats.cellml.v1.Variable`
 - :meth:`myokit.formats.cellml.v1.write_file`
@@ -90,8 +89,6 @@ myokit.formats.cellml.v2
 - :meth:`myokit.formats.cellml.v2.parse_file`
 - :meth:`myokit.formats.cellml.v2.parse_string`
 - :class:`myokit.formats.cellml.v2.Units`
-- :class:`myokit.formats.cellml.v2.UnitsError`
-- :class:`myokit.formats.cellml.v2.UnsupportedUnitExponentError`
 - :class:`myokit.formats.cellml.v2.Variable`
 - :meth:`myokit.formats.cellml.v2.write_file`
 - :meth:`myokit.formats.cellml.v2.write_string`
@@ -170,10 +167,19 @@ myokit.formats.python
 
 myokit.formats.sbml
 -------------------
+- :class:`myokit.formats.sbml.Compartment`
+- :class:`myokit.formats.sbml.Model`
+- :class:`myokit.formats.sbml.ModifierSpeciesReference`
 - :meth:`myokit.formats.sbml.importers`
+- :class:`myokit.formats.sbml.Parameter`
+- :class:`myokit.formats.sbml.Quantity`
+- :class:`myokit.formats.sbml.Reaction`
 - :class:`myokit.formats.sbml.SBMLError`
 - :class:`myokit.formats.sbml.SBMLImporter`
 - :class:`myokit.formats.sbml.SBMLParser`
+- :class:`myokit.formats.sbml.SBMLParsingError`
+- :class:`myokit.formats.sbml.Species`
+- :class:`myokit.formats.sbml.SpeciesReference`
 
 myokit.formats.stan
 -------------------

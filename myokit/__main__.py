@@ -1786,34 +1786,41 @@ def test_mmt_files(path):
     print('Running mmt files for:')
     print('  ' + path)
 
-    # Error states
+    # Error state
     error = 0
 
-    # Run all
-    glob = '*.mmt'
-    for fn in fnmatch.filter(os.listdir(path), glob):
-        # Load and run
-        try:
-            print('Loading ' + fn)
-            m, p, x = myokit.load(os.path.join(path, fn))
+    # Set working directory that that path
+    wdir = os.getcwd()
+    try:
+        os.chdir(path)
+
+        # Run all
+        glob = '*.mmt'
+        for fn in fnmatch.filter(os.listdir(path), glob):
+            # Load and run
             try:
-                print('Running...')
-                myokit.run(m, p, x)
+                print('Loading ' + fn)
+                m, p, x = myokit.load(os.path.join(path, fn))
+                try:
+                    print('Running...')
+                    myokit.run(m, p, x)
+                except Exception:
+                    error = 1
+                    print(traceback.format_exc())
+                del(m, p, x)
             except Exception:
-                error = 1
+                print('Unable to load.')
                 print(traceback.format_exc())
-            del(m, p, x)
-        except Exception:
-            print('Unable to load.')
-            print(traceback.format_exc())
 
-        # Tidy up
-        gc.collect()
-        print('-' * 70)
+            # Tidy up
+            gc.collect()
+            print('-' * 70)
 
-        # Quit on error
-        if error:
-            return error
+            # Quit on error
+            if error:
+                break
+    finally:
+        os.chdir(wdir)
 
     # Return error status 0
     return error

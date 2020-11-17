@@ -102,10 +102,10 @@ def create_unit_name(unit):
         name, multiplier = name, ''
 
     # Could also be because it's g*m/mol^2
-    # (Exponents are integers, so don't need to deal with floats here)
     name = name.replace('^', '')
     name = name.replace('/', '_per_')
     name = name.replace('*', '_')
+    name = name.replace('.', '_dot_')
 
     # Remove "1_" from "1_per_mV"
     if name[:2] == '1_':
@@ -159,21 +159,6 @@ class CellMLError(myokit.MyokitError):
     Raised when an invalid CellML 2.0 model is created or detected, or when a
     model uses CellML features that Myokit does not support.
     """
-
-
-class UnitsError(CellMLError):
-    """
-    Raised when unsupported unit features are used.
-    """
-
-
-class UnsupportedUnitExponentError(UnitsError):
-    """
-    Raised when units with non-integer exponents are used.
-    """
-    def __init__(self):
-        super(UnsupportedUnitExponentError, self).__init__(
-            'Units with non-integer exponents are not supported.')
 
 
 class Component(AnnotatableElement):
@@ -323,7 +308,6 @@ class Model(AnnotatableElement):
     - Imports are not supported.
     - Reset rules are not supported.
     - Using variables in ``initial_value`` attributes is not supported.
-    - Units with a non-integer exponent are not supported.
     - Defining new base units is not supported.
     - All equations must be of the form ``x = ...`` or ``dx/dt = ...``.
     - Models that take derivatives with respect to more than one variable are
@@ -1226,12 +1210,8 @@ class Units(object):
                     + str(multiplier) + '"')
             e = float(exponent)
 
-            # Only integers are supported by Myokit
-            if not myokit._feq(e, int(e)):
-                raise UnsupportedUnitExponentError
-
             # Apply exponent to unit
-            unit **= int(e)
+            unit **= e
 
         # Handle multiplier
         if multiplier is not None:

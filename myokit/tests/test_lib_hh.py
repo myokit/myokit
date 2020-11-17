@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the lib.hh module.
 #
@@ -537,7 +537,7 @@ class HHModelTest(unittest.TestCase):
         self.assertTrue(len(model2.code()) < len(model.code()))
 
     def test_automatic_creation(self):
-        # Create a linear model from a component.
+        # Create a HH model from a component.
 
         # Load model
         fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
@@ -599,7 +599,11 @@ class HHModelTest(unittest.TestCase):
         m = hh.HHModel.from_component(model.get('ina'))
 
         # Get steady state
-        ss = list(m.steady_state())
+        ss = np.array(m.steady_state())
+
+        # Check that this is a valid steady state
+        self.assertTrue(np.all(ss >= 0))
+        self.assertTrue(np.all(ss <= 1))
 
         # Test if derivatives are zero
         for k, x in enumerate(['ina.m', 'ina.h', 'ina.j']):
