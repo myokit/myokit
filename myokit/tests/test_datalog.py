@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the DataLog class
 #
@@ -15,7 +15,7 @@ import numpy as np
 import myokit
 
 from shared import DIR_DATA, DIR_IO, TemporaryDirectory
-from shared import TestReporter, CancellingReporter
+from shared import TestReporter, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -114,19 +114,20 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(list(d3['v2']), v2)
 
     def test_find(self):
-        # Tests the find() function
+        # Tests the deprecated find() function
 
         d = myokit.DataLog({
             'engine.time': [0, 5, 10, 15, 20],
             'membrane.V': [0, 50, 100, 150, 200]})
         d.set_time_key('engine.time')
-        self.assertEqual(d.find(-5), d.find_after(-5))
-        self.assertEqual(d.find(0), d.find_after(0))
-        self.assertEqual(d.find(2), d.find_after(2))
-        self.assertEqual(d.find(5), d.find_after(5))
-        self.assertEqual(d.find(7), d.find_after(7))
-        self.assertEqual(d.find(20), d.find_after(20))
-        self.assertEqual(d.find(22), d.find_after(22))
+        with WarningCollector():
+            self.assertEqual(d.find(-5), d.find_after(-5))
+            self.assertEqual(d.find(0), d.find_after(0))
+            self.assertEqual(d.find(2), d.find_after(2))
+            self.assertEqual(d.find(5), d.find_after(5))
+            self.assertEqual(d.find(7), d.find_after(7))
+            self.assertEqual(d.find(20), d.find_after(20))
+            self.assertEqual(d.find(22), d.find_after(22))
 
     def test_find_after(self):
         # Test the find_after() function.

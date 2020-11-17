@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the exporters from the format module.
 #
@@ -71,9 +71,8 @@ str=String value
 class TestConfig(unittest.TestCase):
 
     def test_create(self):
-        """
-        Test if the `_create` method works.
-        """
+        # Test if the `_create` method works.
+
         # Import hidden _config module
         path = sys.path
         try:
@@ -90,9 +89,8 @@ class TestConfig(unittest.TestCase):
         self.assertFalse(os.path.isfile(filename))
 
     def test_load_read(self):
-        """
-        Test if the `_load` method works, when a config file exists.
-        """
+        # Test if the `_load` method works, when a config file exists.
+
         # Import hidden _config module
         path = sys.path
         try:

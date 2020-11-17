@@ -56,6 +56,7 @@ class RhsBenchmarker(myokit.CModule):
         # Extension module id
         RhsBenchmarker._index += 1
         module_name = 'myokit_RhsBenchmarker_' + str(RhsBenchmarker._index)
+        module_name += '_' + str(myokit._pid_hash())
 
         # Distutils arguments
         args = {

@@ -1,19 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Shared testing module
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
 #
-# The TemporaryDirectory class was copied form Pints
+# The TemporaryDirectory class was adapted from Pints
 # See: https://github.com/pints-team/pints
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
-import shutil
 import tempfile
+import warnings
 
 import myokit
 
@@ -80,7 +80,7 @@ class TemporaryDirectory(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         try:
-            shutil.rmtree(self._dir)
+            myokit._rmtree(self._dir)
         finally:
             self._dir = None
 
@@ -127,3 +127,37 @@ class CancellingReporter(myokit.ProgressReporter):
     def update(self, f):
         self.okays -= 1
         return self.okays >= 0
+
+
+class WarningCollector(object):
+    """
+    Wrapper around warnings.catch_warnings() that gathers all messages into a
+    single string.
+    """
+    def __init__(self):
+        self._warnings = []
+        self._w = warnings.catch_warnings(record=True)
+
+    def __enter__(self):
+        self._warnings = self._w.__enter__()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self._w.__exit__(type, value, traceback)
+
+    def count(self):
+        """Returns the number of warnings caught."""
+        return len(self._warnings)
+
+    def has_warnings(self):
+        """Returns ``True`` if there were any warnings."""
+        return len(self._warnings) > 0
+
+    def text(self):
+        """Returns the text of all gathered warnings."""
+        return ' '.join(str(w.message) for w in self._warnings)
+
+    def warnings(self):
+        """Returns all gathered warning objects."""
+        return self._warnings
+

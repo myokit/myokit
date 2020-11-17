@@ -182,6 +182,7 @@ class Simulation1d(myokit.CModule):
         # Unique simulation id
         Simulation1d._index += 1
         module_name = 'myokit_sim1d_' + str(Simulation1d._index)
+        module_name += '_' + str(myokit._pid_hash())
 
         # Arguments
         args = {

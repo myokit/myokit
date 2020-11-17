@@ -58,7 +58,8 @@ if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
         'Myokit is not tested on Python 2 versions older than 2.7.15')
     log.warning('Detected Python version: ' + sys.version)
     del(logging, log)
-elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000:
+elif (sys.hexversion >= 0x03000000 and
+      sys.hexversion < 0x03050000):  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
@@ -68,7 +69,7 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000:
 
 
 # Exec() that works with Python 2 versions before 2.7.9
-if sys.hexversion < 0x020709F0:
+if sys.hexversion < 0x020709F0:     # pragma: no python 3 cover
     from ._exec_old import _exec    # noqa
 else:
     from ._exec_new import _exec    # noqa
@@ -85,30 +86,12 @@ from ._myokit_version import (  # noqa
 )
 
 
-# Myokit version
-def version(raw=False):
-    """
-    Returns the current Myokit version.
-    """
-    if raw:
-        return __version__
-    else:
-        t1 = ' Myokit ' + __version__ + ' '
-        t2 = '_' * len(t1)
-        t1 += '|/\\'
-        t2 += '|  |' + '_' * 5
-        return '\n' + t1 + '\n' + t2
-
-
 # Warn about development version
 import logging  # noqa
 log = logging.getLogger(__name__)
 log.info('Loading Myokit version ' + __version__)
-if not __release__:
-    log.warning(
-        'Using development version of Myokit. This may contain untested'
-        ' features and bugs. Please see http://myokit.org for the latest'
-        ' stable release.')
+if not __release__:     # pragma: no cover
+    log.warning('Using development version of Myokit (' + __version__ + ').')
 del(log, logging)
 
 
@@ -121,10 +104,11 @@ LICENSE = """
 BSD 3-Clause License
 
 Copyright (c) 2011-2017 Maastricht University. All rights reserved.
-Copyright (c) 2017-2019 University of Oxford. All rights reserved.
+Copyright (c) 2017-2020 University of Oxford. All rights reserved.
  (University of Oxford means the Chancellor, Masters and Scholars of the
   University of Oxford, having an administrative office at Wellington Square,
   Oxford OX1 2JD, UK).
+Copyright (c) 2020-2020 University of Nottingham. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -215,7 +199,7 @@ LICENSE_HTML = """
 import os, inspect  # noqa
 try:
     frame = inspect.currentframe()
-    DIR_MYOKIT = os.path.dirname(inspect.getfile(frame))
+    DIR_MYOKIT = os.path.abspath(os.path.dirname(inspect.getfile(frame)))
 finally:
     # Always manually delete frame
     # https://docs.python.org/2/library/inspect.html#the-interpreter-stack
@@ -244,7 +228,7 @@ if os.path.exists(DIR_USER):    # pragma: no cover
     if not os.path.isdir(DIR_USER):
         raise Exception(
             'File or link found in place of user directory: ' + str(DIR_USER))
-else:
+else:                           # pragma: no cover
     os.makedirs(DIR_USER)
 
 # Example mmt file
@@ -385,7 +369,7 @@ ex, name, clas = None, None, None
 for ex in inspect.getmembers(_err):
     name, clas = ex
     if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-        if name not in _globals:
+        if name not in _globals:    # pragma: no cover
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 del(_err)
@@ -449,7 +433,6 @@ from ._expressions import (  # noqa
     Sin,
     Sqrt,
     Tan,
-    UnsupportedFunction,
     Unit,
 
 )
@@ -478,9 +461,16 @@ from ._parsing import (  # noqa
 
 # Auxillary functions
 from ._aux import (  # noqa
+    # Version info
+    version,
+
     # Global date and time formats
     date,
     time,
+
+    # Default mmt parts
+    default_protocol,
+    default_script,
 
     # Reading, writing
     load,
@@ -502,7 +492,7 @@ from ._aux import (  # noqa
     # Test step
     step,
 
-    # Output masking
+    # Output capturing
     PyCapture,
     SubCapture,
 
@@ -519,14 +509,20 @@ from ._aux import (  # noqa
     # Benchmarking
     Benchmarker,
 
-    # Misc
+    # Floating point
+    _close,
+    _cround,
     _feq,
     _fgeq,
+    _fround,
     format_float_dict,
+    strfloat,
+
+    # Misc
     format_path,
     _lvsd,
-    _round_if_int,
-    strfloat,
+    _pid_hash,
+    _rmtree,
 
     # Snapshot creation for replicability
     pack_snapshot,
@@ -591,7 +587,6 @@ from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
 # importing the modules specifically (like os and os.path).
 # All modules imported here must report so in their docs
 from . import ( # noqa
-    mxml,
     pacing,
     units,  # Also loads all common unit names
 )
@@ -608,45 +603,4 @@ _Simulation_progress = None
 #
 from . import _config   # noqa
 del(_config)
-
-
-#
-# Default mmt file parts
-#
-def default_protocol():
-    """
-    Provides a default protocol to use when no embedded one is available.
-    """
-    p = Protocol()
-    p.schedule(1, 100, 0.5, 1000, 0)
-    return p
-
-
-def default_script():
-    """
-    Provides a default script to use when no embedded script is available.
-    """
-    return '\n'.join((
-        "[[script]]",
-        "import matplotlib.pyplot as plt",
-        "import myokit",
-        "",
-        "# Get model and protocol, create simulation",
-        "m = get_model()",
-        "p = get_protocol()",
-        "s = myokit.Simulation(m, p)",
-        "",
-        "# Run simulation",
-        "d = s.run(1000)",
-        "",
-        "# Get the first state variable's name",
-        "first_state = next(m.states())",
-        "var = first_state.qname()",
-        "",
-        "# Display the results",
-        "plt.figure()",
-        "plt.plot(d.time(), d[var])",
-        "plt.title(var)",
-        "plt.show()",
-    ))
 

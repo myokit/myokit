@@ -43,6 +43,16 @@ myokit.lib.fit
 - :meth:`myokit.lib.fit.voronoi_regions`
 - :meth:`myokit.lib.fit.xnes`
 
+myokit.lib.guess
+----------------
+- :meth:`myokit.lib.guess.add_embedded_protocol`
+- :meth:`myokit.lib.guess.membrane_capacitance`
+- :meth:`myokit.lib.guess.membrane_currents`
+- :meth:`myokit.lib.guess.membrane_potential`
+- :meth:`myokit.lib.guess.remove_embedded_protocol`
+- :meth:`myokit.lib.guess.stimulus_current`
+- :meth:`myokit.lib.guess.stimulus_current_info`
+
 myokit.lib.hh
 -------------
 - :class:`myokit.lib.hh.AnalyticalSimulation`
@@ -59,6 +69,9 @@ myokit.lib.markov
 -----------------
 - :class:`myokit.lib.markov.AnalyticalSimulation`
 - :class:`myokit.lib.markov.DiscreteSimulation`
+- :meth:`myokit.lib.markov.convert_markov_models_to_compact_form`
+- :meth:`myokit.lib.markov.convert_markov_models_to_full_ode_form`
+- :meth:`myokit.lib.markov.find_markov_models`
 - :class:`myokit.lib.markov.LinearModel`
 - :class:`myokit.lib.markov.LinearModelError`
 - :class:`myokit.lib.markov.MarkovModel` (Deprecated)

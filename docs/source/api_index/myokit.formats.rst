@@ -16,7 +16,6 @@ myokit.formats
 - :meth:`myokit.formats.register_external_importer`
 - :meth:`myokit.formats.register_external_exporter`
 - :class:`myokit.formats.TemplatedRunnableExporter`
-- :class:`myokit.formats.TextLogger`
 
 myokit.formats.ansic
 --------------------
@@ -40,14 +39,59 @@ myokit.formats.axon
 
 myokit.formats.cellml
 ---------------------
-- :class:`myokit.formats.cellml.CellMLError`
 - :class:`myokit.formats.cellml.CellMLExporter`
 - :class:`myokit.formats.cellml.CellMLExpressionWriter`
 - :class:`myokit.formats.cellml.CellMLImporter`
+- :class:`myokit.formats.cellml.CellMLImporterError`
+- :class:`myokit.formats.cellml.CellML1Exporter`
+- :class:`myokit.formats.cellml.CellML2Exporter`
 - :meth:`myokit.formats.cellml.ewriters`
 - :meth:`myokit.formats.cellml.exporters`
 - :meth:`myokit.formats.cellml.importers`
-- :meth:`myokit.formats.cellml.is_valid_identifier`
+
+myokit.formats.cellml.v1
+------------------------------
+- :class:`myokit.formats.cellml.v1.AnnotatableElement`
+- :class:`myokit.formats.cellml.v1.CellMLError`
+- :class:`myokit.formats.cellml.v1.CellMLParser`
+- :class:`myokit.formats.cellml.v1.CellMLParsingError`
+- :class:`myokit.formats.cellml.v1.CellMLWriter`
+- :meth:`myokit.formats.cellml.v1.clean_identifier`
+- :meth:`myokit.formats.cellml.v1.create_unit_name`
+- :class:`myokit.formats.cellml.v1.Component`
+- :meth:`myokit.formats.cellml.v1.is_valid_identifier`
+- :class:`myokit.formats.cellml.v1.Model`
+- :meth:`myokit.formats.cellml.v1.parse_file`
+- :meth:`myokit.formats.cellml.v1.parse_string`
+- :class:`myokit.formats.cellml.v1.Units`
+- :class:`myokit.formats.cellml.v1.UnitsError`
+- :class:`myokit.formats.cellml.v1.UnsupportedBaseUnitsError`
+- :class:`myokit.formats.cellml.v1.UnsupportedUnitOffsetError`
+- :class:`myokit.formats.cellml.v1.Variable`
+- :meth:`myokit.formats.cellml.v1.write_file`
+- :meth:`myokit.formats.cellml.v1.write_string`
+
+myokit.formats.cellml.v2
+------------------------------
+- :class:`myokit.formats.cellml.v2.AnnotatableElement`
+- :class:`myokit.formats.cellml.v2.CellMLError`
+- :class:`myokit.formats.cellml.v2.CellMLParser`
+- :class:`myokit.formats.cellml.v2.CellMLParsingError`
+- :class:`myokit.formats.cellml.v2.CellMLWriter`
+- :meth:`myokit.formats.cellml.v2.clean_identifier`
+- :meth:`myokit.formats.cellml.v2.create_unit_name`
+- :class:`myokit.formats.cellml.v2.Component`
+- :meth:`myokit.formats.cellml.v2.is_basic_real_number_string`
+- :meth:`myokit.formats.cellml.v2.is_identifier`
+- :meth:`myokit.formats.cellml.v2.is_integer_string`
+- :meth:`myokit.formats.cellml.v2.is_real_number_string`
+- :class:`myokit.formats.cellml.v2.Model`
+- :meth:`myokit.formats.cellml.v2.parse_file`
+- :meth:`myokit.formats.cellml.v2.parse_string`
+- :class:`myokit.formats.cellml.v2.Units`
+- :class:`myokit.formats.cellml.v2.Variable`
+- :meth:`myokit.formats.cellml.v2.write_file`
+- :meth:`myokit.formats.cellml.v2.write_string`
 
 myokit.formats.channelml
 ------------------------
@@ -68,6 +112,19 @@ myokit.formats.cuda
 - :meth:`myokit.formats.cuda.exporters`
 - :meth:`myokit.formats.cuda.ewriters`
 
+myokit.formats.easyml
+---------------------
+- :class:`myokit.formats.easyml.EasyMLExporter`
+- :class:`myokit.formats.easyml.EasyMLExpressionWriter`
+- :meth:`myokit.formats.easyml.exporters`
+- :meth:`myokit.formats.easyml.ewriters`
+
+myokit.formats.html
+-------------------
+- :meth:`myokit.formats.html.exporters`
+- :class:`myokit.formats.html.HTMLExporter`
+- :meth:`myokit.formats.html.html2ascii`
+
 myokit.formats.latex
 ---------------------
 - :meth:`myokit.formats.latex.exporters`
@@ -78,14 +135,12 @@ myokit.formats.latex
 
 myokit.formats.mathml
 ---------------------
-- :meth:`myokit.formats.mathml.exporters`
 - :meth:`myokit.formats.mathml.ewriters`
-- :class:`myokit.formats.mathml.HTMLExporter`
 - :class:`myokit.formats.mathml.MathMLError`
 - :class:`myokit.formats.mathml.MathMLExpressionWriter`
-- :meth:`myokit.formats.mathml.parse_mathml`
-- :meth:`myokit.formats.mathml.parse_mathml_rhs`
-- :class:`myokit.formats.mathml.XMLExporter`
+- :class:`myokit.formats.mathml.MathMLParser`
+- :meth:`myokit.formats.mathml.parse_mathml_etree`
+- :meth:`myokit.formats.mathml.parse_mathml_string`
 
 myokit.formats.matlab
 ---------------------
@@ -112,9 +167,19 @@ myokit.formats.python
 
 myokit.formats.sbml
 -------------------
+- :class:`myokit.formats.sbml.Compartment`
+- :class:`myokit.formats.sbml.Model`
+- :class:`myokit.formats.sbml.ModifierSpeciesReference`
 - :meth:`myokit.formats.sbml.importers`
+- :class:`myokit.formats.sbml.Parameter`
+- :class:`myokit.formats.sbml.Quantity`
+- :class:`myokit.formats.sbml.Reaction`
 - :class:`myokit.formats.sbml.SBMLError`
 - :class:`myokit.formats.sbml.SBMLImporter`
+- :class:`myokit.formats.sbml.SBMLParser`
+- :class:`myokit.formats.sbml.SBMLParsingError`
+- :class:`myokit.formats.sbml.Species`
+- :class:`myokit.formats.sbml.SpeciesReference`
 
 myokit.formats.stan
 -------------------
@@ -134,3 +199,10 @@ myokit.formats.sympy
 myokit.formats.wcp
 --------------------
 - :class:`myokit.formats.wcp.WcpFile`
+
+myokit.formats.xml
+-------------------
+- :meth:`myokit.formats.xml.exporters`
+- :meth:`myokit.formats.xml.split`
+- :class:`myokit.formats.xml.XMLExporter`
+

@@ -20,16 +20,20 @@ desc: """
 Membrane potential and stimulus
 """
 C = 1.0 [uF/cm^2]
+    in [uF/cm^2]
 dot(V) = - (1/C) * (i_ion + i_diff + i_stim) in [mV]
     label membrane_potential
     desc: The membrane potential
 i_ion = ina.INa + ik.IK + ib.Ib + ikp.IKp + ik1.IK1 + ica.ICa
     in [uA/cm^2]
     label cellular_current
-i_stim = engine.pace * stim_amplitude in [uA/cm^2]
+i_stim = engine.pace * stim_amplitude
     stim_amplitude = -80 [uA/cm^2]
+        in [uA/cm^2]
     label stimulus_current
-i_diff = 0 bind diffusion_current
+    in [uA/cm^2]
+i_diff = 0 [uA/cm^2]
+    bind diffusion_current
     in [uA/cm^2]
 
 [ik]
@@ -83,6 +87,7 @@ dot(j) =  alpha * (1 - j) - beta * j
           + (1 - a) * (0.3 [1/ms] * exp(-2.535e-7 [1/mV] * V) / (1 + exp(-0.1 [1/mV] * (V + 32 [mV]))))
         in [1/ms]
 gNa = 16 [mS/cm^2]
+    in [mS/cm^2]
 INa = gNa * m^3 * h * j * (V - ENa)
     desc: Fast sodium current
     in [uA/cm^2]
@@ -91,6 +96,7 @@ INa = gNa * m^3 * h * j * (V - ENa)
 [ikp]
 use membrane.V as V
 gKp = 0.0183 [mS/cm^2]
+    in [mS/cm^2]
 Kp = 1 / (1 + exp((7.488 [mV] - V) / 5.98 [mV]))
 IKp = gKp * Kp * (V - ik1.E)
     desc: Plateau Potassium current
@@ -116,6 +122,7 @@ dot(f) =  alpha * (1-f) - beta * f
     beta  = 0.0065 [1/ms] * exp(-0.02 [1/mV] * (V + 30 [mV])) / (1 + exp(-0.2 [1/mV] * (V + 30 [mV])))
         in [1/ms]
 gCa = 0.09 [mS/cm^2]
+    in [mS/cm^2]
 ICa = gCa * d * f * (V - E)
     in [uA/cm^2]
 desc: """
@@ -144,7 +151,9 @@ IK1 = gK1 * g * (V - E)
 [ib]
 desc: Background current
 gb = 0.03921 [mS/cm^2]
+    in [mS/cm^2]
 Eb = -59.87 [mV]
+    in [mV]
 Ib = gb * (membrane.V - Eb) : Background current
     in [uA/cm^2]
 
@@ -152,22 +161,34 @@ Ib = gb * (membrane.V - Eb) : Background current
 [cell]
 desc: Contains a list of cell constants
 K_o = 5.4 [mM]
+    in [mM]
 K_i = 145 [mM]
+    in [mM]
 Na_o = 140 [mM]
+    in [mM]
 Na_i = 10 [mM]
+    in [mM]
 Ca_o = 1.8 [mM]
+    in [mM]
 RTF = R*T/F
+    in [mV]
     R = 8314 [mJ/mol/K] : Gas constant
+        in [mJ/mol/K]
     T = 310 [K] : Absolute temperature
+        in [K]
     F = 96500 [C/mol] : Faraday constant (Value used in LR model)
+        in [C/mol]
 
 # Simulation engine variables
 [engine]
 desc: """
       Simulation engine variables
       """
-time = 0 in [ms] bind time : It's the time!
-pace = 0 bind pace
+time = 0 [ms]
+    in [ms] 
+    bind time
+pace = 0 
+    bind pace
 
 [[protocol]]
 # Level Start Length Period Multiplier

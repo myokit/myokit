@@ -155,10 +155,8 @@ class Protocol(object):
         Deprecated alias of :meth:`log_for_interval`.
         """
         # Deprecated since 2019-01-09
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `create_log_for_interval` is deprecated.'
             ' Please use `log_for_interval` instead.')
         return self.log_for_interval(a, b, for_drawing)
@@ -168,13 +166,18 @@ class Protocol(object):
         Deprecated alias of :meth:`log_for_times`.
         """
         # Deprecated since 2019-01-09
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `create_log_for_times` is deprecated.'
             ' Please use `log_for_times` instead.')
         return self.log_for_times(times)
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if not isinstance(other, Protocol):
+            return False
+        return self.code() == other.code()
 
     def events(self):
         """
@@ -196,9 +199,8 @@ class Protocol(object):
         This method now returns the value given by :meth:`characteristic_time`.
         """
         # Deprecated since 2016-02-06
-        import logging
-        logger = logging.getLogger('myokit')
-        logger.warning(
+        import warnings
+        warnings.warn(
             'The method Protocol.guess_duration() is deprecated: it will be'
             ' removed in future versions of Myokit. Please use the method'
             ' `characteristic_time` instead.'
@@ -381,9 +383,15 @@ class Protocol(object):
         The time points in the log will be ``a`` and ``b``, and any time in
         between at which the pacing value changes.
 
-        If ``for_drawing`` is set to ``True`` each time value between ``a`` and
-        ``b`` will be listed twice, so that a vertical line can be drawn from
-        the old to the new pacing value.
+        If ``for_drawing`` is set to ``True`` each time value where the
+        protocol changes will be listed twice, so that a vertical line can be
+        drawn from the old to the new pacing value.
+
+        Note that the points returned are from ``a`` to ``b`` inclusive (the
+        interval ``[a, b]``), and so if ``b`` coincides with the end of the
+        protocol a point ``(b, 0)`` will be included in the output (protocol
+        steps are defined as half-open, so include their starting point but not
+        their end point).
         """
         # Test the input
         a, b = float(a), float(b)
@@ -458,6 +466,14 @@ class Protocol(object):
             e = e._next
 
         return lo, hi
+
+    def __reduce__(self):
+        """
+        Pickles the Protocol.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        return (myokit.parse_protocol, (self.code(), ))
 
     def schedule(self, level, start, duration, period=0, multiplier=0):
         """

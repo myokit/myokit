@@ -252,6 +252,16 @@ class DataBlock1d(object):
 
     @staticmethod
     def from_DataLog(log):
+        """Deprecated alias of :meth:`from_log()`."""
+        # Deprecated since 2020-09-14
+        import warnings
+        warnings.warn(
+            'The method `DataBlock1d.from_DataLog` is deprecated. Please use'
+            ' `DataBlock1d.from_log` instead.')
+        return DataBlock1d.from_log(log)
+
+    @staticmethod
+    def from_log(log):
         """
         Creates a DataBlock1d from a :class:`myokit.DataLog`.
         """
@@ -626,6 +636,14 @@ class DataBlock1d(object):
             if progress:
                 progress.exit()
 
+    def remove0d(self, name):
+        """Removes the 0d time-series identified by ``name``."""
+        del(self._0d[name])
+
+    def remove1d(self, name):
+        """Removes the 1d time-series identified by ``name``."""
+        del(self._1d[name])
+
     def save(self, filename):
         """
         Writes this ``DataBlock1d`` to a binary file.
@@ -758,6 +776,23 @@ class DataBlock1d(object):
         directly, no copy is made.
         """
         return self._time
+
+    def to_log(self, copy=True):
+        """
+        Returns a :class:`myokit.DataLog` containing the same information as
+        this block.
+
+        The data will be copied, unless ``copy`` is set to ``False``.
+        """
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = np.array(self._time, copy=copy)
+        for k, v in self._0d.items():
+            d[k] = np.array(v, copy=copy)
+        for k, v in self._1d.items():
+            for i in range(self._nx):
+                d[str(i) + '.' + k] = np.array(v[:, i], copy=copy)
+        return d
 
     def trace(self, variable, x):
         """
@@ -980,8 +1015,8 @@ class DataBlock2d(object):
     def dominant_eigenvalues(self, name):
         """
         Takes the 2d data specified by ``name`` and computes the dominant
-        eigenvalue for each point in time. This only works for datablocks with
-        a square 2d grid.
+        eigenvalue for each point in time (this only works for datablocks with
+        a square 2d grid).
 
         The "dominant eigenvalue" is defined as the eigenvalue with the largest
         magnitude (``sqrt(a + bi)``).
@@ -1001,8 +1036,8 @@ class DataBlock2d(object):
     def eigenvalues(self, name):
         """
         Takes the 2d data specified as ``name`` and computes the eigenvalues of
-        its data matrix at every point in time. This only works for datablocks
-        with a square 2d grid.
+        its data matrix at every point in time (this only works for datablocks
+        with a square 2d grid).
 
         The returned data is a 2d numpy array where the first axis is time and
         the second axis is the index of each eigenvalue.
@@ -1018,6 +1053,16 @@ class DataBlock2d(object):
 
     @staticmethod
     def from_DataLog(log):
+        """Deprecated alias of :meth:`from_log()`."""
+        # Deprecated since 2020-09-14
+        import warnings
+        warnings.warn(
+            'The method `DataBlock2d.from_DataLog` is deprecated. Please use'
+            ' `DataBlock2d.from_log` instead.')
+        return DataBlock2d.from_log(log)
+
+    @staticmethod
+    def from_log(log):
         """
         Creates a DataBlock2d from a :class:`myokit.DataLog`.
         """
@@ -1149,8 +1194,8 @@ class DataBlock2d(object):
     def largest_eigenvalues(self, name):
         """
         Takes the 2d data specified by ``name`` and computes the largest
-        eigenvalue for each point in time. This only works for datablocks with
-        a square 2d grid.
+        eigenvalue for each point in time (this only works for datablocks with
+        a square 2d grid).
 
         The "largest eigenvalue" is defined as the eigenvalue with the most
         positive real part. Note that the returned values may be complex.
@@ -1379,6 +1424,14 @@ class DataBlock2d(object):
             if progress:
                 progress.exit()
 
+    def remove0d(self, name):
+        """Removes the 0d time-series identified by ``name``."""
+        del(self._0d[name])
+
+    def remove2d(self, name):
+        """Removes the 2d time-series identified by ``name``."""
+        del(self._2d[name])
+
     def save(self, filename):
         """
         Writes this ``DataBlock2d`` to a binary file.
@@ -1560,6 +1613,29 @@ class DataBlock2d(object):
         directly, no copy is made.
         """
         return self._time
+
+    def to_log(self, copy=True):
+        """
+        Returns a :class:`myokit.DataLog` containing the same information as
+        this block.
+
+        The data will be copied, unless ``copy`` is set to ``False``.
+        """
+        d = myokit.DataLog()
+
+        # Add 0d vectors
+        d.set_time_key('time')
+        d['time'] = np.array(self._time, copy=copy)
+        for k, v in self._0d.items():
+            d[k] = np.array(v, copy=copy)
+
+        # Add 2d fields
+        for k, v in self._2d.items():
+            for x in range(self._nx):
+                s = str(x) + '.'
+                for y in range(self._ny):
+                    d[s + str(y) + '.' + k] = np.array(v[:, y, x], copy=copy)
+        return d
 
     def trace(self, variable, x, y):
         """

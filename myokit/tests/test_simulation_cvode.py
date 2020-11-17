@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the CVODE simulation class.
 #
@@ -8,11 +8,12 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import numpy as np
 import os
+import pickle
+import platform
 import re
 import unittest
-import platform
-import numpy as np
 
 import myokit
 
@@ -32,25 +33,22 @@ class SimulationTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """
-        Test simulation creation.
-        """
+        # Test simulation creation.
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         cls.model = m
         cls.protocol = p
         cls.sim = myokit.Simulation(cls.model, cls.protocol)
 
     def test_pre(self):
-        """
-        Test pre-pacing.
-        """
+        # Test pre-pacing.
+
         self.sim.reset()
         self.sim.pre(200)
 
     def test_simple(self):
-        """
-        Test simple run.
-        """
+        # Test simple run.
+
         self.sim.reset()
         self.assertEqual(self.sim.time(), 0)
         self.sim.pre(5)
@@ -76,9 +74,8 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(d1.time(), d2.time())
 
     def test_no_protocol(self):
-        """
-        Test running without a protocol.
-        """
+        # Test running without a protocol.
+
         self.sim.reset()
         self.sim.pre(50)
         self.sim.set_protocol(None)
@@ -88,9 +85,8 @@ class SimulationTest(unittest.TestCase):
         self.assertTrue(np.all(d['engine.pace'] == 0.0))
 
     def test_fixed_form_protocol(self):
-        """
-        Test running with a fixed form protocol.
-        """
+        # Test running with a fixed form protocol.
+
         n = 10
         time = list(range(n))
         pace = [0] * n
@@ -134,9 +130,8 @@ class SimulationTest(unittest.TestCase):
             time, pace[:-1])
 
     def test_in_parts(self):
-        """
-        Test running the simulation in parts.
-        """
+        # Test running the simulation in parts.
+
         self.sim.reset()
         # New logs should start with first state, finish with final
         d = self.sim.run(150)
@@ -212,9 +207,8 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(value, value2)
 
     def test_progress_reporter(self):
-        """
-        Test running with a progress reporter.
-        """
+        # Test running with a progress reporter.
+
         # Test if it works
         sim = myokit.Simulation(self.model, self.protocol)
         with myokit.PyCapture() as c:
@@ -238,9 +232,8 @@ class SimulationTest(unittest.TestCase):
             progress=CancellingReporter(0))
 
     def test_apd_tracking(self):
-        """
-        Test the APD calculation method.
-        """
+        # Test the APD calculation method.
+
         # More testing is done in test_datalog.py!
 
         # Apd var is not a state
@@ -253,9 +246,8 @@ class SimulationTest(unittest.TestCase):
             ValueError, 'without apd_var', self.sim.run, 1, apd_threshold=12)
 
     def test_last_state(self):
-        """
-        Returns the last state before an error, or None.
-        """
+        # Returns the last state before an error, or None.
+
         m = self.model.clone()
         istim = m.get('membrane.i_stim')
         istim.set_rhs('engine.pace / stim_amplitude')
@@ -270,10 +262,9 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s.last_state(), s.state())
 
     def test_last_evaluations_and_steps(self):
-        """
-        Test :meth:`Simulation.last_number_of_evaluations()` and
-        :meth:`Simulation.last_number_of_steps()`
-        """
+        # Test :meth:`Simulation.last_number_of_evaluations()` and
+        # :meth:`Simulation.last_number_of_steps()`
+
         s = myokit.Simulation(self.model, self.protocol)
         self.assertEqual(s.last_number_of_evaluations(), 0)
         self.assertEqual(s.last_number_of_steps(), 0)
@@ -284,9 +275,8 @@ class SimulationTest(unittest.TestCase):
             s.last_number_of_evaluations(), s.last_number_of_steps())
 
     def test_eval_derivatives(self):
-        """
-        Test :meth:`Simulation.eval_derivatives()`.
-        """
+        # Test :meth:`Simulation.eval_derivatives()`.
+
         self.sim.reset()
         s1 = self.sim.state()
         d1 = self.sim.eval_derivatives()
@@ -298,9 +288,8 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(d1, self.sim.eval_derivatives())
 
     def test_set_tolerance(self):
-        """
-        Test :meth:`Simulation.set_tolerance()`.
-        """
+        # Test :meth:`Simulation.set_tolerance()`.
+
         self.assertRaisesRegex(
             ValueError, 'Absolute', self.sim.set_tolerance, abs_tol=0)
         self.assertRaisesRegex(
@@ -308,10 +297,9 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_tolerance(1e-6, 1e-4)
 
     def test_set_step_size(self):
-        """
-        Test :meth:`Simulation.set_min_step_size()` and
-        :meth:`Simulation.set_max_step_size()`.
-        """
+        # Test :meth:`Simulation.set_min_step_size()` and
+        # :meth:`Simulation.set_max_step_size()`.
+
         # Minimum: set, unset, allow negative value to unset
         self.sim.set_min_step_size(0.1)
         self.sim.set_min_step_size(None)
@@ -323,10 +311,9 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_max_step_size(-1)
 
     def test_set_state(self):
-        """
-        Test :meth:`Simulation.set_state()` and
-        :meth:`Simulation.set_default_state()`.
-        """
+        # Test :meth:`Simulation.set_state()` and
+        # :meth:`Simulation.set_default_state()`.
+
         # Get state and default state, both different from current
         state = self.sim.state()
         state[0] += 1
@@ -345,9 +332,8 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(self.sim.default_state(), default_state)
 
     def test_set_constant(self):
-        """
-        Test :meth:`Simulation.set_constant()`.
-        """
+        # Test :meth:`Simulation.set_constant()`.
+
         # Literal
         self.sim.set_constant('cell.Na_i', 11)
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
@@ -357,7 +343,8 @@ class SimulationTest(unittest.TestCase):
             ValueError, 'not a literal', self.sim.set_constant, 'ina.ENa', 11)
 
     def test_simulation_error_1(self):
-        """ Test for simulation error detection: massive stimulus. """
+        # Test for simulation error detection: massive stimulus.
+
         # Silly protocol
         p = myokit.Protocol()
         p.schedule(level=1000, start=1, duration=1)
@@ -368,9 +355,8 @@ class SimulationTest(unittest.TestCase):
 
     @unittest.skipIf(platform.system() != 'Linux', 'Cvode error tests')
     def test_simulation_error_2(self):
-        """
-        Test for simulation error detection: failure occurred too often.
-        """
+        # Test for simulation error detection: failure occurred too often.
+
         # Cvode error (test failure occurred too many times)
         m = self.model.clone()
         v = m.get('membrane.V')
@@ -452,6 +438,41 @@ class SimulationTest(unittest.TestCase):
         d1 = s1.run(11, log_interval=1)
         self.assertEqual(list(d1.time()), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         self.assertEqual(list(d1['c.w']), [0, 0, 2, 2, 4, 4, 4, 4, 6, 6, 0])
+
+    def test_pickling(self):
+        # Test pickling a simulation
+
+        # Test with myokit.Protocol
+        m, p, _ = myokit.load('example')
+        s1 = myokit.Simulation(m, p)
+        s1.pre(123)
+        s_bytes = pickle.dumps(s1)
+        s2 = pickle.loads(s_bytes)
+        self.assertEqual(s1.time(), s2.time())
+        self.assertEqual(s1.state(), s2.state())
+        self.assertEqual(s1.default_state(), s2.default_state())
+        s1.run(123, log=myokit.LOG_NONE)
+        s2.run(123, log=myokit.LOG_NONE)
+        self.assertEqual(s1.time(), s2.time())
+        self.assertEqual(s1.state(), s2.state())
+
+        # Test simulation properties
+        s1.set_tolerance(1e-8, 1e-8)
+        s1.set_min_step_size(1e-2)
+        s1.set_max_step_size(0.1)
+        s2 = pickle.loads(pickle.dumps(s1))
+        s1.run(23, log=myokit.LOG_NONE)
+        s2.run(23, log=myokit.LOG_NONE)
+        self.assertEqual(s1.time(), s2.time())
+        self.assertEqual(s1.state(), s2.state())
+
+        # Test changed constants
+        s1.set_constant('membrane.C', 1.1)
+        s2 = pickle.loads(pickle.dumps(s1))
+        s1.run(17, log=myokit.LOG_NONE)
+        s2.run(17, log=myokit.LOG_NONE)
+        self.assertEqual(s1.time(), s2.time())
+        self.assertEqual(s1.state(), s2.state())
 
 
 class RuntimeSimulationTest(unittest.TestCase):

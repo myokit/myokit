@@ -28,28 +28,26 @@ class AnsiCExporter(myokit.formats.TemplatedRunnableExporter):
     ``pace``
         The current value of the pacing system, implemented using the given
         protocol.
-
-    Example plot script::
-
-        import matplotlib.pyplot as plt
-        with open('v.txt', 'r') as f:
-          T,V = [], []
-          for line in f:
-            t,v = [float(x) for x in line.split()]
-            T.append(t)
-            V.append(v)
-        plt.figure()
-        plt.plot(T, V)
-        plt.show()
-
-    To compile in gcc, use::
-
-        gcc -Wall -lm -lsundials_cvode -lsundials_nvecserial sim.c -o sim
-
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
+    def post_export_info(self):
+        return '\n'.join((
+            'To compile in gcc, use::',
+            '',
+            '    gcc -Wall -lm -lsundials_cvode -lsundials_nvecserial sim.c -o sim',    # noqa
+            '',
+            'Example plot script::',
+            '',
+            '    import matplotlib.pyplot as plt',
+            '    with open("v.txt", "r") as f:',
+            '      T, V = [], []',
+            '      for line in f:',
+            '        t, v = [float(x) for x in line.split()]',
+            '        T.append(t)',
+            '        V.append(v)',
+            '    plt.figure()',
+            '    plt.plot(T, V)',
+            '    plt.show()',
+        ))
 
     def _dir(self, root):
         return os.path.join(root, 'ansic', 'template')
@@ -77,28 +75,26 @@ class AnsiCEulerExporter(myokit.formats.TemplatedRunnableExporter):
         The value of the pacing variable, implemented using the given protocol.
 
     No labeled variables are required.
-
-    Example plot script::
-
-        import matplotlib.pyplot as plt
-        with open('v.txt', 'r') as f:
-          T,V = [], []
-          for line in f:
-            t,v = [float(x) for x in line.split()]
-            T.append(t)
-            V.append(v)
-        plt.figure()
-        plt.plot(T, V)
-        plt.show()
-
-    To compile using gcc::
-
-        gcc -Wall -lm euler.c -o euler
-
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
+    def post_export_info(self):
+        return '\n'.join((
+            'To compile using gcc::',
+            '',
+            '    gcc -Wall -lm euler.c -o euler',
+            '',
+            'Example plot script:',
+            '',
+            '    import matplotlib.pyplot as plt',
+            '    with open("v.txt", "r") as f:',
+            '        T, V = [], []',
+            '        for line in f:',
+            '          t, v = [float(x) for x in line.split()]',
+            '          T.append(t)',
+            '          V.append(v)',
+            '    plt.figure()',
+            '    plt.plot(T, V)',
+            '    plt.show()',
+        ))
 
     def _dir(self, root):
         return os.path.join(root, 'ansic', 'template')
@@ -140,30 +136,28 @@ class AnsiCCableExporter(myokit.formats.TemplatedRunnableExporter):
         i = g * ((V - V_next) - (V_last - V))
 
     At the boundaries, V is substituted for V_last or V_next.
-
-    Example plot script::
-
-        import myokit
-        import numpy as np
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import axes3d
-        d = myokit.load_csv('data.txt')
-        n = 50 # Assuming 50 cells
-        f = plt.figure()
-        x = f.gca(projection='3d')
-        z = np.ones(len(d['time']))
-        for i in range(0, n):
-            x.plot(d['time'], z*i, d.get(str(i)+'_V'))
-        plt.show()
-
-    To compile using gcc::
-
-        gcc -Wall -lm cable.c -o cable
-
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
+    def post_export_info(self):
+        return '\n'.join((
+            'To compile using gcc::',
+            '',
+            '    gcc -Wall -lm cable.c -o cable',
+            '',
+            'Example plot script::',
+            '',
+            '    import myokit',
+            '    import numpy as np',
+            '    import matplotlib.pyplot as plt',
+            '    from mpl_toolkits.mplot3d import axes3d',
+            '    d = myokit.load_csv("data.txt")',
+            '    n = 50 # Assuming 50 cells',
+            '    f = plt.figure()',
+            '    x = f.gca(projection="3d")',
+            '    z = np.ones(len(d["time"]))',
+            '    for i in range(0, n):',
+            '        x.plot(d["time"], z*i, d.get(str(i) + "_V"))',
+            '    plt.show()',
+        ))
 
     def _dir(self, root):
         return os.path.join(root, 'ansic', 'template')

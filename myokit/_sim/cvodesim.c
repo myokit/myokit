@@ -787,47 +787,47 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     /* Create solver
      * Using Backward differentiation and Newton iteration */
     #if USE_CVODE > 0
-        #if MYOKIT_SUNDIALS_VERSION >= 40000
-            cvode_mem = CVodeCreate(CV_BDF);
-        #else
-            cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
-        #endif
-        if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+    #if MYOKIT_SUNDIALS_VERSION >= 40000
+        cvode_mem = CVodeCreate(CV_BDF);
+    #else
+        cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+    #endif
+    if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
 
-        /* Initialise solver memory, specify the rhs */
-        flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
-        if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+    /* Initialise solver memory, specify the rhs */
+    flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
+    if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
-        /* Set absolute and relative tolerances */
-        flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
-        if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
+    /* Set absolute and relative tolerances */
+    flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
+    if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
 
-        /* Set a maximum step size (or 0.0 for none) */
+    /* Set a maximum step size (or 0.0 for none) */
 
-        flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
+    flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
+    if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
 
-        /* Set a minimum step size (or 0.0 for none) */
-        flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
+    /* Set a minimum step size (or 0.0 for none) */
+    flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
+    if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-        #if MYOKIT_SUNDIALS_VERSION >= 30000
-            /* Create dense matrix for use in linear solves */
-            sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
-            if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+    #if MYOKIT_SUNDIALS_VERSION >= 30000
+        /* Create dense matrix for use in linear solves */
+        sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
+        if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
 
-            /* Create dense linear solver object with matrix */
-            sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
-            if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+        /* Create dense linear solver object with matrix */
+        sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
+        if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
 
-            /* Attach the matrix and solver to cvode */
-            flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
-            if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
-        #else
-            /* Create dense matrix for use in linear solves */
-            flag_cvode = CVDense(cvode_mem, N_STATE);
-            if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
-        #endif
+        /* Attach the matrix and solver to cvode */
+        flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+        if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
+    #else
+        /* Create dense matrix for use in linear solves */
+        flag_cvode = CVDense(cvode_mem, N_STATE);
+        if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+    #endif
     #endif
 
     /* Benchmarking? Then set engine_realtime to 0.0 */
@@ -975,31 +975,31 @@ sim_step(PyObject *self, PyObject *args)
 
         #if USE_CVODE
 
-            /* Take a single ODE step */
-            flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
+        /* Take a single ODE step */
+        flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
 
-            /* Check for errors */
-            if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
-                /* Something went wrong... Set outputs and return */
-                for(i=0; i<N_STATE; i++) {
-                    PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
-                    /* PyList_SetItem steals a reference: no need to decref the double! */
-                }
-                PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
-                PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
-                PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
-                PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
-                return sim_clean();
+        /* Check for errors */
+        if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+            /* Something went wrong... Set outputs and return */
+            for(i=0; i<N_STATE; i++) {
+                PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
+                /* PyList_SetItem steals a reference: no need to decref the double! */
             }
+            PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
+            PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
+            PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
+            PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
+            return sim_clean();
+        }
 
         #else
 
-            /* Just jump to next event */
-            /* Note 1: To stay compatible with cvode-mode, don't jump to the
-               next log time (if tlog < tnext) */
-            /* Note 2: tnext can be infinity, so don't always jump there. */
-            engine_time = (tmax > tnext) ? tnext : tmax;
-            flag_cvode = CV_SUCCESS;
+        /* Just jump to next event */
+        /* Note 1: To stay compatible with cvode-mode, don't jump to the
+           next log time (if tlog < tnext) */
+        /* Note 2: tnext can be infinity, so don't always jump there. */
+        engine_time = (tmax > tnext) ? tnext : tmax;
+        flag_cvode = CV_SUCCESS;
 
         #endif
 
@@ -1077,8 +1077,8 @@ sim_step(PyObject *self, PyObject *args)
 
                     /* Get interpolated y(tlog) */
                     #if USE_CVODE
-                        flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
-                        if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                    flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
+                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
                     #endif
                     /* If cvode-free mode, the state can't change so we don't
                        need to do anything here */
@@ -1196,6 +1196,7 @@ sim_step(PyObject *self, PyObject *args)
         }
 
         /* Check if we're finished */
+        if (ESys_eq(engine_time, tmax)) engine_time = tmax;
         if (engine_time >= tmax) break;
 
         /* Perform any Python signal handling */
