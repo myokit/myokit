@@ -15,6 +15,9 @@ A list of changes introduced in each Myokit release is provided in the [Changelo
 
 ## Install
 
+For full installation details (on linux, mac, or windows), please see [http://myokit.org/install](http://myokit.org/install).
+A shorter installation guide for experienced users is given below.
+
 To install Myokit, using PyQt5 for Myokit's GUI components, run:
 
     pip install myokit[pyqt]
@@ -37,8 +40,6 @@ In addition, Myokit needs a working C/C++ compiler to be present on the system.
 Existing Myokit installations can be upgraded using
 
     pip install --upgrade myokit
-
-For full details, see [http://myokit.org/install](http://myokit.org/install).
 
 ## Quick-start guide
 
