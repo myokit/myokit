@@ -17,6 +17,11 @@ This page lists the main changes made to Myokit in each release.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) If errors occur, the `SimulationOpenCL` now displays improved (and hopefully more informative) output.
   - [#623](https://github.com/MichaelClerx/myokit/pull/623) Updated licensing info.
   - [#653](https://github.com/MichaelClerx/myokit/pull/653) `Model.pyfunc()` now validates the model before running (and fails if the model does not validate).
+  - [#661](https://github.com/MichaelClerx/myokit/pull/661) When importing MathML, the inverse hyperbolic trig functions are now rendered using slightly simpler equations.
+  - [#664](https://github.com/MichaelClerx/myokit/pull/664) EasyML export now adds meta data, a group of CVODE-solved variables, a group of variables to trace, and a group of parameters (based on code contributed by Ed Vigmond).
+  - [#664](https://github.com/MichaelClerx/myokit/pull/664) EasyML export now converts voltage, current, and time variables to the preferred units.
+  - [#664](https://github.com/MichaelClerx/myokit/pull/664) EasyML export now has consistently ordered output when re-run.
+  - [#664](https://github.com/MichaelClerx/myokit/pull/664) EasyML expression writer now uses `expm1` where possible.
 - Deprecated
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
   - [#632](https://github.com/MichaelClerx/myokit/pull/632) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favour of new `from_log` methods.
@@ -29,6 +34,7 @@ This page lists the main changes made to Myokit in each release.
   - [#628](https://github.com/MichaelClerx/myokit/pull/628) The DataBlockViewer now shows a working colour bar for 1d simulations.
   - [#638](https://github.com/MichaelClerx/myokit/pull/638) The DataBlockViewer now handles blocks with `t[0] > 0` correctly.
   - [#655](https://github.com/MichaelClerx/myokit/pull/655) Fixed bug where wrong initial state was shown by `myokit.step()`.
+  - [#663](https://github.com/MichaelClerx/myokit/pull/663) Fixed deprecation warning in `save_state_bin()`.
 
 ## [1.31.0] - 2020-08-26
 - Added
