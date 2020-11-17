@@ -1,13 +1,11 @@
 #
 # Myokit's main module
 #
-# This file is part of Myokit
-#  Copyright 2011-2019 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 """
-Myokit: The Maastricht Modeling Toolkit
+Myokit
 
 This module provides a gateway to the main Myokit components. For example, to
 load a model use myokit.load_model('filename.mmt'), create a myokit.Protocol
@@ -60,7 +58,8 @@ if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
         'Myokit is not tested on Python 2 versions older than 2.7.15')
     log.warning('Detected Python version: ' + sys.version)
     del(logging, log)
-elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000:
+elif (sys.hexversion >= 0x03000000 and
+      sys.hexversion < 0x03050000):  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
@@ -70,7 +69,7 @@ elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000:
 
 
 # Exec() that works with Python 2 versions before 2.7.9
-if sys.hexversion < 0x020709F0:
+if sys.hexversion < 0x020709F0:     # pragma: no python 3 cover
     from ._exec_old import _exec    # noqa
 else:
     from ._exec_new import _exec    # noqa
@@ -87,30 +86,12 @@ from ._myokit_version import (  # noqa
 )
 
 
-# Myokit version
-def version(raw=False):
-    """
-    Returns the current Myokit version.
-    """
-    if raw:
-        return __version__
-    else:
-        t1 = ' Myokit ' + __version__ + ' '
-        t2 = '_' * len(t1)
-        t1 += '|/\\'
-        t2 += '|  |' + '_' * 5
-        return '\n' + t1 + '\n' + t2
-
-
 # Warn about development version
 import logging  # noqa
 log = logging.getLogger(__name__)
 log.info('Loading Myokit version ' + __version__)
-if not __release__:
-    log.warning(
-        'Using development version of Myokit. This may contain untested'
-        ' features and bugs. Please see http://myokit.org for the latest'
-        ' stable release.')
+if not __release__:     # pragma: no cover
+    log.warning('Using development version of Myokit (' + __version__ + ').')
 del(log, logging)
 
 
@@ -120,59 +101,94 @@ del(log, logging)
 
 # Full license text
 LICENSE = """
-Myokit
-Copyright 2011-2018 Maastricht University, University of Oxford
-michael@myokit.org
+BSD 3-Clause License
 
-Myokit is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free
-Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+Copyright (c) 2011-2017 Maastricht University. All rights reserved.
+Copyright (c) 2017-2020 University of Oxford. All rights reserved.
+ (University of Oxford means the Chancellor, Masters and Scholars of the
+  University of Oxford, having an administrative office at Wellington Square,
+  Oxford OX1 2JD, UK).
+Copyright (c) 2020-2020 University of Nottingham. All rights reserved.
 
-Myokit is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
 
-For a copy of the GNU General Public License,
-see http://www.gnu.org/licenses/.
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """.strip()
 
 # Full license text, html
 LICENSE_HTML = """
 <h1>Myokit</h1>
 <p>
-    Copyright 2011-2018 Maastricht University, University of Oxford
-    <br /><a href="mailto:michael@myokit.org">michael@myokit.org</a>
+    BSD 3-Clause License
+    <br />
+    <br />Copyright (c) 2011-2017 Maastricht University. All rights reserved.
+    <br />Copyright (c) 2017-2019 University of Oxford. All rights reserved.
+    <br />(University of Oxford means the Chancellor, Masters and Scholars of
+    the University of Oxford, having an administrative office at Wellington
+    Square, Oxford OX1 2JD, UK).
 </p>
 <p>
-    Myokit is free software: you can redistribute it and/or modify it under the
-    terms of the GNU General Public License as published by the Free Software
-    Foundation, either version 3 of the License, or (at your option) any later
-    version.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
 </p>
+<ul>
+    <li>
+        <p>
+            Redistributions of source code must retain the above copyright
+            notice, this list of conditions and the following disclaimer.
+        </p>
+    </li>
+    <li>
+        <p>
+            Redistributions in binary form must reproduce the above copyright
+            notice, this list of conditions and the following disclaimer in the
+            documentation and/or other materials provided with the
+            distribution.
+        </p>
+    </li>
+    <li>
+        <p>
+            Neither the name of the copyright holder nor the names of its
+            contributors may be used to endorse or promote products derived
+            from this software without specific prior written permission.
+        </p>
+    </li>
+</ul>
 <p>
-    Myokit is distributed in the hope that it will be useful, but WITHOUT ANY
-    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-    FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-    details.
-</p>
-<p>
-    For a copy of the GNU General Public License, see
-    <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+    CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+    SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+    CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
 </p>
 """.strip()
-
-# Example license header that should appear in most files
-LICENSE_HEADER = """
-This file is part of Myokit
- Copyright 2011-2018 Maastricht University, University of Oxford
- Licensed under the GNU General Public License v3.0
- See: http://myokit.org
-""".strip()
-
-# Single-line copyright notice
-COPYRIGHT = '(C) 2011-2018, Maastricht University, University of Oxford'
 
 
 #
@@ -183,7 +199,7 @@ COPYRIGHT = '(C) 2011-2018, Maastricht University, University of Oxford'
 import os, inspect  # noqa
 try:
     frame = inspect.currentframe()
-    DIR_MYOKIT = os.path.dirname(inspect.getfile(frame))
+    DIR_MYOKIT = os.path.abspath(os.path.dirname(inspect.getfile(frame)))
 finally:
     # Always manually delete frame
     # https://docs.python.org/2/library/inspect.html#the-interpreter-stack
@@ -212,7 +228,7 @@ if os.path.exists(DIR_USER):    # pragma: no cover
     if not os.path.isdir(DIR_USER):
         raise Exception(
             'File or link found in place of user directory: ' + str(DIR_USER))
-else:
+else:                           # pragma: no cover
     os.makedirs(DIR_USER)
 
 # Example mmt file
@@ -274,6 +290,7 @@ DEBUG_LINE_NUMBERS = True
 FORCE_PYQT5 = False
 FORCE_PYQT4 = False
 FORCE_PYSIDE = False
+FORCE_PYSIDE2 = False
 
 
 #
@@ -352,7 +369,7 @@ ex, name, clas = None, None, None
 for ex in inspect.getmembers(_err):
     name, clas = ex
     if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-        if name not in _globals:
+        if name not in _globals:    # pragma: no cover
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 del(_err)
@@ -416,7 +433,6 @@ from ._expressions import (  # noqa
     Sin,
     Sqrt,
     Tan,
-    UnsupportedFunction,
     Unit,
 
 )
@@ -445,9 +461,16 @@ from ._parsing import (  # noqa
 
 # Auxillary functions
 from ._aux import (  # noqa
+    # Version info
+    version,
+
     # Global date and time formats
     date,
     time,
+
+    # Default mmt parts
+    default_protocol,
+    default_script,
 
     # Reading, writing
     load,
@@ -469,7 +492,7 @@ from ._aux import (  # noqa
     # Test step
     step,
 
-    # Output masking
+    # Output capturing
     PyCapture,
     SubCapture,
 
@@ -486,14 +509,20 @@ from ._aux import (  # noqa
     # Benchmarking
     Benchmarker,
 
-    # Misc
+    # Floating point
+    _close,
+    _cround,
     _feq,
     _fgeq,
+    _fround,
     format_float_dict,
+    strfloat,
+
+    # Misc
     format_path,
     _lvsd,
-    _round_if_int,
-    strfloat,
+    _pid_hash,
+    _rmtree,
 
     # Snapshot creation for replicability
     pack_snapshot,
@@ -558,7 +587,6 @@ from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
 # importing the modules specifically (like os and os.path).
 # All modules imported here must report so in their docs
 from . import ( # noqa
-    mxml,
     pacing,
     units,  # Also loads all common unit names
 )
@@ -575,45 +603,4 @@ _Simulation_progress = None
 #
 from . import _config   # noqa
 del(_config)
-
-
-#
-# Default mmt file parts
-#
-def default_protocol():
-    """
-    Provides a default protocol to use when no embedded one is available.
-    """
-    p = Protocol()
-    p.schedule(1, 100, 0.5, 1000, 0)
-    return p
-
-
-def default_script():
-    """
-    Provides a default script to use when no embedded script is available.
-    """
-    return '\n'.join((
-        "[[script]]",
-        "import matplotlib.pyplot as plt",
-        "import myokit",
-        "",
-        "# Get model and protocol, create simulation",
-        "m = get_model()",
-        "p = get_protocol()",
-        "s = myokit.Simulation(m, p)",
-        "",
-        "# Run simulation",
-        "d = s.run(1000)",
-        "",
-        "# Get the first state variable's name",
-        "first_state = next(m.states())",
-        "var = first_state.qname()",
-        "",
-        "# Display the results",
-        "plt.figure()",
-        "plt.plot(d.time(), d[var])",
-        "plt.title(var)",
-        "plt.show()",
-    ))
 

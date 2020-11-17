@@ -3,10 +3,8 @@
 #
 #---------------------------------  license  ----------------------------------
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 #---------------------------------  credits  ----------------------------------
 #
@@ -49,9 +47,8 @@ except NameError:   # pragma: no python 2 cover
 #
 # Deprecated since 2018-04-16
 #
-import logging
-logger = logging.getLogger('myokit')
-logger.warning(
+import warnings
+warnings.warn(
     'The module myokit.lib.fit is deprecated: it will be removed in future'
     ' versions of Myokit. Please have a look at Pints'
     ' (https://github.com/pints-team/pints) instead.'
@@ -2042,8 +2039,9 @@ class _Worker(multiprocessing.Process):
         # Worker processes should never write to stdout or stderr.
         # This can lead to unsafe situations if they have been redicted to
         # a GUI task such as writing to the IDE console.
-        sys.stdout = open(os.devnull, 'w')
-        sys.stderr = open(os.devnull, 'w')
+        stdout, stderr = sys.stdout, sys.stderr
+        sys.stdout = fout = open(os.devnull, 'w')
+        sys.stderr = ferr = open(os.devnull, 'w')
         try:
             for k in range(self._max_tasks):
                 i, x = self._tasks.get()
@@ -2057,6 +2055,10 @@ class _Worker(multiprocessing.Process):
         except (Exception, KeyboardInterrupt, SystemExit):
             self._errors.put((self.pid, traceback.format_exc()))
             self._error.set()
+        finally:
+            sys.stdout, sys.stderr = stdout, stderr
+            fout.close()
+            ferr.close()
 
 
 def xnes(

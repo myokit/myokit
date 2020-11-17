@@ -1,16 +1,24 @@
 #
 # Tools for running experiments on multiple models.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
 import os
+
+
+#
+# Deprecated since 2020-06-14
+#
+import warnings
+warnings.warn(
+    'The module myokit.lib.multi is deprecated: it will be removed in future'
+    ' versions of Myokit.'
+)
 
 
 def iterdir(path, guarantee_model_names=True):
@@ -87,48 +95,41 @@ def scandir(path):
 
 def time(model):
     """
-    Returns the time variable from the given :class:`myokit.Model` `model`.
-
-    The method will raise a :class:`myokit.IncompatibleModelError` if no time
-    variable is found.
+    Deprecated alias of :meth:`Model.timex()`.
     """
-    time = model.time()
-    if time is None:
-        raise myokit.IncompatibleModelError(
-            model.name(), 'No time variable found.')
-    return time
+    # Deprecated since 2019-09-09
+    import warnings
+    warnings.warn(
+        'The method `myokit.lib.multi.time()` is deprecated and will be'
+        ' removed in future versions of Myokit. Please use `Model.timex()`'
+        ' instead.')
+    return model.timex()
 
 
 def label(model, label):
     """
-    Returns the variable labelled `label` from the given :class:`myokit.Model`
-    `model`.
-
-    The method will raise a :class:`myokit.IncompatibleModelError` if no such
-    variable is found.
+    Deprecated alias of :meth:`Model.labelx()`.
     """
-    var = model.label(label)
-    if var is None:
-        raise myokit.IncompatibleModelError(
-            model.name(),
-            'No variable found with label "' + str(label) + '".')
-    return var
+    # Deprecated since 2019-09-09
+    import warnings
+    warnings.warn(
+        'The method `myokit.lib.multi.label()` is deprecated and will be'
+        ' removed in future versions of Myokit. Please use `Model.labelx()`'
+        ' instead.')
+    return model.labelx(label)
 
 
 def binding(model, binding):
     """
-    Returns the variable bound to `binding` from the given
-    :class:`myokit.Model` `model`.
-
-    The method will raise a :class:`myokit.IncompatibleModelError` if no such
-    variable is found.
+    Deprecated alias of :meth:`Model.bindingx()`.
     """
-    var = model.binding(binding)
-    if var is None:
-        raise myokit.IncompatibleModelError(
-            model.name(),
-            'No variable found with binding "' + str(binding) + '".')
-    return var
+    # Deprecated since 2019-09-09
+    import warnings
+    warnings.warn(
+        'The method `myokit.lib.multi.binding()` is deprecated and will be'
+        ' removed in future versions of Myokit. Please use `Model.bindingx()`'
+        ' instead.')
+    return model.bindingx(binding)
 
 
 def unit(variable, unit):

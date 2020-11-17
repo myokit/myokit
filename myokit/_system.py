@@ -1,10 +1,8 @@
 #
 # System information class.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -115,7 +113,7 @@ def system(live_printing=False):
         out.append('Sundials: ' + (myokit.Sundials.version() or 'Not found'))
 
         opencl = myokit.OpenCL()
-        if not opencl.supported():
+        if not opencl.supported():  # pragma: no cover
             out.append('OpenCL: No OpenCL support detected.')
         else:   # pragma: no cover
             devices = []

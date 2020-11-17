@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the DataLog class
 #
-# This file is part of Myokit
-#  Copyright 2011-2019 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -17,7 +15,7 @@ import numpy as np
 import myokit
 
 from shared import DIR_DATA, DIR_IO, TemporaryDirectory
-from shared import TestReporter, CancellingReporter
+from shared import TestReporter, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -122,13 +120,14 @@ class DataLogTest(unittest.TestCase):
             'engine.time': [0, 5, 10, 15, 20],
             'membrane.V': [0, 50, 100, 150, 200]})
         d.set_time_key('engine.time')
-        self.assertEqual(d.find(-5), d.find_after(-5))
-        self.assertEqual(d.find(0), d.find_after(0))
-        self.assertEqual(d.find(2), d.find_after(2))
-        self.assertEqual(d.find(5), d.find_after(5))
-        self.assertEqual(d.find(7), d.find_after(7))
-        self.assertEqual(d.find(20), d.find_after(20))
-        self.assertEqual(d.find(22), d.find_after(22))
+        with WarningCollector():
+            self.assertEqual(d.find(-5), d.find_after(-5))
+            self.assertEqual(d.find(0), d.find_after(0))
+            self.assertEqual(d.find(2), d.find_after(2))
+            self.assertEqual(d.find(5), d.find_after(5))
+            self.assertEqual(d.find(7), d.find_after(7))
+            self.assertEqual(d.find(20), d.find_after(20))
+            self.assertEqual(d.find(22), d.find_after(22))
 
     def test_find_after(self):
         # Test the find_after() function.

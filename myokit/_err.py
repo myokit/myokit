@@ -1,10 +1,8 @@
 #
 # Non-standard exceptions raised by myokit.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -189,9 +187,12 @@ class IncompatibleModelError(MyokitError):
 
     *Extends:* :class:`myokit.MyokitError`.
     """
-    def __init__(self, name, message):
-        super(IncompatibleModelError, self).__init__(
-            'Incompatible model <' + str(name) + '>: ' + str(message))
+    def __init__(self, model_name, message):
+        msg = 'Incompatible model'
+        if model_name:
+            msg += ' <' + str(model_name) + '>'
+        msg += ': ' + str(message)
+        super(IncompatibleModelError, self).__init__(msg)
 
 
 class IncompatibleUnitError(MyokitError):

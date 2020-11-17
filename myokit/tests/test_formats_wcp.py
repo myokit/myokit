@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the WCP format module.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -25,9 +23,8 @@ class WcpTest(unittest.TestCase):
     """
 
     def test_data_file(self):
-        """
-        Test basic wcp file reading.
-        """
+        # Test basic wcp file reading.
+
         # Load old file from Maastricht
         fname = 'wcp-file.wcp'
         path = os.path.join(DIR_FORMATS, fname)
@@ -43,9 +40,8 @@ class WcpTest(unittest.TestCase):
         self.assertEqual(len(w.values(0, 0)), 256)
 
     def test_data_log_conversion(self):
-        """
-        Test conversion to a data log.
-        """
+        # Test conversion to a data log.
+
         w = wcp.WcpFile(os.path.join(DIR_FORMATS, 'wcp-file.wcp'))
         d = w.myokit_log()
         keys = ['time']
@@ -57,9 +53,8 @@ class WcpTest(unittest.TestCase):
         self.assertTrue(np.all(d.time() == w.times()))
 
     def test_plot_method(self):
-        """
-        Test the plot method.
-        """
+        # Test the plot method.
+
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')

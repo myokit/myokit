@@ -13,10 +13,8 @@
 #                  will be the only ones _not_ tested with bench_part.
 # -----------------------------------------------------------------------------
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 import myokit
 import myokit.formats.ansic as ansic

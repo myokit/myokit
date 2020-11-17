@@ -1,18 +1,32 @@
 #
-# Command line tools for Myokit.
+# Command line tools.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import warnings
+
+_line_width = 79
+
 
 def printline():
-    line_width = 60
-    print('-' * line_width)
+    """ Utility method for printing horizontal lines. """
+    print('-' * 60)
+
+
+def colored(color, text):
+    """ Utility method for printing colored text. """
+    colors = {
+        'normal': '\033[0m',
+        'warning': '\033[93m',
+        'fail': '\033[91m',
+        'bold': '\033[1m',
+        'underline': '\033[4m',
+    }
+    return colors[color] + str(text) + colors['normal']
 
 
 def main():
@@ -51,6 +65,7 @@ def main():
     add_step_parser(subparsers)             # Load a model, perform 1 step
     add_sundials_parser(subparsers)         # Show Sundials support
     add_system_parser(subparsers)           # Show system information
+    add_test_parser(subparsers)             # Run tests
     add_version_parser(subparsers)          # Show version info
     add_video_parser(subparsers)            # Convert a DataBlock to video
 
@@ -71,7 +86,11 @@ def main():
         func(**args)
 
 
-def block(filename, pyqt4=False, pyqt5=False, pyside=False):
+#
+# Data block viewer
+#
+
+def block(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     """
     Runs the DataBlock viewer.
     """
@@ -80,17 +99,25 @@ def block(filename, pyqt4=False, pyqt5=False, pyside=False):
         myokit.FORCE_PYQT5 = True
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = False
     elif pyqt4:
         myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = True
         myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = False
     elif pyside:
-        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = True
+        myokit.FORCE_PYSIDE2 = False
+    elif pyside2:
+        myokit.FORCE_PYQT5 = False
+        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = True
     import myokit.gui
     import myokit.gui.datablock_viewer
-    if pyqt5 or pyqt4 or pyside:
+    if pyqt5 or pyqt4 or pyside or pyside2:
         print('Using backend: ' + myokit.gui.backend)
     myokit.gui.run(myokit.gui.datablock_viewer.DataBlockViewer, filename)
 
@@ -126,8 +153,17 @@ def add_block_parser(subparsers):
         action='store_true',
         help='Run the DataBlock Viewer using the PySide backend.',
     )
+    parser.add_argument(
+        '--pyside2',
+        action='store_true',
+        help='Run the DataBlock Viewer using the PySide2 backend.',
+    )
     parser.set_defaults(func=block)
 
+
+#
+# Compare
+#
 
 def compare(model1, model2):
     """
@@ -145,7 +181,7 @@ def compare(model1, model2):
 
 def add_compare_parser(subparsers):
     """
-    Adds a subcommand parser for the `compare` command.
+    Adds a subcommand parser for the ``compare`` command.
     """
     parser = subparsers.add_parser(
         'compare',
@@ -165,6 +201,10 @@ def add_compare_parser(subparsers):
     )
     parser.set_defaults(func=compare)
 
+
+#
+# Compiler
+#
 
 def compiler(debug):
     """
@@ -195,6 +235,10 @@ def add_compiler_parser(subparsers):
     parser.set_defaults(func=compiler)
 
 
+#
+# Debug
+#
+
 def debug(source, variable, deps=False):
     """
     Shows how a single variable is calculated from the initial conditions.
@@ -213,7 +257,7 @@ def debug(source, variable, deps=False):
 
 def add_debug_parser(subparsers):
     """
-    Adds a subcommand parser for the `debug` command.
+    Adds a subcommand parser for the ``debug`` command.
     """
     parser = subparsers.add_parser(
         'debug',
@@ -241,6 +285,10 @@ def add_debug_parser(subparsers):
     parser.set_defaults(func=debug)
 
 
+#
+# Eval
+#
+
 def evaluate(expression):
     """
     Evaluates an expression in mmt syntax.
@@ -256,7 +304,7 @@ def evaluate(expression):
 
 def add_eval_parser(subparsers):
     """
-    Adds a subcommand parser for the `eval` command.
+    Adds a subcommand parser for the ``eval`` command.
     """
     parser = subparsers.add_parser(
         'eval',
@@ -271,6 +319,10 @@ def add_eval_parser(subparsers):
     parser.set_defaults(func=evaluate)
 
 
+#
+# Export
+#
+
 def mmt_export(exporter, source, target):
     """
     Exports a myokit model.
@@ -280,48 +332,54 @@ def mmt_export(exporter, source, target):
     import myokit.formats
 
     # Get exporter
-    exporter = myokit.formats.exporter(exporter)
-
-    # Set to auto-print
-    logger = exporter.logger()
-    logger.set_live(True)
-    logger.log_flair(str(exporter.__class__.__name__))
+    name = exporter
+    exporter = myokit.formats.exporter(name)
+    print(str(exporter.__class__.__name__))
 
     # Parse input file
     try:
-        logger.log('Reading model from ' + myokit.format_path(source))
+        print('Reading model from ' + myokit.format_path(source))
         model, protocol, script = myokit.load(source)
     except myokit.ParseError as ex:
-        logger.log(myokit.format_parse_error(ex, source))
+        print(myokit.format_parse_error(ex, source))
         sys.exit(1)
 
     # Must have model
     if model is None:
-        logger.log('Error: Imported file must contain model definition.')
+        print('Error: Imported file must contain model definition.')
         sys.exit(1)
     else:
-        logger.log('Model read successfully')
+        print('Model read successfully')
 
     # Export model or runnable
-    if exporter.supports_model():
-        # Export model
-        logger.log('Exporting model')
-        exporter.model(target, model)
-    else:
-        # Export runnable
-        logger.log('Exporting runnable')
-        if protocol is None:
-            logger.log('No protocol found.')
+    with warnings.catch_warnings(record=True) as ws:
+        if exporter.supports_model():
+            # Export model
+            print('Exporting model')
+            if name == 'cellml':
+                exporter.model(target, model, protocol)
+            else:
+                exporter.model(target, model)
         else:
-            logger.log('Using embedded protocol.')
-        exporter.runnable(target, model, protocol)
-    logger.log_flair('Export successful')
-    logger.log(exporter.info())
+            # Export runnable
+            print('Exporting runnable')
+            if protocol is None:
+                print('No protocol found.')
+            else:
+                print('Using embedded protocol.')
+            exporter.runnable(target, model, protocol)
+    for w in ws:
+        print('Warning: ' + str(w.message))
+    print('Export successful')
+
+    info = exporter.post_export_info()
+    if info:
+        print(info)
 
 
 def add_export_parser(subparsers):
     """
-    Adds a subcommand parser for the `export` command.
+    Adds a subcommand parser for the ``export`` command.
     """
     import myokit
     import myokit.formats
@@ -350,6 +408,10 @@ def add_export_parser(subparsers):
     parser.set_defaults(func=mmt_export)
 
 
+#
+# GDE
+#
+
 def gde(filename):
     """
     Runs the graph data extractor.
@@ -361,7 +423,7 @@ def gde(filename):
 
 def add_gde_parser(subparsers):
     """
-    Adds a subcommand parser for the `gde` command.
+    Adds a subcommand parser for the ``gde`` command.
     """
     parser = subparsers.add_parser(
         'gde',
@@ -377,6 +439,10 @@ def add_gde_parser(subparsers):
     )
     parser.set_defaults(func=gde)
 
+
+#
+# Icons / installation
+#
 
 def install():
     """
@@ -519,12 +585,12 @@ def install_windows():
         raise Exception('Not a windows machine.')
 
     import os
-    #import shutil
     import tempfile
+
+    import menuinst
 
     import myokit
     import myokit.pype
-    import menuinst
 
     # Process template to get icon directory
     tdir = tempfile.mkdtemp()
@@ -543,8 +609,7 @@ def install_windows():
         print('Done')
 
     finally:
-        #shutil.rmtree(tdir)
-        pass
+        myokit._rmtree(tdir)
 
 
 def add_icon_parser(subparsers):
@@ -559,7 +624,11 @@ def add_icon_parser(subparsers):
     parser.set_defaults(func=install)
 
 
-def ide(filename, pyqt4=False, pyqt5=False, pyside=False):
+#
+# IDE
+#
+
+def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     """
     Runs the Myokit IDE.
     """
@@ -568,24 +637,32 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False):
         myokit.FORCE_PYQT5 = True
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = False
     elif pyqt4:
         myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = True
         myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = False
     elif pyside:
-        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYQT5 = False
         myokit.FORCE_PYQT4 = False
         myokit.FORCE_PYSIDE = True
+        myokit.FORCE_PYSIDE2 = False
+    elif pyside2:
+        myokit.FORCE_PYQT5 = False
+        myokit.FORCE_PYQT4 = False
+        myokit.FORCE_PYSIDE = False
+        myokit.FORCE_PYSIDE2 = True
     import myokit.gui
     import myokit.gui.ide
-    if pyqt5 or pyqt4 or pyside:
+    if pyqt5 or pyqt4 or pyside or pyside2:
         print('Using backend: ' + myokit.gui.backend)
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
 
 
 def add_ide_parser(subparsers):
     """
-    Adds a subcommand parser for the `compare` command.
+    Adds a subcommand parser for the ``compare`` command.
     """
     parser = subparsers.add_parser(
         'ide',
@@ -614,8 +691,17 @@ def add_ide_parser(subparsers):
         action='store_true',
         help='Run the IDE using the PySide backend.',
     )
+    parser.add_argument(
+        '--pyside2',
+        action='store_true',
+        help='Run the DataBlock Viewer using the PySide2 backend.',
+    )
     parser.set_defaults(func=ide)
 
+
+#
+# Import
+#
 
 def mmt_import(importer, source, target=None):
     """
@@ -625,32 +711,38 @@ def mmt_import(importer, source, target=None):
 
     # Get importer
     importer = myokit.formats.importer(importer)
-
-    # Get logger
-    logger = importer.logger()
-
-    # If a target is specified, set the importer to live logging mode
-    if target:
-        logger.set_live(True)
-    logger.log_flair(str(importer.__class__.__name__))
+    print(str(importer.__class__.__name__))
 
     # Import
-    m = importer.model(source)
+    with warnings.catch_warnings(record=True) as ws:
+        model = importer.model(source)
+    for w in ws:
+        print('Warning: ' + str(w.message))
+
+    # Try to split off an embedded protocol
+    protocol = myokit.lib.guess.remove_embedded_protocol(model)
+
+    # No protocol? Then create one
+    if protocol is None:
+        protocol = myokit.default_protocol(model)
+
+    # Get default script
+    script = myokit.default_script(model)
 
     # If a target is specified, save the output
     if target:
         # Save or output model to new location
-        logger.log('Saving output to ' + str(target))
-        myokit.save(target, m)
-        logger.log('Done.')
+        print('Saving output to ' + str(target))
+        myokit.save(target, model, protocol, script)
+        print('Done.')
     else:
         # Write it to screen
-        print(myokit.save(None, m))
+        print(myokit.save(None, model, protocol, script))
 
 
 def add_import_parser(subparsers):
     """
-    Adds a subcommand parser for the `import` command.
+    Adds a subcommand parser for the ``import`` command.
     """
     import myokit
     import myokit.formats
@@ -683,6 +775,10 @@ def add_import_parser(subparsers):
     parser.set_defaults(func=mmt_import)
 
 
+#
+# Log viewer
+#
+
 def log(filenames):
     """
     Runs the DataLog Viewer.
@@ -694,7 +790,7 @@ def log(filenames):
 
 def add_log_parser(subparsers):
     """
-    Adds a subcommand parser for the `log` command.
+    Adds a subcommand parser for the ``log`` command.
     """
     import argparse
 
@@ -713,6 +809,10 @@ def add_log_parser(subparsers):
     parser.set_defaults(func=log)
 
 
+#
+# OpenCL info
+#
+
 def opencl():
     """
     Queries for OpenCL support.
@@ -723,7 +823,7 @@ def opencl():
 
 def add_opencl_parser(subparsers):
     """
-    Adds a subcommand parser for the `opencl` command.
+    Adds a subcommand parser for the ``opencl`` command.
     """
     parser = subparsers.add_parser(
         'opencl',
@@ -734,6 +834,10 @@ def add_opencl_parser(subparsers):
     )
     parser.set_defaults(func=opencl)
 
+
+#
+# OpenCL select
+#
 
 def opencl_select():
     """
@@ -840,7 +944,7 @@ def opencl_select():
 
 def add_opencl_select_parser(subparsers):
     """
-    Adds a subcommand parser for the `opencl_select` command.
+    Adds a subcommand parser for the ``opencl_select`` command.
     """
     parser = subparsers.add_parser(
         'opencl-select',
@@ -849,6 +953,10 @@ def add_opencl_select_parser(subparsers):
     )
     parser.set_defaults(func=opencl_select)
 
+
+#
+# Reset
+#
 
 def reset(force=False):
     """
@@ -871,8 +979,7 @@ def reset(force=False):
     if remove:
         print('Removing')
         print('  ' + myokit.DIR_USER)
-        import shutil
-        shutil.rmtree(myokit.DIR_USER)
+        myokit._rmtree(myokit.DIR_USER)
         print('Done')
     else:
         print('Aborting.')
@@ -881,7 +988,7 @@ def reset(force=False):
 
 def add_reset_parser(subparsers):
     """
-    Adds a subcommand parser for the `reset` command.
+    Adds a subcommand parser for the ``reset`` command.
     """
     parser = subparsers.add_parser(
         'reset',
@@ -896,6 +1003,10 @@ def add_reset_parser(subparsers):
     )
     parser.set_defaults(func=reset)
 
+
+#
+# Run
+#
 
 def run(source, debug, debugfile):
     """
@@ -975,7 +1086,7 @@ def run(source, debug, debugfile):
 
 def add_run_parser(subparsers):
     """
-    Adds a subcommand parser for the `run` command.
+    Adds a subcommand parser for the ``run`` command.
     """
     parser = subparsers.add_parser(
         'run',
@@ -1003,6 +1114,10 @@ def add_run_parser(subparsers):
     )
     parser.set_defaults(func=run)
 
+
+#
+# Step
+#
 
 def step(source, ref, ini, raw):
     """
@@ -1053,7 +1168,7 @@ def step(source, ref, ini, raw):
             print(myokit.step(model, initial=ini, reference=ref))
     except myokit.NumericalError as ee:
         e = 'Numerical error'
-        n = line_width - len(e) - 2
+        n = _line_width - len(e) - 2
         print('-' * int(n / 2) + ' ' + e + ' ' + '-' * (n - int(n / 2)))
         print('A numerical error occurred:')
         print(str(ee))
@@ -1061,7 +1176,7 @@ def step(source, ref, ini, raw):
 
 def add_step_parser(subparsers):
     """
-    Adds a subcommand parser for the `step` command.
+    Adds a subcommand parser for the ``step`` command.
     """
     parser = subparsers.add_parser(
         'step',
@@ -1100,6 +1215,10 @@ def add_step_parser(subparsers):
     parser.set_defaults(func=step)
 
 
+#
+# Sundials
+#
+
 def sundials():
     """
     Queries for Sundials support.
@@ -1114,7 +1233,7 @@ def sundials():
 
 def add_sundials_parser(subparsers):
     """
-    Adds a subcommand parser for the `sundials` command.
+    Adds a subcommand parser for the ``sundials`` command.
     """
     parser = subparsers.add_parser(
         'sundials',
@@ -1123,6 +1242,10 @@ def add_sundials_parser(subparsers):
     )
     parser.set_defaults(func=sundials)
 
+
+#
+# System
+#
 
 def system():
     """
@@ -1141,7 +1264,7 @@ def system():
 
 def add_system_parser(subparsers):
     """
-    Adds a subcommand parser for the `system` command.
+    Adds a subcommand parser for the ``system`` command.
     """
     parser = subparsers.add_parser(
         'system',
@@ -1151,14 +1274,625 @@ def add_system_parser(subparsers):
     parser.set_defaults(func=system)
 
 
+#
+# Test
+#
+
+def add_test_parser(subparsers):
+    """
+    Adds a parser for all the tests to a subparser.
+    """
+    parser = subparsers.add_parser(
+        'test',
+        description='Runs tests',
+        help='Runs unit tests, doc tests, etc.',
+    )
+
+    # Not in repo? Then run unit tests
+    if not test_in_repo():
+        parser.set_defaults(func=test_unit)
+        return
+
+    # Give full options if in repo
+    subparsers = parser.add_subparsers(help='commands')
+
+    # Disable matplotlib output
+    parser.add_argument(
+        '--nompl',
+        action='store_true',
+        help='Disable matplotlib output.',
+    )
+
+    # Coverage
+    coverage_parser = subparsers.add_parser(
+        'coverage', help='Run unit tests and print a coverage report.')
+    coverage_parser.set_defaults(testfunc=test_coverage)
+
+    # Doctests
+    doc_parser = subparsers.add_parser(
+        'doc',
+        help='Test documentation cover, building, and doc tests.')
+    doc_parser.set_defaults(testfunc=test_documentation)
+
+    # Publication examples
+    pub_parser = subparsers.add_parser(
+        'pub', help='Run publication examples.')
+    pub_parser.set_defaults(testfunc=test_examples_pub)
+
+    # Style tests
+    style_parser = subparsers.add_parser('style', help='Run code style tests.')
+    style_parser.set_defaults(testfunc=test_style)
+
+    # Unit tests
+    unit_parser = subparsers.add_parser('unit', help='Run unit tests')
+    unit_parser.set_defaults(testfunc=test_unit)
+
+    # Web examples
+    web_parser = subparsers.add_parser(
+        'web', help='Run web examples.')
+    web_parser.set_defaults(testfunc=test_examples_web)
+
+    # Nested test running method: maintains access to `parser`.
+    def run_tests(nompl=False, testfunc=None, **args):
+        if nompl:
+            print('Disabling matplotlib output')
+            import matplotlib
+            matplotlib.use('template')
+
+        if testfunc is None:
+            parser.print_help()
+        else:
+            testfunc(args)
+
+    parser.set_defaults(func=run_tests)
+
+
+def test_coverage(args):
+    """
+    Runs the unit tests and prints a coverage report.
+    """
+    import os
+    import subprocess
+    import sys
+
+    try:
+        print('Gathering coverage data')
+        p = subprocess.Popen([
+            'python3',
+            '-m',
+            'coverage',
+            'run',
+            'myokit',
+            'test',
+            'unit',
+        ])
+        try:
+            ret = p.wait()
+        except KeyboardInterrupt:
+            try:
+                p.terminate()
+            except OSError:
+                pass
+            p.wait()
+            print('')
+            sys.exit(1)
+        if ret != 0:
+            print('FAILED')
+            sys.exit(ret)
+
+        print('Generating coverage report.')
+        p = subprocess.Popen([
+            'python3',
+            '-m',
+            'coverage',
+            'report',
+            '-m',
+            '--skip-covered',
+        ])
+        p.wait()
+
+    finally:
+        # Remove coverage file
+        if os.path.isfile('.coverage'):
+            os.remove('.coverage')
+
+
+def test_documentation(args):
+    """
+    Checks if the documentation can be built, runs all doc tests, exits if
+    anything fails.
+    """
+    print('Checking documentation coverage.')
+
+    import subprocess
+    import sys
+
+    # Scan Myokit modules for classes and functions
+    modules, classes, functions = test_doc_coverage_get_objects()
+
+    # Check if they're all in the index
+    ok = test_doc_coverage_index(modules, classes, functions)
+
+    # Check if they're all shown somewhere
+    ok = test_doc_coverage(classes, functions) and ok
+
+    # Terminate if failed
+    if not ok:
+        sys.exit(1)
+
+    # Build docs and run doc tests
+    print('Building docs and running doctests.')
+    p = subprocess.Popen([
+        'sphinx-build',
+        '-b',
+        'doctest',
+        'docs/source',
+        'docs/build/html',
+        '-W',
+    ])
+    try:
+        ret = p.wait()
+    except KeyboardInterrupt:
+        try:
+            p.terminate()
+        except OSError:
+            pass
+        p.wait()
+        print('')
+        sys.exit(1)
+    if ret != 0:
+        print('FAILED')
+        sys.exit(ret)
+
+
+def test_doc_coverage(classes, functions):
+    """
+    Check all classes and functions exposed by Myokit are included in the docs
+    somewhere.
+
+    This method is based on one made by Fergus Cooper for PINTS.
+    See https://github.com/pints-team/pints
+    """
+    import os
+    import re
+
+    doc_files = []
+    for root, dirs, files in os.walk(os.path.join('docs', 'source')):
+        for file in files:
+            if file.endswith('.rst'):
+                doc_files.append(os.path.join(root, file))
+
+    # Regular expression that would find either 'module' or 'currentmodule':
+    # this needs to be prepended to the symbols as x.y.z != x.z
+    regex_module = re.compile(r'\.\.\s*\S*module\:\:\s*(\S+)')
+
+    # Regular expressions to find autoclass and autofunction specifiers
+    regex_class = re.compile(r'\.\.\s*autoclass\:\:\s*(\S+)')
+    regex_funct = re.compile(r'\.\.\s*autofunction\:\:\s*(\S+)')
+
+    # Identify all instances of autoclass and autofunction in all rst files
+    doc_classes = []
+    doc_functions = []
+    for doc_file in doc_files:
+        with open(doc_file, 'r') as f:
+            # We need to identify which module each class or function is in
+            module = ''
+            for line in f.readlines():
+                m_match = re.search(regex_module, line)
+                c_match = re.search(regex_class, line)
+                f_match = re.search(regex_funct, line)
+                if m_match:
+                    module = m_match.group(1) + '.'
+                elif c_match:
+                    doc_classes.append(module + c_match.group(1))
+                elif f_match:
+                    doc_functions.append(module + f_match.group(1))
+
+    # Check if documented symbols match known classes and functions
+    classes = set(classes)
+    functions = set(functions)
+    doc_classes = set(doc_classes)
+    doc_functions = set(doc_functions)
+
+    undoc_classes = classes - doc_classes
+    undoc_functions = functions - doc_functions
+    extra_classes = doc_classes - classes
+    extra_functions = doc_functions - functions
+
+    # Compare the results
+    if undoc_classes:
+        n = len(undoc_classes)
+        printline()
+        print('Found (' + str(n) + ') classes without documentation:')
+        print('\n'.join(
+            '  ' + colored('warning', y) for y in sorted(undoc_classes)))
+    if undoc_functions:
+        n = len(undoc_functions)
+        printline()
+        print('Found (' + str(n) + ') functions without documentation:')
+        print('\n'.join(
+            '  ' + colored('warning', y) for y in sorted(undoc_functions)))
+    if extra_classes:
+        n = len(extra_classes)
+        printline()
+        print('Found (' + str(n) + ') documented but unknown classes:')
+        print('\n'.join(
+            '  ' + colored('warning', y) for y in sorted(extra_classes)))
+    if extra_functions:
+        n = len(extra_functions)
+        printline()
+        print('Found (' + str(n) + ') documented but unknown classes:')
+        print('\n'.join(
+            '  ' + colored('warning', y) for y in sorted(extra_functions)))
+    n = (len(undoc_classes) + len(undoc_functions)
+         + len(extra_classes) + len(extra_functions))
+    printline()
+    print('Found total of (' + str(n) + ') mismatches.')
+
+    return n == 0
+
+
+def test_doc_coverage_get_objects():
+    """
+    Scans Myokit and returns a list of modules, a list of classes, and a
+    list of functions.
+    """
+    print('Finding Myokit modules...')
+    import importlib
+    import inspect
+    import os
+
+    def find_modules(root, modules=[]):
+        """ Find all modules in the given directory. """
+
+        # Get root as module
+        module_root = root.replace('/', '.')
+
+        # Check if this is a module
+        if os.path.isfile(os.path.join(root, '__init__.py')):
+            modules.append(module_root)
+        else:
+            return modules
+
+        # Look for submodules
+        for name in os.listdir(root):
+            if name[:1] == '_' or name[:1] == '.':
+                continue
+            path = os.path.join(root, name)
+            if os.path.isdir(path):
+                find_modules(path, modules)
+            else:
+                base, ext = os.path.splitext(name)
+                if ext == '.py':
+                    modules.append(module_root + '.' + base)
+
+        # Return found
+        return modules
+
+    # Get modules
+    import myokit
+    modules = find_modules('myokit')
+
+    # Import all modules
+    for module in modules:
+        importlib.import_module(module)
+
+    # Find modules, classes, and functions
+    def scan(module, root, pref, modules, classes, functions):
+        nroot = len(root)
+        for name, member in inspect.getmembers(module):
+            if name[0] == '_':
+                # Don't include private members
+                continue
+
+            # Get full name
+            full_name = pref + name
+
+            # Module
+            if inspect.ismodule(member):
+                try:
+                    # Don't scan external modules
+                    if member.__file__ is None:
+                        continue
+                    if member.__file__[0:nroot] != root:
+                        continue
+                except AttributeError:
+                    # Built-ins have no __file__ and should not be included
+                    continue
+                if full_name in modules:
+                    continue
+                modules.add(full_name)
+                mpref = full_name + '.'
+                mroot = os.path.join(root, name)
+                scan(member, mroot, mpref, modules, classes, functions)
+
+            # Class
+            elif inspect.isclass(member):
+                if member.__module__.startswith('myokit.'):
+                    classes.add(full_name)
+
+            # Function
+            elif inspect.isfunction(member):
+                if member.__module__.startswith('myokit.'):
+                    functions.add(full_name)
+
+        return
+
+    # Scan and return
+    print('Scanning Myokit modules...')
+    module = myokit
+    modules = set()
+    classes = set()
+    functions = set()
+    root = os.path.dirname(module.__file__)
+    pre = module.__name__ + '.'
+    scan(module, root, pre, modules, classes, functions)
+
+    print(
+        'Found (' + str(len(modules)) + ') modules, identified ('
+        + str(len(classes)) + ') classes and (' + str(len(functions))
+        + ') functions.')
+
+    return modules, classes, functions
+
+
+def test_doc_coverage_index(modules, classes, functions):
+    """
+    Checks the documentation index to see if everything is listed and to see if
+    nothing is listed that shouldn't be listed.
+    """
+    import os
+    import re
+
+    def scan_docs(path):
+        """ Scan api_index docs """
+        r = re.compile('(class|meth):`([^`]*)`')
+
+        def read_file(fpath, classes, functions):
+            with open(fpath, 'r') as f:
+                for m in r.finditer(f.read()):
+                    xtype = m.string[m.start(1):m.end(1)]
+                    xname = m.string[m.start(2):m.end(2)]
+                    if xtype == 'class':
+                        classes.add(xname)
+                    else:
+                        functions.add(xname)
+
+        # Scan directory, read files
+        files = set()
+        classes = set()
+        functions = set()
+        for fname in os.listdir(path):
+            fpath = os.path.join(path, fname)
+            if not os.path.isfile(fpath):
+                continue
+            if fname[-4:] != '.rst':
+                continue
+            read_file(fpath, classes, functions)
+            files.add(fpath)
+        # Return results
+        return files, classes, functions
+
+    # Scan api/index files
+    print('Reading doc files for api_index')
+    docdir = os.path.join('docs', 'source', 'api_index')
+    doc_files, doc_classes, doc_functions = scan_docs(docdir)
+    print(
+        'Found (' + str(len(doc_files)) + ') files, identified ('
+        + str(len(doc_classes)) + ') classes and (' + str(len(doc_functions))
+        + ') functions.')
+
+    # Compare the results
+    n = 0
+    x = classes - doc_classes
+    if x:
+        n += len(x)
+        printline()
+        print('Found (' + str(len(x)) + ') classes not in doc index:')
+        print('\n'.join('  ' + colored('warning', y) for y in sorted(x)))
+    x = functions - doc_functions
+    if x:
+        n += len(x)
+        printline()
+        print('Found (' + str(len(x)) + ') functions not in doc index:')
+        print('\n'.join('  ' + colored('warning', y) for y in sorted(x)))
+    x = doc_classes - classes
+    if x:
+        n += len(x)
+        printline()
+        print('Found (' + str(len(x)) + ') indexed, unknown classes:')
+        print('\n'.join('  ' + colored('warning', y) for y in sorted(x)))
+    x = doc_functions - functions
+    if x:
+        n += len(x)
+        printline()
+        print('Found (' + str(len(x)) + ') indexed, unknown functions:')
+        print('\n'.join('  ' + colored('warning', y) for y in sorted(x)))
+    printline()
+    print('Found total of (' + str(n) + ') mismatches.')
+
+    return n == 0
+
+
+def test_examples_pub(args):
+    """
+    Runs all publication examples, exits if one of them fails.
+    """
+    import os
+    import sys
+    import myokit
+
+    # Get publications directory
+    path = os.path.join(myokit.DIR_MYOKIT, 'tests', 'publications')
+
+    # PBMB 2016. Myokit: A simple interface to cardiac cellular
+    # electrophysiology
+    if test_mmt_files(os.path.join(path, 'pbmb-2016')):
+        sys.exit(1)
+
+
+def test_examples_web(args):
+    """
+    Runs all web examples, exits if one of them fails.
+    """
+    import os
+    import sys
+    import myokit
+
+    # Get web directory
+    path = os.path.join(
+        myokit.DIR_MYOKIT,
+        '..',
+        'dev',
+        'web',
+        'html',
+        'static',
+        'download',
+        'examples',
+    )
+    if not os.path.isdir(path):
+        print('Web examples not found. Skipping.')
+        return
+
+    # Run, exit on error
+    if test_mmt_files(path):
+        sys.exit(1)
+
+
+def test_in_repo():
+    """
+    Returns ``True`` iff it thinks we're in the Myokit repo root directory.
+    """
+    import os
+    return os.path.isfile(os.path.join('myokit', '_myokit_version.py'))
+
+
+def test_mmt_files(path):
+    """
+    Run all the `mmt` files in a given directory `path`, returns 0 iff nothing
+    goes wrong.
+    """
+    import fnmatch
+    import gc
+    import os
+    import traceback
+
+    import myokit
+
+    # Get absolute path
+    path = os.path.abspath(path)
+
+    # Show what we're running
+    print('Running mmt files for:')
+    print('  ' + path)
+
+    # Error state
+    error = 0
+
+    # Set working directory that that path
+    wdir = os.getcwd()
+    try:
+        os.chdir(path)
+
+        # Run all
+        glob = '*.mmt'
+        for fn in fnmatch.filter(os.listdir(path), glob):
+            # Load and run
+            try:
+                print('Loading ' + fn)
+                m, p, x = myokit.load(os.path.join(path, fn))
+                try:
+                    print('Running...')
+                    myokit.run(m, p, x)
+                except Exception:
+                    error = 1
+                    print(traceback.format_exc())
+                del(m, p, x)
+            except Exception:
+                print('Unable to load.')
+                print(traceback.format_exc())
+
+            # Tidy up
+            gc.collect()
+            print('-' * 70)
+
+            # Quit on error
+            if error:
+                break
+    finally:
+        os.chdir(wdir)
+
+    # Return error status 0
+    return error
+
+
+def test_style(args):
+    """
+    Runs flake8 in a subprocess, exits if it doesn't finish.
+    """
+    print('Running flake8 ... ')
+
+    import subprocess
+    import sys
+
+    sys.stdout.flush()
+    p = subprocess.Popen(['flake8', '-j4'], stderr=subprocess.PIPE)
+    try:
+        ret = p.wait()
+    except KeyboardInterrupt:
+        try:
+            p.terminate()
+        except OSError:
+            pass
+        p.wait()
+        print('')
+        sys.exit(1)
+    if ret == 0:
+        print('ok')
+    else:
+        print('FAILED')
+        sys.exit(ret)
+
+
+def test_unit(args=None):
+    """
+    Runs unit tests, exits if anything fails.
+    """
+    import os
+    import sys
+    import unittest
+    import warnings
+
+    print('Running tests with ' + sys.executable)
+
+    # Don't hide repeat warnings: This makes it possible to check that warnings
+    # are being raised in a consistent manner.
+    warnings.simplefilter('always')
+
+    if test_in_repo():
+        path = os.path.join('myokit', 'tests')
+    else:
+        import myokit
+        path = os.path.join(myokit.DIR_MYOKIT, 'tests')
+
+    suite = unittest.defaultTestLoader.discover(path, pattern='test*.py')
+    res = unittest.TextTestRunner(verbosity=2).run(suite)
+    sys.exit(0 if res.wasSuccessful() else 1)
+
+
+#
+# Version
+#
+
 def version(raw=False):
+    """ Show the version number. """
     import myokit
     print(myokit.version(raw))
 
 
 def add_version_parser(subparsers):
     """
-    Adds a subcommand parser for the `version` command.
+    Adds a subcommand parser for the ``version`` command.
     """
     parser = subparsers.add_parser(
         'version',
@@ -1172,6 +1906,10 @@ def add_version_parser(subparsers):
     )
     parser.set_defaults(func=version)
 
+
+#
+# Video
+#
 
 def video(src, key, dst, fps, colormap):
     """
@@ -1285,7 +2023,7 @@ def video(src, key, dst, fps, colormap):
 
 def add_video_parser(subparsers):
     """
-    Adds a subcommand parser for the `video` command.
+    Adds a subcommand parser for the ``video`` command.
     """
     import myokit
 

@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the classes in `myokit.lib.common`.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -15,16 +13,18 @@ import unittest
 import numpy as np
 
 import myokit
-import myokit.lib.common as common
 
-from shared import DIR_DATA
+from shared import DIR_DATA, WarningCollector
 
 
 class CommonTest(unittest.TestCase):
+    """Tests lib.common"""
+
     def test_activation(self):
-        """
-        Test the activation experiment class.
-        """
+        # Test the activation experiment class.
+        with WarningCollector():
+            import myokit.lib.common as common
+
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)
@@ -48,9 +48,10 @@ class CommonTest(unittest.TestCase):
         a.fit_boltzmann()
 
     def test_inactivation(self):
-        """
-        Test the inactivation experiment class.
-        """
+        # Test the inactivation experiment class.
+        with WarningCollector():
+            import myokit.lib.common as common
+
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)
@@ -68,9 +69,10 @@ class CommonTest(unittest.TestCase):
         a.fit_boltzmann()
 
     def test_recovery(self):
-        """
-        Test the recovery experiment class.
-        """
+        # Test the recovery experiment class.
+        with WarningCollector():
+            import myokit.lib.common as common
+
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)
@@ -95,9 +97,10 @@ class CommonTest(unittest.TestCase):
         self.assertTrue(np.all(x[1:] > x[:-1]))
 
     def test_restitution(self):
-        """
-        Test the restitution experiment class.
-        """
+        # Test the restitution experiment class.
+        with WarningCollector():
+            import myokit.lib.common as common
+
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)
@@ -108,9 +111,10 @@ class CommonTest(unittest.TestCase):
         r.run()
 
     def test_strength_duration(self):
-        """
-        Test the strength-duration experiment class.
-        """
+        # Test the strength-duration experiment class.
+        with WarningCollector():
+            import myokit.lib.common as common
+
         # Load model
         m = os.path.join(DIR_DATA, 'lr-1991.mmt')
         m = myokit.load_model(m)

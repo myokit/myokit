@@ -1,10 +1,8 @@
 #
 # OpenCL driven fiber-tissue simulation.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -343,6 +341,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Unique simulation id
         FiberTissueSimulation._index += 1
         mname = 'myokit_sim_fiber_tissue_' + str(FiberTissueSimulation._index)
+        mname += '_' + str(myokit._pid_hash())
 
         # Arguments
         args = {
@@ -367,17 +366,21 @@ class FiberTissueSimulation(myokit.CModule):
 
         # Define libraries
         libs = []
+        flags = []
         plat = platform.system()
-        if plat != 'Darwin':     # pragma: no osx cover
+        if plat != 'Darwin':    # pragma: no osx cover
             libs.append('OpenCL')
-        if plat != 'Windows':    # pragma: no windows cover
+        else:                   # pragma: no cover
+            flags.append('-framework OpenCL')
+        if plat != 'Windows':   # pragma: no windows cover
             libs.append('m')
 
         # Create extension
         libd = list(myokit.OPENCL_LIB)
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
-        self._sim = self._compile(mname, fname, args, libs, libd, incd)
+        self._sim = self._compile(
+            mname, fname, args, libs, libd, incd, larg=flags)
 
     def fiber_state(self, x=None):
         """

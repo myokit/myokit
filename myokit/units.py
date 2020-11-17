@@ -1,10 +1,8 @@
 #
 # Easy access to predefined myokit units.
 #
-# This file is part of Myokit
-#  Copyright 2011-2019 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -84,9 +82,9 @@ _add('Volt', V)
 _add('F', C / V, quantifiable=True, output=True)
 _add('farad', F)        # electric capacitance
 _add('Farad', F)
-_add('R', V / A, quantifiable=True, output=True)
-_add('ohm', R)          # electric resistance
-_add('Ohm', R)
+_add('Ohm', V / A, quantifiable=True, output=True)
+_add('ohm', Ohm)        # electric resistance
+_add('R', Ohm, quantifiable=True)   # Legacy: Deprecated on May 26th 2020
 _add('S', 1 / R, quantifiable=True, output=True)
 _add('siemens', S)      # siemens (electric conductivity)
 _add('Siemens', S)
@@ -104,8 +102,8 @@ _add('lumen', lm)       # Luminous flux
 _add('lx', lm / m**2, quantifiable=True, output=True)
 _add('lux', lx)         # Illuminance
 _add('Bq', 1 / s, quantifiable=True, output=True)
-_add('bequerel', Bq)    # radioactive decays / s
-_add('Bequerel', Bq)
+_add('becquerel', Bq)    # radioactive decays / s
+_add('Becquerel', Bq)
 _add('Gy', J / kg, quantifiable=True, output=True)
 _add('gray', Gy)        # absorbed dose of ionizing radiation
 _add('Gray', Gy)

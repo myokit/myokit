@@ -1,10 +1,8 @@
 #
 # Parser for .mmt files
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -1964,9 +1962,9 @@ def format_parse_error(ex, source=None):
     if ex.line > 0 and source is not None:
         if isinstance(source, basestring) and os.path.isfile(source):
             # Re-open file, find line
-            f = open(source, 'r')
-            for i in range(0, ex.line):
-                line = next(f)
+            with open(source, 'r') as f:
+                for i in range(0, ex.line):
+                    line = next(f)
             line = line.rstrip()
         else:
             i = 0
@@ -2104,13 +2102,18 @@ class FunctionParser(NudParser):
             return (func, ops, (name,))
         else:
             # User-defined function
-            try:
-                func = info.model.get_function(name[1], len(ops))
-            except KeyError:
+            func = None
+            if info.model is not None:
+                try:
+                    func = info.model.get_function(name[1], len(ops))
+                except KeyError:
+                    pass
+            if func is None:
                 raise ParseError(
                     'Unknown function', name[2], name[3], 'A function '
                     + name[1] + '() with ' + str(len(ops))
                     + ' argument(s) could not be found.')
+
             # Found function, return template, arguments and tokens. "func" is
             # now a (template) Expression object.
             return (func, ops, (name,))

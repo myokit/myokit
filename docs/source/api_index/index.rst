@@ -13,8 +13,6 @@ sorted by module
     myokit.formats
     myokit.gui
     myokit.lib
-    myokit.mxml
     myokit.pacing
     myokit.pype
-     
 

@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the mmt file load/save functionality
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -30,9 +28,8 @@ class LoadSaveTest(unittest.TestCase):
     Tests various parts of load/save behavior for model/protocol/script.
     """
     def test_multiline_string_indent(self):
-        """
-        Test what happens when you load save a string that gets auto-indented.
-        """
+        # Test what happens when you load save a string that gets auto-indented
+
         # Create model with multi-line meta-data property
         d1 = 'First line\n\nSecond line'
         m1 = myokit.Model()
@@ -85,10 +82,9 @@ class LoadSaveTest(unittest.TestCase):
             self.assertEqual(d2, dr)
 
     def test_save_model(self):
-        """
-        Test if the correct parts are saved/loaded from disk using the
-        ``save_model()`` method.
-        """
+        # Test if the correct parts are saved/loaded from disk using the
+        # ``save_model()`` method.
+
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
         # Test example loading
         m = myokit.load_model('example')
@@ -111,10 +107,9 @@ class LoadSaveTest(unittest.TestCase):
             self.assertEqual(mm.code(), m.code())
 
     def test_save_protocol(self):
-        """
-        Test if the correct parts are saved/loaded from disk using the
-        ``save_protocol()`` method.
-        """
+        # Test if the correct parts are saved/loaded from disk using the
+        # ``save_protocol()`` method.
+
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
         # Test example loading
         p = myokit.load_protocol('example')
@@ -137,10 +132,9 @@ class LoadSaveTest(unittest.TestCase):
             self.assertEqual(pp.code(), p.code())
 
     def test_save_script(self):
-        """
-        Test if the correct parts are saved/loaded from disk using the
-        ``save_script()`` method.
-        """
+        # Test if the correct parts are saved/loaded from disk using the
+        # ``save_script()`` method.
+
         ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
         # Test example loading
         x = myokit.load_script('example')
@@ -163,10 +157,9 @@ class LoadSaveTest(unittest.TestCase):
             self.assertEqual(x, xx)
 
     def test_save(self):
-        """
-        Test if the correct parts are saved/loaded from disk using the
-        ``save()`` method.
-        """
+        # Test if the correct parts are saved/loaded from disk using the
+        # ``save()`` method.
+
         # Test example loading
         m, p, x = myokit.load('example')
         self.assertIsInstance(m, myokit.Model)
@@ -299,7 +292,7 @@ class LoadSaveTest(unittest.TestCase):
             self.assertEqual(text, myokit.save(model=m, protocol=p, script=x))
 
     def test_load_partial(self):
-        """ Test loading of partial files. """
+        # Test loading of partial files.
         mpath = os.path.join(DIR_DATA, 'beeler-1977-model.mmt')
         ppath = os.path.join(DIR_DATA, 'beeler-1977-protocol.mmt')
         spath = os.path.join(DIR_DATA, 'beeler-1977-script.mmt')
@@ -333,7 +326,7 @@ class LoadSaveTest(unittest.TestCase):
             myokit.SectionNotFoundError, myokit.load_script, ppath)
 
     def test_load_save_state(self):
-        """ Test loading/saving state. """
+        # Test loading/saving state.
         m, p, x = myokit.load('example')
         with TemporaryDirectory() as d:
             # Test save and load without model
@@ -356,7 +349,7 @@ class LoadSaveTest(unittest.TestCase):
             self.assertEqual(myokit.load_state(f), dct)
 
     def test_load_save_state_bin(self):
-        """ Test loading/saving state in binary format. """
+        # Test loading/saving state in binary format.
         m, p, x = myokit.load('example')
         with TemporaryDirectory() as d:
 

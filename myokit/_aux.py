@@ -3,10 +3,8 @@
 # functions that are important enough to warrant inclusion in the main
 # myokit module but don't belong to any specific hidden module.
 #
-# This file is part of Myokit
-#  Copyright 2011-2019 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -16,6 +14,7 @@ import fnmatch
 import os
 import re
 import shutil
+import stat
 import sys
 import tempfile
 import timeit
@@ -251,7 +250,7 @@ class PyCapture(object):
         if capturing:
             self._stop_capturing()
 
-        if sys.hexversion >= 0x03000000:    # pragma: no cover
+        if sys.hexversion >= 0x03000000:
             text = ''.join(self._captured)
         else:   # pragma: no cover
             # In Python 2, this needs to be decoded from ascii
@@ -298,9 +297,25 @@ class SubCapture(PyCapture):
             self._stdout = sys.stdout
             self._stderr = sys.stderr
 
-            # Get file descriptors used for output and errors
-            self._stdout_fd = sys.__stdout__.fileno()
-            self._stderr_fd = sys.__stderr__.fileno()
+            # Get file descriptors used for output and errors.
+            #
+            # On https://docs.python.org/3/library/sys.html#module-sys, it says
+            # that stdout/err as well as __stdout__ can be None (e.g. in spyder
+            # on windows), so we need to check for this.
+            # In other cases (pythonw.exe) they can be set but return a
+            # negative file descriptor (indicating it's invalid).
+            # So here we check if __stdout__ is None and if so set a negative
+            # fileno so that we can catch both cases at once in the rest of the
+            # code.
+            #
+            if sys.__stdout__ is not None:
+                self._stdout_fd = sys.__stdout__.fileno()
+            else:   # pragma: no cover
+                self._stdout_fd = -1
+            if sys.__stderr__ is not None:
+                self._stderr_fd = sys.__stderr__.fileno()
+            else:   # pragma: no cover
+                self._stderr_fd = -1
 
             # If they're proper streams (so if not pythonw.exe), flush them
             if self._stdout_fd >= 0:
@@ -357,12 +372,20 @@ class SubCapture(PyCapture):
             sys.stdout = self._stdout
             sys.stderr = self._stderr
             # Close temporary files and store capture output
-            self._file_out.seek(0)
-            self._captured.extend(self._file_out.readlines())
-            self._file_out.close()
-            self._file_err.seek(0)
-            self._captured.extend(self._file_err.readlines())
-            self._file_err.close()
+            try:
+                self._file_out.seek(0)
+                self._captured.extend(self._file_out.readlines())
+                self._file_out.close()
+            except ValueError:  # pragma: no cover
+                # In rare cases, I've seen a ValueError, "underlying buffer has
+                # been detached".
+                pass
+            try:
+                self._file_err.seek(0)
+                self._captured.extend(self._file_err.readlines())
+                self._file_err.close()
+            except ValueError:  # pragma: no cover
+                pass
             # We've stopped capturing
             self._capturing = False
 
@@ -372,6 +395,85 @@ class SubCapture(PyCapture):
         example for debug output).
         """
         return self._stdout
+
+
+def default_protocol(model=None):
+    """
+    Returns a default protocol to use when no embedded one is available.
+    """
+    start = 100
+    duration = 0.5
+    period = 1000
+
+    # Try to get the time units
+    time_units = None
+    if model is not None:
+        if model.time() is not None:
+            time_units = model.time().unit()
+
+    # Adapt protocol if necessary
+    default_units = myokit.units.ms
+    try:
+        start = myokit.Unit.convert(start, default_units, time_units)
+        duration = myokit.Unit.convert(duration, default_units, time_units)
+        period = myokit.Unit.convert(period, default_units, time_units)
+    except myokit.IncompatibleUnitError:
+        pass
+
+    # Create and return
+    p = myokit.Protocol()
+    p.schedule(1, start, duration, period, 0)
+    return p
+
+
+def default_script(model=None):
+    """
+    Returns a default script to use when no embedded script is available.
+    """
+    # Defaults
+    vm = 'next(m.states()).qname()'
+    duration = 1000
+
+    # Try to improve on defaults using model
+    if model is not None:
+        # Guess membrane potential
+        import myokit.lib.guess
+        v = myokit.lib.guess.membrane_potential(model)
+        if v is not None:
+            vm = "'" + v.qname() + "'"
+
+        # Get duration in good units
+        default_unit = myokit.units.ms
+        time = model.time()
+        if time is not None:
+            if time.unit() != default_unit:
+                try:
+                    duration = myokit.Unit.convert(
+                        1000, default_unit, time.unit())
+                except myokit.IncompatibleUnitError:
+                    pass
+
+    # Create and return script
+    return '\n'.join((  # pragma: no cover
+        "[[script]]",
+        "import matplotlib.pyplot as plt",
+        "import myokit",
+        "",
+        "# Get model and protocol, create simulation",
+        "m = get_model()",
+        "p = get_protocol()",
+        "s = myokit.Simulation(m, p)",
+        "",
+        "# Run simulation",
+        "d = s.run(" + str(duration) + ")",
+        "",
+        "# Display the results",
+        "var = " + vm,
+        "plt.figure()",
+        "plt.plot(d.time(), d[var])",
+        "plt.title(var)",
+        "plt.show()",
+    ))
 
 
 def _examplify(filename):
@@ -1179,8 +1281,12 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
     info.compress_type = zipfile.ZIP_DEFLATED
 
     # Write to compressed file
+    try:
+        ar = ar.tobytes()
+    except AttributeError:  # pragma: no python 3 cover
+        ar = ar.tostring()
     with zipfile.ZipFile(filename, 'w') as f:
-        f.writestr(info, ar.tostring())
+        f.writestr(info, ar)
 
 
 def step(model, initial=None, reference=None, ignore_errors=False):
@@ -1213,7 +1319,6 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     # Log settings
     fmat = myokit.SFDOUBLE
     line_width = 79
-    precision = 10
 
     # Get max variable name width (at least 4, for 'Name' header)
     w = max(4, max([len(v.qname()) for v in model.states()]))
@@ -1232,7 +1337,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     if not reference:
         # Default output: intial value and derivative
         for r, v in enumerate(model.states()):
-            log.append(f.format(v.qname(), v.state_value(), values[r]))
+            log.append(f.format(v.qname(), initial[r], values[r]))
     else:
         # Comparing output
 
@@ -1246,12 +1351,11 @@ def step(model, initial=None, reference=None, ignore_errors=False):
         g = h + fmat
         errors = 0
         warnings = 0
-        zero = fmat.format(0)[1:]
 
         for r, v in enumerate(model.states()):
             x = values[r]
             y = reference[r]
-            log.append(f.format(v.qname(), v.state_value(), x))
+            log.append(f.format(v.qname(), initial[r], x))
             xx = fmat.format(x)
             yy = fmat.format(y)
             line = g.format(y)
@@ -1260,39 +1364,54 @@ def step(model, initial=None, reference=None, ignore_errors=False):
             if xx[0] != yy[0]:
 
                 # Ignore if zero
-                if (xx[1:] == yy[1:] == zero):
+                if (_feq(x, 0) and _feq(y, 0)):
                     log.append(line)
-                    log.append(h + ' ' * 24)
+                    log.append('')
                 else:
                     errors += 1
-                    log.append(line + ' X !!!')
+                    log.append(line + ' sign')
                     log.append(h + '^' * 24)
 
             # Different exponent, huge error
             elif xx[-4:] != yy[-4:]:
                 errors += 1
-                log.append(line + ' X !!!')
+                log.append(line + ' exponent')
                 log.append(i + '^^^^')
 
-            # No error of smaller error
+            # Large error, small error, or no error
             else:
-                threshold = 3 + precision  # 3 rubbish chars
-                if xx[0:threshold] != yy[0:threshold]:
+                mark_error = False
+                threshold = 13
+                if xx[:threshold] != yy[:threshold]:
+                    # "Large" error
                     errors += 1
                     line += ' X'
-                else:
-                    if xx[threshold:] != yy[threshold:]:
+                    mark_error = True
+                elif xx != yy:
+                    # "Small" error, or numerical error
+                    rel_err = abs(x - y) / max(abs(x), abs(y))
+                    n_eps = rel_err / sys.float_info.epsilon
+                    if n_eps > 1:
+                        line += ' ~ ' + str(round(n_eps, 1)) + ' eps'
+                    else:
+                        line += ' <= 1 eps'
+                    if n_eps > 1:
                         warnings += 1
+                        mark_error = True
                 log.append(line)
-                line2 = h
-                pos = 0
-                n = len(xx)
-                while pos < n and xx[pos] == yy[pos]:
-                    line2 += ' '
-                    pos += 1
-                for pos in range(pos, n):
-                    line2 += '^'
-                log.append(line2)
+
+                if mark_error:
+                    line2 = h
+                    pos = 0
+                    n = len(xx)
+                    while pos < n and xx[pos] == yy[pos]:
+                        line2 += ' '
+                        pos += 1
+                    for pos in range(pos, n):
+                        line2 += '^'
+                    log.append(line2)
+                else:
+                    log.append('')
 
         # Show large mismatches between model and reference
         if errors > 0:
@@ -1311,13 +1430,16 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     return '\n'.join(log)
 
 
-def strfloat(number, full=False):
+def strfloat(number, full=False, precision=myokit.DOUBLE_PRECISION):
     """
     Turns the given number into a string.
     """
     # Force full precision output
     if full:
-        return myokit.SFDOUBLE.format(float(number))
+        if precision == myokit.SINGLE_PRECISION:
+            return myokit.SFSINGLE.format(float(number))
+        else:
+            return myokit.SFDOUBLE.format(float(number))
 
     # Pass through strings
     if isinstance(number, str):
@@ -1332,9 +1454,35 @@ def strfloat(number, full=False):
     if len(s) < 10:
         return s
 
-    # But if the number is given with lots of decimals, use the highest
-    # precision number possible
-    return myokit.SFDOUBLE.format(number)
+    # But if the number is given with lots of decimals, use the representation
+    # with enough digits to prevent loss of information
+    if precision == myokit.SINGLE_PRECISION:
+        return myokit.SFSINGLE.format(float(number))
+    else:
+        return myokit.SFDOUBLE.format(float(number))
+
+
+def version(raw=False):
+    """
+    Returns the current Myokit version.
+
+    By default, a formatted multi-line string is returned. To get a simpler
+    one-line string set the optional argument ``raw=True``.
+
+    The same version info can be accessed using ``myokit.__version__``.
+    Unformatted info is available in ``myokit.__version_tuple__``, which
+    contains the major, minor, and revision number respectively, all as
+    ``int`` objects. For development versions of Myokit, it may contain a 4th
+    element ``"dev"``.
+    """
+    if raw:
+        return myokit.__version__
+    else:
+        t1 = ' Myokit ' + myokit.__version__ + ' '
+        t2 = '_' * len(t1)
+        t1 += '|/\\'
+        t2 += '|  |' + '_' * 5
+        return '\n' + t1 + '\n' + t2
 
 
 def _feq(a, b):
@@ -1342,6 +1490,7 @@ def _feq(a, b):
     Checks if floating point numbers ``a`` and ``b`` are equal, or so close to
     each other that the difference could be a single rounding error.
     """
+    # Note the initial == check handles infinity
     return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
 
 
@@ -1352,11 +1501,64 @@ def _fgeq(a, b):
     return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
 
 
-def _round_if_int(x):
+def _fround(x):
     """
     Checks if a float ``x`` is within 1 rounding error of an integer, and if
-    so, rounds it to that integer.
+    so, converts it to that integer.
     """
-    ix = round(x)
+    ix = int(round(x))
     return ix if _feq(x, ix) else x
+
+
+def _close(a, b, reltol=1e-9, abstol=1e-9):
+    """
+    Test whether two numbers are close enough to be considered equal.
+
+    Differs from :meth:`myokit._feq` in that it tries to answer the question
+    "are two number resulting from various calculations close enough to be
+    considered equal". Whereas `_feq` aims to deal with numbers that are
+    numerically indistinguishable but still have a slightly different floating
+    point representation.
+    """
+    # Note the initial == check handles infinity
+    return a == b or abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
+
+
+def _cround(x, reltol=1e-9, abstol=1e-9):
+    """
+    Checks if a float ``x`` is close to an integer with :meth:`close()`, and if
+    so, converts it to that integer.
+    """
+    ix = int(round(x))
+    return ix if _close(x, ix, reltol, abstol) else x
+
+
+def _rmtree(path):
+    """
+    Version of ``shutil.rmtree`` that handles access denied errors (when the
+    user is lacking write permissions). This seems to happen on Windows some
+    times.
+
+    The solution here is based on answers given on stackoverflow:
+    https://stackoverflow.com/questions/2656322
+    """
+    def onerror(function, path, excinfo):   # pragma: no cover
+        if not os.access(path, os.W_OK):
+            # Give user write permissions (remove read-only flag)
+            os.chmod(path, stat.S_IWUSR)
+            function(path)
+        else:
+            raise
+
+    shutil.rmtree(path, ignore_errors=False, onerror=onerror)
+
+
+def _pid_hash():
+    """
+    Returns a hash that depends on the current time as well as the process id,
+    so that it's likely to return a different number when called twice.
+    """
+    x = os.getpid() * timeit.default_timer()
+    x = abs(hash(str(x - int(x))))
+    return x
 

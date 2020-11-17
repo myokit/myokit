@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the exporters from the format module.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -46,6 +44,11 @@ config_pyside = """
 backend=pyside
 """
 
+config_pyside2 = """
+[gui]
+backend=pyside2
+"""
+
 config_pyqt4 = """
 [gui]
 backend=pyqt4
@@ -68,9 +71,8 @@ str=String value
 class TestConfig(unittest.TestCase):
 
     def test_create(self):
-        """
-        Test if the `_create` method works.
-        """
+        # Test if the `_create` method works.
+
         # Import hidden _config module
         path = sys.path
         try:
@@ -87,9 +89,8 @@ class TestConfig(unittest.TestCase):
         self.assertFalse(os.path.isfile(filename))
 
     def test_load_read(self):
-        """
-        Test if the `_load` method works, when a config file exists.
-        """
+        # Test if the `_load` method works, when a config file exists.
+
         # Import hidden _config module
         path = sys.path
         try:
@@ -103,6 +104,7 @@ class TestConfig(unittest.TestCase):
         time_format = myokit.TIME_FORMAT
         debug_numbers = myokit.DEBUG_LINE_NUMBERS
         force_pyside = myokit.FORCE_PYSIDE
+        force_pyside2 = myokit.FORCE_PYSIDE2
         force_pyqt4 = myokit.FORCE_PYQT4
         force_pyqt5 = myokit.FORCE_PYQT5
         sundials_lib = myokit.SUNDIALS_LIB
@@ -126,7 +128,7 @@ class TestConfig(unittest.TestCase):
                 myokit.SUNDIALS_INC = []
                 myokit.OPENCL_LIB = []
                 myokit.OPENCL_INC = []
-                myokit.FORCE_PYSIDE = False
+                myokit.FORCE_PYSIDE = myokit.FORCE_PYSIDE2 = False
                 myokit.FORCE_PYQT4 = myokit.FORCE_PYQT5 = False
                 with open(d.path('myokit.ini'), 'w') as f:
                     f.write(config2)
@@ -135,6 +137,7 @@ class TestConfig(unittest.TestCase):
                 self.assertEqual(myokit.TIME_FORMAT, 'TEST_TIME_FORMAT')
                 self.assertTrue(myokit.DEBUG_LINE_NUMBERS)
                 self.assertFalse(myokit.FORCE_PYSIDE)
+                self.assertFalse(myokit.FORCE_PYSIDE2)
                 self.assertFalse(myokit.FORCE_PYQT4)
                 self.assertFalse(myokit.FORCE_PYQT5)
                 self.assertEqual(myokit.SUNDIALS_LIB, ['one', 'two'])
@@ -147,6 +150,7 @@ class TestConfig(unittest.TestCase):
                     f.write(config_pyqt4)
                 config._load()
                 self.assertFalse(myokit.FORCE_PYSIDE)
+                self.assertFalse(myokit.FORCE_PYSIDE2)
                 self.assertTrue(myokit.FORCE_PYQT4)
                 self.assertFalse(myokit.FORCE_PYQT5)
 
@@ -154,6 +158,7 @@ class TestConfig(unittest.TestCase):
                     f.write(config_pyqt5)
                 config._load()
                 self.assertFalse(myokit.FORCE_PYSIDE)
+                self.assertFalse(myokit.FORCE_PYSIDE2)
                 self.assertFalse(myokit.FORCE_PYQT4)
                 self.assertTrue(myokit.FORCE_PYQT5)
 
@@ -161,6 +166,15 @@ class TestConfig(unittest.TestCase):
                     f.write(config_pyside)
                 config._load()
                 self.assertTrue(myokit.FORCE_PYSIDE)
+                self.assertFalse(myokit.FORCE_PYSIDE2)
+                self.assertFalse(myokit.FORCE_PYQT4)
+                self.assertFalse(myokit.FORCE_PYQT5)
+
+                with open(d.path('myokit.ini'), 'w') as f:
+                    f.write(config_pyside2)
+                config._load()
+                self.assertFalse(myokit.FORCE_PYSIDE)
+                self.assertTrue(myokit.FORCE_PYSIDE2)
                 self.assertFalse(myokit.FORCE_PYQT4)
                 self.assertFalse(myokit.FORCE_PYQT5)
 

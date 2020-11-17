@@ -1,10 +1,8 @@
 #
 # Tools for working with Hodgkin-Huxley style ion channel models
 #
-# This file is part of Myokit
-#  Copyright 2011-2019 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -850,11 +848,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
-        if np.any(state < 0):
+        if np.any(state < 0) or np.any(state > 1):
             raise ValueError(
-                'The fraction of channels in a state cannot be negative.')
-        if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+                'All states must be in the range [0, 1].')
         self._default_state = state
 
     def set_membrane_potential(self, v):
@@ -885,11 +881,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
-        if np.any(state < 0):
+        if np.any(state < 0) or np.any(state > 1):
             raise ValueError(
-                'The fraction of channels in a state cannot be negative.')
-        if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+                'All states must be in the range [0, 1].')
         self._state = state
 
     def solve(self, times):
@@ -946,6 +940,8 @@ def convert_hh_states_to_inf_tau_form(model, v=None):
     RHS will be replaced by an expression of the form
     ``dot(x) = (x_inf - x) / tau_x``, where ``x_inf`` and ``tau_x`` are the
     new variables.
+
+    See also: :meth:`get_alpha_and_beta()`.
 
     Arguments:
 
@@ -1008,6 +1004,10 @@ def get_alpha_and_beta(x, v=None):
     Here, ``alpha(v)`` and ``beta(v)`` represent the forward and backward
     reaction rates for ``x``. Both may depend on ``v``, but not on any (other)
     state variable.
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
 
     Arguments:
 
@@ -1115,6 +1115,10 @@ def get_inf_and_tau(x, v=None):
     Here, ``x_inf`` and ``tau_x`` represent the steady-state and time
     constant of ``x``. Both may depend on ``v``, but not on any (other) state
     variable.
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
 
     Arguments:
 
@@ -1278,6 +1282,10 @@ def has_alpha_beta_form(x, v=None):
     both ``alpha`` and ``beta`` depend on ``v``, and (2) check that they don't
     depend on any state variables (not counting ``v``).
 
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
+
     Arguments:
 
     ``x``
@@ -1304,6 +1312,10 @@ def has_inf_tau_form(x, v=None):
     If the optional argument ``v`` is given, the method will (1) check that
     both ``x_inf`` and ``tau_x`` depend on ``v``, and (2) check that they don't
     depend on any state variables (not counting ``v``).
+
+    Note that this method performs a shallow check of the equation's shape,
+    and does not perform any simplification or rewriting to see if the
+    expression can be made to fit the required form.
 
     Arguments:
 
