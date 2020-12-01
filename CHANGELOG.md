@@ -2,7 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
+## [1.31.1] - 2020-12-01
 - Added
   - [#623](https://github.com/MichaelClerx/myokit/pull/623) The changes made with each release are now stored in CHANGELOG.md.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL` now includes a method `is_paced` and `neighbours` that provide information about the simulated cells.
@@ -25,7 +25,6 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
   - [#632](https://github.com/MichaelClerx/myokit/pull/632) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favour of new `from_log` methods.
-- Removed
 - Fixed
   - [#650](https://github.com/MichaelClerx/myokit/pull/650) Fix to `myokit.lib.plots.cumulative_current` for normalisation in areas with zero current.
   - [#603](https://github.com/MichaelClerx/myokit/pull/603) Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.
