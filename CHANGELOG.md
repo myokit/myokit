@@ -4,10 +4,16 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Added more detailed error output to several CVODE errors related to RHS-related numerical issues.
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now tested on Sundials 5 (locally).
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now testing on Python 3.9.
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) `Simulation.run` documentation is now more clear on what happens for very short simulation durations (or zero).
 - Changed
 - Deprecated
 - Removed
 - Fixed
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug in `Variable.convert_unit()` that caused unexpected (and quite arbitrary) results.
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug where calling `Simulation.run()` with a very short runtime caused a zero state to be returned.
 
 ## [1.31.1] - 2020-12-01
 - Added
