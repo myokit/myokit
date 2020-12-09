@@ -41,10 +41,6 @@ matrix:
         - python: "3.8"
           env:
             - MYOKIT_DOC=true
-        # Cover checking
-        - python: "3.8"
-          env:
-            - MYOKIT_COVER=true
         # Unit tests on Ubuntu
         - python: "2.7.6"
           dist: trusty
@@ -65,11 +61,12 @@ matrix:
         - python: "3.8"
           env:
             - MYOKIT_UNIT=true
+        # Cover checking + latest version
         - python: "3.9"
           env:
-            - MYOKIT_UNIT=true
+            - MYOKIT_COVER=true
         # Basic install test
-        - python: "3.8"
+        - python: "3.9"
           env:
             - MYOKIT_BASIC=true
             - MYOKIT_UNIT=true
