@@ -413,7 +413,9 @@ class Simulation(myokit.CModule):
                         # Loop without feedback
                         while t < tmax:
                             t = self._sim.sim_step()
-                except ArithmeticError:
+                except ArithmeticError as e:
+                    # Some CVODE errors are set to raise an ArithmeticError,
+                    # which users may be able to debug.
                     self._error_state = list(state)
                     txt = ['A numerical error occurred during simulation at'
                            ' t = ' + str(t) + '.', 'Last reached state: ']
@@ -425,6 +427,7 @@ class Simulation(myokit.CModule):
                     txt.append('  pace        = ' + myokit.strfloat(bound[1]))
                     txt.append('  realtime    = ' + myokit.strfloat(bound[2]))
                     txt.append('  evaluations = ' + myokit.strfloat(bound[3]))
+                    txt.append(str(e))
                     try:
                         self._model.eval_state_derivatives(state)
                     except myokit.NumericalError as en:

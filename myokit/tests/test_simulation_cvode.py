@@ -364,7 +364,7 @@ class SimulationTest(unittest.TestCase):
         s = myokit.Simulation(m, self.protocol)
         with self.assertRaises(myokit.SimulationError) as e:
             s.run(5000)
-        self.assertIn('CV_ERR_FAILURE', str(e.exception))
+        self.assertIn('numerical error', str(e.exception))
 
     def test_cvode_simulation_with_zero_states(self):
         # Tests running cvode simulations on models with no ODEs
