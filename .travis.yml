@@ -65,6 +65,9 @@ matrix:
         - python: "3.8"
           env:
             - MYOKIT_UNIT=true
+        - python: "3.9"
+          env:
+            - MYOKIT_UNIT=true
         # Basic install test
         - python: "3.8"
           env:
