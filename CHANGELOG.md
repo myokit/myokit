@@ -6,9 +6,12 @@ This page lists the main changes made to Myokit in each release.
 - Added
 - Changed
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Added more detailed error output to several CVODE errors related to RHS-related numerical issues.
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now tested on Sundials 5 (locally).
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now testing on Python 3.9.
 - Deprecated
 - Removed
 - Fixed
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug in `Variable.convert_unit()` that caused unexpected (and quite arbitrary) results.
 
 ## [1.31.1] - 2020-12-01
 - Added
