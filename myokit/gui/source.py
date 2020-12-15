@@ -196,7 +196,7 @@ class Editor(QtWidgets.QPlainTextEdit):
 
     def jump_to(self, line, char):
         """
-        Jumps to the given line and row.
+        Jumps to the given line and row (with indices starting at 0).
         """
         block = self.document().findBlockByNumber(line)
         cursor = self.textCursor()
