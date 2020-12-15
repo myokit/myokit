@@ -8,6 +8,8 @@ This page lists the main changes made to Myokit in each release.
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now tested on Sundials 5 (locally).
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now testing on Python 3.9.
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) `Simulation.run` documentation is now more clear on what happens for very short simulation durations (or zero).
+  - [#673](https://github.com/MichaelClerx/myokit/pull/673) Added a method `Model.has_parse_info` that checks if the model contains information from parsing (i.e. line numbers).
+  - [#673](https://github.com/MichaelClerx/myokit/pull/673) Added a parameter `raw` to `Model.show_line_of` that returns the line number as an integer
 - Changed
 - Deprecated
 - Removed
