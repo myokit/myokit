@@ -1631,9 +1631,17 @@ class Model(ObjectWithMeta, VarProvider):
         remaining = equations['*remaining*']
         return len(remaining) > 0
 
+    def has_parse_info(self):
+        """
+        Returns ``True`` if this model retains parsing information, so that
+        methods such as :meth:`item_at_text_position` and :meth:`show_line_of`
+        can be used.
+        """
+        return bool(self._tokens)
+
     def has_warnings(self):
         """
-        Returns True if this model has any warnings.
+        Returns ``True`` if this model has any warnings.
         """
         return len(self._warnings)
 
@@ -2605,13 +2613,20 @@ class Model(ObjectWithMeta, VarProvider):
             ' future versions of Myokit. Please use `show_line_of` instead.')
         self.show_line_of(var)
 
-    def show_line_of(self, var):
+    def show_line_of(self, var, raw=False):
         """
         Returns a string containing the type of variable ``var`` is and the
         line it was defined on.
+
+        If ``raw`` is set to ``True`` the method returns an integer with the
+        line number, or ``None`` if no line number information is known (i.e.
+        if this model wasn't created by parsing).
         """
+        if raw:
+            return int(var._token[2]) if var._token is not None else None
+
         var, out = self._var_info(var)
-        if var._token:
+        if var._token is not None:
             out.append('Defined on line ' + str(var._token[2]))
         return '\n'.join(out)
 

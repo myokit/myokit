@@ -273,7 +273,7 @@ class ModelTest(unittest.TestCase):
         m.check_units(s)
 
     def test_clone(self):
-        # Test :meth:`Model.clone()
+        # Test :meth:`Model.clone() and :meth:`Model.has_parse_info()`.
 
         # Test model, component, variables
         m1 = myokit.load_model('example')
@@ -287,6 +287,10 @@ class ModelTest(unittest.TestCase):
         m1.reserve_unique_name_prefix('ostrich', 'turkey')
         m2 = m1.clone()
         self.assertEqual(m1, m2)
+
+        # Test tokens are not cloned
+        self.assertTrue(m1.has_parse_info())
+        self.assertFalse(m2.has_parse_info())
 
     def test_code(self):
         # Test :meth:`Model.code()`.
@@ -1215,11 +1219,25 @@ class ModelTest(unittest.TestCase):
     def test_show_line_of(self):
         # Test :meth:`Model.show_line_of(variable)`.
 
+        # Check string with info
         m = myokit.load_model('example')
-        e = m.show_line_of(m.get('ina.INa'))
+        v = m.get('ina.INa')
+        e = m.show_line_of(v)
         self.assertIn('Defined on line 91', e)
         self.assertIn('Intermediary variable', e)
         self.assertEqual(len(e.splitlines()), 4)
+
+        # Check with freshly made model
+        m2 = m.clone()
+        v2 = m2.get('ina.INa')
+        e = m2.show_line_of(v2)
+        self.assertNotIn('Defined on line', e)
+        self.assertIn('Intermediary variable', e)
+        self.assertEqual(len(e.splitlines()), 3)
+
+        # 'raw' version
+        self.assertEqual(m.show_line_of(v, raw=True), 91)
+        self.assertIsNone(m2.show_line_of(v2, raw=True))
 
         # Test deprecated alias
         with WarningCollector() as wc:
