@@ -8,15 +8,17 @@ This page lists the main changes made to Myokit in each release.
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now tested on Sundials 5 (locally).
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now testing on Python 3.9.
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) `Simulation.run` documentation is now more clear on what happens for very short simulation durations (or zero).
-  - [#673](https://github.com/MichaelClerx/myokit/pull/673) Added a method `Model.has_parse_info` that checks if the model contains information from parsing (i.e. line numbers).
-  - [#673](https://github.com/MichaelClerx/myokit/pull/673) Added a parameter `raw` to `Model.show_line_of` that returns the line number as an integer
-  - [#673](https://github.com/MichaelClerx/myokit/pull/673) Added a method to the IDE that lets you jump to the definition of a selected variable.
+  - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a method `Model.has_parse_info` that checks if the model contains information from parsing (i.e. line numbers).
+  - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a parameter `raw` to `Model.show_line_of` that returns the line number as an integer
+  - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a method to the IDE that lets you jump to the definition of a selected variable.
+#676  
 - Changed
 - Deprecated
 - Removed
 - Fixed
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug in `Variable.convert_unit()` that caused unexpected (and quite arbitrary) results.
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug where calling `Simulation.run()` with a very short runtime caused a zero state to be returned.
+  - [#676](https://github.com/MichaelClerx/myokit/pull/676) Fixed a bug in CellML (1 and 2) export when inferring units for a state variable.
 
 ## [1.31.1] - 2020-12-01
 - Added
