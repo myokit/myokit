@@ -6,11 +6,12 @@ This page lists the main changes made to Myokit in each release.
 - Added
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Added more detailed error output to several CVODE errors related to RHS-related numerical issues.
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now tested on Sundials 5 (locally).
-  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now testing on Python 3.9.
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now testing on Python 3.9 (Linux).
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) `Simulation.run` documentation is now more clear on what happens for very short simulation durations (or zero).
   - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a method `Model.has_parse_info` that checks if the model contains information from parsing (i.e. line numbers).
   - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a parameter `raw` to `Model.show_line_of` that returns the line number as an integer
   - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a method to the IDE that lets you jump to the definition of a selected variable.
+  - [#680](https://github.com/MichaelClerx/myokit/pull/680) Now testing on Python 3.9 and Miniconda 3.8 (Windows).
 - Changed
 - Deprecated
 - Removed
