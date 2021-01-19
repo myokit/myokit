@@ -22,7 +22,7 @@ branches:
 # 2.7   --> Latest 2.7 version. At the moment 2.7.14 on travis (2018-10-31)
 # 3.0-3.3 --> Bad initial versions of Python 3; Not supported
 # 3.4     --> No longer supported by pip (2019-03)
-# 3.5-3.8 --> Works
+# 3.5-3.9 --> Tested
 
 matrix:
     # Always put true env variable first, for nicer overview on travis website
