@@ -15,6 +15,7 @@ This page lists the main changes made to Myokit in each release.
 - Changed
 - Deprecated
 - Removed
+  - [#681](https://github.com/MichaelClerx/myokit/pull/681) Removed the deprecated library `myokit.lib.fit`. For fitting see e.g. [PINTS](https://github.com/pints-team/pints) and this [tutorial on fitting ion channel data with Myokit & PINTS](https://github.com/pints-team/myokit-pints-tutorial).
 - Fixed
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug in `Variable.convert_unit()` that caused unexpected (and quite arbitrary) results.
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug where calling `Simulation.run()` with a very short runtime caused a zero state to be returned.
