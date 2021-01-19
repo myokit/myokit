@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.32.0] - 2021-01-19
 - Added
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Added more detailed error output to several CVODE errors related to RHS-related numerical issues.
