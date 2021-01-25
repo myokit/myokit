@@ -30,4 +30,5 @@ jobs:
 
       - name: Run style checking
         run: |
+          python -m flake8 --version
           python -m flake8

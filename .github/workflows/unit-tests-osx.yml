@@ -1,4 +1,4 @@
-name: Ubuntu unit tests
+name: OS/X unit tests
 on:
   push:
     branches:
@@ -11,11 +11,11 @@ jobs:
 
   build-and-test:
     name: unit
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
       matrix:
-        # All Python versions except latest, which is tested by coverage.
-        python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
+        # Selected python versions only
+        python-version: [2.7, 3.9]
 
     steps:
       - uses: actions/checkout@v1
@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo ./.github/workflows/install-ubuntu-dependencies.sh
+          sudo ./.github/workflows/install-osx-dependencies.sh
 
       - name: Install Myokit
         run: |

@@ -34,5 +34,6 @@ jobs:
 
       - name: Run doctests
         run: |
+          python -m myokit system
           python -m myokit test doc
 

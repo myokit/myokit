@@ -35,6 +35,7 @@ jobs:
 
       - name: Run coverage tests
         run: |
+          python -m myokit system
           coverage run -m myokit test unit
 
       - name: Submit report to codecov
