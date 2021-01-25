@@ -47,6 +47,6 @@ ignore=
     W605,
 
     # Local variable assigned to but never used
-    # Good rule, but getting a false positive on travis with flake 3.6.0
+    # Good rule, but getting a false positive with flake 3.6.0
     F841,
 
