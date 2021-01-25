@@ -30,7 +30,7 @@ jobs:
         run: |
           python --version
           python -m pip install --upgrade pip
-          python -m pip install .[optional,docs]
+          python -m pip install .[docs,optional,gui]
 
       - name: Run doctests
         run: |
