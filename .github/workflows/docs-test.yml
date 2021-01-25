@@ -1,8 +1,8 @@
-name: Coverage
+name: Docs
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
       - '**'
@@ -10,7 +10,7 @@ on:
 jobs:
 
   build-and-test:
-    name: coverage
+    name: docs
     runs-on: ubuntu-latest
 
     steps:
@@ -24,20 +24,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo ./.github/workflows/install-ubuntu-dependencies.sh
+          sudo ./.github/workflows/install-ubuntu.sh
 
       - name: Install Myokit
         run: |
           python --version
           python -m pip install --upgrade pip
-          python -m pip install .[optional]
-          python -m pip install coverage codecov
+          python -m pip install .[optional,docs]
 
-      - name: Run coverage tests
+      - name: Run doctests
         run: |
-          coverage run -m myokit test unit
+          python -m myokit test doc
 
-      - name: Submit report to codecov
-        if: success()
-        run: |
-          codecov
