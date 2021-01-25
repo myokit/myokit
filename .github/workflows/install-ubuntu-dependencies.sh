@@ -5,7 +5,7 @@ set -ev
 apt-get -qq update;
 
 # Install sundials
-apt-get install -y libsundials-serial-dev;
+apt-get install -y libsundials-dev;
 
 # Install OpenCL headers
 apt-get install -y opencl-headers ocl-icd-opencl-dev;
