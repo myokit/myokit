@@ -4,9 +4,12 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#682](https://github.com/MichaelClerx/myokit/pull/682) OpenCL code now recognises error code -1001.
+  - [#683](https://github.com/MichaelClerx/myokit/pull/683) Now testing OpenCL code in CI.
 - Changed
 - Deprecated
 - Removed
+  - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6.
 - Fixed
   - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
 
