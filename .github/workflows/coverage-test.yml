@@ -1,0 +1,44 @@
+name: Coverage
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+
+  build-and-test:
+    name: coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Configure Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.9
+          architecture: x64
+
+      - name: Install dependencies
+        run: |
+          sudo .github/workflows/install-ubuntu.sh
+
+      - name: install myokit
+        run: |
+          python --version
+          python -m pip install --upgrade pip
+          python -m pip install .[optional]
+          python -m pip install coverage codecov
+
+      - name: run coverage
+        run: |
+          coverage run -m myokit test unit
+
+      - name: codecov
+        if: success()
+        run: |
+          codecov
