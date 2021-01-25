@@ -10,7 +10,7 @@ on:
 jobs:
 
   build-and-test:
-    name: unit
+    name: unit-win
     runs-on: windows-latest
     strategy:
       matrix:

@@ -10,7 +10,7 @@ on:
 jobs:
 
   build-and-test:
-    name: unit
+    name: unit-osx
     runs-on: macos-latest
     strategy:
       matrix:
