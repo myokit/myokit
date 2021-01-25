@@ -56,7 +56,8 @@ class OpenCL(myokit.CModule):
         if platform.system() != 'Darwin':   # pragma: no osx cover
             libs.append('OpenCL')
         else:                               # pragma: no cover
-            flags.append('-framework OpenCL')
+            flags.append('-framework')
+            flags.append('OpenCL')
 
         # Add include / linker paths
         libd = list(myokit.OPENCL_LIB)

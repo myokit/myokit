@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
 
 ## [1.32.0] - 2021-01-19
 - Added
