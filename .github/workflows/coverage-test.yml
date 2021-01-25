@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo .github/workflows/install-ubuntu.sh
+          sudo ./.github/workflows/install-ubuntu.sh
 
       - name: install myokit
         run: |
