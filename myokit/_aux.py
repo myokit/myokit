@@ -514,7 +514,13 @@ def format_path(path, root='.'):
     """
     if path == '':
         path = '.'
-    path = os.path.relpath(path, root)
+    try:
+        path = os.path.relpath(path, root)
+    except ValueError:  # pragma: no cover
+        # This can happen on windows, if `path` is on a different drive than
+        # root (so that no relative path from one to the other can be made).
+        return path
+
     if '..' in path:
         path = os.path.abspath(os.path.join(root, path))
     return path
