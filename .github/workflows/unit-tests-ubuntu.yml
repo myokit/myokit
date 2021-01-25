@@ -33,7 +33,7 @@ jobs:
       - name: Install Myokit
         run: |
           python --version
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           python -m pip install .[optional]
 
       - name: Run unit tests

@@ -9,9 +9,10 @@ This page lists the main changes made to Myokit in each release.
 - Changed
 - Deprecated
 - Removed
-  - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6.
+  - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux, or any Python 2.7 on Windows.
 - Fixed
   - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
+  - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.format_path()`.
 
 ## [1.32.0] - 2021-01-19
 - Added

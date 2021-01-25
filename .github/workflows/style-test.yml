@@ -25,7 +25,7 @@ jobs:
       - name: Install flake8
         run: |
           python --version
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           python -m pip install flake8
 
       - name: Run style checking
