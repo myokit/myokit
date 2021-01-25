@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo ./.github/workflows/install-osx-dependencies.sh
+          ./.github/workflows/install-osx-dependencies.sh
 
       - name: Install Myokit
         run: |
