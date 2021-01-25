@@ -1,4 +1,4 @@
-name: Coverage
+name: Style
 on:
   push:
     branches:
@@ -10,7 +10,7 @@ on:
 jobs:
 
   build-and-test:
-    name: coverage
+    name: style
     runs-on: ubuntu-latest
 
     steps:
@@ -22,22 +22,12 @@ jobs:
           python-version: 3.9
           architecture: x64
 
-      - name: Install dependencies
-        run: |
-          sudo .github/workflows/install-ubuntu.sh
-
-      - name: install myokit
+      - name: install flake8
         run: |
           python --version
           python -m pip install --upgrade pip
-          python -m pip install .[optional]
-          python -m pip install coverage codecov
+          python -m pip install flake8
 
-      - name: run coverage
+      - name: run style tests
         run: |
-          coverage run -m myokit test unit
-
-      - name: codecov
-        if: success()
-        run: |
-          codecov
+          python -m flake8
