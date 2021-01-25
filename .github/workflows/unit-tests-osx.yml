@@ -1,4 +1,4 @@
-name: OS/X unit tests
+name: OSX unit tests
 on:
   push:
     branches:

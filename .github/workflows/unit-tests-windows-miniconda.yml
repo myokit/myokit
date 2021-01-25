@@ -1,4 +1,4 @@
-name: Windows Miniconda unit tests
+name: Windows Miniconda test
 on:
   push:
     branches:
