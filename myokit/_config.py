@@ -16,6 +16,7 @@ import myokit
 
 # Load libraries
 import os
+import sys
 import logging
 import platform
 
@@ -187,6 +188,25 @@ def _load():
     # No file present? Create one and return
     if not os.path.isfile(path):
         _create(path)
+
+    # In Python <3.2, strings like "x ; y" are treated as "x" followed by a
+    # comment. These shouldn't appear in myokit ini files!
+    if sys.hexversion < 0x03020000:
+        with open(path, 'r') as f:
+            lines = f.readlines()
+
+        import re
+        inline_comment = re.compile('[\w]+[\s]*=[\s]*.+?\s+(;)')
+        for i, line in enumerate(lines):
+            m = inline_comment.match(line)
+            if m is not None:
+                x = m.start(1) - 1
+                raise ImportError(
+                    'Unsupported syntax found in ' + str(path) + ' on line '
+                    + str(1 + i) + ', character ' + str(x) + ', semicolons (;)'
+                    + ' must not be preceded by whitespace: ```'
+                    + line.strip() + '```.')
+        del(lines, inline_comment)
 
     # Create the config parser (no value allows comments)
     config = ConfigParser(allow_no_value=True)

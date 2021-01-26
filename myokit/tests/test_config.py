@@ -39,13 +39,23 @@ inc = three;eight
 """
 
 # Config with empty paths and spaces
-config_empties = """
+config_empties_1 = """
 [sundials]
 lib =
-inc = three;
+inc = three;four;
+[opencl]
+lib = one;;   two point five;three;
+inc = five
+"""
+
+# Config with empty paths and " ;", which in Python 2 is ignored
+config_empties_2 = """
+[sundials]
+lib =
+inc = three;four;
 [opencl]
 lib = one ;;   two point five ;three;
-inc = five
+inc = five ; six
 """
 
 # Qt options
@@ -155,28 +165,6 @@ class TestConfig(unittest.TestCase):
                 self.assertEqual(myokit.OPENCL_LIB, ['five', 'six'])
                 self.assertEqual(myokit.OPENCL_INC, ['three', 'eight'])
 
-                # Full values, PySide gui
-                myokit.SUNDIALS_LIB = []
-                myokit.SUNDIALS_INC = []
-                myokit.OPENCL_LIB = []
-                myokit.OPENCL_INC = []
-                myokit.FORCE_PYSIDE = myokit.FORCE_PYSIDE2 = False
-                myokit.FORCE_PYQT4 = myokit.FORCE_PYQT5 = False
-                with open(d.path('myokit.ini'), 'w') as f:
-                    f.write(config2)
-                config._load()
-                self.assertEqual(myokit.DATE_FORMAT, 'TEST_DATE_FORMAT')
-                self.assertEqual(myokit.TIME_FORMAT, 'TEST_TIME_FORMAT')
-                self.assertTrue(myokit.DEBUG_LINE_NUMBERS)
-                self.assertFalse(myokit.FORCE_PYSIDE)
-                self.assertFalse(myokit.FORCE_PYSIDE2)
-                self.assertFalse(myokit.FORCE_PYQT4)
-                self.assertFalse(myokit.FORCE_PYQT5)
-                self.assertEqual(myokit.SUNDIALS_LIB, ['one', 'two'])
-                self.assertEqual(myokit.SUNDIALS_INC, ['three', 'four'])
-                self.assertEqual(myokit.OPENCL_LIB, ['five', 'six'])
-                self.assertEqual(myokit.OPENCL_INC, ['three', 'eight'])
-
                 # Lists of paths should be filtered for empty values and
                 # trimmed
                 myokit.SUNDIALS_LIB = []
@@ -184,14 +172,33 @@ class TestConfig(unittest.TestCase):
                 myokit.OPENCL_LIB = []
                 myokit.OPENCL_INC = []
                 with open(d.path('myokit.ini'), 'w') as f:
-                    f.write(config_empties)
+                    f.write(config_empties_1)
                 config._load()
                 self.assertEqual(myokit.SUNDIALS_LIB, [])
-                self.assertEqual(myokit.SUNDIALS_INC, ['three'])
+                self.assertEqual(myokit.SUNDIALS_INC, ['three', 'four'])
                 self.assertEqual(
                     myokit.OPENCL_LIB,
                     ['one', 'two point five', 'three'])
                 self.assertEqual(myokit.OPENCL_INC, ['five'])
+
+                # Even if the list contains " ;", which Python 2's config
+                # parser treats as a comment
+                myokit.SUNDIALS_LIB = []
+                myokit.SUNDIALS_INC = []
+                myokit.OPENCL_LIB = []
+                myokit.OPENCL_INC = []
+                with open(d.path('myokit.ini'), 'w') as f:
+                    f.write(config_empties_2)
+                if sys.hexversion < 0x03020000:
+                    self.assertRaises(ImportError, config._load)
+                else:
+                    config._load()
+                    self.assertEqual(myokit.SUNDIALS_LIB, [])
+                    self.assertEqual(myokit.SUNDIALS_INC, ['three', 'four'])
+                    self.assertEqual(
+                        myokit.OPENCL_LIB,
+                        ['one', 'two point five', 'three'])
+                    self.assertEqual(myokit.OPENCL_INC, ['five', 'six'])
 
                 # Qt gui options
                 with open(d.path('myokit.ini'), 'w') as f:
