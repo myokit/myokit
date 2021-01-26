@@ -41,21 +41,21 @@ inc = three;eight
 # Config with empty paths and spaces
 config_empties_1 = """
 [sundials]
-lib =
+lib = five
 inc = three;four;
 [opencl]
 lib = one;;   two point five;three;
-inc = five
+inc =
 """
 
 # Config with empty paths and " ;", which in Python 2 is ignored
 config_empties_2 = """
 [sundials]
-lib =
+lib = five ; six
 inc = three;four;
 [opencl]
 lib = one ;;   two point five ;three;
-inc = five ; six
+inc =
 """
 
 # Qt options
@@ -174,12 +174,12 @@ class TestConfig(unittest.TestCase):
                 with open(d.path('myokit.ini'), 'w') as f:
                     f.write(config_empties_1)
                 config._load()
-                self.assertEqual(myokit.SUNDIALS_LIB, [])
+                self.assertEqual(myokit.SUNDIALS_LIB, ['five'])
                 self.assertEqual(myokit.SUNDIALS_INC, ['three', 'four'])
                 self.assertEqual(
                     myokit.OPENCL_LIB,
                     ['one', 'two point five', 'three'])
-                self.assertEqual(myokit.OPENCL_INC, ['five'])
+                self.assertEqual(myokit.OPENCL_INC, [])
 
                 # Even if the list contains " ;", which Python 2's config
                 # parser treats as a comment
@@ -193,12 +193,12 @@ class TestConfig(unittest.TestCase):
                     self.assertRaises(ImportError, config._load)
                 else:
                     config._load()
-                    self.assertEqual(myokit.SUNDIALS_LIB, [])
+                    self.assertEqual(myokit.SUNDIALS_LIB, ['five', 'six'])
                     self.assertEqual(myokit.SUNDIALS_INC, ['three', 'four'])
                     self.assertEqual(
                         myokit.OPENCL_LIB,
                         ['one', 'two point five', 'three'])
-                    self.assertEqual(myokit.OPENCL_INC, ['five', 'six'])
+                    self.assertEqual(myokit.OPENCL_INC, [])
 
                 # Qt gui options
                 with open(d.path('myokit.ini'), 'w') as f:
