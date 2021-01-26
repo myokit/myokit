@@ -245,11 +245,9 @@ def _load():
 
     # Sundials libraries, header files, and version
     if config.has_option('sundials', 'lib'):
-        for x in config.get('sundials', 'lib').split(';'):
-            myokit.SUNDIALS_LIB.append(x.strip())
+        myokit.SUNDIALS_LIB.extend(_path_list(config.get('sundials', 'lib')))
     if config.has_option('sundials', 'inc'):
-        for x in config.get('sundials', 'inc').split(';'):
-            myokit.SUNDIALS_INC.append(x.strip())
+        myokit.SUNDIALS_INC.extend(_path_list(config.get('sundials', 'inc')))
     if config.has_option('sundials', 'version'):
         try:
             myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
@@ -278,11 +276,9 @@ def _load():
 
     # OpenCL libraries and header files
     if config.has_option('opencl', 'lib'):
-        for x in config.get('opencl', 'lib').split(';'):
-            myokit.OPENCL_LIB.append(x.strip())
+        myokit.OPENCL_LIB.extend(_path_list(config.get('opencl', 'lib')))
     if config.has_option('opencl', 'inc'):
-        for x in config.get('opencl', 'inc').split(';'):
-            myokit.OPENCL_INC.append(x.strip())
+        myokit.OPENCL_INC.extend(_path_list(config.get('opencl', 'inc')))
 
 
 def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
@@ -301,6 +297,10 @@ def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
         myokit.SUNDIALS_LIB.append(os.path.join(sundials_win, 'lib'))
     if len(myokit.SUNDIALS_INC) == 0:
         myokit.SUNDIALS_INC.append(os.path.join(sundials_win, 'include'))
+
+
+def _path_list(text):
+    return [x for x in [x.strip() for x in text.split(';')] if x != '']
 
 
 # Load settings
