@@ -1069,6 +1069,8 @@ class FiberTissueSimulationTest(unittest.TestCase):
 
 if __name__ == '__main__':
     import sys
+    import warnings
+    warnings.simplefilter('always')
     if '-v' in sys.argv:
         print('Running in debug/verbose mode')
         debug = True
