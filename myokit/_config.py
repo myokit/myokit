@@ -191,7 +191,7 @@ def _load():
 
     # In Python <3.2, strings like "x ; y" are treated as "x" followed by a
     # comment. These shouldn't appear in myokit ini files!
-    if sys.hexversion < 0x03020000:
+    if sys.hexversion < 0x03020000:     # pragma: no cover
         with open(path, 'r') as f:
             lines = f.readlines()
 
