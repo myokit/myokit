@@ -4,31 +4,35 @@ Contributions to Myokit are very welcome! To streamline our work, please have a 
 
 We use [GIT](https://en.wikipedia.org/wiki/Git) and [GitHub](https://en.wikipedia.org/wiki/GitHub) to coordinate our work. When making any kind of update, try to follow the procedure below.
 
-### A. Setting up your system
+### A. Discussing the proposed changes
 
-1. If you're planning to contribute to Myokit, don't check out the repo directly, but create a [fork](https://help.github.com/articles/fork-a-repo/) and then [clone](https://help.github.com/articles/cloning-a-repository/) it onto your local system .
-2. Install Myokit in development mode, with `$ pip install -e .`.
-3. [Test](#testing) if everything's working, using the test script: `$ python test --quick`.
+1. Before doing any coding, create a GitHub [issue](https://guides.github.com/features/issues/) so that new ideas can be discussed. 
+   There might already be something similar in the pipeline, or a feature may have been tried and discarded, so a bit of pre-discussion can save a lot of valuable time!
+
+### B. Setting up your system
+
+2. If you're planning to contribute code to Myokit, don't check out the repo directly, but create a [fork](https://help.github.com/articles/fork-a-repo/) and then [clone](https://help.github.com/articles/cloning-a-repository/) it onto your local system .
+3. Install Myokit in development mode, with `$ pip install -e .`.
+4. [Test](#testing) if everything's working, using the test script: `$ python test --quick`.
 
 If you run into any issues at this stage, please create an issue on GitHub.
 
-### B. Getting started on an issue
+### C. Creating a branch for your issue
 
-4. Before doing any coding, create a GitHub [issue](https://guides.github.com/features/issues/) so that new ideas can be discussed.
 5. Now create a [branch](https://help.github.com/articles/creating-and-deleting-branches-within-your-repository/) for the issue you're going to work on. 
    Using branches lets us test out new changes without changing the main repository.
 
 You now have everything you need to start making changes!
 
-### C. Writing your code
+### D. Writing your code
 
 6. Commit your changes to your branch with useful, descriptive commit messages.
-   Remember these are publically visible and should still make sense a few months ahead in time. 
+   Remember, these messages are publically visible and should still make sense a few months ahead in time. 
    While developing, you can keep using the github issue you're working on as a place for discussion.
    [Refer to your commits](https://stackoverflow.com/questions/8910271/how-can-i-reference-a-commit-in-an-issue-comment-on-github) when discussing specific lines of code.
-7. If you want to add a dependency on another library, or re-use code you found somewhere else, have a look at [these guidelines](#dependencies-and-reusing-code).
+7. If you want to add a dependency on another library, or re-use code you found somewhere else, have a look at [these guidelines](#dependencies-and-reusing-code), and discuss the new dependency in the project's issue.
 
-### D. Finishing touches
+### E. Finishing touches
 
 8. Please check your code conforms to the [coding style guidelines](#coding-style-guidelines).
 9. [Test your code!](#testing), and make sure it has 100% test coverage.
