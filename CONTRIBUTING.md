@@ -216,7 +216,7 @@ Then have a look at `<your myokit path>/doc/build/html/index.html`.
 
 - Installation happens using `setup.py`, but also information from `MANIFEST.in`.
 - Users can find the license in `LICENSE.txt` and a citable reference in `CITATION` ([syntax](https://www.software.ac.uk/blog/2016-10-06-encouraging-citation-software-introducing-citation-files)).
-- Tests are run using Github Actions, and configured [here](./github/workflows).
+- Tests are run using Github Actions, and configured [here](./.github/workflows).
 - Coverage is tested using [codecov.io](https://docs.codecov.io/docs) which builds on [coverage](https://coverage.readthedocs.io/). 
   Configuration file: `.coveragerc` ([syntax](https://coverage.readthedocs.io/en/latest/config.html)).
 - Documentation is built using [readthedocs](readthedocs.org) and [published here](https://myokit.readthedocs.io/).
