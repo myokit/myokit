@@ -110,8 +110,8 @@ Snippets from blogs and stackoverflow can often be included without attribution,
 Myokit includes plotting methods, _but_, these should never be vital for its functioning, so that users are free to use Myokit with other plotting libraries.
 
 Secondly, Matplotlib should never be imported at the module level, but always inside methods.
-This means that the `myokit` module can be imported without Matplotlib being installed, and used as long as not Matplotlib-reliant methods are called.
-
+This means that the `myokit` module can be imported without Matplotlib being installed, and used as long as no Matplotlib-reliant methods are called.
+It also allows user code to call methods that customise matplotlib behaviour (e.g. back-end selection), which must be run before certain matplotlib modules are imported.
 
 
 
@@ -119,7 +119,7 @@ This means that the `myokit` module can be imported without Matplotlib being ins
 
 ## Testing
 
-Myokit uses the [unittest](https://docs.python.org/3.3/library/unittest.html) package for tests.
+Myokit uses the [unittest](https://docs.python.org/3.9/library/unittest.html) package for tests.
 
 To run unit tests:
 
