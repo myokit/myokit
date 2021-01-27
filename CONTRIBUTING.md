@@ -7,7 +7,8 @@ We use [GIT](https://en.wikipedia.org/wiki/Git) and [GitHub](https://en.wikipedi
 ### A. Discussing the proposed changes
 
 1. Before doing any coding, create a GitHub [issue](https://guides.github.com/features/issues/) so that new ideas can be discussed. 
-   There might already be something similar in the pipeline, or a feature may have been tried and discarded, so a bit of pre-discussion can save a lot of valuable time!
+   There might already be something similar in the pipeline, or a feature may have been tried and rejected.
+   A bit of pre-discussion can save lots of valuable time!
 
 ### B. Setting up your system
 
@@ -34,15 +35,16 @@ You now have everything you need to start making changes!
 
 ### E. Finishing touches
 
-8. Please check your code conforms to the [coding style guidelines](#coding-style-guidelines).
-9. [Test your code!](#testing), and make sure it has 100% test coverage.
-10. Myokit has online documentation at http://docs.myokit.org/. To make sure any new methods or classes you added show up there, please read the [documentation](#documentation) section.
-11. If you made any changes that users should know about, add them to [CHANGELOG.md](./CHANGELOG.MD).
+8. Please check that your code conforms to the [coding style guidelines](#coding-style-guidelines).
+9. [Test your code](#testing), checks will be run before merging to ensure the changes have 100% test coverage.
+10. Myokit has online documentation at http://docs.myokit.org/.
+    To make sure any new methods or classes you added show up there, please read the [documentation](#documentation) section.
 
 ### E. Merging changes
 
-12. When you feel your code is finished, or at least warrants serious discussion, create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR).
-13. Once a PR has been created, it will be tested, reviewed, discussed, and if all goes well it'll be merged into the main source code.
+11. When you feel your code is finished, or at least warrants discussion, create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR).
+12. In your branch, update the [CHANGELOG.md](./CHANGELOG.MD) with a link to this PR and a concise summary of the changes.
+13. Finally, the PR will be tested, reviewed, discussed, and if all goes well it'll be merged into the main source code.
 
 Thanks!
 
