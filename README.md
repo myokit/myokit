@@ -43,6 +43,7 @@ Existing Myokit installations can be upgraded using
 
     pip install --upgrade myokit
 
+
 ## Quick-start guide
 
 After installation, to quickly test if Myokit works, type
@@ -60,6 +61,12 @@ To open an IDE window, type
 To see what else Myokit can do, type
 
     myokit -h
+    
+
+## Contributing to Myokit
+
+You can contribute to Myokit by [reporting issues](https://github.com/MichaelClerx/myokit/issues), but code contributions (bugfixes, features etc.) are also very welcome!
+New features are best discussed in an issue before starting any implementation work, and guidelines for code style etc. can be found in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 
 ## Citing Myokit
