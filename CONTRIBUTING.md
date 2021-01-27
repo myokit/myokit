@@ -40,7 +40,7 @@ You now have everything you need to start making changes!
 10. Myokit has online documentation at http://docs.myokit.org/.
     To make sure any new methods or classes you added show up there, please read the [documentation](#documentation) section.
 
-### E. Merging changes
+### F. Merging changes
 
 11. When you feel your code is finished, or at least warrants discussion, create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR).
 12. In your branch, update the [CHANGELOG.md](./CHANGELOG.MD) with a link to this PR and a concise summary of the changes.
