@@ -150,7 +150,8 @@ class SimulationOpenCL(myokit.CModule):
         super(SimulationOpenCL, self).__init__()
 
         # Require a valid model
-        model.validate()
+        if not model.is_valid():
+            model.validate()
 
         # Require independent components
         if model.has_interdependent_components():
