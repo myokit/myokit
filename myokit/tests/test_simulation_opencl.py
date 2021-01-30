@@ -54,6 +54,14 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'interdependent', myokit.SimulationOpenCL, m2)
 
+        # Dimensionality must be scalar or tuple
+        # Number of cells must be at least 1
+
+        # Precision must be single or double
+
+        # Membrane potential must be given as variable or via label
+        # Membrane potential must be a state
+
 
 '''
 class TodoTest(unittest.TestCase):
