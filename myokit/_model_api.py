@@ -1645,6 +1645,126 @@ class Model(ObjectWithMeta, VarProvider):
         """
         return len(self._warnings)
 
+    def import_component(self, external_component, new_name=None, var_map=None, allow_name_mapping=False, convert_units=False):
+        """
+        Imports a component from another model (the "source model") into this one 
+        (the "target model").
+
+        If variables in the ``external_component`` refer to variables from other 
+        components they will be mapped on to variables from this model by trying
+        the following strategies (in order):
+
+        1. Using the provided dict ``var_map``, which maps variables in the source
+        model to variables in this model.
+        2. By assuming variables with the same label/binding map onto each other.
+        3. By assuming that variables with the same qualified names map onto each
+        other. This rule is only applied if ``allow_name_mapping`` is set to
+        ``True``.
+
+        Arguments:
+        
+        ``external_component``
+            A :class:`myokit.Component` from another model.
+        ``new_name``
+            An optional new name for the imported component.
+        ``var_map``
+            An optional dict mapping variables from the source model to variables
+            in this model (with variables specified as objects or as fully
+            qualified names).
+        ``allow_name_mapping``
+            Set this to ``True`` to allow mapping based on fully qualified names,
+            e.g. a variable ``x.y`` in the source model will be mapped to a
+            variable ``x.y`` in the target model.
+        ``convert_units``
+            Set this to ``True`` to convert the units of any mapped variables, if
+            required and possible.
+
+        If any variables cannot be mapped, a :class:`myokit.WellNamedError`
+        will be raised. Will raise a :class:`DuplicateNameError`(?) if the 
+        components name or ``new_name`` clashes with an existing component name. If
+        unit conversion is enabled and variables with incompattible units are
+        mapped onto each other, a :class:`myokit.IncompatibleUnitsError` will be
+        raised.    
+        """
+        
+        # Check component is not from this model, is a component, etc.
+        if isinstance(external_component, Component):
+            x=1
+        if external_component.has_ancestor(self):
+            x=1
+        
+        # Check if new name is provided, or else check that name doesn't clash
+        if new_name==None:
+            new_name = external_component.qname()
+        
+        if self.has_component(new_name):
+            x=1
+        # Create mapping for vars, and get unit conversion factors if required.
+        
+        # {source_model.variable: external_component.variable}
+        # {external_component.variable : unit conversion}
+        full_var_map = {}
+        if var_map != None:
+            # check whether well defined or duplicates in var_map
+            x=1
+        else:
+            var_map = {}
+        for ext_var in external_component.variables():
+            if ext_var in var_map:
+                # add to full_var_map
+                    x=1
+            else: 
+                ext_bind = ext_var.binding()
+                ext_label = ext_var.label()
+                source_bind_var = self.binding(ext_bind)
+                source_label_var = self.label(ext_label)
+                if source_bind_var != None:
+                    # add source_bind_var:ext_var to full_var_map
+                    x=1
+                elif source_label_var != None:
+                    x=1
+                    # add source_label_var:ext_var to full_var_map
+                elif allow_name_mapping:
+                    if self.has_variable(ext_var.qname()):
+                        # add to full map 
+                        x=1
+        
+        ext_model_copy = external_component.model().clone()
+        external_component = ext_model_copy[external_component.qname()]
+
+        if convert_units:
+            for source_var, ext_var in full_var_map:
+                # convert units in ext model to units in source model for this variable
+                
+                x=1
+
+        # Clone contents of old component to new one
+        # Not sure what the best strategy is. Re-write based on code from clone()?
+        # Might need hidden methods in Component and in Variable.
+        # rename the component
+
+        # use _clone1 and _clone2 to clone the component into this model
+        external_component._clone1(self)
+        # Clone state
+        for k, variable in enumerate(ext_model_copy._state):
+            if external_component.has_variable(variable.qname()):
+                self.get(variable.qname()).promote(ext_model_copy._current_state[k])
+
+        # Create mapping of old var references to new references
+        lhsmap = {}
+        for v in ext_model_copy.variables(deep=True):
+            if external_component.has_variable(v.qname()):
+                lhsmap[myokit.Name(v)] = myokit.Name(self.get(v.qname()))
+        for v in ext_model_copy.states():
+            if external_component.has_variable(v.qname()):
+                lhsmap[myokit.Derivative(myokit.Name(v))] = myokit.Derivative(
+                    myokit.Name(self.get(v.qname())))
+
+        # Clone component/variable contents (equations, references)
+
+        external_component._clone2(self[new_name], lhsmap)
+        # ...
+
     def inits(self):
         """
         Returns an iterator over the ``Equation`` objects defining this model's
