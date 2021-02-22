@@ -137,6 +137,14 @@ Please note this page is still a work in progress.
     - [ ] Importing protocols from ABF
     - [ ] Exporting patch clamp protocols? (ATF)
 
+## Technical notes
+
+1. Pacing
+2. Logging in simulations
+3. Multi-cell simulations
+4. Ion channel simulations
+X. Autodiff simulations
+
 ## Appendix
 
 0. DataLog viewer

@@ -1,0 +1,104 @@
+
+%
+%
+% Section: Sensitivity analysis
+%
+%
+\section{Sensitivity analysis}
+
+Some Myokit functions use a special Differential data type to numerically
+evaluate (partial) derivatives. These are described below.
+
+
+\subsection{JacobianGenerator}
+
+We start from a system
+\begin{linenomath}
+\begin{equation}
+\dot{y}\left(t\right)=f\left(y\left(t\right),u\left(t\right),t|p\right)
+\end{equation}
+\end{linenomath}
+For the remainder of this section, we assume $p$ is uninteresting
+and drop it from the notation. The JacobianGenerator class starts
+from a log containing log entries that contain the basic info
+\begin{linenomath}
+\begin{equation}
+\left\langle y\left(t\right),u\left(t\right),t\right\rangle
+\end{equation}
+\end{linenomath}
+for each logged point. Next, it revisits each point and makes a call
+to the RHS function. However, instead of running it with floats or
+doubles, it uses a specialised datatype called Differential. This
+data type contains both a scalar value and a list of partial derivatives.
+All operations are overloaded so that a calculation
+\begin{linenomath}
+\begin{equation}
+x\left(s\right)=a\left(s\right)\cdot b\left(s\right)
+\end{equation}
+\end{linenomath}
+is augmented with an operation
+\begin{linenomath}
+\begin{equation}
+\frac{\partial x}{\partial s}=\frac{\partial a}{\partial s}b+\frac{\partial b}{\partial s}a
+\end{equation}
+\end{linenomath}
+for each partial derivative with respect to $s$ stored in the Differential
+type. This allows a derivative to be calculated numerically from the
+same equations used to calculate the original value.
+
+In the JacobianGenerator, each Differential is defined to contain
+$n_{state}$ partial derivatives. Before each call to the RHS, each
+state variable $y_{i}$ is initialised to contain $n_{state}-1$ zeros,
+and a single $1$ at position $i$ (because $\frac{\partial y_{i}}{\partial y_{i}}=1$).
+All constants are introduced as differentials with $n_{state}$ zeros
+and intermediary variables obtain their partial derivatives from the
+states they interact with. After a call to the RHS function, the calculated
+derivatives are returned as Differential objects containing a pair
+$\left\langle f_{i},\frac{\partial f_{i}}{\partial y_{j}}\right\rangle $.
+Combining the partial derivatives stored in every returned derivative
+variable, we obtain the full Jacobian matrix for time $t$.
+
+
+\subsubsection{Interpretation}
+
+\#TODO Eigenvalues, dominant eigenvalue
+
+
+\subsection{ICSimulation}
+
+The ICSimulation uses the same technique as the JacobianGenerator,
+but with two crucial differences:
+\begin{enumerate}
+\item At the very start of the simulation, all states are initialised with
+$n_{state}-1$ zeros, and a single $1$ at position $i$. For each
+subsequent call to the RHS function, the previous state $y$ is used
+without reinitializing
+\item The state variables are integrated at each step, leading not only
+to the value of $y$ at each time $t$, but also the partial derivatives
+of $y$ with respect to $y\left(t=t_{min}\right)$.
+\end{enumerate}
+
+\subsubsection{Interpretation}
+
+To interpret these results, it's useful to introduce the \emph{flow
+function}:
+\begin{linenomath}
+\begin{equation}
+\phi\left(y_{0},t\right)\rightarrow y\left(t\right)
+\end{equation}
+\end{linenomath}
+For any initial position $y_{0}$ and interval $t$ this function
+gives us the value of $y$ after $t$ time units. In effect, an ODE
+simulation is a technique to evaluate $\phi$ for a given $y_{0}$
+and $t$.
+
+With this definition, we can see what the ICSimulation does: For any
+pair $\left\langle y_{0},t\right\rangle $ it returns a pair $\left\langle y(t),\left.\frac{\partial y}{\partial y_{o}}\right|_{t}\right\rangle $.
+
+\#TODO Eigenvalues, dominant eigenvalue
+
+
+\subsection{PSimulation}
+
+Like ICSim, but calculates sensitivity w.r.t. parameters.
+

@@ -1,0 +1,129 @@
+# Multi-dimensional simulations
+
+Models in Myokit use:
+\begin{linenomath}
+\begin{equation}
+\frac{\partial v}{\partial t}=-\frac{1}{C_{m}}(i_{\mathit{ion}}+i_{\mathit{stim}}+i_{\mathit{diff}})\label{eq:dv/dt}
+\end{equation}
+\end{linenomath}
+where $i_\mathit{diff}$ is a diffusion current defined as
+\begin{linenomath}
+\begin{equation}
+i_{\mathit{diff},i}=\sum_{j\in N_{i}}g_{ij}\left(V_{i}-V_{j}\right)\label{eq:idiff}
+\end{equation}
+\end{linenomath}
+where $N_{i}$ is the set of neighbours of cell $i$ and $g_{ij}$
+is the conductance between cell $i$ and its neighbour $j$. In the
+current simulation classes, only two conductances ($g_{x}$ and $g_{y}$)
+can be specified and all cells are assumed to be in a regular grid.
+This means all central cells have two x-neighbours and two y-neighbours,
+while cells at the boundaries have 2 or 3 neighbouring cells. In other
+words:
+\begin{linenomath}
+\begin{equation}
+i_{\mathit{diff},i}=g_{x}\sum_{x\in N_{x}}\left(V_{i}-V_{x}\right)+g_{y}\sum_{y\in N_{y}}\left(V_{i}-V_{y}\right)
+\end{equation}
+\end{linenomath}
+where $N_{x}$ and $N_{y}$ are the set of neighbours in the $x$
+and $y$ direction respectively.
+
+
+## Mono/Bi-domain equations
+
+The bidomain model starts from the assumption of ohmic conductance
+currents as in \ref{eq:idiff}. It then adds a few components representing
+the extracellular conductance and generalises the result to a continuous
+PDE. The mono-domain is derived from the bi-domain model by dropping
+the terms explicitly modelling the extracellular conductance. Many
+modelers then assume only conduction in the principal directions (x,y
+and z) and add the boundary condition that no current enters or leaves
+the system at the sides. Then, using a finite-difference approximation
+of the second order derivatives arising from the bidomain equations,
+we arrive right back at the original equation specifying ohmic conductance
+between neighbouring cells.
+
+Apart from the historical and mathematical confusion this propagates,
+it has the disadvantage of introducing extra parameters with a less
+clear meaning than $g_{x}$ and $g_{y}$, each of which needs to be
+estimated. However, in order to compare results in Myokit with mono-domain
+simulations, it may be necessary to translate beteen the used parameter
+sets. Their relationship is derived below.
+
+According to the mono-domain model, each point in the heart can be
+described as:
+\begin{linenomath}
+\begin{equation}
+\frac{\lambda}{1+\lambda}\nabla\cdot\left(\Sigma_{i}\nabla v\right)=\chi\left(C_{m}\frac{\partial v}{\partial t}+i_{\mathit{ion}}+i_{\mathit{stim}}\right)\label{eq:monodom}
+\end{equation}
+\end{linenomath}
+With:
+\begin{itemize}
+\item $\lambda$ The intra- to extracellular conductivity ratio
+\item $\Sigma_{i}$ A tensor representing the intracellular conductivity
+\item $v$ The local membrane potential
+\item $\chi$ The surface area of the membrane per unit volume
+\item $C_{m}$ Capacitance per unit area
+\item $i_{ion}$ Ionic current per unit area
+\end{itemize}
+Assuming all currents are normalised to unit area, we can combine
+this with \ref{eq:dv/dt} to find the mono-domain equation for $i_{diff}$:
+\begin{linenomath}
+\begin{eqnarray*}
+\frac{\lambda}{1+\lambda}\nabla\cdot\left(\Sigma_{i}\nabla V\right) & = & \chi\left(C_{m}\frac{\partial V}{\partial t}+i_{\mathit{ion}}+i_{\mathit{stim}}\right)\\
+\frac{\lambda}{\chi\left(1+\lambda\right)}\nabla\cdot\left(\Sigma_{i}\nabla V\right) & = & C_{m}\frac{\partial V}{\partial t}+i_{\mathit{ion}}+i_{\mathit{stim}}\\
+\frac{\partial V}{\partial t} & = & \frac{-1}{C_{m}}\left(i_{\mathit{ion}}+i_{\mathit{stim}}-\frac{1}{\chi}\frac{\lambda}{\left(1+\lambda\right)}\nabla\cdot\left(\Sigma_{i}\nabla V\right)\right)\\
+ & = & \frac{-1}{C_{m}}\left(i_{\mathit{ion}}+i_{\mathit{stim}}+i_{\mathit{diff}}\right)
+\end{eqnarray*}
+\end{linenomath}
+so that
+\begin{linenomath}
+\begin{equation}
+i_{\mathit{diff}}=-\frac{1}{\chi}\frac{\lambda}{\left(1+\lambda\right)}\nabla\cdot\left(\Sigma_{i}\nabla V\right)
+\end{equation}
+\end{linenomath}
+For the 2D case, let
+\begin{linenomath}
+\begin{equation}
+\Sigma_{i}=\sigma_{x}\hat{\mathbf{i}}+\sigma_{y}\hat{\mathbf{j}}
+\end{equation}
+\end{linenomath}
+then
+\begin{linenomath}
+\begin{equation}
+\Sigma_{i}\nabla V=\frac{\partial V}{\partial x}\sigma_{x}\hat{\mathbf{i}}+\frac{\partial V}{\partial y}\sigma_{y}\hat{\mathbf{j}}
+\end{equation}
+\end{linenomath}
+and
+\begin{linenomath}
+\begin{equation}
+\nabla\cdot\left(\Sigma_{i}\nabla V\right)=\frac{\partial^{2}V}{\partial x^{2}}\sigma_{x}+\frac{\partial^{2}V}{\partial y^{2}}\sigma_{y}
+\end{equation}
+\end{linenomath}
+A finite difference approximation of $\frac{\partial^{2}V}{\partial x^{2}}$
+is
+\begin{linenomath}
+\begin{eqnarray*}
+\frac{\partial^{2}V}{\partial x^{2}} & = & \frac{V_{i-1}-2V_{i}+V_{i+1}}{\Delta x^{2}}\\
+ & = & -\left(\frac{V_{i}-V_{i-1}}{\Delta x^{2}}+\frac{V_{i}-V_{i+1}}{\Delta x^{2}}\right)\\
+ & = & \frac{-1}{\Delta x^{2}}\sum_{j\in N_{x}}\left(V_{i}-V_{x}\right)
+\end{eqnarray*}
+\end{linenomath}
+where $N_{x}$ is the set of neighbours of cell $i$ in the $x$ direction.
+Using this approximation, we find:
+\begin{linenomath}
+\begin{eqnarray*}
+i_{\mathit{diff}} & = & \frac{\sigma_{x}}{\chi\Delta x^{2}}\frac{\lambda}{1+\lambda}\sum_{j\in N_{x}}\left(V_{i}-V_{x}\right)+\frac{\sigma_{y}}{\chi\Delta y^{2}}\frac{\lambda}{1+\lambda}\sum_{j\in N_{y}}\left(V_{i}-V_{y}\right)\\
+ & = & g_{x}\sum_{x\in N_{x}}\left(V_{i}-V_{x}\right)+g_{y}\sum_{y\in N_{y}}\left(V_{i}-V_{y}\right)\\
+ & = & \sum g_{ij}\left(V_{i}-V_{j}\right)
+\end{eqnarray*}
+\end{linenomath}
+
+So to convert the four mono-domain parameters to a single conductance
+we use:
+\begin{linenomath}
+\begin{eqnarray*}
+g_{x} & = & \frac{\lambda\sigma_{x}}{\chi\left(1+\lambda\right)\Delta x^{2}}\\
+g_{y} & = & \frac{\lambda\sigma_{y}}{\chi\left(1+\lambda\right)\Delta y^{2}}
+\end{eqnarray*}
+\end{linenomath}
+
