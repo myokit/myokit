@@ -1,0 +1,48 @@
+import myokit
+
+$\frac{d}{dt}[Ca^{2+}]_\text{SS} = \frac{J_\text{bulk,SS} - J_\text{SR,SS}}{V_\text{SS}}
+
+from Colman 2013
+
+we know $[Ca^{2+}]_\text{SS}$ is in units $mM$,
+$t$ is in units $ms$,
+and $V_\text{SS}$ is in units ${\mu m}^3$.
+
+We want to work out the units for the $J$ terms.
+
+For J's unit $x$, we know:
+
+$\frac{mM}{ms} = \frac{x}{{\mu m}^3$
+
+so that
+
+$x = \frac{mM}{ms} {\mu m}^3$
+
+Myokit can help check our workings:
+
+mM = myokit.parse_unit('mM')
+print(mM)
+
+    mol/m^3
+
+ms = myokit.parse_unit('ms')
+um3 = myokit.parse_unit('um^3')
+
+
+And show off quality of error messages:
+
+[18:21:06] Incompatible units on line 75: Exponent in Power must be dimensionless.
+Encountered when evaluating
+  1 + 2 + 3 ^ 3 [mV]
+          ~~~~~~~~~~
+
+
+Basic unit conversion
+
+x = myokit.Quantity(5, myokit.units.m)
+print(x.convert(myokit.units.cm))
+
+Harder ones
+
+x = myokit.Quantity('1.23e-5 [nL]')
+print(x.convert(myokit.parse_unit('um^3')))
