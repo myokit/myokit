@@ -10,10 +10,10 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 ## Running single cell simulations
 
 1. [Simulating an action potential](./1-1-simulating-an-action-potential.ipynb)
-    - [x] Loading a model, protocol, and script
-    - [x] Creating a simulation
-    - [x] Running a simulation
-    - [x] Plotting simulation results
+    - Loading a model, protocol, and script
+    - Creating a simulation
+    - Running a simulation
+    - Plotting simulation results with matplotlib
 
 ## To-do
 
