@@ -1,4 +1,5 @@
 *What follows below is very much a work in progress!*
+*For the time being, more examples can be found on http://myokit.org/examples/ *
 
 # Using Myokit
 
