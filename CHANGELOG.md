@@ -6,6 +6,7 @@ This page lists the main changes made to Myokit in each release.
 - Added
   - [#682](https://github.com/MichaelClerx/myokit/pull/682) OpenCL code now recognises error code -1001.
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) Now testing OpenCL code in CI.
+  - [#704](https://github.com/MichaelClerx/myokit/pull/704) Added first example notebook to the github repository.
 - Changed
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
 - Deprecated
