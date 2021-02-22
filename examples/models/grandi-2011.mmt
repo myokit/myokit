@@ -1,0 +1,884 @@
+[[model]]
+name: grandi-2011-atrial
+author: Michael Clerx
+desc: """
+Grandi et al. 2011 Atrial cell model.
+
+Based on the original Matlab code provided from the Grandi lab website.
+
+Reference:
+
+[1] Human Atrial Action Potential and Ca2+ Model: Sinus Rhythm and Chronic 
+    Atrial Fibrillation.
+    Eleonora Grandi, Sandeep V Pandit, Niels Voigt, Antony J Workman, Dobromir 
+    Dobrev, Jose Jalife, Donald M Bers
+    2011, Circulation Research, 109(9):1055-1066
+    https://doi.org/10.1161/CIRCRESAHA.111.253955
+
+"""
+# Initial conditions
+membrane.V    = -7.34336366728778671e+01
+ina.m         =  1.89326933812916480e-02
+ina.h         =  3.15482710277587786e-01
+ina.j         =  2.48034071360795916e-01
+ical.d        =  2.16850216379767157e-05
+ical.f        =  9.98384427312367095e-01
+ical.fCaB_jn  =  4.49572164109603364e-02
+ical.fCaB_sl  =  3.28512098597005947e-02
+ito.x         =  1.37939236359928058e-03
+ito.y         =  9.45874848392074696e-01
+ikr.xr        =  1.31290096227093382e-03
+iks.xs        =  7.49436760722081534e-03
+ikur.r        =  3.93548562883350357e-04
+ikur.s        =  9.58234428284286399e-01
+inal.ml       =  1.01974216400706526e-02
+inal.hl       =  3.79829335413739144e-02
+ryr.r         =  8.00819151705148946e-01
+ryr.o         =  2.01567245823636694e-06
+ryr.i         =  5.01323282772066123e-07
+buffna.NaB_jn =  3.61396062660070427e+00
+buffna.NaB_sl =  7.88607791910409195e-01
+buffca.TnCL   =  1.83143535034222225e-02
+buffca.TnCHc  =  1.27856586024588575e-01
+buffca.TnCHm  =  5.69999505293381902e-03
+buffca.CaM    =  7.02128101897185673e-04
+buffca.Myoc   =  3.94923428392655786e-03
+buffca.Myom   =  1.35538532457244482e-01
+buffca.SRB    =  4.45327242854324807e-03
+buffca.SLL_jn =  1.35640688636079511e-02
+buffca.SLL_sl =  2.14063418881809235e-02
+buffca.SLH_jn =  1.03674364292988680e-01
+buffca.SLH_sl =  1.90759804527589089e-01
+sodium.Na_jn  =  9.15153381546177336e+00
+sodium.Na_sl  =  9.15182798281732346e+00
+sodium.Na_i   =  9.15199678386256998e+00
+potassium.K_i = 120.0
+calcium.Csqn  =  1.13337536953687845e+00
+calcium.Ca_jn =  3.25814677291117296e-04
+calcium.Ca_sl =  2.33018340557575125e-04
+calcium.Ca_sr =  5.02305826642838293e-01
+calcium.Ca_i  =  2.10808768153058460e-04
+
+
+#
+# Membrane potential
+#
+[membrane]
+dot(V) = -(I_tot + stimulus.I_stim)
+    in [mV]
+    label membrane_potential
+INa_tot = sodium.INa_tot_jn + sodium.INa_tot_sl
+    in [A/F]
+ICl_tot = iclca.IClCa + iclb.IClB
+    in [A/F]
+ICa_tot = calcium.ICa_tot_jn + calcium.ICa_tot_sl
+    in [A/F]
+I_tot = INa_tot + ICl_tot + ICa_tot + potassium.IK_tot
+    in [A/F]
+    label cellular_current
+
+
+#
+# Stimulus current
+#
+[stimulus]
+amplitude = -12.5 [A/F]
+    in [A/F]
+I_stim = engine.pace * amplitude
+    in [A/F]
+
+
+#
+# Simulation
+#
+[engine]
+time = 0 [ms]
+    bind time
+    in [ms]
+pace = 0 
+    bind pace
+    in [1]
+
+
+#
+# Model Parameters
+#
+[cell]
+C = 1.1e-10 [F]
+    in [F]
+    desc: Membrane capacitance
+RA = 0
+    in [1]
+    desc: Right atrium yes/no
+AF = 0
+    in [1]
+ISO = 0
+    in [1]
+
+
+#
+# Physical constants
+#
+[phys]
+R = 8314 [J/kmol/K]
+    in [J/kmol/K]
+F = 96485 [C/mol]
+    in [C/mol]
+T = 310 [K]
+    in [K]
+FRT = F / R / T
+    in [1/mV]
+Q = (T - 310 [K]) / 10 [K]
+    in [1]
+
+
+#
+# Cell geometry
+#
+[geom]
+cell_length = 100 [um]
+    desc: Cell length
+    in [um]
+cell_radius = 10.25 [um]
+    desc: Cell radius
+    in [um]
+pi = 3.141592653589793
+    in [1]
+Vcell = pi * cell_radius^2 * cell_length * 1e-15 [L/um^3]
+    in [L]
+Vmyo = 0.65 * Vcell
+    in [L]
+Vsr = 0.035 * Vcell
+    in [L]
+Vsl = 0.02 * Vcell
+    in [L]
+Vjn = 0.0539 * .01 * Vcell
+    in [L]
+JCa_jnsl = (1 / 1.2134e12) * 1 [L/ms]
+    in [L/ms]
+JCa_slmyo = (1 / 2.68510e11) * 1 [L/ms]
+    in [L/ms]
+JNa_jnsl = (1 / (1.6382e12 / 3 * 100)) * 1 [L/ms]
+    in [L/ms]
+JNa_slmyo = (1 / (1.8308e10 / 3 * 100)) * 1 [L/ms]
+    in [L/ms]
+
+
+#
+# Fractional currents in compartments
+#
+[junc]
+Fjn = 0.11
+    in [1]
+Fsl = 1 - Fjn
+    in [1]
+Fjn_CaL = 0.9
+    in [1]
+Fsl_CaL = 1 - Fjn_CaL
+    in [1]
+
+
+#
+# Fixed ion concentrations
+#
+[ion]
+Na_o = 140 [mM]
+    desc: Extracellular Na
+    in [mM]
+K_o = 5.4 [mM]
+    desc: Extracellular K
+    in [mM]
+Ca_o = 1.8 [mM]
+    desc: Extracellular Ca
+    in [mM]
+Cl_i = 15 [mM]
+    desc: Intracellular Cl
+    in [mM]
+Cl_o = 150 [mM]
+    desc: Extracellular Cl
+    in [mM]
+Mg_i = 1 [mM]
+    desc: Intracellular Mg
+    in [mM]
+
+
+#
+# Nernst Potentials
+#
+[nernst]
+use phys.FRT
+ENa_jn = (1 / FRT) * log(ion.Na_o / sodium.Na_jn)
+    in [mV]
+ENa_sl = (1 / FRT) * log(ion.Na_o / sodium.Na_sl)
+    in [mV]
+EK = (1 / FRT) * log(ion.K_o / potassium.K_i)
+    in [mV]
+ECa_jn = (1 / FRT / 2) * log(ion.Ca_o / calcium.Ca_jn)
+    in [mV]
+ECa_sl = (1 / FRT / 2) * log(ion.Ca_o / calcium.Ca_sl)
+    in [mV]
+ECl = (1 / FRT) * log(ion.Cl_i / ion.Cl_o)
+    in [mV]
+
+
+#
+# Fast sodium current
+#
+[ina]
+use membrane.V
+gNa = 23 [mS/uF] * (1 - 0.1 * cell.AF)
+    in [mS/uF]
+dot(m) = (inf - m) / tau
+    inf = 1 / ((1 + exp( -(56.86 [mV] + V) / 9.03 [mV]))^2)
+    tau = 0.1292 [ms] * exp(-((V + 45.79 [mV]) / 15.54 [mV])^2) + 0.06487 [ms] * exp(-((V - 4.823 [mV]) / 51.12 [mV])^2)
+        in [ms]
+dot(h) = (inf - h) / tau
+    a = if(V >= -40 [mV],
+            0,
+            0.057 * exp( -(V + 80 [mV]) / 6.8 [mV])
+           ) * 1 [1/ms]
+        in [1/ms]
+    b = if(V >= -40 [mV],
+            0.77 / (0.13 * (1 + exp(-(V + 10.66 [mV]) / 11.1 [mV]))),
+            2.7 * exp(0.079 [1/mV] * V) + 3.1 * 10^5 * exp(0.3485 [1/mV] * V)
+           ) * 1 [1/ms]
+        in [1/ms]
+    tau = 1 / (a + b)
+        in [ms]
+    inf = 1 / ((1 + exp((V + 71.55 [mV])/ 7.43 [mV]))^2)
+dot(j) = (inf - j) / tau
+    a = if(V >= -40 [mV],
+            0,
+            (
+                (-2.5428 * 10^4 * exp(0.2444 [1/mV] * V) - 6.948 * 10^-6 * exp(-0.04391 [1/mV] * V))
+                * (V + 37.78 [mV])
+                / (1 + exp(0.311 [1/mV] * (V + 79.23 [mV])))
+                * 1 [1/mV]
+            )
+           ) * 1 [1/ms]
+        in [1/ms]
+    b = if(V >= -40 [mV],
+            0.6 * exp(0.057 [1/mV] * V) / (1 + exp(-0.1 [1/mV] * (V + 32 [mV]))),
+            0.02424 * exp(-0.01052 [1/mV] * V) / (1 + exp(-0.1378 [1/mV] * (V + 40.14 [mV])))
+           ) * 1 [1/ms]
+        in [1/ms]
+    tau = 1 / (a + b)
+        in [ms]
+    inf = 1 / (1 + exp((V + 71.55 [mV]) / 7.43 [mV]))^2
+INa_jn = junc.Fjn * gNa * m^3 * h * j * (V - nernst.ENa_jn)
+    in [A/F]
+INa_sl = junc.Fsl * gNa * m^3 * h * j * (V - nernst.ENa_sl)
+    in [A/F]
+INa = INa_jn + INa_sl
+    in [A/F]
+
+
+#
+# Late I_Na
+#
+[inal]
+use membrane.V
+gNaL = 0.0025 [mS/uF] * cell.AF
+    in [mS/uF]
+dot(ml) = a * (1 - ml) - b * ml
+    a = 0.32 [1/ms/mV] * (V + 47.13 [mV]) / (1 - exp(-0.1 [1/mV] * (V + 47.13 [mV])))
+        in [1/ms]
+    b = 0.08 [1/ms] * exp(-V / 11 [mV])
+        in [1/ms]
+dot(hl) = (inf - hl) / tau
+    inf = 1 / (1 + exp((V + 91 [mV]) / 6.1 [mV]))
+    tau = 600 [ms]
+        in [ms]
+INaL_jn = junc.Fjn * gNaL * ml^3 * hl * (V - nernst.ENa_jn)
+    in [A/F]
+INaL_sl = junc.Fsl * gNaL * ml^3 * hl * (V - nernst.ENa_sl)
+    in [A/F]
+INaL = INaL_jn + INaL_sl
+    in [A/F]
+
+
+#
+# Na Background Current
+#
+[inab]
+use membrane.V
+gNaB = 0.597e-3 [mS/uF]
+    in [mS/uF]
+INaB_jn = junc.Fjn * gNaB * (V - nernst.ENa_jn)
+    in [A/F]
+INaB_sl = junc.Fsl * gNaB * (V - nernst.ENa_sl)
+    in [A/F]
+INaB = INaB_jn + INaB_sl
+    in [A/F]
+
+
+#
+# Na/K Pump Current
+#
+[inak]
+use membrane.V
+use phys.FRT
+sigma = (exp(ion.Na_o / 67.3[mM]) - 1) / 7
+fnak = 1 / (1 + 0.1245 * exp(-0.1 * V * FRT) + 0.0365 * sigma * exp(-V * FRT))
+IbarNaK = 1.26 [A/F]
+    in [A/F]
+KmNaip = 11 [mM] * (1 - 0.25 * cell.ISO)
+    in [mM]
+KmKo = 1.5 [mM]
+    in [mM]
+INaK_jn = junc.Fjn * IbarNaK * fnak * ion.K_o / (1 + (KmNaip / sodium.Na_jn)^4) / (ion.K_o + KmKo)
+    in [A/F]
+INaK_sl = junc.Fsl * IbarNaK * fnak * ion.K_o / (1 + (KmNaip / sodium.Na_sl)^4) / (ion.K_o + KmKo)
+    in [A/F]
+INaK = INaK_jn + INaK_sl
+    in [A/F]
+
+
+#
+# Rapidly activating K current
+#
+[ikr]
+use membrane.V
+gKr = 0.035 [mS/uF] * sqrt(ion.K_o / 5.4 [mM])
+    in [mS/uF]
+dot(xr) = (inf - xr) / tau
+    inf = 1 / (1 + exp(-(V + 10 [mV]) / 5 [mV]))
+    tau = (+ 550 [ms] / (1 + exp((-22 [mV] - V) / 9 [mV])) * 6 / (1 + exp((V + 11 [mV]) / 9 [mV]))
+           + 230 [ms] / (1 + exp((V + 40 [mV]) / 20 [mV])))
+        in [ms]
+rr = 1 / (1 + exp((V + 74 [mV]) / 24 [mV]))
+IKr = gKr * xr * rr * (V - nernst.EK)
+    in [A/F]
+
+
+#
+# Slowly Activating K Current
+#
+[iks]
+use membrane.V
+pNaK = 0.01833
+EKs = (1 / phys.FRT) * log((ion.K_o + pNaK * ion.Na_o) / (potassium.K_i + pNaK * sodium.Na_i))
+    in [mV]
+gKs_jn = (1 + cell.AF + 2 * cell.ISO) * 0.0035 [mS/uF]
+    in [mS/uF]
+gKs_sl = (1 + cell.AF + 2 * cell.ISO) * 0.0035 [mS/uF]
+    in [mS/uF]
+dot(xs) = (inf - xs) / tau
+    inf = 1 / (1 + exp(-(V + 40 [mV] * cell.ISO + 3.8 [mV]) / 14.25 [mV]))
+    tau = 990.1 [ms] / (1 + exp(-(V + 40 [mV] * cell.ISO + 2.436 [mV]) / 14.12 [mV]))
+        in [ms]
+IKs_jn = junc.Fjn * gKs_jn * xs^2 * (V - EKs)
+    in [A/F]
+IKs_sl = junc.Fsl * gKs_sl * xs^2 * (V - EKs)
+    in [A/F]
+IKs = IKs_jn + IKs_sl
+    in [A/F]
+
+
+#
+# Plateau K current
+#
+[ikp]
+use membrane.V
+gKp = 0.002 [mS/uF]
+    in [mS/uF]
+kp = 1 / (1 + exp(7.488 - V / 5.98 [mV]))
+IKp_jn = junc.Fjn * gKp * kp * (V - nernst.EK)
+    in [A/F]
+IKp_sl = junc.Fsl * gKp * kp * (V - nernst.EK)
+    in [A/F]
+IKp = IKp_jn + IKp_sl
+    in [A/F]
+
+
+#
+# Transient outward K current
+#
+[ito]
+use membrane.V
+dot(x) = (inf - x) / tau
+    inf = 1 / (1 + exp(-(V + 1 [mV]) / 11 [mV]))
+    tau = 3.5 [ms] * exp(-(V / 30 [mV])^2) + 1.5 [ms]
+        in [ms]
+dot(y) = (inf - y) / tau
+    inf = 1 / (1 + exp((V + 40.5 [mV]) / 11.5 [mV]))
+    tau = 25.635 [ms] * exp(-((V + 52.45 [mV]) / 15.8827 [mV])^2) + 24.14 [ms]
+        in [ms]
+g = (1 - 0.7 * cell.AF) * 0.165 [mS/uF]
+    in [mS/uF]
+Ito = g * x * y * (V - nernst.EK)
+    in [A/F]
+
+
+#
+# Ultra rapid delayed rectifier outward K Current
+#
+[ikur]
+use membrane.V
+gKur = (1 - 0.5 * cell.AF) * (1 + 2 * cell.ISO) * (1 + 0.2 * cell.RA) * 0.045 [mS/uF]
+    in [mS/uF]
+dot(r) = (inf - r) / tau
+    inf = 1 / (1 + exp((V + 6 [mV]) / -8.6 [mV]))
+    tau = 9 [ms] / (1 + exp((V + 5 [mV]) / 12 [mV])) + 0.5 [ms]
+        in [ms]
+dot(s) = (inf - s) / tau
+    inf = 1 / (1 + exp( (V + 7.5 [mV]) / 10 [mV]))
+    tau = 590 [ms] / (1 + exp((V + 60 [mV]) / 10 [mV])) + 3050 [ms]
+        in [ms]
+IKur = gKur * r * s * (V - nernst.EK)
+    in [A/F]
+
+
+#
+# Time-independent K current
+#
+[ik1]
+use membrane.V
+use nernst.EK
+inf = a / (a + b)
+    a = 1 [1/ms] * (1.02 / (1 + exp(0.2385 [1/mV] * (V - EK - 59.215 [mV]))))
+        in [1/ms]
+    b = 1 [1/ms] * (
+            (0.49124 * exp(0.08032 [1/mV] * (V + 5.476 [mV] - EK))
+                + exp(0.06175 [1/mV] * (V - EK - 594.31 [mV])))
+            / (1 + exp(-0.5143 [1/mV] * (V - EK + 4.753 [mV]))))
+        in [1/ms]
+gK1 = (1 + cell.AF) * sqrt(ion.K_o / 5.4 [mM]) * 0.0525 [mS/uF]
+    in [mS/uF]
+IK1 = gK1 * inf * (V - EK)
+    in [A/F]
+
+
+#
+# Ca-activated Cl Current
+#
+[iclca]
+use membrane.V
+GClCa = 0.0548 [mS/uF]
+    in [mS/uF]
+KdClCa = 100e-3 [mM]
+    in [mM]
+IClCa_jn = junc.Fjn * GClCa / (1 + KdClCa / calcium.Ca_jn) * (V - nernst.ECl)
+    in [A/F]
+IClCa_sl = junc.Fsl * GClCa / (1 + KdClCa / calcium.Ca_sl) * (V - nernst.ECl)
+    in [A/F]
+IClCa = IClCa_jn + IClCa_sl
+    in [A/F]
+
+
+#
+# Background Cl Current
+#
+[iclb]
+use membrane.V
+gClB = 9e-3 [mS/uF]
+    in [mS/uF]
+IClB = gClB * (V - nernst.ECl)
+    in [A/F]
+
+
+#
+# L-type Calcium Current
+#
+[ical]
+use membrane.V
+use cell.ISO
+use phys.F, phys.FRT, phys.Q
+pNa = (1 + 0.5 * cell.ISO) * (1 - 0.5 * cell.AF) * 0.75e-8 [cm/s]
+    in [cm/s]
+pCa = (1 + 0.5 * cell.ISO) * (1 - 0.5 * cell.AF) * 2.7e-4 [cm/s]
+    in [cm/s]
+pK = (1 + 0.5 * cell.ISO) * (1 - 0.5 * cell.AF) * 1.35e-7 [cm/s]
+    in [cm/s]
+Q10CaL = 1.8
+dot(d) = (inf - d) / tau
+    inf = 1 / (1 + exp(-(V + 3 [mV] * ISO + 9 [mV]) / 6 [mV]))
+    tau = inf * (1 - exp(-(V + 3 [mV] * ISO + 9 [mV]) / 6 [mV])) / (0.035 [1/ms/mV] * (V + 3 [mV] * ISO + 9 [mV]))
+        in [ms]
+dot(f) = (inf - f) / tau
+    inf = 1 / (1 + exp((V + 3 [mV] * cell.ISO + 30 [mV]) / 7 [mV])) + 0.2 / (1 + exp((50 [mV] - V - 3 [mV] * ISO) / 20 [mV]))
+    tau = 1 / (0.0197 [1/ms] * exp(-(0.0337 [1/mV] * (V + 3 [mV] * ISO + 25 [mV]))^2) + 0.02 [1/ms])
+        in [ms]
+dot(fCaB_jn) = (1.7 [1/mM] * calcium.Ca_jn * (1 - fCaB_jn) - 11.9e-3 * fCaB_jn) * 1 [1/ms]
+dot(fCaB_sl) = (1.7 [1/mM] * calcium.Ca_sl * (1 - fCaB_sl) - 11.9e-3 * fCaB_sl) * 1 [1/ms]
+fcaCaMSL = 0
+#fcaCaMSL = 0.1 / (1 + (0.01 / calcium.Ca_sl))
+# Commented out in original code, for some reason!
+fcaCaj = 0
+#fcaCaj = 0.1 / (1 + (0.01 / calcium.Ca_jn))
+# Commented out in original code, for some reason!
+
+block = 0
+ibarca_j = pCa * 4 * (V * F * FRT) * (0.341 * calcium.Ca_jn * exp(2 * V * FRT) - 0.341 * ion.Ca_o) / (exp(2 * V * FRT) - 1) * (1 - block)
+    in [uA/cm^2]
+ibarca_sl = pCa * 4 * (V * F * FRT) * (0.341 * calcium.Ca_sl * exp(2 * V * FRT)- 0.341 * ion.Ca_o) / (exp(2 * V * FRT) - 1) * (1 - block)
+    in [uA/cm^2]
+ibark = pK * V * F * FRT * (0.75 * potassium.K_i * exp(V * FRT) - 0.75 * ion.K_o) / (exp(V * FRT) - 1) * (1 - block)
+    in [uA/cm^2]
+ibarna_jn = pNa * V * F * FRT * (0.75 * sodium.Na_jn * exp(V * FRT) - 0.75 * ion.Na_o) / (exp(V * FRT) - 1) * (1 - block)
+    in [uA/cm^2]
+ibarna_sl = pNa * V * F * FRT * (0.75 * sodium.Na_sl * exp(V * FRT) - 0.75 * ion.Na_o) / (exp(V * FRT) - 1) * (1 - block)
+    in [uA/cm^2]
+
+ICaL_Ca_jn = (junc.Fjn_CaL * ibarca_j * d * f * ((1 - fCaB_jn) + fcaCaj) * Q10CaL^Q) * 0.45 [cm^2/uF]
+    in [A/F]
+ICaL_Ca_sl = (junc.Fsl_CaL * ibarca_sl * d * f * ((1 - fCaB_sl) + fcaCaMSL) * Q10CaL^Q) * 0.45 [cm^2/uF]
+    in [A/F]
+ICaL_Ca = ICaL_Ca_jn + ICaL_Ca_sl
+    in [A/F]
+
+ICaL_K = (ibark * d * f * (junc.Fjn_CaL * (fcaCaj + (1 - fCaB_jn)) + junc.Fsl_CaL * (fcaCaMSL + (1 - fCaB_sl))) * Q10CaL^Q) * 0.45 [cm^2/uF]
+    in [A/F]
+
+ICaL_Na_jn = (junc.Fjn_CaL * ibarna_jn * d * f * ((1 - fCaB_jn) + fcaCaj) * Q10CaL^Q) * 0.45 [cm^2/uF]
+    in [A/F]
+ICaL_Na_sl = (junc.Fsl_CaL * ibarna_sl * d * f * ((1 - fCaB_sl) + fcaCaMSL) * Q10CaL^Q) * 0.45 [cm^2/uF]
+    in [A/F]
+ICaL_Na = ICaL_Na_jn + ICaL_Na_sl
+    in [A/F]
+
+ICaL = ICaL_Ca + ICaL_K + ICaL_Na
+    in [A/F]
+
+
+#
+# Na/Ca Exchanger flux
+#
+[inaca]
+use membrane.V
+use phys.FRT, phys.Q
+IbarNCX = (1 + 0.4 * cell.AF) * 3.15 [A/F]
+    in [A/F]
+Kdact = 0.384e-3 [mM]
+    in [mM]
+KmNai = 12.29 [mM]
+    in [mM]
+KmCai = 3.59e-3 [mM]
+    in [mM]
+KmCao = 1.3 [mM]
+    in [mM]
+KmNao = 87.5 [mM]
+    in [mM]
+Ka_jn = 1 / (1 + (Kdact / calcium.Ca_jn)^2)
+Ka_sl = 1 / (1 + (Kdact / calcium.Ca_sl)^2)
+ksat = 0.27
+    in [1]
+nu = 0.35
+    in [1]
+Q10NCX = 1.57
+    in [1]
+INaCa_jn = junc.Fjn * IbarNCX * Q10NCX^Q * Ka_jn * (s1_jn - s2_jn) / s3_jn / (1 + ksat * exp((nu - 1) * V * FRT))
+    s1_jn = exp(nu * V * FRT) * sodium.Na_jn^3 * ion.Ca_o
+        in [mol^4/m^12]
+    s2_jn = exp((nu - 1) * V * FRT) * ion.Na_o^3 * calcium.Ca_jn
+        in [mol^4/m^12]
+    s3_jn = KmCai * ion.Na_o^3 * (1 + (sodium.Na_jn / KmNai)^3) + KmNao^3 * calcium.Ca_jn * (1 + calcium.Ca_jn / KmCai) + KmCao * sodium.Na_jn^3 + sodium.Na_jn^3 * ion.Ca_o + ion.Na_o^3 * calcium.Ca_jn
+        in [mol^4/m^12]
+    in [A/F]
+INaCa_sl = junc.Fsl * IbarNCX * Q10NCX^Q * Ka_sl * (s1_sl - s2_sl) / s3_sl / (1 + ksat * exp((nu - 1) * V * FRT))
+    s1_sl = exp(nu * V * FRT) * sodium.Na_sl^3 * ion.Ca_o
+        in [mol^4/m^12]
+    s2_sl = exp((nu - 1) * V * FRT) * ion.Na_o^3 * calcium.Ca_sl
+        in [mol^4/m^12]
+    s3_sl = KmCai * ion.Na_o^3 * (1 + (sodium.Na_sl / KmNai)^3) + KmNao^3 * calcium.Ca_sl * (1 + calcium.Ca_sl / KmCai) + KmCao * sodium.Na_sl^3 + sodium.Na_sl^3 * ion.Ca_o + ion.Na_o^3 * calcium.Ca_sl
+        in [mol^4/m^12]
+    in [A/F]
+INaCa = INaCa_jn + INaCa_sl
+    in [A/F]
+
+
+#
+# Sarcolemmal Ca pump current
+#
+[ipca]
+use phys.Q
+Q10SLCaP = 2.35
+    in [1]
+IbarSLCaP =  0.0471 [A/F]
+    in [A/F]
+KmPCa = 0.5e-3 [mM]
+    in [mM]
+IpCa_jn = junc.Fjn * Q10SLCaP^Q * IbarSLCaP * a / (a + b)
+    a = (calcium.Ca_jn * 1 [1/mM])^1.6
+    b = (KmPCa * 1 [1/mM])^1.6
+    in [A/F]
+IpCa_sl = junc.Fsl * Q10SLCaP^Q * IbarSLCaP * a / (a + b)
+    a = (calcium.Ca_sl * 1 [1/mM])^1.6
+    b = (KmPCa * 1 [1/mM])^1.6
+    in [A/F]
+IpCa = IpCa_jn + IpCa_sl
+    in [A/F]
+    
+
+#
+# Ca background current
+#
+[icab]
+use membrane.V
+gCaB = 6.0643e-4 [mS/uF]
+    in [mS/uF]
+ICaB_jn = junc.Fjn * gCaB * (V - nernst.ECa_jn)
+    in [A/F]
+ICaB_sl = junc.Fsl * gCaB * (V - nernst.ECa_sl)
+    in [A/F]
+ICaB = ICaB_jn + ICaB_sl
+    in [A/F]
+
+
+#
+# SR fluxes: Calcium release, SR Ca pump, SR Ca leak
+#
+[ryr]
+use calcium.Ca_i, calcium.Ca_jn, calcium.Ca_sr
+use phys.Q
+Q10SRCaP = 2.6
+    in [1]
+Vmax_SRCaP = 5.3114e-3 [mM/ms]
+    in [mM/ms]
+Kmf = (2.5 - 1.25 * cell.ISO) * 0.246e-3 [mM]
+    in [mM]
+Kmr = 1.7 [mM]
+    in [mM]
+hillSRCaP = 1.787
+ks = 25 [1/ms]
+    in [1/ms]
+koCa = (10 + 20 * cell.AF + 10 * cell.ISO * (1 - cell.AF)) * 1 [mM^-2/ms]
+    in [mM^-2/ms]
+kom = 0.06 [1/ms]
+    in [1/ms]
+kiCa = 0.5 [1/mM/ms]
+    in [1/mM/ms]
+kim = 0.005 [1/ms]
+    in [1/ms]
+ec50SR = 0.45 [mM]
+    in [mM]
+MaxSR = 15    
+MinSR = 1
+kCaSR = MaxSR - (MaxSR - MinSR) / (1 + (ec50SR / Ca_sr)^2.5)
+koSRCa = koCa / kCaSR
+    in [mM^-2/ms]
+kiSRCa = kiCa * kCaSR
+    in [mM^-1/ms]
+
+dot(r) = (kim * RI - kiSRCa * Ca_jn * r) - (koSRCa * Ca_jn^2 * r - kom * o)
+    in [1]
+dot(o) = (koSRCa * Ca_jn^2 * r - kom * o) - (kiSRCa * Ca_jn * o - kim * i)
+    in [1]
+dot(i) = (kiSRCa * Ca_jn * o - kim * i) - (kom * i - koSRCa * Ca_jn^2 * RI)
+    in [1]
+RI = 1 - r - o - i
+    in [1]
+
+J_SRCarel = ks * o * (Ca_sr - Ca_jn)
+    in [mM/ms]
+J_serca = (
+    Q10SRCaP^Q * Vmax_SRCaP
+        * ((Ca_i / Kmf)^hillSRCaP - (Ca_sr / Kmr)^hillSRCaP)
+        / (1 + (Ca_i / Kmf)^hillSRCaP + (Ca_sr / Kmr)^hillSRCaP))
+    in [mM/ms]
+J_SRleak = (1 + 0.25 * cell.AF) * (Ca_sr - Ca_jn) * 5.348e-6 [1/ms]
+    in [mM/ms]
+
+
+#
+# Sodium buffering
+#
+[buffna]
+Bmax_Na_jn = 7.561 [mM]
+    in [mM]
+    desc: Na buffering
+Bmax_Na_sl = 1.65 [mM]
+    in [mM]
+koff_na = 1e-3 [1/ms]
+    in [1/ms]
+kon_na = 0.1e-3 [1/mM/ms]
+    in [1/mM/ms]
+dot(NaB_jn) = kon_na * sodium.Na_jn * (Bmax_Na_jn - NaB_jn) - koff_na * NaB_jn
+    in [mM]
+dot(NaB_sl) = kon_na * sodium.Na_sl * (Bmax_Na_sl - NaB_sl) - koff_na*NaB_sl
+    in [mM]
+
+
+#
+# Calcium buffering
+#
+[buffca]
+use calcium.Ca_i, calcium.Ca_jn, calcium.Ca_sl
+Bmax_TnClow = 70e-3 [mM]
+    in [mM]
+    desc: TnC low affinity
+koff_tncl = (1 + 0.5 * cell.ISO) * 19.6e-3 [1/ms]
+    in [1/ms]
+kon_tncl = 32.7 [1/mM/ms]
+    in [1/mM/ms]
+Bmax_TnChigh = 140e-3 [mM]
+    in [mM]
+    desc: TnC high affinity
+koff_tnchca = 0.032e-3 [1/ms]
+    in [1/ms]
+kon_tnchca = 2.37 [1/mM/ms]
+    in [1/mM/ms]
+koff_tnchmg = 3.33e-3 [1/ms]
+    in [1/ms]
+kon_tnchmg = 3e-3 [1/mM/ms]
+    in [1/mM/ms]
+Bmax_CaM = 24e-3 [mM]
+    in [mM]
+    desc: CaM buffering
+koff_cam = 238e-3 [1/ms]
+    in [1/ms]
+kon_cam = 34 [1/mM/ms]
+    in [1/mM/ms]
+Bmax_myosin = 140e-3 [mM]
+    in [mM]
+    desc: Myosin buffering
+koff_myoca = 0.46e-3 [1/ms]
+    in [1/ms]
+kon_myoca = 13.8 [1/mM/ms]
+    in [1/mM/ms]
+koff_myomg = 0.057e-3 [1/ms]
+    in [1/ms]
+kon_myomg = 0.0157 [1/mM/ms]
+    in [1/mM/ms]
+Bmax_SR = 19 * .9e-3 [mM]
+    in [mM]
+koff_sr = 60e-3 [1/ms]
+    in [1/ms]
+kon_sr = 100 [1/mM/ms]
+    in [1/mM/ms]
+Bmax_SLlowsl = geom.Vmyo / geom.Vsl * 37.4e-3 [mM]
+    in [mM]
+    desc: SL buffering
+Bmax_SLlowj = 4.6e-3 [mM] * geom.Vmyo / geom.Vjn * 0.1
+    in [mM]
+koff_sll = 1300e-3 [1/ms]
+    in [1/ms]
+kon_sll = 100 [1/mM/ms]
+    in [1/mM/ms]
+Bmax_SLhighsl = geom.Vmyo / geom.Vsl * 13.4e-3 [mM]
+    in [mM]
+Bmax_SLhighj = 1.65e-3 [mM] * geom.Vmyo / geom.Vjn * 0.1
+    in [mM]
+koff_slh = 30e-3 [1/ms]
+    in [1/ms]
+kon_slh = 100 [1/mM/ms]
+    in [1/mM/ms]
+
+# Cytosolic Ca Buffers
+dot(TnCL) = kon_tncl * Ca_i * (Bmax_TnClow - TnCL) - koff_tncl * TnCL
+    in [mM]
+dot(TnCHc) = kon_tnchca * Ca_i * (Bmax_TnChigh - TnCHc - TnCHm) - koff_tnchca * TnCHc
+    in [mM]
+dot(TnCHm) = kon_tnchmg * ion.Mg_i * (Bmax_TnChigh - TnCHc - TnCHm) - koff_tnchmg * TnCHm
+    in [mM]
+dot(CaM) = kon_cam * Ca_i * (Bmax_CaM - CaM) - koff_cam * CaM
+    in [mM]
+dot(Myoc) = kon_myoca * Ca_i * (Bmax_myosin - Myoc - Myom) - koff_myoca * Myoc
+    in [mM]
+dot(Myom) = kon_myomg * ion.Mg_i * (Bmax_myosin - Myoc - Myom) - koff_myomg * Myom
+    in [mM]
+dot(SRB) = kon_sr * Ca_i * (Bmax_SR - SRB) - koff_sr * SRB
+    in [mM]
+J_CaB_cytosol = dot(TnCL) + dot(TnCHc) + dot(TnCHm) + dot(CaM) + dot(Myoc) + dot(Myom) + dot(SRB)
+    in [mM/ms]
+    
+# Junctional and SL Ca Buffers
+dot(SLL_jn) = kon_sll * Ca_jn * (Bmax_SLlowj - SLL_jn) - koff_sll * SLL_jn
+    in [mM]
+dot(SLL_sl) = kon_sll * Ca_sl * (Bmax_SLlowsl - SLL_sl) - koff_sll * SLL_sl         
+    in [mM]
+dot(SLH_jn) = kon_slh * Ca_jn * (Bmax_SLhighj - SLH_jn) - koff_slh * SLH_jn
+    in [mM]
+dot(SLH_sl) = kon_slh * Ca_sl * (Bmax_SLhighsl - SLH_sl) - koff_slh * SLH_sl
+    in [mM]
+J_CaB_jntion = dot(SLL_jn) + dot(SLH_jn)
+    in [mM/ms]
+J_CaB_sl = dot(SLL_sl) + dot(SLH_sl)
+    in [mM/ms]
+
+
+#
+# Sodium concentrations
+#
+[sodium]
+use geom.Vjn, geom.Vsl, geom.Vmyo, geom.JNa_jnsl, geom.JNa_slmyo
+INa_tot_jn = ina.INa_jn + inab.INaB_jn + 3 * inaca.INaCa_jn + 3 * inak.INaK_jn + ical.ICaL_Na_jn + inal.INaL_jn
+    in [A/F]
+INa_tot_sl = ina.INa_sl + inab.INaB_sl + 3 * inaca.INaCa_sl + 3 * inak.INaK_sl + ical.ICaL_Na_sl + inal.INaL_sl
+    in [A/F]
+dot(Na_jn) = -INa_tot_jn * cell.C / (Vjn * phys.F) + JNa_jnsl / Vjn * (Na_sl - Na_jn) - dot(buffna.NaB_jn)
+    in [mM]
+dot(Na_sl) = -INa_tot_sl * cell.C / (Vsl * phys.F) + JNa_jnsl / Vsl * (Na_jn - Na_sl) + JNa_slmyo / Vsl * (Na_i - Na_sl) - dot(buffna.NaB_sl)
+    in [mM]
+dot(Na_i) = JNa_slmyo / Vmyo * (Na_sl - Na_i)
+    in [mM]
+
+
+#
+# Potassium concentration
+#
+[potassium]
+IK_tot = ito.Ito + ikr.IKr + iks.IKs + ik1.IK1 - 2 * inak.INaK + ical.ICaL_K + ikp.IKp + ikur.IKur
+    in [A/F]
+dot(K_i) = 0 [mM/ms]     # -IK_tot * C / (geom.Vmyo * F)
+    in [mM]
+# Commented out in original code (set to zero): Issues with drift due to not taking I_stim into account?
+
+
+#
+# Calcium concentrations
+#
+[calcium]
+use cell.C
+use phys.F
+use geom.Vjn, geom.Vsr, geom.Vsl, geom.Vmyo
+use geom.JCa_jnsl, geom.JCa_slmyo
+use buffca.J_CaB_jntion, buffca.J_CaB_sl, buffca.J_CaB_cytosol
+use ryr.J_serca, ryr.J_SRCarel, ryr.J_SRleak
+
+# Calsequestrin buffering
+dot(Csqn) = kon_csqn * Ca_sr * (Bmax_Csqn - Csqn) - koff_csqn * Csqn
+    in [mM]
+    Bmax_Csqn = Vmyo / Vsr * 140e-3 [mM]
+        in [mM]
+    koff_csqn = 65 [1/ms]
+        in [1/ms]
+    kon_csqn = 100 [1/mM/ms]
+        in [1/mM/ms]
+
+ICa_tot_jn = ical.ICaL_Ca_jn + icab.ICaB_jn + ipca.IpCa_jn - 2 * inaca.INaCa_jn
+    in [A/F]
+ICa_tot_sl = ical.ICaL_Ca_sl + icab.ICaB_sl + ipca.IpCa_sl - 2 * inaca.INaCa_sl
+    in [A/F]
+dot(Ca_jn) = -ICa_tot_jn * C / (Vjn * 2 * F) + JCa_jnsl / Vjn * (Ca_sl - Ca_jn) - J_CaB_jntion + J_SRCarel * Vsr / Vjn + J_SRleak * Vmyo / Vjn
+    in [mM]
+dot(Ca_sl) = -ICa_tot_sl * C / (Vsl * 2 * F) + JCa_jnsl / Vsl * (Ca_jn - Ca_sl) + JCa_slmyo / Vsl * (Ca_i - Ca_sl) - J_CaB_sl
+    in [mM]
+dot(Ca_sr) = J_serca - (J_SRleak * geom.Vmyo / geom.Vsr + J_SRCarel) - dot(Csqn)
+    in [mM]
+dot(Ca_i) = -J_serca * Vsr / Vmyo - J_CaB_cytosol + JCa_slmyo / Vmyo * (Ca_sl - Ca_i)
+    in [mM]
+
+[[protocol]]
+# Level  Start    Length   Period   Multiplier
+1.0      100.0    5.0      1000.0   0
+# Note this long duration stimulus changes the shape of the AP and is
+# unsuitable for any INa investigations
+
+[[script]]
+import matplotlib.pyplot as plt
+import myokit
+
+# Get model and protocol, create simulation
+m = get_model()
+p = get_protocol()
+s = myokit.Simulation(m, p)
+
+# Run simulation
+d = s.run(1000)
+
+# Display the results
+plt.figure()
+plt.plot(d.time(), d['membrane.V'])
+plt.show()
+
