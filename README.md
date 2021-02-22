@@ -1,5 +1,7 @@
-[![travis](https://travis-ci.com/MichaelClerx/myokit.svg?branch=main)](https://travis-ci.com/MichaelClerx/myokit)
-[![appveyor](https://ci.appveyor.com/api/projects/status/u2e6bc6tklgxyyra/branch/main?svg=true)](https://ci.appveyor.com/project/MichaelClerx/myokit)
+[![Ubuntu unit tests](https://github.com/MichaelClerx/myokit/workflows/Ubuntu%20unit%20tests/badge.svg)](https://github.com/MichaelClerx/myokit/actions?query=workflow%3A"Ubuntu+unit+tests")
+[![OSX unit tests](https://github.com/MichaelClerx/myokit/workflows/OSX%20unit%20tests/badge.svg)](https://github.com/MichaelClerx/myokit/actions?query=workflow%3A"OSX+unit+tests")
+[![Windows unit tests](https://github.com/MichaelClerx/myokit/workflows/Windows%20unit%20tests/badge.svg)](https://github.com/MichaelClerx/myokit/actions?query=workflow%3A"Windows+unit+tests")
+[![Windows Miniconda test](https://github.com/MichaelClerx/myokit/workflows/Windows%20Miniconda%20test/badge.svg)](https://github.com/MichaelClerx/myokit/actions?query=workflow%3A"Windows+Miniconda+test")
 [![codecov](https://codecov.io/gh/MichaelClerx/myokit/branch/main/graph/badge.svg)](https://codecov.io/gh/MichaelClerx/myokit)
 [![Documentation Status](https://readthedocs.org/projects/myokit/badge/?version=latest)](https://myokit.readthedocs.io/?badge=latest)
 
@@ -14,6 +16,9 @@ A list of changes introduced in each Myokit release is provided in the [Changelo
 
 
 ## Install
+
+For full installation details (on linux, mac, or windows), please see [http://myokit.org/install](http://myokit.org/install).
+A shorter installation guide for experienced users is given below.
 
 To install Myokit, using PyQt5 for Myokit's GUI components, run:
 
@@ -38,7 +43,6 @@ Existing Myokit installations can be upgraded using
 
     pip install --upgrade myokit
 
-For full details, see [http://myokit.org/install](http://myokit.org/install).
 
 ## Quick-start guide
 
@@ -57,8 +61,14 @@ To open an IDE window, type
 To see what else Myokit can do, type
 
     myokit -h
+    
+
+## Contributing to Myokit
+
+You can contribute to Myokit by [reporting issues](https://github.com/MichaelClerx/myokit/issues), but code contributions (bugfixes, new formats, new features etc.) are also very welcome!
+New features are best discussed in an issue before starting any implementation work, and guidelines for code style (and more) can be found in [CONTRIBUTING.md](https://github.com/MichaelClerx/myokit/blob/main/CONTRIBUTING.md).
 
 
 ## Citing Myokit
 
-If you use Myokit in your research, please cite it using the information in our [CITATION file](./CITATION).
+If you use Myokit in your research, please cite it using the information in our [CITATION file](https://github.com/MichaelClerx/myokit/blob/main/CITATION).

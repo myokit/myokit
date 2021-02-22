@@ -1631,9 +1631,17 @@ class Model(ObjectWithMeta, VarProvider):
         remaining = equations['*remaining*']
         return len(remaining) > 0
 
+    def has_parse_info(self):
+        """
+        Returns ``True`` if this model retains parsing information, so that
+        methods such as :meth:`item_at_text_position` and :meth:`show_line_of`
+        can be used.
+        """
+        return bool(self._tokens)
+
     def has_warnings(self):
         """
-        Returns True if this model has any warnings.
+        Returns ``True`` if this model has any warnings.
         """
         return len(self._warnings)
 
@@ -2605,13 +2613,20 @@ class Model(ObjectWithMeta, VarProvider):
             ' future versions of Myokit. Please use `show_line_of` instead.')
         self.show_line_of(var)
 
-    def show_line_of(self, var):
+    def show_line_of(self, var, raw=False):
         """
         Returns a string containing the type of variable ``var`` is and the
         line it was defined on.
+
+        If ``raw`` is set to ``True`` the method returns an integer with the
+        line number, or ``None`` if no line number information is known (i.e.
+        if this model wasn't created by parsing).
         """
+        if raw:
+            return int(var._token[2]) if var._token is not None else None
+
         var, out = self._var_info(var)
-        if var._token:
+        if var._token is not None:
             out.append('Defined on line ' + str(var._token[2]))
         return '\n'.join(out)
 
@@ -3644,14 +3659,14 @@ class Variable(VarOwner):
         # Update all references to the variable
         old_ref = myokit.Name(self)
         new_ref = myokit.Divide(old_ref, fw)
-        for var in self.refs_by(self._is_state):
+        for var in list(self.refs_by(self._is_state)):
             var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
 
         # For states, also update references to their derivatives
         if self._is_state:
             old_ref = myokit.Derivative(myokit.Name(self))
             new_ref = myokit.Divide(old_ref, fw)
-            for var in self.refs_by(False):
+            for var in list(self.refs_by(False)):
                 var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
 
         # For the time variable, update all state RHS's, and any references to
@@ -3662,7 +3677,7 @@ class Variable(VarOwner):
                 var.set_rhs(myokit.Divide(var.rhs(), fw))
                 old_ref = myokit.Derivative(myokit.Name(var))
                 new_ref = myokit.Multiply(old_ref, fw)
-                for ref in var.refs_by(False):
+                for ref in list(var.refs_by(False)):
                     ref.set_rhs(ref.rhs().clone(subst={old_ref: new_ref}))
 
     def _delete(self, recursive=False, whole_component=False):

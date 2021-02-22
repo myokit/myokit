@@ -149,27 +149,29 @@ class CModule(object):
                 if libd is not None:
                     runtime = None
 
-                    # Determine strategy
-                    try:
-                        os.add_dll_directory
-                        use_add_dll_directory = True
-                    except AttributeError:
-                        use_add_dll_directory = False
-
                     # Make windows search the libd directories
-                    if use_add_dll_directory:
-                        # Python 3.8 and up
+                    path = os.environ.get('path', '')
+                    if path is None:
+                        path = ''
+                    to_add = [x for x in libd if x not in path]
+                    os.environ['path'] = os.pathsep.join([path] + to_add)
+
+                    # In Python 3.8+, they need to be registered with
+                    # add_dll_directory too. This does not seem to be 100%
+                    # consistent. AppVeyor tests pass when using
+                    # add_dll_directory *without* adding the directories to the
+                    # path, while installations via miniconda seem to need the
+                    # path method too.
+                    try:
+                        # Fail if add_dll_directory not present
+                        os.add_dll_directory
+
+                        # Add DLL paths
                         for path in libd:
                             if os.path.isdir(path):
                                 os.add_dll_directory(path)
-
-                    else:
-                        # Older versions: add libd to path
-                        path = os.environ.get('path', '')
-                        if path is None:
-                            path = ''
-                        to_add = [x for x in libd if x not in path]
-                        os.environ['path'] = os.pathsep.join([path] + to_add)
+                    except AttributeError:
+                        pass
 
             # Create extension
             ext = Extension(

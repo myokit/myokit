@@ -799,12 +799,25 @@ class TestCellML2ModelConversion(unittest.TestCase):
 
         # ...or have a unit inferred from their RHS
         z = c2.add_variable('z')
-        z.set_rhs('3 [mole]')
+        z.set_rhs('3 [mole/ms]')
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(
+            cm['c2']['z'].units().myokit_unit(),
+            myokit.units.mole / myokit.units.ms)
+
+        # ...which should take the time units into account, for state variables
+        z.promote(0)
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(
             cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
 
-        # ...and can have non-integer exponents
+        # ...even if the time units themselves need to be inferred
+        m.get('env.time').set_unit(None)
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(
+            cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
+
+        # Units can have fractional exponents
         y.set_rhs('1 [mV] ^ 1.2')
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(

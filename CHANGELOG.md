@@ -4,6 +4,38 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#682](https://github.com/MichaelClerx/myokit/pull/682) OpenCL code now recognises error code -1001.
+  - [#683](https://github.com/MichaelClerx/myokit/pull/683) Now testing OpenCL code in CI.
+- Changed
+  - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
+- Deprecated
+- Removed
+  - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux, or any Python 2.7 on Windows.
+- Fixed
+  - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
+  - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.format_path()`.
+  - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
+
+## [1.32.0] - 2021-01-19
+- Added
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Added more detailed error output to several CVODE errors related to RHS-related numerical issues.
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now tested on Sundials 5 (locally).
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Now testing on Python 3.9 (Linux).
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) `Simulation.run` documentation is now more clear on what happens for very short simulation durations (or zero).
+  - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a method `Model.has_parse_info` that checks if the model contains information from parsing (i.e. line numbers).
+  - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a parameter `raw` to `Model.show_line_of` that returns the line number as an integer
+  - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a method to the IDE that lets you jump to the definition of a selected variable.
+  - [#680](https://github.com/MichaelClerx/myokit/pull/680) Now testing on Python 3.9 and Miniconda 3.8 (Windows).
+- Removed
+  - [#681](https://github.com/MichaelClerx/myokit/pull/681) Removed the deprecated library `myokit.lib.fit`. For fitting see e.g. [PINTS](https://github.com/pints-team/pints) and this [tutorial on fitting ion channel data with Myokit & PINTS](https://github.com/pints-team/myokit-pints-tutorial).
+- Fixed
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug in `Variable.convert_unit()` that caused unexpected (and quite arbitrary) results.
+  - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug where calling `Simulation.run()` with a very short runtime caused a zero state to be returned.
+  - [#676](https://github.com/MichaelClerx/myokit/pull/676) Fixed a bug in CellML (1 and 2) export when inferring units for a state variable.
+  - [#679](https://github.com/MichaelClerx/myokit/pull/679) Fixed "DLL load failed while importing myokit" issue on Windows 10 with Python 3.8 (via miniconda).
+
+## [1.31.1] - 2020-12-01
+- Added
   - [#623](https://github.com/MichaelClerx/myokit/pull/623) The changes made with each release are now stored in CHANGELOG.md.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL` now includes a method `is_paced` and `neighbours` that provide information about the simulated cells.
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.find_nan` now has an option to return a `DataLog` with the final logged variables before the error occurred.
@@ -25,7 +57,6 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
   - [#622](https://github.com/MichaelClerx/myokit/pull/622) `SimulationOpenCL.is2d()` was deprecated in favour of `SimulationOpenCL.is_2d()`.
   - [#632](https://github.com/MichaelClerx/myokit/pull/632) `DataBlock1d.from_DataLog` and `DataBlock2d.from_DataLog` have both been deprecated, in favour of new `from_log` methods.
-- Removed
 - Fixed
   - [#650](https://github.com/MichaelClerx/myokit/pull/650) Fix to `myokit.lib.plots.cumulative_current` for normalisation in areas with zero current.
   - [#603](https://github.com/MichaelClerx/myokit/pull/603) Improved handling of types (ints resulting from logical operators) in `OpenCLSimulation`.

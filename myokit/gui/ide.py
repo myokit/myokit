@@ -1079,6 +1079,30 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except Exception:
             self.show_exception()
 
+    def action_variable_definition(self):
+        """
+        Jump to the variable pointed at by the caret.
+        """
+        try:
+            if self._editor_tabs.currentWidget() != self._model_editor:
+                self._console.write(
+                    'Variable info can only be displayed for model variables.')
+                return
+            var = self.selected_variable()
+            if var is False:
+                return  # Model error
+            elif var is None:
+                self._console.write(
+                    'No variable selected. Please select a variable in the'
+                    ' model editing tab.')
+                return
+            # Jump! (you might as well)
+            line = var.model().show_line_of(var, raw=True)
+            self.statusBar().showMessage('Jumping to line ' + str(line) + '.')
+            self._model_editor.jump_to(line - 1, 0)
+        except Exception:
+            self.show_exception()
+
     def action_variable_dependencies(self):
         """
         Finds the variable pointed at by the cursor in the model editor and
@@ -1890,6 +1914,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             'Display a graph of the selected variable.')
         self._tool_variable_graph.triggered.connect(self.action_variable_graph)
         self._menu_analysis.addAction(self._tool_variable_graph)
+        # Analysis > Jump to variable definition
+        self._tool_variable_jump = QtWidgets.QAction(
+            'Jump to variable definition', self)
+        self._tool_variable_jump.setShortcut('Ctrl+J')
+        self._tool_variable_jump.setStatusTip(
+            'Jump to the selected variable\'s definition.')
+        self._tool_variable_jump.triggered.connect(
+            self.action_variable_definition)
+        self._menu_analysis.addAction(self._tool_variable_jump)
+
         # Analysis > ----
         self._menu_analysis.addSeparator()
         # Analysis > Evaluate state derivatives

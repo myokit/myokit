@@ -83,6 +83,7 @@ mcl_flag2(const char* msg, const cl_int flag)
     }
 
     switch(flag) {
+        // OpenCL 1.0 Errors
         case CL_DEVICE_NOT_FOUND:
             sprintf(err, "OpenCL error%s: CL_DEVICE_NOT_FOUND", sub);
             break;
@@ -230,6 +231,13 @@ mcl_flag2(const char* msg, const cl_int flag)
         case CL_INVALID_PROPERTY:
             sprintf(err, "OpenCL error%s: CL_INVALID_PROPERTY", sub);
             break;
+        // OpenCL 1.1 etc. codes can not be assumed to be defined
+        // Might be good to have ifdefs or something
+        // OpenCL extensions
+        case -1001:     // CL_PLATFORM_NOT_FOUND_KHR
+            sprintf(err, "OpenCL error%s: CL_PLATFORM_NOT_FOUND_KHR", sub);
+            break;
+        // Unknown error
         default:
             sprintf(err, "Unknown OpenCL error%s: %i", sub, (int)flag);
             break;
