@@ -1,0 +1,29 @@
+# Comparing models with step
+
+## Basics: Look at derivatives
+
+Catches:
+- make sure state doesn't have zeros or other "boring" numbers
+- make sure you try several model "modes"
+
+
+## Compare against reference output
+
+With initial state from file
+With derivatives from file
+
+## Compare against reference model
+
+(When modifying a file)
+
+```
+#!/usr/bin/env python3
+import myokit
+
+m1 = myokit.load_model('ni-2017-units.mmt')
+m2 = myokit.load_model('ni-2017.mmt')
+
+state = [0.01 if x == 0 else x for x in m2.state()]
+
+print(myokit.step(m1, initial=state, reference=m2))
+```
