@@ -1701,18 +1701,31 @@ class Model(ObjectWithMeta, VarProvider):
             x=1
         # Create mapping for vars, and get unit conversion factors if required.
         
-        # {source_model.variable: external_component.variable}
-        # {external_component.variable : unit conversion}
+        ext_model_copy = external_component.model().clone()
+        external_component_copy = ext_model_copy[external_component.qname()]
+
+        # {source_model.variable: external_component_copy.variable}
         full_var_map = {}
         if var_map != None:
             # check whether well defined or duplicates in var_map
             x=1
         else:
             var_map = {}
-        for ext_var in external_component.variables():
-            if ext_var in var_map:
+
+        relevant_vars = external_component_copy.variables()
+        for var in external_component_copy.variables():
+            dependent_vars = var.refs_to(state_refs=True)
+            relevant_vars = list(relevant_vars) + list(dependent_vars)
+
+        relevant_vars = list(set(relevant_vars))
+        for ext_var in relevant_vars:
+            original_ext_var = external_component.model()[ext_var.parent().qname()][ext_var.name()]
+            
+            if original_ext_var in var_map:
                 # add to full_var_map
-                    x=1
+                source_var = var_map[original_ext_var]
+                full_var_map[source_var] = ext_var
+                    
             else: 
                 ext_bind = ext_var.binding()
                 ext_label = ext_var.label()
@@ -1728,41 +1741,45 @@ class Model(ObjectWithMeta, VarProvider):
                     if self.has_variable(ext_var.qname()):
                         # add to full map 
                         x=1
-        
-        ext_model_copy = external_component.model().clone()
-        external_component = ext_model_copy[external_component.qname()]
 
-        if convert_units:
-            for source_var, ext_var in full_var_map:
+        for source_var, ext_var in full_var_map.items():
+            if convert_units:
                 # convert units in ext model to units in source model for this variable
-                
                 x=1
-
+            
+            # rearrange variables in external model copy to follow source variable
+            if not ext_model_copy.has_component(source_var.parent().qname()):
+                source_component_equiv = ext_model_copy.add_component(source_var.parent().qname())
+            else:
+                source_component_equiv = ext_model_copy.get(source_var.parent().qname())
+            ext_var.parent().move_variable(ext_var, source_component_equiv, new_name=source_var.name())
         # Clone contents of old component to new one
         # Not sure what the best strategy is. Re-write based on code from clone()?
         # Might need hidden methods in Component and in Variable.
+        
         # rename the component
 
         # use _clone1 and _clone2 to clone the component into this model
-        external_component._clone1(self)
+        external_component_copy._clone1(self)
         # Clone state
         for k, variable in enumerate(ext_model_copy._state):
-            if external_component.has_variable(variable.qname()):
+            if external_component_copy.has_variable(variable.name()):
                 self.get(variable.qname()).promote(ext_model_copy._current_state[k])
 
         # Create mapping of old var references to new references
         lhsmap = {}
-        for v in ext_model_copy.variables(deep=True):
-            if external_component.has_variable(v.qname()):
-                lhsmap[myokit.Name(v)] = myokit.Name(self.get(v.qname()))
-        for v in ext_model_copy.states():
-            if external_component.has_variable(v.qname()):
+        for v in relevant_vars:
+            lhsmap[myokit.Name(v)] = myokit.Name(self.get(v.qname()))
+            if v.is_state:
                 lhsmap[myokit.Derivative(myokit.Name(v))] = myokit.Derivative(
-                    myokit.Name(self.get(v.qname())))
+                        myokit.Name(self.get(v.qname())))
 
         # Clone component/variable contents (equations, references)
 
-        external_component._clone2(self[new_name], lhsmap)
+        external_component_copy._clone2(self[new_name], lhsmap)
+
+
+
         # ...
 
     def inits(self):

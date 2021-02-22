@@ -20,5 +20,8 @@ print(manual_PKPD_model.code())
 print("----------------Import Component Function----------------------")
 
 Auto_PKPD_model = PK_model.clone()
-Auto_PKPD_model.import_component(PD_model["PD"])
+Auto_PKPD_model.import_component(PD_model["PD"], var_map={PD_model["tempPK"]["Drug_Concentration_Central"]:Auto_PKPD_model["AllCompartment"]["Drug_Concentration_Central"]})
 print(Auto_PKPD_model.code())
+
+print(Auto_PKPD_model.validate())
+print(Auto_PKPD_model.warnings())
