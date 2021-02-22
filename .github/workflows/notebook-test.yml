@@ -1,4 +1,4 @@
-name: Docs
+name: Notebooks
 on:
   push:
     branches:
@@ -10,7 +10,7 @@ on:
 jobs:
 
   build-and-test:
-    name: docs
+    name: notebooks
     runs-on: ubuntu-latest
 
     steps:
@@ -30,10 +30,11 @@ jobs:
         run: |
           python --version
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install .[docs,optional,gui]
+          python -m pip install .
+          python -m pip install nbconvert
 
-      - name: Run doctests
+      - name: Run notebook tests
         run: |
-          python -m myokit system
-          python -m myokit test doc
+          cd examples
+          python notebook_tests.py
 
