@@ -1,0 +1,23 @@
+def find_variable(annotation):
+    for v in model.variables(deep=True):
+        if v.meta.get('oxmeta', None) == 'annotation':
+            return v
+    raise KeyError('No variable with oxmeta annotation '  + str(annotation) + ' found.')
+
+10:34
+Also there's a convert_unit() method on variable objects
+10:34
+And it can take "helper" values to convert between e.g. A and A/F
+
+
+
+Full example would show
+
+- access via label/labelx
+- access via lib.guess
+- unit conversion, including with helpers
+
+
+steady state
+
+model.set_state(limit_cycle(model, protocol))
