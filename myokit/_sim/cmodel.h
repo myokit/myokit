@@ -405,7 +405,6 @@ print('\n/* Sensitivities of variables needed to calculate remaining sensitiviti
 i = 0
 for eqs in s_output_equations:
     for eq in eqs:
-        #if not eq.lhs.dependent_expression().is_derivative():
         print('#define ' + v(eq.lhs) + ' model->s_intermediary[' + str(i) + ']')
         i += 1
 del(i)
@@ -1165,7 +1164,7 @@ for i, expr in enumerate(s_independents):
 
     /* Sensitivities of intermediary variables needed in calculations */
     model->ns_intermediary = <?= sum(len(x) for x in s_output_equations) ?>;
-    model->s_intermediary = (realtype*)malloc(model->n_states * model->ns_independents * sizeof(realtype));
+    model->s_intermediary = (realtype*)malloc(model->ns_intermediary * sizeof(realtype));
 
     /*
      * Logging
