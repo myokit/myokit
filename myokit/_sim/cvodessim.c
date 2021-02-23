@@ -159,9 +159,11 @@ Model model;        /* A model object */
 /*
  * Pacing
  */
-ESys epacing;       /* Event-based pacing system */
-FSys fpacing;       /* Fixed-form pacing system */
-double pace = 0;    /* Pacing value */
+ESys epacing;           /* Event-based pacing system */
+PyObject* eprotocol;    /* An event-based pacing protocol */
+FSys fpacing;           /* Fixed-form pacing system */
+PyObject* fprotocol;    /* A fixed-form pacing protocol */
+double pace = 0;        /* Pacing value */
 
 /*
  * CVODE Memory
@@ -212,6 +214,19 @@ N_Vector* sz;
 N_Vector ylast;
 
 /*
+ * Customisable constants, passed in from Python
+ */
+PyObject* literals;     /* A list of literal constant values */
+PyObject* parameters;   /* A list of parameter values */
+
+/*
+ * State and bound variable communication
+ */
+PyObject* state_py;     /* List: The state passed from and to Python */
+PyObject* s_state_py;   /* List: The state sensitivities passed from and to Python */
+PyObject* bound_py;     /* List: The bound variables, passed to Python */
+
+/*
  * Timing
  */
 double t;       /* Current simulation time */
@@ -220,30 +235,19 @@ double tnext;   /* Next simulation halting point */
 double tmin;    /* The initial simulation time */
 double tmax;    /* The final simulation time */
 
-
-
-
-
-
 /*
  * Logging
  */
 
 int dynamic_logging;    /* True if logging every point. */
 PyObject* log_dict;     /* The log dict (DataLog) */
-
+PyObject* sens_list;    /* Sensitivity logging list */
 
 /* Periodic and point-list logging */
 double tlog;            /* Next time to log */
 double log_interval;    /* The periodic logging interval */
 Py_ssize_t ilog;        /* Index of next point in the point list */
 PyObject* log_times;    /* The point list (or None if disabled) */
-
-/* Sensitivity logging list */
-PyObject* sens_list;
-
-
-
 
 /*
  * Root finding
@@ -257,36 +261,6 @@ int* rf_direction;      /* Direction of root crossings: 1 for up, -1 for down, 0
  * Benchmarking
  */
 PyObject* benchtime;    /* Callable time() function or None */
-
-/*
- * Customisable constants
- */
-PyObject* literals;     /* A list of literal constant values */
-PyObject* parameters;   /* A list of parameter values */
-
-
-
-
-
-
-/*
- * Input arguments to sim_init
- */
-PyObject* state_in;     /* The initial state */
-PyObject* state_out;    /* The final state */
-PyObject* s_state_in;   /* The initial state sensitivities */
-PyObject* s_state_out;  /* The final state sensitivities */
-PyObject* inputs;       /* A vector used to return the bound variables final values */
-
-PyObject* eprotocol;    /* An event-based pacing protocol */
-PyObject* fprotocol;    /* A fixed-form pacing protocol */
-
-
-
-
-
-
-
 
 /*
  * Right-hand-side function of the model ODE
@@ -513,26 +487,24 @@ sim_init(PyObject *self, PyObject *args)
     #endif
 
     /* Check input arguments     0123456789012345678 */
-    if (!PyArg_ParseTuple(args, "ddOOOOOOOOOOdOOidOO",
+    if (!PyArg_ParseTuple(args, "ddOOOOOOOOdOOidOO",
             &tmin,              /*  0. Float: initial time */
             &tmax,              /*  1. Float: final time */
-            &state_in,          /*  2. List: initial state */
-            &state_out,         /*  3. List: store final state here */
-            &s_state_in,        /*  4. List of lists: initial state sensitivities */
-            &s_state_out,       /*  5. List of lists: store final state sensitivities here */
-            &inputs,            /*  6. List: store final bound variables here */
-            &literals,          /*  7. List: literal constant values */
-            &parameters,        /*  8. List: parameter values */
-            &eprotocol,         /*  9. Event-based protocol */
-            &fprotocol,         /* 10. Fixed-form protocol (tuple) */
-            &log_dict,          /* 11. DataLog */
-            &log_interval,      /* 12. Float: log interval, or 0 */
-            &log_times,         /* 13. List of logging times, or None */
-            &sens_list,         /* 14. List to store sensitivities in */
-            &rf_indice,         /* 15. Int: root-finding state variable */
-            &rf_threshold,      /* 16. Float: root-finding threshold */
-            &rf_list,           /* 17. List to store roots in or None */
-            &benchtime          /* 18. Callable to obtain system time */
+            &state_py,          /*  2. List: initial and final state */
+            &s_state_py,        /*  3. List of lists: state sensitivities */
+            &bound_py,          /*  4. List: store final bound variables here */
+            &literals,          /*  5. List: literal constant values */
+            &parameters,        /*  6. List: parameter values */
+            &eprotocol,         /*  7. Event-based protocol */
+            &fprotocol,         /*  8. Fixed-form protocol (tuple) */
+            &log_dict,          /*  9. DataLog */
+            &log_interval,      /* 10. Float: log interval, or 0 */
+            &log_times,         /* 11. List of logging times, or None */
+            &sens_list,         /* 12. List to store sensitivities in */
+            &rf_indice,         /* 13. Int: root-finding state variable */
+            &rf_threshold,      /* 14. Float: root-finding threshold */
+            &rf_list,           /* 15. List to store roots in or None */
+            &benchtime          /* 16. Callable to obtain system time */
     )) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         return 0;
@@ -660,11 +632,11 @@ sim_init(PyObject *self, PyObject *args)
      */
 
     /* Set initial state values */
-    if (!PyList_Check(state_in)) {
-        return sim_cleanx("'state_in' must be a list.");
+    if (!PyList_Check(state_py)) {
+        return sim_cleanx("'state_py' must be a list.");
     }
     for (i=0; i<model->n_states; i++) {
-        val = PyList_GetItem(state_in, i);    /* Don't decref! */
+        val = PyList_GetItem(state_py, i);    /* Don't decref! */
         if (!PyFloat_Check(val)) {
             return sim_cleanx("Item %d in state vector is not a float.", i);
         }
@@ -674,11 +646,11 @@ sim_init(PyObject *self, PyObject *args)
 
     /* Set initial sensitivity state values */
     if (model->has_sensitivities) {
-        if (!PyList_Check(s_state_in)) {
-            return sim_cleanx("'s_state_in' must be a list.");
+        if (!PyList_Check(s_state_py)) {
+            return sim_cleanx("'s_state_py' must be a list.");
         }
         for (i=0; i<model->ns_independents; i++) {
-            val = PyList_GetItem(s_state_in, i); /* Don't decref */
+            val = PyList_GetItem(s_state_py, i); /* Don't decref */
             if (!PyList_Check(val)) {
                 return sim_cleanx("Item %d in state sensitivity matrix is not a list.", i);
             }
@@ -692,17 +664,6 @@ sim_init(PyObject *self, PyObject *args)
             }
         }
     }
-
-    /*
-     * Check lists for final state
-     */
-
-    /* Check output list */
-    if (!PyList_Check(state_out)) {
-        return sim_cleanx("'state_out' must be a list.");
-    }
-
-    /* TODO: Remove if not needed, else add check for s_state_out too */
 
     /*
      * Set values of constants (literals and parameters)
@@ -1058,13 +1019,13 @@ sim_step(PyObject *self, PyObject *args)
             if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
                 /* Something went wrong... Set outputs and return */
                 for (i=0; i<model->n_states; i++) {
-                    PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(ylast, i)));
+                    PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(ylast, i)));
                     /* PyList_SetItem steals a reference: no need to decref the double! */
                 }
-                PyList_SetItem(inputs, 0, PyFloat_FromDouble(tlast));
-                PyList_SetItem(inputs, 1, PyFloat_FromDouble(pace));
-                PyList_SetItem(inputs, 2, PyFloat_FromDouble(realtime));
-                PyList_SetItem(inputs, 3, PyFloat_FromDouble(evaluations));
+                PyList_SetItem(bound_py, 0, PyFloat_FromDouble(tlast));
+                PyList_SetItem(bound_py, 1, PyFloat_FromDouble(pace));
+                PyList_SetItem(bound_py, 2, PyFloat_FromDouble(realtime));
+                PyList_SetItem(bound_py, 3, PyFloat_FromDouble(evaluations));
                 return sim_clean();
             }
 
@@ -1323,14 +1284,14 @@ sim_step(PyObject *self, PyObject *args)
 
     /* Set final state */
     for (i=0; i<model->n_states; i++) {
-        PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y, i)));
+        PyList_SetItem(state_py, i, PyFloat_FromDouble(NV_Ith_S(y, i)));
         /* PyList_SetItem steals a reference: no need to decref the PyFloat */
     }
 
     /* Set final sensitivities */
     if (model->has_sensitivities) {
         for (i=0; i<model->ns_independents; i++) {
-            val = PyList_GetItem(s_state_out, i); /* Borrowed */
+            val = PyList_GetItem(s_state_py, i); /* Borrowed */
             for (j=0; j<model->n_states; j++) {
                 PyList_SetItem(val, j, PyFloat_FromDouble(NV_Ith_S(sy[i], j)));
             }
@@ -1338,10 +1299,10 @@ sim_step(PyObject *self, PyObject *args)
     }
 
     /* Set bound variable values */
-    PyList_SetItem(inputs, 0, PyFloat_FromDouble(t));
-    PyList_SetItem(inputs, 1, PyFloat_FromDouble(pace));
-    PyList_SetItem(inputs, 2, PyFloat_FromDouble(realtime));
-    PyList_SetItem(inputs, 3, PyFloat_FromDouble(evaluations));
+    PyList_SetItem(bound_py, 0, PyFloat_FromDouble(t));
+    PyList_SetItem(bound_py, 1, PyFloat_FromDouble(pace));
+    PyList_SetItem(bound_py, 2, PyFloat_FromDouble(realtime));
+    PyList_SetItem(bound_py, 3, PyFloat_FromDouble(evaluations));
 
     sim_clean();    /* Ignore return value */
     return PyFloat_FromDouble(t);

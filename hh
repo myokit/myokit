@@ -21,7 +21,7 @@ print(b.time())
 t1 = []
 t2 = []
 
-for i in range(25):
+for i in range(250):
     s1.reset()
     s2.reset()
 

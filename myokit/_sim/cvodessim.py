@@ -580,21 +580,13 @@ class Simulation(myokit.CModule):
         if tmin + duration > tmin:
 
             # Initial state and sensitivities
-            state_1 = list(self._state)
+            state = list(self._state)
+            s_state = None
             if self._sensitivities:
-                s_state_1 = [list(x) for x in self._s_state]
-            else:
-                s_state_1 = None
-
-            # Final state and sensitivities
-            state_2 = list(state_1)
-            if self._sensitivities:
-                s_state_2 = [list(x) for x in s_state_1]
-            else:
-                s_state_2 = None
+                s_state = [list(x) for x in self._s_state]
 
             # List to store final bound variables in (for debugging)
-            bound_2 = [0, 0, 0, 0]
+            bound = [0, 0, 0, 0]
 
             # Initialize
             self._sim.sim_init(
@@ -602,42 +594,38 @@ class Simulation(myokit.CModule):
                 tmin,
                 # 1. Final time
                 tmax,
-                # 2. Initial state
-                state_1,
-                # 3. Space to store the final state
-                state_2,
-                # 4. Initial state sensitivities
-                s_state_1,
-                # 5. Space to store the final state sensitivities
-                s_state_2,
-                # 6. Space to store the bound variable values
-                bound_2,
-                # 7. Literal values
+                # 2. Initial and final state
+                state,
+                # 3. Initial and final state sensitivities
+                s_state,
+                # 4. Space to store the bound variable values
+                bound,
+                # 5. Literal values
                 list(self._literals.values()),
-                # 8. Parameter values
+                # 6. Parameter values
                 list(self._parameters.values()),
-                # 9. An event-based pacing protocol
+                # 7. An event-based pacing protocol
                 self._protocol,
-                # 10. A fixed-form protocol
+                # 8. A fixed-form protocol
                 self._fixed_form_protocol,
-                # 11. A DataLog
+                # 9. A DataLog
                 log,
-                # 12. The log interval, or 0
+                # 10. The log interval, or 0
                 log_interval,
-                # 13. A list of predetermind logging times, or None
+                # 11. A list of predetermind logging times, or None
                 log_times,
-                # 14. A list to store calculated sensitivities in
+                # 12. A list to store calculated sensitivities in
                 sensitivities,
-                # 15. The state variable indice for root finding (only used if
+                # 13. The state variable indice for root finding (only used if
                 #     root_list is a list)
                 root_indice,
-                # 16. The threshold for root crossing (can be 0 too, only
+                # 14. The threshold for root crossing (can be 0 too, only
                 #     used if root_list is a list).
                 root_threshold,
-                # 17. A list to store calculated root crossing times and
+                # 15. A list to store calculated root crossing times and
                 #     directions in, or None
                 root_list,
-                # 18. A Python method that returns the system time
+                # 16. A Python method that returns the system time
                 #     accurately.
                 bench,
             )
@@ -661,27 +649,36 @@ class Simulation(myokit.CModule):
             except ArithmeticError as e:
                 # Some CVODE errors are set to raise an ArithmeticError,
                 # which users may be able to debug.
-                self._error_state = list(state_2)
+
+                # Store error state
+                self._error_state = state
+
+                # Create long error message
                 txt = ['A numerical error occurred during simulation at'
                        ' t = ' + str(t) + '.', 'Last reached state: ']
                 txt.extend(['  ' + x for x
                             in self._model.format_state(state).splitlines()])
                 txt.append('Inputs for binding:')
-                txt.append('  time        = ' + myokit.strfloat(bound_2[0]))
-                txt.append('  pace        = ' + myokit.strfloat(bound_2[1]))
-                txt.append('  realtime    = ' + myokit.strfloat(bound_2[2]))
-                txt.append('  evaluations = ' + myokit.strfloat(bound_2[3]))
+                txt.append('  time        = ' + myokit.strfloat(bound[0]))
+                txt.append('  pace        = ' + myokit.strfloat(bound[1]))
+                txt.append('  realtime    = ' + myokit.strfloat(bound[2]))
+                txt.append('  evaluations = ' + myokit.strfloat(bound[3]))
                 txt.append(str(e))
+
+                # Check if state derivatives can be evaluated in Python, if
+                # not, add the error to the error message.
                 try:
-                    self._model.eval_state_derivatives(state_2)
+                    self._model.eval_state_derivatives(state)
                 except myokit.NumericalError as en:
                     txt.append(str(en))
+
+                # Raise numerical simulation error
                 raise myokit.SimulationError('\n'.join(txt))
 
             except Exception as e:
 
                 # Store error state
-                self._error_state = list(state_2)
+                self._error_state = state
 
                 # Check for known CVODE errors
                 if 'Function CVode()' in str(e):
@@ -701,8 +698,9 @@ class Simulation(myokit.CModule):
                 self._sim.sim_clean()
 
             # Update internal state
-            self._state = state_2
-            self._s_state = s_state_2
+            # Both lists were newly created, so this is OK.
+            self._state = state
+            self._s_state = s_state
 
         # Calculate apds
         if root_list is not None:
