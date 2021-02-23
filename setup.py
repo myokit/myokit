@@ -77,7 +77,6 @@ setup(
             'flake8>=3',                # Style checking
         ],
         'optional': [
-            'cma',                      # Used in lib.fit
             'sympy',                    # Used in formats.sympy
         ],
         'gui': ['pyqt5', 'sip'],

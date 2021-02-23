@@ -37,21 +37,21 @@ class ChannelMLTest(unittest.TestCase):
     """ Test ChannelML importing. """
 
     def test_capability_reporting(self):
-        """ Test if the right capabilities are reported. """
+        # Test if the right capabilities are reported.
         i = myokit.formats.importer('channelml')
         self.assertTrue(i.supports_component())
         self.assertTrue(i.supports_model())
         self.assertFalse(i.supports_protocol())
 
     def test_model(self):
-        """ Test :meth:`ChannelMLImporter.model()`. """
+        # Test :meth:`ChannelMLImporter.model()`.
         i = myokit.formats.importer('channelml')
         self.assertTrue(i.supports_model())
         m = i.model(os.path.join(DIR, 'ch-00-valid-file.channelml'))
         m.validate()
 
     def test_component(self):
-        """ Test :meth:`ChannelMLImporter.component()`. """
+        # Test :meth:`ChannelMLImporter.component()`.
         path = os.path.join(DIR, 'ch-00-valid-file.channelml')
         i = myokit.formats.importer('channelml')
         self.assertTrue(i.supports_component())
@@ -65,9 +65,8 @@ class ChannelMLTest(unittest.TestCase):
         self.assertEqual(len(cs), 2)
 
     def test_error_handling(self):
-        """
-        Test various errors when loading ChannelML files.
-        """
+        # Test various errors when loading ChannelML files.
+
         i = myokit.formats.importer('channelml')
         ce = myokit.formats.channelml.ChannelMLError
 
@@ -182,7 +181,8 @@ class ChannelMLTest(unittest.TestCase):
         self.assertIn('Invalid name', w.text())
 
     def test_c_style_if(self):
-        """ Test parsing of a c-style cond?then:else expression. """
+        # Test parsing of a c-style cond?then:else expression.
+
         # If-then-else
         i = myokit.formats.importer('channelml')
         m = i.model(

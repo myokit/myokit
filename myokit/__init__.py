@@ -91,10 +91,7 @@ import logging  # noqa
 log = logging.getLogger(__name__)
 log.info('Loading Myokit version ' + __version__)
 if not __release__:     # pragma: no cover
-    log.warning(
-        'Using development version of Myokit. This may contain untested'
-        ' features and bugs. Please see http://myokit.org for the latest'
-        ' stable release.')
+    log.warning('Using development version of Myokit (' + __version__ + ').')
 del(log, logging)
 
 
@@ -107,10 +104,11 @@ LICENSE = """
 BSD 3-Clause License
 
 Copyright (c) 2011-2017 Maastricht University. All rights reserved.
-Copyright (c) 2017-2019 University of Oxford. All rights reserved.
+Copyright (c) 2017-2020 University of Oxford. All rights reserved.
  (University of Oxford means the Chancellor, Masters and Scholars of the
   University of Oxford, having an administrative office at Wellington Square,
   Oxford OX1 2JD, UK).
+Copyright (c) 2020-2021 University of Nottingham. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:

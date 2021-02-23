@@ -1515,6 +1515,7 @@ class PlusTest(unittest.TestCase):
 
     def test_eval(self):
         # Test Plus evaluation.
+
         x = myokit.Plus(myokit.Number(1), myokit.Number(2))
         self.assertEqual(x.eval(), 3)
         x = myokit.Plus(myokit.Number(1), myokit.PrefixMinus(myokit.Number(2)))
@@ -1898,6 +1899,7 @@ class QuotientTest(unittest.TestCase):
 
     def test_eval(self):
         # Test Quotient evaluation.
+
         x = myokit.Quotient(myokit.Number(7), myokit.Number(2))
         self.assertEqual(x.eval(), 3.0)
 
@@ -2342,7 +2344,7 @@ class ExpTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Exp,
             myokit.Number(1), myokit.Number(2))
-
+        
     def test_diff(self):
         # Tests Exp.diff()
 
@@ -2365,6 +2367,7 @@ class ExpTest(unittest.TestCase):
 
     def test_eval_unit(self):
         # Test Exp.eval_unit().
+
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -2406,6 +2409,7 @@ class ExpTest(unittest.TestCase):
 
     def test_tree_str(self):
         # Test Exp.tree_str().
+
         # Test simple
         x = myokit.Exp(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'exp\n  2\n')
@@ -2440,6 +2444,7 @@ class LogTest(unittest.TestCase):
 
     def test_clone(self):
         # Test Log.clone().
+
         # Test with one operand
         i = myokit.Number(3)
         j = myokit.Number(10)
@@ -2540,6 +2545,7 @@ class LogTest(unittest.TestCase):
 
     def test_eval_unit(self):
         # Test Log.eval_unit().
+
         # Create mini model
         m = myokit.Model()
         c = m.add_component('c')
@@ -2603,6 +2609,7 @@ class LogTest(unittest.TestCase):
 
     def test_tree_str(self):
         # Test Log.tree_str().
+
         # Test simple
         x = myokit.Log(myokit.Number(2))
         self.assertEqual(x.tree_str(), 'log\n  2\n')

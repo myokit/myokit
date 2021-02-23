@@ -35,9 +35,8 @@ class ExportTest(unittest.TestCase):
     """
 
     def _test(self, e, model=None, protocol=None):
-        """
-        Test a given exporter `e`.
-        """
+        """ Test a given exporter `e`. """
+
         # Test info method.
         self.assertIsInstance(e.post_export_info(), basestring)
 
@@ -112,9 +111,8 @@ class ExportTest(unittest.TestCase):
                     'No types of export supported by: ' + exporter)
 
     def test_runnable_exporter_shared(self):
-        """
-        Test shared functionality of the TemplatedRunnableExporters.
-        """
+        # Test shared functionality of the TemplatedRunnableExporters.
+
         e = myokit.formats.exporter('ansic')
 
         # Load model, protocol
@@ -181,9 +179,8 @@ class ExportTest(unittest.TestCase):
                 myokit.ExportError, 'file or link', e.runnable, dpath, m, p)
 
     def test_completeness(self):
-        """
-        Test that all exporters have a test (so meta!).
-        """
+        # Test that all exporters have a test (so meta!).
+
         methods = [x for x in dir(self) if x[:5] == 'test_']
         for name in myokit.formats.exporters():
             name = name.replace('-', '_')
@@ -283,9 +280,7 @@ class ExportTest(unittest.TestCase):
             self.assertTrue(len(os.listdir(dpath)) > 0)
 
     def test_unknown_exporter(self):
-        """
-        Test the error handling for requesting an unknown exporter.
-        """
+        # Test the error handling for requesting an unknown exporter.
         self.assertRaisesRegex(
             KeyError, 'Exporter not found', myokit.formats.exporter, 'elvish')
 

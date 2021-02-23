@@ -514,7 +514,13 @@ def format_path(path, root='.'):
     """
     if path == '':
         path = '.'
-    path = os.path.relpath(path, root)
+    try:
+        path = os.path.relpath(path, root)
+    except ValueError:  # pragma: no cover
+        # This can happen on windows, if `path` is on a different drive than
+        # root (so that no relative path from one to the other can be made).
+        return path
+
     if '..' in path:
         path = os.path.abspath(os.path.join(root, path))
     return path
@@ -1281,8 +1287,12 @@ def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
     info.compress_type = zipfile.ZIP_DEFLATED
 
     # Write to compressed file
+    try:
+        ar = ar.tobytes()
+    except AttributeError:  # pragma: no python 3 cover
+        ar = ar.tostring()
     with zipfile.ZipFile(filename, 'w') as f:
-        f.writestr(info, ar.tostring())
+        f.writestr(info, ar)
 
 
 def step(model, initial=None, reference=None, ignore_errors=False):
@@ -1333,7 +1343,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     if not reference:
         # Default output: intial value and derivative
         for r, v in enumerate(model.states()):
-            log.append(f.format(v.qname(), v.state_value(), values[r]))
+            log.append(f.format(v.qname(), initial[r], values[r]))
     else:
         # Comparing output
 
@@ -1351,7 +1361,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
         for r, v in enumerate(model.states()):
             x = values[r]
             y = reference[r]
-            log.append(f.format(v.qname(), v.state_value(), x))
+            log.append(f.format(v.qname(), initial[r], x))
             xx = fmat.format(x)
             yy = fmat.format(y)
             line = g.format(y)
@@ -1426,13 +1436,16 @@ def step(model, initial=None, reference=None, ignore_errors=False):
     return '\n'.join(log)
 
 
-def strfloat(number, full=False):
+def strfloat(number, full=False, precision=myokit.DOUBLE_PRECISION):
     """
     Turns the given number into a string.
     """
     # Force full precision output
     if full:
-        return myokit.SFDOUBLE.format(float(number))
+        if precision == myokit.SINGLE_PRECISION:
+            return myokit.SFSINGLE.format(float(number))
+        else:
+            return myokit.SFDOUBLE.format(float(number))
 
     # Pass through strings
     if isinstance(number, str):
@@ -1447,9 +1460,12 @@ def strfloat(number, full=False):
     if len(s) < 10:
         return s
 
-    # But if the number is given with lots of decimals, use the highest
-    # precision number possible
-    return myokit.SFDOUBLE.format(number)
+    # But if the number is given with lots of decimals, use the representation
+    # with enough digits to prevent loss of information
+    if precision == myokit.SINGLE_PRECISION:
+        return myokit.SFSINGLE.format(float(number))
+    else:
+        return myokit.SFDOUBLE.format(float(number))
 
 
 def version(raw=False):

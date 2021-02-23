@@ -327,8 +327,8 @@ def cumulative_current(
 
     # Normalise
     if normalise:
-        pos /= np.sum(pos, axis=0)
-        neg /= -np.sum(neg, axis=0)
+        pos /= np.maximum(np.sum(pos, axis=0), 1e-99)
+        neg /= -np.minimum(np.sum(neg, axis=0), -1e-99)
 
     # Number of currents to show
     nc = len(currents)

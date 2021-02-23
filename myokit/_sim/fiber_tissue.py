@@ -371,7 +371,8 @@ class FiberTissueSimulation(myokit.CModule):
         if plat != 'Darwin':    # pragma: no osx cover
             libs.append('OpenCL')
         else:                   # pragma: no cover
-            flags.append('-framework OpenCL')
+            flags.append('-framework')
+            flags.append('OpenCL')
         if plat != 'Windows':   # pragma: no windows cover
             libs.append('m')
 

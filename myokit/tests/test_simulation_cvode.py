@@ -14,6 +14,7 @@ import pickle
 import platform
 import re
 import unittest
+import sys
 
 import myokit
 
@@ -342,6 +343,41 @@ class SimulationTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'not a literal', self.sim.set_constant, 'ina.ENa', 11)
 
+    def test_short_runs(self):
+        # Test for simulations run a very short time
+
+        # Run for 1 unit (OK)
+        self.sim.reset()
+        self.sim.run(1)
+
+        # Test running for 0 units doesn't affect state
+        x0 = self.sim.state()
+        self.sim.run(0)
+        self.assertEqual(x0, self.sim.state())
+        self.sim.run(0)
+        self.assertEqual(x0, self.sim.state())
+
+        # Test running between indistinguishable times doesn't affect state
+        t = self.sim.time()
+        d = 0.5 * sys.float_info.epsilon
+        self.assertEqual(t, t + d)
+        self.sim.run(d)
+
+        # Test running between only just distinguishable times is fine
+        self.sim.reset()
+        self.sim.run(1)
+        t = self.sim.time()
+        d = 3 * sys.float_info.epsilon
+        self.assertNotEqual(t, t + d)
+        self.sim.run(d)
+
+        # Test running between barely distinguishable times raises CVODE error.
+        t = self.sim.time()
+        d = 2 * sys.float_info.epsilon
+        self.assertNotEqual(t, t + d)
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'CV_TOO_CLOSE', self.sim.run, d)
+
     def test_simulation_error_1(self):
         # Test for simulation error detection: massive stimulus.
 
@@ -350,7 +386,8 @@ class SimulationTest(unittest.TestCase):
         p.schedule(level=1000, start=1, duration=1)
         self.sim.reset()
         self.sim.set_protocol(p)
-        self.assertRaises(myokit.SimulationError, self.sim.run, 10)
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'numerical error', self.sim.run, 10)
         self.sim.set_protocol(self.protocol)
 
     @unittest.skipIf(platform.system() != 'Linux', 'Cvode error tests')
@@ -362,9 +399,8 @@ class SimulationTest(unittest.TestCase):
         v = m.get('membrane.V')
         v.set_rhs(myokit.Multiply(v.rhs(), myokit.Number(1e18)))
         s = myokit.Simulation(m, self.protocol)
-        with self.assertRaises(myokit.SimulationError) as e:
-            s.run(5000)
-        self.assertIn('CV_ERR_FAILURE', str(e.exception))
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'numerical error', s.run, 5000)
 
     def test_cvode_simulation_with_zero_states(self):
         # Tests running cvode simulations on models with no ODEs
@@ -479,7 +515,7 @@ class RuntimeSimulationTest(unittest.TestCase):
     """
     Tests the obtaining of runtimes from the CVode simulation.
     """
-    def test_short_runtimes(self):
+    def test_obtaining_runtimes(self):
         m, p, x = myokit.load(
             os.path.join(DIR_DATA, 'lr-1991-runtimes.mmt'))
         myokit.run(m, p, x)

@@ -1321,20 +1321,24 @@ class Model(ObjectWithMeta, VarProvider):
         The values are returned in a list sorted in the same order as the
         state variables.
 
-        If given, the state values given by ``state`` will be used as starting
-        point. Here ``state`` can be any object accepted as input by
-        :meth:``map_to_state()``.
+        Arguments:
 
-        To set the values of external inputs, a dictionary mapping binding
-        labels to values can be passed in as ``inputs``.
+        ``state=None``
+            If given, the state values given by ``state`` will be used as
+            starting point. Here ``state`` can be any object accepted as input
+            by :meth:``map_to_state()``.
+        ``inputs=None``
+            To set the values of external inputs, a dictionary mapping binding
+            labels to values can be passed in as ``inputs``.
+        ``precision``
+            To assist in finding the origins of numerical errors, the equations
+            can be evaluated using single-precision floating point. To do this,
+            set ``precision=myokit.SINGLE_PRECISION``.
+        ``ignore_errors``
+            By default, the evaluation routine raises
+            :class:`myokit.NumericalError` exceptions for invalid operations.
+            To return ``NaN`` instead, set ``ignore_errors=True``.
 
-        To assist in finding the origins of numerical errors, the equations
-        can be evaluated using 32 bit floating point. To do this, set
-        ``precision=myokit.SINGLE_PRECISION``.
-
-        By default, the evaluation routine raises
-        :class:`myokit.NumericalError` exceptions for invalid operations. To
-        return ``NaN`` instead, set ``ignore_errors=True``.
         """
         # Apply new state if required
         if state is not None:
@@ -1469,13 +1473,24 @@ class Model(ObjectWithMeta, VarProvider):
 
         return (eq_list, arguments)
 
-    def format_state(self, state=None, state2=None):
+    def format_state(self, state=None, state2=None,
+                     precision=myokit.DOUBLE_PRECISION):
         """
         Converts the given list of floating point numbers to a string where
-        each line has the format ``<full_qualified_name> = <float_value>``. If
-        no state is given the one returned by :meth:`state` is used.
+        each line has the format ``<full_qualified_name> = <float_value>``.
 
-        An optional second state can be added for display as ``state2``.
+        Arguments:
+
+        ``state=None``
+            The state to show derivatives for. If no state is given the state
+            returned by :meth:`state` is used.
+        ``state2=None``
+            An optional second state, to be shown next to ``state`` for
+            comparison.
+        ``precision=myokit.DOUBLE_PRECISION``
+            An optional precision argument to pass into :meth:`myokit.strfloat`
+            when formatting the state values.
+
         """
         n = len(self._state)
         if state is not None:
@@ -1485,6 +1500,7 @@ class Model(ObjectWithMeta, VarProvider):
                     + ') floating point numbers.')
         else:
             state = self.state()
+
         if state2 is not None:
             if len(state2) != n:
                 raise ValueError(
@@ -1496,19 +1512,36 @@ class Model(ObjectWithMeta, VarProvider):
         for k, var in enumerate(self.states()):
             out.append(
                 var.qname() + ' ' * (n - len(var.qname()))
-                + ' = ' + myokit.strfloat(state[k]))
+                + ' = ' + myokit.strfloat(state[k], precision=precision))
         if state2 is not None:
             n = max([len(x) for x in out])
             for k, var in enumerate(self.states()):
-                out[k] += \
-                    ' ' * (4 + n - len(out[k])) + myokit.strfloat(state2[k])
+                out[k] += (
+                    ' ' * (4 + n - len(out[k]))
+                    + myokit.strfloat(state2[k], precision=precision))
 
         return '\n'.join(out)
 
-    def format_state_derivatives(self, state=None, derivatives=None):
+    def format_state_derivatives(self, state=None, derivatives=None,
+                                 precision=myokit.DOUBLE_PRECISION):
         """
         Like :meth:`format_state` but displays the derivatives along with
         each state's value.
+
+
+        Arguments:
+
+        ``state=None``
+            The state to display. If no state is given the state returned by
+            :meth:`state` is used.
+        ``derivatives=None``
+            An optional list of evaluated derivatives. If not given, the values
+            will be calculed from ``state`` using :meth:`eval_derivatives()`.
+        ``precision=myokit.DOUBLE_PRECISION``
+            An optional precision argument to use when evaluating the state
+            derivatives, and to pass into :meth:`myokit.strfloat` when
+            formatting the state values and derivatives.
+
         """
         n = len(self._state)
         if state is None:
@@ -1517,17 +1550,20 @@ class Model(ObjectWithMeta, VarProvider):
             raise ValueError(
                 'Argument `state` must be a list of (' + str(n)
                 + ') floating point numbers.')
+
         if derivatives is None:
-            derivatives = self.eval_state_derivatives()
+            derivatives = self.eval_state_derivatives(
+                state, precision=precision)
         elif len(derivatives) != n:
             raise ValueError(
                 'Argument `deriv` must be a list of (' + str(n)
                 + ') floating point numbers.')
+
         out = []
         n = max([len(x.qname()) for x in self.states()])
         for i, var in enumerate(self.states()):
-            s = myokit.strfloat(state[i])
-            d = myokit.strfloat(derivatives[i])
+            s = myokit.strfloat(state[i], precision=precision)
+            d = myokit.strfloat(derivatives[i], precision=precision)
             out.append(
                 var.qname() + ' ' * (n - len(var.qname())) + ' = ' + s
                 + ' ' * (24 - len(s)) + '   dot = ' + d)
@@ -1606,9 +1642,17 @@ class Model(ObjectWithMeta, VarProvider):
         remaining = equations['*remaining*']
         return len(remaining) > 0
 
+    def has_parse_info(self):
+        """
+        Returns ``True`` if this model retains parsing information, so that
+        methods such as :meth:`item_at_text_position` and :meth:`show_line_of`
+        can be used.
+        """
+        return bool(self._tokens)
+
     def has_warnings(self):
         """
-        Returns True if this model has any warnings.
+        Returns ``True`` if this model has any warnings.
         """
         return len(self._warnings)
 
@@ -2580,13 +2624,20 @@ class Model(ObjectWithMeta, VarProvider):
             ' future versions of Myokit. Please use `show_line_of` instead.')
         self.show_line_of(var)
 
-    def show_line_of(self, var):
+    def show_line_of(self, var, raw=False):
         """
         Returns a string containing the type of variable ``var`` is and the
         line it was defined on.
+
+        If ``raw`` is set to ``True`` the method returns an integer with the
+        line number, or ``None`` if no line number information is known (i.e.
+        if this model wasn't created by parsing).
         """
+        if raw:
+            return int(var._token[2]) if var._token is not None else None
+
         var, out = self._var_info(var)
-        if var._token:
+        if var._token is not None:
             out.append('Defined on line ' + str(var._token[2]))
         return '\n'.join(out)
 
@@ -3598,6 +3649,9 @@ class Variable(VarOwner):
         Note that this method will assume the expression is currently in the
         unit returned by :meth:`Variable.unit()`. It will not check whether the
         current RHS expression evaluates to the correct units.
+
+        Raises a :class:`myokit.IncompatibleUnitError` if the units cannot be
+        converted.'
         """
         # Check new unit
         if not isinstance(new_unit, myokit.Unit):
@@ -3627,14 +3681,14 @@ class Variable(VarOwner):
         # Update all references to the variable
         old_ref = myokit.Name(self)
         new_ref = myokit.Divide(old_ref, fw)
-        for var in self.refs_by(self._is_state):
+        for var in list(self.refs_by(self._is_state)):
             var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
 
         # For states, also update references to their derivatives
         if self._is_state:
             old_ref = myokit.Derivative(myokit.Name(self))
             new_ref = myokit.Divide(old_ref, fw)
-            for var in self.refs_by(False):
+            for var in list(self.refs_by(False)):
                 var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
 
         # For the time variable, update all state RHS's, and any references to
@@ -3645,7 +3699,7 @@ class Variable(VarOwner):
                 var.set_rhs(myokit.Divide(var.rhs(), fw))
                 old_ref = myokit.Derivative(myokit.Name(var))
                 new_ref = myokit.Multiply(old_ref, fw)
-                for ref in var.refs_by(False):
+                for ref in list(var.refs_by(False)):
                     ref.set_rhs(ref.rhs().clone(subst={old_ref: new_ref}))
 
     def _delete(self, recursive=False, whole_component=False):
@@ -3949,6 +4003,12 @@ class Variable(VarOwner):
         :class:`myokit.LhsExpression` objects in the same order as the function
         arguments.
         """
+        # Expression writer uses unames, so must have called validate() since
+        # last changes
+        model = self.model()
+        if not model.is_valid():
+            model.validate()
+
         # Get expression writer
         if use_numpy:
             import numpy
@@ -3958,7 +4018,7 @@ class Variable(VarOwner):
             w = myokit.python_writer()
 
         # Get arguments, equations
-        eqs, args = self.model().expressions_for(self)
+        eqs, args = model.expressions_for(self)
 
         # Handle function arguments
         func = [w.ex(x) for x in args]

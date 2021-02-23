@@ -1,0 +1,41 @@
+name: Notebooks
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [review_requested, ready_for_review]
+    branches:
+      - '**'
+
+jobs:
+
+  build-and-test:
+    name: notebooks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Configure Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.9
+          architecture: x64
+
+      - name: Install dependencies
+        run: |
+          sudo ./.github/workflows/install-ubuntu-dependencies.sh
+
+      - name: Install Myokit
+        run: |
+          python --version
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install .
+          python -m pip install nbconvert
+
+      - name: Run notebook tests
+        run: |
+          cd examples
+          python notebook_tests.py
+

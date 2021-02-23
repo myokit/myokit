@@ -545,7 +545,32 @@ class AuxTest(unittest.TestCase):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))
 
-        # Test comparison against another model
+        # Test with an initial state
+        state = [-80, 1e-7, 0.1, 0.9, 0.9, 0.1, 0.9, 0.1]
+        x = myokit.step(m1, initial=state).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name         Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'membrane.V   -8.00000000000000000e+01   1.41230788219242243e+00',
+            'calcium.Cai   9.99999999999999955e-08   1.68235244574188927e-07',
+            'ina.m         1.00000000000000006e-01  -5.12333452433218284e+00',
+            'ina.h         9.00000000000000022e-01   1.30873415607557463e-02',
+            'ina.j         9.00000000000000022e-01   1.43519283896554857e-03',
+            'isi.d         1.00000000000000006e-01  -1.06388689494351027e-02',
+            'isi.f         9.00000000000000022e-01   1.81759609957233962e-03',
+            'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
+            '-' * 79,
+        ]
+        #for i, line in enumerate(y):
+        #    print(line)
+        #    print(x[i])
+        for i, line in enumerate(y):
+            self.assertEqual(line, x[i])
+        self.assertEqual(len(x), len(y))
+
+        # Test comparison against another model (with both models the same)
         m2 = m1.clone()
         x = myokit.step(m1, reference=m2).splitlines()
         y = [
@@ -581,6 +606,43 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
         ]
 
+        # Test comparison against another model, with an initial state
+        x = myokit.step(m1, reference=m2, initial=state).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name         Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'membrane.V   -8.00000000000000000e+01   1.41230788219242243e+00',
+            '                                        1.41230788219242243e+00',
+            '',
+            'calcium.Cai   9.99999999999999955e-08   1.68235244574188927e-07',
+            '                                        1.68235244574188927e-07',
+            '',
+            'ina.m         1.00000000000000006e-01  -5.12333452433218284e+00',
+            '                                       -5.12333452433218284e+00',
+            '',
+            'ina.h         9.00000000000000022e-01   1.30873415607557463e-02',
+            '                                        1.30873415607557463e-02',
+            '',
+            'ina.j         9.00000000000000022e-01   1.43519283896554857e-03',
+            '                                        1.43519283896554857e-03',
+            '',
+            'isi.d         1.00000000000000006e-01  -1.06388689494351027e-02',
+            '                                       -1.06388689494351027e-02',
+            '',
+            'isi.f         9.00000000000000022e-01   1.81759609957233962e-03',
+            '                                        1.81759609957233962e-03',
+            '',
+            'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
+            '                                       -4.72598388279933061e-03',
+            '',
+            'Model check completed without errors.',
+            '-' * 79,
+        ]
+        #for i, line in enumerate(y):
+        #    print(line)
+        #    print(x[i])
         for i, line in enumerate(y):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))
@@ -702,9 +764,33 @@ class AuxTest(unittest.TestCase):
         x = myokit.Number(1.23)
         self.assertEqual(myokit.strfloat(x), '1.23')
 
+        # Single and double precision
+        self.assertEqual(
+            myokit.strfloat(-1.234, precision=myokit.SINGLE_PRECISION),
+            '-1.234')
+        self.assertEqual(
+            myokit.strfloat(
+                -0.124326562458734682153498731245756e12,
+                precision=myokit.SINGLE_PRECISION),
+            '-1.243265625e+11')
+        self.assertEqual(
+            myokit.strfloat(-1.234, precision=myokit.DOUBLE_PRECISION),
+            '-1.234')
+        self.assertEqual(
+            myokit.strfloat(
+                -0.124326562458734682153498731245756e12,
+                precision=myokit.DOUBLE_PRECISION),
+            '-1.24326562458734680e+11')
+
         # Full precision override
         self.assertEqual(
             myokit.strfloat(1.23, True), ' 1.22999999999999998e+00')
+        self.assertEqual(
+            myokit.strfloat(1.23, True, myokit.DOUBLE_PRECISION),
+            ' 1.22999999999999998e+00')
+        self.assertEqual(
+            myokit.strfloat(1.23, True, myokit.SINGLE_PRECISION),
+            ' 1.230000000e+00')
 
     def test_time(self):
         # Test time formatting method.
