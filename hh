@@ -7,16 +7,15 @@ m, p, _ = myokit.load('test.mmt')
 
 b = myokit.Benchmarker()
 
-print('Legacy')
-b.reset()
-s2 = myokit.LegacySimulation(m, p)
-print(b.time())
-
 print('CVODES')
 b.reset()
 s1 = myokit.Simulation(m, p)
 print(b.time())
 
+print('Legacy')
+b.reset()
+s2 = myokit.LegacySimulation(m, p)
+print(b.time())
 
 t1 = []
 t2 = []
@@ -54,7 +53,7 @@ plt.plot(t1, label='CVODES, clean code')
 plt.axhline(np.min(t2), ls='--', color='tab:blue')
 plt.axhline(np.min(t1), ls='--', color='tab:orange')
 
-plt.ylim(np.min(t1) - 0.1, np.min(t1) + 2)
+plt.ylim(np.min(t1) - 0.1, np.min(t1) + 0.5)
 
 plt.legend()
 

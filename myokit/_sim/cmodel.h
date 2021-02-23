@@ -190,7 +190,7 @@ An error message can be set for the Python user by calling Model_SetPyErr:
 
     if (model_flag != Model_OK) {
         Model_SetPyErr(model_flag);
-        // Clean up and return
+        clean_up_and_return()
     }
 
 */
@@ -204,14 +204,14 @@ An error message can be set for the Python user by calling Model_SetPyErr:
 typedef int Model_Flag;
 #define Model_OK                             0
 #define Model_OUT_OF_MEMORY                 -1
-// General
+/* General */
 #define Model_INVALID_MODEL                 -100
-// Logging
+/* Logging */
 #define Model_LOGGING_ALREADY_INITIALISED   -200
 #define Model_LOGGING_NOT_INITIALISED       -201
 #define Model_UNKNOWN_VARIABLES_IN_LOG      -202
 #define Model_LOG_APPEND_FAILED             -203
-// Logging sensitivities
+/* Logging sensitivities */
 #define Model_NO_SENSITIVITIES_TO_LOG       -300
 #define Model_SENSITIVITY_LOG_APPEND_FAILED -303
 
@@ -232,14 +232,14 @@ Model_SetPyErr(Model_Flag flag)
     switch(flag) {
     case Model_OK:
         break;
-    // General
+    /* General */
     case Model_OUT_OF_MEMORY:
         PyErr_SetString(PyExc_Exception, "CModel error: Memory allocation failed.");
         break;
     case Model_INVALID_MODEL:
         PyErr_SetString(PyExc_Exception, "CModel error: Invalid model pointer provided.");
         break;
-    // Logging
+    /* Logging */
     case Model_LOGGING_ALREADY_INITIALISED:
         PyErr_SetString(PyExc_Exception, "CModel error: Logging initialised twice.");
         break;
@@ -252,7 +252,7 @@ Model_SetPyErr(Model_Flag flag)
     case Model_LOG_APPEND_FAILED:
         PyErr_SetString(PyExc_Exception, "CModel error: Call to append() failed on logging list.");
         break;
-    // Logging sensitivities
+    /* Logging sensitivities */
     case Model_NO_SENSITIVITIES_TO_LOG:
         PyErr_SetString(PyExc_Exception, "CModel error: Sensivity logging called, but sensitivity calculations were not enabled.");
         break;
@@ -260,7 +260,7 @@ Model_SetPyErr(Model_Flag flag)
         PyErr_SetString(PyExc_Exception, "CModel error: Call to append() failed on sensitivity matrix logging list.");
         break;
 
-    // Unknown
+    /* Unknown */
     default:
     {
         int i = (int)flag;
@@ -978,7 +978,7 @@ Model_DeInitialiseLogging(Model model)
     if (model == NULL) return Model_INVALID_MODEL;
     if (!model->logging_initialised) return Model_LOGGING_NOT_INITIALISED;
 
-    // Free memory
+    /* Free memory */
     if (model->_log_vars != NULL) {
         free(model->_log_vars);
         model->_log_vars = NULL;
@@ -1259,7 +1259,7 @@ Model_Destroy(Model model)
 {
     if (model == NULL) return Model_INVALID_MODEL;
 
-    // Variables
+    /* Variables */
     free(model->states); model->states = NULL;
     free(model->derivatives); model->derivatives = NULL;
     free(model->intermediary); model->intermediary = NULL;
@@ -1268,18 +1268,18 @@ Model_Destroy(Model model)
     free(model->literals); model->literals = NULL;
     free(model->literal_derived); model->literal_derived = NULL;
 
-    // Sensitivities
+    /* Sensitivities */
     free(model->s_independents); model->s_independents = NULL;
     free(model->s_is_parameter); model->s_is_parameter = NULL;
     free(model->s_states); model->s_states = NULL;
     free(model->s_intermediary); model->s_intermediary = NULL;
 
-    // Logging
+    /* Logging */
     free(model->_log_vars); model->_log_vars = NULL;
     free(model->_log_lists); model->_log_lists = NULL;
     Py_XDECREF(model->_list_update_string); model->_list_update_string = NULL;
 
-    // Model itself
+    /* Model itself */
     free(model);
     return Model_OK;
 }

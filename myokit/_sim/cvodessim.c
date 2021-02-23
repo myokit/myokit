@@ -1040,7 +1040,6 @@ sim_step(PyObject *self, PyObject *args)
             /* Note 2: tnext can be infinity, so don't always jump there. */
             t = (tmax > tnext) ? tnext : tmax;
             flag_cvode = CV_SUCCESS;
-
         }
 
         /* Check if progress is being made */
