@@ -577,13 +577,14 @@ from ._sim.opencl import (  # noqa
     OpenCLInfo,
     OpenCLPlatformInfo,
 )
-from ._sim.cvodesim import Simulation       # noqa
+from ._sim.cmodel import CModel             # noqa
+from ._sim.cvodessim import Simulation      # noqa
+from ._sim.cvodesim import Simulation as LegacySimulation  # noqa
 from ._sim.cable import Simulation1d        # noqa
 from ._sim.rhs import RhsBenchmarker        # noqa
 from ._sim.icsim import ICSimulation        # noqa
 from ._sim.psim import PSimulation          # noqa
 from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
-#from ._sim.openmp import SimulationOpenMP                       # noqa
 from ._sim.openclsim import SimulationOpenCL                    # noqa
 from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
 
