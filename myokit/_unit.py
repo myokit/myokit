@@ -258,6 +258,9 @@ class Unit(object):
             ``1 [uF/cm^2]``.
 
         Returns a :class:`myokit.Quantity`.
+
+        Raises a :class:`myokit.IncompatibleUnitError` if the units cannot be
+        converted.'
         """
         # Check unit1
         if not isinstance(unit1, myokit.Unit):
