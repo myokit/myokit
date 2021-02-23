@@ -321,6 +321,12 @@ class Simulation(myokit.CModule):
         for initial value sensitivities to 0 or 1 as above, instead of using
         the values reached in the simulation.
 
+        The number of time units to simulate can be set with ``duration``.
+        The ``duration`` argument cannot be negative, and special care needs to
+        be taken when very small (positive) values are used. For some very
+        short (but non-zero) durations, a :class:`myokit.SimulationError` may
+        be raised.
+
         To obtain feedback on the simulation progress, an object implementing
         the :class:`myokit.ProgressReporter` interface can be passed in.
         passed in as ``progress``. An optional description of the current
@@ -388,6 +394,10 @@ class Simulation(myokit.CModule):
             elapsed during the simulation.
 
         The number of time units to simulate can be set with ``duration``.
+        The ``duration`` argument cannot be negative, and special care needs to
+        be taken when very small (positive) values are used. For some very
+        short (but non-zero) durations, a :class:`myokit.SimulationError` may
+        be raised.
 
         The method returns a :class:`myokit.DataLog` dictionary that maps
         variable names to lists of logged values. The variables to log can be
@@ -562,40 +572,43 @@ class Simulation(myokit.CModule):
             bench = None
 
         # Run simulation
-        #TODO
-        #TODO
-        #TODO
-        #TODO
-        #with myokit.SubCapture() as capture:
-        if duration > 0:
-            # Initialize
-            state = [0] * len(self._state)
-            bound = [0, 0, 0, 0]    # time, pace, realtime, evaluations
-            s_state = s_state_in = None
+        # The simulation is run only if (tmin + duration > tmin). This is a
+        # stronger check than (duration == 0), which will return true even for
+        # very short durations (and will cause zero iterations of the
+        # "while (t < tmax)" loop below).
+        if tmin + duration > tmin:
+
+            # Initial state and sensitivities
+            state_1 = list(self._state)
             if self._sensitivities:
-                s_state_in = [list(x) for x in self._s_state]   # TODO: Remove?
-                s_state = [[0] * len(self._state)] * len(self._state)
+                s_state_1 = [list(x) for x in self._s_state]
+            else:
+                s_state_1 = None
 
+            # Final state and sensitivities
+            state_2 = list(state_1)
+            if self._sensitivities:
+                s_state_2 = [list(x) for x in s_state_1]
+            else:
+                s_state_2 = None
 
-                print('Initial sensitivities:')
-                print(s_state_in)
+            # List to store final bound variables in (for debugging)
+            bound_2 = [0, 0, 0, 0]
 
-
-
-
+            # Initialize
             self._sim.sim_init(
                 # 0. Initial time
                 tmin,
                 # 1. Final time
                 tmax,
                 # 2. Initial state
-                list(self._state),
+                state_1,
                 # 3. Space to store the final state
-                state,
+                state_2,
                 # 4. Initial state sensitivities
-                s_state_in,
+                s_state_1,
                 # 5. Space to store the final state sensitivities
-                s_state,
+                s_state_2,
                 # 6. Space to store the bound variable values
                 bound,
                 # 7. Literal values
@@ -628,14 +641,10 @@ class Simulation(myokit.CModule):
                 bench,
             )
             t = tmin
+
+            # Run
             try:
                 if progress:
-                    # Allow progress reporters to bypass the subcapture
-                    #TODO
-                    #TODO
-                    #TODO
-                    #TODO
-                    #progress._set_output_stream(capture.bypass())
                     # Loop with feedback
                     with progress.job(msg):
                         r = 1.0 / duration if duration != 0 else 1
@@ -647,27 +656,31 @@ class Simulation(myokit.CModule):
                     # Loop without feedback
                     while t < tmax:
                         t = self._sim.sim_step()
-            except ArithmeticError:
-                self._error_state = list(state)
+
+            except ArithmeticError as e:
+                # Some CVODE errors are set to raise an ArithmeticError,
+                # which users may be able to debug.
+                self._error_state = list(state_2)
                 txt = ['A numerical error occurred during simulation at'
                        ' t = ' + str(t) + '.', 'Last reached state: ']
-                txt.extend([
-                    '  ' + x for x
-                    in self._model.format_state(state).splitlines()])
-                txt.append('Inputs for binding: ')
-                txt.append('  time        = ' + myokit.strfloat(bound[0]))
-                txt.append('  pace        = ' + myokit.strfloat(bound[1]))
-                txt.append('  realtime    = ' + myokit.strfloat(bound[2]))
-                txt.append('  evaluations = ' + myokit.strfloat(bound[3]))
+                txt.extend(['  ' + x for x
+                            in self._model.format_state(state).splitlines()])
+                txt.append('Inputs for binding:')
+                txt.append('  time        = ' + myokit.strfloat(bound_2[0]))
+                txt.append('  pace        = ' + myokit.strfloat(bound_2[1]))
+                txt.append('  realtime    = ' + myokit.strfloat(bound_2[2]))
+                txt.append('  evaluations = ' + myokit.strfloat(bound_2[3]))
+                txt.append(str(e))
                 try:
-                    self._model.eval_state_derivatives(state)
+                    self._model.eval_state_derivatives(state_2)
                 except myokit.NumericalError as en:
                     txt.append(str(en))
                 raise myokit.SimulationError('\n'.join(txt))
+
             except Exception as e:
 
                 # Store error state
-                self._error_state = list(state)
+                self._error_state = list(state_2)
 
                 # Check for known CVODE errors
                 if 'Function CVode()' in str(e):
@@ -685,9 +698,10 @@ class Simulation(myokit.CModule):
             finally:
                 # Clean even after KeyboardInterrupt or other Exception
                 self._sim.sim_clean()
+
             # Update internal state
-            self._state = state
-            self._s_state = s_state
+            self._state = state_2
+            self._s_state = s_state_2
 
         # Calculate apds
         if root_list is not None:
