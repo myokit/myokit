@@ -71,6 +71,7 @@ bound_variables = model.prepare_bindings({
 # Get equations
 equations = model.solvable_order()
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdio.h>
 #include <math.h>
