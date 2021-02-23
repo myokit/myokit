@@ -2344,7 +2344,7 @@ class ExpTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.IntegrityError, 'wrong number', myokit.Exp,
             myokit.Number(1), myokit.Number(2))
-        
+
     def test_diff(self):
         # Tests Exp.diff()
 
