@@ -12,15 +12,10 @@ sensitivities=(
     ['ina.gNa', 'init(ica.Ca_i)', 'ica.gCa']
 )   # 8 / 16     0.0002            0.09
 s = myokit.Simulation(m, p, sensitivities)
-print(b.time())
 b.reset()
 d, e = s.run(1000)
-e = np.array(e)
 print(b.time())
-print(e.shape)
-
-plt.figure()
-plt.plot(d.time(), d['ina.INa'])
+e = np.array(e)
 
 
 plt.figure()
@@ -31,14 +26,10 @@ plt.plot(d.time(), e[:, 0, 0], label='dV/dgNa')
 plt.legend()
 plt.subplot(3, 3, 5)
 plt.plot(d.time(), e[:, 0, 2], label='dV/dgCa')
-print(np.min(e[:, 0, 2]))
-print(np.max(e[:, 0, 2]))
 
 plt.legend()
 plt.subplot(3, 3, 6)
 plt.plot(d.time(), e[:, 0, 1], label='dV/dCai0')
-print(np.min(e[:, 0, 1]))
-print(np.max(e[:, 0, 1]))
 plt.legend()
 plt.subplot(3, 3, 7)
 plt.plot(d.time(), e[:, 1, 0], label='dINa/dgNa')

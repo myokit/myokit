@@ -5,27 +5,57 @@ import numpy as np
 
 m, p, _ = myokit.load('test.mmt')
 
-#myokit.DEBUG = True
+b = myokit.Benchmarker()
 
 print('Legacy')
-b = myokit.Benchmarker()
-s = myokit.LegacySimulation(m, p)
-print(b.time())
 b.reset()
-d = s.run(1000)
+s2 = myokit.LegacySimulation(m, p)
 print(b.time())
 
 print('CVODES')
-b = myokit.Benchmarker()
-s = myokit.Simulation(m, p)
-print(b.time())
 b.reset()
-e = s.run(1000)
+s1 = myokit.Simulation(m, p)
 print(b.time())
 
 
+t1 = []
+t2 = []
+
+for i in range(25):
+    s1.reset()
+    s2.reset()
+
+    if np.random.random() < 0.5:
+        b.reset()
+        s1.run(1000)
+        t1.append(b.time())
+        b.reset()
+        s2.run(1000)
+        t2.append(b.time())
+    else:
+        b.reset()
+        s2.run(1000)
+        t2.append(b.time())
+        b.reset()
+        s1.run(1000)
+        t1.append(b.time())
+
+t1 = np.array(t1) * 1e3
+t2 = np.array(t2) * 1e3
+
+print('Best, cvodes:', np.min(t1))
+print('Best, cvode :', np.min(t2))
 
 plt.figure()
-plt.plot(d['engine.time'], d['membrane.V'], label='Legacy')
-plt.plot(e['engine.time'], e['membrane.V'], '--', label='CVODES')
+plt.xlabel('Run')
+plt.ylabel('Duration (ms)')
+plt.plot(t2, label='CVODE, dirty code')
+plt.plot(t1, label='CVODES, clean code')
+plt.axhline(np.min(t2), ls='--', color='tab:blue')
+plt.axhline(np.min(t1), ls='--', color='tab:orange')
+
+plt.ylim(np.min(t1) - 0.1, np.min(t1) + 2)
+
+plt.legend()
+
 plt.show()

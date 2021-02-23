@@ -196,7 +196,7 @@ An error message can be set for the Python user by calling Model_SetPyErr:
 */
 
 #include <math.h>
-#include <string.h>  /* sprintf */
+#include <stdio.h>
 
 /*
  * Model error flags

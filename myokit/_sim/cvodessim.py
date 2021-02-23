@@ -182,7 +182,6 @@ class Simulation(myokit.CModule):
         self._tolerance = None
         self.set_tolerance()
 
-
     def _create_simulation(self, cmodel_code):
         """ Creates and compiles the C simulation module. """
         # Unique simulation id
@@ -529,7 +528,9 @@ class Simulation(myokit.CModule):
                 sensitivities = []
             else:
                 # Must be list (of lists of lists)
-                sensitivities = list(sensitivities)
+                if not isinstance(sensitivities, list):
+                    raise ValueError(
+                        'The argument `sensitivities` must be None or a list.')
         else:
             sensitivities = None
 
@@ -610,7 +611,7 @@ class Simulation(myokit.CModule):
                 # 5. Space to store the final state sensitivities
                 s_state_2,
                 # 6. Space to store the bound variable values
-                bound,
+                bound_2,
                 # 7. Literal values
                 list(self._literals.values()),
                 # 8. Parameter values
