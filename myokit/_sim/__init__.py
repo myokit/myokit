@@ -40,8 +40,8 @@ from setuptools import setup, Extension  # noqa
 
 
 # Myokit imports
-import myokit  # noqa
-import myokit.pype as pype  # noqa
+import myokit       # noqa
+import myokit.pype  # noqa
 
 
 # Dynamic module finding and loading in Python 3.5+ and younger
@@ -240,14 +240,14 @@ class CModule(object):
             handle = open(target, 'w')
 
         # Create source
-        p = pype.TemplateEngine()
+        p = myokit.pype.TemplateEngine()
         if target is not None:
             p.set_output_stream(handle)
 
         try:
             result = None
             result = p.process(source, varmap)
-        except pype.PypeError:  # pragma: no cover
+        except myokit.pype.PypeError:  # pragma: no cover
             # Not included in cover, because this can only happen if the
             # template code is wrong, i.e. during development.
             msg = ['An error ocurred while processing the template']
