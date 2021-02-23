@@ -215,6 +215,11 @@ typedef int Model_Flag;
 #define Model_NO_SENSITIVITIES_TO_LOG       -300
 #define Model_SENSITIVITY_LOG_APPEND_FAILED -303
 
+/* Caching doesn't help much when running without jacobians etc., so disabled
+   for now
+#define Model_CACHING
+*/
+
 /*
  * Sets a Python exception based on a model flag.
  *
@@ -344,8 +349,10 @@ struct Model_Memory {
     realtype** _log_vars;
 
     /* Caching */
+    #ifdef Model_CACHING
     int valid_cache_derivatives;
     int valid_cache_sensitivity_outputs;
+    #endif
 };
 typedef struct Model_Memory *Model;
 
@@ -405,6 +412,7 @@ del(i)
 
 ?>
 
+#ifdef Model_CACHING
 /*
  * Cache checking and clearing for internal use
  */
@@ -417,6 +425,7 @@ inline void Model__InvalidateCache(Model model)
     model->valid_cache_derivatives = 0;
     model->valid_cache_sensitivity_outputs = 0;
 }
+#endif
 
 /*
  * Clears any cached evaluations from a model.
@@ -430,8 +439,10 @@ inline void Model__InvalidateCache(Model model)
 Model_Flag
 Model_ClearCache(Model model)
 {
+    #ifdef Model_CACHING
     if (model == NULL) return Model_INVALID_MODEL;
     Model__InvalidateCache(model);
+    #endif
     return Model_OK;
 }
 
@@ -503,6 +514,7 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
 
     /* Scan for changes */
     i = 0;
+    #ifdef Model_CACHING
     if (Model__ValidCache(model)) {
         for (i=0; i<model->n_literals; i++) {
             if (model->literals[i] != literals[i]) {
@@ -510,13 +522,16 @@ Model_SetLiteralVariables(Model model, const realtype* literals)
             }
         }
     }
+    #endif
 
     /* Update remaining */
     if (i < model->n_literals) {
         for (; i<model->n_literals; i++) {
             model->literals[i] = literals[i];
         }
+        #ifdef Model_CACHING
         Model__InvalidateCache(model);
+        #endif
         Model_EvaluateLiteralDerivedVariables(model);
         Model_EvaluateParameterDerivedVariables(model);
     }
@@ -545,6 +560,7 @@ Model_SetParameters(Model model, const realtype* parameters)
 
     /* Scan for changes */
     i = 0;
+    #ifdef Model_CACHING
     if (Model__ValidCache(model)) {
         for (; i<model->n_parameters; i++) {
             if (model->parameters[i] != parameters[i]) {
@@ -552,13 +568,16 @@ Model_SetParameters(Model model, const realtype* parameters)
             }
         }
     }
+    #endif
 
     /* Update remaining */
     if (i < model->n_parameters) {
         for (; i<model->n_parameters; i++) {
             model->parameters[i] = parameters[i];
         }
+        #ifdef Model_CACHING
         Model__InvalidateCache(model);
+        #endif
         Model_EvaluateParameterDerivedVariables(model);
     }
 
@@ -589,6 +608,7 @@ Model_SetParametersFromIndependents(Model model, const realtype* independents)
     /* Scan for changes */
     i = 0;
     j = 0;
+    #ifdef Model_CACHING
     if (Model__ValidCache(model)) {
         for (; i<model->ns_independents; i++) {
             if (model->s_is_parameter[i]) {
@@ -599,6 +619,7 @@ Model_SetParametersFromIndependents(Model model, const realtype* independents)
             }
         }
     }
+    #endif
 
     /* Update remaining */
     if (j < model->n_parameters) {
@@ -608,7 +629,9 @@ Model_SetParametersFromIndependents(Model model, const realtype* independents)
                 j++;
             }
         }
+        #ifdef Model_CACHING
         Model__InvalidateCache(model);
+        #endif
         Model_EvaluateParameterDerivedVariables(model);
     }
 
@@ -652,9 +675,11 @@ if model.binding('pace') is not None:
     print(tab + '    changed = 1;')
     print(tab + '}')
 ?>
+    #ifdef Model_CACHING
     if (changed) {
         Model__InvalidateCache(model);
     }
+    #endif
 
     /* Update unchecked variables */
     model->realtime = realtime;
@@ -682,6 +707,7 @@ Model_SetStates(Model model, const realtype* states)
 
     /* Scan for changes */
     i = 0;
+    #ifdef Model_CACHING
     if (Model__ValidCache(model)) {
         for (; i<model->n_states; i++) {
             if (model->states[i] != states[i]) {
@@ -689,13 +715,16 @@ Model_SetStates(Model model, const realtype* states)
             }
         }
     }
+    #endif
 
     /* Update remaining */
     if (i < model->n_states) {
         for (; i<model->n_states; i++) {
             model->states[i] = states[i];
         }
+        #ifdef Model_CACHING
         Model__InvalidateCache(model);
+        #endif
     }
 
     return Model_OK;
@@ -720,6 +749,7 @@ Model_EvaluateDerivatives(Model model)
     if (model == NULL) return Model_INVALID_MODEL;
 
     /*TODO: Skip if cached! */
+    /*if (model->valid_cache_derivatives) { */
 
 <?
 for label, eqs in equations.items():
@@ -738,8 +768,10 @@ for label, eqs in equations.items():
     if not need_label:
         print(tab)
 ?>
+    #ifdef Model_CACHING
     /* Indicate derivatives values can be trusted. */
     model->valid_cache_derivatives = 1;
+    #endif
 
     return Model_OK;
 }
@@ -768,6 +800,7 @@ Model_SetStateSensitivities(Model model, int i, const realtype* s_states)
 
     /* Scan for changes */
     j = 0;
+    #ifdef Model_CACHING
     if (Model__ValidCache(model)) {
         for (; j<model->n_states; j++) {
             if (model->s_states[i + j] != s_states[j]) {
@@ -775,13 +808,16 @@ Model_SetStateSensitivities(Model model, int i, const realtype* s_states)
             }
         }
     }
+    #endif
 
     /* Update remaining */
     if (j < model->n_states) {
         for (; j<model->n_states; j++) {
             model->s_states[i + j] = s_states[j];
         }
+        #ifdef Model_CACHING
         model->valid_cache_sensitivity_outputs = 0;
+        #endif
     }
 
     return Model_OK;
@@ -816,8 +852,10 @@ for eqs in s_output_equations:
         print(tab + w.eq(eq) + ';')
     print()
 ?>
+    #ifdef Model_CACHING
     /* Indicate sensitivity outputs can be trusted. */
     model->valid_cache_sensitivity_outputs = 1;
+    #endif
 
     return Model_OK;
 }
@@ -1192,8 +1230,10 @@ for var in model.states():
      * At this point, we don't have derivatives or sensitivity outputs, so
      * both cache flags are set to invalid.
      */
+    #ifdef Model_CACHING
     model->valid_cache_derivatives = 0;
     model->valid_cache_sensitivity_outputs = 0;
+    #endif
 
     /*
      * Finalise

@@ -1013,6 +1013,9 @@ sim_step(PyObject *self, PyObject *args)
         if (model->is_ode) {
 
             /* Take a single ODE step */
+            #ifdef MYOKIT_DEBUG
+            printf("\nTaking CVODE step from time %f to %f\n", t, tnext);
+            #endif
             flag_cvode = CVode(cvode_mem, tnext, y, &t, CV_ONE_STEP);
 
             /* Check for errors */
@@ -1063,6 +1066,9 @@ sim_step(PyObject *self, PyObject *args)
 
                 /* Next event time exceeded? */
                 if (t > tnext) {
+                    #ifdef MYOKIT_DEBUG
+                    printf("Event time exceeded, rewinding to %f\n", tnext);
+                    #endif
 
                     /* Go back to time=tnext */
                     flag_cvode = CVodeGetDky(cvode_mem, tnext, 0, y);
@@ -1115,6 +1121,9 @@ sim_step(PyObject *self, PyObject *args)
 
                 /* Log points */
                 while (t > tlog) {
+                    #ifdef MYOKIT_DEBUG
+                    printf("Interpolation-logging for t=%f\n", t);
+                    #endif
 
                     /* Benchmarking? Then set realtime */
                     if (benchtime != Py_None) {
@@ -1217,6 +1226,9 @@ sim_step(PyObject *self, PyObject *args)
                     /* If logging derivatives or intermediaries, calculate the
                        values for the current time. Similarly, if calculating
                        sensitivities this is needed. */
+                    #ifdef MYOKIT_DEBUG
+                    printf("Calling RHS to log derivs/inter/sens at time %f\n", t);
+                    #endif
                     rhs(t, y, NULL, udata);
                 } else if (model->logging_bound) {
                     /* Logging bounds but not derivs or inters: No need to run
