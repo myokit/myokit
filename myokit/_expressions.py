@@ -1284,8 +1284,8 @@ class PartialDerivative(LhsExpression):
 
     def independent_expression(self):
         """
-        Returns the expression that a derivative is taken to, i.e. "x" in
-        "dy/dx".
+        Returns the expression that a derivative is taken with respect to, i.e.
+        ``x`` in ``dy/dx``.
         """
         return self._var2
 
