@@ -46,7 +46,7 @@ Myokit contains a number of simulation types, an overview of which can be found
 under :ref:`API::Simulations <api/simulations>`. The most common types are:
 
  * The single cell :class:`Simulation <myokit.Simulation>` class, which uses
-   the CVODE solver to perform high-speed single cell simulations.
+   the CVODES solver to perform high-speed single cell simulations.
  * The multi-cell :class:`SimulationOpenCL` class, which runs parallelised 1d
    or 2d simulations using a forward-Euler solver implemented in OpenCL.
 

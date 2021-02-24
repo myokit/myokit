@@ -654,7 +654,7 @@ class Simulation(myokit.CModule):
                         t = self._sim.sim_step()
 
             except ArithmeticError as e:
-                # Some CVODE errors are set to raise an ArithmeticError,
+                # Some CVODE(S) errors are set to raise an ArithmeticError,
                 # which users may be able to debug.
 
                 # Store error state
@@ -900,7 +900,7 @@ class Simulation(myokit.CModule):
         """
         Sets the solver tolerances. Absolute tolerance is set using
         ``abs_tol``, relative tolerance using ``rel_tol``. For more information
-        on these values, see the Sundials CVODE documentation.
+        on these values, see the Sundials CVODES documentation.
         """
         abs_tol = float(abs_tol)
         if abs_tol <= 0:

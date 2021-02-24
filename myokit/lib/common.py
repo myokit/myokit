@@ -773,7 +773,7 @@ class Restitution(object):
         Sets an (optional) maximum step size for the solver. To let the solver
         pick any step size it likes, use ``dtmax=None``.
 
-        This method can be useful to avoid "CVODE flag 22" errors.
+        This method can be useful to avoid "CVODES flag 22" errors.
         """
         if dtmax is None:
             self._max_step_size = None
