@@ -11,6 +11,7 @@ myokit
 - :class:`myokit.Benchmarker`
 - :class:`myokit.Ceil`
 - :meth:`myokit.check_name`
+- :class:`myokit.CModel`
 - :class:`myokit.CModule`
 - :class:`myokit.ColorMap`
 - :class:`myokit.CompilationError`
@@ -66,6 +67,7 @@ myokit
 - :class:`myokit.InvalidLabelError`
 - :class:`myokit.InvalidMetaDataNameError`
 - :class:`myokit.InvalidNameError`
+- :class:`myokit.LegacySimulation`
 - :class:`myokit.Less`
 - :class:`myokit.LessEqual`
 - :class:`myokit.LhsExpression`
