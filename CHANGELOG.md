@@ -4,10 +4,16 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Myokit's expression system now includes a `PartialDerivative` and an `InitialValue` class. Both are for use in sensitivity calculations and may not appear in models.
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Expressions now have a method `diff(lhs)` that returns the (partial) derivative of an expression with respect to the given `LhsExpression`.
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Expressions now have methods `is_derivative`, `is_name`, and `is_number`.
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Added a method `Number.value()`.
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) The method `Expression.depends_on` now has an argument `deep` that can be set to `True` to perform a recursive dependency check.
   - [#682](https://github.com/MichaelClerx/myokit/pull/682) OpenCL code now recognises error code -1001.
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) Now testing OpenCL code in CI.
   - [#704](https://github.com/MichaelClerx/myokit/pull/704) Added first example notebook to the github repository.
 - Changed
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
 - Deprecated
 - Removed
