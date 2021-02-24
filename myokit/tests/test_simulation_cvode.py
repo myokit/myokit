@@ -481,17 +481,26 @@ class SimulationTest(unittest.TestCase):
 
         # Test with myokit.Protocol
         m, p, _ = myokit.load('example')
-        s1 = myokit.Simulation(m, p)
+        s1 = myokit.Simulation(m, p, [['ina.INa'], ['ina.gNa']])
         s1.pre(123)
         s_bytes = pickle.dumps(s1)
         s2 = pickle.loads(s_bytes)
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
         self.assertEqual(s1.default_state(), s2.default_state())
-        s1.run(123, log=myokit.LOG_NONE)
-        s2.run(123, log=myokit.LOG_NONE)
+        d1, e1 = s1.run(123, log=myokit.LOG_NONE)
+        d2, e2 = s2.run(123, log=myokit.LOG_NONE)
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
+        e1 = np.array(e1)
+        e2 = np.array(e2)
+
+
+
+
+
+
+
 
         # Test simulation properties
         s1.set_tolerance(1e-8, 1e-8)

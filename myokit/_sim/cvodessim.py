@@ -338,7 +338,7 @@ class Simulation(myokit.CModule):
         self._default_state = list(self._state)
         if self._sensitivities:
             # Reset to time 0, so need to reset initial-value sensitivities
-            for i, expr in self._sensitivities[1]:
+            for i, expr in enumerate(self._sensitivities[1]):
                 if isinstance(expr, myokit.InitialValue):
                     self._s_state[i] = [0.0] * len(self._state)
                     self._s_state[i][expr.var().indice()] = 1.0
