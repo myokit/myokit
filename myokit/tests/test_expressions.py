@@ -698,6 +698,27 @@ class NameTest(unittest.TestCase):
         b = z.clone(expand=True, retain=[vx])
         self.assertEqual(a, b)
 
+    def test_depends_on(self):
+        # Tests the depends_on method on Name
+
+        # Shallow checking
+        m = pd_model.clone()
+        c = m.get('membrane.C').lhs()
+        v = m.get('membrane.V').lhs()
+        self.assertTrue(c.depends_on(c))
+        self.assertFalse(c.depends_on(v))
+        self.assertTrue(v.depends_on(v))
+        self.assertFalse(v.depends_on(c))
+
+        # Deep checking
+        self.assertFalse(c.depends_on(v, deep=True))
+        self.assertTrue(v.depends_on(c, deep=True))
+
+        # Deep checking can handle improper names
+        p = myokit.Plus(c, myokit.Name('x'))
+        self.assertTrue(p.depends_on(c, True))
+        self.assertTrue(p.depends_on(myokit.Name('x')), True)
+
     def test_diff(self):
         # Tests Name.diff
 
@@ -754,6 +775,13 @@ class NameTest(unittest.TestCase):
         self.assertEqual(
             t.diff(C, independent_states=False),
             myokit.Number(0, myokit.units.ms / myokit.units.pF))
+
+        # Test diff of "improper" name
+        x = myokit.Name('x')
+        y = myokit.Name('y')
+        z = x.diff(y)
+        self.assertIsInstance(z, myokit.PartialDerivative)
+        self.assertEqual(z.code(), 'diff(str:x, str:y)')
 
     def test_eval_unit(self):
         # Test Name eval_unit.
@@ -921,6 +949,13 @@ class DerivativeTest(unittest.TestCase):
             dV.diff(C, independent_states=False),
             myokit.PartialDerivative(dV, C))
 
+        # Diff of "improper" partial derivative
+        x = myokit.Derivative(myokit.Name('x'))
+        y = myokit.Name('y')
+        z = x.diff(y)
+        self.assertIsInstance(z, myokit.PartialDerivative)
+        self.assertEqual(z.code(), 'diff(dot(str:x), str:y)')
+
     def test_eval_unit(self):
         # Test Derivative.eval_unit()
         # Create mini model
@@ -989,6 +1024,10 @@ class DerivativeTest(unittest.TestCase):
         d = x.lhs()
         self.assertEqual(d.rhs(), x.rhs())
 
+        # Test with "improper" derivative
+        x = myokit.Derivative(myokit.Name('x'))
+        self.assertIsNone(x.rhs())
+
     def test_tree_str(self):
         # Test Derivative.tree_str()
 
@@ -1022,9 +1061,20 @@ class PartialDerivativeTest(unittest.TestCase):
 
         # First = name or derivative, Second = name or initial value
         p = myokit.PartialDerivative(n, n)
+        self.assertIs(p.dependent_expression(), n)
+        self.assertIs(p.independent_expression(), n)
+
         p = myokit.PartialDerivative(d, n)
+        self.assertIs(p.dependent_expression(), d)
+        self.assertIs(p.independent_expression(), n)
+
         p = myokit.PartialDerivative(n, i)
+        self.assertIs(p.dependent_expression(), n)
+        self.assertIs(p.independent_expression(), i)
+
         p = myokit.PartialDerivative(d, i)
+        self.assertIs(p.dependent_expression(), d)
+        self.assertIs(p.independent_expression(), i)
 
         # Others are not allowed
         self.assertRaisesRegex(
@@ -1092,18 +1142,17 @@ class PartialDerivativeTest(unittest.TestCase):
     def test_eval_unit(self):
         # Tests PartialDerivative.eval_unit()
         m = pd_model.clone()
-        V = m.get('membrane.V')
+        V = myokit.Name(m.get('membrane.V'))
         C = myokit.Name(m.get('membrane.C'))
-        p = V.rhs().diff(C)
-        self.assertEqual(p.eval_unit(), myokit.units.pA / myokit.units.pF**2)
-        m.get('ina.I1').set_unit(None)
-        m.get('ina.I2').set_unit(None)
-        self.assertEqual(p.eval_unit(), 1 / (myokit.units.pF**2))
-        C.var().set_unit(None)
-        self.assertEqual(p.eval_unit(), None)
-        m.get('ina.I1').set_unit('mV')
-        m.get('ina.I2').set_unit('mV')
+        p = myokit.PartialDerivative(V, C)
+        self.assertEqual(p.eval_unit(), myokit.units.mV / myokit.units.pF)
+        m.get('membrane.V').set_unit(None)
+        self.assertEqual(p.eval_unit(), 1 / myokit.units.pF)
+        m.get('membrane.V').set_unit('mV')
+        m.get('membrane.C').set_unit(None)
         self.assertEqual(p.eval_unit(), myokit.units.mV)
+        m.get('membrane.V').set_unit(None)
+        self.assertEqual(p.eval_unit(), None)
 
     def test_repr(self):
         # Tests PartialDerivative.__repr__()
