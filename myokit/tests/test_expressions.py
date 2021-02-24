@@ -719,6 +719,14 @@ class NameTest(unittest.TestCase):
         self.assertTrue(p.depends_on(c, True))
         self.assertTrue(p.depends_on(myokit.Name('x')), True)
 
+        # Deep checking can handle partial derivs and inits
+        q = myokit.Plus(p, myokit.PartialDerivative(v, c))
+        self.assertTrue(q.depends_on(c, True))
+        self.assertTrue(q.depends_on(myokit.Name('x')), True)
+        q = myokit.Plus(p, myokit.InitialValue(myokit.Name(v.var())))
+        self.assertTrue(q.depends_on(c, True))
+        self.assertTrue(q.depends_on(myokit.Name('x')), True)
+
     def test_diff(self):
         # Tests Name.diff
 
