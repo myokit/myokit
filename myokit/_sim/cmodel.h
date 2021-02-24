@@ -852,7 +852,7 @@ for eqs in s_output_equations:
         if i == 0:
             print(tab + '/* Sensitivity w.r.t. ' + eq.lhs.independent_expression().code() + ' */')
         print(tab + w.eq(eq) + ';')
-    print()
+    print('')
 ?>
     #ifdef Model_CACHING
     /* Indicate sensitivity outputs can be trusted. */
@@ -1065,7 +1065,7 @@ Model_LogSensitivityMatrix(Model model, PyObject* list)
 <?
 for i, e1 in enumerate(s_dependents):
     var = e1.var()
-    print()
+    print('')
     print(tab + 'l2 = PyTuple_New(model->ns_independents);')
     print(tab + 'if (l2 == NULL) goto nomem;')
     for j, e2 in enumerate(s_independents):
