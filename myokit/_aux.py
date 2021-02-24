@@ -1561,8 +1561,9 @@ def _rmtree(path):
 
 def _pid_hash():
     """
-    Returns a hash that depends on the current time as well as the process id,
-    so that it's likely to return a different number when called twice.
+    Returns an integer hash that depends on the current time as well as the
+    process id, so that it's likely to return a different number when called
+    twice.
     """
     x = os.getpid() * timeit.default_timer()
     x = abs(hash(str(x - int(x))))

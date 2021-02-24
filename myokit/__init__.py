@@ -386,7 +386,7 @@ from ._model_api import ( # noqa
     Variable,
 )
 
-# Expressions and units
+# Expressions
 from ._expressions import (  # noqa
     Abs,
     ACos,
@@ -406,6 +406,7 @@ from ._expressions import (  # noqa
     If,
     InfixCondition,
     InfixExpression,
+    InitialValue,
     Less,
     LessEqual,
     LhsExpression,
@@ -420,6 +421,7 @@ from ._expressions import (  # noqa
     Not,
     NotEqual,
     Or,
+    PartialDerivative,
     Piecewise,
     Plus,
     Power,
@@ -427,14 +429,17 @@ from ._expressions import (  # noqa
     PrefixExpression,
     PrefixMinus,
     PrefixPlus,
-    Quantity,
     Quotient,
     Remainder,
     Sin,
     Sqrt,
     Tan,
-    Unit,
+)
 
+# Unit and quantity
+from ._unit import (  # noqa
+    Quantity,
+    Unit,
 )
 
 # Pacing protocol

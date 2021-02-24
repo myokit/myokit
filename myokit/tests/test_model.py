@@ -74,10 +74,17 @@ class ModelTest(unittest.TestCase):
             myokit.DuplicateFunctionArgument, 'already in use',
             m.add_function, 'g', ('a', 'a'), 'a + a')
 
-        # Dot operator is not allowed
+        # Dot operator is not allowed, nor are init or partial
         self.assertRaisesRegex(
             myokit.InvalidFunction, r'dot\(\) operator',
             m.add_function, 'fdot', ('a', ), 'dot(a)')
+        a = myokit.Name('a')
+        self.assertRaisesRegex(
+            myokit.InvalidFunction, r'partial\(\) operator',
+            m.add_function, 'fpart', ('a', ), myokit.PartialDerivative(a, a))
+        self.assertRaisesRegex(
+            myokit.InvalidFunction, r'init\(\) operator',
+            m.add_function, 'finit', ('a', ), myokit.InitialValue(a))
 
         # Unused argument
         self.assertRaisesRegex(

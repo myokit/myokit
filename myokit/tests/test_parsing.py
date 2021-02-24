@@ -1588,7 +1588,7 @@ class ModelParseTest(unittest.TestCase):
             p = dot(1 - x)
             """
         self.assertRaisesRegex(
-            myokit.ParseError, 'named variables', myokit.parse, code)
+            myokit.ParseError, 'only be used on variables', myokit.parse, code)
 
     def test_strip_expression_units(self):
         """
