@@ -229,7 +229,7 @@ class LegacySimulationTest(unittest.TestCase):
 
         # Cancel from reporter
         self.assertRaises(
-            myokit.LegacySimulationCancelledError, self.sim.run, 1,
+            myokit.SimulationCancelledError, self.sim.run, 1,
             progress=CancellingReporter(0))
 
     def test_apd_tracking(self):
