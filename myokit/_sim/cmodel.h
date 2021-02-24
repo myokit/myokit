@@ -327,7 +327,7 @@ struct Model_Memory {
 
     /* Sensitivity of intermediary variables needed to calculate remaining
        sensitivities. */
-    realtype ns_intermediary;
+    int ns_intermediary;
     realtype* s_intermediary;
 
     /* Logging initialised? */
