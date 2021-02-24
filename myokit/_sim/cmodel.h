@@ -308,8 +308,11 @@ struct Model_Memory {
     realtype* literals;
     realtype* literal_derived;
 
-    /* Number of parameters and initial states to calculate sensitivities
-       w.r.t. */
+    /* Number of outputs (y in dy/dx) to calculate sensitivities of */
+    int ns_dependents;
+
+    /* Number of parameters and initial states (x in dy/dx) to calculate
+       sensitivities w.r.t. */
     int ns_independents;
 
     /* Pointers to the independent variables */
@@ -1055,7 +1058,7 @@ Model_LogSensitivityMatrix(Model model, PyObject* list)
     if (model == NULL) return Model_INVALID_MODEL;
 
     /* Create outer tuple */
-    l1 = PyTuple_New(2);
+    l1 = PyTuple_New(model->ns_dependents);
     if (l1 == NULL) goto nomem;
 
     /* Note that PyTuple_SetItem steals a reference */
@@ -1142,7 +1145,10 @@ Model Model_Create(Model_Flag* flagp)
      * Sensitivities
      */
 
-    /* Total number of independent variables to calculate sensitivities w.r.t. */
+    /* Total number of dependents to output sensitivities of */
+    model->ns_dependents = <?= len(s_dependents) ?>;
+
+    /* Total number of independent to calculate sensitivities w.r.t. */
     model->ns_independents = <?= len(s_independents) ?>;
 
     /* Pointers to independent variables */
