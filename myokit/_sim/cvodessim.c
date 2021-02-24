@@ -1100,7 +1100,7 @@ sim_step(PyObject *self, PyObject *args)
                         val = PyTuple_New(2);
                         PyTuple_SetItem(val, 0, PyFloat_FromDouble(t)); /* Steals reference, so this is ok */
                         PyTuple_SetItem(val, 1, PyLong_FromLong(rf_direction[0]));
-                        if (!PyList_Append(rf_list, val)) {    /* Doesn't steal, need to decref */
+                        if (PyList_Append(rf_list, val)) {    /* Doesn't steal, need to decref */
                             Py_DECREF(val);
                             return sim_cleanx("Call to append() failed on root finding list.");
                         }

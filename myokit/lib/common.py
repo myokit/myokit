@@ -689,7 +689,7 @@ class Restitution(object):
         }
 
         # Create simulation
-        s = myokit.Simulation(self._model, apd_var=self._vvar)
+        s = myokit.Simulation(self._model)
         s.set_max_step_size(self._max_step_size)
 
         # Start testing
@@ -714,6 +714,7 @@ class Restitution(object):
             d, a = s.run(
                 c * self._beats,
                 log=myokit.LOG_NONE,
+                apd_variable=self._vvar,
                 apd_threshold=self._apd_threshold
             )
 

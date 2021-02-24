@@ -239,12 +239,13 @@ class SimulationTest(unittest.TestCase):
 
         # Apd var is not a state
         self.assertRaisesRegex(
-            ValueError, 'must be a state', myokit.Simulation, self.model,
-            self.protocol, apd_var='ina.INa')
+            ValueError, 'must be a state',
+            self.sim.run, 1000, apd_variable='ina.INa')
 
         # No apd var given, but threshold provided
         self.assertRaisesRegex(
-            ValueError, 'without apd_var', self.sim.run, 1, apd_threshold=12)
+            ValueError, 'no `apd_variable` specified',
+            self.sim.run, 1, apd_threshold=12)
 
     def test_last_state(self):
         # Returns the last state before an error, or None.

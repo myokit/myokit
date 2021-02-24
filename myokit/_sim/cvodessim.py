@@ -353,7 +353,7 @@ class Simulation(myokit.CModule):
         """
         return (
             self.__class__,
-            (self._model, self._protocol, self._sensitivites),
+            (self._model, self._protocol, self._sensitivities),
             (
                 self._time,
                 self._state,
