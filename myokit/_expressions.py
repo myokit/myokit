@@ -213,8 +213,8 @@ class Expression(object):
         :class:`InitialValue`, taking derivatives with respect to
         a class:`Derivative` or :class:`PartialDerivative` is not supported.
 
-        Expressions involving variables
-        -------------------------------
+        **Expressions involving variables**
+
         Partial derivatives are determined recursively. If, at any point in
         this recursion, a :class:`Name` or :class:`Derivative` is encountered,
         this is handled in the following way:
@@ -236,15 +236,13 @@ class Expression(object):
         - The partial derivative of a :class:`Name` referencing a bound
           variable is zero.
 
-        Simplification
-        --------------
+        **Simplification**
 
         Some effort is made to eliminate expressions that evaluate to zero, but
         no further simplification is performed. Multiplications by 1 are
         preserved as these can provide valuable unit information.
 
-        Conditional expressions
-        -----------------------
+        **Conditional expressions**
 
         When calculating derivatives, the following simplifying assumptions are
         made with respect to conditional expressions:
@@ -255,8 +253,7 @@ class Expression(object):
           expression with the original operands replaced by their derivatives,
           e.g. ``if(condition, a, b)`` becomes ``if(condition, a', b')``.
 
-        Discontinuous functions
-        -----------------------
+        **Discontinuous functions**
 
         Similarly, some functions are discontinuous so that their derivatives
         are undefined at certain points, but this method returns the
@@ -279,8 +276,7 @@ class Expression(object):
           for ``x < 0``, and undefined for ``x == 0``, but this method will
           return ``f'(x)`` for ``x >= 0`` and ``-f'(x)``s for ``x < 0``.
 
-        Non-integer powers
-        ------------------
+        **Non-integer powers**
 
         Since ``a(x)^b(x)`` is undefined for non-integer ``b(x)`` when
         `a(x) < 0``, the derivative of ``a(x)^b(x)`` is only defined if
