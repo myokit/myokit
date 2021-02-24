@@ -351,9 +351,16 @@ class Simulation(myokit.CModule):
 
         See: https://docs.python.org/3/library/pickle.html#object.__reduce__
         """
+        sens_arg = None
+        if self._sensitivities:
+            # Don't pass in expressions, as they'll need to pickle the
+            # variables as well, which in turn will need a component, model,
+            # etc.
+            sens_arg = [[x.code() for x in y] for y in self._sensitivities]
+
         return (
             self.__class__,
-            (self._model, self._protocol, self._sensitivities),
+            (self._model, self._protocol, sens_arg),
             (
                 self._time,
                 self._state,
