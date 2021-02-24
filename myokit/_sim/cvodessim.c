@@ -5,6 +5,11 @@
 # sensitivities of variables ``v`` w.r.t. parameters or initial conditions and
 # perform root-finding.
 #
+# Note: For compatibility with older Python versions on windows, we need to
+# stick to a slightly outdated C standard (i.e. C90). For a list of which
+# microsoft compilers accept which C standard (and how that matches with python
+# versions), see https://bugs.python.org/issue42380
+#
 # Required variables
 # -----------------------------------------------------------------------------
 # module_name     A module name
