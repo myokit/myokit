@@ -256,7 +256,6 @@ double tmax;    /* The final simulation time */
 /*
  * Logging
  */
-
 int dynamic_logging;    /* True if logging every point. */
 PyObject* log_dict;     /* The log dict (DataLog) */
 PyObject* sens_list;    /* Sensitivity logging list */
