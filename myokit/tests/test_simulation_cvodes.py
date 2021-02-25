@@ -15,6 +15,7 @@ import platform
 import re
 import unittest
 import sys
+import warnings
 
 import myokit
 
@@ -27,9 +28,9 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
-class LegacySimulationTest(unittest.TestCase):
+class SimulationTest(unittest.TestCase):
     """
-    Tests the Legacy CVODE simulation class.
+    Tests the CVode simulation class.
     """
 
     @classmethod
@@ -39,7 +40,7 @@ class LegacySimulationTest(unittest.TestCase):
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         cls.model = m
         cls.protocol = p
-        cls.sim = myokit.LegacySimulation(cls.model, cls.protocol)
+        cls.sim = myokit.Simulation(cls.model, cls.protocol)
 
     def test_pre(self):
         # Test pre-pacing.
@@ -172,7 +173,7 @@ class LegacySimulationTest(unittest.TestCase):
         p.schedule(3, 8, 2)
 
         # Simulate with dynamic logging
-        s = myokit.LegacySimulation(m, p)
+        s = myokit.Simulation(m, p)
         d = s.run(p.characteristic_time())
         time = list(d.time())
         value = list(d['c.v'])
@@ -211,7 +212,7 @@ class LegacySimulationTest(unittest.TestCase):
         # Test running with a progress reporter.
 
         # Test if it works
-        sim = myokit.LegacySimulation(self.model, self.protocol)
+        sim = myokit.Simulation(self.model, self.protocol)
         with myokit.PyCapture() as c:
             sim.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
@@ -239,12 +240,13 @@ class LegacySimulationTest(unittest.TestCase):
 
         # Apd var is not a state
         self.assertRaisesRegex(
-            ValueError, 'must be a state', myokit.LegacySimulation, self.model,
-            self.protocol, apd_var='ina.INa')
+            ValueError, 'must be a state',
+            self.sim.run, 1000, apd_variable='ina.INa')
 
         # No apd var given, but threshold provided
         self.assertRaisesRegex(
-            ValueError, 'without apd_var', self.sim.run, 1, apd_threshold=12)
+            ValueError, 'no `apd_variable` specified',
+            self.sim.run, 1, apd_threshold=12)
 
     def test_last_state(self):
         # Returns the last state before an error, or None.
@@ -252,7 +254,7 @@ class LegacySimulationTest(unittest.TestCase):
         m = self.model.clone()
         istim = m.get('membrane.i_stim')
         istim.set_rhs('engine.pace / stim_amplitude')
-        s = myokit.LegacySimulation(m, self.protocol)
+        s = myokit.Simulation(m, self.protocol)
         self.assertIsNone(s.last_state())
         s.run(1)
         self.assertIsNone(s.last_state())
@@ -263,10 +265,10 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertEqual(s.last_state(), s.state())
 
     def test_last_evaluations_and_steps(self):
-        # Test :meth:`LegacySimulation.last_number_of_evaluations()` and
-        # :meth:`LegacySimulation.last_number_of_steps()`
+        # Test :meth:`Simulation.last_number_of_evaluations()` and
+        # :meth:`Simulation.last_number_of_steps()`
 
-        s = myokit.LegacySimulation(self.model, self.protocol)
+        s = myokit.Simulation(self.model, self.protocol)
         self.assertEqual(s.last_number_of_evaluations(), 0)
         self.assertEqual(s.last_number_of_steps(), 0)
         s.run(1)
@@ -276,7 +278,7 @@ class LegacySimulationTest(unittest.TestCase):
             s.last_number_of_evaluations(), s.last_number_of_steps())
 
     def test_eval_derivatives(self):
-        # Test :meth:`LegacySimulation.eval_derivatives()`.
+        # Test :meth:`Simulation.eval_derivatives()`.
 
         self.sim.reset()
         s1 = self.sim.state()
@@ -289,7 +291,7 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertEqual(d1, self.sim.eval_derivatives())
 
     def test_set_tolerance(self):
-        # Test :meth:`LegacySimulation.set_tolerance()`.
+        # Test :meth:`Simulation.set_tolerance()`.
 
         self.assertRaisesRegex(
             ValueError, 'Absolute', self.sim.set_tolerance, abs_tol=0)
@@ -298,8 +300,8 @@ class LegacySimulationTest(unittest.TestCase):
         self.sim.set_tolerance(1e-6, 1e-4)
 
     def test_set_step_size(self):
-        # Test :meth:`LegacySimulation.set_min_step_size()` and
-        # :meth:`LegacySimulation.set_max_step_size()`.
+        # Test :meth:`Simulation.set_min_step_size()` and
+        # :meth:`Simulation.set_max_step_size()`.
 
         # Minimum: set, unset, allow negative value to unset
         self.sim.set_min_step_size(0.1)
@@ -312,8 +314,8 @@ class LegacySimulationTest(unittest.TestCase):
         self.sim.set_max_step_size(-1)
 
     def test_set_state(self):
-        # Test :meth:`LegacySimulation.set_state()` and
-        # :meth:`LegacySimulation.set_default_state()`.
+        # Test :meth:`Simulation.set_state()` and
+        # :meth:`Simulation.set_default_state()`.
 
         # Get state and default state, both different from current
         state = self.sim.state()
@@ -333,7 +335,7 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertEqual(self.sim.default_state(), default_state)
 
     def test_set_constant(self):
-        # Test :meth:`LegacySimulation.set_constant()`.
+        # Test :meth:`Simulation.set_constant()`.
 
         # Literal
         self.sim.set_constant('cell.Na_i', 11)
@@ -398,9 +400,10 @@ class LegacySimulationTest(unittest.TestCase):
         m = self.model.clone()
         v = m.get('membrane.V')
         v.set_rhs(myokit.Multiply(v.rhs(), myokit.Number(1e18)))
-        s = myokit.LegacySimulation(m, self.protocol)
-        self.assertRaisesRegex(
-            myokit.SimulationError, 'numerical error', s.run, 5000)
+        s = myokit.Simulation(m, self.protocol)
+        with warnings.catch_warnings(record=True):
+            self.assertRaisesRegex(
+                myokit.SimulationError, 'numerical error', s.run, 5000)
 
     def test_cvode_simulation_with_zero_states(self):
         # Tests running cvode simulations on models with no ODEs
@@ -424,12 +427,12 @@ class LegacySimulationTest(unittest.TestCase):
         z.promote(0)
 
         # Test without protocol and dynamic logging
-        s1 = myokit.LegacySimulation(m1)
+        s1 = myokit.Simulation(m1)
         d1 = s1.run(5)
         self.assertEqual(len(d1.time()), 2)
         self.assertEqual(list(d1.time()), [0, 5])
         self.assertEqual(list(d1['c.w']), [0, 0])
-        s2 = myokit.LegacySimulation(m2)
+        s2 = myokit.Simulation(m2)
         d2 = s2.run(6, log_times=d1.time())
         self.assertEqual(d1.time(), d2.time())
         self.assertEqual(d1['c.w'], d2['c.w'])
@@ -478,40 +481,32 @@ class LegacySimulationTest(unittest.TestCase):
     def test_pickling(self):
         # Test pickling a simulation
 
-        # Test with myokit.Protocol
+        # Test with myokit.Protocol and sensitivities
         m, p, _ = myokit.load('example')
-        s1 = myokit.LegacySimulation(m, p)
+        s1 = myokit.Simulation(m, p, [
+            ['ina.INa', 'ica.ICa', 'membrane.V'],
+            ['ina.gNa', 'init(membrane.V)']
+        ])
         s1.pre(123)
+        # ...and with simulation properties
+        s1.set_tolerance(1e-8, 1e-8)
+        s1.set_min_step_size(1e-4)
+        s1.set_max_step_size(0.1)
+        # ...and changed properties
+        s1.set_constant('membrane.C', 1.1)
         s_bytes = pickle.dumps(s1)
         s2 = pickle.loads(s_bytes)
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
         self.assertEqual(s1.default_state(), s2.default_state())
-        s1.run(123, log=myokit.LOG_NONE)
-        s2.run(123, log=myokit.LOG_NONE)
+        d1, e1 = s1.run(123, log=myokit.LOG_NONE)
+        d2, e2 = s2.run(123, log=myokit.LOG_NONE)
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
-
-        # Test simulation properties
-        s1.set_tolerance(1e-8, 1e-8)
-        s1.set_min_step_size(1e-2)
-        s1.set_max_step_size(0.1)
-        s2 = pickle.loads(pickle.dumps(s1))
-        s1.run(23, log=myokit.LOG_NONE)
-        s2.run(23, log=myokit.LOG_NONE)
-        self.assertEqual(s1.time(), s2.time())
-        self.assertEqual(s1.state(), s2.state())
-
-        # Test changed constants
-        s1.set_constant('membrane.C', 1.1)
-        s2 = pickle.loads(pickle.dumps(s1))
-        s1.run(17, log=myokit.LOG_NONE)
-        s2.run(17, log=myokit.LOG_NONE)
-        self.assertEqual(s1.time(), s2.time())
-        self.assertEqual(s1.state(), s2.state())
+        self.assertTrue(np.all(e1 == e2))
 
 
-class RuntimeLegacySimulationTest(unittest.TestCase):
+class RuntimeSimulationTest(unittest.TestCase):
     """
     Tests the obtaining of runtimes from the CVode simulation.
     """

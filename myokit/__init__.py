@@ -297,10 +297,10 @@ FORCE_PYSIDE2 = False
 # Library paths and settings
 #
 
-# Location of the Sundials (CVODE) shared library objects (.dll or .so)
+# Location of the Sundials (CVODES) shared library objects (.dll or .so)
 SUNDIALS_LIB = []
 
-# Location of the Sundials (CVODE) header files (.h)
+# Location of the Sundials (CVODES) header files (.h)
 SUNDIALS_INC = []
 
 # Sundials version number. Defaults to 0.

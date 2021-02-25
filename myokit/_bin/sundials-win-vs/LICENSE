@@ -1,5 +1,5 @@
-CVODE is part of the Sundials suite of solvers. Myokit uses CVODE to
-run single cell simulations.
+CVODES is part of the Sundials suite of solvers. Myokit uses CVODES to run
+single cell simulations.
 
 -------------------------------------------------------------------------------
 

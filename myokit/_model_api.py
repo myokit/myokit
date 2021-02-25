@@ -2991,17 +2991,6 @@ class Model(ObjectWithMeta, VarProvider):
             return None
         return time.unit(mode)
 
-    def _unused_label(self):
-        """
-        Generates and returns a label/binding not currently used by this model.
-        """
-        for i in range(250):
-            label = 'automatically_generated_label_' + str(myokit._pid_hash())
-            if (label not in self._labels) and (label not in self._bindings):
-                return label
-        raise RuntimeError(     # pragma: no cover
-            'Unable to generate a unique unused label or binding.')
-
     def user_functions(self):
         """
         Returns a dictionary mapping this model's user function names to their

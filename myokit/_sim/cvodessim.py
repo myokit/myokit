@@ -351,9 +351,16 @@ class Simulation(myokit.CModule):
 
         See: https://docs.python.org/3/library/pickle.html#object.__reduce__
         """
+        sens_arg = None
+        if self._sensitivities:
+            # Don't pass in expressions, as they'll need to pickle the
+            # variables as well, which in turn will need a component, model,
+            # etc.
+            sens_arg = [[x.code() for x in y] for y in self._sensitivities]
+
         return (
             self.__class__,
-            (self._model, self._protocol, self._sensitivities),
+            (self._model, self._protocol, sens_arg),
             (
                 self._time,
                 self._state,
@@ -647,7 +654,7 @@ class Simulation(myokit.CModule):
                         t = self._sim.sim_step()
 
             except ArithmeticError as e:
-                # Some CVODE errors are set to raise an ArithmeticError,
+                # Some CVODE(S) errors are set to raise an ArithmeticError,
                 # which users may be able to debug.
 
                 # Store error state
@@ -893,7 +900,7 @@ class Simulation(myokit.CModule):
         """
         Sets the solver tolerances. Absolute tolerance is set using
         ``abs_tol``, relative tolerance using ``rel_tol``. For more information
-        on these values, see the Sundials CVODE documentation.
+        on these values, see the Sundials CVODES documentation.
         """
         abs_tol = float(abs_tol)
         if abs_tol <= 0:

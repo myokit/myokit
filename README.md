@@ -36,7 +36,7 @@ On Linux and Windows, start menu icons can be added by running
 
     python -m myokit icons
 
-To run single-cell simulations, [CVODE](https://computation.llnl.gov/projects/sundials/sundials-software) must be installed (but Windows users can skip this step, as binaries are included in the pip install).
+To run single-cell simulations, [CVODES](https://computation.llnl.gov/projects/sundials/sundials-software) must be installed (but Windows users can skip this step, as binaries are included in the pip install).
 In addition, Myokit needs a working C/C++ compiler to be present on the system.
 
 Existing Myokit installations can be upgraded using

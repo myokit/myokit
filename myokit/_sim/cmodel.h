@@ -308,8 +308,11 @@ struct Model_Memory {
     realtype* literals;
     realtype* literal_derived;
 
-    /* Number of parameters and initial states to calculate sensitivities
-       w.r.t. */
+    /* Number of outputs (y in dy/dx) to calculate sensitivities of */
+    int ns_dependents;
+
+    /* Number of parameters and initial states (x in dy/dx) to calculate
+       sensitivities w.r.t. */
     int ns_independents;
 
     /* Pointers to the independent variables */
@@ -324,7 +327,7 @@ struct Model_Memory {
 
     /* Sensitivity of intermediary variables needed to calculate remaining
        sensitivities. */
-    realtype ns_intermediary;
+    int ns_intermediary;
     realtype* s_intermediary;
 
     /* Logging initialised? */
@@ -849,7 +852,7 @@ for eqs in s_output_equations:
         if i == 0:
             print(tab + '/* Sensitivity w.r.t. ' + eq.lhs.independent_expression().code() + ' */')
         print(tab + w.eq(eq) + ';')
-    print()
+    print('')
 ?>
     #ifdef Model_CACHING
     /* Indicate sensitivity outputs can be trusted. */
@@ -1055,14 +1058,14 @@ Model_LogSensitivityMatrix(Model model, PyObject* list)
     if (model == NULL) return Model_INVALID_MODEL;
 
     /* Create outer tuple */
-    l1 = PyTuple_New(2);
+    l1 = PyTuple_New(model->ns_dependents);
     if (l1 == NULL) goto nomem;
 
     /* Note that PyTuple_SetItem steals a reference */
 <?
 for i, e1 in enumerate(s_dependents):
     var = e1.var()
-    print()
+    print('')
     print(tab + 'l2 = PyTuple_New(model->ns_independents);')
     print(tab + 'if (l2 == NULL) goto nomem;')
     for j, e2 in enumerate(s_independents):
@@ -1142,7 +1145,10 @@ Model Model_Create(Model_Flag* flagp)
      * Sensitivities
      */
 
-    /* Total number of independent variables to calculate sensitivities w.r.t. */
+    /* Total number of dependents to output sensitivities of */
+    model->ns_dependents = <?= len(s_dependents) ?>;
+
+    /* Total number of independent to calculate sensitivities w.r.t. */
     model->ns_independents = <?= len(s_independents) ?>;
 
     /* Pointers to independent variables */

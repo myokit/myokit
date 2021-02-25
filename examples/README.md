@@ -101,7 +101,7 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 
 0. Running single current simulations
     - [ ] Creating a step protocol (pacing factory)
-    - [ ] CVODE sim
+    - [ ] CVODES sim
     - [ ] HH
     - [ ] Markov
     - [ ] Protocol options

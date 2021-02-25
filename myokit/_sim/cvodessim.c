@@ -5,6 +5,11 @@
 # sensitivities of variables ``v`` w.r.t. parameters or initial conditions and
 # perform root-finding.
 #
+# Note: For compatibility with older Python versions on windows, we need to
+# stick to a slightly outdated C standard (i.e. C90). For a list of which
+# microsoft compilers accept which C standard (and how that matches with python
+# versions), see https://bugs.python.org/issue42380
+#
 # Required variables
 # -----------------------------------------------------------------------------
 # module_name     A module name
@@ -146,6 +151,24 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
 }
 
 /*
+ * Error and warning message handler for CVODES.
+ * Error messages are already set via check_cvode_flag, so this method
+ * suppresses error messages.
+ * Warnings are passed to Python's warning system, where they can be
+ * caught or suppressed using the warnings module.
+ */
+void
+ErrorHandler(int error_code, const char *module, const char *function,
+             char *msg, void *eh_data)
+{
+    char errstr[1024];
+    if (error_code > 0) {
+        sprintf(errstr, "CVODES: %s", msg);
+        PyErr_WarnEx(PyExc_RuntimeWarning, errstr, 1);
+    }
+}
+
+/*
  * Initialisation status.
  * Proper sequence is init(), repeated step() calls till finished, then clean.
  */
@@ -238,7 +261,6 @@ double tmax;    /* The final simulation time */
 /*
  * Logging
  */
-
 int dynamic_logging;    /* True if logging every point. */
 PyObject* log_dict;     /* The log dict (DataLog) */
 PyObject* sens_list;    /* Sensitivity logging list */
@@ -779,6 +801,10 @@ sim_init(PyObject *self, PyObject *args)
         cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
         #endif
         if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+
+        /* Set error and warning-message handler */
+        flag_cvode = CVodeSetErrHandlerFn(cvode_mem, ErrorHandler, NULL);
+        if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
         /* Initialise solver memory, specify the rhs */
         flag_cvode = CVodeInit(cvode_mem, rhs, t, y);
