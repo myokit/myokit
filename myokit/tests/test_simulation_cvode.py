@@ -27,6 +27,7 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
+@unittest.skipIf(platform.system() != 'Linux', 'Legacy CVODE tests')
 class LegacySimulationTest(unittest.TestCase):
     """
     Tests the Legacy CVODE simulation class.
