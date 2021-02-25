@@ -12,6 +12,7 @@ import os
 import myokit
 import numpy as np
 import platform
+import warnings
 
 # Location of C template
 SOURCE_FILE = 'icsim.cpp'
@@ -80,6 +81,12 @@ class ICSimulation(myokit.CppModule):
 
     def __init__(self, model, protocol=None):
         super(ICSimulation, self).__init__()
+
+        # Deprecated on 2021-02-25
+        warnings.warn(
+            'The class `ICSimulation` is deprecated.'
+            ' Sensitivities w.r.t. initial conditions can now be calculated'
+            ' with the single cell `Simulation` class.')
 
         # Require a valid model
         if not model.is_valid():
