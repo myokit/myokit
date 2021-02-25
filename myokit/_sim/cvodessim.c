@@ -822,7 +822,19 @@ sim_init(PyObject *self, PyObject *args)
         flag_cvode = CVodeSetMinStep(cvode_mem, dt_min < 0 ? 0.0 : dt_min);
         if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-        #if MYOKIT_SUNDIALS_VERSION >= 30000
+        #if MYOKIT_SUNDIALS_VERSION >= 40000
+            /* Create dense matrix for use in linear solves */
+            sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
+            if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+
+            /* Create dense linear solver object with matrix */
+            sundense_solver = SUNLinSol_Dense(y, sundense_matrix);
+            if (check_cvode_flag((void *)sundense_solver, "SUNLinSol_Dense", 0)) return sim_clean();
+
+            /* Attach the matrix and solver to cvode */
+            flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+            if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
+        #elif MYOKIT_SUNDIALS_VERSION >= 30000
             /* Create dense matrix for use in linear solves */
             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
             if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
