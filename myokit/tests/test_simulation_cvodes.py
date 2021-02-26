@@ -28,6 +28,112 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
+def analytic_test_problem(parameters, times):
+    """
+    This function returns the analytic solution for the state dynamics partial
+    derivatives for a repeated bolus injection into a compartment with linear
+    clearance. For details of the derivation please check the example notebook
+    examples/repeated_bolus_injections.ipynb.
+
+    Parameters
+    ----------
+    parameters
+        A list with the initial drug amount, the elimination rate and the
+        administered dose at each injection.
+    times
+        The times for evaluation.
+    """
+    times = np.asarray(times)
+
+    # Unpack parameters
+    a_0, elimination_rate, dose = parameters
+
+    # Compute time since last dose
+    delta_times = times - np.floor(times)
+
+    # Compute a max
+    a_max = dose / (1 - np.exp(-elimination_rate))
+
+    # Compute amount
+    amount = \
+        a_0 * np.exp(-elimination_rate * times) + \
+        a_max * (
+            np.exp(-elimination_rate * delta_times) -
+            np.exp(-elimination_rate * (times + 1)))
+
+    # Compute partials
+    damount_dinitial_amount = np.exp(-elimination_rate * times)
+    damount_delimination_rate = \
+        -times * a_0 * np.exp(-elimination_rate * times) - \
+        a_max * (
+            delta_times * np.exp(-elimination_rate * delta_times) -
+            (times + 1) * np.exp(-elimination_rate * (times + 1))) - \
+        a_max * (
+            np.exp(-elimination_rate * delta_times) -
+            np.exp(-elimination_rate * (times + 1))) * \
+        np.exp(-elimination_rate) / (1 - np.exp(-elimination_rate))
+    partials = np.vstack([damount_dinitial_amount, damount_delimination_rate])
+
+    return amount, partials
+
+
+class SimulationAccuracyTest(unittest.TestCase):
+    """
+    Tests the accurcay of the CVode simulation class against an analytical
+    solution.
+    """
+    @classmethod
+    def setUpClass(cls):
+        # Create model
+        model = myokit.Model()
+        comp = model.add_component('myokit')
+
+        amount = comp.add_variable('amount')
+        time = comp.add_variable('time')
+        dose_rate = comp.add_variable('dose_rate')
+        elimination_rate = comp.add_variable('elimination_rate')
+
+        time.set_binding('time')
+        dose_rate.set_binding('pace')
+
+        amount.promote(10)
+        amount.set_rhs(
+            myokit.Minus(
+                myokit.Name(dose_rate),
+                myokit.Multiply(
+                    myokit.Name(elimination_rate),
+                    myokit.Name(amount))))
+        elimination_rate.set_rhs(myokit.Number(1))
+        time.set_rhs(myokit.Number(0))
+        dose_rate.set_rhs(myokit.Number(0))
+
+        # Create protocol
+        amount = 5
+        duration = 0.001
+        protocol = myokit.pacing.blocktrain(
+            1, duration, offset=0, level=amount / duration, limit=0)
+
+        # Set sensitivies
+        sensitivities = (
+            ['myokit.amount'],
+            ['init(myokit.amount)', 'myokit.elimination_rate'])
+
+        cls.sim = myokit.Simulation(model, protocol, sensitivities)
+
+    def test_accuracy(self):
+        # Solve problem analytically
+        parameters = [10, 1, 5]
+        times = np.linspace(0.1, 10, 13)
+        ref_sol, ref_partials = analytic_test_problem(parameters, times)
+
+        # Solve problem with simulator
+        sol, partials = self.sim.run(11, log_times=times, log=['myokit.amount'])
+        sol = np.array(sol['myokit.amount'])
+        partials = np.array(partials).squeeze()
+
+        self.assertEqual(sol[0], ref_sol[0])
+
+
 class SimulationTest(unittest.TestCase):
     """
     Tests the CVode simulation class.
