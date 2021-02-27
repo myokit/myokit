@@ -28,112 +28,6 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
-def analytic_test_problem(parameters, times):
-    """
-    This function returns the analytic solution for the state dynamics partial
-    derivatives for a repeated bolus injection into a compartment with linear
-    clearance. For details of the derivation please check the example notebook
-    examples/repeated_bolus_injections.ipynb.
-
-    Parameters
-    ----------
-    parameters
-        A list with the initial drug amount, the elimination rate and the
-        administered dose at each injection.
-    times
-        The times for evaluation.
-    """
-    times = np.asarray(times)
-
-    # Unpack parameters
-    a_0, elimination_rate, dose = parameters
-
-    # Compute time since last dose
-    delta_times = times - np.floor(times)
-
-    # Compute a max
-    a_max = dose / (1 - np.exp(-elimination_rate))
-
-    # Compute amount
-    amount = \
-        a_0 * np.exp(-elimination_rate * times) + \
-        a_max * (
-            np.exp(-elimination_rate * delta_times) -
-            np.exp(-elimination_rate * (times + 1)))
-
-    # Compute partials
-    damount_dinitial_amount = np.exp(-elimination_rate * times)
-    damount_delimination_rate = \
-        -times * a_0 * np.exp(-elimination_rate * times) - \
-        a_max * (
-            delta_times * np.exp(-elimination_rate * delta_times) -
-            (times + 1) * np.exp(-elimination_rate * (times + 1))) - \
-        a_max * (
-            np.exp(-elimination_rate * delta_times) -
-            np.exp(-elimination_rate * (times + 1))) * \
-        np.exp(-elimination_rate) / (1 - np.exp(-elimination_rate))
-    partials = np.vstack([damount_dinitial_amount, damount_delimination_rate])
-
-    return amount, partials
-
-
-class SimulationAccuracyTest(unittest.TestCase):
-    """
-    Tests the accurcay of the CVode simulation class against an analytical
-    solution.
-    """
-    @classmethod
-    def setUpClass(cls):
-        # Create model
-        model = myokit.Model()
-        comp = model.add_component('myokit')
-
-        amount = comp.add_variable('amount')
-        time = comp.add_variable('time')
-        dose_rate = comp.add_variable('dose_rate')
-        elimination_rate = comp.add_variable('elimination_rate')
-
-        time.set_binding('time')
-        dose_rate.set_binding('pace')
-
-        amount.promote(10)
-        amount.set_rhs(
-            myokit.Minus(
-                myokit.Name(dose_rate),
-                myokit.Multiply(
-                    myokit.Name(elimination_rate),
-                    myokit.Name(amount))))
-        elimination_rate.set_rhs(myokit.Number(1))
-        time.set_rhs(myokit.Number(0))
-        dose_rate.set_rhs(myokit.Number(0))
-
-        # Create protocol
-        amount = 5
-        duration = 0.001
-        protocol = myokit.pacing.blocktrain(
-            1, duration, offset=0, level=amount / duration, limit=0)
-
-        # Set sensitivies
-        sensitivities = (
-            ['myokit.amount'],
-            ['init(myokit.amount)', 'myokit.elimination_rate'])
-
-        cls.sim = myokit.Simulation(model, protocol, sensitivities)
-
-    def test_accuracy(self):
-        # Solve problem analytically
-        parameters = [10, 1, 5]
-        times = np.linspace(0.1, 10, 13)
-        ref_sol, ref_partials = analytic_test_problem(parameters, times)
-
-        # Solve problem with simulator
-        sol, partials = self.sim.run(11, log_times=times, log=['myokit.amount'])
-        sol = np.array(sol['myokit.amount'])
-        partials = np.array(partials).squeeze()
-
-        self.assertEqual(sol[0], ref_sol[0])
-
-
 class SimulationTest(unittest.TestCase):
     """
     Tests the CVode simulation class.
@@ -396,6 +290,91 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_state(s1)
         self.assertEqual(d1, self.sim.eval_derivatives())
 
+    def test_run_accuracy(self):
+        # Test :meth:`Simulation.run()` accuracy by comparing to
+        # analytic solution.
+
+        # Create bolus infusion model with linear clearance
+        model = myokit.Model()
+        comp = model.add_component('myokit')
+
+        amount = comp.add_variable('amount')
+        time = comp.add_variable('time')
+        dose_rate = comp.add_variable('dose_rate')
+        elimination_rate = comp.add_variable('elimination_rate')
+
+        time.set_binding('time')
+        dose_rate.set_binding('pace')
+
+        amount.promote(10)
+        amount.set_rhs(
+            myokit.Minus(
+                myokit.Name(dose_rate),
+                myokit.Multiply(
+                    myokit.Name(elimination_rate),
+                    myokit.Name(amount))))
+        elimination_rate.set_rhs(myokit.Number(1))
+        time.set_rhs(myokit.Number(0))
+        dose_rate.set_rhs(myokit.Number(0))
+
+        # Create protocol
+        amount = 5
+        duration = 0.001
+        protocol = myokit.pacing.blocktrain(
+            1, duration, offset=0, level=amount / duration, limit=0)
+
+        # Set sensitivies
+        sensitivities = (
+            ['myokit.amount'],
+            ['init(myokit.amount)', 'myokit.elimination_rate'])
+
+        sim = myokit.Simulation(model, protocol, sensitivities)
+
+        # Set tolerance to be controlled by abs_tolerance for
+        # easier comparison
+        sim.set_tolerance(abs_tol=1e-8, rel_tol=1e-30)
+
+        # Solve problem analytically
+        parameters = [10, 1, amount / duration, duration]
+        times = np.linspace(0.1, 10, 13)
+        ref_sol, ref_partials = analytic_test_problem(parameters, times)
+
+        # Solve problem with simulator
+        sol, partials = sim.run(
+            11, log_times=times, log=['myokit.amount'])
+        sol = np.array(sol['myokit.amount'])
+        partials = np.array(partials).squeeze()
+
+        # Check state
+        self.assertAlmostEqual(sol[0], ref_sol[0], 6)
+        self.assertAlmostEqual(sol[1], ref_sol[1], 6)
+        self.assertAlmostEqual(sol[2], ref_sol[2], 6)
+        self.assertAlmostEqual(sol[3], ref_sol[3], 6)
+        self.assertAlmostEqual(sol[4], ref_sol[4], 6)
+        self.assertAlmostEqual(sol[5], ref_sol[5], 6)
+        self.assertAlmostEqual(sol[6], ref_sol[6], 6)
+        self.assertAlmostEqual(sol[7], ref_sol[7], 6)
+        self.assertAlmostEqual(sol[8], ref_sol[8], 6)
+        self.assertAlmostEqual(sol[9], ref_sol[9], 6)
+        self.assertAlmostEqual(sol[10], ref_sol[10], 6)
+        self.assertAlmostEqual(sol[11], ref_sol[11], 6)
+        self.assertAlmostEqual(sol[12], ref_sol[12], 6)
+
+        # Check partials
+        self.assertAlmostEqual(partials[0, 0], ref_partials[0, 0], 6)
+        self.assertAlmostEqual(partials[1, 0], ref_partials[0, 1], 6)
+        self.assertAlmostEqual(partials[2, 0], ref_partials[0, 2], 6)
+        self.assertAlmostEqual(partials[3, 0], ref_partials[0, 3], 6)
+        self.assertAlmostEqual(partials[4, 0], ref_partials[0, 4], 6)
+        self.assertAlmostEqual(partials[5, 0], ref_partials[0, 5], 6)
+        self.assertAlmostEqual(partials[6, 0], ref_partials[0, 6], 6)
+        self.assertAlmostEqual(partials[7, 0], ref_partials[0, 7], 6)
+        self.assertAlmostEqual(partials[8, 0], ref_partials[0, 8], 6)
+        self.assertAlmostEqual(partials[9, 0], ref_partials[0, 9], 6)
+        self.assertAlmostEqual(partials[10, 0], ref_partials[0, 10], 6)
+        self.assertAlmostEqual(partials[11, 0], ref_partials[0, 11], 6)
+        self.assertAlmostEqual(partials[12, 0], ref_partials[0, 12], 6)
+
     def test_set_tolerance(self):
         # Test :meth:`Simulation.set_tolerance()`.
 
@@ -620,6 +599,95 @@ class RuntimeSimulationTest(unittest.TestCase):
         m, p, x = myokit.load(
             os.path.join(DIR_DATA, 'lr-1991-runtimes.mmt'))
         myokit.run(m, p, x)
+
+
+def analytic_test_problem(parameters, times):
+    """
+    This function returns the analytic solution of the state dynamics and
+    partial derivatives for a repeated bolus infusion into a compartment with
+    linear clearance.
+
+    For details of the derivation please check the example notebook
+    examples/repeated_bolus_infusion.ipynb.
+
+    Parameters
+    ----------
+    parameters
+        A list with the initial drug amount, the elimination rate and the
+        dose rate and the infusion duration at each injection.
+    times
+        The times for evaluation.
+    """
+    times = np.asarray(times)
+
+    # Unpack parameters
+    a_0, elimination_rate, dose_rate, duration = parameters
+
+    # Compute time since start last infusion
+    delta_times = times - np.floor(times)
+
+    # Create a mask for unfinished doses
+    mask = delta_times % 1 < duration
+
+    # Compute times since stop last infusion
+    delta_times -= duration
+
+    # Compute a max and da_max / delimination_rate
+    a_max = \
+        dose_rate * (1 - np.exp(-elimination_rate * duration)) \
+        / elimination_rate / (1 - np.exp(-elimination_rate))
+    da_max = \
+        - a_max * (
+            1 / elimination_rate
+            + np.exp(-elimination_rate) / (
+                1 - np.exp(-elimination_rate))) \
+        + duration * dose_rate * (
+            np.exp(-elimination_rate * duration)
+            / (1 - np.exp(-elimination_rate))
+            / elimination_rate)
+
+    # Compute amount
+    amount = a_0 * np.exp(-elimination_rate * times)
+    amount[mask] += \
+        a_max * (
+            np.exp(-elimination_rate * (delta_times[mask] + 1))
+            - np.exp(-elimination_rate * (times[mask] - duration + 1))) \
+        + dose_rate / elimination_rate * (
+            1 - np.exp(-elimination_rate * (delta_times[mask] + duration)))
+    amount[~mask] += \
+        a_max * (
+            np.exp(-elimination_rate * delta_times[~mask])
+            - np.exp(-elimination_rate * (times[~mask] - duration + 1)))
+
+    # Compute partials
+    damount_dinitial_amount = np.exp(-elimination_rate * times)
+    damount_delimination_rate = \
+        -times * a_0 * np.exp(-elimination_rate * times)
+    damount_delimination_rate[mask] += \
+        - a_max * (
+            (delta_times[mask] + 1)
+            * np.exp(-elimination_rate * (delta_times[mask] + 1))
+            - (times[mask] - duration + 1)
+            * np.exp(-elimination_rate * (times[mask] - duration + 1))) \
+        + da_max * (
+            np.exp(-elimination_rate * (delta_times[mask] + 1))
+            - np.exp(-elimination_rate * (times[mask] - duration + 1))) \
+        + dose_rate / elimination_rate * (
+            delta_times[mask] + duration + 1 / elimination_rate) \
+        * np.exp(-elimination_rate * (delta_times[mask] + duration)) \
+        - dose_rate / elimination_rate**2
+    damount_delimination_rate[~mask] += \
+        - a_max * (
+            delta_times[~mask]
+            * np.exp(-elimination_rate * delta_times[~mask])
+            - (times[~mask] - duration + 1) *
+            np.exp(-elimination_rate * (times[~mask] - duration + 1))) \
+        + da_max * (
+            np.exp(-elimination_rate * delta_times[~mask])
+            - np.exp(-elimination_rate * (times[~mask] - duration + 1)))
+    partials = np.vstack([damount_dinitial_amount, damount_delimination_rate])
+
+    return amount, partials
 
 
 if __name__ == '__main__':
