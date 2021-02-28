@@ -243,6 +243,11 @@ class LegacySimulationTest(unittest.TestCase):
             ValueError, 'must be a state', myokit.LegacySimulation, self.model,
             self.protocol, apd_var=v)
 
+        # Set a valid apd variable
+        v = self.model.get('ik.x')
+        sim = myokit.LegacySimulation(self.model, self.protocol, apd_var=v)
+        sim.run(1)
+
         # No apd var given, but threshold provided
         self.assertRaisesRegex(
             ValueError, 'without apd_var', self.sim.run, 1, apd_threshold=12)
