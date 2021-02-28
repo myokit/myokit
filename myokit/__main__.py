@@ -1843,7 +1843,6 @@ def test_examples_single(root, path):
 
 def test_examples_all(root, books):
     """ Runs all notebooks, and exits if one fails. """
-    import os
     import sys
 
     # Ignore books with deliberate errors, but check they still exist
