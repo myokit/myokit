@@ -560,6 +560,7 @@ class LegacySimulationTest(unittest.TestCase):
 
         s = myokit.LegacySimulation(
             self.model, self.protocol, apd_var='membrane.V')
+        s.set_tolerance(1e-8, 1e-8)
         d, apds = s.run(1800, log=myokit.LOG_NONE, apd_threshold=-70)
 
         # Check with threshold equal to V
@@ -567,8 +568,8 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertEqual(len(apds['duration']), 2)
         self.assertAlmostEqual(apds['start'][0], 1.19, places=1)
         self.assertAlmostEqual(apds['start'][1], 1001.19, places=1)
-        self.assertAlmostEqual(apds['duration'][0], 383.87, places=1)
-        self.assertAlmostEqual(apds['duration'][1], 378.35, places=1)
+        self.assertAlmostEqual(apds['duration'][0], 383.88262, places=0)
+        self.assertAlmostEqual(apds['duration'][1], 378.31448, places=0)
 
 
 if __name__ == '__main__':

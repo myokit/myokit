@@ -19,7 +19,7 @@ import warnings
 
 import myokit
 
-from shared import DIR_DATA, CancellingReporter
+from shared import DIR_DATA, CancellingReporter, test_case_pk_model
 
 # Unit testing in Python 2 and 3
 try:
@@ -420,8 +420,7 @@ class SimulationTest(unittest.TestCase):
         # Solve problem analytically
         parameters = [10, 1, amount / duration, duration]
         times = np.linspace(0.1, 10, 13)
-        ref_sol, ref_partials = analytic_bolus_infusion_model(
-            parameters, times)
+        ref_sol, ref_partials = test_case_pk_model(parameters, times)
 
         # Solve problem with simulator
         sol, partials = sim.run(
@@ -704,8 +703,8 @@ class SimulationTest(unittest.TestCase):
     def test_apd(self):
         # Test the apd rootfinding routine
 
-        s = myokit.Simulation(
-            self.model, self.protocol)
+        s = myokit.Simulation(self.model, self.protocol)
+        s.set_tolerance(1e-8, 1e-8)
         d, apds = s.run(
             1800, log=myokit.LOG_NONE,
             apd_variable='membrane.V', apd_threshold=-70)
@@ -715,97 +714,8 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(len(apds['duration']), 2)
         self.assertAlmostEqual(apds['start'][0], 1.19, places=1)
         self.assertAlmostEqual(apds['start'][1], 1001.19, places=1)
-        self.assertAlmostEqual(apds['duration'][0], 383.87, places=1)
-        self.assertAlmostEqual(apds['duration'][1], 378.35, places=1)
-
-
-def analytic_bolus_infusion_model(parameters, times):
-    """
-    This function returns the analytic solution of the state dynamics and
-    partial derivatives for a repeated bolus infusion into a compartment with
-    linear clearance.
-
-    For details of the derivation please check the example notebook
-    examples/repeated_bolus_infusion.ipynb.
-
-    Parameters
-    ----------
-    parameters
-        A list with the initial drug amount, the elimination rate and the
-        dose rate and the infusion duration at each injection.
-    times
-        The times for evaluation.
-    """
-    times = np.asarray(times)
-
-    # Unpack parameters
-    a_0, elimination_rate, dose_rate, duration = parameters
-
-    # Compute time since start last infusion
-    delta_times = times - np.floor(times)
-
-    # Create a mask for unfinished doses
-    mask = delta_times % 1 < duration
-
-    # Compute times since stop last infusion
-    delta_times -= duration
-
-    # Compute a max and da_max / delimination_rate
-    a_max = \
-        dose_rate * (1 - np.exp(-elimination_rate * duration)) \
-        / elimination_rate / (1 - np.exp(-elimination_rate))
-    da_max = \
-        - a_max * (
-            1 / elimination_rate
-            + np.exp(-elimination_rate) / (
-                1 - np.exp(-elimination_rate))) \
-        + duration * dose_rate * (
-            np.exp(-elimination_rate * duration)
-            / (1 - np.exp(-elimination_rate))
-            / elimination_rate)
-
-    # Compute amount
-    amount = a_0 * np.exp(-elimination_rate * times)
-    amount[mask] += \
-        a_max * (
-            np.exp(-elimination_rate * (delta_times[mask] + 1))
-            - np.exp(-elimination_rate * (times[mask] - duration + 1))) \
-        + dose_rate / elimination_rate * (
-            1 - np.exp(-elimination_rate * (delta_times[mask] + duration)))
-    amount[~mask] += \
-        a_max * (
-            np.exp(-elimination_rate * delta_times[~mask])
-            - np.exp(-elimination_rate * (times[~mask] - duration + 1)))
-
-    # Compute partials
-    damount_dinitial_amount = np.exp(-elimination_rate * times)
-    damount_delimination_rate = \
-        -times * a_0 * np.exp(-elimination_rate * times)
-    damount_delimination_rate[mask] += \
-        - a_max * (
-            (delta_times[mask] + 1)
-            * np.exp(-elimination_rate * (delta_times[mask] + 1))
-            - (times[mask] - duration + 1)
-            * np.exp(-elimination_rate * (times[mask] - duration + 1))) \
-        + da_max * (
-            np.exp(-elimination_rate * (delta_times[mask] + 1))
-            - np.exp(-elimination_rate * (times[mask] - duration + 1))) \
-        + dose_rate / elimination_rate * (
-            delta_times[mask] + duration + 1 / elimination_rate) \
-        * np.exp(-elimination_rate * (delta_times[mask] + duration)) \
-        - dose_rate / elimination_rate**2
-    damount_delimination_rate[~mask] += \
-        - a_max * (
-            delta_times[~mask]
-            * np.exp(-elimination_rate * delta_times[~mask])
-            - (times[~mask] - duration + 1) *
-            np.exp(-elimination_rate * (times[~mask] - duration + 1))) \
-        + da_max * (
-            np.exp(-elimination_rate * delta_times[~mask])
-            - np.exp(-elimination_rate * (times[~mask] - duration + 1)))
-    partials = np.vstack([damount_dinitial_amount, damount_delimination_rate])
-
-    return amount, partials
+        self.assertAlmostEqual(apds['duration'][0], 383.88262, places=1)
+        self.assertAlmostEqual(apds['duration'][1], 378.31448, places=1)
 
 
 if __name__ == '__main__':
