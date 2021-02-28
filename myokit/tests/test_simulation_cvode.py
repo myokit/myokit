@@ -555,15 +555,20 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertTrue(np.all(rt[1:] >= rt[:-1]))
         self.assertTrue(np.all(ev[1:] >= ev[:-1]))
 
+    def test_apd(self):
+        # Test the apd rootfinding routine
 
-class RuntimeLegacySimulationTest(unittest.TestCase):
-    """
-    Tests the obtaining of runtimes from the CVode simulation.
-    """
-    def test_obtaining_runtimes(self):
-        m, p, x = myokit.load(
-            os.path.join(DIR_DATA, 'lr-1991-runtimes.mmt'))
-        myokit.run(m, p, x)
+        s = myokit.LegacySimulation(
+            self.model, self.protocol, apd_var='membrane.V')
+        d, apds = s.run(1800, log=myokit.LOG_NONE, apd_threshold=-70)
+
+        # Check with threshold equal to V
+        self.assertEqual(len(apds['start']), 2)
+        self.assertEqual(len(apds['duration']), 2)
+        self.assertAlmostEqual(apds['start'][0], 1.19, places=1)
+        self.assertAlmostEqual(apds['start'][1], 1001.19, places=1)
+        self.assertAlmostEqual(apds['duration'][0], 383.87, places=1)
+        self.assertAlmostEqual(apds['duration'][1], 378.35, places=1)
 
 
 if __name__ == '__main__':

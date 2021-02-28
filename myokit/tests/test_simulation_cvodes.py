@@ -701,15 +701,22 @@ class SimulationTest(unittest.TestCase):
         self.assertTrue(np.all(rt[1:] >= rt[:-1]))
         self.assertTrue(np.all(ev[1:] >= ev[:-1]))
 
+    def test_apd(self):
+        # Test the apd rootfinding routine
 
-class RuntimeSimulationTest(unittest.TestCase):
-    """
-    Tests the obtaining of runtimes from the CVode simulation.
-    """
-    def test_obtaining_runtimes(self):
-        m, p, x = myokit.load(
-            os.path.join(DIR_DATA, 'lr-1991-runtimes.mmt'))
-        myokit.run(m, p, x)
+        s = myokit.Simulation(
+            self.model, self.protocol)
+        d, apds = s.run(
+            1800, log=myokit.LOG_NONE,
+            apd_variable='membrane.V', apd_threshold=-70)
+
+        # Check with threshold equal to V
+        self.assertEqual(len(apds['start']), 2)
+        self.assertEqual(len(apds['duration']), 2)
+        self.assertAlmostEqual(apds['start'][0], 1.19, places=1)
+        self.assertAlmostEqual(apds['start'][1], 1001.19, places=1)
+        self.assertAlmostEqual(apds['duration'][0], 383.87, places=1)
+        self.assertAlmostEqual(apds['duration'][1], 378.35, places=1)
 
 
 def analytic_bolus_infusion_model(parameters, times):
