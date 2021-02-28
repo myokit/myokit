@@ -170,7 +170,7 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 
 1. Pacing
 2. Logging in simulations
-3. Simulation test case: HH ion channel model
+3. [Simulation test case: HH ion channel model](t3-text-case-hh-current.ipynb)
 4. [Simulation test case: PK model](t4-test-case-pk-model.ipynb)
 5. Ion channel simulations
 6. Multi-cellular simulations
