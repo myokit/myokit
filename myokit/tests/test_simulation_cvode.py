@@ -253,7 +253,6 @@ class LegacySimulationTest(unittest.TestCase):
         # No apd var given, but threshold provided
         self.assertRaisesRegex(
             ValueError, 'without apd_var', self.sim.run, 1, apd_threshold=12)
-        print(self.model.binding('realtime'))
 
     def test_last_state(self):
         # Returns the last state before an error, or None.
@@ -534,6 +533,28 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
 
+    def test_sim_stats(self):
+        # Test extraction of simulation statistics
+        m, p, _ = myokit.load('example')
+        rt = m['engine'].add_variable('realtime')
+        rt.set_rhs(0)
+        rt.set_binding('realtime')
+        ev = m['engine'].add_variable('evaluations')
+        ev.set_rhs(0)
+        ev.set_binding('evaluations')
+        s = myokit.LegacySimulation(m, p)
+        d = s.run(100, log=myokit.LOG_BOUND).npview()
+
+        self.assertIn('engine.realtime', d)
+        self.assertIn('engine.evaluations', d)
+        rt, ev = d['engine.realtime'], d['engine.evaluations']
+        self.assertEqual(len(d.time()), len(rt))
+        self.assertEqual(len(d.time()), len(ev))
+        self.assertTrue(np.all(rt >= 0))
+        self.assertTrue(np.all(ev >= 0))
+        self.assertTrue(np.all(rt[1:] >= rt[:-1]))
+        self.assertTrue(np.all(ev[1:] >= ev[:-1]))
+
 
 class RuntimeLegacySimulationTest(unittest.TestCase):
     """
@@ -547,3 +568,4 @@ class RuntimeLegacySimulationTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

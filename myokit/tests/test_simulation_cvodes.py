@@ -679,6 +679,28 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s1.state(), s2.state())
         self.assertTrue(np.all(e1 == e2))
 
+    def test_sim_stats(self):
+        # Test extraction of simulation statistics
+        m, p, _ = myokit.load('example')
+        rt = m['engine'].add_variable('realtime')
+        rt.set_rhs(0)
+        rt.set_binding('realtime')
+        ev = m['engine'].add_variable('evaluations')
+        ev.set_rhs(0)
+        ev.set_binding('evaluations')
+        s = myokit.Simulation(m, p)
+        d = s.run(100, log=myokit.LOG_BOUND).npview()
+
+        self.assertIn('engine.realtime', d)
+        self.assertIn('engine.evaluations', d)
+        rt, ev = d['engine.realtime'], d['engine.evaluations']
+        self.assertEqual(len(d.time()), len(rt))
+        self.assertEqual(len(d.time()), len(ev))
+        self.assertTrue(np.all(rt >= 0))
+        self.assertTrue(np.all(ev >= 0))
+        self.assertTrue(np.all(rt[1:] >= rt[:-1]))
+        self.assertTrue(np.all(ev[1:] >= ev[:-1]))
+
 
 class RuntimeSimulationTest(unittest.TestCase):
     """
