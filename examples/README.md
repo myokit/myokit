@@ -101,7 +101,7 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 
 0. Running single current simulations
     - [ ] Creating a step protocol (pacing factory)
-    - [ ] CVODE sim
+    - [ ] CVODES sim
     - [ ] HH
     - [ ] Markov
     - [ ] Protocol options
@@ -134,14 +134,6 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
     - [ ] Importing protocols from ABF
     - [ ] Exporting patch clamp protocols? (ATF)
 
-## Technical notes
-
-1. Pacing
-2. Logging in simulations
-3. Multi-cell simulations
-4. Ion channel simulations
-X. Autodiff simulations
-
 ## Appendix
 
 0. DataLog viewer
@@ -166,4 +158,15 @@ X. Autodiff simulations
     - [ ] Yes please!
     - [ ] Github issues
     - [ ] Contributing.md
+
+
+## Technical notes
+
+1. Pacing
+2. Logging in simulations
+3. Simulation test case: HH ion channel model
+4. [Simulation test case: PK model](t4-test-case-pk-model.ipynb)
+5. Ion channel simulations
+6. Multi-cellular simulations
+X. Autodiff simulations
 

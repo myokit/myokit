@@ -15,10 +15,11 @@ import platform
 import re
 import unittest
 import sys
+import warnings
 
 import myokit
 
-from shared import DIR_DATA, CancellingReporter
+from shared import DIR_DATA, CancellingReporter, test_case_pk_model
 
 # Unit testing in Python 2 and 3
 try:
@@ -27,10 +28,9 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
-@unittest.skipIf(platform.system() != 'Linux', 'Legacy CVODE tests')
-class LegacySimulationTest(unittest.TestCase):
+class SimulationTest(unittest.TestCase):
     """
-    Tests the Legacy CVODE simulation class.
+    Tests the CVode simulation class.
     """
 
     @classmethod
@@ -40,7 +40,7 @@ class LegacySimulationTest(unittest.TestCase):
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         cls.model = m
         cls.protocol = p
-        cls.sim = myokit.LegacySimulation(cls.model, cls.protocol)
+        cls.sim = myokit.Simulation(cls.model, cls.protocol)
 
     def test_pre(self):
         # Test pre-pacing.
@@ -173,7 +173,7 @@ class LegacySimulationTest(unittest.TestCase):
         p.schedule(3, 8, 2)
 
         # Simulate with dynamic logging
-        s = myokit.LegacySimulation(m, p)
+        s = myokit.Simulation(m, p)
         d = s.run(p.characteristic_time())
         time = list(d.time())
         value = list(d['c.v'])
@@ -212,7 +212,7 @@ class LegacySimulationTest(unittest.TestCase):
         # Test running with a progress reporter.
 
         # Test if it works
-        sim = myokit.LegacySimulation(self.model, self.protocol)
+        sim = myokit.Simulation(self.model, self.protocol)
         with myokit.PyCapture() as c:
             sim.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
@@ -239,20 +239,14 @@ class LegacySimulationTest(unittest.TestCase):
         # More testing is done in test_datalog.py!
 
         # Apd var is not a state
-        v = self.model.get('ina.INa')
         self.assertRaisesRegex(
-            ValueError, 'must be a state', myokit.LegacySimulation, self.model,
-            self.protocol, apd_var=v)
-
-        # Set a valid apd variable
-        v = self.model.get('ik.x')
-        sim = myokit.LegacySimulation(
-            self.model, self.protocol, apd_var=v)
-        sim.run(1, apd_threshold=12)
+            ValueError, 'must be a state',
+            self.sim.run, 1000, apd_variable='ina.INa')
 
         # No apd var given, but threshold provided
         self.assertRaisesRegex(
-            ValueError, 'without apd_var', self.sim.run, 1, apd_threshold=12)
+            ValueError, 'no `apd_variable` specified',
+            self.sim.run, 1, apd_threshold=12)
 
     def test_last_state(self):
         # Returns the last state before an error, or None.
@@ -260,7 +254,7 @@ class LegacySimulationTest(unittest.TestCase):
         m = self.model.clone()
         istim = m.get('membrane.i_stim')
         istim.set_rhs('engine.pace / stim_amplitude')
-        s = myokit.LegacySimulation(m, self.protocol)
+        s = myokit.Simulation(m, self.protocol)
         self.assertIsNone(s.last_state())
         s.run(1)
         self.assertIsNone(s.last_state())
@@ -271,10 +265,10 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertEqual(s.last_state(), s.state())
 
     def test_last_evaluations_and_steps(self):
-        # Test :meth:`LegacySimulation.last_number_of_evaluations()` and
-        # :meth:`LegacySimulation.last_number_of_steps()`
+        # Test :meth:`Simulation.last_number_of_evaluations()` and
+        # :meth:`Simulation.last_number_of_steps()`
 
-        s = myokit.LegacySimulation(self.model, self.protocol)
+        s = myokit.Simulation(self.model, self.protocol)
         self.assertEqual(s.last_number_of_evaluations(), 0)
         self.assertEqual(s.last_number_of_steps(), 0)
         s.run(1)
@@ -283,8 +277,48 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertNotEqual(
             s.last_number_of_evaluations(), s.last_number_of_steps())
 
+    def test_default_state_sensitivites(self):
+        # Test :meth:`Simulation.default_state_sensitivies`
+
+        # Create bolus infusion model with linear clearance
+        model = myokit.Model()
+        comp = model.add_component('myokit')
+
+        amount = comp.add_variable('amount')
+        time = comp.add_variable('time')
+        dose_rate = comp.add_variable('dose_rate')
+        elimination_rate = comp.add_variable('elimination_rate')
+
+        time.set_binding('time')
+        dose_rate.set_binding('pace')
+
+        amount.promote(10)
+        amount.set_rhs(
+            myokit.Minus(
+                myokit.Name(dose_rate),
+                myokit.Multiply(
+                    myokit.Name(elimination_rate),
+                    myokit.Name(amount))))
+        elimination_rate.set_rhs(myokit.Number(1))
+        time.set_rhs(myokit.Number(0))
+        dose_rate.set_rhs(myokit.Number(0))
+
+        # Check no sensitivities set
+        sim = myokit.Simulation(model)
+        self.assertIsNone(sim.default_state_sensitivities())
+
+        # Check for set sensitvities
+        sensitivities = (
+            ['myokit.amount'],
+            ['init(myokit.amount)', 'myokit.elimination_rate'])
+        sim = myokit.Simulation(model, sensitivities=sensitivities)
+        s = sim.default_state_sensitivities()
+        self.assertEqual(len(s), 2)
+        self.assertEqual(s[0][0], 1)
+        self.assertEqual(s[1][0], 0)
+
     def test_eval_derivatives(self):
-        # Test :meth:`LegacySimulation.eval_derivatives()`.
+        # Test :meth:`Simulation.eval_derivatives()`.
 
         self.sim.reset()
         s1 = self.sim.state()
@@ -296,8 +330,136 @@ class LegacySimulationTest(unittest.TestCase):
         self.sim.set_state(s1)
         self.assertEqual(d1, self.sim.eval_derivatives())
 
+    def test_run_bolus_infusion(self):
+        # Test :meth:`Simulation.run()` with a PKPD bolus infusion model
+
+        # Create bolus infusion model with linear clearance
+        model = myokit.Model()
+        comp = model.add_component('myokit')
+
+        amount = comp.add_variable('amount')
+        time = comp.add_variable('time')
+        dose_rate = comp.add_variable('dose_rate')
+        elimination_rate = comp.add_variable('elimination_rate')
+
+        time.set_binding('time')
+        dose_rate.set_binding('pace')
+
+        amount.promote(10)
+        amount.set_rhs(
+            myokit.Minus(
+                myokit.Name(dose_rate),
+                myokit.Multiply(
+                    myokit.Name(elimination_rate),
+                    myokit.Name(amount))))
+        elimination_rate.set_rhs(myokit.Number(1))
+        time.set_rhs(myokit.Number(0))
+        dose_rate.set_rhs(myokit.Number(0))
+
+        # Set sensitivies
+        sensitivities = (
+            ['myokit.amount'],
+            ['init(myokit.amount)', 'myokit.elimination_rate'])
+
+        sim = myokit.Simulation(model, sensitivities=sensitivities)
+
+        # Bad sensitivity input
+        with self.assertRaisesRegex(
+                ValueError, 'The argument `sensitivities` must be'):
+            sim.run(10, sensitivities='weird input')
+
+        # Return apds
+        result = sim.run(1, apd_variable='myokit.amount', apd_threshold=0.3)
+        self.assertEqual(len(result), 3)
+
+    def test_run_accuracy_bolus_infusion(self):
+        # Test :meth:`Simulation.run()` accuracy by comparing to
+        # analytic solution in a PKPD bolus infusion model.
+
+        # Create bolus infusion model with linear clearance
+        model = myokit.Model()
+        comp = model.add_component('myokit')
+
+        amount = comp.add_variable('amount')
+        time = comp.add_variable('time')
+        dose_rate = comp.add_variable('dose_rate')
+        elimination_rate = comp.add_variable('elimination_rate')
+
+        time.set_binding('time')
+        dose_rate.set_binding('pace')
+
+        amount.promote(10)
+        amount.set_rhs(
+            myokit.Minus(
+                myokit.Name(dose_rate),
+                myokit.Multiply(
+                    myokit.Name(elimination_rate),
+                    myokit.Name(amount))))
+        elimination_rate.set_rhs(myokit.Number(1))
+        time.set_rhs(myokit.Number(0))
+        dose_rate.set_rhs(myokit.Number(0))
+
+        # Create protocol
+        amount = 5
+        duration = 0.001
+        protocol = myokit.pacing.blocktrain(
+            1, duration, offset=0, level=amount / duration, limit=0)
+
+        # Set sensitivies
+        sensitivities = (
+            ['myokit.amount'],
+            ['init(myokit.amount)', 'myokit.elimination_rate'])
+
+        sim = myokit.Simulation(model, protocol, sensitivities)
+
+        # Set tolerance to be controlled by abs_tolerance for
+        # easier comparison
+        #TODO This rel_tol is insanely high
+        sim.set_tolerance(abs_tol=1e-8, rel_tol=1e-30)
+
+        # Solve problem analytically
+        parameters = [10, 1, amount / duration, duration]
+        times = np.linspace(0.1, 10, 13)
+        ref_sol, ref_partials = test_case_pk_model(parameters, times)
+
+        # Solve problem with simulator
+        sol, partials = sim.run(
+            11, log_times=times, log=['myokit.amount'])
+        sol = np.array(sol['myokit.amount'])
+        partials = np.array(partials).squeeze()
+
+        # Check state
+        self.assertAlmostEqual(sol[0], ref_sol[0], 6)
+        self.assertAlmostEqual(sol[1], ref_sol[1], 6)
+        self.assertAlmostEqual(sol[2], ref_sol[2], 6)
+        self.assertAlmostEqual(sol[3], ref_sol[3], 6)
+        self.assertAlmostEqual(sol[4], ref_sol[4], 6)
+        self.assertAlmostEqual(sol[5], ref_sol[5], 6)
+        self.assertAlmostEqual(sol[6], ref_sol[6], 6)
+        self.assertAlmostEqual(sol[7], ref_sol[7], 6)
+        self.assertAlmostEqual(sol[8], ref_sol[8], 6)
+        self.assertAlmostEqual(sol[9], ref_sol[9], 6)
+        self.assertAlmostEqual(sol[10], ref_sol[10], 6)
+        self.assertAlmostEqual(sol[11], ref_sol[11], 6)
+        self.assertAlmostEqual(sol[12], ref_sol[12], 6)
+
+        # Check partials
+        self.assertAlmostEqual(partials[0, 0], ref_partials[0, 0], 6)
+        self.assertAlmostEqual(partials[1, 0], ref_partials[0, 1], 6)
+        self.assertAlmostEqual(partials[2, 0], ref_partials[0, 2], 6)
+        self.assertAlmostEqual(partials[3, 0], ref_partials[0, 3], 6)
+        self.assertAlmostEqual(partials[4, 0], ref_partials[0, 4], 6)
+        self.assertAlmostEqual(partials[5, 0], ref_partials[0, 5], 6)
+        self.assertAlmostEqual(partials[6, 0], ref_partials[0, 6], 6)
+        self.assertAlmostEqual(partials[7, 0], ref_partials[0, 7], 6)
+        self.assertAlmostEqual(partials[8, 0], ref_partials[0, 8], 6)
+        self.assertAlmostEqual(partials[9, 0], ref_partials[0, 9], 6)
+        self.assertAlmostEqual(partials[10, 0], ref_partials[0, 10], 6)
+        self.assertAlmostEqual(partials[11, 0], ref_partials[0, 11], 6)
+        self.assertAlmostEqual(partials[12, 0], ref_partials[0, 12], 6)
+
     def test_set_tolerance(self):
-        # Test :meth:`LegacySimulation.set_tolerance()`.
+        # Test :meth:`Simulation.set_tolerance()`.
 
         self.assertRaisesRegex(
             ValueError, 'Absolute', self.sim.set_tolerance, abs_tol=0)
@@ -306,8 +468,8 @@ class LegacySimulationTest(unittest.TestCase):
         self.sim.set_tolerance(1e-6, 1e-4)
 
     def test_set_step_size(self):
-        # Test :meth:`LegacySimulation.set_min_step_size()` and
-        # :meth:`LegacySimulation.set_max_step_size()`.
+        # Test :meth:`Simulation.set_min_step_size()` and
+        # :meth:`Simulation.set_max_step_size()`.
 
         # Minimum: set, unset, allow negative value to unset
         self.sim.set_min_step_size(0.1)
@@ -320,8 +482,8 @@ class LegacySimulationTest(unittest.TestCase):
         self.sim.set_max_step_size(-1)
 
     def test_set_state(self):
-        # Test :meth:`LegacySimulation.set_state()` and
-        # :meth:`LegacySimulation.set_default_state()`.
+        # Test :meth:`Simulation.set_state()` and
+        # :meth:`Simulation.set_default_state()`.
 
         # Get state and default state, both different from current
         state = self.sim.state()
@@ -341,12 +503,16 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertEqual(self.sim.default_state(), default_state)
 
     def test_set_constant(self):
-        # Test :meth:`LegacySimulation.set_constant()`.
+        # Test :meth:`Simulation.set_constant()`.
 
         # Literal
-        v = self.model.get('cell.Na_i')
-        self.sim.set_constant(v, 11)
+        self.sim.set_constant('cell.Na_i', 11)
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
+
+        # Parameter (needs sensitivies set)
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        sim = myokit.Simulation(m, p, (['ib.Ib'], ['ib.gb']))
+        sim.set_constant('ib.gb', 20)
 
         # Calculated constant
         self.assertRaisesRegex(
@@ -387,20 +553,6 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.SimulationError, 'CV_TOO_CLOSE', self.sim.run, d)
 
-        # Empty log times
-        self.sim.reset()
-        self.sim.run(1, log_times=[])
-
-        # Non-monotonic times
-        self.sim.reset()
-        with self.assertRaisesRegex(ValueError, 'Values in log_times'):
-            self.sim.run(1, log_times=[1, 2, 1])
-
-        # Simultaneous use of log_times and log_interval
-        self.sim.reset()
-        with self.assertRaisesRegex(ValueError, 'The arguments log_times'):
-            self.sim.run(1, log_times=[1, 2], log_interval=2)
-
     def test_simulation_error_1(self):
         # Test for simulation error detection: massive stimulus.
 
@@ -413,7 +565,7 @@ class LegacySimulationTest(unittest.TestCase):
             myokit.SimulationError, 'numerical error', self.sim.run, 10)
         self.sim.set_protocol(self.protocol)
 
-    @unittest.skipIf(platform.system() != 'Linux', 'CVODE error tests')
+    @unittest.skipIf(platform.system() != 'Linux', 'Cvode error tests')
     def test_simulation_error_2(self):
         # Test for simulation error detection: failure occurred too often.
 
@@ -421,9 +573,10 @@ class LegacySimulationTest(unittest.TestCase):
         m = self.model.clone()
         v = m.get('membrane.V')
         v.set_rhs(myokit.Multiply(v.rhs(), myokit.Number(1e18)))
-        s = myokit.LegacySimulation(m, self.protocol)
-        self.assertRaisesRegex(
-            myokit.SimulationError, 'numerical error', s.run, 5000)
+        s = myokit.Simulation(m, self.protocol)
+        with warnings.catch_warnings(record=True):
+            self.assertRaisesRegex(
+                myokit.SimulationError, 'numerical error', s.run, 5000)
 
     def test_cvode_simulation_with_zero_states(self):
         # Tests running cvode simulations on models with no ODEs
@@ -447,12 +600,12 @@ class LegacySimulationTest(unittest.TestCase):
         z.promote(0)
 
         # Test without protocol and dynamic logging
-        s1 = myokit.LegacySimulation(m1)
+        s1 = myokit.Simulation(m1)
         d1 = s1.run(5)
         self.assertEqual(len(d1.time()), 2)
         self.assertEqual(list(d1.time()), [0, 5])
         self.assertEqual(list(d1['c.w']), [0, 0])
-        s2 = myokit.LegacySimulation(m2)
+        s2 = myokit.Simulation(m2)
         d2 = s2.run(6, log_times=d1.time())
         self.assertEqual(d1.time(), d2.time())
         self.assertEqual(d1['c.w'], d2['c.w'])
@@ -501,37 +654,29 @@ class LegacySimulationTest(unittest.TestCase):
     def test_pickling(self):
         # Test pickling a simulation
 
-        # Test with myokit.Protocol
+        # Test with myokit.Protocol and sensitivities
         m, p, _ = myokit.load('example')
-        s1 = myokit.LegacySimulation(m, p)
+        s1 = myokit.Simulation(m, p, [
+            ['ina.INa', 'ica.ICa', 'membrane.V'],
+            ['ina.gNa', 'init(membrane.V)']
+        ])
         s1.pre(123)
+        # ...and with simulation properties
+        s1.set_tolerance(1e-8, 1e-8)
+        s1.set_min_step_size(1e-4)
+        s1.set_max_step_size(0.1)
+        # ...and changed properties
+        s1.set_constant('membrane.C', 1.1)
         s_bytes = pickle.dumps(s1)
         s2 = pickle.loads(s_bytes)
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
         self.assertEqual(s1.default_state(), s2.default_state())
-        s1.run(123, log=myokit.LOG_NONE)
-        s2.run(123, log=myokit.LOG_NONE)
+        d1, e1 = s1.run(123, log=myokit.LOG_NONE)
+        d2, e2 = s2.run(123, log=myokit.LOG_NONE)
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
-
-        # Test simulation properties
-        s1.set_tolerance(1e-8, 1e-8)
-        s1.set_min_step_size(1e-2)
-        s1.set_max_step_size(0.1)
-        s2 = pickle.loads(pickle.dumps(s1))
-        s1.run(23, log=myokit.LOG_NONE)
-        s2.run(23, log=myokit.LOG_NONE)
-        self.assertEqual(s1.time(), s2.time())
-        self.assertEqual(s1.state(), s2.state())
-
-        # Test changed constants
-        s1.set_constant('membrane.C', 1.1)
-        s2 = pickle.loads(pickle.dumps(s1))
-        s1.run(17, log=myokit.LOG_NONE)
-        s2.run(17, log=myokit.LOG_NONE)
-        self.assertEqual(s1.time(), s2.time())
-        self.assertEqual(s1.state(), s2.state())
+        self.assertTrue(np.all(e1 == e2))
 
     def test_sim_stats(self):
         # Test extraction of simulation statistics
@@ -542,7 +687,7 @@ class LegacySimulationTest(unittest.TestCase):
         ev = m['engine'].add_variable('evaluations')
         ev.set_rhs(0)
         ev.set_binding('evaluations')
-        s = myokit.LegacySimulation(m, p)
+        s = myokit.Simulation(m, p)
         d = s.run(100, log=myokit.LOG_BOUND).npview()
 
         self.assertIn('engine.realtime', d)
@@ -558,20 +703,20 @@ class LegacySimulationTest(unittest.TestCase):
     def test_apd(self):
         # Test the apd rootfinding routine
 
-        s = myokit.LegacySimulation(
-            self.model, self.protocol, apd_var='membrane.V')
+        s = myokit.Simulation(self.model, self.protocol)
         s.set_tolerance(1e-8, 1e-8)
-        d, apds = s.run(1800, log=myokit.LOG_NONE, apd_threshold=-70)
+        d, apds = s.run(
+            1800, log=myokit.LOG_NONE,
+            apd_variable='membrane.V', apd_threshold=-70)
 
         # Check with threshold equal to V
         self.assertEqual(len(apds['start']), 2)
         self.assertEqual(len(apds['duration']), 2)
         self.assertAlmostEqual(apds['start'][0], 1.19, places=1)
         self.assertAlmostEqual(apds['start'][1], 1001.19, places=1)
-        self.assertAlmostEqual(apds['duration'][0], 383.88262, places=0)
-        self.assertAlmostEqual(apds['duration'][1], 378.31448, places=0)
+        self.assertAlmostEqual(apds['duration'][0], 383.88262, places=1)
+        self.assertAlmostEqual(apds['duration'][1], 378.31448, places=1)
 
 
 if __name__ == '__main__':
     unittest.main()
-

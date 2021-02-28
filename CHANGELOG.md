@@ -9,13 +9,20 @@ This page lists the main changes made to Myokit in each release.
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Expressions now have methods `is_derivative`, `is_name`, and `is_number`.
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Added a method `Number.value()`.
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) The method `Expression.depends_on` now has an argument `deep` that can be set to `True` to perform a recursive dependency check.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) A class `myokit.CModel` was added that can generate multi-purpose C code for use in simulations. This is mainly for internal use.
   - [#682](https://github.com/MichaelClerx/myokit/pull/682) OpenCL code now recognises error code -1001.
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) Now testing OpenCL code in CI.
   - [#704](https://github.com/MichaelClerx/myokit/pull/704) Added first example notebook to the github repository.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` can now calculate sensitivities of variables with respect to parameters and/or initial conditions (see docs for details).
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer has `apd_var` as a constructor argument. Instead, you can pass an argument `apd_variable` to its `run()` method.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer suppresses CVODE(S) warnings but passes them on to the `warnings` module.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) Fix to `Simulation` for Sundials 4.1.0.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
 - Deprecated
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The classes `myokit.PSimulation` and `myokit.ICSimulation` are deprecated. Sensitivities can now be obtained much quicker with the single cell `Simulation` class.
 - Removed
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux, or any Python 2.7 on Windows.
 - Fixed

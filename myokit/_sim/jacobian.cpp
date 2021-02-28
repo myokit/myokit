@@ -45,6 +45,7 @@ w.set_lhs_function(v)
 tab = '    '
 
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 // Number of states

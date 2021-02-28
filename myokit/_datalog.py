@@ -374,7 +374,7 @@ class DataLog(OrderedDict):
         #data[1:] = 0.5 * (data[1:] + data[:-1]) * (time[1:] - time[:-1])
         #data[0]  = 0
 
-        # For discontinuities (esp. with CVODE), it makes more sense to treat
+        # For discontinuities (esp. with CVODES), it makes more sense to treat
         # the signal as a zero-order hold, IE use the left-point integration
         # rule:
         data[1:] = data[:-1] * (time[1:] - time[:-1])

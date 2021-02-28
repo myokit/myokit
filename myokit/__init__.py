@@ -297,10 +297,10 @@ FORCE_PYSIDE2 = False
 # Library paths and settings
 #
 
-# Location of the Sundials (CVODE) shared library objects (.dll or .so)
+# Location of the Sundials (CVODES) shared library objects (.dll or .so)
 SUNDIALS_LIB = []
 
-# Location of the Sundials (CVODE) header files (.h)
+# Location of the Sundials (CVODES) header files (.h)
 SUNDIALS_INC = []
 
 # Sundials version number. Defaults to 0.
@@ -577,13 +577,14 @@ from ._sim.opencl import (  # noqa
     OpenCLInfo,
     OpenCLPlatformInfo,
 )
-from ._sim.cvodesim import Simulation       # noqa
+from ._sim.cmodel import CModel             # noqa
+from ._sim.cvodessim import Simulation      # noqa
+from ._sim.cvodesim import Simulation as LegacySimulation  # noqa
 from ._sim.cable import Simulation1d        # noqa
 from ._sim.rhs import RhsBenchmarker        # noqa
 from ._sim.icsim import ICSimulation        # noqa
 from ._sim.psim import PSimulation          # noqa
 from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
-#from ._sim.openmp import SimulationOpenMP                       # noqa
 from ._sim.openclsim import SimulationOpenCL                    # noqa
 from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
 

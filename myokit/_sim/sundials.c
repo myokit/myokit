@@ -13,6 +13,7 @@
 #
 
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <sundials/sundials_config.h>
 

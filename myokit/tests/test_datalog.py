@@ -2046,14 +2046,23 @@ class DataLogTest(unittest.TestCase):
         self.assertTrue(apds['duration'][1] > 3.5)
         self.assertTrue(apds['duration'][1] < 4.0)
 
+        # Check with threshold equal to V
+        apds = d.apd(v='v', threshold=-85)
+        self.assertEqual(len(apds['start']), 1)
+        self.assertEqual(apds['start'][0], 5)
+        self.assertEqual(apds['duration'][0], 4)
+
         # Check against example model
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.Simulation(m, p, apd_var='membrane.V')
+        s = myokit.Simulation(m, p)
+        s.set_tolerance(1e-8, 1e-8)
         d, apds1 = s.run(
-            2000, log=['engine.time', 'membrane.V'], apd_threshold=-70)
+            2000, log=['engine.time', 'membrane.V'],
+            log_interval=0.005,
+            apd_variable='membrane.V', apd_threshold=-70)
         apds2 = d.apd(threshold=-70)
-        self.assertEqual(len(apds1), 2)
-        self.assertEqual(len(apds2), 2)
+        self.assertEqual(len(apds1['start']), 2)
+        self.assertEqual(len(apds2['start']), 2)
         self.assertAlmostEqual(1, apds1['start'][0] / apds2['start'][0])
         self.assertAlmostEqual(1, apds1['start'][1] / apds2['start'][1])
         self.assertAlmostEqual(1, apds1['duration'][0] / apds2['duration'][0])
