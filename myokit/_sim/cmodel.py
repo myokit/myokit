@@ -210,9 +210,9 @@ class CModel(object):
         for x in indeps:
             init = False
             if isinstance(x, myokit.Variable):
-                var = self.model.get(x.qname())
+                var = model.get(x.qname())
             elif isinstance(x, myokit.Name):
-                var = self.model.get(x.var().qname())
+                var = model.get(x.var().qname())
             elif isinstance(x, myokit.InitialValue):
                 init = True
                 var = model.get(x.var().qname())
@@ -337,7 +337,7 @@ class CModel(object):
 
             """
             if not isinstance(var, (myokit.LhsExpression, myokit.Variable)):
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     'v() called with ' + str(var) + ' of type '
                     + str(type(var)))
 

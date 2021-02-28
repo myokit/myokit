@@ -239,13 +239,21 @@ class LegacySimulationTest(unittest.TestCase):
         # More testing is done in test_datalog.py!
 
         # Apd var is not a state
+        v = self.model.get('ina.INa')
         self.assertRaisesRegex(
             ValueError, 'must be a state', myokit.LegacySimulation, self.model,
-            self.protocol, apd_var='ina.INa')
+            self.protocol, apd_var=v)
+
+        # Set a valid apd variable
+        v = self.model.get('ik.x')
+        sim = myokit.LegacySimulation(
+            self.model, self.protocol, apd_var=v)
+        sim.run(1, apd_threshold=12)
 
         # No apd var given, but threshold provided
         self.assertRaisesRegex(
             ValueError, 'without apd_var', self.sim.run, 1, apd_threshold=12)
+        print(self.model.binding('realtime'))
 
     def test_last_state(self):
         # Returns the last state before an error, or None.
@@ -337,7 +345,8 @@ class LegacySimulationTest(unittest.TestCase):
         # Test :meth:`LegacySimulation.set_constant()`.
 
         # Literal
-        self.sim.set_constant('cell.Na_i', 11)
+        v = self.model.get('cell.Na_i')
+        self.sim.set_constant(v, 11)
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
 
         # Calculated constant
@@ -378,6 +387,20 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertNotEqual(t, t + d)
         self.assertRaisesRegex(
             myokit.SimulationError, 'CV_TOO_CLOSE', self.sim.run, d)
+
+        # Empty log times
+        self.sim.reset()
+        self.sim.run(1, log_times=[])
+
+        # Non-monotonic times
+        self.sim.reset()
+        with self.assertRaisesRegex(ValueError, 'Values in log_times'):
+            self.sim.run(1, log_times=[1, 2, 1])
+
+        # Simultaneous use of log_times and log_interval
+        self.sim.reset()
+        with self.assertRaisesRegex(ValueError, 'The arguments log_times'):
+            self.sim.run(1, log_times=[1, 2], log_interval=2)
 
     def test_simulation_error_1(self):
         # Test for simulation error detection: massive stimulus.

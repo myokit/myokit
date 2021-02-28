@@ -41,6 +41,17 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
     - [ ] Graph component dependencies
     - [ ] Graph "state dependency matrix"
 
+5. [Simulating sensitivities of HH gates](./hh-sensitivities.ipynb)
+    - Defining a model with Myokit's model building API
+    - Define sensitivities
+    - Compare simulation results to analytic solution
+
+6. [Simulating a pharmacokinetic model with sensitivities](./repeated_bolus_infusion.ipynb)
+    - Defining a model with Myokit's model building API
+    - Define dosing schedule
+    - Define sensitivities
+    - Compare simulation results to analytic solution
+
 0. Implementing models
     - [ ] Comparing models with step
     - [ ] Unit checking
