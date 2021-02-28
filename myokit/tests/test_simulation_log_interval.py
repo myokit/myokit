@@ -86,12 +86,14 @@ class SimulationTest(PeriodicTest):
             print('= Simulation :: Dynamic logging =')
         # Load model & protocol
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        # Define sensitivities
+        sens = (['ik1.gK1', 'ikp.IKp'], ['cell.K_o', 'ikp.gKp'])
         # Create simulation
-        s = myokit.Simulation(m, p)
+        s = myokit.Simulation(m, p, sens)
         #
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
         #
-        d = s.run(50, log=['engine.time'])
+        d, e = s.run(50, log=['engine.time', 'ik1.gK1', 'ikp.IKp'])
         t = d['engine.time']
         if debug:
             print(t[:2])
@@ -105,9 +107,14 @@ class SimulationTest(PeriodicTest):
         self.assertTrue(np.abs(t[0] - 0) < emax)
         # Test last point is 50
         self.assertTrue(np.abs(t[-1] - 50) < emax)
+        # Test shape of sensitivities
+        n_states = 2
+        n_times = len(t)
+        n_sens = 2
+        self.assertTrue(np.array(e).shape, (n_times, n_states, n_sens))
         # Test 2: Very short simulation
         s.reset()
-        d = s.run(1, log=['engine.time'])
+        d, e = s.run(1, log=['engine.time', 'ik1.gK1', 'ikp.IKp'])
         t = d['engine.time']
         if debug:
             print(t[:2])
@@ -121,11 +128,16 @@ class SimulationTest(PeriodicTest):
         self.assertTrue(np.abs(t[0] - 0) < emax)
         # Test last point is 50
         self.assertTrue(np.abs(t[-1] - 1) < emax)
+        # Test shape of sensitivities
+        n_states = 2
+        n_times = len(t)
+        n_sens = 2
+        self.assertTrue(np.array(e).shape, (n_times, n_states, n_sens))
         #
         # Test 3: Stop and start a simulation
         #
         s.reset()
-        d = s.run(2, log=['engine.time'])
+        d, e = s.run(2, log=['engine.time', 'ik1.gK1', 'ikp.IKp'])
         t = d['engine.time']
         n = len(d['engine.time'])
         if debug:
@@ -138,7 +150,12 @@ class SimulationTest(PeriodicTest):
         self.assertTrue(np.abs(t[0] - 0) < emax)
         # Test last point is 2
         self.assertTrue(np.abs(t[-1] - 2) < emax)
-        d = s.run(13, log=d)
+        # Test shape of sensitivities
+        n_states = 2
+        n_times = len(t)
+        n_sens = 2
+        self.assertTrue(np.array(e).shape, (n_times, n_states, n_sens))
+        d, e = s.run(13, log=d)
         t = d['engine.time']
         if debug:
             print(t[n - 2:n + 2])
@@ -148,8 +165,13 @@ class SimulationTest(PeriodicTest):
         self.assertTrue(np.abs(t[-1] - 15) < emax)
         # Test intermediary points are different
         self.assertGreater(t[n], t[n - 1])
+        # Test shape of sensitivities
+        n_states = 2
+        n_times = len(t)
+        n_sens = 2
+        self.assertTrue(np.array(e).shape, (n_times, n_states, n_sens))
         n = len(d['engine.time'])
-        d = s.run(15, log=d)
+        d, e = s.run(15, log=d)
         t = d['engine.time']
         if debug:
             print(t[n - 2:n + 2])
@@ -159,8 +181,13 @@ class SimulationTest(PeriodicTest):
         self.assertTrue(np.abs(t[-1] - 30) < emax)
         # Test intermediary points are different
         self.assertGreater(t[n], t[n - 1])
+        # Test shape of sensitivities
+        n_states = 2
+        n_times = len(t)
+        n_sens = 2
+        self.assertTrue(np.array(e).shape, (n_times, n_states, n_sens))
         n = len(d['engine.time'])
-        d = s.run(20, log=d)
+        d, e = s.run(20, log=d)
         t = d['engine.time']
         if debug:
             print(t[n - 2:n + 2])
@@ -172,6 +199,11 @@ class SimulationTest(PeriodicTest):
         self.assertTrue(np.abs(t[-1] - 50) < emax)
         # Test intermediary points are different
         self.assertGreater(t[n], t[n - 1])
+        # Test shape of sensitivities
+        n_states = 2
+        n_times = len(t)
+        n_sens = 2
+        self.assertTrue(np.array(e).shape, (n_times, n_states, n_sens))
 
     def test_periodic(self):
         # Test periodic logging
