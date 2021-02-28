@@ -32,8 +32,8 @@ jobs:
         run: |
           python --version
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install .
           python -m pip install nbconvert
+          python -m pip install -e .
 
       - name: Run notebook tests
         run: |
