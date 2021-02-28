@@ -1,3 +1,8 @@
+CVODES is part of the Sundials suite of solvers. Myokit uses CVODES to
+run single cell simulations.
+
+-------------------------------------------------------------------------------
+
 BSD 3-Clause License
 
 Copyright (c) 2002-2020, Lawrence Livermore National Security and Southern Methodist University.
