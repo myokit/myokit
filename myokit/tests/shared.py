@@ -178,6 +178,8 @@ def test_case_pk_model(parameters, times):
     times
         The times for evaluation.
     """
+    import numpy as np
+
     times = np.asarray(times)
 
     # Unpack parameters

@@ -1314,6 +1314,11 @@ def add_test_parser(subparsers):
         help='Test documentation cover, building, and doc tests.')
     doc_parser.set_defaults(testfunc=test_documentation)
 
+    # Example notebooks
+    example_parser = subparsers.add_parser(
+        'examples', help='Test example notebooks.')
+    example_parser.set_defaults(testfunc=test_examples)
+
     # Publication examples
     pub_parser = subparsers.add_parser(
         'pub', help='Run publication examples.')
@@ -1712,6 +1717,153 @@ def test_doc_coverage_index(modules, classes, functions):
     print('Found total of (' + str(n) + ') mismatches.')
 
     return n == 0
+
+
+def test_examples(args):
+    """
+    Tests the example notebooks.
+    """
+    books = test_examples_list('examples')
+    print(books)
+
+    print('Found ' + str(len(books)) + ' notebook(s).')
+    test_examples_index('examples', books)
+    test_examples_all('examples', books)
+
+
+def test_examples_index(root, books):
+    """ Check that every notebook is included in the index. """
+    import os
+    import sys
+
+    print('Checking index...')
+
+    # Index file is in ./examples/README.md
+    index_file = os.path.join(root, 'README.md')
+    with open(index_file, 'r') as f:
+        index_contents = f.read()
+
+    # Find which are not indexed
+    not_indexed = [book for book in books if book not in index_contents]
+
+    # Report any failures
+    if len(not_indexed) > 0:
+        print('FAIL: Unindexed notebooks')
+        for book in sorted(not_indexed):
+            print('  ' + str(book))
+        sys.exit(1)
+    else:
+        print('ok: All (' + str(len(books)) + ') notebooks are indexed.')
+
+
+def test_examples_list(root, recursive=True):
+    """ Returns a list of all notebooks in a directory. """
+    import os
+
+    def scan(root, recursive, notebooks):
+        for filename in os.listdir(root):
+            path = os.path.join(root, filename)
+
+            # Add notebook
+            if os.path.splitext(path)[1] == '.ipynb':
+                notebooks.append(path)
+
+            # Recurse into subdirectories
+            elif recursive and os.path.isdir(path):
+                # Ignore hidden directories
+                if filename[:1] == '.':
+                    continue
+                scan(path, recursive, notebooks)
+        return notebooks
+
+    notebooks = []
+    scan(root, recursive, notebooks)
+    notebooks = [os.path.relpath(book, root) for book in notebooks]
+
+    return notebooks
+
+
+def test_examples_single(root, path):
+    """ Tests a notebook in a subprocess, exists if it doesn't finish. """
+    import myokit
+    import nbconvert
+    import os
+    import subprocess
+    import sys
+
+    b = myokit.Benchmarker()
+    print('Running ' + path + ' ... ', end='')
+    sys.stdout.flush()
+
+    # Load notebook, convert to python
+    e = nbconvert.exporters.PythonExporter()
+    code, _ = e.from_filename(os.path.join(root, path))
+
+    # Remove coding statement, if present
+    code = '\n'.join([x for x in code.splitlines() if x[:9] != '# coding'])
+
+    # Tell matplotlib not to produce any figures
+    env = os.environ.copy()
+    env['MPLBACKEND'] = 'Template'
+
+    # Run in subprocess
+    cmd = [sys.executable, '-c', code]
+    curdir = os.getcwd()
+    try:
+        os.chdir(root)
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
+        )
+        stdout, stderr = p.communicate()
+        # TODO: Use p.communicate(timeout=3600) if Python3 only
+        if p.returncode != 0:
+            # Show failing code, output and errors before returning
+            print('ERROR')
+            print('-- script ' + '-' * (79 - 10))
+            for i, line in enumerate(code.splitlines()):
+                j = str(1 + i)
+                print(j + ' ' * (5 - len(j)) + line)
+            print('-- stdout ' + '-' * (79 - 10))
+            print(stdout)
+            print('-- stderr ' + '-' * (79 - 10))
+            print(stderr)
+            print('-' * 79)
+            return False
+    except KeyboardInterrupt:
+        p.terminate()
+        print('ABORTED')
+        sys.exit(1)
+    finally:
+        os.chdir(curdir)
+
+    # Successfully run
+    print('ok (' + b.format(b.time()) + ')')
+    return True
+
+
+def test_examples_all(root, books):
+    """ Runs all notebooks, and exits if one fails. """
+    import os
+    import sys
+
+    # Ignore books with deliberate errors, but check they still exist
+    ignore_list = [
+    ]
+    books = set(books) - set(ignore_list)
+
+    # Scan and run
+    print('Testing notebooks')
+    failed = []
+    for book in books:
+        if not test_examples_single(root, book):
+            failed.append(book)
+    if failed:
+        print('FAIL: Errors encountered in notebooks')
+        for book in failed:
+            print('  ' + str(book))
+        sys.exit(1)
+    else:
+        print('ok: Successfully ran all (' + str(len(books)) + ') notebooks.')
 
 
 def test_examples_pub(args):
