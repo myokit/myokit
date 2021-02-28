@@ -8,18 +8,12 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import numpy as np
 import os
-import pickle
-import platform
-import re
 import unittest
-import sys
-import warnings
 
 import myokit
 
-from shared import DIR_DATA, CancellingReporter
+from shared import DIR_DATA
 
 # Unit testing in Python 2 and 3
 try:
