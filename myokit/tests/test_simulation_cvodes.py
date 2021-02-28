@@ -330,8 +330,8 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_state(s1)
         self.assertEqual(d1, self.sim.eval_derivatives())
 
-    def test_run(self):
-        # Test :meth:`Simulation.run()`
+    def test_run_bolus_infusion(self):
+        # Test :meth:`Simulation.run()` with a PKPD bolus infusion model
 
         # Create bolus infusion model with linear clearance
         model = myokit.Model()
@@ -372,9 +372,9 @@ class SimulationTest(unittest.TestCase):
         result = sim.run(1, apd_variable='myokit.amount', apd_threshold=0.3)
         self.assertEqual(len(result), 3)
 
-    def test_run_accuracy(self):
+    def test_run_accuracy_bolus_infusion(self):
         # Test :meth:`Simulation.run()` accuracy by comparing to
-        # analytic solution.
+        # analytic solution in a PKPD bolus infusion model.
 
         # Create bolus infusion model with linear clearance
         model = myokit.Model()
@@ -414,12 +414,14 @@ class SimulationTest(unittest.TestCase):
 
         # Set tolerance to be controlled by abs_tolerance for
         # easier comparison
+        #TODO This rel_tol is insanely high
         sim.set_tolerance(abs_tol=1e-8, rel_tol=1e-30)
 
         # Solve problem analytically
         parameters = [10, 1, amount / duration, duration]
         times = np.linspace(0.1, 10, 13)
-        ref_sol, ref_partials = analytic_test_problem(parameters, times)
+        ref_sol, ref_partials = analytic_bolus_infusion_model(
+            parameters, times)
 
         # Solve problem with simulator
         sol, partials = sim.run(
@@ -688,7 +690,7 @@ class RuntimeSimulationTest(unittest.TestCase):
         myokit.run(m, p, x)
 
 
-def analytic_test_problem(parameters, times):
+def analytic_bolus_infusion_model(parameters, times):
     """
     This function returns the analytic solution of the state dynamics and
     partial derivatives for a repeated bolus infusion into a compartment with

@@ -9,12 +9,14 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import platform
 import unittest
+
 import numpy as np
 
 import myokit
 
-from shared import DIR_DATA
+from shared import DIR_DATA, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -31,9 +33,7 @@ class PeriodicTest(unittest.TestCase):
     Tests a simulation class for consistent log entry timing.
     """
     def periodic(self, s):
-        """
-        Test periodic logging.
-        """
+        # Test periodic logging.
         # Set tolerance for equality testing
         emax = 1e-2     # Time steps for logging are approximate
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
@@ -78,9 +78,8 @@ class SimulationTest(PeriodicTest):
     logging) for consistent log entry timing.
     """
     def test_dynamic(self):
-        """
-        Test dynamic logging.
-        """
+        # Test dynamic logging.
+
         emax = 1e-6     # Used for equality testing
         if debug:
             print('= Simulation :: Dynamic logging =')
@@ -90,6 +89,7 @@ class SimulationTest(PeriodicTest):
         sens = (['ik1.gK1', 'ikp.IKp'], ['cell.K_o', 'ikp.gKp'])
         # Create simulation
         s = myokit.Simulation(m, p, sens)
+
         #
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
         #
@@ -112,7 +112,10 @@ class SimulationTest(PeriodicTest):
         n_times = len(t)
         n_sens = 2
         self.assertTrue(np.array(e).shape, (n_times, n_states, n_sens))
+
+        #
         # Test 2: Very short simulation
+        #
         s.reset()
         d, e = s.run(1, log=['engine.time', 'ik1.gK1', 'ikp.IKp'])
         t = d['engine.time']
@@ -133,6 +136,7 @@ class SimulationTest(PeriodicTest):
         n_times = len(t)
         n_sens = 2
         self.assertTrue(np.array(e).shape, (n_times, n_states, n_sens))
+
         #
         # Test 3: Stop and start a simulation
         #
@@ -270,9 +274,8 @@ class SimulationTest(PeriodicTest):
         self.assertTrue(np.all(p[250:300] == -80))
 
     def test_point_list(self):
-        """
-        Test logging with a preset list of points.
-        """
+        # Test logging with a preset list of points.
+
         # Load model
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Create simulation
@@ -358,10 +361,9 @@ class SimulationTest(PeriodicTest):
         self.assertNotEqual(len(d.time()), 0)
 
     def test_point_list_2(self):
-        """
-        Test how the point-list logging performs when some of the logging
-        points overlap with protocol change points.
-        """
+        # Test how the point-list logging performs when some of the logging
+        # points overlap with protocol change points.
+
         # Load model
         m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Voltage clamp
@@ -408,15 +410,15 @@ class SimulationTest(PeriodicTest):
             self.assertNotEqual(e['membrane.V'][0], e['membrane.V'][1])
 
 
+@unittest.skipIf(platform.system() != 'Linux', 'Legacy CVODE tests')
 class LegacySimulationTest(PeriodicTest):
     """
     Tests myokit.LegacySimulation (which has dynamic, periodic and point-list
     logging) for consistent log entry timing.
     """
     def test_dynamic(self):
-        """
-        Test dynamic logging.
-        """
+        # Test dynamic logging.
+
         emax = 1e-6     # Used for equality testing
         if debug:
             print('= Simulation :: Dynamic logging =')
@@ -424,6 +426,7 @@ class LegacySimulationTest(PeriodicTest):
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Create simulation
         s = myokit.LegacySimulation(m, p)
+
         #
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms
         #
@@ -441,7 +444,10 @@ class LegacySimulationTest(PeriodicTest):
         self.assertTrue(np.abs(t[0] - 0) < emax)
         # Test last point is 50
         self.assertTrue(np.abs(t[-1] - 50) < emax)
+
+        #
         # Test 2: Very short simulation
+        #
         s.reset()
         d = s.run(1, log=['engine.time'])
         t = d['engine.time']
@@ -457,6 +463,7 @@ class LegacySimulationTest(PeriodicTest):
         self.assertTrue(np.abs(t[0] - 0) < emax)
         # Test last point is 50
         self.assertTrue(np.abs(t[-1] - 1) < emax)
+
         #
         # Test 3: Stop and start a simulation
         #
@@ -574,9 +581,8 @@ class LegacySimulationTest(PeriodicTest):
         self.assertTrue(np.all(p[250:300] == -80))
 
     def test_point_list(self):
-        """
-        Test logging with a preset list of points.
-        """
+        # Test logging with a preset list of points.
+
         # Load model
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Create simulation
@@ -662,10 +668,9 @@ class LegacySimulationTest(PeriodicTest):
         self.assertNotEqual(len(d.time()), 0)
 
     def test_point_list_2(self):
-        """
-        Test how the point-list logging performs when some of the logging
-        points overlap with protocol change points.
-        """
+        # Test how the point-list logging performs when some of the logging
+        # points overlap with protocol change points.
+
         # Load model
         m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         # Voltage clamp
@@ -717,6 +722,8 @@ class Simulation1dTest(PeriodicTest):
     Tests myokit.Simulation1d for consistent log entry timing.
     """
     def test_periodic(self):
+        # Test periodic logging.
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         s = myokit.Simulation1d(m, p, ncells=1)
         self.periodic(s)
@@ -727,12 +734,12 @@ class PSimulationTest(unittest.TestCase):
     Tests myokit.PSimulation for consistent log entry timing.
     """
     def test_periodic(self):
-        """
-        Test periodic logging.
-        """
+        # Test periodic logging.
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.PSimulation(
-            m, p, variables=['membrane.V'], parameters=['ina.gNa'])
+        with WarningCollector():
+            s = myokit.PSimulation(
+                m, p, variables=['membrane.V'], parameters=['ina.gNa'])
         # Set tolerance for equality testing
         emax = 1e-2     # Time steps for logging are approximate
 
@@ -789,11 +796,11 @@ class ICSimulationTest(unittest.TestCase):
     Tests myokit.ICSimulation for consistent log entry timing.
     """
     def test_periodic(self):
-        """
-        Test periodic logging.
-        """
+        # Test periodic logging.
+
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.ICSimulation(m, p)
+        with WarningCollector():
+            s = myokit.ICSimulation(m, p)
         # Set tolerance for equality testing
         emax = 1e-2     # Time steps for logging are approximate
         # Test 1: Simple 5 ms simulation, log_interval 0.5 ms

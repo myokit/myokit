@@ -36,11 +36,13 @@ class CModelTest(unittest.TestCase):
         cls.cmodel = myokit.CModel(cls.model, cls.sensitivities)
 
     def test_sensitivities(self):
-        # Test instantiation of cmodel with bad sensitivities
+        # Test instantiation of cmodel with sensitivities
+
         # Bad type
         sens = 'Bad type'
         with self.assertRaisesRegex(ValueError, 'The argument `sensitivities'):
             myokit.CModel(self.model, sens)
+
         # Empty deps or indeps
         sens = ([], ['some parameter'])
         m = myokit.CModel(self.model, sens)
@@ -48,6 +50,7 @@ class CModelTest(unittest.TestCase):
         sens = (['some state'], [])
         m = myokit.CModel(self.model, sens)
         self.assertFalse(m.has_sensitivities)
+
         # Provide sensitivies as Variables
         s1 = self.model.get('ik1.gK1')
         s2 = self.model.get('ikp.IKp')
@@ -56,12 +59,14 @@ class CModelTest(unittest.TestCase):
         sens = ([s1, s2], [p1, p2])
         m = myokit.CModel(self.model, sens)
         self.assertTrue(m.has_sensitivities)
+
         # Provide sensitivities as Names
         sens = (
             [myokit.Name(s1), myokit.Name(s2)],
             [myokit.Name(p1), myokit.Name(p2)])
         m = myokit.CModel(self.model, sens)
         self.assertTrue(m.has_sensitivities)
+
         # Sensitivity of derivative
         s3 = self.model.get('ik.x')
         sens = (
@@ -75,18 +80,21 @@ class CModelTest(unittest.TestCase):
             [myokit.Name(p1), myokit.Name(p2)])
         m = myokit.CModel(self.model, sens)
         self.assertTrue(m.has_sensitivities)
+
         # Sensitivity of derivative of non-state
         sens = (
             [myokit.Derivative(myokit.Name(s1)), myokit.Name(s2)],
             [myokit.Name(p1), myokit.Name(p2)])
         with self.assertRaisesRegex(ValueError, 'Sensitivity of '):
             myokit.CModel(self.model, sens)
+
         # Sensitivity of bound variable
         sens = (
             ['engine.time', myokit.Name(s2)],
             [myokit.Name(p1), myokit.Name(p2)])
         with self.assertRaisesRegex(ValueError, 'Sensitivities cannot'):
             myokit.CModel(self.model, sens)
+
         # Sensitivity w.r.t. Initial value
         s3 = self.model.get('ik.x')
         sens = (
@@ -94,12 +102,14 @@ class CModelTest(unittest.TestCase):
             [myokit.Name(p1), myokit.InitialValue(myokit.Name(s3))])
         m = myokit.CModel(self.model, sens)
         self.assertTrue(m.has_sensitivities)
+
         # Sensitivity w.r.t. initial value of non-state
         sens = (
             [myokit.Name(s1), myokit.Name(s2)],
             [myokit.Name(p1), myokit.InitialValue(myokit.Name(p2))])
         with self.assertRaisesRegex(ValueError, 'Sensitivity with respect to'):
             myokit.CModel(self.model, sens)
+
         # Sensitivity w.r.t. non-literal
         sens = (
             [myokit.Name(s1), myokit.Name(s2)],

@@ -414,7 +414,7 @@ class LegacySimulationTest(unittest.TestCase):
             myokit.SimulationError, 'numerical error', self.sim.run, 10)
         self.sim.set_protocol(self.protocol)
 
-    @unittest.skipIf(platform.system() != 'Linux', 'Cvode error tests')
+    @unittest.skipIf(platform.system() != 'Linux', 'CVODE error tests')
     def test_simulation_error_2(self):
         # Test for simulation error detection: failure occurred too often.
 
