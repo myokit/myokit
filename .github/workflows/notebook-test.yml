@@ -37,6 +37,5 @@ jobs:
 
       - name: Run notebook tests
         run: |
-          cd examples
           python -m myokit test examples
 
