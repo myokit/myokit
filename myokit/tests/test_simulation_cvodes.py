@@ -277,6 +277,46 @@ class SimulationTest(unittest.TestCase):
         self.assertNotEqual(
             s.last_number_of_evaluations(), s.last_number_of_steps())
 
+    def test_default_state_sensitivites(self):
+        # Test :meth:`Simulation.default_state_sensitivies`
+
+        # Create bolus infusion model with linear clearance
+        model = myokit.Model()
+        comp = model.add_component('myokit')
+
+        amount = comp.add_variable('amount')
+        time = comp.add_variable('time')
+        dose_rate = comp.add_variable('dose_rate')
+        elimination_rate = comp.add_variable('elimination_rate')
+
+        time.set_binding('time')
+        dose_rate.set_binding('pace')
+
+        amount.promote(10)
+        amount.set_rhs(
+            myokit.Minus(
+                myokit.Name(dose_rate),
+                myokit.Multiply(
+                    myokit.Name(elimination_rate),
+                    myokit.Name(amount))))
+        elimination_rate.set_rhs(myokit.Number(1))
+        time.set_rhs(myokit.Number(0))
+        dose_rate.set_rhs(myokit.Number(0))
+
+        # Check no sensitivities set
+        sim = myokit.Simulation(model)
+        self.assertIsNone(sim.default_state_sensitivities())
+
+        # Check for set sensitvities
+        sensitivities = (
+            ['myokit.amount'],
+            ['init(myokit.amount)', 'myokit.elimination_rate'])
+        sim = myokit.Simulation(model, sensitivities=sensitivities)
+        s = sim.default_state_sensitivities()
+        self.assertEqual(len(s), 2)
+        self.assertEqual(s[0][0], 1)
+        self.assertEqual(s[1][0], 0)
+
     def test_eval_derivatives(self):
         # Test :meth:`Simulation.eval_derivatives()`.
 
@@ -289,6 +329,48 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(d1, self.sim.eval_derivatives(s1))
         self.sim.set_state(s1)
         self.assertEqual(d1, self.sim.eval_derivatives())
+
+    def test_run(self):
+        # Test :meth:`Simulation.run()`
+
+        # Create bolus infusion model with linear clearance
+        model = myokit.Model()
+        comp = model.add_component('myokit')
+
+        amount = comp.add_variable('amount')
+        time = comp.add_variable('time')
+        dose_rate = comp.add_variable('dose_rate')
+        elimination_rate = comp.add_variable('elimination_rate')
+
+        time.set_binding('time')
+        dose_rate.set_binding('pace')
+
+        amount.promote(10)
+        amount.set_rhs(
+            myokit.Minus(
+                myokit.Name(dose_rate),
+                myokit.Multiply(
+                    myokit.Name(elimination_rate),
+                    myokit.Name(amount))))
+        elimination_rate.set_rhs(myokit.Number(1))
+        time.set_rhs(myokit.Number(0))
+        dose_rate.set_rhs(myokit.Number(0))
+
+        # Set sensitivies
+        sensitivities = (
+            ['myokit.amount'],
+            ['init(myokit.amount)', 'myokit.elimination_rate'])
+
+        sim = myokit.Simulation(model, sensitivities=sensitivities)
+
+        # Bad sensitivity input
+        with self.assertRaisesRegex(
+                ValueError, 'The argument `sensitivities` must be'):
+            sim.run(10, sensitivities='weird input')
+
+        # Return apds
+        result = sim.run(1, apd_variable='myokit.amount', apd_threshold=0.3)
+        self.assertEqual(len(result), 3)
 
     def test_run_accuracy(self):
         # Test :meth:`Simulation.run()` accuracy by comparing to
@@ -425,6 +507,11 @@ class SimulationTest(unittest.TestCase):
         # Literal
         self.sim.set_constant('cell.Na_i', 11)
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
+
+        # Parameter (needs sensitivies set)
+        m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        sim = myokit.Simulation(m, p, (['ib.Ib'], ['ib.gb']))
+        sim.set_constant('ib.gb', 20)
 
         # Calculated constant
         self.assertRaisesRegex(
