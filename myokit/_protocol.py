@@ -72,8 +72,13 @@ class Protocol(object):
 
     def add_step(self, level, duration):
         """
-        Appends an event to the end of this protocol. This method can be used
-        to easily create voltage-step protocols.
+        Appends an event to the end of this protocol.
+
+        This method can be used to easily create voltage-step protocols. A call
+        to ``p.add_step(level, duration)`` is equivalent to
+        ``p.schedule(level, p.characteristic_time(), duration, 0, 0)``.
+
+        Arguments:
 
         ``level``
             The stimulus level. 1 Represents a full-sized stimulus. Only
@@ -81,8 +86,6 @@ class Protocol(object):
         ``duration``
             The length of the stimulus.
 
-        A call to `p.append(level, duration)` is equivalent to
-        `p.schedule(level, p.characteristic_time(), duration, 0, 0)`.
         """
         self.schedule(level, self.characteristic_time(), duration)
 
