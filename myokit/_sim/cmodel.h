@@ -932,7 +932,7 @@ for var in model.states():
     j = i;
 <?
 for var in model.states():
-    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, "dot(' + var.qname() + ')", &' + v(var)  + ');')
+    print(tab + 'i += Model__AddVariableToLog(model, log_dict, i, "dot(' + var.qname() + ')", &' + v(var.lhs())  + ');')
 ?>
     model->logging_derivatives = (i != j);
 
