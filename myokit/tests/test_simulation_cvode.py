@@ -571,6 +571,39 @@ class LegacySimulationTest(unittest.TestCase):
         self.assertAlmostEqual(apds['duration'][0], 383.88262, places=0)
         self.assertAlmostEqual(apds['duration'][1], 378.31448, places=0)
 
+    def test_derivatives(self):
+        # Tests logging of derivatives by comparing with a finite difference
+        # approximation
+
+        # Run past the upstroke, where finite diff approx is worst
+        self.sim.reset()
+        self.sim.run(52)
+
+        # Now run logged part
+        d = self.sim.run(600).npview()
+        if False:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            ax = plt.subplot(3, 1, 1)
+            ax.plot(d.time(), d['membrane.V'])
+            ax = plt.subplot(3, 1, 2)
+            ax.plot(d.time(), d['dot(membrane.V)'])
+
+        # Get central difference approximation
+        t = d.time()
+        v = d['membrane.V']
+        dv = (v[2:] - v[:-2]) / (t[2:] - t[:-2])
+        e = d['dot(membrane.V)'][1:-1] - dv
+        if False:
+            t = t[1:-1]
+            ax.plot(t, dv, '--')
+            ax = plt.subplot(3, 1, 3)
+            ax.plot(t, e)
+            print(np.max(np.abs(e)))
+
+        # Compare
+        self.assertLess(np.max(np.abs(e)), 0.1)
+
 
 if __name__ == '__main__':
     unittest.main()
