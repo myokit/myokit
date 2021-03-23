@@ -282,7 +282,7 @@ class AuxTest(unittest.TestCase):
         m1 = myokit.load_model(m1)
         m2 = myokit.load_model(m2)
 
-        with myokit.PyCapture() as capture:
+        with myokit.StreamCapture() as capture:
             c = myokit.ModelComparison(m1, m2, live=True)
 
         differences = [
@@ -440,58 +440,6 @@ class AuxTest(unittest.TestCase):
         x.set_rhs('5 + x')
         self.assertEqual(w.ex(x.rhs()), '5.0 + c_x')
 
-    def test_py_capture(self):
-        # Test the PyCapture method.
-
-        # Test basic use
-        with myokit.PyCapture() as c:
-            print('Hello')
-            self.assertEqual(c.text(), 'Hello\n')
-            sys.stdout.write('Test')
-        self.assertEqual(c.text(), 'Hello\nTest')
-
-        # Test wrapping
-        with myokit.PyCapture() as c:
-            print('Hello')
-            self.assertEqual(c.text(), 'Hello\n')
-            with myokit.PyCapture() as d:
-                print('Yes')
-            self.assertEqual(d.text(), 'Yes\n')
-            sys.stdout.write('Test')
-        self.assertEqual(c.text(), 'Hello\nTest')
-
-        # Test disabling / enabling
-        with myokit.PyCapture() as c:
-            print('Hello')
-            self.assertEqual(c.text(), 'Hello\n')
-            with myokit.PyCapture() as d:
-                sys.stdout.write('Yes')
-                d.disable()
-                print('Hmmm')
-                d.enable()
-                print('No')
-            self.assertEqual(d.text(), 'YesNo\n')
-            sys.stdout.write('Test')
-        self.assertEqual(c.text(), 'Hello\nHmmm\nTest')
-
-        # Test clear() method
-        with myokit.PyCapture() as c:
-            print('Hi')
-            self.assertEqual(c.text(), 'Hi\n')
-            print('Ho')
-            self.assertEqual(c.text(), 'Hi\nHo\n')
-            c.clear()
-            print('Ha')
-            self.assertEqual(c.text(), 'Ha\n')
-
-        # Bug: Test clear method _without_ calling text() before clear()
-        with myokit.PyCapture() as c:
-            print('Hi')
-            print('Ho')
-            c.clear()
-            print('Ha')
-            self.assertEqual(c.text(), 'Ha\n')
-
     def test_run(self):
         # Test run() method.
 
@@ -503,16 +451,16 @@ class AuxTest(unittest.TestCase):
             's = myokit.Simulation(m, p)',
             's.run(200)',
         ])
-        with myokit.PyCapture():
+        with myokit.StreamCapture():
             myokit.run(m, p, x)
-        with myokit.PyCapture():
+        with myokit.StreamCapture():
             myokit.run(m, p, '[[script]]\n' + x)
         self.assertRaises(ZeroDivisionError, myokit.run, m, p, 'print(1 / 0)')
 
         # Test with stringio
         x = "print('Hi there')"
         s = StringIO()
-        with myokit.PyCapture() as c:
+        with myokit.StreamCapture() as c:
             myokit.run(m, p, x, stderr=s, stdout=s)
         self.assertEqual(c.text(), '')
         self.assertEqual(s.getvalue(), 'Hi there\n')

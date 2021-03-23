@@ -21,7 +21,9 @@ This page lists the main changes made to Myokit in each release.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer suppresses CVODES warnings but passes them on to the `warnings` module.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) Fix to `Simulation` for Sundials 4.1.0.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
-  - []() The `LegacySimulation` class no longer suppresses CVODE warnings but passes them on to the `warnings` module (backported from new `Simulation` class).
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `LegacySimulation` class no longer suppresses CVODE warnings but passes them on to the `warnings` module (backported from new `Simulation` class).
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `PyCapture` class has been replaced by the slightly different `StreamCapture` class, with is thread-safe.
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `SubCapture` class has been replaced by the slightly different `ProcessOutputCapture` class, which will block if you try to use it twice in the same process (making it thread-safe).
 - Deprecated
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The classes `myokit.PSimulation` and `myokit.ICSimulation` are deprecated. Sensitivities can now be obtained much quicker with the single cell `Simulation` class.
 - Removed

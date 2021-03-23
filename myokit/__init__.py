@@ -498,8 +498,8 @@ from ._aux import (  # noqa
     step,
 
     # Output capturing
-    PyCapture,
-    SubCapture,
+    StreamCapture,
+    ProcessOutputCapture,
 
     # Sorting
     _natural_sort_key,

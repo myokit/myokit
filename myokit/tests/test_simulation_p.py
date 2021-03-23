@@ -203,7 +203,7 @@ class PSimulationTest(unittest.TestCase):
         with WarningCollector() as c:
             s = myokit.PSimulation(
                 m, p, variables=['membrane.V'], parameters=['ina.gNa'])
-        with myokit.PyCapture() as c:
+        with myokit.StreamCapture() as c:
             s.run(2, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertEqual(len(c), 2)

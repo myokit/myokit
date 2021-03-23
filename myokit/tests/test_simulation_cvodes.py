@@ -213,7 +213,7 @@ class SimulationTest(unittest.TestCase):
 
         # Test if it works
         sim = myokit.Simulation(self.model, self.protocol)
-        with myokit.PyCapture() as c:
+        with myokit.StreamCapture() as c:
             sim.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertEqual(len(c), 2)
