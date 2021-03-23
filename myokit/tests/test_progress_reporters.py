@@ -23,7 +23,7 @@ class ProgressPrinterTests(unittest.TestCase):
         # Test basic functionality.
 
         # Zero call
-        with myokit.StreanCapture() as c:
+        with myokit.StreamCapture() as c:
             p = myokit.ProgressPrinter()
             self.assertTrue(p.update(0))
         pattern1 = re.compile(
