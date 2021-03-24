@@ -2193,17 +2193,6 @@ class Model(ObjectWithMeta, VarProvider):
         # Convert all to float, create new list, return
         return [float(x) for x in state]
 
-    def merge_interdependent_components(self):
-        """
-        Deprecated alias of :meth:`resolve_interdependent_components`.
-        """
-        # Deprecated since 2018-05-30
-        import warnings
-        warnings.warn(
-            'The method `merge_interdependent_components` is deprecated.'
-            ' Please use `resolve_interdependent_components` instead.')
-        self.resolve_interdependent_components()
-
     def name(self):
         """
         Returns the model meta property ``name``, or ``None`` if it isn't set.
