@@ -335,10 +335,10 @@ class CellMLWriter(object):
         # Add multiplier or prefix to first row
         multiplier = myokit_unit.multiplier()
         if multiplier != 1:
-            if myokit._feq(multiplier, int(multiplier)):
+            if myokit.float.eq(multiplier, int(multiplier)):
                 rows[0].attrib['multiplier'] = str(int(multiplier))
             else:
-                rows[0].attrib['multiplier'] = myokit.strfloat(
+                rows[0].attrib['multiplier'] = myokit.float.str(
                     multiplier).strip()
 
     def _variable(self, parent, variable):
@@ -362,7 +362,7 @@ class CellMLWriter(object):
 
         # Add initial value
         if variable.initial_value() is not None:
-            element.attrib['initial_value'] = myokit.strfloat(
+            element.attrib['initial_value'] = myokit.float.str(
                 variable.initial_value()).strip()
 
         # Add cmeta id

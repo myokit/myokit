@@ -94,8 +94,9 @@ class Protocol(object):
         Returns the characteristic time associated with this protocol.
 
         The characteristic time is defined as the maximum characteristic time
-        of all events in the protocol. For a sequence of events, this is simply
-        the protocol duration.
+        of all events in the protocol
+        (see :meth:`ProtocolEvent.characteristic_time()`). For a sequence of
+        events, this is simply the protocol duration.
 
         Examples:
 
@@ -283,7 +284,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if e and myokit._feq(t, e._start):
+            if e and myokit.float.eq(t, e._start):
                 t = e._start
 
         return True
@@ -326,7 +327,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if myokit._feq(t, e._start):
+            if myokit.float.eq(t, e._start):
                 t = e._start
 
             # Check for periodic events
@@ -794,16 +795,16 @@ class PacingSystem(object):
         self._time = new_time
 
         # Advance pacing system
-        while myokit._fgeq(new_time, self._tnext):
+        while myokit.float.geq(new_time, self._tnext):
 
             # Active event finished
-            if self._fire and myokit._fgeq(self._tnext, self._tdown):
+            if self._fire and myokit.float.geq(self._tnext, self._tdown):
                 self._fire = None
                 self._pace = 0
 
             # New event starting
             e = self._protocol._head
-            if e and myokit._fgeq(new_time, e._start):
+            if e and myokit.float.geq(new_time, e._start):
                 self._protocol.pop()
                 self._fire = e
                 self._tdown = e._start + e._duration
@@ -820,7 +821,7 @@ class PacingSystem(object):
                 # If so, then set tdown (which is always calculated) to the
                 # next event start (which may be user-specified).
                 x = self._protocol._head
-                if x and myokit._feq(self._tdown, x._start):
+                if x and myokit.float.eq(self._tdown, x._start):
                     self._tdown = x._start
 
             # Next stopping time

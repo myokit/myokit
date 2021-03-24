@@ -67,7 +67,7 @@ static double engine_time = 0;
 <?
 for var in model.variables(deep=True):
     if var.is_literal():
-        print('static double ' + v(var) + ' = ' + myokit.strfloat(var.rhs().eval()) + ';')
+        print('static double ' + v(var) + ' = ' + myokit.float.str(var.rhs().eval()) + ';')
     else:
         print('static double ' + v(var) + ';')
         if var.is_state():

@@ -9,7 +9,6 @@ myokit
 - :class:`myokit.ASin`
 - :class:`myokit.ATan`
 - :class:`myokit.Benchmarker`
-- :class:`myokit.capture`
 - :class:`myokit.Ceil`
 - :meth:`myokit.check_name`
 - :class:`myokit.CModel`
@@ -112,6 +111,7 @@ myokit
 - :meth:`myokit.parse_state`
 - :meth:`myokit.parse_unit`
 - :class:`myokit.PartialDerivative`
+- :meth:`myokit.pid_hash`
 - :class:`myokit.Piecewise`
 - :class:`myokit.Plus`
 - :class:`myokit.Power`

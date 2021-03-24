@@ -164,7 +164,7 @@ class PSimulation(myokit.CppModule):
         # Unique simulation id
         PSimulation._index += 1
         module_name = 'myokit_PSimulation_' + str(PSimulation._index)
-        module_name += '_' + str(myokit._pid_hash())
+        module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {

@@ -48,7 +48,7 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
     #def _ex_derivative(self, e):
 
     def _ex_number(self, e):
-        return myokit.strfloat(e) + 'f' if self._sp else myokit.strfloat(e)
+        return myokit.float.str(e) + 'f' if self._sp else myokit.float.str(e)
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):

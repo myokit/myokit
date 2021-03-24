@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
-# Tests the mmt file load/save functionality
+# Tests the loading/saveing mmt files and states.
+# See also test_parsing.py
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -23,11 +24,15 @@ except NameError:
     basestring = str
 
 
-class LoadSaveTest(unittest.TestCase):
-    """
-    Tests various parts of load/save behavior for model/protocol/script.
-    """
-    def test_multiline_string_indent(self):
+class LoadSaveMmtTest(unittest.TestCase):
+    """Tests load/save functions for mmt files."""
+
+    def test_examplify(self):
+        # Test _examplify.
+        self.assertEqual(myokit._io._examplify('test.txt'), 'test.txt')
+        self.assertEqual(myokit._io._examplify('example'), myokit.EXAMPLE)
+
+    def test_load_multiline_string_indent(self):
         # Test what happens when you load save a string that gets auto-indented
 
         # Create model with multi-line meta-data property
@@ -81,80 +86,39 @@ class LoadSaveTest(unittest.TestCase):
             d2 = m2.meta['desc']
             self.assertEqual(d2, dr)
 
-    def test_save_model(self):
-        # Test if the correct parts are saved/loaded from disk using the
-        # ``save_model()`` method.
+    def test_load_partial(self):
+        # Test loading of partial files.
+        mpath = os.path.join(DIR_DATA, 'beeler-1977-model.mmt')
+        ppath = os.path.join(DIR_DATA, 'beeler-1977-protocol.mmt')
+        spath = os.path.join(DIR_DATA, 'beeler-1977-script.mmt')
 
-        ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
-        # Test example loading
-        m = myokit.load_model('example')
+        m, p, x = myokit.load(mpath)
         self.assertIsInstance(m, myokit.Model)
-        # Test file loading
-        m = myokit.load_model(ipath)
-        self.assertIsInstance(m, myokit.Model)
-        with TemporaryDirectory() as d:
-            opath = d.path('loadsave.mmt')
-            myokit.save_model(opath, m)
-            # Test no other parts were written
-            with open(opath, 'r') as f:
-                text = f.read()
-            self.assertTrue('[[model]]' in text)
-            self.assertFalse('[[protocol]]' in text)
-            self.assertFalse('[[script]]' in text)
-            # Test reloading
-            mm = myokit.load_model(opath)
-            self.assertIsInstance(mm, myokit.Model)
-            self.assertEqual(mm.code(), m.code())
+        self.assertIsNone(p)
+        self.assertIsNone(x)
 
-    def test_save_protocol(self):
-        # Test if the correct parts are saved/loaded from disk using the
-        # ``save_protocol()`` method.
-
-        ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
-        # Test example loading
-        p = myokit.load_protocol('example')
+        m, p, x = myokit.load(ppath)
+        self.assertIsNone(m)
         self.assertIsInstance(p, myokit.Protocol)
-        # Test file loading
-        p = myokit.load_protocol(ipath)
-        self.assertIsInstance(p, myokit.Protocol)
-        with TemporaryDirectory() as d:
-            opath = d.path('test.mmt')
-            myokit.save_protocol(opath, p)
-            # Test no other parts were written
-            with open(opath, 'r') as f:
-                text = f.read()
-            self.assertFalse('[[model]]' in text)
-            self.assertTrue('[[protocol]]' in text)
-            self.assertFalse('[[script]]' in text)
-            # Test reloading
-            pp = myokit.load_protocol(opath)
-            self.assertIsInstance(pp, myokit.Protocol)
-            self.assertEqual(pp.code(), p.code())
+        self.assertIsNone(x)
 
-    def test_save_script(self):
-        # Test if the correct parts are saved/loaded from disk using the
-        # ``save_script()`` method.
+        m, p, x = myokit.load(spath)
+        self.assertIsNone(m)
+        self.assertIsNone(p)
+        self.assertTrue(isinstance(x, basestring))
 
-        ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
-        # Test example loading
-        x = myokit.load_script('example')
-        self.assertTrue(isinstance(x, basestring))
-        # Test file loading
-        x = myokit.load_script(ipath)
-        self.assertTrue(isinstance(x, basestring))
-        with TemporaryDirectory() as d:
-            opath = d.path('test.mmt')
-            myokit.save_script(opath, x)
-            # Test no other parts were written
-            with open(opath, 'r') as f:
-                text = f.read()
-            self.assertFalse('[[model]]' in text)
-            self.assertFalse('[[protocol]]' in text)
-            self.assertTrue('[[script]]' in text)
-            # Test reloading
-            xx = myokit.load_script(opath)
-            self.assertTrue(isinstance(xx, basestring))
-            self.assertEqual(x, xx)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_model, ppath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_model, spath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_protocol, mpath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_protocol, spath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_script, mpath)
+        self.assertRaises(
+            myokit.SectionNotFoundError, myokit.load_script, ppath)
 
     def test_save(self):
         # Test if the correct parts are saved/loaded from disk using the
@@ -291,39 +255,84 @@ class LoadSaveTest(unittest.TestCase):
                 text = f.read()
             self.assertEqual(text, myokit.save(model=m, protocol=p, script=x))
 
-    def test_load_partial(self):
-        # Test loading of partial files.
-        mpath = os.path.join(DIR_DATA, 'beeler-1977-model.mmt')
-        ppath = os.path.join(DIR_DATA, 'beeler-1977-protocol.mmt')
-        spath = os.path.join(DIR_DATA, 'beeler-1977-script.mmt')
+    def test_save_model(self):
+        # Test if the correct parts are saved/loaded from disk using the
+        # ``save_model()`` method.
 
-        m, p, x = myokit.load(mpath)
+        ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
+        # Test example loading
+        m = myokit.load_model('example')
         self.assertIsInstance(m, myokit.Model)
-        self.assertIsNone(p)
-        self.assertIsNone(x)
+        # Test file loading
+        m = myokit.load_model(ipath)
+        self.assertIsInstance(m, myokit.Model)
+        with TemporaryDirectory() as d:
+            opath = d.path('loadsave.mmt')
+            myokit.save_model(opath, m)
+            # Test no other parts were written
+            with open(opath, 'r') as f:
+                text = f.read()
+            self.assertTrue('[[model]]' in text)
+            self.assertFalse('[[protocol]]' in text)
+            self.assertFalse('[[script]]' in text)
+            # Test reloading
+            mm = myokit.load_model(opath)
+            self.assertIsInstance(mm, myokit.Model)
+            self.assertEqual(mm.code(), m.code())
 
-        m, p, x = myokit.load(ppath)
-        self.assertIsNone(m)
+    def test_save_protocol(self):
+        # Test if the correct parts are saved/loaded from disk using the
+        # ``save_protocol()`` method.
+
+        ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
+        # Test example loading
+        p = myokit.load_protocol('example')
         self.assertIsInstance(p, myokit.Protocol)
-        self.assertIsNone(x)
+        # Test file loading
+        p = myokit.load_protocol(ipath)
+        self.assertIsInstance(p, myokit.Protocol)
+        with TemporaryDirectory() as d:
+            opath = d.path('test.mmt')
+            myokit.save_protocol(opath, p)
+            # Test no other parts were written
+            with open(opath, 'r') as f:
+                text = f.read()
+            self.assertFalse('[[model]]' in text)
+            self.assertTrue('[[protocol]]' in text)
+            self.assertFalse('[[script]]' in text)
+            # Test reloading
+            pp = myokit.load_protocol(opath)
+            self.assertIsInstance(pp, myokit.Protocol)
+            self.assertEqual(pp.code(), p.code())
 
-        m, p, x = myokit.load(spath)
-        self.assertIsNone(m)
-        self.assertIsNone(p)
+    def test_save_script(self):
+        # Test if the correct parts are saved/loaded from disk using the
+        # ``save_script()`` method.
+
+        ipath = os.path.join(DIR_DATA, 'lr-1991.mmt')
+        # Test example loading
+        x = myokit.load_script('example')
         self.assertTrue(isinstance(x, basestring))
+        # Test file loading
+        x = myokit.load_script(ipath)
+        self.assertTrue(isinstance(x, basestring))
+        with TemporaryDirectory() as d:
+            opath = d.path('test.mmt')
+            myokit.save_script(opath, x)
+            # Test no other parts were written
+            with open(opath, 'r') as f:
+                text = f.read()
+            self.assertFalse('[[model]]' in text)
+            self.assertFalse('[[protocol]]' in text)
+            self.assertTrue('[[script]]' in text)
+            # Test reloading
+            xx = myokit.load_script(opath)
+            self.assertTrue(isinstance(xx, basestring))
+            self.assertEqual(x, xx)
 
-        self.assertRaises(
-            myokit.SectionNotFoundError, myokit.load_model, ppath)
-        self.assertRaises(
-            myokit.SectionNotFoundError, myokit.load_model, spath)
-        self.assertRaises(
-            myokit.SectionNotFoundError, myokit.load_protocol, mpath)
-        self.assertRaises(
-            myokit.SectionNotFoundError, myokit.load_protocol, spath)
-        self.assertRaises(
-            myokit.SectionNotFoundError, myokit.load_script, mpath)
-        self.assertRaises(
-            myokit.SectionNotFoundError, myokit.load_script, ppath)
+
+class LoadSaveStateTest(unittest.TestCase):
+    """Tests loading and saving states."""
 
     def test_load_save_state(self):
         # Test loading/saving state.

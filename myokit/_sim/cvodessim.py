@@ -187,7 +187,7 @@ class Simulation(myokit.CModule):
         # Unique simulation id
         Simulation._index += 1
         module_name = 'myokit_sim_' + str(Simulation._index)
-        module_name += '_' + str(myokit._pid_hash())
+        module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {
@@ -666,10 +666,10 @@ class Simulation(myokit.CModule):
                 txt.extend(['  ' + x for x
                             in self._model.format_state(state).splitlines()])
                 txt.append('Inputs for binding:')
-                txt.append('  time        = ' + myokit.strfloat(bound[0]))
-                txt.append('  pace        = ' + myokit.strfloat(bound[1]))
-                txt.append('  realtime    = ' + myokit.strfloat(bound[2]))
-                txt.append('  evaluations = ' + myokit.strfloat(bound[3]))
+                txt.append('  time        = ' + myokit.float.str(bound[0]))
+                txt.append('  pace        = ' + myokit.float.str(bound[1]))
+                txt.append('  realtime    = ' + myokit.float.str(bound[2]))
+                txt.append('  evaluations = ' + myokit.float.str(bound[3]))
                 txt.append(str(e))
 
                 # Check if state derivatives can be evaluated in Python, if

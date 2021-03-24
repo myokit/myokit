@@ -286,7 +286,7 @@ class SimulationOpenCL(myokit.CModule):
         # Create back-end
         SimulationOpenCL._index += 1
         mname = 'myokit_sim_opencl_' + str(SimulationOpenCL._index)
-        mname += '_' + str(myokit._pid_hash())
+        mname += '_' + str(myokit.pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {
             'module_name': mname,
@@ -1049,9 +1049,9 @@ class SimulationOpenCL(myokit.CModule):
                 icell_str = '(' + ','.join([str(x) for x in icell]) + ')'
                 txt.append(
                     'Encountered numerical error at t='
-                    + myokit.strfloat(time, precision=self._precision)
+                    + myokit.float.str(time, precision=self._precision)
                     + ' in cell ' + icell_str + ' when ' + var + '='
-                    + myokit.strfloat(value, precision=self._precision) + '.')
+                    + myokit.float.str(value, precision=self._precision) + '.')
 
                 # Check if this cell was paced.
                 is_paced = self.is_paced(*icell)
@@ -1084,16 +1084,16 @@ class SimulationOpenCL(myokit.CModule):
 
                 # Show bound variables
                 txt.append('Simulation variables during:')
-                txt.append('  Time: ' + myokit.strfloat(
+                txt.append('  Time: ' + myokit.float.str(
                     bounds[0][vtime], precision=self._precision))
                 if vpace:
                     txt.append(
-                        '  Pacing variable: ' + myokit.strfloat(
+                        '  Pacing variable: ' + myokit.float.str(
                             bounds[0][vpace], precision=self._precision)
                         + is_paced_str)
                 if vdiff:
                     txt.append(
-                        '  Diffusion current: ' + myokit.strfloat(
+                        '  Diffusion current: ' + myokit.float.str(
                             bounds[0][vdiff], precision=self._precision))
                 if neighbours:
                     txt.append('  Connected cells: ' + neighbours_str)
@@ -1131,16 +1131,16 @@ class SimulationOpenCL(myokit.CModule):
 
                     # Show bound variables
                     txt.append('Simulation variables before:')
-                    txt.append('  Time: ' + myokit.strfloat(
+                    txt.append('  Time: ' + myokit.float.str(
                         bounds[1][vtime], precision=self._precision))
                     if vpace:
                         txt.append(
-                            '  Pacing variable: ' + myokit.strfloat(
+                            '  Pacing variable: ' + myokit.float.str(
                                 bounds[1][vpace], precision=self._precision)
                             + is_paced_str)
                     if vdiff:
                         txt.append(
-                            '  Diffusion current: ' + myokit.strfloat(
+                            '  Diffusion current: ' + myokit.float.str(
                                 bounds[1][vdiff], precision=self._precision))
                     if neighbours:
                         txt.append('  Connected cells: ' + neighbours_str)
@@ -1148,16 +1148,16 @@ class SimulationOpenCL(myokit.CModule):
                     # Show all variables with non-finite values
                     txt.append(
                         'Logged all variables for points: ' + ', '.join(
-                            myokit.strfloat(t, precision=self._precision)
+                            myokit.float.str(t, precision=self._precision)
                             for t in d.time()))
                     txt.append(
-                        'Non-finite valued variables at t=' + myokit.strfloat(
+                        'Non-finite valued variables at t=' + myokit.float.str(
                             d.time()[-2], precision=self._precision))
                     for key, values in d.items():
                         value = values[-2]
                         if not np.isfinite(value):
                             txt.append(
-                                '  ' + str(key) + ' = ' + myokit.strfloat(
+                                '  ' + str(key) + ' = ' + myokit.float.str(
                                     value, precision=self._precision))
 
                     # Show any error in evaluating derivatives

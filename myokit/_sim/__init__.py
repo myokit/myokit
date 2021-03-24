@@ -13,6 +13,8 @@ import os
 import platform
 import sys
 import tempfile
+import threading
+import timeit
 import traceback
 
 
@@ -187,7 +189,7 @@ class CModule(object):
 
             # Compile in build directory, catch output
             error, trace = None, None
-            with myokit.capture(fd=True) as s:
+            with myokit.tools.capture(fd=True) as s:
                 try:
                     os.chdir(d_build)
                     setup(
@@ -219,7 +221,7 @@ class CModule(object):
 
             # Delete cached module
             try:
-                myokit._rmtree(d_cache)
+                myokit.tools.rmtree(d_cache)
             except Exception:   # pragma: no cover
                 pass
 
@@ -278,4 +280,16 @@ class CppModule(CModule):
     """
     def _source_file(self):
         return 'source.cpp'
+
+
+def pid_hash():
+    """
+    Returns a positive integer hash that depends on the current time as well as
+    the process and thread id, so that it's likely to return a different number
+    when called twice.
+    """
+    pid = 1 + os.getpid()                       # Range 0 to 99999
+    tid = threading.current_thread().ident      # Non-zero integer
+    x = pid * tid * timeit.default_timer()
+    return abs(hash(str(x - int(x))))
 

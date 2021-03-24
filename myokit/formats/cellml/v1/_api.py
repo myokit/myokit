@@ -96,11 +96,11 @@ def create_unit_name(unit):
 
         # Use e-notation if multiple of 10
         multiplier10 = unit.multiplier_log_10()
-        if myokit._feq(multiplier10, int(multiplier10)):
+        if myokit.float.eq(multiplier10, int(multiplier10)):
             multiplier = '1e' + str(int(multiplier10))
 
         # Format as integer
-        elif myokit._feq(multiplier, int(multiplier)):
+        elif myokit.float.eq(multiplier, int(multiplier)):
             multiplier = str(int(multiplier))
 
         # Format as float

@@ -116,7 +116,7 @@ class Simulation(myokit.CModule):
         # Unique simulation id
         Simulation._index += 1
         module_name = 'myokit_sim_' + str(Simulation._index)
-        module_name += '_' + str(myokit._pid_hash())
+        module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {
@@ -438,10 +438,10 @@ class Simulation(myokit.CModule):
                 txt.extend(['  ' + x for x in
                             self._model.format_state(rstate).splitlines()])
                 txt.append('Inputs for binding: ')
-                txt.append('  time        = ' + myokit.strfloat(rbound[0]))
-                txt.append('  pace        = ' + myokit.strfloat(rbound[1]))
-                txt.append('  realtime    = ' + myokit.strfloat(rbound[2]))
-                txt.append('  evaluations = ' + myokit.strfloat(rbound[3]))
+                txt.append('  time        = ' + myokit.float.str(rbound[0]))
+                txt.append('  pace        = ' + myokit.float.str(rbound[1]))
+                txt.append('  realtime    = ' + myokit.float.str(rbound[2]))
+                txt.append('  evaluations = ' + myokit.float.str(rbound[3]))
                 txt.append(str(e))
                 try:
                     self._model.eval_state_derivatives(rstate)

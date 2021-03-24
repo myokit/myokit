@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
 # Tests the parsing module.
+# See also test_io.py
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.

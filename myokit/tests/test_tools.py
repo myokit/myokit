@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Tests the capture methods in myokit._aux
+# Tests the methods and classes in myokit.tools
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -8,6 +8,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import os
 import sys
 import threading
 import time
@@ -22,18 +23,53 @@ except NameError:   # pragma: no cover
 import myokit
 
 
-class AuxCaptureTest(unittest.TestCase):
-    """
-    Test the capture methods in myokit.aux
-    """
+class BenchMarkerTest(unittest.TestCase):
+    """Tests the ``Benchmarker``."""
+
+    def test_benchmarker(self):
+        # Test the benchmarker.
+
+        b = myokit.tools.Benchmarker()
+        x = [0] * 1000
+        t0 = b.time()
+        self.assertTrue(t0 >= 0)
+        x = [0] * 1000
+        t1 = b.time()
+        self.assertTrue(t1 >= t0)
+        x = [0] * 1000
+        t2 = b.time()
+        self.assertTrue(t2 >= t1)
+        for i in range(1000):
+            x = [0] * 1000
+        t3 = b.time()
+        self.assertTrue(t3 >= t2)
+        b.reset()
+        t4 = b.time()
+        self.assertTrue(t4 < t3)
+
+        self.assertEqual(b.format(1), '1 second')
+        self.assertEqual(b.format(61), '1 minute, 1 second')
+        self.assertEqual(b.format(60), '1 minute, 0 seconds')
+        self.assertEqual(b.format(180), '3 minutes, 0 seconds')
+        self.assertEqual(b.format(3600), '1 hour, 0 minutes, 0 seconds')
+        self.assertEqual(b.format(3661), '1 hour, 1 minute, 1 second')
+        self.assertEqual(
+            b.format(3600 * 24), '1 day, 0 hours, 0 minutes, 0 seconds')
+        self.assertEqual(
+            b.format(3600 * 24 * 7),
+            '1 week, 0 days, 0 hours, 0 minutes, 0 seconds')
+
+
+class CaptureTest(unittest.TestCase):
+    """Test the ``capture`` context manager."""
 
     def test_capture_nested(self):
         """Tests capturing in a nested pattern."""
-        r = myokit.capture(False)
-        q = myokit.capture(True)
+        r = myokit.tools.capture(False)
+        q = myokit.tools.capture(True)
         self.assertEqual(r.out(), '')
         self.assertEqual(r.err(), '')
-        with myokit.capture(False) as p:
+        with myokit.tools.capture(False) as p:
             self.assertEqual(p.out(), '')
             self.assertEqual(p.err(), '')
             print('1', end='')
@@ -44,7 +80,7 @@ class AuxCaptureTest(unittest.TestCase):
                 with r:
                     print('3', end='')
                     print('c', end='', file=sys.stderr)
-                    with myokit.capture(True) as s:
+                    with myokit.tools.capture(True) as s:
                         print('4', end='')
                         print('d', end='', file=sys.stderr)
                     print('5', end='')
@@ -73,8 +109,8 @@ class AuxCaptureTest(unittest.TestCase):
 
     def test_capture_repeated_use(self):
         """Tests capturing in a nested pattern with repeated enters/exits."""
-        x = myokit.capture()
-        y = myokit.capture(True)
+        x = myokit.tools.capture()
+        y = myokit.tools.capture(True)
         self.assertEqual(x.out(), '')
         with x:
             print('1', end='')
@@ -128,7 +164,7 @@ class AuxCaptureTest(unittest.TestCase):
 
         # Function to call inside threads
         def f(i):
-            with myokit.capture() as c:
+            with myokit.tools.capture() as c:
                 print(str(i) + 'a ', end='')
                 time.sleep(times[i])
                 print(str(i) + 'b ', end='')
@@ -152,6 +188,65 @@ class AuxCaptureTest(unittest.TestCase):
         self.assertEqual(captured[0], '0a 0b 0e')
         self.assertEqual(captured[1], '1a 1b 1e')
         self.assertEqual(captured[2], '2a 2b 2e')
+
+
+class ToolsTest(unittest.TestCase):
+    """Tests various tools in myokit.tools"""
+
+    def test_format_path(self):
+        # Test format_path().
+        fp = myokit.tools.format_path
+
+        # Normal use
+        self.assertEqual(
+            fp(os.path.join('a', 'b', 'c')), os.path.join('a', 'b', 'c'))
+
+        # No trailing slash
+        self.assertEqual(fp('a'), 'a')
+        self.assertEqual(fp('a/b/'), os.path.join('a', 'b'))
+
+        # Use with custom root
+        root = os.path.join(os.path.abspath('.'), 'a')
+        self.assertEqual(
+            fp(os.path.join(root, 'b', 'c'), root), os.path.join('b', 'c'))
+
+        # Empty path
+        self.assertEqual(fp(''), '.')
+        self.assertEqual(fp('.'), '.')
+
+        # Filesystem root
+        self.assertEqual(fp('/'), os.path.abspath('/'))
+        self.assertEqual(fp('/', root='/'), '.')
+
+        # Path outside of root
+        self.assertEqual(
+            fp(os.path.abspath('test'), os.path.abspath('test/tost')),
+            os.path.abspath('test'))
+
+    def test_levenshtein_distance(self):
+        # Test the levenshtein distance method.
+        self.assertEqual(myokit.tools.lvsd('kitten', 'sitting'), 3)
+        self.assertEqual(myokit.tools.lvsd('sitting', 'kitten'), 3)
+        self.assertEqual(myokit.tools.lvsd('saturday', 'sunday'), 3)
+        self.assertEqual(myokit.tools.lvsd('sunday', 'saturday'), 3)
+        self.assertEqual(myokit.tools.lvsd('michael', 'jennifer'), 7)
+        self.assertEqual(myokit.tools.lvsd('jennifer', 'michael'), 7)
+        self.assertEqual(myokit.tools.lvsd('jennifer', ''), 8)
+        self.assertEqual(myokit.tools.lvsd('', 'jennifer'), 8)
+        self.assertEqual(myokit.tools.lvsd('', ''), 0)
+
+    def test_natural_sort_key(self):
+        # Test natural sort key method.
+
+        a = ['a12', 'a3', 'a11', 'a2', 'a10', 'a1']
+        b = ['a1', 'a2', 'a3', 'a10', 'a11', 'a12']
+        self.assertNotEqual(a, b)
+        a.sort()
+        self.assertNotEqual(a, b)
+        a.sort(key=myokit.tools.natural_sort_key)
+        self.assertEqual(a, b)
+
+    # TODO: rmtree
 
 
 if __name__ == '__main__':

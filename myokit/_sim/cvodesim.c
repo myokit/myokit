@@ -212,7 +212,7 @@ static long engine_steps = 0;
 <?
 for var in model.variables(state=False, deep=True):
     if var.is_literal():
-        print('static realtype ' + v(var) + ' = ' + myokit.strfloat(var.rhs().eval()) + ';')
+        print('static realtype ' + v(var) + ' = ' + myokit.float.str(var.rhs().eval()) + ';')
     else:
         print('static realtype ' + v(var) + ';')
 ?>

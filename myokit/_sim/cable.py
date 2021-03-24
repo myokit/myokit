@@ -182,7 +182,7 @@ class Simulation1d(myokit.CModule):
         # Unique simulation id
         Simulation1d._index += 1
         module_name = 'myokit_sim1d_' + str(Simulation1d._index)
-        module_name += '_' + str(myokit._pid_hash())
+        module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {
@@ -196,8 +196,8 @@ class Simulation1d(myokit.CModule):
 
         # Debug
         if myokit.DEBUG:
-            print(self._code(fname, args,
-                             line_numbers=myokit.DEBUG_LINE_NUMBERS))
+            print(self._code(
+                fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
             import sys
             sys.exit(1)
 

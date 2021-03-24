@@ -338,7 +338,7 @@ def mmt_export(exporter, source, target):
 
     # Parse input file
     try:
-        print('Reading model from ' + myokit.format_path(source))
+        print('Reading model from ' + myokit.tools.format_path(source))
         model, protocol, script = myokit.load(source)
     except myokit.ParseError as ex:
         print(myokit.format_parse_error(ex, source))
@@ -609,7 +609,7 @@ def install_windows():
         print('Done')
 
     finally:
-        myokit._rmtree(tdir)
+        myokit.tools.rmtree(tdir)
 
 
 def add_icon_parser(subparsers):
@@ -979,7 +979,7 @@ def reset(force=False):
     if remove:
         print('Removing')
         print('  ' + myokit.DIR_USER)
-        myokit._rmtree(myokit.DIR_USER)
+        myokit.tools.rmtree(myokit.DIR_USER)
         print('Done')
     else:
         print('Aborting.')
@@ -1021,7 +1021,7 @@ def run(source, debug, debugfile):
     # Read mmt file
     try:
         print('Reading model from ' + source)
-        b = myokit.Benchmarker()
+        b = myokit.tools.Benchmarker()
         (model, protocol, script) = myokit.load(source)
         print('File loaded in ' + str(b.time()) + ' seconds')
         if model is None:
@@ -1163,7 +1163,7 @@ def step(source, ref, ini, raw):
     try:
         if raw:
             derivs = model.eval_state_derivatives(state=ini)
-            print('\n'.join([myokit.strfloat(x) for x in derivs]))
+            print('\n'.join([myokit.float.str(x) for x in derivs]))
         else:
             print(myokit.step(model, initial=ini, reference=ref))
     except myokit.NumericalError as ee:
@@ -1791,7 +1791,7 @@ def test_examples_single(root, path):
     import subprocess
     import sys
 
-    b = myokit.Benchmarker()
+    b = myokit.tools.Benchmarker()
     print('Running ' + path + ' ... ', end='')
     sys.stdout.flush()
 

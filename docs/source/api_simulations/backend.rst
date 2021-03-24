@@ -19,11 +19,9 @@ Back-end classes
     :private-members:
     :inherited-members:
 
-.. autoclass:: capture
-    :private-members:
-    :inherited-members:
-
 .. autoclass:: Compiler
+
+.. autofunction:: pid_hash
 
 
 Templating engine

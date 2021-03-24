@@ -16,7 +16,7 @@ programmatically.
 
 def blocktrain(period, duration, offset=0, level=1.0, limit=0):
     """
-    Creates an train of block pulses.
+    Creates a train of block pulses.
 
     Each pulse lasts ``duration`` time units and a pulse is initiated every
     ``period`` time units.

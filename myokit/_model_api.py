@@ -1491,8 +1491,8 @@ class Model(ObjectWithMeta, VarProvider):
             An optional second state, to be shown next to ``state`` for
             comparison.
         ``precision=myokit.DOUBLE_PRECISION``
-            An optional precision argument to pass into :meth:`myokit.strfloat`
-            when formatting the state values.
+            An optional precision argument to pass into
+            :meth:`myokit.float.str` when formatting the state values.
 
         """
         n = len(self._state)
@@ -1515,13 +1515,13 @@ class Model(ObjectWithMeta, VarProvider):
         for k, var in enumerate(self.states()):
             out.append(
                 var.qname() + ' ' * (n - len(var.qname()))
-                + ' = ' + myokit.strfloat(state[k], precision=precision))
+                + ' = ' + myokit.float.str(state[k], precision=precision))
         if state2 is not None:
             n = max([len(x) for x in out])
             for k, var in enumerate(self.states()):
                 out[k] += (
                     ' ' * (4 + n - len(out[k]))
-                    + myokit.strfloat(state2[k], precision=precision))
+                    + myokit.float.str(state2[k], precision=precision))
 
         return '\n'.join(out)
 
@@ -1542,7 +1542,7 @@ class Model(ObjectWithMeta, VarProvider):
             will be calculed from ``state`` using :meth:`eval_derivatives()`.
         ``precision=myokit.DOUBLE_PRECISION``
             An optional precision argument to use when evaluating the state
-            derivatives, and to pass into :meth:`myokit.strfloat` when
+            derivatives, and to pass into :meth:`myokit.float.str` when
             formatting the state values and derivatives.
 
         """
@@ -1565,8 +1565,8 @@ class Model(ObjectWithMeta, VarProvider):
         out = []
         n = max([len(x.qname()) for x in self.states()])
         for i, var in enumerate(self.states()):
-            s = myokit.strfloat(state[i], precision=precision)
-            d = myokit.strfloat(derivatives[i], precision=precision)
+            s = myokit.float.str(state[i], precision=precision)
+            d = myokit.float.str(derivatives[i], precision=precision)
             out.append(
                 var.qname() + ' ' * (n - len(var.qname())) + ' = ' + s
                 + ' ' * (24 - len(s)) + '   dot = ' + d)
@@ -2930,10 +2930,10 @@ class Model(ObjectWithMeta, VarProvider):
         for v in self.variables(deep=True):
             n1 = v.name()
             n2 = v.qname()
-            d = min(myokit._lvsd(name, n1),
-                    myokit._lvsd(qname, n2),
-                    myokit._lvsd(name_low, n1.lower()),
-                    myokit._lvsd(qname_low, n2.lower()))
+            d = min(myokit.tools.lvsd(name, n1),
+                    myokit.tools.lvsd(qname, n2),
+                    myokit.tools.lvsd(name_low, n1.lower()),
+                    myokit.tools.lvsd(qname_low, n2.lower()))
             if d < mn:
                 mn = d
                 sg = v
