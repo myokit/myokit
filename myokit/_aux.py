@@ -414,7 +414,7 @@ class capture(object):
         text = self._txt_err
 
         # In Python 2, the text needs to be decoded from ascii
-        if sys.hexversion < 0x03000000:
+        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
             text = text.decode('ascii', 'ignore')
 
         return text
@@ -429,7 +429,7 @@ class capture(object):
         text = self._txt_out
 
         # In Python 2, the text needs to be decoded from ascii
-        if sys.hexversion < 0x03000000:
+        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
             text = text.decode('ascii', 'ignore')
 
         return text

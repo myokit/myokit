@@ -31,7 +31,11 @@ class AuxCaptureTest(unittest.TestCase):
         """Tests capturing in a nested pattern."""
         r = myokit.capture(False)
         q = myokit.capture(True)
+        self.assertEqual(r.out(), '')
+        self.assertEqual(r.err(), '')
         with myokit.capture(False) as p:
+            self.assertEqual(p.out(), '')
+            self.assertEqual(p.err(), '')
             print('1', end='')
             print('a', end='', file=sys.stderr)
             with q:
