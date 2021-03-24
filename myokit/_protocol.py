@@ -94,8 +94,9 @@ class Protocol(object):
         Returns the characteristic time associated with this protocol.
 
         The characteristic time is defined as the maximum characteristic time
-        of all events in the protocol. For a sequence of events, this is simply
-        the protocol duration.
+        of all events in the protocol
+        (see :meth:`ProtocolEvent.characteristic_time()`). For a sequence of
+        events, this is simply the protocol duration.
 
         Examples:
 
