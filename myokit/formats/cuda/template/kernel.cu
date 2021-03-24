@@ -146,7 +146,7 @@ export = 'CUDA export' + (' with RL updates' if use_rl else '')
 print('/*')
 print(' * CUDA kernel for ' + model.name())
 print(' *')
-print(' * Generated on ' + myokit.tools.date() + ' by Myokit ' + export)
+print(' * Generated on ' + myokit.date() + ' by Myokit ' + export)
 print(' */')
 
 

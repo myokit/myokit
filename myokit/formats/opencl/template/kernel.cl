@@ -108,7 +108,7 @@ last_component = comp_order[-1]
 print('/*')
 print(' * OpenCL kernel for ' + model.name())
 print(' *')
-print(' * Generated on ' + myokit.tools.date() + ' by Myokit OpenCL export')
+print(' * Generated on ' + myokit.date() + ' by Myokit OpenCL export')
 print(' *' + (' Using RL updates for HH states' if rl_states else ''))
 print(' */')
 print('')

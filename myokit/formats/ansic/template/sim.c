@@ -56,7 +56,7 @@ tmax = 1000
 
 ?>/*
 <?= model.name() ?>
-Generated on <?= myokit.tools.date() ?>
+Generated on <?= myokit.date() ?>
 
 Compiling on GCC:
  $ gcc -Wall -lm -lsundials_nvecserial -lsundials_cvode sim.c

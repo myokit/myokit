@@ -24,7 +24,7 @@ tab = '    '
 
 OpenCL Host file for a cable simulation using <?= model.name() ?>
 
-Generated on <?= myokit.tools.date() ?> by myokit opencl export
+Generated on <?= myokit.date() ?> by myokit opencl export
 
 */
 #include <stdio.h>

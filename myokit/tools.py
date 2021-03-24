@@ -24,8 +24,6 @@ try:
 except ImportError:  # pragma: no python 2 cover
     from io import StringIO
 
-import myokit
-
 
 # Natural sort regex
 _natural_sort_regex = re.compile('([0-9]+)')
@@ -397,15 +395,6 @@ class capture(object):
         return self.out() + self.err()
 
 
-def date():
-    """
-    Returns the current date and time, formatted as specified in
-    ``myokit.settings``.
-    """
-    import time
-    return time.strftime(myokit.DATE_FORMAT)
-
-
 def format_path(path, root='.'):
     """
     Formats a path for use in user messages. If the given path is a
@@ -488,12 +477,4 @@ def rmtree(path):
             raise
 
     shutil.rmtree(path, ignore_errors=False, onerror=onerror)
-
-
-def time():
-    """
-    Returns the current time, formatted as specified in ``myokit.settings``.
-    """
-    import time as t
-    return t.strftime(myokit.TIME_FORMAT)
 

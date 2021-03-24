@@ -33,13 +33,11 @@ class Benchmarker(myokit.tools.Benchmarker):
 
 
 def date():
-    """Deprecated alias of :class:`myokit.tools.date`."""
-    # Deprecated since 2021-03-24
-    import warnings
-    warnings.warn(
-        'The method `myokit.date` is deprecated.'
-        ' Please use `myokit.tools.date` instead.')
-    return myokit.tools.date()
+    """
+    Returns the current date and time, in the format used throughout Myokit.
+    """
+    import time
+    return time.strftime(myokit.DATE_FORMAT)
 
 
 def default_protocol(model=None):
@@ -682,13 +680,11 @@ def strfloat(number, full=False, precision=myokit.DOUBLE_PRECISION):
 
 
 def time():
-    """Deprecated alias of :class:`myokit.tools.time`."""
-    # Deprecated since 2021-03-24
-    import warnings
-    warnings.warn(
-        'The method `myokit.time` is deprecated.'
-        ' Please use `myokit.tools.time` instead.')
-    return myokit.tools.time()
+    """
+    Returns the current time, in the format used throughout Myokit.
+    """
+    import time as t
+    return t.strftime(myokit.TIME_FORMAT)
 
 
 def version(raw=False):

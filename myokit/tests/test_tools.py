@@ -193,17 +193,6 @@ class CaptureTest(unittest.TestCase):
 class ToolsTest(unittest.TestCase):
     """Tests various tools in myokit.tools"""
 
-    def test_date(self):
-        # Test date formatting method.
-
-        import time
-        for i in range(3):
-            a = time.strftime(myokit.DATE_FORMAT)
-            b = myokit.tools.date()
-            if a == b:
-                break
-        self.assertEqual(a, b)
-
     def test_format_path(self):
         # Test format_path().
         fp = myokit.tools.format_path
@@ -258,17 +247,6 @@ class ToolsTest(unittest.TestCase):
         self.assertEqual(a, b)
 
     # TODO: rmtree
-
-    def test_time(self):
-        # Test time formatting method.
-
-        import time
-        for i in range(6):
-            a = time.strftime(myokit.TIME_FORMAT)
-            b = myokit.tools.time()
-            if a == b:
-                break
-        self.assertEqual(a, b)
 
 
 if __name__ == '__main__':

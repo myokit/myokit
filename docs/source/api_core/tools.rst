@@ -20,13 +20,6 @@ Capturing printed output
 
 .. autoclass:: capture
 
-Date and time
-=============
-
-.. autofunction:: date
-
-.. autofunction:: time
-
 File system
 ===========
 
@@ -50,13 +43,9 @@ removed in future Myokit releases.
 
 .. autoclass:: Benchmarker
 
-.. autofunction:: date
-
 .. autofunction:: format_float_dict
 
 .. autofunction:: format_path
 
 .. autofunction:: strfloat
-
-.. autofunction:: time
 

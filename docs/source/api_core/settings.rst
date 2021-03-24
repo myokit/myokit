@@ -23,7 +23,15 @@ requirements to use Myokit and run simulations.
 
 .. autofunction:: system
 
-The :meth:`version()` method
+The :meth:`version()` method provides information about the current Myokit
+version.
 
 .. autofunction:: version
+
+Myokit uses standard formats for date and time. The current date and time can
+be obtained using :meth:`date()` and :meth:`time()`.
+
+.. autofunction:: date
+
+.. autofunction:: time
 

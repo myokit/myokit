@@ -59,7 +59,7 @@ for comp in equations:
 
 ?>#!/usr/bin/env python
 #
-# Generated on <?= myokit.tools.date() ?>
+# Generated on <?= myokit.date() ?>
 #
 import math
 

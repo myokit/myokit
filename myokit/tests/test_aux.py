@@ -41,11 +41,14 @@ class AuxTest(unittest.TestCase):
         self.assertIsInstance(b, myokit.tools.Benchmarker)
 
     def test_date(self):
-        # Deprecated alias of myokit.tools.date
-        with WarningCollector() as c:
-            myokit.date()
-        self.assertIn('`myokit.date` is deprecated', c.text())
-        # Don't check value, to avoid timing issues
+        # Test date formatting method.
+        import time
+        for i in range(3):
+            a = time.strftime(myokit.DATE_FORMAT)
+            b = myokit.date()
+            if a == b:
+                break
+        self.assertEqual(a, b)
 
     def test_default_protocol(self):
         # Test default_protocol()
@@ -518,11 +521,14 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(x, myokit.float.str(*args))
 
     def test_time(self):
-        # Deprecated alias of myokit.tools.time
-        with WarningCollector() as c:
-            myokit.time()
-        self.assertIn('`myokit.time` is deprecated', c.text())
-        # Don't check value, to avoid timing issues
+        # Test time formatting method.
+        import time
+        for i in range(6):
+            a = time.strftime(myokit.TIME_FORMAT)
+            b = myokit.time()
+            if a == b:
+                break
+        self.assertEqual(a, b)
 
     def test_version(self):
         # Test the version() method.
