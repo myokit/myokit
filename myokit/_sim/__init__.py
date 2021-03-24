@@ -186,7 +186,8 @@ class CModule(object):
             )
 
             # Compile in build directory, catch output
-            with myokit.SubCapture() as s:
+            error, trace = None, None
+            with myokit.capture(fd=True) as s:
                 try:
                     os.chdir(d_build)
                     setup(
@@ -197,16 +198,17 @@ class CModule(object):
                             str('build_ext'),
                             str('--inplace'),
                         ])
-                except (Exception, SystemExit) as e:    # pragma: no cover
-                    s.disable()
-                    t = ['Unable to compile.', 'Error message:']
-                    t.append(str(e))
-                    t.append('Error traceback')
-                    t.append(traceback.format_exc())
-                    t.append('Compiler output:')
-                    captured = s.text().strip()
-                    t.extend(['    ' + x for x in captured.splitlines()])
-                    raise myokit.CompilationError('\n'.join(t))
+                except (Exception, SystemExit) as e:  # pragma: no cover
+                    error = e
+                    trace = traceback.format_exc()
+            if error is not None:  # pragma: no cover
+                t = ['Unable to compile.', 'Error message:']
+                t.append(str(error))
+                t.append(trace)
+                t.append('Compiler output:')
+                captured = s.text().strip()
+                t.extend(['    ' + x for x in captured.splitlines()])
+                raise myokit.CompilationError('\n'.join(t))
 
             # Include module (and refresh in case 2nd model is loaded)
             return load_module(name, d_build)

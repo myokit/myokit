@@ -17,6 +17,7 @@ import shutil
 import stat
 import sys
 import tempfile
+import threading
 import timeit
 import zipfile
 
@@ -130,251 +131,259 @@ class Benchmarker(object):
         return timeit.default_timer() - self._start
 
 
-class PyCapture(object):
+class capture(object):
     """
-    A context manager that redirects and captures the standard and error output
-    of the python interpreter, using pure python techniques.
+    Context manager that temporarily redirects the current standard output and
+    error streams, and captures anything that's written to them.
+
+    Example::
+
+        with myokit.capture() as a:
+            print('This will be captured')
+
+    Within a single thread, captures can be nested, for example::
+
+        with myokit.capture() as a:
+            print('This will be captured by a')
+            with myokit.capture() as b:
+                print('This will be captured by b, not a')
+            print('This will be captured by a again')
+
+    Capturing is thread-safe: a lock is used to ensure only a single thread is
+    capturing at any time. For example, if we have a function::
+
+        def f(i):
+            with myokit.capture() as a:
+                print(i)
+                ...
+
+            return a.text()
+
+    and this is called from several threads, the ``capture`` acts as a lock (a
+    ``threading.RLock``) so that one thread will need to finish executing the
+    code within the ``with`` statement before a second thread can start
+    capturing.
+
+    In multiprocessing, no locks are used, and no memory or streams are shared
+    so that this should also be safe.
+
+    By default, this method works by simply redirecting ``sys.stdout`` and
+    ``sys.stderr``. This captures any output written by the Python interpreter,
+    but does not catch output from C/C++ extensions or subrocesses. To also
+    catch that output start the capture with the optional argument
+    ``fd=True``, which enables a file descriptor duplication method of
+    redirection.
     """
-    def __init__(self, enabled=True):
-        super(PyCapture, self).__init__()
+    # Note: It seems we need to capture both streams to make the file
+    # descriptor method work, and we want both anyway throughout Myokit, so
+    # there are no options to choose stdout or stderr here.
 
-        # Generic properties
-        self._enabled = enabled     # True if enabled
-        self._capturing = False     # True if currently capturing
-        self._captured = []         # Array to store captured strings in
+    # Lock to stop other threads from capturing while this thread is capturing.
+    _rlock = threading.RLock()
 
-        # Python specific properties
-        self._stdout = None     # Original stdout
-        self._stderr = None     # Original stderr
-        self._dupout = None     # String buffer to redirect stdout to
-        self._duperr = None     # String buffer to redirect stderr to
+    def __init__(self, fd=False):
 
-    def clear(self):
-        """
-        Deletes all captured text.
-        """
-        capturing = self._capturing
-        if capturing:
-            self._stop_capturing()
-        self._captured = []
-        if capturing:
-            self._start_capturing()
+        # Are we already capturing? This is needed in case someone enters the
+        # same context twice.
+        self._active_count = 0
 
-    def disable(self):
-        """
-        Disables the silencing. Any capturing currently taking place is halted.
-        """
-        self._enabled = False
-        self._stop_capturing()
+        # Captured text
+        self._txt_out = None
+        self._txt_err = None
 
-    def enable(self):
-        """
-        Enables the context manager and starts capturing output.
-        """
-        self._enabled = True
-        self._start_capturing()
+        # Capturing mode
+        self._fd = bool(fd)
+
+        # Shared by both modes
+        self._org_out = None     # Original stdout object
+        self._org_err = None     # Original stderr object
+
+        # Python stream redirects only
+        self._tmp_out = None    # Temporary stdout StringIO object
+        self._tmp_err = None    # Temporary stderr StringIO object
+
+        # File descriptor redirects only
+        self._out_fd = None      # File descriptor used for output
+        self._err_fd = None      # File descriptor used for errors
+        self._org_out_fd = None  # Back-up of original stdout file descriptor
+        self._org_err_fd = None  # Back-up of original stderr file descriptor
+        self._file_out = None    # Temporary file to write output to
+        self._file_err = None    # Temporary file to write errors to
 
     def __enter__(self):
-        """
-        Called when the context is entered.
-        """
-        if self._enabled:
-            self._start_capturing()
+        """Called when the context is entered."""
+        # Avoid entering the same context object twice
+        self._active_count += 1
+        if self._active_count == 1:
+
+            # Wait until other threads have stopped capturing
+            capture._rlock.acquire()
+
+            # Set up redirection
+            self._start()
+
+        # Return context
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        Called when exiting the context.
-        """
-        self._stop_capturing()
+        """Called when exiting the context."""
+        self._active_count -= 1
+        if self._active_count == 0:
+            self._stop()
+            capture._rlock.release()
 
-    def _start_capturing(self):
-        """
-        Starts capturing output to stdout and stderr.
-        """
-        if not self._capturing:
-            # If possible, flush current outputs
+    def _start(self):
+        """Starts capturing output to stdout and stderr."""
+
+        # Clear any cached text
+        self._txt_out = None
+        self._txt_err = None
+
+        # Save the current output / error streams
+        self._org_out = sys.stdout
+        self._org_err = sys.stderr
+
+        # Redirect
+        if not self._fd:
+            # Create temporary output and error streams
+            self._tmp_out = StringIO()
+            self._tmp_err = StringIO()
+
+            # Redirect, attempting to flush first
             try:
                 sys.stdout.flush()
             except AttributeError:  # pragma: no cover
                 pass
+            finally:
+                sys.stdout = self._tmp_out
+
             try:
                 sys.stderr.flush()
             except AttributeError:  # pragma: no cover
                 pass
+            finally:
+                sys.stderr = self._tmp_err
 
-            # Save current sys stdout / stderr redirects, if any
-            self._stdout = sys.stdout
-            self._stderr = sys.stderr
-
-            # Create temporary buffers
-            self._dupout = StringIO()
-            self._duperr = StringIO()
-
-            # Re-route
-            sys.stdout = self._dupout
-            sys.stderr = self._duperr
-
-            # Now we're capturing!
-            self._capturing = True
-
-    def _stop_capturing(self):
-        """
-        Stops capturing output. If capturing was already halted, this does
-        nothing.
-        """
-        if self._capturing:
-            # Flush any remaining output to streams
-            sys.stdout.flush()
-            sys.stderr.flush()
-
-            # Restore original stdout and stderr
-            sys.stdout = self._stdout
-            sys.stderr = self._stderr
-
-            # Get captured output
-            self._captured.append(self._dupout.getvalue())
-            self._captured.append(self._duperr.getvalue())
-
-            # Delete buffers
-            self._dupout = self._duperr = None
-
-            # No longer capturing
-            self._capturing = False
-
-    def text(self):
-        """
-        Returns the captured text.
-        """
-        capturing = self._capturing
-        if capturing:
-            self._stop_capturing()
-
-        if sys.hexversion >= 0x03000000:
-            text = ''.join(self._captured)
-        else:   # pragma: no cover
-            # In Python 2, this needs to be decoded from ascii
-            text = ''.join(
-                [x.decode('ascii', 'ignore') for x in self._captured])
-
-        if capturing:
-            self._start_capturing()
-        return text
-
-
-class SubCapture(PyCapture):
-    """
-    A context manager that redirects and captures the standard and error output
-    of the current process, using low-level file descriptor duplication.
-    """
-    def __init__(self, enabled=True):
-        super(SubCapture, self).__init__()
-        self._stdout = None     # Original stdout object
-        self._stderr = None     # Original stderr object
-        self._stdout_fd = None  # Original file descriptor used for output
-        self._stderr_fd = None  # Original file descriptor used for errors
-        self._dupout_fd = None  # Back-up of file descriptor for output
-        self._duperr_fd = None  # Back-up of file descriptor for errors
-        self._file_out = None   # Temporary file to write output to
-        self._file_err = None   # Temporary file to write errors to
-
-    def _start_capturing(self):
-        """
-        Starts capturing output to stdout and stderr.
-        """
-        if not self._capturing:
-            # If possible, flush original outputs
-            try:
-                sys.stdout.flush()
-            except AttributeError:  # pragma: no cover
-                pass
-            try:
-                sys.stderr.flush()
-            except AttributeError:  # pragma: no cover
-                pass
-
-            # Save any redirected output / error streams
-            self._stdout = sys.stdout
-            self._stderr = sys.stderr
+        else:
+            # File-descriptor redirection
 
             # Get file descriptors used for output and errors.
             #
+            # These represent open files, and are the low-level equivalent of
+            # sys.stdout and sys.stderr: all subprocesses etc. use these
+            # descriptors to write output to.
+            #
+            # Note that we get these file descriptors from __stdout__ and
+            # __stderr__, to get the original streams that subprocesses etc.
+            # will use, even if someone has redirected the Python-level
+            # streams.
+            #
             # On https://docs.python.org/3/library/sys.html#module-sys, it says
             # that stdout/err as well as __stdout__ can be None (e.g. in spyder
-            # on windows), so we need to check for this.
-            # In other cases (pythonw.exe) they can be set but return a
-            # negative file descriptor (indicating it's invalid).
+            # on windows).  In other cases (pythonw.exe) they can be set but
+            # return a negative file descriptor (indicating it's invalid).
             # So here we check if __stdout__ is None and if so set a negative
             # fileno so that we can catch both cases at once in the rest of the
             # code.
             #
             if sys.__stdout__ is not None:
-                self._stdout_fd = sys.__stdout__.fileno()
+                self._out_fd = sys.__stdout__.fileno()
             else:   # pragma: no cover
-                self._stdout_fd = -1
+                self._out_fd = -1
             if sys.__stderr__ is not None:
-                self._stderr_fd = sys.__stderr__.fileno()
+                self._err_fd = sys.__stderr__.fileno()
             else:   # pragma: no cover
-                self._stderr_fd = -1
+                self._err_fd = -1
 
-            # If they're proper streams (so if not pythonw.exe), flush them
-            if self._stdout_fd >= 0:
-                sys.stdout.flush()
-            if self._stderr_fd >= 0:
-                sys.stderr.flush()
-
-            # Create temporary files
-            # Make sure this isn't opened in binary mode, and specify +
-            # for reading and writing.
-            self._file_out = tempfile.TemporaryFile(mode='w+')
-            self._file_err = tempfile.TemporaryFile(mode='w+')
-
-            # Redirect python-level output to temporary files
-            # (Doing this is required to make this work on windows)
-            sys.stdout = self._file_out
-            sys.stderr = self._file_err
-
-            # If possible, pipe the original output and errors to files
+            # We start by making a copy of these file descriptors using dup(),
+            # meaning that two file numbers will point to the same file. In a
+            # later step we use dup2() to write a different value into the
+            # descriptor, so that all output gets redirected. When exiting, we
+            # will use dup2() again to copy the original value back in.
+            #
+            # We check if the fd >= 0 first, because the previous code could
+            # get a negative (invalid) value either when __stdxxx__ is None or
+            # when a negative value is returned.
+            #
             # On windows, the order is important: First dup both stdout and
             # stderr, then dup2 the new descriptors in. This prevents a weird
             # infinite recursion on windows ipython / python shell.
-            self._dupout_fd = None
-            self._duperr_fd = None
-            if self._stdout_fd >= 0:
-                self._dupout_fd = os.dup(self._stdout_fd)
-            if self._stderr_fd >= 0:
-                self._duperr_fd = os.dup(self._stderr_fd)
-            if self._stdout_fd >= 0:
-                os.dup2(self._file_out.fileno(), self._stdout_fd)
-            if self._stderr_fd >= 0:
-                os.dup2(self._file_err.fileno(), self._stderr_fd)
+            #
+            if self._out_fd >= 0:
+                self._org_out_fd = os.dup(self._out_fd)
+            if self._err_fd >= 0:
+                self._org_err_fd = os.dup(self._err_fd)
 
-            # Now we're capturing!
-            self._capturing = True
+            # Create temporary files to redirect the output to. Make sure they
+            # aren't opened in binary mode, and specify + for reading and
+            # writing.
+            self._file_out = tempfile.TemporaryFile(mode='w+')
+            self._file_err = tempfile.TemporaryFile(mode='w+')
 
-    def _stop_capturing(self):
-        """
-        Stops capturing output. If capturing was already halted, this does
-        nothing.
-        """
-        if self._capturing:
-            # Flush any remaining output
-            sys.stdout.flush()
-            sys.stderr.flush()
-            # Undo dupes, if made
-            if self._dupout_fd is not None:
-                os.dup2(self._dupout_fd, self._stdout_fd)
-                os.close(self._dupout_fd)
-            if self._duperr_fd is not None:
-                os.dup2(self._duperr_fd, self._stderr_fd)
-                os.close(self._duperr_fd)
-            # Reset python-level redirects
-            sys.stdout = self._stdout
-            sys.stderr = self._stderr
+            # Apply Python-level redirection of sys.stdxxx in addition to the
+            # lower-level redirect of sys.__stdxxx___.
+            try:
+                sys.stdout.flush()
+            except AttributeError:  # pragma: no cover
+                pass
+            finally:
+                sys.stdout = self._file_out
+            try:
+                sys.stderr.flush()
+            except AttributeError:  # pragma: no cover
+                pass
+            finally:
+                sys.stderr = self._file_err
+
+            # If possible, overwrite the stdout and stderr file descriptors
+            # with the file descriptor for our files. C/C++ code etc. will
+            # still look in this location for a descriptor, so that output is
+            # redirected.
+            if self._out_fd >= 0:
+                sys.__stdout__.flush()
+                os.dup2(self._file_out.fileno(), self._out_fd)
+            if self._err_fd >= 0:
+                sys.__stderr__.flush()
+                os.dup2(self._file_err.fileno(), self._err_fd)
+
+    def _stop(self):
+        """Stops capturing output."""
+
+        # Flush any remaining output
+        sys.stdout.flush()
+        sys.stderr.flush()
+
+        # Undo redirect
+        if not self._fd:
+            # Direct back at original
+            sys.stdout = self._org_out
+            sys.stderr = self._org_err
+
+            # Store text
+            self._txt_out = self._tmp_out.getvalue()
+            self._txt_err = self._tmp_err.getvalue()
+
+            # Tidy
+            self._tmp_out = self._tmp_err = None
+
+        else:
+            # Undo redirection
+            sys.stdout = self._org_out
+            if self._org_out_fd is not None:
+                # Copy our backup of the original fd into out_fd
+                os.dup2(self._org_out_fd, self._out_fd)
+                # And close our backup
+                os.close(self._org_out_fd)
+
+            sys.stderr = self._org_err
+            if self._org_err_fd is not None:
+                os.dup2(self._org_err_fd, self._err_fd)
+                os.close(self._org_err_fd)
+
             # Close temporary files and store capture output
             try:
                 self._file_out.seek(0)
-                self._captured.extend(self._file_out.readlines())
+                self._txt_out = self._file_out.read()
                 self._file_out.close()
             except ValueError:  # pragma: no cover
                 # In rare cases, I've seen a ValueError, "underlying buffer has
@@ -382,19 +391,55 @@ class SubCapture(PyCapture):
                 pass
             try:
                 self._file_err.seek(0)
-                self._captured.extend(self._file_err.readlines())
+                self._txt_err = self._file_err.read()
                 self._file_err.close()
             except ValueError:  # pragma: no cover
                 pass
-            # We've stopped capturing
-            self._capturing = False
 
-    def bypass(self):
+            # Tidy
+            self._out_fd = self._err_fd = None
+            self._org_out_fd = self._org_err_fd = None
+            self._file_out = self._file_err = None
+
+        # Unset reference to original streams (for proper decreffing etc.)
+        self._stdout = self._stderr = None
+
+    def err(self):
         """
-        Returns a link to stdout, allowing you to bypass capture (for
-        example for debug output).
+        Returns the text captured from stderr, or an empty string if nothing
+        was captured or capturing is still active.
         """
-        return self._stdout
+        if self._txt_err is None:
+            return ''
+        text = self._txt_err
+
+        # In Python 2, the text needs to be decoded from ascii
+        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
+            text = text.decode('ascii', 'ignore')
+
+        return text
+
+    def out(self):
+        """
+        Returns the text captured from stdout, or an empty string if nothing
+        was captured or capturing is still active.
+        """
+        if self._txt_out is None:
+            return ''
+        text = self._txt_out
+
+        # In Python 2, the text needs to be decoded from ascii
+        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
+            text = text.decode('ascii', 'ignore')
+
+        return text
+
+    def text(self):
+        """
+        Returns the combined text captured from output and error text, if any
+        (output first, then error text).
+        """
+        return self.out() + self.err()
 
 
 def default_protocol(model=None):
