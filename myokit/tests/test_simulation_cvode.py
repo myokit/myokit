@@ -15,11 +15,10 @@ import platform
 import re
 import unittest
 import sys
-import warnings
 
 import myokit
 
-from shared import DIR_DATA, CancellingReporter
+from shared import DIR_DATA, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -423,7 +422,7 @@ class LegacySimulationTest(unittest.TestCase):
         v = m.get('membrane.V')
         v.set_rhs(myokit.Multiply(v.rhs(), myokit.Number(1e18)))
         s = myokit.LegacySimulation(m, self.protocol)
-        with warnings.catch_warnings():
+        with WarningCollector():
             self.assertRaisesRegex(
                 myokit.SimulationError, 'numerical error', s.run, 5000)
 
