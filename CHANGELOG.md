@@ -89,7 +89,7 @@ This page lists the main changes made to Myokit in each release.
   - [#548](https://github.com/MichaelClerx/myokit/pull/548) Model and protocol now support comparison with `==`.
   - [#553](https://github.com/MichaelClerx/myokit/pull/553) The cumulative-current plot now has a maximum-number-of-currents option (all further currents will be bundled into one).
   - [#567](https://github.com/MichaelClerx/myokit/pull/567) Added support for Simulation building on Python 3.8 on Windows.
-  - [#574](https://github.com/MichaelClerx/myokit/pull/574)[#599], (https://github.com/MichaelClerx/myokit/pull/599),[#547](https://github.com/MichaelClerx/myokit/pull/547), [#528](https://github.com/MichaelClerx/myokit/pull/528) A completely rewritten SBML API and parser, by @DavAug, that's capable of handling models that define species and reactions.
+  - [#574](https://github.com/MichaelClerx/myokit/pull/574), [#599](https://github.com/MichaelClerx/myokit/pull/599), [#547](https://github.com/MichaelClerx/myokit/pull/547), [#528](https://github.com/MichaelClerx/myokit/pull/528) A completely rewritten SBML API and parser, by @DavAug, that's capable of handling models that define species and reactions.
 - Changed
   - [#536](https://github.com/MichaelClerx/myokit/issues/536) `Ohm` is now a quantifiable unit in the `mmt` syntax, i.e. `1 [MOhm]`. This replaces the non-standard `R` unit which has been removed.
   - [#556](https://github.com/MichaelClerx/myokit/pull/556) CellML imports now import models that contain unsupported units (but with warnings).
