@@ -27,222 +27,50 @@ class AuxCaptureTest(unittest.TestCase):
     Test the capture methods in myokit.aux
     """
 
-    def test_streamcapture_interlaced(self):
-        """
-        Tests using multiple StreamCapture objects, starting and stopping in an
-        interlaced pattern.
-        """
-        x = myokit.StreamCapture()
-        y = myokit.StreamCapture()
-        z = myokit.StreamCapture()
-
-        # Enable x
-        x.start()
-        print('1', end='', file=sys.stdout)
-        print('a', end='', file=sys.stderr)
-        # Enable y
-        y.start()
-        print('b', end='', file=sys.stderr)
-        print('2', end='', file=sys.stdout)
-        # Enable z
-        z.start()
-        print('3', end='', file=sys.stdout)
-        print('c', end='', file=sys.stderr)
-        # Disable y
-        y.stop()
-        print('d', end='', file=sys.stderr)
-        print('4', end='', file=sys.stdout)
-        # Disable x
-        x.stop()
-        print('5', end='', file=sys.stdout)
-        print('e', end='', file=sys.stderr)
-        # Disable z
-        z.stop()
-
-        # Check captured text
-        self.assertEqual(x.out(), '1234')
-        self.assertEqual(x.err(), 'abcd')
-        self.assertEqual(y.out(), '23')
-        self.assertEqual(y.err(), 'bc')
-        self.assertEqual(z.out(), '345')
-        self.assertEqual(z.err(), 'cde')
-        self.assertEqual(z.text(), '345cde')
-
-        # Check type in Python 2
-        self.assertIsInstance(z.text(), basestring)
-
-    def test_streamcapture_nested(self):
-        """
-        Tests using multiple StreamCapture objects, starting and stopping in a
-        nested pattern.
-        """
-        x = myokit.StreamCapture()
-        y = myokit.StreamCapture()
-        z = myokit.StreamCapture()
-
-        # Enable x
-        self.assertEqual(x.out(), '')
-        self.assertEqual(x.err(), '')
-        x.start()
-        print('1', end='', file=sys.stdout)
-        print('a', end='', file=sys.stderr)
-        self.assertEqual(x.out(), '1')
-        self.assertEqual(x.err(), 'a')
-        # Enable y
-        y.start()
-        print('b', end='', file=sys.stderr)
-        print('2', end='', file=sys.stdout)
-        # Enable z
-        z.start()
-        print('3', end='', file=sys.stdout)
-        print('c', end='', file=sys.stderr)
-        # Disable z
-        z.stop()
-        print('d', end='', file=sys.stderr)
-        print('4', end='', file=sys.stdout)
-        # Disable y
-        y.stop()
-        print('5', end='', file=sys.stdout)
-        print('e', end='', file=sys.stderr)
-        # Disable z
-        x.stop()
-
-        # Check captured text
-        self.assertEqual(x.out(), '12345')
-        self.assertEqual(x.err(), 'abcde')
-        self.assertEqual(y.out(), '234')
-        self.assertEqual(y.err(), 'bcd')
-        self.assertEqual(z.out(), '3')
-        self.assertEqual(z.err(), 'c')
-        self.assertEqual(z.text(), '3c')
-
-    def test_stream_capture_repeated_start_stop(self):
-        """Tests repeated start-stop commands in the StreamCapture"""
-        with myokit.StreamCapture() as x:
-
-            y = myokit.StreamCapture()
-            self.assertEqual(y.out(), '')
-            self.assertEqual(y.err(), '')
-
-            print('1', end='', file=sys.stdout)
-            print('a', end='', file=sys.stderr)
-            y.start()
-            print('2', end='', file=sys.stdout)
-            print('b', end='', file=sys.stderr)
-            y.start()
-            print('3', end='', file=sys.stdout)
-            print('c', end='', file=sys.stderr)
-            y.stop()
-            print('4', end='', file=sys.stdout)
-            print('d', end='', file=sys.stderr)
-            y.stop()
-            print('5', end='', file=sys.stdout)
-            print('e', end='', file=sys.stderr)
-            y.stop()
-            y.stop()
-            y.stop()
-            self.assertEqual(y.out(), '23')
-            self.assertEqual(y.err(), 'bc')
-
-            y.start()
-            print('6', end='', file=sys.stdout)
-            y.stop()
-            self.assertEqual(y.out(), '6')
-            self.assertEqual(y.err(), '')
-
-        self.assertEqual(x.out(), '123456')
-        self.assertEqual(x.err(), 'abcde')
-
-    def test_stream_capture_threads(self):
-        """Tests StreamCapture with threading."""
-
-        # Sleep times for each thread. Must be long enough to get predictable
-        # test output, even on slow CI systems.
-        times = [0.25, 0.05, 0.5]
-        captured = [None, None, None]
-
-        # Function to call inside threads
-        def f(i):
-            with myokit.StreamCapture() as c:
-                print(str(i) + 'a ', end='')
-                time.sleep(times[i])
-                print(str(i) + 'b ', end='')
-                print(str(i) + 'e ', end='', file=sys.stderr)
-            captured[i] = c.text().strip()
-
-        # Call function from threads
-        ps = []
-        for i in range(len(times)):
-            p = threading.Thread(target=f, args=(i,))
-            ps.append(p)
-        for p in ps:
-            p.start()
-            time.sleep(0.01)
-        for p in ps:
-            if p.is_alive():
-                p.join()
-
-        # Check captured output
-        self.assertEqual(len(captured), 3)
-        self.assertEqual(captured[0], '0a 1a 2a 1b 0b 1e 0e')
-        self.assertEqual(captured[1], '1a 2a 1b 1e')
-        self.assertEqual(captured[2], '2a 1b 0b 2b 1e 0e 2e')
-
-    def test_stream_capture_silly_context(self):
-        """
-        Tests StreamCapture when used in odd combinations of context manager
-        and object.
-        """
-        with myokit.StreamCapture() as x:
-            print(1)
-            y = myokit.StreamCapture()
-            with y:
-                print(2)
-                with y:
-                    print(3)
-                    y.stop()
-                print(4)
-            print(5)
-        self.assertEqual(x.text(), '1\n2\n3\n4\n5\n')
-        self.assertEqual(y.text(), '2\n3\n')
-
-    def test_process_output_capture_nested(self):
-        """
-        Tests using the ProcessOutputCapture class in a nested pattern.
-        """
-        z = myokit.ProcessOutputCapture()
-        with myokit.ProcessOutputCapture() as x:
+    def test_capture_nested(self):
+        """Tests capturing in a nested pattern."""
+        r = myokit.capture(False)
+        q = myokit.capture(True)
+        with myokit.capture(False) as p:
             print('1', end='')
             print('a', end='', file=sys.stderr)
-            with myokit.ProcessOutputCapture() as y:
+            with q:
                 print('2', end='')
                 print('b', end='', file=sys.stderr)
-                with z:
+                with r:
                     print('3', end='')
                     print('c', end='', file=sys.stderr)
-                print('4', end='')
-                print('d', end='', file=sys.stderr)
-            print('5', end='')
-            print('e', end='', file=sys.stderr)
+                    with myokit.capture(True) as s:
+                        print('4', end='')
+                        print('d', end='', file=sys.stderr)
+                    print('5', end='')
+                    print('e', end='', file=sys.stderr)
+                print('6', end='')
+                print('f', end='', file=sys.stderr)
+            print('7', end='')
+            print('g', end='', file=sys.stderr)
 
         # Check captured text
-        self.assertEqual(x.out(), '15')
-        self.assertEqual(x.err(), 'ae')
-        self.assertEqual(x.text(), '15ae')
-        self.assertEqual(y.out(), '24')
-        self.assertEqual(y.err(), 'bd')
-        self.assertEqual(y.text(), '24bd')
-        self.assertEqual(z.out(), '3')
-        self.assertEqual(z.err(), 'c')
-        self.assertEqual(z.text(), '3c')
+        self.assertEqual(p.out(), '17')
+        self.assertEqual(p.err(), 'ag')
+        self.assertEqual(p.text(), '17ag')
 
-    def test_process_output_capture_repeated_use(self):
-        """
-        Tests using the ProcessOutputCapture class in a nested pattern with
-        repeated enters/exits.
-        """
-        x = myokit.ProcessOutputCapture()
-        y = myokit.ProcessOutputCapture()
+        self.assertEqual(q.out(), '26')
+        self.assertEqual(q.err(), 'bf')
+        self.assertEqual(q.text(), '26bf')
+
+        self.assertEqual(r.out(), '35')
+        self.assertEqual(r.err(), 'ce')
+        self.assertEqual(r.text(), '35ce')
+
+        self.assertEqual(s.out(), '4')
+        self.assertEqual(s.err(), 'd')
+        self.assertEqual(s.text(), '4d')
+
+    def test_capture_repeated_use(self):
+        """Tests capturing in a nested pattern with repeated enters/exits."""
+        x = myokit.capture()
+        y = myokit.capture(True)
         self.assertEqual(x.out(), '')
         with x:
             print('1', end='')
@@ -254,25 +82,39 @@ class AuxCaptureTest(unittest.TestCase):
                 with x:
                     print('3', end='')
                     print('c', end='', file=sys.stderr)
-                print('4', end='')
-                print('d', end='', file=sys.stderr)
-            print('5', end='')
-            print('e', end='', file=sys.stderr)
+                    with y:
+                        print('4', end='')
+                        print('d', end='', file=sys.stderr)
+                    print('5', end='')
+                    print('e', end='', file=sys.stderr)
+                print('6', end='')
+                print('f', end='', file=sys.stderr)
+            print('7', end='')
+            print('g', end='', file=sys.stderr)
 
         # Check captured text
-        self.assertEqual(x.out(), '15')
-        self.assertEqual(x.err(), 'ae')
-        self.assertEqual(x.text(), '15ae')
-        self.assertEqual(y.out(), '234')
-        self.assertEqual(y.err(), 'bcd')
-        self.assertEqual(y.text(), '234bcd')
+        self.assertEqual(x.out(), '17')
+        self.assertEqual(x.err(), 'ag')
+        self.assertEqual(x.text(), '17ag')
+
+        self.assertEqual(y.out(), '23456')
+        self.assertEqual(y.err(), 'bcdef')
+        self.assertEqual(y.text(), '23456bcdef')
 
         with x:
-            print('hiya')
-        self.assertEqual(x.out(), 'hiya\n')
+            print('hey')
+            print('ya', file=sys.stderr)
+        self.assertEqual(x.out(), 'hey\n')
+        self.assertEqual(x.err(), 'ya\n')
 
-    def test_process_output_capture_threads(self):
-        """Tests ProcessOutputCapture with threading."""
+        with y:
+            print('foo')
+            print('bar', file=sys.stderr)
+        self.assertEqual(y.out(), 'foo\n')
+        self.assertEqual(y.err(), 'bar\n')
+
+    def test_capture_with_threads(self):
+        """Tests capturing with threading."""
 
         # Sleep times for each thread. Duration doesn't matter much, as will be
         # executed sequentially. But choose so that interlacing would occur if
@@ -282,7 +124,7 @@ class AuxCaptureTest(unittest.TestCase):
 
         # Function to call inside threads
         def f(i):
-            with myokit.ProcessOutputCapture() as c:
+            with myokit.capture() as c:
                 print(str(i) + 'a ', end='')
                 time.sleep(times[i])
                 print(str(i) + 'b ', end='')

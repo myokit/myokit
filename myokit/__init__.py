@@ -498,8 +498,7 @@ from ._aux import (  # noqa
     step,
 
     # Output capturing
-    StreamCapture,
-    ProcessOutputCapture,
+    capture,
 
     # Sorting
     _natural_sort_key,

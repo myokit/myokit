@@ -19,11 +19,7 @@ Back-end classes
     :private-members:
     :inherited-members:
 
-.. autoclass:: PyCapture
-    :private-members:
-    :inherited-members:
-
-.. autoclass:: SubCapture
+.. autoclass:: capture
     :private-members:
     :inherited-members:
 

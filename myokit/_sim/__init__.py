@@ -187,7 +187,7 @@ class CModule(object):
 
             # Compile in build directory, catch output
             error, trace = None, None
-            with myokit.ProcessOutputCapture() as s:
+            with myokit.capture(fd=True) as s:
                 try:
                     os.chdir(d_build)
                     setup(

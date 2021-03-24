@@ -282,7 +282,7 @@ class AuxTest(unittest.TestCase):
         m1 = myokit.load_model(m1)
         m2 = myokit.load_model(m2)
 
-        with myokit.StreamCapture() as capture:
+        with myokit.capture() as capture:
             c = myokit.ModelComparison(m1, m2, live=True)
 
         differences = [
@@ -451,16 +451,16 @@ class AuxTest(unittest.TestCase):
             's = myokit.Simulation(m, p)',
             's.run(200)',
         ])
-        with myokit.StreamCapture():
+        with myokit.capture():
             myokit.run(m, p, x)
-        with myokit.StreamCapture():
+        with myokit.capture():
             myokit.run(m, p, '[[script]]\n' + x)
         self.assertRaises(ZeroDivisionError, myokit.run, m, p, 'print(1 / 0)')
 
         # Test with stringio
         x = "print('Hi there')"
         s = StringIO()
-        with myokit.StreamCapture() as c:
+        with myokit.capture() as c:
             myokit.run(m, p, x, stderr=s, stdout=s)
         self.assertEqual(c.text(), '')
         self.assertEqual(s.getvalue(), 'Hi there\n')
