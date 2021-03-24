@@ -13,9 +13,10 @@ This page lists the main changes made to Myokit in each release.
   - [#682](https://github.com/MichaelClerx/myokit/pull/682) OpenCL code now recognises error code -1001.
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) Now testing OpenCL code in CI.
   - [#704](https://github.com/MichaelClerx/myokit/pull/704) Added first example notebook to the github repository.
-  - [#728](https://github.com/MichaelClerx/myokit/pull/728), [#735](https://github.com/MichaelClerx/myokit/pull/735) Added a context manager `myokit.tools.capture` that can redirect and capture output from Python `stdout` and `stderr` via a Python-only method or file-descriptor redirection and should be thread-safe.
-  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The module `myokit.float` was added. It gathers several functions related to floating point numbers that were previously in the main `myokit` namespace or not part of the public API.
-  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The module `myokit.tools` was added. It gathers several stand-alone tools that are used by Myokit and were previously in the main `myokit` namespace or not part of the public API.
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) Added a context manager `myokit.tools.capture` that can redirect and capture output from Python `stdout` and `stderr` via a Python-only method or file-descriptor redirection and should be thread-safe.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.float` contains several functions related to floating point numbers that were previously in the main `myokit` namespace or not part of the public API.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.tools` contains several stand-alone tools that are used by Myokit and were previously in the main `myokit` namespace or not part of the public API.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `pid_hash`, which is used by compiled code to generate (hopefully) unique ids is now part of the public API.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
@@ -36,10 +37,10 @@ This page lists the main changes made to Myokit in each release.
 - Removed
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux (still testing latest 2.7). No longer testing any Python 2.7 on Windows.
   - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
-  - [#728](https://github.com/MichaelClerx/myokit/pull/728), [#735](https://github.com/MichaelClerx/myokit/pull/735) The classes `myokit.PyCapture` and `myokit.SubCapture` have been replaced by a single context manager `myokit.tools.capture` (see above).
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) The classes `myokit.PyCapture` and `myokit.SubCapture` have been replaced by a single context manager `myokit.tools.capture`.
 - Fixed
   - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
-  - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.format_path()`.
+  - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.tools.format_path()`.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
 
 ## [1.32.0] - 2021-01-19
