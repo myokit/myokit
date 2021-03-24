@@ -4,8 +4,11 @@
 Floating point numbers
 **********************
 
-This module contains functions used by Myokit when working with floating point
-numbers.
+Myokit includes a module ``myokit.float`` that contains methods to work with
+floating point numbers.
+These are used for example when checking if a pacing event has started or ended
+*to within machine precision*, or when checking if two units are equivalent.
+This module is imported automatically when ``import myokit`` is run.
 
 .. currentmodule:: myokit.float
 

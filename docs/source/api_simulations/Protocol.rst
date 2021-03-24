@@ -19,7 +19,7 @@ Protocol factory
 
 The ``myokit.pacing`` module provides a factory methods to facilitate the
 creation of :class:`Protocol <myokit.Protocol>` objects directly from python.
-This module is imported as part of the main ``myokit`` package.
+This module is imported automatically when ``import myokit`` is run.
 
 Periodic pacing
 ---------------

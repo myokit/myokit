@@ -4,8 +4,9 @@
 Tools
 *****
 
-This module contains a number of (fairly) stand-alone functions and classes
-that are used by Myokit.
+Myokit contains a module ``myokit.tools`` with functions and classes that are
+used throughout Myokit, but are not particularly Myokit-specific.
+This module is imported automatically when ``import myokit`` is run.
 
 .. currentmodule:: myokit.tools
 
@@ -39,4 +40,23 @@ String comparison
 .. autofunction:: lvsd
 
 .. autofunction:: natural_sort_key
+
+Deprecated functions
+====================
+Some of the functions in ``tools`` have deprecated aliases, that will be
+removed in future Myokit releases.
+
+.. currentmodule:: myokit
+
+.. autoclass:: Benchmarker
+
+.. autofunction:: date
+
+.. autofunction:: format_float_dict
+
+.. autofunction:: format_path
+
+.. autofunction:: strfloat
+
+.. autofunction:: time
 

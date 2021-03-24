@@ -47,6 +47,5 @@ section of the documentation.
     io
     float
     tools
-    misc
-    exceptions
     settings
+    exceptions
