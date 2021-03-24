@@ -55,8 +55,6 @@ Other functions
 
 .. autofunction:: default_script
 
-.. autofunction:: pack_snapshot
-
 .. autofunction:: numpy_writer
 
 .. autofunction:: python_writer

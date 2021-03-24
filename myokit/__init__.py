@@ -528,9 +528,6 @@ from ._aux import (  # noqa
     _lvsd,
     _pid_hash,
     _rmtree,
-
-    # Snapshot creation for replicability
-    pack_snapshot,
 )
 
 # System information

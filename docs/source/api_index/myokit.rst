@@ -103,7 +103,6 @@ myokit
 - :class:`myokit.OpenCLPlatformInfo`
 - :class:`myokit.Or`
 - :class:`myokit.PacingSystem`
-- :meth:`myokit.pack_snapshot`
 - :meth:`myokit.parse`
 - :class:`myokit.ParseError`
 - :meth:`myokit.parse_expression`
