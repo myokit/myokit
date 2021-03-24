@@ -201,7 +201,7 @@ class CModule(object):
                 except (Exception, SystemExit) as e:  # pragma: no cover
                     error = e
                     trace = traceback.format_exc()
-            if error is not None:
+            if error is not None:  # pragma: no cover
                 t = ['Unable to compile.', 'Error message:']
                 t.append(str(error))
                 t.append(trace)
