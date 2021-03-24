@@ -10,7 +10,6 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import array
-import fnmatch
 import os
 import re
 import shutil
@@ -18,7 +17,6 @@ import stat
 import sys
 import tempfile
 import timeit
-import zipfile
 
 # StringIO in Python 2 and 3
 try:

@@ -26,7 +26,7 @@ except NameError:   # pragma: no cover
 
 import myokit
 
-from shared import DIR_DATA, TemporaryDirectory
+from shared import DIR_DATA
 
 
 class AuxTest(unittest.TestCase):
