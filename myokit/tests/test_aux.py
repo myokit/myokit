@@ -509,6 +509,14 @@ class AuxTest(unittest.TestCase):
             self.assertEqual(line, x[i])
         self.assertEqual(len(x), len(y))
 
+    def test_strfloat(self):
+        # Deprecated alias of myokit.float.str
+        args = ['-1.234', True, myokit.SINGLE_PRECISION]
+        with WarningCollector() as c:
+            x = myokit.strfloat(*args)
+        self.assertIn('`myokit.strfloat` is deprecated', c.text())
+        self.assertEqual(x, myokit.float.str(*args))
+
     def test_time(self):
         # Deprecated alias of myokit.tools.time
         with WarningCollector() as c:
