@@ -293,7 +293,7 @@ def save_atf(log, filename, fields=None):
     # Create header
     header = []
     header.append(('myokit-version', 'Myokit ' + myokit.version(raw=True)))
-    header.append(('date-created', myokit.date()))
+    header.append(('date-created', myokit.tools.date()))
     header.append(('sampling-interval', dt_ref))
 
     # Get sizes
@@ -317,6 +317,6 @@ def save_atf(log, filename, fields=None):
         # Write data
         for i in range(nd):
             f.write((
-                delim.join([myokit.strfloat(next(d)) for d in data]) + eol
+                delim.join([myokit.float.str(next(d)) for d in data]) + eol
             ).encode(_ENC))
 

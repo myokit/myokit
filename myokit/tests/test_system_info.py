@@ -30,7 +30,7 @@ class SystemInfoTest(unittest.TestCase):
         matplotlib.use('template')
 
         self.assertIsInstance(myokit.system(), basestring)
-        with myokit.capture():
+        with myokit.tools.capture():
             myokit.system(live_printing=True)
 
 

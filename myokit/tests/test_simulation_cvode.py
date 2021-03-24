@@ -214,7 +214,7 @@ class LegacySimulationTest(unittest.TestCase):
 
         # Test if it works
         sim = myokit.LegacySimulation(self.model, self.protocol)
-        with myokit.capture() as c:
+        with myokit.tools.capture() as c:
             sim.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertEqual(len(c), 2)
@@ -423,7 +423,7 @@ class LegacySimulationTest(unittest.TestCase):
         v = m.get('membrane.V')
         v.set_rhs(myokit.Multiply(v.rhs(), myokit.Number(1e18)))
         s = myokit.LegacySimulation(m, self.protocol)
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings():
             self.assertRaisesRegex(
                 myokit.SimulationError, 'numerical error', s.run, 5000)
 

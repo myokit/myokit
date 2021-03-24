@@ -9,29 +9,9 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import array
-import os
-import re
-import shutil
-import stat
-import sys
-import tempfile
-import threading
-import timeit
-
-# StringIO in Python 2 and 3
-try:
-    from cStringIO import StringIO
-except ImportError:  # pragma: no python 2 cover
-    from io import StringIO
-
-# String types in Python 2 and 3
-try:
-    basestring
-except NameError:   # pragma: no python 2 cover
-    basestring = str
-
 import myokit
+
+import sys
 
 # Globally shared numpy expression writer
 _numpywriter_ = None
@@ -39,405 +19,27 @@ _numpywriter_ = None
 # Globally shared python expression writer
 _pywriter_ = None
 
-# Natural sort regex
-_natural_sort_regex = re.compile('([0-9]+)')
+
+class Benchmarker(myokit.tools.Benchmarker):
+    """Deprecated alias of :class:`myokit.tools.Benchmarker`."""
+
+    def __init__(self):
+        # Deprecated since 2021-03-24
+        import warnings
+        warnings.warn(
+            'The class `myokit.Benchmarker` is deprecated.'
+            ' Please use `myokit.tools.Benchmarker` instead.')
+        super(Benchmarker, self).__init__()
 
 
 def date():
-    """
-    Returns the current date and time, formatted as specified in
-    ``myokit.settings``.
-    """
-    import time
-    return time.strftime(myokit.DATE_FORMAT)
-
-
-def time():
-    """
-    Returns the current time, formatted as specified in ``myokit.settings``.
-    """
-    import time as t
-    return t.strftime(myokit.TIME_FORMAT)
-
-
-def _natural_sort_key(s):
-    """
-    Natural sort key, from: http://stackoverflow.com/questions/4836710/
-
-    Usage example::
-
-        values.sort(key=lambda x: myokit._natural_sort_key(x))
-
-    """
-    return [
-        int(text) if text.isdigit() else text.lower()
-        for text in _natural_sort_regex.split(s)]
-
-
-class Benchmarker(object):
-    """
-    Allows benchmarking using the with statement.
-
-    Example::
-
-        m,p,x = myokit.load('example')
-        s = myokit.Simulation(m, p)
-        b = myokit.Benchmarker()
-        s.run()
-        print(b.time())
-        b.reset()
-        s.run()
-        print(b.time())
-
-    """
-    def __init__(self, output=None):
-        self._start = timeit.default_timer()
-
-    def format(self, time):
-        """
-        Formats a (non-integer) number of seconds, returns a string like
-        "5 weeks, 3 days, 1 hour, 4 minutes, 9 seconds", or "0.0019 seconds".
-        """
-        if time < 60:
-            return '1 second' if time == 1 else str(time) + ' seconds'
-        output = []
-        time = int(round(time))
-        units = [
-            (604800, 'week'),
-            (86400, 'day'),
-            (3600, 'hour'),
-            (60, 'minute'),
-        ]
-        for k, name in units:
-            f = time // k
-            if f > 0 or output:
-                output.append(str(f) + ' ' + (name if f == 1 else name + 's'))
-            time -= f * k
-        output.append('1 second' if time == 1 else str(time) + ' seconds')
-        return ', '.join(output)
-
-    def reset(self):
-        """
-        Resets this timer's start time.
-        """
-        self._start = timeit.default_timer()
-
-    def time(self):
-        """
-        Returns the time since benchmarking started.
-        """
-        return timeit.default_timer() - self._start
-
-
-class capture(object):
-    """
-    Context manager that temporarily redirects the current standard output and
-    error streams, and captures anything that's written to them.
-
-    Example::
-
-        with myokit.capture() as a:
-            print('This will be captured')
-
-    Within a single thread, captures can be nested, for example::
-
-        with myokit.capture() as a:
-            print('This will be captured by a')
-            with myokit.capture() as b:
-                print('This will be captured by b, not a')
-            print('This will be captured by a again')
-
-    Capturing is thread-safe: a lock is used to ensure only a single thread is
-    capturing at any time. For example, if we have a function::
-
-        def f(i):
-            with myokit.capture() as a:
-                print(i)
-                ...
-
-            return a.text()
-
-    and this is called from several threads, the ``capture`` acts as a lock (a
-    ``threading.RLock``) so that one thread will need to finish executing the
-    code within the ``with`` statement before a second thread can start
-    capturing.
-
-    In multiprocessing, no locks are used, and no memory or streams are shared
-    so that this should also be safe.
-
-    By default, this method works by simply redirecting ``sys.stdout`` and
-    ``sys.stderr``. This captures any output written by the Python interpreter,
-    but does not catch output from C/C++ extensions or subrocesses. To also
-    catch that output start the capture with the optional argument
-    ``fd=True``, which enables a file descriptor duplication method of
-    redirection.
-    """
-    # Note: It seems we need to capture both streams to make the file
-    # descriptor method work, and we want both anyway throughout Myokit, so
-    # there are no options to choose stdout or stderr here.
-
-    # Lock to stop other threads from capturing while this thread is capturing.
-    _rlock = threading.RLock()
-
-    def __init__(self, fd=False):
-
-        # Are we already capturing? This is needed in case someone enters the
-        # same context twice.
-        self._active_count = 0
-
-        # Captured text
-        self._txt_out = None
-        self._txt_err = None
-
-        # Capturing mode
-        self._fd = bool(fd)
-
-        # Shared by both modes
-        self._org_out = None     # Original stdout object
-        self._org_err = None     # Original stderr object
-
-        # Python stream redirects only
-        self._tmp_out = None    # Temporary stdout StringIO object
-        self._tmp_err = None    # Temporary stderr StringIO object
-
-        # File descriptor redirects only
-        self._out_fd = None      # File descriptor used for output
-        self._err_fd = None      # File descriptor used for errors
-        self._org_out_fd = None  # Back-up of original stdout file descriptor
-        self._org_err_fd = None  # Back-up of original stderr file descriptor
-        self._file_out = None    # Temporary file to write output to
-        self._file_err = None    # Temporary file to write errors to
-
-    def __enter__(self):
-        """Called when the context is entered."""
-        # Avoid entering the same context object twice
-        self._active_count += 1
-        if self._active_count == 1:
-
-            # Wait until other threads have stopped capturing
-            capture._rlock.acquire()
-
-            # Set up redirection
-            self._start()
-
-        # Return context
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Called when exiting the context."""
-        self._active_count -= 1
-        if self._active_count == 0:
-            self._stop()
-            capture._rlock.release()
-
-    def _start(self):
-        """Starts capturing output to stdout and stderr."""
-
-        # Clear any cached text
-        self._txt_out = None
-        self._txt_err = None
-
-        # Save the current output / error streams
-        self._org_out = sys.stdout
-        self._org_err = sys.stderr
-
-        # Redirect
-        if not self._fd:
-            # Create temporary output and error streams
-            self._tmp_out = StringIO()
-            self._tmp_err = StringIO()
-
-            # Redirect, attempting to flush first
-            try:
-                sys.stdout.flush()
-            except AttributeError:  # pragma: no cover
-                pass
-            finally:
-                sys.stdout = self._tmp_out
-
-            try:
-                sys.stderr.flush()
-            except AttributeError:  # pragma: no cover
-                pass
-            finally:
-                sys.stderr = self._tmp_err
-
-        else:
-            # File-descriptor redirection
-
-            # Get file descriptors used for output and errors.
-            #
-            # These represent open files, and are the low-level equivalent of
-            # sys.stdout and sys.stderr: all subprocesses etc. use these
-            # descriptors to write output to.
-            #
-            # Note that we get these file descriptors from __stdout__ and
-            # __stderr__, to get the original streams that subprocesses etc.
-            # will use, even if someone has redirected the Python-level
-            # streams.
-            #
-            # On https://docs.python.org/3/library/sys.html#module-sys, it says
-            # that stdout/err as well as __stdout__ can be None (e.g. in spyder
-            # on windows).  In other cases (pythonw.exe) they can be set but
-            # return a negative file descriptor (indicating it's invalid).
-            # So here we check if __stdout__ is None and if so set a negative
-            # fileno so that we can catch both cases at once in the rest of the
-            # code.
-            #
-            if sys.__stdout__ is not None:
-                self._out_fd = sys.__stdout__.fileno()
-            else:   # pragma: no cover
-                self._out_fd = -1
-            if sys.__stderr__ is not None:
-                self._err_fd = sys.__stderr__.fileno()
-            else:   # pragma: no cover
-                self._err_fd = -1
-
-            # We start by making a copy of these file descriptors using dup(),
-            # meaning that two file numbers will point to the same file. In a
-            # later step we use dup2() to write a different value into the
-            # descriptor, so that all output gets redirected. When exiting, we
-            # will use dup2() again to copy the original value back in.
-            #
-            # We check if the fd >= 0 first, because the previous code could
-            # get a negative (invalid) value either when __stdxxx__ is None or
-            # when a negative value is returned.
-            #
-            # On windows, the order is important: First dup both stdout and
-            # stderr, then dup2 the new descriptors in. This prevents a weird
-            # infinite recursion on windows ipython / python shell.
-            #
-            if self._out_fd >= 0:
-                self._org_out_fd = os.dup(self._out_fd)
-            if self._err_fd >= 0:
-                self._org_err_fd = os.dup(self._err_fd)
-
-            # Create temporary files to redirect the output to. Make sure they
-            # aren't opened in binary mode, and specify + for reading and
-            # writing.
-            self._file_out = tempfile.TemporaryFile(mode='w+')
-            self._file_err = tempfile.TemporaryFile(mode='w+')
-
-            # Apply Python-level redirection of sys.stdxxx in addition to the
-            # lower-level redirect of sys.__stdxxx___.
-            try:
-                sys.stdout.flush()
-            except AttributeError:  # pragma: no cover
-                pass
-            finally:
-                sys.stdout = self._file_out
-            try:
-                sys.stderr.flush()
-            except AttributeError:  # pragma: no cover
-                pass
-            finally:
-                sys.stderr = self._file_err
-
-            # If possible, overwrite the stdout and stderr file descriptors
-            # with the file descriptor for our files. C/C++ code etc. will
-            # still look in this location for a descriptor, so that output is
-            # redirected.
-            if self._out_fd >= 0:
-                sys.__stdout__.flush()
-                os.dup2(self._file_out.fileno(), self._out_fd)
-            if self._err_fd >= 0:
-                sys.__stderr__.flush()
-                os.dup2(self._file_err.fileno(), self._err_fd)
-
-    def _stop(self):
-        """Stops capturing output."""
-
-        # Flush any remaining output
-        sys.stdout.flush()
-        sys.stderr.flush()
-
-        # Undo redirect
-        if not self._fd:
-            # Direct back at original
-            sys.stdout = self._org_out
-            sys.stderr = self._org_err
-
-            # Store text
-            self._txt_out = self._tmp_out.getvalue()
-            self._txt_err = self._tmp_err.getvalue()
-
-            # Tidy
-            self._tmp_out = self._tmp_err = None
-
-        else:
-            # Undo redirection
-            sys.stdout = self._org_out
-            if self._org_out_fd is not None:
-                # Copy our backup of the original fd into out_fd
-                os.dup2(self._org_out_fd, self._out_fd)
-                # And close our backup
-                os.close(self._org_out_fd)
-
-            sys.stderr = self._org_err
-            if self._org_err_fd is not None:
-                os.dup2(self._org_err_fd, self._err_fd)
-                os.close(self._org_err_fd)
-
-            # Close temporary files and store capture output
-            try:
-                self._file_out.seek(0)
-                self._txt_out = self._file_out.read()
-                self._file_out.close()
-            except ValueError:  # pragma: no cover
-                # In rare cases, I've seen a ValueError, "underlying buffer has
-                # been detached".
-                pass
-            try:
-                self._file_err.seek(0)
-                self._txt_err = self._file_err.read()
-                self._file_err.close()
-            except ValueError:  # pragma: no cover
-                pass
-
-            # Tidy
-            self._out_fd = self._err_fd = None
-            self._org_out_fd = self._org_err_fd = None
-            self._file_out = self._file_err = None
-
-        # Unset reference to original streams (for proper decreffing etc.)
-        self._stdout = self._stderr = None
-
-    def err(self):
-        """
-        Returns the text captured from stderr, or an empty string if nothing
-        was captured or capturing is still active.
-        """
-        if self._txt_err is None:
-            return ''
-        text = self._txt_err
-
-        # In Python 2, the text needs to be decoded from ascii
-        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
-            text = text.decode('ascii', 'ignore')
-
-        return text
-
-    def out(self):
-        """
-        Returns the text captured from stdout, or an empty string if nothing
-        was captured or capturing is still active.
-        """
-        if self._txt_out is None:
-            return ''
-        text = self._txt_out
-
-        # In Python 2, the text needs to be decoded from ascii
-        if sys.hexversion < 0x03000000:  # pragma: no python 3 cover
-            text = text.decode('ascii', 'ignore')
-
-        return text
-
-    def text(self):
-        """
-        Returns the combined text captured from output and error text, if any
-        (output first, then error text).
-        """
-        return self.out() + self.err()
+    """Deprecated alias of :class:`myokit.tools.date`."""
+    # Deprecated since 2021-03-24
+    import warnings
+    warnings.warn(
+        'The method `myokit.date` is deprecated.'
+        ' Please use `myokit.tools.date` instead.')
+    return myokit.tools.date()
 
 
 def default_protocol(model=None):
@@ -519,212 +121,35 @@ def default_script(model=None):
     ))
 
 
-def _examplify(filename):
-    """
-    If ``filename`` is equal to "example" and there isn't a file with that
-    name, this function returns the file specified by myokit.EXAMPLE. In all
-    other cases, the original filename is returned.
-    """
-    if filename == 'example' and not os.path.exists(filename):
-        return myokit.EXAMPLE
-    else:
-        return os.path.expanduser(filename)
-
-
 def format_float_dict(d):
     """
-    Takes a dictionary of ``string : float`` mappings and returns a formatted
-    string.
+    Takes a dictionary of ``string : float`` mappings and returns a single
+    multi-line string, where each line is of the form ``key = value``, where
+    key is padded with spaces to make the equals signs align.
+
+    This method is deprecated and will be removed in future versions of Myokit.
     """
+    # Deprecated since 2021-03-24
+    import warnings
+    warnings.warn(
+        'The method `myokit.format_float_dict` is deprecated.'
+        ' It will be removed in future versions of Myokit.')
+
     keys = [str(k) for k in d.keys()]
     keys.sort()
     n = max([len(k) for k in keys])
-    return '\n'.join(
-        [k + ' ' * (n - len(k)) + ' = ' + strfloat(d[k]) for k in keys])
+    return '\n'.join([
+        k + ' ' * (n - len(k)) + ' = ' + myokit.float.str(d[k]) for k in keys])
 
 
 def format_path(path, root='.'):
-    """
-    Formats a path for use in user messages. If the given path is a
-    subdirectory of the current directory this part is chopped off.
-
-    Alternatively, a ``root`` directory may be given explicitly: any
-    subdirectory of this path will be formatted relative to ``root``.
-
-    This function differs from os.path.relpath() in the way it handles paths
-    *outside* the root: In these cases relpath returns a relative path such as
-    '../../' while this function returns an absolute path.
-    """
-    if path == '':
-        path = '.'
-    try:
-        path = os.path.relpath(path, root)
-    except ValueError:  # pragma: no cover
-        # This can happen on windows, if `path` is on a different drive than
-        # root (so that no relative path from one to the other can be made).
-        return path
-
-    if '..' in path:
-        path = os.path.abspath(os.path.join(root, path))
-    return path
-
-
-def load(filename):
-    """
-    Reads an ``mmt`` file and returns a tuple ``(model, protocol, embedded
-    script)``.
-
-    If the file specified by ``filename`` doesn't contain one of these parts
-    the corresponding entry in the tuple will be ``None``.
-    """
-    f = open(_examplify(filename), 'r')
-    try:
-        return myokit.parse(f)
-    finally:
-        f.close()
-
-
-def load_model(filename):
-    """
-    Loads the model section from an ``mmt`` file.
-
-    Raises a :class:`SectionNotFoundError` if no model section is found.
-    """
-    filename = _examplify(filename)
-    with open(filename, 'r') as f:
-        section = myokit.split(f)[0]
-        if not section.strip():
-            raise myokit.SectionNotFoundError('Model section not found.')
-        return myokit.parse(section.splitlines())[0]
-
-
-def load_protocol(filename):
-    """
-    Loads the protocol section from an ``mmt`` file.
-
-    Raises a :class:`SectionNotFoundError` if no protocol section is found.
-    """
-    filename = _examplify(filename)
-    with open(filename, 'r') as f:
-        section = myokit.split(f)[1]
-        if not section.strip():
-            raise myokit.SectionNotFoundError('Protocol section not found.')
-        return myokit.parse(section.splitlines())[1]
-
-
-def load_script(filename):
-    """
-    Loads the script section from an ``mmt`` file.
-
-    Raises a :class:`SectionNotFoundError` if no script section is found.
-    """
-    filename = _examplify(filename)
-    with open(filename, 'r') as f:
-        section = myokit.split(f)[2]
-        if not section.strip():
-            raise myokit.SectionNotFoundError('Script section not found.')
-        return myokit.parse(section.splitlines())[2]
-
-
-def load_state(filename, model=None):
-    """
-    Loads an initial state from a file in one of the formats specified by
-    :func:`myokit.parse_state()`.
-
-    If a :class:`Model` is provided the state will be run through
-    :meth:`Model.map_to_state()` and returned as a list of floating point
-    numbers.
-    """
-    filename = os.path.expanduser(filename)
-    with open(filename, 'r') as f:
-        s = myokit.parse_state(f)
-        if model:
-            s = model.map_to_state(s)
-        return s
-
-
-def load_state_bin(filename):
-    """
-    Loads an initial state from a file in the binary format used by myokit.
-    See :meth:`save_state_bin` for details.
-    """
-    filename = os.path.expanduser(filename)
-
-    # Load compression modules
-    import zipfile
-    try:
-        import zlib
-        del(zlib)
-    except ImportError:
-        raise Exception(
-            'This method requires the `zlib` module to be installed.')
-
-    # Open file
-    with zipfile.ZipFile(filename, 'r') as f:
-        info = f.infolist()
-
-        if len(info) != 1:  # pragma: no cover
-            raise Exception('Invalid state file format [10].')
-
-        # Split into parts, get data type and array size
-        info = info[0]
-        parts = info.filename.split('_')
-
-        if len(parts) != 3:     # pragma: no cover
-            raise Exception('Invalid state file format [20].')
-
-        if parts[0] != 'state':     # pragma: no cover
-            raise Exception('Invalid state file format [30].')
-
-        code = parts[1]
-        if code not in ['d', 'f']:  # pragma: no cover
-            raise Exception('Invalid state file format [40].')
-        # Convert code to str for Python 2.7.10 (see #225)
-        code = str(code)
-
-        size = int(parts[2])
-        if size < 0:    # pragma: no cover
-            raise Exception('Invalid state file format [50].')
-
-        # Create array, read bytes into array
-        ar = array.array(code)
-        try:
-            ar.frombytes(f.read(info))
-        except AttributeError:  # pragma: no python 3 cover
-            ar.fromstring(f.read(info))
-
-        # Always store as little endian
-        if sys.byteorder == 'big':  # pragma: no cover
-            ar.byteswap()
-
-    return list(ar)
-
-
-def _lvsd(s1, s2):
-    """
-    Calculates a Levenshtein distance, as found on wikibooks
-
-    :param s1: The first string to compare
-    :param s2: The second string to compare
-    :returns: int The distance between s1 and s2
-    """
-    if len(s1) < len(s2):
-        return _lvsd(s2, s1)
-
-    if not s1:
-        return len(s2)
-
-    previous_row = range(len(s2) + 1)
-    for i, c1 in enumerate(s1):
-        current_row = [i + 1]
-        for j, c2 in enumerate(s2):
-            insertions = previous_row[j + 1] + 1
-            deletions = current_row[j] + 1
-            substitutions = previous_row[j] + (c1 != c2)
-            current_row.append(min(insertions, deletions, substitutions))
-        previous_row = current_row
-
-    return previous_row[-1]
+    """Deprecated alias of :class:`myokit.tools.format_path`."""
+    # Deprecated since 2021-03-24
+    import warnings
+    warnings.warn(
+        'The method `myokit.format_path` is deprecated.'
+        ' Please use `myokit.tools.format_path` instead.')
+    return myokit.tools.format_path(path, root)
 
 
 class ModelComparison(object):
@@ -1105,156 +530,6 @@ def run(model, protocol, script, stdout=None, stderr=None, progress=None):
     gc.collect()
 
 
-def save(filename=None, model=None, protocol=None, script=None):
-    """
-    Saves a model, protocol, and embedded script to an ``mmt`` file.
-
-    The ``model`` argument can be given as plain text or a
-    :class:`myokit.Model` object. Similarly, ``protocol`` can be either a
-    :class:`myokit.Protocol` or its textual represenation.
-
-    If no filename is given the ``mmt`` code is returned as a string.
-    """
-    if filename:
-        filename = os.path.expanduser(filename)
-        f = open(filename, 'w')
-    else:
-        f = StringIO()
-    out = None
-    try:
-        if model is not None:
-            if isinstance(model, myokit.Model):
-                model = model.code()
-            else:
-                model = model.strip()
-                if model != '' and model[:9] != '[[model]]':
-                    f.write('[[model]]\n')
-            model = model.strip()
-            if model:
-                f.write(model)
-                f.write('\n\n')
-
-        if protocol is not None:
-            if isinstance(protocol, myokit.Protocol):
-                protocol = protocol.code()
-            else:
-                protocol = protocol.strip()
-                if protocol != '' and protocol[:12] != '[[protocol]]':
-                    f.write('[[protocol]]\n')
-            protocol = protocol.strip()
-            if protocol:
-                f.write(protocol)
-                f.write('\n\n')
-
-        if script is not None:
-            script = script.strip()
-            if script != '' and script[:10] != '[[script]]':
-                f.write('[[script]]\n')
-            if script:
-                f.write(script)
-                f.write('\n\n')
-    finally:
-        if filename:
-            f.close()
-        else:
-            out = f.getvalue()
-    return out
-
-
-def save_model(filename, model):
-    """
-    Saves a model to a file
-    """
-    return save(filename, model)
-
-
-def save_protocol(filename, protocol):
-    """
-    Saves a protocol to a file
-    """
-    return save(filename, protocol=protocol)
-
-
-def save_script(filename, script):
-    """
-    Saves an embedded script to a file
-    """
-    return save(filename, script=script)
-
-
-def save_state(filename, state, model=None):
-    """
-    Stores the given state in the file at ``filename``.
-
-    If no ``model`` is specified ``state`` should be given as a list of
-    floating point numbers and will be stored by simply placing each number on
-    a new line.
-
-    If a :class:`Model <myokit.Model>` is provided the state can be in any
-    format accepted by :meth:`Model.map_to_state() <myokit.Model.map_to_state>`
-    and will be stored in the format returned by
-    :meth:`Model.format_state() <myokit.Model.format_state>`.
-    """
-    # Check filename
-    filename = os.path.expanduser(filename)
-
-    # Format
-    if model is not None:
-        state = model.map_to_state(state)
-        state = model.format_state(state)
-    else:
-        state = [myokit.strfloat(s) for s in state]
-        state = '\n'.join(state)
-
-    # Store
-    with open(filename, 'w') as f:
-        f.write(state)
-
-
-def save_state_bin(filename, state, precision=myokit.DOUBLE_PRECISION):
-    """
-    Stores the given state (or any list of floating point numbers) in the file
-    at ``filename``, using a binary format.
-
-    The used format is a zip file, containing a single entry: ``state_x_y``,
-    where ``x`` is the used data type (``d`` or ``f``) and ``y`` is the number
-    of entries. All entries are stored little-endian.
-    """
-    # Check filename
-    filename = os.path.expanduser(filename)
-
-    # Load compression modules
-    import zipfile
-    try:
-        import zlib
-        del(zlib)
-    except ImportError:
-        raise Exception(
-            'This method requires the `zlib` module to be installed.')
-
-    # Data type
-    # Convert code to str for Python 2.7.10 (see #225)
-    code = str('d' if precision == myokit.DOUBLE_PRECISION else 'f')
-
-    # Create array, ensure it's little-endian
-    ar = array.array(code, state)
-    if sys.byteorder == 'big':  # pragma: no cover
-        ar.byteswap()
-
-    # Store precision and data type in internal filename
-    name = 'state_' + code + '_' + str(len(state))
-    info = zipfile.ZipInfo(name)
-    info.compress_type = zipfile.ZIP_DEFLATED
-
-    # Write to compressed file
-    try:
-        ar = ar.tobytes()
-    except AttributeError:  # pragma: no python 3 cover
-        ar = ar.tostring()
-    with zipfile.ZipFile(filename, 'w') as f:
-        f.writestr(info, ar)
-
-
 def step(model, initial=None, reference=None, ignore_errors=False):
     """
     Evaluates the state derivatives in a model and compares the results with a
@@ -1330,7 +605,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
             if xx[0] != yy[0]:
 
                 # Ignore if zero
-                if (_feq(x, 0) and _feq(y, 0)):
+                if (myokit.float.eq(x, 0) and myokit.float.eq(y, 0)):
                     log.append(line)
                     log.append('')
                 else:
@@ -1397,35 +672,23 @@ def step(model, initial=None, reference=None, ignore_errors=False):
 
 
 def strfloat(number, full=False, precision=myokit.DOUBLE_PRECISION):
-    """
-    Turns the given number into a string.
-    """
-    # Force full precision output
-    if full:
-        if precision == myokit.SINGLE_PRECISION:
-            return myokit.SFSINGLE.format(float(number))
-        else:
-            return myokit.SFDOUBLE.format(float(number))
+    """Deprecated alias of :class:`myokit.float.str`."""
+    # Deprecated since 2021-03-24
+    import warnings
+    warnings.warn(
+        'The method `myokit.strfloat` is deprecated.'
+        ' Please use `myokit.float.str` instead.')
+    return myokit.float.str(number, full, precision)
 
-    # Pass through strings
-    if isinstance(number, str):
-        return number
 
-    # Handle myokit.Numbers
-    if isinstance(number, myokit.Number):
-        number = number.eval()
-
-    # For most numbers, allow python to format the float
-    s = str(number)
-    if len(s) < 10:
-        return s
-
-    # But if the number is given with lots of decimals, use the representation
-    # with enough digits to prevent loss of information
-    if precision == myokit.SINGLE_PRECISION:
-        return myokit.SFSINGLE.format(float(number))
-    else:
-        return myokit.SFDOUBLE.format(float(number))
+def time():
+    """Deprecated alias of :class:`myokit.tools.time`."""
+    # Deprecated since 2021-03-24
+    import warnings
+    warnings.warn(
+        'The method `myokit.time` is deprecated.'
+        ' Please use `myokit.tools.time` instead.')
+    return myokit.tools.time()
 
 
 def version(raw=False):
@@ -1449,83 +712,4 @@ def version(raw=False):
         t1 += '|/\\'
         t2 += '|  |' + '_' * 5
         return '\n' + t1 + '\n' + t2
-
-
-def _feq(a, b):
-    """
-    Checks if floating point numbers ``a`` and ``b`` are equal, or so close to
-    each other that the difference could be a single rounding error.
-    """
-    # Note the initial == check handles infinity
-    return a == b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
-
-
-def _fgeq(a, b):
-    """
-    Checks if ``a >= b``, but using :meth:`myokit._feq` instead of ``=``.
-    """
-    return a >= b or abs(a - b) < max(abs(a), abs(b)) * sys.float_info.epsilon
-
-
-def _fround(x):
-    """
-    Checks if a float ``x`` is within 1 rounding error of an integer, and if
-    so, converts it to that integer.
-    """
-    ix = int(round(x))
-    return ix if _feq(x, ix) else x
-
-
-def _close(a, b, reltol=1e-9, abstol=1e-9):
-    """
-    Test whether two numbers are close enough to be considered equal.
-
-    Differs from :meth:`myokit._feq` in that it tries to answer the question
-    "are two number resulting from various calculations close enough to be
-    considered equal". Whereas `_feq` aims to deal with numbers that are
-    numerically indistinguishable but still have a slightly different floating
-    point representation.
-    """
-    # Note the initial == check handles infinity
-    return a == b or abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
-
-
-def _cround(x, reltol=1e-9, abstol=1e-9):
-    """
-    Checks if a float ``x`` is close to an integer with :meth:`close()`, and if
-    so, converts it to that integer.
-    """
-    ix = int(round(x))
-    return ix if _close(x, ix, reltol, abstol) else x
-
-
-def _rmtree(path):
-    """
-    Version of ``shutil.rmtree`` that handles access denied errors (when the
-    user is lacking write permissions). This seems to happen on Windows some
-    times.
-
-    The solution here is based on answers given on stackoverflow:
-    https://stackoverflow.com/questions/2656322
-    """
-    def onerror(function, path, excinfo):   # pragma: no cover
-        if not os.access(path, os.W_OK):
-            # Give user write permissions (remove read-only flag)
-            os.chmod(path, stat.S_IWUSR)
-            function(path)
-        else:
-            raise
-
-    shutil.rmtree(path, ignore_errors=False, onerror=onerror)
-
-
-def _pid_hash():
-    """
-    Returns an integer hash that depends on the current time as well as the
-    process id, so that it's likely to return a different number when called
-    twice.
-    """
-    x = os.getpid() * timeit.default_timer()
-    x = abs(hash(str(x - int(x))))
-    return x
 

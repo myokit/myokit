@@ -98,7 +98,7 @@ class ProgressPrinter(ProgressReporter):
     """
     def __init__(self, digits=1):
         super(ProgressPrinter, self).__init__()
-        self._b = myokit.Benchmarker()
+        self._b = myokit.tools.Benchmarker()
         self._f = None
         self._d = int(digits)
 

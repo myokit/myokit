@@ -80,7 +80,7 @@ class TemporaryDirectory(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         try:
-            myokit._rmtree(self._dir)
+            myokit.tools.rmtree(self._dir)
         finally:
             self._dir = None
 

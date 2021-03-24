@@ -82,7 +82,7 @@ class ICSimulationTest(unittest.TestCase):
         # Test using a progress reporter
         with WarningCollector() as c:
             s = myokit.ICSimulation(m, p)
-        with myokit.capture() as c:
+        with myokit.tools.capture() as c:
             s.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertTrue(len(c) > 0)

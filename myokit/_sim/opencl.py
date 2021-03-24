@@ -45,7 +45,7 @@ class OpenCL(myokit.CModule):
         # Create back-end and cache it
         OpenCL._index += 1
         mname = 'myokit_opencl_info_' + str(OpenCL._index)
-        mname += '_' + str(myokit._pid_hash())
+        mname += '_' + str(myokit.pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
 

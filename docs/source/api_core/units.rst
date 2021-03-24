@@ -182,3 +182,8 @@ Unit arithmetic
 
 .. autoclass:: Quantity
 
+For people who don't like units
+===============================
+
+.. autofunction:: strip_expression_units
+

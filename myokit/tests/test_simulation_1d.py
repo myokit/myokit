@@ -110,7 +110,7 @@ class Simulation1dTest(unittest.TestCase):
         # Test using a progress reporter
         s = myokit.Simulation1d(m, p, ncells=5)
         s.set_step_size(0.05)
-        with myokit.capture() as c:
+        with myokit.tools.capture() as c:
             s.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertTrue(len(c) > 0)

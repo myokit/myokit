@@ -811,7 +811,7 @@ class Number(Expression):
                 raise ValueError(
                     'Unit in myokit.Number should be a myokit.Unit or None.')
         # Create nice string representation
-        self._str = myokit.strfloat(self._value)
+        self._str = myokit.float.str(self._value)
         if self._str[-2:] == '.0':
             # Turn 5.0 into 5
             self._str = self._str[:-2]

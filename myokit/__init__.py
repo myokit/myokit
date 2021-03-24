@@ -374,6 +374,10 @@ for ex in inspect.getmembers(_err):
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 del(_err)
 
+# Tools
+from . import float  # noqa
+from . import tools  # noqa
+
 # Model api
 from ._model_api import ( # noqa
     check_name,
@@ -448,6 +452,7 @@ from ._protocol import (  # noqa
     Protocol,
     ProtocolEvent,
 )
+from . import pacing  # noqa
 
 # Parser functions
 from ._parsing import (  # noqa
@@ -456,7 +461,6 @@ from ._parsing import (  # noqa
     parse,
     parse_expression_string as parse_expression,
     parse_model,
-    #parse_number_string as parse_number,
     parse_protocol,
     parse_state,
     parse_unit_string as parse_unit,
@@ -464,69 +468,43 @@ from ._parsing import (  # noqa
     strip_expression_units,
 )
 
-# Auxillary functions
-from ._aux import (  # noqa
-    # Version info
-    version,
-
-    # Global date and time formats
-    date,
-    time,
-
-    # Default mmt parts
-    default_protocol,
-    default_script,
-
+# Load/save functions
+from ._io import (  # noqa
     # Reading, writing
     load,
     load_model,
     load_protocol,
     load_script,
+    load_state,
+    load_state_bin,
     save,
     save_model,
     save_protocol,
     save_script,
-    load_state,
     save_state,
-    load_state_bin,
     save_state_bin,
+)
 
-    # Running scripts
-    run,
+# Common units
+from . import units  # noqa, also loads all common unit names
 
-    # Test step
-    step,
-
-    # Output capturing
-    capture,
-
-    # Sorting
-    _natural_sort_key,
-
-    # Dyanmic generation of Python/NumPy expressions
-    python_writer,
-    numpy_writer,
-
-    # Model comparison
+# Auxillary functions
+from ._aux import (  # noqa
+    default_protocol,
+    default_script,
     ModelComparison,
-
-    # Benchmarking
+    numpy_writer,
+    python_writer,
+    run,
+    step,
+    version,
+    # Deprecated and/or moved to myokit.tools
     Benchmarker,
-
-    # Floating point
-    _close,
-    _cround,
-    _feq,
-    _fgeq,
-    _fround,
+    date,
     format_float_dict,
-    strfloat,
-
-    # Misc
     format_path,
-    _lvsd,
-    _pid_hash,
-    _rmtree,
+    strfloat,
+    time,
 )
 
 # System information
@@ -555,11 +533,11 @@ from ._datablock import (   # noqa
     DataBlock2d,
 )
 
-
 # Simulations
 from ._sim import (  # noqa
     CModule,
     CppModule,
+    pid_hash,
 )
 from ._sim.compiler import (  # noqa
     Compiler,
@@ -583,15 +561,6 @@ from ._sim.psim import PSimulation          # noqa
 from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
 from ._sim.openclsim import SimulationOpenCL                    # noqa
 from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
-
-# Import whole modules
-# This allows these modules to be used after myokit was imported, without
-# importing the modules specifically (like os and os.path).
-# All modules imported here must report so in their docs
-from . import ( # noqa
-    pacing,
-    units,  # Also loads all common unit names
-)
 
 
 #

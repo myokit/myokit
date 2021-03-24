@@ -6,60 +6,45 @@ Miscellaneous
 
 .. currentmodule:: myokit
 
-Model comparison
-================
+Default expression writers
+==========================
 
-.. autoclass:: ModelComparison
+.. autofunction:: python_writer
 
-.. _api/modelcomparison:
+.. autofunction:: numpy_writer
 
-Benchmarking
-============
-
-.. autoclass:: Benchmarker
-
-.. _api/logging:
-
-State i/o
-=========
-
-.. autofunction:: load_state
-
-.. autofunction:: load_state_bin
-
-.. autofunction:: parse_state
-
-.. autofunction:: save_state
-
-.. autofunction:: save_state_bin
-
-String functions
-================
-
-.. autofunction:: date
-
-.. autofunction:: format_float_dict
-
-.. autofunction:: format_path
-
-.. autofunction:: strfloat
-
-.. autofunction:: time
-
-.. autofunction:: version
-
-Other functions
-===============
+Default mmt file parts
+======================
 
 .. autofunction:: default_protocol
 
 .. autofunction:: default_script
 
-.. autofunction:: numpy_writer
+Model comparison
+================
 
-.. autofunction:: python_writer
+.. autoclass:: ModelComparison
+
+.. autofunction:: step
+
+.. _api/modelcomparison:
+
+Running mmt files
+=================
 
 .. autofunction:: run
 
-.. autofunction:: strip_expression_units
+Myokit version
+==============
+
+.. autofunction:: version
+
+Deprecated
+==========
+
+.. autofunction:: date
+
+.. autofunction:: format_float_dict
+
+.. autofunction:: time
 

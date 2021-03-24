@@ -1532,7 +1532,7 @@ class DataBlock2d(object):
         text = [delimx.join('"' + str(x) + '"' for x in [xname, yname, zname])]
         for y, row in enumerate(data):
             for x, z in enumerate(row):
-                text.append(delimx.join([str(x), str(y), myokit.strfloat(z)]))
+                text.append(delimx.join([str(x), str(y), myokit.float.str(z)]))
         text = delimy.join(text)
         with open(filename, 'w') as f:
             f.write(text)
@@ -1555,7 +1555,7 @@ class DataBlock2d(object):
         data = data[frame]
         text = []
         for row in data:
-            text.append(delimx.join([myokit.strfloat(x) for x in row]))
+            text.append(delimx.join([myokit.float.str(x) for x in row]))
         text = delimy.join(text)
         with open(filename, 'w') as f:
             f.write(text)

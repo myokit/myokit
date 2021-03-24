@@ -68,6 +68,18 @@ should be of the type :class:`ParseError`.
 
 .. autofunction:: format_parse_error
 
+Loading and saving states
+=========================
+
+.. autofunction:: load_state
+
+.. autofunction:: load_state_bin
+
+.. autofunction:: save_state
+
+.. autofunction:: save_state_bin
+
+.. autofunction:: parse_state
 
 A note about the format
 =======================

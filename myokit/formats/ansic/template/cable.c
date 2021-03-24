@@ -67,7 +67,7 @@ equations = model.solvable_order()
 ?>/*
 Cable simulation
 <?= model.name() ?>
-Generated on <?= myokit.date() ?>
+Generated on <?= myokit.tools.date() ?>
 
 Compiling on GCC:
  $ gcc -Wall -lm cable.c

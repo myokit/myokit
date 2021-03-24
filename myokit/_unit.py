@@ -186,7 +186,7 @@ class Unit(object):
         # Compare multipliers in log10 space. This means we can still easily
         # distinguish between e.g. pF and nF, but we lose the ability to tell
         # the difference between e.g. [F (1)] and [F (1.00000000000001)]
-        return myokit._close(unit1._m, unit2._m, reltol, abstol)
+        return myokit.float.close(unit1._m, unit2._m, reltol, abstol)
 
     @staticmethod
     def close_exponent(unit1, unit2, reltol=1e-9, abstol=1e-9):
@@ -202,7 +202,7 @@ class Unit(object):
 
         """
         for i, a in enumerate(unit1._x):
-            if not myokit._close(a, unit2._x[i], reltol, abstol):
+            if not myokit.float.close(a, unit2._x[i], reltol, abstol):
                 return False
         return True
 
@@ -319,7 +319,7 @@ class Unit(object):
             raise myokit.IncompatibleUnitError(msg + '.')
 
         # Create Quantity and return
-        fw = myokit._fround(fw)
+        fw = myokit.float.round(fw)
         return Quantity(fw, unit2 / unit1)
 
     @staticmethod
@@ -346,9 +346,9 @@ class Unit(object):
             return False
 
         for i, x in enumerate(self._x):
-            if not myokit._feq(x, other._x[i]):
+            if not myokit.float.eq(x, other._x[i]):
                 return False
-        return myokit._feq(self._m, other._m)
+        return myokit.float.eq(self._m, other._m)
 
     def exponents(self):
         """
@@ -481,7 +481,7 @@ class Unit(object):
         # Evaluates ``self ^ other``
 
         f = float(f)
-        e = [myokit._fround(f * x) for x in self._x]
+        e = [myokit.float.round(f * x) for x in self._x]
         return Unit(e, self._m * f)
 
     def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
@@ -568,10 +568,13 @@ class Unit(object):
     def _str(self, use_close_for_rounding):
         """
         String representation without preferred representations, that will
-        round to nearby ints if ``use_close_for_rounding=True``.
+        round to nearby integers if ``use_close_for_rounding=True``.
         """
         # Rounding
-        rnd = myokit._cround if use_close_for_rounding else myokit._fround
+        if use_close_for_rounding:
+            rnd = myokit.float.cround
+        else:
+            rnd = myokit.float.round
 
         # SI unit names
         si = ['g', 'm', 's', 'A', 'K', 'cd', 'mol']
@@ -610,7 +613,7 @@ class Unit(object):
 
     def __str__(self):
 
-        # Strategy 1: Try simple look-up (using _feq float comparison)
+        # Strategy 1: Try simple look-up (using float.eq comparison)
         try:
             return '[' + Unit._preferred_representations[self] + ']'
         except KeyError:
@@ -636,10 +639,10 @@ class Unit(object):
 
             # Add multiplier part
             if rep is not None:
-                m = myokit._cround(self._m - m)
+                m = myokit.float.cround(self._m - m)
                 m = 10**m
                 if m >= 1:
-                    m = myokit._cround(m)
+                    m = myokit.float.cround(m)
                 if m < 1e6:
                     m = str(m)
                 else:

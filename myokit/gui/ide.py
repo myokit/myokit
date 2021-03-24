@@ -2604,7 +2604,7 @@ class Console(QtWidgets.QPlainTextEdit):
         #if not text:
         #    return
         # Write text
-        self.appendPlainText('[' + myokit.time() + '] ' + str(text))
+        self.appendPlainText('[' + myokit.tools.time() + '] ' + str(text))
         # Autoscroll
         self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
         # Autoflush

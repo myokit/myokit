@@ -34,7 +34,7 @@ class PypeTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'dict', e.process, 'file.txt', [])
 
-        with myokit.capture():
+        with myokit.tools.capture():
 
             # Test not-a-file
             self.assertRaises(IOError, e.process, 'file.txt', {})
