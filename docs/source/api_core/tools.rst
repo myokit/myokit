@@ -4,6 +4,9 @@
 Tools
 *****
 
+This module contains a number of (fairly) stand-alone functions and classes
+that are used by Myokit.
+
 .. currentmodule:: myokit.tools
 
 Benchmarking
@@ -15,19 +18,13 @@ Capturing printed output
 ========================
 
 .. autoclass:: capture
-    :private-members:
-    :inherited-members:
 
 Date and time
 =============
 
-.. autoclass:: date
-    :private-members:
-    :inherited-members:
+.. autofunction:: date
 
-.. autoclass:: time
-    :private-members:
-    :inherited-members:
+.. autofunction:: time
 
 File system
 ===========
@@ -39,7 +36,7 @@ File system
 String comparison
 =================
 
-.. autofunction:: lsvd
+.. autofunction:: lvsd
 
 .. autofunction:: natural_sort_key
 

@@ -1,4 +1,4 @@
-.. _api/index/myokit:
+.. _api/index/myokit/tools:
 
 ============
 myokit.tools
@@ -8,8 +8,7 @@ myokit.tools
 - :class:`myokit.tools.capture`
 - :meth:`myokit.tools.date`
 - :meth:`myokit.tools.format_path`
-- :meth:`myokit.tools.lsvd`
+- :meth:`myokit.tools.lvsd`
 - :meth:`myokit.tools.natural_sort_key`
-- :meth:`myokit.tools.pid_hash`
 - :meth:`myokit.tools.rmtree`
 - :meth:`myokit.tools.time`

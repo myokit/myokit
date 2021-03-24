@@ -27,8 +27,6 @@ Model comparison
 
 .. autofunction:: step
 
-.. _api/modelcomparison:
-
 Running mmt files
 =================
 
@@ -42,9 +40,15 @@ Myokit version
 Deprecated
 ==========
 
+.. autoclass:: Benchmarker
+
 .. autofunction:: date
 
 .. autofunction:: format_float_dict
+
+.. autofunction:: format_path
+
+.. autofunction:: strfloat
 
 .. autofunction:: time
 

@@ -45,6 +45,8 @@ section of the documentation.
     equations
     units
     io
+    float
+    tools
     misc
-    settings
     exceptions
+    settings

@@ -111,6 +111,7 @@ myokit
 - :meth:`myokit.parse_state`
 - :meth:`myokit.parse_unit`
 - :class:`myokit.PartialDerivative`
+- :meth:`myokit.pid_hash`
 - :class:`myokit.Piecewise`
 - :class:`myokit.Plus`
 - :class:`myokit.Power`
