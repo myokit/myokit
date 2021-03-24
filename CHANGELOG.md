@@ -18,9 +18,11 @@ This page lists the main changes made to Myokit in each release.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` can now calculate sensitivities of variables with respect to parameters and/or initial conditions (see docs for details).
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer has `apd_var` as a constructor argument. Instead, you can pass an argument `apd_variable` to its `run()` method.
-  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer suppresses CVODE(S) warnings but passes them on to the `warnings` module.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer suppresses CVODES warnings but passes them on to the `warnings` module.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) Fix to `Simulation` for Sundials 4.1.0.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `LegacySimulation` class no longer suppresses CVODE warnings but passes them on to the `warnings` module (backported from new `Simulation` class).
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) The classes `PyCapture` and `SubCapture` have been replaced by a single context manager ``capture`` that can do Python-only or low-level redirection and should be thread-safe.
 - Deprecated
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The classes `myokit.PSimulation` and `myokit.ICSimulation` are deprecated. Sensitivities can now be obtained much quicker with the single cell `Simulation` class.
 - Removed
@@ -88,7 +90,7 @@ This page lists the main changes made to Myokit in each release.
   - [#548](https://github.com/MichaelClerx/myokit/pull/548) Model and protocol now support comparison with `==`.
   - [#553](https://github.com/MichaelClerx/myokit/pull/553) The cumulative-current plot now has a maximum-number-of-currents option (all further currents will be bundled into one).
   - [#567](https://github.com/MichaelClerx/myokit/pull/567) Added support for Simulation building on Python 3.8 on Windows.
-  - [#574](https://github.com/MichaelClerx/myokit/pull/574)[#599], (https://github.com/MichaelClerx/myokit/pull/599),[#547](https://github.com/MichaelClerx/myokit/pull/547), [#528](https://github.com/MichaelClerx/myokit/pull/528) A completely rewritten SBML API and parser, by @DavAug, that's capable of handling models that define species and reactions.
+  - [#574](https://github.com/MichaelClerx/myokit/pull/574), [#599](https://github.com/MichaelClerx/myokit/pull/599), [#547](https://github.com/MichaelClerx/myokit/pull/547), [#528](https://github.com/MichaelClerx/myokit/pull/528) A completely rewritten SBML API and parser that's capable of handling models that define species and reactions, contributed by @DavAug.
 - Changed
   - [#536](https://github.com/MichaelClerx/myokit/issues/536) `Ohm` is now a quantifiable unit in the `mmt` syntax, i.e. `1 [MOhm]`. This replaces the non-standard `R` unit which has been removed.
   - [#556](https://github.com/MichaelClerx/myokit/pull/556) CellML imports now import models that contain unsupported units (but with warnings).

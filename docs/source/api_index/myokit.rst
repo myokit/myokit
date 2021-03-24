@@ -9,6 +9,7 @@ myokit
 - :class:`myokit.ASin`
 - :class:`myokit.ATan`
 - :class:`myokit.Benchmarker`
+- :class:`myokit.capture`
 - :class:`myokit.Ceil`
 - :meth:`myokit.check_name`
 - :class:`myokit.CModel`
@@ -126,7 +127,6 @@ myokit
 - :class:`myokit.ProtocolEventError`
 - :class:`myokit.ProtocolParseError`
 - :class:`myokit.PSimulation`
-- :class:`myokit.PyCapture`
 - :meth:`myokit.python_writer`
 - :class:`myokit.Quantity`
 - :class:`myokit.Quotient`
@@ -153,7 +153,6 @@ myokit
 - :meth:`myokit.step`
 - :meth:`myokit.strfloat`
 - :meth:`myokit.strip_expression_units`
-- :class:`myokit.SubCapture`
 - :class:`myokit.Sundials`
 - :meth:`myokit.system`
 - :class:`myokit.Tan`
