@@ -26,7 +26,7 @@ except NameError:   # pragma: no cover
 
 import myokit
 
-from shared import DIR_DATA, TemporaryDirectory
+from shared import DIR_DATA
 
 
 class AuxTest(unittest.TestCase):
@@ -389,36 +389,6 @@ class AuxTest(unittest.TestCase):
         x = c.add_variable('x')
         x.set_rhs('5 + x')
         self.assertEqual(w.ex(x.rhs()), '5.0 + c_x')
-
-    def test_pack_snapshot(self):
-        # Test if the pack_snapshot method runs without exceptions.
-
-        with TemporaryDirectory() as d:
-            # Run!
-            path = d.path('pack.zip')
-            new_path = myokit.pack_snapshot(path)
-            self.assertTrue(os.path.isfile(new_path))
-            self.assertTrue(os.path.getsize(new_path) > 500000)
-
-            # Run with same location --> error
-            self.assertRaises(
-                IOError, myokit.pack_snapshot, path, overwrite=False)
-
-            # Run with overwrite switch is ok
-            myokit.pack_snapshot(path, overwrite=True)
-
-            # Write to directory: finds own filename
-            path = d.path('')
-            new_path = myokit.pack_snapshot(path)
-            self.assertEqual(new_path[:len(path)], path)
-            self.assertTrue(len(new_path) - len(path) > 5)
-
-            # Write to directory again without overwrite --> error
-            self.assertRaises(
-                IOError, myokit.pack_snapshot, path, overwrite=False)
-
-            # Run with overwrite switch is ok
-            myokit.pack_snapshot(path, overwrite=True)
 
     def test_python_writer(self):
         # Test Python expression writer obtaining method.
