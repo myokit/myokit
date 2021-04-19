@@ -4,6 +4,7 @@ on:
     branches:
       - main
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - '**'
 
@@ -12,6 +13,7 @@ jobs:
   build-and-test:
     name: win-miniconda
     runs-on: windows-latest
+    if: github.event.pull_request.draft == false
 
     steps:
       - uses: actions/checkout@v1

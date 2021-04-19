@@ -1,12 +1,10 @@
 .. _api/simulations/myokit.RhsBenchmarker:
 
-***************************
-Right-hand-side evaluations
-***************************
+****************************************
+Benchmarking right-hand-side evaluations
+****************************************
 
 .. currentmodule:: myokit
-
-.. autofunction:: step
 
 .. autoclass:: RhsBenchmarker
 

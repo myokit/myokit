@@ -118,7 +118,7 @@ class LatexExpressionWriter(myokit.formats.ExpressionWriter):
         b.append(self._flhs(e))
 
     def _ex_number(self, e, b):
-        b.append(myokit.strfloat(e))
+        b.append(myokit.float.str(e))
 
     def _ex_prefix_plus(self, e, b):
         self._ex(e[0], b)

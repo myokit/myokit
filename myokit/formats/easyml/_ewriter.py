@@ -26,7 +26,7 @@ class EasyMLExpressionWriter(PythonExpressionWriter):
     #def _ex_derivative(self, e):
 
     def _ex_number(self, e):
-        return myokit.strfloat(e)
+        return myokit.float.str(e)
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):

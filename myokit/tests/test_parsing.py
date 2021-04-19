@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
 # Tests the parsing module.
+# See also test_io.py
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -1588,7 +1589,7 @@ class ModelParseTest(unittest.TestCase):
             p = dot(1 - x)
             """
         self.assertRaisesRegex(
-            myokit.ParseError, 'named variables', myokit.parse, code)
+            myokit.ParseError, 'only be used on variables', myokit.parse, code)
 
     def test_strip_expression_units(self):
         """

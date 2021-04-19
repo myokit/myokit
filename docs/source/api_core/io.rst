@@ -1,8 +1,8 @@
 .. _api/io:
 
-*****************************
-Reading and writing mmt files
-*****************************
+*******************
+Reading and writing
+*******************
 
 .. currentmodule:: myokit
 
@@ -15,6 +15,7 @@ Myokit models can be loaded form disk using :func:`load()` and stored using
 ``(model, protocol, script)`` tuple. Support for partial loading and saving
 is provided through functions like :func:`load_model()` and :func:`split()`.
 
+Similar functions are available to load save model states.
 
 Basic commands
 ==============
@@ -24,6 +25,8 @@ Basic commands
 .. autofunction:: save
 
 .. autofunction:: parse
+
+.. autofunction:: run
 
 Using parts of mmt files
 ========================
@@ -41,6 +44,16 @@ Using parts of mmt files
 .. autofunction:: save_protocol
 
 .. autofunction:: save_script
+
+Default mmt file parts
+======================
+When generating new ``mmt`` files, default protocols and scripts can be
+inserted:
+
+.. autofunction:: default_protocol
+
+.. autofunction:: default_script
+
 
 Parsing parts mmt files
 ========================
@@ -68,6 +81,18 @@ should be of the type :class:`ParseError`.
 
 .. autofunction:: format_parse_error
 
+Loading and saving states
+=========================
+
+.. autofunction:: load_state
+
+.. autofunction:: load_state_bin
+
+.. autofunction:: save_state
+
+.. autofunction:: save_state_bin
+
+.. autofunction:: parse_state
 
 A note about the format
 =======================

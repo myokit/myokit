@@ -11,7 +11,7 @@ Model variables can declare their units using the syntax explained in
 :class:`Unit` objects.
 
 A large number of units can be accessed through ``myokit.units``, this module
-is imported as part of the main ``myokit`` package::
+is imported automatically when ``import myokit`` is run::
 
     >>> import myokit
     >>> print myokit.units.m
@@ -181,4 +181,9 @@ Unit arithmetic
 ===============
 
 .. autoclass:: Quantity
+
+For people who don't like units
+===============================
+
+.. autofunction:: strip_expression_units
 

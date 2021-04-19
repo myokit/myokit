@@ -4,15 +4,45 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Myokit's expression system now includes a `PartialDerivative` and an `InitialValue` class. Both are for use in sensitivity calculations and may not appear in models.
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Expressions now have a method `diff(lhs)` that returns the (partial) derivative of an expression with respect to the given `LhsExpression`.
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Expressions now have methods `is_derivative`, `is_name`, and `is_number`.
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Added a method `Number.value()`.
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) The method `Expression.depends_on` now has an argument `deep` that can be set to `True` to perform a recursive dependency check.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) A class `myokit.CModel` was added that can generate multi-purpose C code for use in simulations. This is mainly for internal use.
   - [#682](https://github.com/MichaelClerx/myokit/pull/682) OpenCL code now recognises error code -1001.
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) Now testing OpenCL code in CI.
+  - [#704](https://github.com/MichaelClerx/myokit/pull/704) Added first example notebook to the github repository.
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) Added a context manager `myokit.tools.capture` that can redirect and capture output from Python `stdout` and `stderr` via a Python-only method or file-descriptor redirection and should be thread-safe.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.float` contains several functions related to floating point numbers that were previously in the main `myokit` namespace or not part of the public API.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.tools` contains several stand-alone tools that are used by Myokit and were previously in the main `myokit` namespace or not part of the public API.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `pid_hash`, which is used by compiled code to generate (hopefully) unique ids is now part of the public API.
 - Changed
+  - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` can now calculate sensitivities of variables with respect to parameters and/or initial conditions (see docs for details).
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer has `apd_var` as a constructor argument. Instead, you can pass an argument `apd_variable` to its `run()` method.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer suppresses CVODES warnings but passes them on to the `warnings` module.
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) Fix to `Simulation` for Sundials 4.1.0.
+  - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `LegacySimulation` class no longer suppresses CVODE warnings but passes them on to the `warnings` module (backported from new `Simulation` class).
 - Deprecated
+  - [#595](https://github.com/MichaelClerx/myokit/pull/595) The classes `myokit.PSimulation` and `myokit.ICSimulation` have been deprecated in favour of the new `Simulation` class.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The class `myokit.Benchmarker` is depreacted in favour of `myokit.tools.Benchmarker`.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_float_dict` is depreacted and will be removed in future versions.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_path` is depreacted in favour of `myokit.tools.format_path`.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735)The method `myokit.strfloat` is depreacted in favour of `myokit.float.str`.
 - Removed
-  - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux, or any Python 2.7 on Windows.
-- Fixed
+  - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux (still testing latest 2.7). No longer testing any Python 2.7 on Windows.
+  - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
+  - [#728](https://github.com/MichaelClerx/myokit/pull/728) The classes `myokit.PyCapture` and `myokit.SubCapture` have been replaced by a single context manager `myokit.tools.capture`.
+  - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Model.merge_interdependent_components` was removed. This method was deprecated since 2018-05-30.
+  - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Model.show_line` was removed. This method was deprecated since 2018-05-30.
+  - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Protocol.guess_duration` was removed. This method was deprecated since 2016-02-06.
+- Fixed 
   - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
-  - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.format_path()`.
+  - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.tools.format_path()`.
+  - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
 
 ## [1.32.0] - 2021-01-19
 - Added
@@ -71,7 +101,7 @@ This page lists the main changes made to Myokit in each release.
   - [#548](https://github.com/MichaelClerx/myokit/pull/548) Model and protocol now support comparison with `==`.
   - [#553](https://github.com/MichaelClerx/myokit/pull/553) The cumulative-current plot now has a maximum-number-of-currents option (all further currents will be bundled into one).
   - [#567](https://github.com/MichaelClerx/myokit/pull/567) Added support for Simulation building on Python 3.8 on Windows.
-  - [#574](https://github.com/MichaelClerx/myokit/pull/574)[#599], (https://github.com/MichaelClerx/myokit/pull/599),[#547](https://github.com/MichaelClerx/myokit/pull/547), [#528](https://github.com/MichaelClerx/myokit/pull/528) A completely rewritten SBML API and parser, by @DavAug, that's capable of handling models that define species and reactions.
+  - [#574](https://github.com/MichaelClerx/myokit/pull/574), [#599](https://github.com/MichaelClerx/myokit/pull/599), [#547](https://github.com/MichaelClerx/myokit/pull/547), [#528](https://github.com/MichaelClerx/myokit/pull/528) A completely rewritten SBML API and parser that's capable of handling models that define species and reactions, contributed by @DavAug.
 - Changed
   - [#536](https://github.com/MichaelClerx/myokit/issues/536) `Ohm` is now a quantifiable unit in the `mmt` syntax, i.e. `1 [MOhm]`. This replaces the non-standard `R` unit which has been removed.
   - [#556](https://github.com/MichaelClerx/myokit/pull/556) CellML imports now import models that contain unsupported units (but with warnings).

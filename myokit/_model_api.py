@@ -38,16 +38,19 @@ def check_name(name):
     # But the regex restriction means their format is compatible with ascii.
     # Check str compatibility
     name = str(name)
+
     # Check name syntax
     if NAME.match(name) is None:
         raise myokit.InvalidNameError(
             'The name <' + str(name) + '> is  invalid. The first character of'
             ' a name should be a letter from the range [a-zA-Z]. Any'
             ' subsequent characters can be taken from the set [a-zA-Z0-9_].')
+
     # Check for keywords
     if name in myokit.KEYWORDS:
         raise myokit.InvalidNameError(
             'The name <' + str(name) + '> is a reserved keyword.')
+
     return name
 
 
@@ -876,7 +879,9 @@ class Model(ObjectWithMeta, VarProvider):
         if not isinstance(template, myokit.Expression):
             template = myokit.parse_expression(template)
 
-        # Check function uniqueness. Add number of arguments to name to allow
+        # TODO: Check name does not conflict with an existing function #584
+
+        # Check signature uniqueness. Add number of arguments to name to allow
         # overloading
         uname = name + '(' + str(n) + ')'
         if uname in self._user_functions:
@@ -890,6 +895,12 @@ class Model(ObjectWithMeta, VarProvider):
             if isinstance(ref, myokit.Derivative):
                 raise myokit.InvalidFunction(
                     'The dot() operator cannot be used in user functions.')
+            if template.contains_type(myokit.PartialDerivative):
+                raise myokit.InvalidFunction(
+                    'The partial() operator cannot be used in user functions.')
+            if template.contains_type(myokit.InitialValue):
+                raise myokit.InvalidFunction(
+                    'The init() operator cannot be used in user functions.')
 
         # Check for unused arguments, undeclared arguments
         ref_names = set([x._value for x in refs])
@@ -1389,6 +1400,9 @@ class Model(ObjectWithMeta, VarProvider):
         """
         Determines the expressions needed to evaluate one or more variables.
 
+        If state variables are included in the list, "evaluating" the variable
+        is interpreted as evaluating its derivative.
+
         Returns a tuple ``(eqs, args)`` where ``eqs`` is a list of Equation
         objects in solvable order containing the minimal set of equations
         needed to evaluate the given ``variable`` and ``args`` is a list of
@@ -1477,8 +1491,8 @@ class Model(ObjectWithMeta, VarProvider):
             An optional second state, to be shown next to ``state`` for
             comparison.
         ``precision=myokit.DOUBLE_PRECISION``
-            An optional precision argument to pass into :meth:`myokit.strfloat`
-            when formatting the state values.
+            An optional precision argument to pass into
+            :meth:`myokit.float.str` when formatting the state values.
 
         """
         n = len(self._state)
@@ -1501,13 +1515,13 @@ class Model(ObjectWithMeta, VarProvider):
         for k, var in enumerate(self.states()):
             out.append(
                 var.qname() + ' ' * (n - len(var.qname()))
-                + ' = ' + myokit.strfloat(state[k], precision=precision))
+                + ' = ' + myokit.float.str(state[k], precision=precision))
         if state2 is not None:
             n = max([len(x) for x in out])
             for k, var in enumerate(self.states()):
                 out[k] += (
                     ' ' * (4 + n - len(out[k]))
-                    + myokit.strfloat(state2[k], precision=precision))
+                    + myokit.float.str(state2[k], precision=precision))
 
         return '\n'.join(out)
 
@@ -1528,7 +1542,7 @@ class Model(ObjectWithMeta, VarProvider):
             will be calculed from ``state`` using :meth:`eval_derivatives()`.
         ``precision=myokit.DOUBLE_PRECISION``
             An optional precision argument to use when evaluating the state
-            derivatives, and to pass into :meth:`myokit.strfloat` when
+            derivatives, and to pass into :meth:`myokit.float.str` when
             formatting the state values and derivatives.
 
         """
@@ -1551,8 +1565,8 @@ class Model(ObjectWithMeta, VarProvider):
         out = []
         n = max([len(x.qname()) for x in self.states()])
         for i, var in enumerate(self.states()):
-            s = myokit.strfloat(state[i], precision=precision)
-            d = myokit.strfloat(derivatives[i], precision=precision)
+            s = myokit.float.str(state[i], precision=precision)
+            d = myokit.float.str(derivatives[i], precision=precision)
             out.append(
                 var.qname() + ' ' * (n - len(var.qname())) + ' = ' + s
                 + ' ' * (24 - len(s)) + '   dot = ' + d)
@@ -2390,17 +2404,6 @@ class Model(ObjectWithMeta, VarProvider):
         # Convert all to float, create new list, return
         return [float(x) for x in state]
 
-    def merge_interdependent_components(self):
-        """
-        Deprecated alias of :meth:`resolve_interdependent_components`.
-        """
-        # Deprecated since 2018-05-30
-        import warnings
-        warnings.warn(
-            'The method `merge_interdependent_components` is deprecated.'
-            ' Please use `resolve_interdependent_components` instead.')
-        self.resolve_interdependent_components()
-
     def name(self):
         """
         Returns the model meta property ``name``, or ``None`` if it isn't set.
@@ -2813,17 +2816,6 @@ class Model(ObjectWithMeta, VarProvider):
             out.append('  ' + str(eq))
         return '\n'.join(out)
 
-    def show_line(self, var):
-        """
-        Deprecated alias of :meth:`show_line_of`.
-        """
-        # Deprecated since 2018-05-30
-        import warnings
-        warnings.warn(
-            'The method `show_line` is deprecated and will be removed in'
-            ' future versions of Myokit. Please use `show_line_of` instead.')
-        self.show_line_of(var)
-
     def show_line_of(self, var, raw=False):
         """
         Returns a string containing the type of variable ``var`` is and the
@@ -3127,10 +3119,10 @@ class Model(ObjectWithMeta, VarProvider):
         for v in self.variables(deep=True):
             n1 = v.name()
             n2 = v.qname()
-            d = min(myokit._lvsd(name, n1),
-                    myokit._lvsd(qname, n2),
-                    myokit._lvsd(name_low, n1.lower()),
-                    myokit._lvsd(qname_low, n2.lower()))
+            d = min(myokit.tools.lvsd(name, n1),
+                    myokit.tools.lvsd(qname, n2),
+                    myokit.tools.lvsd(name_low, n1.lower()),
+                    myokit.tools.lvsd(qname_low, n2.lower()))
             if d < mn:
                 mn = d
                 sg = v
@@ -4512,6 +4504,24 @@ class Variable(VarOwner):
             raise myokit.MissingRhsError(self)
         self._rhs.validate()
 
+        # Partial derivatives are not allowed in an RHS
+        if self._rhs.contains_type(myokit.PartialDerivative):
+            raise myokit.IntegrityError(
+                'Partial derivatives may not appear in expressions set as'
+                ' right-hand side of a variable.')
+
+        # Initial values are not allowed in an RHS
+        if self._rhs.contains_type(myokit.InitialValue):
+            raise myokit.IntegrityError(
+                'Initial value operators may not appear in expressions set as'
+                ' right-hand side of a variable.')
+
+        # Conditions are not allowed as an RHS
+        if isinstance(self._rhs, myokit.Condition):
+            raise myokit.IntegrityError(
+                'The right-hand side expression for a variable can not be a'
+                ' condition.')
+
         # Check state variables
         is_state = self._indice is not None
         is_deriv = self.lhs().is_derivative()
@@ -4658,10 +4668,14 @@ class EquationList(list, VarProvider):
 
 class UserFunction(object):
     """
-    Defines a user function. User functions are not ``Expression`` objects, but
-    template expressions that are converted upon parsing. They allow common
-    functions (for example a boltzman function) to be used in string
-    expressions.
+    Represents a user function.
+
+    ``UserFunction`` objects should not be created directly, but only via
+    :meth:`Model.add_function()`.
+
+    User functions are not ``Expression`` objects, but template expressions
+    that are converted upon parsing. They allow common functions (for example
+    a boltzman function) to be used in string expressions.
 
     Arguments:
 
