@@ -16,7 +16,7 @@ import unittest
 
 import myokit
 
-from shared import TemporaryDirectory, WarningCollector
+from shared import TemporaryDirectory
 
 
 # Unit testing in Python 2 and 3
@@ -1125,12 +1125,6 @@ class ModelTest(unittest.TestCase):
         m.resolve_interdependent_components()
         self.assertEqual(m.count_components(), 3)
 
-        # Test deprecated name
-        with WarningCollector() as wc:
-            m.merge_interdependent_components()
-        self.assertIn('deprecated', wc.text())
-        self.assertEqual(m.count_components(), 3)
-
         # Create interdependent components
         v.set_rhs('3 - c3.x')
         w.set_rhs('1 - c2.v')
@@ -1245,11 +1239,6 @@ class ModelTest(unittest.TestCase):
         # 'raw' version
         self.assertEqual(m.show_line_of(v, raw=True), 91)
         self.assertIsNone(m2.show_line_of(v2, raw=True))
-
-        # Test deprecated alias
-        with WarningCollector() as wc:
-            m.show_line(m.get('ina.INa'))
-        self.assertIn('deprecated', wc.text())
 
     def test_str(self):
         # Test conversion to string

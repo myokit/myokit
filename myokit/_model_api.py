@@ -2193,17 +2193,6 @@ class Model(ObjectWithMeta, VarProvider):
         # Convert all to float, create new list, return
         return [float(x) for x in state]
 
-    def merge_interdependent_components(self):
-        """
-        Deprecated alias of :meth:`resolve_interdependent_components`.
-        """
-        # Deprecated since 2018-05-30
-        import warnings
-        warnings.warn(
-            'The method `merge_interdependent_components` is deprecated.'
-            ' Please use `resolve_interdependent_components` instead.')
-        self.resolve_interdependent_components()
-
     def name(self):
         """
         Returns the model meta property ``name``, or ``None`` if it isn't set.
@@ -2615,17 +2604,6 @@ class Model(ObjectWithMeta, VarProvider):
         for eq in eqs:
             out.append('  ' + str(eq))
         return '\n'.join(out)
-
-    def show_line(self, var):
-        """
-        Deprecated alias of :meth:`show_line_of`.
-        """
-        # Deprecated since 2018-05-30
-        import warnings
-        warnings.warn(
-            'The method `show_line` is deprecated and will be removed in'
-            ' future versions of Myokit. Please use `show_line_of` instead.')
-        self.show_line_of(var)
 
     def show_line_of(self, var, raw=False):
         """

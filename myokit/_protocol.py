@@ -196,21 +196,6 @@ class Protocol(object):
             e = e._next
         return out
 
-    def guess_duration(self):
-        """
-        *Deprecated*
-
-        This method now returns the value given by :meth:`characteristic_time`.
-        """
-        # Deprecated since 2016-02-06
-        import warnings
-        warnings.warn(
-            'The method Protocol.guess_duration() is deprecated: it will be'
-            ' removed in future versions of Myokit. Please use the method'
-            ' `characteristic_time` instead.'
-        )
-        return self.characteristic_time()
-
     def head(self):
         """
         Returns the first event in this protocol.
