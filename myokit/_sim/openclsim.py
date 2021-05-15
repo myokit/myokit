@@ -611,6 +611,9 @@ class SimulationOpenCL(myokit.CModule):
 
         # Search for first occurrence of error in the detailed log
         ifirst, kfirst = find_error_position(log)
+        if ifirst is None:
+            ifirst = 0
+            kfirst = next(iter(log.items()))[0]
 
         # Get indices of cell in state vector
         ndims = len(self._dims)
@@ -646,7 +649,7 @@ class SimulationOpenCL(myokit.CModule):
         var = self._model.get('.'.join(kfirst.split('.')[ndims:]))
 
         # Get value causing error
-        value = states[1][var.indice()]
+        value = states[1 if ifirst > 0 else 0][var.indice()]
         var = var.qname()
 
         # Get time error occurred
@@ -1193,8 +1196,12 @@ class SimulationOpenCL(myokit.CModule):
         For a model with currents in ``[uA/uF]`` and voltage in ``[mV]``,
         `gx`` and ``gy`` have the unit ``[mS/uF]``.
         """
-        self._gx = float(gx)
-        self._gy = float(gy)
+        gx, gy = float(gx), float(gy)
+        if gx < 0:
+            raise ValueError('Invalid conductance gx=' + str(gx))
+        if gy < 0:
+            raise ValueError('Invalid conductance gx=' + str(gy))
+        self._gx, self._gy = gx, gy
 
     def set_connections(self, connections):
         """
