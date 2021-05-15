@@ -92,6 +92,7 @@ def set_pointers(names=None):
     ptrs = []
     if names is not None:
         ptrs = list(names)
+
 def v(var):
     """
     Accepts a variable or a left-hand-side expression and returns its C
@@ -105,7 +106,7 @@ def v(var):
         var = var.var()
     if var in bound_variables:
         return bound_variables[var]
-    pre = '*' if myokit.Name(var) in ptrs else ''
+    pre = '*V_' if myokit.Name(var) in ptrs else 'V_'
     return pre + var.uname()
 w.set_lhs_function(v)
 
@@ -131,8 +132,9 @@ tab = '    '
 
 # Enable double precision, if required
 if precision == myokit.DOUBLE_PRECISION:
-    print('/* Enable double precision extension */')
+    print('/* Enable double precision extensions */')
     print('#pragma OPENCL EXTENSION cl_khr_fp64 : enable')
+    print('#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable')
 
 ?>
 /* Number of states */
@@ -151,9 +153,13 @@ if precision == myokit.DOUBLE_PRECISION:
 if precision == myokit.SINGLE_PRECISION:
     print('/* Using single precision floats */')
     print('typedef float Real;')
+    print('typedef unsigned int RealSizedUInt;')
+    print('#define Myokit_cmpxchg atomic_cmpxchg')
 else:
     print('/* Using double precision floats */')
     print('typedef double Real;')
+    print('typedef unsigned long RealSizedUInt;')
+    print('#define Myokit_cmpxchg atom_cmpxchg')
 
 print('')
 print('/* Constants */')
@@ -174,17 +180,17 @@ for group in equations.values():
 print('')
 print('/* Aliases of state variables. */')
 for var in model.states():
-    print('#define ' + var.uname() + ' state[of1 + ' + str(var.indice()) + ']')
+    print('#define ' + v(var) + ' state[of1 + ' + str(var.indice()) + ']')
 
 print('')
 print('/* Aliases of logged intermediary variables. */')
 for k, var in enumerate(inter_log):
-    print('#define ' + var.uname() + ' inter_log[of2 + ' + str(k) + ']')
+    print('#define ' + v(var) + ' inter_log[of2 + ' + str(k) + ']')
 
 print('')
 print('/* Aliases of scalar field variables. */')
 for k, var in enumerate(fields):
-    print('#define ' + var.uname() + ' field_data[of3 + ' + str(k) + ']')
+    print('#define ' + v(var) + ' field_data[of3 + ' + str(k) + ']')
 
 #print('')
 #print('/* List of components:')
@@ -417,24 +423,38 @@ __kernel void diff_step(
 }
 
 /*
- * Method due to Igor Suhorukov:
- *  http://suhorukov.blogspot.nl/2011/12/opencl-11-atomic-operations-on-floating.html
- * Similar algorithm:
- *  http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomic-functions
+ * Atomic float addition. See:
+ *  https://streamhpc.com/blog/2016-02-09/atomic-operations-for-floats-in-opencl-improved/
+ *
+ * Note that this method relies on comparing the integer representation of the float.
+ * For this purpose, a type RealSizeUInt must be defined, that has the same size (in memory) as a Real.
  */
-inline void AtomicAdd(volatile __global Real *source, const Real operand) {
+inline void AtomicAdd(volatile __global Real *var, const Real operand) {
+
+    // Create objects representing the same data as a real-sized integer and as Real (a union)
     union {
-        unsigned int intVal;
-        Real floatVal;
-    } newVal;
-    union {
-        unsigned int intVal;
-        Real floatVal;
-    } prevVal;
+        RealSizedUInt u;
+        Real f;
+    } current, expected, result;
+    
+    // Set current value to source
+    current.f = *var;
+    
     do {
-        prevVal.floatVal = *source;
-        newVal.floatVal = prevVal.floatVal + operand;
-    } while (atomic_cmpxchg((volatile __global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
+        // Set the expected value of var
+        expected.f = current.f;
+        
+        // Calculate the new value
+        result.f = expected.f + operand;
+        
+        // Check if the variable has the expected value, and if so update it to the calculated sum.
+        // After calling this, current will be set to whatever was in the variable.
+        
+        current.f = Myokit_cmpxchg((volatile __global RealSizedUInt*)var, expected.u, result.u);
+
+        // If the variable had the expected value, it will now have been updated, so we can stop.
+        // If someone else had already modified the variable at this point, the next check will fail and we try again.        
+    } while(current.u != expected.u);
 }
 
 /*
