@@ -12,6 +12,7 @@
 # bound_variables   A dict of bound variables
 # inter_log         A list of intermediary variable objects to log
 # diffusion         True if diffusion currents are enabled
+# connections       True if connections are enabled
 # fields            A list of variables to use as scalar fields
 # paced_cells       A list of cell id's to pace or a tuple (nx, ny, x, y)
 # rl_states         A map {state: (inf, tau)} of states for which to use Rush-
@@ -134,7 +135,8 @@ tab = '    '
 if precision == myokit.DOUBLE_PRECISION:
     print('/* Enable double precision extensions */')
     print('#pragma OPENCL EXTENSION cl_khr_fp64 : enable')
-    print('#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable')
+    if connections:
+        print('#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable')
 
 ?>
 /* Number of states */
@@ -150,16 +152,23 @@ if precision == myokit.DOUBLE_PRECISION:
 #define i_vm <?= model.label('membrane_potential').indice() ?>
 
 <?
+defines = ['n_state', 'n_inter', 'n_field', 'i_vm']
+
 if precision == myokit.SINGLE_PRECISION:
     print('/* Using single precision floats */')
     print('typedef float Real;')
-    print('typedef unsigned int RealSizedUInt;')
-    print('#define Myokit_cmpxchg atomic_cmpxchg')
+    if connections:
+        print('typedef unsigned int RealSizedUInt;')
+        print('#define Myokit_cmpxchg atomic_cmpxchg')
+        defines.append('Myokit_cmpxchg')
 else:
     print('/* Using double precision floats */')
     print('typedef double Real;')
-    print('typedef unsigned long RealSizedUInt;')
-    print('#define Myokit_cmpxchg atom_cmpxchg')
+    if connections:
+        print('typedef unsigned long RealSizedUInt;')
+        print('#define Myokit_cmpxchg atom_cmpxchg')
+        defines.append('Myokit_cmpxchg')
+
 
 print('')
 print('/* Constants */')
@@ -168,6 +177,7 @@ for group in equations.values():
         if isinstance(eq.rhs, myokit.Number):
             if eq.lhs.var() not in fields:
                 print('#define ' + v(eq.lhs) + ' ' + w.ex(eq.rhs))
+                defines.append(v(eq.lhs))
 
 print('')
 print('/* Calculated constants */')
@@ -176,21 +186,25 @@ for group in equations.values():
         if not isinstance(eq.rhs, myokit.Number):
             if eq.lhs.var() not in fields:
                 print('#define ' + v(eq.lhs) + ' (' + w.ex(eq.rhs) + ')')
+                defines.append(v(eq.lhs))
 
 print('')
 print('/* Aliases of state variables. */')
 for var in model.states():
     print('#define ' + v(var) + ' state[of1 + ' + str(var.indice()) + ']')
+    defines.append(v(var))
 
 print('')
 print('/* Aliases of logged intermediary variables. */')
 for k, var in enumerate(inter_log):
     print('#define ' + v(var) + ' inter_log[of2 + ' + str(k) + ']')
+    defines.append(v(var))
 
 print('')
 print('/* Aliases of scalar field variables. */')
 for k, var in enumerate(fields):
     print('#define ' + v(var) + ' field_data[of3 + ' + str(k) + ']')
+    defines.append(v(var))
 
 #print('')
 #print('/* List of components:')
@@ -422,6 +436,9 @@ __kernel void diff_step(
     }
 }
 
+<?
+if connections:
+    print("""
 /*
  * Atomic float addition. See:
  *  https://streamhpc.com/blog/2016-02-09/atomic-operations-for-floats-in-opencl-improved/
@@ -505,6 +522,8 @@ __kernel void diff_arb_reset(
     if(ix >= count) return;
     idiff[ix] = 0;
 }
+    """)
+?>
 
 /*
  * Fiber-to-tissue diffusion program
@@ -559,13 +578,8 @@ __kernel void diff_step_fiber_tissue(
 }
 
 <?
+#TODO 2021-05-15: Is this really necessary? If so, document why
 print('/* Remove aliases of state variables. */')
-for var in model.states():
-    print('#undef ' + var.uname())
-print('')
-print('/* Remove constant definitions */')
-for group in equations.values():
-    for eq in group.equations(const=True):
-        print('#undef ' + v(eq.lhs))
+for name in defines:
+    print('#undef ' + name)
 ?>
-#undef n_state

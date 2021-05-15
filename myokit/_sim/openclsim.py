@@ -959,6 +959,7 @@ class SimulationOpenCL(myokit.CModule):
             'fields': self._fields.keys(),
             'paced_cells': self._paced_cells,
             'rl_states': self._rl_states,
+            'connections': self._connections is not None,
         }
         if myokit.DEBUG:
             print('-' * 79)
