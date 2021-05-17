@@ -31,7 +31,7 @@ DIR_IO = os.path.join(DIR_DATA, 'io')
 DIR_FORMATS = os.path.join(DIR_DATA, 'formats')
 
 # OpenCL support
-OpenCL_FOUND = myokit.OpenCL.supported()
+OpenCL_FOUND = myokit.OpenCL.supported_and_available()
 
 
 class TemporaryDirectory(object):

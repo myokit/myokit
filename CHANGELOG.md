@@ -17,6 +17,7 @@ This page lists the main changes made to Myokit in each release.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.float` contains several functions related to floating point numbers that were previously in the main `myokit` namespace or not part of the public API.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.tools` contains several stand-alone tools that are used by Myokit and were previously in the main `myokit` namespace or not part of the public API.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `pid_hash`, which is used by compiled code to generate (hopefully) unique ids is now part of the public API.
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Added a method `myokit.OpenCL.supported_and_available` to check if OpenCL is supported and at least one OpenCL device is detected.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.

@@ -212,6 +212,44 @@ class OpenCL(myokit.CModule):
             return True
         except NoOpenCLError:
             return False
+            
+    @staticmethod
+    def supported_and_available():
+        """
+        Returns ``True`` if OpenCL support has been detected on this sytem and
+        at least one (platform and) device were detected.
+        """
+        try:
+            return OpenCL._get_instance().device_available()
+        except NoOpenCLError:
+            return False
+
+    @staticmethod
+    def supports_double_precision_atomics():
+        """
+        Returns ``True`` if OpenCL support has been detected, and has support
+        for atomic comparison of double-precision sized objects.
+        
+        In particular, the method checks that the following extensions can be
+        used: `cl_khr_fp64`, and `cl_khr_int64_base_atomics`.        
+        """
+        try:
+            cl = OpenCL._get_instance()
+        except NoOpenCLError as e:
+            return False
+        
+        # Get preferred platform/device combo from configuration file
+        platform, device = myokit.OpenCL.load_selection_bytes()
+
+        # Create code and run       
+        code = '\n'.join([
+            '#pragma OPENCL EXTENSION cl_khr_fp64 : enable',
+            '#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable',
+        ])        
+        out = cl.build(platform, device, code)
+        
+        # Check output and return
+        return 'unsupported OpenCL extension' not in out
 
 
 class OpenCLInfo(object):
@@ -257,6 +295,16 @@ class OpenCLInfo(object):
                     '   Max work items  : ['
                     + ', '.join([str(x) for x in device.items]) + ']')
         return '\n'.join(t)
+
+    def device_available(self):
+        """
+        Returns ``True`` only if at least one platform and one device are
+        available.
+        """
+        for platform in self.platforms:
+            for device in platform.devices:
+                return True
+        return False
 
 
 class OpenCLPlatformInfo(object):
@@ -372,7 +420,7 @@ def clockspeed(speed):
 
 class NoOpenCLError(myokit.MyokitError):
     """
-    Raised when OpenCLInfo functions requiring OpenCL are called but no opencl
+    Raised when OpenCLInfo functions requiring OpenCL are called but no OpenCL
     support can be detected.
     """
 

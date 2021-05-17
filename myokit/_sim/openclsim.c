@@ -568,8 +568,6 @@ sim_init(PyObject* self, PyObject* args)
     #endif
 
     // Get platform and device id
-    platform_id = NULL;
-    device_id = NULL;
     if (mcl_select_device(platform_name, device_name, &platform_id, &device_id)) {
         // Error message set by mcl_select_device
         return sim_clean();
