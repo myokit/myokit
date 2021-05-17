@@ -64,7 +64,6 @@ build(PyObject* self, PyObject* args)
     char *blog;
 
     // Success?
-    int build_ok = 0;
     int exception = 0;
 
     // Check input arguments
@@ -98,19 +97,14 @@ build(PyObject* self, PyObject* args)
     } else {
 
         flag = clBuildProgram(program, 1, &device_id, "", NULL, NULL);
-        if(flag == CL_SUCCESS) {
-            build_ok = 1;
-        } else if (flag == CL_BUILD_PROGRAM_FAILURE) {
-            build_ok = 0;
-        } else if (mcl_flag(flag)) {
-            exception = 1;
-        }
-
-        // Extract build log
-        if (!exception) {
+        if((flag == CL_SUCCESS) || (flag == CL_BUILD_PROGRAM_FAILURE)) {
+            // Extract build log
             clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &blog_size);
             blog = (char*)malloc(blog_size);
             clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, blog_size, blog, NULL);
+        } else {
+            mcl_flag(flag);
+            exception = 1;
         }
     }
 

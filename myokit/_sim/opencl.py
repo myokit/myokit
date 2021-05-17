@@ -225,14 +225,17 @@ class OpenCL(myokit.CModule):
             return False
 
     @staticmethod
-    def test_extension_on_current_platform(extension):
+    def test_extension_on_current_platform(extension, raw=False):
         """
         Tries building a program on the currently selected platform and device
         (or the defaults, if none are explicitly selected) that does nothing
         except enabling the given ``extension``.
 
-        Returns ``True`` if the name of the extension appears in the compiler
-        output (which is taken to indicate a warning).
+        By default, the method returns ``True`` if the name of the extension
+        does not appear in the compiler output (which is taken to indicate a
+        warning).
+        This can be changed by setting ``raw=True``, in which case the raw
+        compiler output will be returned.
 
         This method can be used to test if an exception is available on the
         selected or default device (rather than querying a specific device).
@@ -250,7 +253,9 @@ class OpenCL(myokit.CModule):
         out = cl.build(platform, device, code)
 
         # Check output and return
-        return 'unsupported OpenCL extension' not in out
+        if raw:
+            return out
+        return extension not in out
 
 
 class OpenCLInfo(object):
