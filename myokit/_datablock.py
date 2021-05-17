@@ -1710,7 +1710,7 @@ class ColorMap(object):
         [0,255]. Adapted from Matplotlib.
         """
         r, g, b = np.empty_like(h), np.empty_like(h), np.empty_like(h)
-        i = (h * 6).astype(np.int) % 6
+        i = (h * 6).astype(int) % 6
         f = (h * 6) - i
         p = v * (1 - s)
         q = v * (1 - s * f)
