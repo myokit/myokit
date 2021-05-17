@@ -47,6 +47,7 @@ This page lists the main changes made to Myokit in each release.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
   - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation.find_nan()`, that occurred for very small simulations (e.g. 2 cells).
   - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation` that made it impossible to use `set_connections()` with double precision.
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation` that made it impossible to use `set_connections()` on Python 2.
 
 ## [1.32.0] - 2021-01-19
 - Added
