@@ -155,7 +155,7 @@ class OpenCL(myokit.CModule):
 
     @staticmethod
     def save_selection(platform=None, device=None):
-        """"
+        """
         Stores a platform/device selection to disk.
 
         Both platform and device are identified by their names.
@@ -212,7 +212,7 @@ class OpenCL(myokit.CModule):
             return True
         except NoOpenCLError:
             return False
-            
+
     @staticmethod
     def supported_and_available():
         """
@@ -220,34 +220,35 @@ class OpenCL(myokit.CModule):
         at least one (platform and) device were detected.
         """
         try:
-            return OpenCL._get_instance().device_available()
+            return OpenCL.info().device_available()
         except NoOpenCLError:
             return False
 
     @staticmethod
-    def supports_double_precision_atomics():
+    def test_extension_on_current_platform(extension):
         """
-        Returns ``True`` if OpenCL support has been detected, and has support
-        for atomic comparison of double-precision sized objects.
-        
-        In particular, the method checks that the following extensions can be
-        used: `cl_khr_fp64`, and `cl_khr_int64_base_atomics`.        
+        Tries building a program on the currently selected platform and device
+        (or the defaults, if none are explicitly selected) that does nothing
+        except enabling the given ``extension``.
+
+        Returns ``True`` if the name of the extension appears in the compiler
+        output (which is taken to indicate a warning).
+
+        This method can be used to test if an exception is available on the
+        selected or default device (rather than querying a specific device).
         """
         try:
             cl = OpenCL._get_instance()
         except NoOpenCLError as e:
             return False
-        
+
         # Get preferred platform/device combo from configuration file
         platform, device = myokit.OpenCL.load_selection_bytes()
 
-        # Create code and run       
-        code = '\n'.join([
-            '#pragma OPENCL EXTENSION cl_khr_fp64 : enable',
-            '#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable',
-        ])        
+        # Create code and run
+        code = '#pragma OPENCL EXTENSION ' + str(extension) + ' : enable\n'
         out = cl.build(platform, device, code)
-        
+
         # Check output and return
         return 'unsupported OpenCL extension' not in out
 

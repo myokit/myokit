@@ -34,7 +34,7 @@ info(PyObject *self, PyObject *args)
 }
 
 /*
- * Tests building a program and returns the 
+ * Tests building a program and returns the
  *
  * If the program builds successfully, None is returned. If the program fails
  * to compile a string containing the compiler output is returned. If something
@@ -54,7 +54,7 @@ build(PyObject* self, PyObject* args)
     PyObject *device_name;
     cl_platform_id platform_id;
     cl_device_id device_id;
-    
+
     // Program and source
     cl_program program;
     PyObject *kernel_source;
@@ -62,7 +62,7 @@ build(PyObject* self, PyObject* args)
     // Compilation error message
     size_t blog_size;
     char *blog;
-    
+
     // Success?
     int build_ok = 0;
     int exception = 0;
@@ -96,7 +96,7 @@ build(PyObject* self, PyObject* args)
     if(mcl_flag(flag)) {
         exception = 1;
     } else {
-    
+
         flag = clBuildProgram(program, 1, &device_id, "", NULL, NULL);
         if(flag == CL_SUCCESS) {
             build_ok = 1;
@@ -105,7 +105,7 @@ build(PyObject* self, PyObject* args)
         } else if (mcl_flag(flag)) {
             exception = 1;
         }
-        
+
         // Extract build log
         if (!exception) {
             clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &blog_size);
