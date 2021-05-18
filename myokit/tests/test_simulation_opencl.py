@@ -17,9 +17,9 @@ import myokit
 from shared import (
     DIR_DATA,
     OpenCL_FOUND,
-    OpenCL_DOUBLE_PRECISION,
+    #OpenCL_DOUBLE_PRECISION,
     OpenCL_DOUBLE_PRECISION_CONNECTIONS,
-    WarningCollector,
+    #WarningCollector,
 )
 
 # Unit testing in Python 2 and 3
@@ -136,24 +136,21 @@ class SimulationOpenCLTest(unittest.TestCase):
         s1 = myokit.SimulationOpenCL(
             self.m, self.p, ncells=3, diffusion=False)
 
-        # Check that all cells return True with is_paced, regardless of
-        # set_paced_cells or set_paced_cell_list
-        s1.set_paced_cells(nx=3, x=0)
-        self.assertTrue(s1.is_paced(0))
-        self.assertTrue(s1.is_paced(1))
-        self.assertTrue(s1.is_paced(2))
-        s1.set_paced_cells(nx=1, x=0)
-        self.assertTrue(s1.is_paced(0))
-        self.assertTrue(s1.is_paced(1))
-        self.assertTrue(s1.is_paced(2))
-        s1.set_paced_cells(nx=1, x=2)
-        self.assertTrue(s1.is_paced(0))
-        self.assertTrue(s1.is_paced(1))
-        self.assertTrue(s1.is_paced(2))
-        s1.set_paced_cell_list([])
-        self.assertTrue(s1.is_paced(0))
-        self.assertTrue(s1.is_paced(1))
-        self.assertTrue(s1.is_paced(2))
+        # Check that various methods are now unavailable
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s1.conductance)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s1.is_paced, 0)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s1.neighbours, 0)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s1.set_conductance)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s1.set_connections, [])
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s1.set_paced_cells)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s1.set_paced_cell_list, [])
 
         # Test that all cells depolarise and are the same
         d = s1.run(10, log=['membrane.V']).npview()
@@ -193,9 +190,6 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Create, run, compare with sim1d
 
-
-
-
     # conductance() -> 1d, 2d
     # is2d(), is_2d() -> 1d, 2d
     # neighbours() -> 1d, 2d, arbitrary
@@ -213,9 +207,6 @@ class SimulationOpenCLTest(unittest.TestCase):
 
     # set_constant() -> 0d
     # set_step_size(), step_size -> 0d
-
-
-
 
     def test_connections_simple(self):
         # Tests whether a simple simulation with connections gives the same
@@ -354,11 +345,11 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertLess(np.max(e0), 1e-9)
         self.assertLess(np.max(e1), 1e-9)
 
+
 class SimulationOpenCLFindNanTest(unittest.TestCase):
     """
     Tests the find_nan() method of `SimulationOpenCL`.
     """
-
 
 
 '''

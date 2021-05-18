@@ -238,17 +238,17 @@ class SimulationOpenCL(myokit.CModule):
             del(model, vm)
 
         # Set default conductance values
-        self.set_conductance()
+        self._gx = self._gy = None
+        if self._diffusion_enabled:
+            self.set_conductance()
 
         # Set connections
         self._connections = None
 
         # Set default paced cells
-        self._paced_cells = []
-        if diffusion:
+        self._paced_cells = None
+        if self._diffusion_enabled:
             self.set_paced_cells()
-        else:
-            self.set_paced_cells(self._nx, self._ny, 0, 0)
 
         # Scalar fields
         self._fields = OrderedDict()
@@ -383,7 +383,13 @@ class SimulationOpenCL(myokit.CModule):
         The returned value will be a single float for 1d simulations, a tuple
         ``(gx, gy)`` for 2d simulations, and ``None`` if a list of conductances
         was passed in with :meth:`set_connections()`.
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
         if self._connections is not None:
             return None
         if len(self._dims) == 1:
@@ -709,10 +715,12 @@ class SimulationOpenCL(myokit.CModule):
         Returns ``True`` if and only if the cell at index ``x`` (or index
         ``(x, y)`` in 2d simulations) will be paced during simulations.
 
-        If diffusion is disabled this method will always return ``True``.
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
         if not self._diffusion_enabled:
-            return True
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
 
         # Check input
         x = int(x)
@@ -748,7 +756,14 @@ class SimulationOpenCL(myokit.CModule):
 
         Indices are given either as integers (1d or arbitrary geometry) or as
         tuples (2d).
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
         # Check input
         x = int(x)
         if x < 0 or x >= self._dims[0]:
@@ -1016,8 +1031,8 @@ class SimulationOpenCL(myokit.CModule):
                 self._nx,
                 self._ny,
                 self._diffusion_enabled,
-                self._gx,
-                self._gy,
+                self._gx or 0,
+                self._gy or 0,
                 self._connections,
                 tmin,
                 tmax,
@@ -1208,7 +1223,14 @@ class SimulationOpenCL(myokit.CModule):
 
         Calling `set_conductance` will delete any conductances previously set
         with :meth:`set_connections`.
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
         gx, gy = float(gx), float(gy)
         if gx < 0:
             raise ValueError('Invalid conductance gx=' + str(gx))
@@ -1231,7 +1253,14 @@ class SimulationOpenCL(myokit.CModule):
 
         Calling `set_connections` will override any conductances previously set
         with :meth:`set_conductance`.
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
         if connections is None:
             raise ValueError('No connection list given.')
         if len(self._dims) != 1:
@@ -1381,7 +1410,14 @@ class SimulationOpenCL(myokit.CModule):
             The offset of the pacing rectangle in the y-direction. If a
             negative offset is given the offset is calculated from bottom to
             top.
+
+        If diffusion is disabled, all cells are paced and a call to this method
+        will raise a ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
         # Check nx and x. Allow cell selections outside of the boders!
         nx = int(nx)
         x = int(x)
@@ -1418,9 +1454,13 @@ class SimulationOpenCL(myokit.CModule):
         these cases it may be better to use a rectangular pacing area set using
         :meth:`set_paced_cells`.
 
-        If diffusion is disabled all cells will be paced and calls to this
-        method are ignored.
+        If diffusion is disabled, all cells are paced and a call to this method
+        will raise a ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
         paced_cells = []
         if len(self._dims) == 1:
             for cell in cells:

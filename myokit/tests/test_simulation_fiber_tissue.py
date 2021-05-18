@@ -15,7 +15,6 @@ import numpy as np
 import myokit
 
 from shared import OpenCL_FOUND, DIR_DATA
-from shared import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:

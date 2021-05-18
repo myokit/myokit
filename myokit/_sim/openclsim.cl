@@ -258,33 +258,31 @@ for comp, ilist in comp_in.items():
     print('')
     set_pointers(None)
 
-?>
+if diffusion and paced_cells:
+    print('/*')
+    print(' * Calculate pacing current per cell')
+    print(' */')
+    print('inline Real calculate_pacing(')
+    print(tab + 'const uint cid,')
+    print(tab + 'const uint ix,')
+    print(tab + 'const uint iy,')
+    print(tab + 'const Real pace)')
+    print('{')
 
-/*
- * Calculate pacing current per cell
- *
- */
-inline Real calculate_pacing(
-    const uint cid,
-    const uint ix,
-    const uint iy,
-    const Real pace)
-{
-<?
-if type(paced_cells) == tuple:
-    # Pacing rectangle
-    nx, ny, x, y = paced_cells
-    xlo, ylo = str(x), str(y)
-    xhi, yhi = str(x + nx), str(y + ny)
-    print(tab + 'return (ix >= ' + xlo + ' && ix < ' + xhi + ' && iy >= '
-        + ylo + ' && iy < ' + yhi + ') ? pace : 0;')
-else:
-    # Explicit cell selection
-    for id in paced_cells:
-        print(tab + 'if (cid == ' + str(id) + ') return pace;')
-    print('    return 0;')
+    if type(paced_cells) == tuple:
+        # Pacing rectangle
+        nx, ny, x, y = paced_cells
+        xlo, ylo = str(x), str(y)
+        xhi, yhi = str(x + nx), str(y + ny)
+        print(tab + 'return (ix >= ' + xlo + ' && ix < ' + xhi + ' && iy >= '
+            + ylo + ' && iy < ' + yhi + ') ? pace : 0;')
+    else:
+        # Explicit cell selection
+        for id in paced_cells:
+            print(tab + 'if (cid == ' + str(id) + ') return pace;')
+        print('    return 0;')
+    print('}')
 ?>
-}
 
 /*
  * Cell kernel.
@@ -453,24 +451,24 @@ inline void AtomicAdd(volatile __global Real *var, const Real operand) {
         RealSizedUInt u;
         Real f;
     } current, expected, result;
-    
+
     // Set current value to source
     current.f = *var;
-    
+
     do {
         // Set the expected value of var
         expected.f = current.f;
-        
+
         // Calculate the new value
         result.f = expected.f + operand;
-        
+
         // Check if the variable has the expected value, and if so update it to the calculated sum.
         // After calling this, current will be set to whatever was in the variable.
-        
+
         current.f = Myokit_cmpxchg((volatile __global RealSizedUInt*)var, expected.u, result.u);
 
         // If the variable had the expected value, it will now have been updated, so we can stop.
-        // If someone else had already modified the variable at this point, the next check will fail and we try again.        
+        // If someone else had already modified the variable at this point, the next check will fail and we try again.
     } while(current.u != expected.u);
 }
 

@@ -15,7 +15,6 @@ import numpy as np
 import myokit
 
 from shared import OpenCL_DOUBLE_PRECISION, DIR_DATA
-from shared import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -144,8 +143,6 @@ class SimulationOpenCL1dTest(unittest.TestCase):
         self.assertLess(np.max(e), 1e-13)
         e = np.abs(da['isi.Isi', 9] - db['isi.Isi', 9])
         self.assertLess(np.max(e), 1e-13)
-
-
 
 
 if __name__ == '__main__':
