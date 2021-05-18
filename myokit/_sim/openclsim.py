@@ -168,24 +168,26 @@ class SimulationOpenCL(myokit.CModule):
 
         # Check dimensionality, number of cells
         try:
-            if len(ncells) != 2:
+            self._nx = int(ncells)
+            self._ny = 1
+            self._dims = (self._nx,)
+        except TypeError:
+            try:
+                assert len(ncells) == 2
+            except (TypeError, AssertionError):
                 raise ValueError(
                     'The argument "ncells" must be either a scalar or a tuple'
                     ' (nx, ny).')
             self._nx = int(ncells[0])
             self._ny = int(ncells[1])
             self._dims = (self._nx, self._ny)
-        except TypeError:
-            self._nx = int(ncells)
-            self._ny = 1
-            self._dims = (self._nx,)
         if self._nx < 1 or self._ny < 1:
             raise ValueError(
                 'The number of cells in any direction must be at least 1.')
         self._ntotal = self._nx * self._ny
 
         # Set diffusion mode
-        self._diffusion_enabled = True if diffusion else False
+        self._diffusion_enabled = bool(diffusion)
 
         # Set precision
         if precision not in (myokit.SINGLE_PRECISION, myokit.DOUBLE_PRECISION):
@@ -376,10 +378,11 @@ class SimulationOpenCL(myokit.CModule):
 
     def conductance(self):
         """
-        Returns the cell-to-cell conductance used in this simulation. The
-        returned value will be a single float for 1d simulations and a tuple
-        ``(gx, gy)`` for 2d simulations. If a list of connections was passed in
-        ``None`` is returned
+        Returns the cell-to-cell conductance(s) used in this simulation.
+
+        The returned value will be a single float for 1d simulations, a tuple
+        ``(gx, gy)`` for 2d simulations, and ``None`` if a list of conductances
+        was passed in with :meth:`set_connections()`.
         """
         if self._connections is not None:
             return None
@@ -1197,6 +1200,9 @@ class SimulationOpenCL(myokit.CModule):
 
         For a model with currents in ``[uA/uF]`` and voltage in ``[mV]``,
         `gx`` and ``gy`` have the unit ``[mS/uF]``.
+
+        Calling `set_conductance` will delete any conductances previously set
+        with :meth:`set_connections`.
         """
         gx, gy = float(gx), float(gy)
         if gx < 0:
@@ -1204,24 +1210,25 @@ class SimulationOpenCL(myokit.CModule):
         if gy < 0:
             raise ValueError('Invalid conductance gx=' + str(gy))
         self._gx, self._gy = gx, gy
+        self._connections = None
 
     def set_connections(self, connections):
         """
-        Adds a list of connections between cells, each with their own
-        conductance. This allows the creation of arbitrary geometries.
+        Adds a list of connections between cells, allowing the creation of
+        arbitrary geometries.
 
-        The ``connections`` list should be given as a list of tuples
-        ``(cell1, cell2, conductance)``.
+        The ``connections`` should be given as a list of tuples
+        ``(cell_1, cell_2, conductance)``.
 
-        Connections are only supported for "1d" simulations (even though the
-        simulated geometry may have any number of dimensions).
+        Connections are only supported in 1d mode -- even though the
+        resulting geometry may represent a shape in an arbitrary number of
+        dimensions.
 
-        Setting a connection list overrules the conductances set with
-        :meth:`set_conductance`.
+        Calling `set_connections` will override any conductances previously set
+        with :meth:`set_conductance`.
         """
         if connections is None:
-            self._connections = None
-            return
+            raise ValueError('No connection list given.')
         if len(self._dims) != 1:
             raise ValueError('Connections can only be specified in 1d mode.')
         conns = []

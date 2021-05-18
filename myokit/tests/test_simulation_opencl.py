@@ -34,6 +34,11 @@ class SimulationOpenCLTest(unittest.TestCase):
     """
     Tests the OpenCL simulation class.
     """
+    def setUpClass(cls):
+        # Create simulations for later use in testing
+        m, p, _ = myokit.load('example')
+        cls._sim1d = myokit.SimulationOpenCL(m, p, ncells=10)
+        cls._sim2d = myokit.SimulationOpenCL(m, p, ncells=(4, 4))
 
     def test_creation(self):
         # Tests opencl simulation creation tasks
@@ -54,13 +59,118 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'interdependent', myokit.SimulationOpenCL, m2)
 
-        # Dimensionality must be scalar or tuple
+        # Dimensionality must be scalar or 2d tuple
+        # (Correct usage is tested later)
+        #s = myokit.SimulationOpenCL(m, ncells=1)
+        #self.assertEqual(s.shape(), 1)
+        #s = myokit.SimulationOpenCL(m, ncells=50)
+        #self.assertEqual(s.shape(), 50)
+        #s = myokit.SimulationOpenCL(m, ncells=(1,1))
+        #self.assertEqual(s.shape(), (1, 1))
+        self.assertRaisesRegex(
+            ValueError, 'scalar or a tuple \(nx, ny\)',
+            myokit.SimulationOpenCL, m, ncells=None)
+        self.assertRaisesRegex(
+            ValueError, 'scalar or a tuple \(nx, ny\)',
+            myokit.SimulationOpenCL, m, ncells=(1,))
+        self.assertRaisesRegex(
+            ValueError, 'scalar or a tuple \(nx, ny\)',
+            myokit.SimulationOpenCL, m, ncells=(1, 1, 1))
+
         # Number of cells must be at least 1
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, m, ncells=-1)
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, m, ncells=0)
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, m, ncells=(0, 10))
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, m, ncells=(10, 0))
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, m, ncells=(-1, -1))
 
         # Precision must be single or double
+        #TODO: Check correct usage elsewhere
+        self.assertRaisesRegex(
+            ValueError, 'Only single and double',
+            myokit.SimulationOpenCL, m,
+            precision=myokit.SINGLE_PRECISION + myokit.DOUBLE_PRECISION)
 
-        # Membrane potential must be given as variable or via label
+        # Membrane potential must be given with label
+        m2 = m.clone()
+        m2.label('membrane_potential').set_label(None)
+        self.assertRaisesRegex(
+            ValueError, 'requires the membrane potential',
+            myokit.SimulationOpenCL, m2)
+
         # Membrane potential must be a state
+        m2.get('ina.INa').set_label('membrane_potential')
+        self.assertRaisesRegex(
+            ValueError, 'must be a state variable',
+            myokit.SimulationOpenCL, m2)
+
+    def test_calculate_conductance(self):
+        # Test the calculate_conductance() method.
+
+        self.assertEqual(self._sim
+
+    def test_diffusion(self):
+        # Tests creating a simulation without diffusion
+        raise NotImplementedError
+
+        # Create without diffusion, final cells don't depolarise
+
+    def test_native_maths(self):
+        # Tests running with native maths
+        raise NotImplementedError
+
+        # Create, run, compare with sim1d
+
+    def test_protocol(self):
+        # Tests creating without protocol, and setting one later
+        raise NotImplementedError
+
+        # Create, run, no stimulus
+        # Call set_protocol, reset, run, has stimulus
+
+    def test_rush_larsen(self):
+        # Tests running with and without rush-larsen
+        raise NotImplementedError
+
+        # Create, run, compare with sim1d
+
+
+
+
+    # conductance() -> 1d, 2d
+    # is2d(), is_2d() -> 1d, 2d
+    # neighbours() -> 1d, 2d, arbitrary
+    # set_conductance() -> 1d, 2d
+    # set_connections() -> 1d
+    # set_field() -> 1d, 2d
+    # shape() -> 1d, 2d
+
+    # set_paced_cells() -> 1d, 2d
+    # set_paced_cell_list() -> 1d, 2d
+    # is_paced() -> 1d, 2d, rectangle, explicit selection
+
+    # run, pre, reset, time, set_time, state, set_state -> 1d, 2d
+    # reset, pre, set_default_state
+
+    # set_constant() -> 0d
+    # set_step_size(), step_size -> 0d
+
+
+class SimulationOpenCLFindNanTest(unittest.TestCase):
+    """
+    Tests the find_nan() method of `SimulationOpenCL`.
+    """
+
 
 
 '''
@@ -769,9 +879,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         self.assertLess(e1, 1e-14)
         self.assertLess(e2, 0.05)
         self.assertLess(e3, 0.01)
-=======
 '''
->>>>>>> fb8cfc7 (Started adding better tests for SimulationOpenCL.)
 
 
 if __name__ == '__main__':
