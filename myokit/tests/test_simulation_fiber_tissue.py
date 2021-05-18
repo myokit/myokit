@@ -77,7 +77,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
             'ica.ICa',
         ]
         # Run simulation
-        with myokit.capture():
+        with myokit.tools.capture():
             logf, logt = s.run(run, logf=logf, logt=logt, log_interval=0.01)
 
         self.assertEqual(len(logf), 1 + 2 * nfx * nfy)
@@ -126,7 +126,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         # Run simulation
         tmax = 100
         dlog = 0.1
-        with myokit.capture():
+        with myokit.tools.capture():
             d1, logt = s1.run(tmax, logf=logvars, logt=logt, log_interval=dlog)
         del(logt)
         d1 = d1.npview()
