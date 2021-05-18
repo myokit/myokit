@@ -145,8 +145,8 @@ class AuxTest(unittest.TestCase):
     def test_model_comparison(self):
         # Test the model comparison class.
 
-        m1 = os.path.join(DIR_DATA, 'beeler-1977-model.mmt')
-        m2 = os.path.join(DIR_DATA, 'beeler-1977-model-different.mmt')
+        m1 = os.path.join(DIR_DATA, 'beeler-1977-model-compare-a.mmt')
+        m2 = os.path.join(DIR_DATA, 'beeler-1977-model-compare-b.mmt')
         m1 = myokit.load_model(m1)
         m2 = myokit.load_model(m2)
 
