@@ -529,18 +529,31 @@ sim_init(PyObject* self, PyObject* args)
                 PyErr_SetString(PyExc_Exception, "Connections list must contain only 3-tuples");
                 return sim_clean();
             }
+
             ret = PyTuple_GetItem(flt, 0);  // Borrowed reference
-            if(!PyLong_Check(ret)) {
+            if(PyLong_Check(ret)) {
+                rvec_conn1[i] = (int)PyLong_AsLong(ret);
+#if PY_MAJOR_VERSION < 3
+            } else if (PyInt_Check(ret)) {
+                rvec_conn1[i] = (int)PyInt_AsLong(ret);
+#endif
+            } else {
                 PyErr_SetString(PyExc_Exception, "First item in each connection tuple must be int");
                 return sim_clean();
             }
-            rvec_conn1[i] = (int)PyLong_AsLong(ret);
+
             ret = PyTuple_GetItem(flt, 1);  // Borrowed reference
-            if(!PyLong_Check(ret)) {
+            if(PyLong_Check(ret)) {
+                rvec_conn2[i] = (int)PyLong_AsLong(ret);
+#if PY_MAJOR_VERSION < 3
+            } else if(PyInt_Check(ret)) {
+                rvec_conn2[i] = (int)PyInt_AsLong(ret);
+#endif
+            } else {
                 PyErr_SetString(PyExc_Exception, "Second item in each connection tuple must be int");
                 return sim_clean();
             }
-            rvec_conn2[i] = (int)PyLong_AsLong(ret);
+
             ret = PyTuple_GetItem(flt, 2);  // Borrowed reference
             if(!PyFloat_Check(ret)) {
                 PyErr_SetString(PyExc_Exception, "Third item in each connection tuple must be float");
@@ -568,8 +581,6 @@ sim_init(PyObject* self, PyObject* args)
     #endif
 
     // Get platform and device id
-    platform_id = NULL;
-    device_id = NULL;
     if (mcl_select_device(platform_name, device_name, &platform_id, &device_id)) {
         // Error message set by mcl_select_device
         return sim_clean();

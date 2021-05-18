@@ -155,7 +155,7 @@ class OpenCL(myokit.CModule):
 
     @staticmethod
     def save_selection(platform=None, device=None):
-        """"
+        """
         Stores a platform/device selection to disk.
 
         Both platform and device are identified by their names.
@@ -213,6 +213,50 @@ class OpenCL(myokit.CModule):
         except NoOpenCLError:
             return False
 
+    @staticmethod
+    def supported_and_available():
+        """
+        Returns ``True`` if OpenCL support has been detected on this sytem and
+        at least one (platform and) device were detected.
+        """
+        try:
+            return OpenCL.info().device_available()
+        except NoOpenCLError:
+            return False
+
+    @staticmethod
+    def test_extension_on_current_platform(extension, raw=False):
+        """
+        Tries building a program on the currently selected platform and device
+        (or the defaults, if none are explicitly selected) that does nothing
+        except enabling the given ``extension``.
+
+        By default, the method returns ``True`` if the name of the extension
+        does not appear in the compiler output (which is taken to indicate a
+        warning).
+        This can be changed by setting ``raw=True``, in which case the raw
+        compiler output will be returned.
+
+        This method can be used to test if an exception is available on the
+        selected or default device (rather than querying a specific device).
+        """
+        try:
+            cl = OpenCL._get_instance()
+        except NoOpenCLError as e:
+            return False
+
+        # Get preferred platform/device combo from configuration file
+        platform, device = myokit.OpenCL.load_selection_bytes()
+
+        # Create code and run
+        code = '#pragma OPENCL EXTENSION ' + str(extension) + ' : enable\n'
+        out = cl.build(platform, device, code)
+
+        # Check output and return
+        if raw:
+            return out
+        return extension not in out
+
 
 class OpenCLInfo(object):
     """
@@ -257,6 +301,16 @@ class OpenCLInfo(object):
                     '   Max work items  : ['
                     + ', '.join([str(x) for x in device.items]) + ']')
         return '\n'.join(t)
+
+    def device_available(self):
+        """
+        Returns ``True`` only if at least one platform and one device are
+        available.
+        """
+        for platform in self.platforms:
+            for device in platform.devices:
+                return True
+        return False
 
 
 class OpenCLPlatformInfo(object):
@@ -372,7 +426,7 @@ def clockspeed(speed):
 
 class NoOpenCLError(myokit.MyokitError):
     """
-    Raised when OpenCLInfo functions requiring OpenCL are called but no opencl
+    Raised when OpenCLInfo functions requiring OpenCL are called but no OpenCL
     support can be detected.
     """
 

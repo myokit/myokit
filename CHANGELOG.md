@@ -17,6 +17,8 @@ This page lists the main changes made to Myokit in each release.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.float` contains several functions related to floating point numbers that were previously in the main `myokit` namespace or not part of the public API.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.tools` contains several stand-alone tools that are used by Myokit and were previously in the main `myokit` namespace or not part of the public API.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `pid_hash`, which is used by compiled code to generate (hopefully) unique ids is now part of the public API.
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Added a method `myokit.OpenCL.supported_and_available` to check if OpenCL is supported and at least one OpenCL device is detected.
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Added a method `myokit.OpenCL.test_extension_on_current_platform(x)` that checks if OpenCL extension `x` is available on the currently selected platform.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
@@ -43,6 +45,9 @@ This page lists the main changes made to Myokit in each release.
   - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
   - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.tools.format_path()`.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation.find_nan()`, that occurred for very small simulations (e.g. 2 cells).
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation` that made it impossible to use `set_connections()` with double precision.
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation` that made it impossible to use `set_connections()` on Python 2.
 
 ## [1.32.0] - 2021-01-19
 - Added

@@ -79,7 +79,7 @@ mcl_flag2(const char* msg, const cl_int flag)
     if(strcmp(msg, "")) {
         sprintf(sub, " (%s)", msg);
     } else {
-        sprintf(sub, "");
+        sub[0] = 0;
     }
 
     switch(flag) {
@@ -290,6 +290,10 @@ int mcl_select_device(
     // OpenCL ints for iterating
     cl_uint i, j;
 
+    // By default, don't recommend a platform or device
+    *pid = NULL;
+    *did = NULL;
+
     // Check input
     const char* pname;
     const char* dname;
@@ -337,9 +341,6 @@ int mcl_select_device(
 
     // Platform unspecified
     if (platform == Py_None) {
-
-        // Don't recommend a platform
-        *pid = NULL;
 
         // No platform or device specified
         if (device == Py_None) {

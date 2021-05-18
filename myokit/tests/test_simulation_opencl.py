@@ -14,7 +14,8 @@ import numpy as np
 
 import myokit
 
-from shared import OpenCL_FOUND, DIR_DATA
+from shared import OpenCL_FOUND, OpenCL_DOUBLE_PRECISION_CONNECTIONS
+from shared import DIR_DATA
 from shared import WarningCollector
 
 # Unit testing in Python 2 and 3
@@ -467,6 +468,149 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, 0, -1)
         self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, 5, 0)
         self.assertRaisesRegex(ValueError, '2-dimensional', s.neighbours, 0)
+
+    def test_connections_simple(self):
+        # Tests whether a simple simulation with connections gives the same
+        # results as a simulation with set_conductance
+
+        # Get model and protocol
+        m = myokit.load_model(os.path.join(DIR_DATA, 'br-1977.mmt'))
+
+        # Make protocol
+        bcl = 1000
+        duration = 10
+        p = myokit.pacing.blocktrain(bcl, duration, level=1)
+
+        # Run simulations
+        s1 = myokit.SimulationOpenCL(m, p, ncells=2)
+        s1.set_paced_cells(1)
+        g = 1
+        t = 5
+        log = ['engine.time', 'membrane.V', 'membrane.IDiff']
+        s1.set_conductance(g)
+        d1a = s1.run(t, log=log, log_interval=0.1).npview()
+        s1.reset()
+        s1.set_connections([(0, 1, g)])
+        d1b = s1.run(t, log=log, log_interval=0.1).npview()
+
+        if debug:
+            # Display the result
+            import matplotlib.pyplot as plt
+            f = plt.figure(figsize=(10, 10))
+            f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
+
+            x = f.add_subplot(2, 3, 1)
+            x.set_title('set_conductance, sp')
+            x.set_ylabel('Vm')
+            x.plot(d1a['engine.time'], d1a['membrane.V', 0])
+            x.plot(d1a['engine.time'], d1a['membrane.V', 1])
+            x = f.add_subplot(2, 3, 2)
+            x.set_title('set_connections, sp')
+            x.set_ylabel('Vm')
+            x.plot(d1b['engine.time'], d1b['membrane.V', 0])
+            x.plot(d1b['engine.time'], d1b['membrane.V', 1])
+            x = f.add_subplot(2, 3, 3)
+            x.set_ylabel('Vm')
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.V', 0] - d1b['membrane.V', 0])
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.V', 1] - d1b['membrane.V', 1])
+
+            x = f.add_subplot(2, 3, 4)
+            x.set_ylabel('I_diff')
+            x.plot(d1a['engine.time'], d1a['membrane.IDiff', 0])
+            x.plot(d1a['engine.time'], d1a['membrane.IDiff', 1])
+            x = f.add_subplot(2, 3, 5)
+            x.set_ylabel('I_diff')
+            x.plot(d1b['engine.time'], d1b['membrane.IDiff', 0])
+            x.plot(d1b['engine.time'], d1b['membrane.IDiff', 1])
+            x = f.add_subplot(2, 3, 6)
+            x.set_ylabel('I_diff')
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.IDiff', 0] - d1b['membrane.IDiff', 0])
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.IDiff', 1] - d1b['membrane.IDiff', 1])
+
+            plt.show()
+
+        # Check results are the same
+        e0 = np.abs(d1a['membrane.V', 0] - d1b['membrane.V', 0])
+        e1 = np.abs(d1a['membrane.V', 1] - d1b['membrane.V', 1])
+        self.assertLess(np.max(e0), 1e-9)
+        self.assertLess(np.max(e1), 1e-9)
+
+    @unittest.skipIf(
+        not OpenCL_DOUBLE_PRECISION_CONNECTIONS,
+        'Required OpenCL extension cl_khr_int64_base_atomics not available.')
+    def test_connections_simple_double_precision(self):
+        # Repeats test_connections_simple, but with double precision
+
+        # Get model and protocol
+        m = myokit.load_model(os.path.join(DIR_DATA, 'br-1977.mmt'))
+
+        # Make protocol
+        bcl = 1000
+        duration = 10
+        p = myokit.pacing.blocktrain(bcl, duration, level=1)
+
+        # Run simulations
+        s1 = myokit.SimulationOpenCL(
+            m, p, ncells=2, precision=myokit.DOUBLE_PRECISION)
+        s1.set_paced_cells(1)
+        g = 1
+        t = 5
+        log = ['engine.time', 'membrane.V', 'membrane.IDiff']
+        s1.set_conductance(g)
+        d1a = s1.run(t, log=log, log_interval=0.1).npview()
+        s1.reset()
+        s1.set_connections([(0, 1, g)])
+        d1b = s1.run(t, log=log, log_interval=0.1).npview()
+
+        if debug:
+            # Display the result
+            import matplotlib.pyplot as plt
+            f = plt.figure(figsize=(10, 10))
+            f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
+
+            x = f.add_subplot(2, 3, 1)
+            x.set_title('set_conductance, sp')
+            x.set_ylabel('Vm')
+            x.plot(d1a['engine.time'], d1a['membrane.V', 0])
+            x.plot(d1a['engine.time'], d1a['membrane.V', 1])
+            x = f.add_subplot(2, 3, 2)
+            x.set_title('set_connections, sp')
+            x.set_ylabel('Vm')
+            x.plot(d1b['engine.time'], d1b['membrane.V', 0])
+            x.plot(d1b['engine.time'], d1b['membrane.V', 1])
+            x = f.add_subplot(2, 3, 3)
+            x.set_ylabel('Vm')
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.V', 0] - d1b['membrane.V', 0])
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.V', 1] - d1b['membrane.V', 1])
+
+            x = f.add_subplot(2, 3, 4)
+            x.set_ylabel('I_diff')
+            x.plot(d1a['engine.time'], d1a['membrane.IDiff', 0])
+            x.plot(d1a['engine.time'], d1a['membrane.IDiff', 1])
+            x = f.add_subplot(2, 3, 5)
+            x.set_ylabel('I_diff')
+            x.plot(d1b['engine.time'], d1b['membrane.IDiff', 0])
+            x.plot(d1b['engine.time'], d1b['membrane.IDiff', 1])
+            x = f.add_subplot(2, 3, 6)
+            x.set_ylabel('I_diff')
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.IDiff', 0] - d1b['membrane.IDiff', 0])
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.IDiff', 1] - d1b['membrane.IDiff', 1])
+
+            plt.show()
+
+        # Check results are the same
+        e0 = np.abs(d1a['membrane.V', 0] - d1b['membrane.V', 0])
+        e1 = np.abs(d1a['membrane.V', 1] - d1b['membrane.V', 1])
+        self.assertLess(np.max(e0), 1e-9)
+        self.assertLess(np.max(e1), 1e-9)
 
     def test_set_paced_interface_1d(self):
         # Test the set_paced and is_paced methods in 1d (interface only, does
