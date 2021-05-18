@@ -38,7 +38,11 @@ tab = '    '
 
 #define n_state <?= str(model.count_states()) ?>
 
-typedef <?= ('float' if precision == myokit.SINGLE_PRECISION else 'double') ?> Real;
+typedef <?= ('double' if precision == myokit.DOUBLE_PRECISION else 'float') ?> Real;
+<?
+if precision == myokit.DOUBLE_PRECISION:
+    print('#define MYOKIT_DOUBLE_PRECISION')
+?>
 
 /*
  * Adds a variable to the logging lists. Returns 1 if successful.
@@ -94,6 +98,8 @@ PyObject *field_data;   // A list containing all field data
 // OpenCL objects
 cl_context context = NULL;
 cl_command_queue command_queue = NULL;
+cl_device_info device_info = NULL;
+cl_device_fp_config device_fp_config = NULL;
 cl_program program = NULL;
 cl_kernel kernel_cell;
 cl_kernel kernel_diff;
@@ -596,6 +602,16 @@ sim_init(PyObject* self, PyObject* args)
         printf("No preferred device set.\n");
     } else {
         printf("Preferred device set.\n");
+    }
+    #endif
+
+    // Query capabilities
+    #ifdef MYOKIT_DOUBLE_PRECISION
+    flag = clGetDeviceInfo(device_id, CL_DEVICE_DOUBLE_FP_CONFIG, sizeof(device_fp_config), &device_fp_config, NULL);
+    if(mcl_flag(flag)) return sim_clean();
+    if (device_fp_config == 0) {
+        PyErr_SetString(PyExc_Exception, "Double precision extension (cl_khr_fp64) is not supported on the selected device.");
+        return sim_clean();
     }
     #endif
 
