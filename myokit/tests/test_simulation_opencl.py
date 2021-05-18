@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 #
-# Tests the OpenCL simulation classes
+# Tests the OpenCL simulation classes.
+#
+# Comparisons against CVODE and Simulation1d (with various options e.g. rush
+# larsen and native maths) are given in other files.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -171,12 +174,6 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertFalse(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
         self.assertFalse(np.all(d['membrane.V', 1] == d['membrane.V', 2]))
 
-    def test_native_maths(self):
-        # Tests running with native maths
-        pass
-
-        # Create, run, compare with sim1d
-
     def test_protocol(self):
         # Tests creating without protocol, and setting one later
         pass
@@ -184,11 +181,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         # Create, run, no stimulus
         # Call set_protocol, reset, run, has stimulus
 
-    def test_rush_larsen(self):
-        # Tests running with and without rush-larsen
-        pass
 
-        # Create, run, compare with sim1d
 
     # conductance() -> 1d, 2d
     # is2d(), is_2d() -> 1d, 2d
