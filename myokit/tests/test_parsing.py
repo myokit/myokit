@@ -1519,7 +1519,7 @@ class ModelParseTest(unittest.TestCase):
         """
         Test the new unit syntax where literals have units.
         """
-        model = 'br-1977-units.mmt'
+        model = 'beeler-1977-units.mmt'
         m = myokit.load_model(os.path.join(DIR_DATA, model))
         m.validate()
 
