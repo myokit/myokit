@@ -48,6 +48,7 @@ This page lists the main changes made to Myokit in each release.
   - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation.find_nan()`, that occurred for very small simulations (e.g. 2 cells).
   - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation` that made it impossible to use `set_connections()` with double precision.
   - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation` that made it impossible to use `set_connections()` on Python 2.
+  - [#754](https://github.com/MichaelClerx/myokit/pull/754) Improved error message when an `OpenCLSimulation` with double precision is run on a device that does not support it.
 
 ## [1.32.0] - 2021-01-19
 - Added
