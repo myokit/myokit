@@ -29,16 +29,24 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
+# Show simulation output
+debug = False
+
+
 @unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
 class SimulationOpenCLTest(unittest.TestCase):
     """
     Tests the OpenCL simulation class.
     """
+
+    @classmethod
     def setUpClass(cls):
         # Create simulations for later use in testing
-        m, p, _ = myokit.load('example')
-        cls._sim1d = myokit.SimulationOpenCL(m, p, ncells=10)
-        cls._sim2d = myokit.SimulationOpenCL(m, p, ncells=(4, 4))
+        cls.m = myokit.load_model(
+            os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+        cls.p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
+        cls.s1 = myokit.SimulationOpenCL(cls.m, cls.p, ncells=10)
+        cls.s2 = myokit.SimulationOpenCL(cls.m, cls.p, ncells=(4, 4))
 
     def test_creation(self):
         # Tests opencl simulation creation tasks
@@ -68,13 +76,13 @@ class SimulationOpenCLTest(unittest.TestCase):
         #s = myokit.SimulationOpenCL(m, ncells=(1,1))
         #self.assertEqual(s.shape(), (1, 1))
         self.assertRaisesRegex(
-            ValueError, 'scalar or a tuple \(nx, ny\)',
+            ValueError, r'scalar or a tuple \(nx, ny\)',
             myokit.SimulationOpenCL, m, ncells=None)
         self.assertRaisesRegex(
-            ValueError, 'scalar or a tuple \(nx, ny\)',
+            ValueError, r'scalar or a tuple \(nx, ny\)',
             myokit.SimulationOpenCL, m, ncells=(1,))
         self.assertRaisesRegex(
-            ValueError, 'scalar or a tuple \(nx, ny\)',
+            ValueError, r'scalar or a tuple \(nx, ny\)',
             myokit.SimulationOpenCL, m, ncells=(1, 1, 1))
 
         # Number of cells must be at least 1
@@ -95,7 +103,6 @@ class SimulationOpenCLTest(unittest.TestCase):
             myokit.SimulationOpenCL, m, ncells=(-1, -1))
 
         # Precision must be single or double
-        #TODO: Check correct usage elsewhere
         self.assertRaisesRegex(
             ValueError, 'Only single and double',
             myokit.SimulationOpenCL, m,
@@ -116,31 +123,73 @@ class SimulationOpenCLTest(unittest.TestCase):
 
     def test_calculate_conductance(self):
         # Test the calculate_conductance() method.
+        r, sx, chi, dx = 2, 3.4, 5.6, 7.8
+        self.assertEqual(
+            self.s1.calculate_conductance(r, sx, chi, dx),
+            r * sx * chi / ((1 + r) * dx * dx)
+        )
 
-        self.assertEqual(self._sim
-
-    def test_diffusion(self):
+    def test_diffusion_free(self):
         # Tests creating a simulation without diffusion
-        raise NotImplementedError
 
-        # Create without diffusion, final cells don't depolarise
+        # Create without diffusion, 1d
+        s1 = myokit.SimulationOpenCL(
+            self.m, self.p, ncells=3, diffusion=False)
+
+        # Check that all cells return True with is_paced, regardless of
+        # set_paced_cells or set_paced_cell_list
+        s1.set_paced_cells(nx=3, x=0)
+        self.assertTrue(s1.is_paced(0))
+        self.assertTrue(s1.is_paced(1))
+        self.assertTrue(s1.is_paced(2))
+        s1.set_paced_cells(nx=1, x=0)
+        self.assertTrue(s1.is_paced(0))
+        self.assertTrue(s1.is_paced(1))
+        self.assertTrue(s1.is_paced(2))
+        s1.set_paced_cells(nx=1, x=2)
+        self.assertTrue(s1.is_paced(0))
+        self.assertTrue(s1.is_paced(1))
+        self.assertTrue(s1.is_paced(2))
+        s1.set_paced_cell_list([])
+        self.assertTrue(s1.is_paced(0))
+        self.assertTrue(s1.is_paced(1))
+        self.assertTrue(s1.is_paced(2))
+
+        # Test that all cells depolarise and are the same
+        d = s1.run(10, log=['membrane.V']).npview()
+        self.assertGreater(np.max(d['membrane.V', 0]), 0)
+        self.assertGreater(np.max(d['membrane.V', 1]), 0)
+        self.assertGreater(np.max(d['membrane.V', 2]), 0)
+        self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 1]))
+        self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
+
+        # Apply a field and try again (this is its intended use)
+        s1.reset()
+        s1.set_field('isi.gsBar', [0.05, 0.09, 0.14])
+        d = s1.run(10, log=['membrane.V']).npview()
+        self.assertGreater(np.max(d['membrane.V', 0]), 0)
+        self.assertGreater(np.max(d['membrane.V', 1]), 0)
+        self.assertGreater(np.max(d['membrane.V', 2]), 0)
+        self.assertFalse(np.all(d['membrane.V', 0] == d['membrane.V', 1]))
+        self.assertFalse(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
+        self.assertFalse(np.all(d['membrane.V', 1] == d['membrane.V', 2]))
 
     def test_native_maths(self):
         # Tests running with native maths
-        raise NotImplementedError
+        pass
 
         # Create, run, compare with sim1d
 
     def test_protocol(self):
         # Tests creating without protocol, and setting one later
-        raise NotImplementedError
+        pass
 
         # Create, run, no stimulus
         # Call set_protocol, reset, run, has stimulus
 
     def test_rush_larsen(self):
         # Tests running with and without rush-larsen
-        raise NotImplementedError
+        pass
 
         # Create, run, compare with sim1d
 
@@ -165,6 +214,145 @@ class SimulationOpenCLTest(unittest.TestCase):
     # set_constant() -> 0d
     # set_step_size(), step_size -> 0d
 
+
+
+
+    def test_connections_simple(self):
+        # Tests whether a simple simulation with connections gives the same
+        # results as a simulation with set_conductance
+
+        # Make protocol
+        bcl = 1000
+        duration = 10
+        p = myokit.pacing.blocktrain(bcl, duration, level=1)
+
+        # Run simulations
+        s1 = myokit.SimulationOpenCL(self.m, p, ncells=2)
+        s1.set_paced_cells(1)
+        g = 1
+        t = 5
+        log = ['engine.time', 'membrane.V', 'membrane.i_diff']
+        s1.set_conductance(g)
+        d1a = s1.run(t, log=log, log_interval=0.1).npview()
+        s1.reset()
+        s1.set_connections([(0, 1, g)])
+        d1b = s1.run(t, log=log, log_interval=0.1).npview()
+
+        if debug:
+            # Display the result
+            import matplotlib.pyplot as plt
+            f = plt.figure(figsize=(10, 10))
+            f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
+
+            x = f.add_subplot(2, 3, 1)
+            x.set_title('set_conductance, sp')
+            x.set_ylabel('Vm')
+            x.plot(d1a['engine.time'], d1a['membrane.V', 0])
+            x.plot(d1a['engine.time'], d1a['membrane.V', 1])
+            x = f.add_subplot(2, 3, 2)
+            x.set_title('set_connections, sp')
+            x.set_ylabel('Vm')
+            x.plot(d1b['engine.time'], d1b['membrane.V', 0])
+            x.plot(d1b['engine.time'], d1b['membrane.V', 1])
+            x = f.add_subplot(2, 3, 3)
+            x.set_ylabel('Vm')
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.V', 0] - d1b['membrane.V', 0])
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.V', 1] - d1b['membrane.V', 1])
+
+            x = f.add_subplot(2, 3, 4)
+            x.set_ylabel('I_diff')
+            x.plot(d1a['engine.time'], d1a['membrane.i_diff', 0])
+            x.plot(d1a['engine.time'], d1a['membrane.i_diff', 1])
+            x = f.add_subplot(2, 3, 5)
+            x.set_ylabel('I_diff')
+            x.plot(d1b['engine.time'], d1b['membrane.i_diff', 0])
+            x.plot(d1b['engine.time'], d1b['membrane.i_diff', 1])
+            x = f.add_subplot(2, 3, 6)
+            x.set_ylabel('I_diff')
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.i_diff', 0] - d1b['membrane.i_diff', 0])
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.i_diff', 1] - d1b['membrane.i_diff', 1])
+
+            plt.show()
+
+        # Check results are the same
+        e0 = np.abs(d1a['membrane.V', 0] - d1b['membrane.V', 0])
+        e1 = np.abs(d1a['membrane.V', 1] - d1b['membrane.V', 1])
+        self.assertLess(np.max(e0), 1e-9)
+        self.assertLess(np.max(e1), 1e-9)
+
+    @unittest.skipIf(
+        not OpenCL_DOUBLE_PRECISION_CONNECTIONS,
+        'Required OpenCL extension cl_khr_int64_base_atomics not available.')
+    def test_connections_simple_double_precision(self):
+        # Repeats test_connections_simple, but with double precision
+
+        # Make protocol
+        bcl = 1000
+        duration = 10
+        p = myokit.pacing.blocktrain(bcl, duration, level=1)
+
+        # Run simulations
+        s1 = myokit.SimulationOpenCL(
+            self.m, p, ncells=2, precision=myokit.DOUBLE_PRECISION)
+        s1.set_paced_cells(1)
+        g = 1
+        t = 5
+        log = ['engine.time', 'membrane.V', 'membrane.i_diff']
+        s1.set_conductance(g)
+        d1a = s1.run(t, log=log, log_interval=0.1).npview()
+        s1.reset()
+        s1.set_connections([(0, 1, g)])
+        d1b = s1.run(t, log=log, log_interval=0.1).npview()
+
+        if debug:
+            # Display the result
+            import matplotlib.pyplot as plt
+            f = plt.figure(figsize=(10, 10))
+            f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
+
+            x = f.add_subplot(2, 3, 1)
+            x.set_title('set_conductance, sp')
+            x.set_ylabel('Vm')
+            x.plot(d1a['engine.time'], d1a['membrane.V', 0])
+            x.plot(d1a['engine.time'], d1a['membrane.V', 1])
+            x = f.add_subplot(2, 3, 2)
+            x.set_title('set_connections, sp')
+            x.set_ylabel('Vm')
+            x.plot(d1b['engine.time'], d1b['membrane.V', 0])
+            x.plot(d1b['engine.time'], d1b['membrane.V', 1])
+            x = f.add_subplot(2, 3, 3)
+            x.set_ylabel('Vm')
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.V', 0] - d1b['membrane.V', 0])
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.V', 1] - d1b['membrane.V', 1])
+
+            x = f.add_subplot(2, 3, 4)
+            x.set_ylabel('I_diff')
+            x.plot(d1a['engine.time'], d1a['membrane.i_diff', 0])
+            x.plot(d1a['engine.time'], d1a['membrane.i_diff', 1])
+            x = f.add_subplot(2, 3, 5)
+            x.set_ylabel('I_diff')
+            x.plot(d1b['engine.time'], d1b['membrane.i_diff', 0])
+            x.plot(d1b['engine.time'], d1b['membrane.i_diff', 1])
+            x = f.add_subplot(2, 3, 6)
+            x.set_ylabel('I_diff')
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.i_diff', 0] - d1b['membrane.i_diff', 0])
+            x.plot(d1a['engine.time'],
+                   d1a['membrane.i_diff', 1] - d1b['membrane.i_diff', 1])
+
+            plt.show()
+
+        # Check results are the same
+        e0 = np.abs(d1a['membrane.V', 0] - d1b['membrane.V', 0])
+        e1 = np.abs(d1a['membrane.V', 1] - d1b['membrane.V', 1])
+        self.assertLess(np.max(e0), 1e-9)
+        self.assertLess(np.max(e1), 1e-9)
 
 class SimulationOpenCLFindNanTest(unittest.TestCase):
     """
@@ -289,149 +477,6 @@ class TodoTest(unittest.TestCase):
         self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, 0, -1)
         self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, 5, 0)
         self.assertRaisesRegex(ValueError, '2-dimensional', s.neighbours, 0)
-
-    def test_connections_simple(self):
-        # Tests whether a simple simulation with connections gives the same
-        # results as a simulation with set_conductance
-
-        # Get model and protocol
-        m = myokit.load_model(os.path.join(DIR_DATA, 'br-1977.mmt'))
-
-        # Make protocol
-        bcl = 1000
-        duration = 10
-        p = myokit.pacing.blocktrain(bcl, duration, level=1)
-
-        # Run simulations
-        s1 = myokit.SimulationOpenCL(m, p, ncells=2)
-        s1.set_paced_cells(1)
-        g = 1
-        t = 5
-        log = ['engine.time', 'membrane.V', 'membrane.IDiff']
-        s1.set_conductance(g)
-        d1a = s1.run(t, log=log, log_interval=0.1).npview()
-        s1.reset()
-        s1.set_connections([(0, 1, g)])
-        d1b = s1.run(t, log=log, log_interval=0.1).npview()
-
-        if debug:
-            # Display the result
-            import matplotlib.pyplot as plt
-            f = plt.figure(figsize=(10, 10))
-            f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
-
-            x = f.add_subplot(2, 3, 1)
-            x.set_title('set_conductance, sp')
-            x.set_ylabel('Vm')
-            x.plot(d1a['engine.time'], d1a['membrane.V', 0])
-            x.plot(d1a['engine.time'], d1a['membrane.V', 1])
-            x = f.add_subplot(2, 3, 2)
-            x.set_title('set_connections, sp')
-            x.set_ylabel('Vm')
-            x.plot(d1b['engine.time'], d1b['membrane.V', 0])
-            x.plot(d1b['engine.time'], d1b['membrane.V', 1])
-            x = f.add_subplot(2, 3, 3)
-            x.set_ylabel('Vm')
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.V', 0] - d1b['membrane.V', 0])
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.V', 1] - d1b['membrane.V', 1])
-
-            x = f.add_subplot(2, 3, 4)
-            x.set_ylabel('I_diff')
-            x.plot(d1a['engine.time'], d1a['membrane.IDiff', 0])
-            x.plot(d1a['engine.time'], d1a['membrane.IDiff', 1])
-            x = f.add_subplot(2, 3, 5)
-            x.set_ylabel('I_diff')
-            x.plot(d1b['engine.time'], d1b['membrane.IDiff', 0])
-            x.plot(d1b['engine.time'], d1b['membrane.IDiff', 1])
-            x = f.add_subplot(2, 3, 6)
-            x.set_ylabel('I_diff')
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.IDiff', 0] - d1b['membrane.IDiff', 0])
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.IDiff', 1] - d1b['membrane.IDiff', 1])
-
-            plt.show()
-
-        # Check results are the same
-        e0 = np.abs(d1a['membrane.V', 0] - d1b['membrane.V', 0])
-        e1 = np.abs(d1a['membrane.V', 1] - d1b['membrane.V', 1])
-        self.assertLess(np.max(e0), 1e-9)
-        self.assertLess(np.max(e1), 1e-9)
-
-    @unittest.skipIf(
-        not OpenCL_DOUBLE_PRECISION_CONNECTIONS,
-        'Required OpenCL extension cl_khr_int64_base_atomics not available.')
-    def test_connections_simple_double_precision(self):
-        # Repeats test_connections_simple, but with double precision
-
-        # Get model and protocol
-        m = myokit.load_model(os.path.join(DIR_DATA, 'br-1977.mmt'))
-
-        # Make protocol
-        bcl = 1000
-        duration = 10
-        p = myokit.pacing.blocktrain(bcl, duration, level=1)
-
-        # Run simulations
-        s1 = myokit.SimulationOpenCL(
-            m, p, ncells=2, precision=myokit.DOUBLE_PRECISION)
-        s1.set_paced_cells(1)
-        g = 1
-        t = 5
-        log = ['engine.time', 'membrane.V', 'membrane.IDiff']
-        s1.set_conductance(g)
-        d1a = s1.run(t, log=log, log_interval=0.1).npview()
-        s1.reset()
-        s1.set_connections([(0, 1, g)])
-        d1b = s1.run(t, log=log, log_interval=0.1).npview()
-
-        if debug:
-            # Display the result
-            import matplotlib.pyplot as plt
-            f = plt.figure(figsize=(10, 10))
-            f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
-
-            x = f.add_subplot(2, 3, 1)
-            x.set_title('set_conductance, sp')
-            x.set_ylabel('Vm')
-            x.plot(d1a['engine.time'], d1a['membrane.V', 0])
-            x.plot(d1a['engine.time'], d1a['membrane.V', 1])
-            x = f.add_subplot(2, 3, 2)
-            x.set_title('set_connections, sp')
-            x.set_ylabel('Vm')
-            x.plot(d1b['engine.time'], d1b['membrane.V', 0])
-            x.plot(d1b['engine.time'], d1b['membrane.V', 1])
-            x = f.add_subplot(2, 3, 3)
-            x.set_ylabel('Vm')
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.V', 0] - d1b['membrane.V', 0])
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.V', 1] - d1b['membrane.V', 1])
-
-            x = f.add_subplot(2, 3, 4)
-            x.set_ylabel('I_diff')
-            x.plot(d1a['engine.time'], d1a['membrane.IDiff', 0])
-            x.plot(d1a['engine.time'], d1a['membrane.IDiff', 1])
-            x = f.add_subplot(2, 3, 5)
-            x.set_ylabel('I_diff')
-            x.plot(d1b['engine.time'], d1b['membrane.IDiff', 0])
-            x.plot(d1b['engine.time'], d1b['membrane.IDiff', 1])
-            x = f.add_subplot(2, 3, 6)
-            x.set_ylabel('I_diff')
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.IDiff', 0] - d1b['membrane.IDiff', 0])
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.IDiff', 1] - d1b['membrane.IDiff', 1])
-
-            plt.show()
-
-        # Check results are the same
-        e0 = np.abs(d1a['membrane.V', 0] - d1b['membrane.V', 0])
-        e1 = np.abs(d1a['membrane.V', 1] - d1b['membrane.V', 1])
-        self.assertLess(np.max(e0), 1e-9)
-        self.assertLess(np.max(e1), 1e-9)
 
     def test_set_paced_interface_1d(self):
         # Test the set_paced and is_paced methods in 1d (interface only, does
@@ -701,188 +746,19 @@ class TodoTest(unittest.TestCase):
         with WarningCollector() as wc:
             self.assertTrue(s.is2d())
         self.assertIn('deprecated', wc.text())
-<<<<<<< HEAD
-
-
-@unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
-class FiberTissueSimulationTest(unittest.TestCase):
-    """
-    Tests the fiber-tissue simulation.
-    """
-    def test_basic(self):
-        # Load models
-        mf = os.path.join(DIR_DATA, 'dn-1985-normalised.mmt')
-        mt = os.path.join(DIR_DATA, 'lr-1991.mmt')
-        mf = myokit.load_model(mf)
-        mt = myokit.load_model(mt)
-
-        # Run times
-        run = .1
-
-        # Create pacing protocol
-        p = myokit.pacing.blocktrain(1000, 2.0, offset=.01)
-
-        # Fiber/Tissue sizes
-        nfx = 8
-        nfy = 4
-        ntx = 8
-        nty = 6
-
-        # Create simulation
-        s = myokit.FiberTissueSimulation(
-            mf,
-            mt,
-            p,
-            ncells_fiber=(nfx, nfy),
-            ncells_tissue=(ntx, nty),
-            nx_paced=10,
-            g_fiber=(235, 100),
-            g_tissue=(9, 5),
-            g_fiber_tissue=9
-        )
-        s.set_step_size(0.0012)
-        # Set up logging
-        logf = [
-            'engine.time',
-            'membrane.V',
-            'isi.isiCa',
-        ]
-        logt = [
-            'membrane.V',
-            'ica.Ca_i',
-            'ica.ICa',
-        ]
-        # Run simulation
-        with myokit.tools.capture():
-            logf, logt = s.run(run, logf=logf, logt=logt, log_interval=0.01)
-
-        self.assertEqual(len(logf), 1 + 2 * nfx * nfy)
-        self.assertIn('engine.time', logf)
-        self.assertIn('0.0.membrane.V', logf)
-        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.membrane.V', logf)
-        self.assertIn('0.0.isi.isiCa', logf)
-        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.isi.isiCa', logf)
-
-        self.assertEqual(len(logt), 3 * ntx * nty)
-        self.assertIn('0.0.membrane.V', logt)
-        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.membrane.V', logt)
-        self.assertIn('0.0.ica.Ca_i', logt)
-        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.Ca_i', logt)
-        self.assertIn('0.0.ica.ICa', logt)
-        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.ICa', logt)
-
-    @unittest.skipIf(
-        not OpenCL_DOUBLE_PRECISION,
-        'OpenCL double precision extension not supported on selected device.')
-    def test_against_cvode(self):
-        # Compare the fiber-tissue simulation output with CVODE output
-
-        # Load model
-        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-
-        # Create pacing protocol
-        p = myokit.pacing.blocktrain(1000, 2.0, offset=0)
-
-        # Create simulation
-        s1 = myokit.FiberTissueSimulation(
-            m,
-            m,
-            p,
-            ncells_fiber=(1, 1),
-            ncells_tissue=(1, 1),
-            nx_paced=1,
-            g_fiber=(0, 0),
-            g_tissue=(0, 0),
-            g_fiber_tissue=0,
-            precision=myokit.DOUBLE_PRECISION,
-        )
-        s1.set_step_size(0.01)
-
-        # Set up logging
-        logvars = ['engine.time', 'engine.pace', 'membrane.V', 'ica.ICa']
-        logt = myokit.LOG_NONE
-
-        # Run simulation
-        tmax = 100
-        dlog = 0.1
-        with myokit.tools.capture():
-            d1, logt = s1.run(tmax, logf=logvars, logt=logt, log_interval=dlog)
-        del(logt)
-        d1 = d1.npview()
-
-        # Run CVODE simulation
-        s2 = myokit.Simulation(m, p)
-        s2.set_tolerance(1e-8, 1e-8)
-        d2 = s2.run(tmax, logvars, log_interval=dlog).npview()
-
-        # Check implementation of logging point selection
-        e0 = np.max(np.abs(d1.time() - d2.time()))
-
-        # Check implementation of pacing
-        r1 = d1['engine.pace'] - d2['engine.pace']
-        e1 = np.sum(r1**2)
-
-        # Check membrane potential (will have some error!)
-        # Using MRMS from Marsh, Ziaratgahi, Spiteri 2012
-        r2 = d1['membrane.V', 0, 0] - d2['membrane.V']
-        r2 /= (1 + np.abs(d2['membrane.V']))
-        e2 = np.sqrt(np.sum(r2**2) / len(r2))
-
-        # Check logging of intermediary variables
-        r3 = d1['ica.ICa', 0, 0] - d2['ica.ICa']
-        r3 /= (1 + np.abs(d2['ica.ICa']))
-        e3 = np.sqrt(np.sum(r3**2) / len(r3))
-
-        if debug:
-            import matplotlib.pyplot as plt
-            print('Event at t=0')
-
-            print(d1.time()[:7])
-            print(d2.time()[:7])
-            print(d1.time()[-7:])
-            print(d2.time()[-7:])
-            print(e0)
-
-            plt.figure()
-            plt.suptitle('Pacing signals')
-            plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['engine.pace'], label='FiberTissue')
-            plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
-            plt.legend()
-            plt.subplot(2, 1, 2)
-            plt.plot(d1.time(), r1)
-            print(e1)
-
-            plt.figure()
-            plt.suptitle('Membrane potential')
-            plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['membrane.V', 0, 0], label='FiberTissue')
-            plt.plot(d2.time(), d2['membrane.V'], label='CVODE')
-            plt.legend()
-            plt.subplot(2, 1, 2)
-            plt.plot(d1.time(), r2)
-            print(e2)
-
-            plt.figure()
-            plt.suptitle('Calcium current')
-            plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['ica.ICa', 0, 0], label='FiberTissue')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
-            plt.legend()
-            plt.subplot(2, 1, 2)
-            plt.plot(d1.time(), r2)
-            print(e3)
-
-            plt.show()
-
-        self.assertLess(e0, 1e-10)
-        self.assertLess(e1, 1e-14)
-        self.assertLess(e2, 0.05)
-        self.assertLess(e3, 0.01)
 '''
 
 
 if __name__ == '__main__':
+
+    import sys
+    if '-v' in sys.argv:
+        print('Running in debug/verbose mode')
+        debug = True
+    else:
+        print('Add -v for more debug output')
+
     import warnings
     warnings.simplefilter('always')
+
     unittest.main()

@@ -708,7 +708,12 @@ class SimulationOpenCL(myokit.CModule):
         """
         Returns ``True`` if and only if the cell at index ``x`` (or index
         ``(x, y)`` in 2d simulations) will be paced during simulations.
+
+        If diffusion is disabled this method will always return ``True``.
         """
+        if not self._diffusion_enabled:
+            return True
+
         # Check input
         x = int(x)
         if x < 0 or x >= self._dims[0]:
@@ -1355,7 +1360,8 @@ class SimulationOpenCL(myokit.CModule):
         This method can only define rectangular pacing areas. To select an
         arbitrary set of cells, use :meth:`set_paced_cell_list`.
 
-        If diffusion is disabled all cells will be paced.
+        If diffusion is disabled all cells will be paced and calls to this
+        method are ignored.
 
         Arguments:
 
@@ -1412,7 +1418,8 @@ class SimulationOpenCL(myokit.CModule):
         these cases it may be better to use a rectangular pacing area set using
         :meth:`set_paced_cells`.
 
-        If diffusion is disabled all cells will be paced.
+        If diffusion is disabled all cells will be paced and calls to this
+        method are ignored.
         """
         paced_cells = []
         if len(self._dims) == 1:
