@@ -124,3 +124,15 @@ obtain e.g. an :class:`Exporter` via
 
 .. autofunction:: register_external_ewriter
 
+Default expression writers
+==========================
+
+Finally, Myokit contains two default expression writers, which are used
+internally to write expressions in Python format with or without NumPy support.
+
+.. currentmodule:: myokit
+
+.. autofunction:: python_writer
+
+.. autofunction:: numpy_writer
+

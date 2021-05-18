@@ -5,7 +5,7 @@ Implementation of the Luo-Rudy model I for the ventricular myocyte.
 Based on an updated formulation downloaded from http://rudylab.wustl.edu
 
 Original copyright notice:
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Copyright (C) 2006 by Leonid Livshitz and Yoram Rudy
 Email rudy@wustl.edu
 
@@ -66,8 +66,8 @@ ENa = cell.RTF * log(cell.Na_o / cell.Na_i)
 a = 1 - 1 / (1 + exp(-(V + 40) / 0.24))
     desc: Used instead of if statement.
 dot(m) =  alpha * (1 - m) - beta * m
-    alpha = if(V == -47.13, -3.2, 
-            0.32 * (V + 47.13) / (1 - exp(-0.1 * (V + 47.13))))    
+    alpha = if(V == -47.13, -3.2,
+            0.32 * (V + 47.13) / (1 - exp(-0.1 * (V + 47.13))))
     beta  = 0.08 * exp(-V / 11)
     desc: """
     Activation parameter of the fast sodium channel, based on Ebihara-Johnson
@@ -184,6 +184,4 @@ s = myokit.SimulationOpenCL(m, p, (16, 16))
 d = s.run(500, log=['engine.time', 'membrane.V', 'engine.pace'])
 b = d.block2d()
 b.save('block2d.zip')
-
-#print(myokit.strfloat(b.cv('membrane.V')))
 

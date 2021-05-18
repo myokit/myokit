@@ -10,11 +10,11 @@ from __future__ import print_function, unicode_literals
 
 import os
 import unittest
-import numpy as np
 
 import myokit
+import numpy as np
 
-from shared import DIR_DATA, CancellingReporter
+from shared import DIR_DATA, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -34,8 +34,11 @@ class PSimulationTest(unittest.TestCase):
         m, p, x = myokit.load(m)
 
         # Create simulation
-        s = myokit.PSimulation(
-            m, p, variables=['membrane.V'], parameters=['ina.gNa', 'ica.gCa'])
+        with WarningCollector() as c:
+            s = myokit.PSimulation(
+                m, p, variables=['membrane.V'],
+                parameters=['ina.gNa', 'ica.gCa'])
+        self.assertIn('`PSimulation` is deprecated', c.text())
 
         # Test state & default state
         self.assertEqual(s.state(), s.default_state())
@@ -72,51 +75,55 @@ class PSimulationTest(unittest.TestCase):
         #self.assertEqual(s.state(), s.default_state())
 
         # Create without variables or parameters
-        self.assertRaisesRegex(
-            ValueError, 'variables', myokit.PSimulation, m, p,
-            parameters=['ina.gNa'])
-        self.assertRaisesRegex(
-            ValueError, 'parameters', myokit.PSimulation, m, p,
-            variables=['membrane.V'])
+        with WarningCollector() as c:
+            self.assertRaisesRegex(
+                ValueError, 'variables', myokit.PSimulation, m, p,
+                parameters=['ina.gNa'])
+            self.assertRaisesRegex(
+                ValueError, 'parameters', myokit.PSimulation, m, p,
+                variables=['membrane.V'])
 
         # Run without validated model
         m2 = m.clone()
         m2.add_component('bert')
-        s = myokit.PSimulation(
-            m2, p, variables=['membrane.V'], parameters=['ina.gNa', 'ica.gCa'])
+        with WarningCollector() as c:
+            s = myokit.PSimulation(
+                m2, p, variables=['membrane.V'],
+                parameters=['ina.gNa', 'ica.gCa'])
         s.set_step_size(0.002)
         d, dp = s.run(10, log_interval=2)
 
         # Variable or parameter given twice
-        self.assertRaisesRegex(
-            ValueError, 'Duplicate variable', myokit.PSimulation, m, p,
-            variables=['membrane.V', 'membrane.V'], parameters=['ina.gNa'])
-        self.assertRaisesRegex(
-            ValueError, 'Duplicate parameter', myokit.PSimulation, m, p,
-            variables=['membrane.V'], parameters=['ina.gNa', 'ina.gNa'])
+        with WarningCollector() as c:
+            self.assertRaisesRegex(
+                ValueError, 'Duplicate variable', myokit.PSimulation, m, p,
+                variables=['membrane.V', 'membrane.V'], parameters=['ina.gNa'])
+            self.assertRaisesRegex(
+                ValueError, 'Duplicate parameter', myokit.PSimulation, m, p,
+                variables=['membrane.V'], parameters=['ina.gNa', 'ina.gNa'])
 
-        # Bound variable or parameter
-        self.assertRaisesRegex(
-            ValueError, 'bound', myokit.PSimulation, m, p,
-            variables=['engine.pace'], parameters=['ina.gNa'])
-        self.assertRaisesRegex(
-            ValueError, 'bound', myokit.PSimulation, m, p,
-            variables=['membrane.V'], parameters=['engine.pace'])
+            # Bound variable or parameter
+            self.assertRaisesRegex(
+                ValueError, 'bound', myokit.PSimulation, m, p,
+                variables=['engine.pace'], parameters=['ina.gNa'])
+            self.assertRaisesRegex(
+                ValueError, 'bound', myokit.PSimulation, m, p,
+                variables=['membrane.V'], parameters=['engine.pace'])
 
-        # Constant variable
-        self.assertRaisesRegex(
-            ValueError, 'constant', myokit.PSimulation, m, p,
-            variables=['ica.gCa'], parameters=['ina.gNa'])
+            # Constant variable
+            self.assertRaisesRegex(
+                ValueError, 'constant', myokit.PSimulation, m, p,
+                variables=['ica.gCa'], parameters=['ina.gNa'])
 
-        # Non-constant parameter
-        self.assertRaisesRegex(
-            ValueError, 'literal constant', myokit.PSimulation, m, p,
-            variables=['membrane.V'], parameters=['cell.RTF'])
+            # Non-constant parameter
+            self.assertRaisesRegex(
+                ValueError, 'literal constant', myokit.PSimulation, m, p,
+                variables=['membrane.V'], parameters=['cell.RTF'])
 
-        # Variables given as objects
-        myokit.PSimulation(
-            m, p, variables=[m.get('membrane.V')],
-            parameters=[m.get('ina.gNa')])
+            # Variables given as objects
+            myokit.PSimulation(
+                m, p, variables=[m.get('membrane.V')],
+                parameters=[m.get('ina.gNa')])
 
         # Negative times
         self.assertRaisesRegex(
@@ -137,8 +144,10 @@ class PSimulationTest(unittest.TestCase):
         Test :meth:`PSimulation.block()`.
         """
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.PSimulation(
-            m, p, variables=['membrane.V'], parameters=['ina.gNa', 'ica.gCa'])
+        with WarningCollector() as c:
+            s = myokit.PSimulation(
+                m, p, variables=['membrane.V'],
+                parameters=['ina.gNa', 'ica.gCa'])
         s.set_step_size(0.002)
         d, dp = s.run(10, log_interval=2)
 
@@ -161,8 +170,9 @@ class PSimulationTest(unittest.TestCase):
         :meth:`PSimulation.set_parameters()`
         """
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.PSimulation(
-            m, p, variables=['membrane.V'], parameters=['ina.gNa'])
+        with WarningCollector() as c:
+            s = myokit.PSimulation(
+                m, p, variables=['membrane.V'], parameters=['ina.gNa'])
         s.set_constant('ica.gCa', 1)
         s.set_constant(m.get('ica.gCa'), 1)
 
@@ -190,9 +200,10 @@ class PSimulationTest(unittest.TestCase):
         Test running with a progress reporter.
         """
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.PSimulation(
-            m, p, variables=['membrane.V'], parameters=['ina.gNa'])
-        with myokit.PyCapture() as c:
+        with WarningCollector() as c:
+            s = myokit.PSimulation(
+                m, p, variables=['membrane.V'], parameters=['ina.gNa'])
+        with myokit.tools.capture() as c:
             s.run(2, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertEqual(len(c), 2)

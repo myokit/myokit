@@ -60,6 +60,7 @@ tab = '    '
 # Get equations
 equations = model.solvable_order()
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdlib.h>
 #include <stdio.h>

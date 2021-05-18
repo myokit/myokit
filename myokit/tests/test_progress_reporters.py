@@ -23,7 +23,7 @@ class ProgressPrinterTests(unittest.TestCase):
         # Test basic functionality.
 
         # Zero call
-        with myokit.PyCapture() as c:
+        with myokit.tools.capture() as c:
             p = myokit.ProgressPrinter()
             self.assertTrue(p.update(0))
         pattern1 = re.compile(
@@ -34,7 +34,7 @@ class ProgressPrinterTests(unittest.TestCase):
             self.assertTrue(pattern1.match(line))
 
         # Normal call
-        with myokit.PyCapture() as c:
+        with myokit.tools.capture() as c:
             p = myokit.ProgressPrinter()
             self.assertTrue(p.update(0.49))
         pattern2 = re.compile(
@@ -46,17 +46,17 @@ class ProgressPrinterTests(unittest.TestCase):
             self.assertTrue(pattern2.match(line))
 
         # Call that will take minutes
-        with myokit.PyCapture() as c:
+        with myokit.tools.capture() as c:
             p = myokit.ProgressPrinter()
             time.sleep(0.1)
             self.assertTrue(p.update(1e-3))
         self.assertIn('minutes remaining', c.text())
 
-        # Note: Printer must be created withing PyCapture, otherwise it will
-        # print to stdout (which won't have been redirected yet).
+        # Note: Printer must be created withing capture, otherwise it
+        # will print to stdout (which won't have been redirected yet).
 
         # Status every ten percent
-        with myokit.PyCapture() as c:
+        with myokit.tools.capture() as c:
             p = myokit.ProgressPrinter(digits=-1)
             self.assertTrue(p.update(0))
             self.assertTrue(p.update(0.08))

@@ -1,0 +1,615 @@
+[[model]]
+name: tentusscher-2006
+desc: """
+    Human ventricular myocyte model by ten Tusscher et al., 2006.
+
+    The model contains a switch for endo, epi and mid-myocardial modes.
+
+    References:
+
+    [1] The CellML versions of the model (http://models.cellml.org)
+    [2] Alternans and spiral breakup in a human ventricular tissue model,
+        ten Tusscher, Panfilov (2006) AJPHeart
+    [3] A model for human ventricular tissue,
+        ten Tusscher, Noble, Noble, Panfilov (2003) AJPHeart
+
+    Adapted from CellML (October 2020 version). The original CellML model meta
+    data follows below.
+
+    ---------------------------------------------------------------------------
+
+    Alternans and spiral breakup in a human ventricular tissue model
+
+    Penny Noble
+    Oxford University Cardiac Electrophysiology Group
+
+    Model Status
+
+    This is the EPICARDIAL CELL VARIANT of the model. This model was created by
+    Penny Noble of Oxford University and is known to read in COR and PCEnv. A
+    stimulus protocol has been added that allows the model to simulate multiple
+    action potentials at 1Hz.
+
+    Model Structure
+
+    ABSTRACT: Ventricular fibrillation (VF) is one of the main causes of death
+    in the Western world. According to one hypothesis, the chaotic excitation
+    dynamics during VF are the result of dynamical instabilities in action
+    potential duration (APD) the occurrence of which requires that the slope of
+    the APD restitution curve exceeds 1. Other factors such as electrotonic
+    coupling and cardiac memory also determine whether these instabilities can
+    develop. In this paper we study the conditions for alternans and spiral
+    breakup in human cardiac tissue. Therefore, we develop a new version of our
+    human ventricular cell model, which is based on recent experimental
+    measurements of human APD restitution and includes a more extensive
+    description of intracellular calcium dynamics. We apply this model to study
+    the conditions for electrical instability in single cells, for reentrant
+    waves in a ring of cells, and for reentry in two-dimensional sheets of
+    ventricular tissue. We show that an important determinant for the onset of
+    instability is the recovery dynamics of the fast sodium current. Slower
+    sodium current recovery leads to longer periods of spiral wave rotation and
+    more gradual conduction velocity restitution, both of which suppress
+    restitution-mediated instability. As a result, maximum restitution slopes
+    considerably exceeding 1 (up to 1.5) may be necessary for electrical
+    instability to occur. Although slopes necessary for the onset of
+    instabilities found in our study exceed 1, they are within the range of
+    experimentally measured slopes. Therefore, we conclude that steep APD
+    restitution-mediated instability is a potential mechanism for VF in the
+    human heart.
+
+    The original paper reference is cited below:
+
+    Alternans and spiral breakup in a human ventricular tissue model, K.H.W.J.
+    ten Tusscher, A.V. Panfilov, Sep 2006,
+    American Journal of Physiology, Heart and Circulatory Physiology , 291 3,
+    H1088-1100. PubMed ID: 16565318
+    """
+file_author: Michael Clerx
+# Initial values (ordered as in the original code)
+membrane.V   = -8.53798558432631864e+01
+calcium.Cai  =  1.05782268600543037e-04
+calcium.CaSR =  3.55567791655852350e+00
+calcium.CaSS =  2.14172873269809840e-04
+sodium.Nai   =  1.01338761744302950e+01
+potassium.Ki =  1.35368636336204105e+02
+ina.m        =  1.66171456717857527e-03
+ina.h        =  7.48991583078272738e-01
+ina.j        =  7.48599753512242727e-01
+ikr.xr1      =  2.07650883539678194e-04
+ikr.xr2      =  4.72733193318403078e-01
+iks.xs       =  3.23090984071628057e-03
+ito.r        =  2.35709886030767176e-08
+ito.s        =  9.99997904693742057e-01
+ical.d       =  3.30548499869733964e-05
+ical.f       =  9.77158843631106722e-01
+ical.f2      =  9.99406290178190937e-01
+ical.fCaSS   =  9.99972178434477055e-01
+jrel.R_prime =  9.89066126100902498e-01
+
+#
+# External inputs
+#
+[engine]
+time = 0 [ms]
+    in [ms]
+    bind time
+pace = 0
+    bind pace
+
+#
+# Membrane potential
+#
+# Appendix to [3]
+#
+[membrane]
+use stimulus.i_stim
+dot(V) = -(i_ion + i_stim + i_diff)
+    in [mV]
+    label membrane_potential
+i_ion = (+ ina.INa
+         + ik1.IK1
+         + ikr.IKr
+         + iks.IKs
+         + ito.Ito
+         + ical.ICaL
+         + inak.INaK
+         + inaca.INaCa
+         + ipca.IpCa
+         + ipk.IpK
+         + icab.ICab
+         + inab.INab
+        )
+    in [A/F]
+i_diff = 0 [A/F]
+    in [A/F]
+    bind diffusion_current
+
+#
+# Stimulus current
+#
+# Appendix to [3]
+#
+[stimulus]
+i_stim = engine.pace * amplitude
+    in [A/F]
+amplitude = -52 [A/F]
+    in [A/F]
+
+#
+# Cell parameters
+#
+[cell]
+type = 1
+    desc: The type of cell: endocardial = 0, epicardial = 1, mid-myocardial = 2
+Vc = 16404 [um^3]
+    in [um^3]
+    desc: Bulk cytoplasm volume
+Vss = 54.68 [um^3]
+    in [um^3]
+    desc: Dyadic (junctional) subspace volume
+Vsr = 1094 [um^3]
+    in [um^3]
+    desc: Sarcoplasmic reticulum volume
+Cm = 185 [pF]
+    in [pF]
+    desc: Cell capacitance
+
+#
+# Physical constants
+#
+# Appendix to [3]
+#
+[phys]
+F = 96.485 [C/mmol]
+    in [C/mmol]
+R = 8.314 [J/mol/K]
+    in [J/mol/K]
+T = 310 [K]
+    in [K]
+RTF = R * T / F
+    in [mV]
+FRT = F / (R * T)
+    in [1/mV]
+FFRT = F * FRT
+    in [C/mmol/mV]
+
+#
+# Fast sodium current
+#
+# Appendix to [3]
+#
+[ina]
+use membrane.V, nernst.ENa
+INa = gNa * m ^ 3 * h * j * (V - ENa)
+    in [A/F]
+gNa = 14.838 [mS/uF]
+    in [mS/uF]
+dot(m) = (inf - m) / tau
+    inf = 1 / (1 + exp((-56.86 [mV] - V) / 9.03 [mV])) ^ 2
+    tau = 1 [ms] * alpha * beta
+        in [ms]
+    alpha = 1 / (1 + exp((-60 [mV] - V) / 5 [mV]))
+    beta = 0.1 / (1 + exp((V + 35 [mV]) / 5 [mV])) + 0.1 / (1 + exp((V - 50 [mV]) / 200 [mV]))
+dot(h) = (inf - h) / tau
+    inf = 1 / (1 + exp((V + 71.55 [mV]) / 7.43 [mV])) ^ 2
+    tau = 1 / (alpha + beta)
+        in [ms]
+    alpha = if(V < -40 [mV],
+                 0.057 [mS/uF] * exp(-(V + 80 [mV]) / 6.8 [mV]),
+                 0 [mS/uF])
+        in [1/ms]
+    beta = if(V < -40 [mV],
+                2.7 [mS/uF] * exp(0.079 [1/mV] * V) + 310000 [mS/uF] * exp(0.3485 [1/mV] * V),
+                0.77 [mS/uF] / (0.13 * (1 + exp((V + 10.66 [mV]) / -11.1 [mV]))))
+        in [1/ms]
+dot(j) = (inf - j) / tau
+    inf = 1 / (1 + exp((V + 71.55 [mV]) / 7.43 [mV])) ^ 2
+    tau = 1 / (alpha + beta)
+        in [ms]
+    alpha = if(V < -40 [mV],
+               (-25428 [mS/uF] * exp(0.2444 [1/mV] * V) - 6.948e-6 [mS/uF] * exp(-0.04391 [1/mV] * V)) * (V + 37.78 [mV]) / 1 [mV] / (1 + exp(0.311 [1/mV] * (V + 79.23 [mV]))),
+               0 [mS/uF])
+        in [1/ms]
+    beta = if(V < -40 [mV],
+              0.02424 [mS/uF] * exp(-0.01052 [1/mV] * V) / (1 + exp(-0.1378 [1/mV] * (V + 40.14 [mV]))),
+              0.6 [mS/uF] * exp(0.057 [1/mV] * V) / (1 + exp(-0.1 [1/mV] * (V + 32 [mV]))))
+        in [1/ms]
+
+#
+# Inward rectifier potassium current
+#
+# Appendix to [3]
+#
+[ik1]
+use membrane.V, nernst.EK
+IK1 = gK1 * inf * (V - EK)
+    in [A/F]
+gK1 = 5.405 [mS/uF] * sqrt(extra.Ko / 5.4 [mM])
+    in [mS/uF]
+inf = alpha / (alpha + beta)
+    alpha = 0.1 [1/ms] / (1 + exp(0.06 [1/mV] * (V - EK - 200 [mV])))
+        in [1/ms]
+    beta = (3 [1/ms] * exp(0.0002 [1/mV] * (V - EK + 100 [mV])) + 1 [1/ms] * exp(0.1 [1/mV] * (V - EK - 10 [mV]))) / (1 + exp(-0.5 [1/mV] * (V - EK)))
+        in [1/ms]
+
+#
+# Rapid time-dependent potassium current
+#
+# Appendix to [3]
+#
+[ikr]
+use membrane.V, nernst.EK
+IKr = gKr * xr1 * xr2 * (V - EK)
+    in [A/F]
+gKr = 0.153 [mS/uF] * sqrt(extra.Ko / 5.4 [mM])
+    in [mS/uF]
+dot(xr1) = (inf - xr1) / tau
+    inf = 1 / (1 + exp((-26 [mV] - V) / 7 [mV]))
+    tau = 1 [ms] * alpha * beta
+        in [ms]
+    alpha = 450 / (1 + exp((-45 [mV] - V) / 10 [mV]))
+    beta = 6 / (1 + exp((V + 30 [mV]) / 11.5 [mV]))
+dot(xr2) = (inf - xr2) / tau
+    inf = 1 / (1 + exp((V + 88 [mV]) / 24 [mV]))
+    tau = 1 [ms] * alpha * beta
+        in [ms]
+    alpha = 3 / (1 + exp((-60 [mV] - V) / 20 [mV]))
+    beta = 1.12 / (1 + exp((V - 60 [mV]) / 20 [mV]))
+
+#
+# Slow time-dependent potassium current
+#
+# Appendix to [2]
+#
+[iks]
+use membrane.V, nernst.EKs
+IKs = gKs * xs ^ 2 * (V - EKs)
+    in [A/F]
+gKs = if(cell.type != 2,
+         0.392 [mS/uF],      # Endo and epicardial
+         0.098 [mS/uF]       # Mid-myocardial
+        )
+    in [mS/uF]
+dot(xs) = (inf - xs) / tau
+    inf = 1 / (1 + exp((-5 [mV] - V) / 14 [mV]))
+    tau = 1 [ms] * alpha * beta + 80 [ms]
+        in [ms]
+    alpha = 1400 / sqrt(1 + exp((5 [mV] - V) / 6 [mV]))
+    beta = 1 / (1 + exp((V - 35 [mV]) / 15 [mV]))
+
+#
+# Transient outward current
+#
+# Appendix to [2]
+#
+[ito]
+use membrane.V, nernst.EK
+Ito = gto * r * s * (V - EK)
+    in [A/F]
+gto = if(cell.type == 0,
+         0.073 [mS/uF],      # Endocardial
+         0.294 [mS/uF]       # Epicardial and mid-myocardial
+        )
+    in [mS/uF]
+dot(r) = (inf - r) / tau
+    inf = 1 / (1 + exp((20 [mV] - V) / 6 [mV]))
+    tau = 9.5 [ms] * exp(-(V + 40 [mV]) ^ 2 / 1800 [mV^2]) + 0.8 [ms]
+        in [ms]
+dot(s) = (inf - s) / tau
+    inf = if(cell.type == 0,
+             1 / (1 + exp((V + 28 [mV]) / 5 [mV])),     # Endocardial
+             1 / (1 + exp((V + 20 [mV]) / 5 [mV]))      # Epicardial and mid-myocardial
+            )
+    tau = if(cell.type == 0,
+             # Endocardial:
+             1000 [ms] * exp(-(V + 67 [mV]) ^ 2 / 1000 [mV^2]) + 8 [ms],
+             # Epicardial and mid-myocardial:
+             85 [ms] * exp(-(V + 45 [mV]) ^ 2 / 320 [mV^2]) + 5 [ms] / (1 + exp((V - 20 [mV]) / 5 [mV])) + 3 [ms]
+            )
+        in [ms]
+
+#
+# L-type calcium current
+#
+# Appendix to [2]
+#
+[ical]
+use membrane.V
+use phys.FRT, phys.FFRT
+use extra.Cao, calcium.Cai, calcium.CaSS
+ICaL = gCaL * d * f * f2 * fCaSS * 4 * (V - 15 [mV]) * FFRT * (0.25 * CaSS * exp(2 * (V - 15 [mV]) * FRT) - Cao) / (exp(2 * (V - 15 [mV]) * FRT) - 1)
+    in [A/F]
+gCaL = 0.0398 [L/F/s]
+    in [L/F/s]
+dot(d) = (inf - d) / tau
+    inf = 1 / (1 + exp((-8 [mV] - V) / 7.5 [mV]))
+    tau = 1 [ms] * (alpha * beta + gamma)
+        in [ms]
+    alpha = 1.4 / (1 + exp((-35 [mV] - V) / 13 [mV])) + 0.25
+    beta = 1.4 / (1 + exp((V + 5 [mV]) / 5 [mV]))
+    gamma = 1 / (1 + exp((50 [mV] - V) / 20 [mV]))
+dot(f) = (inf - f) / tau
+    inf = 1 / (1 + exp((V + 20 [mV]) / 7 [mV]))
+    tau = 1102.5 [ms] * exp(-(V + 27 [mV]) ^ 2 / 225 [mV^2]) + 200 [ms] / (1 + exp((13 [mV] - V) / 10 [mV])) + 180 [ms] / (1 + exp((V + 30 [mV]) / 10 [mV])) + 20 [ms]
+        in [ms]
+dot(f2) = (inf - f2) / tau
+    inf = 0.67 / (1 + exp((V + 35 [mV]) / 7 [mV])) + 0.33
+    tau = 562 [ms] * exp(-(V + 27 [mV]) ^ 2 / 240 [mV^2]) + 31 [ms] / (1 + exp((25 [mV] - V) / 10 [mV])) + 80 [ms] / (1 + exp((V + 30 [mV]) / 10 [mV]))
+        in [ms]
+dot(fCaSS) = (inf - fCaSS) / tau
+    inf = 0.6 / (1 + (CaSS / 0.05 [mM]) ^ 2) + 0.4
+    tau = 80 [ms] / (1 + (CaSS / 0.05 [mM]) ^ 2) + 2 [ms]
+        in [ms]
+
+#
+# Sodium-potassium pump
+#
+# Appendix to [3]
+#
+[inak]
+use membrane.V, phys.FRT
+use extra.Ko, sodium.Nai
+INaK = P_NaK * Ko / (Ko + K_mk) * Nai / (Nai + K_mNa) / (1 + 0.1245 * exp(-0.1 * V * FRT) + 0.0353 * exp(-V * FRT))
+    in [A/F]
+P_NaK = 2.724 [A/F]
+    in [A/F]
+K_mNa = 40 [mM]
+    in [mM]
+K_mk = 1 [mM]
+    in [mM]
+
+#
+# Sodium-calcium exchanger
+#
+# Appendix to [3]
+#
+[inaca]
+use membrane.V, phys.FRT
+use extra.Nao, extra.Cao
+use sodium.Nai, calcium.Cai
+INaCa = (K_NaCa
+         * (exp(gamma * V * FRT) * Nai ^ 3 * Cao - exp((gamma - 1) * V * FRT) * Nao ^ 3 * Cai * alpha)
+         / ((Km_Nai ^ 3 + Nao ^ 3) * (Km_Ca + Cao) * (1 + K_sat * exp((gamma - 1) * V * FRT))))
+    in [A/F]
+K_NaCa = 1000 [A/F]
+    in [A/F]
+Km_Ca = 1.38 [mM]
+    in [mM]
+Km_Nai = 87.5 [mM]
+    in [mM]
+K_sat = 0.1
+alpha = 2.5
+gamma = 0.35
+
+#
+# Calcium pump
+#
+# Appendix to [3]
+#
+[ipca]
+use calcium.Cai
+IpCa = gpCa * Cai / (Cai + KpCa)
+    in [A/F]
+gpCa = 0.1238 [A/F]
+    in [A/F]
+KpCa = 0.0005 [mM]
+    in [mM]
+
+#
+# Potassium pump
+#
+# Appendix to [3]
+#
+[ipk]
+use membrane.V, nernst.EK
+IpK = gpK * (V - EK) / (1 + exp((25 [mV] - V) / 5.98 [mV]))
+    in [A/F]
+gpK = 0.0146 [mS/uF]
+    in [mS/uF]
+
+#
+# Background calcium current
+#
+# Appendix to [3]
+#
+[icab]
+use membrane.V, nernst.ECa
+ICab = gCab * (V - ECa)
+    in [A/F]
+gCab = 0.000592 [mS/uF]
+    in [mS/uF]
+
+#
+# Background sodium current
+#
+# Appendix to [3]
+#
+[inab]
+use membrane.V, nernst.ENa
+INab = gNab * (V - ENa)
+    in [A/F]
+gNab = 0.00029 [mS/uF]
+    in [mS/uF]
+
+#
+# External concentrations
+#
+# Appendix to [3]
+#
+[extra]
+Cao = 2 [mM]
+    in [mM]
+Nao = 140 [mM]
+    in [mM]
+Ko = 5.4 [mM]
+    in [mM]
+
+#
+# Nernst/Reversal potentials
+#
+# Appendix to [3]
+#
+[nernst]
+use extra.Cao, calcium.Cai
+use extra.Nao, sodium.Nai
+use extra.Ko, potassium.Ki
+use phys.RTF
+ECa = RTF * log(Cao / Cai) * 0.5
+    in [mV]
+ENa = RTF * log(Nao / Nai)
+    in [mV]
+EK = RTF * log(Ko / Ki)
+    in [mV]
+EKs = RTF * log((Ko + P_kna * Nao) / (Ki + P_kna * Nai))
+    in [mV]
+P_kna = 0.03
+
+#
+# Calcium release from the SR (RyR)
+#
+[jrel]
+use membrane.V
+use calcium.CaSS, calcium.CaSR
+Jrel = Vrel * O * (CaSR - CaSS)
+    in [mM/ms]
+Vrel = 0.102 [mS/uF]
+    in [mS/uF]
+O = k1 * CaSS ^ 2 * R_prime / (k3 + k1 * CaSS ^ 2)
+kcasr = max_sr - (max_sr - min_sr) / (1 + (EC / CaSR) ^ 2)
+    max_sr = 2.5
+    min_sr = 1
+    EC = 1.5 [mM]
+        in [mM]
+k1 = k1_prime / kcasr
+    in [1/mM^2/ms]
+k1_prime = 0.15 [1/mM^2/ms]
+    in [1/mM^2/ms]
+k2 = k2_prime * kcasr
+    in [1/mM/ms]
+k2_prime = 0.045 [1/mM/ms]
+    in [1/mM/ms]
+k3 = 0.06 [mS/uF]
+    in [mS/uF]
+k4 = 0.005 [mS/uF]
+    in [mS/uF]
+dot(R_prime) = -k2 * CaSS * R_prime + k4 * (1 - R_prime)
+
+#
+# Leak from the SR
+#
+[jleak]
+use calcium.Cai, calcium.CaSR
+Jleak = Vleak * (CaSR - Cai)
+    in [mM/ms]
+Vleak = 0.00036 [mS/uF]
+    in [mS/uF]
+
+#
+# Calcium uptake into the SR (SERCA)
+#
+[jup]
+use calcium.Cai
+Jup = Vmax_up / (1 + K_up ^ 2 / Cai ^ 2)
+    in [mM/ms]
+Vmax_up = 0.006375 [mM/ms]
+    in [mM/ms]
+K_up = 0.00025 [mM]
+    in [mM]
+
+#
+# Diffusion from SS to Bulk
+#
+[jxfer]
+use calcium.Cai, calcium.CaSS
+Jxfer = Vxfer * (CaSS - Cai)
+    in [mM/ms]
+Vxfer = 0.0038 [mS/uF]
+    in [mS/uF]
+
+#
+# Calcium dynamics
+#
+# Appendix to [2]
+#
+[calcium]
+use jup.Jup, jrel.Jrel, jleak.Jleak, jxfer.Jxfer
+use phys.F, cell.Cm, cell.Vc, cell.Vss, cell.Vsr
+# Free calcium in cytosol, SS, and SR
+dot(Cai) = ddt_Cai_total * f_JCai_free
+    in [mM]
+dot(CaSS) = ddt_CaSS_total * f_JCaSS_free
+    in [mM]
+dot(CaSR) = ddt_CaSR_total * f_JCaSR_free
+    in [mM]
+# Derivative of total calcium concentrations (free + buffered)
+ddt_Cai_total = -(icab.ICab + ipca.IpCa - 2 * inaca.INaCa) * Cm / (2 * Vc * F) + (Jleak - Jup) * Vsr / Vc + Jxfer
+    in [mM/ms]
+ddt_CaSS_total = -ical.ICaL * Cm / (2 * Vss * F) + Jrel * Vsr / Vss - Jxfer * Vc / Vss
+    in [mM/ms]
+ddt_CaSR_total = Jup - (Jrel + Jleak)
+    in [mM/ms]
+# Conversion factors from d/dt total to d/dt free
+f_JCai_free = 1 / (1 + Buf_c * K_buf_c / (Cai + K_buf_c) ^ 2)
+f_JCaSS_free = 1 / (1 + Buf_SS * K_buf_SS / (CaSS + K_buf_SS) ^ 2)
+f_JCaSR_free = 1 / (1 + Buf_SR * K_buf_SR / (CaSR + K_buf_SR) ^ 2)
+# Buffering: Ca_buffered = Ca_i * Buf_c / (Ca_i + K_bufc)
+Buf_c = 0.2 [mM]
+    in [mM]
+Buf_SS = 0.4 [mM]
+    in [mM]
+Buf_SR = 10 [mM]
+    in [mM]
+K_buf_c = 0.001 [mM]
+    in [mM]
+K_buf_SS = 0.00025 [mM]
+    in [mM]
+K_buf_SR = 0.3 [mM]
+    in [mM]
+
+#
+# Sodium dynamics
+#
+# Appendix to [3]
+#
+[sodium]
+use phys.F, cell.Cm, cell.Vc
+dot(Nai) = -INa_total * Cm / (Vc * F)
+    in [mM]
+INa_total = ina.INa + inab.INab + 3 * inak.INaK + 3 * inaca.INaCa
+    in [A/F]
+
+#
+# Potassium dynamics
+#
+# Appendix to [3]
+#
+[potassium]
+use phys.F, cell.Cm, cell.Vc
+dot(Ki) = -IK_total * Cm / (Vc * F)
+    in [mM]
+IK_total = ik1.IK1 + ito.Ito + ikr.IKr + iks.IKs + ipk.IpK + stimulus.i_stim - 2 * inak.INaK
+    in [A/F]
+
+[[protocol]]
+# Level  Start    Length   Period   Multiplier
+1        50       0.5      1000     0
+
+[[script]]
+import myokit
+
+# Get the model and protocol, create a simulation
+m = get_model()
+p = get_protocol()
+s = myokit.Simulation(m, p)
+
+# Run a simulation
+d = s.run(1000)
+
+# Display the simulated membrane potential using Matplotlib
+import matplotlib.pyplot as pl
+pl.figure()
+pl.plot(d['engine.time'], d['membrane.V'])
+pl.xlabel('Time [ms]')
+pl.ylabel('Membrane potential [mV]')
+pl.show()
+

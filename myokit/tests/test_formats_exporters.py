@@ -265,7 +265,7 @@ class ExportTest(unittest.TestCase):
         for v in m.get('ina').variables(const=True):
             if v.name()[:1] == 'p':
                 parameters.append(v)
-        parameters.sort(key=lambda v: myokit._natural_sort_key(v.name()))
+        parameters.sort(key=lambda v: myokit.tools.natural_sort_key(v.name()))
 
         # Set output
         output = 'ina.INa'

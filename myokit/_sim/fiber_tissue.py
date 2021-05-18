@@ -341,7 +341,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Unique simulation id
         FiberTissueSimulation._index += 1
         mname = 'myokit_sim_fiber_tissue_' + str(FiberTissueSimulation._index)
-        mname += '_' + str(myokit._pid_hash())
+        mname += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {
@@ -371,7 +371,8 @@ class FiberTissueSimulation(myokit.CModule):
         if plat != 'Darwin':    # pragma: no osx cover
             libs.append('OpenCL')
         else:                   # pragma: no cover
-            flags.append('-framework OpenCL')
+            flags.append('-framework')
+            flags.append('OpenCL')
         if plat != 'Windows':   # pragma: no windows cover
             libs.append('m')
 

@@ -19,6 +19,7 @@ import myokit.formats.opencl as opencl
 
 tab = '    '
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,8 +112,8 @@ Real *rvec_state = NULL;
 Real *rvec_idiff = NULL;
 Real *rvec_inter_log = NULL;
 Real *rvec_field_data = NULL;
-long *rvec_conn1 = NULL;
-long *rvec_conn2 = NULL;
+int *rvec_conn1 = NULL;
+int *rvec_conn2 = NULL;
 Real *rvec_conn3 = NULL;
 size_t dsize_state;
 size_t dsize_idiff;
@@ -512,11 +513,11 @@ sim_init(PyObject* self, PyObject* args)
             return sim_clean();
         }
         n_connections = PyList_Size(connections);
-        dsize_conn1 = n_connections * sizeof(int);
-        dsize_conn2 = dsize_conn1;
+        dsize_conn1 = n_connections * sizeof(int);  // Use int; same as nx, ny, etc.
+        dsize_conn2 = n_connections * sizeof(int);
         dsize_conn3 = n_connections * sizeof(Real);
-        rvec_conn1 = (long*)malloc(dsize_conn1);
-        rvec_conn2 = (long*)malloc(dsize_conn2);
+        rvec_conn1 = (int*)malloc(dsize_conn1);
+        rvec_conn2 = (int*)malloc(dsize_conn2);
         rvec_conn3 = (Real*)malloc(dsize_conn3);
         for(i=0; i<n_connections; i++) {
             flt = PyList_GetItem(connections, i);   // Borrowed reference
@@ -533,13 +534,13 @@ sim_init(PyObject* self, PyObject* args)
                 PyErr_SetString(PyExc_Exception, "First item in each connection tuple must be int");
                 return sim_clean();
             }
-            rvec_conn1[i] = (long)PyLong_AsLong(ret);
+            rvec_conn1[i] = (int)PyLong_AsLong(ret);
             ret = PyTuple_GetItem(flt, 1);  // Borrowed reference
             if(!PyLong_Check(ret)) {
                 PyErr_SetString(PyExc_Exception, "Second item in each connection tuple must be int");
                 return sim_clean();
             }
-            rvec_conn2[i] = (long)PyLong_AsLong(ret);
+            rvec_conn2[i] = (int)PyLong_AsLong(ret);
             ret = PyTuple_GetItem(flt, 2);  // Borrowed reference
             if(!PyFloat_Check(ret)) {
                 PyErr_SetString(PyExc_Exception, "Third item in each connection tuple must be float");

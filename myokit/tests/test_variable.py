@@ -523,6 +523,25 @@ class VariableTest(unittest.TestCase):
         p121.set_rhs(p112.lhs())
         self.assertRaises(myokit.IllegalReferenceError, p121.validate)
 
+        # RHS cannot be a partial, init, or condition
+        m = myokit.Model()
+        c = m.add_component('c')
+        p = c.add_variable('p')
+        p.set_rhs(3)
+        q = c.add_variable('q')
+        q.set_rhs(2)
+        p.validate()
+        p.set_rhs(myokit.PartialDerivative(p.lhs(), q.lhs()))
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'Partial derivatives', p.validate)
+        p.promote(1)
+        p.set_rhs(myokit.InitialValue(myokit.Name(p)))
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'Initial value', p.validate)
+        p.set_rhs('q == 3')
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'can not be a condition', p.validate)
+
     def test_value(self):
         # Test :meth:`Variable.value()`.
 
