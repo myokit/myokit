@@ -490,6 +490,7 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         self.assertLess(e2, 0.1)
         self.assertLess(e3, 0.006)
 
+
 if __name__ == '__main__':
     import sys
     if '-v' in sys.argv:

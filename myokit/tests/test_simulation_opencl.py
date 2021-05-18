@@ -181,8 +181,6 @@ class SimulationOpenCLTest(unittest.TestCase):
         # Create, run, no stimulus
         # Call set_protocol, reset, run, has stimulus
 
-
-
     # conductance() -> 1d, 2d
     # is2d(), is_2d() -> 1d, 2d
     # neighbours() -> 1d, 2d, arbitrary
