@@ -336,17 +336,20 @@ class Simulation1d(myokit.CModule):
         tmax = tmin + duration
 
         # Gather global variables in model
-        g = [self._model.time().qname()]
+        global_vars = [self._model.time().qname()]
+        pace = self._model.binding('pace')
+        if pace is not None:
+            global_vars.append(pace.qname())
 
         # Parse log argument
+        allowed = myokit.LOG_STATE + myokit.LOG_BOUND + myokit.LOG_INTER
         log = myokit.prepare_log(
             log,
             self._model,
             dims=(self._ncells,),
-            global_vars=g,
+            global_vars=global_vars,
             if_empty=myokit.LOG_STATE + myokit.LOG_BOUND,
-            allowed_classes=myokit.LOG_STATE + myokit.LOG_BOUND
-            + myokit.LOG_INTER,
+            allowed_classes=allowed,
         )
 
         # Get event tuples
