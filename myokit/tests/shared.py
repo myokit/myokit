@@ -31,13 +31,15 @@ DIR_IO = os.path.join(DIR_DATA, 'io')
 DIR_FORMATS = os.path.join(DIR_DATA, 'formats')
 
 # OpenCL support
-OpenCL_FOUND = myokit.OpenCL.supported_and_available()
-OpenCL_DOUBLE_PRECISION = (
-    OpenCL_FOUND and myokit.OpenCL.test_extension_on_current_platform(
-        'cl_khr_fp64'))
-OpenCL_DOUBLE_PRECISION_CONNECTIONS = (
-    OpenCL_FOUND and myokit.OpenCL.test_extension_on_current_platform(
-        'cl_khr_int64_base_atomics'))
+OpenCL_FOUND = myokit.OpenCL.available()
+OpenCL_DOUBLE_PRECISION = False
+OpenCL_DOUBLE_PRECISION_CONNECTIONS = False
+if OpenCL_FOUND:
+    info = myokit.OpenCL.current_info()
+    OpenCL_DOUBLE_PRECISION = info.has_extension('cl_khr_fp64')
+    OpenCL_DOUBLE_PRECISION_CONNECTIONS = info.has_extension(
+        'cl_khr_int64_base_atomics')
+    del(info)
 
 
 class TemporaryDirectory(object):

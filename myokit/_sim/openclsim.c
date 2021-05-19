@@ -98,8 +98,6 @@ PyObject *field_data;   // A list containing all field data
 // OpenCL objects
 cl_context context = NULL;
 cl_command_queue command_queue = NULL;
-cl_device_info device_info = NULL;
-cl_device_fp_config device_fp_config = NULL;
 cl_program program = NULL;
 cl_kernel kernel_cell;
 cl_kernel kernel_diff;
@@ -593,24 +591,16 @@ sim_init(PyObject* self, PyObject* args)
     }
     #ifdef MYOKIT_DEBUG
     printf("Selected platform and device id.\n");
-    if (platform_id == NULL) {
-        printf("No preferred platform set.\n");
-    } else {
-        printf("Preferred platform set.\n");
-    }
-    if (device_id == NULL) {
-        printf("No preferred device set.\n");
-    } else {
-        printf("Preferred device set.\n");
-    }
     #endif
 
     // Query capabilities
     #ifdef MYOKIT_DOUBLE_PRECISION
-    flag = clGetDeviceInfo(device_id, CL_DEVICE_DOUBLE_FP_CONFIG, sizeof(device_fp_config), &device_fp_config, NULL);
-    if(mcl_flag(flag)) return sim_clean();
-    if (device_fp_config == 0) {
-        PyErr_SetString(PyExc_Exception, "Double precision extension (cl_khr_fp64) is not supported on the selected device.");
+    if (!mcl_platform_supports_extension(platform_id, "cl_khr_fp64")) {
+        PyErr_SetString(PyExc_Exception, "The OpenCL extension cl_khr_fp64 is required for double precision simulations, but was not found on the current OpenCL platform/device.");
+        return sim_clean();
+    }
+    if ((connections != Py_None) && (!mcl_platform_supports_extension(platform_id, "cl_khr_int64_base_atomics"))) {
+        PyErr_SetString(PyExc_Exception, "The OpenCL extension cl_khr_int64_base_atomics is required for double precision simulations with set_connections(), but was not found on the current OpenCL platform/device.");
         return sim_clean();
     }
     #endif
@@ -619,16 +609,8 @@ sim_init(PyObject* self, PyObject* args)
     #ifdef MYOKIT_DEBUG
     printf("Attempting to create OpenCL context...\n");
     #endif
-    if (platform_id != NULL) {
-        #ifdef MYOKIT_DEBUG
-        printf("Creating context with context_properties\n");
-        #endif
-        cl_context_properties context_properties[] =
-            { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0};
-        context = clCreateContext(context_properties, 1, &device_id, NULL, NULL, &flag);
-    } else {
-        context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &flag);
-    }
+    cl_context_properties context_properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0};
+    context = clCreateContext(context_properties, 1, &device_id, NULL, NULL, &flag);
     if(mcl_flag2("context", flag)) return sim_clean();
     #ifdef MYOKIT_DEBUG
     printf("Created context.\n");
@@ -1000,7 +982,7 @@ sim_step(PyObject *self, PyObject *args)
             for(i=0; i<n_vars; i++) {
                 flt = PyFloat_FromDouble(*vars[i]);
                 ret = PyObject_CallMethodObjArgs(logs[i], list_update_str, flt, NULL);
-                Py_DECREF(flt); flt = NULL;
+                Py_CLEAR(flt);
                 Py_XDECREF(ret);
                 if(ret == NULL) {
                     PyErr_SetString(PyExc_Exception, "Call to append() failed on logging list.");
