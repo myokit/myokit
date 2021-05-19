@@ -985,7 +985,7 @@ class SimulationOpenCL(myokit.CModule):
             'rl_states': self._rl_states,
             'connections': self._connections is not None,
         }
-        if myokit.DEBUG:
+        if myokit.DEBUG:    # pragma: no cover
             print('-' * 79)
             print(
                 self._code(kernel_file, args,
@@ -1235,7 +1235,7 @@ class SimulationOpenCL(myokit.CModule):
         if gx < 0:
             raise ValueError('Invalid conductance gx=' + str(gx))
         if gy < 0:
-            raise ValueError('Invalid conductance gx=' + str(gy))
+            raise ValueError('Invalid conductance gy=' + str(gy))
         self._gx, self._gy = gx, gy
         self._connections = None
 
@@ -1260,11 +1260,13 @@ class SimulationOpenCL(myokit.CModule):
         if not self._diffusion_enabled:
             raise RuntimeError(
                 'This method is unavailable when diffusion is disabled.')
+        if len(self._dims) != 1:
+            raise RuntimeError('Connections can only be specified in 1d mode.')
 
         if connections is None:
-            raise ValueError('No connection list given.')
-        if len(self._dims) != 1:
-            raise ValueError('Connections can only be specified in 1d mode.')
+            raise ValueError(
+                'Connection list cannot be None. To unset connections, call '
+                ' set_conductance() with the new conductance value.')
         conns = []
         doubles = set()
         for x in connections:
@@ -1272,7 +1274,7 @@ class SimulationOpenCL(myokit.CModule):
                 i, j, c = x
             except Exception:
                 raise ValueError(
-                    'Connections must be None or a list of 3-tuples'
+                    'Connections must be a list of 3-tuples'
                     ' (cell_index_1, cell_index_2, conductance).')
 
             # Check indices

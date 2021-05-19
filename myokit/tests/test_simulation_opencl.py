@@ -22,7 +22,7 @@ from shared import (
     OpenCL_FOUND,
     #OpenCL_DOUBLE_PRECISION,
     OpenCL_DOUBLE_PRECISION_CONNECTIONS,
-    #WarningCollector,
+    WarningCollector,
 )
 
 # Unit testing in Python 2 and 3
@@ -48,158 +48,187 @@ class SimulationOpenCLTest(unittest.TestCase):
         cls.m = myokit.load_model(
             os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
         cls.p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
-        cls.s1 = myokit.SimulationOpenCL(cls.m, cls.p, ncells=10)
-        cls.s2 = myokit.SimulationOpenCL(cls.m, cls.p, ncells=(4, 4))
+        cls._s0 = cls._s1 = cls._s2 = None
 
-    def test_creation(self):
-        # Tests opencl simulation creation tasks
+    @property
+    def s0(self):
+        if self._s0 is None:
+            self._s0 = myokit.SimulationOpenCL(self.m, self.p, ncells=1)
+        return self._s0
 
-        # Model must be valid
-        m = myokit.load_model('example')
-        m2 = m.clone()
-        m2.label('membrane_potential').set_rhs(None)
-        self.assertFalse(m2.is_valid())
-        self.assertRaises(
-            myokit.MissingRhsError, myokit.SimulationOpenCL, m2)
+    @property
+    def s1(self):
+        if self._s1 is None:
+            self._s1 = myokit.SimulationOpenCL(self.m, self.p, ncells=10)
+        return self._s1
 
-        # Model must have interdependent components
-        m2 = m.clone()
-        x = m2.get('ik').add_variable('xx')
-        x.set_rhs('membrane.i_ion')
-        self.assertTrue(m2.has_interdependent_components())
-        self.assertRaisesRegex(
-            ValueError, 'interdependent', myokit.SimulationOpenCL, m2)
-
-        # Dimensionality must be scalar or 2d tuple
-        # (Correct usage is tested later)
-        #s = myokit.SimulationOpenCL(m, ncells=1)
-        #self.assertEqual(s.shape(), 1)
-        #s = myokit.SimulationOpenCL(m, ncells=50)
-        #self.assertEqual(s.shape(), 50)
-        #s = myokit.SimulationOpenCL(m, ncells=(1,1))
-        #self.assertEqual(s.shape(), (1, 1))
-        self.assertRaisesRegex(
-            ValueError, r'scalar or a tuple \(nx, ny\)',
-            myokit.SimulationOpenCL, m, ncells=None)
-        self.assertRaisesRegex(
-            ValueError, r'scalar or a tuple \(nx, ny\)',
-            myokit.SimulationOpenCL, m, ncells=(1,))
-        self.assertRaisesRegex(
-            ValueError, r'scalar or a tuple \(nx, ny\)',
-            myokit.SimulationOpenCL, m, ncells=(1, 1, 1))
-
-        # Number of cells must be at least 1
-        self.assertRaisesRegex(
-            ValueError, 'at least 1',
-            myokit.SimulationOpenCL, m, ncells=-1)
-        self.assertRaisesRegex(
-            ValueError, 'at least 1',
-            myokit.SimulationOpenCL, m, ncells=0)
-        self.assertRaisesRegex(
-            ValueError, 'at least 1',
-            myokit.SimulationOpenCL, m, ncells=(0, 10))
-        self.assertRaisesRegex(
-            ValueError, 'at least 1',
-            myokit.SimulationOpenCL, m, ncells=(10, 0))
-        self.assertRaisesRegex(
-            ValueError, 'at least 1',
-            myokit.SimulationOpenCL, m, ncells=(-1, -1))
-
-        # Precision must be single or double
-        self.assertRaisesRegex(
-            ValueError, 'Only single and double',
-            myokit.SimulationOpenCL, m,
-            precision=myokit.SINGLE_PRECISION + myokit.DOUBLE_PRECISION)
-
-        # Membrane potential must be given with label
-        m2 = m.clone()
-        m2.label('membrane_potential').set_label(None)
-        self.assertRaisesRegex(
-            ValueError, 'requires the membrane potential',
-            myokit.SimulationOpenCL, m2)
-
-        # Membrane potential must be a state
-        m2.get('ina.INa').set_label('membrane_potential')
-        self.assertRaisesRegex(
-            ValueError, 'must be a state variable',
-            myokit.SimulationOpenCL, m2)
+    @property
+    def s2(self):
+        if self._s2 is None:
+            self._s2 = myokit.SimulationOpenCL(self.m, self.p, ncells=(4, 4))
+        return self._s2
 
     def test_calculate_conductance(self):
         # Test the calculate_conductance() method.
         r, sx, chi, dx = 2, 3.4, 5.6, 7.8
         self.assertEqual(
-            self.s1.calculate_conductance(r, sx, chi, dx),
+            self.s0.calculate_conductance(r, sx, chi, dx),
             r * sx * chi / ((1 + r) * dx * dx)
         )
 
-    def test_diffusion_free(self):
-        # Tests creating a simulation without diffusion
+    def test_conductance(self):
+        """Tests setting and getting conductance."""
 
-        # Create without diffusion, 1d
-        s1 = myokit.SimulationOpenCL(
-            self.m, self.p, ncells=3, diffusion=False)
+        # 1-dimensional
+        try:
+            # Test setting and getting
+            gx = self.s1.conductance()
+            self.assertIsInstance(gx, float)
+            self.s1.set_conductance(gx + 1)
+            self.assertEqual(self.s1.conductance(), gx + 1)
 
-        # Check that various methods are now unavailable
-        self.assertRaisesRegex(
-            RuntimeError, 'method is unavailable', s1.conductance)
-        self.assertRaisesRegex(
-            RuntimeError, 'method is unavailable', s1.is_paced, 0)
-        self.assertRaisesRegex(
-            RuntimeError, 'method is unavailable', s1.neighbours, 0)
-        self.assertRaisesRegex(
-            RuntimeError, 'method is unavailable', s1.set_conductance)
-        self.assertRaisesRegex(
-            RuntimeError, 'method is unavailable', s1.set_connections, [])
-        self.assertRaisesRegex(
-            RuntimeError, 'method is unavailable', s1.set_paced_cells)
-        self.assertRaisesRegex(
-            RuntimeError, 'method is unavailable', s1.set_paced_cell_list, [])
+            # Test conductance changes have an effect
+            self.s1.reset()
+            self.s1.set_paced_cells(5)
+            self.s1.set_conductance()
+            d = self.s1.run(10, log=['membrane.V']).npview()
+            self.assertGreater(np.max(d['membrane.V', 9]), 0)
 
-        # Test that all cells depolarise and are the same
-        d = s1.run(10, log=['membrane.V']).npview()
-        self.assertGreater(np.max(d['membrane.V', 0]), 0)
-        self.assertGreater(np.max(d['membrane.V', 1]), 0)
-        self.assertGreater(np.max(d['membrane.V', 2]), 0)
-        self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 1]))
-        self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
+            self.s1.reset()
+            self.s1.set_conductance(0)
+            d = self.s1.run(10, log=['membrane.V']).npview()
+            self.assertLess(np.max(d['membrane.V', 9]), 0)
+        finally:
+            # Restore default values
+            self.s1.set_conductance()
 
-        # Apply a field and try again (this is its intended use)
-        s1.reset()
-        s1.set_field('isi.gsBar', [0.05, 0.09, 0.14])
-        d = s1.run(10, log=['membrane.V']).npview()
-        self.assertGreater(np.max(d['membrane.V', 0]), 0)
-        self.assertGreater(np.max(d['membrane.V', 1]), 0)
-        self.assertGreater(np.max(d['membrane.V', 2]), 0)
-        self.assertFalse(np.all(d['membrane.V', 0] == d['membrane.V', 1]))
-        self.assertFalse(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
-        self.assertFalse(np.all(d['membrane.V', 1] == d['membrane.V', 2]))
+        # 2-dimensional
+        try:
+            # Test setting and getting
+            gx, gy = self.s2.conductance()
+            self.assertIsInstance(gx, float)
+            self.assertIsInstance(gy, float)
+            self.s2.set_conductance(gx + 1)
+            self.assertEqual(self.s2.conductance(), (gx + 1, gy))
+            self.s2.set_conductance(gx + 1, gx + 2)
+            self.assertEqual(self.s2.conductance(), (gx + 1, gx + 2))
+            self.s2.set_conductance(gy=gx + 3)
+            self.assertEqual(self.s2.conductance()[1], gx + 3)
 
-    def test_protocol(self):
-        # Tests creating without protocol, and setting one later
-        pass
+            # Test conductance changes have an effect
+            self.s2.reset()
+            self.s2.set_paced_cells(2, 2)
+            self.s2.set_conductance(10, 10)
+            d = self.s2.run(5, log=['membrane.V']).npview()
+            self.assertGreater(np.max(d['membrane.V', 3, 0]), -80)
+            self.assertGreater(np.max(d['membrane.V', 0, 3]), -80)
+            self.assertGreater(np.max(d['membrane.V', 3, 3]), -80)
 
-        # Create, run, no stimulus
-        # Call set_protocol, reset, run, has stimulus
+            self.s2.reset()
+            self.s2.set_conductance(10, 0)
+            d = self.s2.run(5, log=['membrane.V']).npview()
+            self.assertGreater(np.max(d['membrane.V', 3, 0]), -80)
+            self.assertLess(np.max(d['membrane.V', 0, 3]), -80)
+            self.assertLess(np.max(d['membrane.V', 3, 3]), -80)
 
-    # conductance() -> 1d, 2d
-    # is2d(), is_2d() -> 1d, 2d
-    # neighbours() -> 1d, 2d, arbitrary
-    # set_conductance() -> 1d, 2d
-    # set_connections() -> 1d
-    # set_field() -> 1d, 2d
-    # shape() -> 1d, 2d
+            self.s2.reset()
+            self.s2.set_conductance(0, 10)
+            d = self.s2.run(5, log=['membrane.V']).npview()
+            self.assertLess(np.max(d['membrane.V', 3, 0]), -80)
+            self.assertGreater(np.max(d['membrane.V', 0, 3]), -80)
+            self.assertLess(np.max(d['membrane.V', 3, 3]), -80)
 
-    # set_paced_cells() -> 1d, 2d
-    # set_paced_cell_list() -> 1d, 2d
-    # is_paced() -> 1d, 2d, rectangle, explicit selection
+            self.s2.reset()
+            self.s2.set_conductance(0, 0)
+            d = self.s2.run(5, log=['membrane.V']).npview()
+            self.assertLess(np.max(d['membrane.V', 3, 0]), 0)
+            self.assertLess(np.max(d['membrane.V', 0, 3]), 0)
+            self.assertLess(np.max(d['membrane.V', 3, 3]), 0)
 
-    # run, pre, reset, time, set_time, state, set_state -> 1d, 2d
-    # reset, pre, set_default_state
+            # Bad values
+            self.assertRaisesRegex(
+                ValueError, 'Invalid conductance gx',
+                self.s2.set_conductance, -1, 10)
+            self.assertRaisesRegex(
+                ValueError, 'Invalid conductance gy',
+                self.s2.set_conductance, 10, -1)
 
-    # set_constant() -> 0d
-    # set_step_size(), step_size -> 0d
+        finally:
+            # Restore default values
+            self.s2.set_paced_cells()
+            self.s2.set_conductance()
 
-    def test_connections_simple(self):
+    def test_connections_set(self):
+        """Tests setting connections."""
+
+        # Connections unsets conductance
+        try:
+            self.s1.set_connections([[0, 1, 1]])
+            self.assertIsNone(self.s1.conductance())
+        finally:
+            self.s1.set_conductance()
+
+        # Connections cannot be set on 2d sim
+        try:
+            self.assertRaisesRegex(
+                RuntimeError, 'in 1d mode',
+                self.s2.set_connections, [[0, 1, 1]])
+        finally:
+            self.s2.set_conductance()
+
+        # Test list is checked
+        try:
+            self.s1.set_connections(((0, 1, 1),))
+            self.s1.set_connections(([0, 1, 1], (0, 2, 1)))
+            self.assertRaisesRegex(
+                ValueError, 'Connection list cannot be None',
+                self.s1.set_connections, None)
+
+            # Wrong list contents
+            self.assertRaisesRegex(
+                ValueError, 'list of 3-tuples',
+                self.s1.set_connections, [[1, 1]])
+            self.assertRaisesRegex(
+                ValueError, 'list of 3-tuples',
+                self.s1.set_connections, [1, 1, 1])
+            self.assertRaisesRegex(
+                ValueError, 'list of 3-tuples',
+                self.s1.set_connections, 'hello')
+
+            # Invalid indices
+            self.assertRaisesRegex(
+                ValueError, 'Invalid connection',
+                self.s1.set_connections, [[-1, 0, 1]])
+            self.assertRaisesRegex(
+                ValueError, 'Invalid connection',
+                self.s1.set_connections, [[0, -2, 1]])
+            self.assertRaisesRegex(
+                ValueError, 'Invalid connection',
+                self.s1.set_connections, [[10, 0, 1]])
+            self.assertRaisesRegex(
+                ValueError, 'Invalid connection',
+                self.s1.set_connections, [[0, 10, 1]])
+
+            # Duplicates
+            self.assertRaisesRegex(
+                ValueError, 'Duplicate connection',
+                self.s1.set_connections, [[1, 0, 1], [1, 0, 1]])
+            self.assertRaisesRegex(
+                ValueError, 'Duplicate connection',
+                self.s1.set_connections, [[1, 0, 1], [1, 0, 2]])
+            self.assertRaisesRegex(
+                ValueError, 'Duplicate connection',
+                self.s1.set_connections, [[1, 0, 1], [0, 1, 1]])
+
+            # Negative conductances
+            self.assertRaisesRegex(
+                ValueError, 'Invalid conductance',
+                self.s1.set_connections, [[1, 0, 1], [0, 2, -1]])
+
+        finally:
+            self.s1.set_conductance()
+
+    def test_connections_run(self):
         # Tests whether a simple simulation with connections gives the same
         # results as a simulation with set_conductance
 
@@ -209,16 +238,22 @@ class SimulationOpenCLTest(unittest.TestCase):
         p = myokit.pacing.blocktrain(bcl, duration, level=1)
 
         # Run simulations
-        s1 = myokit.SimulationOpenCL(self.m, p, ncells=2)
-        s1.set_paced_cells(1)
-        g = 1
-        t = 5
-        log = ['engine.time', 'membrane.V', 'membrane.i_diff']
-        s1.set_conductance(g)
-        d1a = s1.run(t, log=log, log_interval=0.1).npview()
-        s1.reset()
-        s1.set_connections([(0, 1, g)])
-        d1b = s1.run(t, log=log, log_interval=0.1).npview()
+        try:
+            self.s1.reset()
+            self.s1.set_paced_cells(3)
+            g = 5
+            t = 10
+            dt = 0.1
+            log = ['engine.time', 'membrane.V', 'membrane.i_diff']
+            self.s1.set_conductance(g, 0)
+            d1a = self.s1.run(t, log=log, log_interval=dt).npview()
+            self.s1.reset()
+            self.s1.set_connections([(i, i + 1, g) for i in range(9)])
+            d1b = self.s1.run(t, log=log, log_interval=dt).npview()
+        finally:
+            self.s1.set_conductance()
+
+        i0, i1 = 0, 9
 
         if debug:
             # Display the result
@@ -229,47 +264,47 @@ class SimulationOpenCLTest(unittest.TestCase):
             x = f.add_subplot(2, 3, 1)
             x.set_title('set_conductance, sp')
             x.set_ylabel('Vm')
-            x.plot(d1a['engine.time'], d1a['membrane.V', 0])
-            x.plot(d1a['engine.time'], d1a['membrane.V', 1])
+            x.plot(d1a['engine.time'], d1a['membrane.V', i0])
+            x.plot(d1a['engine.time'], d1a['membrane.V', i1])
             x = f.add_subplot(2, 3, 2)
             x.set_title('set_connections, sp')
             x.set_ylabel('Vm')
-            x.plot(d1b['engine.time'], d1b['membrane.V', 0])
-            x.plot(d1b['engine.time'], d1b['membrane.V', 1])
+            x.plot(d1b['engine.time'], d1b['membrane.V', i0])
+            x.plot(d1b['engine.time'], d1b['membrane.V', i1])
             x = f.add_subplot(2, 3, 3)
             x.set_ylabel('Vm')
             x.plot(d1a['engine.time'],
-                   d1a['membrane.V', 0] - d1b['membrane.V', 0])
+                   d1a['membrane.V', i0] - d1b['membrane.V', i0])
             x.plot(d1a['engine.time'],
-                   d1a['membrane.V', 1] - d1b['membrane.V', 1])
+                   d1a['membrane.V', i1] - d1b['membrane.V', i1])
 
             x = f.add_subplot(2, 3, 4)
             x.set_ylabel('I_diff')
-            x.plot(d1a['engine.time'], d1a['membrane.i_diff', 0])
-            x.plot(d1a['engine.time'], d1a['membrane.i_diff', 1])
+            x.plot(d1a['engine.time'], d1a['membrane.i_diff', i0])
+            x.plot(d1a['engine.time'], d1a['membrane.i_diff', i1])
             x = f.add_subplot(2, 3, 5)
             x.set_ylabel('I_diff')
-            x.plot(d1b['engine.time'], d1b['membrane.i_diff', 0])
-            x.plot(d1b['engine.time'], d1b['membrane.i_diff', 1])
+            x.plot(d1b['engine.time'], d1b['membrane.i_diff', i0])
+            x.plot(d1b['engine.time'], d1b['membrane.i_diff', i1])
             x = f.add_subplot(2, 3, 6)
             x.set_ylabel('I_diff')
             x.plot(d1a['engine.time'],
-                   d1a['membrane.i_diff', 0] - d1b['membrane.i_diff', 0])
+                   d1a['membrane.i_diff', i0] - d1b['membrane.i_diff', i0])
             x.plot(d1a['engine.time'],
-                   d1a['membrane.i_diff', 1] - d1b['membrane.i_diff', 1])
+                   d1a['membrane.i_diff', i1] - d1b['membrane.i_diff', i1])
 
             plt.show()
 
         # Check results are the same
-        e0 = np.abs(d1a['membrane.V', 0] - d1b['membrane.V', 0])
-        e1 = np.abs(d1a['membrane.V', 1] - d1b['membrane.V', 1])
-        self.assertLess(np.max(e0), 1e-9)
-        self.assertLess(np.max(e1), 1e-9)
+        e0 = np.abs(d1a['membrane.V', i0] - d1b['membrane.V', i0])
+        e1 = np.abs(d1a['membrane.V', i1] - d1b['membrane.V', i1])
+        self.assertLess(np.max(e0), 1e-5)
+        self.assertLess(np.max(e1), 1e-5)
 
     @unittest.skipIf(
         not OpenCL_DOUBLE_PRECISION_CONNECTIONS,
         'Required OpenCL extension cl_khr_int64_base_atomics not available.')
-    def test_connections_simple_double_precision(self):
+    def test_connections_run_double_precision(self):
         # Repeats test_connections_simple, but with double precision
 
         # Make protocol
@@ -336,399 +371,557 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertLess(np.max(e0), 1e-9)
         self.assertLess(np.max(e1), 1e-9)
 
+    def test_creation(self):
+        # Tests opencl simulation creation tasks
 
-class SimulationOpenCLFindNanTest(unittest.TestCase):
-    """
-    Tests the find_nan() method of `SimulationOpenCL`.
-    """
+        # Model must be valid
+        m2 = self.m.clone()
+        m2.label('membrane_potential').set_rhs(None)
+        self.assertFalse(m2.is_valid())
+        self.assertRaises(
+            myokit.MissingRhsError, myokit.SimulationOpenCL, m2)
 
+        # Model must have interdependent components
+        m2 = self.m.clone()
+        x = m2.get('ix1').add_variable('xx')
+        x.set_rhs('membrane.i_ion')
+        self.assertTrue(m2.has_interdependent_components())
+        self.assertRaisesRegex(
+            ValueError, 'interdependent', myokit.SimulationOpenCL, m2)
 
-'''
-class TodoTest(unittest.TestCase):
-    def test_neighbours(self):
-        # Test listing neighbours in a 1d or arbitrary geom simulation
-        m, p, _ = myokit.load('example')
+        # Dimensionality must be scalar or 2d tuple
+        # (Correct usage is tested later)
+        #s = myokit.SimulationOpenCL(m, ncells=1)
+        #self.assertEqual(s.shape(), 1)
+        #s = myokit.SimulationOpenCL(m, ncells=50)
+        #self.assertEqual(s.shape(), 50)
+        #s = myokit.SimulationOpenCL(m, ncells=(1,1))
+        #self.assertEqual(s.shape(), (1, 1))
+        self.assertRaisesRegex(
+            ValueError, r'scalar or a tuple \(nx, ny\)',
+            myokit.SimulationOpenCL, self.m, ncells=None)
+        self.assertRaisesRegex(
+            ValueError, r'scalar or a tuple \(nx, ny\)',
+            myokit.SimulationOpenCL, self.m, ncells=(1,))
+        self.assertRaisesRegex(
+            ValueError, r'scalar or a tuple \(nx, ny\)',
+            myokit.SimulationOpenCL, self.m, ncells=(1, 1, 1))
 
-        # 0d
-        s = myokit.SimulationOpenCL(m, p, 1)
-        x = s.neighbours(0)
+        # Number of cells must be at least 1
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, self.m, ncells=-1)
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, self.m, ncells=0)
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, self.m, ncells=(0, 10))
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, self.m, ncells=(10, 0))
+        self.assertRaisesRegex(
+            ValueError, 'at least 1',
+            myokit.SimulationOpenCL, self.m, ncells=(-1, -1))
+
+        # Precision must be single or double
+        self.assertRaisesRegex(
+            ValueError, 'Only single and double',
+            myokit.SimulationOpenCL, self.m,
+            precision=myokit.SINGLE_PRECISION + myokit.DOUBLE_PRECISION)
+
+        # Membrane potential must be given with label
+        m2 = self.m.clone()
+        m2.label('membrane_potential').set_label(None)
+        self.assertRaisesRegex(
+            ValueError, 'requires the membrane potential',
+            myokit.SimulationOpenCL, m2)
+
+        # Membrane potential must be a state
+        m2.get('ina.INa').set_label('membrane_potential')
+        self.assertRaisesRegex(
+            ValueError, 'must be a state variable',
+            myokit.SimulationOpenCL, m2)
+
+    def test_diffusion_free(self):
+        # Tests creating a simulation without diffusion
+
+        # Create without diffusion, 1d
+        s = myokit.SimulationOpenCL(
+            self.m, self.p, ncells=3, diffusion=False)
+
+        # Check that various methods are now unavailable
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s.conductance)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s.is_paced, 0)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s.neighbours, 0)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s.set_conductance)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s.set_connections, [])
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s.set_paced_cells)
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable', s.set_paced_cell_list, [])
+
+        # Test that all cells depolarise and are the same
+        d = s.run(10, log=['membrane.V']).npview()
+        self.assertGreater(np.max(d['membrane.V', 0]), 0)
+        self.assertGreater(np.max(d['membrane.V', 1]), 0)
+        self.assertGreater(np.max(d['membrane.V', 2]), 0)
+        self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 1]))
+        self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
+
+        # Apply a field and try again (this is its intended use)
+        s.reset()
+        s.set_field('isi.gsBar', [0.05, 0.09, 0.14])
+        d = s.run(10, log=['membrane.V']).npview()
+        self.assertGreater(np.max(d['membrane.V', 0]), 0)
+        self.assertGreater(np.max(d['membrane.V', 1]), 0)
+        self.assertGreater(np.max(d['membrane.V', 2]), 0)
+        self.assertFalse(np.all(d['membrane.V', 0] == d['membrane.V', 1]))
+        self.assertFalse(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
+        self.assertFalse(np.all(d['membrane.V', 1] == d['membrane.V', 2]))
+
+    def test_is_2d(self):
+        # Tests is_2d()
+
+        self.assertTrue(self.s2.is_2d())
+        self.assertFalse(self.s1.is_2d())
+
+        # Deprecated alias
+        with WarningCollector() as c:
+            self.assertTrue(self.s2.is2d())
+        self.assertIn('deprecated', c.text())
+        with WarningCollector() as c:
+            self.assertFalse(self.s1.is2d())
+        self.assertIn('deprecated', c.text())
+
+    def test_neighbours_0d(self):
+        # Test listing neighbours in a 0d simulation
+
+        x = self.s0.neighbours(0)
         self.assertEqual(len(x), 0)
-        self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, -1)
-        self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, 1)
-        self.assertRaisesRegex(ValueError, '1-dimensional', s.neighbours, 0, 1)
+        self.assertRaisesRegex(
+            ValueError, 'out of range', self.s0.neighbours, -1)
+        self.assertRaisesRegex(
+            ValueError, 'out of range', self.s0.neighbours, 1)
+        self.assertRaisesRegex(
+            ValueError, '1-dimensional', self.s0.neighbours, 0, 1)
 
-        # 1d
-        s = myokit.SimulationOpenCL(m, p, 5)
+    def test_neighbours_1d(self):
+        # Test listing neighbours in a 1d simulation
+
         # Left edge
-        x = s.neighbours(0)
+        x = self.s1.neighbours(0)
         self.assertEqual(len(x), 1)
         self.assertIn(1, x)
         # Middle
-        x = s.neighbours(1)
+        x = self.s1.neighbours(1)
         self.assertEqual(len(x), 2)
         self.assertIn(0, x)
         self.assertIn(2, x)
         # Right edge
-        x = s.neighbours(4)
+        x = self.s1.neighbours(9)
         self.assertEqual(len(x), 1)
-        self.assertIn(3, x)
+        self.assertIn(8, x)
+
         # Out of range
-        self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, -1)
-        self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, 6)
-        self.assertRaisesRegex(ValueError, '1-dimensional', s.neighbours, 0, 1)
+        self.assertRaisesRegex(
+            ValueError, 'out of range', self.s1.neighbours, -1)
+        self.assertRaisesRegex(
+            ValueError, 'out of range', self.s1.neighbours, 10)
+        self.assertRaisesRegex(
+            ValueError, '1-dimensional', self.s1.neighbours, 0, 1)
 
-        # Arbitrary geometry
-        g = 1
-        s.set_connections([(0, 1, g), (0, 2, g), (3, 0, g), (3, 2, g)])
-        x = s.neighbours(0)
-        self.assertEqual(len(x), 3)
-        self.assertIn(1, x)
-        self.assertIn(2, x)
-        self.assertIn(3, x)
-        x = s.neighbours(1)
-        self.assertEqual(len(x), 1)
-        self.assertIn(0, x)
-        x = s.neighbours(2)
-        self.assertEqual(len(x), 2)
-        self.assertIn(0, x)
-        self.assertIn(3, x)
-        x = s.neighbours(3)
-        self.assertEqual(len(x), 2)
-        self.assertIn(0, x)
-        self.assertIn(2, x)
-        x = s.neighbours(4)
-        self.assertEqual(len(x), 0)
+    def test_neighbours_1d_connections(self):
+        # Test listing neighbours in a 1d simulation with arbitrary geometry
 
-        # Invalid connections
-        self.assertRaisesRegex(
-            ValueError, 'nvalid connection', s.set_connections, [(0, 0, g)])
-        self.assertRaisesRegex(
-            ValueError, 'nvalid connection', s.set_connections, [(-1, 0, g)])
-        self.assertRaisesRegex(
-            ValueError, 'nvalid connection', s.set_connections, [(0, -1, g)])
-        self.assertRaisesRegex(
-            ValueError, 'nvalid connection', s.set_connections, [(0, 5, g)])
-        self.assertRaisesRegex(
-            ValueError, 'nvalid connection', s.set_connections, [(5, 0, g)])
+        try:
+            g = 1
+            self.s1.set_connections(
+                [(0, 1, g), (0, 2, g), (3, 0, g), (3, 2, g)])
+            x = self.s1.neighbours(0)
+            self.assertEqual(len(x), 3)
+            self.assertIn(1, x)
+            self.assertIn(2, x)
+            self.assertIn(3, x)
+            x = self.s1.neighbours(1)
+            self.assertEqual(len(x), 1)
+            self.assertIn(0, x)
+            x = self.s1.neighbours(2)
+            self.assertEqual(len(x), 2)
+            self.assertIn(0, x)
+            self.assertIn(3, x)
+            x = self.s1.neighbours(3)
+            self.assertEqual(len(x), 2)
+            self.assertIn(0, x)
+            self.assertIn(2, x)
+            x = self.s1.neighbours(4)
+            self.assertEqual(len(x), 0)
+        finally:
+            # Restore defaults
+            self.s1.set_conductance()
 
-        # Duplicate connections
-        self.assertRaisesRegex(
-            ValueError, 'uplicate connection',
-            s.set_connections, [(0, 1, g), (0, 1, g)])
-        self.assertRaisesRegex(
-            ValueError, 'uplicate connection',
-            s.set_connections, [(0, 1, g), (1, 0, g)])
+    def test_neighbours_2d(self):
+        # Test listing neighbours in a 2d simulation
 
-        # 2d
-        s = myokit.SimulationOpenCL(m, p, (5, 4))
         # Corners
-        x = s.neighbours(0, 0)
+        x = self.s2.neighbours(0, 0)
         self.assertEqual(len(x), 2)
         self.assertIn((1, 0), x)
         self.assertIn((0, 1), x)
-        x = s.neighbours(4, 3)
+        x = self.s2.neighbours(3, 3)
         self.assertEqual(len(x), 2)
-        self.assertIn((4, 2), x)
-        self.assertIn((3, 3), x)
+        self.assertIn((3, 2), x)
+        self.assertIn((2, 3), x)
+
         # Edges
-        x = s.neighbours(1, 0)
+        x = self.s2.neighbours(1, 0)
         self.assertEqual(len(x), 3)
         self.assertIn((0, 0), x)
         self.assertIn((2, 0), x)
         self.assertIn((1, 1), x)
-        x = s.neighbours(4, 2)
+        x = self.s2.neighbours(3, 2)
         self.assertEqual(len(x), 3)
-        self.assertIn((3, 2), x)
-        self.assertIn((4, 1), x)
-        self.assertIn((4, 3), x)
+        self.assertIn((2, 2), x)
+        self.assertIn((3, 1), x)
+        self.assertIn((3, 3), x)
+
         # Middle
-        x = s.neighbours(1, 1)
+        x = self.s2.neighbours(1, 1)
         self.assertEqual(len(x), 4)
         self.assertIn((0, 1), x)
         self.assertIn((2, 1), x)
         self.assertIn((1, 0), x)
         self.assertIn((1, 2), x)
-        x = s.neighbours(3, 2)
+        x = self.s2.neighbours(2, 2)
         self.assertEqual(len(x), 4)
-        self.assertIn((2, 2), x)
-        self.assertIn((4, 2), x)
-        self.assertIn((3, 1), x)
-        self.assertIn((3, 3), x)
+        self.assertIn((1, 2), x)
+        self.assertIn((3, 2), x)
+        self.assertIn((2, 1), x)
+        self.assertIn((2, 3), x)
+
         # Out of range
-        self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, -1, 0)
-        self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, 0, -1)
-        self.assertRaisesRegex(ValueError, 'out of range', s.neighbours, 5, 0)
-        self.assertRaisesRegex(ValueError, '2-dimensional', s.neighbours, 0)
-
-    def test_set_paced_interface_1d(self):
-        # Test the set_paced and is_paced methods in 1d (interface only, does
-        # not test running the simulation!
-
-        m, p, _ = myokit.load('example')
-        s = myokit.SimulationOpenCL(m, p, 5)
-
-        # Set first few cells
-        s.set_paced_cells(3)
-        self.assertTrue(s.is_paced(0))
-        self.assertTrue(s.is_paced(1))
-        self.assertTrue(s.is_paced(2))
-        self.assertFalse(s.is_paced(3))
-        self.assertFalse(s.is_paced(4))
-
-        # Set with an offset
-        s.set_paced_cells(nx=2, x=2)
-        self.assertFalse(s.is_paced(0))
-        self.assertFalse(s.is_paced(1))
-        self.assertTrue(s.is_paced(2))
-        self.assertTrue(s.is_paced(3))
-        self.assertFalse(s.is_paced(4))
-
-        # Set final cells with negative number
-        s.set_paced_cells(nx=-2)
-        self.assertFalse(s.is_paced(0))
-        self.assertFalse(s.is_paced(1))
-        self.assertFalse(s.is_paced(2))
-        self.assertTrue(s.is_paced(3))
-        self.assertTrue(s.is_paced(4))
-
-        # Set with an offset and a negative number
-        s.set_paced_cells(nx=-2, x=4)
-        self.assertFalse(s.is_paced(0))
-        self.assertFalse(s.is_paced(1))
-        self.assertTrue(s.is_paced(2))
-        self.assertTrue(s.is_paced(3))
-        self.assertFalse(s.is_paced(4))
-
-        # Set with a negative offset and negative number
-        s.set_paced_cells(nx=-2, x=-2)
-        self.assertFalse(s.is_paced(0))
-        self.assertTrue(s.is_paced(1))
-        self.assertTrue(s.is_paced(2))
-        self.assertFalse(s.is_paced(3))
-        self.assertFalse(s.is_paced(4))
-
-        # Set with a list
-        s.set_paced_cell_list([0, 2, 3])
-        self.assertTrue(s.is_paced(0))
-        self.assertFalse(s.is_paced(1))
-        self.assertTrue(s.is_paced(2))
-        self.assertTrue(s.is_paced(3))
-        self.assertFalse(s.is_paced(4))
-
-        # Duplicate paced cells
-        s.set_paced_cell_list([0, 0, 0, 0, 3, 3, 3])
-        self.assertTrue(s.is_paced(0))
-        self.assertFalse(s.is_paced(1))
-        self.assertFalse(s.is_paced(2))
-        self.assertTrue(s.is_paced(3))
-        self.assertFalse(s.is_paced(4))
-
-        # Just one cell
-        s.set_paced_cell_list([2])
-        self.assertFalse(s.is_paced(0))
-        self.assertFalse(s.is_paced(1))
-        self.assertTrue(s.is_paced(2))
-        self.assertFalse(s.is_paced(3))
-        self.assertFalse(s.is_paced(4))
-
-        # Set paced cells out of bounds
         self.assertRaisesRegex(
-            ValueError, 'out of range', s.set_paced_cell_list, [-1])
+            ValueError, 'out of range', self.s2.neighbours, -1, 0)
         self.assertRaisesRegex(
-            ValueError, 'out of range', s.set_paced_cell_list, [5])
+            ValueError, 'out of range', self.s2.neighbours, 0, -1)
+        self.assertRaisesRegex(
+            ValueError, 'out of range', self.s2.neighbours, 4, 0)
+        self.assertRaisesRegex(
+            ValueError, 'out of range', self.s2.neighbours, 0, 4)
+        self.assertRaisesRegex(
+            ValueError, '2-dimensional', self.s2.neighbours, 0)
 
-        # Is-paced called out of bounds
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.is_paced, -1)
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.is_paced, 5)
-        self.assertRaisesRegex(
-            ValueError, '1-dimensional', s.is_paced, 3, 3)
+    def test_protocol(self):
+        # Tests changing the protocol
 
-    def test_set_paced_interface_2d(self):
-        # Test the set_paced and is_paced methods in 2d (interface only, does
-        # not test running the simulation!
+        # Run with protocol, check for depolarisation
+        self.s0.reset()
+        d0 = self.s0.run(3, log=['engine.pace']).npview()
+        self.assertEqual(np.max(d0['engine.pace']), 1)
 
-        m, p, _ = myokit.load('example')
-        s = myokit.SimulationOpenCL(m, p, (2, 3))
+        try:
+            # Unset protocol
+            self.s0.reset()
+            self.s0.set_protocol(None)
+            d0 = self.s0.run(3, log=['engine.pace']).npview()
+            self.assertEqual(np.max(d0['engine.pace']), 0)
 
-        # Set first few cells
-        s.set_paced_cells(1, 2)
-        self.assertTrue(s.is_paced(0, 0))
-        self.assertTrue(s.is_paced(0, 1))
-        self.assertFalse(s.is_paced(0, 2))
-        self.assertFalse(s.is_paced(1, 0))
-        self.assertFalse(s.is_paced(1, 1))
-        self.assertFalse(s.is_paced(1, 2))
+            # Add new protocol
+            p = myokit.pacing.blocktrain(period=1000, duration=2, offset=3)
+            self.s0.reset()
+            self.s0.set_protocol(p)
+            d0 = self.s0.run(3, log=['engine.pace']).npview()
+            self.assertEqual(np.max(d0['engine.pace']), 0)
+            d0 = self.s0.run(3, log=['engine.pace']).npview()
+            self.assertEqual(np.max(d0['engine.pace']), 1)
 
-        # Set with an offset
-        s.set_paced_cells(x=1, y=1, nx=1, ny=2)
-        self.assertFalse(s.is_paced(0, 0))
-        self.assertFalse(s.is_paced(0, 1))
-        self.assertFalse(s.is_paced(0, 2))
-        self.assertFalse(s.is_paced(1, 0))
-        self.assertTrue(s.is_paced(1, 1))
-        self.assertTrue(s.is_paced(1, 2))
+        finally:
+            # Restore protocol
+            self.s0.set_protocol(self.p)
 
-        # Set final cells with negative number
-        s.set_paced_cells(nx=-1, ny=-1)
-        self.assertFalse(s.is_paced(0, 0))
-        self.assertFalse(s.is_paced(0, 1))
-        self.assertFalse(s.is_paced(0, 2))
-        self.assertFalse(s.is_paced(1, 0))
-        self.assertFalse(s.is_paced(1, 1))
-        self.assertTrue(s.is_paced(1, 2))
+    def test_set_paced_cells_1d(self):
+        # Test the set_paced_cells and is_paced methods in 1d (interface only,
+        # does not test running the simulation)
 
-        # Set with an offset and a negative number
-        s.set_paced_cells(x=1, y=2, nx=-1, ny=-2)
-        self.assertTrue(s.is_paced(0, 0))
-        self.assertTrue(s.is_paced(0, 1))
-        self.assertFalse(s.is_paced(0, 2))
-        self.assertFalse(s.is_paced(1, 0))
-        self.assertFalse(s.is_paced(1, 1))
-        self.assertFalse(s.is_paced(1, 2))
+        try:
+            self.s1.set_paced_cells(3)
+            self.assertTrue(self.s1.is_paced(0))
+            self.assertTrue(self.s1.is_paced(1))
+            self.assertTrue(self.s1.is_paced(2))
+            self.assertFalse(self.s1.is_paced(3))
+            self.assertFalse(self.s1.is_paced(4))
 
-        # Set with a negative offset and negative number
-        s.set_paced_cells(x=0, y=-1, nx=1, ny=-1)
-        self.assertFalse(s.is_paced(0, 0))
-        self.assertTrue(s.is_paced(0, 1))
-        self.assertFalse(s.is_paced(0, 2))
-        self.assertFalse(s.is_paced(1, 0))
-        self.assertFalse(s.is_paced(1, 1))
-        self.assertFalse(s.is_paced(1, 2))
+            # Set with an offset
+            self.s1.set_paced_cells(nx=2, x=2)
+            self.assertFalse(self.s1.is_paced(0))
+            self.assertFalse(self.s1.is_paced(1))
+            self.assertTrue(self.s1.is_paced(2))
+            self.assertTrue(self.s1.is_paced(3))
+            self.assertFalse(self.s1.is_paced(4))
 
-        # Set with a list
-        s.set_paced_cell_list([(0, 0), (0, 2), (1, 1)])
-        self.assertTrue(s.is_paced(0, 0))
-        self.assertFalse(s.is_paced(0, 1))
-        self.assertTrue(s.is_paced(0, 2))
-        self.assertFalse(s.is_paced(1, 0))
-        self.assertTrue(s.is_paced(1, 1))
-        self.assertFalse(s.is_paced(1, 2))
+            # Set final cells with negative number
+            self.s1.set_paced_cells(nx=-2)
+            self.assertFalse(self.s1.is_paced(0))
+            self.assertFalse(self.s1.is_paced(1))
+            self.assertFalse(self.s1.is_paced(2))
+            self.assertTrue(self.s1.is_paced(8))
+            self.assertTrue(self.s1.is_paced(9))
 
-        # Duplicate paced cells
-        s.set_paced_cell_list([(0, 0), (0, 0), (0, 0), (0, 2), (0, 2)])
-        self.assertTrue(s.is_paced(0, 0))
-        self.assertFalse(s.is_paced(0, 1))
-        self.assertTrue(s.is_paced(0, 2))
-        self.assertFalse(s.is_paced(1, 0))
-        self.assertFalse(s.is_paced(1, 1))
-        self.assertFalse(s.is_paced(1, 2))
+            # Set with an offset and a negative number
+            self.s1.set_paced_cells(nx=-2, x=4)
+            self.assertFalse(self.s1.is_paced(0))
+            self.assertFalse(self.s1.is_paced(1))
+            self.assertTrue(self.s1.is_paced(2))
+            self.assertTrue(self.s1.is_paced(3))
+            self.assertFalse(self.s1.is_paced(4))
 
-        # Just one cell
-        s.set_paced_cell_list([(1, 2)])
-        self.assertFalse(s.is_paced(0, 0))
-        self.assertFalse(s.is_paced(0, 1))
-        self.assertFalse(s.is_paced(0, 2))
-        self.assertFalse(s.is_paced(1, 0))
-        self.assertFalse(s.is_paced(1, 1))
-        self.assertTrue(s.is_paced(1, 2))
+            # Set with a negative offset and negative number
+            self.s1.set_paced_cells(nx=-2, x=-2)
+            self.assertFalse(self.s1.is_paced(5))
+            self.assertTrue(self.s1.is_paced(6))
+            self.assertTrue(self.s1.is_paced(7))
+            self.assertFalse(self.s1.is_paced(8))
+            self.assertFalse(self.s1.is_paced(9))
 
-        # Set paced cells out of bounds
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.set_paced_cell_list, [(-1, 0)])
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.set_paced_cell_list, [(2, 0)])
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.set_paced_cell_list, [(0, -1)])
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.set_paced_cell_list, [(0, 3)])
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.set_paced_cell_list, [(-2, -2)])
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.set_paced_cell_list, [(5, 5)])
+        finally:
+            # Restore defaults
+            self.s1.set_paced_cells()
 
-        # Is-paced called out of bounds
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.is_paced, -1, 0)
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.is_paced, 2, 0)
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.is_paced, 0, -1)
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.is_paced, 0, 3)
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.is_paced, -2, 2)
-        self.assertRaisesRegex(
-            ValueError, 'out of range', s.is_paced, 5, 5)
-        self.assertRaisesRegex(
-            ValueError, '2-dimensional', s.is_paced, 1)
+    def test_set_paced_cell_list_1d(self):
+        # Test the set_paced_cell_list and is_paced methods in 1d (interface
+        # only, does not test running the simulation)
+
+        try:
+            self.s1.set_paced_cell_list([0, 2, 3])
+            self.assertTrue(self.s1.is_paced(0))
+            self.assertFalse(self.s1.is_paced(1))
+            self.assertTrue(self.s1.is_paced(2))
+            self.assertTrue(self.s1.is_paced(3))
+            self.assertFalse(self.s1.is_paced(4))
+
+            # Duplicate paced cells
+            self.s1.set_paced_cell_list([0, 0, 0, 0, 3, 3, 3])
+            self.assertTrue(self.s1.is_paced(0))
+            self.assertFalse(self.s1.is_paced(1))
+            self.assertFalse(self.s1.is_paced(2))
+            self.assertTrue(self.s1.is_paced(3))
+            self.assertFalse(self.s1.is_paced(4))
+
+            # Just one cell
+            self.s1.set_paced_cell_list([2])
+            self.assertFalse(self.s1.is_paced(0))
+            self.assertFalse(self.s1.is_paced(1))
+            self.assertTrue(self.s1.is_paced(2))
+            self.assertFalse(self.s1.is_paced(3))
+            self.assertFalse(self.s1.is_paced(4))
+
+            # Set paced cells out of bounds
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s1.set_paced_cell_list, [-1])
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s1.set_paced_cell_list, [10])
+
+            # Is-paced called out of bounds
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s1.is_paced, -1)
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s1.is_paced, 10)
+            self.assertRaisesRegex(
+                ValueError, '1-dimensional', self.s1.is_paced, 3, 3)
+
+        finally:
+            # Restore defaults
+            self.s1.set_paced_cells()
+
+    def test_set_paced_cells_2d(self):
+        # Test the set_paced_cells and is_paced methods in 2d (interface only,
+        # does not test running the simulation)
+
+        try:
+            self.s2.set_paced_cells(1, 2)
+            self.assertTrue(self.s2.is_paced(0, 0))
+            self.assertTrue(self.s2.is_paced(0, 1))
+            self.assertFalse(self.s2.is_paced(0, 2))
+            self.assertFalse(self.s2.is_paced(1, 0))
+            self.assertFalse(self.s2.is_paced(1, 1))
+            self.assertFalse(self.s2.is_paced(1, 2))
+
+            # Set with an offset
+            self.s2.set_paced_cells(x=1, y=1, nx=1, ny=2)
+            self.assertFalse(self.s2.is_paced(0, 0))
+            self.assertFalse(self.s2.is_paced(0, 1))
+            self.assertFalse(self.s2.is_paced(0, 2))
+            self.assertFalse(self.s2.is_paced(1, 0))
+            self.assertTrue(self.s2.is_paced(1, 1))
+            self.assertTrue(self.s2.is_paced(1, 2))
+            self.assertFalse(self.s2.is_paced(1, 3))
+            self.assertFalse(self.s2.is_paced(2, 1))
+
+            # Set final cells with negative number
+            self.s2.set_paced_cells(nx=-1, ny=-1)
+            self.assertFalse(self.s2.is_paced(0, 0))
+            self.assertFalse(self.s2.is_paced(0, 1))
+            self.assertFalse(self.s2.is_paced(0, 2))
+            self.assertFalse(self.s2.is_paced(3, 2))
+            self.assertFalse(self.s2.is_paced(2, 3))
+            self.assertTrue(self.s2.is_paced(3, 3))
+
+            # Set with an offset and a negative number
+            self.s2.set_paced_cells(x=1, y=2, nx=-1, ny=-2)
+            self.assertTrue(self.s2.is_paced(0, 0))
+            self.assertTrue(self.s2.is_paced(0, 1))
+            self.assertFalse(self.s2.is_paced(0, 2))
+            self.assertFalse(self.s2.is_paced(1, 0))
+            self.assertFalse(self.s2.is_paced(1, 1))
+            self.assertFalse(self.s2.is_paced(1, 2))
+
+            # Set with a negative offset and negative number
+            self.s2.set_paced_cells(x=0, y=-1, nx=1, ny=-1)
+            self.assertFalse(self.s2.is_paced(0, 0))
+            self.assertFalse(self.s2.is_paced(0, 1))
+            self.assertTrue(self.s2.is_paced(0, 2))
+            self.assertFalse(self.s2.is_paced(0, 3))
+            self.assertFalse(self.s2.is_paced(1, 1))
+            self.assertFalse(self.s2.is_paced(1, 2))
+            self.assertFalse(self.s2.is_paced(1, 3))
+
+        finally:
+            # Restore defaults
+            self.s1.set_paced_cells()
+
+    def test_set_paced_cell_list_2d(self):
+        # Test the set_paced_cell_list and is_paced methods in 1d (interface
+        # only, does not test running the simulation)
+
+        try:
+            # Set with a list
+            self.s2.set_paced_cell_list([(0, 0), (0, 2), (1, 1)])
+            self.assertTrue(self.s2.is_paced(0, 0))
+            self.assertFalse(self.s2.is_paced(0, 1))
+            self.assertTrue(self.s2.is_paced(0, 2))
+            self.assertFalse(self.s2.is_paced(1, 0))
+            self.assertTrue(self.s2.is_paced(1, 1))
+            self.assertFalse(self.s2.is_paced(1, 2))
+
+            # Duplicate paced cells
+            self.s2.set_paced_cell_list(
+                [(0, 0), (0, 0), (0, 0), (0, 2), (0, 2)])
+            self.assertTrue(self.s2.is_paced(0, 0))
+            self.assertFalse(self.s2.is_paced(0, 1))
+            self.assertTrue(self.s2.is_paced(0, 2))
+            self.assertFalse(self.s2.is_paced(1, 0))
+            self.assertFalse(self.s2.is_paced(1, 1))
+            self.assertFalse(self.s2.is_paced(1, 2))
+
+            # Just one cell
+            self.s2.set_paced_cell_list([(1, 2)])
+            self.assertFalse(self.s2.is_paced(0, 0))
+            self.assertFalse(self.s2.is_paced(0, 1))
+            self.assertFalse(self.s2.is_paced(0, 2))
+            self.assertFalse(self.s2.is_paced(1, 0))
+            self.assertFalse(self.s2.is_paced(1, 1))
+            self.assertTrue(self.s2.is_paced(1, 2))
+
+            # Set paced cells out of bounds
+            self.assertRaisesRegex(
+                ValueError, 'out of range',
+                self.s2.set_paced_cell_list, [(-1, 0)])
+            self.assertRaisesRegex(
+                ValueError, 'out of range',
+                self.s2.set_paced_cell_list, [(4, 0)])
+            self.assertRaisesRegex(
+                ValueError, 'out of range',
+                self.s2.set_paced_cell_list, [(0, -1)])
+            self.assertRaisesRegex(
+                ValueError, 'out of range',
+                self.s2.set_paced_cell_list, [(0, 4)])
+            self.assertRaisesRegex(
+                ValueError, 'out of range',
+                self.s2.set_paced_cell_list, [(-2, -2)])
+            self.assertRaisesRegex(
+                ValueError, 'out of range',
+                self.s2.set_paced_cell_list, [(5, 5)])
+
+            # Is-paced called out of bounds
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s2.is_paced, -1, 0)
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s2.is_paced, 4, 0)
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s2.is_paced, 0, -1)
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s2.is_paced, 0, 4)
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s2.is_paced, -2, 2)
+            self.assertRaisesRegex(
+                ValueError, 'out of range', self.s2.is_paced, 5, 5)
+            self.assertRaisesRegex(
+                ValueError, '2-dimensional', self.s2.is_paced, 1)
+
+        finally:
+            # Restore defaults
+            self.s1.set_paced_cells()
 
     def test_set_state_1d(self):
-        # Test the set_state method in 1d
+        # Test the set_state method in 1d (interface only)
 
-        m, p, _ = myokit.load('example')
+        # Check simulation state equals model state
         n = 10
-        s = myokit.SimulationOpenCL(m, p, n)
-        sm = m.state()
-        ss = [s.state(x) for x in range(n)]
+        self.s1.reset()
+        sm = self.m.state()
+        ss = [self.s1.state(x) for x in range(n)]
         for si in ss:
             self.assertEqual(sm, si)
 
         # Test setting a single, global state
         sx = [0.0] * 8
         self.assertNotEqual(sm, sx)
-        s.set_state(sx)
+        self.s1.set_state(sx)
         for i in range(n):
-            self.assertEqual(sx, s.state(i))
-        self.assertEqual(sx * n, s.state())
-        s.set_state(sm)
-        self.assertEqual(sm * n, s.state())
+            self.assertEqual(sx, self.s1.state(i))
+        self.assertEqual(sx * n, self.s1.state())
+        self.s1.set_state(sm)
+        self.assertEqual(sm * n, self.s1.state())
+
         # Test setting a single state
         j = 1
-        s.set_state(sx, j)
+        self.s1.set_state(sx, j)
         for i in range(n):
             if i == j:
-                self.assertEqual(s.state(i), sx)
+                self.assertEqual(self.s1.state(i), sx)
             else:
-                self.assertEqual(s.state(i), sm)
+                self.assertEqual(self.s1.state(i), sm)
 
-    #TODO Add test_set_state_2d
+    def test_set_state_2d(self):
+        # Test the set_state method in 2d (interface only)
 
-    def test_sim_1d(self):
-        # Test running a short 1d simulation (doesn't inspect output)
+        pass
+        #TODO
+        #TODO
+        #TODO
+        #TODO
+        #TODO
+        #TODO
 
-        m, p, _ = myokit.load('example')
-        s = myokit.SimulationOpenCL(m, p, 20)
+    # set_field() -> 1d, 2d
+    # shape() -> 1d, 2d
 
-        # Run, log state and intermediary variable (separate logging code!)
-        d = s.run(1, log=['engine.time', 'membrane.V', 'ina.INa'])
-        self.assertIn('engine.time', d)
-        self.assertIn('0.membrane.V', d)
-        self.assertIn('19.membrane.V', d)
-        self.assertIn('0.ina.INa', d)
-        self.assertIn('19.ina.INa', d)
-        self.assertEqual(len(d), 41)
+    # run, pre, reset, time, set_time
+    # reset, pre, set_default_state
 
-        # Test is_2d()
-        self.assertFalse(s.is_2d())
-        with WarningCollector() as wc:
-            self.assertFalse(s.is2d())
-        self.assertIn('deprecated', wc.text())
+    # set_constant() -> 0d
+    # set_step_size(), step_size -> 0d
 
-    def test_sim_2d(self):
-        # Test running a short 2d simulation (doesn't inspect output)
 
-        m, p, _ = myokit.load('example')
-        n = (8, 8)
-        s = myokit.SimulationOpenCL(m, p, n)
-        s.set_paced_cells(4, 4)
-
-        # Run, log state and intermediary variable (separate logging code!)
-        d = s.run(1, log=['engine.time', 'membrane.V', 'ina.INa'])
-        self.assertEqual(len(d), 129)
-        self.assertIn('engine.time', d)
-        self.assertIn('0.0.membrane.V', d)
-        self.assertIn('7.7.membrane.V', d)
-        self.assertIn('0.0.ina.INa', d)
-        self.assertIn('7.7.ina.INa', d)
-
-        # Test is_2d()
-        self.assertTrue(s.is_2d())
-        with WarningCollector() as wc:
-            self.assertTrue(s.is2d())
-        self.assertIn('deprecated', wc.text())
-'''
+class SimulationOpenCLFindNanTest(unittest.TestCase):
+    """
+    Tests the find_nan() method of `SimulationOpenCL`.
+    """
 
 
 if __name__ == '__main__':

@@ -35,7 +35,7 @@ class SimulationOpenCL1dTest(unittest.TestCase):
     Tests the OpenCL simulation against Sim1d.
     """
     def test_simple_run(self):
-        # Compare the SimulationOpenCL output with CVODE output
+        # Compare the SimulationOpenCL output with Simulation1d output
 
         # Set up simulations
         m = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
