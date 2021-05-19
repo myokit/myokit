@@ -23,22 +23,39 @@ tab = '    '
 #include "mcl.h"
 
 /*
- * Returns a tuple with information about the available opencl platforms and
+ * Returns a tuple with information about the available OpenCL platforms and
  * devices.
  */
 static PyObject*
 info(PyObject *self, PyObject *args)
 {
-    mcl_device_info();
-    return mcl_device_info();
+    return mcl_info();
+}
+
+
+/*
+ * Returns a tuple with information about the selected OpenCL platform and
+ * device.
+ */
+static PyObject*
+current(PyObject* self, PyObject* args)
+{
+    // Platform and device name (Python bytes)
+    PyObject *platform_name;
+    PyObject *device_name;
+
+    // Check input arguments
+    if(!PyArg_ParseTuple(args, "OO", &platform_name, &device_name)) {
+        // Nothing allocated yet, no pyobjects _created_, return directly
+        PyErr_SetString(PyExc_Exception, "Wrong number of arguments.");
+        return 0;
+    }
+
+    return mcl_info_current(platform_name, device_name);
 }
 
 /*
- * Tests building a program and returns the
- *
- * If the program builds successfully, None is returned. If the program fails
- * to compile a string containing the compiler output is returned. If something
- * else goes wrong an exception is raised.
+ * Tests building a program and returns the output.
  */
 static PyObject*
 build(PyObject* self, PyObject* args)
@@ -124,8 +141,9 @@ build(PyObject* self, PyObject* args)
  * Methods in this module
  */
 static PyMethodDef SimMethods[] = {
-    {"info", info, METH_VARARGS, "Get some information about OpenCL devices."},
     {"build", build, METH_VARARGS, "Try building an OpenCL kernel program."},
+    {"current", current, METH_VARARGS, "Get information about the currently selected OpenCL platform and device."},
+    {"info", info, METH_NOARGS, "Get information about available OpenCL platforms and devices."},
     {NULL},
 };
 

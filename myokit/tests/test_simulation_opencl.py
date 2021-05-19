@@ -14,9 +14,13 @@ import numpy as np
 
 import myokit
 
-from shared import OpenCL_FOUND, OpenCL_DOUBLE_PRECISION_CONNECTIONS
-from shared import DIR_DATA
-from shared import WarningCollector
+from shared import (
+    DIR_DATA,
+    OpenCL_FOUND,
+    OpenCL_DOUBLE_PRECISION,
+    OpenCL_DOUBLE_PRECISION_CONNECTIONS,
+    WarningCollector,
+)
 
 # Unit testing in Python 2 and 3
 try:
@@ -34,6 +38,10 @@ class SimulationOpenCL0dTest(unittest.TestCase):
     """
     Tests the OpenCL simulation against CVODE, in 0d mode.
     """
+
+    @unittest.skipIf(
+        not OpenCL_DOUBLE_PRECISION,
+        'OpenCL double precision extension not supported on selected device.')
     def test_against_cvode(self):
         # Compare the SimulationOpenCL output with CVODE output
 
@@ -949,6 +957,9 @@ class FiberTissueSimulationTest(unittest.TestCase):
         self.assertIn('0.0.ica.ICa', logt)
         self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.ICa', logt)
 
+    @unittest.skipIf(
+        not OpenCL_DOUBLE_PRECISION,
+        'OpenCL double precision extension not supported on selected device.')
     def test_against_cvode(self):
         # Compare the fiber-tissue simulation output with CVODE output
 
