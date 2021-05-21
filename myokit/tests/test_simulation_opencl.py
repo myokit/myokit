@@ -253,53 +253,46 @@ class SimulationOpenCLTest(unittest.TestCase):
         finally:
             self.s1.set_conductance()
 
-        i0, i1 = 0, 9
-
         if debug:
             # Display the result
             import matplotlib.pyplot as plt
             f = plt.figure(figsize=(10, 10))
             f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
 
-            x = f.add_subplot(2, 3, 1)
-            x.set_title('set_conductance, sp')
+            x = f.add_subplot(2, 2, 1)
             x.set_ylabel('Vm')
-            x.plot(d1a['engine.time'], d1a['membrane.V', i0])
-            x.plot(d1a['engine.time'], d1a['membrane.V', i1])
-            x = f.add_subplot(2, 3, 2)
-            x.set_title('set_connections, sp')
-            x.set_ylabel('Vm')
-            x.plot(d1b['engine.time'], d1b['membrane.V', i0])
-            x.plot(d1b['engine.time'], d1b['membrane.V', i1])
-            x = f.add_subplot(2, 3, 3)
-            x.set_ylabel('Vm')
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.V', i0] - d1b['membrane.V', i0])
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.V', i1] - d1b['membrane.V', i1])
+            for i in range(10):
+                x.plot(d1a['engine.time'], d1a['membrane.V', i], lw=2,
+                       alpha=0.5)
+            for i in range(10):
+                x.plot(d1b['engine.time'], d1b['membrane.V', i], '--')
 
-            x = f.add_subplot(2, 3, 4)
+            x = f.add_subplot(2, 2, 2)
+            x.set_ylabel('Vm')
+            for i in range(10):
+                x.plot(d1a['engine.time'],
+                       d1a['membrane.V', i] - d1b['membrane.V', i])
+
+            x = f.add_subplot(2, 2, 3)
             x.set_ylabel('I_diff')
-            x.plot(d1a['engine.time'], d1a['membrane.i_diff', i0])
-            x.plot(d1a['engine.time'], d1a['membrane.i_diff', i1])
-            x = f.add_subplot(2, 3, 5)
+            for i in range(10):
+                #x.plot(d1a['engine.time'], d1a['membrane.i_diff', i], lw=2,
+                #       alpha=0.5)
+                x.plot(d1b['engine.time'], d1b['membrane.i_diff', i], '--')
+
+            x = f.add_subplot(2, 2, 4)
             x.set_ylabel('I_diff')
-            x.plot(d1b['engine.time'], d1b['membrane.i_diff', i0])
-            x.plot(d1b['engine.time'], d1b['membrane.i_diff', i1])
-            x = f.add_subplot(2, 3, 6)
-            x.set_ylabel('I_diff')
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.i_diff', i0] - d1b['membrane.i_diff', i0])
-            x.plot(d1a['engine.time'],
-                   d1a['membrane.i_diff', i1] - d1b['membrane.i_diff', i1])
+            for i in range(10):
+                x.plot(d1a['engine.time'],
+                       d1a['membrane.i_diff', i] - d1b['membrane.i_diff', i])
 
             plt.show()
 
         # Check results are the same
-        e0 = np.abs(d1a['membrane.V', i0] - d1b['membrane.V', i0])
-        e1 = np.abs(d1a['membrane.V', i1] - d1b['membrane.V', i1])
-        self.assertLess(np.max(e0), 0.01)
-        self.assertLess(np.max(e1), 0.01)
+        e0 = np.abs(d1a['membrane.V', 0] - d1b['membrane.V', 0])
+        e1 = np.abs(d1a['membrane.V', 9] - d1b['membrane.V', 9])
+        self.assertLess(np.max(e0), 1e-4)
+        self.assertLess(np.max(e1), 1e-4)
 
     @unittest.skipIf(
         not OpenCL_DOUBLE_PRECISION_CONNECTIONS,

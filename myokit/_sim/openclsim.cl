@@ -454,8 +454,8 @@ if connections:
  * Note that this method relies on comparing the integer representation of the float.
  * For this purpose, a type RealSizeUInt must be defined, that has the same size (in memory) as a Real.
  */
-inline void AtomicAdd(volatile __global Real *var, const Real operand) {
-
+inline void AtomicAdd(volatile __global Real *var, const Real operand)
+{
     // Create objects representing the same data as a real-sized integer and as Real (a union)
     union {
         RealSizedUInt u;
@@ -474,7 +474,7 @@ inline void AtomicAdd(volatile __global Real *var, const Real operand) {
 
         // Check if the variable has the expected value, and if so update it to the calculated sum.
         // After calling this, current will be set to whatever was in the variable.
-        current.f = Myokit_cmpxchg((volatile __global RealSizedUInt*)var, expected.u, result.u);
+        current.u = Myokit_cmpxchg((volatile __global RealSizedUInt*)var, expected.u, result.u);
 
         // If the variable had the expected value, it will now have been updated, so we can stop.
         // If someone else had already modified the variable at this point, the next check will fail and we try again.
