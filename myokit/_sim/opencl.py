@@ -68,7 +68,7 @@ class OpenCL(myokit.CModule):
             OpenCL._message = None
             OpenCL._instance = self._compile(
                 mname, fname, args, libs, libd, incd, larg=flags)
-        except myokit.CompilationError as e:
+        except myokit.CompilationError as e:    # pragma: no cover
             OpenCL._instance = False
             OpenCL._message = str(e)
 
@@ -82,7 +82,7 @@ class OpenCL(myokit.CModule):
         if OpenCL._instance is None:
             OpenCL()
         # Instance creation failed, raise exception
-        if OpenCL._instance is False:
+        if OpenCL._instance is False:   # pragma: no cover
             raise NoOpenCLError(
                 'OpenCL support not found.\n' + OpenCL._message)
         # Return instance
@@ -96,7 +96,7 @@ class OpenCL(myokit.CModule):
         """
         try:
             OpenCL.current_info()
-        except Exception:
+        except Exception:   # pragma: no cover
             return False
         return True
 
@@ -156,7 +156,7 @@ class OpenCL(myokit.CModule):
             config = ConfigParser()
             try:
                 config.read(inifile, encoding='ascii')  # Python 3
-            except TypeError:
+            except TypeError:   # pragma: no python3 cover
                 config.read(inifile)
 
             def get(section, option):
@@ -236,7 +236,7 @@ class OpenCL(myokit.CModule):
         try:
             OpenCL._get_instance()
             return True
-        except NoOpenCLError:
+        except NoOpenCLError:       # pragma: no cover
             return False
 
     '''
@@ -427,19 +427,24 @@ class OpenCLDeviceInfo(object):
                  ', '.join([str(x) for x in self.items]) + ']')
 
 
+def r(x):
+    """Round x, convert to int if possible, the convert to string."""
+    return str(myokit.float.round(round(x, 2)))
+
+
 def bytesize(size):
     """
     Returns a formatted version of a ``size`` given in bytes.
     """
     # Format a size
-    if size > 1073741824:
-        return str(0.1 * int(10 * (float(size) / 1073741824))) + ' GB'
-    elif size > 1048576:
-        return str(0.1 * int(10 * (float(size) / 1048576))) + ' MB'
-    elif size > 1024:
-        return str(0.1 * int(10 * (float(size) / 1024))) + ' KB'
+    if size >= 1073741824:
+        return r(0.1 * int(10 * (float(size) / 1073741824))) + ' GB'
+    elif size >= 1048576:
+        return r(0.1 * int(10 * (float(size) / 1048576))) + ' MB'
+    elif size >= 1024:
+        return r(0.1 * int(10 * (float(size) / 1024))) + ' KB'
     else:
-        return str(size) + 'B'
+        return str(size) + ' B'
 
 
 def clockspeed(speed):
@@ -447,10 +452,10 @@ def clockspeed(speed):
     Returns a formatted version of a ``speed`` given in MHz.
     """
     # Format a size
-    if speed > 1000:
-        return str(0.1 * int(10 * (float(speed) / 1000))) + ' GHz'
+    if speed >= 1000:
+        return r(0.1 * int(10 * (float(speed) / 1000))) + ' GHz'
     else:
-        return str(speed) + ' MHz'
+        return r(speed) + ' MHz'
 
 
 class NoOpenCLError(myokit.MyokitError):
@@ -464,7 +469,7 @@ class PreferredOpenCLPlatformNotFoundError(myokit.MyokitError):
     """
     Raised when the platform preferred by the user cannot be found.
     """
-    def __init__(self, platform_name):
+    def __init__(self, platform_name):  # pragma: no cover
         super(PreferredOpenCLPlatformNotFoundError, self).__init__(
             'The preferred platform "' + platform_name + '" cannot be found.')
 
@@ -473,7 +478,8 @@ class PreferredOpenCLDeviceNotFoundError(myokit.MyokitError):
     """
     Raised when the device preferred by the user cannot be found.
     """
-    def __init__(self, device_name, platform_name=None):
+    def __init__(self, device_name, platform_name=None
+                 ):  # pragma: no cover
         msg = 'The preferred device "' + device_name + '" cannot be found'
         if platform_name is None:
             msg += '.'
