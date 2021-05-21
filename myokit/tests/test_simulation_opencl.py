@@ -65,7 +65,7 @@ class SimulationOpenCLTest(unittest.TestCase):
     @property
     def s2(self):
         if self._s2 is None:
-            self._s2 = myokit.SimulationOpenCL(self.m, self.p, ncells=(4, 4))
+            self._s2 = myokit.SimulationOpenCL(self.m, self.p, ncells=(4, 3))
         return self._s2
 
     def test_calculate_conductance(self):
@@ -121,29 +121,29 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.s2.set_conductance(10, 10)
             d = self.s2.run(5, log=['membrane.V']).npview()
             self.assertGreater(np.max(d['membrane.V', 3, 0]), -80)
-            self.assertGreater(np.max(d['membrane.V', 0, 3]), -80)
-            self.assertGreater(np.max(d['membrane.V', 3, 3]), -80)
+            self.assertGreater(np.max(d['membrane.V', 0, 2]), -80)
+            self.assertGreater(np.max(d['membrane.V', 3, 2]), -80)
 
             self.s2.reset()
             self.s2.set_conductance(10, 0)
             d = self.s2.run(5, log=['membrane.V']).npview()
             self.assertGreater(np.max(d['membrane.V', 3, 0]), -80)
-            self.assertLess(np.max(d['membrane.V', 0, 3]), -80)
-            self.assertLess(np.max(d['membrane.V', 3, 3]), -80)
+            self.assertLess(np.max(d['membrane.V', 0, 2]), -80)
+            self.assertLess(np.max(d['membrane.V', 3, 2]), -80)
 
             self.s2.reset()
             self.s2.set_conductance(0, 10)
             d = self.s2.run(5, log=['membrane.V']).npview()
             self.assertLess(np.max(d['membrane.V', 3, 0]), -80)
-            self.assertGreater(np.max(d['membrane.V', 0, 3]), -80)
-            self.assertLess(np.max(d['membrane.V', 3, 3]), -80)
+            self.assertGreater(np.max(d['membrane.V', 0, 2]), -80)
+            self.assertLess(np.max(d['membrane.V', 3, 2]), -80)
 
             self.s2.reset()
             self.s2.set_conductance(0, 0)
             d = self.s2.run(5, log=['membrane.V']).npview()
             self.assertLess(np.max(d['membrane.V', 3, 0]), 0)
-            self.assertLess(np.max(d['membrane.V', 0, 3]), 0)
-            self.assertLess(np.max(d['membrane.V', 3, 3]), 0)
+            self.assertLess(np.max(d['membrane.V', 0, 2]), 0)
+            self.assertLess(np.max(d['membrane.V', 3, 2]), 0)
 
             # Bad values
             self.assertRaisesRegex(
@@ -478,29 +478,15 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertFalse(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
         self.assertFalse(np.all(d['membrane.V', 1] == d['membrane.V', 2]))
 
-    def test_is_2d(self):
-        # Tests is_2d()
-
-        self.assertTrue(self.s2.is_2d())
-        self.assertFalse(self.s1.is_2d())
-
-        # Deprecated alias
-        with WarningCollector() as c:
-            self.assertTrue(self.s2.is2d())
-        self.assertIn('deprecated', c.text())
-        with WarningCollector() as c:
-            self.assertFalse(self.s1.is2d())
-        self.assertIn('deprecated', c.text())
-
     def test_neighbours_0d(self):
         # Test listing neighbours in a 0d simulation
 
         x = self.s0.neighbours(0)
         self.assertEqual(len(x), 0)
         self.assertRaisesRegex(
-            ValueError, 'out of range', self.s0.neighbours, -1)
+            IndexError, 'out of range', self.s0.neighbours, -1)
         self.assertRaisesRegex(
-            ValueError, 'out of range', self.s0.neighbours, 1)
+            IndexError, 'out of range', self.s0.neighbours, 1)
         self.assertRaisesRegex(
             ValueError, '1-dimensional', self.s0.neighbours, 0, 1)
 
@@ -523,9 +509,9 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Out of range
         self.assertRaisesRegex(
-            ValueError, 'out of range', self.s1.neighbours, -1)
+            IndexError, 'out of range', self.s1.neighbours, -1)
         self.assertRaisesRegex(
-            ValueError, 'out of range', self.s1.neighbours, 10)
+            IndexError, 'out of range', self.s1.neighbours, 10)
         self.assertRaisesRegex(
             ValueError, '1-dimensional', self.s1.neighbours, 0, 1)
 
@@ -566,10 +552,10 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertEqual(len(x), 2)
         self.assertIn((1, 0), x)
         self.assertIn((0, 1), x)
-        x = self.s2.neighbours(3, 3)
+        x = self.s2.neighbours(3, 2)
         self.assertEqual(len(x), 2)
-        self.assertIn((3, 2), x)
-        self.assertIn((2, 3), x)
+        self.assertIn((3, 1), x)
+        self.assertIn((2, 2), x)
 
         # Edges
         x = self.s2.neighbours(1, 0)
@@ -577,11 +563,11 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertIn((0, 0), x)
         self.assertIn((2, 0), x)
         self.assertIn((1, 1), x)
-        x = self.s2.neighbours(3, 2)
+        x = self.s2.neighbours(3, 1)
         self.assertEqual(len(x), 3)
-        self.assertIn((2, 2), x)
-        self.assertIn((3, 1), x)
-        self.assertIn((3, 3), x)
+        self.assertIn((2, 1), x)
+        self.assertIn((3, 0), x)
+        self.assertIn((3, 2), x)
 
         # Middle
         x = self.s2.neighbours(1, 1)
@@ -590,22 +576,22 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertIn((2, 1), x)
         self.assertIn((1, 0), x)
         self.assertIn((1, 2), x)
-        x = self.s2.neighbours(2, 2)
+        x = self.s2.neighbours(2, 1)
         self.assertEqual(len(x), 4)
-        self.assertIn((1, 2), x)
-        self.assertIn((3, 2), x)
-        self.assertIn((2, 1), x)
-        self.assertIn((2, 3), x)
+        self.assertIn((1, 1), x)
+        self.assertIn((3, 1), x)
+        self.assertIn((2, 0), x)
+        self.assertIn((2, 2), x)
 
         # Out of range
         self.assertRaisesRegex(
-            ValueError, 'out of range', self.s2.neighbours, -1, 0)
+            IndexError, 'out of range', self.s2.neighbours, -1, 0)
         self.assertRaisesRegex(
-            ValueError, 'out of range', self.s2.neighbours, 0, -1)
+            IndexError, 'out of range', self.s2.neighbours, 0, -1)
         self.assertRaisesRegex(
-            ValueError, 'out of range', self.s2.neighbours, 4, 0)
+            IndexError, 'out of range', self.s2.neighbours, 4, 0)
         self.assertRaisesRegex(
-            ValueError, 'out of range', self.s2.neighbours, 0, 4)
+            IndexError, 'out of range', self.s2.neighbours, 0, 3)
         self.assertRaisesRegex(
             ValueError, '2-dimensional', self.s2.neighbours, 0)
 
@@ -715,15 +701,15 @@ class SimulationOpenCLTest(unittest.TestCase):
 
             # Set paced cells out of bounds
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s1.set_paced_cell_list, [-1])
+                IndexError, 'out of range', self.s1.set_paced_cell_list, [-1])
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s1.set_paced_cell_list, [10])
+                IndexError, 'out of range', self.s1.set_paced_cell_list, [10])
 
             # Is-paced called out of bounds
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s1.is_paced, -1)
+                IndexError, 'out of range', self.s1.is_paced, -1)
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s1.is_paced, 10)
+                IndexError, 'out of range', self.s1.is_paced, 10)
             self.assertRaisesRegex(
                 ValueError, '1-dimensional', self.s1.is_paced, 3, 3)
 
@@ -752,7 +738,6 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.assertFalse(self.s2.is_paced(1, 0))
             self.assertTrue(self.s2.is_paced(1, 1))
             self.assertTrue(self.s2.is_paced(1, 2))
-            self.assertFalse(self.s2.is_paced(1, 3))
             self.assertFalse(self.s2.is_paced(2, 1))
 
             # Set final cells with negative number
@@ -760,9 +745,8 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.assertFalse(self.s2.is_paced(0, 0))
             self.assertFalse(self.s2.is_paced(0, 1))
             self.assertFalse(self.s2.is_paced(0, 2))
-            self.assertFalse(self.s2.is_paced(3, 2))
-            self.assertFalse(self.s2.is_paced(2, 3))
-            self.assertTrue(self.s2.is_paced(3, 3))
+            self.assertFalse(self.s2.is_paced(2, 2))
+            self.assertTrue(self.s2.is_paced(3, 2))
 
             # Set with an offset and a negative number
             self.s2.set_paced_cells(x=1, y=2, nx=-1, ny=-2)
@@ -776,12 +760,10 @@ class SimulationOpenCLTest(unittest.TestCase):
             # Set with a negative offset and negative number
             self.s2.set_paced_cells(x=0, y=-1, nx=1, ny=-1)
             self.assertFalse(self.s2.is_paced(0, 0))
-            self.assertFalse(self.s2.is_paced(0, 1))
-            self.assertTrue(self.s2.is_paced(0, 2))
-            self.assertFalse(self.s2.is_paced(0, 3))
+            self.assertTrue(self.s2.is_paced(0, 1))
+            self.assertFalse(self.s2.is_paced(0, 2))
             self.assertFalse(self.s2.is_paced(1, 1))
             self.assertFalse(self.s2.is_paced(1, 2))
-            self.assertFalse(self.s2.is_paced(1, 3))
 
         finally:
             # Restore defaults
@@ -822,37 +804,37 @@ class SimulationOpenCLTest(unittest.TestCase):
 
             # Set paced cells out of bounds
             self.assertRaisesRegex(
-                ValueError, 'out of range',
+                IndexError, 'out of range',
                 self.s2.set_paced_cell_list, [(-1, 0)])
             self.assertRaisesRegex(
-                ValueError, 'out of range',
+                IndexError, 'out of range',
                 self.s2.set_paced_cell_list, [(4, 0)])
             self.assertRaisesRegex(
-                ValueError, 'out of range',
+                IndexError, 'out of range',
                 self.s2.set_paced_cell_list, [(0, -1)])
             self.assertRaisesRegex(
-                ValueError, 'out of range',
+                IndexError, 'out of range',
                 self.s2.set_paced_cell_list, [(0, 4)])
             self.assertRaisesRegex(
-                ValueError, 'out of range',
+                IndexError, 'out of range',
                 self.s2.set_paced_cell_list, [(-2, -2)])
             self.assertRaisesRegex(
-                ValueError, 'out of range',
+                IndexError, 'out of range',
                 self.s2.set_paced_cell_list, [(5, 5)])
 
             # Is-paced called out of bounds
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s2.is_paced, -1, 0)
+                IndexError, 'out of range', self.s2.is_paced, -1, 0)
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s2.is_paced, 4, 0)
+                IndexError, 'out of range', self.s2.is_paced, 4, 0)
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s2.is_paced, 0, -1)
+                IndexError, 'out of range', self.s2.is_paced, 0, -1)
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s2.is_paced, 0, 4)
+                IndexError, 'out of range', self.s2.is_paced, 0, 4)
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s2.is_paced, -2, 2)
+                IndexError, 'out of range', self.s2.is_paced, -2, 2)
             self.assertRaisesRegex(
-                ValueError, 'out of range', self.s2.is_paced, 5, 5)
+                IndexError, 'out of range', self.s2.is_paced, 5, 5)
             self.assertRaisesRegex(
                 ValueError, '2-dimensional', self.s2.is_paced, 1)
 
@@ -861,9 +843,10 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.s1.set_paced_cells()
 
     def test_set_state_1d(self):
-        # Test the set_state method in 1d (interface only)
+        # Test the set_state methods on a 1d simulation (interface only)
 
         # Check simulation state equals model state
+        m = 8
         n = 10
         self.s1.reset()
         sm = self.m.state()
@@ -871,8 +854,13 @@ class SimulationOpenCLTest(unittest.TestCase):
         for si in ss:
             self.assertEqual(sm, si)
 
+        # Test setting a full-sized state
+        sx = list(range(n * m))
+        self.s1.set_state(sx)
+        self.assertEqual(sx, self.s1.state())
+
         # Test setting a single, global state
-        sx = [0.0] * 8
+        sx = [0.0] * m
         self.assertNotEqual(sm, sx)
         self.s1.set_state(sx)
         for i in range(n):
@@ -881,8 +869,8 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.s1.set_state(sm)
         self.assertEqual(sm * n, self.s1.state())
 
-        # Test setting a single state
-        j = 1
+        # Test setting the state of a single cell
+        j = 3
         self.s1.set_state(sx, j)
         for i in range(n):
             if i == j:
@@ -890,16 +878,160 @@ class SimulationOpenCLTest(unittest.TestCase):
             else:
                 self.assertEqual(self.s1.state(i), sm)
 
-    def test_set_state_2d(self):
-        # Test the set_state method in 2d (interface only)
+        # Check error messages for set_state
+        self.assertRaisesRegex(
+            ValueError, 'x was not None',
+            self.s1.set_state, [0] * m * n, 3)
+        self.assertRaisesRegex(
+            ValueError, 'y was not None',
+            self.s1.set_state, [0] * m * n, y=2)
+        self.assertRaisesRegex(
+            ValueError, 'must have the same size as',
+            self.s1.set_state, [0] * (m * n + 1))
+        self.assertRaisesRegex(
+            ValueError, 'must have the same size as',
+            self.s1.set_state, [0] * 3, y=2)
+        self.assertRaisesRegex(
+            IndexError, 'x-index out of range',
+            self.s1.set_state, sm, -1)
+        self.assertRaisesRegex(
+            IndexError, 'x-index out of range',
+            self.s1.set_state, sm, n)
+        self.assertRaisesRegex(
+            ValueError, '1-dimensional',
+            self.s1.set_state, sm, 0, 1)
 
-        pass
-        #TODO
-        #TODO
-        #TODO
-        #TODO
-        #TODO
-        #TODO
+        # Check error messages for state
+        self.assertRaisesRegex(
+            IndexError, 'x-index out of range',
+            self.s1.state, -1)
+        self.assertRaisesRegex(
+            IndexError, 'x-index out of range',
+            self.s1.state, n)
+        self.assertRaisesRegex(
+            ValueError, '1-dimensional',
+            self.s1.state, 0, 1)
+
+        # Test set_default_state
+        try:
+            sx = list(range(m))
+            self.s1.set_state([0] * m)
+            self.s1.set_default_state(sx, j)
+            for i in range(n):
+                if i == j:
+                    self.assertEqual(self.s1.default_state(i), sx)
+                else:
+                    self.assertEqual(self.s1.default_state(i), sm)
+        finally:
+            self.s1.set_default_state(sm)
+
+        # Check error messages for default_state
+        self.assertRaisesRegex(
+            IndexError, 'x-index out of range',
+            self.s1.default_state, -1)
+        self.assertRaisesRegex(
+            IndexError, 'x-index out of range',
+            self.s1.default_state, n)
+        self.assertRaisesRegex(
+            ValueError, '1-dimensional',
+            self.s1.default_state, 0, 1)
+
+    def test_set_state_2d(self):
+        # Test the set_state methods on a 2d simulation (interface only)
+
+        # Check simulation state equals model state
+        m = 8
+        nx, ny = 4, 3
+        self.s2.reset()
+        sm = self.m.state()
+        for i in range(nx):
+            for j in range(ny):
+                self.assertEqual(sm, self.s2.state(i, j))
+
+        # Test setting a full-sized state
+        sx = list(range(nx * ny * m))
+        self.s2.set_state(sx)
+        self.assertEqual(sx, self.s2.state())
+
+        # Test setting a single, global state
+        sx = [0.0] * m
+        self.assertNotEqual(sm, sx)
+        self.s2.set_state(sx)
+        for i in range(nx):
+            for j in range(ny):
+                self.assertEqual(sx, self.s2.state(i, j))
+        self.assertEqual(sx * (nx * ny), self.s2.state())
+        self.s2.set_state(sm)
+        self.assertEqual(sm * (nx * ny), self.s2.state())
+
+        # Test setting the state of a single cell
+        x, y = 1, 2
+        self.s2.set_state(sx, x, y)
+        for i in range(nx):
+            for j in range(ny):
+                if i == x and j == y:
+                    self.assertEqual(self.s2.state(i, j), sx)
+                else:
+                    self.assertEqual(self.s2.state(i, j), sm)
+
+        # Check error messages for set_state
+        self.assertRaisesRegex(
+            IndexError, 'y-index out of range',
+            self.s2.set_state, sm, 0, -1)
+        self.assertRaisesRegex(
+            IndexError, 'y-index out of range',
+            self.s2.set_state, sm, 0, ny)
+
+        # Check error messages for state
+        self.assertRaisesRegex(
+            IndexError, 'y-index out of range',
+            self.s2.state, 0, -1)
+        self.assertRaisesRegex(
+            IndexError, 'y-index out of range',
+            self.s2.state, 1, ny)
+
+        # Test set_default_state
+        try:
+            x, y = 2, 1
+            sx = list(range(m))
+            self.s2.set_state([0] * m)
+            self.s2.set_default_state(sx, x, y)
+            for i in range(nx):
+                for j in range(ny):
+                    if i == x and j == y:
+                        self.assertEqual(self.s2.default_state(i, j), sx)
+                    else:
+                        self.assertEqual(self.s2.default_state(i, j), sm)
+        finally:
+            self.s2.set_default_state(sm)
+
+        # Check error messages for default_state
+        self.assertRaisesRegex(
+            IndexError, 'y-index out of range',
+            self.s2.default_state, 0, -1)
+        self.assertRaisesRegex(
+            IndexError, 'y-index out of range',
+            self.s2.default_state, 1, ny)
+
+    def test_shape(self):
+        # Tests shape() and is_2d()
+
+        # Test shape
+        self.assertEqual(self.s1.shape(), 10)
+        self.assertEqual(self.s2.shape(), (4, 3))
+
+        # Test is_2d
+        self.assertTrue(self.s2.is_2d())
+        self.assertFalse(self.s1.is_2d())
+
+        # Deprecated alias
+        with WarningCollector() as c:
+            self.assertTrue(self.s2.is2d())
+        self.assertIn('deprecated', c.text())
+        with WarningCollector() as c:
+            self.assertFalse(self.s1.is2d())
+        self.assertIn('deprecated', c.text())
+
 
     # set_field() -> 1d, 2d
     # shape() -> 1d, 2d
@@ -911,10 +1043,6 @@ class SimulationOpenCLTest(unittest.TestCase):
     # set_step_size(), step_size -> 0d
 
 
-class SimulationOpenCLFindNanTest(unittest.TestCase):
-    """
-    Tests the find_nan() method of `SimulationOpenCL`.
-    """
 
 
 if __name__ == '__main__':

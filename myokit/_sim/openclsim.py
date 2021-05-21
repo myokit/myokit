@@ -396,6 +396,33 @@ class SimulationOpenCL(myokit.CModule):
             return self._gx
         return (self._gx, self._gy)
 
+    def default_state(self, x=None, y=None):
+        """
+        Returns the current default simulation state as a list of
+        ``len(state) * ncells`` floating point values.
+
+        If the optional arguments ``x`` and ``y`` specify a valid cell index a
+        single cell's state is returned. For example ``state(4)`` can be
+        used with a 1d simulation, while ``state(4, 2)`` is a valid index in
+        the 2d case.
+        """
+        if x is None:
+            return list(self._default_state)
+        else:
+            x = int(x or 0)
+            if x < 0 or x >= self._nx:
+                raise IndexError('Given x-index out of range.')
+            y = int(y or 0)
+            if len(self._dims) == 2:
+                if y < 0 or y >= self._ny:
+                    raise IndexError('Given y-index out of range.')
+                x += y * self._nx
+            elif y != 0:
+                raise ValueError(
+                    'Y-coordinate specified for 1-dimensional simulation.')
+
+            return self._default_state[x * self._nstate:(x + 1) * self._nstate]
+
     def find_nan(self, log, watch_var=None, safe_range=None, return_log=False):
         """
         Searches for the origin of a bad value (``NaN`` or ``inf``) in a data
@@ -725,19 +752,19 @@ class SimulationOpenCL(myokit.CModule):
         # Check input
         x = int(x)
         if x < 0 or x >= self._dims[0]:
-            raise ValueError('X-coordinate out of range: ' + str(x) + '.')
+            raise IndexError('X-coordinate out of range: ' + str(x) + '.')
         if len(self._dims) == 2:
             if y is None:
                 raise ValueError(
                     'No y-coordinate specified in 2-dimensional simulation.')
             y = int(y)
             if y < 0 or y >= self._dims[1]:
-                raise ValueError('Y-coordinate out of range: ' + str(y) + '.')
-        else:
-            if not (y is None or y == 0):
-                raise ValueError(
-                    'Y-coordinate specified in 1-dimensional simulation.')
+                raise IndexError('Y-coordinate out of range: ' + str(y) + '.')
+        elif y is None:
             y = 0
+        elif y != 0:
+            raise ValueError(
+                'Y-coordinate specified for 1-dimensional simulation.')
 
         # Pacing rectangle
         if type(self._paced_cells) == tuple:
@@ -765,20 +792,19 @@ class SimulationOpenCL(myokit.CModule):
                 'This method is unavailable when diffusion is disabled.')
 
         # Check input
-        x = int(x)
+        x = int(x or 0)
         if x < 0 or x >= self._dims[0]:
-            raise ValueError('X-coordinate out of range: ' + str(x) + '.')
+            raise IndexError('X-coordinate out of range: ' + str(x) + '.')
         if len(self._dims) == 2:
             if y is None:
                 raise ValueError(
                     'No y-coordinate specified in 2-dimensional simulation.')
             y = int(y)
             if y < 0 or y >= self._dims[1]:
-                raise ValueError('Y-coordinate out of range: ' + str(y) + '.')
-        else:
-            if not (y is None or y == 0):
-                raise ValueError(
-                    'Y-coordinate specified in 1-dimensional simulation.')
+                raise IndexError('Y-coordinate out of range: ' + str(y) + '.')
+        elif not (y is None or y == 0):
+            raise ValueError(
+                'Y-coordinate specified for 1-dimensional simulation.')
 
         # User-specified connections (always 1d)
         if self._connections is not None:
@@ -1468,14 +1494,14 @@ class SimulationOpenCL(myokit.CModule):
             for cell in cells:
                 cell = int(cell)
                 if cell < 0 or cell >= self._nx:
-                    raise ValueError(
+                    raise IndexError(
                         'Cell index out of range: ' + str(cell) + '.')
                 paced_cells.append(cell)
         else:
             for i, j in cells:
                 i, j = int(i), int(j)
                 if i < 0 or j < 0 or i >= self._nx or j >= self._ny:
-                    raise ValueError(
+                    raise IndexError(
                         'Cell index out of range: (' + str(i) + ', ' + str(j)
                         + ').')
                 paced_cells.append(i + j * self._nx)
@@ -1496,24 +1522,39 @@ class SimulationOpenCL(myokit.CModule):
         Handles set_state and set_default_state.
         """
         n = len(state)
+
+        # Set full simulation state
         if n == self._nstate * self._ntotal:
+            if x is not None:
+                raise ValueError(
+                    'A state for all cells was passed in, but argument x'
+                    ' was not None.')
+            if y is not None:
+                raise ValueError(
+                    'A state for all cells was passed in, but argument y'
+                    ' was not None.')
             return list(state)
         elif n != self._nstate:
             raise ValueError(
                 'Given state must have the same size as a single'
                 ' cell state or a full simulation state')
+
+        # Set all cells to same state
         if x is None:
-            # State might not be a list, at this point...
+            # State might not be a list, at this point, so cast
             return list(state) * self._ntotal
+
         # Set specific cell state
-        x = int(x)
+        x = int(x or 0)
         if x < 0 or x >= self._nx:
-            raise KeyError('Given x-index out of range.')
+            raise IndexError('Given x-index out of range.')
+        y = int(y or 0)
         if len(self._dims) == 2:
-            y = int(y)
             if y < 0 or y >= self._ny:
-                raise KeyError('Given y-index out of range.')
+                raise IndexError('Given y-index out of range.')
             x += y * self._nx
+        elif y != 0:
+            raise ValueError('Y-index given for a 1-dimensional simulation.')
         offset = x * self._nstate
         update[offset:offset + self._nstate] = state
         return update
@@ -1555,11 +1596,11 @@ class SimulationOpenCL(myokit.CModule):
     def shape(self):
         """
         Returns the shape of this Simulation's grid of cells as a tuple
-        ``(ny, nx)`` for 2d simulations, or a single value ``nx`` for 1d
+        ``(nx, ny)`` for 2d simulations, or a single value ``nx`` for 1d
         simulations.
         """
         if len(self._dims) == 2:
-            return (self._ny, self._nx)
+            return (self._nx, self._ny)
         return self._nx
 
     def state(self, x=None, y=None):
@@ -1575,14 +1616,18 @@ class SimulationOpenCL(myokit.CModule):
         if x is None:
             return list(self._state)
         else:
-            x = int(x)
+            x = int(x or 0)
             if x < 0 or x >= self._nx:
-                raise KeyError('Given x-index out of range.')
+                raise IndexError('Given x-index out of range.')
+            y = int(y or 0)
             if len(self._dims) == 2:
-                y = int(y)
                 if y < 0 or y >= self._ny:
-                    raise KeyError('Given y-index out of range.')
+                    raise IndexError('Given y-index out of range.')
                 x += y * self._nx
+            elif y != 0:
+                raise ValueError(
+                    'Y-coordinate specified for 1-dimensional simulation.')
+
             return self._state[x * self._nstate:(x + 1) * self._nstate]
 
     def step_size(self):
