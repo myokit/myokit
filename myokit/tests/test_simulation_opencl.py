@@ -1168,7 +1168,21 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'greater than zero', self.s0.set_step_size, -1)
 
-    # set_constant() -> 0d
+
+@unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
+class SimulationOpenCLFindNanTest(unittest.TestCase):
+    """
+    Tests the OpenCL simulation's find_nan method.
+    """
+    def test_big_steps(self):
+        # Test if an error is raised when step size is huge.
+
+        m = myokit.load_model('example')
+        p = myokit.pacing.blocktrain(period=1000, duration=2)
+        s = myokit.SimulationOpenCL(m, p, ncells=10)
+
+        s.set_step_size(1)
+        self.assertRaises(myokit.SimulationError, s.run, 10)
 
 
 if __name__ == '__main__':
