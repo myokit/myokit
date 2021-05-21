@@ -665,8 +665,25 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.assertEqual(self.s0.time(), 10)
             self.s0.run(1)
             self.assertEqual(self.s0.time(), 11)
+            self.assertRaisesRegex(
+                ValueError, 'negative', self.s0.set_time, -1)
+
+            # Test running for a negative amount of time
+            self.assertRaisesRegex(
+                ValueError, 'negative', self.s0.run, -1)
+
         finally:
             self.s0.set_default_state(x0)
+
+    def test_run_progress_reporter(self):
+        # Test running with a progress reporter
+
+        with myokit.tools.capture() as c:
+            self.s0.run(3, progress=myokit.ProgressPrinter())
+        self.assertTrue(c.text() != '')
+
+        self.assertRaisesRegex(
+            ValueError, 'progress', self.s0.run, 1, progress=True)
 
     def test_set_constant(self):
         # Test set_constant (interface only, rest is in cvode comparison)
@@ -701,6 +718,8 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.s1.set_field('membrane.C', x)
             self.s1.set_field('membrane.C', x)  # overwriting is fine
             self.s1.remove_field('membrane.C')
+            self.s1.set_field(self.m.get('membrane.C'), x)
+            self.s1.remove_field(self.m.get('membrane.C'))
             self.assertRaises(KeyError, self.s1.remove_field, 'membrane.C')
             self.assertRaises(KeyError, self.s1.remove_field, 'membrane.C')
             self.assertRaises(KeyError, self.s1.remove_field, 'membrane.V')
