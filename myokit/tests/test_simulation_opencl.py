@@ -1040,7 +1040,7 @@ class SimulationOpenCLTest(unittest.TestCase):
                     self.assertEqual(self.s1.default_state(i), sx)
                 else:
                     self.assertEqual(self.s1.default_state(i), sm)
-            sx = list(range(m * nx * ny))
+            sx = list(range(m * n))
             self.s1.set_default_state(sx)
             self.assertEqual(sx, self.s1.default_state())
         finally:
