@@ -298,8 +298,8 @@ class SimulationOpenCLTest(unittest.TestCase):
         # Check results are the same
         e0 = np.abs(d1a['membrane.V', i0] - d1b['membrane.V', i0])
         e1 = np.abs(d1a['membrane.V', i1] - d1b['membrane.V', i1])
-        self.assertLess(np.max(e0), 1e-5)
-        self.assertLess(np.max(e1), 1e-5)
+        self.assertLess(np.max(e0), 0.01)
+        self.assertLess(np.max(e1), 0.01)
 
     @unittest.skipIf(
         not OpenCL_DOUBLE_PRECISION_CONNECTIONS,

@@ -274,6 +274,16 @@ if diffusion and paced_cells:
         nx, ny, x, y = paced_cells
         xlo, ylo = str(x), str(y)
         xhi, yhi = str(x + nx), str(y + ny)
+        # Code below to be added in after unit tests are up and running
+        #cond = []
+        #if x > 0:
+        #   cond.append('ix >= ' + str(x))
+        #cond.append('ix < ' + str(x + nx))
+        #if y > 1:
+        #    bits.append('iy >= ' + str(y))
+        #cond.append('iy < ' + str(y + ny))
+        #cond = ' && '.join(cond)
+        #print(tab + 'return (' + cond + ') ? pace : 0;')
         print(tab + 'return (ix >= ' + xlo + ' && ix < ' + xhi + ' && iy >= '
             + ylo + ' && iy < ' + yhi + ') ? pace : 0;')
     else:
@@ -452,7 +462,7 @@ inline void AtomicAdd(volatile __global Real *var, const Real operand) {
         Real f;
     } current, expected, result;
 
-    // Set current value to source
+    // Set current value to var
     current.f = *var;
 
     do {
@@ -464,7 +474,6 @@ inline void AtomicAdd(volatile __global Real *var, const Real operand) {
 
         // Check if the variable has the expected value, and if so update it to the calculated sum.
         // After calling this, current will be set to whatever was in the variable.
-
         current.f = Myokit_cmpxchg((volatile __global RealSizedUInt*)var, expected.u, result.u);
 
         // If the variable had the expected value, it will now have been updated, so we can stop.
