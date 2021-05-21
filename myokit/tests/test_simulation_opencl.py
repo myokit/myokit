@@ -384,12 +384,12 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Dimensionality must be scalar or 2d tuple
         # (Correct usage is tested later)
-        #s = myokit.SimulationOpenCL(m, ncells=1)
-        #self.assertEqual(s.shape(), 1)
-        #s = myokit.SimulationOpenCL(m, ncells=50)
-        #self.assertEqual(s.shape(), 50)
-        #s = myokit.SimulationOpenCL(m, ncells=(1,1))
-        #self.assertEqual(s.shape(), (1, 1))
+        s = myokit.SimulationOpenCL(self.m, ncells=1)
+        self.assertEqual(s.shape(), 1)
+        s = myokit.SimulationOpenCL(self.m, ncells=50)
+        self.assertEqual(s.shape(), 50)
+        s = myokit.SimulationOpenCL(self.m, ncells=(2, 1))
+        self.assertEqual(s.shape(), (1, 2))
         self.assertRaisesRegex(
             ValueError, r'scalar or a tuple \(nx, ny\)',
             myokit.SimulationOpenCL, self.m, ncells=None)
@@ -622,6 +622,124 @@ class SimulationOpenCLTest(unittest.TestCase):
         finally:
             # Restore protocol
             self.s0.set_protocol(self.p)
+
+    def test_run(self):
+        # Test running, with pre, state, default state, etc.
+
+        # Test initial state
+        self.s0.reset()
+        x0 = self.s0.default_state()
+        self.assertEqual(x0, self.s0.state())
+        self.assertEqual(0, self.s0.time())
+
+        # Test running, then resetting to default state
+        self.s0.run(1)
+        x1 = self.s0.state()
+        self.assertEqual(x0, self.s0.default_state())
+        self.assertNotEqual(x0, x1)
+        self.assertEqual(1, self.s0.time())
+        self.s0.reset()
+        self.assertEqual(x0, self.s0.default_state())
+        self.assertEqual(x0, self.s0.state())
+        self.assertEqual(0, self.s0.time())
+
+        try:
+            # Test pre()
+            self.s0.pre(1)
+            self.assertEqual(x1, self.s0.default_state())
+            self.assertEqual(x1, self.s0.state())
+            self.assertEqual(0, self.s0.time())
+
+            # Test running and resetting to new default
+            self.s0.run(1)
+            self.assertEqual(x1, self.s0.default_state())
+            self.assertNotEqual(x1, self.s0.state())
+            self.assertEqual(1, self.s0.time())
+            self.s0.reset()
+            self.assertEqual(x1, self.s0.default_state())
+            self.assertEqual(x1, self.s0.state())
+            self.assertEqual(0, self.s0.time())
+
+            # Test setting time
+            self.s0.set_time(10)
+            self.assertEqual(self.s0.time(), 10)
+            self.s0.run(1)
+            self.assertEqual(self.s0.time(), 11)
+        finally:
+            self.s0.set_default_state(x0)
+
+    def test_set_constant(self):
+        # Test set_constant (interface only, rest is in cvode comparison)
+
+        m2 = self.m.clone()
+        v = m2['membrane'].add_variable('calculated_constant')
+        v.set_rhs('3 * C')
+        C = m2.get('membrane.C')
+        s = myokit.SimulationOpenCL(m2)
+
+        # Call with name
+        s.set_constant('membrane.C', 3)
+        # Call with variable
+        s.set_constant(C, 2)
+
+        # Not allowed on a non-literal (even a constant)
+        self.assertRaisesRegex(
+            ValueError, 'not a literal', s.set_constant, 'membrane.V', 1)
+        self.assertRaisesRegex(
+            ValueError, 'not a literal', s.set_constant, 'ina.INa', 3)
+        self.assertRaisesRegex(
+            ValueError, 'not a literal', s.set_constant, 'engine.time', 2)
+        self.assertRaisesRegex(
+            ValueError, 'not a literal', s.set_constant, v, 2)
+
+    def test_set_field(self):
+        # Test set_field (interface only, rest is in cvode comparison)
+
+        # 1-dimensional
+        try:
+            x = list(range(10))
+            self.s1.set_field('membrane.C', x)
+            self.s1.set_field('membrane.C', x)  # overwriting is fine
+            self.s1.remove_field('membrane.C')
+            self.assertRaises(KeyError, self.s1.remove_field, 'membrane.C')
+            self.assertRaises(KeyError, self.s1.remove_field, 'membrane.C')
+            self.assertRaises(KeyError, self.s1.remove_field, 'membrane.V')
+            self.assertRaisesRegex(
+                ValueError, 'constant',
+                self.s1.set_field, 'membrane.V', x)
+            self.assertRaisesRegex(
+                ValueError, 'Bound',
+                self.s1.set_field, 'engine.time', x)
+            self.assertRaisesRegex(
+                ValueError, 'length',
+                self.s1.set_field, 'membrane.C', list(range(9)))
+            self.assertRaisesRegex(
+                ValueError, 'length',
+                self.s1.set_field, 'membrane.C', list(range(11)))
+        finally:
+            try:
+                self.s1.remove_field('membrane.C')
+            except Exception:
+                pass
+
+        # 2-dimensional
+        try:
+            x = np.zeros(self.s2.shape())
+            self.s2.set_field('membrane.C', x)
+            self.assertRaisesRegex(
+                ValueError, 'dimensions',
+                self.s2.set_field, 'membrane.C', list(range(4)))
+            self.assertRaisesRegex(
+                ValueError, 'dimensions',
+                self.s2.set_field, 'membrane.C', np.zeros((4, 4)))
+            self.assertRaisesRegex(
+                ValueError, 'dimensions',
+                self.s2.set_field, 'membrane.C', np.zeros((1, 3)))
+        finally:
+            try:
+                self.s2.remove_field('membrane.C')
+            except Exception:
+                pass
 
     def test_set_paced_cells_1d(self):
         # Test the set_paced_cells and is_paced methods in 1d (interface only,
@@ -922,6 +1040,9 @@ class SimulationOpenCLTest(unittest.TestCase):
                     self.assertEqual(self.s1.default_state(i), sx)
                 else:
                     self.assertEqual(self.s1.default_state(i), sm)
+            sx = list(range(m * nx * ny))
+            self.s1.set_default_state(sx)
+            self.assertEqual(sx, self.s1.default_state())
         finally:
             self.s1.set_default_state(sm)
 
@@ -1018,7 +1139,7 @@ class SimulationOpenCLTest(unittest.TestCase):
 
         # Test shape
         self.assertEqual(self.s1.shape(), 10)
-        self.assertEqual(self.s2.shape(), (4, 3))
+        self.assertEqual(self.s2.shape(), (3, 4))
 
         # Test is_2d
         self.assertTrue(self.s2.is_2d())
@@ -1032,17 +1153,22 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.assertFalse(self.s1.is2d())
         self.assertIn('deprecated', c.text())
 
+    def test_step_size(self):
+        # Tests setting the step size (interface only)
 
-    # set_field() -> 1d, 2d
-    # shape() -> 1d, 2d
+        try:
+            dt = self.s0.step_size() * 2 + 0.001
+            self.s0.set_step_size(dt)
+            self.assertEqual(self.s0.step_size(), dt)
+        finally:
+            self.s0.set_step_size()
 
-    # run, pre, reset, time, set_time
-    # reset, pre, set_default_state
+        self.assertRaisesRegex(
+            ValueError, 'greater than zero', self.s0.set_step_size, 0)
+        self.assertRaisesRegex(
+            ValueError, 'greater than zero', self.s0.set_step_size, -1)
 
     # set_constant() -> 0d
-    # set_step_size(), step_size -> 0d
-
-
 
 
 if __name__ == '__main__':

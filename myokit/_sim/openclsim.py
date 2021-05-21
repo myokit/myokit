@@ -870,10 +870,7 @@ class SimulationOpenCL(myokit.CModule):
         if isinstance(var, myokit.Variable):
             var = var.qname()
         var = self._model.get(var)
-        try:
-            del(self._fields[var])
-        except KeyError:
-            pass
+        del(self._fields[var])
 
     def reset(self):
         """
@@ -1389,10 +1386,10 @@ class SimulationOpenCL(myokit.CModule):
         if isinstance(var, myokit.Variable):
             var = var.qname()
         var = self._model.get(var)
-        if not var.is_constant():
-            raise ValueError('Only constants can be used for fields.')
         if var.is_bound():
             raise ValueError('Bound values cannot be replaced by fields.')
+        if not var.is_constant():
+            raise ValueError('Only constants can be used for fields.')
         # Check values
         values = np.array(values, copy=False, dtype=float)
         if len(self._dims) == 1:
@@ -1597,11 +1594,13 @@ class SimulationOpenCL(myokit.CModule):
     def shape(self):
         """
         Returns the shape of this Simulation's grid of cells as a tuple
-        ``(nx, ny)`` for 2d simulations, or a single value ``nx`` for 1d
+        ``(ny, nx)`` for 2d simulations, or a single value ``nx`` for 1d
         simulations.
         """
+        # N.B.: This method and set_field use (y, x). Only the constructor uses
+        # (x, y). This should probably be made consistent at some point...
         if len(self._dims) == 2:
-            return (self._nx, self._ny)
+            return (self._ny, self._nx)
         return self._nx
 
     def state(self, x=None, y=None):

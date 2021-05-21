@@ -360,6 +360,59 @@ class SimulationOpenCL0dTest(unittest.TestCase):
         e3 = np.sqrt(np.sum(r3**2) / len(r3))
         self.assertLess(e3, 0.01)
 
+    def test_fields(self):
+        # Test using fields
+
+        # Load model and protocol
+        m = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+        p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
+
+        # Create simulations
+        t = 6.5
+        dt = 0.1
+        lv = ['engine.time', 'membrane.V']
+        sa = myokit.Simulation(m, p)
+        sa.set_constant('membrane.C', 0.9)
+        d0 = sa.run(t, log=lv, log_interval=dt).npview()
+        sa.reset()
+        sa.set_constant('membrane.C', 1.1)
+        d1 = sa.run(t, log=lv, log_interval=dt).npview()
+        sa.reset()
+        sa.set_constant('membrane.C', 1.2)
+        d2 = sa.run(t, log=lv, log_interval=dt).npview()
+        sb = myokit.SimulationOpenCL(m, p, ncells=3, diffusion=False)
+        sb.set_field('membrane.C', [0.9, 1.1, 1.2])
+        sb.set_step_size(0.001)
+        dx = sb.run(t, log=lv, log_interval=dt).npview()
+
+        e0 = np.max(np.abs(d0['membrane.V'] - dx['membrane.V', 0]))
+        e1 = np.max(np.abs(d1['membrane.V'] - dx['membrane.V', 1]))
+        e2 = np.max(np.abs(d2['membrane.V'] - dx['membrane.V', 2]))
+
+        if debug:
+            import matplotlib.pyplot as plt
+            print('Field')
+            print(e0, e1, e2)
+
+            plt.figure(figsize=(9, 6))
+            plt.suptitle('Field')
+            plt.subplot(1, 2, 1)
+            plt.plot(d0.time(), d0['membrane.V'], lw=2, alpha=0.5)
+            plt.plot(d1.time(), d1['membrane.V'], lw=2, alpha=0.5)
+            plt.plot(d2.time(), d2['membrane.V'], lw=2, alpha=0.5)
+            plt.plot(dx.time(), dx['membrane.V', 0], '--')
+            plt.plot(dx.time(), dx['membrane.V', 1], '--')
+            plt.plot(dx.time(), dx['membrane.V', 2], '--')
+            plt.subplot(1, 2, 2)
+            plt.plot(d0.time(), d0['membrane.V'] - dx['membrane.V', 0])
+            plt.plot(d0.time(), d1['membrane.V'] - dx['membrane.V', 1])
+            plt.plot(d0.time(), d2['membrane.V'] - dx['membrane.V', 2])
+            plt.show()
+
+        self.assertLess(e0, 0.5)
+        self.assertLess(e1, 0.5)
+        self.assertLess(e2, 0.5)
+
     def test_native_maths(self):
         # Compare the SimulationOpenCL output with CVODE output using native
         # math
@@ -489,6 +542,43 @@ class SimulationOpenCL0dTest(unittest.TestCase):
 
         self.assertLess(e2, 0.1)
         self.assertLess(e3, 0.006)
+
+    def test_set_constant(self):
+        # Test using set_constant
+
+        # Load model and protocol
+        m = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
+        p = myokit.pacing.blocktrain(duration=2, offset=1, period=1000)
+
+        # Create simulations
+        t = 6.5
+        dt = 0.1
+        lv = ['engine.time', 'membrane.V']
+        sa = myokit.Simulation(m, p)
+        sa.set_constant('membrane.C', 1.5)
+        d0 = sa.run(t, log=lv, log_interval=dt).npview()
+        sb = myokit.SimulationOpenCL(m, p, ncells=1)
+        sb.set_constant('membrane.C', 1.5)
+        sb.set_step_size(0.001)
+        d1 = sb.run(t, log=lv, log_interval=dt).npview()
+
+        e0 = np.max(np.abs(d0['membrane.V'] - d1['membrane.V', 0]))
+
+        if debug:
+            import matplotlib.pyplot as plt
+            print('Set constant')
+            print(e0)
+
+            plt.figure(figsize=(9, 6))
+            plt.suptitle('Field')
+            plt.subplot(1, 2, 1)
+            plt.plot(d0.time(), d0['membrane.V'], lw=2, alpha=0.5)
+            plt.plot(d1.time(), d1['membrane.V', 0], '--')
+            plt.subplot(1, 2, 2)
+            plt.plot(d0.time(), d0['membrane.V'] - d1['membrane.V', 0])
+            plt.show()
+
+        self.assertLess(e0, 0.5)
 
 
 if __name__ == '__main__':
