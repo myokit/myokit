@@ -14,6 +14,12 @@ import myokit
 
 from shared import TemporaryDirectory, OpenCL_FOUND
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:
+    basestring = str
+
 
 @unittest.skipIf(not OpenCL_FOUND, 'OpenCL not found on this system.')
 class OpenCLTest(unittest.TestCase):
@@ -29,12 +35,12 @@ class OpenCLTest(unittest.TestCase):
         # Tests the method to query the current device
         self.assertIsInstance(
             myokit.OpenCL.current_info(), myokit.OpenCLPlatformInfo)
-        self.assertIsInstance(myokit.OpenCL.current_info(True), str)
+        self.assertIsInstance(myokit.OpenCL.current_info(True), basestring)
 
     def test_info(self):
         # Tests the method to query the current device
         self.assertIsInstance(myokit.OpenCL.info(), myokit.OpenCLInfo)
-        self.assertIsInstance(myokit.OpenCL.info(True), str)
+        self.assertIsInstance(myokit.OpenCL.info(True), basestring)
 
     def test_load_save_selection(self):
         # Tests the load_selection method
@@ -77,9 +83,9 @@ class OpenCLTest(unittest.TestCase):
         item = info[0]
         self.assertEqual(len(item), 3)
         platform, device, specs = item
-        self.assertIsInstance(platform, str)
-        self.assertIsInstance(device, str)
-        self.assertIsInstance(specs, str)
+        self.assertIsInstance(platform, basestring)
+        self.assertIsInstance(device, basestring)
+        self.assertIsInstance(specs, basestring)
 
     def test_supported(self):
         # Tested as condition to get in, so must be true

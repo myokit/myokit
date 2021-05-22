@@ -156,7 +156,7 @@ class OpenCL(myokit.CModule):
             config = ConfigParser()
             try:
                 config.read(inifile, encoding='ascii')  # Python 3
-            except TypeError:   # pragma: no python3 cover
+            except TypeError:   # pragma: no python 3 cover
                 config.read(inifile)
 
             def get(section, option):
