@@ -18,9 +18,9 @@ import numpy as np
 import myokit
 
 from shared import (
+    CancellingReporter,
     DIR_DATA,
     OpenCL_FOUND,
-    #OpenCL_DOUBLE_PRECISION,
     OpenCL_DOUBLE_PRECISION_CONNECTIONS,
     WarningCollector,
 )
@@ -682,8 +682,14 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.s0.run(3, progress=myokit.ProgressPrinter())
         self.assertTrue(c.text() != '')
 
+        # Not a progress reporter
         self.assertRaisesRegex(
             ValueError, 'progress', self.s0.run, 1, progress=True)
+
+        # User cancel
+        self.assertRaises(
+            myokit.SimulationCancelledError,
+            self.s0.run, 20, progress=CancellingReporter(0))
 
     def test_set_constant(self):
         # Test set_constant (interface only, rest is in cvode comparison)
@@ -1193,15 +1199,144 @@ class SimulationOpenCLFindNanTest(unittest.TestCase):
     """
     Tests the OpenCL simulation's find_nan method.
     """
+
+    @classmethod
+    def setUpClass(cls):
+        # Create simulations for later use in testing
+        cls.m1 = myokit.load_model('example')
+        cls.p1 = myokit.pacing.blocktrain(period=1000, duration=2)
+
+        # Voltage-clamped LR1 model with interdependent components
+        cls.m2 = myokit.load_model('example')
+        p = cls.m2.binding('pace')
+        p.set_binding(None)
+        v = cls.m2.get('membrane.V')
+        v.set_rhs(-80)
+        v.demote()
+        v.set_label(None)
+        v.set_binding('pace')
+        cls.m2.get('ica.Ca_i').set_label('membrane_potential')
+        cls.m2.get('membrane').move_variable(v, cls.m2.get('engine'))
+
+        # Create protocol causing error at t=1.234ms
+        t = 1.234
+        cls.p2 = myokit.Protocol()
+        cls.p2.schedule(start=0, level=-80, duration=t)
+        cls.p2.schedule(start=t, level=-47.13, duration=1000)
+
+        # Simulations
+        cls._s1 = cls._s2 = None
+
+    @property
+    def s1(self):
+        if self._s1 is None:
+            self._s1 = myokit.SimulationOpenCL(self.m1, self.p1, ncells=10)
+        return self._s1
+
+    @property
+    def s2(self):
+        if self._s2 is None:
+            self._s2 = myokit.SimulationOpenCL(self.m2, self.p2, ncells=(3, 3))
+            self._s2.set_paced_cell_list([[1, 1]])
+        return self._s2
+
     def test_big_steps(self):
         # Test if an error is raised when step size is huge.
 
-        m = myokit.load_model('example')
-        p = myokit.pacing.blocktrain(period=1000, duration=2)
-        s = myokit.SimulationOpenCL(m, p, ncells=10)
+        self.s1.reset()
+        self.s1.set_step_size(1)
+        self.assertRaises(
+            myokit.SimulationError, self.s1.run, 10)
 
-        s.set_step_size(1)
-        self.assertRaises(myokit.SimulationError, s.run, 10)
+        # Test running with too little info
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'Unable to pinpoint',
+            self.s1.run, 10, log=['membrane.V'])
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'Unable to pinpoint',
+            self.s1.run, 10, log=myokit.LOG_STATE)
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'Unable to pinpoint',
+            self.s1.run, 10, log=myokit.LOG_BOUND)
+
+    def test_one_over_zero(self):
+        # Test creating a 1/0 error after a few seconds
+
+        self.s2.reset()
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'Time:  1.23', self.s2.run, 5)
+
+    def test_first_point(self):
+        # Try with error at first logged point
+
+        self.s2.reset()
+        x = self.s2.state(0, 0)
+        x[3] = float('nan')
+        self.s2.set_state(x, 2, 2)
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'met in the very first', self.s2.run, 2)
+
+    def test_without_error(self):
+        # Try without error
+
+        try:
+            self.s2.set_protocol(None)
+            self.s2.reset()
+            d = self.s2.run(10)
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'not found in log', self.s2.find_nan, d)
+        finally:
+            self.s2.set_protocol(self.p2)
+
+    def test_manual_call(self):
+        # Try manual call
+
+        p = myokit.Protocol()
+        p.schedule(start=0, level=-90, duration=4)
+        p.schedule(start=4, level=-47.13, duration=1000)
+        try:
+            self.s2.set_protocol(p)
+            self.s2.reset()
+            x = self.s2.state(0, 0)
+            x[2] = 0.9  # Lower j, for later (makes bisecting algo branch)
+            self.s2.set_state(x, 2, 2)
+            d = self.s2.run(10, report_nan=False)
+            time, icell, variable, value, states, bounds = self.s2.find_nan(d)
+            self.assertAlmostEqual(time, 4.005, 5)
+            self.assertEqual(icell, [1, 1])
+            self.assertEqual(variable, 'ina.m')
+
+            # Test watch var, bad arguments
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'not found',
+                self.s2.find_nan, d, 'x.y', [0, 1])
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'state',
+                self.s2.find_nan, d, 'engine.time', [0, 1])
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'safe range',
+                self.s2.find_nan, d, 'ina.m')
+            self.assertRaisesRegex(
+                myokit.FindNanError, 'lower than',
+                self.s2.find_nan, d, 'ina.m', [1, 0])
+
+            # Call with a watch var (and right arguments)
+            # Most cells are unpaced, so get V=0, so ina quickly inactivates
+            time, icell, variable, value, states, bounds = self.s2.find_nan(
+                d, 'ina.j', [0.5, 1])
+            self.assertGreater(time, 2)
+            self.assertLess(time, 3)
+            self.assertEqual(icell, [2, 2])  # lowered, see above
+            self.assertEqual(variable, 'ina.j')
+            time, icell, variable, value, states, bounds = self.s2.find_nan(
+                d, 'ina.j', [0.2, 1])
+            self.assertGreater(time, 5)
+            self.assertLess(time, 6)
+            self.assertEqual(icell, [2, 2])  # lowered, see above
+            self.assertEqual(variable, 'ina.j')
+
+        finally:
+            self.s2.set_protocol(self.p2)
 
 
 if __name__ == '__main__':

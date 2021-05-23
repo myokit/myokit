@@ -527,7 +527,7 @@ class SimulationOpenCL(myokit.CModule):
                             ifirst = bisect(ar, 0, len(ar) - 1)
                             if ifirst == 0:
                                 break
-                    elif not np.isfinite(ar[ifirst - 1]):
+                    elif not np.isfinite(ar[ifirst - 1]):   # pragma: no cover
                         # Earlier NaN found than before
                         kfirst = key
                         ifirst = bisect(ar, 0, ifirst)
@@ -579,7 +579,7 @@ class SimulationOpenCL(myokit.CModule):
                         elif i < ifirst:
                             kfirst = key
                             ifirst = i
-                        if i == 0:
+                        if i == 0:  # pragma: no cover
                             break
                 return ifirst, kfirst
 
@@ -632,12 +632,14 @@ class SimulationOpenCL(myokit.CModule):
         # Get time step
         try:
             dt = log[time_var][1] - log[time_var][0]
-        except IndexError:
+        except IndexError:  # pragma: no cover
             # Unable to guess dt!
             # So... Nan occurs before the first log interval is reached
             # That probably means dt was relatively large, so guess it was
             # large! Assuming milliseconds, start off with dt=5ms
             dt = 5
+            # Note: This seems impossible to reach at the moment, but would be
+            # possible if a log_times argument was supported.
 
         # Search with successively fine log interval
         while dt > 0:
