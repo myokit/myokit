@@ -294,6 +294,17 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(y.refs_by()), [])
         self.assertEqual(list(z.refs_by()), [])
 
+        # Remove by removing RHS
+        y.set_rhs(None)
+        self.assertEqual(list(x.refs_to()), [])
+        self.assertEqual(list(y.refs_to()), [])
+        self.assertEqual(list(z.refs_to()), [x])
+        self.assertEqual(set(x.refs_by()), set([z]))
+        self.assertEqual(list(y.refs_by()), [])
+        self.assertEqual(list(z.refs_by()), [])
+        y.set_rhs('2 + x')
+
+        # Remove by changing RHS
         z.set_rhs(2)
         self.assertEqual(list(x.refs_to()), [])
         self.assertEqual(list(y.refs_to()), [x])

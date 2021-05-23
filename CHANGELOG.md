@@ -27,6 +27,11 @@ This page lists the main changes made to Myokit in each release.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer has `apd_var` as a constructor argument. Instead, you can pass an argument `apd_variable` to its `run()` method.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer suppresses CVODES warnings but passes them on to the `warnings` module.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) Fix to `Simulation` for Sundials 4.1.0.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) `Variable.set_rhs(None)` now removes an RHS, instead of setting it to `Number(0)`.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) Calling `SimulationOpenCL.set_conductance` will now override any conductances previously set with `set_connections`.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) `SimulationOpenCL.set_connections` no longer accepts `None` as a valid argument.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) The `SimulationOpenCL` methods `set_conductance`, `conductance`, `set_connections`, `neighbours`, `set_paced_cells`, `set_paced_cell_list`, and `is_paced`, will now raise a `RuntimeError` if diffusion was disabled at construction.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) The method `SimulationOpenCL.remove_field` now raises a `KeyError` if no field is set for the given variable.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
   - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `LegacySimulation` class no longer suppresses CVODE warnings but passes them on to the `warnings` module (backported from new `Simulation` class).
 - Deprecated
@@ -45,6 +50,7 @@ This page lists the main changes made to Myokit in each release.
 - Fixed 
   - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
   - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.tools.format_path()`.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) `Simulation1d` now logs pacing as a global variable, and can log diffusion currents.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
   - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation.find_nan()`, that occurred for very small simulations (e.g. 2 cells).
   - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation` that made it impossible to use `set_connections()` with double precision.

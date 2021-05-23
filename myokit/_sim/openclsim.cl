@@ -152,22 +152,18 @@ if precision == myokit.DOUBLE_PRECISION:
 #define i_vm <?= model.label('membrane_potential').indice() ?>
 
 <?
-defines = ['n_state', 'n_inter', 'n_field', 'i_vm']
-
 if precision == myokit.SINGLE_PRECISION:
     print('/* Using single precision floats */')
     print('typedef float Real;')
     if connections:
         print('typedef unsigned int RealSizedUInt;')
         print('#define Myokit_cmpxchg atomic_cmpxchg')
-        defines.append('Myokit_cmpxchg')
 else:
     print('/* Using double precision floats */')
     print('typedef double Real;')
     if connections:
         print('typedef unsigned long RealSizedUInt;')
         print('#define Myokit_cmpxchg atom_cmpxchg')
-        defines.append('Myokit_cmpxchg')
 
 
 print('')
@@ -177,7 +173,6 @@ for group in equations.values():
         if isinstance(eq.rhs, myokit.Number):
             if eq.lhs.var() not in fields:
                 print('#define ' + v(eq.lhs) + ' ' + w.ex(eq.rhs))
-                defines.append(v(eq.lhs))
 
 print('')
 print('/* Calculated constants */')
@@ -186,25 +181,21 @@ for group in equations.values():
         if not isinstance(eq.rhs, myokit.Number):
             if eq.lhs.var() not in fields:
                 print('#define ' + v(eq.lhs) + ' (' + w.ex(eq.rhs) + ')')
-                defines.append(v(eq.lhs))
 
 print('')
 print('/* Aliases of state variables. */')
 for var in model.states():
     print('#define ' + v(var) + ' state[of1 + ' + str(var.indice()) + ']')
-    defines.append(v(var))
 
 print('')
 print('/* Aliases of logged intermediary variables. */')
 for k, var in enumerate(inter_log):
     print('#define ' + v(var) + ' inter_log[of2 + ' + str(k) + ']')
-    defines.append(v(var))
 
 print('')
 print('/* Aliases of scalar field variables. */')
 for k, var in enumerate(fields):
     print('#define ' + v(var) + ' field_data[of3 + ' + str(k) + ']')
-    defines.append(v(var))
 
 #print('')
 #print('/* List of components:')
@@ -258,33 +249,41 @@ for comp, ilist in comp_in.items():
     print('')
     set_pointers(None)
 
-?>
+if diffusion and paced_cells:
+    print('/*')
+    print(' * Calculate pacing current per cell')
+    print(' */')
+    print('inline Real calculate_pacing(')
+    print(tab + 'const uint cid,')
+    print(tab + 'const uint ix,')
+    print(tab + 'const uint iy,')
+    print(tab + 'const Real pace)')
+    print('{')
 
-/*
- * Calculate pacing current per cell
- *
- */
-inline Real calculate_pacing(
-    const uint cid,
-    const uint ix,
-    const uint iy,
-    const Real pace)
-{
-<?
-if type(paced_cells) == tuple:
-    # Pacing rectangle
-    nx, ny, x, y = paced_cells
-    xlo, ylo = str(x), str(y)
-    xhi, yhi = str(x + nx), str(y + ny)
-    print(tab + 'return (ix >= ' + xlo + ' && ix < ' + xhi + ' && iy >= '
-        + ylo + ' && iy < ' + yhi + ') ? pace : 0;')
-else:
-    # Explicit cell selection
-    for id in paced_cells:
-        print(tab + 'if (cid == ' + str(id) + ') return pace;')
-    print('    return 0;')
+    if type(paced_cells) == tuple:
+        # Pacing rectangle
+        nx, ny, x, y = paced_cells
+        xlo, ylo = str(x), str(y)
+        xhi, yhi = str(x + nx), str(y + ny)
+        # Code below to be added in after unit tests are up and running
+        #cond = []
+        #if x > 0:
+        #   cond.append('ix >= ' + str(x))
+        #cond.append('ix < ' + str(x + nx))
+        #if y > 1:
+        #    bits.append('iy >= ' + str(y))
+        #cond.append('iy < ' + str(y + ny))
+        #cond = ' && '.join(cond)
+        #print(tab + 'return (' + cond + ') ? pace : 0;')
+        print(tab + 'return (ix >= ' + xlo + ' && ix < ' + xhi + ' && iy >= '
+            + ylo + ' && iy < ' + yhi + ') ? pace : 0;')
+    else:
+        # Explicit cell selection
+        for id in paced_cells:
+            print(tab + 'if (cid == ' + str(id) + ') return pace;')
+        print('    return 0;')
+    print('}')
 ?>
-}
 
 /*
  * Cell kernel.
@@ -444,33 +443,32 @@ if connections:
  *  https://streamhpc.com/blog/2016-02-09/atomic-operations-for-floats-in-opencl-improved/
  *
  * Note that this method relies on comparing the integer representation of the float.
- * For this purpose, a type RealSizeUInt must be defined, that has the same size (in memory) as a Real.
+ * For this purpose, a type RealSizedUInt must be defined, that has the same size (in memory) as a Real.
  */
-inline void AtomicAdd(volatile __global Real *var, const Real operand) {
-
+inline void AtomicAdd(volatile __global Real *var, const Real operand)
+{
     // Create objects representing the same data as a real-sized integer and as Real (a union)
     union {
         RealSizedUInt u;
         Real f;
     } current, expected, result;
-    
-    // Set current value to source
+
+    // Set current value to var
     current.f = *var;
-    
+
     do {
         // Set the expected value of var
         expected.f = current.f;
-        
+
         // Calculate the new value
         result.f = expected.f + operand;
-        
+
         // Check if the variable has the expected value, and if so update it to the calculated sum.
         // After calling this, current will be set to whatever was in the variable.
-        
-        current.f = Myokit_cmpxchg((volatile __global RealSizedUInt*)var, expected.u, result.u);
+        current.u = Myokit_cmpxchg((volatile __global RealSizedUInt*)var, expected.u, result.u);
 
         // If the variable had the expected value, it will now have been updated, so we can stop.
-        // If someone else had already modified the variable at this point, the next check will fail and we try again.        
+        // If someone else had already modified the variable at this point, the next check will fail and we try again.
     } while(current.u != expected.u);
 }
 
@@ -577,9 +575,3 @@ __kernel void diff_step_fiber_tissue(
     }
 }
 
-<?
-#TODO 2021-05-15: Is this really necessary? If so, document why
-print('/* Remove aliases of state variables. */')
-for name in defines:
-    print('#undef ' + name)
-?>

@@ -530,7 +530,7 @@ class ModelTest(unittest.TestCase):
 
         # Test with state and precision argument
         # Ignoring some of the middle digits, as they differ on some (but not
-        # all!) travis builds.
+        # all!) CI builds.
         out = m.format_state_derivatives(
             state1, precision=myokit.SINGLE_PRECISION).splitlines()
         self.assertEqual(len(out), 8)

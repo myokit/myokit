@@ -37,8 +37,9 @@ OpenCL_DOUBLE_PRECISION_CONNECTIONS = False
 if OpenCL_FOUND:
     info = myokit.OpenCL.current_info()
     OpenCL_DOUBLE_PRECISION = info.has_extension('cl_khr_fp64')
-    OpenCL_DOUBLE_PRECISION_CONNECTIONS = info.has_extension(
-        'cl_khr_int64_base_atomics')
+    if OpenCL_DOUBLE_PRECISION:
+        OpenCL_DOUBLE_PRECISION_CONNECTIONS = info.has_extension(
+            'cl_khr_int64_base_atomics')
     del(info)
 
 

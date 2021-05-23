@@ -4200,7 +4200,7 @@ class Variable(VarOwner):
         if not isinstance(rhs, myokit.Expression):
             if isinstance(rhs, basestring):
                 rhs = myokit.parse_expression(rhs, context=self)
-            else:
+            elif rhs is not None:
                 rhs = myokit.Number(rhs)
 
         # Update the refs-by stored in the old dependencies
@@ -4211,16 +4211,20 @@ class Variable(VarOwner):
 
         # Get new references made by this variable, filter out references to
         # to values of state variables.
-        self._refs_to = set(
-            [r.var() for r in rhs.references() if not r.is_state_value()])
-        self._srefs_to = set(
-            [r.var() for r in rhs.references() if r.is_state_value()])
+        if rhs is not None:
+            self._refs_to = set(
+                [r.var() for r in rhs.references() if not r.is_state_value()])
+            self._srefs_to = set(
+                [r.var() for r in rhs.references() if r.is_state_value()])
 
-        # Update the refs-by stored in the new dependencies of this var
-        for ref in self._refs_to:
-            ref._refs_by.add(self)
-        for ref in self._srefs_to:
-            ref._srefs_by.add(self)
+            # Update the refs-by stored in the new dependencies of this var
+            for ref in self._refs_to:
+                ref._refs_by.add(self)
+            for ref in self._srefs_to:
+                ref._srefs_by.add(self)
+        else:
+            self._refs_to = set()
+            self._srefs_to = set()
 
         # Set rhs
         self._rhs = rhs
