@@ -23,6 +23,9 @@ class FiberTissueSimulation(myokit.CModule):
     """
     Runs a simulation of a fiber leading up to a rectangular piece of tissue.
 
+    Note: This simulation class is deprecated as of version 1.33.0, and will be
+    removed in future versions of Myokit.
+
     Takes the following input arguments:
 
     ``fiber_model``
@@ -129,6 +132,12 @@ class FiberTissueSimulation(myokit.CModule):
             g_fiber=(9, 6), g_tissue=(9, 6), g_fiber_tissue=9,
             dt=0.005, precision=myokit.SINGLE_PRECISION, native_maths=False):
         super(FiberTissueSimulation, self).__init__()
+
+        # Deprecated since 2021-05-28
+        import warnings
+        warnings.warn(
+            'The class `myokit.FiberTissueSimulation` is deprecated, and will'
+            ' be removed in future versions of Myokit.')
 
         # List of globally logged inputs
         self._global = ['time', 'pace']
