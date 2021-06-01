@@ -238,10 +238,10 @@ for comp, ilist in comp_in.items():
     # Equations
     for eq in equations[comp.name()].equations(const=False):
         var = eq.lhs.var()
+        if var in rl_states:
+            continue
         pre = tab
         if not (eq.lhs in ilist or eq.lhs in olist or eq.lhs in inter_log_lhs):
-            if var in rl_states:
-                continue
             pre += 'Real '
         if var not in bound_variables:
             print(pre + w.eq(eq) + ';')
