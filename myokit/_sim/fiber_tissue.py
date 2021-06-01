@@ -786,12 +786,14 @@ class FiberTissueSimulation(myokit.CModule):
             'fields': [],
             'rl_states': {},
             'connections': False,
+            'heterogeneous': False,
         }
         args['model'] = self._modelf
         args['vmvar'] = self._vmf
         args['bound_variables'] = self._bound_variablesf
         args['inter_log'] = inter_logf
         args['paced_cells'] = self._paced_cells
+        args['fiber_tissue'] = True
         if myokit.DEBUG:
             print('-' * 79)
             print(
@@ -805,6 +807,7 @@ class FiberTissueSimulation(myokit.CModule):
         args['bound_variables'] = self._bound_variablest
         args['inter_log'] = inter_logt
         args['paced_cells'] = []
+        args['fiber_tissue'] = False
         if myokit.DEBUG:
             print('-' * 79)
             print(

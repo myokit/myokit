@@ -2062,7 +2062,7 @@ def add_version_parser(subparsers):
 # Video
 #
 
-def video(src, key, dst, fps, colormap):
+def video(src, key, dst, fps, grow, colormap):
     """
     Use "moviepy" to create an animation from a DataBlock2d.
     """
@@ -2110,6 +2110,12 @@ def video(src, key, dst, fps, colormap):
     fps = int(fps)
     if fps < 1:
         print('Frame rate must be integer greater than zero.')
+        sys.exit(1)
+
+    # Get multiplier
+    grow = int(grow)
+    if grow < 1:
+        print('Grow must be integer greater than zero.')
         sys.exit(1)
 
     # Open file
@@ -2165,7 +2171,7 @@ def video(src, key, dst, fps, colormap):
 
     # Create movie
     print('Converting data into image frames.')
-    frames = data.colors(key, colormap=colormap)
+    frames = data.colors(key, colormap=colormap, multiplier=grow)
     print('Compiling frames into video clip.')
     video = mpy.ImageSequenceClip(frames, fps=fps)
     rate = str(nx * ny * fps * 4)
@@ -2210,6 +2216,12 @@ def add_video_parser(subparsers):
         metavar='fps',
         help='The number of (DataBlock) frames per second',
         default=16,
+    )
+    parser.add_argument(
+        '-grow',
+        metavar='grow',
+        help='Set to larger than 1 to turn each cell into multiple pixels.',
+        default=1,
     )
     parser.add_argument(
         '-colormap',

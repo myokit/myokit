@@ -246,6 +246,10 @@ class SimulationOpenCL(myokit.CModule):
         if self._diffusion_enabled:
             self.set_conductance()
 
+        # Set conductance fields
+        self._gx_field = None
+        self._gy_field = None
+
         # Set connections
         self._connections = None
 
@@ -378,8 +382,8 @@ class SimulationOpenCL(myokit.CModule):
         Returns the cell-to-cell conductance(s) used in this simulation.
 
         The returned value will be a single float for 1d simulations, a tuple
-        ``(gx, gy)`` for 2d simulations, and ``None`` if a list of conductances
-        was passed in with :meth:`set_connections()`.
+        ``(gx, gy)`` for 2d simulations, and ``None`` if conductances were set
+        with :meth:`set_conductance_field` or :meth:`set_connections()`.
 
         If diffusion is disabled, a call to this method will raise a
         ``RuntimeError``.
@@ -387,7 +391,7 @@ class SimulationOpenCL(myokit.CModule):
         if not self._diffusion_enabled:
             raise RuntimeError(
                 'This method is unavailable when diffusion is disabled.')
-        if self._connections is not None:
+        if (self._gx_field is not None) or (self._connections is not None):
             return None
         if len(self._dims) == 1:
             return self._gx
@@ -1006,6 +1010,8 @@ class SimulationOpenCL(myokit.CModule):
             'paced_cells': self._paced_cells,
             'rl_states': self._rl_states,
             'connections': self._connections is not None,
+            'heterogeneous': self._gx_field is not None,
+            'fiber_tissue': False,
         }
         if myokit.DEBUG:    # pragma: no cover
             print('-' * 79)
@@ -1055,6 +1061,8 @@ class SimulationOpenCL(myokit.CModule):
                 self._diffusion_enabled,
                 self._gx or 0,
                 self._gy or 0,
+                self._gx_field,
+                self._gy_field,
                 self._connections,
                 tmin,
                 tmax,
@@ -1244,7 +1252,7 @@ class SimulationOpenCL(myokit.CModule):
         `gx`` and ``gy`` have the unit ``[mS/uF]``.
 
         Calling `set_conductance` will delete any conductances previously set
-        with :meth:`set_connections`.
+        with :meth:`set_conductance_field` or :meth:`set_connections`.
 
         If diffusion is disabled, a call to this method will raise a
         ``RuntimeError``.
@@ -1259,6 +1267,67 @@ class SimulationOpenCL(myokit.CModule):
         if gy < 0:
             raise ValueError('Invalid conductance gy=' + str(gy))
         self._gx, self._gy = gx, gy
+        self._gx_field = self._gy_field = None
+        self._connections = None
+
+    def set_conductance_field(self, gx, gy=None):
+        """
+        Sets the cell-to-cell conductances used in this simulation, using lists
+        of conductances.
+
+        For 1d simulations, the argument ``gx`` should be a sequence of
+        ``nx - 1`` non-negative floats (where ``nx`` is the number of cells),
+        and ``gy`` should be ``None``.
+        For 2d simulations ``gx`` should be convertible to a numpy array with
+        shape ``(ny, nx - 1)`` and ``gy`` should be convertible to a numpy
+        array with shape ``(ny - 1, nx)``.
+
+        Calling ``set_conductance_field`` will delete any conductances
+        previously set with :meth:`set_conductance` or :meth:`set_connections`.
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
+        """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
+        # Check the field's size
+        gx = np.array(gx, copy=False, dtype=float)
+        if len(self._dims) == 1:
+            s = self._nx - 1
+            if gx.shape != (s, ):
+                raise ValueError(
+                    'The argument `gx` must have length ' + str(s) + '.')
+            if gy is not None:
+                raise ValueError(
+                    'For 1-d simulations the argument `gy` must be None.')
+        else:
+            s = (self._ny, self._nx - 1)
+            if gx.shape != s:
+                raise ValueError(
+                    'The argument `gx` must have dimensions ' + str(s) + '.')
+
+            gy = np.array(gy, copy=False, dtype=float)
+            s = (self._ny - 1, self._nx)
+            if gy.shape != s:
+                raise ValueError(
+                    'The argument `gy` must have dimensions ' + str(s) + '.')
+
+        # Check the field values
+        if np.any(gx < 0):
+            raise ValueError(
+                'The argument `gx` can not contain negative values.')
+        if (gy is not None) and np.any(gy < 0):
+            raise ValueError(
+                'The argument `gy` can not contain negative values.')
+
+        # Store
+        self._gx_field = list(gx.reshape((self._nx - 1) * self._ny))
+        if gy is None:
+            self._gy_field = None
+        else:
+            self._gy_field = list(gy.reshape(self._nx * (self._ny - 1)))
         self._connections = None
 
     def set_connections(self, connections):
@@ -1274,7 +1343,7 @@ class SimulationOpenCL(myokit.CModule):
         dimensions.
 
         Calling `set_connections` will override any conductances previously set
-        with :meth:`set_conductance`.
+        with :meth:`set_conductance` or :meth:`set_conductance_field`.
 
         If diffusion is disabled, a call to this method will raise a
         ``RuntimeError``.
@@ -1323,6 +1392,7 @@ class SimulationOpenCL(myokit.CModule):
             conns.append((i, j, c))
         del(doubles)
         self._connections = conns
+        self._gx_field = self._gy_field = None
 
     def set_constant(self, var, value):
         """
@@ -1399,7 +1469,7 @@ class SimulationOpenCL(myokit.CModule):
             shape = (self._ny, self._nx)
             if values.shape != shape:
                 raise ValueError(
-                    'The argument `values` must have dimensions' + str(shape)
+                    'The argument `values` must have dimensions ' + str(shape)
                     + '.')
         # Add field
         self._fields[var] = list(values.reshape(self._nx * self._ny))

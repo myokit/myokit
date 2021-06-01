@@ -12,11 +12,13 @@
 # bound_variables   A dict of bound variables
 # inter_log         A list of intermediary variable objects to log
 # diffusion         True if diffusion currents are enabled
+# heterogeneous     True if heterogeneous conduction is enabled
 # connections       True if connections are enabled
 # fields            A list of variables to use as scalar fields
 # paced_cells       A list of cell id's to pace or a tuple (nx, ny, x, y)
 # rl_states         A map {state: (inf, tau)} of states for which to use Rush-
 #                   Larsen updates instead of forward Euler
+# fiber_tissue      True if the fiber-tissue kernel should be built
 # ----------------------------------------------------------------------------
 #
 # This file is part of Myokit.
@@ -306,7 +308,7 @@ __kernel void cell_step(
     const Real dt,
     const Real pace_in,
     __global Real* state,
-    __global Real* idiff_in,
+    const __global Real* idiff_in,
     __global Real* inter_log,
     const __global Real* field_data
     )
@@ -371,10 +373,11 @@ for var in model.states():
 }
 
 <?
-if diffusion and not connections:
+if diffusion and (not connections) and (not heterogeneous):
     print("""
 /*
- * Performs a single diffusion step
+ * Performs a single diffusion step, for a rectangular grid with homogeneous
+ * conduction.
  *
  * Arguments
  *  nx    : The number of cells in the x direction
@@ -389,7 +392,7 @@ __kernel void diff_step(
     const unsigned long ny,
     const Real gx,
     const Real gy,
-    __global Real *state,
+    const __global Real *state,
     __global Real *idiff)
 {
     const unsigned long ix = get_global_id(0);
@@ -435,6 +438,58 @@ __kernel void diff_step(
             idiff[cid] += gy * (2*state[of1] - state[ofm] - state[ofp]);
         }
     }
+}
+    """)
+
+if heterogeneous:
+    print("""
+/*
+ * Performs a single diffusion step, for a rectangular grid with heterogeneous
+ * conduction.
+ *
+ * Arguments
+ *  nx    : The number of cells in the x direction
+ *  ny    : The number of cells in the y direction
+ *  gx_field : The cell-to-cell conductances in the x direction
+ *  gy_field : The cell-to-cell conductances in the y direction
+ *  state : The state vector
+ *  idiff : The diffusion current vector
+ */
+__kernel void diff_hetero(
+    const unsigned long nx,
+    const unsigned long ny,
+    const __global Real* gx,
+    const __global Real* gy,
+    const __global Real *state,
+    __global Real *idiff)
+{
+    const unsigned long ix = get_global_id(0);
+    const unsigned long iy = get_global_id(1);
+    if(ix >= nx) return;
+    if(iy >= ny) return;
+
+    // Offset of this cell's Vm in the state vector
+    const unsigned long cid = ix + iy * nx;
+    const unsigned long off = cid * n_state + i_vm;
+
+    // Current & voltage
+    Real i = 0.0;
+    Real v = state[off];
+
+    // Diffusion, x-direction
+    if(nx > 1) {
+        if(ix > 0) { i += gx[cid - iy - 1] * (v - state[off - n_state]); }
+        if(ix < nx - 1) { i += gx[cid - iy] * (v - state[off + n_state]); }
+    }
+
+    // Diffusion, y-direction
+    if(ny > 1) {
+        if(iy > 0) i += gy[cid - nx] * (v - state[off - n_state * nx]);
+        if(iy < ny - 1) i += gy[cid] * (v - state[off + n_state * nx]);
+    }
+
+    // Set
+    idiff[cid] = i;
 }
     """)
 
@@ -487,10 +542,10 @@ inline void AtomicAdd(volatile __global Real *var, const Real operand)
  */
 __kernel void diff_arb_step(
     const unsigned long count,
-    __global unsigned long *cell1,
-    __global unsigned long *cell2,
-    __global Real *conductance,
-    __global Real *state,
+    const __global unsigned long *cell1,
+    const __global unsigned long *cell2,
+    const __global Real *conductance,
+    const __global Real *state,
     __global Real *idiff)
 {
     const unsigned long ix = get_global_id(0);
@@ -523,8 +578,9 @@ __kernel void diff_arb_reset(
     idiff[ix] = 0;
 }
     """)
-?>
 
+if fiber_tissue:
+    print("""
 /*
  * Fiber-to-tissue diffusion program
  * Performs a single diffusion step wherein current flows from a fiber to a
@@ -559,8 +615,8 @@ __kernel void diff_step_fiber_tissue(
     const int ivf,
     const int ivt,
     const Real gft,
-    __global Real *state_f,
-    __global Real *state_t,
+    const __global Real *state_f,
+    const __global Real *state_t,
     __global Real *idiff_f,
     __global Real *idiff_t)
 {
@@ -576,4 +632,4 @@ __kernel void diff_step_fiber_tissue(
         idiff_t[ift] -= idiff;
     }
 }
-
+    """)

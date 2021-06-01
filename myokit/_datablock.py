@@ -858,7 +858,8 @@ class DataBlock2d(object):
         # 2d variables
         self._2d = {}
 
-    def colors(self, name, colormap='traditional', lower=None, upper=None):
+    def colors(self, name, colormap='traditional', lower=None, upper=None,
+               multiplier=1):
         """
         Converts the 2d series indicated by ``name`` into a list of ``W*H*RGB``
         arrays, with each entry represented as an 8 bit unsigned integer.
@@ -869,6 +870,8 @@ class DataBlock2d(object):
         # Get lower and upper bounds for colormap scaling
         lower = np.min(data) if lower is None else float(lower)
         upper = np.max(data) if upper is None else float(upper)
+        # Get multiplier
+        multiplier = int(multiplier) if multiplier > 1 else 1
         # Create images
         frames = []
         for frame in data:
@@ -879,6 +882,10 @@ class DataBlock2d(object):
                 frame, lower=lower, upper=upper, alpha=False, rgb=True)
             # Reshape to nx * ny * 3 color array
             frame = frame.reshape((self._ny, self._nx, 3))
+            # Grow
+            if multiplier > 1:
+                frame = frame.repeat(multiplier, axis=0)
+                frame = frame.repeat(multiplier, axis=1)
             # Append to list
             frames.append(frame)
         return frames
