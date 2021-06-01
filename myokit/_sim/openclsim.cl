@@ -148,10 +148,11 @@ if precision == myokit.DOUBLE_PRECISION:
 /* Number of scalar fields */
 #define n_field <?=str(len(fields))?>
 
-/* Indice of membrane potential in state vector */
-#define i_vm <?= model.label('membrane_potential').indice() ?>
-
 <?
+if diffusion:
+    print('/* Indice of membrane potential in state vector */')
+    print('#define i_vm ' + str(model.label('membrane_potential').indice()))
+
 if precision == myokit.SINGLE_PRECISION:
     print('/* Using single precision floats */')
     print('typedef float Real;')
@@ -220,9 +221,9 @@ for comp, ilist in comp_in.items():
     # Function header
     olist = comp_out[comp]
     args = [
-        'const uint of1',
-        'const uint of2',
-        'const uint of3',
+        'const unsigned long of1',
+        'const unsigned long of2',
+        'const unsigned long of3',
         '__global Real *state',
         '__global Real *inter_log',
         'const __global Real *field_data',
@@ -254,9 +255,9 @@ if diffusion and paced_cells:
     print(' * Calculate pacing current per cell')
     print(' */')
     print('inline Real calculate_pacing(')
-    print(tab + 'const uint cid,')
-    print(tab + 'const uint ix,')
-    print(tab + 'const uint iy,')
+    print(tab + 'const unsigned long cid,')
+    print(tab + 'const unsigned long ix,')
+    print(tab + 'const unsigned long iy,')
     print(tab + 'const Real pace)')
     print('{')
 
@@ -265,18 +266,16 @@ if diffusion and paced_cells:
         nx, ny, x, y = paced_cells
         xlo, ylo = str(x), str(y)
         xhi, yhi = str(x + nx), str(y + ny)
-        # Code below to be added in after unit tests are up and running
-        #cond = []
-        #if x > 0:
-        #   cond.append('ix >= ' + str(x))
-        #cond.append('ix < ' + str(x + nx))
-        #if y > 1:
-        #    bits.append('iy >= ' + str(y))
-        #cond.append('iy < ' + str(y + ny))
-        #cond = ' && '.join(cond)
-        #print(tab + 'return (' + cond + ') ? pace : 0;')
-        print(tab + 'return (ix >= ' + xlo + ' && ix < ' + xhi + ' && iy >= '
-            + ylo + ' && iy < ' + yhi + ') ? pace : 0;')
+
+        cond = []
+        if x > 0:
+           cond.append('ix >= ' + str(x))
+        if y > 0:
+            cond.append('iy >= ' + str(y))
+        cond.append('ix < ' + str(x + nx))
+        cond.append('iy < ' + str(y + ny))
+        cond = ' && '.join(cond)
+        print(tab + 'return (' + cond + ') ? pace : 0;')
     else:
         # Explicit cell selection
         for id in paced_cells:
@@ -301,8 +300,8 @@ if diffusion and paced_cells:
  *  field_data : A vector containing all field data
  */
 __kernel void cell_step(
-    const uint nx,
-    const uint ny,
+    const unsigned long nx,
+    const unsigned long ny,
     const Real time,
     const Real dt,
     const Real pace_in,
@@ -312,16 +311,16 @@ __kernel void cell_step(
     const __global Real* field_data
     )
 {
-    const uint ix = get_global_id(0);
-    const uint iy = get_global_id(1);
+    const unsigned long ix = get_global_id(0);
+    const unsigned long iy = get_global_id(1);
     if(ix >= nx) return;
     if(iy >= ny) return;
 
     // Offset of this cell's state in the state vector
-    const uint cid = ix + iy * nx;
-    const uint of1 = cid * n_state;
-    const uint of2 = cid * n_inter;
-    const uint of3 = cid * n_field;
+    const unsigned long cid = ix + iy * nx;
+    const unsigned long of1 = cid * n_state;
+    const unsigned long of2 = cid * n_inter;
+    const unsigned long of3 = cid * n_field;
 
     // Pacing
 <?
@@ -371,6 +370,9 @@ for var in model.states():
 ?>
 }
 
+<?
+if diffusion and not connections:
+    print("""
 /*
  * Performs a single diffusion step
  *
@@ -383,24 +385,24 @@ for var in model.states():
  *  idiff : The diffusion current vector
  */
 __kernel void diff_step(
-    const uint nx,
-    const uint ny,
+    const unsigned long nx,
+    const unsigned long ny,
     const Real gx,
     const Real gy,
     __global Real *state,
     __global Real *idiff)
 {
-    const uint ix = get_global_id(0);
-    const uint iy = get_global_id(1);
+    const unsigned long ix = get_global_id(0);
+    const unsigned long iy = get_global_id(1);
     if(ix >= nx) return;
-    if (iy >= ny) return;
+    if(iy >= ny) return;
 
     // Offset of this cell's Vm in the state vector
-    const uint cid = ix + iy * nx;
-    const uint of1 = cid * n_state + i_vm;
+    const unsigned long cid = ix + iy * nx;
+    const unsigned long of1 = cid * n_state + i_vm;
 
     // Diffusion, x-direction
-    uint ofp, ofm;
+    unsigned long ofp, ofm;
     if(nx > 1) {
         ofp = of1 + n_state;
         ofm = of1 - n_state;
@@ -434,8 +436,8 @@ __kernel void diff_step(
         }
     }
 }
+    """)
 
-<?
 if connections:
     print("""
 /*
@@ -484,19 +486,19 @@ inline void AtomicAdd(volatile __global Real *var, const Real operand)
  *  idiff : The diffusion current vector
  */
 __kernel void diff_arb_step(
-    const uint count,
-    __global int *cell1,
-    __global int *cell2,
+    const unsigned long count,
+    __global unsigned long *cell1,
+    __global unsigned long *cell2,
     __global Real *conductance,
     __global Real *state,
     __global Real *idiff)
 {
-    const uint ix = get_global_id(0);
+    const unsigned long ix = get_global_id(0);
     if(ix >= count) return;
 
     // Cell indices and conductance
-    int i1 = cell1[ix];
-    int i2 = cell2[ix];
+    unsigned long i1 = cell1[ix];
+    unsigned long i2 = cell2[ix];
     Real i12 = conductance[ix] * (state[i1 * n_state + i_vm] - state[i2 * n_state + i_vm]);
 
     // Diffusion
@@ -513,10 +515,10 @@ __kernel void diff_arb_step(
  *  idiff : The diffusion current vector
  */
 __kernel void diff_arb_reset(
-    const uint count,
+    const unsigned long count,
     __global Real *idiff)
 {
-    const uint ix = get_global_id(0);
+    const unsigned long ix = get_global_id(0);
     if(ix >= count) return;
     idiff[ix] = 0;
 }
@@ -547,26 +549,26 @@ __kernel void diff_arb_reset(
  *  idiff_t : The diffusion current vector for the tissue model
  */
 __kernel void diff_step_fiber_tissue(
-    const uint nfx,
-    const uint nfy,
-    const uint ntx,
-    const uint ctx,
-    const uint cty,
-    const uint nsf,
-    const uint nst,
-    const uint ivf,
-    const uint ivt,
+    const unsigned long nfx,
+    const unsigned long nfy,
+    const unsigned long ntx,
+    const unsigned long ctx,
+    const unsigned long cty,
+    const unsigned long nsf,
+    const unsigned long nst,
+    const int ivf,
+    const int ivt,
     const Real gft,
     __global Real *state_f,
     __global Real *state_t,
     __global Real *idiff_f,
     __global Real *idiff_t)
 {
-    const uint cid = get_global_id(0);
-    const uint iff = (nfx - 1) + cid * nfx;
-    const uint ift = ctx + (cty + cid) * ntx;
-    const uint off = iff * nsf + ivf;
-    const uint oft = ift * nst + ivt;
+    const unsigned long cid = get_global_id(0);
+    const unsigned long iff = (nfx - 1) + cid * nfx;
+    const unsigned long ift = ctx + (cty + cid) * ntx;
+    const unsigned long off = iff * nsf + ivf;
+    const unsigned long oft = ift * nst + ivt;
     if (cid < nfy) {
         // Connection
         Real idiff = gft * (state_f[off] - state_t[oft]);

@@ -478,6 +478,19 @@ class SimulationOpenCLTest(unittest.TestCase):
         self.assertFalse(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
         self.assertFalse(np.all(d['membrane.V', 1] == d['membrane.V', 2]))
 
+        # Create without diffusion, 1d, no membrane_potential label
+        m = self.m.clone()
+        m.label('membrane_potential').set_label(None)
+        s = myokit.SimulationOpenCL(m, self.p, ncells=3, diffusion=False)
+
+        # Test that all cells depolarise and are the same
+        d = s.run(10, log=['membrane.V']).npview()
+        self.assertGreater(np.max(d['membrane.V', 0]), 0)
+        self.assertGreater(np.max(d['membrane.V', 1]), 0)
+        self.assertGreater(np.max(d['membrane.V', 2]), 0)
+        self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 1]))
+        self.assertTrue(np.all(d['membrane.V', 0] == d['membrane.V', 2]))
+
     def test_neighbours_0d(self):
         # Test listing neighbours in a 0d simulation
 

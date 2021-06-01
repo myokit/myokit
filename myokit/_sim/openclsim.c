@@ -56,7 +56,7 @@ if precision == myokit.DOUBLE_PRECISION:
  *  var      : The variable to add to the logs, if its name is present
  * Returns 0 if not added, 1 if added.
  */
-static int log_add(PyObject* log_dict, PyObject** logs, Real** vars, int i, char* name, const Real* var)
+static int log_add(PyObject* log_dict, PyObject** logs, Real** vars, unsigned long i, char* name, const Real* var)
 {
     int added = 0;
     PyObject* key = PyUnicode_FromString(name);
@@ -76,12 +76,16 @@ static int log_add(PyObject* log_dict, PyObject** logs, Real** vars, int i, char
 // Simulation state
 int running = 0;    // 1 if a simulation has been initialized, 0 if it's clean
 
+// Note: OpenCL functions such as get_global_id() all return a size_t defined
+// on the device (so different from the .C size_t). This is either a 32 or a
+// 64 bit int. To be safe, we just use a ulong everywhere.
+
 // Input arguments
 PyObject *platform_name;// A python string specifying the platform to use
 PyObject *device_name;  // A python string specifying the device to use
 char* kernel_source;    // The kernel code
-int nx;                 // The number of cells in the x direction
-int ny;                 // The number of cells in the y direction
+unsigned long nx;       // The number of cells in the x direction
+unsigned long ny;       // The number of cells in the y direction
 double gx;              // The cell-to-cell conductance in the x direction
 double gy;              // The cell-to-cell conductance in the y direction
 double tmin;            // The initial simulation time
@@ -116,8 +120,8 @@ Real *rvec_state = NULL;
 Real *rvec_idiff = NULL;
 Real *rvec_inter_log = NULL;
 Real *rvec_field_data = NULL;
-int *rvec_conn1 = NULL;
-int *rvec_conn2 = NULL;
+unsigned long *rvec_conn1 = NULL;
+unsigned long *rvec_conn2 = NULL;
 Real *rvec_conn3 = NULL;
 size_t dsize_state;
 size_t dsize_idiff;
@@ -147,7 +151,7 @@ int diffusion;
 
 // Arbitrary geometry diffusion
 PyObject* connections;  // List of connection tuples
-int n_connections;
+unsigned long n_connections;
 
 // OpenCL work group sizes
 size_t global_work_size[2];
@@ -162,20 +166,20 @@ Real arg_gx;
 Real arg_gy;
 
 /* Logging */
-PyObject** logs = NULL; /* An array of pointers to a PyObject */
-Real** vars = NULL;     /* An array of pointers to values to log */
-int n_vars;             /* Number of logging variables */
-double tnext_log;       /* The next logging point */
-unsigned long inext_log;/* The number of logged steps */
-int logging_diffusion;  /* True if diffusion current is being logged. */
-int logging_states;     /* True if any states are being logged */
-int logging_inters;     /* True if any intermediary variables are being logged. */
-int n_inter;            /* The number of intermediary variables to log */
+PyObject** logs = NULL;     /* An array of pointers to a PyObject */
+Real** vars = NULL;         /* An array of pointers to values to log */
+unsigned long n_vars;       /* Number of logging variables */
+double tnext_log;           /* The next logging point */
+unsigned long inext_log;    /* The number of logged steps */
+int logging_diffusion;      /* True if diffusion current is being logged. */
+int logging_states;         /* True if any states are being logged */
+int logging_inters;         /* True if any intermediary variables are being logged. */
+unsigned long n_inter;      /* The number of intermediary variables to log */
 /* The relationship between n_inter and logging_inters isn't straightforward: */
 /* n_inter is the number of different model variables (so membrane.V, not */
 /* 1.2.membrane.V) being logged, while logging_inters is 1 if at least one */
 /* simulation variable (1.2.membrane.V) is listed in the given log. */
-int n_field_data;       /* The number of floats in the field data */
+unsigned long n_field_data;       /* The number of floats in the field data */
 
 /* Temporary objects: decref before re-using for another var */
 /* (Unless you got it through PyList_GetItem or PyTuble_GetItem) */
@@ -260,7 +264,7 @@ sim_clean()
     return 0;
 }
 static PyObject*
-py_sim_clean()
+py_sim_clean(PyObject *self, PyObject *args)
 {
     #ifdef MYOKIT_DEBUG
     printf("Python py_sim_clean called.\n");
@@ -285,7 +289,7 @@ sim_init(PyObject* self, PyObject* args)
     cl_int flag;
 
     // Iteration
-    int i, j, k;
+    unsigned long i, j, k;
 
     // Platform and device id
     cl_platform_id platform_id;
@@ -296,7 +300,7 @@ sim_init(PyObject* self, PyObject* args)
 
     // Variable names
     char log_var_name[1023];
-    int k_vars;
+    unsigned long k_vars;
 
     // Compilation error message
     size_t blog_size;
@@ -342,11 +346,12 @@ sim_init(PyObject* self, PyObject* args)
     list_update_str = NULL;
 
     // Check input arguments
-    if(!PyArg_ParseTuple(args, "OOsiibddOdddOOOOdOO",
+    // https://docs.python.org/3.8/c-api/arg.html#c.PyArg_ParseTuple
+    if(!PyArg_ParseTuple(args, "OOskkbddOdddOOOOdOO",
             &platform_name,     // Must be bytes
             &device_name,       // Must be bytes
             &kernel_source,
-            &nx,
+            &nx,                // Small 'k' = unsigned long
             &ny,
             &diffusion,
             &gx,
@@ -368,7 +373,7 @@ sim_init(PyObject* self, PyObject* args)
         return 0;
     }
     dt = default_dt;
-    dt_min = 0; /*dt * 1e-2; Not sure why this was >0. Causes issues with timing sometimes. */
+    dt_min = 0;
     arg_dt = (Real)dt;
     arg_gx = (Real)gx;
     arg_gy = (Real)gy;
@@ -399,7 +404,7 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "'state_in' must be a list.");
         return sim_clean();
     }
-    if(PyList_Size(state_in) != nx * ny * n_state) {
+    if((unsigned long)PyList_Size(state_in) != nx * ny * n_state) {
         PyErr_SetString(PyExc_Exception, "'state_in' must have size nx * ny * n_states.");
         return sim_clean();
     }
@@ -407,7 +412,7 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "'state_out' must be a list.");
         return sim_clean();
     }
-    if(PyList_Size(state_out) != nx * ny * n_state) {
+    if((unsigned long)PyList_Size(state_out) != nx * ny * n_state) {
         PyErr_SetString(PyExc_Exception, "'state_out' must have size nx * ny * n_states.");
         return sim_clean();
     }
@@ -464,7 +469,7 @@ sim_init(PyObject* self, PyObject* args)
         flt = PyList_GetItem(state_in, i);    // Don't decref!
         if(!PyFloat_Check(flt)) {
             char errstr[200];
-            sprintf(errstr, "Item %d in state vector is not a float.", i);
+            sprintf(errstr, "Item %u in state vector is not a float.", (unsigned int)i);
             PyErr_SetString(PyExc_Exception, errstr);
             return sim_clean();
         }
@@ -499,7 +504,7 @@ sim_init(PyObject* self, PyObject* args)
             flt = PyList_GetItem(field_data, i);    // No need to decref
             if(!PyFloat_Check(flt)) {
                 char errstr[200];
-                sprintf(errstr, "Item %d in field data is not a float.", i);
+                sprintf(errstr, "Item %u in field data is not a float.", (unsigned int)i);
                 PyErr_SetString(PyExc_Exception, errstr);
                 return sim_clean();
             }
@@ -517,11 +522,11 @@ sim_init(PyObject* self, PyObject* args)
             return sim_clean();
         }
         n_connections = PyList_Size(connections);
-        dsize_conn1 = n_connections * sizeof(int);  // Use int; same as nx, ny, etc.
-        dsize_conn2 = n_connections * sizeof(int);
+        dsize_conn1 = n_connections * sizeof(unsigned long);  // Same type as nx, ny, etc.
+        dsize_conn2 = n_connections * sizeof(unsigned long);
         dsize_conn3 = n_connections * sizeof(Real);
-        rvec_conn1 = (int*)malloc(dsize_conn1);
-        rvec_conn2 = (int*)malloc(dsize_conn2);
+        rvec_conn1 = (unsigned long*)malloc(dsize_conn1);
+        rvec_conn2 = (unsigned long*)malloc(dsize_conn2);
         rvec_conn3 = (Real*)malloc(dsize_conn3);
         for(i=0; i<n_connections; i++) {
             flt = PyList_GetItem(connections, i);   // Borrowed reference
@@ -536,11 +541,11 @@ sim_init(PyObject* self, PyObject* args)
 
             ret = PyTuple_GetItem(flt, 0);  // Borrowed reference
             if(PyLong_Check(ret)) {
-                rvec_conn1[i] = (int)PyLong_AsLong(ret);
-#if PY_MAJOR_VERSION < 3
+                rvec_conn1[i] = (unsigned long)PyLong_AsLong(ret);
+            #if PY_MAJOR_VERSION < 3
             } else if (PyInt_Check(ret)) {
-                rvec_conn1[i] = (int)PyInt_AsLong(ret);
-#endif
+                rvec_conn1[i] = (unsigned long)PyInt_AsLong(ret);
+            #endif
             } else {
                 PyErr_SetString(PyExc_Exception, "First item in each connection tuple must be int");
                 return sim_clean();
@@ -548,11 +553,11 @@ sim_init(PyObject* self, PyObject* args)
 
             ret = PyTuple_GetItem(flt, 1);  // Borrowed reference
             if(PyLong_Check(ret)) {
-                rvec_conn2[i] = (int)PyLong_AsLong(ret);
-#if PY_MAJOR_VERSION < 3
+                rvec_conn2[i] = (unsigned long)PyLong_AsLong(ret);
+            #if PY_MAJOR_VERSION < 3
             } else if(PyInt_Check(ret)) {
-                rvec_conn2[i] = (int)PyInt_AsLong(ret);
-#endif
+                rvec_conn2[i] = (unsigned long)PyInt_AsLong(ret);
+            #endif
             } else {
                 PyErr_SetString(PyExc_Exception, "Second item in each connection tuple must be int");
                 return sim_clean();
@@ -643,13 +648,13 @@ sim_init(PyObject* self, PyObject* args)
 
     #ifdef MYOKIT_DEBUG
     printf("Created buffers.\n");
-    printf("State buffer size:%d.\n", dsize_state);
-    printf("Idiff buffer size:%d.\n", dsize_idiff);
-    printf("Inter-log buffer size:%d.\n", dsize_inter_log);
-    printf("Field-data buffer size:%d.\n", dsize_field_data);
-    printf("Connections-1 buffer size:%d.\n", dsize_conn1);
-    printf("Connections-2 buffer size:%d.\n", dsize_conn2);
-    printf("Connections-3 buffer size:%d.\n", dsize_conn3);
+    printf("State buffer size: %d.\n", (int)dsize_state);
+    printf("Idiff buffer size: %d.\n", (int)dsize_idiff);
+    printf("Inter-log buffer size: %d.\n", (int)dsize_inter_log);
+    printf("Field-data buffer size: %d.\n", (int)dsize_field_data);
+    printf("Connections-1 buffer size: %d.\n", (int)dsize_conn1);
+    printf("Connections-2 buffer size: %d.\n", (int)dsize_conn2);
+    printf("Connections-3 buffer size: %d.\n", (int)dsize_conn3);
     #endif
 
     /* Copy data into buffers */
@@ -780,7 +785,7 @@ sim_init(PyObject* self, PyObject* args)
     }
     n_vars = PyDict_Size(log_dict);
     #ifdef MYOKIT_DEBUG
-    printf("Number of variables to log:%d.\n", n_vars);
+    printf("Number of variables to log:%u.\n", (unsigned int)n_vars);
     #endif
     logs = (PyObject**)malloc(sizeof(PyObject*)*n_vars); // Pointers to logging lists
     #ifdef MYOKIT_DEBUG
@@ -811,9 +816,9 @@ if var is not None:
 var = model.binding('diffusion_current')
 if var is not None:
     if dims == 1:
-        print(3*tab + 'sprintf(log_var_name, "%d.' + var.qname() + '", j);')
+        print(3*tab + 'sprintf(log_var_name, "%u.' + var.qname() + '", (unsigned int)j);')
     else:
-        print(3*tab + 'sprintf(log_var_name, "%d.%d.' + var.qname() + '", j, i);')
+        print(3*tab + 'sprintf(log_var_name, "%u.%u.' + var.qname() + '", (unsigned int)j, (unsigned int)i);')
     print(3*tab + 'if(log_add(log_dict, logs, vars, k_vars, log_var_name, &rvec_idiff[i*nx+j])) {')
     print(4*tab + 'logging_diffusion = 1;')
     print(4*tab + 'k_vars++;')
@@ -829,9 +834,9 @@ if var is not None:
 <?
 for var in model.states():
     if dims == 1:
-        print(3*tab + 'sprintf(log_var_name, "%d.' + var.qname() + '", j);')
+        print(3*tab + 'sprintf(log_var_name, "%u.' + var.qname() + '", (unsigned int)j);')
     else:
-        print(3*tab + 'sprintf(log_var_name, "%d.%d.' + var.qname() + '", j, i);' )
+        print(3*tab + 'sprintf(log_var_name, "%u.%u.' + var.qname() + '", (unsigned int)j, (unsigned int)i);' )
     print(3*tab + 'if(log_add(log_dict, logs, vars, k_vars, log_var_name, &rvec_state[(i*nx+j)*n_state+' + str(var.indice()) + '])) {')
     print(4*tab + 'logging_states = 1;')
     print(4*tab + 'k_vars++;')
@@ -848,9 +853,9 @@ for var in model.states():
                 ret = PyList_GetItem(inter_log, k); // Don't decref
 <?
 if dims == 1:
-    print(4*tab + 'sprintf(log_var_name, "%d.%s", j, PyBytes_AsString(ret));')
+    print(4*tab + 'sprintf(log_var_name, "%u.%s", (unsigned int)j, PyBytes_AsString(ret));')
 else:
-    print(4*tab + 'sprintf(log_var_name, "%d.%d.%s", j, i, PyBytes_AsString(ret));')
+    print(4*tab + 'sprintf(log_var_name, "%u.%u.%s", (unsigned int)j, (unsigned int)i, PyBytes_AsString(ret));')
 
 print(4*tab + 'if(log_add(log_dict, logs, vars, k_vars, log_var_name, &rvec_inter_log[(i*nx+j)*n_inter+k])) {')
 print(5*tab + 'logging_inters = 1;')
@@ -869,7 +874,7 @@ print(4*tab + '}')
     }
 
     #ifdef MYOKIT_DEBUG
-    printf("Created log for %d variables.\n", n_vars);
+    printf("Created log for %u variables.\n", (unsigned int)n_vars);
     #endif
 
     /* Log update method: */
@@ -900,7 +905,7 @@ sim_step(PyObject *self, PyObject *args)
     ESys_Flag flag_pacing;
     long steps_left_in_run;
     cl_int flag;
-    int i;
+    unsigned long i;
     double d;
     int logging_condition;
 
@@ -1075,8 +1080,8 @@ sim_step(PyObject *self, PyObject *args)
  */
 static PyMethodDef SimMethods[] = {
     {"sim_init", sim_init, METH_VARARGS, "Initialize the simulation."},
-    {"sim_step", sim_step, METH_VARARGS, "Perform the next step in the simulation."},
-    {"sim_clean", py_sim_clean, METH_VARARGS, "Clean up after an aborted simulation."},
+    {"sim_step", sim_step, METH_NOARGS, "Perform the next step in the simulation."},
+    {"sim_clean", py_sim_clean, METH_NOARGS, "Clean up after an aborted simulation."},
     {NULL},
 };
 

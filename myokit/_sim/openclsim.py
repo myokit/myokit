@@ -202,14 +202,15 @@ class SimulationOpenCL(myokit.CModule):
 
         # Get membrane potential variable (from pre-cloned model!)
         vm = model.label('membrane_potential')
-        if vm is None:
-            raise ValueError(
-                'This simulation requires the membrane potential'
-                ' variable to be labelled as "membrane_potential".')
-        if not vm.is_state():
-            raise ValueError(
-                'The variable labelled as membrane potential must'
-                ' be a state variable.')
+        if self._diffusion_enabled or self._rl:
+            if vm is None:
+                raise ValueError(
+                    'This simulation requires the membrane potential'
+                    ' variable to be labelled as "membrane_potential".')
+            if not vm.is_state():
+                raise ValueError(
+                    'The variable labelled as membrane potential must'
+                    ' be a state variable.')
 
         #if vm.is_referenced():
         #  raise ValueError('This simulation requires that no other variables'
@@ -234,7 +235,10 @@ class SimulationOpenCL(myokit.CModule):
         else:
             # Clone model, store
             self._model = model.clone()
-            self._vm = self._model.get(vm.qname())
+            if vm is None:
+                self._vm = None
+            else:
+                self._vm = self._model.get(vm.qname())
             del(model, vm)
 
         # Set default conductance values
@@ -276,14 +280,7 @@ class SimulationOpenCL(myokit.CModule):
             inputs['diffusion_current'] = 'idiff'
         self._bound_variables = self._model.prepare_bindings(inputs)
 
-        # Reserve keywords
-        from myokit.formats import opencl
-        self._model.reserve_unique_names(*opencl.keywords)
-        self._model.reserve_unique_names(
-            *['calc_' + c.name() for c in self._model.components()])
-        self._model.reserve_unique_names(
-            *['D_' + c.uname() for c in self._model.states()])
-        self._model.reserve_unique_names(*KEYWORDS)
+        # Create unique names
         self._model.create_unique_names()
 
         # Create back-end
@@ -1139,12 +1136,12 @@ class SimulationOpenCL(myokit.CModule):
                 txt.append('Simulation variables during:')
                 txt.append('  Time: ' + myokit.float.str(
                     bounds[0][vtime], precision=self._precision))
-                if vpace:
+                if vpace is not None:
                     txt.append(
                         '  Pacing variable: ' + myokit.float.str(
                             bounds[0][vpace], precision=self._precision)
                         + is_paced_str)
-                if vdiff:
+                if vdiff is not None:
                     txt.append(
                         '  Diffusion current: ' + myokit.float.str(
                             bounds[0][vdiff], precision=self._precision))
@@ -1186,12 +1183,12 @@ class SimulationOpenCL(myokit.CModule):
                     txt.append('Simulation variables before:')
                     txt.append('  Time: ' + myokit.float.str(
                         bounds[1][vtime], precision=self._precision))
-                    if vpace:
+                    if vpace is not None:
                         txt.append(
                             '  Pacing variable: ' + myokit.float.str(
                                 bounds[1][vpace], precision=self._precision)
                             + is_paced_str)
-                    if vdiff:
+                    if vdiff is not None:
                         txt.append(
                             '  Diffusion current: ' + myokit.float.str(
                                 bounds[1][vdiff], precision=self._precision))
@@ -1645,68 +1642,3 @@ class SimulationOpenCL(myokit.CModule):
         """
         return self._time
 
-
-KEYWORDS = [
-    'AtomicAdd',
-    'calculate_pacing',
-    'cell1',
-    'cell2',
-    'cell_step',
-    'cid',
-    'conductance',
-    'ctx',
-    'cty',
-    'diff_step',
-    'diff_arb_step',
-    'diff_arb_reset',
-    'diff_step_fiber_tissue',
-    'dt',
-    'floatVal',
-    'gft',
-    'gx',
-    'gy',
-    'i1',
-    'i2',
-    'i12',
-    'idiff',
-    'idiff_f',
-    'idiff_in',
-    'idiff_t',
-    'iff',
-    'ift',
-    'inter_log',
-    'intVal',
-    'ivf',
-    'ivt',
-    'ix',
-    'iy',
-    'i_vm',
-    'newVal',
-    'nfx',
-    'nfy',
-    'nsf',
-    'nst',
-    'ntx',
-    'nx',
-    'nx_paced',
-    'ny',
-    'ny_paced',
-    'n_inter',
-    'n_state',
-    'of1',
-    'of2',
-    'off',
-    'ofm',
-    'ofp',
-    'oft',
-    'operand',
-    'pace',
-    'pace_in',
-    'prevVal',
-    'Real',
-    'source',
-    'state',
-    'state_f',
-    'state_t',
-    'time',
-]

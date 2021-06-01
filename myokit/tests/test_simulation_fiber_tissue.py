@@ -14,7 +14,7 @@ import numpy as np
 
 import myokit
 
-from shared import OpenCL_FOUND, DIR_DATA
+from shared import OpenCL_FOUND, DIR_DATA, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -52,17 +52,20 @@ class FiberTissueSimulationTest(unittest.TestCase):
         nty = 6
 
         # Create simulation
-        s = myokit.FiberTissueSimulation(
-            mf,
-            mt,
-            p,
-            ncells_fiber=(nfx, nfy),
-            ncells_tissue=(ntx, nty),
-            nx_paced=10,
-            g_fiber=(235, 100),
-            g_tissue=(9, 5),
-            g_fiber_tissue=9
-        )
+        with WarningCollector() as w:
+            s = myokit.FiberTissueSimulation(
+                mf,
+                mt,
+                p,
+                ncells_fiber=(nfx, nfy),
+                ncells_tissue=(ntx, nty),
+                nx_paced=10,
+                g_fiber=(235, 100),
+                g_tissue=(9, 5),
+                g_fiber_tissue=9
+            )
+            self.assertIn('deprecated', w.text())
+
         s.set_step_size(0.0012)
         # Set up logging
         logf = [
@@ -104,18 +107,19 @@ class FiberTissueSimulationTest(unittest.TestCase):
         p = myokit.pacing.blocktrain(1000, 2.0, offset=0)
 
         # Create simulation
-        s1 = myokit.FiberTissueSimulation(
-            m,
-            m,
-            p,
-            ncells_fiber=(1, 1),
-            ncells_tissue=(1, 1),
-            nx_paced=1,
-            g_fiber=(0, 0),
-            g_tissue=(0, 0),
-            g_fiber_tissue=0,
-            precision=myokit.DOUBLE_PRECISION,
-        )
+        with WarningCollector():
+            s1 = myokit.FiberTissueSimulation(
+                m,
+                m,
+                p,
+                ncells_fiber=(1, 1),
+                ncells_tissue=(1, 1),
+                nx_paced=1,
+                g_fiber=(0, 0),
+                g_tissue=(0, 0),
+                g_fiber_tissue=0,
+                precision=myokit.DOUBLE_PRECISION,
+            )
         s1.set_step_size(0.01)
 
         # Set up logging
@@ -200,3 +204,17 @@ class FiberTissueSimulationTest(unittest.TestCase):
         self.assertLess(e2, 0.05)
         self.assertLess(e3, 0.01)
 
+
+if __name__ == '__main__':
+
+    import sys
+    if '-v' in sys.argv:
+        print('Running in debug/verbose mode')
+        debug = True
+    else:
+        print('Add -v for more debug output')
+
+    import warnings
+    warnings.simplefilter('always')
+
+    unittest.main()
