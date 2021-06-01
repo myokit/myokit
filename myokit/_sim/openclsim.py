@@ -1139,12 +1139,12 @@ class SimulationOpenCL(myokit.CModule):
                 txt.append('Simulation variables during:')
                 txt.append('  Time: ' + myokit.float.str(
                     bounds[0][vtime], precision=self._precision))
-                if vpace:
+                if vpace is not None:
                     txt.append(
                         '  Pacing variable: ' + myokit.float.str(
                             bounds[0][vpace], precision=self._precision)
                         + is_paced_str)
-                if vdiff:
+                if vdiff is not None:
                     txt.append(
                         '  Diffusion current: ' + myokit.float.str(
                             bounds[0][vdiff], precision=self._precision))
@@ -1186,12 +1186,12 @@ class SimulationOpenCL(myokit.CModule):
                     txt.append('Simulation variables before:')
                     txt.append('  Time: ' + myokit.float.str(
                         bounds[1][vtime], precision=self._precision))
-                    if vpace:
+                    if vpace is not None:
                         txt.append(
                             '  Pacing variable: ' + myokit.float.str(
                                 bounds[1][vpace], precision=self._precision)
                             + is_paced_str)
-                    if vdiff:
+                    if vdiff is not None:
                         txt.append(
                             '  Diffusion current: ' + myokit.float.str(
                                 bounds[1][vdiff], precision=self._precision))
