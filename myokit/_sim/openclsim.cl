@@ -148,10 +148,11 @@ if precision == myokit.DOUBLE_PRECISION:
 /* Number of scalar fields */
 #define n_field <?=str(len(fields))?>
 
-/* Indice of membrane potential in state vector */
-#define i_vm <?= model.label('membrane_potential').indice() ?>
-
 <?
+if diffusion:
+    print('/* Indice of membrane potential in state vector */')
+    print('#define i_vm ' + str(model.label('membrane_potential').indice()))
+
 if precision == myokit.SINGLE_PRECISION:
     print('/* Using single precision floats */')
     print('typedef float Real;')
@@ -265,18 +266,16 @@ if diffusion and paced_cells:
         nx, ny, x, y = paced_cells
         xlo, ylo = str(x), str(y)
         xhi, yhi = str(x + nx), str(y + ny)
-        # Code below to be added in after unit tests are up and running
-        #cond = []
-        #if x > 0:
-        #   cond.append('ix >= ' + str(x))
-        #cond.append('ix < ' + str(x + nx))
-        #if y > 1:
-        #    bits.append('iy >= ' + str(y))
-        #cond.append('iy < ' + str(y + ny))
-        #cond = ' && '.join(cond)
-        #print(tab + 'return (' + cond + ') ? pace : 0;')
-        print(tab + 'return (ix >= ' + xlo + ' && ix < ' + xhi + ' && iy >= '
-            + ylo + ' && iy < ' + yhi + ') ? pace : 0;')
+
+        cond = []
+        if x > 0:
+           cond.append('ix >= ' + str(x))
+        if y > 0:
+            cond.append('iy >= ' + str(y))
+        cond.append('ix < ' + str(x + nx))
+        cond.append('iy < ' + str(y + ny))
+        cond = ' && '.join(cond)
+        print(tab + 'return (' + cond + ') ? pace : 0;')
     else:
         # Explicit cell selection
         for id in paced_cells:
@@ -371,6 +370,9 @@ for var in model.states():
 ?>
 }
 
+<?
+if diffusion and not connections:
+    print("""
 /*
  * Performs a single diffusion step
  *
@@ -434,8 +436,8 @@ __kernel void diff_step(
         }
     }
 }
+    """)
 
-<?
 if connections:
     print("""
 /*
@@ -554,8 +556,8 @@ __kernel void diff_step_fiber_tissue(
     const unsigned long cty,
     const unsigned long nsf,
     const unsigned long nst,
-    const unsigned long ivf,
-    const unsigned long ivt,
+    const int ivf,
+    const int ivt,
     const Real gft,
     __global Real *state_f,
     __global Real *state_t,

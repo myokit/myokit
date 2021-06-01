@@ -11,9 +11,6 @@ import os
 import myokit
 import platform
 
-# OpenCLSim keywords
-from .openclsim import KEYWORDS
-
 # Location of C and OpenCL sources
 SOURCE_FILE = 'fiber_tissue.c'
 KERNEL_FILE = 'openclsim.cl'
@@ -327,16 +324,7 @@ class FiberTissueSimulation(myokit.CModule):
             'diffusion_current': 'idiff',
         })
 
-        # Reserve keywords
-        from myokit.formats import opencl
-        self._modelf.reserve_unique_names(*opencl.keywords)
-        self._modelt.reserve_unique_names(*opencl.keywords)
-        self._modelf.reserve_unique_names(
-            *['calc_' + c.name() for c in self._modelf.components()])
-        self._modelt.reserve_unique_names(
-            *['calc_' + c.name() for c in self._modelt.components()])
-        self._modelf.reserve_unique_names(*KEYWORDS)
-        self._modelt.reserve_unique_names(*KEYWORDS)
+        # Create unique names
         self._modelf.create_unique_names()
         self._modelt.create_unique_names()
 

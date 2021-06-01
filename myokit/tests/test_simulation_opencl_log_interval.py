@@ -14,7 +14,7 @@ import numpy as np
 
 import myokit
 
-from shared import OpenCL_FOUND, DIR_DATA
+from shared import OpenCL_FOUND, DIR_DATA, WarningCollector
 from test_simulation_log_interval import PeriodicTest
 
 debug = False
@@ -41,8 +41,9 @@ class FiberTissueSimulationTest(unittest.TestCase):
         Test periodic logging.
         """
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.FiberTissueSimulation(
-            m, m, p, ncells_fiber=(1, 1), ncells_tissue=(1, 1))
+        with WarningCollector():
+            s = myokit.FiberTissueSimulation(
+                m, m, p, ncells_fiber=(1, 1), ncells_tissue=(1, 1))
 
         # Set tolerance for equality testing
         emax = 1e-2  # Time steps for logging are approximate
