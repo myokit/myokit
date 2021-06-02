@@ -623,6 +623,9 @@ class SimulationOpenCLTest(unittest.TestCase):
             RuntimeError, 'method is unavailable', s.set_paced_cells)
         self.assertRaisesRegex(
             RuntimeError, 'method is unavailable', s.set_paced_cell_list, [])
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable',
+            s.set_conductance_field, [1, 1])
 
         # Test that all cells depolarise and are the same
         d = s.run(10, log=['membrane.V']).npview()
