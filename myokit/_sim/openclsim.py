@@ -1308,6 +1308,9 @@ class SimulationOpenCL(myokit.CModule):
                 raise ValueError(
                     'The argument `gx` must have dimensions ' + str(s) + '.')
 
+            if gy is None:
+                raise ValueError(
+                    'The argument `gy` must be set for 2-d simulations.')
             gy = np.array(gy, copy=False, dtype=float)
             s = (self._ny - 1, self._nx)
             if gy.shape != s:
