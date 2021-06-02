@@ -863,6 +863,24 @@ class DataBlock2d(object):
         """
         Converts the 2d series indicated by ``name`` into a list of ``W*H*RGB``
         arrays, with each entry represented as an 8 bit unsigned integer.
+
+        Arguments:
+
+        ``name``
+            The 2d variable to create arrays for.
+        ``colormap``
+            The colormap to use when converting to RGB.
+        ``lower``
+            An optional lower bound on the data (anything below this will
+            become the lowest index in the colormap).
+        ``upper``
+            An optional upper bound on the data (anything above this will
+            become the highest index in the colormap).
+        ``multiplier``
+            An optional integer greater than zero. If given, every point in the
+            data set will be represented as a square of ``multiplier`` by
+            ``multiplier`` pixels.
+
         """
         data = self._2d[name]
         # Get color map
