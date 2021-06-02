@@ -723,7 +723,7 @@ class DataBlock2dTest(unittest.TestCase):
         ])
         b.set2d('x', x)
 
-      # Test with multiplier of 1 or less
+        # Test with multiplier of 1 or less
         p = [255, 255, 255]
         q = [255, 204, 204]
         r = [255, 153, 153]
@@ -780,15 +780,15 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertTrue(np.all(c == np.array([t0, t1, t2])))
 
         t0 = np.array([
-            [p, p, p, q ,q, q],
-            [p, p, p, q ,q, q],
-            [p, p, p, q ,q, q],
+            [p, p, p, q, q, q],
+            [p, p, p, q, q, q],
+            [p, p, p, q, q, q],
             [r, r, r, s, s, s],
             [r, r, r, s, s, s],
             [r, r, r, s, s, s],
-            [t, t, t, u ,u, u],
-            [t, t, t, u ,u, u],
-            [t, t, t, u ,u, u],
+            [t, t, t, u, u, u],
+            [t, t, t, u, u, u],
+            [t, t, t, u, u, u],
         ])
         t1 = np.array([
             [u, u, u, t, t, t],

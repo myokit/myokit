@@ -269,9 +269,9 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.assertGreater(np.max(d['membrane.V', 1]), 0)
             self.assertGreater(np.max(d['membrane.V', 2]), 0)
             self.assertGreater(np.max(d['membrane.V', 3]), 0)
-            self.assertGreater(np.max(d['membrane.V', 4]), 0) # Paced
-            self.assertGreater(np.max(d['membrane.V', 5]), 0) # Paced
-            self.assertGreater(np.max(d['membrane.V', 6]), 0) # Paced
+            self.assertGreater(np.max(d['membrane.V', 4]), 0)  # Paced
+            self.assertGreater(np.max(d['membrane.V', 5]), 0)  # Paced
+            self.assertGreater(np.max(d['membrane.V', 6]), 0)  # Paced
             self.assertGreater(np.max(d['membrane.V', 7]), 0)
             self.assertLess(np.max(d['membrane.V', 8]), 0)
             self.assertLess(np.max(d['membrane.V', 9]), 0)
