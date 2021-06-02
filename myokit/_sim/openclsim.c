@@ -156,7 +156,7 @@ double engine_pace = 0;
 // Diffusion currents enabled/disabled
 int diffusion;
 
-// Conductance field
+// Conductance fields
 PyObject* gx_field;
 PyObject* gy_field;
 
@@ -190,7 +190,7 @@ unsigned long n_inter;      /* The number of intermediary variables to log */
 /* n_inter is the number of different model variables (so membrane.V, not */
 /* 1.2.membrane.V) being logged, while logging_inters is 1 if at least one */
 /* simulation variable (1.2.membrane.V) is listed in the given log. */
-unsigned long n_field_data;       /* The number of floats in the field data */
+unsigned long n_field_data; /* The number of floats in the field data */
 
 /* Temporary objects: decref before re-using for another var */
 /* (Unless you got it through PyList_GetItem or PyTuble_GetItem) */
@@ -220,30 +220,26 @@ sim_clean()
 
         // Decref opencl objects
         clReleaseKernel(kernel_cell); kernel_cell = NULL;
-        if (diffusion) {
-            if (connections != Py_None) {
-                clReleaseKernel(kernel_arb_reset); kernel_arb_reset = NULL;
-                clReleaseKernel(kernel_arb_step); kernel_arb_step = NULL;
-            } else if (gx_field != Py_None) {
-                clReleaseKernel(kernel_cond); kernel_cond = NULL;
-            } else {
-                clReleaseKernel(kernel_diff); kernel_diff = NULL;
-            }
+        if (connections != Py_None) {
+            clReleaseKernel(kernel_arb_reset); kernel_arb_reset = NULL;
+            clReleaseKernel(kernel_arb_step); kernel_arb_step = NULL;
+        } else if (gx_field != Py_None) {
+            clReleaseKernel(kernel_cond); kernel_cond = NULL;
+        } else if (diffusion) {
+            clReleaseKernel(kernel_diff); kernel_diff = NULL;
         }
         clReleaseProgram(program); program = NULL;
         clReleaseMemObject(mbuf_state); mbuf_state = NULL;
         clReleaseMemObject(mbuf_idiff); mbuf_idiff = NULL;
         clReleaseMemObject(mbuf_inter_log); mbuf_inter_log = NULL;
         clReleaseMemObject(mbuf_field_data); mbuf_field_data = NULL;
-        if (diffusion) {
-            if (gx_field != Py_None) {
-                clReleaseMemObject(mbuf_gx); mbuf_gx = NULL;
-                clReleaseMemObject(mbuf_gy); mbuf_gy = NULL;
-            } else if (connections != Py_None) {
-                clReleaseMemObject(mbuf_conn1); mbuf_conn1 = NULL;
-                clReleaseMemObject(mbuf_conn2); mbuf_conn2 = NULL;
-                clReleaseMemObject(mbuf_conn3); mbuf_conn3 = NULL;
-            }
+        if (gx_field != Py_None) {
+            clReleaseMemObject(mbuf_gx); mbuf_gx = NULL;
+            clReleaseMemObject(mbuf_gy); mbuf_gy = NULL;
+        } else if (connections != Py_None) {
+            clReleaseMemObject(mbuf_conn1); mbuf_conn1 = NULL;
+            clReleaseMemObject(mbuf_conn2); mbuf_conn2 = NULL;
+            clReleaseMemObject(mbuf_conn3); mbuf_conn3 = NULL;
         }
         clReleaseCommandQueue(command_queue); command_queue = NULL;
         clReleaseContext(context); context = NULL;
@@ -498,9 +494,9 @@ sim_init(PyObject* self, PyObject* args)
     #endif
 
     // Create state vector, set initial values
-    dsize_state = nx*ny*n_state * sizeof(Real);
+    dsize_state = nx * ny * n_state * sizeof(Real);
     rvec_state = (Real*)malloc(dsize_state);
-    for(i=0; i<nx*ny*n_state; i++) {
+    for(i=0; i<nx * ny * n_state; i++) {
         flt = PyList_GetItem(state_in, i);    // Don't decref!
         if(!PyFloat_Check(flt)) {
             char errstr[200];
@@ -513,9 +509,9 @@ sim_init(PyObject* self, PyObject* args)
 
     // Create diffusion current vector
     if (diffusion) {
-        dsize_idiff = nx*ny * sizeof(Real);
+        dsize_idiff = nx * ny * sizeof(Real);
         rvec_idiff = (Real*)malloc(dsize_idiff);
-        for(i=0; i<nx*ny; i++) rvec_idiff[i] = 0.0;
+        for(i=0; i<nx * ny; i++) rvec_idiff[i] = 0.0;
     } else {
         dsize_idiff = sizeof(Real);
         rvec_idiff = (Real*)malloc(dsize_idiff);
@@ -524,9 +520,9 @@ sim_init(PyObject* self, PyObject* args)
 
     // Create vector of intermediary variables to log
     if(n_inter) {
-        dsize_inter_log = nx*ny*n_inter * sizeof(Real);
+        dsize_inter_log = nx * ny * n_inter * sizeof(Real);
         rvec_inter_log = (Real*)malloc(dsize_inter_log);
-        for(i=0; i<nx*ny*n_inter; i++) rvec_inter_log[i] = 0.0;
+        for(i=0; i<nx * ny * n_inter; i++) rvec_inter_log[i] = 0.0;
     } else {
         dsize_inter_log = sizeof(Real);
         rvec_inter_log = (Real*)malloc(dsize_inter_log);
@@ -835,23 +831,20 @@ sim_init(PyObject* self, PyObject* args)
     // Create the kernels
     kernel_cell = clCreateKernel(program, "cell_step", &flag);
     if(mcl_flag(flag)) return sim_clean();
-    if (diffusion) {
-        if(connections != Py_None) {
-            // Arbitrary geometry
-            kernel_arb_reset = clCreateKernel(program, "diff_arb_reset", &flag);
-            if(mcl_flag(flag)) return sim_clean();
-            kernel_arb_step = clCreateKernel(program, "diff_arb_step", &flag);
-            if(mcl_flag(flag)) return sim_clean();
-        } else if (gx_field != Py_None) {
-            // Rectangular grid, heterogeneous conduction
-            kernel_cond = clCreateKernel(program, "diff_hetero", &flag);
-            if(mcl_flag(flag)) return sim_clean();
-        } else {
-            // Rectangular grid, homogeneous conduction
-            kernel_diff = clCreateKernel(program, "diff_step", &flag);
-            if(mcl_flag(flag)) return sim_clean();
-        }
-
+    if(connections != Py_None) {
+        // Arbitrary geometry
+        kernel_arb_reset = clCreateKernel(program, "diff_arb_reset", &flag);
+        if(mcl_flag(flag)) return sim_clean();
+        kernel_arb_step = clCreateKernel(program, "diff_arb_step", &flag);
+        if(mcl_flag(flag)) return sim_clean();
+    } else if (gx_field != Py_None) {
+        // Rectangular grid, heterogeneous conduction
+        kernel_cond = clCreateKernel(program, "diff_hetero", &flag);
+        if(mcl_flag(flag)) return sim_clean();
+    } else if (diffusion) {
+        // Rectangular grid, homogeneous conduction
+        kernel_diff = clCreateKernel(program, "diff_step", &flag);
+        if(mcl_flag(flag)) return sim_clean();
     }
     #ifdef MYOKIT_DEBUG
     printf("Kernels created.\n");
@@ -869,39 +862,37 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(mbuf_inter_log), &mbuf_inter_log))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_cell, i++, sizeof(mbuf_field_data), &mbuf_field_data))) return sim_clean();
 
-    if (diffusion) {
-        // Calculate initial diffusion current
-        if(connections != Py_None) {
-            // Arbitrary geometry
-            i = 0;
-            if(mcl_flag(clSetKernelArg(kernel_arb_reset, i++, sizeof(nx), &nx))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_arb_reset, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-            i = 0;
-            if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(n_connections), &n_connections))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_conn1), &mbuf_conn1))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_conn2), &mbuf_conn2))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_conn3), &mbuf_conn3))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-        } else if (gx_field != Py_None) {
-            // Heteogeneous, rectangular diffusion
-            i = 0;
-            if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(nx), &nx))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(ny), &ny))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_gx), &mbuf_gx))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_gy), &mbuf_gy))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-        } else {
-            // Homogeneous, rectangular diffusion
-            i = 0;
-            if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(nx), &nx))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(ny), &ny))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(arg_gx), &arg_gx))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(arg_gy), &arg_gy))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
-            if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
-        }
+    // Calculate initial diffusion current
+    if(connections != Py_None) {
+        // Arbitrary geometry
+        i = 0;
+        if(mcl_flag(clSetKernelArg(kernel_arb_reset, i++, sizeof(nx), &nx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_reset, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+        i = 0;
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(n_connections), &n_connections))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_conn1), &mbuf_conn1))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_conn2), &mbuf_conn2))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_conn3), &mbuf_conn3))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_arb_step, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+    } else if (gx_field != Py_None) {
+        // Heteogeneous, rectangular diffusion
+        i = 0;
+        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(nx), &nx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(ny), &ny))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_gx), &mbuf_gx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_gy), &mbuf_gy))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_cond, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
+    } else if (diffusion) {
+        // Homogeneous, rectangular diffusion
+        i = 0;
+        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(nx), &nx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(ny), &ny))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(arg_gx), &arg_gx))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(arg_gy), &arg_gy))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(mbuf_state), &mbuf_state))) return sim_clean();
+        if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
     }
 
     #ifdef MYOKIT_DEBUG
@@ -1062,18 +1053,16 @@ sim_step(PyObject *self, PyObject *args)
         arg_dt = (Real)dt;
 
         /* Update diffusion current, calculating it for time t */
-        if (diffusion) {
-            if(connections != Py_None) {
-                /* Arbitrary geometry */
-                if(mcl_flag2("kernel_arb_reset", clEnqueueNDRangeKernel(command_queue, kernel_arb_reset, 2, NULL, global_work_size, NULL, 0, NULL, NULL))) return sim_clean();
-                if(mcl_flag2("kernel_arb_step", clEnqueueNDRangeKernel(command_queue, kernel_arb_step, 1, NULL, global_work_size_conn, NULL, 0, NULL, NULL))) return sim_clean();
-            } else if (gx_field != Py_None) {
-                /* Heterogeneous rectangular diffusion */
-                if(mcl_flag2("kernel_cond", clEnqueueNDRangeKernel(command_queue, kernel_cond, 2, NULL, global_work_size, NULL, 0, NULL, NULL))) return sim_clean();
-            } else {
-                /* Homogeneous rectangular diffusion */
-                if(mcl_flag2("kernel_diff", clEnqueueNDRangeKernel(command_queue, kernel_diff, 2, NULL, global_work_size, NULL, 0, NULL, NULL))) return sim_clean();
-            }
+        if(connections != Py_None) {
+            /* Arbitrary geometry */
+            if(mcl_flag2("kernel_arb_reset", clEnqueueNDRangeKernel(command_queue, kernel_arb_reset, 2, NULL, global_work_size, NULL, 0, NULL, NULL))) return sim_clean();
+            if(mcl_flag2("kernel_arb_step", clEnqueueNDRangeKernel(command_queue, kernel_arb_step, 1, NULL, global_work_size_conn, NULL, 0, NULL, NULL))) return sim_clean();
+        } else if (gx_field != Py_None) {
+            /* Heterogeneous rectangular diffusion */
+            if(mcl_flag2("kernel_cond", clEnqueueNDRangeKernel(command_queue, kernel_cond, 2, NULL, global_work_size, NULL, 0, NULL, NULL))) return sim_clean();
+        } else if (diffusion) {
+            /* Homogeneous rectangular diffusion */
+            if(mcl_flag2("kernel_diff", clEnqueueNDRangeKernel(command_queue, kernel_diff, 2, NULL, global_work_size, NULL, 0, NULL, NULL))) return sim_clean();
         }
 
         /* Logging at time t? Then download the state from the device */

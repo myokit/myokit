@@ -1251,7 +1251,7 @@ class SimulationOpenCL(myokit.CModule):
         For a model with currents in ``[uA/uF]`` and voltage in ``[mV]``,
         `gx`` and ``gy`` have the unit ``[mS/uF]``.
 
-        Calling `set_conductance` will delete any conductances previously set
+        Calling ``set_conductance`` will delete any conductances previously set
         with :meth:`set_conductance_field` or :meth:`set_connections`.
 
         If diffusion is disabled, a call to this method will raise a
@@ -1486,9 +1486,6 @@ class SimulationOpenCL(myokit.CModule):
         This method can only define rectangular pacing areas. To select an
         arbitrary set of cells, use :meth:`set_paced_cell_list`.
 
-        If diffusion is disabled all cells will be paced and calls to this
-        method are ignored.
-
         Arguments:
 
         ``nx``
@@ -1670,8 +1667,6 @@ class SimulationOpenCL(myokit.CModule):
         ``(ny, nx)`` for 2d simulations, or a single value ``nx`` for 1d
         simulations.
         """
-        # N.B.: This method and set_field use (y, x). Only the constructor uses
-        # (x, y). This should probably be made consistent at some point...
         if len(self._dims) == 2:
             return (self._ny, self._nx)
         return self._nx

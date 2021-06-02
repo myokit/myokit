@@ -200,12 +200,6 @@ print('/* Aliases of scalar field variables. */')
 for k, var in enumerate(fields):
     print('#define ' + v(var) + ' field_data[of3 + ' + str(k) + ']')
 
-#print('')
-#print('/* List of components:')
-#for c in model.components():
-#    print('  ' + str(c))
-#print('*/')
-
 print('')
 for comp, ilist in comp_in.items():
     # Comment
