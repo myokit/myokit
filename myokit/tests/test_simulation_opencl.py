@@ -77,7 +77,7 @@ class SimulationOpenCLTest(unittest.TestCase):
         )
 
     def test_conductance(self):
-        """Tests setting and getting conductance."""
+        # Tests setting and getting conductance.
 
         # 1-dimensional
         try:
@@ -158,8 +158,173 @@ class SimulationOpenCLTest(unittest.TestCase):
             self.s2.set_paced_cells()
             self.s2.set_conductance()
 
+    def test_conductance_field_set(self):
+        # Tests setting conductance fields.
+
+        # 1d
+        try:
+            # Fields unset scalar conductances
+            self.assertIsNotNone(self.s1.conductance())
+            self.s1.set_conductance_field(list(range(9)))
+            self.assertIsNone(self.s1.conductance())
+
+            # Set wrong length
+            self.assertRaisesRegex(
+                ValueError, 'must have length',
+                self.s1.set_conductance_field, list(range(8)))
+            self.assertRaisesRegex(
+                ValueError, 'must have length',
+                self.s1.set_conductance_field, list(range(10)))
+
+            # Set negative values
+            x = np.arange(9)
+            x[3] = -1
+            self.assertRaisesRegex(
+                ValueError, 'negative', self.s1.set_conductance_field, x)
+
+            # Set gy
+            x = y = np.arange(9)
+            self.assertRaisesRegex(
+                ValueError, 'must be None',
+                self.s1.set_conductance_field, x, y)
+        finally:
+            self.s1.set_conductance()
+
+        # 2d
+        try:
+            # Fields unset scalar conductances
+            # Shape is (3, 4)
+            x = np.ones((3, 3))
+            y = np.ones((2, 4))
+            self.assertIsNotNone(self.s2.conductance())
+            self.s2.set_conductance_field(x, y)
+            self.assertIsNone(self.s2.conductance())
+
+            # Set wrong shapes
+            self.assertRaisesRegex(
+                ValueError, r'dimensions \(3, 3\)',
+                self.s2.set_conductance_field, y, y)
+            self.assertRaisesRegex(
+                ValueError, r'dimensions \(2, 4\)',
+                self.s2.set_conductance_field, x, x)
+
+            # Set negative values
+            x[2, 2] = -1
+            self.assertRaisesRegex(
+                ValueError, 'negative', self.s2.set_conductance_field, x, y)
+            x[2, 2] = 1
+            y[1, 0] = -1
+            self.assertRaisesRegex(
+                ValueError, 'negative', self.s2.set_conductance_field, x, y)
+
+            # Don't set gy
+            self.assertRaisesRegex(
+                ValueError, 'must be set', self.s2.set_conductance_field, x)
+        finally:
+            self.s2.set_conductance()
+
+    def test_conductance_field_run_1d(self):
+        # Tests running with conductance fields, in 1d.
+
+        try:
+            # Set, test all depol
+            self.s1.reset()
+            self.s1.set_paced_cells(3)
+            x = np.ones(9)
+            self.s1.set_conductance_field(x)
+
+            d = self.s1.run(
+                15, log=['engine.time', 'membrane.V'], log_interval=0.1)
+            if debug:
+                import matplotlib.pyplot as plt
+                f = plt.figure(figsize=(10, 10))
+                f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
+                ax = f.add_subplot(1, 1, 1)
+                for i in range(10):
+                    ax.plot(d.time(), d['membrane.V', i])
+                plt.show()
+            self.assertGreater(np.max(d['membrane.V', 0]), 0)
+            self.assertGreater(np.max(d['membrane.V', 4]), 0)
+            self.assertGreater(np.max(d['membrane.V', 7]), 0)
+            self.assertGreater(np.max(d['membrane.V', 9]), 0)
+
+            # Set, test some depol
+            self.s1.reset()
+            self.s1.set_paced_cells(x=3, nx=3)
+            x = np.ones(9)
+            x[0] = 0
+            x[-2:] = 0
+            self.s1.set_conductance_field(x)
+            d = self.s1.run(
+                15, log=['engine.time', 'membrane.V'], log_interval=0.1)
+            if debug:
+                import matplotlib.pyplot as plt
+                f = plt.figure(figsize=(10, 10))
+                f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
+                ax = f.add_subplot(1, 1, 1)
+                for i in range(10):
+                    ax.plot(d.time(), d['membrane.V', i])
+                plt.show()
+            self.assertLess(np.max(d['membrane.V', 0]), 0)
+            self.assertGreater(np.max(d['membrane.V', 1]), 0)
+            self.assertGreater(np.max(d['membrane.V', 2]), 0)
+            self.assertGreater(np.max(d['membrane.V', 3]), 0)
+            self.assertGreater(np.max(d['membrane.V', 4]), 0)  # Paced
+            self.assertGreater(np.max(d['membrane.V', 5]), 0)  # Paced
+            self.assertGreater(np.max(d['membrane.V', 6]), 0)  # Paced
+            self.assertGreater(np.max(d['membrane.V', 7]), 0)
+            self.assertLess(np.max(d['membrane.V', 8]), 0)
+            self.assertLess(np.max(d['membrane.V', 9]), 0)
+
+        finally:
+            self.s1.set_paced_cells()
+            self.s1.set_conductance()
+
+    def test_conductance_field_run_2d(self):
+        # Tests running with conductance fields, in 2d.
+
+        # Set, test some depol
+        try:
+            # Shape is (y=3, x=4)
+            x = np.ones((3, 3))
+            y = np.ones((2, 4))
+            # Don't stimulate cell x=2, y=1
+            x[1, 1:3] = 0
+            y[0:2, 2] = 0
+            self.s2.reset()
+            self.s2.set_paced_cells(2, 2)
+            self.s2.set_conductance_field(x, y)
+            d = self.s2.run(
+                15, log=['engine.time', 'membrane.V'], log_interval=0.1)
+            if debug:
+                import matplotlib.pyplot as plt
+                f = plt.figure(figsize=(10, 10))
+                f.subplots_adjust(0.08, 0.07, 0.98, 0.95, 0.2, 0.4)
+                k = 0
+                for i in range(3):
+                    for j in range(4):
+                        k += 1
+                        ax = f.add_subplot(3, 4, k)
+                        ax.plot(d.time(), d['membrane.V', j, i])
+                plt.show()
+            self.assertGreater(np.max(d['membrane.V', 0, 0]), 0)
+            self.assertGreater(np.max(d['membrane.V', 1, 0]), 0)
+            self.assertGreater(np.max(d['membrane.V', 2, 0]), 0)
+            self.assertGreater(np.max(d['membrane.V', 3, 0]), 0)
+            self.assertGreater(np.max(d['membrane.V', 0, 1]), 0)
+            self.assertGreater(np.max(d['membrane.V', 1, 1]), 0)
+            self.assertLess(np.max(d['membrane.V', 2, 1]), 0)
+            self.assertGreater(np.max(d['membrane.V', 3, 1]), 0)
+            self.assertGreater(np.max(d['membrane.V', 0, 2]), 0)
+            self.assertGreater(np.max(d['membrane.V', 1, 2]), 0)
+            self.assertGreater(np.max(d['membrane.V', 2, 2]), 0)
+            self.assertGreater(np.max(d['membrane.V', 3, 2]), 0)
+        finally:
+            self.s2.set_paced_cells()
+            self.s2.set_conductance()
+
     def test_connections_set(self):
-        """Tests setting connections."""
+        # Tests setting connections.
 
         # Connections unsets conductance
         try:
@@ -458,6 +623,9 @@ class SimulationOpenCLTest(unittest.TestCase):
             RuntimeError, 'method is unavailable', s.set_paced_cells)
         self.assertRaisesRegex(
             RuntimeError, 'method is unavailable', s.set_paced_cell_list, [])
+        self.assertRaisesRegex(
+            RuntimeError, 'method is unavailable',
+            s.set_conductance_field, [1, 1])
 
         # Test that all cells depolarise and are the same
         d = s.run(10, log=['membrane.V']).npview()
