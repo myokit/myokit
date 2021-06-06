@@ -720,7 +720,16 @@ class ContentMathMLParserTest(unittest.TestCase):
 
         # Missing value
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Missing value', self.p, '<cn />')
+            mathml.MathMLError, 'Empty <cn>', self.p, '<cn />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>',
+            self.p, '<cn kind="real" />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>',
+            self.p, '<cn kind="integer" />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>',
+            self.p, '<cn kind="double" />')
 
     def test_trig_basic(self):
         # Test parsing basic trig functions
