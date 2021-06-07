@@ -709,12 +709,14 @@ class ModelTest(unittest.TestCase):
         self.assertTrue(m1.has_component('y2'))
         self.assertTrue(m1.has_variable('x.d'))
         self.assertTrue(d in m1['y2']['b2'].refs_to())
-        
+
         m1.import_component(z, var_map=var_map)
         self.assertTrue(m1.has_component('z'))
         self.assertTrue(m1.has_variable('z.b'))
         self.assertFalse(m1.has_variable('x.d'))
-        self.assertTrue(m1['z']['b'] in m1['y2']['b2'].refs_to(state_refs=True))
+        self.assertTrue(
+            m1['z']['b'] in m1['y2']['b2'].refs_to(state_refs=True)
+        )
         var_map = {'z.b': 'x.d'}
 
         # Test name mapping
@@ -759,29 +761,42 @@ class ModelTest(unittest.TestCase):
         t1.set_rhs(0)
 
         m1.time().set_unit(unit=myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
-        m2.time().set_unit(unit=3600*myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
+        m2.time().set_unit(unit=3600 * myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
         m1_b.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
-        k1.set_unit(unit=1/m1.time_unit())
-        m1_c.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)/m1.time_unit())
-        a.set_unit(unit=1/m2.time_unit())
+        k1.set_unit(unit=1 / m1.time_unit())
+        m1_c.set_unit(
+            unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3) / m1.time_unit()
+        )
+        a.set_unit(unit=1 / m2.time_unit())
         b.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
         c.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
-        a2.set_unit(unit=1/m2.time_unit())
+        a2.set_unit(unit=1 / m2.time_unit())
         b2.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
 
         m1.check_units()
         m2.check_units()
 
         var_map = {b: m1_b}
-        m1.import_component(z, new_name='z2', var_map=var_map, convert_units=True)
+        m1.import_component(
+            z, new_name='z2', var_map=var_map, convert_units=True
+        )
         self.assertTrue(m1.has_component('z2'))
         self.assertTrue(m1.has_variable('z2.b'))
-        
+
         m1.check_units()
-        self.assertEqual(m1['z2']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
-        self.assertEqual(m1['z2']['a'].unit(), 1/m2.time_unit())
-        self.assertEqual(m1['z2']['b']['c'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
-        self.assertEqual(m1['z2']['b'].rhs().code(), 'z2.a * c * 0.001 [1 (1000)] / 3600 [1 (0.0002777777777777778)]')
+        self.assertEqual(
+            m1['z2']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
+        )
+        self.assertEqual(
+            m1['z2']['a'].unit(), 1 / m2.time_unit()
+        )
+        self.assertEqual(
+            m1['z2']['b']['c'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0)
+        )
+        self.assertEqual(
+            m1['z2']['b'].rhs().code(),
+            'z2.a * c * 0.001 [1 (1000)] / 3600 [1 (0.0002777777777777778)]'
+        )
 
         # Test errors
         m1 = myokit.load_model('example')
@@ -789,7 +804,9 @@ class ModelTest(unittest.TestCase):
 
         # Test external_component errors
         self.assertRaises(TypeError, m1.import_component, m2)
-        self.assertRaises(myokit.IntegrityError, m1.import_component, m1['membrane'])
+        self.assertRaises(
+            myokit.IntegrityError, m1.import_component, m1['membrane']
+        )
         self.assertEqual(m1, m1_unaltered)
 
         # Test Component name errors
@@ -814,7 +831,7 @@ class ModelTest(unittest.TestCase):
             var_map = {'membrane.V': 'ib.gb'}
             m1.import_component(z, var_map=var_map)
         with self.assertRaises(myokit.WellMappedError):
-            var_map = {a: 'membrane.V', b:'membrane.V'}
+            var_map = {a: 'membrane.V', b: 'membrane.V'}
             m1.import_component(z, var_map=var_map)
         with self.assertRaises(myokit.WellMappedError):
             m1.import_component(y)

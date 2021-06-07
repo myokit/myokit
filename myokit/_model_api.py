@@ -1732,12 +1732,17 @@ class Model(ObjectWithMeta, VarProvider):
         for var in external_component_copy.variables():
             dependent_vars = var.refs_to(state_refs=False)
             dependent_states = var.refs_to(state_refs=True)
-            relevant_vars = list(relevant_vars) + list(dependent_vars) + list(dependent_states)
+            relevant_vars = (
+                list(relevant_vars) +
+                list(dependent_vars) +
+                list(dependent_states)
+            )
+
         try:
             relevant_vars.append(ext_model_copy.timex())
         except myokit.IncompatibleModelError:
             pass
-        
+
         relevant_vars = list(set(relevant_vars))
         # print(relevant_vars)
 
@@ -1774,7 +1779,8 @@ class Model(ObjectWithMeta, VarProvider):
                     if not ext_var.has_ancestor(external_component.model()):
                         raise myokit.WellMappedError(
                             ext_var.name() +
-                            ' does not exist in the external component\'s model'
+                            ' does not exist in the external component\'s' +
+                            'model'
                         )
                     ext_var = ext_model_copy.var(ext_var.qname())
                 elif isinstance(ext_var, str):
@@ -1783,7 +1789,8 @@ class Model(ObjectWithMeta, VarProvider):
                     except KeyError:
                         raise myokit.WellMappedError(
                             ext_var +
-                            ' does not exist in the external component\'s model'
+                            ' does not exist in the external component\'s' +
+                            'model'
                         )
                 else:
                     raise TypeError(
@@ -1819,10 +1826,14 @@ class Model(ObjectWithMeta, VarProvider):
                     if self.has_variable(ext_var.qname()):
                         # add to full map
                         full_var_map[ext_var] = self.get(ext_var.qname())
-            if ext_var not in full_var_map and ext_var not in external_component_copy.variables(deep=True):
+            if (
+                ext_var not in full_var_map and
+                ext_var not in external_component_copy.variables(deep=True)
+            ):
                 raise myokit.WellMappedError(
                     ext_var.qname() +
-                        ' is refered to by the external_component but has no mapping in this model'
+                    ' is refered to by the external_component but has no' +
+                    'mapping in this model'
                 )
 
         if convert_units:
@@ -1834,12 +1845,17 @@ class Model(ObjectWithMeta, VarProvider):
         # create empty component in self
         new_component = self.add_component(new_name)
         external_component_copy._clone_modelpart_data(new_component)
-        ext_temp_component = ext_model_copy.add_component_allow_renaming(new_name)
+        ext_temp_component = ext_model_copy.add_component_allow_renaming(
+            new_name
+        )
 
         for ext_var in relevant_vars:
             # alter the structure of self and external_model_copy to
             # match final model.
-            if ext_var.parent() == external_component_copy and ext_var in full_var_map:
+            if (
+                ext_var.parent() == external_component_copy and
+                ext_var in full_var_map
+            ):
                 self_var = full_var_map[ext_var]
                 self_var.parent().move_variable(
                     self_var, new_component, new_name=ext_var.name()
@@ -1848,7 +1864,8 @@ class Model(ObjectWithMeta, VarProvider):
                     ext_var, ext_temp_component
                 )
 
-                # remove any binding or state as this will be overridden by the imported component
+                # remove any binding or state as this will be overridden by
+                # the imported component
                 self_var.set_binding(None)
                 if self_var.is_state():
                     self_var.demote()
@@ -1905,8 +1922,8 @@ class Model(ObjectWithMeta, VarProvider):
                 var_copy = self.get(ext_var.qname())
             lhsmap[myokit.Name(ext_var)] = myokit.Name(var_copy)
             if ext_var.is_state:
-                lhsmap[myokit.Derivative(myokit.Name(ext_var))] = myokit.Derivative(
-                    myokit.Name(var_copy))
+                x = myokit.Derivative(myokit.Name(ext_var))
+                lhsmap[x] = myokit.Derivative(myokit.Name(var_copy))
         # Clone component/variable contents (equations, references)
 
         ext_temp_component._clone2(new_component, lhsmap)
