@@ -162,11 +162,14 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 
 ## Technical notes
 
-1. Pacing
-2. Logging in simulations
-3. Simulation test case: HH ion channel model
-4. [Simulation test case: PK model](t4-test-case-pk-model.ipynb)
-5. Ion channel simulations
-6. Multi-cellular simulations
-X. Autodiff simulations
+0. [Technical notes](t0-technical-notes.ipynb)
+1. [Pacing](t1-pacing.ipynb)
+2. [Logging](t2-logging.ipynb)
+3. [CVODE(s) single-cell simulations](t3-cvodes-simulation.ipynb)
+4. [OpenCL multi-cell simulations](t4-opencl-simulation.ipynb)
+5. [HH channel simulations](t5-hh-channel-simulation.ipynb)
+6. [Markov channel simulations](t6-markov-channel-simulation.ipynb)
+A. Simulation test case: HH ion channel model
+B. [Simulation test case: PK model](tB-test-case-pk-model.ipynb)
+Z. [Autodiff simulations](tZ-autodiff.ipynb)
 
