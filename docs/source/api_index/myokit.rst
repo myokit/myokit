@@ -164,3 +164,4 @@ myokit
 - :class:`myokit.UserFunction`
 - :class:`myokit.Variable`
 - :meth:`myokit.version`
+- :class:`myokit.WellMappedError`
