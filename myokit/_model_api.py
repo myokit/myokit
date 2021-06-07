@@ -1695,8 +1695,8 @@ class Model(ObjectWithMeta, VarProvider):
             Set this to ``True`` to convert the units of any mapped variables,
             if required and possible.
 
-        If any variables cannot be mapped, a :class:`myokit.WellNamedError`
-        will be raised. Will raise a :class:`DuplicateNameError`(?) if the
+        If any variables cannot be mapped, a :class:`myokit.WellMappedError`
+        will be raised. Will raise a :class:`DuplicateNameError` if the
         components name or ``new_name`` clashes with an existing component
         name. If unit conversion is enabled and variables with incompattible
         units are mapped onto each other, a
@@ -1717,9 +1717,8 @@ class Model(ObjectWithMeta, VarProvider):
         # Check if new name is provided, or else check that name doesn't clash
         if new_name is None:
             new_name = external_component.name()
-
         if self.has_component(new_name):
-            raise DuplicateNameError(
+            raise myokit.DuplicateName(
                 'This model already has component with the name ' + new_name
             )
 
@@ -1731,9 +1730,16 @@ class Model(ObjectWithMeta, VarProvider):
         full_var_map = {}
         relevant_vars = external_component_copy.variables()
         for var in external_component_copy.variables():
-            dependent_vars = var.refs_to(state_refs=True)
-            relevant_vars = list(relevant_vars) + list(dependent_vars)
+            dependent_vars = var.refs_to(state_refs=False)
+            dependent_states = var.refs_to(state_refs=True)
+            relevant_vars = list(relevant_vars) + list(dependent_vars) + list(dependent_states)
+        try:
+            relevant_vars.append(ext_model_copy.timex())
+        except myokit.IncompatibleModelError:
+            pass
+        
         relevant_vars = list(set(relevant_vars))
+        # print(relevant_vars)
 
         copied_var_list = []
 
@@ -1746,14 +1752,14 @@ class Model(ObjectWithMeta, VarProvider):
                 # in self
                 if isinstance(self_var, myokit.Variable):
                     if not self_var.has_ancestor(self):
-                        raise myokit.IntegrityError(
+                        raise myokit.WellMappedError(
                             self_var.name() + ' does not exist in this model'
                         )
                 elif isinstance(self_var, str):
                     try:
-                        self_var = self[self_var]
+                        self_var = self.var(self_var)
                     except KeyError:
-                        raise myokit.IntegrityError(
+                        raise myokit.WellMappedError(
                             self_var + ' does not exist in this model'
                         )
                 else:
@@ -1766,18 +1772,18 @@ class Model(ObjectWithMeta, VarProvider):
                 # in external model
                 if isinstance(ext_var, myokit.Variable):
                     if not ext_var.has_ancestor(external_component.model()):
-                        raise myokit.IntegrityError(
+                        raise myokit.WellMappedError(
                             ext_var.name() +
-                            ' does not exist in the external_component model'
+                            ' does not exist in the external component\'s model'
                         )
                     ext_var = ext_model_copy.var(ext_var.qname())
                 elif isinstance(ext_var, str):
                     try:
-                        ext_var = ext_model_copy[ext_var]
+                        ext_var = ext_model_copy.var(ext_var)
                     except KeyError:
-                        raise myokit.IntegrityError(
+                        raise myokit.WellMappedError(
                             ext_var +
-                            ' does not exist in the external_component model'
+                            ' does not exist in the external component\'s model'
                         )
                 else:
                     raise TypeError(
@@ -1787,8 +1793,8 @@ class Model(ObjectWithMeta, VarProvider):
 
                 # check for duplicates in var_map
                 if self_var in copied_var_list:
-                    raise WellNamedError(
-                        'Multiple variables map onto ' + ext_var.name()
+                    raise myokit.WellMappedError(
+                        'Multiple variables map onto ' + self_var.name()
                     )
 
                 # add to full_var_map if a relevant variable
@@ -1812,17 +1818,23 @@ class Model(ObjectWithMeta, VarProvider):
                 elif allow_name_mapping:
                     if self.has_variable(ext_var.qname()):
                         # add to full map
-                        full_var_map[ext_var] = self[ext_var.qname()]
+                        full_var_map[ext_var] = self.get(ext_var.qname())
+            if ext_var not in full_var_map and ext_var not in external_component_copy.variables(deep=True):
+                raise myokit.WellMappedError(
+                    ext_var.qname() +
+                        ' is refered to by the external_component but has no mapping in this model'
+                )
 
         if convert_units:
             for ext_var, self_var in full_var_map.items():
                 # convert units in ext model to units in self for this
                 # variable
-                ext_var.convert_unit(self_var.unit(mode=myokit.UNIT_STRICT))
+                ext_var.convert_unit(self_var.unit())
 
         # create empty component in self
         new_component = self.add_component(new_name)
         external_component_copy._clone_modelpart_data(new_component)
+        ext_temp_component = ext_model_copy.add_component_allow_renaming(new_name)
 
         for ext_var in relevant_vars:
             # alter the structure of self and external_model_copy to
@@ -1832,8 +1844,36 @@ class Model(ObjectWithMeta, VarProvider):
                 self_var.parent().move_variable(
                     self_var, new_component, new_name=ext_var.name()
                 )
+                external_component_copy.move_variable(
+                    ext_var, ext_temp_component
+                )
+
+                # remove any binding or state as this will be overridden by the imported component
+                self_var.set_binding(None)
+                if self_var.is_state():
+                    self_var.demote()
+
+                # copy nested variables
+                for k in ext_var.variables():
+                    k._clone1(self_var)
+
+                # copy state
+                if ext_var.is_state():
+                    self_var.promote(
+                        ext_var.state_value()
+                    )
+
             elif ext_var.parent() == external_component_copy:
                 ext_var._clone1(new_component)
+                external_component_copy.move_variable(
+                    ext_var, ext_temp_component
+                )
+
+                # copy state
+                if ext_var.is_state():
+                    new_component[ext_var.name()].promote(
+                        ext_var.state_value()
+                    )
             elif ext_var in full_var_map:
                 self_var = full_var_map[ext_var]
                 if not ext_model_copy.has_component(
@@ -1850,25 +1890,26 @@ class Model(ObjectWithMeta, VarProvider):
                     ext_var, self_component_equiv, new_name=self_var.name()
                 )
 
-        # Clone contents of old component to new one
-        # Clone state
-        for k, variable in enumerate(ext_model_copy._state):
-            if external_component_copy.has_variable(variable.name()):
-                self.get(variable.qname()).promote(
-                    ext_model_copy._current_state[k]
-                )
-
         # Create mapping of old var references to new references
         lhsmap = {}
-        for v in relevant_vars:
-            lhsmap[myokit.Name(v)] = myokit.Name(self.get(v.qname()))
-            if v.is_state:
-                lhsmap[myokit.Derivative(myokit.Name(v))] = myokit.Derivative(
-                    myokit.Name(self.get(v.qname())))
-
+        # print(relevant_vars)
+        for ext_var in relevant_vars:
+            # var_copy = None
+            if ext_var.parent(kind=Component) == ext_temp_component:
+                names = ext_var.qname().split('.')
+                x = new_component
+                for name in names[1:]:
+                    x = x[name]
+                var_copy = x
+            elif ext_var in full_var_map:
+                var_copy = self.get(ext_var.qname())
+            lhsmap[myokit.Name(ext_var)] = myokit.Name(var_copy)
+            if ext_var.is_state:
+                lhsmap[myokit.Derivative(myokit.Name(ext_var))] = myokit.Derivative(
+                    myokit.Name(var_copy))
         # Clone component/variable contents (equations, references)
 
-        external_component_copy._clone2(new_component, lhsmap)
+        ext_temp_component._clone2(new_component, lhsmap)
 
     def inits(self):
         """

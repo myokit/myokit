@@ -655,6 +655,177 @@ class ModelTest(unittest.TestCase):
         self.assertFalse(
             m.has_variables(const=False, state=False, bound=False))
 
+    def test_import_component(self):
+        # Test :meth: 'import_component()'.
+
+        # Create model and component
+        m2 = myokit.Model()
+        y = m2.add_component('y')
+        z = m2.add_component('z')
+
+        # Add variables to component z
+        a = z.add_variable('a')
+        a.set_rhs(1)
+
+        b = z.add_variable('b')
+        c = b.add_variable('c')
+        c.set_rhs('b * 2')
+        b.set_rhs('a * c')
+        b.promote(0.2)
+
+        # Add variables to component y
+        a2 = y.add_variable('a2')
+        a2.set_rhs(0.2)
+
+        b2 = y.add_variable('b2')
+        b2.set_rhs('a2*z.b')
+        b2.promote(0.2)
+
+        # Test that component is imported
+        m1 = myokit.Model()
+        m1.import_component(z)
+        self.assertTrue(m1.has_component('z'))
+        self.assertFalse(m1['z'] is z)
+        self.assertEqual(m1['z'].code(), z.code())
+
+        # Test new_name
+        m1 = myokit.Model()
+        m1.import_component(z, new_name='z2')
+        self.assertTrue(m1.has_component('z2'))
+        self.assertFalse(m1.has_component('z'))
+        self.assertFalse(m1['z2'] is z)
+        for var in z.variables():
+            self.assertTrue(m1['z2'].has_variable(var.name()))
+            self.assertEqual(m1['z2'][var.name()].code(), var.code())
+
+        # Test var_map
+        m1 = myokit.Model()
+        x = m1.add_component('x')
+        d = x.add_variable('d')
+        d.set_rhs(0)
+
+        var_map = {b: d}
+        m1.import_component(y, new_name='y2', var_map=var_map)
+        self.assertTrue(m1.has_component('y2'))
+        self.assertTrue(m1.has_variable('x.d'))
+        self.assertTrue(d in m1['y2']['b2'].refs_to())
+        
+        m1.import_component(z, var_map=var_map)
+        self.assertTrue(m1.has_component('z'))
+        self.assertTrue(m1.has_variable('z.b'))
+        self.assertFalse(m1.has_variable('x.d'))
+        self.assertTrue(m1['z']['b'] in m1['y2']['b2'].refs_to(state_refs=True))
+        var_map = {'z.b': 'x.d'}
+
+        # Test name mapping
+        m1 = myokit.Model()
+        m1_z = m1.add_component('z')
+        m1_b = m1_z.add_variable('b')
+        m1_b.set_rhs('1 + b')
+        m1_b.promote(0.2)
+        m1.import_component(y, allow_name_mapping=True)
+        self.assertTrue(m1_b in m1['y']['b2'].refs_to(state_refs=True))
+
+        # test bound variables map
+        m1 = myokit.Model()
+        m1_z = m1.add_component('z')
+        m1_b = m1_z.add_variable('b')
+        m1_b.set_rhs('1 + b')
+        m1_b.promote(0.2)
+
+        t1 = m1_z.add_variable('t')
+        t1.set_binding('time')
+        t1.set_rhs(0)
+
+        t2 = y.add_variable('t')
+        t2.set_binding('time')
+        t2.set_rhs(0)
+
+        m1.import_component(y, allow_name_mapping=True)
+        self.assertEqual(m1.time(), m1['y']['t'])
+
+        # Test convert units
+        m1 = myokit.Model()
+        m1_z = m1.add_component('z')
+        m1_b = m1_z.add_variable('b')
+        k1 = m1_z.add_variable('k1')
+        m1_b.set_rhs('k1*b')
+        k1.set_rhs(0.5)
+        m1_b.promote(0.2)
+        m1_c = m1_z.add_variable('c')
+        m1_c.set_rhs('k1*b')
+        t1 = m1_z.add_variable('time')
+        t1.set_binding('time')
+        t1.set_rhs(0)
+
+        m1.time().set_unit(unit=myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
+        m2.time().set_unit(unit=3600*myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
+        m1_b.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
+        k1.set_unit(unit=1/m1.time_unit())
+        m1_c.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)/m1.time_unit())
+        a.set_unit(unit=1/m2.time_unit())
+        b.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
+        c.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
+        a2.set_unit(unit=1/m2.time_unit())
+        b2.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
+
+        m1.check_units()
+        m2.check_units()
+
+        var_map = {b: m1_b}
+        m1.import_component(z, new_name='z2', var_map=var_map, convert_units=True)
+        self.assertTrue(m1.has_component('z2'))
+        self.assertTrue(m1.has_variable('z2.b'))
+        
+        m1.check_units()
+        self.assertEqual(m1['z2']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
+        self.assertEqual(m1['z2']['a'].unit(), 1/m2.time_unit())
+        self.assertEqual(m1['z2']['b']['c'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
+        self.assertEqual(m1['z2']['b'].rhs().code(), 'z2.a * c * 0.001 [1 (1000)] / 3600 [1 (0.0002777777777777778)]')
+
+        # Test errors
+        m1 = myokit.load_model('example')
+        m1_unaltered = m1.clone()
+
+        # Test external_component errors
+        self.assertRaises(TypeError, m1.import_component, m2)
+        self.assertRaises(myokit.IntegrityError, m1.import_component, m1['membrane'])
+        self.assertEqual(m1, m1_unaltered)
+
+        # Test Component name errors
+        with self.assertRaises(myokit.DuplicateName):
+            m1.import_component(z, new_name='membrane')
+        with self.assertRaises(myokit.DuplicateName):
+            membrane2 = m2.add_component('membrane')
+            m1.import_component(membrane2)
+        self.assertEqual(m1, m1_unaltered)
+
+        # Test var_map Errors
+        with self.assertRaises(TypeError):
+            var_map = [a, b]
+            m1.import_component(z, var_map=var_map)
+        with self.assertRaises(TypeError):
+            var_map = {m1: m2}
+            m1.import_component(z, var_map=var_map)
+        with self.assertRaises(myokit.WellMappedError):
+            var_map = {a: b}
+            m1.import_component(z, var_map=var_map)
+        with self.assertRaises(myokit.WellMappedError):
+            var_map = {'membrane.V': 'ib.gb'}
+            m1.import_component(z, var_map=var_map)
+        with self.assertRaises(myokit.WellMappedError):
+            var_map = {a: 'membrane.V', b:'membrane.V'}
+            m1.import_component(z, var_map=var_map)
+        with self.assertRaises(myokit.WellMappedError):
+            m1.import_component(y)
+        self.assertEqual(m1, m1_unaltered)
+
+        # Test Unit conversion error
+        with self.assertRaises(myokit.IncompatibleUnitError):
+            var_map = {a: 'membrane.V'}
+            m1.import_component(z, var_map=var_map, convert_units=True)
+        self.assertEqual(m1, m1_unaltered)
+
     def test_item_at_text_position(self):
         # Test :meth:`Model.item_at_text_position()`.
 

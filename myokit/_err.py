@@ -418,3 +418,10 @@ class UnusedVariableError(IntegrityError):
         tok = var.lhs()._token
         super(UnusedVariableError, self).__init__(msg, tok)
 
+
+class WellMappedError(MyokitError):
+    """
+    Raised when a variable map is not well defined.
+
+    *Extends:* :class:`myokit.MyokitError`.
+    """
