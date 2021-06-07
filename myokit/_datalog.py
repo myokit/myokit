@@ -62,7 +62,7 @@ class DataLog(OrderedDict):
 
         v = log['1.2.membrane.V']
 
-    This returns the membrane potential for cell (1,2). Another way to obtain
+    This returns the membrane potential for cell (1, 2). Another way to obtain
     the same result is::
 
         v = log['membrane.V', 1, 2]
@@ -78,15 +78,15 @@ class DataLog(OrderedDict):
 
         # Create an empty DataLog:
         d = myokit.DataLog()
-        d['time'] = [1,2,3]
-        d['data'] = [2,4,5]
+        d['time'] = [1, 2, 3]
+        d['data'] = [2, 4, 5]
         d.set_time_key('time')
 
         # Create a clone of d
         e = myokit.DataLog(d)
 
         # Create a DataLog based on a dictionary
-        d = myokit.DataLog({'time':[1,2,3], 'data':[2,4,5]}, time='time')
+        d = myokit.DataLog({'time':[1, 2, 3], 'data':[2, 4, 5]}, time='time')
 
     Arguments:
 

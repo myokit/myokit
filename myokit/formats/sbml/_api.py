@@ -876,7 +876,7 @@ class Model(object):
 
                 # Promote size to state variable
                 var.promote(state_value=state_value)
-                var.set_rhs(None)
+                var.set_rhs(myokit.Number(0))
 
             if var.eval():
                 # Subtract rate contributions
@@ -964,7 +964,7 @@ class Model(object):
 
                 # Promote size to state variable
                 var.promote(state_value=state_value)
-                var.set_rhs(None)
+                var.set_rhs(myokit.Number(0))
 
             if var.rhs().eval():
                 # Add rate contributions

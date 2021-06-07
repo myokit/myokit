@@ -17,6 +17,10 @@ This page lists the main changes made to Myokit in each release.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.float` contains several functions related to floating point numbers that were previously in the main `myokit` namespace or not part of the public API.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The new module `myokit.tools` contains several stand-alone tools that are used by Myokit and were previously in the main `myokit` namespace or not part of the public API.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `pid_hash`, which is used by compiled code to generate (hopefully) unique ids is now part of the public API.
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Added a method `myokit.OpenCL.available` to check if OpenCL is supported and at least one OpenCL device is detected.
+  - [#754](https://github.com/MichaelClerx/myokit/pull/754) Added a method `myokit.OpenCL.current_info(x)` that returns information about the currently selected platform and device; support of OpenCL extensions can then be checked with `OpenCLPlatformInfo.has_extension`.
+  - [#754](https://github.com/MichaelClerx/myokit/pull/754) Improved error message when an `OpenCLSimulation` with double precision is run on a device that does not support it.
+  - [#763](https://github.com/MichaelClerx/myokit/pull/763) Added a method `OpenCLSimulation.set_conductance_field` to apply heterogeneous conductance on a rectangular grid.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
@@ -24,14 +28,20 @@ This page lists the main changes made to Myokit in each release.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer has `apd_var` as a constructor argument. Instead, you can pass an argument `apd_variable` to its `run()` method.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class no longer suppresses CVODES warnings but passes them on to the `warnings` module.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) Fix to `Simulation` for Sundials 4.1.0.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) `Variable.set_rhs(None)` now removes an RHS, instead of setting it to `Number(0)`.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) Calling `SimulationOpenCL.set_conductance` will now override any conductances previously set with `set_connections`.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) `SimulationOpenCL.set_connections` no longer accepts `None` as a valid argument.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) The `SimulationOpenCL` methods `set_conductance`, `conductance`, `set_connections`, `neighbours`, `set_paced_cells`, `set_paced_cell_list`, and `is_paced`, will now raise a `RuntimeError` if diffusion was disabled at construction.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) The method `SimulationOpenCL.remove_field` now raises a `KeyError` if no field is set for the given variable.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
   - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `LegacySimulation` class no longer suppresses CVODE warnings but passes them on to the `warnings` module (backported from new `Simulation` class).
 - Deprecated
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The classes `myokit.PSimulation` and `myokit.ICSimulation` have been deprecated in favour of the new `Simulation` class.
-  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The class `myokit.Benchmarker` is depreacted in favour of `myokit.tools.Benchmarker`.
-  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_float_dict` is depreacted and will be removed in future versions.
-  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_path` is depreacted in favour of `myokit.tools.format_path`.
-  - [#735](https://github.com/MichaelClerx/myokit/pull/735)The method `myokit.strfloat` is depreacted in favour of `myokit.float.str`.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The class `myokit.Benchmarker` is deprecated in favour of `myokit.tools.Benchmarker`.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_float_dict` is deprecated and will be removed in future versions.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_path` is deprecated in favour of `myokit.tools.format_path`.
+  - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.strfloat` is deprecated in favour of `myokit.float.str`.
+  - [#758](https://github.com/MichaelClerx/myokit/pull/758) The class `myokit.FiberTissueSimulation` is deprecated and will be removed in future versions.
 - Removed
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux (still testing latest 2.7). No longer testing any Python 2.7 on Windows.
   - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
@@ -42,7 +52,13 @@ This page lists the main changes made to Myokit in each release.
 - Fixed 
   - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
   - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.tools.format_path()`.
+  - [#687](https://github.com/MichaelClerx/myokit/pull/687) `Simulation1d` now logs pacing as a global variable, and can log diffusion currents.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation.find_nan()`, that occurred for very small simulations (e.g. 2 cells).
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation` that made it impossible to use `set_connections()` with double precision.
+  - [#744](https://github.com/MichaelClerx/myokit/pull/744) Fixed a bug in `OpenCLSimulation` that made it impossible to use `set_connections()` on Python 2.
+  - [#754](https://github.com/MichaelClerx/myokit/pull/754) Improved error message when an `OpenCLSimulation` with double precision is run on a device that does not support it.
+  - [#766](https://github.com/MichaelClerx/myokit/pull/766) Improved error message when an empty MathML `<cn>` element is encountered.
 
 ## [1.32.0] - 2021-01-19
 - Added
