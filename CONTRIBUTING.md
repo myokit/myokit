@@ -52,6 +52,81 @@ Thanks!
 
 
 
+## Project structure
+
+Myokit is written in [Python](https://en.wikipedia.org/wiki/Python_(programming_language)), with occassional bits of (ansi) [C](https://en.wikipedia.org/wiki/ANSI_C).
+It uses [CVODE](https://computation.llnl.gov/projects/sundials/cvode) for simulations, and [NumPy](https://en.wikipedia.org/wiki/NumPy) for pre- and post-processing.
+[OpenCL](https://en.wikipedia.org/wiki/OpenCL) is used for parallelised multi-cell simulation.
+
+When you clone the Myokit repository, you will see several directories and files.
+The main directory `myokit`, contains the Python `myokit` module.
+This is the part of the code that will be installed on users systems when they run `pip install myokit`.
+Various configuration files for testing and documentation infracstructure are present, which are described in the [Infrastructure & configuration files](#infrastructure--configuration-files) section below.
+
+Inside the `myokit` module, you'll find various submodules.
+Most of these are hidden (indicated by an underscore before their name), and are used to split the main `myokit` module up into sections for easier maintainance.
+For example, the code for `myokit.Model` lives in the hidden module `myokit._model_api`.
+
+### Key parts of the code
+
+- The file `__init__.py` sets up the main `myokit` module, importing various parts from hidden modules.
+- Models, components, and variables live in `_model_api.py`
+- Expressions, including names, numbers, operators, functions, and operators, live in `_expressions.py`
+- The unit system is implemented in `_unit.py`, and several predefined units are given in `units.py` (a public module).
+- Parsing of models and protocols is handled by `_parsing.py`
+- Myokit-defined exceptions are stored in `_err.py`
+
+### Simulation infrastructure
+
+- Event-based protocols and a Python "pacing system" are implemented in `_protocol.py`, with protocol-generating methods available in the public model `pacing.py`.
+- Simulation results are stored in a `DataLog`, implemented in `_datalog.py`.
+- For simulations on rectangular grids, a `DataLog` can be converted to a `DataBlock1d` or a `DataBlock2d`, which provides access to the data in array form.
+- Most simulations are written as templates, that are turned into compilable code using the tiny templating engine in `pype.py`.
+
+### Simulation code
+
+- Simulation code is stored in the `_sim` module, which contains several submodules.
+- The `cmodel.py` and `cmodel.h` files can be used to generate a set of C functions to evaluate a Myokit model's RHS.
+- These are used by the CVODE(s) simulation implemented in `cvodessim.py`, which also uses the template `cvodessim.c` to generate simulation code.
+- Event-based pacing and fixed-form pacing are implemented in `pacing.h`.
+- OpenCL simulations are implemented in `openclsim.py`, `openclsim.c` and `openclsim.cl`, with utility functions loaded from `mcl.h`.
+- Information on how the simulations work can be found in their docstring, and in the technical notes in the [examples](./examples).
+
+### Import and export
+
+- Import and export from and to various formats is implemented in `myokit.formats`.
+- Its `__init__.py` defines the `Importer`, `Exporter`, and `ExpressionWriter` classes to import and export models, and to export expressions.
+- Additionally, it contains methods such as `myokit.formats.importer(name)`, allowing you to obtain an importer by name (rather than via importing a module).
+
+### Libraries
+
+- Some advanced bits of functionality are stored in `myokit.lib.*` submodules
+- Methods for analysis of model variable dependencies are provided in `myokit.lib.deps`.
+- Methods for Hodgkin-Huxley style ion-channel models are provided in `myokit.lib.hh`, including methods to isolate HH models, and to run analytic or stochastic (single-channel) simulations.
+- Similar methods for Markov models are provided in `myokit.lib.markov`.
+- Methods to guess variables with a special meaning (e.g. membrane potential) are provided in `myokit.lib.guess`.
+
+### GUI code
+
+- GUI code is provided in `myokit.gui`, Myokit uses Qt via PyQt or PySide.
+
+### Utilities
+
+- Various auxillary functions that are included in `myokit` are stored in `_aux.py` and `_io.py` (for file system functions).
+- Floating point tools are implemented in `float.py`.
+- Various general-purpose tools required by Myokit are provided in `tools.py`.
+- Command line scripts are implemented in `__main__.py`
+
+### Configuration
+
+- The myokit version number is stored in `_myokit_version.py`.
+- Configuration loading and storing is handled in `_config.py`.
+- System information is be queried in `_system.py`
+
+
+
+
+
 ## Developer installation
 
 After cloning, Myokit can be installed into your Python system, using
@@ -66,11 +141,7 @@ This will tell other Python modules where to find Myokit, so that you can use `i
 
 
 
-
 ## Coding style guidelines
-
-Myokit is written in [Python](https://en.wikipedia.org/wiki/Python_(programming_language)), with occassional bits of (ansi) [C](https://en.wikipedia.org/wiki/ANSI_C).
-It uses [CVODE](https://computation.llnl.gov/projects/sundials/cvode) for simulations, and [NumPy](https://en.wikipedia.org/wiki/NumPy) for pre- and post-processing.
 
 For the Python bits, Myokit follows the [PEP8 recommendations](https://www.python.org/dev/peps/pep-0008/) for coding style.
 These are very common guidelines, and community tools have been developed to check how well projects implement them.
