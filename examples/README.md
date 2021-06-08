@@ -157,8 +157,8 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 0. Developing Myokit
     - [ ] Yes please!
     - [ ] Github issues
-    - [ ] Contributing.md
-
+    - [ ] Contributing.md (includes code layout)
+    - [ ] Technical notes
 
 ## Technical notes
 
