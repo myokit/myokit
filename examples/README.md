@@ -162,15 +162,18 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 
 ## Technical notes
 
-0. [x] [Technical notes](t0-technical-notes.ipynb)
-1. [x] [Pacing](t1-pacing.ipynb)
-2. [x] [Logging](t2-logging.ipynb)
-3. [ ] [CVODE(s) single-cell simulations](t3-cvodes-simulation.ipynb)
-4. [ ] [OpenCL multi-cell simulations](t4-opencl-simulation.ipynb)
-5. [ ] [HH channel models](t5-hh-channels.ipynb)
-6. [ ] [Markov channel models](t6-markov-channels.ipynb)
-7. [ ] [Rush-Larsen updates](t7-rush-larsen.ipynb)
-A. [ ] Simulation test case: HH ion channel model
-B. [x] [Simulation test case: PK model](tB-test-case-pk-model.ipynb)
-Z. [x] [Autodiff simulations](tZ-autodiff.ipynb)
+The "technical notes" are a series of notebooks that explain or define some of the trickier parts in Myokit.
+They are used in developing Myokit, and to document decisions made along the way.
+They have not been reviewed or checked extensively, so some errors may be present.
+
+1. [Pacing](t1-pacing.ipynb)
+2. [Logging](t2-logging.ipynb)
+3. [CVODE(s) single-cell simulations](t3-cvodes-simulation.ipynb)
+4. [OpenCL multi-cell simulations](t4-opencl-simulation.ipynb)
+5. [HH channel models](t5-hh-channels.ipynb)
+6. [Markov channel models](t6-markov-channels.ipynb)
+7. [Rush-Larsen updates](t7-rush-larsen.ipynb)
+A. Simulation test case: HH ion channel model
+B. [Simulation test case: PK model](tB-test-case-pk-model.ipynb)
+Z. [Autodiff simulations](tZ-autodiff.ipynb)
 
