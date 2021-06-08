@@ -173,6 +173,7 @@ They have not been reviewed or checked extensively, so some errors may be presen
 5. [HH channel models](t5-hh-channels.ipynb)
 6. [Markov channel models](t6-markov-channels.ipynb)
 7. [Rush-Larsen updates](t7-rush-larsen.ipynb)
+
 A. Simulation test case: HH ion channel model
 B. [Simulation test case: PK model](tB-test-case-pk-model.ipynb)
 Z. [Autodiff simulations](tZ-autodiff.ipynb)
