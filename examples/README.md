@@ -167,8 +167,9 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 2. [Logging](t2-logging.ipynb)
 3. [CVODE(s) single-cell simulations](t3-cvodes-simulation.ipynb)
 4. [OpenCL multi-cell simulations](t4-opencl-simulation.ipynb)
-5. [HH channel simulations](t5-hh-channel-simulation.ipynb)
-6. [Markov channel simulations](t6-markov-channel-simulation.ipynb)
+5. [HH channel models](t5-hh-channels.ipynb)
+6. [Markov channel models](t6-markov-channels.ipynb)
+7. [Rush-Larsen updates](t7-rush-larsen.ipynb)
 A. Simulation test case: HH ion channel model
 B. [Simulation test case: PK model](tB-test-case-pk-model.ipynb)
 Z. [Autodiff simulations](tZ-autodiff.ipynb)
