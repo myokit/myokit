@@ -1760,7 +1760,7 @@ class Model(ObjectWithMeta, VarProvider):
                         raise myokit.WellMappedError(
                             self_var.name() + ' does not exist in this model'
                         )
-                elif isinstance(self_var, str):
+                elif isinstance(self_var, basestring):
                     try:
                         self_var = self.var(self_var)
                     except KeyError:
@@ -1783,7 +1783,7 @@ class Model(ObjectWithMeta, VarProvider):
                             'model'
                         )
                     ext_var = ext_model_copy.var(ext_var.qname())
-                elif isinstance(ext_var, str):
+                elif isinstance(ext_var, basestring):
                     try:
                         ext_var = ext_model_copy.var(ext_var)
                     except KeyError:
