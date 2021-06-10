@@ -797,7 +797,6 @@ class ModelTest(unittest.TestCase):
         b.convert_unit(myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
         m2.time().convert_unit(myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
 
-        rhs = 'z.a * c * 0.001 [1 (1000)] / 3600 [1 (0.0002777777777777778)]'
         self.assertEqual(
             m1['z']['b'].rhs().code(), b.rhs().code()
         )
@@ -835,7 +834,7 @@ class ModelTest(unittest.TestCase):
             var_map = {'membrane.V': 'ib.gb'}
             m1.import_component(z, var_map=var_map)
         with self.assertRaises(myokit.WellMappedError):
-            var_map = {a: 'membrane.V', b: 'membrane.V'}
+            var_map = {'z.a': 'membrane.V', 'z.b': 'membrane.V'}
             m1.import_component(z, var_map=var_map)
         with self.assertRaises(myokit.WellMappedError):
             m1.import_component(y)
