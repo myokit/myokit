@@ -794,11 +794,27 @@ class ModelTest(unittest.TestCase):
             m1['z']['b']['c'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0)
         )
 
-        b.convert_unit(myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
-        m2.time().convert_unit(myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
+        m2_duplicate_1 = m2.clone()
+        m2_duplicate_2 = m2.clone()
 
-        self.assertEqual(
-            m1['z']['b'].rhs().code(), b.rhs().code()
+        m2_duplicate_1['z']['b'].convert_unit(
+            myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
+        )
+        m2_duplicate_1.time().convert_unit(
+            myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0)
+        )
+
+        m2_duplicate_2.time().convert_unit(
+            myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0)
+        )
+        m2_duplicate_2['z']['b'].convert_unit(
+            myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
+        )
+
+        self.assertTrue(
+            m1['z']['b'].rhs().code() == m2_duplicate_1['z']['b'].rhs().code()
+            or
+            m1['z']['b'].rhs().code() == m2_duplicate_2['z']['b'].rhs().code()
         )
 
         # Test errors
