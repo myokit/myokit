@@ -748,15 +748,15 @@ class ModelTest(unittest.TestCase):
 
         # Test convert units
         m1 = myokit.Model()
-        m1_z = m1.add_component('z')
-        m1_b = m1_z.add_variable('b')
-        k1 = m1_z.add_variable('k1')
+        m1_x = m1.add_component('x')
+        m1_b = m1_x.add_variable('b')
+        k1 = m1_x.add_variable('k1')
         m1_b.set_rhs('k1*b')
         k1.set_rhs(0.5)
         m1_b.promote(0.2)
-        m1_c = m1_z.add_variable('c')
+        m1_c = m1_x.add_variable('c')
         m1_c.set_rhs('k1*b')
-        t1 = m1_z.add_variable('time')
+        t1 = m1_x.add_variable('time')
         t1.set_binding('time')
         t1.set_rhs(0)
 
@@ -778,24 +778,28 @@ class ModelTest(unittest.TestCase):
 
         var_map = {b: m1_b}
         m1.import_component(
-            z, new_name='z2', var_map=var_map, convert_units=True
+            z, var_map=var_map, convert_units=True
         )
-        self.assertTrue(m1.has_component('z2'))
-        self.assertTrue(m1.has_variable('z2.b'))
+        self.assertTrue(m1.has_component('z'))
+        self.assertTrue(m1.has_variable('z.b'))
 
         m1.check_units()
         self.assertEqual(
-            m1['z2']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
+            m1['z']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
         )
         self.assertEqual(
-            m1['z2']['a'].unit(), 1 / m2.time_unit()
+            m1['z']['a'].unit(), 1 / m2.time_unit()
         )
         self.assertEqual(
-            m1['z2']['b']['c'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0)
+            m1['z']['b']['c'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0)
         )
+
+        b.convert_unit(myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
+        m2.time().convert_unit(myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
+
+        rhs = 'z.a * c * 0.001 [1 (1000)] / 3600 [1 (0.0002777777777777778)]'
         self.assertEqual(
-            m1['z2']['b'].rhs().code(),
-            'z2.a * c * 0.001 [1 (1000)] / 3600 [1 (0.0002777777777777778)]'
+            m1['z']['b'].rhs().code(), b.rhs().code()
         )
 
         # Test errors
