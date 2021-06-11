@@ -732,8 +732,14 @@ class ModelTest(unittest.TestCase):
         m1 = myokit.Model()
         m1_z = m1.add_component('z')
         m1_b = m1_z.add_variable('b')
-        m1_b.set_rhs('1 + b')
+        m1_k = m1_z.add_variable('k')
+        m1_k.set_rhs(0.2)
+        m1_b.set_rhs('k + b')
         m1_b.promote(0.2)
+
+        label = 'hello'
+        m1_k.set_label(label=label)
+        a2.set_label(label=label)
 
         t1 = m1_z.add_variable('t')
         t1.set_binding('time')
@@ -745,6 +751,8 @@ class ModelTest(unittest.TestCase):
 
         m1.import_component(y, allow_name_mapping=True)
         self.assertEqual(m1.time(), m1['y']['t'])
+        self.assertFalse(m1_z.has_variable('k'))
+        self.assertEqual(a2.label(), label)
 
         # Test convert units
         m1 = myokit.Model()
@@ -841,10 +849,19 @@ class ModelTest(unittest.TestCase):
             var_map = [a, b]
             m1.import_component(z, var_map=var_map)
         with self.assertRaises(TypeError):
-            var_map = {m1: m2}
+            var_map = {a: 6.0}
+            m1.import_component(z, var_map=var_map)
+        with self.assertRaises(TypeError):
+            var_map = {6.0: m1['membrane']['V']}
             m1.import_component(z, var_map=var_map)
         with self.assertRaises(myokit.WellMappedError):
             var_map = {a: b}
+            m1.import_component(z, var_map=var_map)
+        with self.assertRaises(myokit.WellMappedError):
+            var_map = {'z.a': 'z.b'}
+            m1.import_component(z, var_map=var_map)
+        with self.assertRaises(myokit.WellMappedError):
+            var_map = {m1['membrane']['V']: m1['ib']['gb']}
             m1.import_component(z, var_map=var_map)
         with self.assertRaises(myokit.WellMappedError):
             var_map = {'membrane.V': 'ib.gb'}

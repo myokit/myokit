@@ -1867,6 +1867,7 @@ class Model(ObjectWithMeta, VarProvider):
                 # remove any binding or state as this will be overridden by
                 # the imported component
                 self_var.set_binding(None)
+                self_var.set_label(None)
                 if self_var.is_state():
                     self_var.demote()
 
