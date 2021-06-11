@@ -157,16 +157,24 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 0. Developing Myokit
     - [ ] Yes please!
     - [ ] Github issues
-    - [ ] Contributing.md
-
+    - [ ] Contributing.md (includes code layout)
+    - [ ] Technical notes
 
 ## Technical notes
 
-1. Pacing
-2. Logging in simulations
-3. Simulation test case: HH ion channel model
-4. [Simulation test case: PK model](t4-test-case-pk-model.ipynb)
-5. Ion channel simulations
-6. Multi-cellular simulations
-X. Autodiff simulations
+The "technical notes" are a series of notebooks that explain or define some of the trickier parts in Myokit.
+They are used in developing Myokit, and to document decisions made along the way.
+They have not been reviewed or checked extensively, so some errors may be present.
+
+1. [Pacing](t1-pacing.ipynb)
+2. [Logging](t2-logging.ipynb)
+3. [CVODE(s) single-cell simulations](t3-cvodes-simulation.ipynb)
+4. [OpenCL multi-cell simulations](t4-opencl-simulation.ipynb)
+5. [HH channel models](t5-hh-channels.ipynb)
+6. [Markov channel models](t6-markov-channels.ipynb)
+7. [Rush-Larsen updates](t7-rush-larsen.ipynb)
+
+- Simulation test case: HH ion channel model
+- [Simulation test case: PK model](tB-test-case-pk-model.ipynb)
+- [Autodiff simulations](tZ-autodiff.ipynb)
 
