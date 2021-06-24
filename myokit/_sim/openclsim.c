@@ -704,12 +704,10 @@ sim_init(PyObject* self, PyObject* args)
     // Query capabilities
     #ifdef MYOKIT_DOUBLE_PRECISION
     if (!mcl_platform_supports_extension(platform_id, "cl_khr_fp64")) {
-        PyErr_SetString(PyExc_Exception, "The OpenCL extension cl_khr_fp64 is required for double precision simulations, but was not found on the current OpenCL platform/device.");
-        return sim_clean();
+        PyErr_WarnEx(PyExc_RuntimeWarning, "The OpenCL extension cl_khr_fp64 is required for double precision simulations, but was reported as unavailable on the current OpenCL platform/device.", 1);
     }
     if ((connections != Py_None) && (!mcl_platform_supports_extension(platform_id, "cl_khr_int64_base_atomics"))) {
-        PyErr_SetString(PyExc_Exception, "The OpenCL extension cl_khr_int64_base_atomics is required for double precision simulations with set_connections(), but was not found on the current OpenCL platform/device.");
-        return sim_clean();
+        PyErr_WarnEx(PyExc_RuntimeWarning, "The OpenCL extension cl_khr_int64_base_atomics is required for double precision simulations with set_connections(), but was reported as unavailable on the current OpenCL platform/device.", 1);
     }
     #endif
 
