@@ -314,11 +314,8 @@ class AuxTest(unittest.TestCase):
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '-' * 79,
         ]
-        #for i, line in enumerate(y):
-        #    print(line)
-        #    print(x[i])
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test with an initial state
@@ -346,8 +343,9 @@ class AuxTest(unittest.TestCase):
             g1 = r.match(a)
             g2 = r.match(b)
             if g1 is not None and g2 is not None:
-                self.assertEqual(g1[1], g2[1])
-                self.assertTrue(myokit.float.close(float(g1[2]), float(g2[2])))
+                self.assertEqual(g1.group(1), g2.group(1))
+                a, b = float(g1.group(2)), float(g2.group(2))
+                self.assertTrue(myokit.float.close(a, b))
             else:
                 self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
@@ -387,6 +385,9 @@ class AuxTest(unittest.TestCase):
             'Model check completed without errors.',
             '-' * 79,
         ]
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
+        self.assertEqual(len(x), len(y))
 
         # Test comparison against another model, with an initial state
         x = myokit.step(m1, reference=m2, initial=state).splitlines()
@@ -423,7 +424,14 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
         ]
         for a, b in zip(x, y):
-            self.assertEqual(a, b)
+            g1 = r.match(a)
+            g2 = r.match(b)
+            if g1 is not None and g2 is not None:
+                self.assertEqual(g1.group(1), g2.group(1))
+                a, b = float(g1.group(2)), float(g2.group(2))
+                self.assertTrue(myokit.float.close(a, b))
+            else:
+                self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test comparison against stored data
@@ -476,9 +484,8 @@ class AuxTest(unittest.TestCase):
             'Found (1) small mismatches.',
             '-' * 79,
         ]
-
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test positive/negative zero comparison
@@ -508,12 +515,8 @@ class AuxTest(unittest.TestCase):
             'Model check completed without errors.',
             '-' * 79,
         ]
-
-        #for i, line in enumerate(y):
-        #    print(line + '<')
-        #    print(x[i] + '<')
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
     def test_strfloat(self):

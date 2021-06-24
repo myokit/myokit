@@ -363,7 +363,7 @@ class SimulationOpenCL(myokit.CModule):
         ``r``
             The intra- to extracellular conductivity ratio
         ``sx``
-            The intracellular conductivity in direction "x"
+            The intracellular conductivity in direction ``x``
         ``chi``
             The surface area of the membrane per unit volume
         ``dx``
