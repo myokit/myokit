@@ -9,6 +9,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import re
 import unittest
 
 # StringIO in Python 2 and 3
@@ -321,6 +322,8 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(len(x), len(y))
 
         # Test with an initial state
+        # For whatever reason, CI gives slightly different final 3 digits some
+        # times.
         state = [-80, 1e-7, 0.1, 0.9, 0.9, 0.1, 0.9, 0.1]
         x = myokit.step(m1, initial=state).splitlines()
         y = [
@@ -338,11 +341,15 @@ class AuxTest(unittest.TestCase):
             'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
             '-' * 79,
         ]
-        #for i, line in enumerate(y):
-        #    print(line)
-        #    print(x[i])
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        r = re.compile(r'[a-zA-Z]\w*\.[a-zA-Z]\w*\s+([^\s]+)\s+([^\s]+)')
+        for a, b in zip(x, y):
+            g1 = r.match(a)
+            g2 = r.match(b)
+            if g1 is not None and g2 is not None:
+                self.assertEqual(g1[1], g2[1])
+                self.assertTrue(myokit.float.close(float(g1[2]), float(g2[2])))
+            else:
+                self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test comparison against another model (with both models the same)
@@ -415,11 +422,8 @@ class AuxTest(unittest.TestCase):
             'Model check completed without errors.',
             '-' * 79,
         ]
-        #for i, line in enumerate(y):
-        #    print(line)
-        #    print(x[i])
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test comparison against stored data
