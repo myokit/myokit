@@ -1696,8 +1696,8 @@ class Model(ObjectWithMeta, VarProvider):
             if required and possible.
 
         If any variables cannot be mapped, a :class:`myokit.WellMappedError`
-        will be raised. Will raise a :class:`myokit.DuplicateNameError` if the
-        components name or ``new_name`` clashes with an existing component
+        will be raised. A :class:`myokit.DuplicateNameError` will be raised if
+        the components name or ``new_name`` clashes with an existing component
         name. If unit conversion is enabled and variables with incompattible
         units are mapped onto each other, a
         class:`myokit.IncompatibleUnitsError` will be raised.
