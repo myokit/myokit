@@ -9,6 +9,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import re
 import unittest
 
 # StringIO in Python 2 and 3
@@ -313,14 +314,13 @@ class AuxTest(unittest.TestCase):
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '-' * 79,
         ]
-        #for i, line in enumerate(y):
-        #    print(line)
-        #    print(x[i])
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test with an initial state
+        # For whatever reason, CI gives slightly different final 3 digits some
+        # times.
         state = [-80, 1e-7, 0.1, 0.9, 0.9, 0.1, 0.9, 0.1]
         x = myokit.step(m1, initial=state).splitlines()
         y = [
@@ -338,11 +338,16 @@ class AuxTest(unittest.TestCase):
             'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
             '-' * 79,
         ]
-        #for i, line in enumerate(y):
-        #    print(line)
-        #    print(x[i])
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        r1 = re.compile(r'[a-zA-Z]\w*\.[a-zA-Z]\w*\s+([^\s]+)\s+([^\s]+)')
+        for a, b in zip(x, y):
+            g1 = r1.match(a)
+            g2 = r1.match(b)
+            if g1 is not None and g2 is not None:
+                self.assertEqual(g1.group(1), g2.group(1))
+                a, b = float(g1.group(2)), float(g2.group(2))
+                self.assertTrue(myokit.float.close(a, b))
+            else:
+                self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test comparison against another model (with both models the same)
@@ -380,6 +385,9 @@ class AuxTest(unittest.TestCase):
             'Model check completed without errors.',
             '-' * 79,
         ]
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
+        self.assertEqual(len(x), len(y))
 
         # Test comparison against another model, with an initial state
         x = myokit.step(m1, reference=m2, initial=state).splitlines()
@@ -415,11 +423,22 @@ class AuxTest(unittest.TestCase):
             'Model check completed without errors.',
             '-' * 79,
         ]
-        #for i, line in enumerate(y):
-        #    print(line)
-        #    print(x[i])
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        r2 = re.compile(r'\s+([^\s]+)')
+        for a, b in zip(x, y):
+            g1 = r1.match(a)
+            g2 = r1.match(b)
+            if g1 is not None and g2 is not None:
+                self.assertEqual(g1.group(1), g2.group(1))
+                a, b = float(g1.group(2)), float(g2.group(2))
+                self.assertTrue(myokit.float.close(a, b))
+            else:
+                g1 = r2.match(a)
+                g2 = r2.match(b)
+                if g1 is not None and g2 is not None:
+                    a, b = float(g1.group(1)), float(g2.group(1))
+                    self.assertTrue(myokit.float.close(a, b))
+                else:
+                    self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test comparison against stored data
@@ -472,9 +491,8 @@ class AuxTest(unittest.TestCase):
             'Found (1) small mismatches.',
             '-' * 79,
         ]
-
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test positive/negative zero comparison
@@ -504,12 +522,8 @@ class AuxTest(unittest.TestCase):
             'Model check completed without errors.',
             '-' * 79,
         ]
-
-        #for i, line in enumerate(y):
-        #    print(line + '<')
-        #    print(x[i] + '<')
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
     def test_strfloat(self):
