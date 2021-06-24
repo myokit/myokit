@@ -369,7 +369,7 @@ class SimulationOpenCL(myokit.CModule):
         ``dx``
             The size of the spatial discretisation step in direction ``x``
         ``gx``
-            The cell-to-cell conductance in direction ``x``, as used by Myokit
+            The cell-to-cell conductance in direction ``x``
 
         This method uses the above equation to calculate and return a
         conductance value from the parameters used in monodomain model based
