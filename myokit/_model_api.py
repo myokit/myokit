@@ -1670,12 +1670,12 @@ class Model(ObjectWithMeta, VarProvider):
         by trying the following strategies (in order):
 
         1. Using the provided dict ``var_map``, which maps variables in the
-        source model to variables in this model.
+           source model to variables in this model.
         2. By assuming variables with the same label/binding map onto each
-        other.
+           other.
         3. By assuming that variables with the same qualified names map onto
-        each other. This rule is only applied if ``allow_name_mapping`` is set
-        to ``True``.
+           each other. This rule is only applied if ``allow_name_mapping`` is
+           set to ``True``.
 
         Arguments:
 
