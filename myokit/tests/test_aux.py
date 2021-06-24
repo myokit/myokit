@@ -338,10 +338,10 @@ class AuxTest(unittest.TestCase):
             'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
             '-' * 79,
         ]
-        r = re.compile(r'[a-zA-Z]\w*\.[a-zA-Z]\w*\s+([^\s]+)\s+([^\s]+)')
+        r1 = re.compile(r'[a-zA-Z]\w*\.[a-zA-Z]\w*\s+([^\s]+)\s+([^\s]+)')
         for a, b in zip(x, y):
-            g1 = r.match(a)
-            g2 = r.match(b)
+            g1 = r1.match(a)
+            g2 = r1.match(b)
             if g1 is not None and g2 is not None:
                 self.assertEqual(g1.group(1), g2.group(1))
                 a, b = float(g1.group(2)), float(g2.group(2))
@@ -423,15 +423,22 @@ class AuxTest(unittest.TestCase):
             'Model check completed without errors.',
             '-' * 79,
         ]
+        r2 = re.compile(r'\s+([^\s]+)')
         for a, b in zip(x, y):
-            g1 = r.match(a)
-            g2 = r.match(b)
+            g1 = r1.match(a)
+            g2 = r1.match(b)
             if g1 is not None and g2 is not None:
                 self.assertEqual(g1.group(1), g2.group(1))
                 a, b = float(g1.group(2)), float(g2.group(2))
                 self.assertTrue(myokit.float.close(a, b))
             else:
-                self.assertEqual(a, b)
+                g1 = r2.match(a)
+                g2 = r2.match(b)
+                if g1 is not None and g2 is not None:
+                    a, b = float(g1.group(1)), float(g2.group(1))
+                    self.assertTrue(myokit.float.close(a, b))
+                else:
+                    self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test comparison against stored data
