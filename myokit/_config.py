@@ -320,7 +320,9 @@ def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
 
 
 def _path_list(text):
-    return [x for x in [x.strip() for x in text.split(';')] if x != '']
+    return [
+        os.path.expandvars(os.path.expanduser(x))
+        for x in [x.strip() for x in text.split(';')] if x != '']
 
 
 # Load settings
