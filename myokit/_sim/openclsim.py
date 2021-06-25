@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 #
 # OpenCL driven simulation, 1d or 2d
 #
@@ -342,7 +343,7 @@ class SimulationOpenCL(myokit.CModule):
         warnings.warn('The method SimulationOpenCL.calculate_conductance() is'
                       ' deprecated. Please use monodomain_conductance()'
                       ' instead.')
-        return self.monodomain_conductance(1 / one_over_chi, r, sx, dx, 1)
+        return self.monodomain_conductance(1 / chi, r, sx, dx, 1)
 
     def conductance(self):
         """
