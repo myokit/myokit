@@ -327,55 +327,22 @@ class SimulationOpenCL(myokit.CModule):
 
     def calculate_conductance(self, r, sx, chi, dx):
         """
-        The bidomain and monodomain models both start from the assumption of
-        ohmic conductance between cells. In this way, Myokit's diffusion
-        current
-        ::
+        This method is deprecated, please use :meth:`monodomain_conductance`
+        instead, but note the difference in the arguments::
 
-            I_diff[ij] = sum[g[ij] * (V[i] - V[j])]
+            calculate_conductance(r, sx, chi, dx)
 
-        (where the sum is over all neighbours j of cell i) is equivalent to the
-        fundamental assumption of the bidomain model. In some cases it may be
-        desirable to work backwards from the bidomain model, via the
-        monodomain model, to the Myokit formulation. This can be done under the
-        following conditions:
+        is equivalent to::
 
-        1. The conductivity tensor sigma has only diagonal components (so cells
-           never conduct diagonally).
-        2. The zero-flux boundary condution is used: no current flows between
-           the simulated tissue and its surroundings.
+            monodomain_conductance(1 / chi, r, sx, dx, 1)
 
-        Then, using a finite-difference approximation for the second order
-        derivative::
-
-            d^2V[i]   V[i-1] - 2*V[i] + V[i+1]
-            ------- = ------------------------
-             dx^2              dx^2
-
-        we can equate ``I_diff`` and the monodomain model to find::
-
-                   r    sx * chi
-            gx = ----- ---------
-                 1 + r    dx^2
-
-        with
-
-        ``r``
-            The intra- to extracellular conductivity ratio
-        ``sx``
-            The intracellular conductivity in direction ``x``
-        ``chi``
-            The surface area of the membrane per unit volume
-        ``dx``
-            The size of the spatial discretisation step in direction ``x``
-        ``gx``
-            The cell-to-cell conductance in direction ``x``
-
-        This method uses the above equation to calculate and return a
-        conductance value from the parameters used in monodomain model based
-        simulations.
         """
-        return r * sx * chi / ((1 + r) * dx * dx)
+        # Deprecated since 2021-06-25
+        import warnings
+        warnings.warn('The method SimulationOpenCL.calculate_conductance() is'
+                      ' deprecated. Please use monodomain_conductance()'
+                      ' instead.')
+        return self.monodomain_conductance(1 / one_over_chi, r, sx, dx, 1)
 
     def conductance(self):
         """
@@ -778,6 +745,82 @@ class SimulationOpenCL(myokit.CModule):
         # Explicit cell selection
         cid = x + y * self._dims[0]
         return cid in self._paced_cells
+
+    def monodomain_conductance(self, chi, k, D, dx, A=1):
+        """
+        Calculates conductance values ``g`` based on monodomain parameters,
+        assuming that membrane size, capacitance, and cell-to-cell conductance
+        do not vary spatially.
+
+        In this simulation, the membrane potential ``V`` of a cell is assumed
+        to be given by::
+
+            dV/dt = -1/Cm (I_ion + I_stim + I_diff)
+
+        where Cm is membrane capacitance and the diffusion current is defined
+        by::
+
+            I_diff[i] = sum[g[i,j] * (V[i] - V[j])]
+
+        in which the sum is over all neighbours ``j`` of cell ``i``.
+
+        Alternatively, with capacitance and currents normalised to membrane
+        area, we can write::
+
+            dV/dt = -1/cm (i_ion + i_stim + i_diff)
+
+        In the monodomain model (see e.g. [4]), this diffusion current per unit
+        area is defined as::
+
+            i_diff = -(1 / chi) (k / (k + 1)) ∇ * (D∇V)
+
+        (see the argument list below for the meaning of the variables).
+
+        This can be equated to Myokit's diffusion current, but only if we
+        assume **zero-flux boundary conditions**, a **regularly spaced grid**,
+        and **no spatial heterogeneity in D** (or g).
+
+        With these assumptions, we can use finite differences to find::
+
+            g_bar = (1 / chi) * (k / (k + 1)) * D * (1 / dx^2)
+
+        where ``g_bar`` is the cell-to-cell conductance, but normalised with
+        respect to unit membrane area.
+        For models with currents normalised to area this is unproblematic, but
+        to convert to models with unnormalised currents this means we have
+        added the further assumption that **each node contains some fixed
+        amount of membrane**, determined by an area A::
+
+            g = (1 / chi) * (k / (k + 1)) * D * (1 / dx^2) * A
+
+        This equation can also be applied in two dimensions, but only if
+        **we assume that the conductivity matrix is diagonal**, in which case::
+
+            gx = (1 / chi) * (k / (k + 1)) * Dx * (1 / dx^2) * A
+            gy = (1 / chi) * (k / (k + 1)) * Dy * (1 / dy^2) * A
+
+        This method uses the above equation to calculate and return a
+        conductance value from the parameters used in monodomain simulations.
+
+        Arguments:
+
+        ``chi``
+            The surface area of the membrane per unit volume (in units
+            area per volume).
+        ``k``
+            The intra- to extracellular conductivity ratio.
+        ``D``
+            The intracellular conductivity (in siemens per unit length).
+        ``dx``
+            The distance between grid points.
+        ``A``
+            The area of the cell membrane.
+
+        [4] Computer Model of Excitation and Recovery in the Anisotropic
+        Myocardium I. Rectangular and Cubic Arrays of Excitable Elements.
+        Leon & Horacek (1991) Journal of electrocardiology
+        """
+        return D * A * k / ((k + 1) * chi * dx * dx)
 
     def neighbours(self, x, y=None):
         """
