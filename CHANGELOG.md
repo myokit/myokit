@@ -21,6 +21,7 @@ This page lists the main changes made to Myokit in each release.
   - [#754](https://github.com/MichaelClerx/myokit/pull/754) Added a method `myokit.OpenCL.current_info(x)` that returns information about the currently selected platform and device; support of OpenCL extensions can then be checked with `OpenCLPlatformInfo.has_extension`.
   - [#754](https://github.com/MichaelClerx/myokit/pull/754) Improved error message when an `OpenCLSimulation` with double precision is run on a device that does not support it.
   - [#763](https://github.com/MichaelClerx/myokit/pull/763) Added a method `OpenCLSimulation.set_conductance_field` to apply heterogeneous conductance on a rectangular grid.
+  - [#776](https://github.com/MichaelClerx/myokit/pull/776) Added a method `OpenCLSimulation.monodomain_conductance` to replace the deprecated method `calculate_conductance`.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
@@ -42,6 +43,7 @@ This page lists the main changes made to Myokit in each release.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.format_path` is deprecated in favour of `myokit.tools.format_path`.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.strfloat` is deprecated in favour of `myokit.float.str`.
   - [#758](https://github.com/MichaelClerx/myokit/pull/758) The class `myokit.FiberTissueSimulation` is deprecated and will be removed in future versions.
+  - [#776](https://github.com/MichaelClerx/myokit/pull/776) The method `OpenCLSimulation.calculate_conductance` is deprecated in favour of the new method `calculate_conductance`, which takes slightly different parameters.
 - Removed
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux (still testing latest 2.7). No longer testing any Python 2.7 on Windows.
   - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
