@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
+  <model id="adaptive_resistance" timeUnits="hour">
+
+    <listOfUnitDefinitions>
+      <unitDefinition id="cfu_per_ml">
+        <listOfUnits>
+          <unit kind="item" exponent="1" scale="0" multiplier="1"/>
+          <unit kind="liter" exponent="-1" scale="0" multiplier="1"/>
+        </listOfUnits>
+      </unitDefinition>
+      <unitDefinition id="mg_per_liter">
+        <listOfUnits>
+          <unit kind="gram" exponent="1" scale="-3" multiplier="1"/>
+          <unit kind="liter" exponent="-1" scale="0" multiplier="1"/>
+        </listOfUnits>
+      </unitDefinition>
+      <unitDefinition id="hour">
+        <listOfUnits>
+          <unit kind="second" exponent="1" scale="0" multiplier="3600"/>
+        </listOfUnits>
+      </unitDefinition>
+      <unitDefinition id="mg">
+        <listOfUnits>
+          <unit kind="gram" exponent="1" scale="-3" multiplier="1"/>
+        </listOfUnits>
+      </unitDefinition>
+      <unitDefinition id="per_hour">
+        <listOfUnits>
+          <unit kind="second" exponent="-1" scale="0" multiplier="3600"/>
+        </listOfUnits>
+      </unitDefinition>
+      <unitDefinition id="liter_per_mg_hour">
+        <listOfUnits>
+          <unit kind="liter" exponent="1" scale="0" multiplier="1"/>
+          <unit kind="gram" exponent="-1" scale="-3" multiplier="1"/>
+          <unit kind="second" exponent="-1" scale="0" multiplier="3600"/>
+        </listOfUnits>
+      </unitDefinition>
+    </listOfUnitDefinitions>
+
+    <listOfCompartments>
+      <compartment id="central" name="central" size="1" units="liter"/>
+    </listOfCompartments>
+
+    <listOfSpecies>
+      <species id="drug" name="drug" compartment="central" initialAmount="0" hasSubstanceUnits="false" substanceUnits="mg"/>
+    </listOfSpecies>
+
+    <listOfParameters>
+      <parameter id="bacterial_count_adapted" value="1" constant="false" units="cfu_per_ml"/>
+      <parameter id="bacterial_count_susceptible" value="1" constant="false" units="cfu_per_ml"/>
+      <parameter id="concentration_e50_adapted" value="1" constant="true" units="mg_per_liter"/>
+      <parameter id="elimination_rate" value="1" constant="true" units="per_hour"/>
+      <parameter id="gamma" value="1" constant="true" units="dimensionless"/>
+      <parameter id="growth_rate" value="1" constant="true" units="per_hour"/>
+      <parameter id="kappa_adapted" value="1" constant="true" units="per_hour"/>
+      <parameter id="kappa_susceptible" value="1" constant="true" units="liter_per_mg_hour"/>
+      <parameter id="mutation_rate" value="1" constant="true" units="liter_per_mg_hour"/>
+      <parameter id="total_bacterial_count" value="1" constant="false" units="cfu_per_ml"/>
+    </listOfParameters>
+
+    <listOfReactions>
+      <reaction id="central_reaction" name="central_reaction" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="drug"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> central </ci>
+              <ci> elimination_rate </ci>
+              <ci> drug </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+    </listOfReactions>
+
+    <listOfRules>
+      <assignmentRule variable="total_bacterial_count">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <ci> bacterial_count_susceptible </ci>
+            <ci> bacterial_count_adapted </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+
+      <rateRule variable="bacterial_count_susceptible">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <apply>
+              <minus/>
+              <ci> growth_rate </ci>
+              <apply>
+                <plus/>
+                <apply>
+                  <times/>
+                  <ci> kappa_susceptible </ci>
+                  <ci> drug </ci>
+                </apply>
+                <apply>
+                  <times/>
+                  <ci> mutation_rate </ci>
+                  <ci> drug </ci>
+                </apply>
+              </apply>
+            </apply>
+            <ci> bacterial_count_susceptible </ci>
+          </apply>
+        </math>
+      </rateRule>
+
+      <rateRule variable="bacterial_count_adapted">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <apply>
+              <times/>
+              <apply>
+                <minus/>
+                <ci> growth_rate </ci>
+                <apply>
+                  <times/>
+                  <ci> kappa_adapted </ci>
+                  <apply>
+                    <divide/>
+                    <apply>
+                      <power/>
+                      <ci> drug </ci>
+                      <ci> gamma </ci>
+                    </apply>
+                    <apply>
+                      <plus/>
+                      <apply>
+                        <power/>
+                        <ci> drug </ci>
+                        <ci> gamma </ci>
+                      </apply>
+                      <apply>
+                        <power/>
+                        <ci> concentration_e50_adapted </ci>
+                        <ci> gamma </ci>
+                      </apply>
+                    </apply>
+                  </apply>
+                </apply>
+              </apply>
+              <ci> bacterial_count_adapted </ci>
+            </apply>
+            <apply>
+              <times/>
+              <ci> mutation_rate </ci>
+              <ci> drug </ci>
+              <ci> bacterial_count_susceptible </ci>
+            </apply>
+          </apply>
+        </math>
+      </rateRule>
+    </listOfRules>
+  </model>
+</sbml>
