@@ -334,6 +334,72 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_state(s1)
         self.assertEqual(d1, self.sim.eval_derivatives())
 
+    def test_order(self):
+        # Tests that sensitivities are returned in the correct order
+
+        # Define model
+        model = myokit.parse_model(
+            """
+            [[model]]
+            name: one_compartment_pk_model
+            # Initial values
+            central.drug_amount = 0.1
+            dose.drug_amount    = 0.1
+
+            [central]
+            dose_rate = 0 bind pace
+                in [g/s (1.1574074074074077e-08)]
+            dot(drug_amount) = -(
+                    size * e.elimination_rate * drug_concentration) + (
+                    dose.absorption_rate * dose.drug_amount)
+                in [kg (1e-06)]
+            drug_concentration = drug_amount / size
+                in [g/m^3]
+            size = 0.1
+                in [L]
+
+            [dose]
+            absorption_rate = 0.1
+                in [S/F (1.1574074074074077e-05)]
+            dot(drug_amount) = -absorption_rate * drug_amount + central.dose_rate
+                in [kg (1e-06)]
+
+            [e]
+            elimination_rate = 0.1
+                in [S/F (1.1574074074074077e-05)]
+            time = 0 bind time
+                in [s (86400)]
+            """
+        )
+
+        # Select all states and possible independents
+        var = ['central.drug_amount', 'dose.drug_amount']
+        par = [
+            'central.size',
+            'init(central.drug_amount)',
+            'dose.absorption_rate',
+            'init(dose.drug_amount)',
+            'e.elimination_rate',
+        ]
+
+        # Run and store
+        sim = myokit.Simulation(model, sensitivities=(var, par))
+        _, s1 = sim.run(6, log=myokit.LOG_NONE, log_interval=2)
+        s1 = np.array(s1)
+
+        # Now use reverse order
+        var.reverse()
+        par.reverse()
+
+        # Run and store
+        sim = myokit.Simulation(model, sensitivities=(var, par))
+        _, s2 = sim.run(6, log=myokit.LOG_NONE, log_interval=2)
+        s2 = np.array(s2)
+
+        # Reverse results, to get back original order
+        s2 = s2[:, ::-1, ::-1]
+        self.assertTrue(np.all(s1 == s2))
+
     def test_run_bolus_infusion(self):
         # Test :meth:`Simulation.run()` with a PKPD bolus infusion model
 
