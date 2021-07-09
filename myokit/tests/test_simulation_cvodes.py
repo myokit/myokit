@@ -361,7 +361,8 @@ class SimulationTest(unittest.TestCase):
             [dose]
             absorption_rate = 0.1
                 in [S/F (1.1574074074074077e-05)]
-            dot(drug_amount) = -absorption_rate * drug_amount + central.dose_rate
+            dot(drug_amount) = (-absorption_rate * drug_amount
+                                + central.dose_rate)
                 in [kg (1e-06)]
 
             [e]
