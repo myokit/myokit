@@ -607,6 +607,9 @@ Model_SetParametersFromIndependents(Model model, const realtype* independents)
     int i, j;
     if (model == NULL) return Model_INVALID_MODEL;
 
+    /* Note: this method assumes that parameters are ordered in the same way
+             as independents. */
+
     /* Scan for changes */
     i = 0;
     j = 0;

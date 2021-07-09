@@ -128,6 +128,10 @@ class CModel(object):
         self.has_sensitivities = has_sensitivities
         self.dependents = dependents
         self.independents = independents
+
+        # Literals, literal-derived, parameters, and parameter-derived, all in
+        # solvable order. Parameters use the ordering given in `independents`
+        # (which is sortable, as parameters are independent).
         self.literals = literals
         self.literal_derived = literal_derived
         self.parameters = parameters
@@ -279,13 +283,19 @@ class CModel(object):
         Partitions the model's constants into four (non-overlapping) groups,
         each stored in solvable order.
         """
+        # NOTE: Some methods in cmodel.h require the ordering of parameters and
+        #       literals to match that in the independents ordered-dict.
         literals = OrderedDict()
         literal_derived = OrderedDict()
         parameters = OrderedDict()
         parameter_derived = OrderedDict()
 
-        # Get set of all parameters and parameter derived constants
-        p = set([p for p in independents if isinstance(p, myokit.Name)])
+        # Get all parameters, in the same order as independents
+        p = set()
+        for lhs in independents:
+            if isinstance(lhs, myokit.Name):
+                p.add(lhs)
+                parameters[lhs.var()] = None
 
         # Scan over equations
         for label, eqs in equations.items():
