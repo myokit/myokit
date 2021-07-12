@@ -68,13 +68,20 @@ class SimulationOpenCLTest(unittest.TestCase):
             self._s2 = myokit.SimulationOpenCL(self.m, self.p, ncells=(4, 3))
         return self._s2
 
-    def test_calculate_conductance(self):
-        # Test the calculate_conductance() method.
-        r, sx, chi, dx = 2, 3.4, 5.6, 7.8
+    def test_monodomain_conductance(self):
+        # Test the method to calculate g from monodomain parameters
+        k, D, chi, dx, A = 2, 3.4, 5.6, 7.8, 3
+        g = D * k / ((k + 1) * chi * dx * dx)
+        # Arguments: chi, k, D, dx, A
         self.assertEqual(
-            self.s0.calculate_conductance(r, sx, chi, dx),
-            r * sx * chi / ((1 + r) * dx * dx)
-        )
+            self.s0.monodomain_conductance(chi, k, D, dx, A), g * A)
+
+        # Test the deprecated calculate_conductance() method.
+        with WarningCollector() as c:
+            # Arguments: r, sx, one_over_chi, dx
+            self.assertEqual(
+                self.s0.calculate_conductance(k, D, 1 / chi, dx), g)
+        self.assertIn('deprecated', c.text())
 
     def test_conductance(self):
         # Tests setting and getting conductance.
