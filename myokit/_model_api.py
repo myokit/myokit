@@ -1734,12 +1734,11 @@ class Model(ObjectWithMeta, VarProvider):
             relevant_vars.update(var.refs_to(state_refs=False))
             relevant_vars.update(var.refs_to(state_refs=True))
         try:
-            relevant_vars.update(ext_model_copy.timex())
+            relevant_vars.add(ext_model_copy.timex())
         except myokit.IncompatibleModelError:
             pass
 
         relevant_vars = list(relevant_vars)
-        # print(relevant_vars)
 
         copied_var_list = []
 
