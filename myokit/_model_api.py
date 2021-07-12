@@ -1773,7 +1773,7 @@ class Model(ObjectWithMeta, VarProvider):
                         'objects or as fully qualified names'
                     )
 
-                # check external variables in var_map are variables and exists
+                # check external variables in var_map are variables and exist
                 # in external model
                 if isinstance(ext_var, myokit.Variable):
                     if not ext_var.has_ancestor(external_component.model()):
