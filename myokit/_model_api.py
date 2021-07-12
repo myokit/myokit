@@ -1752,7 +1752,7 @@ class Model(ObjectWithMeta, VarProvider):
                 if isinstance(self_var, myokit.Variable):
                     if not self_var.has_ancestor(self):
                         raise myokit.VariableMappingError(
-                            self_var.name() + ' does not exist in this model'
+                            self_var.qname() + ' does not exist in this model'
                         )
                 elif isinstance(self_var, basestring):
                     try:
@@ -1772,8 +1772,8 @@ class Model(ObjectWithMeta, VarProvider):
                 if isinstance(ext_var, myokit.Variable):
                     if not ext_var.has_ancestor(external_component.model()):
                         raise myokit.VariableMappingError(
-                            ext_var.name() +
-                            ' does not exist in the external component\'s' +
+                            ext_var.qname() +
+                            ' does not exist in the external component\'s ' +
                             'model'
                         )
                     ext_var = ext_model_copy.var(ext_var.qname())
@@ -1783,7 +1783,7 @@ class Model(ObjectWithMeta, VarProvider):
                     except KeyError:
                         raise myokit.VariableMappingError(
                             ext_var +
-                            ' does not exist in the external component\'s' +
+                            ' does not exist in the external component\'s ' +
                             'model'
                         )
                 else:
