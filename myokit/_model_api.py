@@ -1738,7 +1738,7 @@ class Model(ObjectWithMeta, VarProvider):
         except myokit.IncompatibleModelError:
             pass
 
-        relevant_vars = list(set(relevant_vars))
+        relevant_vars = list(relevant_vars)
         # print(relevant_vars)
 
         copied_var_list = []
