@@ -1690,7 +1690,7 @@ class Model(ObjectWithMeta, VarProvider):
         ``allow_name_mapping``
             Set this to ``True`` to allow mapping based on fully qualified
             names, e.g. a variable ``x.y`` in the source model will be mapped
-            to ab variable ``x.y`` in the target model.
+            to a variable ``x.y`` in the target model.
         ``convert_units``
             Set this to ``True`` to convert the units of any mapped variables,
             if required and possible.
@@ -1771,7 +1771,7 @@ class Model(ObjectWithMeta, VarProvider):
                         'objects or as fully qualified names'
                     )
 
-                # check external variables in var_map are variables and exists
+                # check external variables in var_map are variables and exist
                 # in external model
                 if isinstance(ext_var, myokit.Variable):
                     if not ext_var.has_ancestor(external_component.model()):
