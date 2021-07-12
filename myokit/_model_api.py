@@ -1690,7 +1690,7 @@ class Model(ObjectWithMeta, VarProvider):
         ``allow_name_mapping``
             Set this to ``True`` to allow mapping based on fully qualified
             names, e.g. a variable ``x.y`` in the source model will be mapped
-            to ab variable ``x.y`` in the target model.
+            to a variable ``x.y`` in the target model.
         ``convert_units``
             Set this to ``True`` to convert the units of any mapped variables,
             if required and possible.
