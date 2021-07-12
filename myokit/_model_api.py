@@ -1695,12 +1695,13 @@ class Model(ObjectWithMeta, VarProvider):
             Set this to ``True`` to convert the units of any mapped variables,
             if required and possible.
 
-        If any variables cannot be mapped, a :class:`myokit.VariableMappingError`
-        will be raised. A :class:`myokit.DuplicateNameError` will be raised if
-        the components name or ``new_name`` clashes with an existing component
-        name. If unit conversion is enabled and variables with incompattible
-        units are mapped onto each other, a
-        class:`myokit.IncompatibleUnitsError` will be raised.
+        If any variables cannot be mapped, a
+        :class:`myokit.VariableMappingError` will be raised. A
+        :class:`myokit.DuplicateNameError` will be raised if the components
+        name or ``new_name`` clashes with an existing component name. If unit
+        conversion is enabled and variables with incompattible units are
+        mapped onto each other, a class:`myokit.IncompatibleUnitsError` will
+        be raised.
         """
 
         # Check component is not from this model, is a component, etc.
@@ -1742,7 +1743,10 @@ class Model(ObjectWithMeta, VarProvider):
 
         copied_var_list = []
 
-        # map has form {external_model_copy.variable: self.variable}
+        # create full_var_map of form
+        # {external_model_copy.variable: self.variable}
+
+        # check user-specified var_map
         if var_map is not None:
             if not isinstance(var_map, dict):
                 raise TypeError('var_map needs to be of type dict or None')
@@ -1803,30 +1807,35 @@ class Model(ObjectWithMeta, VarProvider):
                     full_var_map[ext_var] = self_var
                 copied_var_list.append(self_var)
 
+        # add non user-specified variables to full var map if relevant
         for ext_var in relevant_vars:
             if ext_var not in copied_var_list:
+                # check if there is a common binding/label
                 ext_bind = ext_var.binding()
                 ext_label = ext_var.label()
                 self_bind_var = self.binding(ext_bind)
                 self_label_var = self.label(ext_label)
 
+                # add to full_var_map if there is, otherwise add if there is a
+                # variable with the same name and allow_name_mapping is true
                 if self_bind_var is not None:
-                    # add self_bind_var:ext_var to full_var_map
                     full_var_map[ext_var] = self_bind_var
                 elif self_label_var is not None:
-                    # add self_label_var:ext_var to full_var_map
                     full_var_map[ext_var] = self_label_var
                 elif allow_name_mapping:
                     if self.has_variable(ext_var.qname()):
                         # add to full map
                         full_var_map[ext_var] = self.get(ext_var.qname())
+
+            # raise error if full_var_map is missing variables that component
+            # refers to
             if (
                 ext_var not in full_var_map and
                 ext_var not in external_component_copy.variables(deep=True)
             ):
                 raise myokit.VariableMappingError(
                     ext_var.qname() +
-                    ' is refered to by the external_component but has no' +
+                    ' is refered to by the external_component but has no ' +
                     'mapping in this model'
                 )
 
@@ -1843,13 +1852,16 @@ class Model(ObjectWithMeta, VarProvider):
             new_name
         )
 
+        # alter the structure of self and external_model_copy to match final
+        # model to allow for converting units and correct variable mapping
         for ext_var in relevant_vars:
-            # alter the structure of self and external_model_copy to
-            # match final model.
             if (
                 ext_var.parent() == external_component_copy and
                 ext_var in full_var_map
             ):
+                # for the imported variables, if in full_var_map, the mapped
+                # variable in self needs to be moved to the newly created
+                # component
                 self_var = full_var_map[ext_var]
                 self_var.parent().move_variable(
                     self_var, new_component, new_name=ext_var.name()
@@ -1876,6 +1888,8 @@ class Model(ObjectWithMeta, VarProvider):
                     )
 
             elif ext_var.parent() == external_component_copy:
+                # for the imported variables, if not in full_var_map, the
+                # variable needs to be created in the new component
                 ext_var._clone1(new_component)
                 external_component_copy.move_variable(
                     ext_var, ext_temp_component
@@ -1886,7 +1900,11 @@ class Model(ObjectWithMeta, VarProvider):
                     new_component[ext_var.name()].promote(
                         ext_var.state_value()
                     )
+
             elif ext_var in full_var_map:
+                # for external variables not in the imported component, they
+                # need to match the mapped variable in self to ensure correct
+                # mapping when equations are copied
                 self_var = full_var_map[ext_var]
                 if not ext_model_copy.has_component(
                     self_var.parent().qname()
@@ -1904,7 +1922,6 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Create mapping of old var references to new references
         lhsmap = {}
-        # print(relevant_vars)
         for ext_var in relevant_vars:
             # var_copy = None
             if ext_var.parent(kind=Component) == ext_temp_component:
