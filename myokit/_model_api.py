@@ -1728,18 +1728,13 @@ class Model(ObjectWithMeta, VarProvider):
         external_component_copy = ext_model_copy[external_component.qname()]
 
         full_var_map = {}
-        relevant_vars = external_component_copy.variables()
+        relevant_vars = set()
+        relevant_vars.update(external_component_copy.variables())
         for var in external_component_copy.variables():
-            dependent_vars = var.refs_to(state_refs=False)
-            dependent_states = var.refs_to(state_refs=True)
-            relevant_vars = (
-                list(relevant_vars) +
-                list(dependent_vars) +
-                list(dependent_states)
-            )
-
+            relevant_vars.update(var.refs_to(state_refs=False))
+            relevant_vars.update(var.refs_to(state_refs=True))
         try:
-            relevant_vars.append(ext_model_copy.timex())
+            relevant_vars.update(ext_model_copy.timex())
         except myokit.IncompatibleModelError:
             pass
 
