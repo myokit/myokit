@@ -1695,7 +1695,7 @@ class Model(ObjectWithMeta, VarProvider):
             Set this to ``True`` to convert the units of any mapped variables,
             if required and possible.
 
-        If any variables cannot be mapped, a :class:`myokit.WellMappedError`
+        If any variables cannot be mapped, a :class:`myokit.VariableMappingError`
         will be raised. A :class:`myokit.DuplicateNameError` will be raised if
         the components name or ``new_name`` clashes with an existing component
         name. If unit conversion is enabled and variables with incompattible
@@ -1757,14 +1757,14 @@ class Model(ObjectWithMeta, VarProvider):
                 # in self
                 if isinstance(self_var, myokit.Variable):
                     if not self_var.has_ancestor(self):
-                        raise myokit.WellMappedError(
+                        raise myokit.VariableMappingError(
                             self_var.name() + ' does not exist in this model'
                         )
                 elif isinstance(self_var, basestring):
                     try:
                         self_var = self.var(self_var)
                     except KeyError:
-                        raise myokit.WellMappedError(
+                        raise myokit.VariableMappingError(
                             self_var + ' does not exist in this model'
                         )
                 else:
@@ -1777,7 +1777,7 @@ class Model(ObjectWithMeta, VarProvider):
                 # in external model
                 if isinstance(ext_var, myokit.Variable):
                     if not ext_var.has_ancestor(external_component.model()):
-                        raise myokit.WellMappedError(
+                        raise myokit.VariableMappingError(
                             ext_var.name() +
                             ' does not exist in the external component\'s' +
                             'model'
@@ -1787,7 +1787,7 @@ class Model(ObjectWithMeta, VarProvider):
                     try:
                         ext_var = ext_model_copy.var(ext_var)
                     except KeyError:
-                        raise myokit.WellMappedError(
+                        raise myokit.VariableMappingError(
                             ext_var +
                             ' does not exist in the external component\'s' +
                             'model'
@@ -1800,7 +1800,7 @@ class Model(ObjectWithMeta, VarProvider):
 
                 # check for duplicates in var_map
                 if self_var in copied_var_list:
-                    raise myokit.WellMappedError(
+                    raise myokit.VariableMappingError(
                         'Multiple variables map onto ' + self_var.name()
                     )
 
@@ -1830,7 +1830,7 @@ class Model(ObjectWithMeta, VarProvider):
                 ext_var not in full_var_map and
                 ext_var not in external_component_copy.variables(deep=True)
             ):
-                raise myokit.WellMappedError(
+                raise myokit.VariableMappingError(
                     ext_var.qname() +
                     ' is refered to by the external_component but has no' +
                     'mapping in this model'

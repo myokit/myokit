@@ -854,22 +854,22 @@ class ModelTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             var_map = {6.0: m1['membrane']['V']}
             m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.WellMappedError):
+        with self.assertRaises(myokit.VariableMappingError):
             var_map = {a: b}
             m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.WellMappedError):
+        with self.assertRaises(myokit.VariableMappingError):
             var_map = {'z.a': 'z.b'}
             m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.WellMappedError):
+        with self.assertRaises(myokit.VariableMappingError):
             var_map = {m1['membrane']['V']: m1['ib']['gb']}
             m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.WellMappedError):
+        with self.assertRaises(myokit.VariableMappingError):
             var_map = {'membrane.V': 'ib.gb'}
             m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.WellMappedError):
+        with self.assertRaises(myokit.VariableMappingError):
             var_map = {'z.a': 'membrane.V', 'z.b': 'membrane.V'}
             m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.WellMappedError):
+        with self.assertRaises(myokit.VariableMappingError):
             m1.import_component(y)
         self.assertEqual(m1, m1_unaltered)
 

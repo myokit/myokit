@@ -22,7 +22,7 @@ This page lists the main changes made to Myokit in each release.
   - [#754](https://github.com/MichaelClerx/myokit/pull/754) Improved error message when an `OpenCLSimulation` with double precision is run on a device that does not support it.
   - [#763](https://github.com/MichaelClerx/myokit/pull/763) Added a method `OpenCLSimulation.set_conductance_field` to apply heterogeneous conductance on a rectangular grid.
   - [#769](https://github.com/MichaelClerx/myokit/pull/769) Model now has method `import_component` to import a component from one model to another.
-  - [#769](https://github.com/MichaelClerx/myokit/pull/769) New Error type `WellMappedError` to be raised when there is an error in a variable mapping.
+  - [#769](https://github.com/MichaelClerx/myokit/pull/769) New Error type `VariableMappingError` to be raised when there is an error in a variable mapping.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
