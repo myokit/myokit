@@ -1725,8 +1725,8 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Create mapping for vars, and get unit conversion factors if required.
 
-        ext_model_copy = external_component.model().clone()
-        external_component_copy = ext_model_copy[external_component.qname()]
+        ext_model_copy = external_component.model()
+        external_component_copy = external_component
 
         full_var_map = {}
         relevant_vars = set()
@@ -1840,17 +1840,18 @@ class Model(ObjectWithMeta, VarProvider):
                 )
 
         if convert_units:
+            original_units = {}
             for ext_var, self_var in full_var_map.items():
                 # convert units in ext model to units in self for this
                 # variable
-                ext_var.convert_unit(self_var.unit())
+                if ext_var.parent(kind=Component) != external_component_copy:
+                    original_units[self_var] = self_var.unit()
+                self_var.convert_unit(ext_var.unit())
+
 
         # create empty component in self
         new_component = self.add_component(new_name)
         external_component_copy._clone_modelpart_data(new_component)
-        ext_temp_component = ext_model_copy.add_component_allow_renaming(
-            new_name
-        )
 
         # alter the structure of self and external_model_copy to match final
         # model to allow for converting units and correct variable mapping
@@ -1865,9 +1866,6 @@ class Model(ObjectWithMeta, VarProvider):
                 self_var = full_var_map[ext_var]
                 self_var.parent().move_variable(
                     self_var, new_component, new_name=ext_var.name()
-                )
-                external_component_copy.move_variable(
-                    ext_var, ext_temp_component
                 )
 
                 # remove any binding or state as this will be overridden by
@@ -1891,9 +1889,6 @@ class Model(ObjectWithMeta, VarProvider):
                 # for the imported variables, if not in full_var_map, the
                 # variable needs to be created in the new component
                 ext_var._clone1(new_component)
-                external_component_copy.move_variable(
-                    ext_var, ext_temp_component
-                )
 
                 # copy state
                 if ext_var.is_state():
@@ -1901,44 +1896,53 @@ class Model(ObjectWithMeta, VarProvider):
                         ext_var.state_value()
                     )
 
-            elif ext_var in full_var_map:
-                # for external variables not in the imported component, they
-                # need to match the mapped variable in self to ensure correct
-                # mapping when equations are copied
-                self_var = full_var_map[ext_var]
-                if not ext_model_copy.has_component(
-                    self_var.parent().qname()
-                ):
-                    self_component_equiv = ext_model_copy.add_component(
-                        self_var.parent().qname()
-                    )
-                else:
-                    self_component_equiv = ext_model_copy.get(
-                        self_var.parent().qname()
-                    )
-                ext_var.parent().move_variable(
-                    ext_var, self_component_equiv, new_name=self_var.name()
-                )
+            # elif ext_var in full_var_map:
+            #     # for external variables not in the imported component, they
+            #     # need to match the mapped variable in self to ensure correct
+            #     # mapping when equations are copied
+            #     self_var = full_var_map[ext_var]
+            #     if not ext_model_copy.has_component(
+            #         self_var.parent().qname()
+            #     ):
+            #         self_component_equiv = ext_model_copy.add_component(
+            #             self_var.parent().qname()
+            #         )
+            #     else:
+            #         self_component_equiv = ext_model_copy.get(
+            #             self_var.parent().qname()
+            #         )
+            #     ext_var.parent().move_variable(
+            #         ext_var, self_component_equiv, new_name=self_var.name()
+            #     )
 
         # Create mapping of old var references to new references
         lhsmap = {}
         for ext_var in relevant_vars:
-            # var_copy = None
-            if ext_var.parent(kind=Component) == ext_temp_component:
+            if ext_var.parent(kind=Component) == external_component_copy:
                 names = ext_var.qname().split('.')
                 x = new_component
                 for name in names[1:]:
                     x = x[name]
                 var_copy = x
+                if ext_var.is_state:
+                    x = myokit.Derivative(myokit.Name(ext_var))
+                    lhsmap[x] = myokit.Derivative(myokit.Name(var_copy))
             elif ext_var in full_var_map:
-                var_copy = self.get(ext_var.qname())
+                # var_copy = self.get(ext_var.qname())
+                var_copy = full_var_map[ext_var]
             lhsmap[myokit.Name(ext_var)] = myokit.Name(var_copy)
-            if ext_var.is_state:
-                x = myokit.Derivative(myokit.Name(ext_var))
-                lhsmap[x] = myokit.Derivative(myokit.Name(var_copy))
+        
         # Clone component/variable contents (equations, references)
+        external_component_copy._clone2(new_component, lhsmap)
 
-        ext_temp_component._clone2(new_component, lhsmap)
+        try:
+            print(self.timex().rhs())
+        except myokit.IncompatibleModelError:
+            pass
+        # Return variables not in the imported component back to their original units
+        # if convert_units:
+        #     for self_var, unit in original_units.items():
+        #         self_var.convert_unit(unit)
 
     def inits(self):
         """

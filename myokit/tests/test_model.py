@@ -770,6 +770,7 @@ class ModelTest(unittest.TestCase):
 
         m1.time().set_unit(unit=myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
         m2.time().set_unit(unit=3600 * myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
+        print(m1.time().rhs(), m2.time().rhs(), myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
         m1_b.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
         k1.set_unit(unit=1 / m1.time_unit())
         m1_c.set_unit(
