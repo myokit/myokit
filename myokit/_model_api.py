@@ -1844,7 +1844,7 @@ class Model(ObjectWithMeta, VarProvider):
             for ext_var, self_var in full_var_map.items():
                 ext_unit = ext_var.unit()
                 self_unit = self_var.unit()
-                if not myokit.can_convert(ext_unit, self_unit):
+                if not myokit.Unit.can_convert(ext_unit, self_unit):
                     raise myokit.IncompatibleUnitError(
                         'Unable to convert between ' + ext_unit.clarify() +
                         ' and ' + self_unit.clarify() + '.')
