@@ -1840,6 +1840,15 @@ class Model(ObjectWithMeta, VarProvider):
                 )
 
         if convert_units:
+            # raise error if units cannot convert
+            for ext_var, self_var in full_var_map.items():
+                ext_unit = ext_var.unit()
+                self_unit = self_var.unit()
+                if not myokit.can_convert(ext_unit, self_unit):
+                    raise myokit.IncompatibleUnitError(
+                        'Unable to convert between ' + ext_unit.clarify() +
+                        ' and ' + self_unit.clarify() + '.')
+
             original_units = {}
             for ext_var, self_var in full_var_map.items():
                 # convert units in ext model to units in self for this
