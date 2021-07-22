@@ -1904,25 +1904,6 @@ class Model(ObjectWithMeta, VarProvider):
                         ext_var.state_value()
                     )
 
-            # elif ext_var in full_var_map:
-            #     # for external variables not in the imported component, they
-            #     # need to match the mapped variable in self to ensure correct
-            #     # mapping when equations are copied
-            #     self_var = full_var_map[ext_var]
-            #     if not ext_model_copy.has_component(
-            #         self_var.parent().qname()
-            #     ):
-            #         self_component_equiv = ext_model_copy.add_component(
-            #             self_var.parent().qname()
-            #         )
-            #     else:
-            #         self_component_equiv = ext_model_copy.get(
-            #             self_var.parent().qname()
-            #         )
-            #     ext_var.parent().move_variable(
-            #         ext_var, self_component_equiv, new_name=self_var.name()
-            #     )
-
         # Create mapping of old var references to new references
         lhsmap = {}
         for ext_var in relevant_vars:

@@ -708,13 +708,14 @@ class ModelTest(unittest.TestCase):
         m1 = myokit.Model()
         x = m1.add_component('x')
         d = x.add_variable('d')
-        d.set_rhs(0)
+        d.set_rhs('1 + d')
+        d.promote(0.2)
 
         var_map = {b: d}
         m1.import_component(y, new_name='y2', var_map=var_map)
         self.assertTrue(m1.has_component('y2'))
         self.assertTrue(m1.has_variable('x.d'))
-        self.assertTrue(d in m1['y2']['b2'].refs_to())
+        self.assertTrue(d in m1['y2']['b2'].refs_to(state_refs=True))
 
         m1.import_component(z, var_map=var_map)
         self.assertTrue(m1.has_component('z'))
