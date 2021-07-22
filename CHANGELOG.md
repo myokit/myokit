@@ -22,6 +22,7 @@ This page lists the main changes made to Myokit in each release.
   - [#754](https://github.com/MichaelClerx/myokit/pull/754) Improved error message when an `OpenCLSimulation` with double precision is run on a device that does not support it.
   - [#763](https://github.com/MichaelClerx/myokit/pull/763) Added a method `OpenCLSimulation.set_conductance_field` to apply heterogeneous conductance on a rectangular grid.
   - [#776](https://github.com/MichaelClerx/myokit/pull/776) Added a method `OpenCLSimulation.monodomain_conductance` to replace the deprecated method `calculate_conductance`.
+  - [#780](https://github.com/MichaelClerx/myokit/pull/780) Alt-up and alt-down can now be used in the text editor to move selected lines up or down.
   - [#769](https://github.com/MichaelClerx/myokit/pull/769) Model now has method `import_component` to import a component from one model to another.
   - [#769](https://github.com/MichaelClerx/myokit/pull/769) New Error type `VariableMappingError` to be raised when there is an error in a variable mapping.
 - Changed
