@@ -1726,7 +1726,6 @@ class Model(ObjectWithMeta, VarProvider):
         # Create mapping for vars, and get unit conversion factors if required.
 
         ext_model = external_component.model()
-        # external_component_copy = external_component
 
         full_var_map = {}
         relevant_vars = set()
@@ -1861,7 +1860,7 @@ class Model(ObjectWithMeta, VarProvider):
         new_component = self.add_component(new_name)
         external_component._clone_modelpart_data(new_component)
 
-        # alter the structure of self and external_model_copy to match final
+        # alter the structure of self to match final
         # model to allow for converting units and correct variable mapping
         for ext_var in relevant_vars:
             if (
@@ -1917,7 +1916,6 @@ class Model(ObjectWithMeta, VarProvider):
                     x = myokit.Derivative(myokit.Name(ext_var))
                     lhsmap[x] = myokit.Derivative(myokit.Name(var_copy))
             elif ext_var in full_var_map:
-                # var_copy = self.get(ext_var.qname())
                 var_copy = full_var_map[ext_var]
             lhsmap[myokit.Name(ext_var)] = myokit.Name(var_copy)
 
