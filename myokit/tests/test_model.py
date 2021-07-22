@@ -681,12 +681,17 @@ class ModelTest(unittest.TestCase):
         b2.set_rhs('a2*z.b')
         b2.promote(0.2)
 
+        # Make copy of m2, to ensure nothing is altered in original model
+        m2_unaltered = m2.clone()
+        self.assertEqual(m2, m2_unaltered)
+
         # Test that component is imported
         m1 = myokit.Model()
         m1.import_component(z)
         self.assertTrue(m1.has_component('z'))
         self.assertFalse(m1['z'] is z)
         self.assertEqual(m1['z'].code(), z.code())
+        self.assertEqual(m2, m2_unaltered)
 
         # Test new_name
         m1 = myokit.Model()
@@ -697,6 +702,7 @@ class ModelTest(unittest.TestCase):
         for var in z.variables():
             self.assertTrue(m1['z2'].has_variable(var.name()))
             self.assertEqual(m1['z2'][var.name()].code(), var.code())
+        self.assertEqual(m2, m2_unaltered)
 
         # Test var_map
         m1 = myokit.Model()
@@ -717,7 +723,8 @@ class ModelTest(unittest.TestCase):
         self.assertTrue(
             m1['z']['b'] in m1['y2']['b2'].refs_to(state_refs=True)
         )
-        var_map = {'z.b': 'x.d'}
+
+        self.assertEqual(m2, m2_unaltered)
 
         # Test name mapping
         m1 = myokit.Model()
@@ -727,6 +734,8 @@ class ModelTest(unittest.TestCase):
         m1_b.promote(0.2)
         m1.import_component(y, allow_name_mapping=True)
         self.assertTrue(m1_b in m1['y']['b2'].refs_to(state_refs=True))
+
+        self.assertEqual(m2, m2_unaltered)
 
         # test bound variables map
         m1 = myokit.Model()
@@ -749,10 +758,14 @@ class ModelTest(unittest.TestCase):
         t2.set_binding('time')
         t2.set_rhs(0)
 
+        m2_unaltered = m2.clone()
+
         m1.import_component(y, allow_name_mapping=True)
         self.assertEqual(m1.time(), m1['y']['t'])
         self.assertFalse(m1_z.has_variable('k'))
         self.assertEqual(a2.label(), label)
+
+        self.assertEqual(m2, m2_unaltered)
 
         # Test convert units
         m1 = myokit.Model()
@@ -784,8 +797,8 @@ class ModelTest(unittest.TestCase):
 
         m1.check_units()
         m2.check_units()
+        m2_unaltered = m2.clone()
 
-        # print(m1.code())
         var_map = {b: m1_b}
         m1.import_component(
             y, var_map=var_map, convert_units=True
@@ -814,6 +827,8 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(
             m1['x']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
         )
+        
+        self.assertEqual(m2, m2_unaltered)
 
         # Test errors
         m1 = myokit.load_model('example')

@@ -1725,17 +1725,17 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Create mapping for vars, and get unit conversion factors if required.
 
-        ext_model_copy = external_component.model()
-        external_component_copy = external_component
+        ext_model = external_component.model()
+        # external_component_copy = external_component
 
         full_var_map = {}
         relevant_vars = set()
-        relevant_vars.update(external_component_copy.variables())
-        for var in external_component_copy.variables():
+        relevant_vars.update(external_component.variables())
+        for var in external_component.variables():
             relevant_vars.update(var.refs_to(state_refs=False))
             relevant_vars.update(var.refs_to(state_refs=True))
         try:
-            relevant_vars.add(ext_model_copy.timex())
+            relevant_vars.add(ext_model.timex())
         except myokit.IncompatibleModelError:
             pass
 
@@ -1780,10 +1780,10 @@ class Model(ObjectWithMeta, VarProvider):
                             ' does not exist in the external component\'s ' +
                             'model'
                         )
-                    ext_var = ext_model_copy.var(ext_var.qname())
+                    ext_var = ext_model.var(ext_var.qname())
                 elif isinstance(ext_var, basestring):
                     try:
-                        ext_var = ext_model_copy.var(ext_var)
+                        ext_var = ext_model.var(ext_var)
                     except KeyError:
                         raise myokit.VariableMappingError(
                             ext_var +
@@ -1831,7 +1831,7 @@ class Model(ObjectWithMeta, VarProvider):
             # refers to
             if (
                 ext_var not in full_var_map and
-                ext_var not in external_component_copy.variables(deep=True)
+                ext_var not in external_component.variables(deep=True)
             ):
                 raise myokit.VariableMappingError(
                     ext_var.qname() +
@@ -1844,20 +1844,20 @@ class Model(ObjectWithMeta, VarProvider):
             for ext_var, self_var in full_var_map.items():
                 # convert units in ext model to units in self for this
                 # variable
-                if ext_var.parent(kind=Component) != external_component_copy:
+                if ext_var.parent(kind=Component) != external_component:
                     original_units[self_var] = self_var.unit()
                 self_var.convert_unit(ext_var.unit())
 
 
         # create empty component in self
         new_component = self.add_component(new_name)
-        external_component_copy._clone_modelpart_data(new_component)
+        external_component._clone_modelpart_data(new_component)
 
         # alter the structure of self and external_model_copy to match final
         # model to allow for converting units and correct variable mapping
         for ext_var in relevant_vars:
             if (
-                ext_var.parent() == external_component_copy and
+                ext_var.parent() == external_component and
                 ext_var in full_var_map
             ):
                 # for the imported variables, if in full_var_map, the mapped
@@ -1885,7 +1885,7 @@ class Model(ObjectWithMeta, VarProvider):
                         ext_var.state_value()
                     )
 
-            elif ext_var.parent() == external_component_copy:
+            elif ext_var.parent() == external_component:
                 # for the imported variables, if not in full_var_map, the
                 # variable needs to be created in the new component
                 ext_var._clone1(new_component)
@@ -1918,7 +1918,7 @@ class Model(ObjectWithMeta, VarProvider):
         # Create mapping of old var references to new references
         lhsmap = {}
         for ext_var in relevant_vars:
-            if ext_var.parent(kind=Component) == external_component_copy:
+            if ext_var.parent(kind=Component) == external_component:
                 names = ext_var.qname().split('.')
                 x = new_component
                 for name in names[1:]:
@@ -1933,7 +1933,7 @@ class Model(ObjectWithMeta, VarProvider):
             lhsmap[myokit.Name(ext_var)] = myokit.Name(var_copy)
         
         # Clone component/variable contents (equations, references)
-        external_component_copy._clone2(new_component, lhsmap)
+        external_component._clone2(new_component, lhsmap)
 
         # Return variables not in the imported component back to their original units
         if convert_units:
