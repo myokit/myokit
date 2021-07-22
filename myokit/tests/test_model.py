@@ -806,7 +806,6 @@ class ModelTest(unittest.TestCase):
         self.assertTrue(m1.has_component('y'))
         self.assertEqual(m1.time(), m1['y']['t'])
 
-
         m1.check_units()
         self.assertEqual(
             m1['y']['a2'].unit(), 1 / m2.time_unit()
@@ -817,17 +816,18 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(
             m1['y']['b2'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0)
         )
-        
+
         self.assertEqual(
             m1['x']['k1'].unit(), 1 / original_time_unit
         )
         self.assertEqual(
-            m1['x']['c'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3) / original_time_unit
+            m1['x']['c'].unit(),
+            myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3) / original_time_unit
         )
         self.assertEqual(
             m1['x']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
         )
-        
+
         self.assertEqual(m2, m2_unaltered)
 
         # Test errors

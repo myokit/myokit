@@ -1848,7 +1848,6 @@ class Model(ObjectWithMeta, VarProvider):
                     original_units[self_var] = self_var.unit()
                 self_var.convert_unit(ext_var.unit())
 
-
         # create empty component in self
         new_component = self.add_component(new_name)
         external_component._clone_modelpart_data(new_component)
@@ -1931,11 +1930,12 @@ class Model(ObjectWithMeta, VarProvider):
                 # var_copy = self.get(ext_var.qname())
                 var_copy = full_var_map[ext_var]
             lhsmap[myokit.Name(ext_var)] = myokit.Name(var_copy)
-        
+
         # Clone component/variable contents (equations, references)
         external_component._clone2(new_component, lhsmap)
 
-        # Return variables not in the imported component back to their original units
+        # Return variables not in the imported component back to their
+        # original units
         if convert_units:
             for self_var, unit in original_units.items():
                 self_var.convert_unit(unit)
