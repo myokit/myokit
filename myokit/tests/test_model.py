@@ -766,11 +766,11 @@ class ModelTest(unittest.TestCase):
         m1_c.set_rhs('k1*b')
         t1 = m1_x.add_variable('time')
         t1.set_binding('time')
-        t1.set_rhs(0)
+        t1.set_rhs("0 [s]")
 
-        m1.time().set_unit(unit=myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
+        original_time_unit = myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0)
+        m1.time().set_unit(unit=original_time_unit)
         m2.time().set_unit(unit=3600 * myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
-        print(m1.time().rhs(), m2.time().rhs(), myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
         m1_b.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
         k1.set_unit(unit=1 / m1.time_unit())
         m1_c.set_unit(
@@ -785,45 +785,34 @@ class ModelTest(unittest.TestCase):
         m1.check_units()
         m2.check_units()
 
+        # print(m1.code())
         var_map = {b: m1_b}
         m1.import_component(
-            z, var_map=var_map, convert_units=True
+            y, var_map=var_map, convert_units=True
         )
-        self.assertTrue(m1.has_component('z'))
-        self.assertTrue(m1.has_variable('z.b'))
+        self.assertTrue(m1.has_component('y'))
+        self.assertEqual(m1.time(), m1['y']['t'])
+
 
         m1.check_units()
         self.assertEqual(
-            m1['z']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
+            m1['y']['a2'].unit(), 1 / m2.time_unit()
         )
         self.assertEqual(
-            m1['z']['a'].unit(), 1 / m2.time_unit()
+            m1.time_unit(), m2.time_unit()
         )
         self.assertEqual(
-            m1['z']['b']['c'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0)
+            m1['y']['b2'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0)
         )
-
-        m2_duplicate_1 = m2.clone()
-        m2_duplicate_2 = m2.clone()
-
-        m2_duplicate_1['z']['b'].convert_unit(
-            myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
+        
+        self.assertEqual(
+            m1['x']['k1'].unit(), 1 / original_time_unit
         )
-        m2_duplicate_1.time().convert_unit(
-            myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0)
+        self.assertEqual(
+            m1['x']['c'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3) / original_time_unit
         )
-
-        m2_duplicate_2.time().convert_unit(
-            myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0)
-        )
-        m2_duplicate_2['z']['b'].convert_unit(
-            myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
-        )
-
-        self.assertTrue(
-            m1['z']['b'].rhs().code() == m2_duplicate_1['z']['b'].rhs().code()
-            or
-            m1['z']['b'].rhs().code() == m2_duplicate_2['z']['b'].rhs().code()
+        self.assertEqual(
+            m1['x']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
         )
 
         # Test errors

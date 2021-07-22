@@ -1935,14 +1935,10 @@ class Model(ObjectWithMeta, VarProvider):
         # Clone component/variable contents (equations, references)
         external_component_copy._clone2(new_component, lhsmap)
 
-        try:
-            print(self.timex().rhs())
-        except myokit.IncompatibleModelError:
-            pass
         # Return variables not in the imported component back to their original units
-        # if convert_units:
-        #     for self_var, unit in original_units.items():
-        #         self_var.convert_unit(unit)
+        if convert_units:
+            for self_var, unit in original_units.items():
+                self_var.convert_unit(unit)
 
     def inits(self):
         """
