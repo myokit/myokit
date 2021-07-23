@@ -1750,7 +1750,7 @@ class Model(ObjectWithMeta, VarProvider):
             if not isinstance(var_map, dict):
                 raise TypeError('var_map needs to be of type dict or None.')
             for ext_var, self_var in var_map.items():
-                # check variables in var_map are variables and exist in self
+                # check target vars in var_map are variables and exist in self
                 if isinstance(self_var, myokit.Variable):
                     if not self_var.has_ancestor(self):
                         raise myokit.VariableMappingError(
@@ -1767,7 +1767,7 @@ class Model(ObjectWithMeta, VarProvider):
                         'Variables in the var_map need to be specified as'
                         ' objects or fully qualified names.')
 
-                # check external variables in var_map are variables and exist
+                # check source variables in var_map are variables and exist
                 # in external model
                 if isinstance(ext_var, myokit.Variable):
                     if not ext_var.has_ancestor(external_component.model()):
@@ -1797,14 +1797,12 @@ class Model(ObjectWithMeta, VarProvider):
                 if ext_var in relevant_vars:
                     full_var_map[ext_var] = self_var
 
-        # add non user-specified variables to full var map if relevant
+        # Add non user-specified variables that require mapping
         for ext_var in relevant_vars:
             if ext_var not in used_local_vars:
                 # check if there is a common binding/label
-                ext_bind = ext_var.binding()
-                ext_label = ext_var.label()
-                self_bind_var = self.binding(ext_bind)
-                self_label_var = self.label(ext_label)
+                self_bind_var = self.binding(ext_var.binding())
+                self_label_var = self.label(ext_var.label())
 
                 # add to full_var_map if there is, otherwise add if there is a
                 # variable with the same name and allow_name_mapping is true
