@@ -249,8 +249,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         # Open select file, recent file or start new
         if filename is not None:
             # Load or import file, based on extension
-             # If it doesn't work, show an error message, as this is something
-             # the user explicitly requested.
+            # If it doesn't work, show an error message, as this is something
+            # the user explicitly requested.
             base, ext = os.path.splitext(filename)
             ext = ext.lower()[1:]
             if ext == 'cellml':
