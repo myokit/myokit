@@ -248,13 +248,20 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
         # Open select file, recent file or start new
         if filename is not None:
-            # Attempt to open selected file. If it doesn't work, show an error
-            # message, as this is something the user explicitly requested.
-            try:
-                self.load_file(filename)
-            except Exception:
-                self._console.write('Error loading file: ' + str(filename))
-                self.show_exception()
+            # Load or import file, based on extension
+            # If it doesn't work, show an error message, as this is something
+            # the user explicitly requested.
+            base, ext = os.path.splitext(filename)
+            ext = ext.lower()[1:]
+            if ext == 'cellml':
+                self.action_import_model_internal('cellml', filename)
+            else:
+                # Open as mmt
+                try:
+                    self.load_file(filename)
+                except Exception:
+                    self._console.write('Error loading file: ' + str(filename))
+                    self.show_exception()
         else:
             if self._file is not None:
                 # Try loading the last file, but if it goes wrong continue
@@ -656,7 +663,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
     def action_import_model(self, name, glob=None):
         """
-        Imports a model definition.
+        Imports a model definition (asking the user for the filename).
 
         Arguments:
 
@@ -674,12 +681,30 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if not filename:
                 return
 
+            action_import_model_internal(name, filename)
+
+        except Exception:
+            self.show_exception()
+
+    def action_import_model_internal(self, importer, filename):
+        """
+        Imports a model file, with a known filename.
+
+        Arguments:
+
+        ``importer``
+            The name of the importer to use.
+        ``filename``
+            The file to import.
+
+        """
+        try:
             # Set working directory to file's path
             self._path = os.path.dirname(filename)
             os.chdir(self._path)
 
             # Load file
-            i = myokit.formats.importer(name)
+            i = myokit.formats.importer(importer)
 
             # Import the model
             exception = None
@@ -726,7 +751,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             # Update interface
             self._tool_save.setEnabled(True)
             self.update_window_title()
-
         except Exception:
             self.show_exception()
 

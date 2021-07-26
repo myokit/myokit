@@ -545,20 +545,15 @@ def install_gnome_kde():
     # Mime-type file
     print('Installing mmt mime-type...')
     path = os.path.join(home, '.local', 'share', 'mime', 'packages')
-    name = 'x-myokit.xml'
-    place_file(path, name)
+    place_file(path, 'x-myokit.xml')
+    print('Installing CellML mime-type...')
+    place_file(path, 'x-cellml.xml')
     print('Installing gde mime-type...')
-    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
-    name = 'x-gde.xml'
-    place_file(path, name)
+    place_file(path, 'x-gde.xml')
     print('Installing abf mime-type...')
-    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
-    name = 'x-abf.xml'
-    place_file(path, name)
+    place_file(path, 'x-abf.xml')
     print('Installing wcp mime-type...')
-    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
-    name = 'x-wcp.xml'
-    place_file(path, name)
+    place_file(path, 'x-wcp.xml')
 
     # Reload mime database
     print('Reloading mime database')
@@ -632,6 +627,7 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     """
     Runs the Myokit IDE.
     """
+    import os
     import myokit
     if pyqt5:
         myokit.FORCE_PYQT5 = True
@@ -657,6 +653,7 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     import myokit.gui.ide
     if pyqt5 or pyqt4 or pyside or pyside2:
         print('Using backend: ' + myokit.gui.backend)
+    filename = os.path.abspath(os.path.expanduser(filename))
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
 
 
