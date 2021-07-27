@@ -1711,7 +1711,7 @@ class Model(ObjectWithMeta, VarProvider):
             raise TypeError(
                 'Method import_component() expects a myokit.Component.')
         if external_component.has_ancestor(self):
-            raise myokit.IntegrityError(
+            raise ValueError(
                 'The component <' + external_component.name() +
                 '> is already part of this model.')
 

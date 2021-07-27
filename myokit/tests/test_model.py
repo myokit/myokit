@@ -861,14 +861,14 @@ class ModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'is not part of this model',
             m1.import_component, ms['q'], new_name='q9',
-            var_map={'p.a': v, 'p.b': v})
+            var_map={'p.a': v, 'p.b': 'p.b'})
         self.assertEqual(m1, m1_unaltered)
         self.assertEqual(ms, ms_unaltered)
 
         self.assertRaisesRegex(
             myokit.VariableMappingError, 'is not part of the source model',
             m1.import_component, ms['q'], new_name='q9',
-            var_map={v: 'p.a', 'p.b': v, 'e.h': 'e.h'})
+            var_map={v: 'p.a', 'p.b': 'p.b', 'e.h': 'e.h'})
         self.assertEqual(m1, m1_unaltered)
         self.assertEqual(ms, ms_unaltered)
 
@@ -878,6 +878,16 @@ class ModelTest(unittest.TestCase):
             m1.import_component, ms['q'], new_name='q9', var_map={})
         self.assertEqual(m1, m1_unaltered)
         self.assertEqual(ms, ms_unaltered)
+
+        # Import something that's not a component
+        self.assertRaisesRegex(
+            TypeError, 'myokit.Component',
+            m1.import_component, 'q')
+
+        # Import your own components
+        self.assertRaisesRegex(
+            ValueError, 'part of this model',
+            m1.import_component, m1['p'], new_name='abc')
 
     def test_import_component_units(self):
         # Test :meth: 'import_component()' with unit conversion.
