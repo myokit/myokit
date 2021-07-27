@@ -658,232 +658,454 @@ class ModelTest(unittest.TestCase):
     def test_import_component(self):
         # Test :meth: 'import_component()'.
 
-        # Create model and component
-        m2 = myokit.Model()
-        y = m2.add_component('y')
-        z = m2.add_component('z')
+        # Source model, to import stuff from
+        ms = myokit.parse_model('''
+            [[model]]
+            p.b = 0.2
+            q.e = 0.2
 
-        # Add variables to component z
-        a = z.add_variable('a')
-        a.set_rhs(1)
+            [e]
+            t = 0 [s] bind time
+                in [s]
+            g = 0
+                label this_is_g
+            h = 4
 
-        b = z.add_variable('b')
-        c = b.add_variable('c')
-        c.set_rhs('b * 2')
-        b.set_rhs('a * c')
-        b.promote(0.2)
+            # Independent (except for time)
+            [p]
+            a = 1 [1/s]
+                in [1/s]
+            # Comments should be stripped out during parsing, so this is OK.
+            dot(b) = a * c
+                in [m]
+                c = b * 2
+                    in [m]
 
-        # Add variables to component y
-        a2 = y.add_variable('a2')
-        a2.set_rhs(0.2)
+            # Requires mapping, has aliases and an unused alias
+            [q]
+            use p.a, p.b
+            use e.h
+            dot(e) = d * b
+                in [m*A]
+            f = 3 * dot(b)
+                in [m/s]
+            d = 0.2 [A] * a
+                in [A/s]
 
-        b2 = y.add_variable('b2')
-        b2.set_rhs('a2*z.b')
-        b2.promote(0.2)
+        ''')
+        ms.validate()
+        ms.check_units(myokit.UNIT_STRICT)
 
-        # Make copy of m2, to ensure nothing is altered in original model
-        m2_unaltered = m2.clone()
-        self.assertEqual(m2, m2_unaltered)
+        # Make copy of ms, to ensure nothing is altered in original model
+        ms_unaltered = ms.clone()
 
-        # Test that component is imported
+        # Import independent component into empty model
         m1 = myokit.Model()
-        m1.import_component(z)
-        self.assertTrue(m1.has_component('z'))
-        self.assertFalse(m1['z'] is z)
-        self.assertEqual(m1['z'].code(), z.code())
-        self.assertEqual(m2, m2_unaltered)
+        m1.import_component(ms['p'])
+        self.assertTrue(m1.has_component('p'))
+        self.assertFalse(m1['p'] is ms['p'])
+        self.assertEqual(m1['p'].code(), ms['p'].code())
+        self.assertEqual(ms, ms_unaltered)
 
-        # Test new_name
-        m1 = myokit.Model()
-        m1.import_component(z, new_name='z2')
-        self.assertTrue(m1.has_component('z2'))
-        self.assertFalse(m1.has_component('z'))
-        self.assertFalse(m1['z2'] is z)
-        for var in z.variables():
-            self.assertTrue(m1['z2'].has_variable(var.name()))
-            self.assertEqual(m1['z2'][var.name()].code(), var.code())
-        self.assertEqual(m2, m2_unaltered)
-
-        # Test var_map
-        m1 = myokit.Model()
-        x = m1.add_component('x')
-        d = x.add_variable('d')
-        d.set_rhs('1 + d')
-        d.promote(0.2)
-
-        var_map = {b: d}
-        m1.import_component(y, new_name='y2', var_map=var_map)
-        self.assertTrue(m1.has_component('y2'))
-        self.assertTrue(m1.has_variable('x.d'))
-        self.assertTrue(d in m1['y2']['b2'].refs_to(state_refs=True))
-
-        m1.import_component(z, var_map=var_map)
-        self.assertTrue(m1.has_component('z'))
-        self.assertTrue(m1.has_variable('z.b'))
-        self.assertFalse(m1.has_variable('x.d'))
-        self.assertTrue(
-            m1['z']['b'] in m1['y2']['b2'].refs_to(state_refs=True)
-        )
-
-        self.assertEqual(m2, m2_unaltered)
-
-        # Test name mapping
-        m1 = myokit.Model()
-        m1_z = m1.add_component('z')
-        m1_b = m1_z.add_variable('b')
-        m1_b.set_rhs('1 + b')
-        m1_b.promote(0.2)
-        m1.import_component(y, allow_name_mapping=True)
-        self.assertTrue(m1_b in m1['y']['b2'].refs_to(state_refs=True))
-
-        self.assertEqual(m2, m2_unaltered)
-
-        # test bound variables map
-        m1 = myokit.Model()
-        m1_z = m1.add_component('z')
-        m1_b = m1_z.add_variable('b')
-        m1_k = m1_z.add_variable('k')
-        m1_k.set_rhs(0.2)
-        m1_b.set_rhs('k + b')
-        m1_b.promote(0.2)
-
-        label = 'hello'
-        m1_k.set_label(label=label)
-        a2.set_label(label=label)
-
-        t1 = m1_z.add_variable('t')
-        t1.set_binding('time')
-        t1.set_rhs(0)
-
-        t2 = y.add_variable('t')
-        t2.set_binding('time')
-        t2.set_rhs(0)
-
-        m2_unaltered = m2.clone()
-
-        m1.import_component(y, allow_name_mapping=True)
-        self.assertEqual(m1.time(), m1['y']['t'])
-        self.assertFalse(m1_z.has_variable('k'))
-        self.assertEqual(a2.label(), label)
-
-        self.assertEqual(m2, m2_unaltered)
-
-        # Test convert units
-        m1 = myokit.Model()
-        m1_x = m1.add_component('x')
-        m1_b = m1_x.add_variable('b')
-        k1 = m1_x.add_variable('k1')
-        m1_b.set_rhs('k1*b')
-        k1.set_rhs(0.5)
-        m1_b.promote(0.2)
-        m1_c = m1_x.add_variable('c')
-        m1_c.set_rhs('k1*b')
-        t1 = m1_x.add_variable('time')
-        t1.set_binding('time')
-        t1.set_rhs("0 [s]")
-
-        original_time_unit = myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0)
-        m1.time().set_unit(unit=original_time_unit)
-        m2.time().set_unit(unit=3600 * myokit.Unit([0, 0, 1, 0, 0, 0, 0], 0))
-        m1_b.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3))
-        k1.set_unit(unit=1 / m1.time_unit())
-        m1_c.set_unit(
-            unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3) / m1.time_unit()
-        )
-        a.set_unit(unit=1 / m2.time_unit())
-        b.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
-        c.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
-        a2.set_unit(unit=1 / m2.time_unit())
-        b2.set_unit(unit=myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0))
-
-        m1.check_units()
-        m2.check_units()
-        m2_unaltered = m2.clone()
-
-        var_map = {b: m1_b}
-        m1.import_component(
-            y, var_map=var_map, convert_units=True
-        )
-        self.assertTrue(m1.has_component('y'))
-        self.assertEqual(m1.time(), m1['y']['t'])
-
-        m1.check_units()
-        self.assertEqual(
-            m1['y']['a2'].unit(), 1 / m2.time_unit()
-        )
-        self.assertEqual(
-            m1.time_unit(), m2.time_unit()
-        )
-        self.assertEqual(
-            m1['y']['b2'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 0)
-        )
-
-        self.assertEqual(
-            m1['x']['k1'].unit(), 1 / original_time_unit
-        )
-        self.assertEqual(
-            m1['x']['c'].unit(),
-            myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3) / original_time_unit
-        )
-        self.assertEqual(
-            m1['x']['b'].unit(), myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
-        )
-
-        self.assertEqual(m2, m2_unaltered)
-
-        # Test errors
-        m1 = myokit.load_model('example')
+        # Import a second time, without renaming
+        m1.import_component, ms['p']  # Check errors happen before changes
         m1_unaltered = m1.clone()
+        self.assertRaises(myokit.DuplicateName, m1.import_component, ms['p'])
+        self.assertEqual(m1, m1_unaltered)
 
-        # Test external_component errors
-        self.assertRaises(TypeError, m1.import_component, m2)
+        # Import a second time, and rename
+        m1.import_component(ms['p'], new_name='p2')
+        self.assertTrue(m1.has_component('p2'))
+        self.assertFalse(m1['p2'] is ms['p'])
+        self.assertFalse(m1['p2'] is m1['p'])
+        cs = '\n'.join((ms['p'].code().splitlines())[1:])
+        c1 = '\n'.join((m1['p2'].code().splitlines())[1:])
+        self.assertEqual(cs, c1)
+        self.assertEqual(ms, ms_unaltered)
+
+        # Import independent component with labels and bindings
+        m1.import_component(ms['e'])
+        self.assertTrue(m1.has_component('e'))
+        self.assertFalse(m1['e'] is ms['e'])
+        self.assertEqual(m1['e'].code(), ms['e'].code())
+        self.assertEqual(m1.label('this_is_g'), m1.get('e.g'))
+        self.assertEqual(m1.binding('time'), m1.get('e.t'))
+        self.assertEqual(ms, ms_unaltered)
+
+        # Now that it has a time variable, m1 should be valid
+        m1.validate()
+        self.assertTrue(m1.is_valid())
+
+        # Re-importing e is not allowed, as it leads to double bindings and/or
+        # labels
+        m1_unaltered = m1.clone()
+        ms.time().set_binding(None)
+        self.assertRaisesRegex(
+            myokit.InvalidLabelError, 'label "this_is_g"',
+            m1.import_component, ms['e'], new_name='dinosaur')
+        self.assertEqual(m1, m1_unaltered)
+        ms.get('e.t').set_binding('time')
+        ms.label('this_is_g').set_label(None)
+        self.assertRaisesRegex(
+            myokit.InvalidBindingError, 'binding "time"',
+            m1.import_component, ms['e'], new_name='hello')
+        self.assertEqual(m1, m1_unaltered)
+        ms = ms_unaltered.clone()
+
+        # Import r, using a custom variable mapping
+        var_map = {'p.a': 'p.a', 'p.b': 'p2.b', 'e.h': 'e.h'}
+        m1.import_component(ms['q'], var_map=var_map)
+        self.assertTrue(m1.has_component('q'))
+        self.assertFalse(m1['q'] is ms['q'])
+        self.assertEqual(m1['q'].alias('a'), m1.get('p.a'))
+        self.assertEqual(m1['q'].alias('b'), m1.get('p2.b'))
+        self.assertEqual(m1['q'].alias('h'), m1.get('e.h'))
+        cs = '\n'.join((ms['p'].code().splitlines())[4:])
+        c1 = '\n'.join((m1['p2'].code().splitlines())[4:])
+        self.assertEqual(cs, c1)
+        self.assertEqual(ms, ms_unaltered)
+
+        # Import r, using a label for p.b
+        ms.get('p.b').set_label('this_is_b')
+        m1.get('p2.b').set_label('this_is_b')
+        var_map = {'p.a': 'p.a', 'e.h': 'e.h'}
+        m1.import_component(ms['q'], var_map=var_map, new_name='q2')
+        self.assertTrue(m1.has_component('q2'))
+        self.assertFalse(m1['q2'] is ms['q'])
+        self.assertFalse(m1['q2'] is m1['q'])
+        self.assertEqual(m1['q2'].alias('a'), m1.get('p.a'))
+        self.assertEqual(m1['q2'].alias('b'), m1.get('p2.b'))
+        cs = '\n'.join((ms['p'].code().splitlines())[3:])
+        c1 = '\n'.join((m1['p2'].code().splitlines())[3:])
+        self.assertEqual(cs, c1)
+        ms.get('p.b').set_label(None)
+        m1.get('p2.b').set_label(None)
+        self.assertEqual(ms, ms_unaltered)
+
+        # Import r, using a binding for e.h
+        ms.get('e.h').set_binding('this_is_h')
+        m1.get('e.h').set_binding('this_is_h')
+        var_map = {'p.a': 'p.a', 'p.b': 'p2.b'}
+        m1.import_component(ms['q'], var_map=var_map, new_name='q3')
+        self.assertTrue(m1.has_component('q3'))
+        self.assertFalse(m1['q3'] is ms['q'])
+        self.assertFalse(m1['q3'] is m1['q'])
+        self.assertEqual(m1['q3'].alias('a'), m1.get('p.a'))
+        self.assertEqual(m1['q3'].alias('b'), m1.get('p2.b'))
+        cs = '\n'.join((ms['p'].code().splitlines())[3:])
+        c1 = '\n'.join((m1['p2'].code().splitlines())[3:])
+        self.assertEqual(cs, c1)
+        ms.get('e.h').set_binding(None)
+        m1.get('e.h').set_binding(None)
+        self.assertEqual(ms, ms_unaltered)
+
+        # Import r, using (partial) name mapping
+        var_map = {'p.a': 'p2.a'}
+        m1.import_component(
+            ms['q'], var_map=var_map, new_name='q4', allow_name_mapping=True)
+        self.assertTrue(m1.has_component('q3'))
+        self.assertFalse(m1['q3'] is ms['q'])
+        self.assertFalse(m1['q4'] is m1['q'])
+        self.assertEqual(m1['q4'].alias('a'), m1.get('p2.a'))
+        cs = '\n'.join((ms['p'].code().splitlines())[2:])
+        c1 = '\n'.join((m1['p2'].code().splitlines())[2:])
+        self.assertEqual(cs, c1)
+        self.assertEqual(ms, ms_unaltered)
+
+        # Try and fail to import r without a mapping
+        m1_unaltered = m1.clone()
         self.assertRaises(
-            myokit.IntegrityError, m1.import_component, m1['membrane']
-        )
+            myokit.VariableMappingError,
+            m1.import_component, ms['q'], new_name='q9')
         self.assertEqual(m1, m1_unaltered)
+        self.assertEqual(ms, ms_unaltered)
 
-        # Test Component name errors
-        with self.assertRaises(myokit.DuplicateName):
-            m1.import_component(z, new_name='membrane')
-        with self.assertRaises(myokit.DuplicateName):
-            membrane2 = m2.add_component('membrane')
-            m1.import_component(membrane2)
+        # With an invalid mapping
+        self.assertRaisesRegex(
+            TypeError, 'dict or None',
+            m1.import_component, ms['q'], new_name='q9', var_map=[3])
         self.assertEqual(m1, m1_unaltered)
+        self.assertRaisesRegex(
+            TypeError, 'objects or fully qualified',
+            m1.import_component, ms['q'], new_name='q9',
+            var_map={'p.a': 123, 'p.b': 'p.b', 'e.h': 'e.h'})
+        self.assertEqual(m1, m1_unaltered)
+        self.assertRaisesRegex(
+            TypeError, 'objects or fully qualified',
+            m1.import_component, ms['q'], new_name='q9',
+            var_map={345: 'p.a', 'p.b': 'p.b', 'e.h': 'e.h'})
+        self.assertEqual(m1, m1_unaltered)
+        self.assertRaisesRegex(
+            myokit.VariableMappingError, 'Multiple variables map',
+            m1.import_component, ms['q'], new_name='q9',
+            var_map={'p.a': 'p.a', 'p.b': 'p.a', 'e.h': 'e.h'})
+        self.assertEqual(m1, m1_unaltered)
+        self.assertEqual(ms, ms_unaltered)
 
-        # Test var_map Errors
-        with self.assertRaises(TypeError):
-            var_map = [a, b]
-            m1.import_component(z, var_map=var_map)
-        with self.assertRaises(TypeError):
-            var_map = {a: 6.0}
-            m1.import_component(z, var_map=var_map)
-        with self.assertRaises(TypeError):
-            var_map = {6.0: m1['membrane']['V']}
-            m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.VariableMappingError):
-            var_map = {a: b}
-            m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.VariableMappingError):
-            var_map = {'z.a': 'z.b'}
-            m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.VariableMappingError):
-            var_map = {m1['membrane']['V']: m1['ib']['gb']}
-            m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.VariableMappingError):
-            var_map = {'membrane.V': 'ib.gb'}
-            m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.VariableMappingError):
-            var_map = {'z.a': 'membrane.V', 'z.b': 'membrane.V'}
-            m1.import_component(z, var_map=var_map)
-        with self.assertRaises(myokit.VariableMappingError):
-            m1.import_component(y)
+        # With variables from another model or that don't exist
+        self.assertRaisesRegex(
+            myokit.VariableMappingError, 'was not found in this model',
+            m1.import_component, ms['q'], new_name='q9',
+            var_map={'p.a': 'one.two', 'p.b': 'p.b', 'e.h': 'e.h'})
         self.assertEqual(m1, m1_unaltered)
+        self.assertEqual(ms, ms_unaltered)
 
-        # Test Unit conversion error
-        with self.assertRaises(myokit.IncompatibleUnitError):
-            var_map = {a: 'membrane.V'}
-            m1.import_component(z, var_map=var_map, convert_units=True)
+        self.assertRaisesRegex(
+            myokit.VariableMappingError, 'was not found in the source model',
+            m1.import_component, ms['q'], new_name='q9',
+            var_map={'ppp.aaa': 'p.a', 'p.b': 'p.b', 'e.h': 'e.h'})
         self.assertEqual(m1, m1_unaltered)
+        self.assertEqual(ms, ms_unaltered)
+
+        v = myokit.Model('a').add_component('p').add_variable('b')
+        self.assertRaisesRegex(
+            myokit.VariableMappingError, 'is not part of this model',
+            m1.import_component, ms['q'], new_name='q9',
+            var_map={'p.a': v, 'p.b': v})
+        self.assertEqual(m1, m1_unaltered)
+        self.assertEqual(ms, ms_unaltered)
+
+        self.assertRaisesRegex(
+            myokit.VariableMappingError, 'is not part of the source model',
+            m1.import_component, ms['q'], new_name='q9',
+            var_map={v: 'p.a', 'p.b': v, 'e.h': 'e.h'})
+        self.assertEqual(m1, m1_unaltered)
+        self.assertEqual(ms, ms_unaltered)
+
+        # Incomplete mapping
+        self.assertRaisesRegex(
+            myokit.VariableMappingError, 'cannot be mapped',
+            m1.import_component, ms['q'], new_name='q9', var_map={})
+        self.assertEqual(m1, m1_unaltered)
+        self.assertEqual(ms, ms_unaltered)
+
+    def test_import_component_units(self):
+        # Test :meth: 'import_component()' with unit conversion.
+
+        # Source model, to import stuff from
+        ms = myokit.parse_model('''
+            [[model]]
+            p.c = 0.1
+            r.f = 0.2
+
+            [e]
+            t = 0 [s] bind time
+                in [s]
+
+            # Independent (except for time)
+            [p]
+            a = 1 [m] in [m]
+            b = 10 [s] in [s]
+            dot(c) = 0.2 [m/s]
+                in [m]
+
+            # Requires mapping, doesn't have states but has dot() reference
+            [q]
+            d = 3.2 [m/s] + dot(p.c)
+                in [m/s]
+            e = p.a + p.c + 0.1 [m]
+                in [m]
+
+            # Requires mapping, has a new state
+            [r]
+            use p.a, p.b
+            dot(f) = a / b
+                in [m]
+
+            # No time units used
+            [s]
+            x = 3 [kg] in [kg]
+        ''')
+        ms.validate()
+        ms.check_units(myokit.UNIT_STRICT)
+
+        # Make copy of ms, to ensure nothing is altered in original model
+        ms_unaltered = ms.clone()
+
+        # Conversion helpers
+        vm = {'p.a': 'p.a', 'p.b': 'p.b', 'p.c': 'p.c'}
+        s2ms = myokit.Number(1000, myokit.units.ms / myokit.units.s)
+        mm2m = myokit.Number(0.001, myokit.units.m / myokit.units.mm)
+
+        # Target model to import stuff into, with different time units
+        m1 = myokit.parse_model('''
+            [[model]]
+
+            [e]
+            t = 0 [ms] bind time
+                in [ms]
+        ''')
+        m1.validate()
+        m1.check_units(myokit.UNIT_STRICT)
+
+        # Import p, should be same
+        m1.import_component(ms['p'], convert_units=True)
+
+        # Import q, should be same except for dot() expression
+        m1.import_component(ms['q'], var_map=vm, convert_units=True)
+        self.assertEqual(ms, ms_unaltered)
+        self.assertIn('q', m1)
+        self.assertEqual(len(m1['q']), 2)
+        self.assertEqual(m1.get('q.e').code(), ms.get('q.e').code())
+        self.assertEqual(m1.get('q.d').unit(), ms.get('q.d').unit())
+        self.assertEqual(
+            m1.get('q.d').rhs().code(),
+            myokit.Plus(myokit.Number(3.2, 'm/s'), myokit.Multiply(
+                myokit.Derivative(myokit.Name(m1.get('p.c'))), s2ms)
+            ).code())
+
+        # Import r, should be same except for the state's RHS
+        m1.import_component(ms['r'], var_map=vm, convert_units=True)
+        self.assertEqual(ms, ms_unaltered)
+        self.assertIn('r', m1)
+        self.assertEqual(len(m1['r']), 1)
+        self.assertIn('f', m1['r'])
+        self.assertTrue(m1.get('r.f').is_state())
+        self.assertEqual(m1.get('r.f').unit(), ms.get('r.f').unit())
+        self.assertEqual(
+            m1.get('r.f').state_value(), ms.get('r.f').state_value())
+        self.assertEqual(
+            m1.get('r.f').rhs().code(),
+            myokit.Multiply(ms.get('r.f').rhs(), s2ms).code())
+
+        # Target model with different space units
+        m1 = myokit.parse_model('''
+            [[model]]
+            p.c = 0.1
+
+            [e]
+            time = 0 [s] bind time
+                in [s]
+
+            [p]
+            a = 1 [mm] in [mm]
+            b = 10 [s] in [s]
+            dot(c) = 0.2 [mm/s]
+                in [mm]
+        ''')
+        m1.validate()
+        m1.check_units(myokit.UNIT_STRICT)
+
+        # Import q, converting p.a and dot(p.c)
+        m1.import_component(ms['q'], var_map=vm, convert_units=True)
+        self.assertEqual(ms, ms_unaltered)
+        self.assertIn('q', m1)
+        self.assertEqual(len(m1['q']), 2)
+        self.assertEqual(m1.get('q.d').unit(), ms.get('q.d').unit())
+        self.assertEqual(
+            m1.get('q.d').rhs().code(),
+            myokit.Plus(
+                myokit.Number(3.2, 'm/s'),
+                myokit.Multiply(
+                    myokit.Derivative(myokit.Name(m1.get('p.c'))), mm2m)
+            ).code())
+        self.assertEqual(m1.get('q.e').unit(), ms.get('q.e').unit())
+        self.assertEqual(
+            m1.get('q.e').rhs().code(),
+            myokit.Plus(myokit.Plus(
+                myokit.Multiply(myokit.Name(m1.get('p.a')), mm2m),
+                myokit.Multiply(myokit.Name(m1.get('p.c')), mm2m)),
+                myokit.Number(0.1, 'm')).code())
+
+        # Target model with different time and space units
+        m1 = myokit.parse_model('''
+            [[model]]
+            p.c = 0.1
+
+            [e]
+            time = 0 [ms] bind time
+                in [ms]
+
+            [p]
+            a = 1 [mm] in [mm]
+            b = 10 [ms] in [ms]
+            dot(c) = 0.2 [mm/ms]
+                in [mm]
+        ''')
+        m1.validate()
+        m1.check_units(myokit.UNIT_STRICT)
+
+        # Import q, converting p.a and dot(p.c)
+        m1.import_component(ms['q'], var_map=vm, convert_units=True)
+        self.assertEqual(ms, ms_unaltered)
+        self.assertIn('q', m1)
+        self.assertEqual(len(m1['q']), 2)
+        self.assertEqual(m1.get('q.d').unit(), ms.get('q.d').unit())
+        self.assertEqual(
+            m1.get('q.d').rhs().code(),
+            myokit.Plus(
+                myokit.Number(3.2, 'm/s'),
+                myokit.Derivative(myokit.Name(m1.get('p.c')))
+            ).code())
+        self.assertEqual(m1.get('q.e').unit(), ms.get('q.e').unit())
+        self.assertEqual(
+            m1.get('q.e').rhs().code(),
+            myokit.Plus(myokit.Plus(
+                myokit.Multiply(myokit.Name(m1.get('p.a')), mm2m),
+                myokit.Multiply(myokit.Name(m1.get('p.c')), mm2m)),
+                myokit.Number(0.1, 'm')).code())
+
+        # Attempt import with incompatible time units 1:
+        # Component that defines a derivative in m/s
+        m1 = myokit.parse_model('''
+            [[model]]
+
+            [e]
+            time = 0 [A] bind time
+                in [A]
+        ''')
+        m1.validate()
+        m1.check_units(myokit.UNIT_STRICT)
+        self.assertRaisesRegex(
+            myokit.VariableMappingError, 'time variables',
+            m1.import_component, ms['p'], convert_units=True)
+        self.assertEqual(ms, ms_unaltered)
+
+        # Attempt import with incompatible time units 1:
+        # Component that uses a dot expression
+        m1 = myokit.parse_model('''
+            [[model]]
+            p.c = 0
+
+            [e]
+            time = 0 [A] bind time
+                in [A]
+
+            [p]
+            a = 1 [m] in [m]
+            dot(c) = 0.2 [m/A]
+                in [m]
+        ''')
+        m1.validate()
+        m1.check_units(myokit.UNIT_STRICT)
+        vm = {'p.a': 'p.a', 'p.c': 'p.c'}
+        self.assertRaisesRegex(
+            myokit.VariableMappingError, 'time variables',
+            m1.import_component, ms['q'], var_map=vm, convert_units=True)
+        self.assertEqual(ms, ms_unaltered)
+
+        # Attempt import with incompatible mapped (space) units
+        m1 = myokit.parse_model('''
+            [[model]]
+            p.c = 0
+
+            [e]
+            time = 0 [s] bind time
+                in [s]
+
+            [p]
+            a = 1 [V] in [V]
+            b = 10 [s] in [s]
+            dot(c) = 0.2 [V/s]
+                in [V]
+        ''')
+        m1.validate()
+        m1.check_units(myokit.UNIT_STRICT)
+        vm = {'p.a': 'p.a', 'p.b': 'p.b', 'p.c': 'p.c'}
+        self.assertRaisesRegex(
+            myokit.VariableMappingError, 'Unable to convert',
+            m1.import_component, ms['q'], var_map=vm, convert_units=True)
+        self.assertEqual(ms, ms_unaltered)
 
     def test_item_at_text_position(self):
         # Test :meth:`Model.item_at_text_position()`.
