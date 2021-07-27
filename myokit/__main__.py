@@ -653,7 +653,8 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     import myokit.gui.ide
     if pyqt5 or pyqt4 or pyside or pyside2:
         print('Using backend: ' + myokit.gui.backend)
-    filename = os.path.abspath(os.path.expanduser(filename))
+    if filename is not None:
+        filename = os.path.abspath(os.path.expanduser(filename))
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
 
 
