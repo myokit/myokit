@@ -3476,7 +3476,7 @@ class Variable(VarOwner):
         This will perform the following actions:
 
         - The model's RHS will be set to a literal, using
-          ``var.set_rhs(var.eval())`
+          ``var.set_rhs(var.eval())``.
         - If this is a state variable, it will be demoted.
         - Any child variables will be removed.
 
