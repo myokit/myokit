@@ -24,6 +24,8 @@ This page lists the main changes made to Myokit in each release.
   - [#776](https://github.com/MichaelClerx/myokit/pull/776) Added a method `OpenCLSimulation.monodomain_conductance` to replace the deprecated method `calculate_conductance`.
   - [#780](https://github.com/MichaelClerx/myokit/pull/780) Alt-up and alt-down can now be used in the text editor to move selected lines up or down.
   - [#782](https://github.com/MichaelClerx/myokit/pull/782) The IDE can now import CellML files on opening, e.g. by typing `myokit ide example.cellml`.
+  - [#786](https://github.com/MichaelClerx/myokit/pull/786) Added a method `myokit.Variable.clamp()` to fix any variable to a constant value.
+  - [#786](https://github.com/MichaelClerx/myokit/pull/786) Added a method `myokit.Variable.remove_child_variables()` to remove all child (nested) variables from a given variable.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.

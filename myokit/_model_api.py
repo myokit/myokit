@@ -675,6 +675,8 @@ class VarOwner(ModelPart, VarProvider):
 
         If ``recursive`` is ``True``, any child variables will be deleted as
         well.
+
+        A :class:`myokit.IntegrityError` will be raised if
         """
         if variable.parent() != self:
             raise ValueError(
@@ -3287,9 +3289,9 @@ class Component(VarOwner):
                 ' it is used by components '
                 + ' and '.join(['<' + c.qname() + '>' for c in reffers]))
 
-        # No problem? Then delete all variables from component
+        # No problems? Then delete all variables from component
         for var in self.variables():
-            var._delete(recursive=True, whole_component=True)
+            var._delete(recursive=True, ignore_siblings=True)
 
         # Delete links to parent
         super(Component, self)._delete()
@@ -3466,6 +3468,35 @@ class Variable(VarOwner):
         Returns this variable's binding label or ``None`` if no binding is set.
         """
         return self._binding
+
+    def clamp(self, value=None):
+        """
+        Clamps this variable to its current value or the given ``value``.
+
+        This will perform the following actions:
+
+        - The model's RHS will be set to a literal, using
+          ``var.set_rhs(var.eval())``.
+        - If this is a state variable, it will be demoted.
+        - Any child variables will be removed.
+
+        """
+        # Set value
+        if value is None:
+            value = self.state_value() if self._is_state else self._rhs.eval()
+        else:
+            value = float(value)
+
+        # Demote states (will raise an error if can't)
+        if self.is_state():
+            self.demote()
+
+        # Fix RHS (do this after demoting, which can raise an error)
+        self.set_rhs(myokit.Number(value, self._unit))
+
+        # Remove child variables (should never raise an error after clamping
+        # the RHS).
+        self.remove_child_variables()
 
     def _clone1(self, parent):
         """
@@ -3672,7 +3703,7 @@ class Variable(VarOwner):
                 for ref in list(var.refs_by(False)):
                     ref.set_rhs(ref.rhs().clone(subst={old_ref: new_ref}))
 
-    def _delete(self, recursive=False, whole_component=False):
+    def _delete(self, recursive=False, ignore_siblings=False):
         """
         Tells this variable that it's going to be deleted.
 
@@ -3680,21 +3711,23 @@ class Variable(VarOwner):
         specified differently using the following arguments:
 
         ``recursive``
-            If set to ``True``, no errors will be raised if child variables of
-            this variable depend on it.
-        ``whole_component``
-            If set to ``True``, no errors will be raised if other variables in
-            the same component depend on it. This is used when deleting whole
-            components.
+            If set to ``True``, no errors will be raised if children of this
+            this variable depend on it, and all child variables will be deleted
+            as well.
+        ``ignore_siblings``
+            If set to ``True``, no errors will be raised if sibilings of this
+            variable depend on it.
 
         """
-        kids = [x for x in self.variables()]
-        if kids and not (recursive or whole_component):
+        # First check: Are there child variables that prevent deletion?
+        kids = list(self.variables())
+        if kids and not recursive:
             raise myokit.IntegrityError(
                 'Variable <' + self.qname() + '>'
                 ' can not be removed: it has children ' + ' and '.join(
                     ['<' + v.qname() + '>' for v in kids]) + '.')
 
+        # Second check: Are there dependent variables that prevent deletion?
         if self._refs_by or self._srefs_by:
             refs = self._refs_by.union(self._srefs_by)
             if self in refs:
@@ -3703,25 +3736,25 @@ class Variable(VarOwner):
 
             if recursive:
                 # Refs from child variables are allowed
-                okay = set([x for x in refs if x.has_ancestor(self)])
-                refs = refs.difference(okay)
-                del(okay)
+                refs = refs.difference(
+                    set([x for x in refs if x.has_ancestor(self)]))
                 # Nested variables can not be referred to by outside variables,
                 # so this action doesn't have to be repeated for the nested
                 # variables.
 
-            if whole_component:
-                # Refs from within the same component are okay
-                comp = self.parent(Component)
-                okay = set([x for x in refs if x.parent(Component) == comp])
-                refs = refs.difference(okay)
-                del(okay)
+            if ignore_siblings:
+                # Refs from sibling variables are allowed
+                refs = refs.difference(
+                    set([x for x in refs if x.has_ancestor(self._parent)]))
 
             if refs:
                 raise myokit.IntegrityError(
                     'Variable <' + self.qname() + '>'
                     ' can not be removed: it is used by ' + ' and '.join(
                         ['<' + v.qname() + '>' for v in refs]) + '.')
+
+        # At this point it's OK to delete. Rest of the code makes changes,
+        # shouldn't raise errors.
 
         # Tell other variables it no longer depends on them
         for var in self._refs_to:
@@ -3734,28 +3767,27 @@ class Variable(VarOwner):
         # variables may still have a _refs_to that they'll need to process,
         # leading to KeyErrors in the lines above.
 
-        # State variable? Then demote
-        if self.is_state():
-            self.demote()
+        if not self._is_nested:
+            # State variable? Then demote
+            if self.is_state():
+                self.demote()
 
-        # Remove any bindings or labels
-        self.set_binding(None)
-        self.set_label(None)
+            # Remove any bindings or labels
+            self.set_binding(None)
+            self.set_label(None)
+
+            # Remove any aliases
+            m = self.parent(Model)
+            for c in m.components():
+                c.remove_aliases_for(self)
 
         # Delete child variables
         if recursive:
             for kid in kids:
-                kid.set_rhs(0)
-            for kid in kids:
-                # Call this method for each kid (and cascade to kid-kids)
-                kid._delete(recursive=True, whole_component=whole_component)
+                # Call this method for each kid (and cascade to their kids)
+                kid._delete(recursive=True, ignore_siblings=True)
                 # Remove kid from list of nested variables
                 self._remove_variable_internal(kid)
-
-        # Remove any aliases
-        m = self.parent(Model)
-        for c in m.components():
-            c.remove_aliases_for(self)
 
         # Remove parent links
         super(Variable, self)._delete()
@@ -4055,6 +4087,30 @@ class Variable(VarOwner):
             return iter(self._srefs_to)
         else:
             return iter(self._refs_to)
+
+    def remove_child_variables(self):
+        """
+        Removes all child variables of this variable.
+
+        A :class:`myokit.IntegrityError` will be raised if the variable depends
+        on any of its child variables.
+        """
+        # Check if this variable depends on any of its children
+        deps = set()
+        for var in self._refs_to:
+            if var._parent is self:
+                deps.add(var)
+        if deps:
+            raise myokit.IntegrityError(
+                'Unable to remove all child variables from <'
+                + self.qname() + '>: the RHS still depends on '
+                + ' and '.join(['<' + var.qname() + '>' for var in deps])
+                + '.')
+
+        # No dependencies: ok to delete all children
+        for kid in list(self.variables()):
+            kid._delete(recursive=True, ignore_siblings=True)
+            self._remove_variable_internal(kid)
 
     def rename(self, new_name):
         """
