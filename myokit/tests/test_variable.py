@@ -95,20 +95,24 @@ class VariableTest(unittest.TestCase):
         self.assertTrue(g.state_value() != 10)
         self.assertEqual(g.unit(), myokit.units.m)
         self.assertEqual(g.rhs().unit(), myokit.units.m / myokit.units.s)
+        self.assertEqual(m.count_states(), 3)
         g.clamp(10)
         self.assertTrue(g.is_literal())
         self.assertFalse(g.is_state())
         self.assertEqual(g.rhs(), myokit.Number(10, myokit.units.m))
+        self.assertEqual(m.count_states(), 2)
         del(g)
 
         # Clamp simple state with missing units
         p = m.get('z.p')
         self.assertTrue(p.is_state())
         self.assertTrue(p.rhs().eval() != 1.5)
+        self.assertEqual(m.count_states(), 2)
         p.clamp()
         self.assertTrue(p.is_literal())
         self.assertFalse(p.is_state())
         self.assertEqual(p.rhs(), myokit.Number(1.5, myokit.units.mV))
+        self.assertEqual(m.count_states(), 1)
         del(p)
 
         # Clamp state with child and sibling dependencies
@@ -117,6 +121,7 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(len(list(h.variables(deep=True))), 5)
         m.get('z.h.i.j.k')
         self.assertFalse(h.is_constant())
+        self.assertEqual(m.count_states(), 1)
         h.clamp()
         self.assertEqual(h.rhs(), myokit.Number(6.123, myokit.units.m))
         self.assertTrue(h.is_constant())
@@ -124,6 +129,7 @@ class VariableTest(unittest.TestCase):
         self.assertRaises(KeyError, m.get, 'z.h.i.j.k')
         self.assertRaises(KeyError, m.get, 'z.h.i')
         self.assertRaises(KeyError, m.get, 'z.h.i.m')
+        self.assertEqual(m.count_states(), 0)
         del(h)
 
         # Clamp nested variable
@@ -554,6 +560,71 @@ class VariableTest(unittest.TestCase):
         x.demote()
         x.validate()
         self.assertRaises(myokit.CyclicalDependencyError, m.validate)
+
+    def test_remove_child_variables(self):
+        # Tests removing all child variables
+        m = myokit.parse_model("""
+            [[model]]
+
+            [z]
+            t = 0 [s]
+                in [s]
+                bind time
+            a = 4 [A] * 3 [A] / 2 [A] + 5 [A]
+                in [A]
+            b = c + d + t + 8 [s]
+                c = 1 [s]
+                    in [s]
+                d = 2 [s]
+                    in [s]
+                in [s]
+            e = f
+                f = g
+                    g = h
+                    h = i + j
+                        i = 1 [m]
+                        j = 2 [m]
+                in [m]
+            """)
+        m.validate()
+        m.check_units(myokit.UNIT_TOLERANT)
+        m_org = m.clone()
+
+        # Remove children on var without children
+        m.get('z.a').remove_child_variables()
+        self.assertEqual(m, m_org)
+
+        # Remove children on var with used children
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'the RHS still depends on <z.e.f>.',
+            m.get('z.e').remove_child_variables)
+        self.assertEqual(m, m_org)
+
+        # Remove children on nested var with used children
+        self.assertRaisesRegex(
+            myokit.IntegrityError,
+            'depends on <z.e.f.h.[i|j]> and <z.e.f.h.[j|i]>.',
+            m.get('z.e.f.h').remove_child_variables)
+        self.assertEqual(m, m_org)
+
+        # Remove children on nested var with unused children
+        e = m.get('z.e')
+        h = e.get('f.h')
+        self.assertEqual(len(list(h.variables())), 2)
+        self.assertEqual(len(list(e.variables(deep=True))), 5)
+        h.set_rhs('3 [m]')
+        h.remove_child_variables()
+        self.assertEqual(len(list(h.variables())), 0)
+        self.assertEqual(len(list(e.variables(deep=True))), 3)
+        m.validate()
+        del(h)
+
+        # Remove children on var with unused children
+        e.set_rhs('1.234 [m]')
+        self.assertEqual(len(list(e.variables(deep=True))), 3)
+        e.remove_child_variables()
+        self.assertEqual(len(list(e.variables(deep=True))), 0)
+        m.validate()
 
     def test_rename(self):
         # Test :meth:`Variable.rename().
