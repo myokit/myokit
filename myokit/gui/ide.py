@@ -472,31 +472,44 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except Exception:
             self.show_exception()
 
-    def action_export_model(self, name, glob=None):
+    def action_export_model(self, name, ext=None, glob=None):
         """
         Exports the model to a file.
 
         Arguments:
 
         ``name``
-            The exporter name
+            The exporter name.
+        ``ext``
+            An optional default file extension to create a suggested filename.
         ``glob``
-            A filter for the file selection method.
+            An optional filter for the file selection method.
 
         """
         try:
+            # Get model
             m = self.model(errors_in_console=True)
             if m is False:
                 return
 
+            # Create exporter
             e = myokit.formats.exporter(name)
             if not e.supports_model():
                 raise Exception('Exporter does not support export of model')
 
+            # Suggest a path
+            if ext is None:
+                path = self._path
+            elif self._file is None:
+                path = os.path.join(self._path, 'new-model' + ext)
+            else:
+                path = os.path.splitext(self._file)[0] + ext
+
+            # Ask for real path
             filename = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 'Select file to export to',
-                self._path,
+                path,
                 filter=glob)[0]
             if not filename:
                 return
@@ -681,7 +694,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if not filename:
                 return
 
-            action_import_model_internal(name, filename)
+            self.action_import_model_internal(name, filename)
 
         except Exception:
             self.show_exception()
@@ -1730,7 +1743,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_cellml1.setStatusTip(
             'Export a model definition to a CellML 1.0 document.')
         self._tool_export_cellml1.triggered.connect(
-            lambda: self.action_export_model('cellml1', FILTER_CELLML))
+            lambda: self.action_export_model(
+                'cellml1', '.cellml', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_export_cellml1)
         # Convert > Export CellML 2
         self._tool_export_cellml2 = QtWidgets.QAction(
@@ -1738,7 +1752,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_cellml2.setStatusTip(
             'Export a model definition to a CellML 2.0 document.')
         self._tool_export_cellml2.triggered.connect(
-            lambda: self.action_export_model('cellml2', FILTER_CELLML))
+            lambda: self.action_export_model(
+                'cellml2', '.cellml', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_export_cellml2)
 
         # Convert > ----
@@ -1777,7 +1792,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             'Export a model definition to an HTML document using presentation'
             ' MathML.')
         self._tool_export_html.triggered.connect(
-            lambda: self.action_export_model('html', FILTER_HTML))
+            lambda: self.action_export_model('html', '.html', FILTER_HTML))
         self._menu_convert.addAction(self._tool_export_html)
         # Convert > Export Latex
         self._tool_export_latex = QtWidgets.QAction(
@@ -1785,7 +1800,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_latex.setStatusTip(
             'Export a model definition to a Latex document.')
         self._tool_export_latex.triggered.connect(
-            lambda: self.action_export_model('latex-article', FILTER_LATEX))
+            lambda: self.action_export_model(
+                'latex-article', '.tex', FILTER_LATEX))
         self._menu_convert.addAction(self._tool_export_latex)
 
         # Convert > ----
@@ -1824,7 +1840,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_easyml.setStatusTip(
             'Export to an EasyML script for use with Carp/Carpentry.')
         self._tool_export_easyml.triggered.connect(
-            lambda: self.action_export_model('easyml'))
+            lambda: self.action_export_model('easyml', '.model'))
         self._menu_convert.addAction(self._tool_export_easyml)
 
         # Convert > Matlab
