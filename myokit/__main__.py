@@ -653,7 +653,8 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     import myokit.gui.ide
     if pyqt5 or pyqt4 or pyside or pyside2:
         print('Using backend: ' + myokit.gui.backend)
-    filename = os.path.abspath(os.path.expanduser(filename))
+    if filename is not None:
+        filename = os.path.abspath(os.path.expanduser(filename))
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
 
 
@@ -1159,7 +1160,7 @@ def step(source, ref, ini, raw):
     # Evaluate all derivatives, show the results
     try:
         if raw:
-            derivs = model.eval_state_derivatives(state=ini)
+            derivs = model.evaluate_derivatives(state=ini)
             print('\n'.join([myokit.float.str(x) for x in derivs]))
         else:
             print(myokit.step(model, initial=ini, reference=ref))

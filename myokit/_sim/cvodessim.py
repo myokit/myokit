@@ -675,7 +675,7 @@ class Simulation(myokit.CModule):
                 # Check if state derivatives can be evaluated in Python, if
                 # not, add the error to the error message.
                 try:
-                    self._model.eval_state_derivatives(state)
+                    self._model.evaluate_derivatives(state)
                 except myokit.NumericalError as en:
                     txt.append(str(en))
 
@@ -687,18 +687,11 @@ class Simulation(myokit.CModule):
                 # Store error state
                 self._error_state = state
 
-                # Check for known CVODE errors
+                # Cast known CVODE errors as SimulationError
                 if 'Function CVode()' in str(e):
                     raise myokit.SimulationError(str(e))
 
-                # Check for zero step error
-                if str(e)[:10] == 'ZERO_STEP ':  # pragma: no cover
-                    t = float(str(e)[10:])
-                    raise myokit.SimulationError(
-                        'Maximum number of zero-size steps made at t='
-                        + str(t))
-
-                # Unknown exception: re-raise!
+                # Unknown exception: re-raise
                 raise
             finally:
                 # Clean even after KeyboardInterrupt or other Exception
@@ -761,7 +754,7 @@ class Simulation(myokit.CModule):
                 'The given variable <' + var.qname() + '> is not a literal.')
 
         # Update value in internal model: This is required for error handling,
-        # when self._model.eval_state_derivatives is called.
+        # when self._model.evaluate_derivatives is called.
         # It also ensures the modified value is retained when pickling.
         self._model.set_value(var, value)
 

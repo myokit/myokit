@@ -20,6 +20,9 @@ SBML Model API
 .. autoclass:: Compartment
     :inherited-members:
 
+.. autoclass:: CSymbolVariable
+    :inherited-members:
+
 .. autoclass:: Model
 
 .. autoclass:: ModifierSpeciesReference

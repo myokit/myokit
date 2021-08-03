@@ -1400,6 +1400,33 @@ class DataLogTest(unittest.TestCase):
             self.assertRaises(
                 ValueError, d.save_csv, fname, order=['e.f', 'a.b', 'c.e'])
 
+        # Test saving with a natural sort order
+        d = myokit.DataLog(time='e.t')
+        d['e.t'] = np.arange(10)
+        d['1.z.a'] = np.arange(10) * 1
+        d['0.z.a'] = np.arange(10) * 0
+        d['20.z.a'] = np.arange(10) * 20
+        d['101.z.a'] = np.arange(10) * 101
+        d['100.z.a'] = np.arange(10) * 100
+        d['2.z.a'] = np.arange(10) * 2
+        d['11.z.a'] = np.arange(10) * 11
+        d['14.z.a'] = np.arange(10) * 10
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname)
+            with uopen(fname) as f:
+                order = [x[1:-1] for x in f.readline().strip().split(',')]
+            self.assertEqual(len(order), 9)
+            self.assertEqual(order[0], 'e.t')
+            self.assertEqual(order[1], '0.z.a')
+            self.assertEqual(order[2], '1.z.a')
+            self.assertEqual(order[3], '2.z.a')
+            self.assertEqual(order[4], '11.z.a')
+            self.assertEqual(order[5], '14.z.a')
+            self.assertEqual(order[6], '20.z.a')
+            self.assertEqual(order[7], '100.z.a')
+            self.assertEqual(order[8], '101.z.a')
+
         # Test saving and loading empty log
         d = myokit.DataLog()
         with TemporaryDirectory() as td:

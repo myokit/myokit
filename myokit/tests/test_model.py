@@ -16,7 +16,7 @@ import unittest
 
 import myokit
 
-from shared import TemporaryDirectory
+from shared import TemporaryDirectory, WarningCollector
 
 
 # Unit testing in Python 2 and 3
@@ -386,8 +386,8 @@ class ModelTest(unittest.TestCase):
         m2.reserve_unique_name_prefix('cc', 'dd')
         self.assertEqual(m1, m2)
 
-    def test_eval_state_derivatives(self):
-        # Test Model.eval_state_derivatives().
+    def test_evaluate_derivatives(self):
+        # Test Model.evaluate_derivatives().
         model = myokit.Model('m')
         component = model.add_component('comp1')
         t = component.add_variable('time')
@@ -403,19 +403,27 @@ class ModelTest(unittest.TestCase):
         c.promote(3)
         c.set_rhs('b + c')
         model.validate()
-        self.assertEqual(model.eval_state_derivatives(), [1, 4, 5])
+        self.assertEqual(model.evaluate_derivatives(), [1, 4, 5])
         self.assertEqual(
-            model.eval_state_derivatives(state=[1, 1, 2]), [1, 2, 3])
+            model.evaluate_derivatives(state=[1, 1, 2]), [1, 2, 3])
         c.set_rhs('b + c + time')
-        self.assertEqual(model.eval_state_derivatives(), [1, 4, 6])
+        self.assertEqual(model.evaluate_derivatives(), [1, 4, 6])
         self.assertEqual(
-            model.eval_state_derivatives(state=[1, 1, 2], inputs={'time': 0}),
+            model.evaluate_derivatives(state=[1, 1, 2], inputs={'time': 0}),
             [1, 2, 3])
+
+        # Deprecated name
+        with WarningCollector() as w:
+            self.assertEqual(
+                model.eval_state_derivatives(
+                    state=[1, 1, 2], inputs={'time': 0}),
+                [1, 2, 3])
+        self.assertIn('deprecated', w.text())
 
         # Errors
         c.set_rhs('(b + c) / 0')
-        self.assertRaises(myokit.NumericalError, model.eval_state_derivatives)
-        nan = model.eval_state_derivatives(ignore_errors=True)[2]
+        self.assertRaises(myokit.NumericalError, model.evaluate_derivatives)
+        nan = model.evaluate_derivatives(ignore_errors=True)[2]
         self.assertNotEqual(nan, nan)   # x != x is a nan test...
 
     def test_format_state(self):
@@ -1475,8 +1483,8 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m1.code(), m2.code())
 
         # Assert models both produce the same derivatives
-        dy1 = m1.eval_state_derivatives()
-        dy2 = m2.eval_state_derivatives()
+        dy1 = m1.evaluate_derivatives()
+        dy2 = m2.evaluate_derivatives()
         self.assertEqual(dy1, dy2)
 
         # Test time unit is None

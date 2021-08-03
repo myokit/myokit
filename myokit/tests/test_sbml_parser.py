@@ -275,6 +275,28 @@ class TestSBMLParser(unittest.TestCase):
             self.p.parse_string(self.wrap(xml))
         self.assertIn('Ignoring SBML constraints', w.text())
 
+    def test_parse_csymbol_time(self):
+        # Test parsing of the csymbol "time"
+        xml = (
+            '<model timeUnits="second">'
+            ' <listOfParameters>'
+            '  <parameter id="bacterial_count" value="1" constant="false"/>'
+            ' </listOfParameters>'
+            ' <listOfRules>'
+            '  <assignmentRule variable="bacterial_count">'
+            '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
+            '    <apply>'
+            '     <times/>'
+            '     <ci>bacterial_count</ci>'
+            ' <csymbol definitionURL="http://www.sbml.org/sbml/symbols/time"/>'
+            '    </apply>'
+            '   </math>'
+            '  </assignmentRule>'
+            ' </listOfRules>'
+            '</model>')
+
+        self.p.parse_string(self.wrap(xml))
+
     def test_parse_events(self):
         # Test parsing events (these are ignored)
 
