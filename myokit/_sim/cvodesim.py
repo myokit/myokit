@@ -444,7 +444,7 @@ class Simulation(myokit.CModule):
                 txt.append('  evaluations = ' + myokit.float.str(rbound[3]))
                 txt.append(str(e))
                 try:
-                    self._model.eval_state_derivatives(rstate)
+                    self._model.evaluate_derivatives(rstate)
                 except myokit.NumericalError as en:
                     txt.append(str(en))
                 raise myokit.SimulationError('\n'.join(txt))

@@ -1607,7 +1607,7 @@ class ModelParseTest(unittest.TestCase):
         self.assertNotEqual(c1, c2)
         self.assertTrue(len(c2) < len(c1))
         self.assertEqual(
-            m1.eval_state_derivatives(), m2.eval_state_derivatives())
+            m1.evaluate_derivatives(), m2.evaluate_derivatives())
 
         m2 = parse_model(strip_expression_units(m1.code().splitlines()))
         c1 = m1.code()
@@ -1615,7 +1615,7 @@ class ModelParseTest(unittest.TestCase):
         self.assertNotEqual(c1, c2)
         self.assertTrue(len(c2) < len(c1))
         self.assertEqual(
-            m1.eval_state_derivatives(), m2.eval_state_derivatives())
+            m1.evaluate_derivatives(), m2.evaluate_derivatives())
 
     def test_function_parsing(self):
         """

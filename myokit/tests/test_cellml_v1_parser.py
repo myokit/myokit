@@ -314,14 +314,14 @@ class TestCellMLParser(unittest.TestCase):
         # Load myokit model
         org_model = myokit.load_model('example')
         org_states = [x.qname() for x in org_model.states()]
-        org_values = org_model.eval_state_derivatives()
+        org_values = org_model.evaluate_derivatives()
 
         # Load exported version
         path = os.path.join(DIR, 'lr-1991-exported-1.cellml')
         cm = v1.parse_file(path)
         new_model = cm.myokit_model()
         new_states = [x.qname() for x in new_model.states()]
-        new_values = new_model.eval_state_derivatives()
+        new_values = new_model.evaluate_derivatives()
 
         # Compare each state (loop unrolled for easier debugging)
         org_i = 0

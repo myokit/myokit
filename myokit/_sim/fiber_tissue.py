@@ -923,7 +923,7 @@ class FiberTissueSimulation(myokit.CModule):
                 if n_states > 1:
                     txt.append('Evaluating derivatives at state before...')
                     try:
-                        derivs = model.eval_state_derivatives(
+                        derivs = model.evaluate_derivatives(
                             states[1], precision=self._precision)
                         txt.append(model.format_state_derivatives(
                             states[1], derivs))
