@@ -1160,7 +1160,7 @@ def step(source, ref, ini, raw):
     # Evaluate all derivatives, show the results
     try:
         if raw:
-            derivs = model.eval_state_derivatives(state=ini)
+            derivs = model.evaluate_derivatives(state=ini)
             print('\n'.join([myokit.float.str(x) for x in derivs]))
         else:
             print(myokit.step(model, initial=ini, reference=ref))
