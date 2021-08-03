@@ -23,6 +23,10 @@ This page lists the main changes made to Myokit in each release.
   - [#763](https://github.com/MichaelClerx/myokit/pull/763) Added a method `OpenCLSimulation.set_conductance_field` to apply heterogeneous conductance on a rectangular grid.
   - [#776](https://github.com/MichaelClerx/myokit/pull/776) Added a method `OpenCLSimulation.monodomain_conductance` to replace the deprecated method `calculate_conductance`.
   - [#780](https://github.com/MichaelClerx/myokit/pull/780) Alt-up and alt-down can now be used in the text editor to move selected lines up or down.
+  - [#782](https://github.com/MichaelClerx/myokit/pull/782) The IDE can now import CellML files on opening, e.g. by typing `myokit ide example.cellml`.
+  - [#786](https://github.com/MichaelClerx/myokit/pull/786) Added a method `myokit.Variable.clamp()` to fix any variable to a constant value.
+  - [#786](https://github.com/MichaelClerx/myokit/pull/786) Added a method `myokit.Variable.remove_child_variables()` to remove all child (nested) variables from a given variable.
+  - [#788](https://github.com/MichaelClerx/myokit/pull/788) The IDE will now suggest filenames for model exports.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
@@ -37,6 +41,7 @@ This page lists the main changes made to Myokit in each release.
   - [#687](https://github.com/MichaelClerx/myokit/pull/687) The method `SimulationOpenCL.remove_field` now raises a `KeyError` if no field is set for the given variable.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
   - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `LegacySimulation` class no longer suppresses CVODE warnings but passes them on to the `warnings` module (backported from new `Simulation` class).
+  - [#789](https://github.com/MichaelClerx/myokit/pull/789) The method `myokit.DataLog.save_csv()` now stores the keys using natural sort order (time is still the first field, if present).
 - Deprecated
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The classes `myokit.PSimulation` and `myokit.ICSimulation` have been deprecated in favour of the new `Simulation` class.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The class `myokit.Benchmarker` is deprecated in favour of `myokit.tools.Benchmarker`.
@@ -45,6 +50,7 @@ This page lists the main changes made to Myokit in each release.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.strfloat` is deprecated in favour of `myokit.float.str`.
   - [#758](https://github.com/MichaelClerx/myokit/pull/758) The class `myokit.FiberTissueSimulation` is deprecated and will be removed in future versions.
   - [#776](https://github.com/MichaelClerx/myokit/pull/776) The method `OpenCLSimulation.calculate_conductance` is deprecated in favour of the new method `calculate_conductance`, which takes slightly different parameters.
+  - [#787](https://github.com/MichaelClerx/myokit/pull/787) The method `myokit.Model.eval_state_derivatives` is deprecated in favour of `myokit.Model.evaluate_derivatives`.
 - Removed
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux (still testing latest 2.7). No longer testing any Python 2.7 on Windows.
   - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
