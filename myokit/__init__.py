@@ -355,6 +355,7 @@ from ._err import (  # noqa
     SimultaneousProtocolEventError,
     UnresolvedReferenceError,
     UnusedVariableError,
+    VariableMappingError,
 )
 
 # Check if all errors imported
