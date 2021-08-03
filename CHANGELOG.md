@@ -40,6 +40,7 @@ This page lists the main changes made to Myokit in each release.
   - [#687](https://github.com/MichaelClerx/myokit/pull/687) The method `SimulationOpenCL.remove_field` now raises a `KeyError` if no field is set for the given variable.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) In Python 2, an `ImportError` is now raised if `myokit.ini` contains the sequence " ;" in any of its value (as this cannot be processed by Python 2's `ConfigParser`).
   - [#728](https://github.com/MichaelClerx/myokit/pull/728) The `LegacySimulation` class no longer suppresses CVODE warnings but passes them on to the `warnings` module (backported from new `Simulation` class).
+  - [#789](https://github.com/MichaelClerx/myokit/pull/789) The method `myokit.DataLog.save_csv()` now stores the keys using natural sort order (time is still the first field, if present).
 - Deprecated
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The classes `myokit.PSimulation` and `myokit.ICSimulation` have been deprecated in favour of the new `Simulation` class.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The class `myokit.Benchmarker` is deprecated in favour of `myokit.tools.Benchmarker`.
