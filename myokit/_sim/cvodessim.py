@@ -687,18 +687,11 @@ class Simulation(myokit.CModule):
                 # Store error state
                 self._error_state = state
 
-                # Check for known CVODE errors
+                # Cast known CVODE errors as SimulationError
                 if 'Function CVode()' in str(e):
                     raise myokit.SimulationError(str(e))
 
-                # Check for zero step error
-                if str(e)[:10] == 'ZERO_STEP ':  # pragma: no cover
-                    t = float(str(e)[10:])
-                    raise myokit.SimulationError(
-                        'Maximum number of zero-size steps made at t='
-                        + str(t))
-
-                # Unknown exception: re-raise!
+                # Unknown exception: re-raise
                 raise
             finally:
                 # Clean even after KeyboardInterrupt or other Exception
