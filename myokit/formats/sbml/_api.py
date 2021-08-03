@@ -97,6 +97,10 @@ class CSymbolVariable(object):
     def __init__(self, definition_url):
         self._definition_url = str(definition_url)
 
+    def definition_url(self):
+        """ Returns the ``definitionUrl`` for this ``CSymbolVariable``. """
+        return self._definition_url
+
     def __str__(self):
         return '<CSymbolVariable ' + self._definition_url + '>'
 

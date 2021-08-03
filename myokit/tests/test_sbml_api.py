@@ -436,6 +436,15 @@ class TestModel(unittest.TestCase):
 
         self.assertEqual(model.substance_units(), myokit.units.g)
 
+    def test_time_symbol(self):
+
+        model = sbml.Model(name='model')
+        time = model.time()
+        turl = 'http://www.sbml.org/sbml/symbols/time'
+        self.assertIsInstance(time, sbml.CSymbolVariable)
+        self.assertEqual(str(time), '<CSymbolVariable ' + turl + '>')
+        self.assertEqual(time.definition_url(), turl)
+
     def test_time_units(self):
 
         model = sbml.Model(name='model')
