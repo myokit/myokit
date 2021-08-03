@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the exporters from the format module.
 #
@@ -35,11 +35,10 @@ class ExportTest(unittest.TestCase):
     """
 
     def _test(self, e, model=None, protocol=None):
-        """
-        Test a given exporter `e`.
-        """
+        """ Test a given exporter `e`. """
+
         # Test info method.
-        self.assertIsInstance(e.info(), basestring)
+        self.assertIsInstance(e.post_export_info(), basestring)
 
         # Load model, protocol
         m, p = model, protocol
@@ -112,9 +111,8 @@ class ExportTest(unittest.TestCase):
                     'No types of export supported by: ' + exporter)
 
     def test_runnable_exporter_shared(self):
-        """
-        Test shared functionality of the TemplatedRunnableExporters.
-        """
+        # Test shared functionality of the TemplatedRunnableExporters.
+
         e = myokit.formats.exporter('ansic')
 
         # Load model, protocol
@@ -180,6 +178,15 @@ class ExportTest(unittest.TestCase):
             self.assertRaisesRegex(
                 myokit.ExportError, 'file or link', e.runnable, dpath, m, p)
 
+    def test_completeness(self):
+        # Test that all exporters have a test (so meta!).
+
+        methods = [x for x in dir(self) if x[:5] == 'test_']
+        for name in myokit.formats.exporters():
+            name = name.replace('-', '_')
+            name = 'test_' + name + '_exporter'
+            self.assertIn(name, methods)
+
     def test_ansic_exporter(self):
         self._test(myokit.formats.exporter('ansic'))
 
@@ -191,6 +198,12 @@ class ExportTest(unittest.TestCase):
 
     def test_cellml_exporter(self):
         self._test(myokit.formats.exporter('cellml'))
+
+    def test_cellml1_exporter(self):
+        self._test(myokit.formats.exporter('cellml1'))
+
+    def test_cellml2_exporter(self):
+        self._test(myokit.formats.exporter('cellml2'))
 
     def test_chaste_exporter(self):
         self._test(myokit.formats.exporter('chaste'))
@@ -204,17 +217,14 @@ class ExportTest(unittest.TestCase):
     def test_easyml_exporter(self):
         self._test(myokit.formats.exporter('easyml'))
 
+    def test_html_exporter(self):
+        self._test(myokit.formats.exporter('html'))
+
     def test_latex_article_exporter(self):
         self._test(myokit.formats.exporter('latex-article'))
 
     def test_latex_poster_exporter(self):
         self._test(myokit.formats.exporter('latex-poster'))
-
-    def test_html_exporter(self):
-        self._test(myokit.formats.exporter('html'))
-
-    def test_xml_exporter(self):
-        self._test(myokit.formats.exporter('xml'))
 
     def test_matlab_exporter(self):
         self._test(myokit.formats.exporter('matlab'))
@@ -224,6 +234,22 @@ class ExportTest(unittest.TestCase):
 
     def test_opencl_rl_exporter(self):
         self._test(myokit.formats.exporter('opencl-rl'))
+
+    def test_opencl_exporter_errors(self):
+        # Checks the errors raised by the OpenCL exporter.
+        e = myokit.formats.exporter('opencl')
+
+        # Label membrane_potential must be set
+        m = myokit.load_model('example')
+        m.label('membrane_potential').set_label(None)
+        self.assertRaisesRegex(
+            ValueError, 'membrane_potential', self._test, e, m)
+
+        # Binding diffusion_current must be set
+        m = myokit.load_model('example')
+        m.binding('diffusion_current').set_binding(None)
+        self.assertRaisesRegex(
+            ValueError, 'diffusion_current', self._test, e, m)
 
     def test_python_exporter(self):
         self._test(myokit.formats.exporter('python'))
@@ -242,7 +268,7 @@ class ExportTest(unittest.TestCase):
         for v in m.get('ina').variables(const=True):
             if v.name()[:1] == 'p':
                 parameters.append(v)
-        parameters.sort(key=lambda v: myokit._natural_sort_key(v.name()))
+        parameters.sort(key=lambda v: myokit.tools.natural_sort_key(v.name()))
 
         # Set output
         output = 'ina.INa'
@@ -256,38 +282,13 @@ class ExportTest(unittest.TestCase):
             self.assertTrue(os.path.isdir(dpath))
             self.assertTrue(len(os.listdir(dpath)) > 0)
 
-    def test_opencl_exporter_errors(self):
-        # Checks the errors raised by the OpenCL exporter.
-        e = myokit.formats.exporter('opencl')
-
-        # Label membrane_potential must be set
-        m = myokit.load_model('example')
-        m.label('membrane_potential').set_label(None)
-        self.assertRaisesRegex(
-            ValueError, 'membrane_potential', self._test, e, m)
-
-        # Binding diffusion_current must be set
-        m = myokit.load_model('example')
-        m.binding('diffusion_current').set_binding(None)
-        self.assertRaisesRegex(
-            ValueError, 'diffusion_current', self._test, e, m)
-
-    def test_completeness(self):
-        """
-        Test that all exporters have a test (so meta!).
-        """
-        methods = [x for x in dir(self) if x[:5] == 'test_']
-        for name in myokit.formats.exporters():
-            name = name.replace('-', '_')
-            name = 'test_' + name + '_exporter'
-            self.assertIn(name, methods)
-
     def test_unknown_exporter(self):
-        """
-        Test the error handling for requesting an unknown exporter.
-        """
+        # Test the error handling for requesting an unknown exporter.
         self.assertRaisesRegex(
             KeyError, 'Exporter not found', myokit.formats.exporter, 'elvish')
+
+    def test_xml_exporter(self):
+        self._test(myokit.formats.exporter('xml'))
 
 
 if __name__ == '__main__':

@@ -335,10 +335,11 @@ class CellMLWriter(object):
         # Add multiplier or prefix to first row
         multiplier = myokit_unit.multiplier()
         if multiplier != 1:
-            if myokit._feq(multiplier, int(multiplier)):
+            if myokit.float.eq(multiplier, int(multiplier)):
                 rows[0].attrib['multiplier'] = str(int(multiplier))
             else:
-                rows[0].attrib['multiplier'] = myokit.strfloat(multiplier)
+                rows[0].attrib['multiplier'] = myokit.float.str(
+                    multiplier).strip()
 
     def _variable(self, parent, variable):
         """
@@ -361,8 +362,8 @@ class CellMLWriter(object):
 
         # Add initial value
         if variable.initial_value() is not None:
-            element.attrib['initial_value'] = myokit.strfloat(
-                variable.initial_value())
+            element.attrib['initial_value'] = myokit.float.str(
+                variable.initial_value()).strip()
 
         # Add cmeta id
         cid = variable.cmeta_id()
@@ -375,10 +376,10 @@ class CellMLWriter(object):
             except KeyError:
                 pass
 
-    def write(self, model, version='1.0'):
+    def write(self, model):
         """
-        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
-        creates an ElementTree that represents it.
+        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and creates
+        an ElementTree that represents it.
 
         If the model contains any variables that have an `oxmeta` meta data
         property, this will be annotated with RDF tags suitable for use with
@@ -410,8 +411,8 @@ class CellMLWriter(object):
 
     def write_file(self, path, model):
         """
-        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
-        writes it to the given ``path``.
+        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and writes it
+        to the given ``path``.
 
         See :meth:`write()` for details.
         """
@@ -432,8 +433,8 @@ class CellMLWriter(object):
 
     def write_string(self, model):
         """
-        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and
-        converts it to an XML string.
+        Takes a :class:`myokit.formats.cellml.v1.Model` as input, and converts
+        it to an XML string.
 
         See :meth:`write()` for details.
         """

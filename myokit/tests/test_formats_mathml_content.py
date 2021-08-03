@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the parser and expression writer for content MathML.
 #
@@ -228,6 +228,12 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = self.p('<false/>')
         self.assertEqual(float(x), 0)
 
+        # Nan and inf
+        x = self.p('<notanumber/>')
+        self.assertTrue(math.isnan(float(x)))
+        x = self.p('<infinity/>')
+        self.assertEqual(float(x), float('inf'))
+
         # Test constants are handled via the number factory
         xml = '<pi/>'
         x = mathml.parse_mathml_etree(
@@ -236,6 +242,35 @@ class ContentMathMLParserTest(unittest.TestCase):
             lambda x, y: myokit.Number(x, myokit.units.volt),
         )
         self.assertEqual(x.unit(), myokit.units.volt)
+
+    def test_csymbol(self):
+        # Test csymbol parsing
+        # A csymbol MathML's way to define extensions, e.g. functions or
+        # operators or symbols not defined in MathML. In Myokit we only
+        # support their use as a type of <ci>.
+
+        self.assertEqual(
+            self.p('<csymbol definitionURL="hello" />'),
+            myokit.Name('hello')
+        )
+
+        # Missing definition url
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'must contain a definitionURL attribute',
+            self.p, '<csymbol>Hiya</csymbol>')
+
+        # Unknown variable
+        d = {'a': myokit.Name('a')}
+        p = mathml.MathMLParser(
+            lambda x, y: d[x],
+            lambda x, y: myokit.Number(x),
+        )
+        x = etree.fromstring('<csymbol definitionURL="a" />')
+        self.assertEqual(p.parse(x), myokit.Name('a'))
+        x = etree.fromstring('<csymbol definitionURL="b" />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Unable to create Name from csymbol',
+            p.parse, x)
 
     def test_derivatives(self):
         # Test parsing of derivatives
@@ -346,12 +381,12 @@ class ContentMathMLParserTest(unittest.TestCase):
         # No operands
         x = '<apply><exp/></apply>'
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Expecting 1 operand\(s\)', self.p, x)
+            mathml.MathMLError, r'Expecting 1 operand\(s\)', self.p, x)
 
         # Too many operands
         x = '<apply><exp/><cn>1</cn><cn>2</cn></apply>'
         self.assertRaisesRegex(
-            mathml.MathMLError, 'Expecting 1 operand\(s\)', self.p, x)
+            mathml.MathMLError, r'Expecting 1 operand\(s\)', self.p, x)
 
         # Floor
         e = myokit.Floor(b)
@@ -535,6 +570,14 @@ class ContentMathMLParserTest(unittest.TestCase):
         x = '<apply><or/>' + c1 + c2 + '</apply>'
         self.assertEqual(self.p(x), e)
 
+        # Xor
+        e = myokit.And(
+            myokit.Or(cond1, cond2),
+            myokit.Not(myokit.And(cond1, cond2))
+        )
+        x = '<apply><xor/>' + c1 + c2 + '</apply>'
+        self.assertEqual(self.p(x), e)
+
     def test_parse_mathml_string(self):
         # Test :meth:`mathml.parse_mathml_string()`.
 
@@ -675,6 +718,19 @@ class ContentMathMLParserTest(unittest.TestCase):
             mathml.MathMLError, 'Unsupported <cn> type',
             self.p, '<cn type="special">1</cn>')
 
+        # Missing value
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>', self.p, '<cn />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>',
+            self.p, '<cn type="real" />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>',
+            self.p, '<cn type="integer" />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>',
+            self.p, '<cn type="double" />')
+
     def test_trig_basic(self):
         # Test parsing basic trig functions
 
@@ -758,17 +814,17 @@ class ContentMathMLParserTest(unittest.TestCase):
 
         # Hyperbolic arc sine
         x = self.p('<apply><arcsinh/><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(3 + sqrt(1 + 3*3))')
+        y = myokit.parse_expression('log(3 + sqrt(3*3 + 1))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc cosine
         x = self.p('<apply><arccosh/><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(3 + sqrt(3 + 1) * sqrt(3 - 1))')
+        y = myokit.parse_expression('log(3 + sqrt(3*3 - 1))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc tangent
         x = self.p('<apply><arctanh/><cn>3</cn></apply>')
-        y = myokit.parse_expression('0.5 * (log(1 + 3) - log(1 - 3))')
+        y = myokit.parse_expression('0.5 * log((1 + 3) / (1 - 3))')
         self.assertEqual(x, y)
 
         # Hyperbolic cosecant
@@ -788,17 +844,17 @@ class ContentMathMLParserTest(unittest.TestCase):
 
         # Hyperbolic arc cosecant
         x = self.p('<apply><arccsch/><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(sqrt(1/(3*3) + 1) + 1/3)')
+        y = myokit.parse_expression('log(1/3 + sqrt(1/(3*3) + 1))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc secant
         x = self.p('<apply><arcsech/><cn>3</cn></apply>')
-        y = myokit.parse_expression('log(sqrt(1/(3*3) - 1) + 1/3)')
+        y = myokit.parse_expression('log(1/3 + sqrt(1/(3*3) - 1))')
         self.assertEqual(x, y)
 
         # Hyperbolic arc cotangent
         x = self.p('<apply><arccoth/><cn>3</cn></apply>')
-        y = myokit.parse_expression('0.5 * log((3 + 1)/ (3 - 1))')
+        y = myokit.parse_expression('0.5 * log((3 + 1) / (3 - 1))')
         self.assertEqual(x, y)
 
     def test_unsupported(self):

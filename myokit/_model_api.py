@@ -38,16 +38,19 @@ def check_name(name):
     # But the regex restriction means their format is compatible with ascii.
     # Check str compatibility
     name = str(name)
+
     # Check name syntax
     if NAME.match(name) is None:
         raise myokit.InvalidNameError(
             'The name <' + str(name) + '> is  invalid. The first character of'
             ' a name should be a letter from the range [a-zA-Z]. Any'
             ' subsequent characters can be taken from the set [a-zA-Z0-9_].')
+
     # Check for keywords
     if name in myokit.KEYWORDS:
         raise myokit.InvalidNameError(
             'The name <' + str(name) + '> is a reserved keyword.')
+
     return name
 
 
@@ -672,6 +675,8 @@ class VarOwner(ModelPart, VarProvider):
 
         If ``recursive`` is ``True``, any child variables will be deleted as
         well.
+
+        A :class:`myokit.IntegrityError` will be raised if
         """
         if variable.parent() != self:
             raise ValueError(
@@ -789,11 +794,14 @@ class Model(ObjectWithMeta, VarProvider):
         # A list of warnings about the model's integrity
         self._warnings = []
 
-        # A list of unique names (for easier export)
-        # Some names may be taken up by system functions etc
+        # A list of names that can't be used as unames()
         self._reserved_unames = set()
-        self._reserved_uname_prefixes = {}
         self.reserve_unique_names(*myokit.KEYWORDS)
+
+        # A dict mapping `prefix` strings to `prepend` strings. When generating
+        # unames any uname startinhg with `prefix` will be prepended by
+        # `prepend`.
+        self._reserved_uname_prefixes = {}
 
         # A dictionary token_start : (token, object) relating some (not all!)
         #  tokens to a model. Will be filled by parser when reading a model.
@@ -873,7 +881,9 @@ class Model(ObjectWithMeta, VarProvider):
         if not isinstance(template, myokit.Expression):
             template = myokit.parse_expression(template)
 
-        # Check function uniqueness. Add number of arguments to name to allow
+        # TODO: Check name does not conflict with an existing function #584
+
+        # Check signature uniqueness. Add number of arguments to name to allow
         # overloading
         uname = name + '(' + str(n) + ')'
         if uname in self._user_functions:
@@ -887,6 +897,12 @@ class Model(ObjectWithMeta, VarProvider):
             if isinstance(ref, myokit.Derivative):
                 raise myokit.InvalidFunction(
                     'The dot() operator cannot be used in user functions.')
+            if template.contains_type(myokit.PartialDerivative):
+                raise myokit.InvalidFunction(
+                    'The partial() operator cannot be used in user functions.')
+            if template.contains_type(myokit.InitialValue):
+                raise myokit.InvalidFunction(
+                    'The init() operator cannot be used in user functions.')
 
         # Check for unused arguments, undeclared arguments
         ref_names = set([x._value for x in refs])
@@ -938,23 +954,26 @@ class Model(ObjectWithMeta, VarProvider):
 
     def check_units(self, mode=myokit.UNIT_TOLERANT):
         """
-        Checks the units used in this model. Models can specify units in two
-        ways:
+        Checks the units used in this model.
 
-        1. By setting a Variable unit. This is done using the ``in`` keyword in
-           ``mmt`` syntax or through the method
-           :meth:`myokit.Variable.set_unit()`. This specifies the unit the
-           variable's value should be in.
-        2. By adding units to the literals in variables' right hand
-           expressions. This is done using square brackets in ``mmt`` syntax
-           (for example ``5 [m] / 10 [s]``) or by adding a unit when creating
-           a Number object, for example ``Number(2, myokit.parse_unit('mV')``.
+        Models can specify units in two ways:
 
-        Per variable, the unit check proceeds in two steps:
+        1. By setting variable units. This is done using the ``in`` keyword in
+           ``mmt`` syntax or through :meth:`myokit.Variable.set_unit()`. This
+           specifies the unit that a variable's value should be in.
+        2. By adding units to literals. This is done using square brackets in
+           ``mmt`` syntax (for example ``5 [m] / 10 [s]``) or by adding a unit
+           when creating a Number object, for example
+           ``myokit.Number(2, myokit.units.mV)``.
 
-        1. The unit resulting from the variable's RHS is evaluated. This may
-           trigger an :class:`myokit.IncompatibleUnitExpression` if any
-           inompatibilities are found in the expression (see below).
+        When checking a model's units, this method loops over all variables and
+        performs two checks:
+
+        1. The unit resulting from the variable's RHS is evaluated. This
+           involves checking rules such as "in ``x + y``, ``x`` and ``y`` must
+           have the same units, or "in ``exp(x)`` the units of ``x`` must be
+           ``dimensionless``". A :class:`myokit.IncompatibleUnitExpression`
+           will be raised if any inompatibilities are found.
         2. The calculated unit is compared with the variable unit. An
            ``IncompatibleUnitError`` will be triggered if the two units don't
            match.
@@ -964,8 +983,8 @@ class Model(ObjectWithMeta, VarProvider):
         In strict mode (``mode=myokit.UNIT_STRICT``), all unspecified units in
         expressions are treated as "dimensionless". For example, the expression
         ``5 * V`` where ``V`` is in ``[mV]`` will be treated as dimensionless
-        times millivolt (or ``[1] * [mV] in mmt syntax), resulting in the unit
-        ``[mV]``.
+        times millivolt (or ``[1] * [mV]`` in mmt syntax), resulting in the
+        unit ``[mV]``.
         The expression ``5 + V`` will be interpreted as dimensionless plus
         millivolt, and will raise an error.
         In strict mode, functions such as ``sin`` and ``exp`` will check that
@@ -993,8 +1012,8 @@ class Model(ObjectWithMeta, VarProvider):
         checking ``x = 5 [mV]`` because ``x`` is dimensionless while ``5 [mV]``
         has units ``[mV]``. In tolerant mode, no error will be raised. When
         tolerantly evaluating ``y = 3[A] + x`` it will be assumed that ``x`` is
-        also in ``[A]``, because no variable unit is given that says otherwise,
-        despite the RHS of ``x`` having units ``mV``.
+        also in ``[A]``, because no variable unit is given that says otherwise
+        (despite the RHS of ``x`` having units ``mV``).
         """
         # Get time unit
         t = self.time_unit(mode)
@@ -1011,21 +1030,29 @@ class Model(ObjectWithMeta, VarProvider):
                 raise myokit.IntegrityError('No RHS set for ' + var.qname())
             e = e.eval_unit(mode)
 
+            # No unit? Then allow (in strict mode v and e are never None)
+            if v is None or e is None:  # pragma: no cover
+                # Adding a print() here shows this line is hit, coverage still
+                # disagrees. Puzzled.
+                continue
+
             # Rhs unit from a state? Then multiply by time to get var's unit
-            if t is not None and e is not None and var.is_state():
+            if t is not None and var.is_state():
                 e *= t
 
-            if v != e and v is not None and e is not None:
+            # Compare loosely
+            if not myokit.Unit.close(v, e):
                 msg = 'Incompatible units in <' + var.qname() + '>'
                 if var._token is not None:
                     msg += ' on line ' + str(var._token[2])
                 msg += '. Variable unit ' + v.clarify()
-                msg += ' differs from calculated unit ' + e.clarify() + '.'
+                msg += ' differs from calculated unit ' + e.clarify()
+                msg += ', by a factor ' + (v / e).clarify() + '.'
                 raise myokit.IncompatibleUnitError(msg, var._token)
 
     def clone(self):
         """
-        Returns a deep clone of this model.
+        Returns a (deep) clone of this model.
         """
         clone = Model()
 
@@ -1052,8 +1079,12 @@ class Model(ObjectWithMeta, VarProvider):
         for k, c in self._components.items():
             c._clone2(clone[k], lhsmap)
 
-        # Copy unique names
+        # Copy unique names and unique name prefixes
         clone.reserve_unique_names(*iter(self._reserved_unames))
+        for prefix, prepend in self._reserved_uname_prefixes.items():
+            clone.reserve_unique_name_prefix(prefix, prepend)
+
+        # Return
         return clone
 
     def code(self, line_numbers=False):
@@ -1268,7 +1299,24 @@ class Model(ObjectWithMeta, VarProvider):
                     yield v
         return stream(self)
 
-    def eval_state_derivatives(
+    def __eq__(self, other):
+        """
+        Checks if this model equals the ``other`` model.
+
+        This checks equality of code(), but also unique names and unique name
+        prefixes.
+        """
+        if self is other:
+            return True
+        if not isinstance(other, Model):
+            return False
+        if self._reserved_unames != other._reserved_unames:
+            return False
+        if self._reserved_uname_prefixes != other._reserved_uname_prefixes:
+            return False
+        return self.code() == other.code()
+
+    def evaluate_derivatives(
             self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
             ignore_errors=False):
         """
@@ -1276,20 +1324,24 @@ class Model(ObjectWithMeta, VarProvider):
         The values are returned in a list sorted in the same order as the
         state variables.
 
-        If given, the state values given by ``state`` will be used as starting
-        point. Here ``state`` can be any object accepted as input by
-        :meth:``map_to_state()``.
+        Arguments:
 
-        To set the values of external inputs, a dictionary mapping binding
-        labels to values can be passed in as ``inputs``.
+        ``state=None``
+            If given, the state values given by ``state`` will be used as
+            starting point. Here ``state`` can be any object accepted as input
+            by :meth:``map_to_state()``.
+        ``inputs=None``
+            To set the values of external inputs, a dictionary mapping binding
+            labels to values can be passed in as ``inputs``.
+        ``precision``
+            To assist in finding the origins of numerical errors, the equations
+            can be evaluated using single-precision floating point. To do this,
+            set ``precision=myokit.SINGLE_PRECISION``.
+        ``ignore_errors``
+            By default, the evaluation routine raises
+            :class:`myokit.NumericalError` exceptions for invalid operations.
+            To return ``NaN`` instead, set ``ignore_errors=True``.
 
-        To assist in finding the origins of numerical errors, the equations
-        can be evaluated using 32 bit floating point. To do this, set
-        ``precision=myokit.SINGLE_PRECISION``.
-
-        By default, the evaluation routine raises
-        :class:`myokit.NumericalError` exceptions for invalid operations. To
-        return ``NaN`` instead, set ``ignore_errors=True``.
         """
         # Apply new state if required
         if state is not None:
@@ -1347,9 +1399,26 @@ class Model(ObjectWithMeta, VarProvider):
         # Return calculated state
         return out
 
+    def eval_state_derivatives(
+            self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
+            ignore_errors=False):
+        """
+        Deprecated alias of :meth:`evaluate_derivatives()`.
+        """
+        # Deprecated since 2021-08-03
+        import warnings
+        warnings.warn(
+            'The method `eval_state_derivatives` is deprecated. Please use'
+            ' `evaluate_derivatives()` instead.')
+        return self.evaluate_derivatives(
+            state, inputs, precision, ignore_errors)
+
     def expressions_for(self, *variables):
         """
         Determines the expressions needed to evaluate one or more variables.
+
+        If state variables are included in the list, "evaluating" the variable
+        is interpreted as evaluating its derivative.
 
         Returns a tuple ``(eqs, args)`` where ``eqs`` is a list of Equation
         objects in solvable order containing the minimal set of equations
@@ -1424,13 +1493,24 @@ class Model(ObjectWithMeta, VarProvider):
 
         return (eq_list, arguments)
 
-    def format_state(self, state=None, state2=None):
+    def format_state(self, state=None, state2=None,
+                     precision=myokit.DOUBLE_PRECISION):
         """
         Converts the given list of floating point numbers to a string where
-        each line has the format ``<full_qualified_name> = <float_value>``. If
-        no state is given the one returned by :meth:`state` is used.
+        each line has the format ``<full_qualified_name> = <float_value>``.
 
-        An optional second state can be added for display as ``state2``.
+        Arguments:
+
+        ``state=None``
+            The state to show derivatives for. If no state is given the state
+            returned by :meth:`state` is used.
+        ``state2=None``
+            An optional second state, to be shown next to ``state`` for
+            comparison.
+        ``precision=myokit.DOUBLE_PRECISION``
+            An optional precision argument to pass into
+            :meth:`myokit.float.str` when formatting the state values.
+
         """
         n = len(self._state)
         if state is not None:
@@ -1440,6 +1520,7 @@ class Model(ObjectWithMeta, VarProvider):
                     + ') floating point numbers.')
         else:
             state = self.state()
+
         if state2 is not None:
             if len(state2) != n:
                 raise ValueError(
@@ -1451,19 +1532,36 @@ class Model(ObjectWithMeta, VarProvider):
         for k, var in enumerate(self.states()):
             out.append(
                 var.qname() + ' ' * (n - len(var.qname()))
-                + ' = ' + myokit.strfloat(state[k]))
+                + ' = ' + myokit.float.str(state[k], precision=precision))
         if state2 is not None:
             n = max([len(x) for x in out])
             for k, var in enumerate(self.states()):
-                out[k] += \
-                    ' ' * (4 + n - len(out[k])) + myokit.strfloat(state2[k])
+                out[k] += (
+                    ' ' * (4 + n - len(out[k]))
+                    + myokit.float.str(state2[k], precision=precision))
 
         return '\n'.join(out)
 
-    def format_state_derivatives(self, state=None, derivatives=None):
+    def format_state_derivatives(self, state=None, derivatives=None,
+                                 precision=myokit.DOUBLE_PRECISION):
         """
         Like :meth:`format_state` but displays the derivatives along with
         each state's value.
+
+
+        Arguments:
+
+        ``state=None``
+            The state to display. If no state is given the state returned by
+            :meth:`state` is used.
+        ``derivatives=None``
+            An optional list of evaluated derivatives. If not given, the values
+            will be calculed from ``state`` using :meth:`eval_derivatives()`.
+        ``precision=myokit.DOUBLE_PRECISION``
+            An optional precision argument to use when evaluating the state
+            derivatives, and to pass into :meth:`myokit.float.str` when
+            formatting the state values and derivatives.
+
         """
         n = len(self._state)
         if state is None:
@@ -1472,17 +1570,20 @@ class Model(ObjectWithMeta, VarProvider):
             raise ValueError(
                 'Argument `state` must be a list of (' + str(n)
                 + ') floating point numbers.')
+
         if derivatives is None:
-            derivatives = self.eval_state_derivatives()
+            derivatives = self.evaluate_derivatives(
+                state, precision=precision)
         elif len(derivatives) != n:
             raise ValueError(
                 'Argument `deriv` must be a list of (' + str(n)
                 + ') floating point numbers.')
+
         out = []
         n = max([len(x.qname()) for x in self.states()])
         for i, var in enumerate(self.states()):
-            s = myokit.strfloat(state[i])
-            d = myokit.strfloat(derivatives[i])
+            s = myokit.float.str(state[i], precision=precision)
+            d = myokit.float.str(derivatives[i], precision=precision)
             out.append(
                 var.qname() + ' ' * (n - len(var.qname())) + ' = ' + s
                 + ' ' * (24 - len(s)) + '   dot = ' + d)
@@ -1561,9 +1662,17 @@ class Model(ObjectWithMeta, VarProvider):
         remaining = equations['*remaining*']
         return len(remaining) > 0
 
+    def has_parse_info(self):
+        """
+        Returns ``True`` if this model retains parsing information, so that
+        methods such as :meth:`item_at_text_position` and :meth:`show_line_of`
+        can be used.
+        """
+        return bool(self._tokens)
+
     def has_warnings(self):
         """
-        Returns True if this model has any warnings.
+        Returns ``True`` if this model has any warnings.
         """
         return len(self._warnings)
 
@@ -1780,8 +1889,10 @@ class Model(ObjectWithMeta, VarProvider):
         if rl_states:
             # Add infs and taus to the component output lists
             for inf, tau in rl_states.values():
-                do[inf.parent(Component)].add(inf.lhs())
-                do[tau.parent(Component)].add(tau.lhs())
+                if not (omit_constants and inf.is_constant()):
+                    do[inf.parent(Component)].add(inf.lhs())
+                if not (omit_constants and tau.is_constant()):
+                    do[tau.parent(Component)].add(tau.lhs())
         else:
             rl_states = {}
 
@@ -2099,19 +2210,6 @@ class Model(ObjectWithMeta, VarProvider):
         # Convert all to float, create new list, return
         return [float(x) for x in state]
 
-    def merge_interdependent_components(self):
-        """
-        Deprecated alias of :meth:`resolve_interdependent_components`.
-        """
-        # Deprecated since 2018-05-30
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
-            'The method `merge_interdependent_components` is deprecated.'
-            ' Please use `resolve_interdependent_components` instead.')
-        self.resolve_interdependent_components()
-
     def name(self):
         """
         Returns the model meta property ``name``, or ``None`` if it isn't set.
@@ -2159,6 +2257,21 @@ class Model(ObjectWithMeta, VarProvider):
         for var in unused:
             var.set_binding(None)
         return variables
+
+    def __reduce__(self):
+        """
+        Pickles the model.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        return (
+            myokit.parse_model,
+            (self.code(), ),
+            (
+                self._reserved_unames,
+                self._reserved_uname_prefixes,
+            ),
+        )
 
     def _register_binding(self, label, variable=None):
         """
@@ -2413,6 +2526,15 @@ class Model(ObjectWithMeta, VarProvider):
         else:
             self.meta['name'] = str(name)
 
+    def __setstate__(self, state):
+        """
+        Called after unpickling.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__setstate__
+        """
+        self._reserved_unames = state[0]
+        self._reserved_uname_prefixes = state[1]
+
     def set_state(self, state):
         """
         Changes this model's state. Accepts any type of input handled by
@@ -2457,7 +2579,8 @@ class Model(ObjectWithMeta, VarProvider):
         varname = var.lhs().code()
 
         # Add references
-        deps = rhs.references()
+        deps = list(rhs.references())
+        deps.sort(key=lambda x: x.code())
         if deps:
             n = max([len(x.code()) for x in deps])
             for dep in deps:
@@ -2499,26 +2622,20 @@ class Model(ObjectWithMeta, VarProvider):
             out.append('  ' + str(eq))
         return '\n'.join(out)
 
-    def show_line(self, var):
-        """
-        Deprecated alias of :meth:`show_line_of`.
-        """
-        # Deprecated since 2018-05-30
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
-            'The method `show_line` is deprecated and will be removed in'
-            ' future versions of Myokit. Please use `show_line_of` instead.')
-        self.show_line_of(var)
-
-    def show_line_of(self, var):
+    def show_line_of(self, var, raw=False):
         """
         Returns a string containing the type of variable ``var`` is and the
         line it was defined on.
+
+        If ``raw`` is set to ``True`` the method returns an integer with the
+        line number, or ``None`` if no line number information is known (i.e.
+        if this model wasn't created by parsing).
         """
+        if raw:
+            return int(var._token[2]) if var._token is not None else None
+
         var, out = self._var_info(var)
-        if var._token:
+        if var._token is not None:
             out.append('Defined on line ' + str(var._token[2]))
         return '\n'.join(out)
 
@@ -2808,10 +2925,10 @@ class Model(ObjectWithMeta, VarProvider):
         for v in self.variables(deep=True):
             n1 = v.name()
             n2 = v.qname()
-            d = min(myokit._lvsd(name, n1),
-                    myokit._lvsd(qname, n2),
-                    myokit._lvsd(name_low, n1.lower()),
-                    myokit._lvsd(qname_low, n2.lower()))
+            d = min(myokit.tools.lvsd(name, n1),
+                    myokit.tools.lvsd(qname, n2),
+                    myokit.tools.lvsd(name_low, n1.lower()),
+                    myokit.tools.lvsd(qname_low, n2.lower()))
             if d < mn:
                 mn = d
                 sg = v
@@ -3187,9 +3304,9 @@ class Component(VarOwner):
                 ' it is used by components '
                 + ' and '.join(['<' + c.qname() + '>' for c in reffers]))
 
-        # No problem? Then delete all variables from component
+        # No problems? Then delete all variables from component
         for var in self.variables():
-            var._delete(recursive=True, whole_component=True)
+            var._delete(recursive=True, ignore_siblings=True)
 
         # Delete links to parent
         super(Component, self)._delete()
@@ -3367,6 +3484,35 @@ class Variable(VarOwner):
         """
         return self._binding
 
+    def clamp(self, value=None):
+        """
+        Clamps this variable to its current value or the given ``value``.
+
+        This will perform the following actions:
+
+        - The model's RHS will be set to a literal, using
+          ``var.set_rhs(var.eval())``.
+        - If this is a state variable, it will be demoted.
+        - Any child variables will be removed.
+
+        """
+        # Set value
+        if value is None:
+            value = self.state_value() if self._is_state else self._rhs.eval()
+        else:
+            value = float(value)
+
+        # Demote states (will raise an error if can't)
+        if self.is_state():
+            self.demote()
+
+        # Fix RHS (do this after demoting, which can raise an error)
+        self.set_rhs(myokit.Number(value, self._unit))
+
+        # Remove child variables (should never raise an error after clamping
+        # the RHS).
+        self.remove_child_variables()
+
     def _clone1(self, parent):
         """
         Performs step 1 of cloning this variable into the newly created
@@ -3481,7 +3627,8 @@ class Variable(VarOwner):
 
     def convert_unit(self, new_unit, helpers=None):
         """
-        Converts the units this variable is expressed in to ``new_unit``.
+        Converts the units this variable is expressed in to ``new_unit``, and
+        updates the RHS with an appropriate scaling factor.
 
         Unit conversion proceeds in the following steps:
 
@@ -3513,11 +3660,14 @@ class Variable(VarOwner):
             attempt to use if the new and old units are incompatible. Each
             factor should be specified as a :class:`myokit.Quantity` or
             something that can be converted to a Quantity e.g. a string
-            ``1 [uF/cm^2]``.
+            ``1 [uF/cm^2]`` or a :class:`myokit.Number()`.
 
         Note that this method will assume the expression is currently in the
         unit returned by :meth:`Variable.unit()`. It will not check whether the
         current RHS expression evaluates to the correct units.
+
+        Raises a :class:`myokit.IncompatibleUnitError` if the units cannot be
+        converted.'
         """
         # Check new unit
         if not isinstance(new_unit, myokit.Unit):
@@ -3547,16 +3697,28 @@ class Variable(VarOwner):
         # Update all references to the variable
         old_ref = myokit.Name(self)
         new_ref = myokit.Divide(old_ref, fw)
-        for var in self.refs_by(self._is_state):
+        for var in list(self.refs_by(self._is_state)):
             var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
 
-        # For the time variable, update all state RHS's as well
+        # For states, also update references to their derivatives
+        if self._is_state:
+            old_ref = myokit.Derivative(myokit.Name(self))
+            new_ref = myokit.Divide(old_ref, fw)
+            for var in list(self.refs_by(False)):
+                var.set_rhs(var.rhs().clone(subst={old_ref: new_ref}))
+
+        # For the time variable, update all state RHS's, and any references to
+        # derivatives
         model = self.parent(Model)
         if self == model.time():
             for var in model.states():
                 var.set_rhs(myokit.Divide(var.rhs(), fw))
+                old_ref = myokit.Derivative(myokit.Name(var))
+                new_ref = myokit.Multiply(old_ref, fw)
+                for ref in list(var.refs_by(False)):
+                    ref.set_rhs(ref.rhs().clone(subst={old_ref: new_ref}))
 
-    def _delete(self, recursive=False, whole_component=False):
+    def _delete(self, recursive=False, ignore_siblings=False):
         """
         Tells this variable that it's going to be deleted.
 
@@ -3564,21 +3726,23 @@ class Variable(VarOwner):
         specified differently using the following arguments:
 
         ``recursive``
-            If set to ``True``, no errors will be raised if child variables of
-            this variable depend on it.
-        ``whole_component``
-            If set to ``True``, no errors will be raised if other variables in
-            the same component depend on it. This is used when deleting whole
-            components.
+            If set to ``True``, no errors will be raised if children of this
+            this variable depend on it, and all child variables will be deleted
+            as well.
+        ``ignore_siblings``
+            If set to ``True``, no errors will be raised if sibilings of this
+            variable depend on it.
 
         """
-        kids = [x for x in self.variables()]
-        if kids and not (recursive or whole_component):
+        # First check: Are there child variables that prevent deletion?
+        kids = list(self.variables())
+        if kids and not recursive:
             raise myokit.IntegrityError(
                 'Variable <' + self.qname() + '>'
                 ' can not be removed: it has children ' + ' and '.join(
                     ['<' + v.qname() + '>' for v in kids]) + '.')
 
+        # Second check: Are there dependent variables that prevent deletion?
         if self._refs_by or self._srefs_by:
             refs = self._refs_by.union(self._srefs_by)
             if self in refs:
@@ -3587,25 +3751,25 @@ class Variable(VarOwner):
 
             if recursive:
                 # Refs from child variables are allowed
-                okay = set([x for x in refs if x.has_ancestor(self)])
-                refs = refs.difference(okay)
-                del(okay)
+                refs = refs.difference(
+                    set([x for x in refs if x.has_ancestor(self)]))
                 # Nested variables can not be referred to by outside variables,
                 # so this action doesn't have to be repeated for the nested
                 # variables.
 
-            if whole_component:
-                # Refs from within the same component are okay
-                comp = self.parent(Component)
-                okay = set([x for x in refs if x.parent(Component) == comp])
-                refs = refs.difference(okay)
-                del(okay)
+            if ignore_siblings:
+                # Refs from sibling variables are allowed
+                refs = refs.difference(
+                    set([x for x in refs if x.has_ancestor(self._parent)]))
 
             if refs:
                 raise myokit.IntegrityError(
                     'Variable <' + self.qname() + '>'
                     ' can not be removed: it is used by ' + ' and '.join(
                         ['<' + v.qname() + '>' for v in refs]) + '.')
+
+        # At this point it's OK to delete. Rest of the code makes changes,
+        # shouldn't raise errors.
 
         # Tell other variables it no longer depends on them
         for var in self._refs_to:
@@ -3618,28 +3782,27 @@ class Variable(VarOwner):
         # variables may still have a _refs_to that they'll need to process,
         # leading to KeyErrors in the lines above.
 
-        # State variable? Then demote
-        if self.is_state():
-            self.demote()
+        if not self._is_nested:
+            # State variable? Then demote
+            if self.is_state():
+                self.demote()
 
-        # Remove any bindings or labels
-        self.set_binding(None)
-        self.set_label(None)
+            # Remove any bindings or labels
+            self.set_binding(None)
+            self.set_label(None)
+
+            # Remove any aliases
+            m = self.parent(Model)
+            for c in m.components():
+                c.remove_aliases_for(self)
 
         # Delete child variables
         if recursive:
             for kid in kids:
-                kid.set_rhs(0)
-            for kid in kids:
-                # Call this method for each kid (and cascade to kid-kids)
-                kid._delete(recursive=True, whole_component=whole_component)
+                # Call this method for each kid (and cascade to their kids)
+                kid._delete(recursive=True, ignore_siblings=True)
                 # Remove kid from list of nested variables
                 self._remove_variable_internal(kid)
-
-        # Remove any aliases
-        m = self.parent(Model)
-        for c in m.components():
-            c.remove_aliases_for(self)
 
         # Remove parent links
         super(Variable, self)._delete()
@@ -3857,6 +4020,12 @@ class Variable(VarOwner):
         :class:`myokit.LhsExpression` objects in the same order as the function
         arguments.
         """
+        # Expression writer uses unames, so must have called validate() since
+        # last changes
+        model = self.model()
+        if not model.is_valid():
+            model.validate()
+
         # Get expression writer
         if use_numpy:
             import numpy
@@ -3866,7 +4035,7 @@ class Variable(VarOwner):
             w = myokit.python_writer()
 
         # Get arguments, equations
-        eqs, args = self.model().expressions_for(self)
+        eqs, args = model.expressions_for(self)
 
         # Handle function arguments
         func = [w.ex(x) for x in args]
@@ -3933,6 +4102,30 @@ class Variable(VarOwner):
             return iter(self._srefs_to)
         else:
             return iter(self._refs_to)
+
+    def remove_child_variables(self):
+        """
+        Removes all child variables of this variable.
+
+        A :class:`myokit.IntegrityError` will be raised if the variable depends
+        on any of its child variables.
+        """
+        # Check if this variable depends on any of its children
+        deps = set()
+        for var in self._refs_to:
+            if var._parent is self:
+                deps.add(var)
+        if deps:
+            raise myokit.IntegrityError(
+                'Unable to remove all child variables from <'
+                + self.qname() + '>: the RHS still depends on '
+                + ' and '.join(['<' + var.qname() + '>' for var in deps])
+                + '.')
+
+        # No dependencies: ok to delete all children
+        for kid in list(self.variables()):
+            kid._delete(recursive=True, ignore_siblings=True)
+            self._remove_variable_internal(kid)
 
     def rename(self, new_name):
         """
@@ -4078,7 +4271,7 @@ class Variable(VarOwner):
         if not isinstance(rhs, myokit.Expression):
             if isinstance(rhs, basestring):
                 rhs = myokit.parse_expression(rhs, context=self)
-            else:
+            elif rhs is not None:
                 rhs = myokit.Number(rhs)
 
         # Update the refs-by stored in the old dependencies
@@ -4089,16 +4282,20 @@ class Variable(VarOwner):
 
         # Get new references made by this variable, filter out references to
         # to values of state variables.
-        self._refs_to = set(
-            [r.var() for r in rhs.references() if not r.is_state_value()])
-        self._srefs_to = set(
-            [r.var() for r in rhs.references() if r.is_state_value()])
+        if rhs is not None:
+            self._refs_to = set(
+                [r.var() for r in rhs.references() if not r.is_state_value()])
+            self._srefs_to = set(
+                [r.var() for r in rhs.references() if r.is_state_value()])
 
-        # Update the refs-by stored in the new dependencies of this var
-        for ref in self._refs_to:
-            ref._refs_by.add(self)
-        for ref in self._srefs_to:
-            ref._srefs_by.add(self)
+            # Update the refs-by stored in the new dependencies of this var
+            for ref in self._refs_to:
+                ref._refs_by.add(self)
+            for ref in self._srefs_to:
+                ref._srefs_by.add(self)
+        else:
+            self._refs_to = set()
+            self._srefs_to = set()
 
         # Set rhs
         self._rhs = rhs
@@ -4170,6 +4367,24 @@ class Variable(VarOwner):
         if self._rhs is None:
             raise myokit.MissingRhsError(self)
         self._rhs.validate()
+
+        # Partial derivatives are not allowed in an RHS
+        if self._rhs.contains_type(myokit.PartialDerivative):
+            raise myokit.IntegrityError(
+                'Partial derivatives may not appear in expressions set as'
+                ' right-hand side of a variable.')
+
+        # Initial values are not allowed in an RHS
+        if self._rhs.contains_type(myokit.InitialValue):
+            raise myokit.IntegrityError(
+                'Initial value operators may not appear in expressions set as'
+                ' right-hand side of a variable.')
+
+        # Conditions are not allowed as an RHS
+        if isinstance(self._rhs, myokit.Condition):
+            raise myokit.IntegrityError(
+                'The right-hand side expression for a variable can not be a'
+                ' condition.')
 
         # Check state variables
         is_state = self._indice is not None
@@ -4267,6 +4482,17 @@ class Equation(object):
         else:
             return self.lhs == other.lhs and self.rhs == other.rhs
 
+    def clone(self, subst=None, expand=False, retain=None):
+        """
+        Clones this equation.
+
+        See :meth:`myokit.Expression.clone()` for details of the arguments.
+        """
+        return Equation(
+            self.lhs.clone(subst, expand, retain),
+            self.rhs.clone(subst, expand, retain),
+        )
+
     def code(self):
         b = StringIO()
         self.lhs._code(b, None)
@@ -4288,6 +4514,9 @@ class Equation(object):
     def __str__(self):
         return self.code()
 
+    def __repr__(self):
+        return '<Equation ' + str(self) + '>'
+
 
 class EquationList(list, VarProvider):
     """
@@ -4303,10 +4532,14 @@ class EquationList(list, VarProvider):
 
 class UserFunction(object):
     """
-    Defines a user function. User functions are not ``Expression`` objects, but
-    template expressions that are converted upon parsing. They allow common
-    functions (for example a boltzman function) to be used in string
-    expressions.
+    Represents a user function.
+
+    ``UserFunction`` objects should not be created directly, but only via
+    :meth:`Model.add_function()`.
+
+    User functions are not ``Expression`` objects, but template expressions
+    that are converted upon parsing. They allow common functions (for example
+    a boltzman function) to be used in string expressions.
 
     Arguments:
 

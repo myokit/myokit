@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the lib.hh module.
 #
@@ -537,7 +537,7 @@ class HHModelTest(unittest.TestCase):
         self.assertTrue(len(model2.code()) < len(model.code()))
 
     def test_automatic_creation(self):
-        # Create a linear model from a component.
+        # Create a HH model from a component.
 
         # Load model
         fname = os.path.join(DIR_DATA, 'lr-1991-fitting.mmt')
@@ -599,7 +599,11 @@ class HHModelTest(unittest.TestCase):
         m = hh.HHModel.from_component(model.get('ina'))
 
         # Get steady state
-        ss = list(m.steady_state())
+        ss = np.array(m.steady_state())
+
+        # Check that this is a valid steady state
+        self.assertTrue(np.all(ss >= 0))
+        self.assertTrue(np.all(ss <= 1))
 
         # Test if derivatives are zero
         for k, x in enumerate(['ina.m', 'ina.h', 'ina.j']):
@@ -799,37 +803,37 @@ class AnalyticalSimulationTest(unittest.TestCase):
 
         # State
         state = np.zeros(len(s.state()))
-        state[0] = 0.5
+        state[0] = 0.3
         state[1] = 0.5
         self.assertNotEqual(list(state), list(s.state()))
         s.set_state(state)
         self.assertEqual(list(state), list(s.state()))
         self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_state, state[:-1])
-        state[0] += 0.1
-        self.assertRaisesRegex(
-            ValueError, 'sum to 1', s.set_state, state)
         state[0] = -.1
+        self.assertRaisesRegex(
+            ValueError, 'must be in the range', s.set_state, state)
+        state[0] = 0
         state[1] = 1.1
         self.assertRaisesRegex(
-            ValueError, 'negative', s.set_state, state)
+            ValueError, 'must be in the range', s.set_state, state)
 
         # Default state
         dstate = np.zeros(len(s.default_state()))
-        dstate[0] = 0.5
+        dstate[0] = 0.3
         dstate[1] = 0.5
         self.assertNotEqual(list(dstate), list(s.default_state()))
         s.set_default_state(dstate)
         self.assertEqual(list(dstate), list(s.default_state()))
         self.assertRaisesRegex(
             ValueError, 'Wrong size', s.set_default_state, dstate[:-1])
-        dstate[0] += 0.1
-        self.assertRaisesRegex(
-            ValueError, 'sum to 1', s.set_default_state, dstate)
         dstate[0] = -.1
-        dstate[1] = 1.1
         self.assertRaisesRegex(
-            ValueError, 'negative', s.set_default_state, dstate)
+            ValueError, 'must be in the range', s.set_default_state, dstate)
+        state[0] = 0
+        state[1] = 1.1
+        self.assertRaisesRegex(
+            ValueError, 'must be in the range', s.set_default_state, dstate)
 
     def test_against_cvode(self):
         # Validate against a cvode sim.

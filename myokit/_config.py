@@ -16,6 +16,7 @@ import myokit
 
 # Load libraries
 import os
+import sys
 import logging
 import platform
 
@@ -188,6 +189,25 @@ def _load():
     if not os.path.isfile(path):
         _create(path)
 
+    # In Python <3.2, strings like "x ; y" are treated as "x" followed by a
+    # comment. These shouldn't appear in myokit ini files!
+    if sys.hexversion < 0x03020000:     # pragma: no cover
+        with open(path, 'r') as f:
+            lines = f.readlines()
+
+        import re
+        inline_comment = re.compile('[\w]+[\s]*=[\s]*.+?\s+(;)')
+        for i, line in enumerate(lines):
+            m = inline_comment.match(line)
+            if m is not None:
+                x = m.start(1) - 1
+                raise ImportError(
+                    'Unsupported syntax found in ' + str(path) + ' on line '
+                    + str(1 + i) + ', character ' + str(x) + ', semicolons (;)'
+                    + ' must not be preceded by whitespace: ```'
+                    + line.strip() + '```.')
+        del(lines, inline_comment)
+
     # Create the config parser (no value allows comments)
     config = ConfigParser(allow_no_value=True)
 
@@ -245,11 +265,9 @@ def _load():
 
     # Sundials libraries, header files, and version
     if config.has_option('sundials', 'lib'):
-        for x in config.get('sundials', 'lib').split(';'):
-            myokit.SUNDIALS_LIB.append(x.strip())
+        myokit.SUNDIALS_LIB.extend(_path_list(config.get('sundials', 'lib')))
     if config.has_option('sundials', 'inc'):
-        for x in config.get('sundials', 'inc').split(';'):
-            myokit.SUNDIALS_INC.append(x.strip())
+        myokit.SUNDIALS_INC.extend(_path_list(config.get('sundials', 'inc')))
     if config.has_option('sundials', 'version'):
         try:
             myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
@@ -278,11 +296,9 @@ def _load():
 
     # OpenCL libraries and header files
     if config.has_option('opencl', 'lib'):
-        for x in config.get('opencl', 'lib').split(';'):
-            myokit.OPENCL_LIB.append(x.strip())
+        myokit.OPENCL_LIB.extend(_path_list(config.get('opencl', 'lib')))
     if config.has_option('opencl', 'inc'):
-        for x in config.get('opencl', 'inc').split(';'):
-            myokit.OPENCL_INC.append(x.strip())
+        myokit.OPENCL_INC.extend(_path_list(config.get('opencl', 'inc')))
 
 
 def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
@@ -301,6 +317,12 @@ def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
         myokit.SUNDIALS_LIB.append(os.path.join(sundials_win, 'lib'))
     if len(myokit.SUNDIALS_INC) == 0:
         myokit.SUNDIALS_INC.append(os.path.join(sundials_win, 'include'))
+
+
+def _path_list(text):
+    return [
+        os.path.expandvars(os.path.expanduser(x))
+        for x in [x.strip() for x in text.split(';')] if x != '']
 
 
 # Load settings

@@ -4,17 +4,17 @@
 CellML
 ******
 
-An interface for importing CellML 1.0 and up is provided, as well as an export
-to CellML 1.0.
-For further CellML functions, see :ref:`CellML API <formats/cellml_v1>`
+Methods to import and export CellML 1.0, 1.1, and 2.0 are provided.
+For further CellML functions, see :ref:`CellML 1 API <formats/cellml_v1>` and
+:ref:`CellML 2 API <formats/cellml_v2>`.
 
 Importing
 =========
 
 Myokit can import most models listed in the CellML electrophysiology
 repository.
-(Although take care, some of the CellML versions of models are known issues.
-This is usually mentioned in their documentation).
+(Although take care, some of the CellML versions of models are known to
+have issues. This is usually mentioned in their documentation).
 
 Adapting an embedded stimulus current
 -------------------------------------
@@ -89,18 +89,13 @@ Now let's import the model in code, without automatic conversion:
 
 Exporting
 =========
-Myokit provides an export to CellML 1.0.
+Myokit provides an export to CellML 1.0, 1.1, and 2.0.
+
 Since Myokit separates the model from the pacing protocol, but most CellML
 based tools do not expect this, Myokit has an option to embed a hardcoded
 stimulus protocol in exported CellML files.
-This is enabled by default but can be disabled when exporting models via the
-API (see :class:`CellMLExporter <myokit.formats.cellml.CellMLExporter>`).
-
-Note that the protocol has a default duration of 2ms, making it suitable for
-most older models but not the more modern ones.
-For models that require shorter stimulus currents, adapt the CellML model by
-searching for a component named "stimulus" (or "stimulus\_2" if that name was
-already taken) and changing the "duration" variable.
+This can be done by passing a myokit Protocol to the exporter along with
+the model to export.
 
 
 Imports, exporters, and expression writers
@@ -111,13 +106,18 @@ Imports, exporters, and expression writers
 .. autofunction:: importers
 
 .. autoclass:: CellMLImporter
-    :inherited-members:
 
 .. autoclass:: CellMLImporterError
 
 .. autofunction:: exporters
 
 .. autoclass:: CellMLExporter
+    :inherited-members:
+
+.. autoclass:: CellML1Exporter
+    :inherited-members:
+
+.. autoclass:: CellML2Exporter
     :inherited-members:
 
 .. autofunction:: ewriters

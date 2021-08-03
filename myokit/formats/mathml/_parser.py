@@ -8,7 +8,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
-from myokit.mxml import split
+from myokit.formats.xml import split
 
 
 def parse_mathml_string(s):
@@ -47,18 +47,6 @@ def parse_mathml_etree(
     """
     p = MathMLParser(name_factory, number_factory, free_variables)
     return p.parse(element)
-
-
-def parse_mathml_dom(node, var_table=None, logger=None):
-    """
-    Legacy method to parse MathML with the `xml.dom.minidom` interface.
-    """
-    import xml.etree.ElementTree as etree
-    p = MathMLParser(
-        lambda x, y: myokit.Name(var_table[x]),
-        lambda x, y: myokit.Number(x),
-    )
-    return p.parse(etree.fromstring(node.toxml()))
 
 
 class MathMLError(myokit.ImportError):
@@ -103,7 +91,8 @@ class MathMLParser(object):
     Literals and references
 
     ``<ci>``
-        Becomes a :class:`myokit.Name`.
+        Is converted to a :class:`myokit.Name` by passing the contents of the
+        ``ci`` tag to the ``name_factory``.
     ``<diff>`` (with ``<bvar>`` and ``<degree>``)
         Becomes a :class:`myokit.Derivative`. Only first-order derivatives are
         supported. To check if the derivatives are all time-derivatives, the
@@ -112,6 +101,10 @@ class MathMLParser(object):
         Becomes a :class:`myokit.Number`. To process units which may be present
         in the tag's attributes (esp. in CellML) the number post-processing
         function can be used.
+    ``<csymbol>``
+        Is converted to a :class:`myokit.Name` by passing the contents of its
+        ``definitionURL`` to the ``name_factory``. Note that ``csymbols``
+        representing operators or functions are not supported.
 
     Algebra
 
@@ -176,11 +169,11 @@ class MathMLParser(object):
     ``<tanh>``
         Becomes ``(exp(2 * x) - 1) / (exp(2 * x) + 1)``.
     ``<arcsinh>``
-        Becomes ``log(x + sqrt(1 + x*x))``.
+        Becomes ``log(x + sqrt(x*x + 1))``.
     ``<arccosh>``
-        Becomes ``log(x + sqrt(x + 1) * sqrt(x - 1))``.
+        Becomes ``log(x + sqrt(x*x - 1))``.
     ``<arctanh>``
-        Becomes ``0.5 * (log(1 + x) - log(1 - x))``.
+        Becomes ``0.5 * log((1 + x) / (1 - x))``.
     ``<csch>``
         Becomes ``2 / (exp(x) - exp(-x))``.
     ``<sech>``
@@ -188,11 +181,11 @@ class MathMLParser(object):
     ``<coth>``
         Becomes ``(exp(2 * x) + 1) / (exp(2 * x) - 1)``.
     ``<arccsch>``
-        Becomes ``log(sqrt(1 + 1 / x^2) + 1 / x)``.
+        Becomes ``log(1 / x + sqrt(1 / x^2 + 1))``.
     ``<arcsech>``
-        Becomes ``log(sqrt(1 / x - 1) * sqrt(1 / x + 1) + 1 / x)``
+        Becomes ``log(1 / x + sqrt(1 / x^2 - 1))``
     ``<arccoth>``
-        Becomes ``0.5 * (log(1 + 1/x) - log(1 - 1/x))``.
+        Becomes ``0.5 * log((x + 1) / (x - 1))``.
 
     Logic and relations
 
@@ -317,6 +310,9 @@ class MathMLParser(object):
         elif name == 'cn':
             return self._parse_number(element)
 
+        elif name == 'csymbol':
+            return self._parse_symbol(element)
+
         # Constants
         elif name == 'pi':
             return self._const('3.14159265358979323846')
@@ -327,6 +323,10 @@ class MathMLParser(object):
             return self._const(1)
         elif name == 'false':
             return self._const(0)
+        elif name == 'notanumber':
+            return self._const(float('nan'))
+        elif name == 'infinity':
+            return self._const(float('inf'))
 
         # Piecewise statement
         elif name == 'piecewise':
@@ -397,6 +397,11 @@ class MathMLParser(object):
             return self._parse_nary(element, iterator, myokit.And)
         elif name == 'or':
             return self._parse_nary(element, iterator, myokit.Or)
+        elif name == 'xor':
+            # Becomes ``(x or y) and not(x and y)``
+            x, y = self._eat(element, iterator, 2)
+            return myokit.And(myokit.Or(x, y), myokit.Not(myokit.And(x, y)))
+
         elif name == 'not':
             return myokit.Not(*self._eat(element, iterator))
         elif name == 'eq' or name == 'equivalent':
@@ -473,26 +478,24 @@ class MathMLParser(object):
                 myokit.Minus(e2x, self._const(1)),
                 myokit.Plus(e2x, self._const(1)))
         elif name == 'arcsinh':
-            # Inverse hyperbolic sine: asinh(x) = log(x + sqrt(1 + x*x))
+            # Inverse hyperbolic sine: asinh(x) = log(x + sqrt(x*x + 1))
             x = self._eat(element, iterator)[0]
             return myokit.Log(myokit.Plus(x, myokit.Sqrt(myokit.Plus(
-                self._const(1), myokit.Multiply(x, x)))))
+                myokit.Multiply(x, x), self._const(1)))))
         elif name == 'arccosh':
             # Inverse hyperbolic cosine:
-            #   acosh(x) = log(x + sqrt(x + 1) * sqrt(x - 1))
+            #   acosh(x) = log(x + sqrt(x*x - 1))
             x = self._eat(element, iterator)[0]
-            return myokit.Log(
-                myokit.Plus(x, myokit.Multiply(
-                    myokit.Sqrt(myokit.Plus(x, self._const(1))),
-                    myokit.Sqrt(myokit.Minus(x, self._const(1))))))
+            return myokit.Log(myokit.Plus(x, myokit.Sqrt(myokit.Minus(
+                myokit.Multiply(x, x), self._const(1)))))
         elif name == 'arctanh':
             # Inverse hyperbolic tangent:
-            #   atanh(x) = 0.5 * (log(1 + x) - log(1 - x))
+            #   atanh(x) = 0.5 * log((1 + x) / (1 - x))
             x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                self._const(0.5), myokit.Minus(
-                    myokit.Log(myokit.Plus(self._const(1), x)),
-                    myokit.Log(myokit.Minus(self._const(1), x))))
+                self._const(0.5), myokit.Log(myokit.Divide(
+                    myokit.Plus(self._const(1), x),
+                    myokit.Minus(self._const(1), x))))
 
         # Hyperbolic redundant trig
         elif name == 'csch':
@@ -517,51 +520,30 @@ class MathMLParser(object):
                 myokit.Minus(e2x, self._const(1)))
         elif name == 'arccsch':
             # Inverse hyperbolic cosecant:
-            #   arccsch(x) = log(sqrt(1/(x*x) + 1) + 1/x)
+            #   arccsch(x) = log(1 / x + sqrt(1 / x^2 + 1))
             x = self._eat(element, iterator)[0]
-            return myokit.Log(
-                myokit.Plus(
-                    myokit.Sqrt(
-                        myokit.Plus(
-                            myokit.Divide(
-                                self._const(1),
-                                myokit.Multiply(x, x)
-                            ),
-                            self._const(1)
-                        )
-                    ),
-                    myokit.Divide(self._const(1), x))
-            )
+            return myokit.Log(myokit.Plus(
+                myokit.Divide(self._const(1), x),
+                myokit.Sqrt(myokit.Plus(
+                    myokit.Divide(self._const(1), myokit.Multiply(x, x)),
+                    self._const(1)))))
         elif name == 'arcsech':
             # Inverse hyperbolic secant:
-            #   arcsech(x) = log(sqrt(1/(x*x) - 1) + 1/x)
+            #   arcsech(x) = log(1 / x + sqrt(1 / x^2 - 1))
             x = self._eat(element, iterator)[0]
-            return myokit.Log(
-                myokit.Plus(
-                    myokit.Sqrt(
-                        myokit.Minus(
-                            myokit.Divide(
-                                self._const(1),
-                                myokit.Multiply(x, x)
-                            ),
-                            self._const(1)
-                        )
-                    ),
-                    myokit.Divide(self._const(1), x))
-            )
+            return myokit.Log(myokit.Plus(
+                myokit.Divide(self._const(1), x),
+                myokit.Sqrt(myokit.Minus(
+                    myokit.Divide(self._const(1), myokit.Multiply(x, x)),
+                    self._const(1)))))
         elif name == 'arccoth':
             # Inverse hyperbolic cotangent:
-            #   arccoth(x) = 0.5 * (log(3 + 1) - log(3 - 1))
+            #   arccoth(x) = 0.5 * log((x + 1) / (x - 1))
             x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                self._const(0.5),
-                myokit.Log(
-                    myokit.Divide(
-                        myokit.Plus(x, self._const(1)),
-                        myokit.Minus(x, self._const(1))
-                    )
-                )
-            )
+                self._const(0.5), myokit.Log(myokit.Divide(
+                    myokit.Plus(x, self._const(1)),
+                    myokit.Minus(x, self._const(1)))))
 
         # Last option: A single atomic inside an apply
         # Do this one last to stop e.g. <apply><times /></apply> returning the
@@ -739,6 +721,8 @@ class MathMLParser(object):
                     element)
 
             # Get value
+            if element.text is None:
+                raise MathMLError('Empty <cn> element', element)
             try:
                 value = float(element.text.strip())
             except ValueError:
@@ -757,6 +741,8 @@ class MathMLParser(object):
                     element)
 
             # Get value
+            if element.text is None:
+                raise MathMLError('Empty <cn> element', element)
             try:
                 value = int(element.text.strip(), base)
             except ValueError:
@@ -767,6 +753,8 @@ class MathMLParser(object):
         elif kind == 'double':
             # Floating point (positive, negative, exponents, etc)
 
+            if element.text is None:
+                raise MathMLError('Empty <cn> element', element)
             try:
                 value = float(element.text.strip())
             except ValueError:
@@ -941,12 +929,31 @@ class MathMLParser(object):
         Parses a ``<ci>`` element and returns a :class:`myokit.Name` created by
         the name factory.
         """
-
         if element.text is None:
             raise MathMLError(
                 '<ci> element must contain a variable name.', element)
+
+        symbol = element.text.strip()
         try:
-            return self._vfac(element.text.strip(), element)
+            return self._vfac(symbol, element)
         except Exception as e:
             raise MathMLError('Unable to create Name: ' + str(e), element)
+
+    def _parse_symbol(self, element):
+        """
+        Parses only ``<csymbol>`` elements that represent special variables
+        and returns a :class:`myokit.Name` created by the name factory.
+        """
+        symbol = element.get('definitionURL')
+        if symbol is None:
+            raise MathMLError(
+                '<csymbol> element must contain a definitionURL attribute.',
+                element)
+
+        symbol = symbol.strip()
+        try:
+            return self._vfac(symbol, element)
+        except Exception as e:
+            raise MathMLError(
+                'Unable to create Name from csymbol: ' + str(e), element)
 

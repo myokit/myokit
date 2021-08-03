@@ -410,7 +410,8 @@ class HHModel(object):
             parameters = [
                 x for x in component.variables(const=True) if x.is_literal()]
             # Sort by qname, using natural sort
-            parameters.sort(key=lambda x: myokit._natural_sort_key(x.qname()))
+            parameters.sort(
+                key=lambda x: myokit.tools.natural_sort_key(x.qname()))
 
         # Get current
         if current is None:
@@ -848,11 +849,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
-        if np.any(state < 0):
+        if np.any(state < 0) or np.any(state > 1):
             raise ValueError(
-                'The fraction of channels in a state cannot be negative.')
-        if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+                'All states must be in the range [0, 1].')
         self._default_state = state
 
     def set_membrane_potential(self, v):
@@ -883,11 +882,9 @@ class AnalyticalSimulation(object):
             raise ValueError(
                 'Wrong size state vector, expecing (' + str(len(self._state))
                 + ') values.')
-        if np.any(state < 0):
+        if np.any(state < 0) or np.any(state > 1):
             raise ValueError(
-                'The fraction of channels in a state cannot be negative.')
-        if np.abs(np.sum(state) - 1) > 1e-6:
-            raise ValueError('The values in `state` must sum to 1.')
+                'All states must be in the range [0, 1].')
         self._state = state
 
     def solve(self, times):

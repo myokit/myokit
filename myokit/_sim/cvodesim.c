@@ -71,6 +71,7 @@ bound_variables = model.prepare_bindings({
 # Get equations
 equations = model.solvable_order()
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdio.h>
 #include <math.h>
@@ -126,34 +127,34 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -2 CV_TOO_MUCH_ACC: The solver could not satisfy the accuracy demanded by the user for some internal step.");
                     break;
                 case -3:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -3 CV_ERR_FAILURE: Error test failures occurred too many times during one internal time step or minimum step size was reached.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -3 CV_ERR_FAILURE: Error test failures occurred too many times during one internal time step or minimum step size was reached.");
                     break;
                 case -4:
                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -4 CV_CONV_FAILURE: Convergence test failures occurred too many times during one internal time step or minimum step size was reached.");
                     break;
                 case -5:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -5 CV_LINIT_FAIL: The linear solver's initialization function failed.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -5 CV_LINIT_FAIL: The linear solver's initialization function failed.");
                     break;
                 case -6:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -6 CV_LSETUP_FAIL: The linear solver's setup function failed in an unrecoverable manner.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -6 CV_LSETUP_FAIL: The linear solver's setup function failed in an unrecoverable manner.");
                     break;
                 case -7:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -7 CV_LSOLVE_FAIL: The linear solver's solve function failed in an unrecoverable manner.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -7 CV_LSOLVE_FAIL: The linear solver's solve function failed in an unrecoverable manner.");
                     break;
                 case -8:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -8 CV_RHSFUNC_FAIL: The right-hand side function failed in an unrecoverable manner.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -8 CV_RHSFUNC_FAIL: The right-hand side function failed in an unrecoverable manner.");
                     break;
                 case -9:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -9 CV_FIRST_RHSFUNC_ERR: The right-hand side function failed at the first call.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -9 CV_FIRST_RHSFUNC_ERR: The right-hand side function failed at the first call.");
                     break;
                 case -10:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -10 CV_REPTD_RHSFUNC_ERR: The right-hand side function had repeated recoverable errors.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -10 CV_REPTD_RHSFUNC_ERR: The right-hand side function had repeated recoverable errors.");
                     break;
                 case -11:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -11 CV_UNREC_RHSFUNC_ERR: The right-hand side function had a recoverable error, but no recovery is possible.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -11 CV_UNREC_RHSFUNC_ERR: The right-hand side function had a recoverable error, but no recovery is possible.");
                     break;
                 case -12:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -12 CV_RTFUNC_FAIL: The rootfinding function failed in an unrecoverable manner.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -12 CV_RTFUNC_FAIL: The rootfinding function failed in an unrecoverable manner.");
                     break;
                 case -20:
                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -20 CV_MEM_FAIL: A memory allocation failed.");
@@ -211,7 +212,7 @@ static long engine_steps = 0;
 <?
 for var in model.variables(state=False, deep=True):
     if var.is_literal():
-        print('static realtype ' + v(var) + ' = ' + myokit.strfloat(var.rhs().eval()) + ';')
+        print('static realtype ' + v(var) + ' = ' + myokit.float.str(var.rhs().eval()) + ';')
     else:
         print('static realtype ' + v(var) + ';')
 ?>
@@ -371,6 +372,24 @@ log_add(PyObject* log_dict, PyObject** logs, realtype** vars, int i, const char*
     }
     Py_DECREF(key);
     return added;
+}
+
+/*
+ * Error and warning message handler for CVODE.
+ * Error messages are already set via check_cvode_flag, so this method
+ * suppresses error messages.
+ * Warnings are passed to Python's warning system, where they can be
+ * caught or suppressed using the warnings module.
+ */
+void
+ErrorHandler(int error_code, const char *module, const char *function,
+             char *msg, void *eh_data)
+{
+    char errstr[1024];
+    if (error_code > 0) {
+        sprintf(errstr, "CVODE: %s", msg);
+        PyErr_WarnEx(PyExc_RuntimeWarning, errstr, 1);
+    }
 }
 
 /*
@@ -787,47 +806,51 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     /* Create solver
      * Using Backward differentiation and Newton iteration */
     #if USE_CVODE > 0
-        #if MYOKIT_SUNDIALS_VERSION >= 40000
-            cvode_mem = CVodeCreate(CV_BDF);
-        #else
-            cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
-        #endif
-        if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+    #if MYOKIT_SUNDIALS_VERSION >= 40000
+        cvode_mem = CVodeCreate(CV_BDF);
+    #else
+        cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+    #endif
+    if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
 
-        /* Initialise solver memory, specify the rhs */
-        flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
-        if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
+    /* Set error and warning-message handler */
+    flag_cvode = CVodeSetErrHandlerFn(cvode_mem, ErrorHandler, NULL);
+    if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
-        /* Set absolute and relative tolerances */
-        flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
-        if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
+    /* Initialise solver memory, specify the rhs */
+    flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
+    if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
-        /* Set a maximum step size (or 0.0 for none) */
+    /* Set absolute and relative tolerances */
+    flag_cvode = CVodeSStolerances(cvode_mem, RCONST(rel_tol), RCONST(abs_tol));
+    if (check_cvode_flag(&flag_cvode, "CVodeSStolerances", 1)) return sim_clean();
 
-        flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
+    /* Set a maximum step size (or 0.0 for none) */
 
-        /* Set a minimum step size (or 0.0 for none) */
-        flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
-        if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
+    flag_cvode = CVodeSetMaxStep(cvode_mem, dt_max);
+    if (check_cvode_flag(&flag_cvode, "CVodeSetmaxStep", 1)) return sim_clean();
 
-        #if MYOKIT_SUNDIALS_VERSION >= 30000
-            /* Create dense matrix for use in linear solves */
-            sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
-            if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+    /* Set a minimum step size (or 0.0 for none) */
+    flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
+    if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-            /* Create dense linear solver object with matrix */
-            sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
-            if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+    #if MYOKIT_SUNDIALS_VERSION >= 30000
+        /* Create dense matrix for use in linear solves */
+        sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
+        if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
 
-            /* Attach the matrix and solver to cvode */
-            flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
-            if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
-        #else
-            /* Create dense matrix for use in linear solves */
-            flag_cvode = CVDense(cvode_mem, N_STATE);
-            if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
-        #endif
+        /* Create dense linear solver object with matrix */
+        sundense_solver = SUNDenseLinearSolver(y, sundense_matrix);
+        if(check_cvode_flag((void *)sundense_solver, "SUNDenseLinearSolver", 0)) return sim_clean();
+
+        /* Attach the matrix and solver to cvode */
+        flag_cvode = CVDlsSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+        if(check_cvode_flag(&flag_cvode, "CVDlsSetLinearSolver", 1)) return sim_clean();
+    #else
+        /* Create dense matrix for use in linear solves */
+        flag_cvode = CVDense(cvode_mem, N_STATE);
+        if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
+    #endif
     #endif
 
     /* Benchmarking? Then set engine_realtime to 0.0 */
@@ -975,31 +998,31 @@ sim_step(PyObject *self, PyObject *args)
 
         #if USE_CVODE
 
-            /* Take a single ODE step */
-            flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
+        /* Take a single ODE step */
+        flag_cvode = CVode(cvode_mem, tnext, y, &engine_time, CV_ONE_STEP);
 
-            /* Check for errors */
-            if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
-                /* Something went wrong... Set outputs and return */
-                for(i=0; i<N_STATE; i++) {
-                    PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
-                    /* PyList_SetItem steals a reference: no need to decref the double! */
-                }
-                PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
-                PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
-                PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
-                PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
-                return sim_clean();
+        /* Check for errors */
+        if (check_cvode_flag(&flag_cvode, "CVode", 1)) {
+            /* Something went wrong... Set outputs and return */
+            for(i=0; i<N_STATE; i++) {
+                PyList_SetItem(state_out, i, PyFloat_FromDouble(NV_Ith_S(y_last, i)));
+                /* PyList_SetItem steals a reference: no need to decref the double! */
             }
+            PyList_SetItem(inputs, 0, PyFloat_FromDouble(engine_time));
+            PyList_SetItem(inputs, 1, PyFloat_FromDouble(engine_pace));
+            PyList_SetItem(inputs, 2, PyFloat_FromDouble(engine_realtime));
+            PyList_SetItem(inputs, 3, PyFloat_FromDouble(engine_evaluations));
+            return sim_clean();
+        }
 
         #else
 
-            /* Just jump to next event */
-            /* Note 1: To stay compatible with cvode-mode, don't jump to the
-               next log time (if tlog < tnext) */
-            /* Note 2: tnext can be infinity, so don't always jump there. */
-            engine_time = (tmax > tnext) ? tnext : tmax;
-            flag_cvode = CV_SUCCESS;
+        /* Just jump to next event */
+        /* Note 1: To stay compatible with cvode-mode, don't jump to the
+           next log time (if tlog < tnext) */
+        /* Note 2: tnext can be infinity, so don't always jump there. */
+        engine_time = (tmax > tnext) ? tnext : tmax;
+        flag_cvode = CV_SUCCESS;
 
         #endif
 
@@ -1077,8 +1100,8 @@ sim_step(PyObject *self, PyObject *args)
 
                     /* Get interpolated y(tlog) */
                     #if USE_CVODE
-                        flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
-                        if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
+                    flag_cvode = CVodeGetDky(cvode_mem, tlog, 0, y_log);
+                    if (check_cvode_flag(&flag_cvode, "CVodeGetDky", 1)) return sim_clean();
                     #endif
                     /* If cvode-free mode, the state can't change so we don't
                        need to do anything here */
@@ -1196,6 +1219,7 @@ sim_step(PyObject *self, PyObject *args)
         }
 
         /* Check if we're finished */
+        if (ESys_eq(engine_time, tmax)) engine_time = tmax;
         if (engine_time >= tmax) break;
 
         /* Perform any Python signal handling */

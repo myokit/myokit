@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the parser
 #
@@ -34,7 +34,7 @@ class PypeTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'dict', e.process, 'file.txt', [])
 
-        with myokit.PyCapture():
+        with myokit.tools.capture():
 
             # Test not-a-file
             self.assertRaises(IOError, e.process, 'file.txt', {})

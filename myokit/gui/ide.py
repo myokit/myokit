@@ -14,6 +14,7 @@ import os
 import sys
 import textwrap
 import traceback
+import warnings
 
 # Myokit
 import myokit
@@ -35,7 +36,6 @@ from . import vargrapher
 # Matplotlib.pyplot must be imported _after_ myokit.gui has set the backend
 import matplotlib
 matplotlib.interactive(True)        # Allows plt.show()
-import matplotlib.pyplot as plt     # noqa -- Make flake8 ignore this line
 
 # ConfigParser in Python 2 and 3
 try:
@@ -248,13 +248,20 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
         # Open select file, recent file or start new
         if filename is not None:
-            # Attempt to open selected file. If it doesn't work, show an error
-            # message, as this is something the user explicitly requested.
-            try:
-                self.load_file(filename)
-            except Exception:
-                self._console.write('Error loading file: ' + str(filename))
-                self.show_exception()
+            # Load or import file, based on extension
+            # If it doesn't work, show an error message, as this is something
+            # the user explicitly requested.
+            base, ext = os.path.splitext(filename)
+            ext = ext.lower()[1:]
+            if ext == 'cellml':
+                self.action_import_model_internal('cellml', filename)
+            else:
+                # Open as mmt
+                try:
+                    self.load_file(filename)
+                except Exception:
+                    self._console.write('Error loading file: ' + str(filename))
+                    self.show_exception()
         else:
             if self._file is not None:
                 # Try loading the last file, but if it goes wrong continue
@@ -386,6 +393,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays a component dependency graph
         """
+        import matplotlib.pyplot as plt
         try:
             model = self.model(errors_in_console=True)
             if not model:
@@ -464,50 +472,71 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except Exception:
             self.show_exception()
 
-    def action_export_model(self, name, glob=None):
+    def action_export_model(self, name, ext=None, glob=None):
         """
         Exports the model to a file.
 
         Arguments:
 
         ``name``
-            The exporter name
+            The exporter name.
+        ``ext``
+            An optional default file extension to create a suggested filename.
         ``glob``
-            A filter for the file selection method.
+            An optional filter for the file selection method.
 
         """
         try:
+            # Get model
             m = self.model(errors_in_console=True)
             if m is False:
                 return
 
+            # Create exporter
             e = myokit.formats.exporter(name)
-            e.logger().log(e.info())
             if not e.supports_model():
                 raise Exception('Exporter does not support export of model')
 
+            # Suggest a path
+            if ext is None:
+                path = self._path
+            elif self._file is None:
+                path = os.path.join(self._path, 'new-model' + ext)
+            else:
+                path = os.path.splitext(self._file)[0] + ext
+
+            # Ask for real path
             filename = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 'Select file to export to',
-                self._path,
+                path,
                 filter=glob)[0]
             if not filename:
                 return
 
-            try:
-                if name == 'cellml':
-                    p = self.protocol(errors_in_console=True)
-                    if p is False:
-                        p = None
-                    e.model(filename, m, p)
-                else:
-                    e.model(filename, m)
+            ex = None
+            with warnings.catch_warnings(record=True) as ws:
+                try:
+                    if name in ('cellml1', 'cellml2'):
+                        p = self.protocol(errors_in_console=True)
+                        if p is False:
+                            p = None
+                        e.model(filename, m, p)
+                    else:
+                        e.model(filename, m)
+                except myokit.ExportError as ex:
+                    pass
+            for w in ws:
+                self._console.write('Warning: ' + str(w.message))
 
-                msg = 'Export successful.'
-            except myokit.ExportError:
-                msg = 'Export failed.'
-
-            self._console.write(msg + '\n' + e.logger().text())
+            if ex is None:
+                self._console.write('Export successful.')
+                info = e.post_export_info()
+                if info:
+                    self._console.write(info)
+            else:
+                self._console.write('Export failed.')
+                self._console.write(str(ex))
 
         except Exception:
             self.show_exception()
@@ -530,22 +559,36 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             p = self.protocol(errors_in_console=True)
             if p is False:
                 return
+
             # Create exporter & test compatibility
             e = myokit.formats.exporter(name)
             if not e.supports_runnable():
                 raise Exception('Exporter does not support export of runnable')
+
             # Select dir
             path = QtWidgets.QFileDialog.getSaveFileName(
                 self, 'Create directory', self._path)[0]
             if not path:
                 return
-            try:
-                e.runnable(path, m, p)
-                msg = 'Export successful.'
-                e.logger().log(e.info())
-            except myokit.ExportError:
-                msg = 'Export failed.'
-            self._console.write(msg + '\n' + e.logger().text())
+
+            ex = None
+            with warnings.catch_warnings(record=True) as ws:
+                try:
+                    e.runnable(path, m, p)
+                except myokit.ExportError as ex:
+                    pass
+            for w in ws:
+                self._console.write('Warning: ' + str(w.message))
+
+            if ex is None:
+                self._console.write('Export successful.')
+                info = e.post_export_info()
+                if info:
+                    self._console.write(info)
+            else:
+                self._console.write('Export failed.')
+                self._console.write(str(ex))
+
         except Exception:
             self.show_exception()
 
@@ -588,36 +631,52 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                 self, 'Open ABF file', self._path, filter=FILTER_ABF)[0]
             if not filename:
                 return
-            # Load file
+
+            # Create importer
             i = myokit.formats.importer('abf')
-            try:
-                protocol = i.protocol(filename)
-                # Import okay, update interface
-                self.new_file()
-                self._protocol_editor.setPlainText(protocol.code())
-                self._console.write(
-                    'Protocol imported successfully.\n' + i.logger().text())
-                # Set working directory to file's path
-                self._path = os.path.dirname(filename)
-                os.chdir(self._path)
-                # Save settings file
+
+            # Import
+            exception = None
+            with warnings.catch_warnings(record=True) as ws:
                 try:
-                    self.save_config()
-                except Exception:
-                    pass
-                # Update interface
-                self._tool_save.setEnabled(True)
-                self.update_window_title()
-            except myokit.ImportError:
-                self._console.write(
-                    'Protocol import failed.\n' + i.logger().text())
+                    protocol = i.protocol(filename)
+                except myokit.ImportError as ex:
+                    exception = ex
+            for w in ws:
+                self._console.write('Warning: ' + str(w.message))
+
+            # Handle failure
+            if exception is not None:
+                self._console.write('Protocol import failed.')
+                self._console.write(str(exception))
                 self.statusBar().showMessage('Protocol import failed.')
+                return
+
+            # Import okay, update interface
+            self.new_file()
+            self._protocol_editor.setPlainText(protocol.code())
+            self._console.write('Protocol imported successfully.')
+
+            # Set working directory to file's path
+            self._path = os.path.dirname(filename)
+            os.chdir(self._path)
+
+            # Save settings file
+            try:
+                self.save_config()
+            except Exception:
+                pass
+
+            # Update interface
+            self._tool_save.setEnabled(True)
+            self.update_window_title()
+
         except Exception:
             self.show_exception()
 
     def action_import_model(self, name, glob=None):
         """
-        Imports a model definition.
+        Imports a model definition (asking the user for the filename).
 
         Arguments:
 
@@ -635,56 +694,76 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if not filename:
                 return
 
+            self.action_import_model_internal(name, filename)
+
+        except Exception:
+            self.show_exception()
+
+    def action_import_model_internal(self, importer, filename):
+        """
+        Imports a model file, with a known filename.
+
+        Arguments:
+
+        ``importer``
+            The name of the importer to use.
+        ``filename``
+            The file to import.
+
+        """
+        try:
             # Set working directory to file's path
             self._path = os.path.dirname(filename)
             os.chdir(self._path)
 
             # Load file
-            i = myokit.formats.importer(name)
-            try:
-                # Import the model
-                model = i.model(filename)
+            i = myokit.formats.importer(importer)
 
-                # Try to split off protocol
-                protocol = myokit.lib.guess.remove_embedded_protocol(model)
-
-                # No protocol? Then create one
-                if protocol is None:
-                    protocol = myokit.default_protocol(model)
-
-                # Get default script
-                script = myokit.default_script(model)
-
-                # Import okay, update interface
-                self.new_file()
-                self._model_editor.setPlainText(model.code())
-                self._protocol_editor.setPlainText(protocol.code())
-                self._script_editor.setPlainText(script)
-
-                # Write log to console
-                i.logger().log_warnings()
-                self._console.write(
-                    'Model imported successfully.\n' + i.logger().text())
-
-                # Save settings file
+            # Import the model
+            exception = None
+            with warnings.catch_warnings(record=True) as ws:
                 try:
-                    self.save_config()
-                except Exception:
-                    pass
+                    model = i.model(filename)
+                except myokit.ImportError as e:
+                    exception = e
+            for w in ws:
+                self._console.write('Warning: ' + str(w.message))
 
-                # Update interface
-                self._tool_save.setEnabled(True)
-                self.update_window_title()
-
-            except myokit.ImportError as e:
-
-                # Write output to console
-                i.logger().log_warnings()
-                self._console.write(
-                    'Model import failed.\n' + i.logger().text()
-                    + '\n\nModel import failed.\n' + str(e))
+            # Import failed?
+            if exception is not None:
+                self._console.write('Model import failed.')
+                self._console.write(str(exception))
                 self.statusBar().showMessage('Model import failed.')
+                return
 
+            # Try to split off protocol
+            protocol = myokit.lib.guess.remove_embedded_protocol(model)
+
+            # No protocol? Then create one
+            if protocol is None:
+                protocol = myokit.default_protocol(model)
+
+            # Get default script
+            script = myokit.default_script(model)
+
+            # Import okay, update interface
+            self.new_file()
+            self._model_editor.setPlainText(model.code())
+            self._protocol_editor.setPlainText(protocol.code())
+            self._script_editor.setPlainText(script)
+
+            # Write log to console
+            self._console.write('Model imported successfully.')
+
+            # Save settings file
+            try:
+                self.save_config()
+            except Exception:
+                pass
+
+            # Update interface
+            self._tool_save.setEnabled(True)
+            self.update_window_title()
         except Exception:
             self.show_exception()
 
@@ -822,6 +901,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays a preview of the current protocol.
         """
+        import matplotlib.pyplot as plt
         try:
             p = self.protocol(errors_in_console=True)
             if p is False:
@@ -990,6 +1070,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays a state dependency matrix.
         """
+        import matplotlib.pyplot as plt
         try:
             # Validate model
             model = self.model(errors_in_console=True)
@@ -1030,9 +1111,32 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         Validates the model and, if the model is valid, the protocol.
         """
         try:
-            if not self.model(console=True):
-                return
+            self.model(console=True)
             self.protocol(console=True)
+        except Exception:
+            self.show_exception()
+
+    def action_variable_definition(self):
+        """
+        Jump to the variable pointed at by the caret.
+        """
+        try:
+            if self._editor_tabs.currentWidget() != self._model_editor:
+                self._console.write(
+                    'Variable info can only be displayed for model variables.')
+                return
+            var = self.selected_variable()
+            if var is False:
+                return  # Model error
+            elif var is None:
+                self._console.write(
+                    'No variable selected. Please select a variable in the'
+                    ' model editing tab.')
+                return
+            # Jump! (you might as well)
+            line = var.model().show_line_of(var, raw=True)
+            self.statusBar().showMessage('Jumping to line ' + str(line) + '.')
+            self._model_editor.jump_to(line - 1, 0)
         except Exception:
             self.show_exception()
 
@@ -1062,6 +1166,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         """
         Displays a variable dependency graph
         """
+        import matplotlib.pyplot as plt
         try:
             model = self.model(errors_in_console=True)
             if not model:
@@ -1092,6 +1197,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
                     ' model editing tab.')
                 return
             self._console.write(var.model().show_evaluation_of(var))
+        except myokit.NumericalError as e:
+            self._console.write('Numerical Error' + str(e))
         except Exception:
             self.show_exception()
 
@@ -1630,14 +1737,24 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_import_cellml.triggered.connect(
             lambda: self.action_import_model('cellml', FILTER_CELLML))
         self._menu_convert.addAction(self._tool_import_cellml)
-        # Convert > Export CellML
-        self._tool_export_cellml = QtWidgets.QAction(
-            'Export model to CellML', self)
-        self._tool_export_cellml.setStatusTip(
-            'Export a model definition to a CellML document')
-        self._tool_export_cellml.triggered.connect(
-            lambda: self.action_export_model('cellml', FILTER_CELLML))
-        self._menu_convert.addAction(self._tool_export_cellml)
+        # Convert > Export CellML 1
+        self._tool_export_cellml1 = QtWidgets.QAction(
+            'Export model to CellML 1.0', self)
+        self._tool_export_cellml1.setStatusTip(
+            'Export a model definition to a CellML 1.0 document.')
+        self._tool_export_cellml1.triggered.connect(
+            lambda: self.action_export_model(
+                'cellml1', '.cellml', FILTER_CELLML))
+        self._menu_convert.addAction(self._tool_export_cellml1)
+        # Convert > Export CellML 2
+        self._tool_export_cellml2 = QtWidgets.QAction(
+            'Export model to CellML 2.0', self)
+        self._tool_export_cellml2.setStatusTip(
+            'Export a model definition to a CellML 2.0 document.')
+        self._tool_export_cellml2.triggered.connect(
+            lambda: self.action_export_model(
+                'cellml2', '.cellml', FILTER_CELLML))
+        self._menu_convert.addAction(self._tool_export_cellml2)
 
         # Convert > ----
         self._menu_convert.addSeparator()
@@ -1675,7 +1792,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             'Export a model definition to an HTML document using presentation'
             ' MathML.')
         self._tool_export_html.triggered.connect(
-            lambda: self.action_export_model('html', FILTER_HTML))
+            lambda: self.action_export_model('html', '.html', FILTER_HTML))
         self._menu_convert.addAction(self._tool_export_html)
         # Convert > Export Latex
         self._tool_export_latex = QtWidgets.QAction(
@@ -1683,7 +1800,8 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_latex.setStatusTip(
             'Export a model definition to a Latex document.')
         self._tool_export_latex.triggered.connect(
-            lambda: self.action_export_model('latex-article', FILTER_LATEX))
+            lambda: self.action_export_model(
+                'latex-article', '.tex', FILTER_LATEX))
         self._menu_convert.addAction(self._tool_export_latex)
 
         # Convert > ----
@@ -1722,7 +1840,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_export_easyml.setStatusTip(
             'Export to an EasyML script for use with Carp/Carpentry.')
         self._tool_export_easyml.triggered.connect(
-            lambda: self.action_export_model('easyml'))
+            lambda: self.action_export_model('easyml', '.model'))
         self._menu_convert.addAction(self._tool_export_easyml)
 
         # Convert > Matlab
@@ -1836,6 +1954,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             'Display a graph of the selected variable.')
         self._tool_variable_graph.triggered.connect(self.action_variable_graph)
         self._menu_analysis.addAction(self._tool_variable_graph)
+        # Analysis > Jump to variable definition
+        self._tool_variable_jump = QtWidgets.QAction(
+            'Jump to variable definition', self)
+        self._tool_variable_jump.setShortcut('Ctrl+J')
+        self._tool_variable_jump.setStatusTip(
+            'Jump to the selected variable\'s definition.')
+        self._tool_variable_jump.triggered.connect(
+            self.action_variable_definition)
+        self._menu_analysis.addAction(self._tool_variable_jump)
+
         # Analysis > ----
         self._menu_analysis.addSeparator()
         # Analysis > Evaluate state derivatives

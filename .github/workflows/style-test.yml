@@ -1,0 +1,36 @@
+name: Style
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - '**'
+
+jobs:
+
+  build-and-test:
+    name: style
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Configure Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.9
+          architecture: x64
+
+      - name: Install flake8
+        run: |
+          python --version
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install flake8
+
+      - name: Run style checking
+        run: |
+          python -m flake8 --version
+          python -m flake8

@@ -1,0 +1,45 @@
+name: Ubuntu unit tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - '**'
+
+jobs:
+
+  build-and-test:
+    name: unit-ubuntu
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    strategy:
+      matrix:
+        # All Python versions except latest, which is tested by coverage.
+        python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Configure Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Install dependencies
+        run: |
+          sudo ./.github/workflows/install-ubuntu-dependencies.sh
+
+      - name: Install Myokit
+        run: |
+          python --version
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install .[optional]
+
+      - name: Run unit tests
+        run: |
+          python -m myokit system
+          python -m myokit test unit
+

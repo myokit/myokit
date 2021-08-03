@@ -7,8 +7,9 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import collections
 import os
-import logging
+import warnings
 
 import myokit.formats
 import myokit.lib.guess as guess
@@ -22,25 +23,31 @@ class EasyMLExporter(myokit.formats.Exporter):
     file in the ``EasyML`` format used by CARP/CARPEntry.
 
     For details of the language, see
-    https://carp.medunigraz.at/carputils/tutorials/tutorials/tutorials.01_EP_single_cell.05_EasyML.run.html
+    https://carpentry.medunigraz.at/carputils/examples/tutorials/tutorials.01_EP_single_cell.04_limpet_fe.run.html
     """ # noqa
     # To test the output, you'll need `$ limpet_fe.py model_file`
 
-    def info(self):
-        """ See :meth:`myokit.formats.Exporter.info()`. """
-        import inspect
-        return inspect.getdoc(self)
-
-    def model(self, path, model):
+    def model(self, path, model, protocol=None, convert_units=True):
         """
         Exports a :class:`myokit.Model` in EasyML format, writing the result to
         the file indicated by ``path``.
 
         A :class:`myokit.ExportError` will be raised if any errors occur.
+
+        Arguments:
+
+        ``path``
+            The path to write the generated model to.
+        ``model``
+            The :class:`myokit.Model` to export.
+        ``protocol``
+            A protocol - this will be ignored!
+        ``convert_units``
+            If set to ``True``, the metohd will attempt to convert to CARP's
+            preferred units for voltage (mV), current (A/F), and time (ms).
+
         """
         import myokit.formats.easyml as easyml
-
-        log = logging.getLogger(__name__)
 
         # Test model is valid
         try:
@@ -79,22 +86,47 @@ class EasyMLExporter(myokit.formats.Exporter):
         # Find currents (must be done before i_ion is removed)
         currents = guess.membrane_currents(model)
 
+        # Unit conversion
+        def convert(var, unit, helpers=None):
+            if var.unit() is None:
+                return
+            try:
+                var.convert_unit(unit, helpers=helpers)
+            except myokit.IncompatibleUnitError:
+                warnings.warn(
+                    'Unable to convert ' + var.qname() + ' to recommended'
+                    ' units of ' + str(unit) + '.')
+
         # Use recommended units
-        '''
-        recommended_current_units = [
-            myokit.parse_unit('pA/pF'),
-            myokit.parse_unit('uA/cm^2'),
-        ]
-        helpers =
-        if time.unit() is not None:
-            time.convert_unit(myokit.units.ms)
-        if vm.unit() is not None:
-            vm.convert_unit(myokit.units.mV)
-        for current in currents:
-            if current.unit() is not None:
+        time_factor = time_factor_inv = None
+        if convert_units:
+            recommended_current_units = [
+                myokit.parse_unit('pA/pF'),
+                myokit.parse_unit('uA/cm^2'),
+            ]
+            helpers = []
+            membrane_capacitance = guess.membrane_capacitance(model)
+            if membrane_capacitance is not None:
+                helpers.append(membrane_capacitance.rhs())
+            convert(vm, myokit.units.mV)
+            for current in currents:
                 if current.unit() not in recommended_current_units:
-                    current.convert_unit('uA/cm^2', helpers=helpers)
-        '''
+                    convert(current, 'A/F', helpers=helpers)
+
+            # Get conversion factor for time
+            # Multiplying by time_factor = Going from time_units to ms
+            time_unit = time.unit()
+            if time_unit is not None and time_unit != myokit.units.ms:
+                try:
+                    time_factor = myokit.Number(myokit.Unit.conversion_factor(
+                        time_unit, myokit.units.ms))
+                    time_factor_inv = myokit.Number(
+                        1 / time_factor.eval(),
+                        1 / time_factor.unit())
+                except myokit.IncompatibleUnitError:
+                    warnings.warn(
+                        'Unable to convert time units ' + str(time_unit)
+                        + ' to recommended units of ms.')
 
         # Remove time, pacing variable, diffusion current, and i_ion
         pace = model.binding('pace')
@@ -150,25 +182,51 @@ class EasyMLExporter(myokit.formats.Exporter):
         taus = {}
         infs = {}
 
-        # Find HH state variables, infs, taus, alphas, betas
+        # If an inf/tau/alpha/beta is used by more than one state, we create a
+        # copy for each user, so that we can give the variables the appropriate
+        # name (e.g. x_inf, y_inf, z_inf) etc.
+        def renamable(var):
+            srefs = [v for v in var.refs_by() if v.is_state()]
+            if len(srefs) > 1:
+                v = var.parent().add_variable_allow_renaming(var.name())
+                v.set_rhs(myokit.Name(var))
+                v.set_unit(var.unit())
+                return v
+            return var
+
+        # Find HH state variables and their infs, taus, alphas, betas
         for var in model.states():
             ret = hh.get_inf_and_tau(var, vm)
             if ret is not None:
                 ignore.add(var)
                 hh_states.add(var)
-                infs[ret[0]] = var
-                taus[ret[1]] = var
+                infs[renamable(ret[0])] = var
+                taus[renamable(ret[1])] = var
                 continue
             ret = hh.get_alpha_and_beta(var, vm)
             if ret is not None:
                 ignore.add(var)
                 hh_states.add(var)
-                alphas[ret[0]] = var
-                betas[ret[1]] = var
+                alphas[renamable(ret[0])] = var
+                betas[renamable(ret[1])] = var
                 continue
 
         hh_variables = (set(alphas.keys()) | set(betas.keys()) |
                         set(taus.keys()) | set(infs.keys()))
+
+        # Find Markov models (must be run before time conversion)
+        markov_models = markov.find_markov_models(model)
+
+        # Add time conversion factor for states and HH variables
+        if time_factor is not None:
+            for var in model.states():
+                var.set_rhs(myokit.Multiply(var.rhs(), time_factor_inv))
+            for var in alphas:
+                var.set_rhs(myokit.Multiply(var.rhs(), time_factor_inv))
+            for var in betas:
+                var.set_rhs(myokit.Multiply(var.rhs(), time_factor_inv))
+            for var in taus:
+                var.set_rhs(myokit.Multiply(var.rhs(), time_factor))
 
         # Create variable names
         # The following strategy is followed:
@@ -193,8 +251,8 @@ class EasyMLExporter(myokit.formats.Exporter):
             return name.endswith('_init') or name.endswith('_inf')
 
         # Create initial variable names
-        var_to_name = {}
-        for var in model.variables(deep=True):
+        var_to_name = collections.OrderedDict()
+        for var in model.variables(deep=True, sort=True):
 
             # Delay naming of HH variables until their state has a name
             if var in hh_variables:
@@ -225,14 +283,14 @@ class EasyMLExporter(myokit.formats.Exporter):
         reserved = [
             'Iion',
         ]
-        needs_renaming = {}
+        needs_renaming = collections.OrderedDict()
         for keyword in keywords:
             needs_renaming[keyword] = []
         for keyword in reserved:
             needs_renaming[keyword] = []
 
         # Find naming conflicts, create inverse mapping
-        name_to_var = {}
+        name_to_var = collections.OrderedDict()
         for var, name in var_to_name.items():
 
             # Known conflict?
@@ -296,44 +354,84 @@ class EasyMLExporter(myokit.formats.Exporter):
         eol = '\n'
         eos = ';\n'
         with open(path, 'w') as f:
+            # Write meta data
+            f.write('/*' + eol)
+            f.write('This file was generated by Myokit.' + eol)
+            if model.meta:
+                f.write(eol)
+                for key, val in sorted(model.meta.items()):
+                    f.write(key + ': ' + val + eol)
+                f.write(eol)
+            f.write('*/' + eol + eol)
+
             # Write membrane potential
             f.write(lhs(vm) + '; .nodal(); .external(Vm);' + eol)
 
             # Write current
-            f.write('Iion; .nodal(); .external();' + eol)
-            f.write(eol)
+            f.write('Iion; .nodal(); .external();' + eol + eol)
 
             # Write initial conditions
             for v in model.states():
-                f.write(lhs(v) + '_init = ' + myokit.strfloat(v.state_value())
+                f.write(lhs(v) + '_init = ' + myokit.float.str(v.state_value())
                         + eos)
             f.write(eol)
 
             # Write remaining variables
-            for c in model.components():
-                todo = [v for v in c.variables(deep=True) if v not in ignore]
+            for c in model.components(sort=True):
+                todo = c.variables(deep=True, sort=True)
+                todo = [v for v in todo if v not in ignore]
                 if todo:
                     f.write('// ' + c.name() + eol)
                     for v in todo:
                         f.write(e.eq(v.eq()) + eos)
                     f.write(eol)
 
+            # Write sum of currents variable
+            f.write('// Sum of currents' + eol)
+            f.write('Iion = ')
+            f.write(' + '.join([lhs(v) for v in currents]))
+            f.write(eos + eol)
+
             # Write solution methods for Markov models
-            for states in markov.find_markov_models(model):
+            markov_states = set()
+            for states in markov_models:
                 f.write('// Markov model' + eol)
                 f.write('group {' + eol)
                 for state in states:
                     if state.is_state():
                         f.write('  ' + lhs(state) + eos)
-                f.write('} .method(markov_be)' + eos)
-                f.write(eol)
+                        markov_states.add(state)
+                f.write('}.method(markov_be)' + eos + eol)
 
-            # Write sum of currents variable
-            f.write('// Sum of currents' + eol)
-            f.write('Iion = ')
-            f.write(' + '.join([lhs(v) for v in currents]))
-            f.write(eos)
-            f.write(eol)
+            # Solve all non-Markovian and non-HH variables with CVODE
+            cvode_states = [
+                x for x in model.states() if not (
+                    x == vm or x in markov_states or x in hh_states)]
+            if cvode_states:
+                f.write(
+                    '// Solve non-HH and non-Markov states with CVODE' + eol)
+                f.write('group {' + eol)
+                for v in cvode_states:
+                    f.write('  ' + lhs(v) + eos)
+                f.write('}.method(cvode)' + eos + eol)
+
+            # Trace all currents and state variables
+            f.write('// Trace all currents and state variables' + eol)
+            f.write('group {' + eol)
+            for v in currents:
+                f.write('  ' + lhs(v) + eos)
+            for v in model.states():
+                f.write('  ' + lhs(v) + eos)
+            f.write('}.trace()' + eos + eol)
+
+            # Make all constants parameters
+            parameters = list(model.variables(const=True, sort=True))
+            if parameters:
+                f.write('// Parameters' + eol)
+                f.write('group {' + eol)
+                for p in parameters:
+                    f.write('  ' + lhs(p) + eos)
+                f.write('}.param()' + eos + eol)
 
     def supports_model(self):
         """ See :meth:`myokit.formats.Exporter.supports_model()`. """

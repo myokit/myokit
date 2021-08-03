@@ -8,6 +8,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import collections
+import warnings
 
 from lxml import etree
 
@@ -16,7 +17,7 @@ import myokit.formats.mathml
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v1
 
-from myokit.mxml import split
+from myokit.formats.xml import split
 
 
 def parse_file(path):
@@ -77,11 +78,16 @@ class CellMLParser(object):
         ' single variable as its left-hand side, and each variable may only'
         ' appear on a left-hand side once.')
 
-    def _check_allowed_content(self, element, children, attributes, name=None):
+    def _check_allowed_content(
+            self, element, children, attributes, name=None, math=False):
         """
         Scans ``element`` and raises an exception if any unlisted CellML
         children are found, if any unlisted null-namespace attributes are
         found, or if the element contains text.
+
+        With ``math=False`` (default), the method also checks that no MathML
+        elements are present. With ``math=True`` only a MathML ``<math>``
+        element is allowed.
         """
         # Check for text inside this tag
         # For mixed-context xml this checks only up until the first child tag.
@@ -90,8 +96,17 @@ class CellMLParser(object):
                 raise CellMLParsingError(
                     'Text found in ' + self._tag(element, name) + '.', element)
 
+        # Not extension namespaces
+        not_ext_ns = (
+            self._ns, cellml.NS_CMETA, cellml.NS_RDF, cellml.NS_MATHML)
+
         # Check child elements
         allowed = set([self._join(x) for x in children])
+        allowed.add(self._join('RDF', cellml.NS_RDF))
+        if math:
+            allowed.add(self._join('math', cellml.NS_MATHML))
+
+        # Check if only contains allowed child elements
         for child in element:
             # Check for trailing text
             if child.tail is not None and child.tail.strip():
@@ -101,37 +116,64 @@ class CellMLParser(object):
                     child)
 
             # Check if allowed
-            ns = split(child.tag)[0]
             if str(child.tag) in allowed:
                 continue
-            if ns == self._ns:
+
+            # Check if in an extension element
+            ns = split(child.tag)[0]
+            if ns in not_ext_ns:
                 raise CellMLParsingError(
                     'Unexpected content type in ' + self._tag(element, name)
                     + ', found element of type ' + self._tag(child) + '.',
                     child)
-            elif ns != cellml.NS_MATHML:
+            else:
                 # Check if CellML appearing in non-CellML elements
                 # But leave checking inside MathML for later
                 self._check_for_cellml_in_extensions(child)
 
         # Check attributes
         allowed = set(attributes)
+        cmeta_id = self._join('id', cellml.NS_CMETA)
         for key in element.attrib:
-            if key[:1] != '{' and key not in allowed:
+            # Cmeta id is always allowed
+            if key == cmeta_id:
+                continue
+
+            # Extension namespaces are always allowed
+            ns, at = split(key)
+            if ns is not None and ns not in not_ext_ns:
+                continue
+
+            # No namespace, then must be in allowed list
+            if key not in allowed:
+                key = self._item(ns, at)
                 raise CellMLParsingError(
-                    'Unexpected attribute "' + key + '" found in '
+                    'Unexpected attribute ' + key + ' found in '
                     + self._tag(element, name) + '.', element)
 
     def _check_for_cellml_in_extensions(self, element):
         """
-        Checks that a non-CellML element does not contain CellML elements.
+        Checks that a non-CellML element does not contain CellML elements or
+        attributes.
         """
+        # Check if this element contains CellML attributes
+        for key in element.attrib:
+            ns, at = split(key)
+            if ns == self._ns:
+                raise CellMLParsingError(
+                    'CellML attribute ' + self._item(ns, at) + ' found'
+                    ' in extension element ' + self._tag(element)
+                    + ' (2.4.3).', element)
+
+        # Check if this element has CellML children
         for child in element:
             if split(child.tag)[0] == self._ns:
                 raise CellMLParsingError(
                     'CellML element ' + self._tag(child) + ' found inside'
                     ' extension element ' + self._tag(element) + ' (2.4.3).',
                     child)
+
+            # Recurse into children
             self._check_for_cellml_in_extensions(child)
 
     def _check_cmeta_id(self, element):
@@ -203,6 +245,28 @@ class CellMLParser(object):
         text = '\n'.join(lines)
 
         return text
+
+    def _item(self, ns, item):
+        """
+        Given a namespace ``ns`` and an element or attribute ``item``, this
+        method will return a nicely formatted combination, e.g. ``item`` for
+        the null namespace, ``cellml:item`` for a namespace with a known
+        prefix, or ``{ns}item`` for a namespace without a known prefix.
+
+        See also :meth:`_tag`.
+        """
+        if ns is None:
+            return item
+        elif ns == self._ns:
+            return 'cellml:' + item
+        elif ns == cellml.NS_MATHML:
+            return 'mathml:' + item
+        elif ns == cellml.NS_RDF:
+            return 'rdf:' + item
+        elif ns == cellml.NS_CMETA:
+            return 'cmeta:' + item
+        else:
+            return '{' + ns + '}' + item
 
     def _join(self, element, namespace=None):
         """
@@ -291,7 +355,7 @@ class CellMLParser(object):
 
         # Check allowed content
         self._check_allowed_content(
-            element, ['units', 'variable'], ['name'], name)
+            element, ['units', 'variable'], ['name'], name, math=True)
 
         # Create component units
         for child in self._sort_units(element, model):
@@ -433,9 +497,6 @@ class CellMLParser(object):
                 ' variable in component_2, got "' + str(v1) + '" (3.4.6.3).',
                 element)
 
-        # Check if already connected
-        # Doesn't seem to be a rule against this!
-
         # Connect variables
         model = c1.model()
         try:
@@ -541,9 +602,20 @@ class CellMLParser(object):
             component.set_parent(parent)
 
         # Check child component refs
-        for child in element.findall(self._join('component_ref')):
+        kids = element.findall(self._join('component_ref'))
+        for child in kids:
             self._parse_group_component_ref(
                 child, model, relationships, component)
+
+        # No parent? Then (encapsulation and containment) relationships must
+        # have at least one child.
+        if len(kids) == 0 and parent is None:
+            if ('encapsulation' in relationships
+                    or 'containment' in relationships):
+                raise CellMLParsingError(
+                    'The first component_ref in an encapsulation or'
+                    ' containment relationship must have at least one child'
+                    ' (6.4.3.2).')
 
     def _parse_group_relationship_ref(self, element, relationships):
         """
@@ -638,13 +710,20 @@ class CellMLParser(object):
             # Find units in component
             try:
                 units = component.find_units(units)
+                units = units.myokit_unit()
+            except myokit.formats.cellml.v1.UnitsError as e:
+                warnings.warn(
+                    'The units "' + str(units) + '" (referenced inside a'
+                    ' MathML equation) are not supported and have been'
+                    ' replaced by `dimensionless`. (' + str(e) + ')')
+                units = myokit.units.dimensionless
             except myokit.formats.cellml.v1.CellMLError:
                 raise CellMLParsingError(
                     'Unknown unit "' + str(units) + '" referenced inside a'
-                    ' MathML equation (4.4.3.2).')
+                    ' MathML equation (4.4.3.2).', element)
 
             # Create and return
-            return myokit.Number(value, units.myokit_unit())
+            return myokit.Number(value, units)
 
         # Create parser
         p = myokit.formats.mathml.MathMLParser(
@@ -904,8 +983,7 @@ class CellMLParser(object):
             raise CellMLParsingError(
                 'Unit offset must be a real number (5.4.2.6).', element)
         if x != 0:
-            raise CellMLParsingError(
-                'Units with non-zero offsets are not supported.', element)
+            raise myokit.formats.cellml.v1.UnsupportedUnitOffsetError
 
         # Check allowed content
         self._check_allowed_content(
@@ -929,10 +1007,7 @@ class CellMLParser(object):
 
         # Check if this is a base unit (not supported)
         base = element.attrib.get('base_units', 'no')
-        if base == 'yes':
-            raise CellMLParsingError(
-                'Defining new base units is not supported.', element)
-        elif base != 'no':
+        if base not in ('yes', 'no'):
             raise CellMLParsingError(
                 'Base units attribute must be either "yes" or "no".', element)
 
@@ -943,10 +1018,29 @@ class CellMLParser(object):
         self._check_allowed_content(
             element, ['unit'], ['name', 'base_units'], name)
 
+        # Check the units definition has children
+        children = element.findall(self._join('unit'))
+        if not children:
+            if base == 'yes':
+                warnings.warn(
+                    'Unable to parse definition for units "' + str(name) + '",'
+                    ' using `dimensionless` instead. (Defining new base units'
+                    ' is not supported.)')
+            else:
+                raise CellMLParsingError(
+                    'Units element with base_units="no" must contain at least'
+                    ' one child unit element.')
+
         # Parse content
         myokit_unit = myokit.units.dimensionless
-        for child in element.findall(self._join('unit')):
-            myokit_unit *= self._parse_unit(child, owner)
+        try:
+            for child in children:
+                myokit_unit *= self._parse_unit(child, owner)
+        except myokit.formats.cellml.v1.UnitsError as e:
+            warnings.warn(
+                'Unable to parse definition for units "' + str(name) + '",'
+                ' using `dimensionless` instead. (' + str(e) + ')')
+            myokit_unit = myokit.units.dimensionless
 
         # Add units to owner
         try:
@@ -981,7 +1075,15 @@ class CellMLParser(object):
 
         # Create variable (validates name, units, and name uniqueness)
         try:
-            variable = component.add_variable(name, units, pub, pri)
+            try:
+                variable = component.add_variable(name, units, pub, pri)
+            except myokit.formats.cellml.v1.UnitsError as e:
+                warnings.warn(
+                    'The units "' + str(units) + '" (assigned to a variable)'
+                    ' are not supported and have been replaced by'
+                    ' `dimensionless`. (' + str(e) + ')')
+                units = 'dimensionless'
+                variable = component.add_variable(name, units, pub, pri)
 
             # Check cmeta id
             cmeta_id = self._check_cmeta_id(element)
@@ -1104,17 +1206,17 @@ class CellMLParser(object):
     def _tag(self, element, name=None):
         """
         Returns an element's name, but changes the syntax from ``{...}tag`` to
-        ``cellml:tag`` for CellML attributes.
+        ``cellml:tag`` for CellML elements.
 
         If the element is in a CellML namespace and an optional ``name``
         attribute is given, this is added to the returned output using xpath
         syntax, e.g. ``cellml:model[@name="MyModel"]``.
+
+        Can also be used for attributes.
         """
         ns, el = split(element.tag)
-        if ns != self._ns:
-            return str(element.tag)
-        tag = 'cellml:' + el
-        if name is not None:
+        tag = self._item(ns, el)
+        if ns == self._ns and name is not None:
             tag += '[@name="' + name + '"]'
         return tag
 

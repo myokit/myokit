@@ -15,9 +15,13 @@ from ._api import (     # noqa
     Component,
     Model,
     Units,
+    UnitsError,
+    UnsupportedBaseUnitsError,
+    UnsupportedUnitOffsetError,
     Variable,
     is_valid_identifier,
 )
+
 
 from ._parser import (  # noqa
     parse_file,

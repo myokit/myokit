@@ -481,7 +481,8 @@ class LinearModel(object):
             parameters = [
                 x for x in component.variables(const=True) if x.is_literal()]
             # Sort by qname, using natural sort
-            parameters.sort(key=lambda x: myokit._natural_sort_key(x.qname()))
+            parameters.sort(
+                key=lambda x: myokit.tools.natural_sort_key(x.qname()))
 
         # Get current
         if current is None:
@@ -613,7 +614,7 @@ class LinearModel(object):
         A, _ = self.matrices(membrane_potential, parameters)
 
         # Set up reduced system with full rank: dot(x) = Ay + B
-        B = A[:-1, -1]
+        B = A[:-1, -1:]
         A = A[:-1, :-1] - B
 
         # Check eigenvalues
@@ -1575,10 +1576,8 @@ class MarkovModel(object):
         :class:`LinearModel` based on a Myokit model component.
         """
         # Deprecated since 2016-01-25
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `MarkovModel.from_component` is deprecated.'
             ' Please use `LinearModel.from_component` instead.')
         return AnalyticalSimulation(LinearModel.from_component(
@@ -1586,10 +1585,8 @@ class MarkovModel(object):
 
     def __new__(self, model, states, parameters=None, current=None, vm=None):
         # Deprecated since 2016-01-25
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The `MarkovModel` class is deprecated.'
             ' Please use the `LinearModel` class instead.')
         return AnalyticalSimulation(LinearModel(
@@ -1852,7 +1849,7 @@ def find_markov_models(model):
 
         # Get sorted list of states for output
         states = list(states)
-        states.sort(key=lambda x: myokit._natural_sort_key(x.qname()))
+        states.sort(key=lambda x: myokit.tools.natural_sort_key(x.qname()))
 
         # Check all members of `group` are a linear combination of states
         try:

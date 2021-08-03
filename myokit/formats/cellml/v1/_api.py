@@ -76,10 +76,10 @@ def create_unit_name(unit):
         name, multiplier = name, ''
 
     # Could also be because it's g*m/mol^2
-    # (Exponents are integers, so don't need to deal with floats here)
     name = name.replace('^', '')
     name = name.replace('/', '_per_')
     name = name.replace('*', '_')
+    name = name.replace('.', '_dot_')
 
     # Remove "1_" from "1_per_mV"
     if name[:2] == '1_':
@@ -96,11 +96,11 @@ def create_unit_name(unit):
 
         # Use e-notation if multiple of 10
         multiplier10 = unit.multiplier_log_10()
-        if myokit._feq(multiplier10, int(multiplier10)):
+        if myokit.float.eq(multiplier10, int(multiplier10)):
             multiplier = '1e' + str(int(multiplier10))
 
         # Format as integer
-        elif myokit._feq(multiplier, int(multiplier)):
+        elif myokit.float.eq(multiplier, int(multiplier)):
             multiplier = str(int(multiplier))
 
         # Format as float
@@ -173,6 +173,31 @@ class CellMLError(myokit.MyokitError):
     Raised when an invalid CellML model is created or detected, or when a model
     uses CellML features that Myokit does not support.
     """
+
+
+class UnitsError(CellMLError):
+    """
+    Raised when unsupported unit features are used.
+    """
+
+
+class UnsupportedBaseUnitsError(UnitsError):
+    """
+    Raised when unsupported base units are used.
+    """
+    def __init__(self, units):
+        self.units = units
+        super(UnsupportedBaseUnitsError, self).__init__(
+            'Unsupported base units "' + units + '".')
+
+
+class UnsupportedUnitOffsetError(UnitsError):
+    """
+    Raised when units with non-zero offsets are used.
+    """
+    def __init__(self):
+        super(UnsupportedUnitOffsetError, self).__init__(
+            'Units with non-zero offsets are not supported.')
 
 
 class Component(AnnotatableElement):
@@ -277,7 +302,6 @@ class Component(AnnotatableElement):
         of predefined units.
 
         Raises a :class:`CellMLError` is no unit is found.
-
         """
         try:
             return self._units[name]
@@ -340,7 +364,7 @@ class Component(AnnotatableElement):
         # Check parent is a component from the same model (or None)
         if parent is not None:
             if not isinstance(parent, Component):
-                raise ValueError('Parent must be a cellml.Component.')
+                raise ValueError('Parent must be a cellml.v1.Component.')
             if self._model != parent._model:
                 raise ValueError('Parent must be from the same model.')
 
@@ -358,11 +382,9 @@ class Component(AnnotatableElement):
         """
         Returns an iterator over the :class:`Units` objects in this component.
         """
-        # Note: Must use _by_name here, other one doesn't necessarily contain
-        # all units objects (only names are unique).
         return iter(self._units.values())
 
-    def _validate(self, warnings):
+    def _validate(self):
         """
         Validates this component, raising a :class:`CellMLError` if any errors
         are found.
@@ -372,12 +394,12 @@ class Component(AnnotatableElement):
         while parent is not None:
             if parent is self:
                 raise CellMLError(
-                    'Encapsulation hierarchy can not be circular (6.4.3.2).')
+                    'Encapsulation hierarchy cannot be circular (6.4.3.2).')
             parent = parent._parent
 
         # Validate variables
         for v in self._variables.values():
-            v._validate(warnings)
+            v._validate()
 
         # If this component has states, check that it also has a free variable
         # in the local component.
@@ -422,8 +444,7 @@ class Model(AnnotatableElement):
 
     Support notes for 1.0 and 1.1:
 
-    - Units that require an offset (celsius and fahrenheit) are not supported.
-    - Units with a non-integer exponent are not supported.
+    - Units with offsets are not supported, including the base units "celsius".
     - Defining new base units is not supported.
     - Reactions are not supported.
     - Models that take derivatives with respect to more than one variable are
@@ -502,27 +523,21 @@ class Model(AnnotatableElement):
 
     def add_connection(self, variable_1, variable_2):
         """
-        Adds a connection between variables ``comp1.var1`` and ``comp2.var2``.
-
-        Arguments:
-
-        ``variable_1``
-            One variable to connect.
-        ``variable_2``
-            The other variable to connect.
-
+        Adds a connection between ``variable_1`` and ``variable_2``.
         """
         # Check both are variables, and from this model
         if not isinstance(variable_1, Variable):
-            raise ValueError('Argument variable_1 must be a cellml.Variable.')
+            raise ValueError('Argument variable_1 must be a'
+                             ' cellml.v1.Variable.')
         if not isinstance(variable_2, Variable):
-            raise ValueError('Argument variable_2 must be a cellml.Variable.')
+            raise ValueError('Argument variable_2 must be a'
+                             ' cellml.v1.Variable.')
         if variable_1._model is not self:
-            raise ValueError('Argument variable_1 must be a cellml.Variable'
-                             ' from this model.')
+            raise ValueError('Argument variable_1 must be a variable from this'
+                             ' model.')
         if variable_2._model is not self:
-            raise ValueError('Argument variable_2 must be a cellml.Variable'
-                             ' from this model.')
+            raise ValueError('Argument variable_2 must be a variable from this'
+                             ' model.')
 
         # Check variables are distinct
         if variable_1 is variable_2:
@@ -555,10 +570,31 @@ class Model(AnnotatableElement):
                 ' relationship (3.4.6.4).')
 
         # Check interfaces and connect variables
+        # Note: We're allowing the same connection to be specified twice here
         if interface_1 == 'out' and interface_2 == 'in':
-            variable_2._source = variable_1
+            if variable_2._source is None:
+                variable_2._source = variable_1
+            elif variable_2._source is variable_1:
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_2) + ' is already'
+                    ' connected to ' + str(variable_1) + '.')
+            else:
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_2) + ' has a '
+                    + string_1 + '_interface of "in" and is already connected'
+                    ' to a variable with an interface of "out".')
         elif interface_1 == 'in' and interface_2 == 'out':
-            variable_1._source = variable_2
+            if variable_1._source is None:
+                variable_1._source = variable_2
+            elif variable_1._source is variable_2:
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_1) + ' is already'
+                    ' connected to ' + str(variable_2) + '.')
+            else:
+                raise CellMLError(
+                    'Invalid connection: ' + str(variable_1) + ' has a '
+                    + string_2 + '_interface of "in" and is already connected'
+                    ' to a variable with an interface of "out".')
         else:
             raise CellMLError(
                 'Invalid connection: ' + str(variable_1) + ' has a ' + string_1
@@ -628,9 +664,9 @@ class Model(AnnotatableElement):
         """
         Attempts to find a string name for the given :class:`myokit.Unit`.
 
-        Searches first in this component, then in its model, then in the list
-        of predefined units. If multiple units definitions have the same
-        :class:`myokit.Unit`, the last added name is returned.
+        Searches first in this model, then in the list of predefined units. If
+        multiple units definitions have the same :class:`myokit.Unit`, the last
+        added name is returned.
 
         Raises a :class:`CellMLError` is no appropriate unit is found.
         """
@@ -657,9 +693,6 @@ class Model(AnnotatableElement):
         # Otherwise could have cycles, invalid references, etc.
         model.validate()
 
-        # Valid model always has a time variable
-        time = model.time()
-
         # Get name for CellML model
         name = model.name()
         if name is None:
@@ -673,27 +706,44 @@ class Model(AnnotatableElement):
         # Create CellML model
         m = Model(name, version)
 
+        # Valid model always has a time variable
+        time = model.time()
+
+        # Method to obtain or infer variable unit
+        def variable_unit(variable, time_unit):
+            """Returns variable.unit(), or attempts to infer it if not set."""
+            unit = variable.unit()
+            if unit is not None:
+                return unit
+
+            rhs = variable.rhs()
+            if rhs is not None:
+                try:
+                    # Tolerant evaluation, see above. Result may be None.
+                    unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
+                except myokit.IncompatibleUnitError:
+                    return None
+                if variable.is_state():
+                    if unit is not None and time_unit is not None:
+                        # RHS is divided by time unit, so multiply
+                        unit *= time_unit
+            return unit
+
+        # Time unit, used to infer units of state variables
+        # (May itself be inferred)
+        time_unit = variable_unit(time, None)
+
         # Gather unit objects used in Myokit model, and gather numbers without
         # units that will need to be replaced.
         used = set()
         numbers_without_units = {}
         for variable in model.variables(deep=True):
 
-            # Add variable unit, or unit evaluated from variable's RHS
-            u = variable.unit()
-            rhs = variable.rhs()
-            if u is None and rhs is not None:
-                # Evaluate unit in tolerant mode. This stops Myokit from
-                # raising any errors, but does mean that unit might still be
-                # None.
-                try:
-                    u = rhs.eval_unit(mode=myokit.UNIT_TOLERANT)
-                except myokit.IncompatibleUnitError:
-                    pass
-            if u is not None:
-                used.add(u)
+            # Add variable unit, or unit inferred from variable's RHS
+            used.add(variable_unit(variable, time_unit))
 
             # Check number units
+            rhs = variable.rhs()
             if rhs is not None:
                 for e in rhs.walk(myokit.Number):
                     u = e.unit()
@@ -770,15 +820,8 @@ class Model(AnnotatableElement):
                         in_variables[parent].add(variable)
                         interface = 'out'
 
-                # Get variable unit, or infer from RHS if None
-                unit = variable.unit()
-                rhs = variable.rhs()
-                if unit is None and rhs is not None:
-                    # Note unit returned below may still be None
-                    try:
-                        unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
-                    except myokit.IncompatibleUnitError:
-                        pass
+                # Get declared or inferred variable unit
+                unit = variable_unit(variable, time_unit)
 
                 # Add variable
                 local_var_map[variable] = v = c.add_variable(
@@ -798,7 +841,8 @@ class Model(AnnotatableElement):
                 # Add nested variables
                 for nested in variable.variables(deep=True):
                     local_var_map[nested] = v = c.add_variable(
-                        nested.uname(), unit_map[nested.unit()])
+                        nested.uname(),
+                        unit_map[variable_unit(nested, time_unit)])
 
                     # Copy meta-data
                     for key, value in nested.meta.items():
@@ -819,7 +863,7 @@ class Model(AnnotatableElement):
             for variable in variables:
                 local_var_map[variable] = v = c.add_variable(
                     variable.uname(),
-                    unit_map[variable.unit()],
+                    unit_map[variable_unit(variable, time_unit)],
                     public_interface='in',
                 )
 
@@ -891,9 +935,6 @@ class Model(AnnotatableElement):
         # Copy meta data
         for key, value in self.meta.items():
             m.meta[key] = value
-
-        # Mapping from CellML variables to Myokit variables, per component
-        var_map = {}
 
         # Gather set of variables that are used in (local) equations
         used = set()
@@ -1092,15 +1133,10 @@ class Model(AnnotatableElement):
         """
         Validates this model, raising a :class:`CellMLError` if an errors are
         found.
-
-        Returns a list of warnings generated during validation.
         """
-        # Warnings
-        warnings = []
-
         # Validate components and variables
         for c in self._components.values():
-            c._validate(warnings)
+            c._validate()
 
         # Check at most one variable doesn't have a source (one free variable
         # is allowed)
@@ -1112,18 +1148,15 @@ class Model(AnnotatableElement):
                         free.add(v)
 
         if len(free) > 1:
-            warnings.append('More than one variable does not have a value.')
+            warnings.warn('More than one variable does not have a value.')
 
         elif self._free_variable is not None and len(free) == 1:
             free = free.pop()
             if self._free_variable is not free:
-                warnings.append(
+                warnings.warn(
                     'No value is defined for the variable "'
                     + free.name() + '", but "' + self._free_variable.name()
                     + '" is listed as the free variable.')
-
-        # Return warnings
-        return warnings
 
     def version(self):
         """
@@ -1174,6 +1207,10 @@ class Units(object):
 
         If no such unit is found a :class:`CellMLError` is raised.
         """
+        # Check for unsupported units
+        if name == 'celsius':
+            raise UnsupportedBaseUnitsError('celsius')
+
         # Check if we have a cached object for this
         obj = cls._si_unit_objects.get(name, None)
         if obj is None:
@@ -1284,12 +1321,9 @@ class Units(object):
             except ValueError:
                 raise CellMLError(
                     'Unit exponent must be a real number (5.4.2.4).')
-            if not myokit._feq(e, int(e)):
-                raise CellMLError(
-                    'Non-integer unit exponents are not supported.')
 
             # Apply exponent to unit
-            unit **= int(e)
+            unit **= e
 
         # Handle multiplier
         if multiplier is not None:
@@ -1317,40 +1351,40 @@ class Units(object):
 
     # Predefined units in CellML, name to Unit
     _si_units = {
-        'dimensionless': myokit.units.dimensionless,
         'ampere': myokit.units.A,
-        'farad': myokit.units.F,
-        'katal': myokit.units.kat,
-        'lux': myokit.units.lux,
-        'pascal': myokit.units.Pa,
-        'tesla': myokit.units.T,
         'becquerel': myokit.units.Bq,
-        'gram': myokit.units.g,
-        'kelvin': myokit.units.K,
-        'meter': myokit.units.m,
-        'radian': myokit.units.rad,
-        'volt': myokit.units.V,
         'candela': myokit.units.cd,
-        'gray': myokit.units.Gy,
-        'kilogram': myokit.units.kg,
-        'metre': myokit.units.m,
-        'second': myokit.units.s,
-        'watt': myokit.units.W,
-        'celsius': myokit.units.C,
-        'henry': myokit.units.H,
-        'liter': myokit.units.L,
-        'mole': myokit.units.mol,
-        'siemens': myokit.units.S,
-        'weber': myokit.units.Wb,
+        'celsius': None,
         'coulomb': myokit.units.C,
+        'dimensionless': myokit.units.dimensionless,
+        'farad': myokit.units.F,
+        'gram': myokit.units.g,
+        'gray': myokit.units.Gy,
+        'henry': myokit.units.H,
         'hertz': myokit.units.Hz,
-        'litre': myokit.units.L,
-        'newton': myokit.units.N,
-        'sievert': myokit.units.Sv,
         'joule': myokit.units.J,
+        'katal': myokit.units.kat,
+        'kelvin': myokit.units.K,
+        'kilogram': myokit.units.kg,
+        'liter': myokit.units.L,
+        'litre': myokit.units.L,
         'lumen': myokit.units.lm,
+        'lux': myokit.units.lux,
+        'meter': myokit.units.m,
+        'metre': myokit.units.m,
+        'mole': myokit.units.mol,
+        'newton': myokit.units.N,
         'ohm': myokit.units.R,
-        'steradian': myokit.units.sr,
+        'pascal': myokit.units.Pa,
+        'radian': myokit.units.radian,
+        'second': myokit.units.s,
+        'siemens': myokit.units.S,
+        'sievert': myokit.units.Sv,
+        'steradian': myokit.units.steradian,
+        'tesla': myokit.units.T,
+        'volt': myokit.units.V,
+        'watt': myokit.units.W,
+        'weber': myokit.units.Wb,
     }
 
     # Predefined Units objects
@@ -1358,28 +1392,35 @@ class Units(object):
 
     # Predefined units in CellML, Unit object to name
     _si_units_r = {
-        myokit.units.dimensionless: 'dimensionless',
         myokit.units.A: 'ampere',
-        myokit.units.F: 'farad',
-        myokit.units.kat: 'katal',
-        myokit.units.lux: 'lux',
-        myokit.units.Pa: 'pascal',
-        myokit.units.T: 'tesla',
         myokit.units.Bq: 'becquerel',
-        myokit.units.g: 'gram',
-        myokit.units.K: 'kelvin',
-        myokit.units.m: 'meter',
-        myokit.units.V: 'volt',
         myokit.units.cd: 'candela',
+        myokit.units.C: 'coulomb',
+        myokit.units.dimensionless: 'dimensionless',
+        myokit.units.F: 'farad',
+        myokit.units.g: 'gram',
         myokit.units.Gy: 'gray',
-        myokit.units.kg: 'kilogram',
-        myokit.units.m: 'metre',
-        myokit.units.s: 'second',
-        myokit.units.W: 'watt',
-        myokit.units.C: 'celsius',
         myokit.units.H: 'henry',
-        myokit.units.L: 'liter',
+        myokit.units.hertz: 'hertz',
+        myokit.units.joule: 'joule',
+        myokit.units.kat: 'katal',
+        myokit.units.K: 'kelvin',
+        myokit.units.kg: 'kilogram',
+        myokit.units.L: 'litre',
+        myokit.units.lumen: 'lumen',
+        myokit.units.lux: 'lux',
+        myokit.units.m: 'metre',
         myokit.units.mol: 'mole',
+        myokit.units.N: 'newton',
+        myokit.units.ohm: 'ohm',
+        myokit.units.Pa: 'pascal',
+        myokit.units.s: 'second',
+        myokit.units.S: 'siemens',
+        myokit.units.sievert: 'sievert',
+        myokit.units.T: 'tesla',
+        myokit.units.V: 'volt',
+        myokit.units.W: 'watt',
+        myokit.units.weber: 'weber',
     }
 
     # Recognised unit prefixes, name to multiplier
@@ -1406,32 +1447,6 @@ class Units(object):
         'zepto': -21,
         'yocto': -24,
     }
-
-    # Recognised unit prefixes, multiplier to name
-    '''
-    _si_prefixes_r = {
-        -24: 'yocto',
-        -21: 'zepto',
-        -18: 'atto',
-        -15: 'femto',
-        -12: 'pico',
-        -9: 'nano',
-        -6: 'micro',
-        -3: 'milli',
-        -2: 'centi',
-        -1: 'deci',
-        1: 'deka',
-        2: 'hecto',
-        3: 'kilo',
-        6: 'mega',
-        9: 'giga',
-        12: 'tera',
-        15: 'peta',
-        18: 'exa',
-        21: 'zetta',
-        24: 'yotta',
-    }
-    '''
 
 
 class Variable(AnnotatableElement):
@@ -1469,11 +1484,15 @@ class Variable(AnnotatableElement):
         # Check and store units
         try:
             self._units = component.find_units(units)
+        except UnsupportedBaseUnitsError as e:
+            raise UnsupportedBaseUnitsError(
+                'Variable units attribute references the unsupported base'
+                ' units "' + e.units + '".')
         except CellMLError:
             raise CellMLError(
                 'Variable units attribute must reference a units element in'
                 ' the current component or model, or one of the predefined'
-                ' units (3.4.3.3).')
+                ' units, found "' + str(units) + '" (3.4.3.3).')
 
         # Check and store interfaces
         if public_interface not in ['none', 'in', 'out']:
@@ -1533,7 +1552,7 @@ class Variable(AnnotatableElement):
 
     def is_state(self):
         """
-        Checks if this is a state variable.
+        Checks if this variable has been marked as a state variable.
         """
         return self._is_state
 
@@ -1685,7 +1704,7 @@ class Variable(AnnotatableElement):
         """
         return self._units
 
-    def _validate(self, warnings):
+    def _validate(self):
         """
         Validates this variable, raising a :class:`CellMLError` if any errors
         are found.
@@ -1695,7 +1714,7 @@ class Variable(AnnotatableElement):
         if self._public_interface == 'in' or self._private_interface == 'in':
             i = 'public' if self._public_interface == 'in' else 'private'
             if self._source is None:
-                warnings.append(
+                warnings.warn(
                     str(self) + ' has ' + i + '_interface="in", but is not'
                     ' connected to a variable with an appropriate "out"')
 
@@ -1703,7 +1722,7 @@ class Variable(AnnotatableElement):
         elif self._is_state:
 
             if self._initial_value is None:
-                warnings.append(
+                warnings.warn(
                     'State ' + str(self) + ' has no initial value.')
 
             if self._rhs is None:
@@ -1713,7 +1732,7 @@ class Variable(AnnotatableElement):
         # Check that other variables define a value
         elif self._rhs is None:
             if self._initial_value is None and not self._is_free:
-                warnings.append('No value set for ' + str(self) + '.')
+                warnings.warn('No value set for ' + str(self) + '.')
 
         # And only one value
         elif self._initial_value is not None:

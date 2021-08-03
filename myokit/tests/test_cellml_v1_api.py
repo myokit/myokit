@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
-# Tests the CellML 1.0 API.
+# Tests the CellML 1.0/1.1 API.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -9,10 +9,11 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import unittest
-import warnings
 
 import myokit
 import myokit.formats.cellml.v1 as cellml
+
+from shared import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -27,7 +28,7 @@ except NameError:   # pragma: no cover
     basestring = str
 
 
-class TestCellMLAnnotatedElement(unittest.TestCase):
+class TestCellML1AnnotatedElement(unittest.TestCase):
     """ Tests for cellml.AnnotatableElement. """
 
     def test_cmeta_id(self):
@@ -85,8 +86,8 @@ class TestCellMLAnnotatedElement(unittest.TestCase):
             cellml.CellMLError, 'unique', c.set_cmeta_id, m_id)
 
 
-class TestCellMLComponent(unittest.TestCase):
-    """ Tests for ``cellml.Component``. """
+class TestCellML1Component(unittest.TestCase):
+    """ Tests for ``cellml.v1.Component``. """
 
     def test_creation(self):
         # Test component creation
@@ -159,6 +160,12 @@ class TestCellMLComponent(unittest.TestCase):
         self.assertEqual(len(vs), 2)
         self.assertIn(v, vs)
         self.assertIn(w, vs)
+
+        # Test creating a variable with celsius
+        c = cellml.Model('m').add_component('c')
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
+            c.add_variable, 'v', 'celsius')
 
         # Rest of creation is tested in variable test
 
@@ -243,7 +250,7 @@ class TestCellMLComponent(unittest.TestCase):
         self.assertIn(e, list(c.children()))
 
         # Test bad parent
-        self.assertRaisesRegex(ValueError, 'cellml.Component', b.set_parent, m)
+        self.assertRaisesRegex(ValueError, 'v1.Component', b.set_parent, m)
         m2 = cellml.Model('m2')
         c2 = m2.add_component('c2')
         self.assertRaisesRegex(ValueError, 'same model', b.set_parent, c2)
@@ -271,7 +278,7 @@ class TestCellMLComponent(unittest.TestCase):
         m.validate()
 
 
-class TestCellMLModel(unittest.TestCase):
+class TestCellML1Model(unittest.TestCase):
     """ Tests for ``cellml.Model``. """
 
     def test_add_find_units(self):
@@ -367,16 +374,16 @@ class TestCellMLModel(unittest.TestCase):
 
         # Not a variable or wrong model
         self.assertRaisesRegex(
-            ValueError, 'variable_1 must be a cellml.Variable.',
+            ValueError, 'variable_1 must be a cellml.v1.Variable.',
             m.add_connection, 'x', y)
         self.assertRaisesRegex(
-            ValueError, 'variable_2 must be a cellml.Variable.',
+            ValueError, 'variable_2 must be a cellml.v1.Variable.',
             m.add_connection, y, 'x')
         self.assertRaisesRegex(
-            ValueError, 'variable_1 must be a cellml.Variable from',
+            ValueError, 'variable_1 must be a variable from',
             m.add_connection, x2, y)
         self.assertRaisesRegex(
-            ValueError, 'variable_2 must be a cellml.Variable from',
+            ValueError, 'variable_2 must be a variable from',
             m.add_connection, y, x2)
 
         # Connected to self
@@ -397,6 +404,22 @@ class TestCellMLModel(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'Invalid connection',
             m.add_connection, xsib, y)
+
+        # "in" variable connected to two "out" variables
+        m = cellml.Model('m')
+        a = m.add_component('a')
+        b = m.add_component('b')
+        c = m.add_component('c')
+        x = a.add_variable('x', 'volt', 'out', 'none')
+        y = b.add_variable('y', 'volt', 'out', 'none')
+        z = c.add_variable('z', 'volt', 'in', 'none')
+        m.add_connection(x, z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Invalid connection', m.add_connection, x, z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Invalid connection', m.add_connection, y, z)
+        self.assertRaisesRegex(
+            cellml.CellMLError, 'Invalid connection', m.add_connection, z, y)
 
     def test_creation(self):
         # Tests Model creation
@@ -487,20 +510,19 @@ class TestCellMLModel(unittest.TestCase):
         c = m.add_component('c')
         x = c.add_variable('x', 'mole')
         y = c.add_variable('y', 'liter')
-        warn = m.validate()
-        warn = '\n'.join(warn)
-        self.assertIn('No value set for Variable[@name="x"]', warn)
-        self.assertIn('No value set for Variable[@name="y"]', warn)
-        self.assertIn('More than one variable does not have a value', warn)
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('No value set for Variable[@name="x"]', w.text())
+        self.assertIn('No value set for Variable[@name="y"]', w.text())
+        self.assertIn('More than one variable does not have a value', w.text())
 
         # Free variable has a value, but other value does not
         x.set_initial_value(0.1)
-        m.validate()
         m.set_free_variable(x)
-        warn = m.validate()
-        warn = '\n'.join(warn)
-        self.assertIn('No value set for Variable[@name="y"]', warn)
-        self.assertIn('No value is defined for the variable "y"', warn)
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('No value set for Variable[@name="y"]', w.text())
+        self.assertIn('No value is defined for the variable "y"', w.text())
 
         # Free variable must be known if state is used
         y.set_rhs(myokit.Name(x))
@@ -526,7 +548,7 @@ class TestCellMLModel(unittest.TestCase):
         self.assertEqual(m.version(), '1.1')
 
 
-class TestCellMLModelConversion(unittest.TestCase):
+class TestCellML1ModelConversion(unittest.TestCase):
     """
     Tests for converting between Myokit and CellML models.
     """
@@ -600,13 +622,33 @@ class TestCellMLModelConversion(unittest.TestCase):
 
         # ...or have a unit inferred from their RHS
         z = c2.add_variable('z')
-        z.set_rhs('3 [mole]')
+        z.set_rhs('3 [mole/ms]')
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(
+            cm['c2']['z'].units().myokit_unit(),
+            myokit.units.mole / myokit.units.ms)
+
+        # ...which should take the time units into account, for state variables
+        z.promote(0)
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(
             cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
 
-        # But evaluated units can have errors
-        y.set_rhs('1 [mV] ^ 1.2')    # Not supported by Myokit's unit system
+        # ...even if the time units themselves need to be inferred
+        m.get('env.time').set_unit(None)
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(
+            cm['c2']['z'].units().myokit_unit(), myokit.units.mole)
+
+        # Units can have fractional exponents
+        y.set_rhs('1 [mV] ^ 1.2')
+        cm = cellml.Model.from_myokit_model(m)
+        self.assertEqual(
+            cm['c2']['y'].units().myokit_unit(), myokit.units.mV**1.2)
+
+        # If a variable doesn't have units, the RHS will be inspected. This can
+        # lead to unit errors, which should be ignored
+        y.set_rhs('1 [mV] + 3 [A]')
         cm = cellml.Model.from_myokit_model(m)
         self.assertEqual(
             cm['c2']['y'].units().myokit_unit(), myokit.units.dimensionless)
@@ -681,8 +723,9 @@ class TestCellMLModelConversion(unittest.TestCase):
         # Test evaluating states of model
         m = myokit.load_model('example')
         cm = cellml.Model.from_myokit_model(m)
-        warnings = cm.validate()
-        self.assertEqual(len(warnings), 0)
+        with WarningCollector() as w:
+            cm.validate()
+        self.assertFalse(w.has_warnings())
 
         # Recreate myokit model and test states
         mm = cm.myokit_model()
@@ -920,11 +963,10 @@ class TestCellMLModelConversion(unittest.TestCase):
         by.set_rhs(myokit.Name(bx))
 
         # Convert and check warning was raised
-        with warnings.catch_warnings(record=True) as c:
+        with WarningCollector() as w:
             m = cm.myokit_model()
-        text = '\n'.join([str(warning) for warning in c])
         self.assertIn(
-            'Unable to determine unit conversion factor for b.x', text)
+            'Unable to determine unit conversion factor for b.x', w.text())
 
         # Check variable RHS
         ax, bx, by = m.get('a.x'), m.get('b.x'), m.get('b.y')
@@ -939,8 +981,8 @@ class TestCellMLModelConversion(unittest.TestCase):
         self.assertRaises(myokit.IncompatibleUnitError, m.check_units)
 
 
-class TestCellMLVariable(unittest.TestCase):
-    """ Tests for ``cellml.Variable``. """
+class TestCellML1Variable(unittest.TestCase):
+    """ Tests for ``cellml.v1.Variable``. """
 
     def test_creation(self):
         # Tests variable creation
@@ -1170,8 +1212,9 @@ class TestCellMLVariable(unittest.TestCase):
         bt = b.add_variable('toim', 'dimensionless', 'in')
         m.add_connection(t, bt)
 
-        warn = m.validate()
-        self.assertIn('not connected', warn[0])
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('not connected', w.text())
 
         # States must define two values
         m.add_connection(ax, bx)
@@ -1182,11 +1225,12 @@ class TestCellMLVariable(unittest.TestCase):
         bx.set_rhs(myokit.Number(1, 'meter'))
         m.validate()
         bx.set_initial_value(None)
-        warn = m.validate()
-        self.assertIn('has no initial value', warn[0])
+        with WarningCollector() as w:
+            m.validate()
+        self.assertIn('has no initial value', w.text())
 
 
-class TestCellMLUnits(unittest.TestCase):
+class TestCellML1Units(unittest.TestCase):
     """ Tests for ``cellml.Units``. """
 
     def test_creation(self):
@@ -1219,6 +1263,11 @@ class TestCellMLUnits(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'Unknown units name',
             cellml.Units.find_units, 'wooster')
+
+        # Test lookup of unsupported units
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
+            cellml.Units.find_units, 'celsius')
 
     def test_myokit_unit(self):
         # Tests myokit_unit()
@@ -1255,7 +1304,17 @@ class TestCellMLUnits(unittest.TestCase):
             cellml.Units.parse_unit_row, 'wooster')
         self.assertRaisesRegex(
             cellml.CellMLError, 'Unknown units name',
-            cellml.Units.parse_unit_row, 'muppet', context=m)
+            cellml.Units.parse_unit_row, 'muppet', context=c)
+
+        # Unsupported base unit
+        u = cellml.Units.parse_unit_row(
+            'meter', prefix='milli', exponent=2, multiplier=1.234)
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
+            cellml.Units.parse_unit_row, 'celsius')
+        self.assertRaises(
+            cellml.UnsupportedBaseUnitsError,
+            cellml.Units.parse_unit_row, 'celsius', context=c)
 
         # Test prefixes
         u = cellml.Units.parse_unit_row('meter', 'micro')
@@ -1286,9 +1345,6 @@ class TestCellMLUnits(unittest.TestCase):
         self.assertRaisesRegex(
             cellml.CellMLError, 'must be a real number',
             cellml.Units.parse_unit_row, 'meter', exponent='bert')
-        self.assertRaisesRegex(
-            cellml.CellMLError, 'Non-integer unit exponents',
-            cellml.Units.parse_unit_row, 'meter', exponent=1.23)
 
         # Test multiplier
         u = cellml.Units.parse_unit_row('meter', multiplier=1.234)
@@ -1305,76 +1361,74 @@ class TestCellMLUnits(unittest.TestCase):
         self.assertEqual(u, myokit.parse_unit('mm^2 (1.234)'))
 
     def test_predefined(self):
-        # Tests all predefined units exist
+        # Tests the predefined units exist and map to the correct myokit units
 
-        self.assertEqual(cellml.Units.find_units(
-            'dimensionless').myokit_unit(), myokit.units.dimensionless)
         self.assertEqual(cellml.Units.find_units(
             'ampere').myokit_unit(), myokit.units.A)
         self.assertEqual(cellml.Units.find_units(
-            'farad').myokit_unit(), myokit.units.F)
-        self.assertEqual(cellml.Units.find_units(
-            'katal').myokit_unit(), myokit.units.kat)
-        self.assertEqual(cellml.Units.find_units(
-            'lux').myokit_unit(), myokit.units.lux)
-        self.assertEqual(cellml.Units.find_units(
-            'pascal').myokit_unit(), myokit.units.Pa)
-        self.assertEqual(cellml.Units.find_units(
-            'tesla').myokit_unit(), myokit.units.T)
-        self.assertEqual(cellml.Units.find_units(
             'becquerel').myokit_unit(), myokit.units.Bq)
-        self.assertEqual(cellml.Units.find_units(
-            'gram').myokit_unit(), myokit.units.g)
-        self.assertEqual(cellml.Units.find_units(
-            'kelvin').myokit_unit(), myokit.units.K)
-        self.assertEqual(cellml.Units.find_units(
-            'meter').myokit_unit(), myokit.units.m)
-        self.assertEqual(cellml.Units.find_units(
-            'radian').myokit_unit(), myokit.units.rad)
-        self.assertEqual(cellml.Units.find_units(
-            'volt').myokit_unit(), myokit.units.V)
         self.assertEqual(cellml.Units.find_units(
             'candela').myokit_unit(), myokit.units.cd)
         self.assertEqual(cellml.Units.find_units(
+            'coulomb').myokit_unit(), myokit.units.C)
+        self.assertEqual(cellml.Units.find_units(
+            'dimensionless').myokit_unit(), myokit.units.dimensionless)
+        self.assertEqual(cellml.Units.find_units(
+            'farad').myokit_unit(), myokit.units.F)
+        self.assertEqual(cellml.Units.find_units(
+            'gram').myokit_unit(), myokit.units.g)
+        self.assertEqual(cellml.Units.find_units(
             'gray').myokit_unit(), myokit.units.Gy)
-        self.assertEqual(cellml.Units.find_units(
-            'kilogram').myokit_unit(), myokit.units.kg)
-        self.assertEqual(cellml.Units.find_units(
-            'metre').myokit_unit(), myokit.units.m)
-        self.assertEqual(cellml.Units.find_units(
-            'second').myokit_unit(), myokit.units.s)
-        self.assertEqual(cellml.Units.find_units(
-            'watt').myokit_unit(), myokit.units.W)
-        self.assertEqual(cellml.Units.find_units(
-            'celsius').myokit_unit(), myokit.units.C)
         self.assertEqual(cellml.Units.find_units(
             'henry').myokit_unit(), myokit.units.H)
         self.assertEqual(cellml.Units.find_units(
-            'liter').myokit_unit(), myokit.units.L)
-        self.assertEqual(cellml.Units.find_units(
-            'mole').myokit_unit(), myokit.units.mol)
-        self.assertEqual(cellml.Units.find_units(
-            'siemens').myokit_unit(), myokit.units.S)
-        self.assertEqual(cellml.Units.find_units(
-            'weber').myokit_unit(), myokit.units.Wb)
-        self.assertEqual(cellml.Units.find_units(
-            'coulomb').myokit_unit(), myokit.units.C)
-        self.assertEqual(cellml.Units.find_units(
             'hertz').myokit_unit(), myokit.units.Hz)
-        self.assertEqual(cellml.Units.find_units(
-            'litre').myokit_unit(), myokit.units.L)
-        self.assertEqual(cellml.Units.find_units(
-            'newton').myokit_unit(), myokit.units.N)
-        self.assertEqual(cellml.Units.find_units(
-            'sievert').myokit_unit(), myokit.units.Sv)
         self.assertEqual(cellml.Units.find_units(
             'joule').myokit_unit(), myokit.units.J)
         self.assertEqual(cellml.Units.find_units(
+            'katal').myokit_unit(), myokit.units.kat)
+        self.assertEqual(cellml.Units.find_units(
+            'kelvin').myokit_unit(), myokit.units.K)
+        self.assertEqual(cellml.Units.find_units(
+            'kilogram').myokit_unit(), myokit.units.kg)
+        self.assertEqual(cellml.Units.find_units(
+            'liter').myokit_unit(), myokit.units.L)
+        self.assertEqual(cellml.Units.find_units(
+            'litre').myokit_unit(), myokit.units.L)
+        self.assertEqual(cellml.Units.find_units(
             'lumen').myokit_unit(), myokit.units.lm)
+        self.assertEqual(cellml.Units.find_units(
+            'lux').myokit_unit(), myokit.units.lux)
+        self.assertEqual(cellml.Units.find_units(
+            'meter').myokit_unit(), myokit.units.m)
+        self.assertEqual(cellml.Units.find_units(
+            'metre').myokit_unit(), myokit.units.m)
+        self.assertEqual(cellml.Units.find_units(
+            'mole').myokit_unit(), myokit.units.mol)
+        self.assertEqual(cellml.Units.find_units(
+            'newton').myokit_unit(), myokit.units.N)
         self.assertEqual(cellml.Units.find_units(
             'ohm').myokit_unit(), myokit.units.R)
         self.assertEqual(cellml.Units.find_units(
+            'pascal').myokit_unit(), myokit.units.Pa)
+        self.assertEqual(cellml.Units.find_units(
+            'radian').myokit_unit(), myokit.units.rad)
+        self.assertEqual(cellml.Units.find_units(
+            'second').myokit_unit(), myokit.units.s)
+        self.assertEqual(cellml.Units.find_units(
+            'siemens').myokit_unit(), myokit.units.S)
+        self.assertEqual(cellml.Units.find_units(
+            'sievert').myokit_unit(), myokit.units.Sv)
+        self.assertEqual(cellml.Units.find_units(
             'steradian').myokit_unit(), myokit.units.sr)
+        self.assertEqual(cellml.Units.find_units(
+            'tesla').myokit_unit(), myokit.units.T)
+        self.assertEqual(cellml.Units.find_units(
+            'volt').myokit_unit(), myokit.units.V)
+        self.assertEqual(cellml.Units.find_units(
+            'watt').myokit_unit(), myokit.units.W)
+        self.assertEqual(cellml.Units.find_units(
+            'weber').myokit_unit(), myokit.units.Wb)
 
     def test_prefixes(self):
         # Tests if all units prefixes are parsed correctly.
@@ -1450,6 +1504,8 @@ class TestCellMLUnits(unittest.TestCase):
         self.assertTrue(len(names) > 10)
         for name in names:
             self.assertTrue(isinstance(name, basestring))
+            if name == 'celsius':
+                continue
             self.assertTrue(
                 isinstance(cellml.Units.find_units(name), cellml.Units))
 
@@ -1460,7 +1516,7 @@ class TestCellMLUnits(unittest.TestCase):
         self.assertEqual(str(u), 'Units[@name="Numpty"]')
 
 
-class TestCellMLMethods(unittest.TestCase):
+class TestCellML1Methods(unittest.TestCase):
     """ Tests for public CellML API methods. """
 
     def test_clean_identifier(self):
@@ -1536,7 +1592,11 @@ class TestCellMLMethods(unittest.TestCase):
         self.assertFalse(cellml.is_valid_identifier('_'))
         self.assertFalse(cellml.is_valid_identifier('123'))
         self.assertFalse(cellml.is_valid_identifier('1e3'))
+        self.assertFalse(cellml.is_valid_identifier('3'))
+        self.assertFalse(cellml.is_valid_identifier(''))
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('always')
     unittest.main()

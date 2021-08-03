@@ -88,7 +88,9 @@ class Simulation(myokit.CModule):
         model = model.clone()
         self._model = model
 
-        # Set protocol (will also set predetermined protocol to None)
+        # Set protocol
+        self._protocol = None
+        self._fixed_form_protocol = None
         self.set_protocol(protocol)
 
         # Check potential and threshold values
@@ -99,8 +101,7 @@ class Simulation(myokit.CModule):
                 apd_var = apd_var.qname()
             self._apd_var = self._model.get(apd_var)
             if not self._apd_var.is_state():
-                raise ValueError(
-                    'The `apd_var` must be a state variable.')
+                raise ValueError('The `apd_var` must be a state variable.')
 
         # Get state and default state from model
         self._state = self._model.state()
@@ -115,6 +116,7 @@ class Simulation(myokit.CModule):
         # Unique simulation id
         Simulation._index += 1
         module_name = 'myokit_sim_' + str(Simulation._index)
+        module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {
@@ -138,11 +140,21 @@ class Simulation(myokit.CModule):
         if platform.system() != 'Windows':  # pragma: no windows cover
             libs.append('m')
 
-        # Create extension
+        # Define library paths
+        # Note: Sundials path on windows already includes local binaries
         libd = list(myokit.SUNDIALS_LIB)
         incd = list(myokit.SUNDIALS_INC)
         incd.append(myokit.DIR_CFUNC)
+
+        # Create extension
         self._sim = self._compile(module_name, fname, args, libs, libd, incd)
+
+        # Set default tolerance values
+        self._tolerance = None
+        self.set_tolerance()
+
+        # Set default min and max step size
+        self._dtmax = self._dtmin = None
 
     def default_state(self):
         """
@@ -210,6 +222,27 @@ class Simulation(myokit.CModule):
         self._run(duration, myokit.LOG_NONE, None, None, None, progress, msg)
         self._default_state = self._state
 
+    def __reduce__(self):
+        """
+        Pickles this Simulation.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        apd_var = None if self._apd_var is None else self._apd_var.qname()
+        return (
+            self.__class__,
+            (self._model, self._protocol, apd_var),
+            (
+                self._time,
+                self._state,
+                self._default_state,
+                self._fixed_form_protocol,
+                self._tolerance,
+                self._dtmin,
+                self._dtmax,
+            ),
+        )
+
     def reset(self):
         """
         Resets the simulation:
@@ -268,6 +301,16 @@ class Simulation(myokit.CModule):
         the :class:`myokit.ProgressReporter` interface can be passed in.
         passed in as ``progress``. An optional description of the current
         simulation to use in the ProgressReporter can be passed in as ``msg``.
+
+        The ``duration`` argument cannot be negative, and special care needs to
+        be taken when very small (positive) values are used. If ``duration`` is
+        zero or so small that
+        ``simulation.time() + duration == simulation.time()``, then the method
+        returns without updating the internal states or time. However, for
+        some extremely short durations (approx ``2 epsilon * time``), the
+        simulation will try to run but the underlying CVODE engine may return a
+        ``CV_TOO_CLOSE`` error, causing a :class:`myokit.SimulationError` to be
+        raised.
         """
         duration = float(duration)
         output = self._run(
@@ -344,82 +387,91 @@ class Simulation(myokit.CModule):
             bench = None
 
         # Run simulation
-        with myokit.SubCapture() as capture:
-            if duration > 0:
-                # Initialize
-                state = [0] * len(self._state)
-                bound = [0, 0, 0, 0]    # time, pace, realtime, evaluations
-                self._sim.sim_init(
-                    tmin,
-                    tmax,
-                    list(self._state),
-                    state,
-                    bound,
-                    self._protocol,
-                    self._fixed_form_protocol,
-                    log,
-                    log_interval,
-                    log_times,
-                    root_list,
-                    root_threshold,
-                    bench,
-                )
-                t = tmin
-                try:
-                    if progress:
-                        # Allow progress reporters to bypass the subcapture
-                        progress._set_output_stream(capture.bypass())
-                        # Loop with feedback
-                        with progress.job(msg):
-                            r = 1.0 / duration if duration != 0 else 1
-                            while t < tmax:
-                                t = self._sim.sim_step()
-                                if not progress.update(min((t - tmin) * r, 1)):
-                                    raise myokit.SimulationCancelledError()
-                    else:
-                        # Loop without feedback
+        # The simulation is run only if (tmin + duration > tmin). This is a
+        # stronger check than (duration == 0), which will return true even for
+        # very short durations (and will cause zero iterations of the
+        # "while (t < tmax)" loop below).
+        istate = list(self._state)
+        if tmin + duration > tmin:
+
+            # Lists to return state in
+            rstate = list(istate)
+            rbound = [0, 0, 0, 0]  # time, pace, realtime, evaluations
+
+            # Initialize
+            self._sim.sim_init(
+                tmin,
+                tmax,
+                istate,
+                rstate,
+                rbound,
+                self._protocol,
+                self._fixed_form_protocol,
+                log,
+                log_interval,
+                log_times,
+                root_list,
+                root_threshold,
+                bench,
+            )
+            t = tmin
+
+            try:
+                if progress:
+                    # Loop with feedback
+                    with progress.job(msg):
+                        r = 1.0 / duration if duration != 0 else 1
                         while t < tmax:
                             t = self._sim.sim_step()
-                except ArithmeticError:
-                    self._error_state = list(state)
-                    txt = ['A numerical error occurred during simulation at'
-                           ' t = ' + str(t) + '.', 'Last reached state: ']
-                    txt.extend([
-                        '  ' + x for x
-                        in self._model.format_state(state).splitlines()])
-                    txt.append('Inputs for binding: ')
-                    txt.append('  time        = ' + myokit.strfloat(bound[0]))
-                    txt.append('  pace        = ' + myokit.strfloat(bound[1]))
-                    txt.append('  realtime    = ' + myokit.strfloat(bound[2]))
-                    txt.append('  evaluations = ' + myokit.strfloat(bound[3]))
-                    try:
-                        self._model.eval_state_derivatives(state)
-                    except myokit.NumericalError as en:
-                        txt.append(str(en))
-                    raise myokit.SimulationError('\n'.join(txt))
-                except Exception as e:
+                            if not progress.update(min((t - tmin) * r, 1)):
+                                raise myokit.SimulationCancelledError()
+                else:
+                    # Loop without feedback
+                    while t < tmax:
+                        t = self._sim.sim_step()
+            except ArithmeticError as e:
+                # Some CVODE errors are set to raise an ArithmeticError,
+                # which users may be able to debug.
+                self._error_state = list(rstate)
+                txt = ['A numerical error occurred during simulation at'
+                       ' t = ' + str(t) + '.', 'Last reached state: ']
+                txt.extend(['  ' + x for x in
+                            self._model.format_state(rstate).splitlines()])
+                txt.append('Inputs for binding: ')
+                txt.append('  time        = ' + myokit.float.str(rbound[0]))
+                txt.append('  pace        = ' + myokit.float.str(rbound[1]))
+                txt.append('  realtime    = ' + myokit.float.str(rbound[2]))
+                txt.append('  evaluations = ' + myokit.float.str(rbound[3]))
+                txt.append(str(e))
+                try:
+                    self._model.evaluate_derivatives(rstate)
+                except myokit.NumericalError as en:
+                    txt.append(str(en))
+                raise myokit.SimulationError('\n'.join(txt))
+            except Exception as e:
 
-                    # Store error state
-                    self._error_state = list(state)
+                # Store error state
+                self._error_state = list(rstate)
 
-                    # Check for known CVODE errors
-                    if 'Function CVode()' in str(e):
-                        raise myokit.SimulationError(str(e))
+                # Check for known CVODE errors
+                if 'Function CVode()' in str(e):
+                    raise myokit.SimulationError(str(e))
 
-                    # Check for zero step error
-                    if str(e)[:10] == 'ZERO_STEP ':  # pragma: no cover
-                        t = float(str(e)[10:])
-                        raise myokit.SimulationError(
-                            'Maximum number of zero-size steps made at t='
-                            + str(t))
+                # Check for zero step error
+                if str(e)[:10] == 'ZERO_STEP ':  # pragma: no cover
+                    t = float(str(e)[10:])
+                    raise myokit.SimulationError(
+                        'Maximum number of zero-size steps made at t='
+                        + str(t))
 
-                    # Unknown exception: re-raise!
-                    raise
-                finally:
-                    # Clean even after KeyboardInterrupt or other Exception
-                    self._sim.sim_clean()
-                # Update internal state
-                self._state = state
+                # Unknown exception: re-raise!
+                raise
+            finally:
+                # Clean even after KeyboardInterrupt or other Exception
+                self._sim.sim_clean()
+
+            # Update internal state
+            self._state = rstate
 
         # Return
         if root_list is not None:
@@ -459,11 +511,14 @@ class Simulation(myokit.CModule):
         if not var.is_literal():
             raise ValueError(
                 'The given variable <' + var.qname() + '> is not a literal.')
+
+        # Update value in internal model: This is required for error handling
+        # (to show the correct values), but also takes care of constants in
+        # pickled/unpickled simulations.
+        self._model.set_value(var.qname(), value)
+
         # Update value in compiled simulation module
         self._sim.set_constant(var.qname(), value)
-        # Update value in internal model (required for error handling to show
-        # the correct values).
-        self._model.set_value(var.qname(), value)
 
     def set_default_state(self, state):
         """
@@ -479,6 +534,11 @@ class Simulation(myokit.CModule):
         dtmax = 0 if dtmax is None else float(dtmax)
         if dtmax < 0:
             dtmax = 0
+
+        # Store internally
+        self._dtmax = dtmax
+
+        # Set in simulation
         self._sim.set_max_step_size(dtmax)
 
     def set_min_step_size(self, dtmin=None):
@@ -489,6 +549,11 @@ class Simulation(myokit.CModule):
         dtmin = 0 if dtmin is None else float(dtmin)
         if dtmin < 0:
             dtmin = 0
+
+        # Store internally
+        self._dtmin = dtmin
+
+        # Set in simulation
         self._sim.set_min_step_size(dtmin)
 
     def set_fixed_form_protocol(self, times=None, values=None):
@@ -554,6 +619,23 @@ class Simulation(myokit.CModule):
         else:
             self._protocol = protocol.clone()
 
+    def __setstate__(self, state):
+        """
+        Called after unpickling.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__setstate__
+        """
+        self._time = state[0]
+        self._state = state[1]
+        self._default_state = state[2]
+        self._fixed_form_protocol = state[3]
+
+        # The following properties need to be set on the internal simulation
+        # object
+        self.set_tolerance(*state[4])
+        self.set_min_step_size(state[5])
+        self.set_max_step_size(state[6])
+
     def set_state(self, state):
         """
         Sets the current state.
@@ -578,6 +660,11 @@ class Simulation(myokit.CModule):
         rel_tol = float(rel_tol)
         if rel_tol <= 0:
             raise ValueError('Relative tolerance must be positive float.')
+
+        # Store tolerance in Python (for pickling)
+        self._tolerance = (abs_tol, rel_tol)
+
+        # Set tolerance in simulation
         self._sim.set_tolerance(abs_tol, rel_tol)
 
     def state(self):

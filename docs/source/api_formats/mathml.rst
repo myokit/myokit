@@ -4,16 +4,13 @@
 MathML
 ******
 
-Export of model equations to a Content and Presentation MathML is provided by
-the mathml module. In addition, a general purpose MathML parsing method is
-included.
+Methods are provided to parse and generate expressions in Content MathML.
+Presentation MathML can also be generated (but not parsed).
 
 Parsing
 =======
 
 .. currentmodule:: myokit.formats.mathml
-
-.. autofunction:: parse_mathml_dom
 
 .. autofunction:: parse_mathml_etree
 
@@ -22,17 +19,6 @@ Parsing
 .. autoclass:: MathMLError
 
 .. autoclass:: MathMLParser
-
-Exporting
-=========
-
-.. autofunction:: exporters
-
-.. autoclass:: HTMLExporter
-    :inherited-members:
-
-.. autoclass:: XMLExporter
-    :inherited-members:
 
 Writing expressions
 ===================

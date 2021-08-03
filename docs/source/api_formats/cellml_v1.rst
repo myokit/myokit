@@ -12,7 +12,7 @@ and write CellML 1.0 and 1.1 documents.
 These methods are used under the hood by the importers and exporters.
 
 In most cases, it's easier to avoid these methods and use the
-:ref:`CellML Importer and Exporter <formats/cellml_v1>` instead.
+:ref:`CellML Importer and Exporter <formats/cellml>` instead.
 
 CellML Model API
 ================
@@ -30,6 +30,12 @@ CellML Model API
 .. autoclass:: AnnotatableElement
 
 .. autoclass:: CellMLError
+
+.. autoclass:: UnitsError
+
+.. autoclass:: UnsupportedBaseUnitsError
+
+.. autoclass:: UnsupportedUnitOffsetError
 
 .. autofunction:: clean_identifier
 

@@ -72,8 +72,13 @@ class Protocol(object):
 
     def add_step(self, level, duration):
         """
-        Appends an event to the end of this protocol. This method can be used
-        to easily create voltage-step protocols.
+        Appends an event to the end of this protocol.
+
+        This method can be used to easily create voltage-step protocols. A call
+        to ``p.add_step(level, duration)`` is equivalent to
+        ``p.schedule(level, p.characteristic_time(), duration, 0, 0)``.
+
+        Arguments:
 
         ``level``
             The stimulus level. 1 Represents a full-sized stimulus. Only
@@ -81,8 +86,6 @@ class Protocol(object):
         ``duration``
             The length of the stimulus.
 
-        A call to `p.append(level, duration)` is equivalent to
-        `p.schedule(level, p.characteristic_time(), duration, 0, 0)`.
         """
         self.schedule(level, self.characteristic_time(), duration)
 
@@ -91,8 +94,9 @@ class Protocol(object):
         Returns the characteristic time associated with this protocol.
 
         The characteristic time is defined as the maximum characteristic time
-        of all events in the protocol. For a sequence of events, this is simply
-        the protocol duration.
+        of all events in the protocol
+        (see :meth:`ProtocolEvent.characteristic_time()`). For a sequence of
+        events, this is simply the protocol duration.
 
         Examples:
 
@@ -155,10 +159,8 @@ class Protocol(object):
         Deprecated alias of :meth:`log_for_interval`.
         """
         # Deprecated since 2019-01-09
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `create_log_for_interval` is deprecated.'
             ' Please use `log_for_interval` instead.')
         return self.log_for_interval(a, b, for_drawing)
@@ -168,13 +170,18 @@ class Protocol(object):
         Deprecated alias of :meth:`log_for_times`.
         """
         # Deprecated since 2019-01-09
-        import logging
-        logging.basicConfig()
-        log = logging.getLogger(__name__)
-        log.warning(
+        import warnings
+        warnings.warn(
             'The method `create_log_for_times` is deprecated.'
             ' Please use `log_for_times` instead.')
         return self.log_for_times(times)
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if not isinstance(other, Protocol):
+            return False
+        return self.code() == other.code()
 
     def events(self):
         """
@@ -188,22 +195,6 @@ class Protocol(object):
             out.append(e)
             e = e._next
         return out
-
-    def guess_duration(self):
-        """
-        *Deprecated*
-
-        This method now returns the value given by :meth:`characteristic_time`.
-        """
-        # Deprecated since 2016-02-06
-        import logging
-        logger = logging.getLogger('myokit')
-        logger.warning(
-            'The method Protocol.guess_duration() is deprecated: it will be'
-            ' removed in future versions of Myokit. Please use the method'
-            ' `characteristic_time` instead.'
-        )
-        return self.characteristic_time()
 
     def head(self):
         """
@@ -278,7 +269,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if e and myokit._feq(t, e._start):
+            if e and myokit.float.eq(t, e._start):
                 t = e._start
 
         return True
@@ -321,7 +312,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if myokit._feq(t, e._start):
+            if myokit.float.eq(t, e._start):
                 t = e._start
 
             # Check for periodic events
@@ -381,9 +372,15 @@ class Protocol(object):
         The time points in the log will be ``a`` and ``b``, and any time in
         between at which the pacing value changes.
 
-        If ``for_drawing`` is set to ``True`` each time value between ``a`` and
-        ``b`` will be listed twice, so that a vertical line can be drawn from
-        the old to the new pacing value.
+        If ``for_drawing`` is set to ``True`` each time value where the
+        protocol changes will be listed twice, so that a vertical line can be
+        drawn from the old to the new pacing value.
+
+        Note that the points returned are from ``a`` to ``b`` inclusive (the
+        interval ``[a, b]``), and so if ``b`` coincides with the end of the
+        protocol a point ``(b, 0)`` will be included in the output (protocol
+        steps are defined as half-open, so include their starting point but not
+        their end point).
         """
         # Test the input
         a, b = float(a), float(b)
@@ -458,6 +455,14 @@ class Protocol(object):
             e = e._next
 
         return lo, hi
+
+    def __reduce__(self):
+        """
+        Pickles the Protocol.
+
+        See: https://docs.python.org/3/library/pickle.html#object.__reduce__
+        """
+        return (myokit.parse_protocol, (self.code(), ))
 
     def schedule(self, level, start, duration, period=0, multiplier=0):
         """
@@ -775,16 +780,16 @@ class PacingSystem(object):
         self._time = new_time
 
         # Advance pacing system
-        while myokit._fgeq(new_time, self._tnext):
+        while myokit.float.geq(new_time, self._tnext):
 
             # Active event finished
-            if self._fire and myokit._fgeq(self._tnext, self._tdown):
+            if self._fire and myokit.float.geq(self._tnext, self._tdown):
                 self._fire = None
                 self._pace = 0
 
             # New event starting
             e = self._protocol._head
-            if e and myokit._fgeq(new_time, e._start):
+            if e and myokit.float.geq(new_time, e._start):
                 self._protocol.pop()
                 self._fire = e
                 self._tdown = e._start + e._duration
@@ -801,7 +806,7 @@ class PacingSystem(object):
                 # If so, then set tdown (which is always calculated) to the
                 # next event start (which may be user-specified).
                 x = self._protocol._head
-                if x and myokit._feq(self._tdown, x._start):
+                if x and myokit.float.eq(self._tdown, x._start):
                     self._tdown = x._start
 
             # Next stopping time

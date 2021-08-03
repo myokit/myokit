@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the lib.markov module.
 #
@@ -15,7 +15,7 @@ import numpy as np
 import myokit
 import myokit.lib.markov as markov
 
-from shared import DIR_DATA
+from shared import DIR_DATA, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -65,8 +65,10 @@ class LinearModelTest(unittest.TestCase):
             self.assertIn(p, parameters)
 
         # Test deprecated MarkovModel class
-        m2 = markov.MarkovModel(model, states, parameters, current)
+        with WarningCollector() as w:
+            m2 = markov.MarkovModel(model, states, parameters, current)
         self.assertEqual(type(m2), markov.AnalyticalSimulation)
+        self.assertIn('deprecated', w.text())
 
         # State doesn't exist
         self.assertRaisesRegex(
@@ -195,8 +197,10 @@ class LinearModelTest(unittest.TestCase):
         markov.LinearModel.from_component(model.get('ina'))
 
         # Test deprecated MarkovModel class
-        m = markov.MarkovModel.from_component(model.get('ina'))
+        with WarningCollector() as w:
+            m = markov.MarkovModel.from_component(model.get('ina'))
         self.assertEqual(type(m), markov.AnalyticalSimulation)
+        self.assertIn('deprecated', w.text())
 
         # Test partially automatic creation
         states = [
@@ -262,16 +266,25 @@ class LinearModelTest(unittest.TestCase):
         # Requires 21 parameters
         self.assertRaises(ValueError, m.matrices, -20, range(3))
 
-    def test_linear_model_steady_state(self):
+    def test_linear_model_steady_state_1(self):
+        # Test finding the steady-state of the Clancy model
 
         # Create model
-        fname = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
-        model = myokit.load_model(fname)
+        filename = os.path.join(DIR_DATA, 'clancy-1999-fitting.mmt')
+        model = myokit.load_model(filename)
         m = markov.LinearModel.from_component(model.get('ina'))
 
-        ss = list(m.steady_state())
+        # Get steady state
+        ss = np.array(m.steady_state())
+
+        # Check that this is a valid steady state
+        self.assertTrue(np.all(ss >= 0))
+        self.assertTrue(np.all(ss <= 1))
+
+        # Check that derivatives with ss are close to zero
+        ss = list(ss)
         model.set_state(ss + ss)    # Model has 2 ina's
-        derivs = model.eval_state_derivatives()
+        derivs = model.evaluate_derivatives()
         for i in range(len(ss)):
             self.assertAlmostEqual(0, derivs[i])
 
@@ -279,6 +292,28 @@ class LinearModelTest(unittest.TestCase):
         self.assertRaisesRegex(
             markov.LinearModelError, 'positive eigenvalues',
             m.steady_state, parameters=[-1] * 21)
+
+    def test_linear_model_steady_state_2(self):
+        # Test finding the steady-state of one of Dominic's models, which
+        # exposed a bug in the steady state code
+
+        # Create model
+        filename = os.path.join(DIR_DATA, 'dom-markov.mmt')
+        model = myokit.load_model(filename)
+        m = markov.LinearModel.from_component(model.get('ikr'))
+
+        # Get steady state
+        ss = np.array(m.steady_state())
+
+        # Check that this is a valid steady state
+        self.assertTrue(np.all(ss >= 0))
+        self.assertTrue(np.all(ss <= 1))
+
+        # Check that derivatives with ss are close to zero
+        model.set_state(ss)
+        derivs = model.evaluate_derivatives()
+        for i in range(len(ss)):
+            self.assertAlmostEqual(0, derivs[i])
 
     def test_rates(self):
 
@@ -289,7 +324,7 @@ class LinearModelTest(unittest.TestCase):
         # Create a markov model
         m = markov.LinearModel.from_component(model.get('ina'))
 
-        # Test rates method
+        # Test rates method runs
         self.assertEqual(len(m.rates()), 12)
         m.rates(parameters=[0.01] * 21)
         self.assertRaisesRegex(

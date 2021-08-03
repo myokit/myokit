@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # Class for testing the fixed-form pacing system.
 #

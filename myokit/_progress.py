@@ -8,7 +8,6 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import timeit
-import sys
 
 import myokit
 
@@ -29,10 +28,6 @@ class ProgressReporter(object):
     An optional description of the job to run can be passed in at construction
     time as ``msg``.
     """
-    def __init__(self, msg=None):
-        # If any output should be written, write it here
-        self._output_stream = sys.stdout
-
     def enter(self, msg=None):
         """
         This method will be called when the job that provides progress updates
@@ -52,7 +47,7 @@ class ProgressReporter(object):
     def job(self, msg=None):
         """
         Returns a context manager that will enter and exit this
-        ProgressReporter using the ``with`` statement.
+        :class:`ProgressReporter` using the ``with`` statement.
         """
         return ProgressReporter._Job(self, msg)
 
@@ -62,18 +57,10 @@ class ProgressReporter(object):
         progress. This is indicated using the floating point value
         ``progress``, which will have a value in the range ``[0, 1]``.
 
-        The return value of this update can be used to cancel a job (if job
-        type supports it). Return ``True`` to keep going, ``False`` to cancel
-        the job.
+        The return value of this update can be used to signal a job should be
+        cancelled: Return ``True`` to keep going, ``False`` to cancel.
         """
         pass
-
-    def _set_output_stream(self, stream):
-        """
-        Set an output stream to use, for reporters that want to write to
-        stdout but bypass any capturing mechanisms.
-        """
-        self._output_stream = stream
 
     class _Job(object):
         def __init__(self, parent, msg):
@@ -111,7 +98,7 @@ class ProgressPrinter(ProgressReporter):
     """
     def __init__(self, digits=1):
         super(ProgressPrinter, self).__init__()
-        self._b = myokit.Benchmarker()
+        self._b = myokit.tools.Benchmarker()
         self._f = None
         self._d = int(digits)
 
@@ -142,9 +129,7 @@ class ProgressPrinter(ProgressReporter):
             else:
                 p = ''
             t = str(round(t / 60, 1))
-            self._output_stream.write(
-                '[' + t + ' minutes] ' + str(f) + ' % done' + p + '\n')
-            self._output_stream.flush()
+            print('[' + t + ' minutes] ' + str(f) + ' % done' + p)
         return True
 
 
