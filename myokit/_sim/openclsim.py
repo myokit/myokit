@@ -1219,10 +1219,10 @@ class SimulationOpenCL(myokit.CModule):
                     # Evaluate state derivatives
                     eval_error = None
                     try:
-                        derivs = self._model.eval_state_derivatives(
+                        derivs = self._model.evaluate_derivatives(
                             state, bound, self._precision, ignore_errors=False)
                     except myokit.NumericalError as ee:
-                        derivs = self._model.eval_state_derivatives(
+                        derivs = self._model.evaluate_derivatives(
                             state, bound, self._precision, ignore_errors=True)
                         eval_error = str(ee)
 

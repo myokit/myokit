@@ -49,6 +49,7 @@ This page lists the main changes made to Myokit in each release.
   - [#735](https://github.com/MichaelClerx/myokit/pull/735) The method `myokit.strfloat` is deprecated in favour of `myokit.float.str`.
   - [#758](https://github.com/MichaelClerx/myokit/pull/758) The class `myokit.FiberTissueSimulation` is deprecated and will be removed in future versions.
   - [#776](https://github.com/MichaelClerx/myokit/pull/776) The method `OpenCLSimulation.calculate_conductance` is deprecated in favour of the new method `calculate_conductance`, which takes slightly different parameters.
+  - [#787](https://github.com/MichaelClerx/myokit/pull/787) The method `myokit.Model.eval_state_derivatives` is deprecated in favour of `myokit.Model.evaluate_derivatives`.
 - Removed
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux (still testing latest 2.7). No longer testing any Python 2.7 on Windows.
   - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
