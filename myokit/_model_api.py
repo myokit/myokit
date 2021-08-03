@@ -1409,7 +1409,7 @@ class Model(ObjectWithMeta, VarProvider):
         warnings.warn(
             'The method `eval_state_derivatives` is deprecated. Please use'
             ' `evaluate_derivatives()` instead.')
-        return self.evaluate_state_derivatives(
+        return self.evaluate_derivatives(
             state, inputs, precison, ignore_errors)
 
     def expressions_for(self, *variables):
