@@ -158,24 +158,41 @@ class TestModel(unittest.TestCase):
         self.assertEqual(model.area_units(), area_units)
 
     def test_assignable(self):
+        # Tests assignable() and assignable_or_csymbol()
 
         model = sbml.Model(name='model')
 
         # Add assignables to model
         c_sid = 'compartment'
-        model.add_compartment(c_sid)
+        c = model.add_compartment(c_sid)
 
         p_sid = 'parameters'
-        model.add_parameter(p_sid)
+        p = model.add_parameter(p_sid)
 
         s_sid = 'species'
         comp = sbml.Compartment(model=model, sid=c_sid)
-        model.add_species(compartment=comp, sid=s_sid)
+        s = model.add_species(compartment=comp, sid=s_sid)
 
         # Check that all assignables are accessible
-        self.assertIsNotNone(model.assignable(c_sid))
-        self.assertIsNotNone(model.assignable(p_sid))
-        self.assertIsNotNone(model.assignable(s_sid))
+        t = 'http://www.sbml.org/sbml/symbols/time'
+        self.assertEqual(model.assignable(c_sid), c)
+        self.assertEqual(model.assignable(p_sid), p)
+        self.assertEqual(model.assignable(s_sid), s)
+        self.assertRaises(KeyError, model.assignable, t)
+
+        # Check that assignables and csymbols can be obtained with
+        # assignable_or_csymbol:
+        self.assertEqual(model.assignable_or_csymbol(c_sid), c)
+        self.assertEqual(model.assignable_or_csymbol(p_sid), p)
+        self.assertEqual(model.assignable_or_csymbol(s_sid), s)
+        self.assertEqual(model.assignable_or_csymbol(t), model.time())
+        self.assertRaises(
+            KeyError, model.assignable,
+            'http://www.sbml.org/sbml/symbols/beer')
+        self.assertRaises(
+            KeyError, model.assignable, 'http://google.com')
+        self.assertRaises(
+            KeyError, model.assignable, 'https://google.com')
 
     def test_base_unit(self):
 
@@ -1262,7 +1279,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         m.add_parameter('c')
         m = m.myokit_model()
 
-        # Check that model created parameters in 'myokit' component
+        # Check that model created parameters in 'global' component
         self.assertTrue(m.has_variable('myokit.z'))
         self.assertTrue(m.has_variable('myokit.boat'))
         self.assertTrue(m.has_variable('myokit.c'))
@@ -1452,8 +1469,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         mm = m.myokit_model()
         ms = mm.get('comp.spec_1_amount')
         self.assertFalse(ms.is_state())
-        self.assertEqual(
-            ms.rhs().code(), 'myokit.p1')
+        self.assertEqual(ms.rhs().code(), 'myokit.p1')
 
         # Species in concentration: unreferenced parameter
         p2 = sbml.Parameter(m, 'p2')
@@ -2135,8 +2151,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
 
         # Check that stoichiometries are referenced in
 
-    def test_time(self):
-        # Tests whether time variable is created properly.
+    def test_time_variable_is_created(self):
+        # Tests whether time variable is created.
 
         m = sbml.Model()
         m.set_time_units(myokit.units.ampere)
@@ -2150,42 +2166,25 @@ class SBMLTestMyokitModel(unittest.TestCase):
         self.assertEqual(var.unit(), myokit.units.ampere)
 
         # Check that initial value is set
-        self.assertEqual(var.eval(), 0)
+        self.assertEqual(var.rhs(), myokit.Number(0, myokit.units.ampere))
 
         # Chet that variable is time bound
         self.assertTrue(var.binding(), 'time')
 
-    def test_time_2(self):
-        # Tests whether time bound variable is added properly to myokit
-        # component.
+    def test_time_variable_is_usable(self):
+        # Tests that time variable can be used in equations
 
-        # Create myokit component
-        myokit_model = myokit.Model()
-        component_references = {}
-        m = sbml.Model(name='model')
-        X.add_myokit_component(
-            myokit_model, component_references)
-        c = component_references['myokit']
-
-        # Create remaining inputs
-        variable_references = {}
-
-        # Add time bound variable to myokit model
-        unit = myokit.units.s
-        m.set_time_units(unit)
-        X.add_time(m, c, variable_references)
-
-        # Check that time bound variable exists in myokit component
-        self.assertTrue(c.has_variable('time'))
-
-        # Check that variable is referenced under csymbol
-        sid = 'http://www.sbml.org/sbml/symbols/time'
-        self.assertIn(sid, variable_references.keys())
-
-        # Check that variable has correct units and initial value
-        var = variable_references[sid]
-        self.assertEqual(var.rhs(), myokit.Number(0))
-        self.assertEqual(var.unit(), unit)
+        # Create SBML model
+        s = sbml.Model()
+        s.set_time_units(myokit.units.ms)
+        p = s.add_parameter('param')
+        p.set_value(myokit.Plus(myokit.Number(1), myokit.Name(s.time())))
+        m = s.myokit_model()
+        t = m.get('myokit.time')
+        self.assertEqual(t.unit(), myokit.units.ms)
+        self.assertEqual(
+            m.get('myokit.param').rhs(),
+            myokit.Plus(myokit.Number(1), myokit.Name(m.time())))
 
 
 if __name__ == '__main__':

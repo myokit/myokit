@@ -9,6 +9,8 @@ import myokit.units
 # Regex for id checking
 _re_id = re.compile(r'^[a-zA-Z_]+[a-zA-Z0-9_]*$')
 
+_SBML_TIME = 'http://www.sbml.org/sbml/symbols/time'
+
 
 class SBMLError(Exception):
     """Raised if something goes wrong when working with an SBML model."""
@@ -62,7 +64,10 @@ class Quantity(object):
         Arguments:
 
         ``value``
-            An expression
+            An expression. The values of any :class:`myokit.Name` objects in
+            the expression must be either subclasses of
+            :class:`myokit.formats.sbml.api.Quantity` or of
+            :class:`myokit.formats.sbml.api.CSymbolVariable`.
         ``rate``
             Set to ``True`` if the expression gives the rate of change of this
             variable.
@@ -82,6 +87,22 @@ class Quantity(object):
         ``None`` if not set.
         """
         return self._value
+
+
+class CSymbolVariable(object):
+    """
+    Represents a CSymbol that can appear in SBML expressions, but which has a
+    predetermind value and/or meaning, e.g. "time".
+    """
+    def __init__(self, definition_url):
+        self._definition_url = str(definition_url)
+
+    def definition_url(self):
+        """ Returns the ``definitionUrl`` for this ``CSymbolVariable``. """
+        return self._definition_url
+
+    def __str__(self):
+        return '<CSymbolVariable ' + self._definition_url + '>'
 
 
 class Compartment(Quantity):
@@ -191,6 +212,7 @@ class Model(object):
         self._sids = set()
 
         # Assignables: Compartments, species, species references, parameters
+        # Mapping from sID to Quantity subclass instance
         self._assignables = {}
 
         # Compartments, parameters, species (all maps from sids to objects)
@@ -215,6 +237,9 @@ class Model(object):
 
         # Global conversion factor for species
         self._conversion_factor = None
+
+        # CSymbolVariable for time
+        self._time = CSymbolVariable(_SBML_TIME)
 
     def add_compartment(self, sid):
         """Adds a :class:`myokit.formats.sbml.Compartment` to this model."""
@@ -296,6 +321,17 @@ class Model(object):
         given SId.
         """
         return self._assignables[sid]
+
+    def assignable_or_csymbol(self, identifier):
+        """
+        Like :meth:`assignable`, but will also return a
+        :class:`CSymbolVariable` if the given identifier is a known CSymbol
+        ``definitionUrl``.
+        """
+        # Continas "://"? Then can't be a sid. So this is OK.
+        if identifier == _SBML_TIME:
+            return self._time
+        return self._assignables[identifier]
 
     def base_unit(self, unitsid):
         """
@@ -462,6 +498,12 @@ class Model(object):
         """
         return self._substance_units
 
+    def time(self):
+        """
+        Returns the :class:`CSymbolVariable` representing time in this model.
+        """
+        return self._time
+
     def time_units(self):
         """Returns the default units for time, or dimensionless if not set."""
         return self._time_units
@@ -551,7 +593,7 @@ class Parameter(Quantity):
         self._units = None
 
     def set_units(self, units):
-        """Sets this parameters units to the given ``Units``."""
+        """Sets this parameters units to the given ``units``."""
         if not isinstance(units, myokit.Unit):
             raise SBMLError(
                 '<' + str(units) + '> needs to be instance of myokit.Unit')
@@ -945,7 +987,7 @@ class _MyokitConverter(object):
         if notes:
             myokit_model.meta['desc'] = notes
 
-        # Create reference container that links sid's to myokit objects
+        # Create reference container that maps sid's to myokit objects
         component_references = {}
         variable_references = {}
 
@@ -965,10 +1007,15 @@ class _MyokitConverter(object):
             sbml_model, myokit_model, component_references,
             variable_references, expression_references)
 
-        # Add myokit component to model
-        # It stores time bound variable and global parameters
-        myokit_component_name = _MyokitConverter.add_myokit_component(
+        # Add global component to model, to store time variable and any global
+        # parameters. Do this after adding the ordinary compartments, so that
+        # they will get precedence in any naming conflicts.
+        global_component = _MyokitConverter.add_global_component(
             myokit_model, component_references)
+
+        # Add time variable to myokit component
+        _MyokitConverter.add_time_variable(
+            sbml_model, global_component, expression_references)
 
         # Add species to components
         _MyokitConverter.add_species(
@@ -977,18 +1024,13 @@ class _MyokitConverter(object):
 
         # Add parameters to myokit component
         _MyokitConverter.add_parameters(
-            sbml_model, component_references[myokit_component_name],
+            sbml_model, global_component,
             variable_references, expression_references)
 
         # Add stoichiometries from reactions
         _MyokitConverter.add_stoichiometries(
             sbml_model, component_references, variable_references,
             expression_references)
-
-        # Add time variable to myokit component
-        _MyokitConverter.add_time(
-            sbml_model, component_references[myokit_component_name],
-            variable_references)
 
         # Set RHS of compartment sizes
         _MyokitConverter.set_rhs_sizes(
@@ -1015,6 +1057,48 @@ class _MyokitConverter(object):
         return myokit_model
 
     @staticmethod
+    def add_global_component(
+            myokit_model, component_references, name='myokit'):
+        """
+        Creates a component used to store global parameters and the time
+        variable.
+
+        An attempt will be made to use the name given by the parameter
+        ``name``, but if this is not available another similar name will be
+        found (using :meth:`myokit.add_component_allow_renaming`).
+
+        Returns the newly added component.
+        """
+        # Add component
+        component = myokit_model.add_component_allow_renaming(name)
+
+        # Add myokit component to reference list
+        component_references[component.name()] = component
+
+        return component
+
+    @staticmethod
+    def add_time_variable(sbml_model, component, expression_references):
+        """
+        Adds time bound variable to the myokit compartment.
+        """
+
+        # Add variable
+        var = component.add_variable_allow_renaming('time')
+
+        # Bind time variable to time in myokit model
+        var.set_binding('time')
+
+        # Set time unit and initial value (SBML default: t=0)
+        units = sbml_model.time_units()
+        var.set_unit(units)
+        var.set_rhs(myokit.Number(0, units))
+
+        # Add reference to time variable
+        expression_references[myokit.Name(sbml_model.time())] = \
+            myokit.Name(var)
+
+    @staticmethod
     def add_compartments(
             sbml_model, myokit_model, component_references,
             variable_references, expression_references):
@@ -1023,8 +1107,7 @@ class _MyokitConverter(object):
         """
         for sid, compartment in sbml_model._compartments.items():
             # Create component for compartment
-            component = myokit_model.add_component_allow_renaming(
-                convert_name(sid))
+            component = myokit_model.add_component(convert_name(sid))
 
             # Add component to reference list
             component_references[sid] = component
@@ -1038,25 +1121,6 @@ class _MyokitConverter(object):
             # Add size variable to reference list
             variable_references[sid] = var
             expression_references[myokit.Name(compartment)] = myokit.Name(var)
-
-    @staticmethod
-    def add_myokit_component(myokit_model, component_references):
-        """
-        Creates the ``myokit`` component, which is used to store global
-        parameters and the time variable.
-        """
-
-        # Create default name of component
-        myokit_component_name = 'myokit'
-
-        # Add component
-        component = myokit_model.add_component_allow_renaming(
-            myokit_component_name)
-
-        # Add myokit component to referece list
-        component_references[myokit_component_name] = component
-
-        return myokit_component_name
 
     @staticmethod
     def add_parameters(
@@ -1212,9 +1276,9 @@ class _MyokitConverter(object):
             # Set initial value
             expr = compartment.initial_value()
             if expr is not None:
+                expr = expr.clone(subst=expression_references)
                 try:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
+                    var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
                         'Initial value for the size of <' + str(compartment) +
@@ -1240,9 +1304,9 @@ class _MyokitConverter(object):
             # (assignmentRule overwrites initialAssignment)
             expr = compartment.value()
             if expr is not None:
+                expr = expr.clone(subst=expression_references)
                 try:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
+                    var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
                         'Value for the size of <' + str(compartment) +
@@ -1330,8 +1394,9 @@ class _MyokitConverter(object):
                 expr = myokit.PrefixMinus(expr)
 
             # Set RHS
+            expr = expr.clone(subst=expression_references)
             try:
-                var.set_rhs(expr.clone(subst=expression_references))
+                var.set_rhs(expr)
             except AttributeError:
                 raise SBMLError(
                     'Reaction rate expression of <' + str(reaction) + '> for <'
@@ -1416,8 +1481,9 @@ class _MyokitConverter(object):
                 expr = myokit.Plus(var.rhs(), expr)
 
             # Set RHS
+            expr = expr.clone(subst=expression_references)
             try:
-                var.set_rhs(expr.clone(subst=expression_references))
+                var.set_rhs(expr)
             except AttributeError:
                 raise SBMLError(
                     'Reaction rate expression of <' + str(reaction) + '> for <'
@@ -1450,17 +1516,18 @@ class _MyokitConverter(object):
                 if expr_in_amount is None:
                     expr_in_amount = species.is_amount()
 
+                if expr_in_amount is False:
+                    # Get initial compartment size
+                    compartment = species.compartment()
+                    size = variable_references[compartment.sid()]
+
+                    # Convert initial value from concentration to amount
+                    expr = myokit.Multiply(expr, myokit.Name(size))
+
+                # Set initial value
+                expr = expr.clone(subst=expression_references)
                 try:
-                    if expr_in_amount is False:
-                        # Get initial compartment size
-                        compartment = species.compartment()
-                        size = variable_references[compartment.sid()]
-
-                        # Convert initial value from concentration to amount
-                        expr = myokit.Multiply(expr, myokit.Name(size))
-
-                    # Set initial value
-                    var.set_rhs(expr.clone(subst=expression_references))
+                    var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
                         'Initial value of <' + str(species) + '> contains '
@@ -1486,17 +1553,18 @@ class _MyokitConverter(object):
             if expr is not None:
                 # Need to convert initial value if species is measured in
                 # concentration (assignments match unit of measurement)
+                if not species.is_amount():
+                    # Get initial compartment size
+                    compartment = species.compartment()
+                    size = variable_references[compartment.sid()]
+
+                    # Convert initial value from concentration to amount
+                    expr = myokit.Multiply(expr, myokit.Name(size))
+
+                # Set initial value
+                expr = expr.clone(subst=expression_references)
                 try:
-                    if not species.is_amount():
-                        # Get initial compartment size
-                        compartment = species.compartment()
-                        size = variable_references[compartment.sid()]
-
-                        # Convert initial value from concentration to amount
-                        expr = myokit.Multiply(expr, myokit.Name(size))
-
-                    # Set initial value
-                    var.set_rhs(expr.clone(subst=expression_references))
+                    var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
                         'Value of <' + str(species) + '> contains '
@@ -1517,13 +1585,13 @@ class _MyokitConverter(object):
             # Set initial value
             expr = parameter.initial_value()
             if expr is not None:
+                expr = expr.clone(subst=expression_references)
                 try:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
+                    var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
-                        'Initial value of <' + str(parameter) +
-                        '> contains unreferenced parameters/variables. Please'
+                        'Initial value of ' + str(parameter) +
+                        ' contains unreferenced parameters/variables. Please'
                         ' use e.g. the `add_parameter` method to add reference'
                         ' to parameters in the model.')
 
@@ -1534,9 +1602,9 @@ class _MyokitConverter(object):
                 except AttributeError:
                     state_value = 0
                     warnings.warn(
-                        'Parameter <' + str(parameter) + '> is promoted to '
-                        'state variable without being assigned with an initial'
-                        ' value. Default is set to 1.')
+                        'Parameter ' + str(parameter) + ' is promoted to'
+                        ' state variable without being assigned with an'
+                        ' initial value. Default is set to 1.')
 
                 # Promote size to state variable
                 var.promote(state_value=state_value)
@@ -1545,15 +1613,15 @@ class _MyokitConverter(object):
             # (assignmentRule overwrites initialAssignment)
             expr = parameter.value()
             if expr is not None:
+                expr = expr.clone(subst=expression_references)
                 try:
-                    var.set_rhs(expr.clone(
-                        subst=expression_references))
+                    var.set_rhs(expr)
                 except AttributeError:
                     raise SBMLError(
-                        'Value of <' + str(parameter) + '> contains '
-                        'unreferenced parameters/variables. Please use e.g.'
-                        ' the `add_parameter` method to add reference '
-                        'to parameters in the model.')
+                        'Value of ' + str(parameter) + ' contains unreferenced'
+                        ' parameters/variables. Please use e.g. the'
+                        ' `add_parameter` method to add reference to'
+                        ' parameters in the model.')
 
     @staticmethod
     def set_rhs_stoichiometries(
@@ -1581,9 +1649,9 @@ class _MyokitConverter(object):
                 # Set initial value
                 expr = species_reference.initial_value()
                 if expr is not None:
+                    expr = expr.clone(subst=expression_references)
                     try:
-                        var.set_rhs(expr.clone(
-                            subst=expression_references))
+                        var.set_rhs(expr)
                     except AttributeError:
                         raise SBMLError(
                             'Initial value of <' + str(species_reference) +
@@ -1611,9 +1679,9 @@ class _MyokitConverter(object):
                 # (assignmentRule overwrites initialAssignment)
                 expr = species_reference.value()
                 if expr is not None:
+                    expr = expr.clone(subst=expression_references)
                     try:
-                        var.set_rhs(expr.clone(
-                            subst=expression_references))
+                        var.set_rhs(expr)
                     except AttributeError:
                         raise SBMLError(
                             'Value of <' + str(species_reference) + '> '
@@ -1621,26 +1689,4 @@ class _MyokitConverter(object):
                             '/variables. Please use e.g. the `add_parameter` '
                             'method to add reference to parameters in the '
                             'model.')
-
-    @staticmethod
-    def add_time(sbml_model, component, variable_references):
-        """
-        Adds time bound variable to the myokit compartment.
-        """
-
-        # Add variable
-        var = component.add_variable_allow_renaming('time')
-
-        # Bind time variable to time in myokit model
-        var.set_binding('time')
-
-        # Set time unit and initial value (SBML default: t=0)
-        var.set_unit(sbml_model.time_units())
-        var.set_rhs(0)
-
-        # Add reference to time variable
-        # (SBML referes to time by a csymbol:
-        # 'http://www.sbml.org/sbml/symbols/time/')
-        variable_references[
-            'http://www.sbml.org/sbml/symbols/time'] = var
 
