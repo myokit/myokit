@@ -14,6 +14,8 @@ import myokit
 import myokit.formats
 import myokit.formats.sbml as sbml
 
+from myokit.formats.sbml._api import _MyokitConverter as X
+
 from shared import WarningCollector
 
 # Unit testing in Python 2 and 3
@@ -2064,15 +2066,15 @@ class SBMLTestMyokitModel(unittest.TestCase):
         c_sid = 'compartment'
         c = m.add_compartment(c_sid)
 
-        m._add_compartments(
-            myokit_model, component_references, variable_references,
+        X.add_compartments(
+            m, myokit_model, component_references, variable_references,
             expression_references)
 
         sid = 'species'
         s = m.add_species(c, sid)
 
-        m._add_species(
-            component_references, species_amount_references,
+        X.add_species(
+            m, component_references, species_amount_references,
             variable_references, expression_references)
 
         # Case I: No stoichiometry reference
@@ -2085,8 +2087,9 @@ class SBMLTestMyokitModel(unittest.TestCase):
         r.add_product(species=s, sid=p_sid)
 
         # Add stoichiometries to myokit model
-        m._add_stoichiometries(
-            component_references, variable_references, expression_references)
+        X.add_stoichiometries(
+            m, component_references, variable_references,
+            expression_references)
 
         # Check that stoichiometries do not exist in myokit model and are not
         # referenced in variable_references
@@ -2106,8 +2109,9 @@ class SBMLTestMyokitModel(unittest.TestCase):
         ps = r.add_product(species=s, sid=p_sid)
 
         # Add stoichiometries to myokit model
-        m._add_stoichiometries(
-            component_references, variable_references, expression_references)
+        X.add_stoichiometries(
+            m, component_references, variable_references,
+            expression_references)
 
         # Check that stoichiometries exist in myokit model and are
         # referenced in variable_references
@@ -2159,7 +2163,8 @@ class SBMLTestMyokitModel(unittest.TestCase):
         myokit_model = myokit.Model()
         component_references = {}
         m = sbml.Model(name='model')
-        m._add_myokit_component(myokit_model, component_references)
+        X.add_myokit_component(
+            myokit_model, component_references)
         c = component_references['myokit']
 
         # Create remaining inputs
@@ -2168,7 +2173,7 @@ class SBMLTestMyokitModel(unittest.TestCase):
         # Add time bound variable to myokit model
         unit = myokit.units.s
         m.set_time_units(unit)
-        m._add_time(c, variable_references)
+        X.add_time(m, c, variable_references)
 
         # Check that time bound variable exists in myokit component
         self.assertTrue(c.has_variable('time'))

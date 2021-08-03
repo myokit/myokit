@@ -287,7 +287,7 @@ class TestSBMLParser(unittest.TestCase):
             '   <math xmlns="http://www.w3.org/1998/Math/MathML">'
             '    <apply>'
             '     <times/>'
-            '     <ci> bacterial_count </ci>'
+            '     <ci>bacterial_count</ci>'
             ' <csymbol definitionURL="http://www.sbml.org/sbml/symbols/time"/>'
             '    </apply>'
             '   </math>'
@@ -296,8 +296,6 @@ class TestSBMLParser(unittest.TestCase):
             '</model>')
 
         self.p.parse_string(self.wrap(xml))
-
-
 
     def test_parse_events(self):
         # Test parsing events (these are ignored)
