@@ -284,7 +284,7 @@ class LinearModelTest(unittest.TestCase):
         # Check that derivatives with ss are close to zero
         ss = list(ss)
         model.set_state(ss + ss)    # Model has 2 ina's
-        derivs = model.eval_state_derivatives()
+        derivs = model.evaluate_derivatives()
         for i in range(len(ss)):
             self.assertAlmostEqual(0, derivs[i])
 
@@ -311,7 +311,7 @@ class LinearModelTest(unittest.TestCase):
 
         # Check that derivatives with ss are close to zero
         model.set_state(ss)
-        derivs = model.eval_state_derivatives()
+        derivs = model.evaluate_derivatives()
         for i in range(len(ss)):
             self.assertAlmostEqual(0, derivs[i])
 

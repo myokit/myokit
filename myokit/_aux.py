@@ -552,7 +552,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
         initial = model.state()
 
     # Get evaluation at initial state
-    values = model.eval_state_derivatives(
+    values = model.evaluate_derivatives(
         state=initial, ignore_errors=ignore_errors)
 
     # Log settings
@@ -582,7 +582,7 @@ def step(model, initial=None, reference=None, ignore_errors=False):
 
         # Reference should be a state evaluation, or a model
         if isinstance(reference, myokit.Model):
-            reference = reference.eval_state_derivatives(
+            reference = reference.evaluate_derivatives(
                 state=initial, ignore_errors=ignore_errors)
 
         h = ' ' * (w + 28)

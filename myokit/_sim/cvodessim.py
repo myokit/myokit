@@ -675,7 +675,7 @@ class Simulation(myokit.CModule):
                 # Check if state derivatives can be evaluated in Python, if
                 # not, add the error to the error message.
                 try:
-                    self._model.eval_state_derivatives(state)
+                    self._model.evaluate_derivatives(state)
                 except myokit.NumericalError as en:
                     txt.append(str(en))
 
@@ -761,7 +761,7 @@ class Simulation(myokit.CModule):
                 'The given variable <' + var.qname() + '> is not a literal.')
 
         # Update value in internal model: This is required for error handling,
-        # when self._model.eval_state_derivatives is called.
+        # when self._model.evaluate_derivatives is called.
         # It also ensures the modified value is retained when pickling.
         self._model.set_value(var, value)
 
