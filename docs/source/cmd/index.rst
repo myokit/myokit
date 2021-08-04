@@ -37,7 +37,6 @@ help about the ``export`` command, use::
     debug
     eval
     export
-    gde
     ide
     import
     log
