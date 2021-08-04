@@ -174,7 +174,8 @@ They have not been reviewed or checked extensively, so some errors may be presen
 6. [Markov channel models](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/t6-markov-channels.ipynb)
 7. [Rush-Larsen updates](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/t7-rush-larsen.ipynb)
 
+- [Simulation test case: Simple model](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/tA-test-case-simple-model.ipynb)
 - Simulation test case: HH ion channel model
-- [Simulation test case: PK model](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/tB-test-case-pk-model.ipynb)
+- [Simulation test case: PK model](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/tC-test-case-pk-model.ipynb)
 - [Autodiff simulations](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/tZ-autodiff.ipynb)
 
