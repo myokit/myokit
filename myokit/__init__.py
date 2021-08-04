@@ -143,11 +143,12 @@ LICENSE_HTML = """
     BSD 3-Clause License
     <br />
     <br />Copyright (c) 2011-2017 Maastricht University. All rights reserved.
-    <br />Copyright (c) 2017-2019 University of Oxford. All rights reserved.
+    <br />Copyright (c) 2017-2020 University of Oxford. All rights reserved.
     <br />(University of Oxford means the Chancellor, Masters and Scholars of
     the University of Oxford, having an administrative office at Wellington
     Square, Oxford OX1 2JD, UK).
-</p>
+    <br />Copyright (c) 2020-2021 University of Nottingham. All rights
+    reserved.</br></p>
 <p>
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
