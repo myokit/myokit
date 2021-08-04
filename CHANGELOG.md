@@ -2,6 +2,13 @@
                 
 This page lists the main changes made to Myokit in each release.
 
+## Unreleased
+- Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
 ## [1.33.0] - 2021-08-04
 - Added
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Myokit's expression system now includes a `PartialDerivative` and an `InitialValue` class. Both are for use in sensitivity calculations and may not appear in models.
@@ -56,8 +63,8 @@ This page lists the main changes made to Myokit in each release.
   - [#787](https://github.com/MichaelClerx/myokit/pull/787) The method `myokit.Model.eval_state_derivatives` is deprecated in favour of `myokit.Model.evaluate_derivatives`.
 - Removed
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux (still testing latest 2.7). No longer testing any Python 2.7 on Windows.
-  - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
   - [#728](https://github.com/MichaelClerx/myokit/pull/728) The classes `myokit.PyCapture` and `myokit.SubCapture` have been replaced by a single context manager `myokit.tools.capture`.
+  - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Model.merge_interdependent_components` was removed. This method was deprecated since 2018-05-30.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Model.show_line` was removed. This method was deprecated since 2018-05-30.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Protocol.guess_duration` was removed. This method was deprecated since 2016-02-06.
