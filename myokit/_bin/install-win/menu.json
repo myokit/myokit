@@ -29,13 +29,6 @@ icons = icons.replace('\\', '/')
                 "scriptarguments": ["block"],
                 "workdir": "${PREFIX}",
                 "icon": "<?=icons?>/icon-datablock-viewer.ico"
-            },
-            {
-                "name": "Graph data extractor",
-                "script": "${PYTHON_SCRIPTS}/myokit.exe",
-                "scriptarguments": ["gde"],
-                "workdir": "${PREFIX}",
-                "icon": "<?=icons?>/icon-gde.ico"
             }
         ]
 }

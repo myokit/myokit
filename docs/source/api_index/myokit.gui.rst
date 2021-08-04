@@ -41,43 +41,6 @@ myokit.gui.explorer
 - :class:`myokit.gui.explorer.Explorer`
 
 =================
-myokit.gui.gde
-=================
-- :class:`myokit.gui.gde.AxisItem`
-- :class:`myokit.gui.gde.AxisPointItem`
-- :class:`myokit.gui.gde.BoolVariableField`
-- :class:`myokit.gui.gde.DA_AddVariable`
-- :class:`myokit.gui.gde.DA_AddNode`
-- :class:`myokit.gui.gde.DA_ChangeVariable`
-- :class:`myokit.gui.gde.DA_ChangeVariables`
-- :class:`myokit.gui.gde.DA_RemoveNode`
-- :class:`myokit.gui.gde.DA_RemoveVariable`
-- :class:`myokit.gui.gde.DataPointItem`
-- :class:`myokit.gui.gde.DataSetItem`
-- :class:`myokit.gui.gde.Document`
-- :class:`myokit.gui.gde.DocumentAction`
-- :class:`myokit.gui.gde.DocumentEditDock`
-- :class:`myokit.gui.gde.DocumentModel`
-- :class:`myokit.gui.gde.DocumentNode`
-- :class:`myokit.gui.gde.DocumentTreeView`
-- :class:`myokit.gui.gde.DocumentVariable`
-- :class:`myokit.gui.gde.DocumentVariableEditDock`
-- :class:`myokit.gui.gde.DocumentVariableField`
-- :class:`myokit.gui.gde.DocumentVariableList`
-- :class:`myokit.gui.gde.DraggableItem`
-- :class:`myokit.gui.gde.GdeDocument`
-- :class:`myokit.gui.gde.GdeScene`
-- :class:`myokit.gui.gde.GdeView`
-- :class:`myokit.gui.gde.GraphDataExtractor`
-- :meth:`myokit.gui.gde.icon`
-- :class:`myokit.gui.gde.ImageItem`
-- :class:`myokit.gui.gde.Line2D`
-- :class:`myokit.gui.gde.Point2D`
-- :class:`myokit.gui.gde.TextVariableField`
-- :class:`myokit.gui.gde.SceneItem`
-- :meth:`myokit.gui.gde.pspline`
-
-=================
 myokit.gui.ide
 =================
 - :class:`myokit.gui.ide.Console`

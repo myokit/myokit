@@ -53,7 +53,6 @@ def main():
     add_debug_parser(subparsers)            # Debug an RHS equation
     add_eval_parser(subparsers)             # Evaluate an expression
     add_export_parser(subparsers)           # Export an mmt file
-    add_gde_parser(subparsers)              # Launch the graph data extractor
     add_icon_parser(subparsers)             # Install icons
     add_ide_parser(subparsers)              # Launch the IDE
     add_import_parser(subparsers)           # Import a file to mmt
@@ -409,38 +408,6 @@ def add_export_parser(subparsers):
 
 
 #
-# GDE
-#
-
-def gde(filename):
-    """
-    Runs the graph data extractor.
-    """
-    import myokit.gui
-    import myokit.gui.gde
-    myokit.gui.run(myokit.gui.gde.GraphDataExtractor, filename)
-
-
-def add_gde_parser(subparsers):
-    """
-    Adds a subcommand parser for the ``gde`` command.
-    """
-    parser = subparsers.add_parser(
-        'gde',
-        description='Runs the graph data extractor.',
-        help='Runs the graph data extractor.',
-    )
-    parser.add_argument(
-        'filename',
-        default=None,
-        nargs='?',
-        metavar='filename',
-        help='The gde file to open (optional).',
-    )
-    parser.set_defaults(func=gde)
-
-
-#
 # Icons / installation
 #
 
@@ -540,7 +507,6 @@ def install_gnome_kde():
     place_file(path, 'myokit-ide.desktop', True)
     place_file(path, 'myokit-datalog-viewer.desktop', True)
     place_file(path, 'myokit-datablock-viewer.desktop', True)
-    place_file(path, 'myokit-gde.desktop', True)
 
     # Mime-type file
     print('Installing mmt mime-type...')
@@ -548,8 +514,6 @@ def install_gnome_kde():
     place_file(path, 'x-myokit.xml')
     print('Installing CellML mime-type...')
     place_file(path, 'x-cellml.xml')
-    print('Installing gde mime-type...')
-    place_file(path, 'x-gde.xml')
     print('Installing abf mime-type...')
     place_file(path, 'x-abf.xml')
     print('Installing wcp mime-type...')
