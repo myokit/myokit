@@ -349,7 +349,7 @@ class SimulationTest(unittest.TestCase):
         m.validate()
 
         #TODO: Test results
-        s = myokit.Simulation(m, sensitivities=(['e.y'], ['e.p', 'int(e.y)']))
+        s = myokit.Simulation(m, sensitivities=(['e.y'], ['e.p', 'init(e.y)']))
 
         # Test bad initial matrix
         self.assertRaisesRegex(
@@ -514,7 +514,12 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(len(result), 3)
 
     def test_sensitivities_with_derivatives(self):
-        # Test various inputs to the `sensitivities` argument
+        # Test various inputs to the `sensitivities` argument are handled
+        # correctly, including sensitivites of derivatives and intermediary
+        # variables depending on derivatives.
+
+        # Note: passing the wrong values into the sensitivities constructor arg
+        # is tested in the CModel tests.
 
         m = myokit.parse_model('''
             [[model]]
