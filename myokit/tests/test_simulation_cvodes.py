@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Tests the CVODE simulation class.
+# Tests the CVODES simulation class.
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -34,7 +34,7 @@ except AttributeError:
 
 class SimulationTest(unittest.TestCase):
     """
-    Tests the CVode simulation class.
+    Tests the CVODES simulation class.
     """
 
     @classmethod
@@ -334,7 +334,29 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_state(s1)
         self.assertEqual(d1, self.sim.eval_derivatives())
 
-    def test_order(self):
+    def test_sensitivites_initial(self):
+        # Test setting initial sensitivity values.
+
+        m = myokit.parse_model('''
+            [[model]]
+            e.y = 2.3
+
+            [e]
+            t = 0 bind time
+            p = 1 / 100
+            dot(y) = 2 * p - y
+            ''')
+        m.validate()
+
+        #TODO: Test results
+        s = myokit.Simulation(m, sensitivities=(['e.y'], ['e.p', 'init(e.y)']))
+
+        # Test bad initial matrix
+        self.assertRaisesRegex(
+            ValueError, 'None or a list',
+            s.run, 10, sensitivities='hello')
+
+    def test_sensitivity_ordering(self):
         # Tests that sensitivities are returned in the correct order
 
         # Define model
@@ -401,49 +423,7 @@ class SimulationTest(unittest.TestCase):
         s2 = s2[:, ::-1, ::-1]
         self.assertTrue(np.all(s1 == s2))
 
-    def test_run_bolus_infusion(self):
-        # Test :meth:`Simulation.run()` with a PKPD bolus infusion model
-
-        # Create bolus infusion model with linear clearance
-        model = myokit.Model()
-        comp = model.add_component('myokit')
-
-        amount = comp.add_variable('amount')
-        time = comp.add_variable('time')
-        dose_rate = comp.add_variable('dose_rate')
-        elimination_rate = comp.add_variable('elimination_rate')
-
-        time.set_binding('time')
-        dose_rate.set_binding('pace')
-
-        amount.promote(10)
-        amount.set_rhs(
-            myokit.Minus(
-                myokit.Name(dose_rate),
-                myokit.Multiply(
-                    myokit.Name(elimination_rate),
-                    myokit.Name(amount))))
-        elimination_rate.set_rhs(myokit.Number(1))
-        time.set_rhs(myokit.Number(0))
-        dose_rate.set_rhs(myokit.Number(0))
-
-        # Set sensitivies
-        sensitivities = (
-            ['myokit.amount'],
-            ['init(myokit.amount)', 'myokit.elimination_rate'])
-
-        sim = myokit.Simulation(model, sensitivities=sensitivities)
-
-        # Bad sensitivity input
-        with self.assertRaisesRegex(
-                ValueError, 'The argument `sensitivities` must be'):
-            sim.run(10, sensitivities='weird input')
-
-        # Return apds
-        result = sim.run(1, apd_variable='myokit.amount', apd_threshold=0.3)
-        self.assertEqual(len(result), 3)
-
-    def test_run_accuracy_bolus_infusion(self):
+    def test_sensitivities_bolus_infusion(self):
         # Test :meth:`Simulation.run()` accuracy by comparing to
         # analytic solution in a PKPD bolus infusion model.
 
@@ -528,6 +508,140 @@ class SimulationTest(unittest.TestCase):
         self.assertAlmostEqual(partials[10, 0], ref_partials[0, 10], 6)
         self.assertAlmostEqual(partials[11, 0], ref_partials[0, 11], 6)
         self.assertAlmostEqual(partials[12, 0], ref_partials[0, 12], 6)
+
+        # Return apds
+        result = sim.run(1, apd_variable='myokit.amount', apd_threshold=0.3)
+        self.assertEqual(len(result), 3)
+
+    def test_sensitivities_with_derivatives(self):
+        # Test various inputs to the `sensitivities` argument are handled
+        # correctly, including sensitivites of derivatives and intermediary
+        # variables depending on derivatives.
+
+        # Note: passing the wrong values into the sensitivities constructor arg
+        # is tested in the CModel tests.
+
+        m = myokit.parse_model('''
+            [[model]]
+            e.x = 1.2
+            e.y = 2.3
+
+            [e]
+            t = 0 bind time
+            p = 1 / 100
+            q = 2
+            r = 3
+            dot(x) = p * q
+            dot(y) = 2 * p - y
+            fx = x^2
+            fy = r + p^2 + dot(y)
+            ''')
+        m.validate()
+
+        x0 = m.get('e.x').state_value()
+        y0 = m.get('e.y').state_value()
+        p = m.get('e.p').eval()
+        q = m.get('e.q').eval()
+        r = m.get('e.r').eval()
+
+        # Dependents is a list of y in dy/dx.
+        # Must refer to state, derivative, or intermediary, given as:
+        #  - Variable
+        #  - Name
+        #  - Derivative
+        #  - "qname"
+        #  - "dot(qname)"
+        dependents = [
+            'e.x',                  # qname
+            'e.y',                  # qname
+            'dot(e.x)',             # dot(qname)
+            m.get('e.y').lhs(),     # Derivative
+            m.get('e.fx'),          # Variable
+            m.get('e.fy').lhs(),    # Name
+        ]
+
+        # Independents is a list of x in dy/dx
+        # Must refer to literals or initial values, given as:
+        #  - Variable
+        #  - Name
+        #  - InitialValue
+        #  - "qname"
+        #  - "init(qname)"
+        independents = [
+            'e.p',                  # qname
+            m.get('e.q'),           # qname
+            m.get('e.r').lhs(),     # Name
+            'init(e.x)',            # init(qname)
+            myokit.InitialValue(myokit.Name(m.get('e.y'))),  # InitialValue
+        ]
+
+        # Run, get output
+        s = myokit.Simulation(m, sensitivities=(dependents, independents))
+        s.set_tolerance(1e-9, 1e-9)
+        d, e = s.run(8)
+        d, e = d.npview(), np.array(e)
+        t = d.time()
+
+        # Check solution
+        self.assertTrue(
+            np.allclose(d['e.x'], x0 + p * q * t))
+        self.assertTrue(np.allclose(
+            d['e.y'], 2 * p + (y0 - 2 * p) * np.exp(-t)))
+        self.assertTrue(np.allclose(
+            d['e.fx'], (p * q * t)**2 + 2 * p * q * t * x0 + x0**2))
+        self.assertTrue(np.allclose(
+            d['e.fy'], r + p**2 + (2 * p - y0) * np.exp(-t)))
+        self.assertTrue(np.allclose(
+            d['dot(e.x)'], p * q))
+        self.assertTrue(np.allclose(
+            d['dot(e.y)'], (2 * p - y0) * np.exp(-t)))
+
+        # Sensitivities of  x  to (p, q, r, x0, y0)
+        self.assertTrue(np.allclose(e[:, 0, 0], q * t))
+        self.assertTrue(np.allclose(e[:, 0, 1], p * t))
+        self.assertTrue(np.allclose(e[:, 0, 2], 0))
+        self.assertTrue(np.allclose(e[:, 0, 3], 1))
+        self.assertTrue(np.allclose(e[:, 0, 4], 0))
+
+        # Sensitivities of  y  to (p, q, r, x0, y0)
+        self.assertTrue(np.allclose(e[:, 1, 0], 2 - 2 * np.exp(-t)))
+        self.assertTrue(np.allclose(e[:, 1, 1], 0))
+        self.assertTrue(np.allclose(e[:, 1, 2], 0))
+        self.assertTrue(np.allclose(e[:, 1, 3], 0))
+        self.assertTrue(np.allclose(e[:, 1, 4], np.exp(-t)))
+
+        # Sensitivities of  dot(x)  to (p, q, r, x0, y0)
+        self.assertTrue(np.allclose(e[:, 2, 0], q))
+        self.assertTrue(np.allclose(e[:, 2, 1], p))
+        self.assertTrue(np.allclose(e[:, 2, 2], 0))
+        self.assertTrue(np.allclose(e[:, 2, 3], 0))
+        self.assertTrue(np.allclose(e[:, 2, 4], 0))
+
+        # Sensitivities of  dot(y)  to (p, q, r, x0, y0)
+        self.assertTrue(np.allclose(e[:, 3, 0], 2 * np.exp(-t)))
+        self.assertTrue(np.allclose(e[:, 3, 1], 0))
+        self.assertTrue(np.allclose(e[:, 3, 2], 0))
+        self.assertTrue(np.allclose(e[:, 3, 3], 0))
+        self.assertTrue(np.allclose(e[:, 3, 4], -np.exp(-t)))
+
+        # Sensitivities of  fx  to (p, q, r, x0, y0)
+        self.assertTrue(np.allclose(
+            e[:, 4, 0], 2 * p * (q * t)**2 + 2 * q * t * x0))
+        self.assertTrue(np.allclose(
+            e[:, 4, 1], 2 * q * (p * t)**2 + 2 * p * t * x0))
+        self.assertTrue(np.allclose(
+            e[:, 4, 2], 0))
+        self.assertTrue(np.allclose(
+            e[:, 4, 3], 2 * p * q * t + 2 * x0))
+        self.assertTrue(np.allclose(
+            e[:, 4, 4], 0))
+
+        # Sensitivities of  fy  to (p, q, r, x0, y0)
+        self.assertTrue(np.allclose(e[:, 5, 0], 2 * p + 2 * np.exp(-t)))
+        self.assertTrue(np.allclose(e[:, 5, 1], 0))
+        self.assertTrue(np.allclose(e[:, 5, 2], 1))
+        self.assertTrue(np.allclose(e[:, 5, 3], 0))
+        self.assertTrue(np.allclose(e[:, 5, 4], -np.exp(-t)))
 
     def test_set_tolerance(self):
         # Test :meth:`Simulation.set_tolerance()`.
