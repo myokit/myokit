@@ -9,25 +9,6 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 
 ## Running simulations
 
-1. Demo
-
-2. Model syntax
-    - [ ] Model, comp, var, nested var
-    - [ ] Alias
-    - [ ] Units (number vs in, checking)
-    - [ ] Use func?
-    - [ ] Binding & labels
-    - [ ] Link to full
-
-4. Using the IDE
-    - [ ] Script in IDE vs script in Python
-    - [ ] Run (w. F6)
-    - [ ] Component explorer
-    - [ ] Graphing variables (Ctrl+G)
-    - [ ] Graph component and variable dependencies
-    - [ ] Graph "state dependency matrix"
-
-
 1. [Simulating an action potential](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/1-1-simulating-an-action-potential.ipynb)
     - Loading a model, protocol, and script
     - Creating a simulation
@@ -47,61 +28,101 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
     - [ ] Pre-pacing to a "steady state"
     - [ ] Simulating the effects of parameter changes
 
-
-5. Solver
+4. Controlling the solver
     - [ ] Sim errors
     - [ ] Step tolerance
     - [ ] Set max time step
 
-6. Protocols and syntax
+4. Using the IDE
+    - [ ] Script in IDE vs script in Python
+    - [ ] Run (w. F6)
+    - [ ] Eval eq., var info
+    - [ ] Graphing variables (Ctrl+G)
+    - [ ] Graph component and variable dependencies
+    - [ ] Graph "state dependency matrix"
+
+6. Periodic pacing protocols
     - [ ] MMT syntax, link to full
     - [ ] API
     - [ ] pacing factories
     - [ ] AP clamp
     - [ ] Models without pacing (Purkinje)
 
-7. Post-processing single-cell results
+## Single-cell simulations
+
+0. Calculating APDs
     - [ ] APD calculation
     - [ ] Restitution
     - [ ] Alternans
+
+0. Pre-pacing to steady state
+
+0. Strenght-duration curves
+
+0. Analysing currents
     - [ ] Cumulative current plots
     - [ ] More things from lib.plots ?
 
+0. Sensitivities
+
 ## Ion current simulations
 
-0. Pacing protocols for
+0. Voltage-step protocols
     - [ ] Creating a step protocol in mmt (``next``)
-    - [ ] Plotting it
+    - [ ] Plotting it (fitting tutorial!)
     - [ ] is_sequence etc,
     - [ ] with add_step
     - [ ] with pacing factory
-    - [ ] With fancy bits
-    - [ ] Data clamp
+    - Link to fitting tutorial. Or even move those bits here?
 
 0. Running single current simulations
     - [ ] CVODES sim
     - [ ] HH
-    - [ ] Markov
+    - [ ] Converting HH model forms
+    - [ ] Markov (analytical)
+    - [ ] Markov (discrete)
 
 0. Examples of fitting ionic currents and fitting conductances: [ion channel fitting tutorial](https://github.com/pints-team/myokit-pints-examples)
 
 ## Multi-cell simulations
 
-0. Simulating a 1d strand
-    - [ ] No OpenCL
-    - [ ] With OpenCL
-    - [ ] With different cell types (field approach)
-    - [ ] With heterogeneity
+0. Simulating strand and tissue
+    - [ ] 1d, no OpenCL, binding
+    - [ ] Step size!
+    - [ ] 1d, OpenCL
+    - [ ] OpenCL info & select
+    - [ ] Setting step size (convergence)
+    - [ ] 2d, OpenCL
 
-0. Simulating 2d tissue
-    - [ ] with heterogeneity (field approach)
+0. Viewing multi-cell simulation results
+    - [ ] Storing CSV log
+    - [ ] Converting to block
+    - [ ] Writing block (txt vs zip)
     - [ ] Displaying with block viewer
-    - [ ] With different cell types (FiberTissue)
+    - [ ] Movies
 
-0. Simulating arbitrary shapes
-    - [ ] Connections
+0. Running simulations
+    - [ ] Setting step sizes again!
+    - [ ] Using find_nan (automatically)
+    - [ ] Using a progress reporter
+
+0. Simulating with heterogeneity
+    - [ ] Scalar field
+    - [ ] With different cell types (field approach)
+    - [ ] Conductance field
+
+0. Simulating arbitrary networks
+    - [ ] set_connections
 
 ## Working with models
+
+0. Model syntax
+    - [ ] Model, comp, var, nested var
+    - [ ] Alias
+    - [ ] Units (number vs in, checking)
+    - [ ] Use func?
+    - [ ] Binding & labels
+    - [ ] Link to full
 
 0. Implementing models
     - [ ] Comparing models with step
@@ -113,16 +134,23 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 
 0. Modifying models using the API
     - [ ] Adding variables
-    - [ ] Plotting with pyfunc
+    - [ ] Getting functions with pyfunc
     - [ ] Manipulating models
     - [ ] Manipulating equations (variable, eq, lhs, rhs, derivatives, refs_by, refs_to)
 
-0. Working with multiple models
-    - [ ] Make changes to model dynamically
+0. Units
+    - [ ] Unit objects
+    - [ ] Predefined units
+    - [ ] Quantities
     - [ ] Unit conversion
-    - [ ] Annotated variables? and lib.guess
+
+0. Working with multiple models
+    - [ ] Labels (annotated variables)
+    - [ ] lib.guess
+    - [ ] Unit conversion (again)
+    - [ ] freezing variables
+    - [ ] importing components
     - [ ] Oxmeta/WL integration?
-    - [ ] lib.multi?
 
 ## Importing and exporting
 
@@ -132,20 +160,22 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
     - [ ] Auto stimulus, vs hardcoded ?
     - [ ] Using APIs ???
 
-0. Importing models from other formats
+0. More model formats
     - [ ] SBML
     - [ ] ChannelML
-    - Not really enough to talk about?
+    - [ ] easyml, stan
 
 0. Exporting runnable code
-    - [ ] matlab, C, cuda
+    - [ ] matlab, C, C++, python
+    - [ ] opencl, cuda
     - [ ] Import isn't possible
 
 0. Exporting presentation formats
     - [ ] Exporting for presentations: latex / html
 
-0. Importing data
+0. Data formats
     - [ ] Importing patch clamp data
+    - [ ] DataLog viewer
     - [ ] Importing protocols from ABF
     - [ ] Exporting patch clamp protocols? (ATF)
 
@@ -177,9 +207,9 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 
 ## Technical notes
 
-The "technical notes" are a series of notebooks that explain or define some of the trickier parts in Myokit.
-They are used in developing Myokit, and to document decisions made along the way.
-They have not been reviewed or checked extensively, so some errors may be present.
+This section contains notebooks that explain or define some of the trickier parts in Myokit.
+They are used in Myokit development, and document tricky decisions made along the way.
+These notebooks have not been reviewed or checked extensively, so some errors may be present.
 
 1. [Pacing](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/t1-pacing.ipynb)
 2. [Logging](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/t2-logging.ipynb)
