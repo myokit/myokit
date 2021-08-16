@@ -7,7 +7,26 @@
 These example notebooks showing how Myokit can be used in a variety of applications, ranging from cellular to sub-cellular to tissue simulations.
 They accompany the detailed Myokit (API) documentation provided on [https://myokit.readthedocs.io](https://myokit.readthedocs.io).
 
-## Running single cell simulations
+## Running simulations
+
+1. Demo
+
+2. Model syntax
+    - [ ] Model, comp, var, nested var
+    - [ ] Alias
+    - [ ] Units (number vs in, checking)
+    - [ ] Use func?
+    - [ ] Binding & labels
+    - [ ] Link to full
+
+4. Using the IDE
+    - [ ] Script in IDE vs script in Python
+    - [ ] Run (w. F6)
+    - [ ] Component explorer
+    - [ ] Graphing variables (Ctrl+G)
+    - [ ] Graph component and variable dependencies
+    - [ ] Graph "state dependency matrix"
+
 
 1. [Simulating an action potential](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/1-1-simulating-an-action-potential.ipynb)
     - Loading a model, protocol, and script
@@ -15,71 +34,56 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
     - Running a simulation
     - Plotting simulation results with matplotlib
 
-## To-do
-
 2. [Logging simulation results](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/1-2-logging-simulation-results.ipynb)
     - [ ] Selecting variable by name
     - [ ] Logging derivatives
     - [ ] Using logging flags
     - [ ] Continuing on from a previous simulation
-    - [ ] Storing results to disk
     - [ ] Selecting which points to log
+    - [ ] Storing results to disk
 
 3. [Starting, stopping, pre-pacing, and loops](https://nbviewer.jupyter.org/github/MichaelClerx/myokit/blob/main/examples/1-3-starting-stopping.ipynb)
     - [ ] Starting and stoppping simulations
     - [ ] Pre-pacing to a "steady state"
     - [ ] Simulating the effects of parameter changes
 
-4. Exploring models in the IDE
-    - [ ] Script in IDE vs script in Python
-    - [ ] MMT syntax (link to ref)
-    - [ ] Run (w. F6)
-    - [ ] Component explorer
-    - [ ] Graphing variables (Ctrl+G)
-    - [ ] Show variable info / evaluation
-    - [ ] Show variable users and dependencies
-    - [ ] Graph component dependencies
-    - [ ] Graph "state dependency matrix"
 
-0. Implementing models
-    - [ ] Comparing models with step
-    - [ ] Unit checking
-    - [ ] State dep matrix
-    - [ ] IDE shortcuts, variable graphing
-    - [ ] Interconnected components?
-0. Analysing model structure: see above
-0. Analysing model output: common plots
-    - [ ] Cumulative current plots
-    - [ ] More things from lib.plots ?
+5. Solver
+    - [ ] Sim errors
+    - [ ] Step tolerance
+    - [ ] Set max time step
 
-0. Modifying models using the API
-    - [ ] Adding variables
-    - [ ] Plotting with pyfunc
-    - [ ] Manipulating models
-    - [ ] Manipulating equations (variable, eq, lhs, rhs, derivatives, refs_by, refs_to)
-
-0. Pacing protocols for AP models
-    - [ ] MMT syntax
+6. Protocols and syntax
+    - [ ] MMT syntax, link to full
     - [ ] API
     - [ ] pacing factories
     - [ ] AP clamp
     - [ ] Models without pacing (Purkinje)
 
-0. Post-processing single-cell results: APD calculations
+7. Post-processing single-cell results
     - [ ] APD calculation
     - [ ] Restitution
     - [ ] Alternans
+    - [ ] Cumulative current plots
+    - [ ] More things from lib.plots ?
 
-0. Advanced simulation types
-    - [ ] PSim
-    - [ ] ICSim etc.
+## Ion current simulations
 
-0. Writing reproducible code
-    - [ ] Make changes to model dynamically
-    - [ ] Unit conversion
-    - [ ] Annotated variables? and lib.guess
-    - [ ] Oxmeta/WL integration?
-    - [ ] lib.multi?
+0. Pacing protocols for
+    - [ ] Creating a step protocol in mmt (``next``)
+    - [ ] Plotting it
+    - [ ] is_sequence etc,
+    - [ ] with add_step
+    - [ ] with pacing factory
+    - [ ] With fancy bits
+    - [ ] Data clamp
+
+0. Running single current simulations
+    - [ ] CVODES sim
+    - [ ] HH
+    - [ ] Markov
+
+0. Examples of fitting ionic currents and fitting conductances: [ion channel fitting tutorial](https://github.com/pints-team/myokit-pints-examples)
 
 ## Multi-cell simulations
 
@@ -97,17 +101,28 @@ They accompany the detailed Myokit (API) documentation provided on [https://myok
 0. Simulating arbitrary shapes
     - [ ] Connections
 
-## Ion current simulations
+## Working with models
 
-0. Running single current simulations
-    - [ ] Creating a step protocol (pacing factory)
-    - [ ] CVODES sim
-    - [ ] HH
-    - [ ] Markov
-    - [ ] Protocol options
-    - [ ] Data clamp
+0. Implementing models
+    - [ ] Comparing models with step
+    - [ ] Unit checking
+    - [ ] State dep matrix
+    - [ ] Show variable info / evaluation
+    - [ ] Show variable users and dependencies
+    - [ ] Interconnected components?
 
-0. Examples of fitting ionic currents and fitting conductances: [ion channel fitting tutorial](https://github.com/pints-team/myokit-pints-examples)
+0. Modifying models using the API
+    - [ ] Adding variables
+    - [ ] Plotting with pyfunc
+    - [ ] Manipulating models
+    - [ ] Manipulating equations (variable, eq, lhs, rhs, derivatives, refs_by, refs_to)
+
+0. Working with multiple models
+    - [ ] Make changes to model dynamically
+    - [ ] Unit conversion
+    - [ ] Annotated variables? and lib.guess
+    - [ ] Oxmeta/WL integration?
+    - [ ] lib.multi?
 
 ## Importing and exporting
 
