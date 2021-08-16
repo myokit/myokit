@@ -1,0 +1,791 @@
+[[model]]
+name: kernik-2019
+version: 20210816
+mmt_authors: Michael Clerx
+desc: """
+    Myokit implementation of the induced pluripotent stem-cell derived
+    cardiomyocyte model by Kernik et al. from [1].
+
+    Adapted from
+
+    This implementation is based on the original Matlab code provided by the
+    authors (`ipsc_function.m`, `ICs_baseline.mat` and
+    `baseline_parameter_inputs.mat` as published for figure 10) [2]. It was
+    verified against the original code by comparing the calculated
+    derivatives.
+
+    References:
+
+    [1] Kernik, Morotti et al., Clancy (2019) A computational model of induced
+        pluripotent stem‐cell derived cardiomyocytes incorporating experimental
+        variability from multiple data sources. The Journal of Physiology.
+    [2] https://github.com/ClancyLabUCD/IPSC-model
+        Commit 6e8b907f975443ef954863552e784b90799ba5a7
+        Retrieved on 2021-07-19
+
+"""
+# Initial conditions
+membrane.V = -7.559660163885468e+01
+casr.Ca_SR =  3.350867967323261e-01
+cai.Cai    =  2.191916424249644e-04
+nai.Nai    =  7.169280912509992e+00
+ki.Ki      =  1.047488243941121e+02
+ical.d     =  3.949253426529243e-04
+ical.f     =  1.709901055855403e-01
+ical.fCa   =  8.777989461340886e-01
+ikr.Xr1    =  3.097674857154332e-01
+ikr.Xr2    =  4.505771851485186e-01
+iks.Xs     =  1.537882816509487e-01
+ina.m      =  2.975499629264136e-02
+ina.h      =  7.395436078124292e-01
+ina.j      =  1.245159825745049e-01
+ifunny.Xf  =  6.403385049126155e-03
+ito.r      =  2.675978333441606e-04
+ito.s      =  7.468028106140061e-01
+icat.d     =  2.701955734715772e-04
+icat.f     =  7.560329043683934e-01
+irel.R     =  1.131203634337511e-02
+irel.O     =  1.650451053123964e-04
+irel.I     =  1.421536223230116e-02
+
+
+[engine]
+time = 0 [ms]
+    in [ms]
+    bind time
+pace = 0
+    bind pace
+
+
+[membrane]
+#i_voltageclamp = (V - v_clamp) / R_clamp
+#    R_clamp = 0.02
+dot(V) = -(
+    + ik1.i_K1
+    + ito.i_to
+    + ikr.i_Kr
+    + iks.i_Ks
+    + ical.i_CaL
+    + icat.i_CaT
+    + inak.i_NaK
+    + ina.i_Na
+    + inaca.i_NaCa
+    + ipca.i_PCa
+    + ifunny.i_f
+    + ibna.i_b_Na
+    + ibca.i_b_Ca
+    + stimulus.i_stim
+)
+    in [mV]
+
+
+[stimulus]
+i_stim = engine.pace * amplitude
+    in [A/F]
+amplitude = -3 [A/F]
+    in [A/F]
+
+
+#
+# Inward Rectifier K+ current (Ik1)
+#
+[ik1]
+use membrane.V
+g_K1 = 0.133785777797606 [nS/pF]
+    in [nS/pF]
+xK11 = 0.477994972217041 [1/ms]
+    in [1/ms]
+xK12 = 27.2427558793487 [mV]
+    in [mV]
+xK13 = 4.92502331781412 [mV]
+    in [mV]
+xK14 = 8.72223760006882 [mV]
+    in [mV]
+xK15 = 56.6361974998244 [mV]
+    in [mV]
+inf = a / (a + b)
+    a = xK11 * exp((V + xK13) / xK12)
+        in [1/ms]
+    b = 1 [1/ms] * exp((V + xK15) / xK14)
+        in [1/ms]
+i_K1 = g_K1 * sqrt(extra.Ko / 5.4 [mM]) * inf * (V - erev.E_K)
+    in [A/F]
+
+
+#
+# Rapid Delayed Rectifier Current (Ikr)
+#
+[ikr]
+use membrane.V
+g_Kr = 0.218025 [nS/pF]
+    in [nS/pF]
+Xr1_1 = 0.00574885237435 [1/ms]
+    in [1/ms]
+Xr1_2 = 13.6234926362576 [mV]
+    in [mV]
+Xr1_5 = 0.047630571181836
+Xr1_6 = -7.06808742965549 [mV]
+    in [mV]
+Xr2_1 = 0.012456640526827 [1/ms]
+    in [1/ms]
+Xr2_2 = -25.9944581644377 [mV]
+    in [mV]
+Xr2_5 = 37.3426331501041
+Xr2_6 = 22.0919642353902 [mV]
+    in [mV]
+tau_1_offset = 50 [ms]
+    in [ms]
+tau_2_offset = 0 [ms]
+    in [ms]
+Xr1_3 = Xr1_5 * Xr1_1
+    in [1/ms]
+Xr2_3 = Xr2_5 * Xr2_1
+    in [1/ms]
+Xr1_4 = 1 / (1 / Xr1_2 + 1 / Xr1_6)
+    in [mV]
+Xr2_4 = 1 / (1 / Xr2_2 + 1 / Xr2_6)
+    in [mV]
+dot(Xr1) = (inf - Xr1) / tau
+    desc: activation in i_Kr_Xr1
+    a = Xr1_1 * exp(V / Xr1_2)
+        in [1/ms]
+    b = Xr1_3 * exp(V / Xr1_4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = 1 / (a + b) + tau_1_offset
+        in [ms]
+dot(Xr2) = (inf - Xr2) / tau
+    desc: inactivation in i_Kr_Xr2
+    a = Xr2_1 * exp(V / Xr2_2)
+        in [1/ms]
+    b = Xr2_3 * exp(V / Xr2_4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = 1 / (a + b) + tau_2_offset
+        in [ms]
+i_Kr = g_Kr * sqrt(extra.Ko / 5.4 [mM]) * Xr1 * Xr2 * (V - erev.E_K)
+    in [A/F]
+
+
+#
+# Slow delayed rectifier current (IKs)
+#
+[iks]
+use membrane.V
+ks1 = 0.00116558448 [1/ms]
+    in [1/ms]
+ks2 = 66726.8386758936 [mV]
+    in [mV]
+ks5 = 0.28045890825
+ks6 = -18.86697157291 [mV]
+    in [mV]
+tauks_const = 4.74115e-6 [ms]
+    in [ms]
+ks3 = ks5 * ks1
+    in [1/ms]
+ks4 = 1 / (1 / ks2 + 1 / ks6)
+    in [mV]
+dot(Xs) = (inf - Xs) / tau
+    desc: activation in i_Ks
+    a = ks1 * exp(V / ks2)
+        in [1/ms]
+    b = ks3 * exp(V / ks4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = (1 / (a + b)) + tauks_const
+        in [ms]
+g_Ks = 0.0077 [nS/pF]
+    in [nS/pF]
+i_Ks = g_Ks * Xs^2 * (V - erev.E_K)
+    in [A/F]
+
+
+#
+# Transient outward current (Ito)
+#
+[ito]
+use membrane.V
+g_to = 0.1178333333333 [nS/pF]
+    in [nS/pF]
+r1 = 0.0553614181713 [1/ms]
+    in [1/ms]
+r2 = 11.6842023429669 [mV]
+    in [mV]
+r5 = 3.9891810803775
+r6 = -11.0471393012032 [mV]
+    in [mV]
+s1 = 0.0003442309443 [1/ms]
+    in [1/ms]
+s2 = -17.6344722898096 [mV]
+    in [mV]
+s5 = 186.760536909695
+s6 = 8.1809338733227 [mV]
+    in [mV]
+tau_r_const = 0.6967584211715 [ms]
+    in [ms]
+tau_s_const = 11.2244577239469 [ms]
+    in [ms]
+
+r3 = r5 * r1
+    in [1/ms]
+r4 = 1 / (1 / r2 + 1 / r6)
+    in [mV]
+s3 = s5 * s1
+    in [1/ms]
+s4 = 1 / (1 / s2 + 1 / s6)
+    in [mV]
+
+dot(r) = (inf - r) / tau
+    desc: activation in i_to
+    a = r1 * exp(V / r2)
+        in [1/ms]
+    b = r3 * exp(V / r4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = 1 / (a + b) + tau_r_const
+        in [ms]
+dot(s) = (inf - s) / tau
+    desc: inactivation in i_to
+    a = s1 * exp(V / s2)
+        in [1/ms]
+    b = s3 * exp(V / s4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = 1 / (a + b) + tau_s_const
+        in [ms]
+i_to = g_to * r * s * (V - erev.E_K)
+    in [A/F]
+
+
+#
+# L-type Ca2+ current (ICaL)
+#
+[ical]
+use membrane.V
+use phys.FRT, phys.FFRT
+use cai.Cai, nai.Nai, ki.Ki
+use extra.Cao, extra.Nao, extra.Ko
+p_CaL = 0.308027691379 [L/s/F]
+    in [L/s/F]
+d1 = 12.966294189722 [1/ms]
+    in [1/ms]
+d2 = 7.079145964711 [mV]
+    in [mV]
+d5 = 0.044909415507
+d6 = -6.909880369242 [mV]
+    in [mV]
+f1 = 0.000512589826 [1/ms]
+    in [1/ms]
+f2 = -49.50571203387 [mV]
+    in [mV]
+f5 = 1931.21122351432
+f6 = 5.730027499699 [mV]
+    in [mV]
+taud_const = 1.65824694683 [ms]
+    in [ms]
+tauf_const = 100.462559171103 [ms]
+    in [ms]
+
+d3 = d5 * d1
+    in [1/ms]
+d4 = 1 / (1 / d2 + 1 / d6)
+    in [mV]
+f3 = f5 * f1
+    in [1/ms]
+f4 = 1 / (1 / f2 + 1 / f6)
+    in [mV]
+
+dot(d) = (inf - d) / tau
+    desc: activation in i_CaL
+    a = d1 * exp(V / d2)
+        in [1/ms]
+    b = d3 * exp(V / d4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = 1 / (a + b) + taud_const
+        in [ms]
+dot(f) = (inf - f) / tau
+    desc: voltage-dependent inactivation in i_CaL
+    a = f1 * exp(V / f2)
+        in [1/ms]
+    b = f3 * exp(V / f4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = (1 / (a + b)) + tauf_const
+        in [ms]
+dot(fCa) = k_fca * (fCa_inf - fCa) / tau_fCa
+    desc: calcium-dependent inactivation in i_CaL, from Ten tusscher 2004
+    k_fca = if(fCa_inf > fCa and V > -60 [mV], 0, 1)
+    fCa_inf = (alpha_fCa + beta_fCa + gamma_fCa + 0.23) / 1.46
+        scale = 1.2
+        alpha_fCa = 1 / (1 + (scale * cai.Cai / 0.000325 [mM]) ^ 8)
+        beta_fCa = 0.1 / (1 + exp((scale * cai.Cai - 0.0005 [mM]) / 0.0001 [mM]))
+        gamma_fCa = 0.2 / (1 + exp((scale * cai.Cai - 0.00075 [mM]) / 0.0008 [mM]))
+    tau_fCa = 2 [ms]
+        in [ms]
+p_CaL_shannonCa = 5.4e-4
+p_CaL_shannonNa = 1.5e-8
+p_CaL_shannonK = 2.7e-7
+p_CaL_shannonTot = p_CaL_shannonCa + p_CaL_shannonNa + p_CaL_shannonK
+p_CaL_shannonCap = p_CaL_shannonCa / p_CaL_shannonTot
+p_CaL_shannonNap = p_CaL_shannonNa / p_CaL_shannonTot
+p_CaL_shannonKp = p_CaL_shannonK / p_CaL_shannonTot
+p_CaL_Ca = p_CaL_shannonCap * p_CaL
+    in [L/s/F]
+p_CaL_Na = p_CaL_shannonNap * p_CaL
+    in [L/s/F]
+p_CaL_K = p_CaL_shannonKp * p_CaL
+    in [L/s/F]
+i_CaL_Ca = ibarca * d * f * fCa
+    ibarca = p_CaL_Ca * 4 * V * FFRT * (0.341 * Cai * exp(2 * V * FRT) - 0.341 * Cao) / (exp(2 * V * FRT) - 1)
+        in [A/F]
+    in [A/F]
+i_CaL_Na = ibarna * d * f * fCa
+    ibarna = p_CaL_Na * V * FFRT * (0.75 * Nai * exp(V * FRT) - 0.75 * Nao) / (exp(V * FRT) - 1)
+        in [A/F]
+    in [A/F]
+i_CaL_K = ibark * d * f * fCa
+    ibark = p_CaL_K * V * FFRT * (0.75 * Ki * exp(V * FRT) - 0.75 * Ko) / (exp(V * FRT) - 1)
+        in [A/F]
+    in [A/F]
+i_CaL = i_CaL_Ca + i_CaL_Na + i_CaL_K
+    in [A/F]
+
+
+#
+# T-type Calcium Current (ICaT)
+#
+# SAN T-TYPE Ca2 + model (Demir et al., Maltsev-Lakatta )
+# G_CaT determined by fit to Kurokawa IV
+#
+[icat]
+use membrane.V
+g_CaT = 0.185 [nS/pF]
+    in [nS/pF]
+dot(d) = (inf - d) / tau
+    desc: activation in i_CaT
+    inf = 1 / (1 + exp((V + 26.3 [mV]) / -6 [mV]))
+    tau = 1 / (1.068 [1/ms] * exp((V + 26.3 [mV]) / 30 [mV]) + 1.068 [1/ms] * exp((V + 26.3 [mV]) / -30 [mV]))
+        in [ms]
+dot(f) = (inf - f) / tau
+    desc: inactivation in i_CaT
+    inf = 1 / (1 + exp((V + 61.7 [mV]) / 5.6 [mV]))
+    tau = 1 / (0.0153 [1/ms] * exp(-(V + 61.7 [mV]) / 83.3 [mV]) + 0.015 [1/ms] * exp((V + 61.7 [mV]) / 15.38 [mV]))
+        in [ms]
+i_CaT = g_CaT * d * f * (V - erev.E_Ca)
+    in [A/F]
+
+
+#
+# Sodium Current (INa)
+#
+[ina]
+use membrane.V
+g_Na = 9.720613409241 [nS/pF]
+    in [nS/pF]
+m1 = 108.045846384818 [1/ms]
+    in [1/ms]
+m2 = 13.107015733941 [mV]
+    in [mV]
+m5 = 0.002326914367
+m6 = -7.917726289513 [mV]
+    in [mV]
+h1 = 0.003626598864 [1/ms]
+    in [1/ms]
+h2 = -19.839358860026 [mV]
+    in [mV]
+h5 = 9663.29497711474
+h6 = 7.395503564613 [mV]
+    in [mV]
+j1 = 0.000512257182 [1/ms]
+    in [1/ms]
+j2 = -66.583755502652 [mV]
+    in [mV]
+tau_m_const = 0.031977580384 [ms]
+    in [ms]
+tau_h_const = 0.167331502516 [ms]
+    in [ms]
+tau_j_const = 0.951088724962 [ms]
+    in [ms]
+m3 = m5 * m1
+    in [1/ms]
+m4 = 1 / (1 / m2 + 1 / m6)
+    in [mV]
+h3 = h5 * h1
+    in [1/ms]
+h4 = 1 / (1 / h2 + 1 / h6)
+    in [mV]
+j5 = h5
+j6 = h6
+    in [mV]
+j3 = j5 * j1
+    in [1/ms]
+j4 = 1 / (1 / j2 + 1 / j6)
+    in [mV]
+dot(m) = (inf - m) / tau
+    desc: activation in i_Na
+    a = m1 * exp(V / m2)
+        in [1/ms]
+    b = m3 * exp(V / m4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = 1 / (a + b) + tau_m_const
+        in [ms]
+dot(h) = (inf - h) / tau
+    desc: inactivation in i_Na
+    a = h1 * exp(V / h2)
+        in [1/ms]
+    b = h3 * exp(V / h4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = 1 / (a + b) + tau_h_const
+        in [ms]
+dot(j) = (inf - j) / tau
+    desc: slow inactivation in i_Na
+    a = j1 * exp(V / j2)
+        in [1/ms]
+    b = j3 * exp(V / j4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = 1 / (a + b) + tau_j_const
+        in [ms]
+i_Na = g_Na * m^3 * h * j * (V - erev.E_Na)
+    in [A/F]
+
+
+#
+# Funny/HCN current (If)
+#
+[ifunny]
+use membrane.V
+g_f = 0.0435 [nS/pF]
+    in [nS/pF]
+xF1 = 5.7897e-7 [1/ms]
+    in [1/ms]
+xF2 = -14.5897121702 [mV]
+    in [mV]
+xF5 = 20086.6502378844
+xF6 = 10.20235284528 [mV]
+    in [mV]
+xF_const = 23.94529134653 [ms]
+    in [ms]
+xF3 = xF5 * xF1
+    in [1/ms]
+xF4 = 1 / (1 / xF2 + 1 / xF6)
+    in [mV]
+dot(Xf) = (inf - Xf) / tau
+    desc: inactivation in i_f
+    a = xF1 * exp(V / xF2)
+        in [1/ms]
+    b = xF3 * exp(V / xF4)
+        in [1/ms]
+    inf = a / (a + b)
+    tau = 1 / (a + b) + xF_const
+        in [ms]
+NatoK_ratio = .491
+    desc: Verkerk et al. 2013
+Na_frac = NatoK_ratio / (NatoK_ratio + 1)
+i_fNa = Na_frac * g_f * Xf * (V - erev.E_Na)
+    in [A/F]
+i_fK = (1 - Na_frac) * g_f * Xf * (V - erev.E_K)
+    in [A/F]
+i_f = i_fNa + i_fK
+    in [A/F]
+
+
+#
+# Na+/Ca2+ Exchanger current (INaCa)
+# Ten Tusscher formulation
+#
+[inaca]
+use membrane.V
+use phys.FRT
+use nai.Nai, cai.Cai
+use extra.Nao, extra.Cao
+KmCa = 1.38 [mM]
+    desc: cai half-saturation constant
+    in [mM]
+KmNai = 87.5 [mM]
+    desc: Nai half-saturation constant
+    in [mM]
+Ksat = 0.1
+    desc: saturation factor
+gamma = 0.35 * 2
+    desc: voltage dependence parameter
+alpha = 2.5 * 1.1
+    desc: factor to enhance outward nature of inaca
+kNaCa = 1000 * 1.1 [A/F]
+    desc: maximal inaca
+    in [A/F]
+i_NaCa = kNaCa * (exp(gamma * V * FRT) * Nai^3 * Cao - exp((gamma - 1) * V * FRT) * Nao^3 * Cai * alpha) / ((KmNai^3 + Nao^3) * (KmCa + Cao) * (1 + Ksat * exp((gamma - 1) * V * FRT)))
+    in [A/F]
+
+
+#
+# Na+/K+ pump current (INaK)
+# Ten Tusscher formulation
+#
+[inak]
+use membrane.V
+use phys.FRT
+use nai.Nai, ki.Ki
+use extra.Nao, extra.Ko
+Km_K = 1 [mM]
+    desc: Ko half-saturation constant
+    in [mM]
+Km_Na = 40 [mM]
+    desc: Nai half-saturation constant
+    in [mM]
+PNaK = 1.362 * 1.818 [A/F]
+    desc: maximal nak
+    in [A/F]
+i_NaK = PNaK * Ko * Nai / ((Ko + Km_K) * (Nai + Km_Na) * (1 + 0.1245 * exp(-0.1 * V * FRT) + 0.0353 * exp(-V * FRT)))
+    in [A/F]
+
+
+#
+# SR Uptake / SERCA (J_up):
+# Ten Tusscher formulation
+#
+[iup]
+Kup = 0.00025 * 0.702 [mM]
+    in [mM]
+VmaxUp = 0.000425 * 0.26 [mM/ms]
+    in [mM/ms]
+i_up = VmaxUp / (1 + Kup^2 / cai.Cai^2)
+    in [mM/ms]
+
+
+#
+# SR Leak (J_leak):
+# Ten Tusscher formulation
+#
+[ileak]
+V_leak = 0.00008 * 0.02 [1/ms]
+    in [1/ms]
+i_leak = (casr.Ca_SR - cai.Cai) * V_leak
+    in [mM/ms]
+
+
+#
+# SR Release / RYR (J_rel)
+#
+# re-fit parameters. scaled to account for differences in calcium concentration
+# in cleft (cleft is used in shannon - bers model geometry, not in this model
+# geometry)
+#
+[irel]
+use cai.Cai, casr.Ca_SR
+ks = 12.5 [1/ms]
+    in [1/ms]
+koCa = 56320 * 11.43025 [1/ms/mM^2]
+    in [1/ms/mM^2]
+kiCa = 54 * 0.3425 [1/mM/ms]
+    in [1/mM/ms]
+kom = 1.5 * 0.1429 [1/ms]
+    in [1/ms]
+kim = 0.001 * 0.5571 [1/ms]
+    in [1/ms]
+ec50SR = 0.45 [mM]
+    in [mM]
+MaxSR = 15
+MinSR = 1
+
+kCaSR = MaxSR - (MaxSR - MinSR) / (1 + (ec50SR / Ca_SR)^2.5)
+koSRCa = koCa / kCaSR
+    in [1/mM^2/ms]
+kiSRCa = kiCa * kCaSR
+    in [1/mM/ms]
+
+dot(R) = kim * RI - kiSRCa * Cai * R - koSRCa * Cai ^ 2 * R + kom * O
+dot(O) = koSRCa * Cai ^ 2 * R - kom * O - kiSRCa * Cai * O + kim * I
+dot(I) = kiSRCa * Cai * O - kim * I - kom * I + koSRCa * Cai ^ 2 * RI
+RI = 1 - R - O - I
+i_rel = ks * O * (Ca_SR - Cai) * (geom.V_SR / geom.Vc)
+    in [mM/ms]
+
+
+#
+# Background Sodium (I_bNa):
+# Ten Tusscher formulation
+#
+[ibna]
+g_b_Na = .00029 [nS/pF] * 1.5
+    in [nS/pF]
+i_b_Na = g_b_Na * (membrane.V - erev.E_Na)
+    in [A/F]
+
+
+#
+# Background Calcium (I_bCa)
+# Ten Tusscher formulation
+#
+[ibca]
+g_b_Ca = .000592 [nS/pF] * 0.62
+    in [nS/pF]
+i_b_Ca = g_b_Ca * (membrane.V - erev.E_Ca)
+    in [A/F]
+
+
+#
+# Calcium SL Pump (I_pCa)
+# Ten Tusscher formulation
+#
+[ipca]
+use cai.Cai
+g_PCa = 0.025 [A/F] * 10.5
+    in [A/F]
+KPCa = 0.0005 [mM]
+    in [mM]
+i_PCa = g_PCa * Cai / (Cai + KPCa)
+    in [A/F]
+
+
+#
+# CaSR (millimolar)
+#
+[casr]
+desc: rapid equilibrium approximation equations - - not as formulated in ten Tusscher 2004 text
+Buf_SR = 10 * 1.2 [mM]
+    in [mM]
+Kbuf_SR = 0.3 [mM]
+    in [mM]
+Ca_SR_bufSR = 1 / (1 + Buf_SR * Kbuf_SR / (Ca_SR + Kbuf_SR) ^ 2)
+dot(Ca_SR) = Ca_SR_bufSR * geom.Vc / geom.V_SR * (iup.i_up - irel.i_rel - ileak.i_leak)
+    in [mM]
+
+
+#
+# Cai (millimolar)
+#
+[cai]
+descd: rapid equilibrium approximation equations - - not as formulated in ten Tusscher 2004 text
+Buf_C = 0.06 [mM]
+    in [mM]
+Kbuf_C = .0006 [mM]
+    in [mM]
+Cai_bufc = 1 / (1 + Buf_C * Kbuf_C / (Cai + Kbuf_C) ^ 2)
+dot(Cai) = Cai_bufc * (
+    - iup.i_up
+    + ileak.i_leak
+    + irel.i_rel
+    - geom.Cm / (2 * geom.Vc * phys.F) * (
+        + ical.i_CaL_Ca
+        + icat.i_CaT
+        + ibca.i_b_Ca
+        + ipca.i_PCa
+        - 2 * inaca.i_NaCa
+))
+    in [mM]
+
+
+#
+# Nai (millimolar) (in sodium_dynamics)
+#
+[nai]
+dot(Nai) = -geom.Cm / (phys.F * geom.Vc) * (
+  + ina.i_Na
+  + ibna.i_b_Na
+  + ifunny.i_fNa
+  + 3 * inak.i_NaK
+  + 3 * inaca.i_NaCa
+  + ical.i_CaL_Na
+)
+    in [mM]
+
+
+#
+# Ki (millimolar) (in potatssium_dynamics)
+#
+[ki]
+dot(Ki) = -geom.Cm / (phys.F * geom.Vc) * (
+  + ik1.i_K1
+  + ito.i_to
+  + ikr.i_Kr
+  + iks.i_Ks
+  + ifunny.i_fK
+  - 2 * inak.i_NaK
+  + ical.i_CaL_K
+)
+    in [mM]
+
+
+#
+# Cell geometry
+#
+[geom]
+Cm = 60 [pF]
+    in [pF]
+V_tot = 3960 [um^3]
+    in [um^3]
+    desc: V_total data from Hwang et al.
+Vc_tenT = 16404 [um^3]
+    in [um^3]
+VSR_tenT = 1094 [um^3]
+    in [um^3]
+V_tot_tenT = Vc_tenT + VSR_tenT
+    desc: V_c and V_SR proportionally scaled from Ten Tusscher 2004 values
+    in [um^3]
+Vc = V_tot * (Vc_tenT / V_tot_tenT)
+    in [um^3]
+    desc: 3712.4 um ^ 3 (93.7% total volume)
+V_SR = V_tot * (VSR_tenT / V_tot_tenT)
+    desc: 247.6 um ^ 3 (6.3% total volume)
+    in [um^3]
+
+
+#
+# Physical constants
+#
+[phys]
+T = 310 [K]
+    in [K]
+R = 8.314472 [J / mol / K]
+    in [J / mol / K]
+F = 96.4853415 [C / mmol]
+    in [C / mmol]
+RTF = R * T / F
+    in [mV]
+FRT = F / (R * T)
+    in [1/mV]
+FFRT = F * FRT
+    in [C/mmol/mV]
+
+#
+# External concentrations
+#
+[extra]
+Ko = 5.4 [mM]
+    in [mM]
+Cao = 1.8 [mM]
+    in [mM]
+Nao = 140 [mM]
+    in [mM]
+
+#
+# Reversal potentials
+#
+[erev]
+use phys.RTF
+E_Ca = 0.5 * RTF * log(extra.Cao / cai.Cai)
+    in [mV]
+E_Na = RTF * log(extra.Nao / nai.Nai)
+    in [mV]
+E_K = RTF * log(extra.Ko / ki.Ki)
+    in [mV]
+
+[[script]]
+import myokit
+import matplotlib.pyplot as plt
+
+m = get_model()
+s = myokit.Simulation(m)
+
+d = s.run(3000)
+
+plt.figure()
+plt.xlabel('Time (ms)')
+plt.ylabel('Membrane potential (mV)')
+plt.plot(d.time(), d['membrane.V'])
+plt.show()
+

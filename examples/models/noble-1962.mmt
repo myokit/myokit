@@ -1,0 +1,135 @@
+[[model]]
+name: noble-1962
+version: 20210816
+mmt_authors: Michael Clerx
+desc: """
+    Noble Purkinje Fiber model 1962
+    Adapted from the CellML version.
+
+    Original CellML metadata follows below:
+    ---------------------------------------
+
+    Noble Purkinje Fibre Model 1962
+    Catherine Lloyd
+    Auckland Bioengineering Institute, The University of Auckland
+
+    Model Status
+    This CellML model runs in COR, JSim and OpenCell to recreate the published
+    results. The units have been checked and they are consistent.
+
+    Model Structure
+
+    In 1962, Denis Noble published one of the first mathematical models of a
+    cardiac cell.  By adapting the equations of the original Hodgkin-Huxley
+    squid axon model (1952), Noble described the long lasting action and
+    pace-maker potentials of the Purkinje fibres of the heart.  The
+    potassium-current equations differ from those of Hodgkin and Huxley in that
+    the potassium ions are assumed to flow through two types of channel in the
+    membrane.  By contrast, the sodium current equations are very similar to
+    those of Hodgkin and Huxley. The main failure of the Noble (1962) model is
+    that it only includes one voltage gated inward current, INa.  Calcium
+    currents had not yet been discovered, but there was a clue in the model
+    that something was missing.  The only way the model could be made to work
+    was to greatly extend the voltage range of the sodium current by reducing
+    the voltage dependence of the sodium activation process.  In effect the
+    sodium current was made to serve the function of both the sodium and the
+    calcium channels as far as the plateau is concerned.  There was a clear
+    experimental prediction: either sodium channels in the heart are
+    quantitatively different from those in neurons, or other inward
+    current-carrying channels must exist.  Both predictions are correct.
+
+    The original paper reference is cited below:
+
+    A Modification of the Hodgkin-Huxley Equations Applicable to Purkinje Fibre
+    Action and Pacemaker Potentials, Noble, D. 1962
+    Journal of Physiology, 160, 317-352.
+    PubMed ID: 14480151
+    """
+# Initial values
+membrane.V = -87.0
+ina.m      = 0.01
+ina.h      = 0.8
+ik.n       = 0.01
+
+[engine]
+time = 0 [ms]
+    bind time
+    in [ms]
+
+[membrane]
+Cm = 12 [uF]
+    in [uF]
+dot(V) = -(ina.iNa + ik.iK + ileak.iLeak) / (1000 [nF/uF] * Cm)
+    in [mV]
+    label membrane_potential
+
+#
+# Outward Potassium current
+#
+[ik]
+use membrane.V
+iK = (gK1 + gK2) * (V + 100 [mV])
+    in [nA]
+gK1 = 1200 [uS] * exp((-V - 90 [mV]) / 50 [mV]) + 15 [uS] * exp((V + 90 [mV]) / 60 [mV])
+    in [uS]
+gK2 = 1200 [uS] * n ^ 4
+    in [uS]
+dot(n) = a * (1 - n) - b * n
+    a = 1e-4 [1/ms/mV] * (-V - 50 [mV]) / (exp((-V - 50 [mV]) / 10 [mV]) - 1)
+        in [1/ms]
+    b = 2e-3 [1/ms] * exp((-V - 90 [mV]) / 80 [mV])
+        in [1/ms]
+
+#
+# Inward sodium current
+#
+[ina]
+use membrane.V
+iNa = (gNa + 140 [uS]) * (V - ENa)
+    in [nA]
+gNa = m ^ 3 * h * gNaMax
+    in [uS]
+gNaMax = 400000 [uS]
+    in [uS]
+ENa = 40 [mV]
+    in [mV]
+dot(m) = a * (1 - m) - b * m
+    a = 0.1 [1/ms/mV] * (-V - 48 [mV]) / (exp((-V - 48 [mV]) / 15 [mV]) - 1)
+        in [1/ms]
+    b = 0.12 [1/ms/mV] * (V + 8 [mV]) / (exp((V + 8 [mV]) / 5 [mV]) - 1)
+        in [1/ms]
+dot(h) = a * (1 - h) - b * h
+    a = 0.17 [1/ms] * exp((-V - 90 [mV]) / 20 [mV])
+        in [1/ms]
+    b = 1 [1/ms] / (1 + exp((-V - 42 [mV]) / 10 [mV]))
+        in [1/ms]
+
+#
+# Leak current
+#
+[ileak]
+EL = -60 [mV]
+    in [mV]
+gL = 75 [uS]
+    in [uS]
+iLeak = gL * (membrane.V - EL)
+    in [nA]
+
+[[script]]
+import matplotlib.pyplot as plt
+import myokit
+
+# Get model and protocol, create simulation
+m = get_model()
+s = myokit.Simulation(m,)
+
+# Run simulation
+d = s.run(1000)
+
+# Display the results
+plt.figure()
+plt.xlabel('Time (ms)')
+plt.ylabel('Membrane potential (mV)')
+plt.plot(d.time(), d['membrane.V'])
+plt.show()
+

@@ -4,6 +4,7 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - Added a small number of curated example models to Myokit's repository.
 - Changed
 - Deprecated
 - Removed

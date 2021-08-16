@@ -1,0 +1,39 @@
+[[model]]
+name: Lotka-Volterra model
+version: 20210816
+mmt_authors: Michael Clerx
+lk.x = 1.6
+lk.y = 1.6
+
+[lk]
+a = 3
+b = 2
+c = 3
+d = 2
+dot(x) =  a * x - b * x * y
+dot(y) = -c * y + d * x * y
+
+[engine]
+time = 0 bind time
+
+[[script]]
+import myokit
+import matplotlib.pyplot as plt
+
+# Create simulation
+m = get_model()
+s = myokit.Simulation(m)
+s.set_tolerance(abs_tol=1e-8, rel_tol=1e-7)
+
+# Run simulation
+plt.figure()
+plt.xlabel('x')
+plt.ylabel('y')
+plt.xlim(0, 8)
+plt.ylim(0, 8)
+for x in [1.53, 1.65, 1.8, 2.0, 2.5, 3.0, 4.0, 5.0]:
+    s.set_state([x, x])
+    d = s.run(3)
+    plt.plot(d['lk.x'], d['lk.y'])
+plt.show()
+
