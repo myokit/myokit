@@ -140,6 +140,9 @@ _add('mS', S * 1e-3, output=True)
 _add('uS', S * 1e-6, output=True)
 _add('nS', S * 1e-9, output=True)
 _add('pS', S * 1e-12, output=True)
+_add('MOhm', Ohm * 1e6, output=True)
+_add('GOhm', Ohm * 1e9, output=True)
+
 #
 # Common non-SI units
 #
@@ -274,6 +277,7 @@ _rep('nL')
 _rep('nm^2')
 _rep('nm^3')
 _rep('pA/cm^2')
+_rep('pL')
 _rep('S/F')
 _rep('uA/cm^2')
 _rep('uF/cm^2')
