@@ -5,7 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
   - Added a small number of curated example models to Myokit's repository.
-  - []()Added pL, MOhm, and GOhm as standard units.
+  - [#799](https://github.com/MichaelClerx/myokit/pull/799)Added pL, MOhm, and GOhm as standard units.
 - Changed
 - Deprecated
 - Removed
