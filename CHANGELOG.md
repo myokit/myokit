@@ -9,7 +9,7 @@ This page lists the main changes made to Myokit in each release.
   - Examples will be located in a separate repository, at https://github.com/MichaelClerx/myokit-examples
 - Deprecated
 - Removed
-  - [#796](https://github.com/MichaelClerx/myokit/pull/796) The Graph Data Extractor tool is now a separate project, hosted [here](https://github.com/MichaelClerx/gde).
+  - [#796](https://github.com/MichaelClerx/myokit/pull/796) The Graph Data Extractor tool is now a separate project, hosted at https://github.com/MichaelClerx/gde.
 - Fixed
 
 ## [1.33.0] - 2021-08-04
