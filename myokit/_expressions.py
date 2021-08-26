@@ -1991,7 +1991,9 @@ class Power(InfixExpression):
         # In strict mode, check 2nd unit is dimensionless
         if unit2 != myokit.units.dimensionless and mode == myokit.UNIT_STRICT:
             raise EvalUnitError(
-                self, 'Exponent in Power must be dimensionless.')
+                self,
+                'Exponent in Power must be dimensionless, got '
+                + unit2.clarify() + '.')
 
         if unit1 is None:
             return None
@@ -2084,7 +2086,7 @@ class UnaryDimensionlessFunction(Function):
         if mode == myokit.UNIT_STRICT and unit != myokit.units.dimensionless:
             raise EvalUnitError(
                 self, 'Function ' + self._fname + '() requires a'
-                ' dimensionless operand.')
+                ' dimensionless operand, got ' + unit.clarify() + '.')
 
         # Unary dimensionless functions are always dimensionless
         return myokit.units.dimensionless
@@ -2411,7 +2413,9 @@ class Log(Function):
             if mode == myokit.UNIT_STRICT:
                 if unit != myokit.units.dimensionless:
                     raise EvalUnitError(
-                        self, 'Log() requires a dimensionless operand.')
+                        self,
+                        'Log() requires a dimensionless operand, got '
+                        + unit.clarify() + '.')
 
         # Two operands
         else:
@@ -2426,7 +2430,9 @@ class Log(Function):
             if mode == myokit.UNIT_STRICT:
                 if not unit1 == unit2 == myokit.units.dimensionless:
                     raise EvalUnitError(
-                        self, 'Log() requires dimensionless operands.')
+                        self,
+                        'Log() requires dimensionless operands, got '
+                        + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
         return myokit.units.dimensionless
 
