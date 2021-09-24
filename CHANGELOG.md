@@ -10,6 +10,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
   - [#796](https://github.com/MichaelClerx/myokit/pull/796) The Graph Data Extractor tool is now a separate project, hosted at https://github.com/MichaelClerx/gde.
+  - [#804](https://github.com/MichaelClerx/myokit/pull/804) The command line utility `system` no longer reports on the `cma` module.
 - Fixed
 
 ## [1.33.0] - 2021-08-04
