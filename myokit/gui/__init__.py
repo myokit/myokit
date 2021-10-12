@@ -404,9 +404,3 @@ def run(app, *args):
     # Wait for app to exit
     sys.exit(a.exec_())
 
-# def _style_application(app):
-#    """
-#    Applies some custom styling to a Qt application.
-#
-#    (Not required if running the app with :meth:`run`)
-#    """
