@@ -1681,7 +1681,7 @@ class Model(ObjectWithMeta, VarProvider):
     def import_component(self, external_component, new_name=None, var_map=None,
                          allow_name_mapping=False, convert_units=False):
         """
-        Imports a component from another model (the "source model") into this
+        Imports one or multiple components from another model (the "source model") into this
         one (the "target model").
 
         If variables in the ``external_component`` refer to variables from
@@ -1699,9 +1699,9 @@ class Model(ObjectWithMeta, VarProvider):
         Arguments:
 
         ``external_component``
-            A :class:`myokit.Component` from another model.
+            A :class:`myokit.Component` or a list of :class:`myokit.Component`s from another model.
         ``new_name``
-            An optional new name for the imported component.
+            An optional new name for the imported component or list of names if multiple components are provided.
         ``var_map``
             An optional dict mapping variables in the source model to
             variables from this model (with variables specified as objects or
@@ -1723,41 +1723,85 @@ class Model(ObjectWithMeta, VarProvider):
         be raised.
         """
 
-        # Check component is not from this model, is a component, etc.
-        if not isinstance(external_component, myokit.Component):
-            raise TypeError(
-                'Method import_component() expects a myokit.Component.')
-        if external_component.has_ancestor(self):
-            raise ValueError(
-                'The component <' + external_component.name() +
-                '> is already part of this model.')
+        # Check component is list or component and new_name is string or list
+        if isinstance(external_component, list):
+            if not all(isinstance(comp, myokit.Component) for comp in new_name):
+                raise TypeError(
+                'Method import_component() expects a myokit.Component or list of myokit.Components')
+            if new_name is None:
+                new_name = []
+                for comp in external_component:
+                    new_name.append(comp.name())
+            elif isinstance(new_name, basestring) and len(external_component)==1:
+                pass
+            elif isinstance(new_name, list):
+                if (len(new_name)!= len(external_component)) or (not all(isinstance(name, basestring) for name in new_name)):
+                    raise TypeError(
+                        'new_name must be a list of strings the same length as external_component, or a string if only one component is provided')
+            else:
+                raise TypeError(
+                    'new_name must be a list of strings the same length as external_component, or a string if only one component is provided')
 
-        # Check if new name is provided, or else check that name doesn't clash
-        if new_name is None:
-            new_name = external_component.name()
-        if self.has_component(new_name):
-            raise myokit.DuplicateName(
-                'This model already has a component with the name <' + new_name
-                + '>.')
+        elif isinstance(external_component, myokit.Component):
+            if new_name is None:
+                new_name = [external_component.name()]
+            elif isinstance(new_name, basestring):
+                new_name = [new_name]
+            elif isinstance(new_name, list):
+                if (len(new_name)!= 1) or (not all(isinstance(name, basestring) for name in new_name)):
+                    raise TypeError(
+                        'new_name must be a list of strings the same length as external_component or a string if only one component is provided')
+            else:
+                raise TypeError(
+                    'new_name must be a list of strings the same length as external_component or a string if only one component is provided')
+                    
+            external_component = [external_component]
+        
+        else:
+            raise TypeError(
+                'Method import_component() expects a myokit.Component or list of myokit.Components')
+        
+        # Get external model
+        ext_model = external_component[0].model()
+
+        # checking the model for external components are the same and not this model
+        for comp in external_component:
+            if not comp.has_ancestor(ext_model):
+                raise ValueError(
+                    'The imported components must be from the same model, <' + comp.name() +
+                    '> and <' + external_component[0].name() + '> are not.')
+        if ext_model==self:
+            raise ValueError(
+                'The component(s) to import are already part of this model.')
+        
+        # Check if new names clash with those in this model
+        for name in new_name:
+            if self.has_component(name):
+                raise myokit.DuplicateName(
+                    'This model already has a component with the name <' + name
+                    + '>.')
 
         # Check for bindings or labels that are already in use
-        for var in external_component.variables():
-            if self.label(var.label()) is not None:
-                raise myokit.InvalidLabelError(
-                    'This model already has a variable with the label "'
-                    + str(var.label()) + '".')
-            if self.binding(var.binding()) is not None:
-                raise myokit.InvalidBindingError(
-                    'This model already has a variable with the binding "'
-                    + str(var.binding()) + '".')
+        for comp in external_component:
+            for var in comp.variables():
+                if self.label(var.label()) is not None:
+                    raise myokit.InvalidLabelError(
+                        'This model already has a variable with the label "'
+                        + str(var.label()) + '".')
+                if self.binding(var.binding()) is not None:
+                    raise myokit.InvalidBindingError(
+                        'This model already has a variable with the binding "'
+                        + str(var.binding()) + '".')
 
         # Create a list of all external variables that require mapping
         vars_to_map = set()
-        for var in external_component.variables():
-            vars_to_map.update(var.refs_to(state_refs=False))
-            vars_to_map.update(var.refs_to(state_refs=True))
-        vars_to_map.update(external_component._alias_map.values())
-        vars_to_map -= set(external_component.variables())
+        for comp in external_component:
+            for var in comp.variables():
+                vars_to_map.update(var.refs_to(state_refs=False))
+                vars_to_map.update(var.refs_to(state_refs=True))
+            vars_to_map.update(comp._alias_map.values())
+        for comp in external_component:
+            vars_to_map -= set(comp.variables())
         vars_to_map = [x for x in vars_to_map if not x.is_nested()]
 
         # Rename user-provided mapping to user_var_map, and create a new
@@ -1767,9 +1811,6 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Store local vars that are mapped onto
         used_local_vars = set()
-
-        # Get external model
-        ext_model = external_component.model()
 
         # Check user-specified mapping
         if user_var_map is not None:
@@ -1800,7 +1841,7 @@ class Model(ObjectWithMeta, VarProvider):
                 # Check source variables in var map are variables and exist
                 # in external model
                 if isinstance(ext_var, myokit.Variable):
-                    if not ext_var.has_ancestor(external_component.model()):
+                    if not ext_var.has_ancestor(ext_model):
                         raise myokit.VariableMappingError(
                             'The variable <' + ext_var.qname() + '> in the'
                             ' given var_map\'s keys but is not part of the'
@@ -1867,24 +1908,30 @@ class Model(ObjectWithMeta, VarProvider):
                             'Unable to map <' + ext_var.qname() + '> onto <'
                             + self_var.qname() + '>: ' + str(e))
 
-            # Check if time-unit conversion is needed: any states to import?
-            need_time_factor = external_component.has_variables(state=True)
+            # Check if time-unit conversion is needed
+            need_time_factor = False
+            for comp in external_component:
+                # any states to import?
+                if comp.has_variables(state=True):
+                    need_time_factor = True
+                    break
 
-            # Any references made to external state variables
-            if not need_time_factor:
-                for ext_var in external_component.variables(deep=True):
+                # Any references made to external state variables
+                for ext_var in comp.variables(deep=True):
                     for var in ext_var.refs_to(state_refs=False):
                         if var.is_state():
                             need_time_factor = True
                             break
                     if need_time_factor:
                         break
+                if need_time_factor:
+                    break
 
             # Get conversion factor for time variable, raise error if can't
             if need_time_factor:
                 ext_unit = myokit.units.dimensionless
                 self_unit = myokit.units.dimensionless
-                ext_var = external_component.parent().time()
+                ext_var = ext_model.time()
                 if ext_var is not None:
                     ext_unit = ext_var.unit(myokit.UNIT_STRICT)
                 self_var = self.time()
@@ -1900,13 +1947,15 @@ class Model(ObjectWithMeta, VarProvider):
                             ' mismatch: ' + str(e))
 
         # Clone component pt 1: create, meta data, empty variables
-        new_component = external_component._clone1(self, new_name)
-
-        # Clone states
-        # TODO: Not sure why clone() code doesn't do this?
-        for var in external_component.variables(state=True):
-            new_component.get(var.qname(external_component)).promote(
-                var.state_value())
+        new_component = []
+        for i, comp in enumerate(external_component):
+            new_component.append(comp._clone1(self, new_name[i]))
+            
+            # Clone states
+            # TODO: Not sure why clone() code doesn't do this?
+            for var in comp.variables(state=True):
+                new_component[i].get(var.qname(comp)).promote(
+                    var.state_value())
 
         # Create mapping of old var references to new references
         # This is a mapping from Name(var) and Derivative(Name(var)) objects
@@ -1915,12 +1964,13 @@ class Model(ObjectWithMeta, VarProvider):
 
         # Start with all variables (including nested variables) inside the
         # imported component.
-        for ext_var in external_component.variables(deep=True):
-            self_var = new_component.get(ext_var.qname(external_component))
-            lhs_map[myokit.Name(ext_var)] = myokit.Name(self_var)
-            if ext_var.is_state():
-                lhs_map[myokit.Derivative(myokit.Name(ext_var))] = \
-                    myokit.Derivative(myokit.Name(self_var))
+        for i, comp in enumerate(external_component):
+            for ext_var in comp.variables(deep=True):
+                self_var = new_component[i].get(ext_var.qname(comp))
+                lhs_map[myokit.Name(ext_var)] = myokit.Name(self_var)
+                if ext_var.is_state():
+                    lhs_map[myokit.Derivative(myokit.Name(ext_var))] = \
+                        myokit.Derivative(myokit.Name(self_var))
 
         # Next, add all entries in the var_map. If unit conversion is enabled,
         # this may include the addition of unit conversion factors
@@ -1949,15 +1999,17 @@ class Model(ObjectWithMeta, VarProvider):
                 lhs_map[myokit.Derivative(myokit.Name(ext_var))] = ex
 
         # Clone component/variable contents (equations, references)
-        external_component._clone2(new_component, lhs_map, var_map)
+        for i, comp in enumerate(external_component):
+            comp._clone2(new_component[i], lhs_map, var_map)
 
         # Time unit conversion? Then update all derivatives.
         if time_factor is not None:
-            for var in new_component.variables(state=True):
-                rhs = var.rhs()
-                if rhs is not None:
-                    var.set_rhs(
-                        myokit.Multiply(rhs, myokit.Number(time_factor)))
+            for comp in new_component:
+                for var in comp.variables(state=True):
+                    rhs = var.rhs()
+                    if rhs is not None:
+                        var.set_rhs(
+                            myokit.Multiply(rhs, myokit.Number(time_factor)))
 
     def inits(self):
         """
