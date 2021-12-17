@@ -90,7 +90,9 @@ def _create(path):
         # Standard linux and MacOS install: /usr/local/lib
         # Macports MacOS install: /opt/local/lib ??
         config.set('sundials', 'lib', ';'.join([
+            '/usr/local/lib',
             '/usr/local/lib64',
+            '/opt/local/lib',
             '/opt/local/lib64',
         ]))
 
