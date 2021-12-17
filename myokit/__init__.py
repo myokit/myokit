@@ -51,20 +51,20 @@ del(logging)
 #  0    PY_RELEASE_SERIAL, increments with every release
 #
 import sys  # noqa
-if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
+if sys.hexversion < 0x03000000:
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 2 versions older than 2.7.15')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit support for Python 2.7 is nearing the end of its lifetime.'
+        ' Please upgrade as soon as possible! Detected Python version: '
+        + sys.version)
     del(logging, log)
-elif (sys.hexversion >= 0x03000000 and
-      sys.hexversion < 0x03050000):  # pragma: no cover
+elif sys.hexversion < 0x03050000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.5.0')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit is not tested on Python 3 versions older than 3.5.0. Detected'
+        ' Python version: ' + sys.version)
     del(logging, log)
 
 

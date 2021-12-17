@@ -7,6 +7,7 @@ This page lists the main changes made to Myokit in each release.
   - [#799](https://github.com/MichaelClerx/myokit/pull/799) Added pL, MOhm, and GOhm as standard units.
   - [#811](https://github.com/MichaelClerx/myokit/pull/811) DatalogViewer now accepts `.zip` for binary data logs.
 - Changed
+  - [#815](https://github.com/MichaelClerx/myokit/pull/815) Myokit will now warn when run on Python 2.7, as testing for 2.7 is being phased out.
   - Examples will be located in a separate repository, at https://github.com/MichaelClerx/myokit-examples
 - Deprecated
 - Removed
