@@ -11,6 +11,7 @@ myokit
 - :class:`myokit.Benchmarker`
 - :class:`myokit.Ceil`
 - :meth:`myokit.check_name`
+- :class:`myokit.CModel`
 - :class:`myokit.CModule`
 - :class:`myokit.ColorMap`
 - :class:`myokit.CompilationError`
@@ -58,6 +59,7 @@ myokit
 - :class:`myokit.IncompatibleUnitError`
 - :class:`myokit.InfixCondition`
 - :class:`myokit.InfixExpression`
+- :class:`myokit.InitialValue`
 - :class:`myokit.IntegrityError`
 - :class:`myokit.InvalidBindingError`
 - :class:`myokit.InvalidDataLogError`
@@ -65,6 +67,7 @@ myokit
 - :class:`myokit.InvalidLabelError`
 - :class:`myokit.InvalidMetaDataNameError`
 - :class:`myokit.InvalidNameError`
+- :class:`myokit.LegacySimulation`
 - :class:`myokit.Less`
 - :class:`myokit.LessEqual`
 - :class:`myokit.LhsExpression`
@@ -101,7 +104,6 @@ myokit
 - :class:`myokit.Or`
 - :class:`myokit.OrderedPiecewise`
 - :class:`myokit.PacingSystem`
-- :meth:`myokit.pack_snapshot`
 - :meth:`myokit.parse`
 - :class:`myokit.ParseError`
 - :meth:`myokit.parse_expression`
@@ -109,6 +111,8 @@ myokit
 - :meth:`myokit.parse_protocol`
 - :meth:`myokit.parse_state`
 - :meth:`myokit.parse_unit`
+- :class:`myokit.PartialDerivative`
+- :meth:`myokit.pid_hash`
 - :class:`myokit.Piecewise`
 - :class:`myokit.Plus`
 - :class:`myokit.Polynomial`
@@ -125,7 +129,6 @@ myokit
 - :class:`myokit.ProtocolEventError`
 - :class:`myokit.ProtocolParseError`
 - :class:`myokit.PSimulation`
-- :class:`myokit.PyCapture`
 - :meth:`myokit.python_writer`
 - :class:`myokit.Quantity`
 - :class:`myokit.Quotient`
@@ -153,7 +156,6 @@ myokit
 - :meth:`myokit.step`
 - :meth:`myokit.strfloat`
 - :meth:`myokit.strip_expression_units`
-- :class:`myokit.SubCapture`
 - :class:`myokit.Sundials`
 - :meth:`myokit.system`
 - :class:`myokit.Tan`
@@ -161,8 +163,8 @@ myokit
 - :class:`myokit.Timeout`
 - :class:`myokit.Unit`
 - :class:`myokit.UnresolvedReferenceError`
-- :class:`myokit.UnsupportedFunction`
 - :class:`myokit.UnusedVariableError`
 - :class:`myokit.UserFunction`
 - :class:`myokit.Variable`
 - :meth:`myokit.version`
+- :class:`myokit.VariableMappingError`

@@ -1,0 +1,46 @@
+name: Coverage
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - '**'
+
+jobs:
+
+  build-and-test:
+    name: coverage
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.10'
+          architecture: x64
+
+      - name: Install dependencies
+        run: |
+          sudo ./.github/workflows/install-ubuntu-dependencies.sh
+
+      - name: Install Myokit
+        run: |
+          python --version
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install .[optional]
+          python -m pip install coverage codecov
+
+      - name: Run coverage tests
+        run: |
+          python -m myokit system
+          coverage run -m myokit test unit
+
+      - name: Submit report to codecov
+        if: success()
+        run: |
+          codecov

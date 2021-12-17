@@ -11,6 +11,7 @@ import myokit
 import os
 import sys
 import traceback
+import warnings
 
 # Constants
 DIR_FORMATS = os.path.join(myokit.DIR_MYOKIT, 'formats')
@@ -28,45 +29,27 @@ class Exporter(object):
     """
     def __init__(self):
         super(Exporter, self).__init__()
-        self._logger = TextLogger()
 
-    def info(self):
+    def post_export_info(self):
         """
-        Returns a string containing information about this exporter.
-
-        *This should be implemented by each subclass.*
+        Optional method that returns a string containing information about this
+        exporter, to be shown after the export is completed.
         """
-        raise NotImplementedError
-
-    def logger(self):
-        """
-        Returns this exporter's :class:`TextLogger`.
-        """
-        return self._logger
+        return ''
 
     def _test_writable_dir(self, path):
         """
-        Tests if the given path is writable, if not, errors are logged and a
-        :class:`myokit.ExportError` is raised.
+        Ensures the given path is writable, or raises a
+        :class:`myokit.ExportError` if it can't be used.
         """
-        self._logger.log('Storing data in: ' + path)
-
         if os.path.exists(path):
-
             if not os.path.isdir(path):
-                msg = 'Can\'t create output directory. A file exists at the' \
-                      ' specified location ' + path
-                self._logger.log_flair('An error occurred.')
-                self._logger.log(msg)
-                raise myokit.ExportError(msg)
-            else:
-                self._logger.log('Using existing directory ' + path)
+                raise myokit.ExportError(
+                    'Can\'t create output directory. A file exists at the'
+                    ' specified location: ' + path)
 
-        else:
-
-            if path != '' and not os.path.isdir(path):
-                self._logger.log('Creating directory structure ' + path)
-                os.makedirs(path)
+        elif path != '' and not os.path.isdir(path):
+            os.makedirs(path)
 
     def model(self, path, model):
         """
@@ -138,6 +121,8 @@ class ExpressionWriter(object):
         return {
             myokit.Name: self._ex_name,
             myokit.Derivative: self._ex_derivative,
+            myokit.PartialDerivative: self._ex_partial_derivative,
+            myokit.InitialValue: self._ex_initial_value,
             myokit.Number: self._ex_number,
             myokit.PrefixPlus: self._ex_prefix_plus,
             myokit.PrefixMinus: self._ex_prefix_minus,
@@ -188,7 +173,7 @@ class ExpressionWriter(object):
         Converts an Expression to a string.
         """
         t = type(e)
-        if t not in self._op_map:
+        if t not in self._op_map:   # pragma: no cover
             raise ValueError('Unknown expression type: ' + str(t))
         return self._op_map[t](e)
 
@@ -196,6 +181,12 @@ class ExpressionWriter(object):
         raise NotImplementedError
 
     def _ex_derivative(self, e):
+        raise NotImplementedError
+
+    def _ex_partial_derivative(self, e):
+        raise NotImplementedError
+
+    def _ex_initial_value(self, e):
         raise NotImplementedError
 
     def _ex_number(self, e):
@@ -349,7 +340,6 @@ class Importer(object):
     """
     def __init__(self):
         super(Importer, self).__init__()
-        self._logger = TextLogger()
 
     def component(self, path, model):
         """
@@ -365,20 +355,6 @@ class Importer(object):
         :class:`myokit.ImportError` will be raised if any errors occur.
         """
         raise NotImplementedError
-
-    def info(self):
-        """
-        Returns a string containing information about this exporter.
-
-        *This should be implemented by each subclass.*
-        """
-        raise NotImplementedError
-
-    def logger(self):
-        """
-        Returns this exporter's :class:`TextLogger`.
-        """
-        return self._logger
 
     def model(self, path):
         """
@@ -458,11 +434,8 @@ class TemplatedRunnableExporter(Exporter):
         """
         # Get and test path
         path = os.path.abspath(os.path.expanduser(path))
-        path = myokit.format_path(path)
+        path = myokit.tools.format_path(path)
         self._test_writable_dir(path)
-
-        # Get text logger
-        log = self.logger()
 
         # Clone the model, allowing changes to be made during export
         model = model.clone()
@@ -477,14 +450,10 @@ class TemplatedRunnableExporter(Exporter):
         if not os.path.exists(tpl_dir):  # pragma: no cover
             # Cover pragma: If this happens it's a bug in the exporter
             msg = 'Template directory not found: ' + tpl_dir
-            log.log_flair('An error occurred.')
-            log.log(msg)
             raise myokit.ExportError(msg)
         if not os.path.isdir(tpl_dir):  # pragma: no cover
             # Cover pragma: If this happens it's a bug in the exporter
             msg = 'Template path is not a directory:' + tpl_dir
-            log.log_flair('An error occurred.')
-            log.log(msg)
             raise Myokit.ExportError(msg)
 
         # Render all templates
@@ -499,46 +468,36 @@ class TemplatedRunnableExporter(Exporter):
                 if os.path.exists(file_dir):
                     if not os.path.isdir(file_dir):
                         msg = 'Failed to create directory at: '
-                        msg += myokit.format_path(file_dir)
+                        msg += myokit.tools.format_path(file_dir)
                         msg += ' A file or link with that name already exists.'
-                        log.log_flair('An error occurred.')
-                        log.log(msg)
                         raise myokit.ExportError(msg)
                 else:   # pragma: no cover
                     try:
                         os.makedirs(file_dir)
                     except IOError as e:
                         msg = 'Failed to create directory at: '
-                        msg += myokit.format_path(file_dir)
+                        msg += myokit.tools.format_path(file_dir)
                         msg += ' IOError:' + str(e)
-                        log.log_flair('An error occurred.')
-                        log.log(msg)
                         raise myokit.ExportError(msg)
 
             # Check if output file already exists
             out_name = os.path.join(path, out_name)
             if os.path.exists(out_name):
                 if os.path.isdir(out_name):
-                    msg = 'Directory exists at ' + myokit.format_path(out_name)
-                    log.log_flair('An error occurred.')
-                    log.log(msg)
+                    msg = 'Directory exists at ' \
+                          + myokit.tools.format_path(out_name)
                     raise myokit.ExportError(msg)
-                log.log('Overwriting ' + myokit.format_path(out_name))
 
             # Check template file
             tpl_name = os.path.join(tpl_dir, tpl_name)
             if not os.path.exists(tpl_name):    # pragma: no cover
                 # Cover pragma: If this happens it's a bug in the exporter
-                msg = 'File not found: ' + myokit.format_path(tpl_name)
-                log.log_flair('An error occurred.')
-                log.log(msg)
+                msg = 'File not found: ' + myokit.tools.format_path(tpl_name)
                 raise myokit.ExportError(msg)
             if not os.path.isfile(tpl_name):    # pragma: no cover
                 # Cover pragma: If this happens it's a bug in the exporter
                 msg = 'Directory found, expecting file at '
-                msg += myokit.format_path(tpl_name)
-                log.log_flair('An error occurred.')
-                log.log(msg)
+                msg += myokit.tools.format_path(tpl_name)
                 raise myokit.ExportError(msg)
 
             # Render
@@ -548,15 +507,15 @@ class TemplatedRunnableExporter(Exporter):
                 try:
                     p.process(tpl_name, tpl_vars)
                 except Exception as e:      # pragma: no cover
-                    log.log_flair(
+                    warnings.warn(
                         'An error ocurred while processing the template at '
-                        + myokit.format_path(tpl_name))
-                    log.log(traceback.format_exc())
+                        + myokit.tools.format_path(tpl_name))
+                    warnings.warn(traceback.format_exc())
                     if isinstance(e, myokit.pype.PypeError):
                         # Pype error? Then add any error details
                         d = p.error_details()
                         if d:
-                            log.log(d)
+                            warnings.warn(d)
                     raise myokit.ExportError(   # pragma: no cover
                         'An internal error ocurred while processing a'
                         ' template.')
@@ -718,121 +677,4 @@ def register_external_ewriter(name, ewriter_class):
         if _EWRITERS is None:  # pragma: no cover
             _scan_for_internal_formats()
         _EWRITERS[name] = ewriter_class
-
-
-class TextLogger(object):
-    """
-    Can log text and warnings. Used by exporters and importers.
-    """
-    def __init__(self):
-        self._log = []
-        self._warnings = []
-
-        self._live = None
-        self.set_live(False)
-
-        self._line_width = None
-        self.set_line_width()
-
-    def clear(self):
-        """
-        Clears the logged text.
-        """
-        self._log = []
-
-    def clear_warnings(self):
-        """
-        Clears any currently set warnings.
-        """
-        self._warnings = []
-
-    def has_warnings(self):
-        """
-        Returns ``True`` if this logger has any warnings.
-        """
-        return len(self._warnings) > 0
-
-    def is_live(self):
-        """
-        Returns True if live logging is enabled and any logged messages are
-        directly printed to ``stdout``.
-        """
-        return bool(self._live)
-
-    def log(self, *text):
-        """
-        Writes text to the log. Text fragments given as separate arguments will
-        be written to the log as separate lines.
-        """
-        for line in text:
-            self._log.append(line)
-        if self._live:
-            for line in text:
-                print(line)
-
-    def log_line(self):
-        """
-        Writes a horizontal line (------) to the log.
-        """
-        self.log('-' * self._line_width)
-
-    def log_flair(self, text):
-        """
-        Logs a single text fragment centered on the line, surrounded by lines
-        of hyphens::
-
-            ------------------------------------------------------------
-                                     Like this!
-            ------------------------------------------------------------
-        """
-        self.log('-' * self._line_width)
-        self.log(' ' * ((self._line_width - len(text)) // 2) + text)
-        self.log('-' * self._line_width)
-
-    def log_warnings(self):
-        """
-        Writes all the logged warnings to the log and clears the warnings
-        buffer.
-        """
-        if self._warnings:
-            n = len(self._warnings)
-            if n == 1:
-                self.log_flair('One warning generated')
-            else:
-                self.log_flair(str(n) + ' Warnings generated')
-            for k, w in enumerate(self._warnings):
-                self.log('(' + str(1 + k) + ') ' + str(w))
-            self.log_line()
-            self._warnings = []
-
-    def set_live(self, enabled=True):
-        """
-        When live logging is enabled, all log data will be written to
-        ``stdout`` immediatly.
-        """
-        self._live = bool(enabled)
-
-    def set_line_width(self, width=79):
-        """
-        Changes the line width used by this TextLogger.
-        """
-        self._line_width = int(width)
-
-    def text(self):
-        """
-        Returns the logged text.
-        """
-        return '\n'.join(self._log)
-
-    def warn(self, message):
-        """
-        Logs a warning to the warnings list.
-        """
-        self._warnings.append(message)
-
-    def warnings(self):
-        """
-        Returns an iterator over all warnings currently set
-        """
-        return iter(self._warnings)
 

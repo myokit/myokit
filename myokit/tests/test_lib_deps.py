@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the lib.deps dependency graphing module.
 #
@@ -8,6 +8,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import random
 import unittest
 
 import myokit
@@ -23,10 +24,9 @@ except AttributeError:
 class LibDepsTest(unittest.TestCase):
 
     def test_state_dependency_matrix(self):
-        """
-        Test create_ and plot_ state dependency matrix method, to create
-        matrix plot of state interdependencies.
-        """
+        # Test create_ and plot_ state dependency matrix method, to create
+        # matrix plot of state interdependencies.
+
         # Load model
         model = myokit.load_model('example')
 
@@ -100,10 +100,13 @@ class LibDepsTest(unittest.TestCase):
         deps.plot_state_dependency_matrix(model)
 
     def test_component_dependency_graph(self):
-        """
-        Test create_ and plot_ component dependency graph method, to show
-        digraph plot of variable dependencies.
-        """
+        # Test create_ and plot_ component dependency graph method, to show
+        # digraph plot of variable dependencies.
+
+        # Nodes are placed at random, so seed the generator for consistent
+        # output (otherwise we risk missing full cover on some runs).
+        random.seed(1)
+
         # Load model
         model = myokit.load_model('example')
 
@@ -123,10 +126,13 @@ class LibDepsTest(unittest.TestCase):
         deps.plot_component_dependency_graph(model)
 
     def test_variable_dependency_graph(self):
-        """
-        Test create_ and plot_ variable dependency graph method, to show
-        digraph plot of variable dependencies.
-        """
+        # Test create_ and plot_ variable dependency graph method, to show
+        # digraph plot of variable dependencies.
+
+        # Nodes are placed at random, so seed the generator for consistent
+        # output (otherwise we risk missing full cover on some runs).
+        random.seed(1)
+
         # Load model
         model = myokit.load_model('example')
 
@@ -144,7 +150,7 @@ class DiGraphTest(unittest.TestCase):
     """
 
     def test_basic(self):
-        """ Test basic DiGraph functions. """
+        # Test basic DiGraph functions.
 
         # Create empty graph
         d = deps.DiGraph()

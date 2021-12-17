@@ -10,19 +10,11 @@ from __future__ import print_function, unicode_literals
 import myokit.formats
 
 
-info = """
-This importer can read simple square pulse protocols from files in the
-Axon Binary Format used by Axon Instruments and Molecular Devices.
-"""
-
-
 class AbfImporter(myokit.formats.Importer):
     """
     This :class:`Importer <myokit.formats.Importer>` can import protocols from
     files in Axon Binary Format.
     """
-    def info(self):
-        return info
 
     def supports_protocol(self):
         return True

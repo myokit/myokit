@@ -15,9 +15,9 @@ submodules detailed in the sections listed below.
     common_experiments
     common_plots
     dependency_analysis
+    guess
     hh
     function_approximation
     markov
     multi
-    parameter_estimation
 

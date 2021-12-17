@@ -45,7 +45,7 @@ section of the documentation.
     equations
     units
     io
-    mxml
-    misc
+    float
+    tools
     settings
     exceptions

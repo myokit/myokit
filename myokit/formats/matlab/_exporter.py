@@ -28,12 +28,9 @@ class MatlabExporter(myokit.formats.TemplatedRunnableExporter):
     ``pace``
         The current value of the pacing system, implemented using a very simple
         pacing mechanism.
-
-    To run simulations, run the file ``main.m``.
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
+    def post_export_info(self):
+        return 'To run simulations, run the file main.m.'
 
     def _dir(self, root):
         return os.path.join(root, 'matlab', 'template')

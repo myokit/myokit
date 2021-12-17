@@ -30,10 +30,6 @@ class StanExporter(myokit.formats.TemplatedRunnableExporter):
         pacing mechanism.
 
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
-
     def _dir(self, root):
         return os.path.join(root, 'stan', 'template')
 

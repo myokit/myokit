@@ -19,15 +19,9 @@ Back-end classes
     :private-members:
     :inherited-members:
 
-.. autoclass:: PyCapture
-    :private-members:
-    :inherited-members:
-
-.. autoclass:: SubCapture
-    :private-members:
-    :inherited-members:
-
 .. autoclass:: Compiler
+
+.. autofunction:: pid_hash
 
 
 Templating engine

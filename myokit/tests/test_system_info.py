@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the system() method
 #
@@ -24,12 +24,13 @@ class SystemInfoTest(unittest.TestCase):
     """
     Tests the system info method.
     """
+
     def test_system_info(self):
         import matplotlib
         matplotlib.use('template')
 
         self.assertIsInstance(myokit.system(), basestring)
-        with myokit.PyCapture():
+        with myokit.tools.capture():
             myokit.system(live_printing=True)
 
 

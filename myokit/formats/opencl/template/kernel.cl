@@ -54,7 +54,7 @@ for comp, clist in comp_in.items():
     for bound in bound_variables:
         lhs = bound.lhs()
         if lhs in clist:
-            continue        
+            continue
         for var in comp.variables(deep=True):
             if var.rhs().depends_on(lhs):
                 clist.append(lhs)
@@ -69,7 +69,7 @@ def set_pointers(names=None):
     """
     Tells the expression writer to write the given variable names (given as
     LhsExpression objects) as pointers.
-    
+
     Calling set_pointers a second time clears the first list. Calling with
     ``names=None`` unsets all pointers.
     """
@@ -84,13 +84,13 @@ def v(var):
     """
     if isinstance(var, myokit.Derivative):
         # Explicitly asked for derivative
-        pre = '*' if var in ptrs else ''        
+        pre = '*' if var in ptrs else ''
         return pre + 'D_' + var.var().uname()
     if isinstance(var, myokit.Name):
         var = var.var()
     if var in bound_variables:
         return bound_variables[var]
-    pre = '*' if myokit.Name(var) in ptrs else ''        
+    pre = '*' if myokit.Name(var) in ptrs else ''
     return pre + var.uname()
 w.set_lhs_function(v)
 
@@ -190,10 +190,10 @@ __kernel void cell_step(const int n_cells, const Real time, const Real dt, __glo
     const int cid = get_global_id(0);
     const int offset = cid * n_state;
     if(cid >= n_cells) return;
-    
+
     /* Diffusion */
     Real idiff = idiff_vec[cid];
-    
+
     /* Pacing */
     Real pace;
     if(cid < 4) {
@@ -201,7 +201,7 @@ __kernel void cell_step(const int n_cells, const Real time, const Real dt, __glo
     } else {
         pace = 0;
     }
-    
+
 <?
 print(tab + '/* Evaluate derivatives */')
 for comp in comp_order:
@@ -238,7 +238,7 @@ if last_component:
             pre += 'Real '
         if var not in bound_variables:
             print(pre + w.eq(eq) + ';')
-            
+
 ?>
     /* Perform update */
 <?

@@ -56,6 +56,7 @@ bound_variables = model.prepare_bindings({
 # Get equations
 equations = model.solvable_order()
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdio.h>
 #include <math.h>
@@ -66,7 +67,7 @@ static double engine_time = 0;
 <?
 for var in model.variables(deep=True):
     if var.is_literal():
-        print('static double ' + v(var) + ' = ' + myokit.strfloat(var.rhs().eval()) + ';')
+        print('static double ' + v(var) + ' = ' + myokit.float.str(var.rhs().eval()) + ';')
     else:
         print('static double ' + v(var) + ';')
         if var.is_state():
@@ -135,7 +136,7 @@ log_extract(PyObject* data, const char* name, const int position, double* var)
     PyObject* list;
     PyObject* item;
     char errstr[1000];
-    
+
     // Get sequence from dict
     key = PyUnicode_FromString(name);
     if (!PyDict_Contains(data, key)) {
@@ -208,7 +209,7 @@ bench(PyObject* self, PyObject* args, void (*fnc)(void))
     int repeats;        // The number of evaluations to run
     int fastest;        // Set to 1 to get the fastest repeat, 0 for the sum
                         // of repeats.
-    int n_positions;                    
+    int n_positions;
     int ok;
     int i, j, k;
     PyObject* times;

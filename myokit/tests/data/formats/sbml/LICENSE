@@ -1,0 +1,18 @@
+The files starting "00001-sbml", "00004-sbml", and "01103-sbml" were downloaded
+(and/or adapted) from
+
+    The SBML Test Suite Database
+    http://sbml.org/Facilities/Database/
+
+For copyright information, please see
+
+    https://github.com/sbmlteam/sbml-test-suite/blob/master/LICENSE.html
+
+
+The file HodgkinHuxley.xml was downloaded from
+
+    BioModels Database: A Database of Annotated Published Models.
+
+For copyright information, please see
+
+    https://www.ebi.ac.uk/biomodels/termsofuse

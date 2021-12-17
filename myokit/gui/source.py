@@ -196,7 +196,7 @@ class Editor(QtWidgets.QPlainTextEdit):
 
     def jump_to(self, line, char):
         """
-        Jumps to the given line and row.
+        Jumps to the given line and row (with indices starting at 0).
         """
         block = self.document().findBlockByNumber(line)
         cursor = self.textCursor()
@@ -240,6 +240,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 # Insert spaces until next tab stop
                 pos = cursor.positionInBlock()
                 cursor.insertText((TABS - pos % TABS) * SPACE)
+
         elif key == Qt.Key_Backtab and mod == Qt.ShiftModifier:
             # Dedent all lines in selection (or single line if no selection)
             '''
@@ -298,6 +299,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 cursor.setPosition(new_start)
                 cursor.setPosition(new_end, QtGui.QTextCursor.KeepAnchor)
                 self.setTextCursor(cursor)
+
         elif key == Qt.Key_Enter or key == Qt.Key_Return:
             # Enter/Return with modifier is overruled here to mean nothing
             # This is very important as the default for shift-enter is to
@@ -324,6 +326,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 cursor.endEditBlock()
                 # Scroll if necessary
                 self.ensureCursorVisible()
+
         elif key == Qt.Key_Home and (
                 mod == Qt.NoModifier or mod == Qt.ShiftModifier):
             # Plain home button: move to start of line
@@ -353,6 +356,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 else QtGui.QTextCursor.MoveAnchor)
             cursor.setPosition(newpos, anchor)
             self.setTextCursor(cursor)
+
         elif key == Qt.Key_Home and (
                 mod == Qt.ControlModifier
                 or mod == Qt.ControlModifier & Qt.ShiftModifier):
@@ -364,6 +368,55 @@ class Editor(QtWidgets.QPlainTextEdit):
             cursor = self.textCursor()
             cursor.setPosition(0, anchor)
             self.setTextCursor(cursor)
+
+        elif key in (Qt.Key_Up, Qt.Key_Down) and mod == Qt.AltModifier:
+            # Move selected lines up or down
+            # Get current selection
+            doc = self.document()
+            cursor = self.textCursor()
+            start, end = cursor.selectionStart(), cursor.selectionEnd()
+            block1 = doc.findBlock(start)
+            if start == end:
+                block2 = block1
+            else:
+                block2 = doc.findBlock(end)
+                # Whole line selection? Then move end back 1 position
+                if end == block2.position():
+                    end -= 1
+                    block2 = block2.previous()  # always valid
+            block2 = block1 if start == end else doc.findBlock(end)
+            # Check if we can move
+            if key == Qt.Key_Up:
+                if not block1.previous().isValid():
+                    return
+            elif not block2.next().isValid():
+                return
+            # Select full line(s)
+            b1pos = block1.position()
+            cursor.beginEditBlock()
+            cursor.setPosition(b1pos)
+            cursor.setPosition(end, QtGui.QTextCursor.KeepAnchor)
+            cursor.movePosition(
+                QtGui.QTextCursor.EndOfLine, QtGui.QTextCursor.KeepAnchor)
+            line = cursor.selectedText()
+            size = cursor.selectionEnd() - cursor.selectionStart()
+            cursor.removeSelectedText()
+            if key == Qt.Key_Up:
+                cursor.deletePreviousChar()
+                cursor.movePosition(QtGui.QTextCursor.StartOfLine)
+                cursor.insertText(line + '\n')
+                cursor.movePosition(QtGui.QTextCursor.Left)
+            else:
+                cursor.deleteChar()
+                cursor.movePosition(QtGui.QTextCursor.EndOfLine)
+                cursor.insertText('\n' + line)
+            cursor.endEditBlock()
+            # Cursor is at the end of the moved lines.
+            # Set moved lines as selection
+            cursor.movePosition(
+                QtGui.QTextCursor.Left, QtGui.QTextCursor.KeepAnchor, size)
+            self.setTextCursor(cursor)
+
         elif key in (Qt.Key_Up, Qt.Key_Down, Qt.Key_PageUp, Qt.Key_PageDown) \
                 and (mod == Qt.NoModifier or mod == Qt.ShiftModifier):
             # Move cursor up/down
@@ -397,6 +450,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                     cursor.movePosition(QtGui.QTextCursor.StartOfBlock, anchor)
                 self._last_column = cursor.positionInBlock()
             self.setTextCursor(cursor)
+
         elif key in (Qt.Key_Left, Qt.Key_Right, Qt.Key_End) and not (
                 mod & Qt.AltModifier):
             # Allow all modifiers except alt
@@ -404,9 +458,11 @@ class Editor(QtWidgets.QPlainTextEdit):
             self._last_column = None
             # Pass to parent class
             super(Editor, self).keyPressEvent(event)
+
         elif key == Qt.Key_Insert and mod == Qt.NoModifier:
             # Insert/replace
             self.setOverwriteMode(not self.overwriteMode())
+
         else:
             # Default keyboard shortcuts / functions:
             # Backspace             OK
