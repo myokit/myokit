@@ -17,10 +17,10 @@ jobs:
     strategy:
       matrix:
         # Selected python versions only
-        python-version: [3.5, 3.9]
+        python-version: [3.5, '3.10']
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: Configure Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1

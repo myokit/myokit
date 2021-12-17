@@ -4,6 +4,26 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#799](https://github.com/MichaelClerx/myokit/pull/799) Added pL, MOhm, and GOhm as standard units.
+  - [#811](https://github.com/MichaelClerx/myokit/pull/811) DatalogViewer now accepts `.zip` for binary data logs.
+  - [#817](https://github.com/MichaelClerx/myokit/pull/816) Add support for Python 3.10.
+  - [#821](https://github.com/MichaelClerx/myokit/pull/821) Sundials-based simulations now auto-detect the version number. The version indicated in myokit.ini is no longer used.
+  - [#823](https://github.com/MichaelClerx/myokit/pull/823) Sundials 6.0.0 is now supported.
+- Changed
+  - Examples will be located in a separate repository, at https://github.com/MichaelClerx/myokit-examples
+  - [#815](https://github.com/MichaelClerx/myokit/pull/815) Myokit will now warn when run on Python 2.7, as testing for 2.7 is being phased out.
+  - [#816](https://github.com/MichaelClerx/myokit/pull/816) The method `myokit.tools.Benchmarker.format` can now be called without any arguments.
+  - [#817](https://github.com/MichaelClerx/myokit/pull/816) The internal templating engine now uses `ast` instead of the deprecated (and removed in 3.10) `parser` module.
+- Deprecated
+- Removed
+  - [#796](https://github.com/MichaelClerx/myokit/pull/796) The Graph Data Extractor tool is now a separate project, hosted at https://github.com/MichaelClerx/gde.
+  - [#804](https://github.com/MichaelClerx/myokit/pull/804) The command line utility `system` no longer reports on the `cma` module.
+  - [#821](https://github.com/MichaelClerx/myokit/pull/821) Removed the method `myokit.Sundials.version_int`.
+- Fixed
+  - [#805](https://github.com/MichaelClerx/myokit/pull/805) Added missing command line utilities to the documentation, and re-organised the command-line tool docs.
+
+## [1.33.0] - 2021-08-04
+- Added
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Myokit's expression system now includes a `PartialDerivative` and an `InitialValue` class. Both are for use in sensitivity calculations and may not appear in models.
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Expressions now have a method `diff(lhs)` that returns the (partial) derivative of an expression with respect to the given `LhsExpression`.
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Expressions now have methods `is_derivative`, `is_name`, and `is_number`.
@@ -21,12 +41,15 @@ This page lists the main changes made to Myokit in each release.
   - [#754](https://github.com/MichaelClerx/myokit/pull/754) Added a method `myokit.OpenCL.current_info(x)` that returns information about the currently selected platform and device; support of OpenCL extensions can then be checked with `OpenCLPlatformInfo.has_extension`.
   - [#754](https://github.com/MichaelClerx/myokit/pull/754) Improved error message when an `OpenCLSimulation` with double precision is run on a device that does not support it.
   - [#763](https://github.com/MichaelClerx/myokit/pull/763) Added a method `OpenCLSimulation.set_conductance_field` to apply heterogeneous conductance on a rectangular grid.
+  - [#769](https://github.com/MichaelClerx/myokit/pull/769) Added a method `myokit.Model.import_component` to import a component from one model to another.
+  - [#769](https://github.com/MichaelClerx/myokit/pull/769) Added an exception type `VariableMappingError` to be raised when there is an error in a variable mapping.
   - [#776](https://github.com/MichaelClerx/myokit/pull/776) Added a method `OpenCLSimulation.monodomain_conductance` to replace the deprecated method `calculate_conductance`.
   - [#780](https://github.com/MichaelClerx/myokit/pull/780) Alt-up and alt-down can now be used in the text editor to move selected lines up or down.
   - [#782](https://github.com/MichaelClerx/myokit/pull/782) The IDE can now import CellML files on opening, e.g. by typing `myokit ide example.cellml`.
   - [#786](https://github.com/MichaelClerx/myokit/pull/786) Added a method `myokit.Variable.clamp()` to fix any variable to a constant value.
   - [#786](https://github.com/MichaelClerx/myokit/pull/786) Added a method `myokit.Variable.remove_child_variables()` to remove all child (nested) variables from a given variable.
   - [#788](https://github.com/MichaelClerx/myokit/pull/788) The IDE will now suggest filenames for model exports.
+  - [#792](https://github.com/MichaelClerx/myokit/pull/792) SBML import now handles equations that explicitly use time.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
@@ -53,13 +76,13 @@ This page lists the main changes made to Myokit in each release.
   - [#787](https://github.com/MichaelClerx/myokit/pull/787) The method `myokit.Model.eval_state_derivatives` is deprecated in favour of `myokit.Model.evaluate_derivatives`.
 - Removed
   - [#683](https://github.com/MichaelClerx/myokit/pull/683) No longer testing on Python 2.7.6 on linux (still testing latest 2.7). No longer testing any Python 2.7 on Windows.
-  - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
   - [#728](https://github.com/MichaelClerx/myokit/pull/728) The classes `myokit.PyCapture` and `myokit.SubCapture` have been replaced by a single context manager `myokit.tools.capture`.
+  - [#730](https://github.com/MichaelClerx/myokit/pull/730) Removed the method `myokit.pack_snapshot`.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Model.merge_interdependent_components` was removed. This method was deprecated since 2018-05-30.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Model.show_line` was removed. This method was deprecated since 2018-05-30.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Protocol.guess_duration` was removed. This method was deprecated since 2016-02-06.
 - Fixed 
-  - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
+  - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on MacOS (with special thanks to Martin Aguilar and David Augustin).
   - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.tools.format_path()`.
   - [#687](https://github.com/MichaelClerx/myokit/pull/687) `Simulation1d` now logs pacing as a global variable, and can log diffusion currents.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
@@ -159,7 +182,7 @@ This page lists the main changes made to Myokit in each release.
 - Rewrote SBML import to use etree instead of DOM.
 - Removed `parse_mathml_dom` function.
 - Removed mxml `dom_child` and `dom_next` methods.
-- Now setting OpenCL framework as linker flag on osx.
+- Now setting OpenCL framework as linker flag on MacOS.
 
 ## [1.30.4] - 2020-03-27
 - Fixed a bug with running simulations in Spyder on Windows.
@@ -278,7 +301,7 @@ This page lists the main changes made to Myokit in each release.
 - Added format protocol option to IDE.
 
 ## [1.28.2] - 2018-12-19
-- Improved support for native OpenCL on OS/X.
+- Improved support for native OpenCL on MacOS.
 - Native maths in OpenCL simulations is now configurable and disabled by default.
 
 ## [1.28.1] - 2018-12-19
@@ -333,7 +356,7 @@ This page lists the main changes made to Myokit in each release.
 - Added sundials version detection on first run.
 - Moved myokit config files from `~/.myokit` to `~/.config/myokit`.
 - Renamed `NumpyExpressionwriter` to `NumPyExpressionWriter`.
-- Fixed test issues on os/x.
+- Fixed test issues on MacOS.
 
 ## [1.27.3] - 2018-08-06
 - Updated the way sundials library locations are stored on windows systems.

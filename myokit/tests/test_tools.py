@@ -29,6 +29,7 @@ class BenchMarkerTest(unittest.TestCase):
     def test_benchmarker(self):
         # Test the benchmarker.
 
+        # Benchmarking
         b = myokit.tools.Benchmarker()
         x = [0] * 1000
         t0 = b.time()
@@ -47,6 +48,7 @@ class BenchMarkerTest(unittest.TestCase):
         t4 = b.time()
         self.assertTrue(t4 < t3)
 
+        # Formatting
         self.assertEqual(b.format(1), '1 second')
         self.assertEqual(b.format(61), '1 minute, 1 second')
         self.assertEqual(b.format(60), '1 minute, 0 seconds')
@@ -58,6 +60,9 @@ class BenchMarkerTest(unittest.TestCase):
         self.assertEqual(
             b.format(3600 * 24 * 7),
             '1 week, 0 days, 0 hours, 0 minutes, 0 seconds')
+
+        b = myokit.Benchmarker()
+        self.assertEqual(b.format()[-8:], ' seconds')
 
 
 class CaptureTest(unittest.TestCase):

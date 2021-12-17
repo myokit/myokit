@@ -323,7 +323,7 @@ class CellMLWriter(object):
                 row = etree.SubElement(element, 'unit')
                 row.attrib['units'] = self._exp_si[k]
                 if e != 1:
-                    row.attrib['exponent'] = str(e)     # Must be an integer
+                    row.attrib['exponent'] = str(e)
                 rows.append(row)
 
         # Handle dimensionless units with a multiplier

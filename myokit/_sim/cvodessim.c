@@ -24,17 +24,21 @@ import myokit
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdio.h>
+
 #include <cvodes/cvodes.h>
 #include <nvector/nvector_serial.h>
-#define MYOKIT_SUNDIALS_VERSION <?= myokit.SUNDIALS_VERSION ?>
-#if MYOKIT_SUNDIALS_VERSION >= 30000
+#include <sundials/sundials_types.h>
+#include <sundials/sundials_config.h>
+#ifndef SUNDIALS_VERSION_MAJOR
+    #define SUNDIALS_VERSION_MAJOR 2
+#endif
+#if SUNDIALS_VERSION_MAJOR >= 3
     #include <sunmatrix/sunmatrix_dense.h>
     #include <sunlinsol/sunlinsol_dense.h>
     #include <cvodes/cvodes_direct.h>
 #else
     #include <cvodes/cvodes_dense.h>
 #endif
-#include <sundials/sundials_types.h>
 
 #include "pacing.h"
 
@@ -192,9 +196,12 @@ double pace = 0;        /* Pacing value */
  * CVODE Memory
  */
 void *cvode_mem;     /* The memory used by the solver */
-#if MYOKIT_SUNDIALS_VERSION >= 30000
+#if SUNDIALS_VERSION_MAJOR >= 3
 SUNMatrix sundense_matrix;          /* Dense matrix for linear solves */
 SUNLinearSolver sundense_solver;    /* Linear solver object */
+#endif
+#if SUNDIALS_VERSION_MAJOR >= 6
+SUNContext sundials_context; /* A sundials context to run in (for profiling etc.) */
 #endif
 
 UserData udata;      /* UserData struct, used to pass in parameters */
@@ -389,11 +396,14 @@ sim_clean()
         /* Root finding results */
         free(rf_direction); rf_direction = NULL;
 
-        /* CVode objects */
+        /* Sundials objects */
         CVodeFree(&cvode_mem); cvode_mem = NULL;
-        #if MYOKIT_SUNDIALS_VERSION >= 30000
+        #if SUNDIALS_VERSION_MAJOR >= 3
         SUNLinSolFree(sundense_solver); sundense_solver = NULL;
         SUNMatDestroy(sundense_matrix); sundense_matrix = NULL;
+        #endif
+        #if SUNDIALS_VERSION_MAJOR >= 6
+        SUNContext_Free(&sundials_context); sundials_context = NULL;
         #endif
 
         /* User data and parameter scale array*/
@@ -425,7 +435,7 @@ sim_clean()
  * Version of sim_clean that sets a python exception.
  */
 PyObject*
-sim_cleanx(const char* msg, ...)
+sim_cleanx(PyObject* ex_type, const char* msg, ...)
 {
     va_list argptr;
     char errstr[1024];
@@ -434,7 +444,7 @@ sim_cleanx(const char* msg, ...)
     vsprintf(errstr, msg, argptr);
     va_end(argptr);
 
-    PyErr_SetString(PyExc_Exception, errstr);
+    PyErr_SetString(ex_type, errstr);
     return sim_clean();
 }
 
@@ -503,9 +513,12 @@ sim_init(PyObject *self, PyObject *args)
 
     /* CVode objects */
     cvode_mem = NULL;
-    #if MYOKIT_SUNDIALS_VERSION >= 30000
+    #if SUNDIALS_VERSION_MAJOR >= 3
     sundense_matrix = NULL;
     sundense_solver = NULL;
+    #endif
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    sundials_context = NULL;
     #endif
 
     /* Check input arguments     0123456789012345678 */
@@ -599,26 +612,44 @@ sim_init(PyObject *self, PyObject *args)
     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
 
     /*
+     * Create sundials context
+     */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    flag_cvode = SUNContext_Create(NULL, &sundials_context);
+    if (check_cvode_flag(&flag_cvode, "SUNContext_Create", 1)) {
+        return sim_cleanx(PyExc_Exception, "Failed to create Sundials context.");
+    }
+    #endif
+
+    /*
      * Create state vectors
      */
 
     /* Create state vector */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    y = N_VNew_Serial(model->n_states, sundials_context);
+    #else
     y = N_VNew_Serial(model->n_states);
+    #endif
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
-        return sim_cleanx("Failed to create state vector.");
+        return sim_cleanx(PyExc_Exception, "Failed to create state vector.");
     }
 
     /* Create state vector copy for error handling */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    ylast = N_VNew_Serial(model->n_states, sundials_context);
+    #else
     ylast = N_VNew_Serial(model->n_states);
+    #endif
     if (check_cvode_flag((void*)ylast, "N_VNew_Serial", 0)) {
-        return sim_cleanx("Failed to create last-state vector.");
+        return sim_cleanx(PyExc_Exception, "Failed to create last-state vector.");
     }
 
     /* Create sensitivity vector array */
     if (model->has_sensitivities) {
         sy = N_VCloneVectorArray(model->ns_independents, y);
         if (check_cvode_flag((void*)sy, "N_VCloneVectorArray", 0)) {
-            return sim_cleanx("Failed to allocate space to store sensitivities.");
+            return sim_cleanx(PyExc_Exception, "Failed to allocate space to store sensitivities.");
         }
     }
 
@@ -637,14 +668,18 @@ sim_init(PyObject *self, PyObject *args)
         z = y;
         sz = sy;
     } else {
+        #if SUNDIALS_VERSION_MAJOR >= 6
+        z = N_VNew_Serial(model->n_states, sundials_context);
+        #else
         z = N_VNew_Serial(model->n_states);
+        #endif
         if (check_cvode_flag((void*)z, "N_VNew_Serial", 0)) {
-            return sim_cleanx("Failed to create state vector for logging.");
+            return sim_cleanx(PyExc_Exception, "Failed to create state vector for logging.");
         }
         if (model->has_sensitivities) {
             sz = N_VCloneVectorArray(model->ns_independents, y);
             if (check_cvode_flag((void*)sz, "N_VCloneVectorArray", 0)) {
-                return sim_cleanx("Failed to create state sensitivity vector array for logging.");
+                return sim_cleanx(PyExc_Exception, "Failed to create state sensitivity vector array for logging.");
             }
         }
     }
@@ -655,12 +690,12 @@ sim_init(PyObject *self, PyObject *args)
 
     /* Set initial state values */
     if (!PyList_Check(state_py)) {
-        return sim_cleanx("'state_py' must be a list.");
+        return sim_cleanx(PyExc_TypeError, "'state_py' must be a list.");
     }
     for (i=0; i<model->n_states; i++) {
         val = PyList_GetItem(state_py, i);    /* Don't decref! */
         if (!PyFloat_Check(val)) {
-            return sim_cleanx("Item %d in state vector is not a float.", i);
+            return sim_cleanx(PyExc_TypeError, "Item %d in state vector is not a float.", i);
         }
         model->states[i] = PyFloat_AsDouble(val);
         NV_Ith_S(y, i) = model->states[i];
@@ -669,17 +704,17 @@ sim_init(PyObject *self, PyObject *args)
     /* Set initial sensitivity state values */
     if (model->has_sensitivities) {
         if (!PyList_Check(s_state_py)) {
-            return sim_cleanx("'s_state_py' must be a list.");
+            return sim_cleanx(PyExc_TypeError, "'s_state_py' must be a list.");
         }
         for (i=0; i<model->ns_independents; i++) {
             val = PyList_GetItem(s_state_py, i); /* Don't decref */
             if (!PyList_Check(val)) {
-                return sim_cleanx("Item %d in state sensitivity matrix is not a list.", i);
+                return sim_cleanx(PyExc_TypeError, "Item %d in state sensitivity matrix is not a list.", i);
             }
             for (j=0; j<model->n_states; j++) {
                 ret = PyList_GetItem(val, j);    /* Don't decref! */
                 if (!PyFloat_Check(ret)) {
-                    return sim_cleanx("Item %d, %d in state sensitivity matrix is not a float.", i, j);
+                    return sim_cleanx(PyExc_TypeError, "Item %d, %d in state sensitivity matrix is not a float.", i, j);
                 }
                 NV_Ith_S(sy[i], j) = PyFloat_AsDouble(ret);
                 model->s_states[i * model->n_states + j] = NV_Ith_S(sy[i], j);
@@ -691,12 +726,12 @@ sim_init(PyObject *self, PyObject *args)
      * Set values of constants (literals and parameters)
      */
     if (!PyList_Check(literals)) {
-        return sim_cleanx("'literals' must be a list.");
+        return sim_cleanx(PyExc_TypeError, "'literals' must be a list.");
     }
     for (i=0; i<model->n_literals; i++) {
         val = PyList_GetItem(literals, i);    /* Don't decref */
         if (!PyFloat_Check(val)) {
-            return sim_cleanx("Item %d in literal vector is not a float.", i);
+            return sim_cleanx(PyExc_TypeError, "Item %d in literal vector is not a float.", i);
         }
         model->literals[i] = PyFloat_AsDouble(val);
     }
@@ -707,12 +742,12 @@ sim_init(PyObject *self, PyObject *args)
     /* Set model parameters */
     if (model->has_sensitivities) {
         if (!PyList_Check(parameters)) {
-            return sim_cleanx("'parameters' must be a list.");
+            return sim_cleanx(PyExc_TypeError, "'parameters' must be a list.");
         }
         for (i=0; i<model->n_parameters; i++) {
             val = PyList_GetItem(parameters, i);    /* Don't decref */
             if (!PyFloat_Check(val)) {
-                return sim_cleanx("Item %d in parameter vector is not a float.", i);
+                return sim_cleanx(PyExc_TypeError, "Item %d in parameter vector is not a float.", i);
             }
             model->parameters[i] = PyFloat_AsDouble(val);
         }
@@ -725,11 +760,11 @@ sim_init(PyObject *self, PyObject *args)
     if (model->has_sensitivities) {
         udata = (UserData)malloc(sizeof *udata);
         if (udata == 0) {
-            return sim_cleanx("Unable to create user data object to store parameter values.");
+            return sim_cleanx(PyExc_Exception, "Unable to create user data object to store parameter values.");
         }
         udata->p = (realtype*)malloc(sizeof(realtype) * model->ns_independents);
         if (udata->p == 0) {
-            return sim_cleanx("Unable to allocate space to store parameter values.");
+            return sim_cleanx(PyExc_Exception, "Unable to allocate space to store parameter values.");
         }
 
         /*
@@ -745,7 +780,7 @@ sim_init(PyObject *self, PyObject *args)
         /* TODO: Get this from the Python code ? */
         pbar = (realtype*)malloc(sizeof(realtype) * model->ns_independents);
         if (pbar == NULL) {
-            return sim_cleanx("Unable to allocate space to store parameter scales.");
+            return sim_cleanx(PyExc_Exception, "Unable to allocate space to store parameter scales.");
         }
         for (i=0; i<model->ns_independents; i++) {
             pbar[i] = (udata->p[i] == 0.0 ? 1.0 : fabs(udata->p[i]));
@@ -775,10 +810,10 @@ sim_init(PyObject *self, PyObject *args)
     if (eprotocol == Py_None && fprotocol != Py_None) {
         /* Check 'protocol' is tuple (times, values) */
         if (!PyTuple_Check(fprotocol)) {
-            return sim_cleanx("Fixed-form pacing protocol should be tuple or None.");
+            return sim_cleanx(PyExc_TypeError, "Fixed-form pacing protocol should be tuple or None.");
         }
         if (PyTuple_Size(fprotocol) != 2) {
-            return sim_cleanx("Fixed-form pacing protocol tuple should have size 2.");
+            return sim_cleanx(PyExc_ValueError, "Fixed-form pacing protocol tuple should have size 2.");
         }
         /* Create fixed-form pacing object and populate */
         fpacing = FSys_Create(&flag_fpacing);
@@ -795,8 +830,10 @@ sim_init(PyObject *self, PyObject *args)
     if (model->is_ode) {
 
         /* Create, using backwards differentiation and newton iterations */
-        #if MYOKIT_SUNDIALS_VERSION >= 40000
-        cvode_mem = CVodeCreate(CV_BDF); /* Newton is still default */
+        #if SUNDIALS_VERSION_MAJOR >= 6
+        cvode_mem = CVodeCreate(CV_BDF, sundials_context);
+        #elif SUNDIALS_VERSION_MAJOR >= 4
+        cvode_mem = CVodeCreate(CV_BDF);  /* Newton is still default */
         #else
         cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
         #endif
@@ -822,7 +859,19 @@ sim_init(PyObject *self, PyObject *args)
         flag_cvode = CVodeSetMinStep(cvode_mem, dt_min < 0 ? 0.0 : dt_min);
         if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-        #if MYOKIT_SUNDIALS_VERSION >= 40000
+        #if SUNDIALS_VERSION_MAJOR >= 6
+            /* Create dense matrix for use in linear solves */
+            sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states, sundials_context);
+            if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+
+            /* Create dense linear solver object with matrix */
+            sundense_solver = SUNLinSol_Dense(y, sundense_matrix, sundials_context);
+            if (check_cvode_flag((void *)sundense_solver, "SUNLinSol_Dense", 0)) return sim_clean();
+
+            /* Attach the matrix and solver to cvode */
+            flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+            if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
+        #elif SUNDIALS_VERSION_MAJOR >= 4
             /* Create dense matrix for use in linear solves */
             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
             if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
@@ -834,7 +883,7 @@ sim_init(PyObject *self, PyObject *args)
             /* Attach the matrix and solver to cvode */
             flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
             if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
-        #elif MYOKIT_SUNDIALS_VERSION >= 30000
+        #elif SUNDIALS_VERSION_MAJOR >= 3
             /* Create dense matrix for use in linear solves */
             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
             if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
@@ -906,7 +955,7 @@ sim_init(PyObject *self, PyObject *args)
     /* Check for loss-of-precision issue in periodic logging */
     if (log_interval > 0) {
         if (tmax + log_interval == tmax) {
-            return sim_cleanx("Log interval is too small compared to tmax; issue with numerical precision: float(tmax + log_interval) = float(tmax).");
+            return sim_cleanx(PyExc_ValueError, "Log interval is too small compared to tmax; issue with numerical precision: float(tmax + log_interval) = float(tmax).");
         }
     }
 
@@ -917,7 +966,7 @@ sim_init(PyObject *self, PyObject *args)
     /* Check logging list for sensitivities */
     if (model->has_sensitivities) {
         if (!PyList_Check(sens_list)) {
-            return sim_cleanx("'sens_list' must be a list.");
+            return sim_cleanx(PyExc_TypeError, "'sens_list' must be a list.");
         }
     }
     /* Set logging points */
@@ -933,7 +982,7 @@ sim_init(PyObject *self, PyObject *args)
 
         /* Check the log_times list */
         if (!PyList_Check(log_times)) {
-            return sim_cleanx("'log_times' must be a list.");
+            return sim_cleanx(PyExc_TypeError, "'log_times' must be a list.");
         }
 
         /* Read next log point off the list */
@@ -942,7 +991,7 @@ sim_init(PyObject *self, PyObject *args)
         while(ilog < PyList_Size(log_times) && tlog < t) {
             val = PyList_GetItem(log_times, ilog); /* Borrowed */
             if (!PyFloat_Check(val)) {
-                return sim_cleanx("Entries in 'log_times' must be floats.");
+                return sim_cleanx(PyExc_TypeError, "Entries in 'log_times' must be floats.");
             }
             tlog = PyFloat_AsDouble(val);
             ilog++;
@@ -1031,7 +1080,7 @@ sim_step(PyObject *self, PyObject *args)
         val = PyObject_CallFunction(benchtime, "");
         if (!PyFloat_Check(val)) {
             Py_XDECREF(val); val = NULL;
-            return sim_cleanx("Call to benchmark time function didn't return float.");
+            return sim_cleanx(PyExc_TypeError, "Call to benchmark time function didn't return float.");
         }
         realtime_start = PyFloat_AsDouble(val);
         Py_DECREF(val); val = NULL;
@@ -1083,7 +1132,7 @@ sim_step(PyObject *self, PyObject *args)
         /* Check if progress is being made */
         if (t == tlast) {
             if (++zero_step_count >= max_zero_step_count) {
-                return sim_cleanx("Maximum number of zero-length steps taken at t=%f", t);
+                return sim_cleanx(PyExc_ArithmeticError, "Maximum number of zero-length steps taken at t=%f", t);
             }
         } else {
             /* Only count consecutive zero steps */
@@ -1140,7 +1189,7 @@ sim_step(PyObject *self, PyObject *args)
                         PyTuple_SetItem(val, 1, PyLong_FromLong(rf_direction[0]));
                         if (PyList_Append(rf_list, val)) {    /* Doesn't steal, need to decref */
                             Py_DECREF(val);
-                            return sim_cleanx("Call to append() failed on root finding list.");
+                            return sim_cleanx(PyExc_Exception, "Call to append() failed on root finding list.");
                         }
                         Py_DECREF(val); val = NULL;
                     }
@@ -1167,7 +1216,7 @@ sim_step(PyObject *self, PyObject *args)
                         val = PyObject_CallFunction(benchtime, "");
                         if (!PyFloat_Check(val)) {
                             Py_XDECREF(val);
-                            return sim_cleanx("Call to benchmark function did not return float.");
+                            return sim_cleanx(PyExc_TypeError, "Call to benchmark function did not return float.");
                         }
                         realtime = PyFloat_AsDouble(val) - realtime_start;
                         Py_DECREF(val); val = NULL;
@@ -1208,7 +1257,7 @@ sim_step(PyObject *self, PyObject *args)
                         tlog = tmin + (double)ilog * log_interval;
                         if (ilog == 0) {
                             /* Unsigned int wraps around instead of overflowing, becomes zero again */
-                            return sim_cleanx("Overflow in logged step count: Simulation too long!");
+                            return sim_cleanx(PyExc_OverflowError, "Overflow in logged step count: Simulation too long!");
                         }
                     } else {
                         /* Point-list logging */
@@ -1216,7 +1265,7 @@ sim_step(PyObject *self, PyObject *args)
                         if (ilog < PyList_Size(log_times)) {
                             val = PyList_GetItem(log_times, ilog); /* Borrowed */
                             if (!PyFloat_Check(val)) {
-                                return sim_cleanx("Entries in 'log_times' must be floats.");
+                                return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
                             }
                             tlog = PyFloat_AsDouble(val);
                             ilog++;
@@ -1252,7 +1301,7 @@ sim_step(PyObject *self, PyObject *args)
                     val = PyObject_CallFunction(benchtime, "");
                     if (!PyFloat_Check(val)) {
                         Py_XDECREF(val);
-                        return sim_cleanx("Call to benchmark time function did not return float.");
+                        return sim_cleanx(PyExc_TypeError, "Call to benchmark time function did not return float.");
                     }
                     realtime = PyFloat_AsDouble(val) - realtime_start;
                     Py_DECREF(val); val = NULL;

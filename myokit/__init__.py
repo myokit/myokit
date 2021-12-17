@@ -51,20 +51,20 @@ del(logging)
 #  0    PY_RELEASE_SERIAL, increments with every release
 #
 import sys  # noqa
-if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
+if sys.hexversion < 0x03000000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 2 versions older than 2.7.15')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit support for Python 2.7 is nearing the end of its lifetime.'
+        ' Please upgrade as soon as possible! Detected Python version: '
+        + sys.version)
     del(logging, log)
-elif (sys.hexversion >= 0x03000000 and
-      sys.hexversion < 0x03050000):  # pragma: no cover
+elif sys.hexversion < 0x03050000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.5.0')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit is not tested on Python 3 versions older than 3.5.0. Detected'
+        ' Python version: ' + sys.version)
     del(logging, log)
 
 
@@ -143,11 +143,12 @@ LICENSE_HTML = """
     BSD 3-Clause License
     <br />
     <br />Copyright (c) 2011-2017 Maastricht University. All rights reserved.
-    <br />Copyright (c) 2017-2019 University of Oxford. All rights reserved.
+    <br />Copyright (c) 2017-2020 University of Oxford. All rights reserved.
     <br />(University of Oxford means the Chancellor, Masters and Scholars of
     the University of Oxford, having an administrative office at Wellington
     Square, Oxford OX1 2JD, UK).
-</p>
+    <br />Copyright (c) 2020-2021 University of Nottingham. All rights
+    reserved.</br></p>
 <p>
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
@@ -355,6 +356,7 @@ from ._err import (  # noqa
     SimultaneousProtocolEventError,
     UnresolvedReferenceError,
     UnusedVariableError,
+    VariableMappingError,
 )
 
 # Check if all errors imported

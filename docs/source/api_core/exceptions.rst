@@ -87,3 +87,5 @@ Inheriting classes
 
 .. autoclass:: UnusedVariableError
 
+.. autoclass:: VariableMappingError
+
