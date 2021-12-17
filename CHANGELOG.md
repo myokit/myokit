@@ -75,7 +75,7 @@ This page lists the main changes made to Myokit in each release.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Model.show_line` was removed. This method was deprecated since 2018-05-30.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Protocol.guess_duration` was removed. This method was deprecated since 2016-02-06.
 - Fixed 
-  - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
+  - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on MacOS (with special thanks to Martin Aguilar and David Augustin).
   - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.tools.format_path()`.
   - [#687](https://github.com/MichaelClerx/myokit/pull/687) `Simulation1d` now logs pacing as a global variable, and can log diffusion currents.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
@@ -175,7 +175,7 @@ This page lists the main changes made to Myokit in each release.
 - Rewrote SBML import to use etree instead of DOM.
 - Removed `parse_mathml_dom` function.
 - Removed mxml `dom_child` and `dom_next` methods.
-- Now setting OpenCL framework as linker flag on osx.
+- Now setting OpenCL framework as linker flag on MacOS.
 
 ## [1.30.4] - 2020-03-27
 - Fixed a bug with running simulations in Spyder on Windows.
@@ -294,7 +294,7 @@ This page lists the main changes made to Myokit in each release.
 - Added format protocol option to IDE.
 
 ## [1.28.2] - 2018-12-19
-- Improved support for native OpenCL on OS/X.
+- Improved support for native OpenCL on MacOS.
 - Native maths in OpenCL simulations is now configurable and disabled by default.
 
 ## [1.28.1] - 2018-12-19
@@ -349,7 +349,7 @@ This page lists the main changes made to Myokit in each release.
 - Added sundials version detection on first run.
 - Moved myokit config files from `~/.myokit` to `~/.config/myokit`.
 - Renamed `NumpyExpressionwriter` to `NumPyExpressionWriter`.
-- Fixed test issues on os/x.
+- Fixed test issues on MacOS.
 
 ## [1.27.3] - 2018-08-06
 - Updated the way sundials library locations are stored on windows systems.

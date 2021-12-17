@@ -53,7 +53,7 @@ class OpenCL(myokit.CModule):
         libs = []
         flags = []
         import platform
-        if platform.system() != 'Darwin':   # pragma: no osx cover
+        if platform.system() != 'Darwin':   # pragma: no macos cover
             libs.append('OpenCL')
         else:                               # pragma: no cover
             flags.append('-framework')
