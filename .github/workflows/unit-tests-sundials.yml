@@ -1,4 +1,4 @@
-name: Sundials unit tests
+name: Sundials version tests
 on:
   push:
     branches:
@@ -11,13 +11,13 @@ on:
 jobs:
 
   build-and-test:
-    name: unit-sundials
+    name: sundials
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     strategy:
       matrix:
         # Latest of each major sundials branche (may overlap with ubuntu tests).
-        sundials-version: ['v2.7.0', 'v3.2.1', 'v4.1.0', 'v5.8.0']
+        sundials-version: ['v2.7.0', 'v3.2.1', 'v4.1.0', 'v5.8.0', 'v6.0.0']
 
     steps:
       - uses: actions/checkout@v2
@@ -48,5 +48,6 @@ jobs:
       - name: Run unit tests
         run: |
           python -m myokit system
-          python -m myokit test unit
+          python myokit/tests/test_simulation_cvode.py
+          python myokit/tests/test_simulation_cvodes.py
 

@@ -223,14 +223,25 @@ int main()
     void *cvode_mem = NULL;
 
     #if SUNDIALS_VERSION_MAJOR >= 3
-      SUNMatrix sundials_dense_matrix;
-      SUNLinearSolver sundials_linear_solver;
+    SUNMatrix sundials_dense_matrix;
+    SUNLinearSolver sundials_linear_solver;
     #endif
 
-    /* Create state vector */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    /* Create sundials context */
+    SUNContext sundials_context;
+    flag = SUNContext_Create(NULL, &sundials_context);
+    if (check_flag(&flag, "SUNContext_Create", 1)) goto error;
+
+    /* Create state vectors */
+    y = N_VNew_Serial(N_STATE, sundials_context);
+    dy = N_VNew_Serial(N_STATE, sundials_context);
+    #else
+    /* Create state vectors */
     y = N_VNew_Serial(N_STATE);
-    if (check_flag((void*)y, "N_VNew_Serial", 0)) goto error;
     dy = N_VNew_Serial(N_STATE);
+    #endif
+    if (check_flag((void*)y, "N_VNew_Serial", 0)) goto error;
     if (check_flag((void*)dy, "N_VNew_Serial", 0)) goto error;
 
     /* Set calculated constants */
@@ -313,7 +324,9 @@ while next:
     t = tMin;
 
     /* Create solver */
-    #if SUNDIALS_VERSION_MAJOR >= 4
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    cvode_mem = CVodeCreate(CV_BDF, sundials_context);
+    #elif SUNDIALS_VERSION_MAJOR >= 4
     cvode_mem = CVodeCreate(CV_BDF);
     #else
     cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
@@ -322,7 +335,19 @@ while next:
     flag = CVodeInit(cvode_mem, rhs, t, y);
     if (check_flag(&flag, "CVodeInit", 1)) goto error;
 
-    #if SUNDIALS_VERSION_MAJOR >= 4
+    #if SUNDIALS_VERSION_MAJOR >= 6
+        /* Create dense matrix for use in linear solves */
+        sundials_dense_matrix = SUNDenseMatrix(N_STATE, N_STATE, sundials_context);
+        if (check_flag((void *)sundials_dense_matrix, "SUNDenseMatrix", 0)) goto error;
+
+        /* Create dense linear solver object with matrix */
+        sundials_linear_solver = SUNLinSol_Dense(y, sundials_dense_matrix, sundials_context);
+        if (check_flag((void *)sundials_linear_solver, "SUNLinSol_Dense", 0)) goto error;
+
+        /* Attach the matrix and solver to cvode */
+        flag = CVodeSetLinearSolver(cvode_mem, sundials_linear_solver, sundials_dense_matrix);
+        if (check_flag(&flag, "CVodeSetLinearSolver", 1)) goto error;
+    #elif SUNDIALS_VERSION_MAJOR >= 4
         /* Create dense matrix for use in linear solves */
         sundials_dense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
         if (check_flag((void *)sundials_dense_matrix, "SUNDenseMatrix", 0)) goto error;
@@ -423,6 +448,9 @@ error:
     N_VDestroy_Serial(y);
     N_VDestroy_Serial(dy);
     CVodeFree(&cvode_mem);
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    SUNContext_Free(&sundials_context);
+    #endif
 
     /* Return */
     return success;
