@@ -1,10 +1,8 @@
 #
 # Qt gui for viewing DataBlock2d data files.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -90,8 +88,9 @@ FILTER_CSV = 'CSV files (*.csv)'
 FILTER_MAT = 'MAT files (*.mat)'
 FILTER_TXT = 'TXT files (*.txt)'
 FILTER_WCP = 'WCP files (*.wcp)'
+FILTER_ZIP = 'Zipped DataLog files (*.zip)'
 FILTER_ANY = 'All files (*.*)'
-FILTER_ALL = 'Data files (*.abf *.csv *.mat *.pro *.txt *.wcp)'
+FILTER_ALL = 'Data files (*.abf *.csv *.mat *.pro *.txt *.wcp *.zip)'
 FILTER_LIST = ';;'.join([
     FILTER_ALL,
     FILTER_ABF,
@@ -99,6 +98,7 @@ FILTER_LIST = ';;'.join([
     FILTER_MAT,
     FILTER_TXT,
     FILTER_WCP,
+    FILTER_ZIP,
     FILTER_ANY,
 ])
 
@@ -277,11 +277,12 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         actions = {
             '.abf': self.load_abf_file,
             '.atf': self.load_atf_file,
-            '.csv': self.load_csv_file,
+            '.csv': self.load_datalog,
             '.mat': self.load_mat_file,
             '.pro': self.load_abf_file,
             '.txt': self.load_txt_file,
             '.wcp': self.load_wcp_file,
+            '.zip': self.load_datalog,
         }
         try:
             action = actions[ext.lower()]
@@ -317,12 +318,15 @@ class DataLogViewer(myokit.gui.MyokitApplication):
         self._path = os.path.dirname(filename)
         self._tabs.addTab(AtfTab(self, atf), os.path.basename(filename))
 
-    def load_csv_file(self, filename):
+    def load_datalog(self, filename):
         """
-        Loads a csv file.
+        Loads a DataLog from csv or zip file.
         """
         try:
-            log = myokit.DataLog.load_csv(filename)
+            if filename[-4:].lower() == '.csv':
+                log = myokit.DataLog.load_csv(filename)
+            else:
+                log = myokit.DataLog.load(filename)
             if log.time_key is None:
                 raise Exception('Log must contain a suitable time variable.')
         except Exception:

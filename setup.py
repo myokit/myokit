@@ -1,10 +1,8 @@
 #
 # SetupTools script for Myokit
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -38,7 +36,7 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
 
-    license='GNU General Public License version 3',
+    license='BSD 3-clause license',
 
     author='Michael Clerx',
 
@@ -59,12 +57,12 @@ setup(
 
     # List of dependencies
     install_requires=[
-        'numpy',
-        'scipy',
-        'matplotlib>=1.5',
         'configparser',
+        'lxml',
+        'matplotlib>=1.5',
+        'numpy',
+        'scipy',            # Used in data log, and data log viewer
         'setuptools',
-        'sympy',            # Used in lib.markov
         # PyQT or PySide?
         # (PySide is pip installable, Travis can get PyQt from apt)
     ],
@@ -75,13 +73,30 @@ setup(
             'sphinx>=1.5, !=1.7.3',     # Doc generation
         ],
         'dev': [
+            'coverage',                 # Coverage checking
             'flake8>=3',                # Style checking
         ],
         'optional': [
-            'cma',                      # Used in lib.fit
+            'sympy',                    # Used in formats.sympy
         ],
         'gui': ['pyqt5', 'sip'],
         'pyqt': ['pyqt5', 'sip'],
         'pyside': ['pyside2'],
     },
+
+    # Classifiers for pypi
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
+        'Topic :: Scientific/Engineering :: Chemistry',
+        'Topic :: Scientific/Engineering :: Mathematics',
+        'Topic :: Scientific/Engineering :: Medical Science Apps.',
+        'Topic :: Scientific/Engineering :: Physics',
+    ],
 )

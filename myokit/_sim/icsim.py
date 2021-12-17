@@ -2,10 +2,8 @@
 # Simulation that integrates the Jacobian to obtain the partial derivatives of
 # the state vector with respect to the initial conditions.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -14,6 +12,7 @@ import os
 import myokit
 import numpy as np
 import platform
+import warnings
 
 # Location of C template
 SOURCE_FILE = 'icsim.cpp'
@@ -83,6 +82,12 @@ class ICSimulation(myokit.CppModule):
     def __init__(self, model, protocol=None):
         super(ICSimulation, self).__init__()
 
+        # Deprecated on 2021-02-25
+        warnings.warn(
+            'The class `ICSimulation` is deprecated.'
+            ' Sensitivities w.r.t. initial conditions can now be calculated'
+            ' with the single cell `Simulation` class.')
+
         # Require a valid model
         if not model.is_valid():
             model.validate()
@@ -112,6 +117,7 @@ class ICSimulation(myokit.CppModule):
         # Unique simulation id
         ICSimulation._index += 1
         module_name = 'myokit_ICSimulation_' + str(ICSimulation._index)
+        module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {

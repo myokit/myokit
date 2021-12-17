@@ -1,71 +1,98 @@
 #
-# Converts MathML to Myokit Expressions
+# Converts MathML to Myokit expressions, using an ElementTree implementation.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import myokit
-from myokit.mxml import dom_child, dom_next
+from myokit.formats.xml import split
+
+
+def parse_mathml_string(s):
+    """
+    Parses a MathML string that should contain a single expression.
+    """
+    import xml.etree.ElementTree as etree
+    p = MathMLParser(
+        lambda x, y: myokit.Name(x),
+        lambda x, y: myokit.Number(x),
+    )
+    return p.parse(etree.fromstring(s))
+
+
+def parse_mathml_etree(
+        element, name_factory, number_factory, free_variables=set()):
+    """
+    Parses a MathML expression and returns a :class:`myokit.Expression`.
+
+    Arguments:
+
+    ``element``
+        An ``xml.etree.ElementTree.Element`` (or similar) to start parsing
+        from. Must be an ``<apply>`` element.
+    ``name_factory``
+        A callable with arguments ``(name_as_string, element)`` that returns
+        :class:`myokit.Name` objects.
+    ``number_factory``
+        A callable with arguments ``(number_as_float, element)`` that returns
+        :class:`myokit.Number` objects. Note that ``element`` can be ``None``
+        for numbers that have no corresponding ``<cn>`` element.
+    ``free_variables``
+        All :class:`Name` objects for free variables in derivative expressions
+        will be added to this set.
+
+    """
+    p = MathMLParser(name_factory, number_factory, free_variables)
+    return p.parse(element)
 
 
 class MathMLError(myokit.ImportError):
     """
     Raised if an error occurs during MathML import.
+
+    The argument ``element`` can be used to pass in an element that caused the
+    error.
     """
+    def __init__(self, message, element=None):
+        if element is not None:
+            try:    # pragma: no cover
+                line = str(element.sourceline)
+                message = 'Error on line ' + line + '. ' + message
+            except AttributeError:
+                pass
+        super(MathMLError, self).__init__(message)
 
 
-def parse_mathml(s):
+class MathMLParser(object):
     """
-    Parses a mathml string that should contain a single expression.
-    """
-    import xml.dom.minidom
-    x = xml.dom.minidom.parseString(s)
-    return parse_mathml_rhs(dom_child(x))
+    Parses MathML expressions into :class:`myokit.Expression` objects.
 
+    Arguments:
 
-def parse_mathml_rhs(
-        node, var_table=None, logger=None, number_post_processor=None,
-        derivative_post_processor=None):
-    """
-    Takes a MathML node ``node`` (using the ``xml.dom.Node`` interface) and
-    parses its contents into a :class:`myokit.Expression`.
+    ``name_factory``
+        A callable with arguments ``(name_as_string, element)`` that returns
+        :class:`myokit.Name` objects.
+    ``number_factory``
+        A callable with arguments ``(number_as_float, element)`` that returns
+        :class:`myokit.Number` objects. Note that ``element`` can be ``None``
+        for numbers that have no corresponding ``<cn>`` element.
+    ``free_variables``
+        All :class:`Name` objects for free variables in derivative expressions
+        will be added to this set.
 
-    Not all of MathML is supported (so no integrals, set theory etc.) but only
-    a subset common to electrophysiology. In addition, some not-so-common
-    elements are supported because they're allowed appear in
-    :class:`CellML <myokit.formats.cellml.CellMLImporter>` documents.
-
-    Variable names will be returned as strings, unless the optional dict
-    argument ``var_table`` is given. Note that the :class:`myokit.VarOwner`
-    classes support the dict interface.
-
-    If the argument ``logger`` is given this will be used to log messages to,
-    assuming the :class:`myokit.formats.TextLogger` interface.
-
-    Optional post-processing of numbers (``<cn>`` tags) can be added by passing
-    in a callable ``number_post_processor(tag, number)``. This will be called
-    after parsing each ``<cn>`` tag with the original node as the first
-    argument (as an ``xml.dom.minidom`` node), and the created number object as
-    the second (as a :class:`myokit.Number`). The function must return a new
-    :class:`myokit.Number` object.
-
-    Optional checking of derivatives (``<diff>`` tags) can be added by passing
-    in a callable ``derivative_post_processor(time)``. This will be called with
-    the :class:`myokit.Name` representing the variable with respect to which
-    the derivative is being taken. This allows importers to ensure only
-    time-derivatives are being loaded.
+    This is not a validating parser: if the MathML is invalid the method's
+    behaviour is undefined.
 
     The following MathML elements are recognised:
 
     Literals and references
 
     ``<ci>``
-        Becomes a :class:`myokit.Name`.
+        Is converted to a :class:`myokit.Name` by passing the contents of the
+        ``ci`` tag to the ``name_factory``.
     ``<diff>`` (with ``<bvar>`` and ``<degree>``)
         Becomes a :class:`myokit.Derivative`. Only first-order derivatives are
         supported. To check if the derivatives are all time-derivatives, the
@@ -74,6 +101,10 @@ def parse_mathml_rhs(
         Becomes a :class:`myokit.Number`. To process units which may be present
         in the tag's attributes (esp. in CellML) the number post-processing
         function can be used.
+    ``<csymbol>``
+        Is converted to a :class:`myokit.Name` by passing the contents of its
+        ``definitionURL`` to the ``name_factory``. Note that ``csymbols``
+        representing operators or functions are not supported.
 
     Algebra
 
@@ -138,11 +169,11 @@ def parse_mathml_rhs(
     ``<tanh>``
         Becomes ``(exp(2 * x) - 1) / (exp(2 * x) + 1)``.
     ``<arcsinh>``
-        Becomes ``log(x + sqrt(1 + x*x))``.
+        Becomes ``log(x + sqrt(x*x + 1))``.
     ``<arccosh>``
-        Becomes ``log(x + sqrt(x + 1) * sqrt(x - 1))``.
+        Becomes ``log(x + sqrt(x*x - 1))``.
     ``<arctanh>``
-        Becomes ``0.5 * (log(1 + x) - log(1 - x))``.
+        Becomes ``0.5 * log((1 + x) / (1 - x))``.
     ``<csch>``
         Becomes ``2 / (exp(x) - exp(-x))``.
     ``<sech>``
@@ -150,11 +181,11 @@ def parse_mathml_rhs(
     ``<coth>``
         Becomes ``(exp(2 * x) + 1) / (exp(2 * x) - 1)``.
     ``<arccsch>``
-        Becomes ``log(sqrt(1 + 1 / x^2) + 1 / x)``.
+        Becomes ``log(1 / x + sqrt(1 / x^2 + 1))``.
     ``<arcsech>``
-        Becomes ``log(sqrt(1 / x - 1) * sqrt(1 / x + 1) + 1 / x)``
+        Becomes ``log(1 / x + sqrt(1 / x^2 - 1))``
     ``<arccoth>``
-        Becomes ``0.5 * (log(1 + 1/x) - log(1 - 1/x))``.
+        Becomes ``0.5 * log((x + 1) / (x - 1))``.
 
     Logic and relations
 
@@ -182,535 +213,747 @@ def parse_mathml_rhs(
     ``<false>``
         Becomes ``0``
 
-    There are a few elements supported by CellML, but not by Myokit.
-
-    ``<semantics>``, ``<annotation>`` and ``<annotation-xml>``
-        These are not present in any electrophysiology model in the database.
-    ``<notanumber>`` and ``<infinity>``
-        These have no place in an ODE.
-    ``<factorial>``
-        There is no cardiac electrophysiology model in the database that uses
-        these. Plus, factorials require the idea of integers (Myokit only has
-        Reals) and only factorial(x) for x in [0,1,2,...,12] can be
-        calculated without integer overflows.
-
-    Finally, Myokit, but not CellML, supports quotients and remainders.
-
     """
-    def parsex(node):
-        """
-        Parses a mathml expression.
-        """
-        def chain(kind, node, unary=None):
-            """
-            Parses operands for chained operators (for example plus, minus,
-            times and division).
+    def __init__(self, variable_factory, number_factory, free_variables=set()):
+        self._vfac = variable_factory
+        self._nfac = number_factory
+        self._const = lambda x: number_factory(x, None)
+        self._free_variables = free_variables
 
-            The argument ``kind`` must be the myokit expression type being
-            parsed, ``node`` is a DOM node and ``unary``, if given, should be
-            the unary expression type (unary Plus or unary Minus).
-            """
-            ops = []
-            node = dom_next(node)
-            while node:
-                ops.append(parsex(node))
-                node = dom_next(node)
-            n = len(ops)
-            if n < 1:
-                raise MathMLError('Operator needs at least one operand.')
-            if n < 2:
-                if unary:
-                    return unary(ops[0])
-                else:
-                    raise MathMLError('Operator needs at least two operands')
-            ex = kind(ops[0], ops[1])
-            for i in range(2, n):
-                ex = kind(ex, ops[i])
-            return ex
+    def _eat(self, element, iterator, nargs=1):
+        """
+        Takes ``nargs`` elements from the ``iterator``, which should be
+        pointing at the first element after ``element``.
 
-        # Start parsing
-        name = node.tagName
+        Will complain if there are fewer or more than ``nargs`` elements
+        available from the iterator.
+
+        ``element``
+            The element just before the iterator (used in error messages).
+        ``iterator``
+            An iterator pointing at the first element after ``element``.
+        ``nargs``
+            The required number of arguments that ``iterator`` should still
+            contain.
+
+        """
+        # Get all operands
+        ops = [self._parse_atomic(x) for x in iterator]
+
+        # Check number of operands
+        if len(ops) != nargs:
+            raise MathMLError(
+                'Expecting ' + str(nargs) + ' operand(s), got ' + str(len(ops))
+                + ' for ' + split(element.tag)[1] + '.', element)
+
+        return ops
+
+    def _next(self, iterator, tag=None):
+        """
+        Returns the next element from an ``iterator``.
+
+        If ``tag`` is given, elements will be drawn from the iterator until an
+        element with the given tag is found.
+        """
+        try:
+            # Return next element
+            if tag is None:
+                return next(iterator)
+
+            # Find a specific element
+            el = next(iterator)
+            while split(el.tag)[1] != tag:
+                el = next(iterator)
+            return el
+
+        # Ran out of elements
+        except StopIteration:
+            return None
+
+    def parse(self, element):
+        """
+        Parses a MathML expression, rooted in the given ``<apply>`` element,
+        and returns a :class:`myokit.Expression`.
+
+        Arguments:
+
+        ``element``
+            An ``xml.etree.ElementTree.Element`` (or similar) to start parsing
+            from. Must be an ``<apply>`` element.
+
+        """
+        # Remove <math> element, if found
+        ns, el = split(element.tag)
+        if el == 'math':
+            element = element[0]
+
+        return self._parse_atomic(element)
+
+    def _parse_atomic(self, element):
+        """
+        Parses a bit of MathML entirely encoded in ``element``, i.e. a number,
+        variable, or apply.
+        """
+
+        # Get element type, decide what to do
+        _, name = split(element.tag)
+
+        # Brackets
         if name == 'apply':
-            # Brackets, can be ignored in an expression tree.
-            return parsex(dom_child(node))
+            return self._parse_apply(element)
 
+        # Variable reference
         elif name == 'ci':
-            # Reference
-            var = str(node.firstChild.data).strip()
-            if var_table is not None:
-                try:
-                    var = var_table[var]
-                except KeyError:
-                    if logger:
-                        logger.warn(
-                            'Unable to resolve reference to <' + str(var)
-                            + '>.')
-            return myokit.Name(var)
+            return self._parse_name(element)
 
-        elif name == 'diff':
-            # Derivative
-            # Check time variable
-            bvar = dom_next(node, 'bvar')
-            if derivative_post_processor:
-                derivative_post_processor(parsex(dom_child(bvar, 'ci')))
-
-            # Check degree, if given
-            d = dom_child(bvar, 'degree')
-            if d is not None:
-                d = parsex(dom_child(d, 'cn')).eval()
-                if not d == 1:
-                    raise MathMLError(
-                        'Only derivatives of degree one are supported.')
-
-            # Create derivative and return
-            x = dom_next(node, 'ci')
-            if x is None:
-                raise MathMLError(
-                    'Derivative of an expression found: only derivatives of'
-                    ' variables are supported.')
-            return myokit.Derivative(parsex(x))
-
+        # Number
         elif name == 'cn':
-            # Number
-            number = parse_mathml_number(node, logger)
-            if number_post_processor:
-                return number_post_processor(node, number)
-            return number
+            return self._parse_number(element)
 
-        #
-        # Algebra
-        #
+        elif name == 'csymbol':
+            return self._parse_symbol(element)
 
+        # Constants
+        elif name == 'pi':
+            return self._const('3.14159265358979323846')
+        elif name == 'exponentiale':
+            return myokit.Exp(self._const(1))
+        elif name == 'true':
+            # This is correct, ``True == 1`` -> False, ``True == 2`` -> False
+            return self._const(1)
+        elif name == 'false':
+            return self._const(0)
+        elif name == 'notanumber':
+            return self._const(float('nan'))
+        elif name == 'infinity':
+            return self._const(float('inf'))
+
+        # Piecewise statement
+        elif name == 'piecewise':
+            return self._parse_piecewise(element)
+
+        # Unexpected element
+        else:
+            raise MathMLError(
+                'Unsupported element: ' + str(element.tag) + '.', element)
+
+    def _parse_apply(self, apply_element):
+        """
+        Parses an ``<apply>`` element.
+        """
+        # Apply must have kids
+        if len(apply_element) == 0:
+            raise MathMLError(
+                'Apply must contain at least one child element.',
+                apply_element)
+
+        # Get first child
+        iterator = iter(apply_element)
+        element = self._next(iterator)
+
+        # Decide what to do based on first child
+        _, name = split(element.tag)
+
+        # Handle derivative
+        if name == 'diff':
+            return self._parse_derivative(element, iterator)
+
+        # Algebra (unary/binary/n-ary operators)
         elif name == 'plus':
-            return chain(myokit.Plus, node, myokit.PrefixPlus)
-
+            return self._parse_nary(
+                element, iterator, myokit.Plus, myokit.PrefixPlus)
         elif name == 'minus':
-            return chain(myokit.Minus, node, myokit.PrefixMinus)
-
+            return self._parse_nary(
+                element, iterator, myokit.Minus, myokit.PrefixMinus)
         elif name == 'times':
-            return chain(myokit.Multiply, node)
-
+            return self._parse_nary(element, iterator, myokit.Multiply)
         elif name == 'divide':
-            return chain(myokit.Divide, node)
+            return self._parse_nary(element, iterator, myokit.Divide)
 
-        #
-        # Functions
-        #
-
+        # Basic functions
         elif name == 'exp':
-            return myokit.Exp(parsex(dom_next(node)))
-
+            return myokit.Exp(*self._eat(element, iterator))
         elif name == 'ln':
-            return myokit.Log(parsex(dom_next(node)))
-
+            return myokit.Log(*self._eat(element, iterator))
         elif name == 'log':
-            if dom_next(node).tagName != 'logbase':
-                return myokit.Log10(parsex(dom_next(node)))
-            else:
-                return myokit.Log(
-                    parsex(dom_next(dom_next(node))),
-                    parsex(dom_child(dom_next(node))))
-
+            return self._parse_log(element, iterator)
         elif name == 'root':
-            # Check degree, if given
-            nxt = dom_next(node)
-            if nxt.tagName == 'degree':
-                # Degree given, return x^(1/d) unless d is 2
-                d = parsex(dom_child(nxt))
-                x = parsex(dom_next(nxt))
-                if d.is_literal() and d.eval() == 2:
-                    return myokit.Sqrt(x)
-                return myokit.Power(x, myokit.Divide(myokit.Number(1), d))
-            else:
-                return myokit.Sqrt(parsex(nxt))
-
+            return self._parse_root(element, iterator)
         elif name == 'power':
-            n2 = dom_next(node)
-            return myokit.Power(parsex(n2), parsex(dom_next(n2)))
-
+            return myokit.Power(*self._eat(element, iterator, 2))
         elif name == 'floor':
-            return myokit.Floor(parsex(dom_next(node)))
-
+            return myokit.Floor(*self._eat(element, iterator))
         elif name == 'ceiling':
-            return myokit.Ceil(parsex(dom_next(node)))
-
+            return myokit.Ceil(*self._eat(element, iterator))
         elif name == 'abs':
-            return myokit.Abs(parsex(dom_next(node)))
-
+            return myokit.Abs(*self._eat(element, iterator))
         elif name == 'quotient':
-            n2 = dom_next(node)
-            return myokit.Quotient(parsex(n2), parsex(dom_next(n2)))
-
+            return myokit.Quotient(*self._eat(element, iterator, 2))
         elif name == 'rem':
-            n2 = dom_next(node)
-            return myokit.Remainder(parsex(n2), parsex(dom_next(n2)))
+            return myokit.Remainder(*self._eat(element, iterator, 2))
 
-        #
+        # Logic
+        elif name == 'and':
+            return self._parse_nary(element, iterator, myokit.And)
+        elif name == 'or':
+            return self._parse_nary(element, iterator, myokit.Or)
+        elif name == 'xor':
+            # Becomes ``(x or y) and not(x and y)``
+            x, y = self._eat(element, iterator, 2)
+            return myokit.And(myokit.Or(x, y), myokit.Not(myokit.And(x, y)))
+
+        elif name == 'not':
+            return myokit.Not(*self._eat(element, iterator))
+        elif name == 'eq' or name == 'equivalent':
+            return myokit.Equal(*self._eat(element, iterator, 2))
+        elif name == 'neq':
+            return myokit.NotEqual(*self._eat(element, iterator, 2))
+        elif name == 'gt':
+            return myokit.More(*self._eat(element, iterator, 2))
+        elif name == 'lt':
+            return myokit.Less(*self._eat(element, iterator, 2))
+        elif name == 'geq':
+            return myokit.MoreEqual(*self._eat(element, iterator, 2))
+        elif name == 'leq':
+            return myokit.LessEqual(*self._eat(element, iterator, 2))
+
         # Trigonometry
-        #
-
         elif name == 'sin':
-            return myokit.Sin(parsex(dom_next(node)))
-
+            return myokit.Sin(*self._eat(element, iterator))
         elif name == 'cos':
-            return myokit.Cos(parsex(dom_next(node)))
-
+            return myokit.Cos(*self._eat(element, iterator))
         elif name == 'tan':
-            return myokit.Tan(parsex(dom_next(node)))
-
+            return myokit.Tan(*self._eat(element, iterator))
         elif name == 'arcsin':
-            return myokit.ASin(parsex(dom_next(node)))
-
+            return myokit.ASin(*self._eat(element, iterator))
         elif name == 'arccos':
-            return myokit.ACos(parsex(dom_next(node)))
-
+            return myokit.ACos(*self._eat(element, iterator))
         elif name == 'arctan':
-            return myokit.ATan(parsex(dom_next(node)))
+            return myokit.ATan(*self._eat(element, iterator))
 
-        #
         # Redundant trigonometry (CellML includes this)
-        #
-
         elif name == 'csc':
             # Cosecant: csc(x) = 1 / sin(x)
             return myokit.Divide(
-                myokit.Number(1), myokit.Sin(parsex(dom_next(node))))
-
+                self._const(1), myokit.Sin(*self._eat(element, iterator)))
         elif name == 'sec':
             # Secant: sec(x) = 1 / cos(x)
             return myokit.Divide(
-                myokit.Number(1), myokit.Cos(parsex(dom_next(node))))
-
+                self._const(1), myokit.Cos(*self._eat(element, iterator)))
         elif name == 'cot':
             # Contangent: cot(x) = 1 / tan(x)
             return myokit.Divide(
-                myokit.Number(1), myokit.Tan(parsex(dom_next(node))))
-
+                self._const(1), myokit.Tan(*self._eat(element, iterator)))
         elif name == 'arccsc':
             # ArcCosecant: acsc(x) = asin(1/x)
             return myokit.ASin(
-                myokit.Divide(myokit.Number(1), parsex(dom_next(node))))
-
+                myokit.Divide(self._const(1), *self._eat(element, iterator)))
         elif name == 'arcsec':
             # ArcSecant: asec(x) = acos(1/x)
             return myokit.ACos(
-                myokit.Divide(myokit.Number(1), parsex(dom_next(node))))
-
+                myokit.Divide(self._const(1), *self._eat(element, iterator)))
         elif name == 'arccot':
             # ArcCotangent: acot(x) = atan(1/x)
             return myokit.ATan(
-                myokit.Divide(myokit.Number(1), parsex(dom_next(node))))
+                myokit.Divide(self._const(1), *self._eat(element, iterator)))
 
-        #
-        # Hyperbolic trigonometry (CellML again)
-        #
-
+        # Hyperbolic trig
         elif name == 'sinh':
             # Hyperbolic sine: sinh(x) = 0.5 * (e^x - e^-x)
-            x = parsex(dom_next(node))
+            x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                myokit.Number(0.5), myokit.Minus(
+                self._const(0.5), myokit.Minus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
-
         elif name == 'cosh':
             # Hyperbolic cosine: cosh(x) = 0.5 * (e^x + e^-x)
-            x = parsex(dom_next(node))
+            x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                myokit.Number(0.5), myokit.Plus(
+                self._const(0.5), myokit.Plus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
-
         elif name == 'tanh':
             # Hyperbolic tangent: tanh(x) = (e^2x - 1) / (e^2x + 1)
-            x = parsex(dom_next(node))
-            e2x = myokit.Exp(myokit.Multiply(myokit.Number(2), x))
+            x = self._eat(element, iterator)[0]
+            e2x = myokit.Exp(myokit.Multiply(self._const(2), x))
             return myokit.Divide(
-                myokit.Minus(e2x, myokit.Number(1)),
-                myokit.Plus(e2x, myokit.Number(1)))
-
-        #
-        # Inverse hyperbolic trigonometry (CellML...)
-        #
-
+                myokit.Minus(e2x, self._const(1)),
+                myokit.Plus(e2x, self._const(1)))
         elif name == 'arcsinh':
-            # Inverse hyperbolic sine: asinh(x) = log(x + sqrt(1 + x*x))
-            x = parsex(dom_next(node))
+            # Inverse hyperbolic sine: asinh(x) = log(x + sqrt(x*x + 1))
+            x = self._eat(element, iterator)[0]
             return myokit.Log(myokit.Plus(x, myokit.Sqrt(myokit.Plus(
-                myokit.Number(1), myokit.Multiply(x, x)))))
-
+                myokit.Multiply(x, x), self._const(1)))))
         elif name == 'arccosh':
             # Inverse hyperbolic cosine:
-            #   acosh(x) = log(x + sqrt(x + 1) * sqrt(x - 1))
-            x = parsex(dom_next(node))
-            return myokit.Log(
-                myokit.Plus(x, myokit.Multiply(
-                    myokit.Sqrt(myokit.Plus(x, myokit.Number(1))),
-                    myokit.Sqrt(myokit.Minus(x, myokit.Number(1))))))
-
+            #   acosh(x) = log(x + sqrt(x*x - 1))
+            x = self._eat(element, iterator)[0]
+            return myokit.Log(myokit.Plus(x, myokit.Sqrt(myokit.Minus(
+                myokit.Multiply(x, x), self._const(1)))))
         elif name == 'arctanh':
             # Inverse hyperbolic tangent:
-            #   atanh(x) = 0.5 * (log(1 + x) - log(1 - x))
-            x = parsex(dom_next(node))
+            #   atanh(x) = 0.5 * log((1 + x) / (1 - x))
+            x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                myokit.Number(0.5), myokit.Minus(
-                    myokit.Log(myokit.Plus(myokit.Number(1), x)),
-                    myokit.Log(myokit.Minus(myokit.Number(1), x))))
+                self._const(0.5), myokit.Log(myokit.Divide(
+                    myokit.Plus(self._const(1), x),
+                    myokit.Minus(self._const(1), x))))
 
-        #
-        # Hyperbolic redundant trigonometry (CellML...)
-        #
-
+        # Hyperbolic redundant trig
         elif name == 'csch':
             # Hyperbolic cosecant: csch(x) = 2 / (exp(x) - exp(-x))
-            x = parsex(dom_next(node))
+            x = self._eat(element, iterator)[0]
             return myokit.Divide(
-                myokit.Number(2), myokit.Minus(
+                self._const(2), myokit.Minus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
-
         elif name == 'sech':
             # Hyperbolic secant: sech(x) = 2 / (exp(x) + exp(-x))
-            x = parsex(dom_next(node))
+            x = self._eat(element, iterator)[0]
             return myokit.Divide(
-                myokit.Number(2), myokit.Plus(
+                self._const(2), myokit.Plus(
                     myokit.Exp(x), myokit.Exp(myokit.PrefixMinus(x))))
-
         elif name == 'coth':
             # Hyperbolic cotangent:
             #   coth(x) = (exp(2*x) + 1) / (exp(2*x) - 1)
-            x = parsex(dom_next(node))
-            e2x = myokit.Exp(myokit.Multiply(myokit.Number(2), x))
+            x = self._eat(element, iterator)[0]
+            e2x = myokit.Exp(myokit.Multiply(self._const(2), x))
             return myokit.Divide(
-                myokit.Plus(e2x, myokit.Number(1)),
-                myokit.Minus(e2x, myokit.Number(1)))
-
-        #
-        # Inverse hyperbolic redundant trigonometry (CellML has a lot to answer
-        # for...)
-        #
-
+                myokit.Plus(e2x, self._const(1)),
+                myokit.Minus(e2x, self._const(1)))
         elif name == 'arccsch':
             # Inverse hyperbolic cosecant:
-            #   arccsch(x) = log(sqrt(1/(x*x) + 1) + 1/x)
-            x = parsex(dom_next(node))
-            return myokit.Log(
-                myokit.Plus(
-                    myokit.Sqrt(
-                        myokit.Plus(
-                            myokit.Divide(
-                                myokit.Number(1),
-                                myokit.Multiply(x, x)
-                            ),
-                            myokit.Number(1)
-                        )
-                    ),
-                    myokit.Divide(myokit.Number(1), x))
-            )
+            #   arccsch(x) = log(1 / x + sqrt(1 / x^2 + 1))
+            x = self._eat(element, iterator)[0]
+            return myokit.Log(myokit.Plus(
+                myokit.Divide(self._const(1), x),
+                myokit.Sqrt(myokit.Plus(
+                    myokit.Divide(self._const(1), myokit.Multiply(x, x)),
+                    self._const(1)))))
         elif name == 'arcsech':
             # Inverse hyperbolic secant:
-            #   arcsech(x) = log(sqrt(1/(x*x) - 1) + 1/x)
-            x = parsex(dom_next(node))
-            return myokit.Log(
-                myokit.Plus(
-                    myokit.Sqrt(
-                        myokit.Minus(
-                            myokit.Divide(
-                                myokit.Number(1),
-                                myokit.Multiply(x, x)
-                            ),
-                            myokit.Number(1)
-                        )
-                    ),
-                    myokit.Divide(myokit.Number(1), x))
-            )
+            #   arcsech(x) = log(1 / x + sqrt(1 / x^2 - 1))
+            x = self._eat(element, iterator)[0]
+            return myokit.Log(myokit.Plus(
+                myokit.Divide(self._const(1), x),
+                myokit.Sqrt(myokit.Minus(
+                    myokit.Divide(self._const(1), myokit.Multiply(x, x)),
+                    self._const(1)))))
         elif name == 'arccoth':
             # Inverse hyperbolic cotangent:
-            #   arccoth(x) = 0.5 * (log(3 + 1) - log(3 - 1))
-            x = parsex(dom_next(node))
+            #   arccoth(x) = 0.5 * log((x + 1) / (x - 1))
+            x = self._eat(element, iterator)[0]
             return myokit.Multiply(
-                myokit.Number(0.5),
-                myokit.Log(
-                    myokit.Divide(
-                        myokit.Plus(x, myokit.Number(1)),
-                        myokit.Minus(x, myokit.Number(1))
-                    )
-                )
-            )
+                self._const(0.5), myokit.Log(myokit.Divide(
+                    myokit.Plus(x, self._const(1)),
+                    myokit.Minus(x, self._const(1)))))
 
-        #
-        # Logic
-        #
+        # Last option: A single atomic inside an apply
+        # Do this one last to stop e.g. <apply><times /></apply> returning the
+        # error 'Unsupported element' (which is what parse_atomic would call).
+        elif len(apply_element) == 1:
+            return self._parse_atomic(element)
 
-        elif name == 'and':
-            return chain(myokit.And, node)
-
-        elif name == 'or':
-            return chain(myokit.Or, node)
-
-        elif name == 'not':
-            return chain(None, node, myokit.Not)
-
-        elif name == 'eq' or name == 'equivalent':
-            n2 = dom_next(node)
-            return myokit.Equal(parsex(n2), parsex(dom_next(n2)))
-
-        elif name == 'neq':
-            n2 = dom_next(node)
-            return myokit.NotEqual(parsex(n2), parsex(dom_next(n2)))
-
-        elif name == 'gt':
-            n2 = dom_next(node)
-            return myokit.More(parsex(n2), parsex(dom_next(n2)))
-
-        elif name == 'lt':
-            n2 = dom_next(node)
-            return myokit.Less(parsex(n2), parsex(dom_next(n2)))
-
-        elif name == 'geq':
-            n2 = dom_next(node)
-            return myokit.MoreEqual(parsex(n2), parsex(dom_next(n2)))
-
-        elif name == 'leq':
-            n2 = dom_next(node)
-            return myokit.LessEqual(parsex(n2), parsex(dom_next(n2)))
-
-        elif name == 'piecewise':
-            # Piecewise contains at least one piece, optionally contains an
-            #  "otherwise". Syntax doesn't ensure this statement makes sense.
-            conds = []
-            funcs = []
-            other = None
-            piece = dom_child(node)
-            while piece:
-                if piece.tagName == 'otherwise':
-                    if other is None:
-                        other = parsex(dom_child(piece))
-                    elif logger:
-                        logger.warn(
-                            'Multiple <otherwise> tags found in <piecewise>'
-                            ' statement.')
-                elif piece.tagName == 'piece':
-                    n2 = dom_child(piece)
-                    funcs.append(parsex(n2))
-                    conds.append(parsex(dom_next(n2)))
-                elif logger:
-                    logger.warn(
-                        'Unexpected tag type in <piecewise>: <' + piece.tagName
-                        + '>.')
-                piece = dom_next(piece)
-
-            if other is None:
-                if logger:
-                    logger.warn('No <otherwise> tag found in <piecewise>')
-                other = myokit.Number(0)
-
-            # Create string of if statements
-            args = []
-            f = iter(funcs)
-            for c in conds:
-                args.append(c)
-                args.append(next(f))
-            args.append(other)
-            return myokit.Piecewise(*args)
-
-        #
-        # Constants
-        #
-
-        elif name == 'pi':
-            return myokit.Number('3.14159265358979323846')
-        elif name == 'exponentiale':
-            return myokit.Exp(myokit.Number(1))
-        elif name == 'true':
-            # This is corrent, even in Python True == 1 but not True == 2
-            return myokit.Number(1)
-        elif name == 'false':
-            return myokit.Number(0)
-
-        #
-        # Unknown/unhandled elements
-        #
+        # Unexpected element
         else:
-            if logger:
-                logger.warn('Unknown element: ' + name)
-            ops = []
-            node = dom_child(node) if dom_child(node) else dom_next(node)
-            while node:
-                ops.append(parsex(node))
-                node = dom_next(node)
-            return myokit.UnsupportedFunction(name, ops)
+            raise MathMLError(
+                'Unsupported element in apply: ' + str(element.tag) + '.',
+                element)
 
-    # Remove math node, if given
-    if node.tagName == 'math':
-        node = dom_child(node)
+    def _parse_derivative(self, element, iterator):
+        """
+        Parses the elements folling a ``<diff>`` element.
 
-    # TODO: Check xmlns?
+        Arguments
 
-    # Return
-    return parsex(node)
+        ``element``
+            A ``<diff>`` element
+        ``iterator``
+            An iterator pointing at the next element.
 
+        """
 
-def parse_mathml_number(node, logger=None):
-    """
-    Parses a mathml <cn> tag to a :class:`myokit.Number`.
+        # Get free variable
+        bvar = self._next(iterator, 'bvar')
+        if bvar is None:
+            raise MathMLError(
+                '<diff> element must contain a <bvar>.', element)
+        ci = self._next(iter(bvar), 'ci')
+        if ci is None:
+            raise MathMLError(
+                '<bvar> element must contain a <ci>', element)
+        self._free_variables.add(self._parse_name(ci))
 
-    The attribute ``node`` must be a DOM node representing a <cn> tag using the
-    ``xml.dom.Node`` interface.
+        # Check degree, if given
+        degree = self._next(iter(bvar), 'degree')
+        if degree is not None:
+            cn = self._next(iter(degree), 'cn')
+            if cn is None:
+                raise MathMLError(
+                    '<degree> element must contain a <cn>.', degree)
+            d = self._parse_number(cn)
+            if d.eval() != 1:
+                raise MathMLError(
+                    'Only derivatives of degree one are supported.', cn)
 
-    If the argument ``logger`` is given this will be used to log messages to,
-    assuming the :class:`myokit.TextLogger` interface.
-    """
-    kind = node.getAttribute('type')
+        # Get Name object
+        ci = self._next(iterator, 'ci')
+        if ci is None:
+            raise MathMLError(
+                '<diff> element must contain a <ci> after its <bvar>'
+                ' element (derivatives of expressions are not supported.',
+                element)
+        var = self._parse_name(ci)
 
-    if kind == '':
-        # Default type
-        kind = 'real'
+        return myokit.Derivative(var)
 
-    if kind == 'real':
-        # Float, specified as 123.123 (no exponent!)
-        # May be in a different base than 10
-        base = node.getAttribute('base')
-        if base:
+    def _parse_log(self, element, iterator):
+        """
+        Parses the elements following a ``<log>`` element.
+
+        Arguments:
+
+        ``element``
+            The ``<log>`` element.
+        ``iterator``
+            An iterator pointing at the first element after ``element``.
+
+        """
+        # Get next operands
+        ops = [x for x in iterator]
+
+        # Check for zero ops
+        if len(ops) == 0:
+            raise MathMLError(
+                'Expecting operand after <log> element.', element)
+
+        # Check if first op is logbase
+        if split(ops[0].tag)[1] == 'logbase':
+
+            # Get logbase
+            base = ops[0]
+            if len(base) != 1:
+                raise MathMLError(
+                    'Expecting a single operand inside <logbase> element.',
+                    base)
+            base = self._parse_atomic(base[0])
+
+            # Get main operand
+            if len(ops) != 2:
+                raise MathMLError(
+                    'Expecting a single operand after the <logbase> element'
+                    ' inside a <log>.', element)
+            op = self._parse_atomic(ops[1])
+
+        # No logbase given
+        else:
+            base = None
+
+            if len(ops) != 1:
+                raise MathMLError(
+                    'Expecting a single operand (or a <logbase> followed by a'
+                    ' single operand) inside a <log> element.', element)
+            op = self._parse_atomic(ops[0])
+
+        if base is None or base.eval() == 10:
+            return myokit.Log10(op)
+        else:
+            return myokit.Log(op, base)
+
+    def _parse_nary(self, element, iterator, binary, unary=None):
+        """
+        Parses operands for unary, binary, or n-ary operators (for example
+        plus, minus, times and division).
+
+        If n-ary expressions (n > 2) are encountered, these are converted to
+        Myokit expression trees.
+
+        Arguments:
+
+        ``element``
+            The element that determined the operator type.
+        ``iterator``
+            An iterator pointing at the first element after ``element``.
+        ``binary``
+            A ``myokit.Expression`` subclass for a binary expression.
+        ``unary``
+            An optional ``myokit.Expression`` subclass for unary operators.
+
+        """
+        # Get all operands
+        ops = [self._parse_atomic(x) for x in iterator]
+
+        # Check the number of operands
+        n = len(ops)
+        if n < 1:
+            raise MathMLError(
+                'Operator needs at least one operand.', element)
+        if n < 2:
+            if unary:
+                return unary(ops[0])
+            else:
+                raise MathMLError(
+                    'Operator needs at least two operands', element)
+
+        # Create nested binary expressions and return
+        ex = binary(ops[0], ops[1])
+        for i in range(2, n):
+            ex = binary(ex, ops[i])
+        return ex
+
+    def _parse_number(self, element):
+        """
+        Parses a ``<cn>`` element and returns a number object created by the
+        number factory.
+        """
+        kind = element.attrib.get('type', 'real')
+
+        # Get value
+        if kind == 'real':
+            # Float, specified as 123.123 (no exponent!)
+            # May be in a different base than 10
+            base = element.attrib.get('base', '10').strip()
             try:
                 base = float(base)
             except (TypeError, ValueError):
-                raise MathMLError('Invalid BASE specified.')
+                raise MathMLError(
+                    'Invalid base specified on <ci> element.', element)
             if base != 10:
-                raise MathMLError('BASE conversion for reals is not supported')
-        return myokit.Number(str(node.firstChild.data).strip())
+                raise MathMLError(
+                    'Numbers in bases other than 10 are not supported.',
+                    element)
 
-    elif kind == 'integer':
-        # Integer in any given base
-        base = node.getAttribute('base')
-        numb = str(node.firstChild.data).strip()
-        if base:
-            v = int(numb, int(base))
-            if logger:
-                logger.log('Converted from base ' + str(base) + ' to 10.')
-            numb = v
-        return myokit.Number(numb)
+            # Get value
+            if element.text is None:
+                raise MathMLError('Empty <cn> element', element)
+            try:
+                value = float(element.text.strip())
+            except ValueError:
+                raise MathMLError(
+                    'Unable to convert contents of <cn> to a real number: "'
+                    + str(element.text) + '"', element)
 
-    elif kind == 'double':
-        # Floating point (positive, negative, exponents, etc)
-        numb = str(node.firstChild.data).strip()
-        return myokit.Number(numb)
+        elif kind == 'integer':
+            # Integer in any given base
+            base = element.attrib.get('base', '10').strip()
+            try:
+                base = int(base)
+            except ValueError:
+                raise MathMLError(
+                    'Unable to parse base of <cn> element: "' + base + '"',
+                    element)
 
-    elif kind == 'e-notation':
-        # 1<sep />3 = 1e3
-        sig = str(node.firstChild.data.strip())
-        exp = str(node.firstChild.nextSibling.nextSibling.data).strip()
-        numb = sig + 'e' + exp
-        if logger:
-            logger.log('Converted ' + sig + 'e' + str(exp) + '.')
-        return myokit.Number(numb)
+            # Get value
+            if element.text is None:
+                raise MathMLError('Empty <cn> element', element)
+            try:
+                value = int(element.text.strip(), base)
+            except ValueError:
+                raise MathMLError(
+                    'Unable to convert contents of <cn> to an integer: "'
+                    + str(element.text) + '"', element)
 
-    elif kind == 'rational':
-        # 1<sep />3 = 1 / 3
-        num = str(node.firstChild.data.strip())
-        den = str(node.firstChild.nextSibling.nextSibling.data).strip()
-        numb = str(float(num) / float(den))
-        if logger:
-            logger.log('Converted ' + num + ' / ' + den + ' to ' + numb)
-        return myokit.Number(numb)
+        elif kind == 'double':
+            # Floating point (positive, negative, exponents, etc)
 
-    else:
-        raise MathMLError('Unsupported <cn> type: ' + kind)
+            if element.text is None:
+                raise MathMLError('Empty <cn> element', element)
+            try:
+                value = float(element.text.strip())
+            except ValueError:
+                raise MathMLError(
+                    'Unable to convert contents of <cn> to a real number: "'
+                    + str(element.text) + '"', element)
+
+        elif kind == 'e-notation':
+            # 1<sep />3 = 1e3
+
+            # Check contents
+            parts = [x for x in element]
+            if len(parts) != 1 or split(parts[0].tag)[1] != 'sep':
+                raise MathMLError(
+                    'Number in e-notation should have the format'
+                    ' number<sep />number.', element)
+
+            # Get parts of number
+            sig = element.text
+            exp = parts[0].tail
+            if sig is None or not sig.strip():
+                raise MathMLError(
+                    'Unable to parse number in e-notation: missing part before'
+                    ' the separator.', element)
+            if exp is None or not exp.strip():
+                raise MathMLError(
+                    'Unable to parse number in e-notation: missing part after'
+                    ' the separator.', element)
+
+            # Get value
+            try:
+                value = float(sig.strip() + 'e' + exp.strip())
+            except ValueError:
+                raise MathMLError(
+                    'Unable to parse number in e-notation "' + sig + 'e' + exp
+                    + '".', element)
+
+        elif kind == 'rational':
+            # 1<sep />3 = 1 / 3
+            # Check contents
+            parts = [x for x in element]
+            if len(parts) != 1 or split(parts[0].tag)[1] != 'sep':
+                raise MathMLError(
+                    'Rational number should have the format'
+                    ' number<sep />number.', element)
+
+            # Get parts of number
+            numer = element.text
+            denom = parts[0].tail
+            if numer is None or not numer.strip():
+                raise MathMLError(
+                    'Unable to parse rational number: missing part before the'
+                    ' separator.', element)
+            if denom is None or not denom.strip():
+                raise MathMLError(
+                    'Unable to parse rational number: missing part after the'
+                    ' separator.', element)
+
+            # Get value
+            try:
+                value = float(numer.strip()) / float(denom.strip())
+            except ValueError:
+                raise MathMLError(
+                    'Unable to parse rational number "' + numer + ' / ' + denom
+                    + '".', element)
+
+        else:
+            raise MathMLError('Unsupported <cn> type: ' + kind, element)
+
+        # Create number and return
+        return self._nfac(value, element)
+
+    def _parse_piecewise(self, element):
+        """
+        Parses a ``<piecewise>`` element.
+        """
+
+        # Piecewise contains at least one piece, optionally contains an
+        # "otherwise". Syntax doesn't ensure this statement makes sense.
+        ops = []
+        other = None
+
+        # Scan pieces
+        for child in element:
+            _, el = split(child.tag)
+
+            if el == 'piece':
+                if len(child) != 2:
+                    raise MathMLError(
+                        '<piece> element must have exactly 2 children.', child)
+                ops.append(self._parse_atomic(child[1]))    # Condition
+                ops.append(self._parse_atomic(child[0]))    # Value
+
+            elif el == 'otherwise':
+                if other is not None:
+                    raise MathMLError(
+                        'Found more than one <otherwise> inside a <piecewise>'
+                        ' element.', child)
+                if len(child) != 1:
+                    raise MathMLError(
+                        '<otherwise> element must have exactly 1 child.',
+                        child)
+                other = self._parse_atomic(child[0])
+
+            else:
+                raise MathMLError(
+                    'Unexpected content in <piecewise>. Expecting <piece> or'
+                    ' <otherwise>, found <' + el + '>.', child)
+
+        # Add otherwise
+        if other is None:
+            ops.append(self._const(0))
+        else:
+            ops.append(other)
+
+        return myokit.Piecewise(*ops)
+
+    def _parse_root(self, element, iterator):
+        """
+        Parses the elements following a ``<root>`` element.
+
+        Arguments:
+
+        ``element``
+            The ``<root>`` element.
+        ``iterator``
+            An iterator pointing at the first element after ``element``.
+
+        """
+        # Get next operands
+        ops = [x for x in iterator]
+
+        # Check for zero ops
+        if len(ops) == 0:
+            raise MathMLError(
+                'Expecting operand after <root> element.', element)
+
+        # Check if first op is degree
+        if split(ops[0].tag)[1] == 'degree':
+
+            # Get degree
+            degree = ops[0]
+            if len(degree) != 1:
+                raise MathMLError(
+                    'Expecting a single operand inside <degree> element.',
+                    degree)
+            degree = self._parse_atomic(degree[0])
+
+            # Get main operand
+            if len(ops) != 2:
+                raise MathMLError(
+                    'Expecting a single operand after the <degree> element'
+                    ' inside a <root>.', element)
+            op = self._parse_atomic(ops[1])
+
+            # Return expression
+            if degree.eval() == 2:
+                return myokit.Sqrt(op)
+            return myokit.Power(op, myokit.Divide(self._const(1), degree))
+
+        # No degree given
+        if len(ops) != 1:
+            raise MathMLError(
+                'Expecting a single operand (or a <degree> followed by a'
+                ' single operand) inside a <root> element.', element)
+        op = self._parse_atomic(ops[0])
+
+        return myokit.Sqrt(op)
+
+    def _parse_name(self, element):
+        """
+        Parses a ``<ci>`` element and returns a :class:`myokit.Name` created by
+        the name factory.
+        """
+        if element.text is None:
+            raise MathMLError(
+                '<ci> element must contain a variable name.', element)
+
+        symbol = element.text.strip()
+        try:
+            return self._vfac(symbol, element)
+        except Exception as e:
+            raise MathMLError('Unable to create Name: ' + str(e), element)
+
+    def _parse_symbol(self, element):
+        """
+        Parses only ``<csymbol>`` elements that represent special variables
+        and returns a :class:`myokit.Name` created by the name factory.
+        """
+        symbol = element.get('definitionURL')
+        if symbol is None:
+            raise MathMLError(
+                '<csymbol> element must contain a definitionURL attribute.',
+                element)
+
+        symbol = symbol.strip()
+        try:
+            return self._vfac(symbol, element)
+        except Exception as e:
+            raise MathMLError(
+                'Unable to create Name from csymbol: ' + str(e), element)
 

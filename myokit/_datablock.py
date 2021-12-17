@@ -1,10 +1,8 @@
 #
 # Containers for time-series of 1d and 2d rectangular data arrays.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -254,6 +252,16 @@ class DataBlock1d(object):
 
     @staticmethod
     def from_DataLog(log):
+        """Deprecated alias of :meth:`from_log()`."""
+        # Deprecated since 2020-09-14
+        import warnings
+        warnings.warn(
+            'The method `DataBlock1d.from_DataLog` is deprecated. Please use'
+            ' `DataBlock1d.from_log` instead.')
+        return DataBlock1d.from_log(log)
+
+    @staticmethod
+    def from_log(log):
         """
         Creates a DataBlock1d from a :class:`myokit.DataLog`.
         """
@@ -628,6 +636,14 @@ class DataBlock1d(object):
             if progress:
                 progress.exit()
 
+    def remove0d(self, name):
+        """Removes the 0d time-series identified by ``name``."""
+        del(self._0d[name])
+
+    def remove1d(self, name):
+        """Removes the 1d time-series identified by ``name``."""
+        del(self._1d[name])
+
     def save(self, filename):
         """
         Writes this ``DataBlock1d`` to a binary file.
@@ -761,6 +777,23 @@ class DataBlock1d(object):
         """
         return self._time
 
+    def to_log(self, copy=True):
+        """
+        Returns a :class:`myokit.DataLog` containing the same information as
+        this block.
+
+        The data will be copied, unless ``copy`` is set to ``False``.
+        """
+        d = myokit.DataLog()
+        d.set_time_key('time')
+        d['time'] = np.array(self._time, copy=copy)
+        for k, v in self._0d.items():
+            d[k] = np.array(v, copy=copy)
+        for k, v in self._1d.items():
+            for i in range(self._nx):
+                d[str(i) + '.' + k] = np.array(v[:, i], copy=copy)
+        return d
+
     def trace(self, variable, x):
         """
         Returns a 0d time series of the value ``variable``, corresponding to
@@ -825,10 +858,29 @@ class DataBlock2d(object):
         # 2d variables
         self._2d = {}
 
-    def colors(self, name, colormap='traditional', lower=None, upper=None):
+    def colors(self, name, colormap='traditional', lower=None, upper=None,
+               multiplier=1):
         """
         Converts the 2d series indicated by ``name`` into a list of ``W*H*RGB``
         arrays, with each entry represented as an 8 bit unsigned integer.
+
+        Arguments:
+
+        ``name``
+            The 2d variable to create arrays for.
+        ``colormap``
+            The colormap to use when converting to RGB.
+        ``lower``
+            An optional lower bound on the data (anything below this will
+            become the lowest index in the colormap).
+        ``upper``
+            An optional upper bound on the data (anything above this will
+            become the highest index in the colormap).
+        ``multiplier``
+            An optional integer greater than zero. If given, every point in the
+            data set will be represented as a square of ``multiplier`` by
+            ``multiplier`` pixels.
+
         """
         data = self._2d[name]
         # Get color map
@@ -836,6 +888,8 @@ class DataBlock2d(object):
         # Get lower and upper bounds for colormap scaling
         lower = np.min(data) if lower is None else float(lower)
         upper = np.max(data) if upper is None else float(upper)
+        # Get multiplier
+        multiplier = int(multiplier) if multiplier > 1 else 1
         # Create images
         frames = []
         for frame in data:
@@ -846,6 +900,10 @@ class DataBlock2d(object):
                 frame, lower=lower, upper=upper, alpha=False, rgb=True)
             # Reshape to nx * ny * 3 color array
             frame = frame.reshape((self._ny, self._nx, 3))
+            # Grow
+            if multiplier > 1:
+                frame = frame.repeat(multiplier, axis=0)
+                frame = frame.repeat(multiplier, axis=1)
             # Append to list
             frames.append(frame)
         return frames
@@ -982,8 +1040,8 @@ class DataBlock2d(object):
     def dominant_eigenvalues(self, name):
         """
         Takes the 2d data specified by ``name`` and computes the dominant
-        eigenvalue for each point in time. This only works for datablocks with
-        a square 2d grid.
+        eigenvalue for each point in time (this only works for datablocks with
+        a square 2d grid).
 
         The "dominant eigenvalue" is defined as the eigenvalue with the largest
         magnitude (``sqrt(a + bi)``).
@@ -1003,8 +1061,8 @@ class DataBlock2d(object):
     def eigenvalues(self, name):
         """
         Takes the 2d data specified as ``name`` and computes the eigenvalues of
-        its data matrix at every point in time. This only works for datablocks
-        with a square 2d grid.
+        its data matrix at every point in time (this only works for datablocks
+        with a square 2d grid).
 
         The returned data is a 2d numpy array where the first axis is time and
         the second axis is the index of each eigenvalue.
@@ -1020,6 +1078,16 @@ class DataBlock2d(object):
 
     @staticmethod
     def from_DataLog(log):
+        """Deprecated alias of :meth:`from_log()`."""
+        # Deprecated since 2020-09-14
+        import warnings
+        warnings.warn(
+            'The method `DataBlock2d.from_DataLog` is deprecated. Please use'
+            ' `DataBlock2d.from_log` instead.')
+        return DataBlock2d.from_log(log)
+
+    @staticmethod
+    def from_log(log):
         """
         Creates a DataBlock2d from a :class:`myokit.DataLog`.
         """
@@ -1151,8 +1219,8 @@ class DataBlock2d(object):
     def largest_eigenvalues(self, name):
         """
         Takes the 2d data specified by ``name`` and computes the largest
-        eigenvalue for each point in time. This only works for datablocks with
-        a square 2d grid.
+        eigenvalue for each point in time (this only works for datablocks with
+        a square 2d grid).
 
         The "largest eigenvalue" is defined as the eigenvalue with the most
         positive real part. Note that the returned values may be complex.
@@ -1381,6 +1449,14 @@ class DataBlock2d(object):
             if progress:
                 progress.exit()
 
+    def remove0d(self, name):
+        """Removes the 0d time-series identified by ``name``."""
+        del(self._0d[name])
+
+    def remove2d(self, name):
+        """Removes the 2d time-series identified by ``name``."""
+        del(self._2d[name])
+
     def save(self, filename):
         """
         Writes this ``DataBlock2d`` to a binary file.
@@ -1481,7 +1557,7 @@ class DataBlock2d(object):
         text = [delimx.join('"' + str(x) + '"' for x in [xname, yname, zname])]
         for y, row in enumerate(data):
             for x, z in enumerate(row):
-                text.append(delimx.join([str(x), str(y), myokit.strfloat(z)]))
+                text.append(delimx.join([str(x), str(y), myokit.float.str(z)]))
         text = delimy.join(text)
         with open(filename, 'w') as f:
             f.write(text)
@@ -1504,7 +1580,7 @@ class DataBlock2d(object):
         data = data[frame]
         text = []
         for row in data:
-            text.append(delimx.join([myokit.strfloat(x) for x in row]))
+            text.append(delimx.join([myokit.float.str(x) for x in row]))
         text = delimy.join(text)
         with open(filename, 'w') as f:
             f.write(text)
@@ -1562,6 +1638,29 @@ class DataBlock2d(object):
         directly, no copy is made.
         """
         return self._time
+
+    def to_log(self, copy=True):
+        """
+        Returns a :class:`myokit.DataLog` containing the same information as
+        this block.
+
+        The data will be copied, unless ``copy`` is set to ``False``.
+        """
+        d = myokit.DataLog()
+
+        # Add 0d vectors
+        d.set_time_key('time')
+        d['time'] = np.array(self._time, copy=copy)
+        for k, v in self._0d.items():
+            d[k] = np.array(v, copy=copy)
+
+        # Add 2d fields
+        for k, v in self._2d.items():
+            for x in range(self._nx):
+                s = str(x) + '.'
+                for y in range(self._ny):
+                    d[s + str(y) + '.' + k] = np.array(v[:, y, x], copy=copy)
+        return d
 
     def trace(self, variable, x, y):
         """
@@ -1636,7 +1735,7 @@ class ColorMap(object):
         [0,255]. Adapted from Matplotlib.
         """
         r, g, b = np.empty_like(h), np.empty_like(h), np.empty_like(h)
-        i = (h * 6).astype(np.int) % 6
+        i = (h * 6).astype(int) % 6
         f = (h * 6) - i
         p = v * (1 - s)
         q = v * (1 - s * f)

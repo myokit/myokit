@@ -66,10 +66,8 @@
 #
 #---------------------------------  license  ----------------------------------
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 #---------------------------------  credits  ----------------------------------
 #
@@ -438,23 +436,28 @@ class AbfFile(object):
         import matplotlib.pyplot as plt
         f = plt.figure()
         plt.suptitle(self.filename())
-        plt.subplot(2, 1, 1)
-        plt.title('Measured data')
+
+        # Show data channel
+        ax = plt.subplot(2, 1, 1)
+        ax.set_title('Measured data')
         times = None
         for sweep in self:
             for channel in sweep:
                 if times is None:
                     times = channel.times()
                 plt.plot(times, channel.values())
+
+        # Show protocol channels
+        n = self.protocol_channels()
+        ax = [plt.subplot(2, n, n + 1 + i) for i in range(n)]
+
         for sweep in self.protocol():
-            n = len(sweep)
             times = None
             for i, channel in enumerate(sweep):
                 if times is None:
                     times = channel.times()
-                plt.subplot(2, n, n + 1 + i)
-                plt.title(channel.name())
-                plt.plot(times, channel.values())
+                ax[i].set_title(channel.name())
+                ax[i].plot(times, channel.values())
         return f
 
     def myokit_log(self):

@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the parser
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -36,7 +34,7 @@ class PypeTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'dict', e.process, 'file.txt', [])
 
-        with myokit.PyCapture():
+        with myokit.tools.capture():
 
             # Test not-a-file
             self.assertRaises(IOError, e.process, 'file.txt', {})
@@ -59,6 +57,7 @@ class PypeTest(unittest.TestCase):
 
             # Too much inside <?=?>
             self.e("""<?=if 1 > 2: print('hi')?>""", {}, 'contain a single')
+            self.e("""<?=print(1); print('hi')?>""", {}, 'contain a single')
 
             # Triple quote should be allowed
             self.e('''Hello"""string"""yes''', {})

@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the C implementation of the Pacing System
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -136,7 +134,7 @@ class FixedFormPacingAnsicTest(unittest.TestCase):
             del(t3, t4)
             # Get the pacing value at the points, measure how long it takes
             pacing = AnsicFixedFormPacing(list(t), list(v))
-            b = myokit.Benchmarker()
+            b = myokit.tools.Benchmarker()
             v2 = [pacing.pace(x) for x in t2]
             print(b.time())
             # Plot the new points

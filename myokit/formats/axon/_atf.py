@@ -1,10 +1,8 @@
 #
 # This module reads files in Axon Text File format.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -319,6 +317,6 @@ def save_atf(log, filename, fields=None):
         # Write data
         for i in range(nd):
             f.write((
-                delim.join([myokit.strfloat(next(d)) for d in data]) + eol
+                delim.join([myokit.float.str(next(d)) for d in data]) + eol
             ).encode(_ENC))
 

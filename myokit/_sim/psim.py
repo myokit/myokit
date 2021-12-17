@@ -2,10 +2,8 @@
 # Runs a simulation with differential objects, to obtain the state and the
 # partial derivatives of the state with respect to a list of parameters.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -14,6 +12,7 @@ import os
 import myokit
 import numpy as np
 import platform
+import warnings
 
 
 # Location of C template
@@ -82,6 +81,12 @@ class PSimulation(myokit.CppModule):
     def __init__(
             self, model, protocol=None, variables=None, parameters=None):
         super(PSimulation, self).__init__()
+
+        # Deprecated on 2021-02-25
+        warnings.warn(
+            'The class `PSimulation` is deprecated.'
+            ' Sensitivities w.r.t. parameters can now be calculated with the'
+            ' single cell `Simulation` class.')
 
         # Check presence of variables and parameters arguments (are required
         # arguments but protocol is not...)
@@ -159,6 +164,7 @@ class PSimulation(myokit.CppModule):
         # Unique simulation id
         PSimulation._index += 1
         module_name = 'myokit_PSimulation_' + str(PSimulation._index)
+        module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {

@@ -1,10 +1,8 @@
 #
 # Exports to matlab/octave
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -30,12 +28,9 @@ class MatlabExporter(myokit.formats.TemplatedRunnableExporter):
     ``pace``
         The current value of the pacing system, implemented using a very simple
         pacing mechanism.
-
-    To run simulations, run the file ``main.m``.
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
+    def post_export_info(self):
+        return 'To run simulations, run the file main.m.'
 
     def _dir(self, root):
         return os.path.join(root, 'matlab', 'template')

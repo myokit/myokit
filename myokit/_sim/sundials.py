@@ -1,10 +1,8 @@
 #
 # Sundials information class
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -46,6 +44,7 @@ class Sundials(myokit.CModule):
 
         # Create Sundials back-end
         mname = 'myokit_sundials_info_' + str(Sundials._index)
+        mname += '_' + str(myokit.pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
         try:
@@ -98,19 +97,6 @@ class Sundials(myokit.CModule):
             # myokit, but then run a different version for the docs? As a
             # result, it can't find sundials.c and the build fails.
             return None
-
-    @staticmethod
-    def version_int():
-        """
-        Returns a sundials version number as an integer, or None if no version
-        number could be detected.
-        """
-        # Get version from sundials header
-        version = Sundials.version()
-        if version is not None:
-            version = [int(x) for x in version.split('.')]
-            version = version[0] * 10000 + version[1] * 100 + version[2]
-        return version
 
 
 class NoSundialsError(myokit.MyokitError):

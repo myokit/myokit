@@ -1,10 +1,8 @@
 #
 # Factory methods for pacing protocols
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -18,7 +16,7 @@ programmatically.
 
 def blocktrain(period, duration, offset=0, level=1.0, limit=0):
     """
-    Creates an train of block pulses.
+    Creates a train of block pulses.
 
     Each pulse lasts ``duration`` time units and a pulse is initiated every
     ``period`` time units.

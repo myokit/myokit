@@ -1,0 +1,35 @@
+name: Windows Miniconda test
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - '**'
+
+jobs:
+
+  build-and-test:
+    name: win-miniconda
+    runs-on: windows-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Activate conda
+        run: |
+          C:\Miniconda\condabin\activate
+
+      - name: Install Myokit
+        run: |
+          C:\Miniconda\python.exe --version
+          C:\Miniconda\python.exe -m pip install --upgrade pip setuptools wheel
+          C:\Miniconda\python.exe -m pip install .[optional]
+
+      - name: Run unit tests
+        run: |
+          C:\Miniconda\python.exe -m myokit system
+          C:\Miniconda\python.exe -m myokit test unit
+

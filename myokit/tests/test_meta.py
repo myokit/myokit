@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
-# Tests meta data functions
+# Tests meta data functions in myokit.Model
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -16,11 +14,13 @@ import myokit
 
 
 class MetaTest(unittest.TestCase):
+    """
+    Tests meta data functions in myokit.Model.
+    """
 
     def test_basic(self):
-        """
-        Test the basic meta-data functionality
-        """
+        # Test the basic meta-data functionality
+
         # Test assignment with simple and namespaced names
         m = myokit.Model()
         m.meta['bert'] = 'ernie'
@@ -51,9 +51,8 @@ class MetaTest(unittest.TestCase):
         self.assertRaises(KeyError, lambda: m.meta['bert'])
 
     def test_parser(self):
-        """
-        Test basic meta-data parsing
-        """
+        # Test basic meta-data parsing
+
         # Parse simple model without meta data
         lines = [
             '[[model]]',

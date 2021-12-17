@@ -1,10 +1,8 @@
 #
 # Imports selected types of protocols from files in Axon Binary Format
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -12,19 +10,11 @@ from __future__ import print_function, unicode_literals
 import myokit.formats
 
 
-info = """
-This importer can read simple square pulse protocols from files in the
-Axon Binary Format used by Axon Instruments and Molecular Devices.
-"""
-
-
 class AbfImporter(myokit.formats.Importer):
     """
     This :class:`Importer <myokit.formats.Importer>` can import protocols from
     files in Axon Binary Format.
     """
-    def info(self):
-        return info
 
     def supports_protocol(self):
         return True
