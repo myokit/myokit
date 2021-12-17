@@ -4,6 +4,7 @@
 [![Windows Miniconda test](https://github.com/MichaelClerx/myokit/workflows/Windows%20Miniconda%20test/badge.svg)](https://github.com/MichaelClerx/myokit/actions?query=workflow%3A"Windows+Miniconda+test")
 [![codecov](https://codecov.io/gh/MichaelClerx/myokit/branch/main/graph/badge.svg)](https://codecov.io/gh/MichaelClerx/myokit)
 [![Documentation Status](https://readthedocs.org/projects/myokit/badge/?version=latest)](https://myokit.readthedocs.io/?badge=latest)
+[![PIP Installs](https://img.shields.io/pypi/dm/myokit?label=Pip%20Installs&logo=python&logoColor=white)](https://pypi.org/project/myokit/)
 
 ![Myokit](http://myokit.org/static/img/logo.png)
 
