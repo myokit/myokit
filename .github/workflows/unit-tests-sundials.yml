@@ -1,4 +1,4 @@
-name: Ubuntu unit tests
+name: Sundials unit tests
 on:
   push:
     branches:
@@ -11,26 +11,33 @@ on:
 jobs:
 
   build-and-test:
-    name: unit-ubuntu
+    name: unit-sundials
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     strategy:
       matrix:
-        # All Python versions except latest, which is tested by coverage.
-        python-version: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9]
+        # Latest of each major sundials branche (may overlap with ubuntu tests).
+        sundials-version: ['v2.7.0', 'v3.2.1', 'v4.1.0', 'v5.8.0']
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Configure Python ${{ matrix.python-version }}
+      - name: Configure Python
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          #python-version: ${{ matrix.python-version }}
           architecture: x64
 
-      - name: Install dependencies
+      - name: Check out Sundials ${{ matrix.sundials-version }}
+        uses: actions/checkout@v2
+        with:
+          repository: LLNL/sundials
+          path: sundials
+          ref: ${{ matrix.sundials-version }}
+
+      - name: Install Sundials ${{ matrix.sundials-version }}
         run: |
-          sudo ./.github/workflows/install-ubuntu-dependencies.sh
+          .github/workflows/install-sundials-manually.sh
 
       - name: Install Myokit
         run: |
