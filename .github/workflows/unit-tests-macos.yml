@@ -1,4 +1,4 @@
-name: OSX unit tests
+name: MacOS unit tests
 on:
   push:
     branches:
@@ -11,7 +11,7 @@ on:
 jobs:
 
   build-and-test:
-    name: unit-osx
+    name: unit-macos
     runs-on: macos-latest
     if: github.event.pull_request.draft == false
     strategy:
@@ -30,7 +30,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          ./.github/workflows/install-osx-dependencies.sh
+          ./.github/workflows/install-macos-dependencies.sh
 
       - name: Install Myokit
         run: |

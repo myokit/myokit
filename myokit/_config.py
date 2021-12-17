@@ -86,9 +86,9 @@ def _create(path):
             'C:\\Program Files (x86)\\sundials\\lib',
         ]))
     else:
-        # Linux and OS/X
-        # Standard linux and OS/X install: /usr/local/lib
-        # Macports OS/X install: /opt/local/lib ??
+        # Linux and MacOS
+        # Standard linux and MacOS install: /usr/local/lib
+        # Macports MacOS install: /opt/local/lib ??
         config.set('sundials', 'lib', ';'.join([
             '/usr/local/lib',
             '/opt/local/lib',
@@ -104,9 +104,9 @@ def _create(path):
             'C:\\Program Files (x86)\\sundials\\include',
         ]))
     else:
-        # Linux and OS/X
-        # Standard linux and OS/X install: /usr/local/include
-        # Macports OS/X install: /opt/local/include
+        # Linux and MacOS
+        # Standard linux and MacOS install: /usr/local/include
+        # Macports MacOS install: /opt/local/include
         config.set('sundials', 'inc', ';'.join([
             '/usr/local/include',
             '/opt/local/include',

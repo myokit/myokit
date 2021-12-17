@@ -443,7 +443,7 @@ def install():
 
     elif plat == 'Darwin':
         print(
-            'Icons for OS/X are not available (yet). See '
+            'Icons for MacOS are not available (yet). See '
             'https://github.com/MichaelClerx/myokit/issues/38')
 
     else:
