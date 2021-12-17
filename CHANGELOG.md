@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
   - [#811](https://github.com/MichaelClerx/myokit/pull/811) DatalogViewer now accepts `.zip` for binary data logs.
   - [#817](https://github.com/MichaelClerx/myokit/pull/816) Add support for Python 3.10.
   - [#821](https://github.com/MichaelClerx/myokit/pull/821) Sundials-based simulations now auto-detect the version number. The version indicated in myokit.ini is no longer used.
+  - [#823](https://github.com/MichaelClerx/myokit/pull/823) Sundials 6.0.0 is now supported.
 - Changed
   - Examples will be located in a separate repository, at https://github.com/MichaelClerx/myokit-examples
   - [#815](https://github.com/MichaelClerx/myokit/pull/815) Myokit will now warn when run on Python 2.7, as testing for 2.7 is being phased out.

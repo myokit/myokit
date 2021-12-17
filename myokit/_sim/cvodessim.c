@@ -200,6 +200,9 @@ void *cvode_mem;     /* The memory used by the solver */
 SUNMatrix sundense_matrix;          /* Dense matrix for linear solves */
 SUNLinearSolver sundense_solver;    /* Linear solver object */
 #endif
+#if SUNDIALS_VERSION_MAJOR >= 6
+SUNContext sundials_context; /* A sundials context to run in (for profiling etc.) */
+#endif
 
 UserData udata;      /* UserData struct, used to pass in parameters */
 realtype* pbar;      /* Vector of independents in user data */
@@ -393,11 +396,14 @@ sim_clean()
         /* Root finding results */
         free(rf_direction); rf_direction = NULL;
 
-        /* CVode objects */
+        /* Sundials objects */
         CVodeFree(&cvode_mem); cvode_mem = NULL;
         #if SUNDIALS_VERSION_MAJOR >= 3
         SUNLinSolFree(sundense_solver); sundense_solver = NULL;
         SUNMatDestroy(sundense_matrix); sundense_matrix = NULL;
+        #endif
+        #if SUNDIALS_VERSION_MAJOR >= 6
+        SUNContext_Free(&sundials_context); sundials_context = NULL;
         #endif
 
         /* User data and parameter scale array*/
@@ -511,6 +517,9 @@ sim_init(PyObject *self, PyObject *args)
     sundense_matrix = NULL;
     sundense_solver = NULL;
     #endif
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    sundials_context = NULL;
+    #endif
 
     /* Check input arguments     0123456789012345678 */
     if (!PyArg_ParseTuple(args, "ddOOOOOOOOdOOidOO",
@@ -603,17 +612,35 @@ sim_init(PyObject *self, PyObject *args)
     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
 
     /*
+     * Create sundials context
+     */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    flag_cvode = SUNContext_Create(NULL, &sundials_context);
+    if (check_cvode_flag(&flag_cvode, "SUNContext_Create", 1)) {
+        return sim_cleanx(PyExc_Exception, "Failed to create Sundials context.");
+    }
+    #endif
+
+    /*
      * Create state vectors
      */
 
     /* Create state vector */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    y = N_VNew_Serial(model->n_states, sundials_context);
+    #else
     y = N_VNew_Serial(model->n_states);
+    #endif
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
         return sim_cleanx(PyExc_Exception, "Failed to create state vector.");
     }
 
     /* Create state vector copy for error handling */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    ylast = N_VNew_Serial(model->n_states, sundials_context);
+    #else
     ylast = N_VNew_Serial(model->n_states);
+    #endif
     if (check_cvode_flag((void*)ylast, "N_VNew_Serial", 0)) {
         return sim_cleanx(PyExc_Exception, "Failed to create last-state vector.");
     }
@@ -641,7 +668,11 @@ sim_init(PyObject *self, PyObject *args)
         z = y;
         sz = sy;
     } else {
+        #if SUNDIALS_VERSION_MAJOR >= 6
+        z = N_VNew_Serial(model->n_states, sundials_context);
+        #else
         z = N_VNew_Serial(model->n_states);
+        #endif
         if (check_cvode_flag((void*)z, "N_VNew_Serial", 0)) {
             return sim_cleanx(PyExc_Exception, "Failed to create state vector for logging.");
         }
@@ -799,8 +830,10 @@ sim_init(PyObject *self, PyObject *args)
     if (model->is_ode) {
 
         /* Create, using backwards differentiation and newton iterations */
-        #if SUNDIALS_VERSION_MAJOR >= 4
-        cvode_mem = CVodeCreate(CV_BDF); /* Newton is still default */
+        #if SUNDIALS_VERSION_MAJOR >= 6
+        cvode_mem = CVodeCreate(CV_BDF, sundials_context);
+        #elif SUNDIALS_VERSION_MAJOR >= 4
+        cvode_mem = CVodeCreate(CV_BDF);  /* Newton is still default */
         #else
         cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
         #endif
@@ -826,7 +859,19 @@ sim_init(PyObject *self, PyObject *args)
         flag_cvode = CVodeSetMinStep(cvode_mem, dt_min < 0 ? 0.0 : dt_min);
         if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-        #if SUNDIALS_VERSION_MAJOR >= 4
+        #if SUNDIALS_VERSION_MAJOR >= 6
+            /* Create dense matrix for use in linear solves */
+            sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states, sundials_context);
+            if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+
+            /* Create dense linear solver object with matrix */
+            sundense_solver = SUNLinSol_Dense(y, sundense_matrix, sundials_context);
+            if (check_cvode_flag((void *)sundense_solver, "SUNLinSol_Dense", 0)) return sim_clean();
+
+            /* Attach the matrix and solver to cvode */
+            flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+            if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
+        #elif SUNDIALS_VERSION_MAJOR >= 4
             /* Create dense matrix for use in linear solves */
             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
             if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();

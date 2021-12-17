@@ -226,6 +226,9 @@ int main()
       SUNMatrix sundials_dense_matrix;
       SUNLinearSolver sundials_linear_solver;
     #endif
+    #if SUNDIALS_VERSION_MAJOR >= 6
+      SUNContext sundials_context; /* A sundials context to run in (for profiling etc.) */
+    #endif
 
     /* Create state vector */
     y = N_VNew_Serial(N_STATE);
