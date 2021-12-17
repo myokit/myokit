@@ -122,11 +122,11 @@ def create_unit_name(unit):
 
         # Use e-notation if multiple of 10
         multiplier10 = unit.multiplier_log_10()
-        if myokit._feq(multiplier10, int(multiplier10)):
+        if myokit.float.eq(multiplier10, int(multiplier10)):
             multiplier = '1e' + str(int(multiplier10))
 
         # Format as integer
-        elif myokit._feq(multiplier, int(multiplier)):
+        elif myokit.float.eq(multiplier, int(multiplier)):
             multiplier = str(int(multiplier))
 
         # Format as float
@@ -596,9 +596,6 @@ class Model(AnnotatableElement):
         # Otherwise could have cycles, invalid references, etc.
         model.validate()
 
-        # Valid model always has a time variable
-        time = model.time()
-
         # Get name for CellML model
         name = model.name()
         if name is None:
@@ -612,6 +609,33 @@ class Model(AnnotatableElement):
         # Create CellML model
         m = Model(name, version)
 
+        # Valid model always has a time variable
+        time = model.time()
+
+        # Method to obtain or infer variable unit
+        def variable_unit(variable, time_unit):
+            """Returns variable.unit(), or attempts to infer it if not set."""
+            unit = variable.unit()
+            if unit is not None:
+                return unit
+
+            rhs = variable.rhs()
+            if rhs is not None:
+                try:
+                    # Tolerant evaluation, see above. Result may be None.
+                    unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
+                except myokit.IncompatibleUnitError:
+                    return None
+                if variable.is_state():
+                    if unit is not None and time_unit is not None:
+                        # RHS is divided by time unit, so multiply
+                        unit *= time_unit
+            return unit
+
+        # Time unit, used to infer units of state variables
+        # (May itself be inferred)
+        time_unit = variable_unit(time, None)
+
         # Gather unit objects used in Myokit model, and gather numbers without
         # units that will need to be replaced.
         used = set()
@@ -619,20 +643,10 @@ class Model(AnnotatableElement):
         for variable in model.variables(deep=True):
 
             # Add variable unit, or unit evaluated from variable's RHS
-            u = variable.unit()
-            rhs = variable.rhs()
-            if u is None and rhs is not None:
-                # Evaluate unit in tolerant mode. This stops Myokit from
-                # raising any errors, but does mean that unit might still be
-                # None.
-                try:
-                    u = rhs.eval_unit(mode=myokit.UNIT_TOLERANT)
-                except myokit.IncompatibleUnitError:
-                    pass
-            if u is not None:
-                used.add(u)
+            used.add(variable_unit(variable, time_unit))
 
             # Check number units
+            rhs = variable.rhs()
             if rhs is not None:
                 for e in rhs.walk(myokit.Number):
                     u = e.unit()
@@ -709,14 +723,7 @@ class Model(AnnotatableElement):
                         interface = 'public'
 
                 # Get variable unit, or infer from RHS if None
-                unit = variable.unit()
-                rhs = variable.rhs()
-                if unit is None and rhs is not None:
-                    # Note unit returned below may still be None
-                    try:
-                        unit = rhs.eval_unit(myokit.UNIT_TOLERANT)
-                    except myokit.IncompatibleUnitError:
-                        pass
+                unit = variable_unit(variable, time_unit)
 
                 # Add variable
                 local_var_map[variable] = v = c.add_variable(
@@ -737,7 +744,8 @@ class Model(AnnotatableElement):
                 # Add nested variables
                 for nested in variable.variables(deep=True):
                     local_var_map[nested] = v = c.add_variable(
-                        nested.uname(), unit_map[nested.unit()])
+                        nested.uname(),
+                        unit_map[variable_unit(nested, time_unit)])
 
                     # Copy meta-data
                     for key, value in nested.meta.items():
@@ -759,7 +767,7 @@ class Model(AnnotatableElement):
             for variable in variables:
                 local_var_map[variable] = v = c.add_variable(
                     variable.uname(),
-                    unit_map[variable.unit()],
+                    unit_map[variable_unit(variable, time_unit)],
                     interface='public',
                 )
 

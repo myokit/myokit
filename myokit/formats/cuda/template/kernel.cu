@@ -60,7 +60,7 @@ model.reserve_unique_names(
     #'time',
     #'pace',
     'I_diff',
-    'dt',    
+    'dt',
     'parameters',
     'state',
     )
@@ -109,7 +109,7 @@ for comp, clist in comp_in.items():
     for bound in bound_variables:
         lhs = bound.lhs()
         if lhs in clist:
-            continue        
+            continue
         for var in comp.variables(deep=True):
             if var.rhs().depends_on(lhs):
                 clist.append(lhs)
@@ -234,7 +234,7 @@ for comp, ilist in comp_in.items():
 ////////////////////////////////////////////////////////////////////////////////
 //! Compute an Euler step of the model.
 ////////////////////////////////////////////////////////////////////////////////
-__device__ int iterate_euler_cu(const Real dt, Real *state, Real I_diff, 
+__device__ int iterate_euler_cu(const Real dt, Real *state, Real I_diff,
                                     Real *parameters)
 {
 <?
@@ -273,7 +273,7 @@ if last_component:
             pre += 'Real '
         if var not in bound_variables:
             print(pre + w.eq(eq) + ';')
-            
+
 ?>
     /* Perform update */
 <?
@@ -291,16 +291,16 @@ for var in model.states():
 
 /* Set the standard initial conditions */
 int get_default_initial_state(Real *state)
-{  
+{
     if (state == 0) return(-1);
-  
+
 <?
 for var in model.states():
     if 'desc' in var.meta:
         print(tab + '// ' + var.meta['desc'])
-    print(tab + v(var) + ' = ' + myokit.strfloat(var.state_value()) + ';')
+    print(tab + v(var) + ' = ' + myokit.float.str(var.state_value()) + ';')
 ?>
-  
+
     return(0);
 }
 

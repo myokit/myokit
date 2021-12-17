@@ -9,6 +9,7 @@ from __future__ import print_function, unicode_literals
 
 from ._api import (  # noqa
     Compartment,
+    CSymbolVariable,
     Model,
     ModifierSpeciesReference,
     Parameter,

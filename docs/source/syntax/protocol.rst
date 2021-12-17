@@ -32,12 +32,12 @@ whitespace):
 5. The number of times a periodic stimulus is given can be specified in the
    final column, stimuli that are non-periodic or recur indefinetely can use
    the value "0" here.
-   
+
 Comments may be added by starting lines with ``#``.
 
 When specifying the time an event starts, the keyword "next" may be used to
-denote the itme the previous event ends. This can only be used at the start of
-a protocol or directly after a non-periodic event.
+denote the time at which the previous event ends. This can only be used at the
+very start of a protocol or directly after a non-periodic event.
 
 Examples
 ========

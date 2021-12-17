@@ -8,16 +8,18 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import numpy as np
 import os
 import pickle
 import platform
 import re
+import sys
 import unittest
+
+import numpy as np
 
 import myokit
 
-from shared import DIR_DATA, CancellingReporter
+from shared import DIR_DATA, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -26,9 +28,10 @@ except AttributeError:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
 
 
-class SimulationTest(unittest.TestCase):
+@unittest.skipIf(platform.system() != 'Linux', 'Legacy CVODE tests')
+class LegacySimulationTest(unittest.TestCase):
     """
-    Tests the CVode simulation class.
+    Tests the Legacy CVODE simulation class.
     """
 
     @classmethod
@@ -38,7 +41,7 @@ class SimulationTest(unittest.TestCase):
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         cls.model = m
         cls.protocol = p
-        cls.sim = myokit.Simulation(cls.model, cls.protocol)
+        cls.sim = myokit.LegacySimulation(cls.model, cls.protocol)
 
     def test_pre(self):
         # Test pre-pacing.
@@ -171,7 +174,7 @@ class SimulationTest(unittest.TestCase):
         p.schedule(3, 8, 2)
 
         # Simulate with dynamic logging
-        s = myokit.Simulation(m, p)
+        s = myokit.LegacySimulation(m, p)
         d = s.run(p.characteristic_time())
         time = list(d.time())
         value = list(d['c.v'])
@@ -210,8 +213,8 @@ class SimulationTest(unittest.TestCase):
         # Test running with a progress reporter.
 
         # Test if it works
-        sim = myokit.Simulation(self.model, self.protocol)
-        with myokit.PyCapture() as c:
+        sim = myokit.LegacySimulation(self.model, self.protocol)
+        with myokit.tools.capture() as c:
             sim.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertEqual(len(c), 2)
@@ -237,9 +240,16 @@ class SimulationTest(unittest.TestCase):
         # More testing is done in test_datalog.py!
 
         # Apd var is not a state
+        v = self.model.get('ina.INa')
         self.assertRaisesRegex(
-            ValueError, 'must be a state', myokit.Simulation, self.model,
-            self.protocol, apd_var='ina.INa')
+            ValueError, 'must be a state', myokit.LegacySimulation, self.model,
+            self.protocol, apd_var=v)
+
+        # Set a valid apd variable
+        v = self.model.get('ik.x')
+        sim = myokit.LegacySimulation(
+            self.model, self.protocol, apd_var=v)
+        sim.run(1, apd_threshold=12)
 
         # No apd var given, but threshold provided
         self.assertRaisesRegex(
@@ -251,7 +261,7 @@ class SimulationTest(unittest.TestCase):
         m = self.model.clone()
         istim = m.get('membrane.i_stim')
         istim.set_rhs('engine.pace / stim_amplitude')
-        s = myokit.Simulation(m, self.protocol)
+        s = myokit.LegacySimulation(m, self.protocol)
         self.assertIsNone(s.last_state())
         s.run(1)
         self.assertIsNone(s.last_state())
@@ -262,10 +272,10 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s.last_state(), s.state())
 
     def test_last_evaluations_and_steps(self):
-        # Test :meth:`Simulation.last_number_of_evaluations()` and
-        # :meth:`Simulation.last_number_of_steps()`
+        # Test :meth:`LegacySimulation.last_number_of_evaluations()` and
+        # :meth:`LegacySimulation.last_number_of_steps()`
 
-        s = myokit.Simulation(self.model, self.protocol)
+        s = myokit.LegacySimulation(self.model, self.protocol)
         self.assertEqual(s.last_number_of_evaluations(), 0)
         self.assertEqual(s.last_number_of_steps(), 0)
         s.run(1)
@@ -275,7 +285,7 @@ class SimulationTest(unittest.TestCase):
             s.last_number_of_evaluations(), s.last_number_of_steps())
 
     def test_eval_derivatives(self):
-        # Test :meth:`Simulation.eval_derivatives()`.
+        # Test :meth:`LegacySimulation.eval_derivatives()`.
 
         self.sim.reset()
         s1 = self.sim.state()
@@ -288,7 +298,7 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(d1, self.sim.eval_derivatives())
 
     def test_set_tolerance(self):
-        # Test :meth:`Simulation.set_tolerance()`.
+        # Test :meth:`LegacySimulation.set_tolerance()`.
 
         self.assertRaisesRegex(
             ValueError, 'Absolute', self.sim.set_tolerance, abs_tol=0)
@@ -297,8 +307,8 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_tolerance(1e-6, 1e-4)
 
     def test_set_step_size(self):
-        # Test :meth:`Simulation.set_min_step_size()` and
-        # :meth:`Simulation.set_max_step_size()`.
+        # Test :meth:`LegacySimulation.set_min_step_size()` and
+        # :meth:`LegacySimulation.set_max_step_size()`.
 
         # Minimum: set, unset, allow negative value to unset
         self.sim.set_min_step_size(0.1)
@@ -311,8 +321,8 @@ class SimulationTest(unittest.TestCase):
         self.sim.set_max_step_size(-1)
 
     def test_set_state(self):
-        # Test :meth:`Simulation.set_state()` and
-        # :meth:`Simulation.set_default_state()`.
+        # Test :meth:`LegacySimulation.set_state()` and
+        # :meth:`LegacySimulation.set_default_state()`.
 
         # Get state and default state, both different from current
         state = self.sim.state()
@@ -332,15 +342,65 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(self.sim.default_state(), default_state)
 
     def test_set_constant(self):
-        # Test :meth:`Simulation.set_constant()`.
+        # Test :meth:`LegacySimulation.set_constant()`.
 
         # Literal
-        self.sim.set_constant('cell.Na_i', 11)
+        v = self.model.get('cell.Na_i')
+        self.sim.set_constant(v, 11)
         self.assertRaises(KeyError, self.sim.set_constant, 'cell.Bert', 11)
 
         # Calculated constant
         self.assertRaisesRegex(
             ValueError, 'not a literal', self.sim.set_constant, 'ina.ENa', 11)
+
+    def test_short_runs(self):
+        # Test for simulations run a very short time
+
+        # Run for 1 unit (OK)
+        self.sim.reset()
+        self.sim.run(1)
+
+        # Test running for 0 units doesn't affect state
+        x0 = self.sim.state()
+        self.sim.run(0)
+        self.assertEqual(x0, self.sim.state())
+        self.sim.run(0)
+        self.assertEqual(x0, self.sim.state())
+
+        # Test running between indistinguishable times doesn't affect state
+        t = self.sim.time()
+        d = 0.5 * sys.float_info.epsilon
+        self.assertEqual(t, t + d)
+        self.sim.run(d)
+
+        # Test running between only just distinguishable times is fine
+        self.sim.reset()
+        self.sim.run(1)
+        t = self.sim.time()
+        d = 3 * sys.float_info.epsilon
+        self.assertNotEqual(t, t + d)
+        self.sim.run(d)
+
+        # Test running between barely distinguishable times raises CVODE error.
+        t = self.sim.time()
+        d = 2 * sys.float_info.epsilon
+        self.assertNotEqual(t, t + d)
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'CV_TOO_CLOSE', self.sim.run, d)
+
+        # Empty log times
+        self.sim.reset()
+        self.sim.run(1, log_times=[])
+
+        # Non-monotonic times
+        self.sim.reset()
+        with self.assertRaisesRegex(ValueError, 'Values in log_times'):
+            self.sim.run(1, log_times=[1, 2, 1])
+
+        # Simultaneous use of log_times and log_interval
+        self.sim.reset()
+        with self.assertRaisesRegex(ValueError, 'The arguments log_times'):
+            self.sim.run(1, log_times=[1, 2], log_interval=2)
 
     def test_simulation_error_1(self):
         # Test for simulation error detection: massive stimulus.
@@ -350,10 +410,11 @@ class SimulationTest(unittest.TestCase):
         p.schedule(level=1000, start=1, duration=1)
         self.sim.reset()
         self.sim.set_protocol(p)
-        self.assertRaises(myokit.SimulationError, self.sim.run, 10)
+        self.assertRaisesRegex(
+            myokit.SimulationError, 'numerical error', self.sim.run, 10)
         self.sim.set_protocol(self.protocol)
 
-    @unittest.skipIf(platform.system() != 'Linux', 'Cvode error tests')
+    @unittest.skipIf(platform.system() != 'Linux', 'CVODE error tests')
     def test_simulation_error_2(self):
         # Test for simulation error detection: failure occurred too often.
 
@@ -361,10 +422,10 @@ class SimulationTest(unittest.TestCase):
         m = self.model.clone()
         v = m.get('membrane.V')
         v.set_rhs(myokit.Multiply(v.rhs(), myokit.Number(1e18)))
-        s = myokit.Simulation(m, self.protocol)
-        with self.assertRaises(myokit.SimulationError) as e:
-            s.run(5000)
-        self.assertIn('CV_ERR_FAILURE', str(e.exception))
+        s = myokit.LegacySimulation(m, self.protocol)
+        with WarningCollector():
+            self.assertRaisesRegex(
+                myokit.SimulationError, 'numerical error', s.run, 5000)
 
     def test_cvode_simulation_with_zero_states(self):
         # Tests running cvode simulations on models with no ODEs
@@ -388,12 +449,12 @@ class SimulationTest(unittest.TestCase):
         z.promote(0)
 
         # Test without protocol and dynamic logging
-        s1 = myokit.Simulation(m1)
+        s1 = myokit.LegacySimulation(m1)
         d1 = s1.run(5)
         self.assertEqual(len(d1.time()), 2)
         self.assertEqual(list(d1.time()), [0, 5])
         self.assertEqual(list(d1['c.w']), [0, 0])
-        s2 = myokit.Simulation(m2)
+        s2 = myokit.LegacySimulation(m2)
         d2 = s2.run(6, log_times=d1.time())
         self.assertEqual(d1.time(), d2.time())
         self.assertEqual(d1['c.w'], d2['c.w'])
@@ -444,7 +505,7 @@ class SimulationTest(unittest.TestCase):
 
         # Test with myokit.Protocol
         m, p, _ = myokit.load('example')
-        s1 = myokit.Simulation(m, p)
+        s1 = myokit.LegacySimulation(m, p)
         s1.pre(123)
         s_bytes = pickle.dumps(s1)
         s2 = pickle.loads(s_bytes)
@@ -474,16 +535,78 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(s1.time(), s2.time())
         self.assertEqual(s1.state(), s2.state())
 
+    def test_sim_stats(self):
+        # Test extraction of simulation statistics
+        m, p, _ = myokit.load('example')
+        rt = m['engine'].add_variable('realtime')
+        rt.set_rhs(0)
+        rt.set_binding('realtime')
+        ev = m['engine'].add_variable('evaluations')
+        ev.set_rhs(0)
+        ev.set_binding('evaluations')
+        s = myokit.LegacySimulation(m, p)
+        d = s.run(100, log=myokit.LOG_BOUND).npview()
 
-class RuntimeSimulationTest(unittest.TestCase):
-    """
-    Tests the obtaining of runtimes from the CVode simulation.
-    """
-    def test_short_runtimes(self):
-        m, p, x = myokit.load(
-            os.path.join(DIR_DATA, 'lr-1991-runtimes.mmt'))
-        myokit.run(m, p, x)
+        self.assertIn('engine.realtime', d)
+        self.assertIn('engine.evaluations', d)
+        rt, ev = d['engine.realtime'], d['engine.evaluations']
+        self.assertEqual(len(d.time()), len(rt))
+        self.assertEqual(len(d.time()), len(ev))
+        self.assertTrue(np.all(rt >= 0))
+        self.assertTrue(np.all(ev >= 0))
+        self.assertTrue(np.all(rt[1:] >= rt[:-1]))
+        self.assertTrue(np.all(ev[1:] >= ev[:-1]))
+
+    def test_apd(self):
+        # Test the apd rootfinding routine
+
+        s = myokit.LegacySimulation(
+            self.model, self.protocol, apd_var='membrane.V')
+        s.set_tolerance(1e-8, 1e-8)
+        d, apds = s.run(1800, log=myokit.LOG_NONE, apd_threshold=-70)
+
+        # Check with threshold equal to V
+        self.assertEqual(len(apds['start']), 2)
+        self.assertEqual(len(apds['duration']), 2)
+        self.assertAlmostEqual(apds['start'][0], 1.19, places=1)
+        self.assertAlmostEqual(apds['start'][1], 1001.19, places=1)
+        self.assertAlmostEqual(apds['duration'][0], 383.88262, places=0)
+        self.assertAlmostEqual(apds['duration'][1], 378.31448, places=0)
+
+    def test_derivatives(self):
+        # Tests logging of derivatives by comparing with a finite difference
+        # approximation
+
+        # Run past the upstroke, where finite diff approx is worst
+        self.sim.reset()
+        self.sim.run(52)
+
+        # Now run logged part
+        d = self.sim.run(600).npview()
+        if False:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            ax = plt.subplot(3, 1, 1)
+            ax.plot(d.time(), d['membrane.V'])
+            ax = plt.subplot(3, 1, 2)
+            ax.plot(d.time(), d['dot(membrane.V)'])
+
+        # Get central difference approximation
+        t = d.time()
+        v = d['membrane.V']
+        dv = (v[2:] - v[:-2]) / (t[2:] - t[:-2])
+        e = d['dot(membrane.V)'][1:-1] - dv
+        if False:
+            t = t[1:-1]
+            ax.plot(t, dv, '--')
+            ax = plt.subplot(3, 1, 3)
+            ax.plot(t, e)
+            print(np.max(np.abs(e)))
+
+        # Compare
+        self.assertLess(np.max(np.abs(e)), 0.1)
 
 
 if __name__ == '__main__':
     unittest.main()
+

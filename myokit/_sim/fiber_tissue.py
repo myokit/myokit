@@ -11,9 +11,6 @@ import os
 import myokit
 import platform
 
-# OpenCLSim keywords
-from .openclsim import KEYWORDS
-
 # Location of C and OpenCL sources
 SOURCE_FILE = 'fiber_tissue.c'
 KERNEL_FILE = 'openclsim.cl'
@@ -22,6 +19,9 @@ KERNEL_FILE = 'openclsim.cl'
 class FiberTissueSimulation(myokit.CModule):
     """
     Runs a simulation of a fiber leading up to a rectangular piece of tissue.
+
+    Note: This simulation class is deprecated as of version 1.33.0, and will be
+    removed in future versions of Myokit.
 
     Takes the following input arguments:
 
@@ -129,6 +129,12 @@ class FiberTissueSimulation(myokit.CModule):
             g_fiber=(9, 6), g_tissue=(9, 6), g_fiber_tissue=9,
             dt=0.005, precision=myokit.SINGLE_PRECISION, native_maths=False):
         super(FiberTissueSimulation, self).__init__()
+
+        # Deprecated since 2021-05-28
+        import warnings
+        warnings.warn(
+            'The class `myokit.FiberTissueSimulation` is deprecated, and will'
+            ' be removed in future versions of Myokit.')
 
         # List of globally logged inputs
         self._global = ['time', 'pace']
@@ -318,16 +324,7 @@ class FiberTissueSimulation(myokit.CModule):
             'diffusion_current': 'idiff',
         })
 
-        # Reserve keywords
-        from myokit.formats import opencl
-        self._modelf.reserve_unique_names(*opencl.keywords)
-        self._modelt.reserve_unique_names(*opencl.keywords)
-        self._modelf.reserve_unique_names(
-            *['calc_' + c.name() for c in self._modelf.components()])
-        self._modelt.reserve_unique_names(
-            *['calc_' + c.name() for c in self._modelt.components()])
-        self._modelf.reserve_unique_names(*KEYWORDS)
-        self._modelt.reserve_unique_names(*KEYWORDS)
+        # Create unique names
         self._modelf.create_unique_names()
         self._modelt.create_unique_names()
 
@@ -341,7 +338,7 @@ class FiberTissueSimulation(myokit.CModule):
         # Unique simulation id
         FiberTissueSimulation._index += 1
         mname = 'myokit_sim_fiber_tissue_' + str(FiberTissueSimulation._index)
-        mname += '_' + str(myokit._pid_hash())
+        mname += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {
@@ -368,10 +365,11 @@ class FiberTissueSimulation(myokit.CModule):
         libs = []
         flags = []
         plat = platform.system()
-        if plat != 'Darwin':    # pragma: no osx cover
+        if plat != 'Darwin':    # pragma: no macos cover
             libs.append('OpenCL')
         else:                   # pragma: no cover
-            flags.append('-framework OpenCL')
+            flags.append('-framework')
+            flags.append('OpenCL')
         if plat != 'Windows':   # pragma: no windows cover
             libs.append('m')
 
@@ -787,12 +785,15 @@ class FiberTissueSimulation(myokit.CModule):
             'diffusion': True,
             'fields': [],
             'rl_states': {},
+            'connections': False,
+            'heterogeneous': False,
         }
         args['model'] = self._modelf
         args['vmvar'] = self._vmf
         args['bound_variables'] = self._bound_variablesf
         args['inter_log'] = inter_logf
         args['paced_cells'] = self._paced_cells
+        args['fiber_tissue'] = True
         if myokit.DEBUG:
             print('-' * 79)
             print(
@@ -806,6 +807,7 @@ class FiberTissueSimulation(myokit.CModule):
         args['bound_variables'] = self._bound_variablest
         args['inter_log'] = inter_logt
         args['paced_cells'] = []
+        args['fiber_tissue'] = False
         if myokit.DEBUG:
             print('-' * 79)
             print(
@@ -921,7 +923,7 @@ class FiberTissueSimulation(myokit.CModule):
                 if n_states > 1:
                     txt.append('Evaluating derivatives at state before...')
                     try:
-                        derivs = model.eval_state_derivatives(
+                        derivs = model.evaluate_derivatives(
                             states[1], precision=self._precision)
                         txt.append(model.format_state_derivatives(
                             states[1], derivs))

@@ -1005,8 +1005,21 @@ class PythonExpressionWriterTest(unittest.TestCase):
         # Name
         a = myokit.Name(avar)
         self.assertEqual(w.ex(a), 'c.a')
+        # Derivative
+        x = myokit.Derivative(a)
+        self.assertEqual(w.ex(x), 'dot(c.a)')
+        # Partial derivative
+        x = myokit.PartialDerivative(a, a)
+        self.assertEqual(w.ex(x), 'diff(c.a, c.a)')
+        # Initial value
+        x = myokit.InitialValue(a)
+        self.assertEqual(w.ex(x), 'init(c.a)')
+
+        # Number
+        b = myokit.Number(3)
+        self.assertEqual(w.ex(b), '3.0')
         # Number with unit
-        b = myokit.Number('12', 'pF')
+        b = myokit.Number(12, 'pF')
         self.assertEqual(w.ex(b), '12.0')
 
         # Prefix plus

@@ -72,8 +72,13 @@ class Protocol(object):
 
     def add_step(self, level, duration):
         """
-        Appends an event to the end of this protocol. This method can be used
-        to easily create voltage-step protocols.
+        Appends an event to the end of this protocol.
+
+        This method can be used to easily create voltage-step protocols. A call
+        to ``p.add_step(level, duration)`` is equivalent to
+        ``p.schedule(level, p.characteristic_time(), duration, 0, 0)``.
+
+        Arguments:
 
         ``level``
             The stimulus level. 1 Represents a full-sized stimulus. Only
@@ -81,8 +86,6 @@ class Protocol(object):
         ``duration``
             The length of the stimulus.
 
-        A call to `p.append(level, duration)` is equivalent to
-        `p.schedule(level, p.characteristic_time(), duration, 0, 0)`.
         """
         self.schedule(level, self.characteristic_time(), duration)
 
@@ -91,8 +94,9 @@ class Protocol(object):
         Returns the characteristic time associated with this protocol.
 
         The characteristic time is defined as the maximum characteristic time
-        of all events in the protocol. For a sequence of events, this is simply
-        the protocol duration.
+        of all events in the protocol
+        (see :meth:`ProtocolEvent.characteristic_time()`). For a sequence of
+        events, this is simply the protocol duration.
 
         Examples:
 
@@ -192,21 +196,6 @@ class Protocol(object):
             e = e._next
         return out
 
-    def guess_duration(self):
-        """
-        *Deprecated*
-
-        This method now returns the value given by :meth:`characteristic_time`.
-        """
-        # Deprecated since 2016-02-06
-        import warnings
-        warnings.warn(
-            'The method Protocol.guess_duration() is deprecated: it will be'
-            ' removed in future versions of Myokit. Please use the method'
-            ' `characteristic_time` instead.'
-        )
-        return self.characteristic_time()
-
     def head(self):
         """
         Returns the first event in this protocol.
@@ -280,7 +269,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if e and myokit._feq(t, e._start):
+            if e and myokit.float.eq(t, e._start):
                 t = e._start
 
         return True
@@ -323,7 +312,7 @@ class Protocol(object):
 
             # Calculated position indistinguishable from user-specified next
             # even start? Then jump there instead
-            if myokit._feq(t, e._start):
+            if myokit.float.eq(t, e._start):
                 t = e._start
 
             # Check for periodic events
@@ -791,16 +780,16 @@ class PacingSystem(object):
         self._time = new_time
 
         # Advance pacing system
-        while myokit._fgeq(new_time, self._tnext):
+        while myokit.float.geq(new_time, self._tnext):
 
             # Active event finished
-            if self._fire and myokit._fgeq(self._tnext, self._tdown):
+            if self._fire and myokit.float.geq(self._tnext, self._tdown):
                 self._fire = None
                 self._pace = 0
 
             # New event starting
             e = self._protocol._head
-            if e and myokit._fgeq(new_time, e._start):
+            if e and myokit.float.geq(new_time, e._start):
                 self._protocol.pop()
                 self._fire = e
                 self._tdown = e._start + e._duration
@@ -817,7 +806,7 @@ class PacingSystem(object):
                 # If so, then set tdown (which is always calculated) to the
                 # next event start (which may be user-specified).
                 x = self._protocol._head
-                if x and myokit._feq(self._tdown, x._start):
+                if x and myokit.float.eq(self._tdown, x._start):
                     self._tdown = x._start
 
             # Next stopping time

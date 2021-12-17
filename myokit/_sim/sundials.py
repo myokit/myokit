@@ -7,7 +7,6 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import logging
 import os
 
 import myokit
@@ -45,7 +44,7 @@ class Sundials(myokit.CModule):
 
         # Create Sundials back-end
         mname = 'myokit_sundials_info_' + str(Sundials._index)
-        mname += '_' + str(myokit._pid_hash())
+        mname += '_' + str(myokit.pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
         try:
@@ -98,28 +97,6 @@ class Sundials(myokit.CModule):
             # myokit, but then run a different version for the docs? As a
             # result, it can't find sundials.c and the build fails.
             return None
-
-    @staticmethod
-    def version_int():
-        """
-        Returns a sundials version number as an integer, or None if no version
-        number could be detected.
-        """
-        # Get version from sundials header
-        version = Sundials.version()
-        if version is not None:
-            try:
-                # Version can be x.y.z-dev
-                if '-' in version:  # pragma: no cover
-                    version = version[:version.index('-')]
-                version = [int(x) for x in version.split('.')]
-                version = version[0] * 10000 + version[1] * 100 + version[2]
-            except Exception:   # pragma: no cover
-                log = logging.getLogger(__name__)
-                log.warning(
-                    'Unable to parse sundials version: ' + str(version))
-                version = None
-        return version
 
 
 class NoSundialsError(myokit.MyokitError):

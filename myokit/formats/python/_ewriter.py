@@ -66,8 +66,14 @@ class PythonExpressionWriter(myokit.formats.ExpressionWriter):
     def _ex_derivative(self, e):
         return self._flhs(e)
 
+    def _ex_initial_value(self, e):
+        return self._flhs(e)
+
+    def _ex_partial_derivative(self, e):
+        return self._flhs(e)
+
     def _ex_number(self, e):
-        return myokit.strfloat(e)
+        return myokit.float.str(e)
 
     def _ex_prefix_plus(self, e):
         return self.ex(e[0])

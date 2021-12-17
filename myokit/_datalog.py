@@ -62,7 +62,7 @@ class DataLog(OrderedDict):
 
         v = log['1.2.membrane.V']
 
-    This returns the membrane potential for cell (1,2). Another way to obtain
+    This returns the membrane potential for cell (1, 2). Another way to obtain
     the same result is::
 
         v = log['membrane.V', 1, 2]
@@ -78,15 +78,15 @@ class DataLog(OrderedDict):
 
         # Create an empty DataLog:
         d = myokit.DataLog()
-        d['time'] = [1,2,3]
-        d['data'] = [2,4,5]
+        d['time'] = [1, 2, 3]
+        d['data'] = [2, 4, 5]
         d.set_time_key('time')
 
         # Create a clone of d
         e = myokit.DataLog(d)
 
         # Create a DataLog based on a dictionary
-        d = myokit.DataLog({'time':[1,2,3], 'data':[2,4,5]}, time='time')
+        d = myokit.DataLog({'time':[1, 2, 3], 'data':[2, 4, 5]}, time='time')
 
     Arguments:
 
@@ -374,7 +374,7 @@ class DataLog(OrderedDict):
         #data[1:] = 0.5 * (data[1:] + data[:-1]) * (time[1:] - time[:-1])
         #data[0]  = 0
 
-        # For discontinuities (esp. with CVODE), it makes more sense to treat
+        # For discontinuities (esp. with CVODES), it makes more sense to treat
         # the signal as a zero-order hold, IE use the left-point integration
         # rule:
         data[1:] = data[:-1] * (time[1:] - time[:-1])
@@ -981,7 +981,9 @@ class DataLog(OrderedDict):
         The resulting file will consist of:
 
           - A header line containing the names of all logged variables,
-            separated by commas.
+            separated by commas. If present, the time variable will be the
+            first entry on the line. The remaining keys are ordered using a
+            natural sort order.
           - Each following line will be a comma separated list of values in the
             same order as the header line. A line is added for each time point
             logged.
@@ -1058,12 +1060,10 @@ class DataLog(OrderedDict):
                     dat = self[self._time]
                     keys.append(self._time)
                     data.append(dat)
-                    for key, dat in sorted(self.items()):
-                        if key != self._time:
-                            keys.append(key)
-                            data.append(dat)
-                else:
-                    for key, dat in sorted(self.items()):
+                for key, dat in sorted(
+                        self.items(),
+                        key=lambda i: myokit.tools.natural_sort_key(i[0])):
+                    if key != self._time:
                         keys.append(key)
                         data.append(dat)
 

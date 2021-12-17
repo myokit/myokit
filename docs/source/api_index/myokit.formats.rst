@@ -168,6 +168,7 @@ myokit.formats.python
 myokit.formats.sbml
 -------------------
 - :class:`myokit.formats.sbml.Compartment`
+- :class:`myokit.formats.sbml.CSymbolVariable`
 - :class:`myokit.formats.sbml.Model`
 - :class:`myokit.formats.sbml.ModifierSpeciesReference`
 - :meth:`myokit.formats.sbml.importers`

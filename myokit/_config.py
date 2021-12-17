@@ -16,6 +16,7 @@ import myokit
 
 # Load libraries
 import os
+import sys
 import logging
 import platform
 
@@ -85,12 +86,14 @@ def _create(path):
             'C:\\Program Files (x86)\\sundials\\lib',
         ]))
     else:
-        # Linux and OS/X
-        # Standard linux and OS/X install: /usr/local/lib
-        # Macports OS/X install: /opt/local/lib ??
+        # Linux and MacOS
+        # Standard linux and MacOS install: /usr/local/lib
+        # Macports MacOS install: /opt/local/lib ??
         config.set('sundials', 'lib', ';'.join([
             '/usr/local/lib',
+            '/usr/local/lib64',
             '/opt/local/lib',
+            '/opt/local/lib64',
         ]))
 
     config.set('sundials', '# Location of sundials header files (.h).')
@@ -103,24 +106,13 @@ def _create(path):
             'C:\\Program Files (x86)\\sundials\\include',
         ]))
     else:
-        # Linux and OS/X
-        # Standard linux and OS/X install: /usr/local/include
-        # Macports OS/X install: /opt/local/include
+        # Linux and MacOS
+        # Standard linux and MacOS install: /usr/local/include
+        # Macports MacOS install: /opt/local/include
         config.set('sundials', 'inc', ';'.join([
             '/usr/local/include',
             '/opt/local/include',
         ]))
-
-    # Set sundials version, try to auto-detect
-    if platform.system() == 'Windows':  # pragma: no linux cover
-        _dynamically_add_embedded_sundials_win()
-    sundials = myokit.Sundials.version_int()
-    if sundials is None:    # pragma: no cover
-        log = logging.getLogger(__name__)
-        log.warning('Unable to auto-detect Sundials version.')
-        config.set('sundials', '#version', 30100)
-    else:
-        config.set('sundials', 'version', sundials)
 
     # Locations of OpenCL libraries
     config.add_section('opencl')
@@ -188,6 +180,25 @@ def _load():
     if not os.path.isfile(path):
         _create(path)
 
+    # In Python <3.2, strings like "x ; y" are treated as "x" followed by a
+    # comment. These shouldn't appear in myokit ini files!
+    if sys.hexversion < 0x03020000:     # pragma: no cover
+        with open(path, 'r') as f:
+            lines = f.readlines()
+
+        import re
+        inline_comment = re.compile('[\w]+[\s]*=[\s]*.+?\s+(;)')
+        for i, line in enumerate(lines):
+            m = inline_comment.match(line)
+            if m is not None:
+                x = m.start(1) - 1
+                raise ImportError(
+                    'Unsupported syntax found in ' + str(path) + ' on line '
+                    + str(1 + i) + ', character ' + str(x) + ', semicolons (;)'
+                    + ' must not be preceded by whitespace: ```'
+                    + line.strip() + '```.')
+        del(lines, inline_comment)
+
     # Create the config parser (no value allows comments)
     config = ConfigParser(allow_no_value=True)
 
@@ -245,44 +256,19 @@ def _load():
 
     # Sundials libraries, header files, and version
     if config.has_option('sundials', 'lib'):
-        for x in config.get('sundials', 'lib').split(';'):
-            myokit.SUNDIALS_LIB.append(x.strip())
+        myokit.SUNDIALS_LIB.extend(_path_list(config.get('sundials', 'lib')))
     if config.has_option('sundials', 'inc'):
-        for x in config.get('sundials', 'inc').split(';'):
-            myokit.SUNDIALS_INC.append(x.strip())
-    if config.has_option('sundials', 'version'):
-        try:
-            myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
-        except ValueError:  # pragma: no cover
-            pass
+        myokit.SUNDIALS_INC.extend(_path_list(config.get('sundials', 'inc')))
 
     # Dynamically add embedded sundials paths for windows
     if platform.system() == 'Windows':  # pragma: no linux cover
         _dynamically_add_embedded_sundials_win()
 
-    # If needed, attempt auto-detection of Sundials version
-    if myokit.SUNDIALS_VERSION == 0:    # pragma: no cover
-        sundials = myokit.Sundials.version_int()
-        log = logging.getLogger(__name__)
-        if sundials is None:
-            log.warning(
-                'Sundials version not set in myokit.ini and version'
-                ' auto-detection failed.'
-            )
-        else:
-            myokit.SUNDIALS_VERSION = sundials
-            log.warning(
-                'Sundials version not set in myokit.ini. Continuing with'
-                ' detected version (' + str(sundials) + '). For a tiny'
-                ' performance boost, please set this version in ' + path)
-
     # OpenCL libraries and header files
     if config.has_option('opencl', 'lib'):
-        for x in config.get('opencl', 'lib').split(';'):
-            myokit.OPENCL_LIB.append(x.strip())
+        myokit.OPENCL_LIB.extend(_path_list(config.get('opencl', 'lib')))
     if config.has_option('opencl', 'inc'):
-        for x in config.get('opencl', 'inc').split(';'):
-            myokit.OPENCL_INC.append(x.strip())
+        myokit.OPENCL_INC.extend(_path_list(config.get('opencl', 'inc')))
 
 
 def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
@@ -301,6 +287,12 @@ def _dynamically_add_embedded_sundials_win():   # pragma: no linux cover
         myokit.SUNDIALS_LIB.append(os.path.join(sundials_win, 'lib'))
     if len(myokit.SUNDIALS_INC) == 0:
         myokit.SUNDIALS_INC.append(os.path.join(sundials_win, 'include'))
+
+
+def _path_list(text):
+    return [
+        os.path.expandvars(os.path.expanduser(x))
+        for x in [x.strip() for x in text.split(';')] if x != '']
 
 
 # Load settings

@@ -11,8 +11,6 @@ Myokit comes equipeed with a number of graphical user interface components:
   some analysis tools can be used directly.
 - The :ref:`DataBlock Viewer <gui/datablock_viewer>` visualizes data from 1d
   and 2d datablock files.
-- The :ref:`Graph Data Extractor <gui/gde>` allows axes to be drawn onto
-  (scanned) image files, allowing numerical data to be extracted.
 
 ..  toctree::
     :hidden:
@@ -20,7 +18,6 @@ Myokit comes equipeed with a number of graphical user interface components:
     datablock_viewer
     datalog_viewer
     explorer
-    gde
     ide
     progress
     source

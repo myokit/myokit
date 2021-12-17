@@ -34,7 +34,7 @@ class PypeTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'dict', e.process, 'file.txt', [])
 
-        with myokit.PyCapture():
+        with myokit.tools.capture():
 
             # Test not-a-file
             self.assertRaises(IOError, e.process, 'file.txt', {})
@@ -57,6 +57,7 @@ class PypeTest(unittest.TestCase):
 
             # Too much inside <?=?>
             self.e("""<?=if 1 > 2: print('hi')?>""", {}, 'contain a single')
+            self.e("""<?=print(1); print('hi')?>""", {}, 'contain a single')
 
             # Triple quote should be allowed
             self.e('''Hello"""string"""yes''', {})

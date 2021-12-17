@@ -116,7 +116,7 @@ class Simulation(myokit.CModule):
         # Unique simulation id
         Simulation._index += 1
         module_name = 'myokit_sim_' + str(Simulation._index)
-        module_name += '_' + str(myokit._pid_hash())
+        module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {
@@ -301,6 +301,16 @@ class Simulation(myokit.CModule):
         the :class:`myokit.ProgressReporter` interface can be passed in.
         passed in as ``progress``. An optional description of the current
         simulation to use in the ProgressReporter can be passed in as ``msg``.
+
+        The ``duration`` argument cannot be negative, and special care needs to
+        be taken when very small (positive) values are used. If ``duration`` is
+        zero or so small that
+        ``simulation.time() + duration == simulation.time()``, then the method
+        returns without updating the internal states or time. However, for
+        some extremely short durations (approx ``2 epsilon * time``), the
+        simulation will try to run but the underlying CVODE engine may return a
+        ``CV_TOO_CLOSE`` error, causing a :class:`myokit.SimulationError` to be
+        raised.
         """
         duration = float(duration)
         output = self._run(
@@ -377,82 +387,91 @@ class Simulation(myokit.CModule):
             bench = None
 
         # Run simulation
-        with myokit.SubCapture() as capture:
-            if duration > 0:
-                # Initialize
-                state = [0] * len(self._state)
-                bound = [0, 0, 0, 0]    # time, pace, realtime, evaluations
-                self._sim.sim_init(
-                    tmin,
-                    tmax,
-                    list(self._state),
-                    state,
-                    bound,
-                    self._protocol,
-                    self._fixed_form_protocol,
-                    log,
-                    log_interval,
-                    log_times,
-                    root_list,
-                    root_threshold,
-                    bench,
-                )
-                t = tmin
-                try:
-                    if progress:
-                        # Allow progress reporters to bypass the subcapture
-                        progress._set_output_stream(capture.bypass())
-                        # Loop with feedback
-                        with progress.job(msg):
-                            r = 1.0 / duration if duration != 0 else 1
-                            while t < tmax:
-                                t = self._sim.sim_step()
-                                if not progress.update(min((t - tmin) * r, 1)):
-                                    raise myokit.SimulationCancelledError()
-                    else:
-                        # Loop without feedback
+        # The simulation is run only if (tmin + duration > tmin). This is a
+        # stronger check than (duration == 0), which will return true even for
+        # very short durations (and will cause zero iterations of the
+        # "while (t < tmax)" loop below).
+        istate = list(self._state)
+        if tmin + duration > tmin:
+
+            # Lists to return state in
+            rstate = list(istate)
+            rbound = [0, 0, 0, 0]  # time, pace, realtime, evaluations
+
+            # Initialize
+            self._sim.sim_init(
+                tmin,
+                tmax,
+                istate,
+                rstate,
+                rbound,
+                self._protocol,
+                self._fixed_form_protocol,
+                log,
+                log_interval,
+                log_times,
+                root_list,
+                root_threshold,
+                bench,
+            )
+            t = tmin
+
+            try:
+                if progress:
+                    # Loop with feedback
+                    with progress.job(msg):
+                        r = 1.0 / duration if duration != 0 else 1
                         while t < tmax:
                             t = self._sim.sim_step()
-                except ArithmeticError:
-                    self._error_state = list(state)
-                    txt = ['A numerical error occurred during simulation at'
-                           ' t = ' + str(t) + '.', 'Last reached state: ']
-                    txt.extend([
-                        '  ' + x for x
-                        in self._model.format_state(state).splitlines()])
-                    txt.append('Inputs for binding: ')
-                    txt.append('  time        = ' + myokit.strfloat(bound[0]))
-                    txt.append('  pace        = ' + myokit.strfloat(bound[1]))
-                    txt.append('  realtime    = ' + myokit.strfloat(bound[2]))
-                    txt.append('  evaluations = ' + myokit.strfloat(bound[3]))
-                    try:
-                        self._model.eval_state_derivatives(state)
-                    except myokit.NumericalError as en:
-                        txt.append(str(en))
-                    raise myokit.SimulationError('\n'.join(txt))
-                except Exception as e:
+                            if not progress.update(min((t - tmin) * r, 1)):
+                                raise myokit.SimulationCancelledError()
+                else:
+                    # Loop without feedback
+                    while t < tmax:
+                        t = self._sim.sim_step()
+            except ArithmeticError as e:
+                # Some CVODE errors are set to raise an ArithmeticError,
+                # which users may be able to debug.
+                self._error_state = list(rstate)
+                txt = ['A numerical error occurred during simulation at'
+                       ' t = ' + str(t) + '.', 'Last reached state: ']
+                txt.extend(['  ' + x for x in
+                            self._model.format_state(rstate).splitlines()])
+                txt.append('Inputs for binding: ')
+                txt.append('  time        = ' + myokit.float.str(rbound[0]))
+                txt.append('  pace        = ' + myokit.float.str(rbound[1]))
+                txt.append('  realtime    = ' + myokit.float.str(rbound[2]))
+                txt.append('  evaluations = ' + myokit.float.str(rbound[3]))
+                txt.append(str(e))
+                try:
+                    self._model.evaluate_derivatives(rstate)
+                except myokit.NumericalError as en:
+                    txt.append(str(en))
+                raise myokit.SimulationError('\n'.join(txt))
+            except Exception as e:
 
-                    # Store error state
-                    self._error_state = list(state)
+                # Store error state
+                self._error_state = list(rstate)
 
-                    # Check for known CVODE errors
-                    if 'Function CVode()' in str(e):
-                        raise myokit.SimulationError(str(e))
+                # Check for known CVODE errors
+                if 'Function CVode()' in str(e):
+                    raise myokit.SimulationError(str(e))
 
-                    # Check for zero step error
-                    if str(e)[:10] == 'ZERO_STEP ':  # pragma: no cover
-                        t = float(str(e)[10:])
-                        raise myokit.SimulationError(
-                            'Maximum number of zero-size steps made at t='
-                            + str(t))
+                # Check for zero step error
+                if str(e)[:10] == 'ZERO_STEP ':  # pragma: no cover
+                    t = float(str(e)[10:])
+                    raise myokit.SimulationError(
+                        'Maximum number of zero-size steps made at t='
+                        + str(t))
 
-                    # Unknown exception: re-raise!
-                    raise
-                finally:
-                    # Clean even after KeyboardInterrupt or other Exception
-                    self._sim.sim_clean()
-                # Update internal state
-                self._state = state
+                # Unknown exception: re-raise!
+                raise
+            finally:
+                # Clean even after KeyboardInterrupt or other Exception
+                self._sim.sim_clean()
+
+            # Update internal state
+            self._state = rstate
 
         # Return
         if root_list is not None:

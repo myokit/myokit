@@ -45,7 +45,7 @@ class OpenCL(myokit.CModule):
         # Create back-end and cache it
         OpenCL._index += 1
         mname = 'myokit_opencl_info_' + str(OpenCL._index)
-        mname += '_' + str(myokit._pid_hash())
+        mname += '_' + str(myokit.pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {'module_name': mname}
 
@@ -53,10 +53,11 @@ class OpenCL(myokit.CModule):
         libs = []
         flags = []
         import platform
-        if platform.system() != 'Darwin':   # pragma: no osx cover
+        if platform.system() != 'Darwin':   # pragma: no macos cover
             libs.append('OpenCL')
         else:                               # pragma: no cover
-            flags.append('-framework OpenCL')
+            flags.append('-framework')
+            flags.append('OpenCL')
 
         # Add include / linker paths
         libd = list(myokit.OPENCL_LIB)
@@ -67,9 +68,51 @@ class OpenCL(myokit.CModule):
             OpenCL._message = None
             OpenCL._instance = self._compile(
                 mname, fname, args, libs, libd, incd, larg=flags)
-        except myokit.CompilationError as e:
+        except myokit.CompilationError as e:    # pragma: no cover
             OpenCL._instance = False
             OpenCL._message = str(e)
+
+    @staticmethod
+    def _get_instance():
+        """
+        Returns a cached back-end, creates and returns a new back-end or raises
+        a :class:`NoOpenCLError`.
+        """
+        # No instance? Create it
+        if OpenCL._instance is None:
+            OpenCL()
+        # Instance creation failed, raise exception
+        if OpenCL._instance is False:   # pragma: no cover
+            raise NoOpenCLError(
+                'OpenCL support not found.\n' + OpenCL._message)
+        # Return instance
+        return OpenCL._instance
+
+    @staticmethod
+    def available():
+        """
+        Returns ``True`` if OpenCL support has been detected on this sytem and
+        at least one platform and device were detected.
+        """
+        try:
+            OpenCL.current_info()
+        except Exception:   # pragma: no cover
+            return False
+        return True
+
+    @staticmethod
+    def current_info(formatted=False):
+        """
+        Returns a :class:`myokit.OpenCLPlatformInfo` object for the platform
+        and device selected by the user, or chosen as default.
+
+        If ``formatted=True`` is set, a formatted version of the information is
+        returned instead.
+        """
+        platform, device = OpenCL.load_selection_bytes()
+        info = OpenCL._get_instance().current(platform, device)
+        info = OpenCLPlatformInfo(info)
+        return info.format() if formatted else info
 
     @staticmethod
     def info(formatted=False):
@@ -82,22 +125,6 @@ class OpenCL(myokit.CModule):
         """
         info = OpenCLInfo(OpenCL._get_instance().info())
         return info.format() if formatted else info
-
-    @staticmethod
-    def _get_instance():
-        """
-        Returns a cached back-end, creates and returns a new back-end or raises
-        a :class:`NoOpenCLError`.
-        """
-        # No instance? Create it
-        if OpenCL._instance is None:
-            OpenCL()
-        # Instance creation failed, raise exception
-        if OpenCL._instance is False:
-            raise NoOpenCLError(
-                'OpenCL support not found.\n' + OpenCL._message)
-        # Return instance
-        return OpenCL._instance
 
     @staticmethod
     def load_selection():
@@ -129,7 +156,7 @@ class OpenCL(myokit.CModule):
             config = ConfigParser()
             try:
                 config.read(inifile, encoding='ascii')  # Python 3
-            except TypeError:
+            except TypeError:   # pragma: no python 3 cover
                 config.read(inifile)
 
             def get(section, option):
@@ -154,7 +181,7 @@ class OpenCL(myokit.CModule):
 
     @staticmethod
     def save_selection(platform=None, device=None):
-        """"
+        """
         Stores a platform/device selection to disk.
 
         Both platform and device are identified by their names.
@@ -209,18 +236,37 @@ class OpenCL(myokit.CModule):
         try:
             OpenCL._get_instance()
             return True
-        except NoOpenCLError:
+        except NoOpenCLError:       # pragma: no cover
             return False
+
+    '''
+    @staticmethod
+    def test_build(code):
+        """
+        Tries building a kernel program on the currently selected platform and
+        device and returns the compiler output.
+        """
+        try:
+            cl = OpenCL._get_instance()
+        except NoOpenCLError as e:
+            return False
+
+        # Get preferred platform/device combo from configuration file
+        platform, device = myokit.OpenCL.load_selection_bytes()
+
+        # Build and return
+        return cl.build(platform, device, code)
+    '''
 
 
 class OpenCLInfo(object):
     """
     Represents information about the available OpenCL platforms and devices.
 
-    Each ``OpenCLInfo`` object has a property ``platforms``, containing a list
-    (actually a tuple) of :class:`OpenCLPlatformInfo` objects.
+    Each ``OpenCLInfo`` object has a property ``platforms``, containing a tuple
+    of :class:`OpenCLPlatformInfo` objects.
 
-    ``OpenCLInfo`` objects can be created by any OpenCL enabled part of Myokit.
+    ``OpenCLInfo`` objects are created and returned by :class:`myokit.OpenCL`.
     """
     def __init__(self, mcl_info):
         # mcl_info is a python object returned by mcl_device_info (mcl.h)
@@ -228,34 +274,13 @@ class OpenCLInfo(object):
 
     def format(self):
         """
-        Returns a formatted version of the information.
+        Returns a formatted string version of this object's information.
         """
-        t = []
+        b = []
         for i, platform in enumerate(self.platforms):
-            t.append('Platform ' + str(i))
-            t.append(' Name       : ' + platform.name)
-            t.append(' Vendor     : ' + platform.vendor)
-            t.append(' Version    : ' + platform.version)
-            t.append(' Profile    : ' + platform.profile)
-            t.append(' Extensions : ' + platform.extensions)
-            t.append(' Devices    :')
-            for j, device in enumerate(platform.devices):
-                t.append('  Device ' + str(j))
-                t.append('   Name            : ' + device.name)
-                t.append('   Vendor          : ' + device.vendor)
-                t.append('   Version         : ' + device.version)
-                t.append('   Driver          : ' + device.driver)
-                t.append('   Clock speed     : ' + str(device.clock) + ' MHz')
-                t.append('   Global memory   : ' + bytesize(device.globl))
-                t.append('   Local memory    : ' + bytesize(device.local))
-                t.append('   Constant memory : ' + bytesize(device.const))
-                t.append(
-                    '   Max param size  : ' + str(device.param) + ' bytes')
-                t.append('   Max work groups : ' + str(device.groups))
-                t.append(
-                    '   Max work items  : ['
-                    + ', '.join([str(x) for x in device.items]) + ']')
-        return '\n'.join(t)
+            b.append('Platform ' + str(i))
+            platform._format(b, pre=' ')
+        return '\n'.join(b)
 
 
 class OpenCLPlatformInfo(object):
@@ -275,8 +300,13 @@ class OpenCLPlatformInfo(object):
     ``extensions`` (string)
         The available OpenCL extensions on this platform.
     ``devices`` (tuple)
-        A tuple of device information dicts for the devices available on
-        this platform.
+        A tuple of device information objects for the devices available on
+        this platform. This field may be ``None``, in which case ``device``
+        will be set instead.
+    ``device`` (OpenCLDeviceInfo)
+        An information objects for the device selected by the user, or chosen
+        as the default device. This field may be ``None``, in which case
+        ``devices`` will be set instead.
 
     ``OpenCLPlatformInfo`` objects are created as part of a :class:`OpenCLInfo`
     objects, as returned by most OpenCL enabled parts of Myokit.
@@ -286,9 +316,45 @@ class OpenCLPlatformInfo(object):
         self.vendor = platform['vendor'].strip()
         self.version = platform['version'].strip()
         self.profile = platform['profile'].strip()
-        self.extensions = platform['extensions'].strip()
-        self.devices = tuple(
-            [OpenCLDeviceInfo(x) for x in platform['devices']])
+        self.extensions = platform['extensions'].strip().split()
+        self.devices = platform.get('devices', None)
+        if self.devices is not None:
+            self.devices = tuple([OpenCLDeviceInfo(x) for x in self.devices])
+        self.device = platform.get('device', None)
+        if self.device is not None:
+            self.device = OpenCLDeviceInfo(self.device)
+
+    def format(self):
+        """
+        Returns a formatted string version of this object's information.
+        """
+        b = []
+        b.append('Platform: ' + self.name)
+        self._format(b, ' ', name=False)
+        return '\n'.join(b)
+
+    def _format(self, b, pre='', name=True):
+        """
+        Formats the information in this object and adds it to the list ``b``.
+        """
+        if name:
+            b.append(pre + 'Name       : ' + self.name)
+        b.append(pre + 'Vendor     : ' + self.vendor)
+        b.append(pre + 'Version    : ' + self.version)
+        b.append(pre + 'Profile    : ' + self.profile)
+        b.append(pre + 'Extensions : ' + ' '.join(self.extensions))
+        if self.devices is not None:
+            b.append(pre + 'Devices:')
+            for j, device in enumerate(self.devices):
+                b.append(pre + ' Device ' + str(j))
+                device._format(b, pre + '  ')
+
+        if self.device is not None:
+            b.append(pre[:-1] + 'Device: ' + self.device.name)
+            self.device._format(b, pre, name=False)
+
+    def has_extension(self, extension):
+        return extension in self.extensions
 
 
 class OpenCLDeviceInfo(object):
@@ -342,20 +408,43 @@ class OpenCLDeviceInfo(object):
         self.groups = device['groups']
         self.items = tuple(device['items'])
 
+    def _format(self, b, pre='', name=True):
+        """
+        Formats the information in this object and adds it to the list ``b``.
+        """
+        if name:
+            b.append(pre + 'Name            : ' + self.name)
+        b.append(pre + 'Vendor          : ' + self.vendor)
+        b.append(pre + 'Version         : ' + self.version)
+        b.append(pre + 'Driver          : ' + self.driver)
+        b.append(pre + 'Clock speed     : ' + str(self.clock) + ' MHz')
+        b.append(pre + 'Global memory   : ' + bytesize(self.globl))
+        b.append(pre + 'Local memory    : ' + bytesize(self.local))
+        b.append(pre + 'Constant memory : ' + bytesize(self.const))
+        b.append(pre + 'Max param size  : ' + str(self.param) + ' bytes')
+        b.append(pre + 'Max work groups : ' + str(self.groups))
+        b.append(pre + 'Max work items  : [' +
+                 ', '.join([str(x) for x in self.items]) + ']')
+
+
+def r(x):
+    """Round x, convert to int if possible, the convert to string."""
+    return str(myokit.float.round(round(x, 2)))
+
 
 def bytesize(size):
     """
     Returns a formatted version of a ``size`` given in bytes.
     """
     # Format a size
-    if size > 1073741824:
-        return str(0.1 * int(10 * (float(size) / 1073741824))) + ' GB'
-    elif size > 1048576:
-        return str(0.1 * int(10 * (float(size) / 1048576))) + ' MB'
-    elif size > 1024:
-        return str(0.1 * int(10 * (float(size) / 1024))) + ' KB'
+    if size >= 1073741824:
+        return r(0.1 * int(10 * (float(size) / 1073741824))) + ' GB'
+    elif size >= 1048576:
+        return r(0.1 * int(10 * (float(size) / 1048576))) + ' MB'
+    elif size >= 1024:
+        return r(0.1 * int(10 * (float(size) / 1024))) + ' KB'
     else:
-        return str(size) + 'B'
+        return str(size) + ' B'
 
 
 def clockspeed(speed):
@@ -363,15 +452,15 @@ def clockspeed(speed):
     Returns a formatted version of a ``speed`` given in MHz.
     """
     # Format a size
-    if speed > 1000:
-        return str(0.1 * int(10 * (float(speed) / 1000))) + ' GHz'
+    if speed >= 1000:
+        return r(0.1 * int(10 * (float(speed) / 1000))) + ' GHz'
     else:
-        return str(speed) + ' MHz'
+        return r(speed) + ' MHz'
 
 
 class NoOpenCLError(myokit.MyokitError):
     """
-    Raised when OpenCLInfo functions requiring OpenCL are called but no opencl
+    Raised when OpenCLInfo functions requiring OpenCL are called but no OpenCL
     support can be detected.
     """
 
@@ -380,7 +469,7 @@ class PreferredOpenCLPlatformNotFoundError(myokit.MyokitError):
     """
     Raised when the platform preferred by the user cannot be found.
     """
-    def __init__(self, platform_name):
+    def __init__(self, platform_name):  # pragma: no cover
         super(PreferredOpenCLPlatformNotFoundError, self).__init__(
             'The preferred platform "' + platform_name + '" cannot be found.')
 
@@ -389,7 +478,8 @@ class PreferredOpenCLDeviceNotFoundError(myokit.MyokitError):
     """
     Raised when the device preferred by the user cannot be found.
     """
-    def __init__(self, device_name, platform_name=None):
+    def __init__(self, device_name, platform_name=None
+                 ):  # pragma: no cover
         msg = 'The preferred device "' + device_name + '" cannot be found'
         if platform_name is None:
             msg += '.'

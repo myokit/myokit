@@ -29,23 +29,11 @@ help about the ``export`` command, use::
 
     $ myokit export -h
 
-..  toctree::
-    :hidden:
+The documentation for these commands in split into the following sections:
 
-    block
-    compare
-    debug
-    eval
-    export
-    gde
-    ide
-    import
-    log
-    opencl
-    opencl-select
-    reset
-    run
-    step
-    version
-    video
+..  toctree::
+
+    gui
+    util
+    system
 

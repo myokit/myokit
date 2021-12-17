@@ -2089,8 +2089,9 @@ class FunctionParser(NudParser):
         while token[0] != PAREN_CLOSE:
             ops.append(parse_proto_expression(stream, info))
             token = expect(next(stream), [COMMA, PAREN_CLOSE])
+
+        # Predefined function
         if name[1] in functions:
-            # Predefined function
             func = functions[name[1]]
             if func._nargs is not None:
                 # Allow number-of-arguments check to be bypassed
@@ -2100,23 +2101,23 @@ class FunctionParser(NudParser):
                         'Wrong number of arguments for function '
                         + str(func._fname) + '()')
             return (func, ops, (name,))
-        else:
-            # User-defined function
-            func = None
-            if info.model is not None:
-                try:
-                    func = info.model.get_function(name[1], len(ops))
-                except KeyError:
-                    pass
-            if func is None:
-                raise ParseError(
-                    'Unknown function', name[2], name[3], 'A function '
-                    + name[1] + '() with ' + str(len(ops))
-                    + ' argument(s) could not be found.')
 
-            # Found function, return template, arguments and tokens. "func" is
-            # now a (template) Expression object.
-            return (func, ops, (name,))
+        # User-defined function
+        func = None
+        if info.model is not None:
+            try:
+                func = info.model.get_function(name[1], len(ops))
+            except KeyError:
+                pass
+        if func is None:
+            raise ParseError(
+                'Unknown function', name[2], name[3], 'A function '
+                + name[1] + '() with ' + str(len(ops))
+                + ' argument(s) could not be found.')
+
+        # Found function, return template, arguments and tokens. "func" is
+        # now a (template) Expression object.
+        return (func, ops, (name,))
 
 
 class LedParser(object):
@@ -2200,4 +2201,5 @@ functions['abs'] = myokit.Abs
 functions['dot'] = myokit.Derivative
 functions['if'] = myokit.If
 functions['piecewise'] = myokit.Piecewise
-
+# TODO: 'partial' and 'init' are also function names used in output, but are
+# not currently handled by the parser. Not sure if they should be!

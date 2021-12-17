@@ -53,7 +53,6 @@ def main():
     add_debug_parser(subparsers)            # Debug an RHS equation
     add_eval_parser(subparsers)             # Evaluate an expression
     add_export_parser(subparsers)           # Export an mmt file
-    add_gde_parser(subparsers)              # Launch the graph data extractor
     add_icon_parser(subparsers)             # Install icons
     add_ide_parser(subparsers)              # Launch the IDE
     add_import_parser(subparsers)           # Import a file to mmt
@@ -338,7 +337,7 @@ def mmt_export(exporter, source, target):
 
     # Parse input file
     try:
-        print('Reading model from ' + myokit.format_path(source))
+        print('Reading model from ' + myokit.tools.format_path(source))
         model, protocol, script = myokit.load(source)
     except myokit.ParseError as ex:
         print(myokit.format_parse_error(ex, source))
@@ -409,38 +408,6 @@ def add_export_parser(subparsers):
 
 
 #
-# GDE
-#
-
-def gde(filename):
-    """
-    Runs the graph data extractor.
-    """
-    import myokit.gui
-    import myokit.gui.gde
-    myokit.gui.run(myokit.gui.gde.GraphDataExtractor, filename)
-
-
-def add_gde_parser(subparsers):
-    """
-    Adds a subcommand parser for the ``gde`` command.
-    """
-    parser = subparsers.add_parser(
-        'gde',
-        description='Runs the graph data extractor.',
-        help='Runs the graph data extractor.',
-    )
-    parser.add_argument(
-        'filename',
-        default=None,
-        nargs='?',
-        metavar='filename',
-        help='The gde file to open (optional).',
-    )
-    parser.set_defaults(func=gde)
-
-
-#
 # Icons / installation
 #
 
@@ -476,7 +443,7 @@ def install():
 
     elif plat == 'Darwin':
         print(
-            'Icons for OS/X are not available (yet). See '
+            'Icons for MacOS are not available (yet). See '
             'https://github.com/MichaelClerx/myokit/issues/38')
 
     else:
@@ -540,25 +507,17 @@ def install_gnome_kde():
     place_file(path, 'myokit-ide.desktop', True)
     place_file(path, 'myokit-datalog-viewer.desktop', True)
     place_file(path, 'myokit-datablock-viewer.desktop', True)
-    place_file(path, 'myokit-gde.desktop', True)
 
     # Mime-type file
     print('Installing mmt mime-type...')
     path = os.path.join(home, '.local', 'share', 'mime', 'packages')
-    name = 'x-myokit.xml'
-    place_file(path, name)
-    print('Installing gde mime-type...')
-    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
-    name = 'x-gde.xml'
-    place_file(path, name)
+    place_file(path, 'x-myokit.xml')
+    print('Installing CellML mime-type...')
+    place_file(path, 'x-cellml.xml')
     print('Installing abf mime-type...')
-    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
-    name = 'x-abf.xml'
-    place_file(path, name)
+    place_file(path, 'x-abf.xml')
     print('Installing wcp mime-type...')
-    path = os.path.join(home, '.local', 'share', 'mime', 'packages')
-    name = 'x-wcp.xml'
-    place_file(path, name)
+    place_file(path, 'x-wcp.xml')
 
     # Reload mime database
     print('Reloading mime database')
@@ -609,7 +568,7 @@ def install_windows():
         print('Done')
 
     finally:
-        myokit._rmtree(tdir)
+        myokit.tools.rmtree(tdir)
 
 
 def add_icon_parser(subparsers):
@@ -632,6 +591,7 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     """
     Runs the Myokit IDE.
     """
+    import os
     import myokit
     if pyqt5:
         myokit.FORCE_PYQT5 = True
@@ -657,6 +617,8 @@ def ide(filename, pyqt4=False, pyqt5=False, pyside=False, pyside2=False):
     import myokit.gui.ide
     if pyqt5 or pyqt4 or pyside or pyside2:
         print('Using backend: ' + myokit.gui.backend)
+    if filename is not None:
+        filename = os.path.abspath(os.path.expanduser(filename))
     myokit.gui.run(myokit.gui.ide.MyokitIDE, filename)
 
 
@@ -979,7 +941,7 @@ def reset(force=False):
     if remove:
         print('Removing')
         print('  ' + myokit.DIR_USER)
-        myokit._rmtree(myokit.DIR_USER)
+        myokit.tools.rmtree(myokit.DIR_USER)
         print('Done')
     else:
         print('Aborting.')
@@ -1021,7 +983,7 @@ def run(source, debug, debugfile):
     # Read mmt file
     try:
         print('Reading model from ' + source)
-        b = myokit.Benchmarker()
+        b = myokit.tools.Benchmarker()
         (model, protocol, script) = myokit.load(source)
         print('File loaded in ' + str(b.time()) + ' seconds')
         if model is None:
@@ -1162,8 +1124,8 @@ def step(source, ref, ini, raw):
     # Evaluate all derivatives, show the results
     try:
         if raw:
-            derivs = model.eval_state_derivatives(state=ini)
-            print('\n'.join([myokit.strfloat(x) for x in derivs]))
+            derivs = model.evaluate_derivatives(state=ini)
+            print('\n'.join([myokit.float.str(x) for x in derivs]))
         else:
             print(myokit.step(model, initial=ini, reference=ref))
     except myokit.NumericalError as ee:
@@ -1313,6 +1275,11 @@ def add_test_parser(subparsers):
         'doc',
         help='Test documentation cover, building, and doc tests.')
     doc_parser.set_defaults(testfunc=test_documentation)
+
+    # Example notebooks
+    example_parser = subparsers.add_parser(
+        'examples', help='Test example notebooks.')
+    example_parser.set_defaults(testfunc=test_examples)
 
     # Publication examples
     pub_parser = subparsers.add_parser(
@@ -1714,6 +1681,152 @@ def test_doc_coverage_index(modules, classes, functions):
     return n == 0
 
 
+def test_examples(args):
+    """
+    Tests the example notebooks.
+    """
+    books = test_examples_list('examples')
+    print(books)
+
+    print('Found ' + str(len(books)) + ' notebook(s).')
+    test_examples_index('examples', books)
+    test_examples_all('examples', books)
+
+
+def test_examples_index(root, books):
+    """ Check that every notebook is included in the index. """
+    import os
+    import sys
+
+    print('Checking index...')
+
+    # Index file is in ./examples/README.md
+    index_file = os.path.join(root, 'README.md')
+    with open(index_file, 'r') as f:
+        index_contents = f.read()
+
+    # Find which are not indexed
+    not_indexed = [book for book in books if book not in index_contents]
+
+    # Report any failures
+    if len(not_indexed) > 0:
+        print('FAIL: Unindexed notebooks')
+        for book in sorted(not_indexed):
+            print('  ' + str(book))
+        sys.exit(1)
+    else:
+        print('ok: All (' + str(len(books)) + ') notebooks are indexed.')
+
+
+def test_examples_list(root, recursive=True):
+    """ Returns a list of all notebooks in a directory. """
+    import os
+
+    def scan(root, recursive, notebooks):
+        for filename in os.listdir(root):
+            path = os.path.join(root, filename)
+
+            # Add notebook
+            if os.path.splitext(path)[1] == '.ipynb':
+                notebooks.append(path)
+
+            # Recurse into subdirectories
+            elif recursive and os.path.isdir(path):
+                # Ignore hidden directories
+                if filename[:1] == '.':
+                    continue
+                scan(path, recursive, notebooks)
+        return notebooks
+
+    notebooks = []
+    scan(root, recursive, notebooks)
+    notebooks = [os.path.relpath(book, root) for book in notebooks]
+
+    return notebooks
+
+
+def test_examples_single(root, path):
+    """ Tests a notebook in a subprocess, exists if it doesn't finish. """
+    import myokit
+    import nbconvert
+    import os
+    import subprocess
+    import sys
+
+    b = myokit.tools.Benchmarker()
+    print('Running ' + path + ' ... ', end='')
+    sys.stdout.flush()
+
+    # Load notebook, convert to python
+    e = nbconvert.exporters.PythonExporter()
+    code, _ = e.from_filename(os.path.join(root, path))
+
+    # Remove coding statement, if present
+    code = '\n'.join([x for x in code.splitlines() if x[:9] != '# coding'])
+
+    # Tell matplotlib not to produce any figures
+    env = os.environ.copy()
+    env['MPLBACKEND'] = 'Template'
+
+    # Run in subprocess
+    cmd = [sys.executable, '-c', code]
+    curdir = os.getcwd()
+    try:
+        os.chdir(root)
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
+        )
+        stdout, stderr = p.communicate()
+        # TODO: Use p.communicate(timeout=3600) if Python3 only
+        if p.returncode != 0:
+            # Show failing code, output and errors before returning
+            print('ERROR')
+            print('-- script ' + '-' * (79 - 10))
+            for i, line in enumerate(code.splitlines()):
+                j = str(1 + i)
+                print(j + ' ' * (5 - len(j)) + line)
+            print('-- stdout ' + '-' * (79 - 10))
+            print(stdout)
+            print('-- stderr ' + '-' * (79 - 10))
+            print(stderr)
+            print('-' * 79)
+            return False
+    except KeyboardInterrupt:
+        p.terminate()
+        print('ABORTED')
+        sys.exit(1)
+    finally:
+        os.chdir(curdir)
+
+    # Successfully run
+    print('ok (' + b.format(b.time()) + ')')
+    return True
+
+
+def test_examples_all(root, books):
+    """ Runs all notebooks, and exits if one fails. """
+    import sys
+
+    # Ignore books with deliberate errors, but check they still exist
+    ignore_list = [
+    ]
+    books = set(books) - set(ignore_list)
+
+    # Scan and run
+    print('Testing notebooks')
+    failed = []
+    for book in books:
+        if not test_examples_single(root, book):
+            failed.append(book)
+    if failed:
+        print('FAIL: Errors encountered in notebooks')
+        for book in failed:
+            print('  ' + str(book))
+        sys.exit(1)
+    else:
+        print('ok: Successfully ran all (' + str(len(books)) + ') notebooks.')
+
+
 def test_examples_pub(args):
     """
     Runs all publication examples, exits if one of them fails.
@@ -1911,7 +2024,7 @@ def add_version_parser(subparsers):
 # Video
 #
 
-def video(src, key, dst, fps, colormap):
+def video(src, key, dst, fps, grow, colormap):
     """
     Use "moviepy" to create an animation from a DataBlock2d.
     """
@@ -1959,6 +2072,12 @@ def video(src, key, dst, fps, colormap):
     fps = int(fps)
     if fps < 1:
         print('Frame rate must be integer greater than zero.')
+        sys.exit(1)
+
+    # Get multiplier
+    grow = int(grow)
+    if grow < 1:
+        print('Grow must be integer greater than zero.')
         sys.exit(1)
 
     # Open file
@@ -2014,7 +2133,7 @@ def video(src, key, dst, fps, colormap):
 
     # Create movie
     print('Converting data into image frames.')
-    frames = data.colors(key, colormap=colormap)
+    frames = data.colors(key, colormap=colormap, multiplier=grow)
     print('Compiling frames into video clip.')
     video = mpy.ImageSequenceClip(frames, fps=fps)
     rate = str(nx * ny * fps * 4)
@@ -2059,6 +2178,12 @@ def add_video_parser(subparsers):
         metavar='fps',
         help='The number of (DataBlock) frames per second',
         default=16,
+    )
+    parser.add_argument(
+        '-grow',
+        metavar='grow',
+        help='Set to larger than 1 to turn each cell into multiple pixels.',
+        default=1,
     )
     parser.add_argument(
         '-colormap',

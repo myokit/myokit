@@ -60,6 +60,7 @@ tab = '    '
 # Get equations
 equations = model.solvable_order()
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -384,19 +385,25 @@ sim_init(PyObject *self, PyObject *args)
     ivars = 0;
     cell = cells;
 <?
-# Time is set globally, use only the value from the first cell
-var = model.time()
-print(tab + 'ivars += log_add(log_dict, logs, vars, ivars, "' + var.qname() + '", &' + v(var) + ');')
-?>
-    for(icell=0; icell<ncells; icell++) {
-<?
-for var in model.variables(deep=True, const=False):
-    print(tab*2 + 'sprintf(log_var_name, "%d.' + var.qname() + '", icell);')
-    print(tab*2 + 'ivars += log_add(log_dict, logs, vars, ivars, log_var_name, &' + v(var) + ');')
-?>
-        cell++;
-    }
 
+# Time and pace are set globally, use only the value from the first cell
+var_time = model.time()
+print(tab + 'ivars += log_add(log_dict, logs, vars, ivars, "' + var_time.qname() + '", &' + v(var_time) + ');')
+var_pace = model.binding('pace')
+if var_pace is not None:
+    print(tab + 'ivars += log_add(log_dict, logs, vars, ivars, "' + var_pace.qname() + '", &' + v(var_pace) + ');')
+
+# Add remaining variables
+print(tab + 'for(icell=0; icell<ncells; icell++) {')
+for var in model.variables(deep=True, const=False):
+    if var in (var_time, var_pace):
+        continue
+    print(tab * 2 + 'sprintf(log_var_name, "%d.' + var.qname() + '", icell);')
+    print(tab * 2 + 'ivars += log_add(log_dict, logs, vars, ivars, log_var_name, &' + v(var) + ');')
+print(tab * 2 + 'cell++;')
+print(tab + '}')
+
+?>
     /* Check if log contained extra variables */
     if (ivars != nvars) {
         PyErr_SetString(PyExc_Exception, "Unknown variables found in logging dictionary.");

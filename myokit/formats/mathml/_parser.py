@@ -721,6 +721,8 @@ class MathMLParser(object):
                     element)
 
             # Get value
+            if element.text is None:
+                raise MathMLError('Empty <cn> element', element)
             try:
                 value = float(element.text.strip())
             except ValueError:
@@ -739,6 +741,8 @@ class MathMLParser(object):
                     element)
 
             # Get value
+            if element.text is None:
+                raise MathMLError('Empty <cn> element', element)
             try:
                 value = int(element.text.strip(), base)
             except ValueError:
@@ -749,6 +753,8 @@ class MathMLParser(object):
         elif kind == 'double':
             # Floating point (positive, negative, exponents, etc)
 
+            if element.text is None:
+                raise MathMLError('Empty <cn> element', element)
             try:
                 value = float(element.text.strip())
             except ValueError:

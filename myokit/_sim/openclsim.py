@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 #
 # OpenCL driven simulation, 1d or 2d
 #
@@ -150,7 +151,8 @@ class SimulationOpenCL(myokit.CModule):
         super(SimulationOpenCL, self).__init__()
 
         # Require a valid model
-        model.validate()
+        if not model.is_valid():
+            model.validate()
 
         # Require independent components
         if model.has_interdependent_components():
@@ -167,24 +169,26 @@ class SimulationOpenCL(myokit.CModule):
 
         # Check dimensionality, number of cells
         try:
-            if len(ncells) != 2:
+            self._nx = int(ncells)
+            self._ny = 1
+            self._dims = (self._nx,)
+        except TypeError:
+            try:
+                assert len(ncells) == 2
+            except (TypeError, AssertionError):
                 raise ValueError(
                     'The argument "ncells" must be either a scalar or a tuple'
                     ' (nx, ny).')
             self._nx = int(ncells[0])
             self._ny = int(ncells[1])
             self._dims = (self._nx, self._ny)
-        except TypeError:
-            self._nx = int(ncells)
-            self._ny = 1
-            self._dims = (self._nx,)
         if self._nx < 1 or self._ny < 1:
             raise ValueError(
                 'The number of cells in any direction must be at least 1.')
         self._ntotal = self._nx * self._ny
 
         # Set diffusion mode
-        self._diffusion_enabled = True if diffusion else False
+        self._diffusion_enabled = bool(diffusion)
 
         # Set precision
         if precision not in (myokit.SINGLE_PRECISION, myokit.DOUBLE_PRECISION):
@@ -199,14 +203,15 @@ class SimulationOpenCL(myokit.CModule):
 
         # Get membrane potential variable (from pre-cloned model!)
         vm = model.label('membrane_potential')
-        if vm is None:
-            raise ValueError(
-                'This simulation requires the membrane potential'
-                ' variable to be labelled as "membrane_potential".')
-        if not vm.is_state():
-            raise ValueError(
-                'The variable labelled as membrane potential must'
-                ' be a state variable.')
+        if self._diffusion_enabled or self._rl:
+            if vm is None:
+                raise ValueError(
+                    'This simulation requires the membrane potential'
+                    ' variable to be labelled as "membrane_potential".')
+            if not vm.is_state():
+                raise ValueError(
+                    'The variable labelled as membrane potential must'
+                    ' be a state variable.')
 
         #if vm.is_referenced():
         #  raise ValueError('This simulation requires that no other variables'
@@ -231,21 +236,28 @@ class SimulationOpenCL(myokit.CModule):
         else:
             # Clone model, store
             self._model = model.clone()
-            self._vm = self._model.get(vm.qname())
+            if vm is None:
+                self._vm = None
+            else:
+                self._vm = self._model.get(vm.qname())
             del(model, vm)
 
         # Set default conductance values
-        self.set_conductance()
+        self._gx = self._gy = None
+        if self._diffusion_enabled:
+            self.set_conductance()
+
+        # Set conductance fields
+        self._gx_field = None
+        self._gy_field = None
 
         # Set connections
         self._connections = None
 
         # Set default paced cells
-        self._paced_cells = []
-        if diffusion:
+        self._paced_cells = None
+        if self._diffusion_enabled:
             self.set_paced_cells()
-        else:
-            self.set_paced_cells(self._nx, self._ny, 0, 0)
 
         # Scalar fields
         self._fields = OrderedDict()
@@ -273,20 +285,13 @@ class SimulationOpenCL(myokit.CModule):
             inputs['diffusion_current'] = 'idiff'
         self._bound_variables = self._model.prepare_bindings(inputs)
 
-        # Reserve keywords
-        from myokit.formats import opencl
-        self._model.reserve_unique_names(*opencl.keywords)
-        self._model.reserve_unique_names(
-            *['calc_' + c.name() for c in self._model.components()])
-        self._model.reserve_unique_names(
-            *['D_' + c.uname() for c in self._model.states()])
-        self._model.reserve_unique_names(*KEYWORDS)
+        # Create unique names
         self._model.create_unique_names()
 
         # Create back-end
         SimulationOpenCL._index += 1
         mname = 'myokit_sim_opencl_' + str(SimulationOpenCL._index)
-        mname += '_' + str(myokit._pid_hash())
+        mname += '_' + str(myokit.pid_hash())
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
         args = {
             'module_name': mname,
@@ -306,10 +311,11 @@ class SimulationOpenCL(myokit.CModule):
         libs = []
         flags = []
         plat = platform.system()
-        if plat != 'Darwin':    # pragma: no osx cover
+        if plat != 'Darwin':    # pragma: no macos cover
             libs.append('OpenCL')
         else:                   # pragma: no cover
-            flags.append('-framework OpenCL')
+            flags.append('-framework')
+            flags.append('OpenCL')
         if plat != 'Windows':   # pragma: no windows cover
             libs.append('m')
 
@@ -322,68 +328,69 @@ class SimulationOpenCL(myokit.CModule):
 
     def calculate_conductance(self, r, sx, chi, dx):
         """
-        The bidomain and monodomain models both start from the assumption of
-        ohmic conductance between cells. In this way, Myokit's diffusion
-        current
-        ::
+        This method is deprecated, please use :meth:`monodomain_conductance`
+        instead, but note the difference in the arguments::
 
-            I_diff[ij] = sum[g[ij] * (V[i] - V[j])]
+            calculate_conductance(r, sx, chi, dx)
 
-        (where the sum is over all neighbours j of cell i) is equivalent to the
-        fundamental assumption of the bidomain model. In some cases it may be
-        desirable to work backwards from the bidomain model, via the
-        monodomain model, to the Myokit formulation. This can be done under the
-        following conditions:
+        is equivalent to::
 
-        1. The conductivity tensor sigma has only diagonal components (so cells
-           never conduct diagonally).
-        2. The zero-flux boundary condution is used: no current flows between
-           the simulated tissue and its surroundings.
+            monodomain_conductance(1 / chi, r, sx, dx, 1)
 
-        Then, using a finite-difference approximation for the second order
-        derivative::
-
-            d^2V[i]   V[i-1] - 2*V[i] + V[i+1]
-            ------- = ------------------------
-             dx^2              dx^2
-
-        we can equate ``I_diff`` and the monodomain model to find::
-
-                   r    sx * chi
-            gx = ----- ---------
-                 1 + r    dx^2
-
-        with
-
-        ``r``
-            The intra- to extracellular conductivity ratio
-        ``sx``
-            The intracellular conductivity in direction "x"
-        ``chi``
-            The surface area of the membrane per unit volume
-        ``dx``
-            The size of the spatial discretisation step in direction ``x``
-        ``gx``
-            The cell-to-cell conductance in direction ``x``, as used by Myokit
-
-        This method uses the above equation to calculate and return a
-        conductance value from the parameters used in monodomain model based
-        simulations.
         """
-        return r * sx * chi / ((1 + r) * dx * dx)
+        # Deprecated since 2021-06-25
+        import warnings
+        warnings.warn('The method SimulationOpenCL.calculate_conductance() is'
+                      ' deprecated. Please use monodomain_conductance()'
+                      ' instead.')
+        return self.monodomain_conductance(1 / chi, r, sx, dx, 1)
 
     def conductance(self):
         """
-        Returns the cell-to-cell conductance used in this simulation. The
-        returned value will be a single float for 1d simulations and a tuple
-        ``(gx, gy)`` for 2d simulations. If a list of connections was passed in
-        ``None`` is returned
+        Returns the cell-to-cell conductance(s) used in this simulation.
+
+        The returned value will be a single float for 1d simulations, a tuple
+        ``(gx, gy)`` for 2d simulations, and ``None`` if conductances were set
+        with :meth:`set_conductance_field` or :meth:`set_connections()`.
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
-        if self._connections is not None:
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+        if (self._gx_field is not None) or (self._connections is not None):
             return None
         if len(self._dims) == 1:
             return self._gx
         return (self._gx, self._gy)
+
+    def default_state(self, x=None, y=None):
+        """
+        Returns the current default simulation state as a list of
+        ``len(state) * ncells`` floating point values.
+
+        If the optional arguments ``x`` and ``y`` specify a valid cell index a
+        single cell's state is returned. For example ``state(4)`` can be
+        used with a 1d simulation, while ``state(4, 2)`` is a valid index in
+        the 2d case.
+        """
+        if x is None:
+            return list(self._default_state)
+        else:
+            x = int(x or 0)
+            if x < 0 or x >= self._nx:
+                raise IndexError('Given x-index out of range.')
+            y = int(y or 0)
+            if len(self._dims) == 2:
+                if y < 0 or y >= self._ny:
+                    raise IndexError('Given y-index out of range.')
+                x += y * self._nx
+            elif y != 0:
+                raise ValueError(
+                    'Y-coordinate specified for 1-dimensional simulation.')
+
+            return self._default_state[x * self._nstate:(x + 1) * self._nstate]
 
     def find_nan(self, log, watch_var=None, safe_range=None, return_log=False):
         """
@@ -489,7 +496,7 @@ class SimulationOpenCL(myokit.CModule):
                             ifirst = bisect(ar, 0, len(ar) - 1)
                             if ifirst == 0:
                                 break
-                    elif not np.isfinite(ar[ifirst - 1]):
+                    elif not np.isfinite(ar[ifirst - 1]):   # pragma: no cover
                         # Earlier NaN found than before
                         kfirst = key
                         ifirst = bisect(ar, 0, ifirst)
@@ -541,7 +548,7 @@ class SimulationOpenCL(myokit.CModule):
                         elif i < ifirst:
                             kfirst = key
                             ifirst = i
-                        if i == 0:
+                        if i == 0:  # pragma: no cover
                             break
                 return ifirst, kfirst
 
@@ -594,12 +601,14 @@ class SimulationOpenCL(myokit.CModule):
         # Get time step
         try:
             dt = log[time_var][1] - log[time_var][0]
-        except IndexError:
+        except IndexError:  # pragma: no cover
             # Unable to guess dt!
             # So... Nan occurs before the first log interval is reached
             # That probably means dt was relatively large, so guess it was
             # large! Assuming milliseconds, start off with dt=5ms
             dt = 5
+            # Note: This seems impossible to reach at the moment, but would be
+            # possible if a log_times argument was supported.
 
         # Search with successively fine log interval
         while dt > 0:
@@ -610,6 +619,9 @@ class SimulationOpenCL(myokit.CModule):
 
         # Search for first occurrence of error in the detailed log
         ifirst, kfirst = find_error_position(log)
+        if ifirst is None:
+            ifirst = 0
+            kfirst = next(iter(log.items()))[0]
 
         # Get indices of cell in state vector
         ndims = len(self._dims)
@@ -645,7 +657,7 @@ class SimulationOpenCL(myokit.CModule):
         var = self._model.get('.'.join(kfirst.split('.')[ndims:]))
 
         # Get value causing error
-        value = states[1][var.indice()]
+        value = states[1 if ifirst > 0 else 0][var.indice()]
         var = var.qname()
 
         # Get time error occurred
@@ -700,23 +712,30 @@ class SimulationOpenCL(myokit.CModule):
         """
         Returns ``True`` if and only if the cell at index ``x`` (or index
         ``(x, y)`` in 2d simulations) will be paced during simulations.
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
         # Check input
         x = int(x)
         if x < 0 or x >= self._dims[0]:
-            raise ValueError('X-coordinate out of range: ' + str(x) + '.')
+            raise IndexError('X-coordinate out of range: ' + str(x) + '.')
         if len(self._dims) == 2:
             if y is None:
                 raise ValueError(
                     'No y-coordinate specified in 2-dimensional simulation.')
             y = int(y)
             if y < 0 or y >= self._dims[1]:
-                raise ValueError('Y-coordinate out of range: ' + str(y) + '.')
-        else:
-            if not (y is None or y == 0):
-                raise ValueError(
-                    'Y-coordinate specified in 1-dimensional simulation.')
+                raise IndexError('Y-coordinate out of range: ' + str(y) + '.')
+        elif y is None:
             y = 0
+        elif y != 0:
+            raise ValueError(
+                'Y-coordinate specified for 1-dimensional simulation.')
 
         # Pacing rectangle
         if type(self._paced_cells) == tuple:
@@ -728,6 +747,82 @@ class SimulationOpenCL(myokit.CModule):
         cid = x + y * self._dims[0]
         return cid in self._paced_cells
 
+    def monodomain_conductance(self, chi, k, D, dx, A=1):
+        """
+        Calculates conductance values ``g`` based on monodomain parameters,
+        assuming that membrane size, capacitance, and cell-to-cell conductance
+        do not vary spatially.
+
+        In this simulation, the membrane potential ``V`` of a cell is assumed
+        to be given by::
+
+            dV/dt = -1/Cm (I_ion + I_stim + I_diff)
+
+        where Cm is membrane capacitance and the diffusion current is defined
+        by::
+
+            I_diff[i] = sum[g[i,j] * (V[i] - V[j])]
+
+        in which the sum is over all neighbours ``j`` of cell ``i``.
+
+        Alternatively, with capacitance and currents normalised to membrane
+        area, we can write::
+
+            dV/dt = -1/cm (i_ion + i_stim + i_diff)
+
+        In the monodomain model (see e.g. [4]), this diffusion current per unit
+        area is defined as::
+
+            i_diff = -(1 / chi) (k / (k + 1)) ∇ * (D∇V)
+
+        (see the argument list below for the meaning of the variables).
+
+        This can be equated to Myokit's diffusion current, but only if we
+        assume **zero-flux boundary conditions**, a **regularly spaced grid**,
+        and **no spatial heterogeneity in D** (or g).
+
+        With these assumptions, we can use finite differences to find::
+
+            g_bar = (1 / chi) * (k / (k + 1)) * D * (1 / dx^2)
+
+        where ``g_bar`` is the cell-to-cell conductance, but normalised with
+        respect to unit membrane area.
+        For models with currents normalised to area this is unproblematic, but
+        to convert to models with unnormalised currents this means we have
+        added the further assumption that **each node contains some fixed
+        amount of membrane**, determined by an area A::
+
+            g = (1 / chi) * (k / (k + 1)) * D * (1 / dx^2) * A
+
+        This equation can also be applied in two dimensions, but only if
+        **we assume that the conductivity matrix is diagonal**, in which case::
+
+            gx = (1 / chi) * (k / (k + 1)) * Dx * (1 / dx^2) * A
+            gy = (1 / chi) * (k / (k + 1)) * Dy * (1 / dy^2) * A
+
+        This method uses the above equation to calculate and return a
+        conductance value from the parameters used in monodomain simulations.
+
+        Arguments:
+
+        ``chi``
+            The surface area of the membrane per unit volume (in units
+            area per volume).
+        ``k``
+            The intra- to extracellular conductivity ratio.
+        ``D``
+            The intracellular conductivity (in siemens per unit length).
+        ``dx``
+            The distance between grid points.
+        ``A``
+            The area of the cell membrane.
+
+        [4] Computer Model of Excitation and Recovery in the Anisotropic
+        Myocardium I. Rectangular and Cubic Arrays of Excitable Elements.
+        Leon & Horacek (1991) Journal of electrocardiology
+        """
+        return D * A * k / ((k + 1) * chi * dx * dx)
+
     def neighbours(self, x, y=None):
         """
         Returns a list of indices specifying the neighbours of the cell at
@@ -735,22 +830,28 @@ class SimulationOpenCL(myokit.CModule):
 
         Indices are given either as integers (1d or arbitrary geometry) or as
         tuples (2d).
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
         # Check input
-        x = int(x)
+        x = int(x or 0)
         if x < 0 or x >= self._dims[0]:
-            raise ValueError('X-coordinate out of range: ' + str(x) + '.')
+            raise IndexError('X-coordinate out of range: ' + str(x) + '.')
         if len(self._dims) == 2:
             if y is None:
                 raise ValueError(
                     'No y-coordinate specified in 2-dimensional simulation.')
             y = int(y)
             if y < 0 or y >= self._dims[1]:
-                raise ValueError('Y-coordinate out of range: ' + str(y) + '.')
-        else:
-            if not (y is None or y == 0):
-                raise ValueError(
-                    'Y-coordinate specified in 1-dimensional simulation.')
+                raise IndexError('Y-coordinate out of range: ' + str(y) + '.')
+        elif not (y is None or y == 0):
+            raise ValueError(
+                'Y-coordinate specified for 1-dimensional simulation.')
 
         # User-specified connections (always 1d)
         if self._connections is not None:
@@ -815,10 +916,7 @@ class SimulationOpenCL(myokit.CModule):
         if isinstance(var, myokit.Variable):
             var = var.qname()
         var = self._model.get(var)
-        try:
-            del(self._fields[var])
-        except KeyError:
-            pass
+        del(self._fields[var])
 
     def reset(self):
         """
@@ -906,7 +1004,7 @@ class SimulationOpenCL(myokit.CModule):
     def _run(self, duration, log, log_interval, report_nan, progress, msg):
         # Simulation times
         if duration < 0:
-            raise Exception('Simulation time can\'t be negative.')
+            raise ValueError('Simulation time can\'t be negative.')
         tmin = self._time
         tmax = tmin + duration
 
@@ -955,8 +1053,11 @@ class SimulationOpenCL(myokit.CModule):
             'fields': self._fields.keys(),
             'paced_cells': self._paced_cells,
             'rl_states': self._rl_states,
+            'connections': self._connections is not None,
+            'heterogeneous': self._gx_field is not None,
+            'fiber_tissue': False,
         }
-        if myokit.DEBUG:
+        if myokit.DEBUG:    # pragma: no cover
             print('-' * 79)
             print(
                 self._code(kernel_file, args,
@@ -1002,8 +1103,10 @@ class SimulationOpenCL(myokit.CModule):
                 self._nx,
                 self._ny,
                 self._diffusion_enabled,
-                self._gx,
-                self._gy,
+                self._gx or 0,
+                self._gy or 0,
+                self._gx_field,
+                self._gy_field,
                 self._connections,
                 tmin,
                 tmax,
@@ -1048,9 +1151,9 @@ class SimulationOpenCL(myokit.CModule):
                 icell_str = '(' + ','.join([str(x) for x in icell]) + ')'
                 txt.append(
                     'Encountered numerical error at t='
-                    + myokit.strfloat(time, precision=self._precision)
+                    + myokit.float.str(time, precision=self._precision)
                     + ' in cell ' + icell_str + ' when ' + var + '='
-                    + myokit.strfloat(value, precision=self._precision) + '.')
+                    + myokit.float.str(value, precision=self._precision) + '.')
 
                 # Check if this cell was paced.
                 is_paced = self.is_paced(*icell)
@@ -1083,16 +1186,16 @@ class SimulationOpenCL(myokit.CModule):
 
                 # Show bound variables
                 txt.append('Simulation variables during:')
-                txt.append('  Time: ' + myokit.strfloat(
+                txt.append('  Time: ' + myokit.float.str(
                     bounds[0][vtime], precision=self._precision))
-                if vpace:
+                if vpace is not None:
                     txt.append(
-                        '  Pacing variable: ' + myokit.strfloat(
+                        '  Pacing variable: ' + myokit.float.str(
                             bounds[0][vpace], precision=self._precision)
                         + is_paced_str)
-                if vdiff:
+                if vdiff is not None:
                     txt.append(
-                        '  Diffusion current: ' + myokit.strfloat(
+                        '  Diffusion current: ' + myokit.float.str(
                             bounds[0][vdiff], precision=self._precision))
                 if neighbours:
                     txt.append('  Connected cells: ' + neighbours_str)
@@ -1116,10 +1219,10 @@ class SimulationOpenCL(myokit.CModule):
                     # Evaluate state derivatives
                     eval_error = None
                     try:
-                        derivs = self._model.eval_state_derivatives(
+                        derivs = self._model.evaluate_derivatives(
                             state, bound, self._precision, ignore_errors=False)
                     except myokit.NumericalError as ee:
-                        derivs = self._model.eval_state_derivatives(
+                        derivs = self._model.evaluate_derivatives(
                             state, bound, self._precision, ignore_errors=True)
                         eval_error = str(ee)
 
@@ -1130,16 +1233,16 @@ class SimulationOpenCL(myokit.CModule):
 
                     # Show bound variables
                     txt.append('Simulation variables before:')
-                    txt.append('  Time: ' + myokit.strfloat(
+                    txt.append('  Time: ' + myokit.float.str(
                         bounds[1][vtime], precision=self._precision))
-                    if vpace:
+                    if vpace is not None:
                         txt.append(
-                            '  Pacing variable: ' + myokit.strfloat(
+                            '  Pacing variable: ' + myokit.float.str(
                                 bounds[1][vpace], precision=self._precision)
                             + is_paced_str)
-                    if vdiff:
+                    if vdiff is not None:
                         txt.append(
-                            '  Diffusion current: ' + myokit.strfloat(
+                            '  Diffusion current: ' + myokit.float.str(
                                 bounds[1][vdiff], precision=self._precision))
                     if neighbours:
                         txt.append('  Connected cells: ' + neighbours_str)
@@ -1147,16 +1250,16 @@ class SimulationOpenCL(myokit.CModule):
                     # Show all variables with non-finite values
                     txt.append(
                         'Logged all variables for points: ' + ', '.join(
-                            myokit.strfloat(t, precision=self._precision)
+                            myokit.float.str(t, precision=self._precision)
                             for t in d.time()))
                     txt.append(
-                        'Non-finite valued variables at t=' + myokit.strfloat(
+                        'Non-finite valued variables at t=' + myokit.float.str(
                             d.time()[-2], precision=self._precision))
                     for key, values in d.items():
                         value = values[-2]
                         if not np.isfinite(value):
                             txt.append(
-                                '  ' + str(key) + ' = ' + myokit.strfloat(
+                                '  ' + str(key) + ' = ' + myokit.float.str(
                                     value, precision=self._precision))
 
                     # Show any error in evaluating derivatives
@@ -1191,29 +1294,117 @@ class SimulationOpenCL(myokit.CModule):
 
         For a model with currents in ``[uA/uF]`` and voltage in ``[mV]``,
         `gx`` and ``gy`` have the unit ``[mS/uF]``.
+
+        Calling ``set_conductance`` will delete any conductances previously set
+        with :meth:`set_conductance_field` or :meth:`set_connections`.
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
-        self._gx = float(gx)
-        self._gy = float(gy)
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
+        gx, gy = float(gx), float(gy)
+        if gx < 0:
+            raise ValueError('Invalid conductance gx=' + str(gx))
+        if gy < 0:
+            raise ValueError('Invalid conductance gy=' + str(gy))
+        self._gx, self._gy = gx, gy
+        self._gx_field = self._gy_field = None
+        self._connections = None
+
+    def set_conductance_field(self, gx, gy=None):
+        """
+        Sets the cell-to-cell conductances used in this simulation, using lists
+        of conductances.
+
+        For 1d simulations, the argument ``gx`` should be a sequence of
+        ``nx - 1`` non-negative floats (where ``nx`` is the number of cells),
+        and ``gy`` should be ``None``.
+        For 2d simulations ``gx`` should be convertible to a numpy array with
+        shape ``(ny, nx - 1)`` and ``gy`` should be convertible to a numpy
+        array with shape ``(ny - 1, nx)``.
+
+        Calling ``set_conductance_field`` will delete any conductances
+        previously set with :meth:`set_conductance` or :meth:`set_connections`.
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
+        """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
+        # Check the field's size
+        gx = np.array(gx, copy=False, dtype=float)
+        if len(self._dims) == 1:
+            s = self._nx - 1
+            if gx.shape != (s, ):
+                raise ValueError(
+                    'The argument `gx` must have length ' + str(s) + '.')
+            if gy is not None:
+                raise ValueError(
+                    'For 1-d simulations the argument `gy` must be None.')
+        else:
+            s = (self._ny, self._nx - 1)
+            if gx.shape != s:
+                raise ValueError(
+                    'The argument `gx` must have dimensions ' + str(s) + '.')
+
+            if gy is None:
+                raise ValueError(
+                    'The argument `gy` must be set for 2-d simulations.')
+            gy = np.array(gy, copy=False, dtype=float)
+            s = (self._ny - 1, self._nx)
+            if gy.shape != s:
+                raise ValueError(
+                    'The argument `gy` must have dimensions ' + str(s) + '.')
+
+        # Check the field values
+        if np.any(gx < 0):
+            raise ValueError(
+                'The argument `gx` can not contain negative values.')
+        if (gy is not None) and np.any(gy < 0):
+            raise ValueError(
+                'The argument `gy` can not contain negative values.')
+
+        # Store
+        self._gx_field = list(gx.reshape((self._nx - 1) * self._ny))
+        if gy is None:
+            self._gy_field = None
+        else:
+            self._gy_field = list(gy.reshape(self._nx * (self._ny - 1)))
+        self._connections = None
 
     def set_connections(self, connections):
         """
-        Adds a list of connections between cells, each with their own
-        conductance. This allows the creation of arbitrary geometries.
+        Adds a list of connections between cells, allowing the creation of
+        arbitrary geometries.
 
-        The ``connections`` list should be given as a list of tuples
-        ``(cell1, cell2, conductance)``.
+        The ``connections`` should be given as a list of tuples
+        ``(cell_1, cell_2, conductance)``.
 
-        Connections are only supported for "1d" simulations (even though the
-        simulated geometry may have any number of dimensions).
+        Connections are only supported in 1d mode -- even though the
+        resulting geometry may represent a shape in an arbitrary number of
+        dimensions.
 
-        Setting a connection list overrules the conductances set with
-        :meth:`set_conductance`.
+        Calling `set_connections` will override any conductances previously set
+        with :meth:`set_conductance` or :meth:`set_conductance_field`.
+
+        If diffusion is disabled, a call to this method will raise a
+        ``RuntimeError``.
         """
-        if connections is None:
-            self._connections = None
-            return
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
         if len(self._dims) != 1:
-            raise ValueError('Connections can only be specified in 1d mode.')
+            raise RuntimeError('Connections can only be specified in 1d mode.')
+
+        if connections is None:
+            raise ValueError(
+                'Connection list cannot be None. To unset connections, call '
+                ' set_conductance() with the new conductance value.')
         conns = []
         doubles = set()
         for x in connections:
@@ -1221,7 +1412,7 @@ class SimulationOpenCL(myokit.CModule):
                 i, j, c = x
             except Exception:
                 raise ValueError(
-                    'Connections must be None or a list of 3-tuples'
+                    'Connections must be a list of 3-tuples'
                     ' (cell_index_1, cell_index_2, conductance).')
 
             # Check indices
@@ -1248,6 +1439,7 @@ class SimulationOpenCL(myokit.CModule):
             conns.append((i, j, c))
         del(doubles)
         self._connections = conns
+        self._gx_field = self._gy_field = None
 
     def set_constant(self, var, value):
         """
@@ -1309,10 +1501,10 @@ class SimulationOpenCL(myokit.CModule):
         if isinstance(var, myokit.Variable):
             var = var.qname()
         var = self._model.get(var)
-        if not var.is_constant():
-            raise ValueError('Only constants can be used for fields.')
         if var.is_bound():
             raise ValueError('Bound values cannot be replaced by fields.')
+        if not var.is_constant():
+            raise ValueError('Only constants can be used for fields.')
         # Check values
         values = np.array(values, copy=False, dtype=float)
         if len(self._dims) == 1:
@@ -1324,7 +1516,7 @@ class SimulationOpenCL(myokit.CModule):
             shape = (self._ny, self._nx)
             if values.shape != shape:
                 raise ValueError(
-                    'The argument `values` must have dimensions' + str(shape)
+                    'The argument `values` must have dimensions ' + str(shape)
                     + '.')
         # Add field
         self._fields[var] = list(values.reshape(self._nx * self._ny))
@@ -1337,8 +1529,6 @@ class SimulationOpenCL(myokit.CModule):
 
         This method can only define rectangular pacing areas. To select an
         arbitrary set of cells, use :meth:`set_paced_cell_list`.
-
-        If diffusion is disabled all cells will be paced.
 
         Arguments:
 
@@ -1358,7 +1548,14 @@ class SimulationOpenCL(myokit.CModule):
             The offset of the pacing rectangle in the y-direction. If a
             negative offset is given the offset is calculated from bottom to
             top.
+
+        If diffusion is disabled, all cells are paced and a call to this method
+        will raise a ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
         # Check nx and x. Allow cell selections outside of the boders!
         nx = int(nx)
         x = int(x)
@@ -1395,21 +1592,26 @@ class SimulationOpenCL(myokit.CModule):
         these cases it may be better to use a rectangular pacing area set using
         :meth:`set_paced_cells`.
 
-        If diffusion is disabled all cells will be paced.
+        If diffusion is disabled, all cells are paced and a call to this method
+        will raise a ``RuntimeError``.
         """
+        if not self._diffusion_enabled:
+            raise RuntimeError(
+                'This method is unavailable when diffusion is disabled.')
+
         paced_cells = []
         if len(self._dims) == 1:
             for cell in cells:
                 cell = int(cell)
                 if cell < 0 or cell >= self._nx:
-                    raise ValueError(
+                    raise IndexError(
                         'Cell index out of range: ' + str(cell) + '.')
                 paced_cells.append(cell)
         else:
             for i, j in cells:
                 i, j = int(i), int(j)
                 if i < 0 or j < 0 or i >= self._nx or j >= self._ny:
-                    raise ValueError(
+                    raise IndexError(
                         'Cell index out of range: (' + str(i) + ', ' + str(j)
                         + ').')
                 paced_cells.append(i + j * self._nx)
@@ -1430,24 +1632,39 @@ class SimulationOpenCL(myokit.CModule):
         Handles set_state and set_default_state.
         """
         n = len(state)
+
+        # Set full simulation state
         if n == self._nstate * self._ntotal:
+            if x is not None:
+                raise ValueError(
+                    'A state for all cells was passed in, but argument x'
+                    ' was not None.')
+            if y is not None:
+                raise ValueError(
+                    'A state for all cells was passed in, but argument y'
+                    ' was not None.')
             return list(state)
         elif n != self._nstate:
             raise ValueError(
                 'Given state must have the same size as a single'
                 ' cell state or a full simulation state')
+
+        # Set all cells to same state
         if x is None:
-            # State might not be a list, at this point...
+            # State might not be a list, at this point, so cast
             return list(state) * self._ntotal
+
         # Set specific cell state
-        x = int(x)
+        x = int(x or 0)
         if x < 0 or x >= self._nx:
-            raise KeyError('Given x-index out of range.')
+            raise IndexError('Given x-index out of range.')
+        y = int(y or 0)
         if len(self._dims) == 2:
-            y = int(y)
             if y < 0 or y >= self._ny:
-                raise KeyError('Given y-index out of range.')
+                raise IndexError('Given y-index out of range.')
             x += y * self._nx
+        elif y != 0:
+            raise ValueError('Y-index given for a 1-dimensional simulation.')
         offset = x * self._nstate
         update[offset:offset + self._nstate] = state
         return update
@@ -1484,6 +1701,8 @@ class SimulationOpenCL(myokit.CModule):
         """
         Sets the current simulation time.
         """
+        if time < 0:
+            raise ValueError('Simulation time cannot be negative')
         self._time = float(time)
 
     def shape(self):
@@ -1509,14 +1728,18 @@ class SimulationOpenCL(myokit.CModule):
         if x is None:
             return list(self._state)
         else:
-            x = int(x)
+            x = int(x or 0)
             if x < 0 or x >= self._nx:
-                raise KeyError('Given x-index out of range.')
+                raise IndexError('Given x-index out of range.')
+            y = int(y or 0)
             if len(self._dims) == 2:
-                y = int(y)
                 if y < 0 or y >= self._ny:
-                    raise KeyError('Given y-index out of range.')
+                    raise IndexError('Given y-index out of range.')
                 x += y * self._nx
+            elif y != 0:
+                raise ValueError(
+                    'Y-coordinate specified for 1-dimensional simulation.')
+
             return self._state[x * self._nstate:(x + 1) * self._nstate]
 
     def step_size(self):
@@ -1531,68 +1754,3 @@ class SimulationOpenCL(myokit.CModule):
         """
         return self._time
 
-
-KEYWORDS = [
-    'AtomicAdd',
-    'calculate_pacing',
-    'cell1',
-    'cell2',
-    'cell_step',
-    'cid',
-    'conductance',
-    'ctx',
-    'cty',
-    'diff_step',
-    'diff_arb_step',
-    'diff_arb_reset',
-    'diff_step_fiber_tissue',
-    'dt',
-    'floatVal',
-    'gft',
-    'gx',
-    'gy',
-    'i1',
-    'i2',
-    'i12',
-    'idiff',
-    'idiff_f',
-    'idiff_in',
-    'idiff_t',
-    'iff',
-    'ift',
-    'inter_log',
-    'intVal',
-    'ivf',
-    'ivt',
-    'ix',
-    'iy',
-    'i_vm',
-    'newVal',
-    'nfx',
-    'nfy',
-    'nsf',
-    'nst',
-    'ntx',
-    'nx',
-    'nx_paced',
-    'ny',
-    'ny_paced',
-    'n_inter',
-    'n_state',
-    'of1',
-    'of2',
-    'off',
-    'ofm',
-    'ofp',
-    'oft',
-    'operand',
-    'pace',
-    'pace_in',
-    'prevVal',
-    'Real',
-    'source',
-    'state',
-    'state_f',
-    'state_t',
-    'time',
-]

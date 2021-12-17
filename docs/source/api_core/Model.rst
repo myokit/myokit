@@ -23,6 +23,10 @@ Once created and validated, a model can be asked to
 which can then be used by an exporter to generate runnable simulation or
 analysis code.
 
+A :class:`ModelComparison` class is available that can compare models
+syntactically, while the :meth:`step` method can compare model output (either
+to other models' output or to stored reference files from external
+implementations).
 
 ``myokit.Model``
 ================
@@ -40,3 +44,9 @@ Name validation
 
 .. autofunction:: check_name
 
+Model comparison
+================
+
+.. autoclass:: ModelComparison
+
+.. autofunction:: step

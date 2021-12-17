@@ -718,6 +718,19 @@ class ContentMathMLParserTest(unittest.TestCase):
             mathml.MathMLError, 'Unsupported <cn> type',
             self.p, '<cn type="special">1</cn>')
 
+        # Missing value
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>', self.p, '<cn />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>',
+            self.p, '<cn type="real" />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>',
+            self.p, '<cn type="integer" />')
+        self.assertRaisesRegex(
+            mathml.MathMLError, 'Empty <cn>',
+            self.p, '<cn type="double" />')
+
     def test_trig_basic(self):
         # Test parsing basic trig functions
 

@@ -121,6 +121,8 @@ class ExpressionWriter(object):
         return {
             myokit.Name: self._ex_name,
             myokit.Derivative: self._ex_derivative,
+            myokit.PartialDerivative: self._ex_partial_derivative,
+            myokit.InitialValue: self._ex_initial_value,
             myokit.Number: self._ex_number,
             myokit.PrefixPlus: self._ex_prefix_plus,
             myokit.PrefixMinus: self._ex_prefix_minus,
@@ -176,6 +178,12 @@ class ExpressionWriter(object):
         raise NotImplementedError
 
     def _ex_derivative(self, e):
+        raise NotImplementedError
+
+    def _ex_partial_derivative(self, e):
+        raise NotImplementedError
+
+    def _ex_initial_value(self, e):
         raise NotImplementedError
 
     def _ex_number(self, e):
@@ -414,7 +422,7 @@ class TemplatedRunnableExporter(Exporter):
         """
         # Get and test path
         path = os.path.abspath(os.path.expanduser(path))
-        path = myokit.format_path(path)
+        path = myokit.tools.format_path(path)
         self._test_writable_dir(path)
 
         # Clone the model, allowing changes to be made during export
@@ -448,7 +456,7 @@ class TemplatedRunnableExporter(Exporter):
                 if os.path.exists(file_dir):
                     if not os.path.isdir(file_dir):
                         msg = 'Failed to create directory at: '
-                        msg += myokit.format_path(file_dir)
+                        msg += myokit.tools.format_path(file_dir)
                         msg += ' A file or link with that name already exists.'
                         raise myokit.ExportError(msg)
                 else:   # pragma: no cover
@@ -456,7 +464,7 @@ class TemplatedRunnableExporter(Exporter):
                         os.makedirs(file_dir)
                     except IOError as e:
                         msg = 'Failed to create directory at: '
-                        msg += myokit.format_path(file_dir)
+                        msg += myokit.tools.format_path(file_dir)
                         msg += ' IOError:' + str(e)
                         raise myokit.ExportError(msg)
 
@@ -464,19 +472,20 @@ class TemplatedRunnableExporter(Exporter):
             out_name = os.path.join(path, out_name)
             if os.path.exists(out_name):
                 if os.path.isdir(out_name):
-                    msg = 'Directory exists at ' + myokit.format_path(out_name)
+                    msg = 'Directory exists at ' \
+                          + myokit.tools.format_path(out_name)
                     raise myokit.ExportError(msg)
 
             # Check template file
             tpl_name = os.path.join(tpl_dir, tpl_name)
             if not os.path.exists(tpl_name):    # pragma: no cover
                 # Cover pragma: If this happens it's a bug in the exporter
-                msg = 'File not found: ' + myokit.format_path(tpl_name)
+                msg = 'File not found: ' + myokit.tools.format_path(tpl_name)
                 raise myokit.ExportError(msg)
             if not os.path.isfile(tpl_name):    # pragma: no cover
                 # Cover pragma: If this happens it's a bug in the exporter
                 msg = 'Directory found, expecting file at '
-                msg += myokit.format_path(tpl_name)
+                msg += myokit.tools.format_path(tpl_name)
                 raise myokit.ExportError(msg)
 
             # Render
@@ -488,7 +497,7 @@ class TemplatedRunnableExporter(Exporter):
                 except Exception as e:      # pragma: no cover
                     warnings.warn(
                         'An error ocurred while processing the template at '
-                        + myokit.format_path(tpl_name))
+                        + myokit.tools.format_path(tpl_name))
                     warnings.warn(traceback.format_exc())
                     if isinstance(e, myokit.pype.PypeError):
                         # Pype error? Then add any error details

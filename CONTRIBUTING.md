@@ -1,46 +1,127 @@
 # Contributing to Myokit
 
-Contributions to Myokit are very welcome! To streamline our work, please have a look at the guidelines below!
+Contributions to Myokit are very welcome! To streamline our work, please have a look at the guidelines below.
 
 We use [GIT](https://en.wikipedia.org/wiki/Git) and [GitHub](https://en.wikipedia.org/wiki/GitHub) to coordinate our work. When making any kind of update, try to follow the procedure below.
 
-### A. Setting up your system
+### A. Discussing the proposed changes
 
-1. If you're planning to contribute to Myokit, don't check out the repo directly, but create a [fork](https://help.github.com/articles/fork-a-repo/) and then [clone](https://help.github.com/articles/cloning-a-repository/) it onto your local system .
-2. Install Myokit in development mode, with `$ pip install -e .`.
-3. [Test](#testing) if everything's working, using the test script: `$ python test --quick`.
+1. Before doing any coding, create a GitHub [issue](https://guides.github.com/features/issues/) so that new ideas can be discussed. 
+   There might already be something similar in the pipeline, or a feature may have been tried and rejected.
+   A bit of pre-discussion can save lots of valuable time!
+
+### B. Setting up your system
+
+2. If you're planning to contribute code to Myokit, don't check out the repo directly, but create a [fork](https://help.github.com/articles/fork-a-repo/) and then [clone](https://help.github.com/articles/cloning-a-repository/) it onto your local system .
+3. Install Myokit in development mode, with `$ pip install -e .`.
+4. [Test](#testing) if everything's working, using the test script: `$ python test --quick`.
 
 If you run into any issues at this stage, please create an issue on GitHub.
 
-### B. Getting started on an issue
+### C. Creating a branch for your issue
 
-4. Before doing any coding, create a GitHub [issue](https://guides.github.com/features/issues/) so that new ideas can be discussed.
 5. Now create a [branch](https://help.github.com/articles/creating-and-deleting-branches-within-your-repository/) for the issue you're going to work on. 
    Using branches lets us test out new changes without changing the main repository.
 
 You now have everything you need to start making changes!
 
-### C. Writing your code
+### D. Writing your code
 
 6. Commit your changes to your branch with useful, descriptive commit messages.
-   Remember these are publically visible and should still make sense a few months ahead in time. 
+   Remember, these messages are publically visible and should still make sense a few months ahead in time. 
    While developing, you can keep using the github issue you're working on as a place for discussion.
    [Refer to your commits](https://stackoverflow.com/questions/8910271/how-can-i-reference-a-commit-in-an-issue-comment-on-github) when discussing specific lines of code.
-7. If you want to add a dependency on another library, or re-use code you found somewhere else, have a look at [these guidelines](#dependencies-and-reusing-code).
+7. If you want to add a dependency on another library, or re-use code you found somewhere else, have a look at [these guidelines](#dependencies-and-reusing-code), and discuss the new dependency in the project's issue.
 
-### D. Finishing touches
+### E. Finishing touches
 
-8. Please check your code conforms to the [coding style guidelines](#coding-style-guidelines).
-9. [Test your code!](#testing), and make sure it has 100% test coverage.
-10. Myokit has online documentation at http://docs.myokit.org/. To make sure any new methods or classes you added show up there, please read the [documentation](#documentation) section.
-11. If you made any changes that users should know about, add them to [CHANGELOG.md](./CHANGELOG.MD).
+8. Please check that your code conforms to the [coding style guidelines](#coding-style-guidelines).
+9. [Test your code](#testing), checks will be run before merging to ensure the changes have 100% test coverage.
+10. Myokit has online documentation at http://docs.myokit.org/.
+    To make sure any new methods or classes you added show up there, please read the [documentation](#documentation) section.
 
-### E. Merging changes
+### F. Merging changes
 
-12. When you feel your code is finished, or at least warrants serious discussion, create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR).
-13. Once a PR has been created, it will be tested, reviewed, discussed, and if all goes well it'll be merged into the main source code.
+11. When you feel your code is finished, or at least warrants discussion, create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR).
+12. In your branch, update the [CHANGELOG.md](./CHANGELOG.MD) with a link to this PR and a concise summary of the changes.
+13. Finally, the PR will be tested, reviewed, discussed, and if all goes well it'll be merged into the main source code.
 
 Thanks!
+
+
+
+
+
+## Project structure
+
+Myokit is written in [Python](https://en.wikipedia.org/wiki/Python_(programming_language)), with occassional bits of (ansi) [C](https://en.wikipedia.org/wiki/ANSI_C).
+It uses [CVODE](https://computation.llnl.gov/projects/sundials/cvode) for simulations, and [NumPy](https://en.wikipedia.org/wiki/NumPy) for pre- and post-processing.
+[OpenCL](https://en.wikipedia.org/wiki/OpenCL) is used for parallelised multi-cell simulation.
+
+When you clone the Myokit repository, you will see several directories and files.
+The main directory `myokit`, contains the Python `myokit` module.
+This is the part of the code that will be installed on users systems when they run `pip install myokit`.
+Various configuration files for testing and documentation infracstructure are present, which are described in the [Infrastructure & configuration files](#infrastructure--configuration-files) section below.
+
+Inside the `myokit` module, you'll find various submodules.
+Most of these are hidden (indicated by an underscore before their name), and are used to split the main `myokit` module up into sections for easier maintainance.
+For example, the code for `myokit.Model` lives in the hidden module `myokit._model_api`.
+
+### Key parts of the code
+
+- The file `__init__.py` sets up the main `myokit` module, importing various parts from hidden modules.
+- Models, components, and variables live in `_model_api.py`
+- Expressions, including names, numbers, operators, functions, and operators, live in `_expressions.py`
+- The unit system is implemented in `_unit.py`, and several predefined units are given in `units.py` (a public module).
+- Parsing of models and protocols is handled by `_parsing.py`
+- Myokit-defined exceptions are stored in `_err.py`
+
+### Simulation infrastructure
+
+- Event-based protocols and a Python "pacing system" are implemented in `_protocol.py`, with protocol-generating methods available in the public model `pacing.py`.
+- Simulation results are stored in a `DataLog`, implemented in `_datalog.py`.
+- For simulations on rectangular grids, a `DataLog` can be converted to a `DataBlock1d` or a `DataBlock2d`, which provides access to the data in array form.
+- Most simulations are written as templates, that are turned into compilable code using the tiny templating engine in `pype.py`.
+
+### Simulation code
+
+- Simulation code is stored in the `_sim` module, which contains several submodules.
+- The `cmodel.py` and `cmodel.h` files can be used to generate a set of C functions to evaluate a Myokit model's RHS.
+- These are used by the CVODE(s) simulation implemented in `cvodessim.py`, which also uses the template `cvodessim.c` to generate simulation code.
+- Event-based pacing and fixed-form pacing are implemented in `pacing.h`.
+- OpenCL simulations are implemented in `openclsim.py`, `openclsim.c` and `openclsim.cl`, with utility functions loaded from `mcl.h`.
+- Information on how the simulations work can be found in their docstring, and in the technical notes in the [examples](./examples).
+
+### Import and export
+
+- Import and export from and to various formats is implemented in `myokit.formats`.
+- Its `__init__.py` defines the `Importer`, `Exporter`, and `ExpressionWriter` classes to import and export models, and to export expressions.
+- Additionally, it contains methods such as `myokit.formats.importer(name)`, allowing you to obtain an importer by name (rather than via importing a module).
+
+### Libraries
+
+- Some advanced bits of functionality are stored in `myokit.lib.*` submodules
+- Methods for analysis of model variable dependencies are provided in `myokit.lib.deps`.
+- Methods for Hodgkin-Huxley style ion-channel models are provided in `myokit.lib.hh`, including methods to isolate HH models, and to run analytic or stochastic (single-channel) simulations.
+- Similar methods for Markov models are provided in `myokit.lib.markov`.
+- Methods to guess variables with a special meaning (e.g. membrane potential) are provided in `myokit.lib.guess`.
+
+### GUI code
+
+- GUI code is provided in `myokit.gui`, Myokit uses Qt via PyQt or PySide.
+
+### Utilities
+
+- Various auxillary functions that are included in `myokit` are stored in `_aux.py` and `_io.py` (for file system functions).
+- Floating point tools are implemented in `float.py`.
+- Various general-purpose tools required by Myokit are provided in `tools.py`.
+- Command line scripts are implemented in `__main__.py`
+
+### Configuration
+
+- The myokit version number is stored in `_myokit_version.py`.
+- Configuration loading and storing is handled in `_config.py`.
+- System information is be queried in `_system.py`
 
 
 
@@ -60,11 +141,7 @@ This will tell other Python modules where to find Myokit, so that you can use `i
 
 
 
-
 ## Coding style guidelines
-
-Myokit is written in [Python](https://en.wikipedia.org/wiki/Python_(programming_language)), with occassional bits of (ansi) [C](https://en.wikipedia.org/wiki/ANSI_C).
-It uses [CVODE](https://computation.llnl.gov/projects/sundials/cvode) for simulations, and [NumPy](https://en.wikipedia.org/wiki/NumPy) for pre- and post-processing.
 
 For the Python bits, Myokit follows the [PEP8 recommendations](https://www.python.org/dev/peps/pep-0008/) for coding style.
 These are very common guidelines, and community tools have been developed to check how well projects implement them.
@@ -104,8 +181,8 @@ Snippets from blogs and stackoverflow can often be included without attribution,
 Myokit includes plotting methods, _but_, these should never be vital for its functioning, so that users are free to use Myokit with other plotting libraries.
 
 Secondly, Matplotlib should never be imported at the module level, but always inside methods.
-This means that the `myokit` module can be imported without Matplotlib being installed, and used as long as not Matplotlib-reliant methods are called.
-
+This means that the `myokit` module can be imported without Matplotlib being installed, and used as long as no Matplotlib-reliant methods are called.
+It also allows user code to call methods that customise matplotlib behaviour (e.g. back-end selection), which must be run before certain matplotlib modules are imported.
 
 
 
@@ -113,7 +190,7 @@ This means that the `myokit` module can be imported without Matplotlib being ins
 
 ## Testing
 
-Myokit uses the [unittest](https://docs.python.org/3.3/library/unittest.html) package for tests.
+Myokit uses the [unittest](https://docs.python.org/3.9/library/unittest.html) package for tests.
 
 To run unit tests:
 
@@ -210,10 +287,7 @@ Then have a look at `<your myokit path>/doc/build/html/index.html`.
 
 - Installation happens using `setup.py`, but also information from `MANIFEST.in`.
 - Users can find the license in `LICENSE.txt` and a citable reference in `CITATION` ([syntax](https://www.software.ac.uk/blog/2016-10-06-encouraging-citation-software-introducing-citation-files)).
-- Linux and OS/X tests are run using [travis](https://travis-ci.com/) and published [here](https://travis-ci.org/MichaelClerx/myokit).
-  Configuration file `.travis.yml` ([syntax](https://docs.travis-ci.com/)).
-- Windows tests are run using [appveyor](http://appveyor.com/), with results [published here](https://ci.appveyor.com/project/MichaelClerx/myokit). 
-  Configuration file `.appveyor.yml` ([syntax](https://www.appveyor.com/docs/appveyor-yml/)).
+- Tests are run using Github Actions, and configured [here](./.github/workflows).
 - Coverage is tested using [codecov.io](https://docs.codecov.io/docs) which builds on [coverage](https://coverage.readthedocs.io/). 
   Configuration file: `.coveragerc` ([syntax](https://coverage.readthedocs.io/en/latest/config.html)).
 - Documentation is built using [readthedocs](readthedocs.org) and [published here](https://myokit.readthedocs.io/).

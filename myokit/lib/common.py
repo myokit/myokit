@@ -689,7 +689,7 @@ class Restitution(object):
         }
 
         # Create simulation
-        s = myokit.Simulation(self._model, apd_var=self._vvar)
+        s = myokit.Simulation(self._model)
         s.set_max_step_size(self._max_step_size)
 
         # Start testing
@@ -714,6 +714,7 @@ class Restitution(object):
             d, a = s.run(
                 c * self._beats,
                 log=myokit.LOG_NONE,
+                apd_variable=self._vvar,
                 apd_threshold=self._apd_threshold
             )
 
@@ -772,7 +773,7 @@ class Restitution(object):
         Sets an (optional) maximum step size for the solver. To let the solver
         pick any step size it likes, use ``dtmax=None``.
 
-        This method can be useful to avoid "CVODE flag 22" errors.
+        This method can be useful to avoid "CVODES flag 22" errors.
         """
         if dtmax is None:
             self._max_step_size = None
