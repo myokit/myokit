@@ -24,6 +24,134 @@ class VariableTest(unittest.TestCase):
     """
     Tests parts of :class:`myokit.Variable`.
     """
+    def test_clamp(self):
+        # Tests clamping a variable to a fixed value
+        m = myokit.parse_model("""
+            [[model]]
+            z.g = 2
+            z.h = 6.123
+            z.p = 1.5
+
+            [z]
+            t = 0 [s]
+                in [s]
+                bind time
+            a = 3 [ms]
+                in [ms]
+            b = 4 [mV]
+            b2 = 3
+                in [A]
+            c = 4 [A] * 3 [A] / 2 [A] + 5 [A]
+                in [A]
+            d = e + f + t + 8 [m*s] / g
+                e = 1 [s]
+                    in [s]
+                f = 2 [s]
+                    in [s]
+                in [s]
+            dot(g) = 3 [m/s]
+                in [m]
+            dot(h) = h / 3 [s] + i + 2 [m] / d
+                i = 4 [m/s] * j * m * n + h / 1 [s]
+                    in [m/s]
+                    j = 3 + 2 * k + n
+                        k = 4
+                    m = j - 1
+                    n = 2
+                in [m]
+            dot(p) = 1
+                in [mV]
+            """)
+        m.validate()
+        m.check_units(myokit.UNIT_TOLERANT)
+        m_org = m.clone()
+
+        # Clamp literal constants
+        m.get('z.a').clamp(5)
+        self.assertEqual(m.get('z.a').rhs(), myokit.Number(5, myokit.units.ms))
+        m.get('z.b').clamp()
+        self.assertEqual(m.get('z.b').rhs(), myokit.Number(4))
+        m.get('z.b2').clamp(1)
+        self.assertEqual(m.get('z.b2').rhs(), myokit.Number(1, myokit.units.A))
+        m.get('z.c').clamp()
+        self.assertEqual(m.get('z.c').rhs(), myokit.Number(11, myokit.units.A))
+
+        # Clamp variable with child and sibling dependencies
+        d = m.get('z.d')
+        self.assertEqual(len(d), 2)
+        m.get('z.d.e')
+        self.assertFalse(d.is_constant())
+        d.clamp()
+        self.assertEqual(d.rhs(), myokit.Number(7, myokit.units.s))
+        self.assertTrue(d.is_constant())
+        self.assertEqual(len(d), 0)
+        self.assertRaises(KeyError, m.get, 'z.d.e')
+        self.assertRaises(KeyError, m.get, 'z.d.f')
+        del(d)
+
+        # Clamp simple state
+        g = m.get('z.g')
+        self.assertTrue(g.is_state())
+        self.assertTrue(g.state_value() != 10)
+        self.assertEqual(g.unit(), myokit.units.m)
+        self.assertEqual(g.rhs().unit(), myokit.units.m / myokit.units.s)
+        self.assertEqual(m.count_states(), 3)
+        g.clamp(10)
+        self.assertTrue(g.is_literal())
+        self.assertFalse(g.is_state())
+        self.assertEqual(g.rhs(), myokit.Number(10, myokit.units.m))
+        self.assertEqual(m.count_states(), 2)
+        del(g)
+
+        # Clamp simple state with missing units
+        p = m.get('z.p')
+        self.assertTrue(p.is_state())
+        self.assertTrue(p.rhs().eval() != 1.5)
+        self.assertEqual(m.count_states(), 2)
+        p.clamp()
+        self.assertTrue(p.is_literal())
+        self.assertFalse(p.is_state())
+        self.assertEqual(p.rhs(), myokit.Number(1.5, myokit.units.mV))
+        self.assertEqual(m.count_states(), 1)
+        del(p)
+
+        # Clamp state with child and sibling dependencies
+        h = m.get('z.h')
+        self.assertEqual(len(h), 1)
+        self.assertEqual(len(list(h.variables(deep=True))), 5)
+        m.get('z.h.i.j.k')
+        self.assertFalse(h.is_constant())
+        self.assertEqual(m.count_states(), 1)
+        h.clamp()
+        self.assertEqual(h.rhs(), myokit.Number(6.123, myokit.units.m))
+        self.assertTrue(h.is_constant())
+        self.assertEqual(len(h), 0)
+        self.assertRaises(KeyError, m.get, 'z.h.i.j.k')
+        self.assertRaises(KeyError, m.get, 'z.h.i')
+        self.assertRaises(KeyError, m.get, 'z.h.i.m')
+        self.assertEqual(m.count_states(), 0)
+        del(h)
+
+        # Clamp nested variable
+        m = m_org.clone()
+        h = m.get('z.h')
+        x = h.eval()
+        self.assertEqual(len(list(h.variables(deep=True))), 5)
+        self.assertEqual(len(h), 1)
+        h.get('i.j.k')
+        self.assertFalse(h.is_constant())
+        i = h.get('i')
+        self.assertEqual(len(list(i.variables(deep=True))), 4)
+        self.assertFalse(i.is_literal())
+        y = i.eval()
+        i.clamp()
+        self.assertTrue(i.is_literal())
+        self.assertEqual(i.eval(), y)
+        self.assertEqual(h.eval(), x)
+        self.assertEqual(len(list(i.variables(deep=True))), 0)
+        self.assertEqual(len(list(h.variables(deep=True))), 1)
+        del(h, i)
+
     def test_convert_unit(self):
         # Test changing variable units
 
@@ -294,6 +422,17 @@ class VariableTest(unittest.TestCase):
         self.assertEqual(list(y.refs_by()), [])
         self.assertEqual(list(z.refs_by()), [])
 
+        # Remove by removing RHS
+        y.set_rhs(None)
+        self.assertEqual(list(x.refs_to()), [])
+        self.assertEqual(list(y.refs_to()), [])
+        self.assertEqual(list(z.refs_to()), [x])
+        self.assertEqual(set(x.refs_by()), set([z]))
+        self.assertEqual(list(y.refs_by()), [])
+        self.assertEqual(list(z.refs_by()), [])
+        y.set_rhs('2 + x')
+
+        # Remove by changing RHS
         z.set_rhs(2)
         self.assertEqual(list(x.refs_to()), [])
         self.assertEqual(list(y.refs_to()), [x])
@@ -422,6 +561,71 @@ class VariableTest(unittest.TestCase):
         x.validate()
         self.assertRaises(myokit.CyclicalDependencyError, m.validate)
 
+    def test_remove_child_variables(self):
+        # Tests removing all child variables
+        m = myokit.parse_model("""
+            [[model]]
+
+            [z]
+            t = 0 [s]
+                in [s]
+                bind time
+            a = 4 [A] * 3 [A] / 2 [A] + 5 [A]
+                in [A]
+            b = c + d + t + 8 [s]
+                c = 1 [s]
+                    in [s]
+                d = 2 [s]
+                    in [s]
+                in [s]
+            e = f
+                f = g
+                    g = h
+                    h = i + j
+                        i = 1 [m]
+                        j = 2 [m]
+                in [m]
+            """)
+        m.validate()
+        m.check_units(myokit.UNIT_TOLERANT)
+        m_org = m.clone()
+
+        # Remove children on var without children
+        m.get('z.a').remove_child_variables()
+        self.assertEqual(m, m_org)
+
+        # Remove children on var with used children
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'the RHS still depends on <z.e.f>.',
+            m.get('z.e').remove_child_variables)
+        self.assertEqual(m, m_org)
+
+        # Remove children on nested var with used children
+        self.assertRaisesRegex(
+            myokit.IntegrityError,
+            'depends on <z.e.f.h.[i|j]> and <z.e.f.h.[j|i]>.',
+            m.get('z.e.f.h').remove_child_variables)
+        self.assertEqual(m, m_org)
+
+        # Remove children on nested var with unused children
+        e = m.get('z.e')
+        h = e.get('f.h')
+        self.assertEqual(len(list(h.variables())), 2)
+        self.assertEqual(len(list(e.variables(deep=True))), 5)
+        h.set_rhs('3 [m]')
+        h.remove_child_variables()
+        self.assertEqual(len(list(h.variables())), 0)
+        self.assertEqual(len(list(e.variables(deep=True))), 3)
+        m.validate()
+        del(h)
+
+        # Remove children on var with unused children
+        e.set_rhs('1.234 [m]')
+        self.assertEqual(len(list(e.variables(deep=True))), 3)
+        e.remove_child_variables()
+        self.assertEqual(len(list(e.variables(deep=True))), 0)
+        m.validate()
+
     def test_rename(self):
         # Test :meth:`Variable.rename().
 
@@ -522,6 +726,25 @@ class VariableTest(unittest.TestCase):
         p112 = p11.add_variable('p112')
         p121.set_rhs(p112.lhs())
         self.assertRaises(myokit.IllegalReferenceError, p121.validate)
+
+        # RHS cannot be a partial, init, or condition
+        m = myokit.Model()
+        c = m.add_component('c')
+        p = c.add_variable('p')
+        p.set_rhs(3)
+        q = c.add_variable('q')
+        q.set_rhs(2)
+        p.validate()
+        p.set_rhs(myokit.PartialDerivative(p.lhs(), q.lhs()))
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'Partial derivatives', p.validate)
+        p.promote(1)
+        p.set_rhs(myokit.InitialValue(myokit.Name(p)))
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'Initial value', p.validate)
+        p.set_rhs('q == 3')
+        self.assertRaisesRegex(
+            myokit.IntegrityError, 'can not be a condition', p.validate)
 
     def test_value(self):
         # Test :meth:`Variable.value()`.

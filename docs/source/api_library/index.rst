@@ -19,5 +19,4 @@ submodules detailed in the sections listed below.
     hh
     markov
     multi
-    parameter_estimation
 

@@ -71,21 +71,27 @@ bound_variables = model.prepare_bindings({
 # Get equations
 equations = model.solvable_order()
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+
 #include <cvode/cvode.h>
 #include <nvector/nvector_serial.h>
-#define MYOKIT_SUNDIALS_VERSION <?= myokit.SUNDIALS_VERSION ?>
-#if MYOKIT_SUNDIALS_VERSION >= 30000
+#include <sundials/sundials_types.h>
+#include <sundials/sundials_config.h>
+#ifndef SUNDIALS_VERSION_MAJOR
+    #define SUNDIALS_VERSION_MAJOR 2
+#endif
+#if SUNDIALS_VERSION_MAJOR >= 3
     #include <sunmatrix/sunmatrix_dense.h>
     #include <sunlinsol/sunlinsol_dense.h>
     #include <cvode/cvode_direct.h>
 #else
     #include <cvode/cvode_dense.h>
 #endif
-#include <sundials/sundials_types.h>
+
 #include "pacing.h"
 
 #define N_STATE <?= model.count_states() ?>
@@ -126,34 +132,34 @@ check_cvode_flag(void *flagvalue, char *funcname, int opt)
                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -2 CV_TOO_MUCH_ACC: The solver could not satisfy the accuracy demanded by the user for some internal step.");
                     break;
                 case -3:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -3 CV_ERR_FAILURE: Error test failures occurred too many times during one internal time step or minimum step size was reached.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -3 CV_ERR_FAILURE: Error test failures occurred too many times during one internal time step or minimum step size was reached.");
                     break;
                 case -4:
                     PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -4 CV_CONV_FAILURE: Convergence test failures occurred too many times during one internal time step or minimum step size was reached.");
                     break;
                 case -5:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -5 CV_LINIT_FAIL: The linear solver's initialization function failed.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -5 CV_LINIT_FAIL: The linear solver's initialization function failed.");
                     break;
                 case -6:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -6 CV_LSETUP_FAIL: The linear solver's setup function failed in an unrecoverable manner.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -6 CV_LSETUP_FAIL: The linear solver's setup function failed in an unrecoverable manner.");
                     break;
                 case -7:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -7 CV_LSOLVE_FAIL: The linear solver's solve function failed in an unrecoverable manner.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -7 CV_LSOLVE_FAIL: The linear solver's solve function failed in an unrecoverable manner.");
                     break;
                 case -8:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -8 CV_RHSFUNC_FAIL: The right-hand side function failed in an unrecoverable manner.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -8 CV_RHSFUNC_FAIL: The right-hand side function failed in an unrecoverable manner.");
                     break;
                 case -9:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -9 CV_FIRST_RHSFUNC_ERR: The right-hand side function failed at the first call.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -9 CV_FIRST_RHSFUNC_ERR: The right-hand side function failed at the first call.");
                     break;
                 case -10:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -10 CV_REPTD_RHSFUNC_ERR: The right-hand side function had repeated recoverable errors.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -10 CV_REPTD_RHSFUNC_ERR: The right-hand side function had repeated recoverable errors.");
                     break;
                 case -11:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -11 CV_UNREC_RHSFUNC_ERR: The right-hand side function had a recoverable error, but no recovery is possible.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -11 CV_UNREC_RHSFUNC_ERR: The right-hand side function had a recoverable error, but no recovery is possible.");
                     break;
                 case -12:
-                    PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -12 CV_RTFUNC_FAIL: The rootfinding function failed in an unrecoverable manner.");
+                    PyErr_SetString(PyExc_ArithmeticError, "Function CVode() failed with flag -12 CV_RTFUNC_FAIL: The root finding function failed in an unrecoverable manner.");
                     break;
                 case -20:
                     PyErr_SetString(PyExc_Exception, "Function CVode() failed with flag -20 CV_MEM_FAIL: A memory allocation failed.");
@@ -211,7 +217,7 @@ static long engine_steps = 0;
 <?
 for var in model.variables(state=False, deep=True):
     if var.is_literal():
-        print('static realtype ' + v(var) + ' = ' + myokit.strfloat(var.rhs().eval()) + ';')
+        print('static realtype ' + v(var) + ' = ' + myokit.float.str(var.rhs().eval()) + ';')
     else:
         print('static realtype ' + v(var) + ';')
 ?>
@@ -374,6 +380,24 @@ log_add(PyObject* log_dict, PyObject** logs, realtype** vars, int i, const char*
 }
 
 /*
+ * Error and warning message handler for CVODE.
+ * Error messages are already set via check_cvode_flag, so this method
+ * suppresses error messages.
+ * Warnings are passed to Python's warning system, where they can be
+ * caught or suppressed using the warnings module.
+ */
+void
+ErrorHandler(int error_code, const char *module, const char *function,
+             char *msg, void *eh_data)
+{
+    char errstr[1024];
+    if (error_code > 0) {
+        sprintf(errstr, "CVODE: %s", msg);
+        PyErr_WarnEx(PyExc_RuntimeWarning, errstr, 1);
+    }
+}
+
+/*
  * Simulation variables
  */
 
@@ -407,9 +431,12 @@ N_Vector y;          /* Stores the current position y */
 N_Vector y_log;      /* Used to store y when logging */
 N_Vector dy_log;     /* Used to store dy when logging */
 N_Vector y_last;     /* Used to store previous value of y for error handling */
-#if MYOKIT_SUNDIALS_VERSION >= 30000
+#if SUNDIALS_VERSION_MAJOR >= 3
 SUNMatrix sundense_matrix;          /* Dense matrix for linear solves */
 SUNLinearSolver sundense_solver;    /* Linear solver object */
+#endif
+#if SUNDIALS_VERSION_MAJOR >= 6
+SUNContext sundials_context; /* A sundials context to run in (for profiling etc.) */
 #endif
 
 /* Root finding */
@@ -450,9 +477,12 @@ sim_clean()
             y_log = NULL;
         }
         CVodeFree(&cvode_mem); cvode_mem = NULL;
-        #if MYOKIT_SUNDIALS_VERSION >= 30000
+        #if SUNDIALS_VERSION_MAJOR >= 3
         SUNLinSolFree(sundense_solver); sundense_solver = NULL;
         SUNMatDestroy(sundense_matrix); sundense_matrix = NULL;
+        #endif
+        #if SUNDIALS_VERSION_MAJOR >= 6
+        SUNContext_Free(&sundials_context); sundials_context = NULL;
         #endif
 
         /* Free pacing system space */
@@ -517,9 +547,12 @@ sim_init(PyObject *self, PyObject *args)
     epacing = NULL;
     fpacing = NULL;
     log_times = NULL;
-    #if MYOKIT_SUNDIALS_VERSION >= 30000
+    #if SUNDIALS_VERSION_MAJOR >= 3
     sundense_matrix = NULL;
     sundense_solver = NULL;
+    #endif
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    sundials_context = NULL;
     #endif
 
     /* Check input arguments */
@@ -594,15 +627,38 @@ sim_init(PyObject *self, PyObject *args)
        steals ownership: No need to decref.
     */
 
+    /*
+     * Create sundials context
+     */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    flag_cvode = SUNContext_Create(NULL, &sundials_context);
+    if (check_cvode_flag(&flag_cvode, "SUNContext_Create", 1)) {
+        PyErr_SetString(PyExc_Exception, "Failed to create Sundials context.");
+        return sim_clean();
+    }
+    #endif
+
+    /*
+     * Create state vectors
+     */
+
     /* Create state vector */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    y = N_VNew_Serial(N_STATE, sundials_context);
+    #else
     y = N_VNew_Serial(N_STATE);
+    #endif
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         return sim_clean();
     }
 
     /* Create state vector copy for error handling */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    y_last = N_VNew_Serial(N_STATE, sundials_context);
+    #else
     y_last = N_VNew_Serial(N_STATE);
+    #endif
     if (check_cvode_flag((void*)y_last, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create last-state vector.");
         return sim_clean();
@@ -619,7 +675,11 @@ sim_init(PyObject *self, PyObject *args)
     } else {
         /* Logging at fixed points:
            Keep y_log as a separate N_Vector for cvode interpolation */
+        #if SUNDIALS_VERSION_MAJOR >= 6
+        y_log = N_VNew_Serial(N_STATE, sundials_context);
+        #else
         y_log = N_VNew_Serial(N_STATE);
+        #endif
         if (check_cvode_flag((void*)y_log, "N_VNew_Serial", 0)) {
             PyErr_SetString(PyExc_Exception, "Failed to create logging state vector.");
             return sim_clean();
@@ -627,7 +687,11 @@ sim_init(PyObject *self, PyObject *args)
     }
 
     /* Create derivative vector for logging */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    dy_log = N_VNew_Serial(N_STATE, sundials_context);
+    #else
     dy_log = N_VNew_Serial(N_STATE);
+    #endif
     if (check_cvode_flag((void*)dy_log, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create logging state derivatives vector.");
         return sim_clean();
@@ -787,12 +851,18 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     /* Create solver
      * Using Backward differentiation and Newton iteration */
     #if USE_CVODE > 0
-    #if MYOKIT_SUNDIALS_VERSION >= 40000
+    #if SUNDIALS_VERSION_MAJOR >= 6
+        cvode_mem = CVodeCreate(CV_BDF, sundials_context);
+    #elif SUNDIALS_VERSION_MAJOR >= 4
         cvode_mem = CVodeCreate(CV_BDF);
     #else
         cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
     #endif
     if (check_cvode_flag((void*)cvode_mem, "CVodeCreate", 0)) return sim_clean();
+
+    /* Set error and warning-message handler */
+    flag_cvode = CVodeSetErrHandlerFn(cvode_mem, ErrorHandler, NULL);
+    if (check_cvode_flag(&flag_cvode, "CVodeInit", 1)) return sim_clean();
 
     /* Initialise solver memory, specify the rhs */
     flag_cvode = CVodeInit(cvode_mem, rhs, engine_time, y);
@@ -811,7 +881,31 @@ for var in model.variables(deep=True, state=False, bound=False, const=False):
     flag_cvode = CVodeSetMinStep(cvode_mem, dt_min);
     if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-    #if MYOKIT_SUNDIALS_VERSION >= 30000
+    #if SUNDIALS_VERSION_MAJOR >= 6
+        /* Create dense matrix for use in linear solves */
+        sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE, sundials_context);
+        if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+
+        /* Create dense linear solver object with matrix */
+        sundense_solver = SUNLinSol_Dense(y, sundense_matrix, sundials_context);
+        if (check_cvode_flag((void *)sundense_solver, "SUNLinSol_Dense", 0)) return sim_clean();
+
+        /* Attach the matrix and solver to cvode */
+        flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+        if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
+    #elif SUNDIALS_VERSION_MAJOR >= 4
+        /* Create dense matrix for use in linear solves */
+        sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
+        if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
+
+        /* Create dense linear solver object with matrix */
+        sundense_solver = SUNLinSol_Dense(y, sundense_matrix);
+        if (check_cvode_flag((void *)sundense_solver, "SUNLinSol_Dense", 0)) return sim_clean();
+
+        /* Attach the matrix and solver to cvode */
+        flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
+        if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
+    #elif SUNDIALS_VERSION_MAJOR >= 3
         /* Create dense matrix for use in linear solves */
         sundense_matrix = SUNDenseMatrix(N_STATE, N_STATE);
         if(check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
@@ -1239,6 +1333,7 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     int i;
     int success;
     int iState;
+    int flag_cvode;
     double time_in;
     double pace_in;
     char errstr[200];
@@ -1247,6 +1342,9 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     PyObject *flt;
     N_Vector y;
     N_Vector dy;
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    SUNContext sundials_context;
+    #endif
 
     /* Start */
     success = 0;
@@ -1269,9 +1367,14 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     /* From this point on, no more direct returning: use goto error */
     y = NULL;      /* A cvode SERIAL vector */
     dy = NULL;     /* A cvode SERIAL vector */
-    #if MYOKIT_SUNDIALS_VERSION >= 30000
-    sundense_matrix = NULL;     /* A matrix for linear solving */
-    sundense_solver = NULL;     /* A linear solver */
+
+    /* Create sundials context */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    flag_cvode = SUNContext_Create(NULL, &sundials_context);
+    if (check_cvode_flag(&flag_cvode, "SUNContext_Create", 1)) {
+        PyErr_SetString(PyExc_Exception, "Failed to create Sundials context.");
+        goto error;
+    }
     #endif
 
     /* Temporary object: decref before re-using for another var :) */
@@ -1279,12 +1382,20 @@ sim_eval_derivatives(PyObject *self, PyObject *args)
     flt = NULL;   /* PyFloat */
 
     /* Create state vectors */
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    y = N_VNew_Serial(N_STATE, sundials_context);
+    #else
     y = N_VNew_Serial(N_STATE);
+    #endif
     if (check_cvode_flag((void*)y, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state vector.");
         goto error;
     }
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    dy = N_VNew_Serial(N_STATE, sundials_context);
+    #else
     dy = N_VNew_Serial(N_STATE);
+    #endif
     if (check_cvode_flag((void*)dy, "N_VNew_Serial", 0)) {
         PyErr_SetString(PyExc_Exception, "Failed to create state derivatives vector.");
         goto error;
@@ -1332,6 +1443,9 @@ error:
     /* Free CVODE space */
     N_VDestroy_Serial(y);
     N_VDestroy_Serial(dy);
+    #if SUNDIALS_VERSION_MAJOR >= 6
+    SUNContext_Free(&sundials_context);
+    #endif
 
     /* Return */
     if (success) {

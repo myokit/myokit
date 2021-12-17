@@ -237,14 +237,14 @@ class DataLog(OrderedDict):
                 for i in range(0, n):
                     line = []
                     for d in data:
-                        line.append(myokit.strfloat(next(d)))
+                        line.append(myokit.float.str(next(d)))
                     f.write(delim.join(line) + eol)
             else:
                 for i in range(0, n):
                     line = []
                     for d in data:
                         try:
-                            line.append(myokit.strfloat(next(d)))
+                            line.append(myokit.float.str(next(d)))
                         except StopIteration:
                             line.append('0')
                     f.write(delim.join(line) + eol)

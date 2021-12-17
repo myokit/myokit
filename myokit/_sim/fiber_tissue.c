@@ -26,6 +26,7 @@ import myokit.formats.opencl as opencl
 
 tab = '    '
 ?>
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,7 +77,7 @@ void pyprint(const char* text)
  *  var      : The variable to add to the logs, if its name is present
  * Returns 0 if not added, 1 if added.
  */
-static int log_add(PyObject* log_dict, PyObject** logs, Real** vars, int i, char* name, const Real* var)
+static int log_add(PyObject* log_dict, PyObject** logs, Real** vars, unsigned long i, char* name, const Real* var)
 {
     int added = 0;
     PyObject* key = PyUnicode_FromString(name);
@@ -101,10 +102,10 @@ PyObject *platform_name;// A python string specifying the platform to use
 PyObject *device_name;  // A python string specifying the device to use
 char* kernel_source_f;  // The kernel code for the fiber model
 char* kernel_source_t;  // The kernel code for the tissue model
-int nfx;                // The number of cells in the x direction (fiber)
-int nfy;                // The number of cells in the y direction (fiber)
-int ntx;                // The number of cells in the x direction (tissue)
-int nty;                // The number of cells in the y direction (tissue)
+unsigned long nfx;      // The number of cells in the x direction (fiber)
+unsigned long nfy;      // The number of cells in the y direction (fiber)
+unsigned long ntx;      // The number of cells in the x direction (tissue)
+unsigned long nty;      // The number of cells in the y direction (tissue)
 int i_vm_f;             // The state index of the membrane potential (fiber)
 int i_vm_t;             // The state index of the membrane potential (tissue)
 double gfx;             // The cell-to-cell conductance in the fiber direction
@@ -120,9 +121,9 @@ PyObject* state_in_t;   // The initial state (tissue)
 PyObject* state_out_f;  // The final state (fiber)
 PyObject* state_out_t;  // The final state (tissue)
 PyObject *protocol;     // A pacing protocol
-int cfx;                // The x-coord. on the fiber where the tissue connects
-int ctx;                // The x-coord. on the tissue where the fiber connects
-int cty;                // The first connected y-coord. on the tissue
+unsigned long cfx;      // The x-coord. on the fiber where the tissue connects
+unsigned long ctx;      // The x-coord. on the tissue where the fiber connects
+unsigned long cty;      // The first connected y-coord. on the tissue
 PyObject *log_dict_f;   // A logging dict for the fiber
 PyObject *log_dict_t;   // A logging dict for the tissue
 double log_interval;    // The time between log writes
@@ -193,23 +194,23 @@ Real arg_gtx;
 Real arg_gty;
 Real arg_gft;
 
-// Logging
-PyObject** logs_f;      // An array of pointers to a PyObject (fiber)
-PyObject** logs_t;      // An array of pointers to a PyObject (tissue)
-Real** vars_f;          // An array of pointers to values to log (fiber)
-Real** vars_t;          // An array of pointers to values to log (tissue)
-int n_vars_f;           // Number of logging variables (fiber)
-int n_vars_t;           // Number of logging variables (tissue)
-double tnext_log;       /* The next logging point */
-unsigned long inext_log;// The number of logged steps
-int logging_states_f;   // True if any states are being logged
-int logging_states_t;   // True if any states are being logged
-int logging_diffusion_f;// True if diffusion current is being logged.
-int logging_diffusion_t;// True if diffusion current is being logged.
-int logging_inters_f;   // True if any intermediary vars are being logged
-int logging_inters_t;   // True if any intermediary vars are being logged
-int n_inter_f;          // The number of unique intermediary variables logged
-int n_inter_t;          // The number of unique intermediary variables logged
+/* Logging */
+PyObject** logs_f;       // An array of pointers to a PyObject (fiber)
+PyObject** logs_t;       // An array of pointers to a PyObject (tissue)
+Real** vars_f;           // An array of pointers to values to log (fiber)
+Real** vars_t;           // An array of pointers to values to log (tissue)
+unsigned long n_vars_f;  // Number of logging variables (fiber)
+unsigned long n_vars_t;  // Number of logging variables (tissue)
+double tnext_log;        /* The next logging point */
+unsigned long inext_log; // The number of logged steps
+int logging_states_f;    // True if any states are being logged
+int logging_states_t;    // True if any states are being logged
+int logging_diffusion_f; // True if diffusion current is being logged.
+int logging_diffusion_t; // True if diffusion current is being logged.
+int logging_inters_f;    // True if any intermediary vars are being logged
+int logging_inters_t;    // True if any intermediary vars are being logged
+unsigned long n_inter_f; // The number of unique intermediary variables logged
+unsigned long n_inter_t; // The number of unique intermediary variables logged
 
 // Temporary objects: decref before re-using for another var
 // (Unless you got it through PyList_GetItem or PyTuble_GetItem)
@@ -309,7 +310,7 @@ sim_init(PyObject* self, PyObject* args)
     cl_int flag;
 
     // Iteration
-    int i, j, k;
+    unsigned long i, j, k;
 
     // Platform and device id
     cl_platform_id platform_id;
@@ -317,14 +318,14 @@ sim_init(PyObject* self, PyObject* args)
 
     // Variable names
     char log_var_name[1023];
-    int k_vars;
+    unsigned long k_vars;
 
     // Compilation error message
     size_t blog_size;
     char *blog;
 
     // Cell coupling
-    int nsf, nst;
+    unsigned long nsf, nst;
 
     #ifdef MYOKIT_DEBUG
     printf("Starting initialization.\n");
@@ -366,12 +367,12 @@ sim_init(PyObject* self, PyObject* args)
     vars_t = NULL;
 
     // Check input arguments
-    if(!PyArg_ParseTuple(args, "OOssiiiiiidddddiiidddOOOOOOOdOO",
+    if(!PyArg_ParseTuple(args, "OOsskkkkiidddddkkkdddOOOOOOOdOO",
             &platform_name,
             &device_name,
             &kernel_source_f,
             &kernel_source_t,
-            &nfx,
+            &nfx,       // Small 'k' = unsigned long
             &nfy,
             &ntx,
             &nty,
@@ -455,19 +456,19 @@ sim_init(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_Exception, "'state_out_t' must be a list.");
         return sim_clean();
     }
-    if(PyList_Size(state_in_f) != nfx * nfy * n_state_f) {
+    if((unsigned long)PyList_Size(state_in_f) != nfx * nfy * n_state_f) {
         PyErr_SetString(PyExc_Exception, "'state_in_f' must have size nfx * nfy * n_states_f.");
         return sim_clean();
     }
-    if(PyList_Size(state_in_t) != ntx * nty * n_state_t) {
+    if((unsigned long)PyList_Size(state_in_t) != ntx * nty * n_state_t) {
         PyErr_SetString(PyExc_Exception, "'state_in_t' must have size ntx * nty * n_states_t.");
         return sim_clean();
     }
-    if(PyList_Size(state_out_f) != nfx * nfy * n_state_f) {
+    if((unsigned long)PyList_Size(state_out_f) != nfx * nfy * n_state_f) {
         PyErr_SetString(PyExc_Exception, "'state_out_f' must have size nfx * nfy * n_states_f.");
         return sim_clean();
     }
-    if(PyList_Size(state_out_t) != ntx * nty * n_state_t) {
+    if((unsigned long)PyList_Size(state_out_t) != ntx * nty * n_state_t) {
         PyErr_SetString(PyExc_Exception, "'state_out_t' must have size ntx * nty * n_states_t.");
         return sim_clean();
     }
@@ -493,7 +494,6 @@ sim_init(PyObject* self, PyObject* args)
     //
     // Set up pacing system
     //
-    flag_pacing;
     pacing = ESys_Create(&flag_pacing);
     if(flag_pacing!=ESys_OK) { ESys_SetPyErr(flag_pacing); return sim_clean(); }
     flag_pacing = ESys_Populate(pacing, protocol);
@@ -537,7 +537,7 @@ sim_init(PyObject* self, PyObject* args)
         flt = PyList_GetItem(state_in_f, i);    // Don't decref!
         if(!PyFloat_Check(flt)) {
             char errstr[200];
-            sprintf(errstr, "Item %d in fiber state vector is not a float.", i);
+            sprintf(errstr, "Item %u in fiber state vector is not a float.", (unsigned int)i);
             PyErr_SetString(PyExc_Exception, errstr);
             return sim_clean();
         }
@@ -553,7 +553,7 @@ sim_init(PyObject* self, PyObject* args)
         flt = PyList_GetItem(state_in_t, i);
         if(!PyFloat_Check(flt)) {
             char errstr[200];
-            sprintf(errstr, "Item %d in tissue state vector is not a float.", i);
+            sprintf(errstr, "Item %u in tissue state vector is not a float.", (unsigned int)i);
             PyErr_SetString(PyExc_Exception, errstr);
             return sim_clean();
         }
@@ -714,7 +714,7 @@ sim_init(PyObject* self, PyObject* args)
         clGetProgramBuildInfo(program_t, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &blog_size);
         blog = (char*)malloc(blog_size);
         clGetProgramBuildInfo(program_t, device_id, CL_PROGRAM_BUILD_LOG, blog_size, blog, NULL);
-        fprintf(stderr, "OpenCL Error: Fiber kernel failed to compile.\n");
+        fprintf(stderr, "OpenCL Error: Tissue kernel failed to compile.\n");
         fprintf(stderr, "----------------------------------------");
         fprintf(stderr, "---------------------------------------\n");
         fprintf(stderr, "%s\n", blog);
@@ -753,6 +753,9 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_cell_f, i++, sizeof(mbuf_idiff_f), &mbuf_idiff_f))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_cell_f, i++, sizeof(mbuf_inter_log_f), &mbuf_inter_log_f))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_cell_f, i++, sizeof(mbuf_field_data), &mbuf_field_data))) return sim_clean();
+    #ifdef MYOKIT_DEBUG
+    printf("Set up cell kernel for fiber model.\n");
+    #endif
 
     i = 0;
     if(mcl_flag(clSetKernelArg(kernel_diff_f, i++, sizeof(nfx), &nfx))) return sim_clean();
@@ -761,6 +764,9 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_diff_f, i++, sizeof(arg_gfy), &arg_gfy))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_f, i++, sizeof(mbuf_state_f), &mbuf_state_f))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_f, i++, sizeof(mbuf_idiff_f), &mbuf_idiff_f))) return sim_clean();
+    #ifdef MYOKIT_DEBUG
+    printf("Set up diffusion kernel for fiber model.\n");
+    #endif
 
     i = 0;
     if(mcl_flag(clSetKernelArg(kernel_cell_t, i++, sizeof(ntx), &ntx))) return sim_clean();
@@ -772,6 +778,9 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_cell_t, i++, sizeof(mbuf_idiff_t), &mbuf_idiff_t))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_cell_t, i++, sizeof(mbuf_inter_log_t), &mbuf_inter_log_t))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_cell_t, i++, sizeof(mbuf_field_data), &mbuf_field_data))) return sim_clean();
+    #ifdef MYOKIT_DEBUG
+    printf("Set up cell kernel for tissue model.\n");
+    #endif
 
     i = 0;
     if(mcl_flag(clSetKernelArg(kernel_diff_t, i++, sizeof(ntx), &ntx))) return sim_clean();
@@ -780,6 +789,9 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_diff_t, i++, sizeof(arg_gty), &arg_gty))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_t, i++, sizeof(mbuf_state_t), &mbuf_state_t))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_t, i++, sizeof(mbuf_idiff_t), &mbuf_idiff_t))) return sim_clean();
+    #ifdef MYOKIT_DEBUG
+    printf("Set up diffusion kernel for tissue model.\n");
+    #endif
 
     /* Set indices of coupled cell indexes in state and diff vectors */
     nsf = n_state_f;
@@ -798,9 +810,8 @@ sim_init(PyObject* self, PyObject* args)
     if(mcl_flag(clSetKernelArg(kernel_diff_ft, 11, sizeof(mbuf_state_t), &mbuf_state_t))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_ft, 12, sizeof(mbuf_idiff_f), &mbuf_idiff_f))) return sim_clean();
     if(mcl_flag(clSetKernelArg(kernel_diff_ft, 13, sizeof(mbuf_idiff_t), &mbuf_idiff_t))) return sim_clean();
-
     #ifdef MYOKIT_DEBUG
-    printf("Arguments passed into kernels.\n");
+    printf("Set up fiber-tissue diffusion kernel.\n");
     #endif
 
     /*
@@ -841,7 +852,7 @@ if var is not None:
 <?
 var = modelf.binding('diffusion_current')
 if var is not None:
-    print(3*tab + 'sprintf(log_var_name, "%d.%d.' + var.qname() + '", j, i);')
+    print(3*tab + 'sprintf(log_var_name, "%u.%u.' + var.qname() + '", (unsigned int)j, (unsigned int)i);')
     print(3*tab + 'if(log_add(log_dict_f, logs_f, vars_f, k_vars, log_var_name, &rvec_idiff_f[i*nfx+j])) {')
     print(4*tab + 'logging_diffusion_f = 1;')
     print(4*tab + 'k_vars++;')
@@ -856,7 +867,7 @@ if var is not None:
         for(j=0; j<nfx; j++) {
 <?
 for var in modelf.states():
-    print(3*tab + 'sprintf(log_var_name, "%d.%d.' + var.qname() + '", j, i);' )
+    print(3*tab + 'sprintf(log_var_name, "%u.%u.' + var.qname() + '", (unsigned int)j, (unsigned int)i);' )
     print(3*tab + 'if(log_add(log_dict_f, logs_f, vars_f, k_vars, log_var_name, &rvec_state_f[(i*nfx+j)*n_state_f+' + str(var.indice()) + '])) {')
     print(4*tab + 'logging_states_f = 1;')
     print(4*tab + 'k_vars++;')
@@ -872,7 +883,7 @@ for var in modelf.states():
             for(k=0; k<n_inter_f; k++) {
                 ret = PyList_GetItem(inter_log_f, k); /* Don't decref */
 <?
-print(4*tab + 'sprintf(log_var_name, "%d.%d.%s", j, i, PyBytes_AsString(ret));')
+print(4*tab + 'sprintf(log_var_name, "%u.%u.%s", (unsigned int)j, (unsigned int)i, PyBytes_AsString(ret));')
 print(4*tab + 'if(log_add(log_dict_f, logs_f, vars_f, k_vars, log_var_name, &rvec_inter_log_f[(i*nfx+j)*n_inter_f+k])) {')
 print(5*tab + 'logging_inters_f = 1;')
 print(5*tab + 'k_vars++;')
@@ -890,7 +901,7 @@ print(4*tab + '}')
     }
 
     #ifdef MYOKIT_DEBUG
-    printf("Created log for %d fiber variables.\n", n_vars_f);
+    printf("Created log for %u fiber variables.\n", (unsigned int)n_vars_f);
     #endif
 
     /* Now set up tissue logging */
@@ -912,7 +923,7 @@ if var is not None:
 <?
 var = modelt.binding('diffusion_current')
 if var is not None:
-    print(3*tab + 'sprintf(log_var_name, "%d.%d.' + var.qname() + '", j, i);')
+    print(3*tab + 'sprintf(log_var_name, "%u.%u.' + var.qname() + '", (unsigned int)j, (unsigned int)i);')
     print(3*tab + 'if(log_add(log_dict_t, logs_t, vars_t, k_vars, log_var_name, &rvec_idiff_t[i*ntx+j])) {')
     print(4*tab + 'logging_diffusion_t = 1;')
     print(4*tab + 'k_vars++;')
@@ -927,7 +938,7 @@ if var is not None:
         for(j=0; j<ntx; j++) {
 <?
 for var in modelt.states():
-    print(3*tab + 'sprintf(log_var_name, "%d.%d.' + var.qname() + '", j, i);' )
+    print(3*tab + 'sprintf(log_var_name, "%u.%u.' + var.qname() + '", (unsigned int)j, (unsigned int)i);' )
     print(3*tab + 'if(log_add(log_dict_t, logs_t, vars_t, k_vars, log_var_name, &rvec_state_t[(i*ntx+j)*n_state_t+' + str(var.indice()) + '])) {')
     print(4*tab + 'logging_states_t = 1;')
     print(4*tab + 'k_vars++;')
@@ -943,7 +954,7 @@ for var in modelt.states():
             for(k=0; k<n_inter_t; k++) {
                 ret = PyList_GetItem(inter_log_t, k); /* Don't decref */
 <?
-print(4*tab + 'sprintf(log_var_name, "%d.%d.%s", j, i, PyBytes_AsString(ret));')
+print(4*tab + 'sprintf(log_var_name, "%u.%u.%s", (unsigned int)j, (unsigned int)i, PyBytes_AsString(ret));')
 print(4*tab + 'if(log_add(log_dict_t, logs_t, vars_t, k_vars, log_var_name, &rvec_inter_log_t[(i*ntx+j)*n_inter_t+k])) {')
 print(5*tab + 'logging_inters_t = 1;')
 print(5*tab + 'k_vars++;')
@@ -961,7 +972,7 @@ print(4*tab + '}')
     }
 
     #ifdef MYOKIT_DEBUG
-    printf("Created log for %d tissue variables.\n", n_vars_t);
+    printf("Created log for %u tissue variables.\n", (unsigned int)n_vars_t);
     #endif
 
     /* Log update method: */
@@ -990,9 +1001,9 @@ static PyObject*
 sim_step(PyObject *self, PyObject *args)
 {
     ESys_Flag flag_pacing;
-    long steps_left_in_run;
+    unsigned long steps_left_in_run;
     cl_int flag;
-    int i;
+    unsigned long i;
     double d;
     int logging_condition;
 
@@ -1184,8 +1195,8 @@ sim_step(PyObject *self, PyObject *args)
  */
 static PyMethodDef SimMethods[] = {
     {"sim_init", sim_init, METH_VARARGS, "Initialize the simulation."},
-    {"sim_step", sim_step, METH_VARARGS, "Perform the next step in the simulation."},
-    {"sim_clean", py_sim_clean, METH_VARARGS, "Clean up after an aborted simulation."},
+    {"sim_step", sim_step, METH_NOARGS, "Perform the next step in the simulation."},
+    {"sim_clean", py_sim_clean, METH_NOARGS, "Clean up after an aborted simulation."},
     {NULL},
 };
 

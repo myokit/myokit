@@ -75,7 +75,7 @@ else:
 ?>
 /*
  * Prints an opencl error
- */ 
+ */
 void ocl_print_error(const int e, const char* s)
 {
     switch(e) {
@@ -120,7 +120,7 @@ cl_device_id get_device_id()
 	int i;
 	cl_int err;
 	/* Get preferred type */
-	for (i=0; i<platforms_n; i++) {		
+	for (i=0; i<platforms_n; i++) {
 	    err = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, 100, devices, &devices_n);
 	    if(err == CL_SUCCESS) {
 	        return devices[0];
@@ -135,7 +135,7 @@ cl_device_id get_device_id()
 	        return devices[0];
         } else if (err != CL_DEVICE_NOT_FOUND) {
             ocl_check("clGetDeviceIDs", err);
-        }        
+        }
 	}
 	printf("OpenCL Error: Unable to detect an opencl device.\n");
 	abort();
@@ -144,7 +144,7 @@ cl_device_id get_device_id()
 /*
  * Rounds up to the nearest multiple of ws_size.
  */
-static int round_total_size(const int ws_size, const int total_size) 
+static int round_total_size(const int ws_size, const int total_size)
 {
     int size = (total_size / ws_size) * ws_size;
     if(size < total_size) size += ws_size;
@@ -162,7 +162,7 @@ char* read_kernel(const char* fname)
         fprintf(stderr, "Error: Unable to read kernel file.\n");
         abort();
     }
-    
+
     /* Get length */
     fseek(fp, 0L, SEEK_END);
     long n_chars = ftell(fp);
@@ -176,12 +176,12 @@ char* read_kernel(const char* fname)
         fprintf(stderr, "Error: can't allocate enough memory to read file.");
         abort();
     }
-    
+
     /* Read bytes */
     fread(text, n_chars, 1, fp);
-    
+
     /* Close file and return */
-    fclose(fp);    
+    fclose(fp);
     return text;
 }
 
@@ -194,10 +194,10 @@ void set_initial_values(int n_cells, Real* s)
     for(i=0; i<n_cells; i++) {
 <?
 for v in model.states():
-    print(tab*2 + '*s = ' + myokit.strfloat(v.state_value()) + '; s++; // ' + str(v.qname()))
+    print(tab*2 + '*s = ' + myokit.float.str(v.state_value()) + '; s++; // ' + str(v.qname()))
 ?>
     }
-}   
+}
 
 /*
  * Runs a simulation
@@ -209,7 +209,7 @@ for v in model.states():
  * g            The cell-to-cell conductance (for example 1.5)
  */
 int run(const int n_cells, const Real time_start, const Real time_end, const Real dt, const Real g)
-{   
+{
     /* Steps per log action */
     const int steps_per_log = (int)(1.0 / dt);
 
@@ -217,10 +217,10 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     Real time = time_start;
 
     /* Work group size (in this case, one-dimensional) */
-    size_t local_work_size  = 64; 
+    size_t local_work_size  = 64;
     /* Total number of work items rounded up to a multiple of the local size */
     size_t global_work_size = round_total_size(local_work_size, n_cells);
-    
+
     /* Objects needing destruction */
     cl_context context = NULL;
     cl_command_queue command_queue = NULL;
@@ -231,7 +231,7 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     cl_mem mbuf_idiff = NULL;
     Real *state = NULL;
     Real *idiff = NULL;
-    
+
     /* Get device id */
     cl_device_id device_id = get_device_id();
     #ifdef __MYOKIT_DEBUG
@@ -255,12 +255,12 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     int dsize_state = n_cells * n_state * sizeof(Real);
     state = (Real*)malloc(dsize_state);
     set_initial_values(n_cells, state);
-    
+
     /* Create diffusion current vector and copy to device */
     int dsize_idiff = n_cells * sizeof(Real);
     idiff = (Real*)malloc(dsize_idiff);
     for(i=0; i<n_cells; i++) idiff[i] = 0.0;
-        
+
     /* Create memory buffers on the device */
     mbuf_state = clCreateBuffer(context, CL_MEM_READ_WRITE, dsize_state, NULL, &err);
     ocl_check("clCreateBuffer mbuf_state", err);
@@ -268,7 +268,7 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     ocl_check("clCreateBuffer mbuf_idiff", err);
     #ifdef __MYOKIT_DEBUG
     printf("Created buffers.\n");
-    #endif  
+    #endif
 
     /* Copy data into buffers */
     ocl(clEnqueueWriteBuffer(command_queue, mbuf_state, CL_TRUE, 0, dsize_state, state, 0, NULL, NULL));
@@ -276,7 +276,7 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     #ifdef __MYOKIT_DEBUG
     printf("Set initial state.\n");
     #endif
-    
+
     /* Load and compile the kernel program(s) */
     char* source = read_kernel("kernel.cl");
     program = clCreateProgramWithSource(context, 1, (const char**)&source, NULL, &err);
@@ -285,7 +285,7 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     if (err == CL_BUILD_PROGRAM_FAILURE) {
         fprintf(stderr, "OpenCL Error: Kernel failed to compile.\n");
         fprintf(stderr, "----------------------------------------");
-        fprintf(stderr, "---------------------------------------\n");        
+        fprintf(stderr, "---------------------------------------\n");
         /* Extract build log */
         size_t blog_size;
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &blog_size);
@@ -300,7 +300,7 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     #ifdef __MYOKIT_DEBUG
     printf("Program created and built.\n");
     #endif
-    
+
     /* Create the kernels */
     kernel_cell = clCreateKernel(program, "cell_step", &err);
     ocl_check("clCreateKernel", err);
@@ -316,14 +316,14 @@ int run(const int n_cells, const Real time_start, const Real time_end, const Rea
     ocl(clSetKernelArg(kernel_cell, 2, sizeof(dt), &dt));
     ocl(clSetKernelArg(kernel_cell, 3, sizeof(mbuf_state), &mbuf_state));
     ocl(clSetKernelArg(kernel_cell, 4, sizeof(mbuf_idiff), &mbuf_idiff));
-    ocl(clSetKernelArg(kernel_diff, 0, sizeof(n_cells), &n_cells));    
+    ocl(clSetKernelArg(kernel_diff, 0, sizeof(n_cells), &n_cells));
     ocl(clSetKernelArg(kernel_diff, 1, sizeof(g), &g));
     ocl(clSetKernelArg(kernel_diff, 2, sizeof(mbuf_state), &mbuf_state));
     ocl(clSetKernelArg(kernel_diff, 3, sizeof(mbuf_idiff), &mbuf_idiff));
     #ifdef __MYOKIT_DEBUG
     printf("Arguments passed into kernels.\n");
     #endif
-    
+
     /* Add log header */
     printf("engine.time");
     for(i=0; i<n_cells; i++) {
@@ -333,7 +333,7 @@ for v in model.states():
 ?>
     }
     printf("\n");
-    
+
     /* Start simulation */
     int steps = 0;
     int steps_till_log = 1;
@@ -342,7 +342,7 @@ for v in model.states():
         ocl(clSetKernelArg(kernel_cell, 1, sizeof(time), &time));
         ocl(clEnqueueNDRangeKernel(command_queue, kernel_diff, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL));
         ocl(clEnqueueNDRangeKernel(command_queue, kernel_cell, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL));
-    
+
         /* Show results for first cell */
         if (--steps_till_log == 0) {
             ocl(clEnqueueReadBuffer(command_queue, mbuf_state, CL_TRUE, 0, dsize_state, state, 0, NULL, NULL));
@@ -353,16 +353,16 @@ for v in model.states():
             printf("\n");
             steps_till_log = steps_per_log;
         }
-        
+
         steps++;
         time = time_start + steps * dt;
     }
-        
+
 done:
     /* Tidy up */
     #ifdef __MYOKIT_DEBUG
     printf("Tidying up.\n");
-    #endif  
+    #endif
 
     ocl(clFlush(command_queue));
     ocl(clFinish(command_queue));
@@ -370,15 +370,15 @@ done:
     ocl(clReleaseMemObject(mbuf_idiff));
     ocl(clReleaseKernel(kernel_cell));
     ocl(clReleaseKernel(kernel_diff));
-    ocl(clReleaseProgram(program)); 
-    ocl(clReleaseCommandQueue(command_queue));    
+    ocl(clReleaseProgram(program));
+    ocl(clReleaseCommandQueue(command_queue));
     ocl(clReleaseContext(context));
     free(state);
     free(idiff);
-    
+
     #ifdef __MYOKIT_DEBUG
     printf("Done.\n");
-    #endif 
+    #endif
 }
 
 int main()
@@ -390,6 +390,6 @@ int main()
         0.005,      // dt
         1.5         // g
         );
-        
+
     return 0;
 }

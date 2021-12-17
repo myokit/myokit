@@ -59,7 +59,7 @@ class JacobianTracer(myokit.CppModule):
         # Extension module id
         JacobianTracer._index += 1
         module_name = 'myokit_JacobianTracer_' + str(JacobianTracer._index)
-        module_name += '_' + str(myokit._pid_hash())
+        module_name += '_' + str(myokit.pid_hash())
 
         # Template arguments
         args = {
@@ -238,7 +238,7 @@ class JacobianCalculator(myokit.CppModule):
         JacobianCalculator._index += 1
         module_name = 'myokit_JacobianCalculator_'
         module_name += str(JacobianCalculator._index)
-        module_name += '_' + str(myokit._pid_hash())
+        module_name += '_' + str(myokit.pid_hash())
 
         # Template arguments
         args = {

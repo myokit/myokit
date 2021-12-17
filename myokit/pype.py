@@ -7,10 +7,11 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import ast
 import re
 import sys
-import parser
 import traceback
+
 import myokit
 
 try:
@@ -191,7 +192,9 @@ class TemplateEngine(object):
                 # Quick printing statement, python code must be expression
                 part = part.strip()
                 try:
-                    parser.expr(part)
+                    e = ast.parse(part)
+                    assert len(e.body) == 1
+                    assert isinstance(e.body[0], ast.Expr)
                 except Exception:
                     msg = 'Code within <?= ?> tags can only contain a single' \
                           ' expression.'

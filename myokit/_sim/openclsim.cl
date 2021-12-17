@@ -12,10 +12,13 @@
 # bound_variables   A dict of bound variables
 # inter_log         A list of intermediary variable objects to log
 # diffusion         True if diffusion currents are enabled
+# heterogeneous     True if heterogeneous conduction is enabled
+# connections       True if connections are enabled
 # fields            A list of variables to use as scalar fields
 # paced_cells       A list of cell id's to pace or a tuple (nx, ny, x, y)
 # rl_states         A map {state: (inf, tau)} of states for which to use Rush-
 #                   Larsen updates instead of forward Euler
+# fiber_tissue      True if the fiber-tissue kernel should be built
 # ----------------------------------------------------------------------------
 #
 # This file is part of Myokit.
@@ -92,6 +95,7 @@ def set_pointers(names=None):
     ptrs = []
     if names is not None:
         ptrs = list(names)
+
 def v(var):
     """
     Accepts a variable or a left-hand-side expression and returns its C
@@ -105,7 +109,7 @@ def v(var):
         var = var.var()
     if var in bound_variables:
         return bound_variables[var]
-    pre = '*' if myokit.Name(var) in ptrs else ''
+    pre = '*V_' if myokit.Name(var) in ptrs else 'V_'
     return pre + var.uname()
 w.set_lhs_function(v)
 
@@ -131,8 +135,10 @@ tab = '    '
 
 # Enable double precision, if required
 if precision == myokit.DOUBLE_PRECISION:
-    print('/* Enable double precision extension */')
+    print('/* Enable double precision extensions */')
     print('#pragma OPENCL EXTENSION cl_khr_fp64 : enable')
+    if connections:
+        print('#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable')
 
 ?>
 /* Number of states */
@@ -144,16 +150,24 @@ if precision == myokit.DOUBLE_PRECISION:
 /* Number of scalar fields */
 #define n_field <?=str(len(fields))?>
 
-/* Indice of membrane potential in state vector */
-#define i_vm <?= model.label('membrane_potential').indice() ?>
-
 <?
+if diffusion:
+    print('/* Indice of membrane potential in state vector */')
+    print('#define i_vm ' + str(model.label('membrane_potential').indice()))
+
 if precision == myokit.SINGLE_PRECISION:
     print('/* Using single precision floats */')
     print('typedef float Real;')
+    if connections:
+        print('typedef unsigned int RealSizedUInt;')
+        print('#define Myokit_cmpxchg atomic_cmpxchg')
 else:
     print('/* Using double precision floats */')
     print('typedef double Real;')
+    if connections:
+        print('typedef unsigned long RealSizedUInt;')
+        print('#define Myokit_cmpxchg atom_cmpxchg')
+
 
 print('')
 print('/* Constants */')
@@ -174,23 +188,17 @@ for group in equations.values():
 print('')
 print('/* Aliases of state variables. */')
 for var in model.states():
-    print('#define ' + var.uname() + ' state[of1 + ' + str(var.indice()) + ']')
+    print('#define ' + v(var) + ' state[of1 + ' + str(var.indice()) + ']')
 
 print('')
 print('/* Aliases of logged intermediary variables. */')
 for k, var in enumerate(inter_log):
-    print('#define ' + var.uname() + ' inter_log[of2 + ' + str(k) + ']')
+    print('#define ' + v(var) + ' inter_log[of2 + ' + str(k) + ']')
 
 print('')
 print('/* Aliases of scalar field variables. */')
 for k, var in enumerate(fields):
-    print('#define ' + var.uname() + ' field_data[of3 + ' + str(k) + ']')
-
-#print('')
-#print('/* List of components:')
-#for c in model.components():
-#    print('  ' + str(c))
-#print('*/')
+    print('#define ' + v(var) + ' field_data[of3 + ' + str(k) + ']')
 
 print('')
 for comp, ilist in comp_in.items():
@@ -209,9 +217,9 @@ for comp, ilist in comp_in.items():
     # Function header
     olist = comp_out[comp]
     args = [
-        'const uint of1',
-        'const uint of2',
-        'const uint of3',
+        'const unsigned long of1',
+        'const unsigned long of2',
+        'const unsigned long of3',
         '__global Real *state',
         '__global Real *inter_log',
         'const __global Real *field_data',
@@ -226,10 +234,10 @@ for comp, ilist in comp_in.items():
     # Equations
     for eq in equations[comp.name()].equations(const=False):
         var = eq.lhs.var()
+        if var in rl_states:
+            continue
         pre = tab
         if not (eq.lhs in ilist or eq.lhs in olist or eq.lhs in inter_log_lhs):
-            if var in rl_states:
-                continue
             pre += 'Real '
         if var not in bound_variables:
             print(pre + w.eq(eq) + ';')
@@ -238,33 +246,39 @@ for comp, ilist in comp_in.items():
     print('')
     set_pointers(None)
 
-?>
+if diffusion and paced_cells:
+    print('/*')
+    print(' * Calculate pacing current per cell')
+    print(' */')
+    print('inline Real calculate_pacing(')
+    print(tab + 'const unsigned long cid,')
+    print(tab + 'const unsigned long ix,')
+    print(tab + 'const unsigned long iy,')
+    print(tab + 'const Real pace)')
+    print('{')
 
-/*
- * Calculate pacing current per cell
- *
- */
-inline Real calculate_pacing(
-    const uint cid,
-    const uint ix,
-    const uint iy,
-    const Real pace)
-{
-<?
-if type(paced_cells) == tuple:
-    # Pacing rectangle
-    nx, ny, x, y = paced_cells
-    xlo, ylo = str(x), str(y)
-    xhi, yhi = str(x + nx), str(y + ny)
-    print(tab + 'return (ix >= ' + xlo + ' && ix < ' + xhi + ' && iy >= '
-        + ylo + ' && iy < ' + yhi + ') ? pace : 0;')
-else:
-    # Explicit cell selection
-    for id in paced_cells:
-        print(tab + 'if (cid == ' + str(id) + ') return pace;')
-    print('    return 0;')
+    if type(paced_cells) == tuple:
+        # Pacing rectangle
+        nx, ny, x, y = paced_cells
+        xlo, ylo = str(x), str(y)
+        xhi, yhi = str(x + nx), str(y + ny)
+
+        cond = []
+        if x > 0:
+           cond.append('ix >= ' + str(x))
+        if y > 0:
+            cond.append('iy >= ' + str(y))
+        cond.append('ix < ' + str(x + nx))
+        cond.append('iy < ' + str(y + ny))
+        cond = ' && '.join(cond)
+        print(tab + 'return (' + cond + ') ? pace : 0;')
+    else:
+        # Explicit cell selection
+        for id in paced_cells:
+            print(tab + 'if (cid == ' + str(id) + ') return pace;')
+        print('    return 0;')
+    print('}')
 ?>
-}
 
 /*
  * Cell kernel.
@@ -282,27 +296,27 @@ else:
  *  field_data : A vector containing all field data
  */
 __kernel void cell_step(
-    const uint nx,
-    const uint ny,
+    const unsigned long nx,
+    const unsigned long ny,
     const Real time,
     const Real dt,
     const Real pace_in,
     __global Real* state,
-    __global Real* idiff_in,
+    const __global Real* idiff_in,
     __global Real* inter_log,
     const __global Real* field_data
     )
 {
-    const uint ix = get_global_id(0);
-    const uint iy = get_global_id(1);
+    const unsigned long ix = get_global_id(0);
+    const unsigned long iy = get_global_id(1);
     if(ix >= nx) return;
     if(iy >= ny) return;
 
     // Offset of this cell's state in the state vector
-    const uint cid = ix + iy * nx;
-    const uint of1 = cid * n_state;
-    const uint of2 = cid * n_inter;
-    const uint of3 = cid * n_field;
+    const unsigned long cid = ix + iy * nx;
+    const unsigned long of1 = cid * n_state;
+    const unsigned long of2 = cid * n_inter;
+    const unsigned long of3 = cid * n_field;
 
     // Pacing
 <?
@@ -352,8 +366,12 @@ for var in model.states():
 ?>
 }
 
+<?
+if diffusion and (not connections) and (not heterogeneous):
+    print("""
 /*
- * Performs a single diffusion step
+ * Performs a single diffusion step, for a rectangular grid with homogeneous
+ * conduction.
  *
  * Arguments
  *  nx    : The number of cells in the x direction
@@ -364,24 +382,24 @@ for var in model.states():
  *  idiff : The diffusion current vector
  */
 __kernel void diff_step(
-    const uint nx,
-    const uint ny,
+    const unsigned long nx,
+    const unsigned long ny,
     const Real gx,
     const Real gy,
-    __global Real *state,
+    const __global Real *state,
     __global Real *idiff)
 {
-    const uint ix = get_global_id(0);
-    const uint iy = get_global_id(1);
+    const unsigned long ix = get_global_id(0);
+    const unsigned long iy = get_global_id(1);
     if(ix >= nx) return;
-    if (iy >= ny) return;
+    if(iy >= ny) return;
 
     // Offset of this cell's Vm in the state vector
-    const uint cid = ix + iy * nx;
-    const uint of1 = cid * n_state + i_vm;
+    const unsigned long cid = ix + iy * nx;
+    const unsigned long of1 = cid * n_state + i_vm;
 
     // Diffusion, x-direction
-    uint ofp, ofm;
+    unsigned long ofp, ofm;
     if(nx > 1) {
         ofp = of1 + n_state;
         ofm = of1 - n_state;
@@ -415,26 +433,94 @@ __kernel void diff_step(
         }
     }
 }
+    """)
 
+if heterogeneous:
+    print("""
 /*
- * Method due to Igor Suhorukov:
- *  http://suhorukov.blogspot.nl/2011/12/opencl-11-atomic-operations-on-floating.html
- * Similar algorithm:
- *  http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomic-functions
+ * Performs a single diffusion step, for a rectangular grid with heterogeneous
+ * conduction.
+ *
+ * Arguments
+ *  nx    : The number of cells in the x direction
+ *  ny    : The number of cells in the y direction
+ *  gx_field : The cell-to-cell conductances in the x direction
+ *  gy_field : The cell-to-cell conductances in the y direction
+ *  state : The state vector
+ *  idiff : The diffusion current vector
  */
-inline void AtomicAdd(volatile __global Real *source, const Real operand) {
+__kernel void diff_hetero(
+    const unsigned long nx,
+    const unsigned long ny,
+    const __global Real* gx,
+    const __global Real* gy,
+    const __global Real *state,
+    __global Real *idiff)
+{
+    const unsigned long ix = get_global_id(0);
+    const unsigned long iy = get_global_id(1);
+    if(ix >= nx) return;
+    if(iy >= ny) return;
+
+    // Offset of this cell's Vm in the state vector
+    const unsigned long cid = ix + iy * nx;
+    const unsigned long off = cid * n_state + i_vm;
+
+    // Current & voltage
+    Real i = 0.0;
+    Real v = state[off];
+
+    // Diffusion, x-direction
+    if(nx > 1) {
+        if(ix > 0) { i += gx[cid - iy - 1] * (v - state[off - n_state]); }
+        if(ix < nx - 1) { i += gx[cid - iy] * (v - state[off + n_state]); }
+    }
+
+    // Diffusion, y-direction
+    if(ny > 1) {
+        if(iy > 0) i += gy[cid - nx] * (v - state[off - n_state * nx]);
+        if(iy < ny - 1) i += gy[cid] * (v - state[off + n_state * nx]);
+    }
+
+    // Set
+    idiff[cid] = i;
+}
+    """)
+
+if connections:
+    print("""
+/*
+ * Atomic float addition. See:
+ *  https://streamhpc.com/blog/2016-02-09/atomic-operations-for-floats-in-opencl-improved/
+ *
+ * Note that this method relies on comparing the integer representation of the float.
+ * For this purpose, a type RealSizedUInt must be defined, that has the same size (in memory) as a Real.
+ */
+inline void AtomicAdd(volatile __global Real *var, const Real operand)
+{
+    // Create objects representing the same data as a real-sized integer and as Real (a union)
     union {
-        unsigned int intVal;
-        Real floatVal;
-    } newVal;
-    union {
-        unsigned int intVal;
-        Real floatVal;
-    } prevVal;
+        RealSizedUInt u;
+        Real f;
+    } current, expected, result;
+
+    // Set current value to var
+    current.f = *var;
+
     do {
-        prevVal.floatVal = *source;
-        newVal.floatVal = prevVal.floatVal + operand;
-    } while (atomic_cmpxchg((volatile __global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
+        // Set the expected value of var
+        expected.f = current.f;
+
+        // Calculate the new value
+        result.f = expected.f + operand;
+
+        // Check if the variable has the expected value, and if so update it to the calculated sum.
+        // After calling this, current will be set to whatever was in the variable.
+        current.u = Myokit_cmpxchg((volatile __global RealSizedUInt*)var, expected.u, result.u);
+
+        // If the variable had the expected value, it will now have been updated, so we can stop.
+        // If someone else had already modified the variable at this point, the next check will fail and we try again.
+    } while(current.u != expected.u);
 }
 
 /*
@@ -449,19 +535,19 @@ inline void AtomicAdd(volatile __global Real *source, const Real operand) {
  *  idiff : The diffusion current vector
  */
 __kernel void diff_arb_step(
-    const uint count,
-    __global int *cell1,
-    __global int *cell2,
-    __global Real *conductance,
-    __global Real *state,
+    const unsigned long count,
+    const __global unsigned long *cell1,
+    const __global unsigned long *cell2,
+    const __global Real *conductance,
+    const __global Real *state,
     __global Real *idiff)
 {
-    const uint ix = get_global_id(0);
+    const unsigned long ix = get_global_id(0);
     if(ix >= count) return;
 
     // Cell indices and conductance
-    int i1 = cell1[ix];
-    int i2 = cell2[ix];
+    unsigned long i1 = cell1[ix];
+    unsigned long i2 = cell2[ix];
     Real i12 = conductance[ix] * (state[i1 * n_state + i_vm] - state[i2 * n_state + i_vm]);
 
     // Diffusion
@@ -478,14 +564,17 @@ __kernel void diff_arb_step(
  *  idiff : The diffusion current vector
  */
 __kernel void diff_arb_reset(
-    const uint count,
+    const unsigned long count,
     __global Real *idiff)
 {
-    const uint ix = get_global_id(0);
+    const unsigned long ix = get_global_id(0);
     if(ix >= count) return;
     idiff[ix] = 0;
 }
+    """)
 
+if fiber_tissue:
+    print("""
 /*
  * Fiber-to-tissue diffusion program
  * Performs a single diffusion step wherein current flows from a fiber to a
@@ -510,26 +599,26 @@ __kernel void diff_arb_reset(
  *  idiff_t : The diffusion current vector for the tissue model
  */
 __kernel void diff_step_fiber_tissue(
-    const uint nfx,
-    const uint nfy,
-    const uint ntx,
-    const uint ctx,
-    const uint cty,
-    const uint nsf,
-    const uint nst,
-    const uint ivf,
-    const uint ivt,
+    const unsigned long nfx,
+    const unsigned long nfy,
+    const unsigned long ntx,
+    const unsigned long ctx,
+    const unsigned long cty,
+    const unsigned long nsf,
+    const unsigned long nst,
+    const int ivf,
+    const int ivt,
     const Real gft,
-    __global Real *state_f,
-    __global Real *state_t,
+    const __global Real *state_f,
+    const __global Real *state_t,
     __global Real *idiff_f,
     __global Real *idiff_t)
 {
-    const uint cid = get_global_id(0);
-    const uint iff = (nfx - 1) + cid * nfx;
-    const uint ift = ctx + (cty + cid) * ntx;
-    const uint off = iff * nsf + ivf;
-    const uint oft = ift * nst + ivt;
+    const unsigned long cid = get_global_id(0);
+    const unsigned long iff = (nfx - 1) + cid * nfx;
+    const unsigned long ift = ctx + (cty + cid) * ntx;
+    const unsigned long off = iff * nsf + ivf;
+    const unsigned long oft = ift * nst + ivt;
     if (cid < nfy) {
         // Connection
         Real idiff = gft * (state_f[off] - state_t[oft]);
@@ -537,15 +626,4 @@ __kernel void diff_step_fiber_tissue(
         idiff_t[ift] -= idiff;
     }
 }
-
-<?
-print('/* Remove aliases of state variables. */')
-for var in model.states():
-    print('#undef ' + var.uname())
-print('')
-print('/* Remove constant definitions */')
-for group in equations.values():
-    for eq in group.equations(const=True):
-        print('#undef ' + v(eq.lhs))
-?>
-#undef n_state
+    """)

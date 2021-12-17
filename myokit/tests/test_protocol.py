@@ -123,14 +123,6 @@ class ProtocolTest(unittest.TestCase):
         self.assertRaises(myokit.ProtocolEventError, create, 0, 2, 1)
         self.assertRaises(myokit.ProtocolEventError, create, 0, 2, 1, 1)
 
-    def test_guess_duration(self):
-        # Deprecated method Protocol.guess_duration()
-
-        p = myokit.Protocol()
-        with WarningCollector() as w:
-            self.assertEqual(p.characteristic_time(), p.guess_duration())
-        self.assertIn('deprecated', w.text())
-
     def test_in_words(self):
         # Test :meth:`Protocol.in_words()`.
 

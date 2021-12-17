@@ -251,7 +251,7 @@ class SBMLParser(object):
             # Parse rule and apply
             var.set_initial_value(_parse_mathml(
                 expr,
-                lambda x, y: myokit.Name(model.assignable(x)),
+                lambda x, y: myokit.Name(model.assignable_or_csymbol(x)),
             ))
 
         except myokit.formats.sbml.SBMLError as e:
@@ -274,7 +274,7 @@ class SBMLParser(object):
         # Kinetic law is not allowed use species unless they're defined in the
         # reaction.
         def name(x, y):
-            obj = model.assignable(x)
+            obj = model.assignable_or_csymbol(x)
             if isinstance(obj, myokit.formats.sbml.Species):
                 obj = reaction.species(x)
             return myokit.Name(obj)
@@ -561,7 +561,7 @@ class SBMLParser(object):
             # Parse rule and apply
             var.set_value(_parse_mathml(
                 expr,
-                lambda x, y: myokit.Name(model.assignable(x)),
+                lambda x, y: myokit.Name(model.assignable_or_csymbol(x)),
             ), rate)
 
         except myokit.formats.sbml.SBMLError as e:

@@ -41,7 +41,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         self._flhs = flhs
 
         # Default number conversion function
-        self._fnum = lambda x: myokit.strfloat(x.eval())
+        self._fnum = lambda x: myokit.float.str(x.eval())
 
         # Default time variable
         self._tvar = myokit.Name('time')

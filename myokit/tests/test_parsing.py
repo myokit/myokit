@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
 # Tests the parsing module.
+# See also test_io.py
 #
 # This file is part of Myokit.
 # See http://myokit.org for copyright, sharing, and licensing details.
@@ -1518,7 +1519,7 @@ class ModelParseTest(unittest.TestCase):
         """
         Test the new unit syntax where literals have units.
         """
-        model = 'br-1977-units.mmt'
+        model = 'beeler-1977-units.mmt'
         m = myokit.load_model(os.path.join(DIR_DATA, model))
         m.validate()
 
@@ -1588,7 +1589,7 @@ class ModelParseTest(unittest.TestCase):
             p = dot(1 - x)
             """
         self.assertRaisesRegex(
-            myokit.ParseError, 'named variables', myokit.parse, code)
+            myokit.ParseError, 'only be used on variables', myokit.parse, code)
 
     def test_strip_expression_units(self):
         """
@@ -1606,7 +1607,7 @@ class ModelParseTest(unittest.TestCase):
         self.assertNotEqual(c1, c2)
         self.assertTrue(len(c2) < len(c1))
         self.assertEqual(
-            m1.eval_state_derivatives(), m2.eval_state_derivatives())
+            m1.evaluate_derivatives(), m2.evaluate_derivatives())
 
         m2 = parse_model(strip_expression_units(m1.code().splitlines()))
         c1 = m1.code()
@@ -1614,7 +1615,7 @@ class ModelParseTest(unittest.TestCase):
         self.assertNotEqual(c1, c2)
         self.assertTrue(len(c2) < len(c1))
         self.assertEqual(
-            m1.eval_state_derivatives(), m2.eval_state_derivatives())
+            m1.evaluate_derivatives(), m2.evaluate_derivatives())
 
     def test_function_parsing(self):
         """

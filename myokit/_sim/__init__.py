@@ -13,6 +13,8 @@ import os
 import platform
 import sys
 import tempfile
+import threading
+import timeit
 import traceback
 
 
@@ -40,8 +42,8 @@ from setuptools import setup, Extension  # noqa
 
 
 # Myokit imports
-import myokit  # noqa
-import myokit.pype as pype  # noqa
+import myokit       # noqa
+import myokit.pype  # noqa
 
 
 # Dynamic module finding and loading in Python 3.5+ and younger
@@ -149,27 +151,29 @@ class CModule(object):
                 if libd is not None:
                     runtime = None
 
-                    # Determine strategy
-                    try:
-                        os.add_dll_directory
-                        use_add_dll_directory = True
-                    except AttributeError:
-                        use_add_dll_directory = False
-
                     # Make windows search the libd directories
-                    if use_add_dll_directory:
-                        # Python 3.8 and up
+                    path = os.environ.get('path', '')
+                    if path is None:
+                        path = ''
+                    to_add = [x for x in libd if x not in path]
+                    os.environ['path'] = os.pathsep.join([path] + to_add)
+
+                    # In Python 3.8+, they need to be registered with
+                    # add_dll_directory too. This does not seem to be 100%
+                    # consistent. AppVeyor tests pass when using
+                    # add_dll_directory *without* adding the directories to the
+                    # path, while installations via miniconda seem to need the
+                    # path method too.
+                    try:
+                        # Fail if add_dll_directory not present
+                        os.add_dll_directory
+
+                        # Add DLL paths
                         for path in libd:
                             if os.path.isdir(path):
                                 os.add_dll_directory(path)
-
-                    else:
-                        # Older versions: add libd to path
-                        path = os.environ.get('path', '')
-                        if path is None:
-                            path = ''
-                        to_add = [x for x in libd if x not in path]
-                        os.environ['path'] = os.pathsep.join([path] + to_add)
+                    except AttributeError:
+                        pass
 
             # Create extension
             ext = Extension(
@@ -184,7 +188,8 @@ class CModule(object):
             )
 
             # Compile in build directory, catch output
-            with myokit.SubCapture() as s:
+            error, trace = None, None
+            with myokit.tools.capture(fd=True) as s:
                 try:
                     os.chdir(d_build)
                     setup(
@@ -195,16 +200,17 @@ class CModule(object):
                             str('build_ext'),
                             str('--inplace'),
                         ])
-                except (Exception, SystemExit) as e:    # pragma: no cover
-                    s.disable()
-                    t = ['Unable to compile.', 'Error message:']
-                    t.append(str(e))
-                    t.append('Error traceback')
-                    t.append(traceback.format_exc())
-                    t.append('Compiler output:')
-                    captured = s.text().strip()
-                    t.extend(['    ' + x for x in captured.splitlines()])
-                    raise myokit.CompilationError('\n'.join(t))
+                except (Exception, SystemExit) as e:  # pragma: no cover
+                    error = e
+                    trace = traceback.format_exc()
+            if error is not None:  # pragma: no cover
+                t = ['Unable to compile.', 'Error message:']
+                t.append(str(error))
+                t.append(trace)
+                t.append('Compiler output:')
+                captured = s.text().strip()
+                t.extend(['    ' + x for x in captured.splitlines()])
+                raise myokit.CompilationError('\n'.join(t))
 
             # Include module (and refresh in case 2nd model is loaded)
             return load_module(name, d_build)
@@ -215,7 +221,7 @@ class CModule(object):
 
             # Delete cached module
             try:
-                myokit._rmtree(d_cache)
+                myokit.tools.rmtree(d_cache)
             except Exception:   # pragma: no cover
                 pass
 
@@ -238,14 +244,14 @@ class CModule(object):
             handle = open(target, 'w')
 
         # Create source
-        p = pype.TemplateEngine()
+        p = myokit.pype.TemplateEngine()
         if target is not None:
             p.set_output_stream(handle)
 
         try:
             result = None
             result = p.process(source, varmap)
-        except pype.PypeError:  # pragma: no cover
+        except myokit.pype.PypeError:  # pragma: no cover
             # Not included in cover, because this can only happen if the
             # template code is wrong, i.e. during development.
             msg = ['An error ocurred while processing the template']
@@ -274,4 +280,16 @@ class CppModule(CModule):
     """
     def _source_file(self):
         return 'source.cpp'
+
+
+def pid_hash():
+    """
+    Returns a positive integer hash that depends on the current time as well as
+    the process and thread id, so that it's likely to return a different number
+    when called twice.
+    """
+    pid = 1 + os.getpid()                       # Range 0 to 99999
+    tid = threading.current_thread().ident      # Non-zero integer
+    x = pid * tid * timeit.default_timer()
+    return abs(hash(str(x - int(x))))
 

@@ -858,10 +858,29 @@ class DataBlock2d(object):
         # 2d variables
         self._2d = {}
 
-    def colors(self, name, colormap='traditional', lower=None, upper=None):
+    def colors(self, name, colormap='traditional', lower=None, upper=None,
+               multiplier=1):
         """
         Converts the 2d series indicated by ``name`` into a list of ``W*H*RGB``
         arrays, with each entry represented as an 8 bit unsigned integer.
+
+        Arguments:
+
+        ``name``
+            The 2d variable to create arrays for.
+        ``colormap``
+            The colormap to use when converting to RGB.
+        ``lower``
+            An optional lower bound on the data (anything below this will
+            become the lowest index in the colormap).
+        ``upper``
+            An optional upper bound on the data (anything above this will
+            become the highest index in the colormap).
+        ``multiplier``
+            An optional integer greater than zero. If given, every point in the
+            data set will be represented as a square of ``multiplier`` by
+            ``multiplier`` pixels.
+
         """
         data = self._2d[name]
         # Get color map
@@ -869,6 +888,8 @@ class DataBlock2d(object):
         # Get lower and upper bounds for colormap scaling
         lower = np.min(data) if lower is None else float(lower)
         upper = np.max(data) if upper is None else float(upper)
+        # Get multiplier
+        multiplier = int(multiplier) if multiplier > 1 else 1
         # Create images
         frames = []
         for frame in data:
@@ -879,6 +900,10 @@ class DataBlock2d(object):
                 frame, lower=lower, upper=upper, alpha=False, rgb=True)
             # Reshape to nx * ny * 3 color array
             frame = frame.reshape((self._ny, self._nx, 3))
+            # Grow
+            if multiplier > 1:
+                frame = frame.repeat(multiplier, axis=0)
+                frame = frame.repeat(multiplier, axis=1)
             # Append to list
             frames.append(frame)
         return frames
@@ -1532,7 +1557,7 @@ class DataBlock2d(object):
         text = [delimx.join('"' + str(x) + '"' for x in [xname, yname, zname])]
         for y, row in enumerate(data):
             for x, z in enumerate(row):
-                text.append(delimx.join([str(x), str(y), myokit.strfloat(z)]))
+                text.append(delimx.join([str(x), str(y), myokit.float.str(z)]))
         text = delimy.join(text)
         with open(filename, 'w') as f:
             f.write(text)
@@ -1555,7 +1580,7 @@ class DataBlock2d(object):
         data = data[frame]
         text = []
         for row in data:
-            text.append(delimx.join([myokit.strfloat(x) for x in row]))
+            text.append(delimx.join([myokit.float.str(x) for x in row]))
         text = delimy.join(text)
         with open(filename, 'w') as f:
             f.write(text)
@@ -1710,7 +1735,7 @@ class ColorMap(object):
         [0,255]. Adapted from Matplotlib.
         """
         r, g, b = np.empty_like(h), np.empty_like(h), np.empty_like(h)
-        i = (h * 6).astype(np.int) % 6
+        i = (h * 6).astype(int) % 6
         f = (h * 6) - i
         p = v * (1 - s)
         q = v * (1 - s * f)

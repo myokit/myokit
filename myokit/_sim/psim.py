@@ -12,6 +12,7 @@ import os
 import myokit
 import numpy as np
 import platform
+import warnings
 
 
 # Location of C template
@@ -80,6 +81,12 @@ class PSimulation(myokit.CppModule):
     def __init__(
             self, model, protocol=None, variables=None, parameters=None):
         super(PSimulation, self).__init__()
+
+        # Deprecated on 2021-02-25
+        warnings.warn(
+            'The class `PSimulation` is deprecated.'
+            ' Sensitivities w.r.t. parameters can now be calculated with the'
+            ' single cell `Simulation` class.')
 
         # Check presence of variables and parameters arguments (are required
         # arguments but protocol is not...)
@@ -157,7 +164,7 @@ class PSimulation(myokit.CppModule):
         # Unique simulation id
         PSimulation._index += 1
         module_name = 'myokit_PSimulation_' + str(PSimulation._index)
-        module_name += '_' + str(myokit._pid_hash())
+        module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
         args = {

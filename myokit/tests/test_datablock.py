@@ -702,6 +702,119 @@ class DataBlock2dTest(unittest.TestCase):
         self.assertTrue(np.all(c[1] == t1))
         self.assertTrue(np.all(c[2] == t2))
 
+    def test_colors_multiplier(self):
+        # Test using the multiplier argument in colors
+
+        w, h = 2, 3
+        time = [1, 2, 3]
+        b = myokit.DataBlock2d(w, h, time)
+        x = np.array([  # Each 3 by 2 array is a point in time
+            [[0, 1],
+             [2, 3],
+             [4, 5]],
+
+            [[5, 4],
+             [3, 2],
+             [1, 0]],
+
+            [[0, 0],
+             [0, 0],
+             [0, 0]],
+        ])
+        b.set2d('x', x)
+
+        # Test with multiplier of 1 or less
+        p = [255, 255, 255]
+        q = [255, 204, 204]
+        r = [255, 153, 153]
+        s = [255, 102, 102]
+        t = [255, 50, 50]
+        u = [255, 0, 0]
+        t0 = np.array([  # Deepest array is a pixel
+            [p, q],
+            [r, s],
+            [t, u],
+        ])
+        t1 = np.array([
+            [u, t],
+            [s, r],
+            [q, p],
+        ])
+        t2 = np.array([
+            [p, p],
+            [p, p],
+            [p, p],
+        ])
+        c = b.colors('x', colormap='red', multiplier=1)
+        self.assertTrue(np.all(c == np.array([t0, t1, t2])))
+        c = b.colors('x', colormap='red', multiplier=1.5)
+        self.assertTrue(np.all(c == np.array([t0, t1, t2])))
+        c = b.colors('x', colormap='red', multiplier=0.5)
+        self.assertTrue(np.all(c == np.array([t0, t1, t2])))
+
+        t0 = np.array([
+            [p, p, q, q],
+            [p, p, q, q],
+            [r, r, s, s],
+            [r, r, s, s],
+            [t, t, u, u],
+            [t, t, u, u],
+        ])
+        t1 = np.array([
+            [u, u, t, t],
+            [u, u, t, t],
+            [s, s, r, r],
+            [s, s, r, r],
+            [q, q, p, p],
+            [q, q, p, p],
+        ])
+        t2 = np.array([
+            [p, p, p, p],
+            [p, p, p, p],
+            [p, p, p, p],
+            [p, p, p, p],
+            [p, p, p, p],
+            [p, p, p, p],
+        ])
+        c = b.colors('x', colormap='red', multiplier=2)
+        self.assertTrue(np.all(c == np.array([t0, t1, t2])))
+
+        t0 = np.array([
+            [p, p, p, q, q, q],
+            [p, p, p, q, q, q],
+            [p, p, p, q, q, q],
+            [r, r, r, s, s, s],
+            [r, r, r, s, s, s],
+            [r, r, r, s, s, s],
+            [t, t, t, u, u, u],
+            [t, t, t, u, u, u],
+            [t, t, t, u, u, u],
+        ])
+        t1 = np.array([
+            [u, u, u, t, t, t],
+            [u, u, u, t, t, t],
+            [u, u, u, t, t, t],
+            [s, s, s, r, r, r],
+            [s, s, s, r, r, r],
+            [s, s, s, r, r, r],
+            [q, q, q, p, p, p],
+            [q, q, q, p, p, p],
+            [q, q, q, p, p, p],
+        ])
+        t2 = np.array([
+            [p, p, p, p, p, p],
+            [p, p, p, p, p, p],
+            [p, p, p, p, p, p],
+            [p, p, p, p, p, p],
+            [p, p, p, p, p, p],
+            [p, p, p, p, p, p],
+            [p, p, p, p, p, p],
+            [p, p, p, p, p, p],
+            [p, p, p, p, p, p],
+        ])
+        c = b.colors('x', colormap='red', multiplier=3)
+        self.assertTrue(np.all(c == np.array([t0, t1, t2])))
+
     def test_combined(self):
         # Test loading, saving, conversion from data log.
 

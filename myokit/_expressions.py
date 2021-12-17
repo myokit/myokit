@@ -66,6 +66,15 @@ class Expression(object):
         for op in self._operands:
             self._references |= op._references
 
+        # Contains partial derivatives or initial values?
+        self._has_partials = False
+        self._has_initials = False
+        for op in self._operands:
+            if op._has_partials:
+                self._has_partials = True
+            if op._has_initials:
+                self._has_initials = True
+
         # Cached results:
         # Since expressions are immutable, the results of many methods can be
         # cached. These could be evaluated initially, but it's more efficient
@@ -149,19 +158,178 @@ class Expression(object):
         """
         if isinstance(self, kind):
             return True
+        if kind == PartialDerivative:
+            return self._has_partials
+        if kind == InitialValue:
+            return self._has_initials
         for op in self:
             if op.contains_type(kind):
                 return True
         return False
 
-    def depends_on(self, lhs):
+    def depends_on(self, lhs, deep=False):
         """
         Returns ``True`` if this :class:`Expression` depends on the given
         :class:`LhsExpresion`.
 
-        Only dependencies appearing directly in the expression are checked.
+        With ``deep=False`` (default), only dependencies appearing directly in
+        the expression are checked. With ``deep=True`` the method also checks
+        the right-hand side equation defined in the model for any
+        :class:`Name` or :class:`Derivative` it encounters.
         """
-        return lhs in self._references
+        # Shallow check
+        if not deep:
+            return lhs in self._references
+
+        # Determine if this variable has a (deep) dependency on the given lhs
+        dependent = False
+        done = set()
+        todo = set(self._references)
+        while todo:
+            ref = todo.pop()
+            if ref == lhs:
+                dependent = True
+            elif ref._has_partials or ref._has_initials:
+                # Partial derivatives and initial values have no rhs
+                continue
+            elif not ref._proper:
+                # Values that are not variables count as independent
+                continue
+            var = ref.var()
+            if ref.is_state_value() or var.is_bound():
+                # State values and bound variables have no rhs
+                continue
+            else:
+                todo.update(var.rhs()._references - done)
+
+        return dependent
+
+    def diff(self, lhs, independent_states=True):
+        """
+        Returns an expression representing the partial derivative of this
+        expression with respect to the expression ``lhs``.
+
+        The argument ``lhs`` must be a :class:`Name` or a
+        :class:`InitialValue`, taking derivatives with respect to
+        a class:`Derivative` or :class:`PartialDerivative` is not supported.
+
+        **Expressions involving variables**
+
+        Partial derivatives are determined recursively. If, at any point in
+        this recursion, a :class:`Name` or :class:`Derivative` is encountered,
+        this is handled in the following way:
+
+        - The partial derivative of any :class:`Name` with respect to an
+          identical ``Name`` is 1 (without units / dimensionless).
+        - The partial derivative of a :class:`Name` referencing a state
+          variable is zero if ``independent_states=True``, but will otherwise
+          be represented as a :class:`PartialDerivative`.
+        - The partial derivative of a :class:`Derivative`, and the partial
+          derivative of a :class:`Name` referencing a non-state variable, will
+          both be determined based on the corresponding right-hand side
+          expression. If this references the ``lhs`` a ``PartialDerivative``
+          will be returned. If it does not reference the ``lhs`` and
+          ``independent_states=True``, then zero will be returned. If it does
+          not reference the ``lhs``, but ``independent_states=False`` and one
+          or more states are referenced, a :class:`PartialDerivative` will be
+          returned.
+        - The partial derivative of a :class:`Name` referencing a bound
+          variable is zero.
+
+        **Simplification**
+
+        Some effort is made to eliminate expressions that evaluate to zero, but
+        no further simplification is performed. Multiplications by 1 are
+        preserved as these can provide valuable unit information.
+
+        **Conditional expressions**
+
+        When calculating derivatives, the following simplifying assumptions are
+        made with respect to conditional expressions:
+
+        - When evaluating conditional expressions (:class:`If` and
+          :class:`Piecewise`), the discontinuities at the condition boundaries
+          are ignored. Instead, the method simply returns a similar conditional
+          expression with the original operands replaced by their derivatives,
+          e.g. ``if(condition, a, b)`` becomes ``if(condition, a', b')``.
+
+        **Discontinuous functions**
+
+        Similarly, some functions are discontinuous so that their derivatives
+        are undefined at certain points, but this method returns the
+        right-derivative for those points. In particular:
+
+        - The true derivative of ``floor(x)`` is zero when ``x`` is not an
+          integer and undefined if it is, but this method always returns zero.
+        - Similarly, the true derivative of ``ceil(x)`` is undefined when ``x``
+          is an integer, but this method always returns zero.
+        - The true derivative of an integer division ``a // b`` with respect to
+          either ``a`` or ``b`` is zero when ``a`` is not an integer multiple
+          of ``b``, and otherwise undefined; but this method always returns
+          zero.
+        - The true derivative of the remainder operation
+          ``a(x) % b(x) = a - b * floor(a / b)`` is
+          ``da/dx - db/dx * floor(a/b) - b * d/dx floor(a/b)``, but (as above)
+          this method assumes the derivative of the floor function is zero, and
+          so will always return ``da/dx - db/dx * floor(a/b)``.
+        - The true derivative of ``abs(f(x))`` is f'(x) for ``x > 0``, -f'(x)
+          for ``x < 0``, and undefined for ``x == 0``, but this method will
+          return ``f'(x)`` for ``x >= 0`` and ``-f'(x)``s for ``x < 0``.
+
+        **Non-integer powers**
+
+        Since ``a(x)^b(x)`` is undefined for non-integer ``b(x)`` when
+        `a(x) < 0``, the derivative of ``a(x)^b(x)`` is only defined if
+        ``a(x) >= 0`` or ``b'(x) = 0``. No errors or warnings are given if the
+        derivative is undefined, until the equations are evaluated (note that
+        at this point evaluation of ``a(x)^b(x)`` will also fail).
+
+        """
+        # Check LHS
+        if not isinstance(lhs, (Name, InitialValue)):
+            raise ValueError(
+                'Partial derivatives can only be taken with respect to a'
+                ' myokit.Name or myokit.InitialValue.')
+
+        # Get derivative or None for 0
+        derivative = self._diff(lhs, bool(independent_states))
+
+        # Result zero? Then ensure it has the right unit
+        if derivative is None:
+            derivative = Number(0, self._diff_unit(lhs))
+
+        return derivative
+
+    def _diff(self, lhs, idstates):
+        """
+        Internal version of ``diff()``.
+
+        Assumes lhs is a Name; and will return None if this expression does not
+        depend on ``lhs``.
+        """
+        raise NotImplementedError
+
+    def _diff_unit(self, lhs):
+        """
+        Returns the unit that the derivative of this expression w.r.t. the
+        given ``lhs`` _should_ be in.
+
+        This is used by both :meth:`diff()` and several implementations of
+        :meth:`_diff()`.
+        """
+        try:
+            unit1 = self.eval_unit(myokit.UNIT_TOLERANT)
+        except myokit.IncompatibleUnitError as e:
+            unit1 = None
+        unit2 = lhs.var().unit()
+
+        if unit1 is None and unit2 is None:
+            return None
+        if unit1 is None:
+            return 1 / unit2
+        if unit2 is None:
+            return unit1
+        return unit1 / unit2
 
     def __eq__(self, other):
         if type(self) != type(other):
@@ -368,11 +536,33 @@ class Expression(object):
                 return False
         return True
 
+    def is_derivative(self, var=None):
+        """
+        Returns ``True`` only if this is a time-derivative, i.e. a
+        :class:`myokit.Derivative` instance (and references the variable
+        ``var``, if given).
+        """
+        return False
+
     def is_literal(self):
         """
         Returns ``True`` if this expression doesn't contain any references.
         """
         return len(self._references) == 0
+
+    def is_name(self, var=None):
+        """
+        Returns ``True`` only if this expression is a :class:`myokit.Name`
+        (and references the variable ``var``, if given).
+        """
+        return False
+
+    def is_number(self, value=None):
+        """
+        Returns ``True`` only if this expression is a :class:`myokit.Number`
+        (and has the value ``value``, if given).
+        """
+        return False
 
     def is_state_value(self):
         """
@@ -602,12 +792,12 @@ class Number(Expression):
 
     def __init__(self, value, unit=None):
         super(Number, self).__init__()
-        if isinstance(value, Quantity):
+        if isinstance(value, myokit.Quantity):
             # Conversion from Quantity class
             if unit is not None:
                 raise ValueError(
-                    'Myokit Number created from a Quantity cannot specify an'
-                    ' additional unit.')
+                    'myokit.Number created from a myokit.Quantity cannot'
+                    ' specify an additional unit.')
             self._value = value.value()
             self._unit = value.unit()
         else:
@@ -621,7 +811,7 @@ class Number(Expression):
                 raise ValueError(
                     'Unit in myokit.Number should be a myokit.Unit or None.')
         # Create nice string representation
-        self._str = myokit.strfloat(self._value)
+        self._str = myokit.float.str(self._value)
         if self._str[-2:] == '.0':
             # Turn 5.0 into 5
             self._str = self._str[:-2]
@@ -638,15 +828,17 @@ class Number(Expression):
             else:
                 # Turn e+15 into e15
                 self._str = self._str[:-3] + self._str[-2:]
-        if self._unit and self._unit != dimensionless:
+        if self._unit and self._unit != myokit.units.dimensionless:
             self._str += ' ' + str(self._unit)
 
     def bracket(self, op=None):
+        """See :meth:`Expression.bracket()`."""
         if op is not None:
-            raise ValueError('Given operand is not in this expression.')
+            raise ValueError('Given operand is not used in this expression.')
         return False
 
     def clone(self, subst=None, expand=False, retain=None):
+        """See :meth:`Expression.clone()`."""
         if subst and self in subst:
             return subst[self]
         return Number(self._value, self._unit)
@@ -659,7 +851,10 @@ class Number(Expression):
         Returns a copy of this number in a different unit. If the two units are
         not compatible a :class:`myokit.IncompatibleUnitError` is raised.
         """
-        return Number(Unit.convert(self._value, self._unit, unit), unit)
+        return Number(myokit.Unit.convert(self._value, self._unit, unit), unit)
+
+    def _diff(self, lhs, idstates):
+        return None
 
     def _eval(self, subst, precision):
         if precision == myokit.SINGLE_PRECISION:
@@ -673,10 +868,16 @@ class Number(Expression):
         return self._unit
 
     def is_constant(self):
+        """See :meth:`Expression.is_constant()`."""
         return True
 
     def is_literal(self):
+        """See :meth:`Expression.is_literal()`."""
         return True
+
+    def is_number(self, value=None):
+        """See :meth:`Expression.is_number()`."""
+        return (value is None) or (value == self._value)
 
     def _polishb(self, b):
         b.write(self._str)
@@ -686,10 +887,14 @@ class Number(Expression):
 
     def unit(self):
         """
-        Returns the unit associated with this number/quantity or ``None`` if no
-        unit was specified.
+        Returns the unit associated with this Number or ``None`` if no unit was
+        specified.
         """
         return self._unit
+
+    def value(self):
+        """Returns the value of this number."""
+        return self._value
 
 
 class LhsExpression(Expression):
@@ -712,26 +917,27 @@ class LhsExpression(Expression):
             raise EvalError(self, subst, e)
 
     def is_constant(self):
+        """See :meth:`Expression.is_constant()`."""
         return self.var().is_constant()
 
-    def is_derivative(self):
-        return False
-
     def is_literal(self):
+        """See :meth:`Expression.is_constant()`."""
         return False
 
     def rhs(self):
         """
-        Returns the rhs expression equal to this lhs expression.
+        Returns the RHS expression equal to this LHS expression in the
+        associated model.
         """
         raise NotImplementedError
 
     def var(self):
         """
-        Returns the variable referenced by this `LhsExpression`. For
-        :class:`Name` objects this will be equal to the left hand
-        side of their defining equation, for derivatives this will be the
-        variable they represent the the derivative of.
+        Returns the variable referenced by this `LhsExpression`.
+
+        For :class:`Name` objects this will be equal to the left hand side of
+        their defining equation, for :class:`Derivative` objects this will be
+        the variable they represent the derivative of.
         """
         raise NotImplementedError
 
@@ -749,16 +955,19 @@ class Name(LhsExpression):
         super(Name, self).__init__()
         self._value = value
         self._references = set([self])
+        self._proper = isinstance(self._value, myokit.Variable)
 
     def bracket(self, op=None):
+        """See :meth:`Expression.bracket()`."""
         if op is not None:
-            raise ValueError('Given operand is not in this expression.')
+            raise ValueError('Given operand is not used in this expression.')
         return False
 
     def clone(self, subst=None, expand=False, retain=None):
+        """See :meth:`Expression.clone()`."""
         if subst and self in subst:
             return subst[self]
-        if expand and isinstance(self._value, myokit.Variable):
+        if expand and self._proper:
             if not self._value.is_state():
                 if (retain is None) or (
                         self not in retain
@@ -769,7 +978,7 @@ class Name(LhsExpression):
         return Name(self._value)
 
     def _code(self, b, c):
-        if isinstance(self._value, myokit.Variable):
+        if self._proper:
             if self._value.is_nested():
                 b.write(self._value.name())
             else:
@@ -787,21 +996,40 @@ class Name(LhsExpression):
             # And sneaky abuse of the expression system
             b.write(str(self._value))
 
+    def _diff(self, lhs, idstates):
+
+        # Derivative w.r.t. self is one
+        if lhs == self:
+            return Number(1)
+
+        # Value isn't a variable? Then always return an object
+        if not self._proper:
+            return PartialDerivative(self, lhs)
+
+        # If idstates=False, a state variable reference returns an object, and
+        # any intermediary variable is dependent on the lhs (via a state)
+        if not idstates:
+            if self._value.is_state() or self._value.is_intermediary():
+                return PartialDerivative(self, lhs)
+
+        # Otherwise, check for dependency (includes checks on this variable!)
+        if self.depends_on(lhs, deep=True):
+            return PartialDerivative(self, lhs)
+        return None
+
     def _eval_unit(self, mode):
 
-        # Try getting unit from variable, if linked
-        if isinstance(self._value, myokit.Variable):
-            return self._value.unit(mode)
-
+        if self._proper:
             # Note: Don't get it from the variable's RHS!
             # If the variable unit isn't specified:
             #  1. In tolerant mode a None will propagate without errors
             #  2. In strict mode, it is dimensionless (and if the RHS thinks
             #     otherwise the RHS is wrong).
             # In addition, for e.g. derivatives this can lead to cycles.
+            return self._value.unit(mode)
 
-        # Unlinked name or no unit found, return dimensionless or None
-        if mode == myokit.UNIT_STRICT:
+        # Improper name, return dimensionless or None
+        elif mode == myokit.UNIT_STRICT:
             return myokit.units.dimensionless
         return None
 
@@ -810,8 +1038,13 @@ class Name(LhsExpression):
             return False
         return self._value == other._value
 
+    def is_name(self, var=None):
+        """See :meth:`Expression.is_name()`."""
+        return (var is None) or (var == self._value)
+
     def is_state_value(self):
-        return self._value.is_state()
+        """See: meth:`Expression.is_state_value()`."""
+        return self._proper and self._value.is_state()
 
     def _polishb(self, b):
         if isinstance(self._value, basestring):
@@ -830,10 +1063,13 @@ class Name(LhsExpression):
         return '<Name(' + repr(self._value) + ')>'
 
     def rhs(self):
-        if self._value.is_state():
-            return Number(self._value.state_value())
-        elif self._value.lhs() == self:
-            return self._value.rhs()
+        """See :meth:`LhsExpression.rhs()`."""
+        if self._proper:
+            if self._value.is_state():
+                return Number(self._value.state_value())
+            elif self._value.lhs() == self:
+                return self._value.rhs()
+        return None
 
     def _tree_str(self, b, n):
         b.write(' ' * n + str(self._value) + '\n')
@@ -842,12 +1078,13 @@ class Name(LhsExpression):
         super(Name, self)._validate(trail)
         # Check value: String is allowed at construction for debugging, but
         # not here!
-        if not isinstance(self._value, myokit.Variable):
+        if not self._proper:
             raise IntegrityError(
                 'Name value "' + repr(self._value) + '" is not an instance of'
                 ' class myokit.Variable', self._token)
 
     def var(self):
+        """See :meth:`LhsExpression.var()`."""
         return self._value
 
 
@@ -865,17 +1102,20 @@ class Derivative(LhsExpression):
         super(Derivative, self).__init__((op,))
         if not isinstance(op, Name):
             raise IntegrityError(
-                'The dot() operator can only be used on named variables.',
+                'The dot() operator can only be used on variables.',
                 self._token)
         self._op = op
+        self._proper = self._op._proper
         self._references = set([self])
 
     def bracket(self, op):
+        """See :meth:`Expression.bracket()`."""
         if op != self._op:
-            raise ValueError('Given operand is not in this expression.')
+            raise ValueError('Given operand is not used in this expression.')
         return False
 
     def clone(self, subst=None, expand=False, retain=None):
+        """See :meth:`Expression.clone()`."""
         if subst and self in subst:
             return subst[self]
         return Derivative(self._op.clone(subst, expand, retain))
@@ -884,6 +1124,28 @@ class Derivative(LhsExpression):
         b.write('dot(')
         self._op._code(b, c)
         b.write(')')
+
+    def _diff(self, lhs, idstates):
+        # Value isn't a variable? Then always return an object
+        if not self._proper:
+            return PartialDerivative(self, lhs)
+
+        # Get rhs
+        rhs = self._op._value.rhs()
+
+        # Not treating states as independent: then return object if any of the
+        # RHS's references are to intermediary or state variables
+        if not idstates:
+            for ref in rhs._references:
+                var = ref.var()
+                if (ref == lhs or (not ref._proper) or
+                        var.is_intermediary() or var.is_state()):
+                    return PartialDerivative(self, lhs)
+
+        # Check for dependencies in RHS
+        if rhs.depends_on(lhs, deep=True):
+            return PartialDerivative(self, lhs)
+        return None
 
     def __eq__(self, other):
         if type(other) != Derivative:
@@ -897,7 +1159,7 @@ class Derivative(LhsExpression):
         # Get denomenator
         unit2 = \
             myokit.units.dimensionless if mode == myokit.UNIT_STRICT else None
-        if self._op._value is not None:
+        if self._proper:
             model = self._op._value.model()
             if model is not None:
                 unit2 = model.time_unit(mode)
@@ -909,8 +1171,9 @@ class Derivative(LhsExpression):
             return 1 / unit2
         return unit1 / unit2
 
-    def is_derivative(self):
-        return True
+    def is_derivative(self, var=None):
+        """See :meth:`Expression.is_derivative()`."""
+        return (var is None) or (var == self._op._value)
 
     def _polishb(self, b):
         b.write('dot ')
@@ -920,21 +1183,229 @@ class Derivative(LhsExpression):
         return '<Derivative(' + repr(self._op) + ')>'
 
     def rhs(self):
-        return self._op._value.rhs()
+        """See :meth:`LhsExpression.rhs()`."""
+        if self._proper:
+            return self._op._value.rhs()
+        return None
 
     def _tree_str(self, b, n):
-        b.write(' ' * n + 'dot(' + str(self._op._value) + ')' + '\n')
+        b.write(' ' * n + 'dot(' + str(self._op._value) + ')\n')
 
     def var(self):
+        """See :meth:`LhsExpression.var()`."""
         return self._op._value
 
     def _validate(self, trail):
         super(Derivative, self)._validate(trail)
+        # Check that value is a variable has already been performed by name
         # Check if value is the name of a state variable
-        var = self._op.var()
-        if not (isinstance(var, myokit.Variable) and var.is_state()):
+        if not self._op._value.is_state():
             raise IntegrityError(
                 'Derivatives can only be defined for state variables.',
+                self._token)
+
+
+class PartialDerivative(LhsExpression):
+    """
+    Represents a reference to the partial derivative of one variable with
+    respect to another.
+
+    This class is used when writing out derivatives of equations, but may _not_
+    appear in right-hand-side expressions for model variables!
+
+    *Extends:* :class:`LhsExpression`
+    """
+    _rbp = FUNCTION_CALL
+    _nargs = [2]    # Allows parsing as a function
+    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+
+    def __init__(self, var1, var2):
+        super(PartialDerivative, self).__init__((var1, var2))
+        if not isinstance(var1, (Name, Derivative)):
+            raise IntegrityError(
+                'The first argument to a partial derivative must be a'
+                ' variable name or a dot() operator.', self._token)
+        if not isinstance(var2, (Name, InitialValue)):
+            raise IntegrityError(
+                'The second argument to a partial derivative must be a'
+                ' variable name or an initial value.', self._token)
+
+        self._var1 = var1
+        self._var2 = var2
+        self._references = set([self])
+        self._has_partials = True
+
+    def bracket(self, op=None):
+        """See :meth:`Expression.bracket()`."""
+        if op not in self._operands:
+            raise ValueError('Given operand is not used in this expression.')
+        return False
+
+    def clone(self, subst=None, expand=False, retain=None):
+        """See :meth:`Expression.clone()`."""
+        if subst and self in subst:
+            return subst[self]
+        return PartialDerivative(
+            self._var1.clone(subst, expand, retain),
+            self._var2.clone(subst, expand, retain),
+        )
+
+    def _code(self, b, c):
+        b.write('diff(')
+        self._var1._code(b, c)
+        b.write(', ')
+        self._var2._code(b, c)
+        b.write(')')
+
+    def dependent_expression(self):
+        """
+        Returns the expression that a derivative is taken of, i.e. "y" in
+        "dy/dx".
+        """
+        return self._var1
+
+    def _diff(self, lhs, idstates):
+        raise NotImplementedError(
+            'Partial derivatives of partial derivatives are not supported.')
+
+    def __eq__(self, other):
+        if type(other) != PartialDerivative:
+            return False
+        return (self._var1 == other._var1) and (self._var2 == other._var2)
+
+    def _eval_unit(self, mode):
+        unit1 = self._var1._eval_unit(mode)
+        unit2 = self._var2._eval_unit(mode)
+        if unit2 is None:
+            return unit1    # Can be None in tolerant mode!
+        elif unit1 is None:
+            return 1 / unit2
+        return unit1 / unit2
+
+    def independent_expression(self):
+        """
+        Returns the expression that a derivative is taken with respect to, i.e.
+        ``x`` in ``dy/dx``.
+        """
+        return self._var2
+
+    def _polishb(self, b):
+        b.write('diff ')
+        self._var1._polishb(b)
+        self._var2._polishb(b)
+
+    def __repr__(self):
+        return ('<PartialDerivative(' + repr(self._var1) + ', '
+                + repr(self._var2) + ')>')
+
+    def rhs(self):
+        """
+        See :meth:`LhsExpression.rhs()`.
+
+        The RHS returned in this case will be ``None``, as there is no RHS
+        associated with partial derivatives in the model.
+        """
+        return None
+
+    def _tree_str(self, b, n):
+        b.write(' ' * n + 'partial\n')
+        self._var1._tree_str(b, n + self._treeDent)
+        self._var2._tree_str(b, n + self._treeDent)
+
+    def var(self):
+        """
+        See :meth:`LhsExpression.var()`.
+
+        As with time-derivatives, this returns the variable of which a
+        derivative is taken (i.e. the dependent variable "y" in "dy/dx").
+        """
+        return self._var1._value
+
+
+class InitialValue(LhsExpression):
+    """
+    Represents a reference to the initial value of a state variable.
+
+    This class is used when writing out derivatives of equations, but may _not_
+    appear in right-hand-side expressions for model variables!
+
+    *Extends:* :class:`LhsExpression`
+    """
+    _rbp = FUNCTION_CALL
+    _nargs = [1]    # Allows parsing as a function
+    __hash__ = LhsExpression.__hash__   # For Python3, when __eq__ is present
+
+    def __init__(self, var):
+        super(InitialValue, self).__init__((var, ))
+        if not isinstance(var, Name):
+            raise IntegrityError(
+                'The first argument to an initial condition must be a variable'
+                ' name.', self._token)
+
+        self._var = var
+        self._references = set([self])
+        self._has_initials = True
+
+    def bracket(self, op=None):
+        """See :meth:`Expression.bracket()`."""
+        if op not in self._operands:
+            raise ValueError('Given operand is not used in this expression.')
+        return False
+
+    def clone(self, subst=None, expand=False, retain=None):
+        """See :meth:`Expression.clone()`."""
+        if subst and self in subst:
+            return subst[self]
+        return InitialValue(self._var.clone(subst, expand, retain))
+
+    def _code(self, b, c):
+        b.write('init(')
+        self._var._code(b, c)
+        b.write(')')
+
+    def _diff(self, lhs, idstates):
+        raise NotImplementedError(
+            'Partial derivatives of initial conditions are not supported.')
+
+    def __eq__(self, other):
+        if type(other) != InitialValue:
+            return False
+        return self._var == other._var
+
+    def _eval_unit(self, mode):
+        return self._var._eval_unit(mode)
+
+    def _polishb(self, b):
+        b.write('init ')
+        self._var._polishb(b)
+
+    def __repr__(self):
+        return '<InitialValue(' + repr(self._var) + ')>'
+
+    def rhs(self):
+        """
+        See :meth:`LhsExpression.rhs()`.
+
+        The RHS returned in this case will be ``None``, as there is no RHS
+        associated with initial conditions in the model.
+        """
+        # Note: This _could_ return a Number(init, var unit) instead...
+        return None
+
+    def _tree_str(self, b, n):
+        b.write(' ' * n + 'init(' + str(self._var._value) + ')\n')
+
+    def var(self):
+        """See :meth:`LhsExpression.var()`."""
+        return self._var._value
+
+    def _validate(self, trail):
+        super(InitialValue, self)._validate(trail)
+        # Check if value is the name of a state variable
+        var = self._var._value
+        if not (isinstance(var, myokit.Variable) and var.is_state()):
+            raise IntegrityError(
+                'Initial conditions can only be defined for state variables.',
                 self._token)
 
 
@@ -952,11 +1423,13 @@ class PrefixExpression(Expression):
         self._op = op
 
     def bracket(self, op):
+        """See :meth:`Expression.bracket()`."""
         if op != self._op:
-            raise ValueError('Given operand is not in this expression.')
+            raise ValueError('Given operand is not used in this expression.')
         return (self._op._rbp > LITERAL) and (self._op._rbp < self._rbp)
 
     def clone(self, subst=None, expand=False, retain=None):
+        """See :meth:`Expression.clone()`."""
         if subst and self in subst:
             return subst[self]
         return type(self)(self._op.clone(subst, expand, retain))
@@ -991,6 +1464,9 @@ class PrefixPlus(PrefixExpression):
     """
     _rep = '+'
 
+    def _diff(self, lhs, idstates):
+        return self._op._diff(lhs, idstates)
+
     def _eval(self, subst, precision):
         try:
             return self._op._eval(subst, precision)
@@ -1014,6 +1490,10 @@ class PrefixMinus(PrefixExpression):
     """
     _rep = '-'
 
+    def _diff(self, lhs, idstates):
+        op = self._op._diff(lhs, idstates)
+        return None if op is None else PrefixMinus(op)
+
     def _eval(self, subst, precision):
         try:
             return -self._op._eval(subst, precision)
@@ -1035,6 +1515,7 @@ class InfixExpression(Expression):
     *Abstract class, extends:* :class:`Expression`
     """
     _rep = None      # Operator representation (+, *, et)
+    _spaces_round_operator = True
 
     def __init__(self, left, right):
         super(InfixExpression, self).__init__((left, right))
@@ -1042,13 +1523,15 @@ class InfixExpression(Expression):
         self._op2 = right
 
     def bracket(self, op):
+        """See :meth:`Expression.bracket()`."""
         if op == self._op1:
             return (op._rbp > LITERAL and (op._rbp < self._rbp))
         elif op == self._op2:
             return (op._rbp > LITERAL and (op._rbp <= self._rbp))
-        raise ValueError('Given operand is not in this expression.')
+        raise ValueError('Given operand is not used in this expression.')
 
     def clone(self, subst=None, expand=False, retain=None):
+        """See :meth:`Expression.clone()`."""
         if subst and self in subst:
             return subst[self]
         return type(self)(
@@ -1063,10 +1546,11 @@ class InfixExpression(Expression):
             b.write(')')
         else:
             self._op1._code(b, c)
-        b.write(' ')
+        if self._spaces_round_operator:
+            b.write(' ')
         b.write(self._rep)
-        b.write(' ')
-        #if self.bracket(self._op2):
+        if self._spaces_round_operator:
+            b.write(' ')
         if self._op2._rbp > LITERAL and self._op2._rbp <= self._rbp:
             b.write('(')
             self._op2._code(b, c)
@@ -1101,6 +1585,15 @@ class Plus(InfixExpression):
     _rbp = SUM
     _rep = '+'
     _description = 'Addition'
+
+    def _diff(self, lhs, idstates):
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+        if op1 is None:
+            return op2  # Could be None
+        if op2 is None:
+            return op1  # Definitely not None
+        return Plus(op1, op2)
 
     def _eval(self, subst, precision):
         try:
@@ -1141,6 +1634,16 @@ class Minus(InfixExpression):
     _rep = '-'
     _description = 'Subtraction'
 
+    def _diff(self, lhs, idstates):
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+        if op2 is None:
+            return op1  # Could be None
+        if op1 is None:
+            # Op2 is not None, so need to return -op2
+            return PrefixMinus(op2)
+        return Minus(op1, op2)
+
     def _eval(self, subst, precision):
         try:
             return (
@@ -1179,6 +1682,17 @@ class Multiply(InfixExpression):
     _rbp = PRODUCT
     _rep = '*'
 
+    def _diff(self, lhs, idstates):
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+        if op1 is None and op2 is None:
+            return None
+        elif op2 is None:
+            return Multiply(op1, self._op2)     # f' g
+        elif op1 is None:
+            return Multiply(self._op1, op2)     # f g'
+        return Plus(Multiply(op1, self._op2), Multiply(self._op1, op2))
+
     def _eval(self, subst, precision):
         try:
             return (
@@ -1213,6 +1727,28 @@ class Divide(InfixExpression):
     _rbp = PRODUCT
     _rep = '/'
 
+    def _diff(self, lhs, idstates):
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+
+        if op1 is None and op2 is None:
+            return None
+        elif op2 is None:
+            # g f' / g^2 = f' / g
+            return Divide(op1, self._op2)
+        elif op1 is None:
+            # -(f g') / g^2
+            return Divide(
+                Multiply(PrefixMinus(self._op1), op2),
+                Power(self._op2, Number(2))
+            )
+
+        # (f' g - f g') / g^2
+        return Divide(
+            Minus(Multiply(op1, self._op2), Multiply(self._op1, op2)),
+            Power(self._op2, Number(2))
+        )
+
     def _eval(self, subst, precision):
         try:
             b = self._op2._eval(subst, precision)
@@ -1236,16 +1772,16 @@ class Divide(InfixExpression):
 
 class Quotient(InfixExpression):
     """
-    Represents the quotient (integer division) of a division ``left // right``.
+    Represents the quotient of a division ``left // right``, also known as
+    integer division.
 
     >>> import myokit
     >>> x = myokit.parse_expression('7 // 3')
     >>> print(x.eval())
     2.0
 
-    Note that, for negative numbers Myokit follows the convention of Python
-    (and some other languages, but not e.g. C) of rounding towards negative
-    infinity, rather than towards zero. Thus:
+    Note that, for negative numbers Myokit follows the convention of rounding
+    towards negative infinity, rather than towards zero. Thus:
 
     >>> print(myokit.parse_expression('-7 // 3').eval())
     -3.0
@@ -1255,13 +1791,30 @@ class Quotient(InfixExpression):
     >>> print(myokit.parse_expression('5 // -3').eval())
     -2.0
 
+    Note that this differs from how integer division is implemented in C, which
+    _truncates_ (round towards zero), but similar to how ``floor()`` is
+    implemented in C, which rounds towards negative infinity.
+
     See: https://python-history.blogspot.co.uk/2010/08/
-    And: https://en.wikipedia.org/wiki/Modulo_operation
+    And: https://en.wikipedia.org/wiki/Euclidean_division
 
     *Extends:* :class:`InfixExpression`
     """
     _rbp = PRODUCT
     _rep = '//'
+
+    def _diff(self, lhs, idstates):
+        # The result of a // b is always flat, with discontinuous jumps
+        # whenever a = k*b (for an integer k). As a result, the derivatives
+        # d/da(a//b) and d/db(a//b) are either zero (most of the time) or
+        # undefined (at the jumps). Notably, outside of the jump points, the
+        # line a//b is flat, so does not depend on a, b, a', or b'!
+        #
+        # Alternatively, a // b = floor(a / b).
+        #
+        # Here we ignore the discontinuities in favour of a left or right
+        # derivative, and simply return zero for all points.
+        return None
 
     def _eval(self, subst, precision):
         try:
@@ -1314,10 +1867,37 @@ class Remainder(InfixExpression):
     >>> print(myokit.parse_expression('5 % -3').eval())
     -1.0
 
+    See: https://en.wikipedia.org/wiki/Modulo_operation
+
     *Extends:* :class:`InfixExpression`
     """
     _rbp = PRODUCT
     _rep = '%'
+
+    def _diff(self, lhs, idstates):
+        # Since
+        #   a(x) % b(x) is defined as a(x) - b(x) * floor(a(x) / b(x))
+        # its derivative is
+        #   a' - b' floor(a/b) - b * d/dx floor(a/b).
+        # Using d/dx floor(a/b) = 0 (ignoring discontinuities, see Floor), that
+        # simplifies to
+        #   a' - b' floor(a/b)
+
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+
+        if op1 is None and op2 is None:
+            return None
+        elif op1 is None:
+            # -b' floor(a/b)
+            return Multiply(
+                PrefixMinus(op2), Floor(Divide(self._op1, self._op2)))
+        elif op2 is None:
+            # a'
+            return op1
+
+        # a' - b' floor(a/b)
+        return Minus(op1, Multiply(op2, Floor(Divide(self._op1, self._op2))))
 
     def _eval(self, subst, precision):
         try:
@@ -1347,6 +1927,54 @@ class Power(InfixExpression):
     """
     _rbp = POWER
     _rep = '^'
+    _spaces_round_operator = False
+
+    def _diff(self, lhs, idstates):
+        # The general rule is derived using a(x)^b(x) = e^(ln(a(x)) * b(x)).
+        # This only works when ln(a(x)) is defined, so when a(x) >= 0. But this
+        # is OK, as a(x)^b(x) is only defined for fractional b(x) if a(x) >= 0!
+        #
+        # Applying the chain and product rules:
+        #  d/dx e^(ln(a) * b)
+        #   = e^(ln(a) * b) * d/dx (ln(a) * b)
+        #   = a^b * (ln(a) * b' + b / a * a')
+        #
+        # If b' is 0 this reduces to a^b * b/a * a' = b * a^(b-1) * a'
+        # If a' is 0 this reduces to a^b * b' / ln(a) (for a >= 0)
+        #
+        # If b depends on the lhs, to have a derivative it _must_ be
+        # fractional, and so a(x) _must_ be positive. We don't need to check
+        # this; it will just fail along with normal evaluation.
+        # If b does not depend on the lhs, we use the reduced form i.e. the
+        # general power rule.
+        #
+        op1 = self._op1._diff(lhs, idstates)
+        op2 = self._op2._diff(lhs, idstates)
+
+        if op1 is None and op2 is None:
+            return None
+
+        if op2 is None:
+            # Tweaks: x^number --> reduce number by 1; and x^2 becomes x
+            if isinstance(self._op2, Number):
+                if self._op2.value() == 2:
+                    new_power = self._op1
+                elif self._op2.value() == 1:
+                    return op1
+                else:
+                    new_power = Number(self._op2.value() - 1, self._op2.unit())
+                    new_power = Power(self._op1, new_power)
+            else:
+                new_power = Power(self._op1, Minus(self._op2, Number(1)))
+            return Multiply(Multiply(self._op2, new_power), op1)
+
+        if op1 is None:
+            return Divide(Multiply(self, op2), Log(self._op1))
+
+        return Multiply(self, Plus(
+            Multiply(Log(self._op1), op2),
+            Multiply(Divide(self._op2, self._op1), op1)
+        ))
 
     def _eval(self, subst, precision):
         try:
@@ -1363,7 +1991,9 @@ class Power(InfixExpression):
         # In strict mode, check 2nd unit is dimensionless
         if unit2 != myokit.units.dimensionless and mode == myokit.UNIT_STRICT:
             raise EvalUnitError(
-                self, 'Exponent in Power must be dimensionless.')
+                self,
+                'Exponent in Power must be dimensionless, got '
+                + unit2.clarify() + '.')
 
         if unit1 is None:
             return None
@@ -1401,11 +2031,13 @@ class Function(Expression):
                     self._token)
 
     def bracket(self, op=None):
+        """See :meth:`Expression.bracket()`."""
         if op not in self._operands:
-            raise ValueError('Given operand is not in this expression.')
+            raise ValueError('Given operand is not used in this expression.')
         return False
 
     def clone(self, subst=None, expand=False, retain=None):
+        """See :meth:`Expression.clone()`."""
         if subst and self in subst:
             return subst[self]
         return type(self)(
@@ -1454,7 +2086,7 @@ class UnaryDimensionlessFunction(Function):
         if mode == myokit.UNIT_STRICT and unit != myokit.units.dimensionless:
             raise EvalUnitError(
                 self, 'Function ' + self._fname + '() requires a'
-                ' dimensionless operand.')
+                ' dimensionless operand, got ' + unit.clarify() + '.')
 
         # Unary dimensionless functions are always dimensionless
         return myokit.units.dimensionless
@@ -1472,6 +2104,13 @@ class Sqrt(Function):
     *Extends:* :class:`Function`
     """
     _fname = 'sqrt'
+
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Multiply(Number(2), self))
 
     def _eval(self, subst, precision):
         try:
@@ -1502,6 +2141,13 @@ class Sin(UnaryDimensionlessFunction):
     """
     _fname = 'sin'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Multiply(Cos(op), dop)
+
     def _eval(self, subst, precision):
         try:
             return numpy.sin(self._operands[0]._eval(subst, precision))
@@ -1525,6 +2171,13 @@ class Cos(UnaryDimensionlessFunction):
     """
     _fname = 'cos'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Multiply(PrefixMinus(Sin(op)), dop)
+
     def _eval(self, subst, precision):
         try:
             return numpy.cos(self._operands[0]._eval(subst, precision))
@@ -1544,6 +2197,13 @@ class Tan(UnaryDimensionlessFunction):
     *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'tan'
+
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Power(Cos(op), Number(2)))
 
     def _eval(self, subst, precision):
         try:
@@ -1565,6 +2225,13 @@ class ASin(UnaryDimensionlessFunction):
     """
     _fname = 'asin'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Sqrt(Minus(Number(1), Power(op, Number(2)))))
+
     def _eval(self, subst, precision):
         try:
             return numpy.arcsin(self._operands[0]._eval(subst, precision))
@@ -1584,6 +2251,16 @@ class ACos(UnaryDimensionlessFunction):
     *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'acos'
+
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(
+            PrefixMinus(dop),
+            Sqrt(Minus(Number(1), Power(op, Number(2))))
+        )
 
     def _eval(self, subst, precision):
         try:
@@ -1610,6 +2287,13 @@ class ATan(UnaryDimensionlessFunction):
     """
     _fname = 'atan'
 
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Plus(Number(1), Power(op, Number(2))))
+
     def _eval(self, subst, precision):
         try:
             return numpy.arctan(self._operands[0]._eval(subst, precision))
@@ -1629,6 +2313,13 @@ class Exp(UnaryDimensionlessFunction):
     *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'exp'
+
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Multiply(self, dop)
 
     def _eval(self, subst, precision):
         try:
@@ -1659,6 +2350,45 @@ class Log(Function):
     _fname = 'log'
     _nargs = [1, 2]
 
+    def _diff(self, lhs, idstates):
+
+        if len(self._operands) == 1:
+            # One operand: natural logarithm: a' / a
+            op = self._operands[0]
+            dop = op._diff(lhs, idstates)
+            if dop is None:
+                return None
+            return Divide(dop, op)
+
+        else:
+            # Two operands: log_a(b) = Log(b, a)
+            op1 = self._operands[0]     # b
+            op2 = self._operands[1]     # a
+            dop1 = op1._diff(lhs, idstates)     # b'
+            dop2 = op2._diff(lhs, idstates)     # a'
+            if dop1 is None and dop2 is None:
+                return None
+            elif dop2 is None:
+                # a' = 0 --> b' / (b * ln(a))
+                return Divide(dop1, Multiply(op1, Log(op2)))
+
+            elif dop1 is None:
+                # b' = 0 --> -a' ln(b) / (a ln(a)^2)
+                return Divide(
+                    Multiply(PrefixMinus(dop2), Log(op1)),
+                    Multiply(op2, Power(Log(op2), Number(2))),
+                )
+
+            # Full form:
+            #   b' / (b * ln(a)) - (a' ln(b)) / (a ln(a)^2)
+            return Minus(
+                Divide(dop1, Multiply(op1, Log(op2))),
+                Divide(
+                    Multiply(dop2, Log(op1)),
+                    Multiply(op2, Power(Log(op2), Number(2))),
+                )
+            )
+
     def _eval(self, subst, precision):
         try:
             if len(self._operands) == 1:
@@ -1670,21 +2400,25 @@ class Log(Function):
             raise EvalError(self, subst, e)
 
     def _eval_unit(self, mode):
-        if len(self._operands) == 1:
 
-            # One operand
+        # Check contents of single operand
+        if len(self._operands) == 1:
             unit = self._operands[0]._eval_unit(mode)
+
+            # Propagate None in tolerant mode
             if unit is None:
                 return None
+
+            # Check units in strict mode
             if mode == myokit.UNIT_STRICT:
                 if unit != myokit.units.dimensionless:
                     raise EvalUnitError(
-                        self, 'Log() requires a dimensionless operand.')
-            return myokit.units.dimensionless
+                        self,
+                        'Log() requires a dimensionless operand, got '
+                        + unit.clarify() + '.')
 
+        # Two operands
         else:
-
-            # Two operands
             unit1 = self._operands[0]._eval_unit(mode)
             unit2 = self._operands[1]._eval_unit(mode)
 
@@ -1696,9 +2430,11 @@ class Log(Function):
             if mode == myokit.UNIT_STRICT:
                 if not unit1 == unit2 == myokit.units.dimensionless:
                     raise EvalUnitError(
-                        self, 'Log() requires dimensionless operands.')
+                        self,
+                        'Log() requires dimensionless operands, got '
+                        + unit1.clarify() + ' and ' + unit2.clarify() + '.')
 
-            return myokit.units.dimensionless
+        return myokit.units.dimensionless
 
 
 class Log10(UnaryDimensionlessFunction):
@@ -1713,6 +2449,13 @@ class Log10(UnaryDimensionlessFunction):
     *Extends:* :class:`UnaryDimensionlessFunction`
     """
     _fname = 'log10'
+
+    def _diff(self, lhs, idstates):
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+        return Divide(dop, Multiply(op, Log(Number(10))))
 
     def _eval(self, subst, precision):
         try:
@@ -1736,6 +2479,12 @@ class Floor(Function):
     *Extends:* :class:`Function`
     """
     _fname = 'floor'
+
+    def _diff(self, lhs, idstates):
+        # Floor is stepwise constant, so it's derivative is zero except when
+        # the value of its operand is an integer. Here we simplify and just say
+        # the derivative is always zero.
+        return None
 
     def _eval(self, subst, precision):
         try:
@@ -1763,6 +2512,12 @@ class Ceil(Function):
     """
     _fname = 'ceil'
 
+    def _diff(self, lhs, idstates):
+        # Ceil is stepwise constant, so it's derivative is zero except when
+        # the value of its operand is an integer. Here we simplify and just say
+        # the derivative is always zero.
+        return None
+
     def _eval(self, subst, precision):
         try:
             return numpy.ceil(self._operands[0]._eval(subst, precision))
@@ -1788,6 +2543,25 @@ class Abs(Function):
     *Extends:* :class:`Function`
     """
     _fname = 'abs'
+
+    def _diff(self, lhs, idstates):
+        # The derivative of abs(f(x)) is f'(x) for x > 0, -f'(x) for x < 0, and
+        # undefined if x == 0. Here we simplify and say it's f'(x) if x >= 0.
+
+        # Get derivative of operand
+        op = self._operands[0]
+        dop = op._diff(lhs, idstates)
+        if dop is None:
+            return None
+
+        # Get operand unit (_not_ the unit of the returned derivative)
+        try:
+            unit = op.eval_unit(myokit.UNIT_TOLERANT)
+        except myokit.IncompatibleUnitError:
+            unit = None
+
+        # Return if
+        return If(MoreEqual(op, Number(0, unit)), dop, PrefixMinus(dop))
 
     def _eval(self, subst, precision):
         try:
@@ -1828,6 +2602,23 @@ class If(Function):
         Returns this if-function's condition.
         """
         return self._i
+
+    def _diff(self, lhs, idstates):
+        op1 = self._t._diff(lhs, idstates)
+        op2 = self._e._diff(lhs, idstates)
+
+        # Return None if both None, or if() if both expressions
+        if op1 is None and op2 is None:
+            return None
+        elif op1 is not None and op2 is not None:
+            return If(self._i, op1, op2)
+
+        # If only one is None, create a zero with the correct units
+        zero = Number(0, self._diff_unit(lhs))
+        if op1 is None:
+            return If(self._i, zero, op2)
+        else:
+            return If(self._i, op1, zero)
 
     def _eval(self, subst, precision):
         if self._i._eval(subst, precision):
@@ -1936,6 +2727,31 @@ class Piecewise(Function):
         """
         return iter(self._i)
 
+    def _diff(self, lhs, idstates):
+
+        # Evaluate derivatives of the (m + 1) expressions
+        ops = [op._diff(lhs, idstates) for op in self._e]
+
+        # Count the number of Nones
+        n_zeroes = sum([1 if op is None else 0 for op in ops])
+
+        # Return None if all None
+        if n_zeroes == len(ops):
+            return None
+
+        # Create zero to use if any of the expressions are None
+        zero = None
+        if n_zeroes > 0:
+            zero = Number(0, self._diff_unit(lhs))
+
+        # Create and return piecewise
+        new_ops = [0] * (2 * len(self._i) + 1)
+        for i, _if in enumerate(self._i):
+            new_ops[2 * i] = _if
+            new_ops[2 * i + 1] = zero if ops[i] is None else ops[i]
+        new_ops[-1] = zero if ops[-1] is None else ops[-1]
+        return Piecewise(*new_ops)
+
     def _eval(self, subst, precision):
         for k, cond in enumerate(self._i):
             if cond._eval(subst, precision):
@@ -1978,7 +2794,10 @@ class Condition(object):
     False. Doesn't add any methods but simply indicates that this is a
     condition.
     """
-    pass
+
+    def _diff(self, lhs, idstates):
+        raise NotImplementedError(
+            'Conditions do not have partial derivatives.')
 
 
 class PrefixCondition(Condition, PrefixExpression):
@@ -2385,878 +3204,3 @@ def _expr_error_message(owner, e):
 
     # Raise new error with added info
     return '\n'.join(out)
-
-
-class Unit(object):
-    """
-    Represents a unit.
-
-    Most users won't want to create units, but instead use e.g.
-    ``myokit.parse_unit('kg/mV')`` or ``myokit.units.mV``.
-
-    Each Unit consists of
-
-      * A list of seven floats: these are the exponents for the basic SI
-        units: ``[g, m, s, A, K, cd, mol]``. Gram is used instead of the SI
-        defined kilogram to create a more coherent syntax.
-      * A multiplier. This includes both quantifiers (such as milli, kilo, Mega
-        etc) and conversion factors (for example 1inch = 2.54cm). Multipliers
-        are specified in powers of 10, e.g. to create an inch use the
-        multiplier log10(2.54).
-
-    There are two ways to create a unit:
-
-        >>> # 1. By explicitly setting the exponent and multiplier
-        >>> import myokit
-        >>> km_per_s = myokit.Unit([0, 1, -1, 0, 0, 0, 0], 3)
-        >>> print(km_per_s) # Here
-        [m/s (1000)]
-
-        >>> # 2. Creating a blank unit
-        >>> dimless = myokit.Unit()
-        >>> print(dimless)
-        [1]
-
-    Units can be manipulated using ``*`` and ``/`` and ``**``. A clear
-    representation can be obtained using str().
-
-        >>> s = myokit.Unit([0, 0, 1, 0, 0, 0, 0])
-        >>> km = myokit.Unit([0, 1, 0, 0, 0, 0, 0], 3)
-        >>> m_per_s = (km / 1000) / s
-        >>> print(m_per_s)
-        [m/s]
-
-    Units that require offsets (aka celsius and fahrenheit) are not supported.
-    """
-    # Mapping of names to unit objects
-    # These units will all be recognized by the parser
-    _units = {}
-
-    # Mapping of unit objects to preferred names
-    _preferred_representations = {}
-
-    # Set of recognized unit names that may be quantified with si quantifiers
-    _quantifiable = set()
-
-    # Mapping of SI exponent values to their symbols
-    _si_exponents = {
-        -24: 'y',   # yocto
-        -21: 'z',   # zepto
-        -18: 'a',   # atto
-        -15: 'f',   # femto
-        -12: 'p',   # pico
-        -9: 'n',    # nano
-        -6: 'u',    # micro
-        -3: 'm',    # milli
-        -2: 'c',    # centi
-        -1: 'd',    # deci
-        # 1: 'da',  # Deca
-        2: 'h',
-        3: 'k',
-        6: 'M',
-        9: 'G',
-        12: 'T',
-        15: 'P',
-        18: 'E',
-        21: 'Z',
-        24: 'Y',
-    }
-
-    # Mapping of SI quantifier symbols to their values
-    _si_quantifiers = dict((v, k) for k, v in _si_exponents.items())
-
-    def __init__(self, exponents=None, multiplier=0):
-        if exponents is None:
-            self._x = [0] * 7
-            self._m = float(multiplier)
-        elif type(exponents) == Unit:
-            # Clone
-            self._x = list(exponents._x)
-            self._m = exponents._m
-        else:
-            if not len(exponents) == 7:
-                raise ValueError(
-                    'Unit must have exactly seven exponents set:'
-                    ' [g, m, s, A, K, cd, mol].')
-            self._x = [float(x) for x in exponents]
-            self._m = float(multiplier)
-
-        self._hash = None
-        self._repr = None
-
-    @staticmethod
-    def can_convert(unit1, unit2):
-        """
-        Returns ``True`` if the given units differ only by a multiplication.
-
-        For example, ``[m/s]`` can be converted to ``[miles/hour]`` but not to
-        ``[kg]``. This method is an alias of :meth:`close_exponent`.
-        """
-        return Unit.close_exponent(unit1, unit2)
-
-    def clarify(self):
-        """
-        Returns a string showing this unit's representation using both the
-        short syntax of ``str(unit)``, and the long syntax of ``repr(unit)``.
-
-        For example::
-
-            >>> from myokit import Unit
-            >>> print(str(myokit.units.katal))
-            [kat]
-            >>> print(repr(myokit.units.katal))
-            [mol/s]
-            >>> print(myokit.units.katal.clarify())
-            [kat] (or [mol/s])
-
-        If both representations are equal, the second part is omitted""
-
-            >>> print(myokit.units.m.clarify())
-            [m]
-
-        """
-        r1 = str(self)
-        r2 = repr(self)
-        if r1 == r2:
-            return r1
-        return r1 + ' (or ' + r2 + ')'
-
-    @staticmethod
-    def close(unit1, unit2, reltol=1e-9, abstol=1e-9):
-        """
-        Checks whether the given units are close enough to be considered equal.
-
-        Note that this differs from ``unit1 is unit2`` (which checks if they
-        are the same object) and ``unit1 == unit2`` (which will check if they
-        are the same unit to machine precision).
-
-        The check for closeness is made with a relative tolerance of ``reltol``
-        and absolute tolerance of ``abstol``, using::
-
-            abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
-
-        Unit exponents are stored as floating point numbers and compared
-        directly. Unit multipliers are stored as ``log10(multiplier)``, and
-        compared without transforming back. As a result, units such as
-        ``[nF]^2`` won't be considered close to ``[pF]^2``, but units such as
-        ``[F]`` will be considered close to ``[F] * (1 + 1e-12)``.
-        """
-        if unit1 is unit2:
-            return True
-
-        # Compare exponents using normal representation, and with absolute
-        # tolerance so that tiny differences from 0 are also picked up. Note
-        # that this means we can't tell the difference between e.g. m^(1e-10)
-        # and m^(1e-11), but that is fine.
-        if not Unit.close_exponent(unit1, unit2, reltol, abstol):
-            return False
-
-        # Compare multipliers in log10 space. This means we can still easily
-        # distinguish between e.g. pF and nF, but we lose the ability to tell
-        # the difference between e.g. [F (1)] and [F (1.00000000000001)]
-        return myokit._close(unit1._m, unit2._m, reltol, abstol)
-
-    @staticmethod
-    def close_exponent(unit1, unit2, reltol=1e-9, abstol=1e-9):
-        """
-        Returns ``True`` if the exponent of ``unit1`` is close to that of
-        ``unit2``.
-
-        Exponents are stored internally as floating point numbers, and the
-        check for closeness if made with a relative tolerance of ``reltol`` and
-        absolute tolerance of ``abstol``, using::
-
-            abs(a - b) < max(reltol * max(abs(a), abs(b)), abstol)
-
-        """
-        for i, a in enumerate(unit1._x):
-            if not myokit._close(a, unit2._x[i], reltol, abstol):
-                return False
-        return True
-
-    @staticmethod
-    def conversion_factor(unit1, unit2, helpers=None):
-        """
-        Returns a :class:`myokit.Quantity` ``c`` to convert from ``unit1`` to
-        ``unit2``, such that ``1 [unit1] * c = 1 [unit2]``.
-
-        For example::
-
-            >>> import myokit
-            >>> myokit.Unit.conversion_factor('m', 'km')
-            0.001 [1 (1000)]
-
-        Where::
-
-            1 [m] = 0.001 [km/m] * 1 [km]
-
-        so that ``c = 0.001 [km/m]``, and the unit ``[km/m]`` can be written as
-        ``[km/m] = [ kilo ] = [1 (1000)]``.
-
-        Conversions between incompatible units can be performed if one or
-        multiple helper :class:`Quantity` objects are passed in.
-
-        For example::
-
-            >>> import myokit
-            >>> myokit.Unit.conversion_factor(
-            ...     'uA/cm^2', 'uA/uF', ['1 [uF/cm^2]'])
-            1.0 [cm^2/uF]
-
-        Where::
-
-            1 [uA/cm^2] = 1 [cm^2/uF] * 1 [uA/uF]
-
-        Note that this method uses the :meth:`close()` and
-        :meth:`close_exponent` comparisons to see if units are equal.
-
-        Arguments:
-
-        ``unit1``
-            The new unit to convert from, given as a :class:`myokit.Unit` or as
-            a string that can be converted to a unit with
-            :meth:`myokit.parse_unit()`.
-        ``unit2``
-            The new unit to convert to.
-        ``helpers=None``
-            An optional list of conversion factors, which the method will
-            attempt to use if the new and old units are incompatible. Each
-            factor should be specified as a :class:`myokit.Quantity` or
-            something that can be converted to a Quantity e.g. a string
-            ``1 [uF/cm^2]``.
-
-        Returns a :class:`myokit.Quantity`.
-
-        Raises a :class:`myokit.IncompatibleUnitError` if the units cannot be
-        converted.'
-        """
-        # Check unit1
-        if not isinstance(unit1, myokit.Unit):
-            if unit1 is None:
-                unit1 = myokit.units.dimensionless
-            else:
-                unit1 = myokit.parse_unit(unit1)
-
-        # Check unit2
-        if not isinstance(unit2, myokit.Unit):
-            if unit2 is None:
-                unit2 = myokit.units.dimensionless
-            else:
-                unit2 = myokit.parse_unit(unit2)
-
-        # Check helper units
-        factors = []
-        if helpers is not None:
-            for factor in helpers:
-                if not isinstance(factor, myokit.Quantity):
-                    factor = myokit.Quantity(factor)
-                factors.append(factor)
-        del(helpers)
-
-        # Simplest case: units are (almost) equal
-        if Unit.close(unit1, unit2):
-            return Quantity(1)
-
-        # Get conversion factor
-        fw = None
-        if Unit.close_exponent(unit1, unit2):
-
-            # Directly convertible
-            fw = 10**(unit1._m - unit2._m)
-
-        else:
-            # Try conversion via one of the helpers
-            for factor in factors:
-
-                unit1a = unit1 * factor.unit()
-                if Unit.close_exponent(unit1a, unit2):
-                    fw = 10**(unit1a._m - unit2._m) * factor.value()
-                    break
-
-                unit1a = unit1 / factor.unit()
-                if Unit.close_exponent(unit1a, unit2):
-                    fw = 10**(unit1a._m - unit2._m) / factor.value()
-                    break
-
-        # Unable to convert?
-        if fw is None:
-            msg = 'Unable to convert from ' + unit1.clarify()
-            msg += ' to ' + unit2.clarify()
-            if factors:
-                msg += ' (even with help of conversion factors).'
-            raise myokit.IncompatibleUnitError(msg + '.')
-
-        # Create Quantity and return
-        fw = myokit._fround(fw)
-        return Quantity(fw, unit2 / unit1)
-
-    @staticmethod
-    def convert(amount, unit1, unit2):
-        """
-        Converts a number ``amount`` in units ``unit1`` to a new amount in
-        units ``unit2``.
-
-            >>> import myokit
-            >>> myokit.Unit.convert(3000, 'm', 'km')
-            3.0
-
-        """
-        factor = Unit.conversion_factor(unit1, unit2)
-        if isinstance(amount, myokit.Quantity):
-            return factor * amount
-        return factor.value() * amount
-
-    def __div__(self, other):   # pragma: no cover      truediv used instead
-        return self.__truediv__(other)
-
-    def __eq__(self, other):
-        if not isinstance(other, Unit):
-            return False
-
-        for i, x in enumerate(self._x):
-            if not myokit._feq(x, other._x[i]):
-                return False
-        return myokit._feq(self._m, other._m)
-
-    def exponents(self):
-        """
-        Returns a list containing this unit's exponents.
-        """
-        return list(self._x)
-
-    def __float__(self):
-        # Attempts to convert this unit to a float.
-
-        for x in self._x:
-            if x != 0:
-                raise TypeError(
-                    'Unable to convert unit ' + str(self) + ' to float.')
-        return self.multiplier()
-
-    def __hash__(self):
-        # Creates a hash for this Unit
-
-        # This uses self._str with rounding, to get hashes that are the same
-        # for units that are close (but note that the __eq__ check will still
-        # tell them apart). It cannot use str(self) because that can involve
-        # hashing to look up a preferred representation.
-
-        if self._hash is None:
-            self._hash = hash(self._str(True))
-        return self._hash
-
-    @staticmethod
-    def list_exponents():
-        """
-        Returns a list of seven units, corresponding to the exponents used when
-        defining a new Unit.
-        """
-        e = []
-        for i in range(0, 7):
-            u = Unit()
-            u._x[i] = 1
-            e.append(u)
-        return e
-
-    def multiplier(self):
-        """
-        Returns this unit's multiplier (as an ordinary number, not as its base
-        10 logarithm).
-        """
-        return 10 ** self._m
-
-    def multiplier_log_10(self):
-        """
-        Returns the base 10 logarithm of this unit's multiplier.
-        """
-        return self._m
-
-    def __mul__(self, other):
-        # Evaluates ``self * other``
-
-        if not isinstance(other, Unit):
-            return Unit(list(self._x), self._m + math.log10(float(other)))
-        return Unit(
-            [a + b for a, b in zip(self._x, other._x)], self._m + other._m)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    @staticmethod
-    def parse_simple(name):
-        """
-        Converts a single unit name (+ optional quantifier) to a Unit object.
-
-        For example ``m`` and ``km`` will be accepted, while ``m/s`` or ``m^2``
-        will not.
-
-        >>> from myokit import Unit
-        >>> print(Unit.parse_simple('km'))
-        [km]
-        >>> N = Unit.parse_simple('N')
-        >>> print(repr(N))
-        [g*m/s^2 (1000)]
-        >>> print(str(N))
-        [N]
-        >>> print(Unit.parse_simple(''))       # Dimensionless
-        [1]
-        >>> print(Unit.parse_simple('mm'))     # millimeters
-        [mm]
-        >>> print(Unit.parse_simple('mM'))     # milli-mole per liter
-        [mM]
-        """
-        name = name.strip()
-        if name in ['1', '']:
-            # Return empty unit
-            return Unit()
-
-        try:
-            # Return clone of named unit
-            return Unit(Unit._units[name])
-
-        except KeyError:
-            p1 = name[0]
-            p2 = name[1:]
-            if p2 in Unit._quantifiable:
-                # Quantified unit
-                try:
-                    q = Unit._si_quantifiers[p1]
-                except KeyError:
-
-                    if p1 not in Unit._si_quantifiers:
-                        raise KeyError(
-                            'Unknown quantifier: "' + str(p1) + '".')
-                    else:   # pragma: no cover
-                        raise Exception(
-                            'Unit "' + str(p1) + '" listed as quantifiable'
-                            ' does not appear in unit list.')
-
-                # Return new unit with updated exponent
-                u = Unit._units[p2]
-                return Unit(u._x, u._m + q)
-
-            elif p1 in Unit._si_quantifiers and p2 in Unit._units:
-                # Attempt to quantify non-quantifiable unit
-                raise KeyError(
-                    'Unit "' + str(p2) + '" cannot have quantifier "' + str(p1)
-                    + '".')
-
-            else:
-                # Just plain wrong
-                raise KeyError('Unknown unit: "' + str(name) + '".')
-
-    def __pow__(self, f):
-        # Evaluates ``self ^ other``
-
-        f = float(f)
-        e = [myokit._fround(f * x) for x in self._x]
-        return Unit(e, self._m * f)
-
-    def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
-        return self.__rtruediv__(other)
-
-    @staticmethod
-    def register(name, unit, quantifiable=False, output=False):
-        """
-        Registers a unit name with the Unit class. Registered units will be
-        recognised by the parse() method.
-
-        Arguments:
-
-        ``name``
-            The unit name. A variable will be created using this name.
-        ``unit``
-            A valid unit object
-        ``quantifiable``
-            ``True`` if this unit should be registered with the unit class as a
-            quantifiable unit. Typically this should only be done for the
-            unquantified symbol notation of SI or SI derived units. For example
-            m, g, Hz, N but not meter, kg, hertz or forthnight.
-        ``output``
-            ``True`` if this units name should be used to display this unit in.
-            This should be set for all common units (m, kg, nm, Hz) but not for
-            more obscure units (furlong, parsec). Having ``output`` set to
-            ``False`` will cause one-way behaviour: Myokit will recognise the
-            unit name but never use it in output.
-            Setting this to ``True`` will also register the given name as a
-            preferred representation format.
-
-        """
-        if not isinstance(name, basestring):
-            raise TypeError('Given name must be a string.')
-        if not isinstance(unit, Unit):
-            raise TypeError('Given unit must be myokit.Unit')
-        Unit._units[name] = unit
-        if quantifiable:
-            # Overwrite existing entries without warning
-            Unit._quantifiable.add(name)
-        if output:
-            # Overwrite existing entries without warning
-            Unit._preferred_representations[unit] = name
-
-    @staticmethod
-    def register_preferred_representation(rep, unit):
-        """
-        Registers a preferred representation for the given unit without
-        registering it as a new type. This method can be used to register
-        common representations such as "umol/L" and "km/h".
-
-        Arguments:
-
-        ``rep``
-            A string, containing the preferred name for this unit. This should
-            be something that Myokit can parse.
-        ``unit``
-            The unit to register a notation for.
-
-        Existing entries are overwritten without warning.
-        """
-        # Overwrite existing entries without warning
-        Unit._preferred_representations[unit] = rep
-
-    def __repr__(self):
-        """
-        Returns this unit formatted in the base SI units.
-        """
-        if self._repr is None:
-            self._repr = self._str(False)
-        return self._repr
-
-    def __rmul__(self, other):
-        # Evaluates ``other * self``, where other is not a Unit
-
-        return Unit(list(self._x), self._m + math.log10(other))
-
-    def __rtruediv__(self, other):
-        # Evaluates ``other / self``, where other is not a unit when future
-        # division is active.
-
-        return Unit([-a for a in self._x], math.log10(other) - self._m)
-
-    def _str(self, use_close_for_rounding):
-        """
-        String representation without preferred representations, that will
-        round to nearby ints if ``use_close_for_rounding=True``.
-        """
-        # Rounding
-        rnd = myokit._cround if use_close_for_rounding else myokit._fround
-
-        # SI unit names
-        si = ['g', 'm', 's', 'A', 'K', 'cd', 'mol']
-
-        # Get unit parts
-        pos = []
-        neg = []
-        for k, x in enumerate(self._x):
-            x = rnd(x)
-            if x != 0:
-                y = si[k]
-                xabs = abs(x)
-                if xabs > 1:
-                    y += '^' + str(xabs)
-                if x > 0:
-                    pos.append(y)
-                else:
-                    neg.append(y)
-        u = '*'.join(pos) if pos else '1'
-        for x in neg:
-            u += '/' + str(x)
-
-        # Add conversion factor
-        m = self._m
-        if m != 0:
-            m = rnd(m)
-            m = 10**m
-            if m >= 1:
-                m = rnd(m)
-            if m < 1e6:
-                m = str(m)
-            else:
-                m = '{:<1.0e}'.format(m)
-            u += ' (' + m + ')'
-        return '[' + u + ']'
-
-    def __str__(self):
-
-        # Strategy 1: Try simple look-up (using _feq float comparison)
-        try:
-            return '[' + Unit._preferred_representations[self] + ']'
-        except KeyError:
-            pass
-
-        # Strategy 2: Find a representation for a unit that's close to this one
-        rep = None
-        for unit, test in Unit._preferred_representations.items():
-            if Unit.close(self, unit):
-                rep = '[' + test + ']'
-                break
-
-        # Strategy 3: Try finding a representation for the exponent and adding
-        # a multiplier to that.
-        if rep is None:
-
-            # Because kilos are defined with a multiplier of 1000, the
-            # "multiplier free" value is actually given by
-            # 10**(3 * gram exponent)
-            m = 3 * self._x[0]
-            u = Unit(list(self._x), m)
-            rep = Unit._preferred_representations.get(u, None)
-
-            # Add multiplier part
-            if rep is not None:
-                m = myokit._cround(self._m - m)
-                m = 10**m
-                if m >= 1:
-                    m = myokit._cround(m)
-                if m < 1e6:
-                    m = str(m)
-                else:
-                    m = '{:<1.0e}'.format(m)
-                rep = '[' + rep + ' (' + m + ')]'
-
-        # Strategy 4: Build a new representation
-        if rep is None:
-            rep = self._str(True)
-
-        # Store new representation and return
-        Unit._preferred_representations[self] = rep[1:-1]
-        return rep
-
-    def __truediv__(self, other):
-        # Evaluates self / other if future division is active.
-
-        if not isinstance(other, Unit):
-            return Unit(list(self._x), self._m - math.log10(float(other)))
-        return Unit(
-            [a - b for a, b in zip(self._x, other._x)],
-            self._m - other._m)
-
-
-# Dimensionless unit, used to compare against
-dimensionless = Unit()
-
-
-# Quantities with units
-
-
-class Quantity(object):
-    """
-    Represents a quantity with a :class:`unit <myokit.Unit>`. Can be used to
-    perform unit-safe arithmetic.
-
-    Example::
-
-        >>> from myokit import Quantity as Q
-        >>> a = Q('10 [pA]')
-        >>> b = Q('5 [mV]')
-        >>> c = a / b
-        >>> print(c)
-        2 [uS]
-
-        >>> from myokit import Number as N
-        >>> d = myokit.Number(4)
-        >>> print(d.unit())
-        None
-        >>> e = myokit.Quantity(d)
-        >>> print(e.unit())
-        [1]
-
-    Arguments:
-
-    ``value``
-        Either a numerical value (something that can be converted to ``float``)
-        or a string representation of a number in ``mmt`` syntax such as ``4``
-        or ``2 [mV]``. Quantities are immutable so no clone constructor is
-        provided.
-        If a :class:`myokit.Expression` is provided its value and unit will be
-        converted. In this case, the unit argument should be ``None``. Myokit
-        expressions with an undefined unit will be treated as dimensionless.
-    ``unit``
-        An optional unit. Only used if the given ``value`` did not specify a
-        unit.  If no unit is given the quantity will be dimensionless.
-
-    Quantities support basic arithmetic, provided they have compatible units.
-    Quantity arithmetic uses the following rules
-
-    1. Quantities with any units can be multiplied or divided by each other
-    2. Quantities with exactly equal units can be added and subtracted.
-    3. Quantities with units that can be converted to each other (such as mV
-       and V) can  **not** be added or subtracted, as the output unit would be
-       undefined.
-    4. Quantities with the same value and exactly the same unit are equal.
-    5. Quantities that would be equal after conversion are **not** seen as
-       equal.
-
-    Examples::
-
-        >>> a = Q('10 [mV]')
-        >>> b = Q('0.01 [V]')
-        >>> print(a == b)
-        False
-        >>> print(a.convert('V') == b)
-        True
-
-    """
-    def __init__(self, value, unit=None):
-
-        if isinstance(value, myokit.Expression):
-            # Convert myokit.Expression
-            if unit is not None:
-                raise ValueError(
-                    'Cannot specify a unit when creating a'
-                    ' myokit.Quantity from a myokit.Number.')
-            self._value = value.eval()
-            unit = value.unit()
-            self._unit = unit if unit is not None else dimensionless
-
-        else:
-            # Convert other types
-            self._unit = None
-            try:
-                # Convert value to float
-                self._value = float(value)
-
-            except (ValueError, TypeError):
-
-                # Try parsing string
-                try:
-                    self._value = str(value)
-                    parts = value.split('[', 1)
-                except Exception:
-                    raise ValueError(
-                        'Value of type ' + str(type(value))
-                        + ' could not be converted to myokit.Quantity.')
-
-                # Very simple number-with-unit parsing
-                try:
-                    self._value = float(parts[0])
-                except ValueError:
-                    raise ValueError(
-                        'Failed to parse string "' + str(value)
-                        + '" as myokit.Quantity.')
-                self._unit = myokit.parse_unit(parts[1].strip()[:-1])
-
-            # No unit set yet? Then check unit argument
-            if self._unit is None:
-                if unit is None:
-                    self._unit = dimensionless
-                elif isinstance(unit, myokit.Unit):
-                    self._unit = unit
-                else:
-                    self._unit = myokit.parse_unit(unit)
-            elif unit is not None:
-                raise ValueError('Two units specified for myokit.Quantity.')
-
-        # Create string representation
-        self._str = str(self._value) + ' ' + str(self._unit)
-
-    def convert(self, unit):
-        """
-        Returns a copy of this :class:`Quantity`, converted to another
-        :class:`myokit.Unit`.
-        """
-        return Quantity(Unit.convert(self._value, self._unit, unit), unit)
-
-    def __add__(self, other):
-        if not isinstance(other, Quantity):
-            other = Quantity(other)
-        if self._unit != other._unit:
-            raise myokit.IncompatibleUnitError(
-                'Cannot add quantities with units ' + self._unit.clarify()
-                + ' and ' + other._unit.clarify() + '.')
-        return Quantity(self._value + other._value, self._unit)
-
-    def cast(self, unit):
-        """
-        Returns a new Quantity with this quantity's value and a different,
-        possibly incompatible, unit.
-
-        Example:
-
-            >>> from myokit import Quantity as Q
-            >>> a = Q('10 [A/F]')
-            >>> b = a.cast('uA/cm^2')
-            >>> print(str(b))
-            10.0 [uA/cm^2]
-
-        """
-        if not isinstance(unit, myokit.Unit):
-            unit = myokit.parse_unit(unit)
-        return Quantity(self._value, unit)
-
-    def __div__(self, other):   # pragma: no cover      truediv used instead
-        return self.__truediv__(other)
-
-    def __eq__(self, other):
-        if not isinstance(other, Quantity):
-            return False
-        return self._value == other._value and self._unit == other._unit
-
-    def __float__(self):
-        return self._value
-
-    def __hash__(self):
-        return self._str
-
-    def __mul__(self, other):
-        if not isinstance(other, Quantity):
-            other = Quantity(other)
-        return Quantity(self._value * other._value, self._unit * other._unit)
-
-    def __pow__(self, f):
-        if isinstance(f, Quantity):
-            if f.unit() != myokit.units.dimensionless:
-                raise myokit.IncompatibleUnitError(
-                    'Exponent of power must be dimensionless')
-            f = f.value()
-        return Quantity(self._value ** f, self._unit ** f)
-
-    def __radd__(self, other):
-        return self + other
-
-    def __repr__(self):
-        return self._str
-
-    def __rdiv__(self, other):  # pragma: no cover    rtruediv used instead
-        return Quantity(other) / self
-
-    def __rmul__(self, other):
-        return self * other
-
-    def __rsub__(self, other):
-        return Quantity(other) - self
-
-    def __rtruediv__(self, other):
-        return Quantity(other) / self
-
-    def __str__(self):
-        return self._str
-
-    def __sub__(self, other):
-        if not isinstance(other, Quantity):
-            other = Quantity(other)
-        if self._unit != other._unit:
-            raise myokit.IncompatibleUnitError(
-                'Cannot subtract quantities with units ' + self._unit.clarify()
-                + ' and ' + other._unit.clarify() + '.')
-        return Quantity(self._value - other._value, self._unit)
-
-    def __truediv__(self, other):
-        # Evaluates self / other
-
-        if not isinstance(other, Quantity):
-            other = Quantity(other)
-        return Quantity(self._value / other._value, self._unit / other._unit)
-
-    def unit(self):
-        """
-        Returns this Quantity's unit.
-        """
-        return self._unit
-
-    def value(self):
-        """
-        Returns this Quantity's unitless value.
-        """
-        return self._value
-

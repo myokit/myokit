@@ -51,20 +51,20 @@ del(logging)
 #  0    PY_RELEASE_SERIAL, increments with every release
 #
 import sys  # noqa
-if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
+if sys.hexversion < 0x03000000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 2 versions older than 2.7.15')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit support for Python 2.7 is nearing the end of its lifetime.'
+        ' Please upgrade as soon as possible! Detected Python version: '
+        + sys.version)
     del(logging, log)
-elif (sys.hexversion >= 0x03000000 and
-      sys.hexversion < 0x03050000):  # pragma: no cover
+elif sys.hexversion < 0x03050000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.5.0')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit is not tested on Python 3 versions older than 3.5.0. Detected'
+        ' Python version: ' + sys.version)
     del(logging, log)
 
 
@@ -108,7 +108,7 @@ Copyright (c) 2017-2020 University of Oxford. All rights reserved.
  (University of Oxford means the Chancellor, Masters and Scholars of the
   University of Oxford, having an administrative office at Wellington Square,
   Oxford OX1 2JD, UK).
-Copyright (c) 2020-2020 University of Nottingham. All rights reserved.
+Copyright (c) 2020-2021 University of Nottingham. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -143,11 +143,12 @@ LICENSE_HTML = """
     BSD 3-Clause License
     <br />
     <br />Copyright (c) 2011-2017 Maastricht University. All rights reserved.
-    <br />Copyright (c) 2017-2019 University of Oxford. All rights reserved.
+    <br />Copyright (c) 2017-2020 University of Oxford. All rights reserved.
     <br />(University of Oxford means the Chancellor, Masters and Scholars of
     the University of Oxford, having an administrative office at Wellington
     Square, Oxford OX1 2JD, UK).
-</p>
+    <br />Copyright (c) 2020-2021 University of Nottingham. All rights
+    reserved.</br></p>
 <p>
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
@@ -297,10 +298,10 @@ FORCE_PYSIDE2 = False
 # Library paths and settings
 #
 
-# Location of the Sundials (CVODE) shared library objects (.dll or .so)
+# Location of the Sundials (CVODES) shared library objects (.dll or .so)
 SUNDIALS_LIB = []
 
-# Location of the Sundials (CVODE) header files (.h)
+# Location of the Sundials (CVODES) header files (.h)
 SUNDIALS_INC = []
 
 # Sundials version number. Defaults to 0.
@@ -355,6 +356,7 @@ from ._err import (  # noqa
     SimultaneousProtocolEventError,
     UnresolvedReferenceError,
     UnusedVariableError,
+    VariableMappingError,
 )
 
 # Check if all errors imported
@@ -374,6 +376,10 @@ for ex in inspect.getmembers(_err):
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 del(_err)
 
+# Tools
+from . import float  # noqa
+from . import tools  # noqa
+
 # Model api
 from ._model_api import ( # noqa
     check_name,
@@ -386,7 +392,7 @@ from ._model_api import ( # noqa
     Variable,
 )
 
-# Expressions and units
+# Expressions
 from ._expressions import (  # noqa
     Abs,
     ACos,
@@ -406,6 +412,7 @@ from ._expressions import (  # noqa
     If,
     InfixCondition,
     InfixExpression,
+    InitialValue,
     Less,
     LessEqual,
     LhsExpression,
@@ -420,6 +427,7 @@ from ._expressions import (  # noqa
     Not,
     NotEqual,
     Or,
+    PartialDerivative,
     Piecewise,
     Plus,
     Power,
@@ -427,14 +435,17 @@ from ._expressions import (  # noqa
     PrefixExpression,
     PrefixMinus,
     PrefixPlus,
-    Quantity,
     Quotient,
     Remainder,
     Sin,
     Sqrt,
     Tan,
-    Unit,
+)
 
+# Unit and quantity
+from ._unit import (  # noqa
+    Quantity,
+    Unit,
 )
 
 # Pacing protocol
@@ -443,6 +454,7 @@ from ._protocol import (  # noqa
     Protocol,
     ProtocolEvent,
 )
+from . import pacing  # noqa
 
 # Parser functions
 from ._parsing import (  # noqa
@@ -451,7 +463,6 @@ from ._parsing import (  # noqa
     parse,
     parse_expression_string as parse_expression,
     parse_model,
-    #parse_number_string as parse_number,
     parse_protocol,
     parse_state,
     parse_unit_string as parse_unit,
@@ -459,73 +470,43 @@ from ._parsing import (  # noqa
     strip_expression_units,
 )
 
-# Auxillary functions
-from ._aux import (  # noqa
-    # Version info
-    version,
-
-    # Global date and time formats
-    date,
-    time,
-
-    # Default mmt parts
-    default_protocol,
-    default_script,
-
+# Load/save functions
+from ._io import (  # noqa
     # Reading, writing
     load,
     load_model,
     load_protocol,
     load_script,
+    load_state,
+    load_state_bin,
     save,
     save_model,
     save_protocol,
     save_script,
-    load_state,
     save_state,
-    load_state_bin,
     save_state_bin,
+)
 
-    # Running scripts
-    run,
+# Common units
+from . import units  # noqa, also loads all common unit names
 
-    # Test step
-    step,
-
-    # Output capturing
-    PyCapture,
-    SubCapture,
-
-    # Sorting
-    _natural_sort_key,
-
-    # Dyanmic generation of Python/NumPy expressions
-    python_writer,
-    numpy_writer,
-
-    # Model comparison
+# Auxillary functions
+from ._aux import (  # noqa
+    default_protocol,
+    default_script,
     ModelComparison,
-
-    # Benchmarking
+    numpy_writer,
+    python_writer,
+    run,
+    step,
+    version,
+    # Deprecated and/or moved to myokit.tools
     Benchmarker,
-
-    # Floating point
-    _close,
-    _cround,
-    _feq,
-    _fgeq,
-    _fround,
+    date,
     format_float_dict,
-    strfloat,
-
-    # Misc
     format_path,
-    _lvsd,
-    _pid_hash,
-    _rmtree,
-
-    # Snapshot creation for replicability
-    pack_snapshot,
+    strfloat,
+    time,
 )
 
 # System information
@@ -554,11 +535,11 @@ from ._datablock import (   # noqa
     DataBlock2d,
 )
 
-
 # Simulations
 from ._sim import (  # noqa
     CModule,
     CppModule,
+    pid_hash,
 )
 from ._sim.compiler import (  # noqa
     Compiler,
@@ -572,24 +553,16 @@ from ._sim.opencl import (  # noqa
     OpenCLInfo,
     OpenCLPlatformInfo,
 )
-from ._sim.cvodesim import Simulation       # noqa
+from ._sim.cmodel import CModel             # noqa
+from ._sim.cvodessim import Simulation      # noqa
+from ._sim.cvodesim import Simulation as LegacySimulation  # noqa
 from ._sim.cable import Simulation1d        # noqa
 from ._sim.rhs import RhsBenchmarker        # noqa
 from ._sim.icsim import ICSimulation        # noqa
 from ._sim.psim import PSimulation          # noqa
 from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
-#from ._sim.openmp import SimulationOpenMP                       # noqa
 from ._sim.openclsim import SimulationOpenCL                    # noqa
 from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
-
-# Import whole modules
-# This allows these modules to be used after myokit was imported, without
-# importing the modules specifically (like os and os.path).
-# All modules imported here must report so in their docs
-from . import ( # noqa
-    pacing,
-    units,  # Also loads all common unit names
-)
 
 
 #

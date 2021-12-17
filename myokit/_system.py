@@ -60,12 +60,6 @@ def system(live_printing=False):
     # Python extras
     out.append('== Python extras ==')
     out.append('SymPy: ' + _module_version('sympy'))
-    ver = _module_version('cma')
-    try:
-        ver = ver[:ver.index('$')].strip()
-    except ValueError:  # pragma: no cover
-        pass
-    out.append('CMAES: ' + ver)
     out.append('MoviePy: ' + _module_version('moviepy'))
     out.append('')
 
