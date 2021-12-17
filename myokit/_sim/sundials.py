@@ -99,28 +99,6 @@ class Sundials(myokit.CModule):
             # result, it can't find sundials.c and the build fails.
             return None
 
-    @staticmethod
-    def version_int():
-        """
-        Returns a sundials version number as an integer, or None if no version
-        number could be detected.
-        """
-        # Get version from sundials header
-        version = Sundials.version()
-        if version is not None:
-            try:
-                # Version can be x.y.z-dev
-                if '-' in version:  # pragma: no cover
-                    version = version[:version.index('-')]
-                version = [int(x) for x in version.split('.')]
-                version = version[0] * 10000 + version[1] * 100 + version[2]
-            except Exception:   # pragma: no cover
-                log = logging.getLogger(__name__)
-                log.warning(
-                    'Unable to parse sundials version: ' + str(version))
-                version = None
-        return version
-
 
 class NoSundialsError(myokit.MyokitError):
     """

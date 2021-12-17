@@ -7,15 +7,17 @@ This page lists the main changes made to Myokit in each release.
   - [#799](https://github.com/MichaelClerx/myokit/pull/799) Added pL, MOhm, and GOhm as standard units.
   - [#811](https://github.com/MichaelClerx/myokit/pull/811) DatalogViewer now accepts `.zip` for binary data logs.
   - [#817](https://github.com/MichaelClerx/myokit/pull/816) Add support for Python 3.10.
+  - [#821](https://github.com/MichaelClerx/myokit/pull/821) Sundials-based simulations now auto-detect the version number. The version indicated in myokit.ini is no longer used.
 - Changed
-  - [#817](https://github.com/MichaelClerx/myokit/pull/816) The internal templating engine now uses `ast` instead of the deprecated (and removed in 3.10) `parser` module.
-  - [#816](https://github.com/MichaelClerx/myokit/pull/816) The method `myokit.tools.Benchmarker.format` can now be called without any arguments.
-  - [#815](https://github.com/MichaelClerx/myokit/pull/815) Myokit will now warn when run on Python 2.7, as testing for 2.7 is being phased out.
   - Examples will be located in a separate repository, at https://github.com/MichaelClerx/myokit-examples
+  - [#815](https://github.com/MichaelClerx/myokit/pull/815) Myokit will now warn when run on Python 2.7, as testing for 2.7 is being phased out.
+  - [#816](https://github.com/MichaelClerx/myokit/pull/816) The method `myokit.tools.Benchmarker.format` can now be called without any arguments.
+  - [#817](https://github.com/MichaelClerx/myokit/pull/816) The internal templating engine now uses `ast` instead of the deprecated (and removed in 3.10) `parser` module.
 - Deprecated
 - Removed
   - [#796](https://github.com/MichaelClerx/myokit/pull/796) The Graph Data Extractor tool is now a separate project, hosted at https://github.com/MichaelClerx/gde.
   - [#804](https://github.com/MichaelClerx/myokit/pull/804) The command line utility `system` no longer reports on the `cma` module.
+  - [#821](https://github.com/MichaelClerx/myokit/pull/821) Removed the method `myokit.Sundials.version_int`.
 - Fixed
   - [#805](https://github.com/MichaelClerx/myokit/pull/805) Added missing command line utilities to the documentation, and re-organised the command-line tool docs.
 
