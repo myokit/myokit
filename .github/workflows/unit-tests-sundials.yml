@@ -1,4 +1,4 @@
-name: Sundials unit tests
+name: Sundials version tests
 on:
   push:
     branches:
@@ -11,7 +11,7 @@ on:
 jobs:
 
   build-and-test:
-    name: unit-sundials
+    name: sundials
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     strategy:
