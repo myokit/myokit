@@ -48,11 +48,15 @@ class Benchmarker(object):
     def __init__(self):
         self._start = timeit.default_timer()
 
-    def format(self, time):
+    def format(self, time=None):
         """
         Formats a (non-integer) number of seconds, returns a string like
         "5 weeks, 3 days, 1 hour, 4 minutes, 9 seconds", or "0.0019 seconds".
+
+        If no ``time`` is passed in, the value from :meth:`time()` is used.
         """
+        if time is None:
+            time = self.time()
         if time < 60:
             return '1 second' if time == 1 else str(time) + ' seconds'
         output = []
