@@ -24,17 +24,21 @@ import myokit
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <stdio.h>
+
 #include <cvodes/cvodes.h>
 #include <nvector/nvector_serial.h>
-#define MYOKIT_SUNDIALS_VERSION <?= myokit.SUNDIALS_VERSION ?>
-#if MYOKIT_SUNDIALS_VERSION >= 30000
+#include <sundials/sundials_types.h>
+#include <sundials/sundials_config.h>
+#ifndef SUNDIALS_VERSION_MAJOR
+    #define SUNDIALS_VERSION_MAJOR 2
+#endif
+#if SUNDIALS_VERSION_MAJOR >= 3
     #include <sunmatrix/sunmatrix_dense.h>
     #include <sunlinsol/sunlinsol_dense.h>
     #include <cvodes/cvodes_direct.h>
 #else
     #include <cvodes/cvodes_dense.h>
 #endif
-#include <sundials/sundials_types.h>
 
 #include "pacing.h"
 
@@ -192,7 +196,7 @@ double pace = 0;        /* Pacing value */
  * CVODE Memory
  */
 void *cvode_mem;     /* The memory used by the solver */
-#if MYOKIT_SUNDIALS_VERSION >= 30000
+#if SUNDIALS_VERSION_MAJOR >= 3
 SUNMatrix sundense_matrix;          /* Dense matrix for linear solves */
 SUNLinearSolver sundense_solver;    /* Linear solver object */
 #endif
@@ -391,7 +395,7 @@ sim_clean()
 
         /* CVode objects */
         CVodeFree(&cvode_mem); cvode_mem = NULL;
-        #if MYOKIT_SUNDIALS_VERSION >= 30000
+        #if SUNDIALS_VERSION_MAJOR >= 3
         SUNLinSolFree(sundense_solver); sundense_solver = NULL;
         SUNMatDestroy(sundense_matrix); sundense_matrix = NULL;
         #endif
@@ -503,7 +507,7 @@ sim_init(PyObject *self, PyObject *args)
 
     /* CVode objects */
     cvode_mem = NULL;
-    #if MYOKIT_SUNDIALS_VERSION >= 30000
+    #if SUNDIALS_VERSION_MAJOR >= 3
     sundense_matrix = NULL;
     sundense_solver = NULL;
     #endif
@@ -795,7 +799,7 @@ sim_init(PyObject *self, PyObject *args)
     if (model->is_ode) {
 
         /* Create, using backwards differentiation and newton iterations */
-        #if MYOKIT_SUNDIALS_VERSION >= 40000
+        #if SUNDIALS_VERSION_MAJOR >= 4
         cvode_mem = CVodeCreate(CV_BDF); /* Newton is still default */
         #else
         cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
@@ -822,7 +826,7 @@ sim_init(PyObject *self, PyObject *args)
         flag_cvode = CVodeSetMinStep(cvode_mem, dt_min < 0 ? 0.0 : dt_min);
         if (check_cvode_flag(&flag_cvode, "CVodeSetminStep", 1)) return sim_clean();
 
-        #if MYOKIT_SUNDIALS_VERSION >= 40000
+        #if SUNDIALS_VERSION_MAJOR >= 4
             /* Create dense matrix for use in linear solves */
             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
             if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
@@ -834,7 +838,7 @@ sim_init(PyObject *self, PyObject *args)
             /* Attach the matrix and solver to cvode */
             flag_cvode = CVodeSetLinearSolver(cvode_mem, sundense_solver, sundense_matrix);
             if (check_cvode_flag(&flag_cvode, "CVodeSetLinearSolver", 1)) return sim_clean();
-        #elif MYOKIT_SUNDIALS_VERSION >= 30000
+        #elif SUNDIALS_VERSION_MAJOR >= 3
             /* Create dense matrix for use in linear solves */
             sundense_matrix = SUNDenseMatrix(model->n_states, model->n_states);
             if (check_cvode_flag((void *)sundense_matrix, "SUNDenseMatrix", 0)) return sim_clean();
