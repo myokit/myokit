@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the myokit._aux module.
 #
@@ -9,7 +9,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
-import sys
+import re
 import unittest
 
 # StringIO in Python 2 and 3
@@ -18,9 +18,15 @@ try:
 except ImportError:  # pragma: no python 2 cover
     from io import StringIO
 
+# Strings in Python2 and Python3
+try:
+    basestring
+except NameError:   # pragma: no cover
+    basestring = str
+
 import myokit
 
-from shared import DIR_DATA, TemporaryDirectory
+from shared import DIR_DATA, WarningCollector
 
 
 class AuxTest(unittest.TestCase):
@@ -28,9 +34,15 @@ class AuxTest(unittest.TestCase):
     Test various methods from myokit._aux.
     """
 
-    def test_myokit_date(self):
-        # Test date formatting method.
+    def test_benchmarker(self):
+        # Deprecated alias of myokit.tools.Benchmarker
+        with WarningCollector() as c:
+            b = myokit.Benchmarker()
+        self.assertIn('`myokit.Benchmarker` is deprecated', c.text())
+        self.assertIsInstance(b, myokit.tools.Benchmarker)
 
+    def test_date(self):
+        # Test date formatting method.
         import time
         for i in range(3):
             a = time.strftime(myokit.DATE_FORMAT)
@@ -39,220 +51,107 @@ class AuxTest(unittest.TestCase):
                 break
         self.assertEqual(a, b)
 
-    def test_myokit_time(self):
-        # Test time formatting method.
+    def test_default_protocol(self):
+        # Test default_protocol()
 
-        import time
-        for i in range(3):
-            a = time.strftime(myokit.TIME_FORMAT)
-            b = myokit.time()
-            if a == b:
-                break
-        self.assertEqual(a, b)
+        # Test default version
+        protocol = myokit.default_protocol()
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
 
-    def test_natural_sort_key(self):
-        # Test natural sort key method.
+        # Test adapting the time unit
+        model = myokit.Model()
+        t = model.add_component('c').add_variable('t')
+        t.set_rhs(0)
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
 
-        a = ['a12', 'a3', 'a11', 'a2', 'a10', 'a1']
-        b = ['a1', 'a2', 'a3', 'a10', 'a11', 'a12']
-        self.assertNotEqual(a, b)
-        a.sort()
-        self.assertNotEqual(a, b)
-        a.sort(key=lambda x: myokit._natural_sort_key(x))
-        self.assertEqual(a, b)
+        t.set_binding('time')
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
 
-    def test_benchmarker(self):
-        # Test the benchmarker.
+        t.set_unit('s')
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1)
 
-        b = myokit.Benchmarker()
-        x = [0] * 1000
-        t0 = b.time()
-        self.assertTrue(t0 >= 0)
-        x = [0] * 1000
-        t1 = b.time()
-        self.assertTrue(t1 >= t0)
-        x = [0] * 1000
-        t2 = b.time()
-        self.assertTrue(t2 >= t1)
-        for i in range(1000):
-            x = [0] * 1000
-        t3 = b.time()
-        self.assertTrue(t3 >= t2)
-        b.reset()
-        t4 = b.time()
-        self.assertTrue(t4 < t3)
+        t.set_unit('ms')
+        protocol = myokit.default_protocol(model)
+        self.assertTrue(isinstance(protocol, myokit.Protocol))
+        self.assertEqual(protocol.head().period(), 1000)
 
-        self.assertEqual(b.format(1), '1 second')
-        self.assertEqual(b.format(61), '1 minute, 1 second')
-        self.assertEqual(b.format(60), '1 minute, 0 seconds')
-        self.assertEqual(b.format(180), '3 minutes, 0 seconds')
-        self.assertEqual(b.format(3600), '1 hour, 0 minutes, 0 seconds')
-        self.assertEqual(b.format(3661), '1 hour, 1 minute, 1 second')
-        self.assertEqual(
-            b.format(3600 * 24), '1 day, 0 hours, 0 minutes, 0 seconds')
-        self.assertEqual(
-            b.format(3600 * 24 * 7),
-            '1 week, 0 days, 0 hours, 0 minutes, 0 seconds')
+    def test_default_script(self):
+        # Test default script
 
-    def test_py_capture(self):
-        # Test the PyCapture method.
+        # Test without a model
+        script = myokit.default_script()
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
 
-        # Test basic use
-        with myokit.PyCapture() as c:
-            print('Hello')
-            self.assertEqual(c.text(), 'Hello\n')
-            sys.stdout.write('Test')
-        self.assertEqual(c.text(), 'Hello\nTest')
+        # Test adapting the time unit
+        model = myokit.Model()
+        t = model.add_component('c').add_variable('t')
+        t.set_rhs(0)
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
 
-        # Test wrapping
-        with myokit.PyCapture() as c:
-            print('Hello')
-            self.assertEqual(c.text(), 'Hello\n')
-            with myokit.PyCapture() as d:
-                print('Yes')
-            self.assertEqual(d.text(), 'Yes\n')
-            sys.stdout.write('Test')
-        self.assertEqual(c.text(), 'Hello\nTest')
+        t.set_binding('time')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
 
-        # Test disabling / enabling
-        with myokit.PyCapture() as c:
-            print('Hello')
-            self.assertEqual(c.text(), 'Hello\n')
-            with myokit.PyCapture() as d:
-                sys.stdout.write('Yes')
-                d.disable()
-                print('Hmmm')
-                d.enable()
-                print('No')
-            self.assertEqual(d.text(), 'YesNo\n')
-            sys.stdout.write('Test')
-        self.assertEqual(c.text(), 'Hello\nHmmm\nTest')
+        t.set_unit('s')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1.0)', script)
 
-        # Test clear() method
-        with myokit.PyCapture() as c:
-            print('Hi')
-            self.assertEqual(c.text(), 'Hi\n')
-            print('Ho')
-            self.assertEqual(c.text(), 'Hi\nHo\n')
-            c.clear()
-            print('Ha')
-            self.assertEqual(c.text(), 'Ha\n')
+        t.set_unit('ms')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn('run(1000)', script)
 
-        # Bug: Test clear method _without_ calling text() before clear()
-        with myokit.PyCapture() as c:
-            print('Hi')
-            print('Ho')
-            c.clear()
-            print('Ha')
-            self.assertEqual(c.text(), 'Ha\n')
+        # Test plotting membrane potential
+        v = model.get('c').add_variable('v')
+        v.set_label('membrane_potential')
+        script = myokit.default_script(model)
+        self.assertTrue(isinstance(script, basestring))
+        self.assertIn("var = 'c.v'", script)
 
-    def test_examplify(self):
-        # Test examplify.
+        # TODO: Run with tiny model?
 
-        self.assertEqual(myokit._aux._examplify('test.txt'), 'test.txt')
-        self.assertEqual(myokit._aux._examplify('example'), myokit.EXAMPLE)
-
-    def test_myokit_format_float_dict(self):
-        # Test myokit.format_float_dict.
-
+    def test_format_float_dict(self):
+        # Test myokit.format_float_dict, which is deprecated
         d = {'one': 1, 'Definitely two': 2, 'Three-ish': 3.1234567}
-        x = myokit.format_float_dict(d).splitlines()
+        with WarningCollector() as c:
+            x = myokit.format_float_dict(d).splitlines()
+        self.assertIn('`myokit.format_float_dict` is deprecated', c.text())
         self.assertEqual(len(x), 3)
         self.assertEqual(x[0], 'Definitely two = 2')
         self.assertEqual(x[1], 'Three-ish      = 3.1234567')
         self.assertEqual(x[2], 'one            = 1')
 
-    def test_myokit_format_path(self):
-        # Test format_path().
-
-        # Normal use
-        self.assertEqual(
-            myokit.format_path(os.path.join('a', 'b', 'c')),
-            os.path.join('a', 'b', 'c'))
-
-        # No trailing slash
-        self.assertEqual(
-            myokit.format_path('a'), 'a')
-        self.assertEqual(
-            myokit.format_path('a/b/'), os.path.join('a', 'b'))
-
-        # Use with custom root
+    def test_format_path(self):
+        # Deprecated alias of myokit.tools.format_path
         root = os.path.join(os.path.abspath('.'), 'a')
-        self.assertEqual(
-            myokit.format_path(os.path.join(root, 'b', 'c'), root),
-            os.path.join('b', 'c'))
-
-        # Empty path
-        self.assertEqual(
-            myokit.format_path(''), '.')
-        self.assertEqual(
-            myokit.format_path('.'), '.')
-
-        # Filesystem root
-        self.assertEqual(
-            myokit.format_path('/'), os.path.abspath('/'))
-        self.assertEqual(
-            myokit.format_path('/', root='/'), '.')
-
-        # Path outside of root
-        self.assertEqual(
-            myokit.format_path(
-                os.path.abspath('test'),
-                os.path.abspath('test/tost')),
-            os.path.abspath('test'))
-
-    def test_myokit_pack_snapshot(self):
-        # Test if the pack_snapshot method runs without exceptions.
-
-        with TemporaryDirectory() as d:
-            # Run!
-            path = d.path('pack.zip')
-            new_path = myokit.pack_snapshot(path)
-            self.assertTrue(os.path.isfile(new_path))
-            self.assertTrue(os.path.getsize(new_path) > 500000)
-
-            # Run with same location --> error
-            self.assertRaises(
-                IOError, myokit.pack_snapshot, path, overwrite=False)
-
-            # Run with overwrite switch is ok
-            myokit.pack_snapshot(path, overwrite=True)
-
-            # Write to directory: finds own filename
-            path = d.path('')
-            new_path = myokit.pack_snapshot(path)
-            self.assertEqual(new_path[:len(path)], path)
-            self.assertTrue(len(new_path) - len(path) > 5)
-
-            # Write to directory again without overwrite --> error
-            self.assertRaises(
-                IOError, myokit.pack_snapshot, path, overwrite=False)
-
-            # Run with overwrite switch is ok
-            myokit.pack_snapshot(path, overwrite=True)
-
-    def test_levenshtein_distance(self):
-        # Test the levenshtein distance method.
-
-        self.assertEqual(myokit._lvsd('kitten', 'sitting'), 3)
-        self.assertEqual(myokit._lvsd('sitting', 'kitten'), 3)
-        self.assertEqual(myokit._lvsd('saturday', 'sunday'), 3)
-        self.assertEqual(myokit._lvsd('sunday', 'saturday'), 3)
-        self.assertEqual(myokit._lvsd('michael', 'jennifer'), 7)
-        self.assertEqual(myokit._lvsd('jennifer', 'michael'), 7)
-        self.assertEqual(myokit._lvsd('jennifer', ''), 8)
-        self.assertEqual(myokit._lvsd('', 'jennifer'), 8)
-        self.assertEqual(myokit._lvsd('', ''), 0)
+        a = os.path.join(root, 'b', 'c')
+        b = os.path.join(os.path.abspath('.'), 'a')
+        with WarningCollector() as c:
+            x = myokit.format_path(a, b)
+        self.assertIn('`myokit.format_path` is deprecated', c.text())
+        self.assertEqual(x, myokit.tools.format_path(a, b))
 
     def test_model_comparison(self):
         # Test the model comparison class.
 
-        m1 = os.path.join(DIR_DATA, 'beeler-1977-model.mmt')
-        m2 = os.path.join(DIR_DATA, 'beeler-1977-model-different.mmt')
+        m1 = os.path.join(DIR_DATA, 'beeler-1977-model-compare-a.mmt')
+        m2 = os.path.join(DIR_DATA, 'beeler-1977-model-compare-b.mmt')
         m1 = myokit.load_model(m1)
         m2 = myokit.load_model(m2)
 
-        with myokit.PyCapture() as capture:
+        with myokit.tools.capture() as capture:
             c = myokit.ModelComparison(m1, m2, live=True)
 
         differences = [
@@ -329,7 +228,7 @@ class AuxTest(unittest.TestCase):
         self.assertEqual(len(c), 2)
         self.assertEqual(len(c), len(myokit.ModelComparison(m3, m1)))
 
-    def test_myokit_numpy_writer(self):
+    def test_numpy_writer(self):
         # Test NumPy expression writer obtaining method.
 
         import myokit
@@ -349,7 +248,7 @@ class AuxTest(unittest.TestCase):
         x.set_rhs('5 + x')
         self.assertEqual(w.ex(x.rhs()), '5.0 + c_x')
 
-    def test_myokit_python_writer(self):
+    def test_python_writer(self):
         # Test Python expression writer obtaining method.
 
         import myokit
@@ -369,7 +268,7 @@ class AuxTest(unittest.TestCase):
         x.set_rhs('5 + x')
         self.assertEqual(w.ex(x.rhs()), '5.0 + c_x')
 
-    def test_myokit_run(self):
+    def test_run(self):
         # Test run() method.
 
         m, p, _ = myokit.load('example')
@@ -380,21 +279,21 @@ class AuxTest(unittest.TestCase):
             's = myokit.Simulation(m, p)',
             's.run(200)',
         ])
-        with myokit.PyCapture():
+        with myokit.tools.capture():
             myokit.run(m, p, x)
-        with myokit.PyCapture():
+        with myokit.tools.capture():
             myokit.run(m, p, '[[script]]\n' + x)
         self.assertRaises(ZeroDivisionError, myokit.run, m, p, 'print(1 / 0)')
 
         # Test with stringio
         x = "print('Hi there')"
         s = StringIO()
-        with myokit.PyCapture() as c:
+        with myokit.tools.capture() as c:
             myokit.run(m, p, x, stderr=s, stdout=s)
         self.assertEqual(c.text(), '')
         self.assertEqual(s.getvalue(), 'Hi there\n')
 
-    def test_myokit_step(self):
+    def test_step(self):
         # Test the step() method.
         m1 = myokit.load_model(os.path.join(DIR_DATA, 'beeler-1977-model.mmt'))
 
@@ -415,14 +314,43 @@ class AuxTest(unittest.TestCase):
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '-' * 79,
         ]
-        #for i, line in enumerate(y):
-        #    print(line)
-        #    print(x[i])
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
-        # Test comparison against another model
+        # Test with an initial state
+        # For whatever reason, CI gives slightly different final 3 digits some
+        # times.
+        state = [-80, 1e-7, 0.1, 0.9, 0.9, 0.1, 0.9, 0.1]
+        x = myokit.step(m1, initial=state).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name         Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'membrane.V   -8.00000000000000000e+01   1.41230788219242243e+00',
+            'calcium.Cai   9.99999999999999955e-08   1.68235244574188927e-07',
+            'ina.m         1.00000000000000006e-01  -5.12333452433218284e+00',
+            'ina.h         9.00000000000000022e-01   1.30873415607557463e-02',
+            'ina.j         9.00000000000000022e-01   1.43519283896554857e-03',
+            'isi.d         1.00000000000000006e-01  -1.06388689494351027e-02',
+            'isi.f         9.00000000000000022e-01   1.81759609957233962e-03',
+            'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
+            '-' * 79,
+        ]
+        r1 = re.compile(r'[a-zA-Z]\w*\.[a-zA-Z]\w*\s+([^\s]+)\s+([^\s]+)')
+        for a, b in zip(x, y):
+            g1 = r1.match(a)
+            g2 = r1.match(b)
+            if g1 is not None and g2 is not None:
+                self.assertEqual(g1.group(1), g2.group(1))
+                a, b = float(g1.group(2)), float(g2.group(2))
+                self.assertTrue(myokit.float.close(a, b))
+            else:
+                self.assertEqual(a, b)
+        self.assertEqual(len(x), len(y))
+
+        # Test comparison against another model (with both models the same)
         m2 = m1.clone()
         x = myokit.step(m1, reference=m2).splitlines()
         y = [
@@ -432,89 +360,139 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
             'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
             '                                       -3.97224086575331814e-04',
-            '                                                               ',
+            '',
             'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
             '                                       -1.56608433137725457e-09',
-            '                                                               ',
+            '',
             'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
             '                                        7.48738392280519083e-02',
-            '                                                               ',
+            '',
             'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
             '                                       -1.78891889478854579e-03',
-            '                                                               ',
+            '',
             'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
             '                                       -3.06255006833574140e-04',
-            '                                                               ',
+            '',
             'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
             '                                       -5.11993904291850035e-06',
-            '                                                               ',
+            '',
             'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
             '                                        1.88374114688215870e-04',
-            '                                                               ',
+            '',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '                                       -3.21682814207918156e-07',
-            '                                                               ',
+            '',
             'Model check completed without errors.',
             '-' * 79,
         ]
-
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
-        # Add small mismatch
-        m2.get('ina.m').set_rhs(
-            myokit.Multiply(m2.get('ina.m').rhs(), myokit.Number(1 + 1e-15)))
-        # Add large mismatch
-        m2.get('isi.f').set_rhs(
-            myokit.Multiply(m2.get('isi.f').rhs(), myokit.Number(2)))
-        # Add huge mismatch
-        m2.get('ix1.x1').set_rhs(
-            myokit.Multiply(m2.get('ix1.x1').rhs(), myokit.Number(100)))
-        # Add sign issue
-        m2.get('ina.j').set_rhs('-(' + m2.get('ina.j').rhs().code() + ')')
+        # Test comparison against another model, with an initial state
+        x = myokit.step(m1, reference=m2, initial=state).splitlines()
+        y = [
+            'Evaluating state vector derivatives...',
+            '-' * 79,
+            'Name         Initial value             Derivative at t=0       ',
+            '-' * 79,
+            'membrane.V   -8.00000000000000000e+01   1.41230788219242243e+00',
+            '                                        1.41230788219242243e+00',
+            '',
+            'calcium.Cai   9.99999999999999955e-08   1.68235244574188927e-07',
+            '                                        1.68235244574188927e-07',
+            '',
+            'ina.m         1.00000000000000006e-01  -5.12333452433218284e+00',
+            '                                       -5.12333452433218284e+00',
+            '',
+            'ina.h         9.00000000000000022e-01   1.30873415607557463e-02',
+            '                                        1.30873415607557463e-02',
+            '',
+            'ina.j         9.00000000000000022e-01   1.43519283896554857e-03',
+            '                                        1.43519283896554857e-03',
+            '',
+            'isi.d         1.00000000000000006e-01  -1.06388689494351027e-02',
+            '                                       -1.06388689494351027e-02',
+            '',
+            'isi.f         9.00000000000000022e-01   1.81759609957233962e-03',
+            '                                        1.81759609957233962e-03',
+            '',
+            'ix1.x1        1.00000000000000006e-01  -4.72598388279933061e-03',
+            '                                       -4.72598388279933061e-03',
+            '',
+            'Model check completed without errors.',
+            '-' * 79,
+        ]
+        r2 = re.compile(r'\s+([^\s]+)')
+        for a, b in zip(x, y):
+            g1 = r1.match(a)
+            g2 = r1.match(b)
+            if g1 is not None and g2 is not None:
+                self.assertEqual(g1.group(1), g2.group(1))
+                a, b = float(g1.group(2)), float(g2.group(2))
+                self.assertTrue(myokit.float.close(a, b))
+            else:
+                g1 = r2.match(a)
+                g2 = r2.match(b)
+                if g1 is not None and g2 is not None:
+                    a, b = float(g1.group(1)), float(g2.group(1))
+                    self.assertTrue(myokit.float.close(a, b))
+                else:
+                    self.assertEqual(a, b)
+        self.assertEqual(len(x), len(y))
 
-        # Test comparison against another model
-        x = myokit.step(m1, reference=m2).splitlines()
+        # Test comparison against stored data
+        ref = [
+            -3.97224086575331868e-04,       # Numerically indistinguishable
+            -1.56608433137725457e-09,
+            7.48738392280519777e-02,        # Tiny error
+            -1.78891889478854579e-03,
+            3.06255006833574140e-04,        # Sign error
+            -5.11993904291850035e-06,
+            3.76748229376431740e-04,        # Large error
+            -3.21682814207918156e-05,       # Exponent
+        ]
+        x = myokit.step(m1, reference=ref).splitlines()
         y = [
             'Evaluating state vector derivatives...',
             '-' * 79,
             'Name         Initial value             Derivative at t=0       ',
             '-' * 79,
             'membrane.V   -8.46219999999999999e+01  -3.97224086575331814e-04',
-            '                                       -3.97224086575331814e-04',
-            '                                                               ',
+            '                                       -3.97224086575331868e-04'
+            ' <= 1 eps',
+            '',
             'calcium.Cai   1.99999999999999991e-07  -1.56608433137725457e-09',
             '                                       -1.56608433137725457e-09',
-            '                                                               ',
+            '',
             'ina.m         1.00000000000000002e-02   7.48738392280519083e-02',
-            '                                        7.48738392280519915e-02',
+            '                                        7.48738392280519777e-02'
+            ' ~ 4.2 eps',
             '                                                        ^^^^^^^',
             'ina.h         9.89999999999999991e-01  -1.78891889478854579e-03',
             '                                       -1.78891889478854579e-03',
-            '                                                               ',
+            '',
             'ina.j         9.79999999999999982e-01  -3.06255006833574140e-04',
             '                                        3.06255006833574140e-04'
-            ' X !!!',
+            ' sign',
             '                                       ^^^^^^^^^^^^^^^^^^^^^^^^',
             'isi.d         3.00000000000000006e-03  -5.11993904291850035e-06',
             '                                       -5.11993904291850035e-06',
-            '                                                               ',
+            '',
             'isi.f         9.89999999999999991e-01   1.88374114688215870e-04',
             '                                        3.76748229376431740e-04'
             ' X',
             '                                        ^^^^^^^^^^^^^^^^^^^^^^^',
             'ix1.x1        4.00000000000000019e-04  -3.21682814207918156e-07',
             '                                       -3.21682814207918156e-05'
-            ' X !!!',
+            ' exponent',
             '                                                           ^^^^',
             'Found (3) large mismatches between output and reference values.',
             'Found (1) small mismatches.',
             '-' * 79,
         ]
-
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
         # Test positive/negative zero comparison
@@ -537,85 +515,48 @@ class AuxTest(unittest.TestCase):
             '-' * 79,
             'c.x    1.00000000000000000e+00  -0.00000000000000000e+00',
             '                                 0.00000000000000000e+00',
-            '                                                        ',
+            '',
             'c.y    1.00000000000000000e+00   0.00000000000000000e+00',
             '                                 0.00000000000000000e+00',
-            '                                                        ',
+            '',
             'Model check completed without errors.',
             '-' * 79,
         ]
-
-        #for i, line in enumerate(y):
-        #    print(line + '<')
-        #    print(x[i] + '<')
-        for i, line in enumerate(y):
-            self.assertEqual(line, x[i])
+        for a, b in zip(x, y):
+            self.assertEqual(a, b)
         self.assertEqual(len(x), len(y))
 
-    def test_myokit_strfloat(self):
-        # Test float to string conversion.
+    def test_strfloat(self):
+        # Deprecated alias of myokit.float.str
+        args = ['-1.234', True, myokit.SINGLE_PRECISION]
+        with WarningCollector() as c:
+            x = myokit.strfloat(*args)
+        self.assertIn('`myokit.strfloat` is deprecated', c.text())
+        self.assertEqual(x, myokit.float.str(*args))
 
-        # String should be passed through
-        # Note: convert to str() to test in python 2 and 3.
-        self.assertEqual(myokit.strfloat(str('123')), '123')
+    def test_time(self):
+        # Test time formatting method.
+        import time
+        for i in range(6):
+            a = time.strftime(myokit.TIME_FORMAT)
+            b = myokit.time()
+            if a == b:
+                break
+        self.assertEqual(a, b)
 
-        # Simple numbers
-        self.assertEqual(myokit.strfloat(0), '0')
-        self.assertEqual(myokit.strfloat(0.0000), '0.0')
-        self.assertEqual(myokit.strfloat(1.234), '1.234')
-        self.assertEqual(
-            myokit.strfloat(0.12432656245e12), ' 1.24326562450000000e+11')
-        self.assertEqual(myokit.strfloat(-0), '0')
-        self.assertEqual(myokit.strfloat(-0.0000), '-0.0')
-        self.assertEqual(myokit.strfloat(-1.234), '-1.234')
-        self.assertEqual(
-            myokit.strfloat(-0.12432656245e12), '-1.24326562450000000e+11')
+    def test_version(self):
+        # Test the version() method.
 
-        # Strings are not converted
-        x = '1.234'
-        self.assertEqual(x, myokit.strfloat(x))
+        # Raw version
+        raw = myokit.version(raw=True)
+        self.assertIsInstance(raw, basestring)
+        parts = raw.split('.')
+        self.assertTrue(len(parts) in [3, 4])
 
-        # Myokit Numbers are converted
-        x = myokit.Number(1.23)
-        self.assertEqual(myokit.strfloat(x), '1.23')
-
-        # Full precision override
-        self.assertEqual(
-            myokit.strfloat(1.23, True), ' 1.22999999999999998e+00')
-
-    def test_float_functions(self):
-        # Test the floating point comparison methods
-
-        # Test that test is going to work
-        x = 49
-        y = 1 / (1 / x)
-        self.assertNotEqual(x, y)
-
-        # Test if feq allows 1 floating point error
-        # Test if
-        self.assertTrue(myokit._feq(x, y))
-        self.assertTrue(myokit._fgeq(x, y))
-        self.assertTrue(myokit._fgeq(y, x))
-        x += x * sys.float_info.epsilon
-        self.assertTrue(myokit._feq(x, y))
-        self.assertTrue(myokit._fgeq(x, y))
-        self.assertTrue(myokit._fgeq(y, x))
-        x += x * sys.float_info.epsilon
-        self.assertFalse(myokit._feq(x, y))
-        self.assertTrue(myokit._fgeq(x, y))
-        self.assertFalse(myokit._fgeq(y, x))
-
-        # Test rounding
-        self.assertNotEqual(49, y)
-        self.assertEqual(49, myokit._round_if_int(y))
-        self.assertNotEqual(49, myokit._round_if_int(x))
-        self.assertEqual(0.5, myokit._round_if_int(0.5))
-
-        # Try with negative numbers
-        self.assertNotEqual(-49, -y)
-        self.assertEqual(-49, myokit._round_if_int(-y))
-        self.assertNotEqual(-49, myokit._round_if_int(-x))
-        self.assertEqual(-0.5, myokit._round_if_int(-0.5))
+        # Formatted version
+        v = myokit.version()
+        v = v.splitlines()
+        self.assertEqual(len(v), 3)
 
 
 if __name__ == '__main__':

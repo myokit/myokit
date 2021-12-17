@@ -220,7 +220,7 @@ int main()
     Real state[N_STATE];
 <?
 for var in model.states():
-    print(tab + v(var) + ' = ' + myokit.strfloat(var.state_value()) + ';')
+    print(tab + v(var) + ' = ' + myokit.float.str(var.state_value()) + ';')
 
 ?>
 

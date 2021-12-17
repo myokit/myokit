@@ -51,24 +51,25 @@ del(logging)
 #  0    PY_RELEASE_SERIAL, increments with every release
 #
 import sys  # noqa
-if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
+if sys.hexversion < 0x03000000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 2 versions older than 2.7.15')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit support for Python 2.7 is nearing the end of its lifetime.'
+        ' Please upgrade as soon as possible! Detected Python version: '
+        + sys.version)
     del(logging, log)
-elif sys.hexversion >= 0x03000000 and sys.hexversion < 0x03050000:
+elif sys.hexversion < 0x03050000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.5.0')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit is not tested on Python 3 versions older than 3.5.0. Detected'
+        ' Python version: ' + sys.version)
     del(logging, log)
 
 
 # Exec() that works with Python 2 versions before 2.7.9
-if sys.hexversion < 0x020709F0:
+if sys.hexversion < 0x020709F0:     # pragma: no python 3 cover
     from ._exec_old import _exec    # noqa
 else:
     from ._exec_new import _exec    # noqa
@@ -85,30 +86,12 @@ from ._myokit_version import (  # noqa
 )
 
 
-# Myokit version
-def version(raw=False):
-    """
-    Returns the current Myokit version.
-    """
-    if raw:
-        return __version__
-    else:
-        t1 = ' Myokit ' + __version__ + ' '
-        t2 = '_' * len(t1)
-        t1 += '|/\\'
-        t2 += '|  |' + '_' * 5
-        return '\n' + t1 + '\n' + t2
-
-
 # Warn about development version
 import logging  # noqa
 log = logging.getLogger(__name__)
 log.info('Loading Myokit version ' + __version__)
-if not __release__:
-    log.warning(
-        'Using development version of Myokit. This may contain untested'
-        ' features and bugs. Please see http://myokit.org for the latest'
-        ' stable release.')
+if not __release__:     # pragma: no cover
+    log.warning('Using development version of Myokit (' + __version__ + ').')
 del(log, logging)
 
 
@@ -121,10 +104,11 @@ LICENSE = """
 BSD 3-Clause License
 
 Copyright (c) 2011-2017 Maastricht University. All rights reserved.
-Copyright (c) 2017-2019 University of Oxford. All rights reserved.
+Copyright (c) 2017-2020 University of Oxford. All rights reserved.
  (University of Oxford means the Chancellor, Masters and Scholars of the
   University of Oxford, having an administrative office at Wellington Square,
   Oxford OX1 2JD, UK).
+Copyright (c) 2020-2021 University of Nottingham. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -159,11 +143,12 @@ LICENSE_HTML = """
     BSD 3-Clause License
     <br />
     <br />Copyright (c) 2011-2017 Maastricht University. All rights reserved.
-    <br />Copyright (c) 2017-2019 University of Oxford. All rights reserved.
+    <br />Copyright (c) 2017-2020 University of Oxford. All rights reserved.
     <br />(University of Oxford means the Chancellor, Masters and Scholars of
     the University of Oxford, having an administrative office at Wellington
     Square, Oxford OX1 2JD, UK).
-</p>
+    <br />Copyright (c) 2020-2021 University of Nottingham. All rights
+    reserved.</br></p>
 <p>
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
@@ -215,7 +200,7 @@ LICENSE_HTML = """
 import os, inspect  # noqa
 try:
     frame = inspect.currentframe()
-    DIR_MYOKIT = os.path.dirname(inspect.getfile(frame))
+    DIR_MYOKIT = os.path.abspath(os.path.dirname(inspect.getfile(frame)))
 finally:
     # Always manually delete frame
     # https://docs.python.org/2/library/inspect.html#the-interpreter-stack
@@ -244,7 +229,7 @@ if os.path.exists(DIR_USER):    # pragma: no cover
     if not os.path.isdir(DIR_USER):
         raise Exception(
             'File or link found in place of user directory: ' + str(DIR_USER))
-else:
+else:                           # pragma: no cover
     os.makedirs(DIR_USER)
 
 # Example mmt file
@@ -313,10 +298,10 @@ FORCE_PYSIDE2 = False
 # Library paths and settings
 #
 
-# Location of the Sundials (CVODE) shared library objects (.dll or .so)
+# Location of the Sundials (CVODES) shared library objects (.dll or .so)
 SUNDIALS_LIB = []
 
-# Location of the Sundials (CVODE) header files (.h)
+# Location of the Sundials (CVODES) header files (.h)
 SUNDIALS_INC = []
 
 # Sundials version number. Defaults to 0.
@@ -371,6 +356,7 @@ from ._err import (  # noqa
     SimultaneousProtocolEventError,
     UnresolvedReferenceError,
     UnusedVariableError,
+    VariableMappingError,
 )
 
 # Check if all errors imported
@@ -385,10 +371,14 @@ ex, name, clas = None, None, None
 for ex in inspect.getmembers(_err):
     name, clas = ex
     if type(clas) == type(MyokitError) and issubclass(clas, MyokitError):
-        if name not in _globals:
+        if name not in _globals:    # pragma: no cover
             raise Exception('Failed to import exception: ' + name)
 del(ex, name, clas, _globals, inspect)  # Prevent public visibility
 del(_err)
+
+# Tools
+from . import float  # noqa
+from . import tools  # noqa
 
 # Model api
 from ._model_api import ( # noqa
@@ -402,7 +392,7 @@ from ._model_api import ( # noqa
     Variable,
 )
 
-# Expressions and units
+# Expressions
 from ._expressions import (  # noqa
     Abs,
     ACos,
@@ -422,6 +412,7 @@ from ._expressions import (  # noqa
     If,
     InfixCondition,
     InfixExpression,
+    InitialValue,
     Less,
     LessEqual,
     LhsExpression,
@@ -436,6 +427,7 @@ from ._expressions import (  # noqa
     Not,
     NotEqual,
     Or,
+    PartialDerivative,
     Piecewise,
     Plus,
     Power,
@@ -443,15 +435,17 @@ from ._expressions import (  # noqa
     PrefixExpression,
     PrefixMinus,
     PrefixPlus,
-    Quantity,
     Quotient,
     Remainder,
     Sin,
     Sqrt,
     Tan,
-    UnsupportedFunction,
-    Unit,
+)
 
+# Unit and quantity
+from ._unit import (  # noqa
+    Quantity,
+    Unit,
 )
 
 # Pacing protocol
@@ -460,6 +454,7 @@ from ._protocol import (  # noqa
     Protocol,
     ProtocolEvent,
 )
+from . import pacing  # noqa
 
 # Parser functions
 from ._parsing import (  # noqa
@@ -468,7 +463,6 @@ from ._parsing import (  # noqa
     parse,
     parse_expression_string as parse_expression,
     parse_model,
-    #parse_number_string as parse_number,
     parse_protocol,
     parse_state,
     parse_unit_string as parse_unit,
@@ -476,60 +470,43 @@ from ._parsing import (  # noqa
     strip_expression_units,
 )
 
-# Auxillary functions
-from ._aux import (  # noqa
-    # Global date and time formats
-    date,
-    time,
-
+# Load/save functions
+from ._io import (  # noqa
     # Reading, writing
     load,
     load_model,
     load_protocol,
     load_script,
+    load_state,
+    load_state_bin,
     save,
     save_model,
     save_protocol,
     save_script,
-    load_state,
     save_state,
-    load_state_bin,
     save_state_bin,
+)
 
-    # Running scripts
-    run,
+# Common units
+from . import units  # noqa, also loads all common unit names
 
-    # Test step
-    step,
-
-    # Output masking
-    PyCapture,
-    SubCapture,
-
-    # Sorting
-    _natural_sort_key,
-
-    # Dyanmic generation of Python/NumPy expressions
-    python_writer,
-    numpy_writer,
-
-    # Model comparison
+# Auxillary functions
+from ._aux import (  # noqa
+    default_protocol,
+    default_script,
     ModelComparison,
-
-    # Benchmarking
+    numpy_writer,
+    python_writer,
+    run,
+    step,
+    version,
+    # Deprecated and/or moved to myokit.tools
     Benchmarker,
-
-    # Misc
-    _feq,
-    _fgeq,
+    date,
     format_float_dict,
     format_path,
-    _lvsd,
-    _round_if_int,
     strfloat,
-
-    # Snapshot creation for replicability
-    pack_snapshot,
+    time,
 )
 
 # System information
@@ -558,11 +535,11 @@ from ._datablock import (   # noqa
     DataBlock2d,
 )
 
-
 # Simulations
 from ._sim import (  # noqa
     CModule,
     CppModule,
+    pid_hash,
 )
 from ._sim.compiler import (  # noqa
     Compiler,
@@ -576,25 +553,16 @@ from ._sim.opencl import (  # noqa
     OpenCLInfo,
     OpenCLPlatformInfo,
 )
-from ._sim.cvodesim import Simulation       # noqa
+from ._sim.cmodel import CModel             # noqa
+from ._sim.cvodessim import Simulation      # noqa
+from ._sim.cvodesim import Simulation as LegacySimulation  # noqa
 from ._sim.cable import Simulation1d        # noqa
 from ._sim.rhs import RhsBenchmarker        # noqa
 from ._sim.icsim import ICSimulation        # noqa
 from ._sim.psim import PSimulation          # noqa
 from ._sim.jacobian import JacobianTracer, JacobianCalculator   # noqa
-#from ._sim.openmp import SimulationOpenMP                       # noqa
 from ._sim.openclsim import SimulationOpenCL                    # noqa
 from ._sim.fiber_tissue import FiberTissueSimulation            # noqa
-
-# Import whole modules
-# This allows these modules to be used after myokit was imported, without
-# importing the modules specifically (like os and os.path).
-# All modules imported here must report so in their docs
-from . import ( # noqa
-    mxml,
-    pacing,
-    units,  # Also loads all common unit names
-)
 
 
 #
@@ -608,45 +576,4 @@ _Simulation_progress = None
 #
 from . import _config   # noqa
 del(_config)
-
-
-#
-# Default mmt file parts
-#
-def default_protocol():
-    """
-    Provides a default protocol to use when no embedded one is available.
-    """
-    p = Protocol()
-    p.schedule(1, 100, 0.5, 1000, 0)
-    return p
-
-
-def default_script():
-    """
-    Provides a default script to use when no embedded script is available.
-    """
-    return '\n'.join((
-        "[[script]]",
-        "import matplotlib.pyplot as plt",
-        "import myokit",
-        "",
-        "# Get model and protocol, create simulation",
-        "m = get_model()",
-        "p = get_protocol()",
-        "s = myokit.Simulation(m, p)",
-        "",
-        "# Run simulation",
-        "d = s.run(1000)",
-        "",
-        "# Get the first state variable's name",
-        "first_state = next(m.states())",
-        "var = first_state.qname()",
-        "",
-        "# Display the results",
-        "plt.figure()",
-        "plt.plot(d.time(), d[var])",
-        "plt.title(var)",
-        "plt.show()",
-    ))
 

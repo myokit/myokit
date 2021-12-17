@@ -1,0 +1,53 @@
+name: Sundials version tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - '**'
+
+jobs:
+
+  build-and-test:
+    name: sundials
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    strategy:
+      matrix:
+        # Latest of each major sundials branche (may overlap with ubuntu tests).
+        sundials-version: ['v2.7.0', 'v3.2.1', 'v4.1.0', 'v5.8.0', 'v6.0.0']
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure Python
+        uses: actions/setup-python@v1
+        with:
+          #python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Check out Sundials ${{ matrix.sundials-version }}
+        uses: actions/checkout@v2
+        with:
+          repository: LLNL/sundials
+          path: sundials
+          ref: ${{ matrix.sundials-version }}
+
+      - name: Install Sundials ${{ matrix.sundials-version }}
+        run: |
+          .github/workflows/install-sundials-manually.sh
+
+      - name: Install Myokit
+        run: |
+          python --version
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install .[optional]
+
+      - name: Run unit tests
+        run: |
+          python -m myokit system
+          python myokit/tests/test_simulation_cvode.py
+          python myokit/tests/test_simulation_cvodes.py
+

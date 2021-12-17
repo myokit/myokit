@@ -7,11 +7,21 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-from ._importer import CellMLImporter, CellMLError  # noqa
-from ._exporter import CellMLExporter
+from ._exporter import CellMLExporter, CellML1Exporter, CellML2Exporter
 from ._ewriter import CellMLExpressionWriter
+from ._importer import CellMLImporter, CellMLImporterError  # noqa
 
-import re
+
+# Namespaces
+NS_BQBIOL = 'http://biomodels.net/biology-qualifiers/'
+NS_CELLML_1_0 = 'http://www.cellml.org/cellml/1.0#'
+NS_CELLML_1_1 = 'http://www.cellml.org/cellml/1.1#'
+NS_CELLML_2_0 = 'http://www.cellml.org/cellml/2.0#'
+NS_CMETA = 'http://www.cellml.org/metadata/1.0#'
+NS_MATHML = 'http://www.w3.org/1998/Math/MathML'
+NS_OXMETA = 'https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#'
+NS_RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+NS_TMP_DOC = 'http://cellml.org/tmp-documentation'
 
 
 # Importers
@@ -30,6 +40,8 @@ def importers():
 # Exporters
 _exporters = {
     'cellml': CellMLExporter,
+    'cellml1': CellML1Exporter,
+    'cellml2': CellML2Exporter,
 }
 
 
@@ -52,24 +64,3 @@ def ewriters():
     """
     return dict(_ewriters)
 
-
-# Valid CellML identifiers
-# Official docs allow silly things, e.g. 1e2 or 123 or _123
-# re.compile('^_*[a-zA-Z0-9][a-zA-Z0-9_]*$')
-# So let's be more strict:
-#  - At least one letter
-#  - Can't start with a number
-_cellml_identifier = re.compile('^([_][0-9_]*)?[a-zA-Z][a-zA-Z0-9_]*$')
-# Future versions will have:
-#   - Must start with at least one letter
-
-
-def is_valid_identifier(name):
-    """
-    Tests if the given ``name`` is a valid CellML 1 identifier.
-    """
-    return _cellml_identifier.match(name) is not None
-
-
-# Don't expose imported modules
-del(re)

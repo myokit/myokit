@@ -1,15 +1,15 @@
 [[model]]
-name: beeler-1977
-author: Michael Clerx
+name: Beeler-Reuter-1977
 desc: """
-    The 1997 Beeler Reuter model of the AP in ventricular myocytes
+The 1977 Beeler Reuter model of the AP in ventricular myocytes.
 
-    Reference:
+Implemented in Myokit following the equations found in [1].
 
-    Beeler, Reuter (1976) Reconstruction of the action potential of ventricular
-    myocardial fibres
-    """
-f(x) = 4 * x
+[1] Reconstruction of the action potential of ventricular myocardial fibres
+    G.W. Beeler and H. Reuter
+    1977, The Journal of Physiology
+
+"""
 # Initial values:
 membrane.V  = -84.622
 calcium.Cai = 2e-7
@@ -27,7 +27,7 @@ pace = 0 bind pace
 
 [membrane]
 C = 1 [uF/cm^2] : The membrane capacitance
-dot(V) = -(1/C) * (i_ion + i_stim)
+dot(V) = -(1/C) * (i_ion + i_stim + i_diff)
     in [mV]
     label membrane_potential
     desc: Membrane potential    
@@ -36,6 +36,8 @@ i_ion = ik1.IK1 + ix1.Ix1 + ina.INa + isi.Isi
     in [uA/cm^2]
 i_stim = engine.pace * amplitude
     amplitude = -25 [uA/cm^2]
+i_diff = 0 bind diffusion_current
+    in [uA/cm^2]
 
 [ina]
 use membrane.V as V

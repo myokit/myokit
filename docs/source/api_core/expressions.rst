@@ -178,8 +178,8 @@ Conditional operators
 
 .. _api/expressions/misc:
 
-Miscellaneous
--------------
+Discontinuous functions
+-----------------------
 .. _api/myokit.Abs:
 .. autoclass:: Abs
 
@@ -195,9 +195,16 @@ Miscellaneous
 .. _api/myokit.Remainder:
 .. autoclass:: Remainder
 
-.. _api/myokit.UnsupportedFunction:
-.. autoclass:: UnsupportedFunction
+Partial derivatives
+--------------------
+.. _api/myokit.PartialDerivative:
+.. autoclass:: PartialDerivative
 
+.. _api/myokit.InitialValue:
+.. autoclass:: InitialValue
+
+User-defined functions
+----------------------
 .. _api/myokit.UserFunction:
 .. autoclass:: UserFunction
 

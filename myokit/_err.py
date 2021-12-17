@@ -418,3 +418,11 @@ class UnusedVariableError(IntegrityError):
         tok = var.lhs()._token
         super(UnusedVariableError, self).__init__(msg, tok)
 
+
+class VariableMappingError(MyokitError):
+    """
+    Raised when a method needs to map variables from one model onto another,
+    but no valid mapping can be made.
+
+    *Extends:* :class:`myokit.MyokitError`.
+    """

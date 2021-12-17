@@ -16,7 +16,6 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import sphinx
 import myokit
 
 
@@ -34,16 +33,10 @@ extensions = [
 ]
 
 # Autodoc defaults
-if int(sphinx.__version__.split('.')[1]) < 8:
-    autodoc_default_flags = [
-        'members',
-        #'inherited-members',	# Also drags in all PyQt docstrings etc.
-    ]
-else:
-    autodoc_default_options = {
-        'members': None,
-        #'inherited-members': None,
-    }
+autodoc_default_options = {
+    'members': None,
+    #'inherited-members': None,
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

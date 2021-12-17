@@ -265,7 +265,7 @@ def current_arrows(log, voltage, currents, axes=None):
 
 def cumulative_current(
         log, currents, axes=None, labels=None, colors=None, integrate=False,
-        normalise=False):
+        normalise=False, max_currents=None):
     """
     Plots a number of currents, one on top of the other, with the positive and
     negative parts of the current plotted separately.
@@ -294,6 +294,9 @@ def cumulative_current(
     ``normalise``
         Set this to ``True`` to normalise the graph at every point, so that the
         relative contribution of each current is shown.
+    ``max_currents``
+        Set this to any integer n to display only the first n currents, and
+        group the rest together in a remainder current.
 
     The best results are obtained if relatively constant currents are specified
     early. Another rule of thumb is to specify the currents roughly in the
@@ -324,37 +327,57 @@ def cumulative_current(
 
     # Normalise
     if normalise:
-        pos /= np.sum(pos, axis=0)
-        neg /= -np.sum(neg, axis=0)
+        pos /= np.maximum(np.sum(pos, axis=0), 1e-99)
+        neg /= -np.minimum(np.sum(neg, axis=0), -1e-99)
+
+    # Number of currents to show
+    nc = len(currents)
+    if max_currents is None or max_currents + 1 >= nc:
+        show_remainder = False
+    else:
+        show_remainder = True
+        max_currents = int(max_currents)
+        nc = 1 + max_currents
 
     # Colors
-    n = len(currents)
     if colors:
-        while len(colors) < n:
+        while len(colors) < nc:
             colors.extend(colors)
     else:
         # Colormap
         cmap = matplotlib.cm.get_cmap(name='tab20')
-        colors = [cmap(i) for i in range(len(currents))]
+        colors = [cmap(i) for i in range(nc)]
 
     # Plot
     op = on = 0
-    for k, c in enumerate(currents):
+    for k in range(nc):
+        if k == max_currents:
+            # Color and label for remainder
+            color = '#cccccc'
+            label = 'Remainder'
 
-        # Get color
-        color = colors[k]
+            # Positive and negative remainder parts
+            p = op + np.sum(pos[k:], axis=0)
+            n = on + np.sum(neg[k:], axis=0)
 
-        # Get label
-        if labels:
-            label = labels[k]
         else:
-            if integrate:
-                label = 'Q(' + c[c.find('.') + 1:] + ')'
+            # Get color
+            color = colors[k]
+
+            # Get label
+            if labels:
+                label = labels[k]
             else:
-                label = c[c.find('.') + 1:]
+                c = currents[k]
+                if integrate:
+                    label = 'Q(' + c[c.find('.') + 1:] + ')'
+                else:
+                    label = c[c.find('.') + 1:]
+
+            # Get positive and negative parts
+            p, n = op + pos[k], on + neg[k]
 
         # Plot!
-        p, n = op + pos[k], on + neg[k]
         axes.fill_between(t, p, op, facecolor=color)
         axes.fill_between(t, n, on, facecolor=color)
         axes.plot(t, p, color=color, label=label)

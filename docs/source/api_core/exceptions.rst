@@ -7,7 +7,7 @@ Exceptions
 .. currentmodule:: myokit
 
 Myokit tries to raise errors in a sensible manner. The following classes are
-used.
+used:
 
 Base classes
 ============
@@ -86,4 +86,6 @@ Inheriting classes
 .. autoclass:: UnresolvedReferenceError
 
 .. autoclass:: UnusedVariableError
+
+.. autoclass:: VariableMappingError
 

@@ -7,6 +7,8 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+from lxml import etree
+
 import myokit.formats
 
 # Strings in Python 2 and 3
@@ -25,10 +27,6 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
     def __init__(self):
         super(MathMLExpressionWriter, self).__init__()
 
-        # Default element tree class
-        import xml.etree.cElementTree as et
-        self._et = et
-
         # Default mode
         self._pres = False
 
@@ -41,30 +39,24 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
                 return var
             return var.qname()
         self._flhs = flhs
-        # Can't do this here --> CellML one has it overridden with exception
-        #self.set_lhs_function(flhs)
 
         # Default number conversion function
-        self._fnum = lambda x: myokit.strfloat(x.eval())
+        self._fnum = lambda x: myokit.float.str(x.eval())
 
         # Default time variable
         self._tvar = myokit.Name('time')
 
-    def set_element_tree_class(self, et):
-        """
-        By default this :class:`ExpressionWriter` uses the
-        ``xml.etree.cElementTree`` module. This method can be used to change
-        this behaviour by passing in a reference to a different implementation.
-        """
-        self._et = et
+        # Namespaces for element creation
+        from myokit.formats.mathml import NS_MATHML_2
+        self._nsmap = {None: NS_MATHML_2}
 
     def set_lhs_function(self, f):
         """
         Sets a naming function, will be called to get the variable name from a
-         ``myokit.LhsExpression`` object.
+         :class:`myokit.Name` (derivatives will be handled separately).
 
-        The argument ``f`` should be a function that takes an ``LhsExpression``
-        as input and returns a string.
+        The argument ``f`` should be a function that takes a
+        :class:`myokit.Name` as input and returns a string.
         """
         self._flhs = f
 
@@ -84,24 +76,23 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         """
         Converts an equation to a string.
 
-        The optional argument ``element`` can be used to pass in an ElementTree
-        element. If given, this element will be updated with the generated xml
-        and nothing will be returned.
+        The optional argument ``element`` can be used to pass in an
+        ``lxml.etree.ElementTree`` element. If given, this element will be
+        updated with the generated xml and nothing will be returned.
         """
         if element is None:
-            tag = self._et.Element('math')
-            tag.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
+            tag = etree.Element('math', nsmap=self._nsmap)
         else:
             tag = element
         if self._pres:
-            t = self._et.SubElement(tag, 'mrow')
+            t = etree.SubElement(tag, 'mrow')
             self.ex(eq.lhs, t)
-            x = self._et.SubElement(t, 'mo')
+            x = etree.SubElement(t, 'mo')
             x.text = '='
             self.ex(eq.rhs, t)
         else:
-            t = self._et.SubElement(tag, 'apply')
-            self._et.SubElement(t, 'eq')
+            t = etree.SubElement(tag, 'apply')
+            etree.SubElement(t, 'eq')
             self.ex(eq.lhs, t)
             self.ex(eq.rhs, t)
         if element is None:
@@ -109,20 +100,19 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             # because it creates XML entities (numeric character reference) for
             # special characters.
             enc = 'us-ascii'
-            encoded = b''.join([self._et.tostring(kid, enc) for kid in tag])
+            encoded = etree.tostring(tag, encoding=enc)
             return encoded.decode(enc)
 
     def ex(self, e, element=None):
         """
         Converts an expression to a string.
 
-        The optional argument ``element`` can be used to pass in an ElementTree
-        element. If given, this element will be updated with the generated xml
-        and nothing will be returned.
+        The optional argument ``element`` can be used to pass in an
+        ``lxml.etree.ElementTree`` element. If given, this element will be
+        updated with the generated xml and nothing will be returned.
         """
         if element is None:
-            tag = self._et.Element('math')
-            tag.attrib['xmlns'] = 'http://www.w3.org/1998/Math/MathML'
+            tag = etree.Element('math', nsmap=self._nsmap)
         else:
             tag = element
         self._ex(e, tag)
@@ -131,7 +121,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
             # because it creates XML entities (numeric character reference) for
             # special characters.
             enc = 'us-ascii'
-            encoded = b''.join([self._et.tostring(kid, enc) for kid in tag])
+            encoded = etree.tostring(tag, encoding=enc)
             return encoded.decode(enc)
 
     def _ex(self, e, t):
@@ -150,19 +140,19 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         """
         bra = e.bracket(e[0])
         if self._pres:
-            row = self._et.SubElement(t, 'mrow')
+            row = etree.SubElement(t, 'mrow')
             if bra:
-                x = self._et.SubElement(row, 'mo')
+                x = etree.SubElement(row, 'mo')
                 x.text = '('
-            x = self._et.SubElement(row, 'mo')
+            x = etree.SubElement(row, 'mo')
             x.text = e.operator_rep()
             self._ex(e[0], row)
             if bra:
-                x = self._et.SubElement(row, 'mo')
+                x = etree.SubElement(row, 'mo')
                 x.text = ')'
         else:
-            tag = self._et.SubElement(t, 'apply')
-            self._et.SubElement(tag, cml)
+            tag = etree.SubElement(t, 'apply')
+            etree.SubElement(tag, cml)
             self._ex(e[0], tag)
 
     def _ex_infix(self, e, t, cml):
@@ -170,21 +160,21 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         Exports e as an infix expression with ContentML representation cml.
         """
         if self._pres:
-            r = self._et.SubElement(t, 'mrow')
-            k = self._et.SubElement(r, 'mfenced') if e.bracket(e[0]) else r
+            r = etree.SubElement(t, 'mrow')
+            k = etree.SubElement(r, 'mfenced') if e.bracket(e[0]) else r
             self._ex(e[0], k)
-            x = self._et.SubElement(r, 'mo')
+            x = etree.SubElement(r, 'mo')
             if isinstance(e, myokit.MoreEqual):
                 x.text = '\u2265'
             elif isinstance(e, myokit.LessEqual):
                 x.text = '\u2264'
             else:
                 x.text = e.operator_rep()
-            k = self._et.SubElement(r, 'mfenced') if e.bracket(e[1]) else r
+            k = etree.SubElement(r, 'mfenced') if e.bracket(e[1]) else r
             self._ex(e[1], k)
         else:
-            a = self._et.SubElement(t, 'apply')
-            self._et.SubElement(a, cml)
+            a = etree.SubElement(t, 'apply')
+            etree.SubElement(a, cml)
             self._ex(e[0], a)
             self._ex(e[1], a)
 
@@ -193,37 +183,37 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         Exports e as a function called name.
         """
         if self._pres:
-            r = self._et.SubElement(t, 'mrow')
-            x = self._et.SubElement(r, 'mi')
+            r = etree.SubElement(t, 'mrow')
+            x = etree.SubElement(r, 'mi')
             x.text = name
-            r = self._et.SubElement(r, 'mfenced')
+            r = etree.SubElement(r, 'mfenced')
             for op in e:
                 self._ex(op, r)
         else:
-            a = self._et.SubElement(t, 'apply')
-            self._et.SubElement(a, name)
+            a = etree.SubElement(t, 'apply')
+            etree.SubElement(a, name)
             for op in e:
                 self._ex(op, a)
 
     def _ex_name(self, e, t):
-        x = self._et.SubElement(t, 'mi' if self._pres else 'ci')
+        x = etree.SubElement(t, 'mi' if self._pres else 'ci')
         x.text = self._flhs(e)
 
     def _ex_derivative(self, e, t):
         if self._pres:
-            f = self._et.SubElement(t, 'mfrac')
-            x = self._et.SubElement(f, 'mi')
+            f = etree.SubElement(t, 'mfrac')
+            x = etree.SubElement(f, 'mi')
             x.text = 'd' + self._flhs(e[0])
-            x = self._et.SubElement(f, 'mi')
+            x = etree.SubElement(f, 'mi')
             x.text = 'dt'
         else:
-            a = self._et.SubElement(t, 'apply')
-            self._et.SubElement(a, 'diff')
-            self._ex(self._tvar, self._et.SubElement(a, 'bvar'))
+            a = etree.SubElement(t, 'apply')
+            etree.SubElement(a, 'diff')
+            self._ex(self._tvar, etree.SubElement(a, 'bvar'))
             self._ex(e[0], a)
 
     def _ex_number(self, e, t):
-        x = self._et.SubElement(t, 'mn' if self._pres else 'cn')
+        x = etree.SubElement(t, 'mn' if self._pres else 'cn')
         x.text = self._fnum(e)
 
     def _ex_prefix_plus(self, e, t):
@@ -243,14 +233,14 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
 
     def _ex_divide(self, e, t):
         if self._pres:
-            r = self._et.SubElement(t, 'mfrac')
-            k = self._et.SubElement(r, 'mfenced') if e.bracket(e[0]) else r
+            r = etree.SubElement(t, 'mfrac')
+            k = etree.SubElement(r, 'mfenced') if e.bracket(e[0]) else r
             self._ex(e[0], k)
-            k = self._et.SubElement(r, 'mfenced') if e.bracket(e[1]) else r
+            k = etree.SubElement(r, 'mfenced') if e.bracket(e[1]) else r
             self._ex(e[1], k)
         else:
-            a = self._et.SubElement(t, 'apply')
-            self._et.SubElement(a, 'divide')
+            a = etree.SubElement(t, 'apply')
+            etree.SubElement(a, 'divide')
             self._ex(e[0], a)
             self._ex(e[1], a)
 
@@ -262,7 +252,7 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
 
     def _ex_power(self, e, t):
         if self._pres:
-            x = self._et.SubElement(t, 'msup')
+            x = etree.SubElement(t, 'msup')
             self._ex(e[0], x)
             self._ex(e[1], x)
         else:
@@ -291,13 +281,13 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
 
     def _ex_exp(self, e, t):
         if self._pres:
-            r = self._et.SubElement(t, 'msup')
-            x = self._et.SubElement(r, 'mi')
+            r = etree.SubElement(t, 'msup')
+            x = etree.SubElement(r, 'mi')
             x.text = 'e'
             self._ex(e[0], r)
         else:
-            a = self._et.SubElement(t, 'apply')
-            self._et.SubElement(a, 'exp')
+            a = etree.SubElement(t, 'apply')
+            etree.SubElement(a, 'exp')
             self._ex(e[0], a)
 
     def _ex_log(self, e, t):
@@ -306,28 +296,28 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
         # myokit.log10(a) > log(a)
         if self._pres:
             if len(e) == 1:
-                r = self._et.SubElement(t, 'mrow')
-                x = self._et.SubElement(r, 'mi')
+                r = etree.SubElement(t, 'mrow')
+                x = etree.SubElement(r, 'mi')
                 x.text = 'ln'
-                x = self._et.SubElement(r, 'mfenced')
+                x = etree.SubElement(r, 'mfenced')
                 self._ex(e[0], x)
             else:
-                r = self._et.SubElement(t, 'mrow')
-                s = self._et.SubElement(r, 'msub')
-                x = self._et.SubElement(s, 'mi')
+                r = etree.SubElement(t, 'mrow')
+                s = etree.SubElement(r, 'msub')
+                x = etree.SubElement(s, 'mi')
                 x.text = 'log'
                 self._ex(e[1], s)
-                s = self._et.SubElement(r, 'mfenced')
+                s = etree.SubElement(r, 'mfenced')
                 self._ex(e[0], s)
         else:
             if len(e) == 1:
-                a = self._et.SubElement(t, 'apply')
-                self._et.SubElement(a, 'ln')
+                a = etree.SubElement(t, 'apply')
+                etree.SubElement(a, 'ln')
                 self._ex(e[0], a)
             else:
-                a = self._et.SubElement(t, 'apply')
-                self._et.SubElement(a, 'log')
-                x = self._et.SubElement(a, 'logbase')
+                a = etree.SubElement(t, 'apply')
+                etree.SubElement(a, 'log')
+                x = etree.SubElement(a, 'logbase')
                 self._ex(e[1], x)
                 self._ex(e[0], a)
 
@@ -376,19 +366,19 @@ class MathMLExpressionWriter(myokit.formats.ExpressionWriter):
 
     def _ex_piecewise(self, e, t):
         if self._pres:
-            w = self._et.SubElement(t, 'piecewise')
+            w = etree.SubElement(t, 'piecewise')
             for k, cond in enumerate(e._i):
-                p = self._et.SubElement(w, 'piece')
+                p = etree.SubElement(w, 'piece')
                 self._ex(e._e[k], p)
                 self._ex(cond, p)
-            p = self._et.SubElement(w, 'otherwise')
+            p = etree.SubElement(w, 'otherwise')
             self._ex(e._e[-1], p)
         else:
-            w = self._et.SubElement(t, 'piecewise')
+            w = etree.SubElement(t, 'piecewise')
             for k, cond in enumerate(e._i):
-                p = self._et.SubElement(w, 'piece')
+                p = etree.SubElement(w, 'piece')
                 self._ex(e._e[k], p)
                 self._ex(cond, p)
-            p = self._et.SubElement(w, 'otherwise')
+            p = etree.SubElement(w, 'otherwise')
             self._ex(e._e[-1], p)
 

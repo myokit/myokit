@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the C implementation of the Pacing System
 #
@@ -134,7 +134,7 @@ class FixedFormPacingAnsicTest(unittest.TestCase):
             del(t3, t4)
             # Get the pacing value at the points, measure how long it takes
             pacing = AnsicFixedFormPacing(list(t), list(v))
-            b = myokit.Benchmarker()
+            b = myokit.tools.Benchmarker()
             v2 = [pacing.pace(x) for x in t2]
             print(b.time())
             # Plot the new points

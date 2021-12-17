@@ -70,12 +70,18 @@ if pyqt5:
 
     # Configure Matplotlib for use with PyQt5
     import matplotlib
-    matplotlib.use('Qt5Agg')
     try:
-        matplotlib.rcParams['backend.qt5'] = 'PyQt5'
-    except KeyError:    # pragma: no cover
-        # This is no longer allowed / necessary in matplotlib 3.1.0
+        matplotlib.use('Qt5Agg')
+    except ImportError:
+        # In matplotlib 3.7.0 this raises ImportErrors if a previous backend
+        # was already set.
         pass
+    else:   # pragma: no cover
+        # The method below was deprecated by matplotlib version 2.2, released
+        # in 2018. So probably fine to remove this (and similar) after 2023
+        v = [int(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
+            matplotlib.rcParams['backend.qt5'] = 'PyQt5'
     import matplotlib.backends.backend_qt5agg as matplotlib_backend
 
     # Set backend variables
@@ -91,12 +97,16 @@ elif pyside2:
 
     # Configure Matplotlib for use with PySide2
     import matplotlib
-    matplotlib.use('Qt5Agg')
     try:
-        matplotlib.rcParams['backend.qt5'] = 'PySide2'
-    except KeyError:    # pragma: no cover
-        # This is no longer allowed / necessary in matplotlib 3.1.0
+        matplotlib.use('Qt5Agg')
+    except ImportError:
+        # In matplotlib 3.3.0 this raises ImportErrors if a previous backend
+        # was already set.
         pass
+    else:   # pragma: no cover
+        v = [int(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
+            matplotlib.rcParams['backend.qt5'] = 'PySide2'
     import matplotlib.backends.backend_qt5agg as matplotlib_backend  # noqa
 
     # Set backend variables
@@ -181,12 +191,16 @@ elif pyqt4:
 
     # Configure Matplotlib for use with PyQt4
     import matplotlib
-    matplotlib.use('Qt4Agg')
     try:
-        matplotlib.rcParams['backend.qt4'] = 'PyQt4'
-    except KeyError:    # pragma: no cover
-        # This is no longer allowed / necessary in matplotlib 3.1.0
+        matplotlib.use('Qt4Agg')
+    except ImportError:
+        # In matplotlib 3.3.0 this raises ImportErrors if a previous backend
+        # was already set.
         pass
+    else:   # pragma: no cover
+        v = [int(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
+            matplotlib.rcParams['backend.qt4'] = 'PyQt4'
     import matplotlib.backends.backend_qt4agg as matplotlib_backend
 
     # Set backend variables
@@ -265,12 +279,16 @@ elif pyside:
 
     # Configure Matplotlib for use with PySide
     import matplotlib
-    matplotlib.use('Qt4Agg')
     try:
-        matplotlib.rcParams['backend.qt4'] = 'PySide'
-    except KeyError:    # pragma: no cover
-        # This is no longer allowed / necessary in matplotlib 3.1.0
+        matplotlib.use('Qt4Agg')
+    except ImportError:
+        # In matplotlib 3.3.0 this raises ImportErrors if a previous backend
+        # was already set.
         pass
+    else:   # pragma: no cover
+        v = [int(x) for x in matplotlib.__version__.split('.')]
+        if v[0] < 3 and v[1] < 3:
+            matplotlib.rcParams['backend.qt4'] = 'PySide'
     import matplotlib.backends.backend_qt4agg as matplotlib_backend  # noqa
 
     # Set backend variables
@@ -386,9 +404,3 @@ def run(app, *args):
     # Wait for app to exit
     sys.exit(a.exec_())
 
-# def _style_application(app):
-#    """
-#    Applies some custom styling to a Qt application.
-#
-#    (Not required if running the app with :meth:`run`)
-#    """

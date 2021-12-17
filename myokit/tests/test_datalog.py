@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the DataLog class
 #
@@ -15,7 +15,7 @@ import numpy as np
 import myokit
 
 from shared import DIR_DATA, DIR_IO, TemporaryDirectory
-from shared import TestReporter, CancellingReporter
+from shared import TestReporter, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -114,19 +114,20 @@ class DataLogTest(unittest.TestCase):
         self.assertEqual(list(d3['v2']), v2)
 
     def test_find(self):
-        # Tests the find() function
+        # Tests the deprecated find() function
 
         d = myokit.DataLog({
             'engine.time': [0, 5, 10, 15, 20],
             'membrane.V': [0, 50, 100, 150, 200]})
         d.set_time_key('engine.time')
-        self.assertEqual(d.find(-5), d.find_after(-5))
-        self.assertEqual(d.find(0), d.find_after(0))
-        self.assertEqual(d.find(2), d.find_after(2))
-        self.assertEqual(d.find(5), d.find_after(5))
-        self.assertEqual(d.find(7), d.find_after(7))
-        self.assertEqual(d.find(20), d.find_after(20))
-        self.assertEqual(d.find(22), d.find_after(22))
+        with WarningCollector():
+            self.assertEqual(d.find(-5), d.find_after(-5))
+            self.assertEqual(d.find(0), d.find_after(0))
+            self.assertEqual(d.find(2), d.find_after(2))
+            self.assertEqual(d.find(5), d.find_after(5))
+            self.assertEqual(d.find(7), d.find_after(7))
+            self.assertEqual(d.find(20), d.find_after(20))
+            self.assertEqual(d.find(22), d.find_after(22))
 
     def test_find_after(self):
         # Test the find_after() function.
@@ -1399,6 +1400,33 @@ class DataLogTest(unittest.TestCase):
             self.assertRaises(
                 ValueError, d.save_csv, fname, order=['e.f', 'a.b', 'c.e'])
 
+        # Test saving with a natural sort order
+        d = myokit.DataLog(time='e.t')
+        d['e.t'] = np.arange(10)
+        d['1.z.a'] = np.arange(10) * 1
+        d['0.z.a'] = np.arange(10) * 0
+        d['20.z.a'] = np.arange(10) * 20
+        d['101.z.a'] = np.arange(10) * 101
+        d['100.z.a'] = np.arange(10) * 100
+        d['2.z.a'] = np.arange(10) * 2
+        d['11.z.a'] = np.arange(10) * 11
+        d['14.z.a'] = np.arange(10) * 10
+        with TemporaryDirectory() as td:
+            fname = td.path('test.csv')
+            d.save_csv(fname)
+            with uopen(fname) as f:
+                order = [x[1:-1] for x in f.readline().strip().split(',')]
+            self.assertEqual(len(order), 9)
+            self.assertEqual(order[0], 'e.t')
+            self.assertEqual(order[1], '0.z.a')
+            self.assertEqual(order[2], '1.z.a')
+            self.assertEqual(order[3], '2.z.a')
+            self.assertEqual(order[4], '11.z.a')
+            self.assertEqual(order[5], '14.z.a')
+            self.assertEqual(order[6], '20.z.a')
+            self.assertEqual(order[7], '100.z.a')
+            self.assertEqual(order[8], '101.z.a')
+
         # Test saving and loading empty log
         d = myokit.DataLog()
         with TemporaryDirectory() as td:
@@ -2045,14 +2073,23 @@ class DataLogTest(unittest.TestCase):
         self.assertTrue(apds['duration'][1] > 3.5)
         self.assertTrue(apds['duration'][1] < 4.0)
 
+        # Check with threshold equal to V
+        apds = d.apd(v='v', threshold=-85)
+        self.assertEqual(len(apds['start']), 1)
+        self.assertEqual(apds['start'][0], 5)
+        self.assertEqual(apds['duration'][0], 4)
+
         # Check against example model
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-        s = myokit.Simulation(m, p, apd_var='membrane.V')
+        s = myokit.Simulation(m, p)
+        s.set_tolerance(1e-8, 1e-8)
         d, apds1 = s.run(
-            2000, log=['engine.time', 'membrane.V'], apd_threshold=-70)
+            2000, log=['engine.time', 'membrane.V'],
+            log_interval=0.005,
+            apd_variable='membrane.V', apd_threshold=-70)
         apds2 = d.apd(threshold=-70)
-        self.assertEqual(len(apds1), 2)
-        self.assertEqual(len(apds2), 2)
+        self.assertEqual(len(apds1['start']), 2)
+        self.assertEqual(len(apds2['start']), 2)
         self.assertAlmostEqual(1, apds1['start'][0] / apds2['start'][0])
         self.assertAlmostEqual(1, apds1['start'][1] / apds2['start'][1])
         self.assertAlmostEqual(1, apds1['duration'][0] / apds2['duration'][0])

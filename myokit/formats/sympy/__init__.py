@@ -14,9 +14,15 @@ from ._ewriter import SymPyExpressionWriter
 # Importers
 # Exporters
 # Expression writers
-_ewriters = {
-    'sympy': SymPyExpressionWriter,
-}
+try:
+    import sympy
+    del(sympy)
+except ImportError:
+    _ewriters = {}
+else:
+    _ewriters = {
+        'sympy': SymPyExpressionWriter,
+    }
 
 
 def ewriters():

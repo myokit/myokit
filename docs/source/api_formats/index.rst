@@ -124,12 +124,15 @@ obtain e.g. an :class:`Exporter` via
 
 .. autofunction:: register_external_ewriter
 
-Logging
-=======
+Default expression writers
+==========================
 
-Importers and exporters maintain a log of their actions using the TextLogger
-class described below. If anything goes wrong, these logs should contain a
-more detailed error message than a simple exception.
+Finally, Myokit contains two default expression writers, which are used
+internally to write expressions in Python format with or without NumPy support.
 
-.. autoclass:: TextLogger
+.. currentmodule:: myokit
+
+.. autofunction:: python_writer
+
+.. autofunction:: numpy_writer
 

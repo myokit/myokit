@@ -29,9 +29,6 @@ class PythonExporter(myokit.formats.TemplatedRunnableExporter):
 
     A graph of the results is generated using matplotlib.
     """
-    def info(self):
-        import inspect
-        return inspect.getdoc(self)
 
     def _dir(self, root):
         return os.path.join(root, 'python', 'template')

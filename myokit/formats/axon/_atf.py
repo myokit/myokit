@@ -317,6 +317,6 @@ def save_atf(log, filename, fields=None):
         # Write data
         for i in range(nd):
             f.write((
-                delim.join([myokit.strfloat(next(d)) for d in data]) + eol
+                delim.join([myokit.float.str(next(d)) for d in data]) + eol
             ).encode(_ENC))
 
