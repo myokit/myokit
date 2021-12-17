@@ -130,8 +130,8 @@ dot(d) =  alpha * (1 - d) - beta * d
             vd = 22 + V
                 in [mV]
 dot(f) = (inf - f) / tau
-    alpha = 0.012 * sig(V, -28, 0.008, -0.15)
-    beta = 0.0065 * sig(V, -30, 0.02, 0.2)
+    alpha = 0.02    # 0.012 * sig(V, -28, 0.008, -0.15)
+    beta = 0.0065   # 0.0065 * sig(V, -30, 0.02, 0.2)
     tau = 1 / (alpha + beta)
     inf = alpha * tau
 gCa = 0.09

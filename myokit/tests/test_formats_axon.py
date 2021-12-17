@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the Axon format module.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -32,9 +30,8 @@ class AbfTest(unittest.TestCase):
     """
 
     def test_read_v1(self):
-        """
-        Test reading a version 1 file.
-        """
+        # Test reading a version 1 file.
+
         # Load file
         path = os.path.join(DIR_FORMATS, 'abf-v1.abf')
         abf = axon.AbfFile(path)
@@ -102,9 +99,8 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(len(p), 18)
 
     def test_read_v2(self):
-        """
-        Test reading a version 2 file.
-        """
+        # Test reading a version 2 file.
+
         # Load file
         path = os.path.join(DIR_FORMATS, 'abf-v2.abf')
         abf = axon.AbfFile(path)
@@ -155,9 +151,8 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(len(p), 2)
 
     def test_read_protocol_v1(self):
-        """
-        Test reading a v1 protocol file.
-        """
+        # Test reading a v1 protocol file.
+
         # Load file
         path = os.path.join(DIR_FORMATS, 'abf-protocol.pro')
         abf = axon.AbfFile(path)
@@ -196,7 +191,7 @@ class AbfTest(unittest.TestCase):
         self.assertEqual(len(p[0]), 30)
 
     def test_matplotlib_figure(self):
-        """ Test figure drawing method (doesn't inspect output). """
+        # Test figure drawing method (doesn't inspect output).
         # Select matplotlib backend that doesn't require a screen
         import matplotlib
         matplotlib.use('template')
@@ -211,9 +206,8 @@ class AtfTest(unittest.TestCase):
     """
 
     def test_write_read(self):
-        """
-        Test writing and reading an ATF file.
-        """
+        # Test writing and reading an ATF file.
+
         with TemporaryDirectory() as d:
             # Create data log
             log = myokit.DataLog()
@@ -360,7 +354,8 @@ class AtfTest(unittest.TestCase):
                 Exception, 'Invalid data', axon.load_atf, path)
 
     def test_accessors(self):
-        """ Test various accessor methods of :class:`AtfFile`. """
+        # Test various accessor methods of :class:`AtfFile`.
+
         with TemporaryDirectory() as d:
             # Create data log
             log = myokit.DataLog()

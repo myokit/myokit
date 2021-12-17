@@ -1,10 +1,8 @@
 #
 # OpenCL expression writer
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -24,11 +22,33 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
         self._sp = (precision == myokit.SINGLE_PRECISION)
         self._nm = bool(native_math)
 
+    def _exc(self, e):
+        """Returns ``ex(e)`` if ``e`` is a Condition, else ``ex(e != 0)``."""
+        if isinstance(e, myokit.Condition):
+            return self.ex(e)
+        return self.ex(myokit.NotEqual(e, myokit.Number(0)))
+
+    def _ex_infix_condition(self, e, op):
+        """Handles ex() for infix condition operators (==, !=, > etc.)."""
+        c1 = isinstance(e[0], myokit.Condition)
+        c2 = isinstance(e[1], myokit.Condition)
+        if (c1 and c2) or not(c1 or c2):
+            a = self.ex(e[0])
+            b = self.ex(e[1])
+        else:
+            a = self._exc(e[0])
+            b = self._exc(e[1])
+        return '(' + a + ' ' + op + ' ' + b + ')'
+
+    def _ex_infix_logical(self, e, op):
+        """Handles ex() for infix logical operators."""
+        return '(' + self._exc(e[0]) + ' ' + op + ' ' + self._exc(e[1]) + ')'
+
     #def _ex_name(self, e):
     #def _ex_derivative(self, e):
 
     def _ex_number(self, e):
-        return myokit.strfloat(e) + 'f' if self._sp else myokit.strfloat(e)
+        return myokit.float.str(e) + 'f' if self._sp else myokit.float.str(e)
 
     #def _ex_prefix_plus(self, e):
     #def _ex_prefix_minus(self, e):
@@ -115,7 +135,7 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
         return self._ex_function(e, 'fabs')
 
     def _ex_not(self, e):
-        return '!(' + self.ex(e[0]) + ')'
+        return '!(' + self._exc(e[0]) + ')'
 
     #def _ex_equal(self, e):
     #def _ex_not_equal(self, e):
@@ -125,20 +145,21 @@ class OpenCLExpressionWriter(PythonExpressionWriter):
     #def _ex_less_equal(self, e):
 
     def _ex_and(self, e):
-        return self._ex_infix_condition(e, '&&')
+        return self._ex_infix_logical(e, '&&')
 
     def _ex_or(self, e):
-        return self._ex_infix_condition(e, '||')
+        return self._ex_infix_logical(e, '||')
 
     def _ex_if(self, e):
-        return '(%s ? %s : %s)' % (self.ex(e._i), self.ex(e._t), self.ex(e._e))
+        return '(%s ? %s : %s)' % (
+            self._exc(e._i), self.ex(e._t), self.ex(e._e))
 
     def _ex_piecewise(self, e):
         s = []
         n = len(e._i)
         for i in range(0, n):
             s.append('(')
-            s.append(self.ex(e._i[i]))
+            s.append(self._exc(e._i[i]))
             s.append(' ? ')
             s.append(self.ex(e._e[i]))
             s.append(' : ')

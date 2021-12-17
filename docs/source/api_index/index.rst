@@ -10,11 +10,11 @@ sorted by module
 ..  toctree::
 
     myokit
+    myokit.float
     myokit.formats
     myokit.gui
     myokit.lib
-    myokit.mxml
     myokit.pacing
     myokit.pype
-     
+    myokit.tools
 

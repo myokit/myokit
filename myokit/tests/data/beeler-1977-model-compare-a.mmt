@@ -1,0 +1,105 @@
+[[model]]
+name: beeler-1977
+author: Michael Clerx
+desc: """
+    The 1997 Beeler Reuter model of the AP in ventricular myocytes
+
+    Reference:
+
+    Beeler, Reuter (1976) Reconstruction of the action potential of ventricular
+    myocardial fibres
+    """
+f(x) = 4 * x
+# Initial values:
+membrane.V  = -84.622
+calcium.Cai = 2e-7
+ina.m       = 0.01
+ina.h       = 0.99
+ina.j       = 0.98
+isi.d       = 0.003
+isi.f       = 0.99
+ix1.x1      = 0.0004
+
+
+[engine]
+time = 0 in [ms] bind time
+pace = 0 bind pace
+
+[membrane]
+C = 1 [uF/cm^2] : The membrane capacitance
+dot(V) = -(1/C) * (i_ion + i_stim)
+    in [mV]
+    label membrane_potential
+    desc: Membrane potential
+i_ion = ik1.IK1 + ix1.Ix1 + ina.INa + isi.Isi
+    label cellular_current
+    in [uA/cm^2]
+i_stim = engine.pace * amplitude
+    amplitude = -25 [uA/cm^2]
+
+[ina]
+use membrane.V as V
+gNaBar = 4 [mS/cm^2]
+gNaC = 0.003 [mS/cm^2]
+ENa = 50 [mV]
+INa = (gNaBar * m^3 * h * j + gNaC) * (V - ENa)
+    in [uA/cm^2]
+    desc: The excitatory inward sodium current
+dot(m) =  alpha * (1 - m) - beta * m
+    alpha = (V + 47) / (1 - exp(-0.1 * (V + 47)))
+    beta  = 40 * exp(-0.056 * (V + 72))
+    desc: The activation parameter
+dot(h) =  alpha * (1 - h) - beta * h
+    alpha = 0.126 * exp(-0.25 * (V + 77))
+    beta  = 1.7 / (1 + exp(-0.082 * (V + 22.5)))
+    desc: An inactivation parameter
+dot(j) =  alpha * (1 - j) - beta * j
+    alpha = 0.055 * exp(-0.25 * (V + 78)) / (1 + exp(-0.2 * (V + 78)))
+    beta  = 0.3 / (1 + exp(-0.1 * (V + 32)))
+    desc: An inactivation parameter
+
+[isi]
+use membrane.V as V
+gsBar = 0.09
+Es = -82.3 - 13.0287 * log(calcium.Cai)
+    in [mV]
+Isi = gsBar * d * f * (V - Es)
+    in [uA/cm^2]
+    desc: """
+    The slow inward current, primarily carried by calcium ions. Called either
+    "iCa" or "is" in the paper.
+    """
+dot(d) =  alpha * (1 - d) - beta * d
+    alpha = 0.095 * exp(-0.01 * (V + -5)) / (exp(-0.072 * (V + -5)) + 1)
+    beta  = 0.07 * exp(-0.017 * (V + 44)) / (exp(0.05 * (V + 44)) + 1)
+dot(f) = alpha * (1 - f) - beta * f
+    alpha = 0.012 * exp(-0.008 * (V + 28)) / (exp(0.15 * (V + 28)) + 1)
+    beta  = 0.0065 * exp(-0.02 * (V + 30)) / (exp(-0.2 * (V + 30)) + 1)
+
+[calcium]
+dot(Cai) = -1e-7 * isi.Isi + 0.07 * (1e-7 - Cai)
+    desc: The intracellular Calcium concentration
+    in [mol/L]
+
+[ik1]
+use membrane.V as V
+IK1 = 0.35 * (
+        4 * (exp(0.04 * (V + 85)) - 1)
+        / (exp(0.08 * (V + 53)) + exp(0.04 * (V + 53)))
+        + 0.2 * (V + 23)
+        / (1 - exp(-0.04 * (V + 23)))
+    )
+    in [uA/cm^2]
+    desc: """A time-independent outward potassium current exhibiting
+          inward-going rectification"""
+
+[ix1]
+use membrane.V as V
+Ix1 = x1 * 0.8 * (exp(0.04 * (V + 77)) - 1) / exp(0.04 * (V + 35))
+    in [uA/cm^2]
+    desc: """A voltage- and time-dependent outward current, primarily carried
+          by potassium ions"""
+dot(x1) = alpha * (1 - x1) - beta * x1
+    alpha = 0.0005 * exp(0.083 * (V + 50)) / (exp(0.057 * (V + 50)) + 1)
+    beta  = 0.0013 * exp(-0.06 * (V + 20)) / (exp(-0.04 * (V + 333)) + 1)
+

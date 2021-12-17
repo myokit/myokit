@@ -1,0 +1,41 @@
+name: Windows unit tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - '**'
+
+jobs:
+
+  build-and-test:
+    name: unit-win
+    runs-on: windows-latest
+    if: github.event.pull_request.draft == false
+    strategy:
+      matrix:
+        # Selected python versions only
+        python-version: [3.5, '3.10']
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Install Myokit
+        run: |
+          python --version
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install .[optional]
+
+      - name: Run unit tests
+        run: |
+          python -m myokit system
+          python -m myokit test unit
+

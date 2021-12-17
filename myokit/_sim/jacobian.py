@@ -1,10 +1,8 @@
 #
 # Two Jacobian calculating tools sharing the same C++ source code.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -61,6 +59,7 @@ class JacobianTracer(myokit.CppModule):
         # Extension module id
         JacobianTracer._index += 1
         module_name = 'myokit_JacobianTracer_' + str(JacobianTracer._index)
+        module_name += '_' + str(myokit.pid_hash())
 
         # Template arguments
         args = {
@@ -237,8 +236,9 @@ class JacobianCalculator(myokit.CppModule):
 
         # Extension module id
         JacobianCalculator._index += 1
-        module_name = 'myokit_JacobianCalculator_' \
-            + str(JacobianCalculator._index)
+        module_name = 'myokit_JacobianCalculator_'
+        module_name += str(JacobianCalculator._index)
+        module_name += '_' + str(myokit.pid_hash())
 
         # Template arguments
         args = {

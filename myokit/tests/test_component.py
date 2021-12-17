@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the Component and VarOwner classes.
 #
-# This file is part of Myokit
-#  Copyright 2011-2019 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -202,16 +200,23 @@ class VarOwnerTest(unittest.TestCase):
         self.assertEqual(a.count_variables(), 0)
         self.assertEqual(X.count_variables(), 0)
 
-        # Same with dot(a) = a, b = 3 * a
+        # Test deleting variable with nested variables that depend on each
+        # other
         a = X.add_variable('a')
-        a.promote(0.123)
         b = a.add_variable('b')
-        b.set_rhs(myokit.Multiply(myokit.Number(3), myokit.Name(a)))
-        a.set_rhs(myokit.Name(b))
+        c = a.add_variable('c')
+        d = a.add_variable('d')
+        a.set_rhs('b + c - d')
+        a.promote(0.1)
+        b.set_rhs('2 * a - d')
+        c.set_rhs('a + b + d')
+        d.set_rhs('3 * a')
         self.assertRaises(myokit.IntegrityError, X.remove_variable, a)
-        self.assertRaises(myokit.IntegrityError, a.remove_variable, b)
-        self.assertRaises(myokit.IntegrityError, a.remove_variable, b, True)
+        self.assertEqual(a.count_variables(), 3)
+        self.assertEqual(X.count_variables(), 1)
         X.remove_variable(a, recursive=True)
+        self.assertEqual(a.count_variables(), 0)
+        self.assertEqual(X.count_variables(), 0)
 
         # Test if removed from model's label and binding lists
         m = myokit.Model()
@@ -230,6 +235,18 @@ class VarOwnerTest(unittest.TestCase):
         c.remove_variable(y)
         self.assertIs(m.binding('time'), None)
         self.assertIs(m.label('membrane_potential'), None)
+
+    def test_sequence_interface(self):
+        # Test the sequence interface implementation
+
+        model = myokit.load_model('example')
+        c = model['membrane']
+
+        vs = [v for v in c]
+        self.assertEqual(vs, list(c.variables()))
+        self.assertEqual(len(vs), len(c))
+        v = c['V']
+        self.assertEqual(v.name(), 'V')
 
     def test_varowner_get(self):
         # Test VarOwner.get().

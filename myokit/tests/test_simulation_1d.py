@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the Simulation1d class.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -112,7 +110,7 @@ class Simulation1dTest(unittest.TestCase):
         # Test using a progress reporter
         s = myokit.Simulation1d(m, p, ncells=5)
         s.set_step_size(0.05)
-        with myokit.PyCapture() as c:
+        with myokit.tools.capture() as c:
             s.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertTrue(len(c) > 0)
@@ -228,7 +226,7 @@ class Simulation1dTest(unittest.TestCase):
         e0 = np.max(np.abs(d1.time() - d2.time()))
 
         # Check implementation of pacing
-        r1 = d1['engine.pace', 0] - d2['engine.pace']
+        r1 = d1['engine.pace'] - d2['engine.pace']
         e1 = np.sum(r1**2)
 
         # Check membrane potential (will have some error!)
@@ -260,7 +258,7 @@ class Simulation1dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Pacing signals')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['engine.pace', 0], label='Euler')
+            plt.plot(d1.time(), d1['engine.pace'], label='Euler')
             plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
@@ -322,7 +320,7 @@ class Simulation1dTest(unittest.TestCase):
         e0 = np.max(np.abs(d1.time() - d2.time()))
 
         # Check implementation of pacing
-        r1 = d1['engine.pace', 0] - d2['engine.pace']
+        r1 = d1['engine.pace'] - d2['engine.pace']
         e1 = np.sum(r1**2)
 
         # Check membrane potential (will have some error!)
@@ -354,7 +352,7 @@ class Simulation1dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Pacing signals')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['engine.pace', 0], label='Euler')
+            plt.plot(d1.time(), d1['engine.pace'], label='Euler')
             plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
@@ -416,7 +414,7 @@ class Simulation1dTest(unittest.TestCase):
         e0 = np.max(np.abs(d1.time() - d2.time()))
 
         # Check implementation of pacing
-        r1 = d1['engine.pace', 0] - d2['engine.pace']
+        r1 = d1['engine.pace'] - d2['engine.pace']
         e1 = np.sum(r1**2)
 
         # Check membrane potential (will have some error!)
@@ -448,7 +446,7 @@ class Simulation1dTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Pacing signals')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['engine.pace', 0], label='Euler')
+            plt.plot(d1.time(), d1['engine.pace'], label='Euler')
             plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)

@@ -1,7 +1,3 @@
-
-
-
-
 [[script]]
 import myokit
 import myokit.lib.multi
@@ -43,7 +39,7 @@ for model, protocol in myokit.lib.multi.iterdir(model_dir):
     protocol = myokit.pacing.blocktrain(1000, duration)
     
     # Create a simulation with APD tracking enabled
-    s = myokit.Simulation(model, protocol, apd_var=vm)
+    s = myokit.Simulation(model, protocol)
     
     # Pre-pace the model for 50 beats
     #print('  Pre-pacing...')
@@ -54,7 +50,8 @@ for model, protocol in myokit.lib.multi.iterdir(model_dir):
     
     # Measure the baseline APD at V=-70mV
     print('  Measuring baseline apd...')
-    x, apds = s.run(600, log=myokit.LOG_NONE, apd_threshold=-70)
+    x, apds = s.run(
+        600, log=myokit.LOG_NONE, apd_variable=vm, apd_threshold=-70)
     
     # The returned object `apds` contains more info that we need, extract only
     # the duration of the first AP
@@ -65,8 +62,9 @@ for model, protocol in myokit.lib.multi.iterdir(model_dir):
     
     # Create a new simulation and measure the new apd
     print('  Measuring modified apd...')
-    s = myokit.Simulation(model, protocol, apd_var=vm)
-    x, apds = s.run(600, log=myokit.LOG_NONE, apd_threshold=-70)
+    s = myokit.Simulation(model, protocol)
+    x, apds = s.run(
+        600, log=myokit.LOG_NONE, apd_variable=vm, apd_threshold=-70)
     apd_modified = apds['duration'][0]
     
     # Store the difference between the APDs

@@ -1,10 +1,8 @@
 #
 # Non-standard exceptions raised by myokit.
 #
-# This file is part of Myokit
-#  Copyright 2011-2019 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -420,3 +418,11 @@ class UnusedVariableError(IntegrityError):
         tok = var.lhs()._token
         super(UnusedVariableError, self).__init__(msg, tok)
 
+
+class VariableMappingError(MyokitError):
+    """
+    Raised when a method needs to map variables from one model onto another,
+    but no valid mapping can be made.
+
+    *Extends:* :class:`myokit.MyokitError`.
+    """

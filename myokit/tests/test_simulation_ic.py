@@ -1,11 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Tests the ICSimulation class.
 #
-# This file is part of Myokit
-#  Copyright 2011-2018 Maastricht University, University of Oxford
-#  Licensed under the GNU General Public License v3.0
-#  See: http://myokit.org
+# This file is part of Myokit.
+# See http://myokit.org for copyright, sharing, and licensing details.
 #
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
@@ -16,7 +14,7 @@ import numpy as np
 
 import myokit
 
-from shared import DIR_DATA, CancellingReporter
+from shared import DIR_DATA, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -36,7 +34,9 @@ class ICSimulationTest(unittest.TestCase):
         n = m.count_states()
 
         # Run a simulation
-        s = myokit.ICSimulation(m, p)
+        with WarningCollector() as c:
+            s = myokit.ICSimulation(m, p)
+        self.assertIn('`ICSimulation` is deprecated', c.text())
 
         self.assertEqual(s.time(), 0)
         self.assertEqual(s.state(), m.state())
@@ -80,8 +80,9 @@ class ICSimulationTest(unittest.TestCase):
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
 
         # Test using a progress reporter
-        s = myokit.ICSimulation(m, p)
-        with myokit.PyCapture() as c:
+        with WarningCollector() as c:
+            s = myokit.ICSimulation(m, p)
+        with myokit.tools.capture() as c:
             s.run(110, progress=myokit.ProgressPrinter())
         c = c.text().splitlines()
         self.assertTrue(len(c) > 0)
@@ -98,8 +99,9 @@ class ICSimulationTest(unittest.TestCase):
     def test_invalid_model(self):
         """ Test running with an invalid model. """
         m = myokit.Model()
-        self.assertRaises(
-            myokit.MissingTimeVariableError, myokit.ICSimulation, m)
+        with WarningCollector() as c:
+            self.assertRaises(
+                myokit.MissingTimeVariableError, myokit.ICSimulation, m)
 
 
 if __name__ == '__main__':
