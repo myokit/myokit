@@ -27,8 +27,6 @@ config2 = """
 [time]
 date_format = TEST_DATE_FORMAT
 time_format = TEST_TIME_FORMAT
-[debug]
-line_numbers=True
 [gui]
 [sundials]
 lib = one;two
@@ -122,7 +120,6 @@ class TestConfig(unittest.TestCase):
         # Back-up current settings
         date_format = myokit.DATE_FORMAT
         time_format = myokit.TIME_FORMAT
-        debug_numbers = myokit.DEBUG_LINE_NUMBERS
         force_pyside = myokit.FORCE_PYSIDE
         force_pyside2 = myokit.FORCE_PYSIDE2
         force_pyqt4 = myokit.FORCE_PYQT4
@@ -155,7 +152,6 @@ class TestConfig(unittest.TestCase):
                 config._load()
                 self.assertEqual(myokit.DATE_FORMAT, 'TEST_DATE_FORMAT')
                 self.assertEqual(myokit.TIME_FORMAT, 'TEST_TIME_FORMAT')
-                self.assertTrue(myokit.DEBUG_LINE_NUMBERS)
                 self.assertFalse(myokit.FORCE_PYSIDE)
                 self.assertFalse(myokit.FORCE_PYSIDE2)
                 self.assertFalse(myokit.FORCE_PYQT4)
@@ -249,8 +245,8 @@ class TestConfig(unittest.TestCase):
             # Reset data and time
             myokit.DATE_FORMAT = date_format
             myokit.TIME_FORMAT = time_format
-            myokit.DEBUG_LINE_NUMBERS = debug_numbers
             myokit.FORCE_PYSIDE = force_pyside
+            myokit.FORCE_PYSIDE2 = force_pyside2
             myokit.FORCE_PYQT4 = force_pyqt4
             myokit.FORCE_PYQT5 = force_pyqt5
             myokit.SUNDIALS_LIB = sundials_lib
@@ -264,8 +260,8 @@ class TestConfig(unittest.TestCase):
             # Sanity check
             self.assertNotEqual(myokit.DATE_FORMAT, 'TEST_DATE_FORMAT')
             self.assertNotEqual(myokit.TIME_FORMAT, 'TEST_TIME_FORMAT')
-            self.assertEqual(myokit.DEBUG_LINE_NUMBERS, debug_numbers)
             self.assertEqual(myokit.FORCE_PYSIDE, force_pyside)
+            self.assertEqual(myokit.FORCE_PYSIDE2, force_pyside2)
             self.assertEqual(myokit.FORCE_PYQT4, force_pyqt4)
             self.assertEqual(myokit.FORCE_PYQT5, force_pyqt5)
             self.assertNotEqual(myokit.SUNDIALS_LIB, ['one', 'two'])

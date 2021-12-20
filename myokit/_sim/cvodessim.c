@@ -42,6 +42,14 @@ import myokit
 
 #include "pacing.h"
 
+<?
+if myokit.DEBUG_SM:
+    print('// Show debug output')
+    print('#ifndef MYOKIT_DEBUG_MESSAGES')
+    print('#define MYOKIT_DEBUG_MESSAGES')
+    print('#endif')
+?>
+
 <?= model_code ?>
 
 /*
@@ -1100,7 +1108,7 @@ sim_step(PyObject *self, PyObject *args)
         if (model->is_ode) {
 
             /* Take a single ODE step */
-            #ifdef MYOKIT_DEBUG
+            #ifdef MYOKIT_DEBUG_MESSAGES
             printf("\nTaking CVODE step from time %f to %f\n", t, tnext);
             #endif
             flag_cvode = CVode(cvode_mem, tnext, y, &t, CV_ONE_STEP);
@@ -1152,7 +1160,7 @@ sim_step(PyObject *self, PyObject *args)
 
                 /* Next event time exceeded? */
                 if (t > tnext) {
-                    #ifdef MYOKIT_DEBUG
+                    #ifdef MYOKIT_DEBUG_MESSAGES
                     printf("Event time exceeded, rewinding to %f\n", tnext);
                     #endif
 
@@ -1207,7 +1215,7 @@ sim_step(PyObject *self, PyObject *args)
 
                 /* Log points */
                 while (t > tlog) {
-                    #ifdef MYOKIT_DEBUG
+                    #ifdef MYOKIT_DEBUG_MESSAGES
                     printf("Interpolation-logging for t=%f\n", t);
                     #endif
 
@@ -1312,7 +1320,7 @@ sim_step(PyObject *self, PyObject *args)
                     /* If logging derivatives or intermediaries, calculate the
                        values for the current time. Similarly, if calculating
                        sensitivities this is needed. */
-                    #ifdef MYOKIT_DEBUG
+                    #ifdef MYOKIT_DEBUG_MESSAGES
                     printf("Calling RHS to log derivs/inter/sens at time %f\n", t);
                     #endif
                     rhs(t, y, NULL, udata);

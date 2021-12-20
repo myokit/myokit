@@ -58,11 +58,6 @@ def _create(path):
     config.set('time', '# Format should be acceptable for time.strftime')
     config.set('time', 'time_format', myokit.TIME_FORMAT)
 
-    # Add line numbers to debug output of simulations
-    config.add_section('debug')
-    config.set('debug', '# Add line numbers to debug output of simulations')
-    config.set('debug', 'line_numbers', myokit.DEBUG_LINE_NUMBERS)
-
     # GUI Backend
     config.add_section('gui')
     config.set('gui', '# Backend to use for graphical user interface.')
@@ -219,14 +214,6 @@ def _load():
         x = config.get('time', 'time_format')
         if x:
             myokit.TIME_FORMAT = str(x)
-
-    # Add line numbers to debug output of simulations
-    if config.has_option('debug', 'line_numbers'):
-        try:
-            myokit.DEBUG_LINE_NUMBERS = config.getboolean(
-                'debug', 'line_numbers')
-        except ValueError:  # pragma: no cover
-            pass
 
     # GUI Backend
     if config.has_option('gui', 'backend'):
