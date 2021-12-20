@@ -289,13 +289,6 @@ class SimulationOpenCL(myokit.CModule):
         self._model.create_unique_names()
 
         # Create back-end
-        self._create_backend()
-
-    def _create_backend(self):
-        """
-        Compiles the C back-end for this simulation.
-        """
-        # Create back-end
         SimulationOpenCL._index += 1
         mname = 'myokit_sim_opencl_' + str(SimulationOpenCL._index)
         mname += '_' + str(myokit.pid_hash())
