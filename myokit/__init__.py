@@ -245,12 +245,12 @@ del(os, inspect)
 # Show Generated code, or Write Generated code to file(s)
 DEBUG_SG = False
 DEBUG_WG = False
-# Show C Warnings when compiling code
-DEBUG_CW = False
+# Show compiler output
+DEBUG_SC = False
 # Show C debug Messages when running compiled code
-DEBUG_CM = False
+DEBUG_SM = False
 # Show C Profiling information when running compiled code
-DEBUG_CP = False
+DEBUG_SP = False
 
 
 #

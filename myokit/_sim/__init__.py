@@ -110,7 +110,7 @@ class CModule(object):
 
             # Export c file
             src_file = os.path.join(d_cache, src_file)
-            self._export(template, variables, src_file)
+            self._export_inner(template, variables, src_file)
 
             # Ensure headers can be read from myokit/_sim
             if incd is None:
@@ -126,18 +126,18 @@ class CModule(object):
             carg = None if carg is None else [str(x) for x in carg]
             larg = None if larg is None else [str(x) for x in larg]
 
-            # Uncomment to debug C89 issues
-            if myokit.DEBUG_CW:
+            # Show warnings
+            if myokit.DEBUG_SC:
                 if carg is None:
                     carg = []
                 carg.extend([
                     '-Wall',
                     '-Wextra',
-                    '-Werror=strict-prototypes',
-                    '-Werror=old-style-definition',
-                    '-Werror=missing-prototypes',
-                    '-Werror=missing-declarations',
-                    '-Werror=declaration-after-statement',
+                    '-Wstrict-prototypes',
+                    '-Wold-style-definition',
+                    '-Wmissing-prototypes',
+                    '-Wmissing-declarations',
+                    '-Wdeclaration-after-statement',
                 ])
 
             # Add runtime_library_dirs (to prevent LD_LIBRARY_PATH) errors on
@@ -185,8 +185,9 @@ class CModule(object):
             )
 
             # Compile in build directory, catch output
+            capture = not myokit.DEBUG_SC
             error, trace = None, None
-            with myokit.tools.capture(fd=True) as s:
+            with myokit.tools.capture(fd=True, enabled=capture) as s:
                 try:
                     os.chdir(d_build)
                     setup(
@@ -249,6 +250,8 @@ class CModule(object):
         this, it will terminate with exit code 1 unless
         ``continue_in_debug_mode`` is changed to ``True``.
         """
+        print('HELLO ' + template)
+
         # Show and/or write code in debug mode
         if myokit.DEBUG_SG or myokit.DEBUG_WG:  # pragma: no cover
             if myokit.DEBUG_SG:

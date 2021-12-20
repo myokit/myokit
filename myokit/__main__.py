@@ -970,7 +970,7 @@ def add_reset_parser(subparsers):
 # Run
 #
 
-def run(source, debug_sg, debug_wg, debug_cw, debug_cm, debug_cp):
+def run(source, debug_sg, debug_wg, debug_sc, debug_sm, debug_sp):
     """
     Runs an mmt file script.
     """
@@ -980,9 +980,9 @@ def run(source, debug_sg, debug_wg, debug_cw, debug_cm, debug_cp):
     # Debug modes
     myokit.DEBUG_SG = myokit.DEBUG_SG or debug_sg
     myokit.DEBUG_WG = myokit.DEBUG_WG or debug_wg
-    myokit.DEBUG_CW = myokit.DEBUG_CW or debug_cw
-    myokit.DEBUG_CM = myokit.DEBUG_CM or debug_cm
-    myokit.DEBUG_CP = myokit.DEBUG_CP or debug_cp
+    myokit.DEBUG_SC = myokit.DEBUG_SC or debug_sc
+    myokit.DEBUG_SM = myokit.DEBUG_SM or debug_sm
+    myokit.DEBUG_SP = myokit.DEBUG_SP or debug_sp
 
     # Read mmt file
     try:
@@ -1059,17 +1059,17 @@ def add_run_parser(subparsers):
         help='Write the generated code to file(s) instead of executing it.',
     )
     parser.add_argument(
-        '--debug_cw',
+        '--debug_sc',
         action='store_true',
-        help='Show warnings when compiling code.',
+        help='Show compiler output.',
     )
     parser.add_argument(
-        '--debug_cm',
+        '--debug_sm',
         action='store_true',
         help='Show debug messages when executing compiled code.',
     )
     parser.add_argument(
-        '--debug_cp',
+        '--debug_sp',
         action='store_true',
         help='Show profiling information when executing compiled code.',
     )
