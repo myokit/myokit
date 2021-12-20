@@ -250,8 +250,6 @@ class CModule(object):
         this, it will terminate with exit code 1 unless
         ``continue_in_debug_mode`` is changed to ``True``.
         """
-        print('HELLO ' + template)
-
         # Show and/or write code in debug mode
         if myokit.DEBUG_SG or myokit.DEBUG_WG:  # pragma: no cover
             if myokit.DEBUG_SG:

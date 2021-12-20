@@ -67,8 +67,13 @@ equations = model.solvable_order()
 #include <math.h>
 #include "pacing.h"
 
-/* Show debug output */
-/*#define MYOKIT_DEBUG */
+<?
+if myokit.DEBUG_SM:
+    print('// Show debug output')
+    print('#ifndef MYOKIT_DEBUG_MESSAGES')
+    print('#define MYOKIT_DEBUG_MESSAGES')
+    print('#endif')
+?>
 
 /*
  * Engine variables
@@ -235,13 +240,13 @@ for label, eqs in equations.items():
 static PyObject*
 sim_clean()
 {
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Clean called.\n");
     #endif
 
     if (running != 0) {
 
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("Cleaning.\n");
         #endif
 
@@ -279,7 +284,7 @@ py_sim_clean()
 static PyObject*
 sim_init(PyObject *self, PyObject *args)
 {
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Initialising.\n");
     #endif
 
@@ -476,7 +481,7 @@ sim_step(PyObject *self, PyObject *args)
     int steps_taken = 0;
     double d;
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Entering sim_step.\n");
     #endif
 
@@ -513,7 +518,7 @@ sim_step(PyObject *self, PyObject *args)
 
         /* Move to next time (1) Update the time variable */
         engine_time += dt;
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("t=%f, dt=%f\n", engine_time, dt);
         #endif
 
@@ -546,7 +551,7 @@ for var in model.states():
          * Check this *before* logging: Last point reached should not be
          * logged (half-open convention for fixed interval logging!)
          */
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("t=%f, tmax=%f, t>=tmax %d\n", engine_time, tmax, engine_time>=tmax);
         #endif
         if (engine_time >= tmax) break;
@@ -569,7 +574,7 @@ for var in model.states():
     }
 
     /* Set final state */
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Setting final state.\n");
     #endif
     cell = cells;
@@ -581,7 +586,7 @@ for var in model.states():
         cell++;
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Done, tidying up and returning.\n");
     #endif
 

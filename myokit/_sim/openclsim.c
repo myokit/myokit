@@ -25,11 +25,17 @@ tab = '    '
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+
+<?
+if myokit.DEBUG_SM:
+    print('// Show debug output')
+    print('#ifndef MYOKIT_DEBUG_MESSAGES')
+    print('#define MYOKIT_DEBUG_MESSAGES')
+    print('#endif')
+?>
+
 #include "pacing.h"
 #include "mcl.h"
-
-// Show debug output
-//#define MYOKIT_DEBUG
 
 // C89 Doesn't have isnan
 #ifndef isnan
@@ -205,12 +211,12 @@ PyObject* list_update_str = NULL;   /* PyUnicode, used to call "append" method *
 static PyObject*
 sim_clean()
 {
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Clean called.\n");
     #endif
 
     if(running) {
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("Cleaning.\n");
         #endif
 
@@ -266,7 +272,7 @@ sim_clean()
         // No longer running
         running = 0;
     }
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     else
     {
         printf("Skipping cleaning: not running!\n");
@@ -282,7 +288,7 @@ sim_clean()
 static PyObject*
 py_sim_clean(PyObject *self, PyObject *args)
 {
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Python py_sim_clean called.\n");
     #endif
 
@@ -322,7 +328,7 @@ sim_init(PyObject* self, PyObject* args)
     size_t blog_size;
     char *blog;
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     // Don't buffer stdout
     setbuf(stdout, NULL); // Don't buffer stdout
     printf("Starting initialization.\n");
@@ -402,7 +408,7 @@ sim_init(PyObject* self, PyObject* args)
     arg_gy = (Real)gy;
     halt_sim = 0;
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Retrieved function arguments.\n");
     #endif
 
@@ -415,7 +421,7 @@ sim_init(PyObject* self, PyObject* args)
     //
     //
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Running!\n");
     printf("Checking input arguments.\n");
     #endif
@@ -489,7 +495,7 @@ sim_init(PyObject* self, PyObject* args)
     // Create opencl environment
     //
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Creating vectors.\n");
     #endif
 
@@ -552,7 +558,7 @@ sim_init(PyObject* self, PyObject* args)
     // Conductance options
     if (gx_field != Py_None) {
         // Set up conductance fields
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("Setting up conductance fields.\n");
         #endif
 
@@ -612,7 +618,7 @@ sim_init(PyObject* self, PyObject* args)
 
     } else if(connections != Py_None) {
         // Set up arbitrary-geometry diffusion
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("Setting up connections.\n");
         #endif
 
@@ -675,11 +681,11 @@ sim_init(PyObject* self, PyObject* args)
         }
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Created vectors.\n");
     #endif
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Setting work group sizes.\n");
     #endif
     // Work group size and total number of items
@@ -688,7 +694,7 @@ sim_init(PyObject* self, PyObject* args)
     if (connections != Py_None) {
         global_work_size_conn[0] = n_connections;
     }
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Work group sizes determined.\n");
     #endif
 
@@ -697,7 +703,7 @@ sim_init(PyObject* self, PyObject* args)
         // Error message set by mcl_select_device
         return sim_clean();
     }
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Selected platform and device id.\n");
     #endif
 
@@ -712,20 +718,20 @@ sim_init(PyObject* self, PyObject* args)
     #endif
 
     // Create a context and command queue
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Attempting to create OpenCL context...\n");
     #endif
     cl_context_properties context_properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0};
     context = clCreateContext(context_properties, 1, &device_id, NULL, NULL, &flag);
     if(mcl_flag2("context", flag)) return sim_clean();
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Created context.\n");
     #endif
 
     // Create command queue
     command_queue = clCreateCommandQueue(context, device_id, 0, &flag);
     if(mcl_flag2("queue", flag)) return sim_clean();
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Created command queue.\n");
     #endif
 
@@ -752,7 +758,7 @@ sim_init(PyObject* self, PyObject* args)
         if(mcl_flag(flag)) return sim_clean();
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Created buffers.\n");
     printf("State buffer size: %d.\n", (int)dsize_state);
     printf("Idiff buffer size: %d.\n", (int)dsize_idiff);
@@ -788,21 +794,21 @@ sim_init(PyObject* self, PyObject* args)
         flag = clEnqueueWriteBuffer(command_queue, mbuf_conn3, CL_FALSE, 0, dsize_conn3, rvec_conn3, 0, NULL, NULL);
         if(mcl_flag(flag)) return sim_clean();
     }
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Enqueued copying of data into buffers.\n");
     #endif
 
     // Wait for copying to be finished
     clFlush(command_queue);
     clFinish(command_queue);
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Command queue flushed.\n");
     #endif
 
     // Load and compile the program
     program = clCreateProgramWithSource(context, 1, (const char**)&kernel_source, NULL, &flag);
     if(mcl_flag(flag)) return sim_clean();
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Program created.\n");
     #endif
     sprintf(options, "");
@@ -822,7 +828,7 @@ sim_init(PyObject* self, PyObject* args)
         free(blog);
     }
     if(mcl_flag(flag)) return sim_clean();
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Program built.\n");
     #endif
 
@@ -844,7 +850,7 @@ sim_init(PyObject* self, PyObject* args)
         kernel_diff = clCreateKernel(program, "diff_step", &flag);
         if(mcl_flag(flag)) return sim_clean();
     }
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Kernels created.\n");
     #endif
 
@@ -893,7 +899,7 @@ sim_init(PyObject* self, PyObject* args)
         if(mcl_flag(clSetKernelArg(kernel_diff, i++, sizeof(mbuf_idiff), &mbuf_idiff))) return sim_clean();
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Arguments passed into kernels.\n");
     #endif
 
@@ -906,15 +912,15 @@ sim_init(PyObject* self, PyObject* args)
         return sim_clean();
     }
     n_vars = PyDict_Size(log_dict);
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Number of variables to log:%u.\n", (unsigned int)n_vars);
     #endif
     logs = (PyObject**)malloc(sizeof(PyObject*)*n_vars); // Pointers to logging lists
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Allocated log pointers:.\n");
     #endif
     vars = (Real**)malloc(sizeof(Real*)*n_vars); // Pointers to variables to log
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Allocated var pointers.\n");
     #endif
 
@@ -995,7 +1001,7 @@ print(4*tab + '}')
         return sim_clean();
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Created log for %u variables.\n", (unsigned int)n_vars);
     #endif
 
@@ -1012,7 +1018,7 @@ print(4*tab + '}')
     /*
      * Done!
      */
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Finished initialization.\n");
     #endif
     Py_RETURN_NONE;
@@ -1165,7 +1171,7 @@ sim_step(PyObject *self, PyObject *args)
         }
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Simulation finished.\n");
     #endif
 
@@ -1177,7 +1183,7 @@ sim_step(PyObject *self, PyObject *args)
         /* PyList_SetItem steals a reference: no need to decref the double! */
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Final state copied.\n");
     printf("Tyding up...\n");
     #endif
@@ -1185,13 +1191,13 @@ sim_step(PyObject *self, PyObject *args)
     sim_clean();    /* Ignore return value */
 
     if (halt_sim) {
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("Finished tidiying up, ending simulation with nan.\n");
         #endif
         PyErr_SetString(PyExc_ArithmeticError, "Encountered nan in simulation.");
         return 0;
     } else {
-        #ifdef MYOKIT_DEBUG
+        #ifdef MYOKIT_DEBUG_MESSAGES
         printf("Finished tidiying up, ending simulation.\n");
         #endif
         return PyFloat_FromDouble(engine_time);
