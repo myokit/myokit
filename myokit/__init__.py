@@ -240,9 +240,17 @@ del(os, inspect)
 
 
 #
-# Debugging mode: Simulation code will be shown, not executed
+# Debugging modes
 #
-DEBUG = False
+# Show Generated code, or Write Generated code to file(s)
+DEBUG_SG = False
+DEBUG_WG = False
+# Show C Warnings when compiling code
+DEBUG_CW = False
+# Show C debug Messages when running compiled code
+DEBUG_CM = False
+# Show C Profiling information when running compiled code
+DEBUG_CP = False
 
 
 #
@@ -278,12 +286,6 @@ SFSINGLE = '{:< 1.9e}'
 #
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 TIME_FORMAT = '%H:%M:%S'
-
-#
-# Add line numbers to debug output of simulations
-#
-DEBUG_LINE_NUMBERS = True
-
 
 #
 # GUI: Favour PySide or PyQt

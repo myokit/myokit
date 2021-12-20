@@ -20,4 +20,8 @@ exclude_lines =
     except ImportError:
     if False:
     if __name__ == .__main__.:
-    if myokit.DEBUG:
+    if myokit.DEBUG_SG:
+    if myokit.DEBUG_WG:
+    if myokit.DEBUG_CW:
+    if myokit.DEBUG_CM:
+    if myokit.DEBUG_CP:

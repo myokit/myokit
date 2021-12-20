@@ -356,9 +356,8 @@ class FiberTissueSimulation(myokit.CModule):
 
         # Debug
         if myokit.DEBUG:
-            print(
-                self._code(fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
+            print(self._code(
+                fname, args, line_numbers=myokit.DEBUG_G_LINE_NUMBERS))
             return
 
         # Define libraries
@@ -378,7 +377,8 @@ class FiberTissueSimulation(myokit.CModule):
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
         self._sim = self._compile(
-            mname, fname, args, libs, libd, incd, larg=flags)
+            mname, fname, args, libs, libd, incd, larg=flags,
+            continue_in_debug_mode=True)
 
     def fiber_state(self, x=None):
         """
@@ -796,10 +796,8 @@ class FiberTissueSimulation(myokit.CModule):
         args['fiber_tissue'] = True
         if myokit.DEBUG:
             print('-' * 79)
-            print(
-                self._code(kernel_file, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
+            print(self._code(
+                kernel_file, args, line_numbers=myokit.DEBUG_G_LINE_NUMBERS))
         else:
             kernelf = self._export(kernel_file, args)
         args['model'] = self._modelt
@@ -810,10 +808,8 @@ class FiberTissueSimulation(myokit.CModule):
         args['fiber_tissue'] = False
         if myokit.DEBUG:
             print('-' * 79)
-            print(
-                self._code(kernel_file, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
+            print(self._code(
+                kernel_file, args, line_numbers=myokit.DEBUG_G_LINE_NUMBERS))
             import sys
             sys.exit(1)
         else:

@@ -289,6 +289,13 @@ class SimulationOpenCL(myokit.CModule):
         self._model.create_unique_names()
 
         # Create back-end
+        self._create_backend()
+
+    def _create_backend(self):
+        """
+        Compiles the C back-end for this simulation.
+        """
+        # Create back-end
         SimulationOpenCL._index += 1
         mname = 'myokit_sim_opencl_' + str(SimulationOpenCL._index)
         mname += '_' + str(myokit.pid_hash())
@@ -299,13 +306,6 @@ class SimulationOpenCL(myokit.CModule):
             'precision': self._precision,
             'dims': len(self._dims),
         }
-
-        # Debug
-        if myokit.DEBUG:
-            print(self._code(
-                fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            #import sys
-            #sys.exit(1)
 
         # Define libraries
         libs = []
@@ -324,7 +324,8 @@ class SimulationOpenCL(myokit.CModule):
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
         self._sim = self._compile(
-            mname, fname, args, libs, libd, incd, larg=flags)
+            mname, fname, args, libs, libd, incd, larg=flags,
+            continue_in_debug_mode=True)
 
     def calculate_conductance(self, r, sx, chi, dx):
         """
@@ -1057,13 +1058,6 @@ class SimulationOpenCL(myokit.CModule):
             'heterogeneous': self._gx_field is not None,
             'fiber_tissue': False,
         }
-        if myokit.DEBUG:    # pragma: no cover
-            print('-' * 79)
-            print(
-                self._code(kernel_file, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
         kernel = self._export(kernel_file, args)
 
         # Logging period (0 = disabled)

@@ -194,13 +194,6 @@ class Simulation1d(myokit.CModule):
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
 
-        # Debug
-        if myokit.DEBUG:
-            print(self._code(
-                fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS))
-            import sys
-            sys.exit(1)
-
         # Define libraries
         libs = []
         if platform.system() != 'Windows':  # pragma: no windows cover
