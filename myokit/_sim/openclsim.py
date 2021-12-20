@@ -1051,7 +1051,6 @@ class SimulationOpenCL(myokit.CModule):
             'heterogeneous': self._gx_field is not None,
             'fiber_tissue': False,
         }
-        print(kernel_file)
         kernel = self._export(kernel_file, args)
 
         # Logging period (0 = disabled)
