@@ -15,6 +15,7 @@ This page lists the main changes made to Myokit in each release.
   - [#816](https://github.com/MichaelClerx/myokit/pull/816) The method `myokit.tools.Benchmarker.format` can now be called without any arguments.
   - [#817](https://github.com/MichaelClerx/myokit/pull/816) The internal templating engine now uses `ast` instead of the deprecated (and removed in 3.10) `parser` module.
   - [#825](https://github.com/MichaelClerx/myokit/pull/825) The debugging arguments to ``myokit run`` have been split into five parts, see ``myokit run --help`` for details.
+  - [#825](https://github.com/MichaelClerx/myokit/pull/825) The context manager `myokit.tools.capture` now takes an extra argument ``enabled`` which can be used to disabled output capturing.
 - Deprecated
 - Removed
   - [#796](https://github.com/MichaelClerx/myokit/pull/796) The Graph Data Extractor tool is now a separate project, hosted at https://github.com/MichaelClerx/gde.

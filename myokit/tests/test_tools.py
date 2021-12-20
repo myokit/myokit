@@ -68,6 +68,22 @@ class BenchMarkerTest(unittest.TestCase):
 class CaptureTest(unittest.TestCase):
     """Test the ``capture`` context manager."""
 
+    def test_capture_disabled(self):
+        """Tests creating a capture manager that doesn't capture."""
+
+        with myokit.tools.capture(enabled=True) as p:
+            with myokit.tools.capture(enabled=False) as q:
+                print('2', end='')
+                print('b', end='', file=sys.stderr)
+                print('f', end='', file=sys.stderr)
+            print('7', end='')
+            print('g', end='', file=sys.stderr)
+
+        self.assertEqual(p.out(), '27')
+        self.assertEqual(p.err(), 'bfg')
+        self.assertEqual(q.out(), '')
+        self.assertEqual(q.err(), '')
+
     def test_capture_nested(self):
         """Tests capturing in a nested pattern."""
         r = myokit.tools.capture(False)

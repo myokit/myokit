@@ -22,6 +22,6 @@ exclude_lines =
     if __name__ == .__main__.:
     if myokit.DEBUG_SG:
     if myokit.DEBUG_WG:
-    if myokit.DEBUG_CW:
-    if myokit.DEBUG_CM:
-    if myokit.DEBUG_CP:
+    if myokit.DEBUG_SC:
+    if myokit.DEBUG_SM:
+    if myokit.DEBUG_SP:
