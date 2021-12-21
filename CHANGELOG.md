@@ -6,16 +6,17 @@ This page lists the main changes made to Myokit in each release.
 - Added
   - [#799](https://github.com/MichaelClerx/myokit/pull/799) Added pL, MOhm, and GOhm as standard units.
   - [#811](https://github.com/MichaelClerx/myokit/pull/811) DatalogViewer now accepts `.zip` for binary data logs.
-  - [#817](https://github.com/MichaelClerx/myokit/pull/816) Add support for Python 3.10.
+  - [#817](https://github.com/MichaelClerx/myokit/pull/816) Added support for Python 3.10.
   - [#821](https://github.com/MichaelClerx/myokit/pull/821) Sundials-based simulations now auto-detect the version number. The version indicated in myokit.ini is no longer used.
   - [#823](https://github.com/MichaelClerx/myokit/pull/823) Sundials 6.0.0 is now supported.
+  - [#826](https://github.com/MichaelClerx/myokit/pull/826) Added a method `myokit.tools.Benchmarker.print` that prints elapsed time alongside a profiling message.
 - Changed
   - Examples will be located in a separate repository, at https://github.com/MichaelClerx/myokit-examples
   - [#815](https://github.com/MichaelClerx/myokit/pull/815) Myokit will now warn when run on Python 2.7, as testing for 2.7 is being phased out.
   - [#816](https://github.com/MichaelClerx/myokit/pull/816) The method `myokit.tools.Benchmarker.format` can now be called without any arguments.
   - [#817](https://github.com/MichaelClerx/myokit/pull/816) The internal templating engine now uses `ast` instead of the deprecated (and removed in 3.10) `parser` module.
-  - [#825](https://github.com/MichaelClerx/myokit/pull/825) The debugging arguments to ``myokit run`` have been split into five parts, see ``myokit run --help`` for details.
   - [#825](https://github.com/MichaelClerx/myokit/pull/825) The context manager `myokit.tools.capture` now takes an extra argument ``enabled`` which can be used to disabled output capturing.
+  - [#825](https://github.com/MichaelClerx/myokit/pull/825), [#826](https://github.com/MichaelClerx/myokit/pull/826) The debugging arguments to ``myokit run`` have been split into five parts, see ``myokit run --help`` for details.
 - Deprecated
 - Removed
   - [#796](https://github.com/MichaelClerx/myokit/pull/796) The Graph Data Extractor tool is now a separate project, hosted at https://github.com/MichaelClerx/gde.

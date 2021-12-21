@@ -47,6 +47,7 @@ class Benchmarker(object):
     """
     def __init__(self):
         self._start = timeit.default_timer()
+        self._last_print = self._start
 
     def format(self, time=None):
         """
@@ -75,15 +76,23 @@ class Benchmarker(object):
         output.append('1 second' if time == 1 else str(time) + ' seconds')
         return ', '.join(output)
 
+    def print(self, message):
+        """
+        Prints a message to stdout, preceded by the benchmarker time in us.
+        """
+        now = timeit.default_timer()
+        tot = int(1e6 * (now - self._start))
+        new = int(1e6 * (now - self._last_print))
+        self._last_print = now
+        print('[{:10d} us ({:5d} us)] '.format(tot, new) + str(message))
+
     def reset(self):
-        """
-        Resets this timer's start time.
-        """
+        """ Resets this timer's start time. """
         self._start = timeit.default_timer()
 
     def time(self):
         """
-        Returns the time since benchmarking started.
+        Returns the time since benchmarking started (as a float, in seconds).
         """
         return timeit.default_timer() - self._start
 
