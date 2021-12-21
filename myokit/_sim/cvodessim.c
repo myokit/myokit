@@ -788,7 +788,7 @@ sim_init(PyObject *self, PyObject *args)
     for (i=0; i<model->n_states; i++) {
         val = PyList_GetItem(state_py, i);    /* Don't decref! */
         if (!PyFloat_Check(val)) {
-            return sim_cleanx(PyExc_TypeError, "Item %d in state vector is not a float.", i);
+            return sim_cleanx(PyExc_ValueError, "Item %d in state vector is not a float.", i);
         }
         model->states[i] = PyFloat_AsDouble(val);
         NV_Ith_S(y, i) = model->states[i];
@@ -802,12 +802,12 @@ sim_init(PyObject *self, PyObject *args)
         for (i=0; i<model->ns_independents; i++) {
             val = PyList_GetItem(s_state_py, i); /* Don't decref */
             if (!PyList_Check(val)) {
-                return sim_cleanx(PyExc_TypeError, "Item %d in state sensitivity matrix is not a list.", i);
+                return sim_cleanx(PyExc_ValueError, "Item %d in state sensitivity matrix is not a list.", i);
             }
             for (j=0; j<model->n_states; j++) {
                 ret = PyList_GetItem(val, j);    /* Don't decref! */
                 if (!PyFloat_Check(ret)) {
-                    return sim_cleanx(PyExc_TypeError, "Item %d, %d in state sensitivity matrix is not a float.", i, j);
+                    return sim_cleanx(PyExc_ValueError, "Item %d, %d in state sensitivity matrix is not a float.", i, j);
                 }
                 NV_Ith_S(sy[i], j) = PyFloat_AsDouble(ret);
                 model->s_states[i * model->n_states + j] = NV_Ith_S(sy[i], j);
@@ -828,7 +828,7 @@ sim_init(PyObject *self, PyObject *args)
     for (i=0; i<model->n_literals; i++) {
         val = PyList_GetItem(literals, i);    /* Don't decref */
         if (!PyFloat_Check(val)) {
-            return sim_cleanx(PyExc_TypeError, "Item %d in literal vector is not a float.", i);
+            return sim_cleanx(PyExc_ValueError, "Item %d in literal vector is not a float.", i);
         }
         model->literals[i] = PyFloat_AsDouble(val);
     }
@@ -848,7 +848,7 @@ sim_init(PyObject *self, PyObject *args)
         for (i=0; i<model->n_parameters; i++) {
             val = PyList_GetItem(parameters, i);    /* Don't decref */
             if (!PyFloat_Check(val)) {
-                return sim_cleanx(PyExc_TypeError, "Item %d in parameter vector is not a float.", i);
+                return sim_cleanx(PyExc_ValueError, "Item %d in parameter vector is not a float.", i);
             }
             model->parameters[i] = PyFloat_AsDouble(val);
         }
@@ -1103,22 +1103,31 @@ sim_init(PyObject *self, PyObject *args)
 
         /* Point-list logging */
 
-        /* Check the log_times list */
-        if (!PyList_Check(log_times)) {
-            return sim_cleanx(PyExc_TypeError, "'log_times' must be a list.");
+        /* Check the log_times sequence */
+        if (!PySequence_Check(log_times)) {
+            return sim_cleanx(PyExc_TypeError, "'log_times' must be a sequence type.");
         }
 
-        /* Read next log point off the list */
+        /* Read next log point off the sequence */
         ilog = 0;
         tlog = t - 1;
-        while(ilog < PyList_Size(log_times) && tlog < t) {
-            val = PyList_GetItem(log_times, ilog); /* Borrowed */
-            if (!PyFloat_Check(val)) {
-                return sim_cleanx(PyExc_TypeError, "Entries in 'log_times' must be floats.");
+        while(ilog < PySequence_Size(log_times) && tlog < t) {
+            val = PySequence_GetItem(log_times, ilog); /* Borrowed */
+            if (PyFloat_Check(val)) {
+                tlog = PyFloat_AsDouble(val);
+            } else if (PyNumber_Check(val)) {
+                val = PyNumber_Float(val);
+                if (val == NULL) {
+                    return sim_cleanx(PyExc_ValueError, "Unable to cast entry in 'log_times' to float.");
+                } else {
+                    tlog = PyFloat_AsDouble(val);
+                    Py_DECREF(val);
+                }
+            } else {
+                return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
             }
-            tlog = PyFloat_AsDouble(val);
-            ilog++;
             val = NULL;
+            ilog++;
         }
 
         /* No points beyond time? Then don't log any future points. */
@@ -1198,6 +1207,9 @@ sim_step(PyObject *self, PyObject *args)
     /* Number of integration steps taken in this call */
     int steps_taken = 0;
 
+    /* Proposed next logging point */
+    double proposed_tlog;
+
     /* Multi-purpose Python object */
     PyObject *val;
 
@@ -1209,7 +1221,7 @@ sim_step(PyObject *self, PyObject *args)
     if (log_realtime && realtime_start == 0) {
         realtime_start = benchmarker_realtime();
         if (realtime_start <= 0) {
-            return sim_cleanx(PyExc_TypeError, "Failed to set realtime_start.");
+            return sim_cleanx(PyExc_Exception, "Failed to set realtime_start.");
         }
     }
 
@@ -1341,7 +1353,7 @@ sim_step(PyObject *self, PyObject *args)
                     /* Benchmarking? Then set realtime */
                     if (log_realtime) {
                         realtime = benchmarker_realtime();
-                        if (realtime < 0) return sim_cleanx(PyExc_TypeError, "Failed to set realtime during interpolation logging.");
+                        if (realtime < 0) return sim_cleanx(PyExc_Exception, "Failed to set realtime during interpolation logging.");
                     }
 
                     /* Get interpolated y(tlog) */
@@ -1383,13 +1395,26 @@ sim_step(PyObject *self, PyObject *args)
                         }
                     } else {
                         /* Point-list logging */
-                        /* Read next log point off the list */
-                        if (ilog < PyList_Size(log_times)) {
-                            val = PyList_GetItem(log_times, ilog); /* Borrowed */
-                            if (!PyFloat_Check(val)) {
+                        /* Read next log point off the sequence */
+                        if (ilog < PySequence_Size(log_times)) {
+                            val = PySequence_GetItem(log_times, ilog); /* Borrowed */
+                            if (PyFloat_Check(val)) {
+                                proposed_tlog = PyFloat_AsDouble(val);
+                            } else if (PyNumber_Check(val)) {
+                                val = PyNumber_Float(val);  /* New reference */
+                                if (val == NULL) {
+                                    return sim_cleanx(PyExc_ValueError, "Unable to cast entry in 'log_times' to float.");
+                                } else {
+                                    proposed_tlog = PyFloat_AsDouble(val);
+                                    Py_DECREF(val);
+                                }
+                            } else {
                                 return sim_cleanx(PyExc_ValueError, "Entries in 'log_times' must be floats.");
                             }
-                            tlog = PyFloat_AsDouble(val);
+                            if (proposed_tlog < tlog) {
+                                return sim_cleanx(PyExc_ValueError, "Values in log_times must be non-decreasing.");
+                            }
+                            tlog = proposed_tlog;
                             ilog++;
                             val = NULL;
                         } else {
@@ -1421,7 +1446,7 @@ sim_step(PyObject *self, PyObject *args)
                 /* Benchmarking? Then set realtime */
                 if (log_realtime) {
                     realtime = benchmarker_realtime();
-                    if (realtime < 0) return sim_cleanx(PyExc_TypeError, "Failed to set realtime during dynamic logging.");
+                    if (realtime < 0) return sim_cleanx(PyExc_Exception, "Failed to set realtime during dynamic logging.");
                 }
 
                 /* Ensure the logged values are correct for the new time t */
