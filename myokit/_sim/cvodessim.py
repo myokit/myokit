@@ -507,6 +507,23 @@ class Simulation(myokit.CModule):
         tmin = self._time
         tmax = tmin + duration
 
+        # Logging interval (None or 0 = disabled)
+        log_interval = 0 if log_interval is None else float(log_interval)
+        if log_interval < 0:
+            log_interval = 0
+        if log_times is not None and log_interval > 0:
+            raise ValueError(
+                'The arguments `log_times` and `log_interval` cannot be used'
+                ' simultaneously.')
+
+        # Check user-specified logging times.
+        # (An empty list of log points counts as disabled)
+        # Note: Checking of values inside the list (converts to float, is non
+        # decreasing) happens in the C code.
+        if log_times is not None:
+            if len(log_times) == 0:
+                log_times = None
+
         # List of sensitivity matrices
         if self._sensitivities:
             if sensitivities is None:
@@ -550,35 +567,7 @@ class Simulation(myokit.CModule):
                     'The argument `progress` must be either a'
                     ' subclass of myokit.ProgressReporter or None.')
         if myokit.DEBUG_SP:
-            b.print('PP Checked all non-logging arguments.')
-
-        # Check logging method and/or user-provided points.
-        # For profiling, this is done only just before starting.
-
-        # Logging period (None or 0 = disabled)
-        log_interval = 0 if log_interval is None else float(log_interval)
-        if log_interval < 0:
-            log_interval = 0
-        if log_times is not None and log_interval > 0:
-            raise ValueError(
-                'The arguments `log_times` and `log_interval` cannot be used'
-                ' simultaneously.')
-
-        # (An empty list of log points counts as disabled)
-        if log_times is not None:
-            import numpy as np
-            log_times = np.array(log_times, dtype=float)
-            if len(log_times) == 0:
-                log_times = None
-            else:
-                # Allow duplicates, but always non-decreasing!
-                if np.any(log_times[1:] < log_times[:-1]):
-                    raise ValueError(
-                        'Values in `log_times` must be non-decreasing.')
-                log_times = list(log_times)
-            del(np)
-        if myokit.DEBUG_SP:
-            b.print('PP Checked logging strategy and log_times.')
+            b.print('PP Checked arguments.')
 
         # Parse log argument
         log = myokit.prepare_log(log, self._model, if_empty=myokit.LOG_ALL)
