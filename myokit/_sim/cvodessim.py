@@ -487,6 +487,17 @@ class Simulation(myokit.CModule):
     def _run(self, duration, log, log_interval, log_times, sensitivities,
              apd_variable, apd_threshold, progress, msg):
 
+        # Create benchmarker for profiling and realtime logging
+        # Note: When adding profiling messages, write them in past tense so
+        # that we can show time elapsed for an operation **that has just
+        # completed**.
+        if myokit.DEBUG_SP or self._model.binding('realtime') is not None:
+            b = myokit.tools.Benchmarker()
+            if myokit.DEBUG_SP:
+                b.print('PP Entered _run method.')
+        else:
+            b = None
+
         # Reset error state
         self._error_state = None
 
@@ -495,32 +506,6 @@ class Simulation(myokit.CModule):
             raise ValueError('Simulation time can\'t be negative.')
         tmin = self._time
         tmax = tmin + duration
-
-        # Parse log argument
-        log = myokit.prepare_log(log, self._model, if_empty=myokit.LOG_ALL)
-
-        # Logging period (None or 0 = disabled)
-        log_interval = 0 if log_interval is None else float(log_interval)
-        if log_interval < 0:
-            log_interval = 0
-
-        # Logging points (None or empty list = disabled)
-        if log_times is not None:
-            log_times = [float(x) for x in log_times]
-            if len(log_times) == 0:
-                log_times = None
-            else:
-                # Allow duplicates, but always non-decreasing!
-                import numpy as np
-                x = np.asarray(log_times)
-                if np.any(x[1:] < x[:-1]):
-                    raise ValueError(
-                        'Values in `log_times` must be non-decreasing.')
-                del(x, np)
-        if log_times is not None and log_interval > 0:
-            raise ValueError(
-                'The arguments `log_times` and `log_interval` cannot be used'
-                ' simultaneously.')
 
         # List of sensitivity matrices
         if self._sensitivities:
@@ -564,13 +549,41 @@ class Simulation(myokit.CModule):
                 raise ValueError(
                     'The argument `progress` must be either a'
                     ' subclass of myokit.ProgressReporter or None.')
+        if myokit.DEBUG_SP:
+            b.print('PP Checked all non-logging arguments.')
 
-        # Determine benchmarking mode, create time() function if needed
-        if self._model.binding('realtime') is not None:
-            import timeit
-            bench = timeit.default_timer
-        else:
-            bench = None
+        # Check logging method and/or user-provided points.
+        # For profiling, this is done only just before starting.
+
+        # Logging period (None or 0 = disabled)
+        log_interval = 0 if log_interval is None else float(log_interval)
+        if log_interval < 0:
+            log_interval = 0
+        if log_times is not None and log_interval > 0:
+            raise ValueError(
+                'The arguments `log_times` and `log_interval` cannot be used'
+                ' simultaneously.')
+
+        # (An empty list of log points counts as disabled)
+        if log_times is not None:
+            import numpy as np
+            log_times = np.array(log_times, dtype=float)
+            if len(log_times) == 0:
+                log_times = None
+            else:
+                # Allow duplicates, but always non-decreasing!
+                if np.any(log_times[1:] < log_times[:-1]):
+                    raise ValueError(
+                        'Values in `log_times` must be non-decreasing.')
+                log_times = list(log_times)
+            del(np)
+        if myokit.DEBUG_SP:
+            b.print('PP Checked logging strategy and log_times.')
+
+        # Parse log argument
+        log = myokit.prepare_log(log, self._model, if_empty=myokit.LOG_ALL)
+        if myokit.DEBUG_SP:
+            b.print('PP Called prepare_log.')
 
         # Run simulation
         # The simulation is run only if (tmin + duration > tmin). This is a
@@ -589,6 +602,8 @@ class Simulation(myokit.CModule):
             bound = [0, 0, 0, 0]
 
             # Initialize
+            if myokit.DEBUG_SP:
+                b.print('PP Ready to call sim_init.')
             self._sim.sim_init(
                 # 0. Initial time
                 tmin,
@@ -619,15 +634,16 @@ class Simulation(myokit.CModule):
                 # 13. The state variable indice for root finding (only used if
                 #     root_list is a list)
                 root_indice,
-                # 14. The threshold for root crossing (can be 0 too, only
-                #     used if root_list is a list).
+                # 14. The threshold for root crossing (can be 0 too, only used
+                #     if root_list is a list).
                 root_threshold,
                 # 15. A list to store calculated root crossing times and
                 #     directions in, or None
                 root_list,
-                # 16. A Python method that returns the system time
-                #     accurately.
-                bench,
+                # 16. A myokit.tools.Benchmarker or None (if not used)
+                b,
+                # 17. Boolean/int: 1 if we are logging realtime
+                int(self._model.binding('realtime') is not None),
             )
             t = tmin
 
@@ -649,6 +665,8 @@ class Simulation(myokit.CModule):
             except ArithmeticError as e:
                 # Some CVODE(S) errors are set to raise an ArithmeticError,
                 # which users may be able to debug.
+                if myokit.DEBUG_SP:
+                    b.print('PP Caught ArithmeticError.')
 
                 # Store error state
                 self._error_state = state
@@ -676,6 +694,8 @@ class Simulation(myokit.CModule):
                 raise myokit.SimulationError('\n'.join(txt))
 
             except Exception as e:
+                if myokit.DEBUG_SP:
+                    b.print('PP Caught exception.')
 
                 # Store error state
                 self._error_state = state
@@ -695,6 +715,10 @@ class Simulation(myokit.CModule):
             self._state = state
             self._s_state = s_state
 
+        # Simulation complete
+        if myokit.DEBUG_SP:
+            b.print('PP Simulation complete.')
+
         # Calculate apds
         if root_list is not None:
             st = []
@@ -712,8 +736,12 @@ class Simulation(myokit.CModule):
             apds = myokit.DataLog()
             apds['start'] = st
             apds['duration'] = dr
+            if myokit.DEBUG_SP:
+                b.print('PP Root-finding data processed.')
 
         # Return
+        if myokit.DEBUG_SP:
+            b.print('PP Call to _run() complete. Returning.')
         if self._sensitivities is not None:
             if root_list is not None:
                 return log, sensitivities, apds

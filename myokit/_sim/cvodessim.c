@@ -40,15 +40,23 @@ import myokit
     #include <cvodes/cvodes_dense.h>
 #endif
 
-#include "pacing.h"
-
 <?
 if myokit.DEBUG_SM:
     print('// Show debug output')
     print('#ifndef MYOKIT_DEBUG_MESSAGES')
     print('#define MYOKIT_DEBUG_MESSAGES')
     print('#endif')
+
+# Note: When adding profiling messages, write them in past tense so that we can
+# show time elapsed for an operation **that has just completed**.
+if myokit.DEBUG_SP:
+    print('// Show profiling messages')
+    print('#ifndef MYOKIT_DEBUG_PROFILING')
+    print('#define MYOKIT_DEBUG_PROFILING')
+    print('#endif')
 ?>
+
+#include "pacing.h"
 
 <?= model_code ?>
 
@@ -227,7 +235,6 @@ double dt_min = 0;      /* The minimum step size (0.0 for none) */
  * Solver stats
  */
 double realtime = 0;        /* Time since start */
-double realtime_start = 0;  /* Timestamp of sim init */
 long evaluations = 0;       /* Number of evaluations since sim init */
 long steps = 0;             /* Number of steps since sim init */
 
@@ -295,9 +302,44 @@ PyObject* rf_list;      /* List to store found roots in (or None if not enabled)
 int* rf_direction;      /* Direction of root crossings: 1 for up, -1 for down, 0 for no crossing. */
 
 /*
- * Benchmarking
+ * Logging realtime and profiling
  */
-PyObject* benchtime;    /* Callable time() function or None */
+PyObject* benchmarker;      /* myokit.tools.Benchmarker object */
+PyObject* benchmarker_time_str;
+int log_realtime;           /* 1 iff we're logging real simulation time */
+double realtime_start;      /* time when sim run started */
+
+/*
+ * Returns the current time as given by the benchmarker.
+ */
+double
+benchmarker_realtime()
+{
+    double val;
+    PyObject* ret = PyObject_CallMethodObjArgs(benchmarker, benchmarker_time_str, NULL);
+    if (!PyFloat_Check(ret)) {
+        Py_XDECREF(ret);
+        return -1.0;
+    }
+    val = PyFloat_AsDouble(ret);
+    Py_DECREF(ret);
+    return val - realtime_start;
+}
+
+#ifdef MYOKIT_DEBUG_PROFILING
+PyObject* benchmarker_print_str;
+
+/*
+ * Prints a message to screen, preceded by the time in ms as given by the benchmarker.
+ */
+void
+benchmarker_print(char* message)
+{
+    PyObject* pymsg = PyUnicode_FromString(message);
+    PyObject_CallMethodObjArgs(benchmarker, benchmarker_print_str, pymsg, NULL);
+    Py_DECREF(pymsg);
+}
+#endif
 
 /*
  * Right-hand-side function of the model ODE
@@ -392,6 +434,11 @@ PyObject*
 sim_clean()
 {
     if (initialised) {
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Entered sim_clean.");
+        #elif defined MYOKIT_DEBUG_MESSAGES
+        printf("CM Cleaning up.\n");
+        #endif
 
         /* CVode arrays */
         if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
@@ -427,6 +474,13 @@ sim_clean()
 
         /* CModel */
         Model_Destroy(model); model = NULL;
+
+        /* Benchmarking and profiling */
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Completed sim_clean.");
+        Py_XDECREF(benchmarker_print_str); benchmarker_print_str = NULL;
+        #endif
+        Py_XDECREF(benchmarker_time_str); benchmarker_time_str = NULL;
 
         /* Deinitialisation complete */
         initialised = 0;
@@ -473,6 +527,10 @@ py_sim_clean(PyObject *self, PyObject *args)
 PyObject*
 sim_init(PyObject *self, PyObject *args)
 {
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("CM Entering sim_init.\n");
+    #endif
+
     /* Error checking flags */
     int flag_cvode;
     Model_Flag flag_model;
@@ -518,6 +576,11 @@ sim_init(PyObject *self, PyObject *args)
     ylast = NULL;
     /* Logging */
     log_times = NULL;
+    /* Benchmarking and profiling */
+    benchmarker_time_str = NULL;
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print_str = NULL;
+    #endif
 
     /* CVode objects */
     cvode_mem = NULL;
@@ -530,7 +593,7 @@ sim_init(PyObject *self, PyObject *args)
     #endif
 
     /* Check input arguments     0123456789012345678 */
-    if (!PyArg_ParseTuple(args, "ddOOOOOOOOdOOidOO",
+    if (!PyArg_ParseTuple(args, "ddOOOOOOOOdOOidOOi",
             &tmin,              /*  0. Float: initial time */
             &tmax,              /*  1. Float: final time */
             &state_py,          /*  2. List: initial and final state */
@@ -547,7 +610,8 @@ sim_init(PyObject *self, PyObject *args)
             &rf_indice,         /* 13. Int: root-finding state variable */
             &rf_threshold,      /* 14. Float: root-finding threshold */
             &rf_list,           /* 15. List to store roots in or None */
-            &benchtime          /* 16. Callable to obtain system time */
+            &benchmarker,       /* 16. myokit.tools.Benchmarker object */
+            &log_realtime       /* 17. Int: 1 if logging real time */
     )) {
         PyErr_SetString(PyExc_Exception, "Incorrect input arguments.");
         return 0;
@@ -609,15 +673,29 @@ sim_init(PyObject *self, PyObject *args)
     t = tmin;
 
     /* Reset solver stats */
-    evaluations = 0;
     steps = 0;
     zero_step_count = 0;
+    evaluations = 0;
+    realtime = 0;
+    if (log_realtime) {
+        realtime_start = 0; /* Updated after init, in first call to run */
+        benchmarker_time_str = PyUnicode_FromString("time");
+    }
+
+    /* Set up profiling */
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print_str = PyUnicode_FromString("print");
+    benchmarker_print("CP Initialisation started (entered sim_init()).");
+    #endif
 
     /*
      * Create model
      */
     model = Model_Create(&flag_model);
     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Created C model struct.");
+    #endif
 
     /*
      * Create sundials context
@@ -627,6 +705,9 @@ sim_init(PyObject *self, PyObject *args)
     if (check_cvode_flag(&flag_cvode, "SUNContext_Create", 1)) {
         return sim_cleanx(PyExc_Exception, "Failed to create Sundials context.");
     }
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Created sundials context.");
+    #endif
     #endif
 
     /*
@@ -692,6 +773,10 @@ sim_init(PyObject *self, PyObject *args)
         }
     }
 
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Created sundials state vectors.");
+    #endif
+
     /*
      * Set initial state in model and vectors
      */
@@ -730,6 +815,10 @@ sim_init(PyObject *self, PyObject *args)
         }
     }
 
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Set initial state.");
+    #endif
+
     /*
      * Set values of constants (literals and parameters)
      */
@@ -747,6 +836,10 @@ sim_init(PyObject *self, PyObject *args)
     /* Evaluate calculated constants */
     Model_EvaluateLiteralDerivedVariables(model);
 
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Set model constants and calculated derived constants.");
+    #endif
+
     /* Set model parameters */
     if (model->has_sensitivities) {
         if (!PyList_Check(parameters)) {
@@ -762,6 +855,10 @@ sim_init(PyObject *self, PyObject *args)
 
         /* Evaluate calculated constants */
         Model_EvaluateParameterDerivedVariables(model);
+
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Setting model sensitivity parameters and calculated derived quantities.");
+        #endif
     }
 
     /* Create UserData with sensitivity vector */
@@ -793,6 +890,10 @@ sim_init(PyObject *self, PyObject *args)
         for (i=0; i<model->ns_independents; i++) {
             pbar[i] = (udata->p[i] == 0.0 ? 1.0 : fabs(udata->p[i]));
         }
+
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Created UserData for sensitivities.");
+        #endif
     }
 
     /*
@@ -810,6 +911,10 @@ sim_init(PyObject *self, PyObject *args)
         tnext = ESys_GetNextTime(epacing, &flag_epacing);
         pace = ESys_GetLevel(epacing, &flag_epacing);
         tnext = (tnext < tmax) ? tnext : tmax;
+
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Created event-based pacing system.");
+        #endif
     } else {
         tnext = tmax;
     }
@@ -830,6 +935,10 @@ sim_init(PyObject *self, PyObject *args)
             PyTuple_GetItem(fprotocol, 0),  /* Borrowed, no decref */
             PyTuple_GetItem(fprotocol, 1));
         if (flag_fpacing != FSys_OK) { FSys_SetPyErr(flag_fpacing); return sim_clean(); }
+
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP Created fixed-form pacing system.");
+        #endif
     }
 
     /*
@@ -909,6 +1018,10 @@ sim_init(PyObject *self, PyObject *args)
             if (check_cvode_flag(&flag_cvode, "CVDense", 1)) return sim_clean();
         #endif
 
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP CVODES solver initialised.");
+        #endif
+
         /* Activate forward sensitivity computations */
         if (model->has_sensitivities) {
             /* TODO: NULL here is the place to insert a user function to calculate the
@@ -928,6 +1041,10 @@ sim_init(PyObject *self, PyObject *args)
             /* Set sensitivity tolerances calculating method (using pbar) */
             flag_cvode = CVodeSensEEtolerances(cvode_mem);
             if (check_cvode_flag(&flag_cvode, "CVodeSensEEtolerances", 1)) return sim_clean();
+
+            #ifdef MYOKIT_DEBUG_PROFILING
+            benchmarker_print("CP CVODES sensitivity methods initialised.");
+            #endif
         }
     }
 
@@ -944,16 +1061,10 @@ sim_init(PyObject *self, PyObject *args)
 
         /* Direction of root crossings, one entry per root function, but we only use 1. */
         rf_direction = (int*)malloc(sizeof(int)*1);
-    }
 
-    /*
-     * Benchmarking and solver stats
-     */
-    if (benchtime != Py_None) {
-        /* Store initial time as 0 */
-        realtime = 0.0;
-        /* Tell sim_step to set realtime_start */
-        realtime_start = -1;
+        #ifdef MYOKIT_DEBUG_PROFILING
+        benchmarker_print("CP CVODES root-finding initialised.");
+        #endif
     }
 
     /*
@@ -970,6 +1081,9 @@ sim_init(PyObject *self, PyObject *args)
     /* Set up logging */
     flag_model = Model_InitialiseLogging(model, log_dict);
     if (flag_model != Model_OK) { Model_SetPyErr(flag_model); return sim_clean(); }
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Logging initialised.");
+    #endif
 
     /* Check logging list for sensitivities */
     if (model->has_sensitivities) {
@@ -977,6 +1091,7 @@ sim_init(PyObject *self, PyObject *args)
             return sim_cleanx(PyExc_TypeError, "'sens_list' must be a list.");
         }
     }
+
     /* Set logging points */
     if (log_interval > 0) {
 
@@ -1051,9 +1166,16 @@ sim_init(PyObject *self, PyObject *args)
         }
     }
 
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Logging times and strategy initialised.");
+    #endif
+
     /*
      * Done!
      */
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Initialisation complete (returning from sim_init).");
+    #endif
     Py_RETURN_NONE;
 }
 
@@ -1080,18 +1202,15 @@ sim_step(PyObject *self, PyObject *args)
     PyObject *val;
 
     /*
-     * Benchmarking? Then make sure start time is set.
+     * Set start time for logging of realtime.
      * This is handled here instead of in sim_init so it only includes time
      * taken performing steps, not time initialising memory etc.
      */
-    if (benchtime != Py_None && realtime_start < 0) {
-        val = PyObject_CallFunction(benchtime, "");
-        if (!PyFloat_Check(val)) {
-            Py_XDECREF(val); val = NULL;
-            return sim_cleanx(PyExc_TypeError, "Call to benchmark time function didn't return float.");
+    if (log_realtime && realtime_start == 0) {
+        realtime_start = benchmarker_realtime();
+        if (realtime_start <= 0) {
+            return sim_cleanx(PyExc_TypeError, "Failed to set realtime_start.");
         }
-        realtime_start = PyFloat_AsDouble(val);
-        Py_DECREF(val); val = NULL;
     }
 
     /* Go! */
@@ -1109,7 +1228,7 @@ sim_step(PyObject *self, PyObject *args)
 
             /* Take a single ODE step */
             #ifdef MYOKIT_DEBUG_MESSAGES
-            printf("\nTaking CVODE step from time %f to %f\n", t, tnext);
+            printf("\nCM Taking CVODE step from time %f to %f\n", t, tnext);
             #endif
             flag_cvode = CVode(cvode_mem, tnext, y, &t, CV_ONE_STEP);
 
@@ -1161,7 +1280,7 @@ sim_step(PyObject *self, PyObject *args)
                 /* Next event time exceeded? */
                 if (t > tnext) {
                     #ifdef MYOKIT_DEBUG_MESSAGES
-                    printf("Event time exceeded, rewinding to %f\n", tnext);
+                    printf("CM Event time exceeded, rewinding to %f\n", tnext);
                     #endif
 
                     /* Go back to time=tnext */
@@ -1216,18 +1335,13 @@ sim_step(PyObject *self, PyObject *args)
                 /* Log points */
                 while (t > tlog) {
                     #ifdef MYOKIT_DEBUG_MESSAGES
-                    printf("Interpolation-logging for t=%f\n", t);
+                    printf("CM Interpolation-logging for t=%f\n", t);
                     #endif
 
                     /* Benchmarking? Then set realtime */
-                    if (benchtime != Py_None) {
-                        val = PyObject_CallFunction(benchtime, "");
-                        if (!PyFloat_Check(val)) {
-                            Py_XDECREF(val);
-                            return sim_cleanx(PyExc_TypeError, "Call to benchmark function did not return float.");
-                        }
-                        realtime = PyFloat_AsDouble(val) - realtime_start;
-                        Py_DECREF(val); val = NULL;
+                    if (log_realtime) {
+                        realtime = benchmarker_realtime();
+                        if (realtime < 0) return sim_cleanx(PyExc_TypeError, "Failed to set realtime during interpolation logging.");
                     }
 
                     /* Get interpolated y(tlog) */
@@ -1305,14 +1419,9 @@ sim_step(PyObject *self, PyObject *args)
             if (dynamic_logging) {
 
                 /* Benchmarking? Then set realtime */
-                if (benchtime != Py_None) {
-                    val = PyObject_CallFunction(benchtime, "");
-                    if (!PyFloat_Check(val)) {
-                        Py_XDECREF(val);
-                        return sim_cleanx(PyExc_TypeError, "Call to benchmark time function did not return float.");
-                    }
-                    realtime = PyFloat_AsDouble(val) - realtime_start;
-                    Py_DECREF(val); val = NULL;
+                if (log_realtime) {
+                    realtime = benchmarker_realtime();
+                    if (realtime < 0) return sim_cleanx(PyExc_TypeError, "Failed to set realtime during dynamic logging.");
                 }
 
                 /* Ensure the logged values are correct for the new time t */
@@ -1321,15 +1430,13 @@ sim_step(PyObject *self, PyObject *args)
                        values for the current time. Similarly, if calculating
                        sensitivities this is needed. */
                     #ifdef MYOKIT_DEBUG_MESSAGES
-                    printf("Calling RHS to log derivs/inter/sens at time %f\n", t);
+                    printf("CM Calling RHS to log derivs/inter/sens at time %f\n", t);
                     #endif
                     rhs(t, y, NULL, udata);
                 } else if (model->logging_bound) {
                     /* Logging bounds but not derivs or inters: No need to run
                        full rhs, just update bound variables */
-                    Model_SetBoundVariables(
-                        model, t, pace,
-                        realtime, evaluations);
+                    Model_SetBoundVariables(model, t, pace, realtime, evaluations);
                 }
 
                 /* Write to log */
@@ -1380,9 +1487,15 @@ sim_step(PyObject *self, PyObject *args)
          */
         steps_taken++;
         if (steps_taken >= 100) {
+            #ifdef MYOKIT_DEBUG_PROFILING
+            benchmarker_print("CP Completed 100 steps, passing control back to Python.");
+            #endif
             return PyFloat_FromDouble(t);
         }
     }
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Completed remaining simulation steps.");
+    #endif
 
     /*
      * Finished! Set final state
@@ -1409,6 +1522,10 @@ sim_step(PyObject *self, PyObject *args)
     PyList_SetItem(bound_py, 1, PyFloat_FromDouble(pace));
     PyList_SetItem(bound_py, 2, PyFloat_FromDouble(realtime));
     PyList_SetItem(bound_py, 3, PyFloat_FromDouble(evaluations));
+
+    #ifdef MYOKIT_DEBUG_PROFILING
+    benchmarker_print("CP Set final state and bound variable values.");
+    #endif
 
     sim_clean();    /* Ignore return value */
     return PyFloat_FromDouble(t);

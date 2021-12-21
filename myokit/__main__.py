@@ -1049,29 +1049,34 @@ def add_run_parser(subparsers):
         help='The source file to parse.',
     )
     parser.add_argument(
-        '--debug_sg',
+        '--debug-sg',
         action='store_true',
         help='Show the generated code instead of executing it.',
+        #metavar='debug_sg',
     )
     parser.add_argument(
-        '--debug_wg',
+        '--debug-wg',
         action='store_true',
         help='Write the generated code to file(s) instead of executing it.',
+        #metavar='debug_wg',
     )
     parser.add_argument(
-        '--debug_sc',
+        '--debug-sc',
         action='store_true',
         help='Show compiler output.',
+        #metavar='debug_sc',
     )
     parser.add_argument(
-        '--debug_sm',
+        '--debug-sm',
         action='store_true',
         help='Show debug messages when executing compiled code.',
+        #metavar='debug_sm',
     )
     parser.add_argument(
-        '--debug_sp',
+        '--debug-sp',
         action='store_true',
         help='Show profiling information when executing compiled code.',
+        #metavar='debug_sp',
     )
     parser.set_defaults(func=run)
 
