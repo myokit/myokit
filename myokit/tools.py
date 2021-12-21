@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 # Myokit utility functions. This module gathers functions that are used in
 # Myokit, but are not particularly Myokit-dependent, i.e. they could easily be
@@ -84,7 +85,7 @@ class Benchmarker(object):
         tot = int(1e6 * (now - self._start))
         new = int(1e6 * (now - self._last_print))
         self._last_print = now
-        print('[{:10d} μs ({:5d} us)] '.format(tot, new) + str(message))
+        print('[{:10d} μs ({:5d} μs)] '.format(tot, new) + str(message))
 
     def reset(self):
         """ Resets this timer's start time. """
