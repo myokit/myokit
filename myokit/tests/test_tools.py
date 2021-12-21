@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Tests the methods and classes in myokit.tools
 #
@@ -84,7 +83,7 @@ class BenchmarkerTest(unittest.TestCase):
         lines = c.out().splitlines()
         self.assertEqual(len(lines), 3)
 
-        r = re.compile(r'\[[ 0-9]+ μs \([ 0-9]+ μs\)\] ([ a-zA-Z0-9]+)')
+        r = re.compile(r'\[[ 0-9]+ us \([ 0-9]+ us\)\] ([ a-zA-Z0-9]+)')
         for line, msg in zip(lines, messages):
             m = r.match(line)
             self.assertIsNotNone(m)
