@@ -51,20 +51,20 @@ del(logging)
 #  0    PY_RELEASE_SERIAL, increments with every release
 #
 import sys  # noqa
-if sys.hexversion < 0x02070F00:     # pragma: no python 3 cover
+if sys.hexversion < 0x03000000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 2 versions older than 2.7.15')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit support for Python 2.7 is nearing the end of its lifetime.'
+        ' Please upgrade as soon as possible! Detected Python version: '
+        + sys.version)
     del(logging, log)
-elif (sys.hexversion >= 0x03000000 and
-      sys.hexversion < 0x03050000):  # pragma: no cover
+elif sys.hexversion < 0x03050000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.5.0')
-    log.warning('Detected Python version: ' + sys.version)
+        'Myokit is not tested on Python 3 versions older than 3.5.0. Detected'
+        ' Python version: ' + sys.version)
     del(logging, log)
 
 
@@ -240,9 +240,17 @@ del(os, inspect)
 
 
 #
-# Debugging mode: Simulation code will be shown, not executed
+# Debugging modes
 #
-DEBUG = False
+# Show Generated code, or Write Generated code to file(s)
+DEBUG_SG = False
+DEBUG_WG = False
+# Show compiler output
+DEBUG_SC = False
+# Show C debug Messages when running compiled code
+DEBUG_SM = False
+# Show C Profiling information when running compiled code
+DEBUG_SP = False
 
 
 #
@@ -278,12 +286,6 @@ SFSINGLE = '{:< 1.9e}'
 #
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 TIME_FORMAT = '%H:%M:%S'
-
-#
-# Add line numbers to debug output of simulations
-#
-DEBUG_LINE_NUMBERS = True
-
 
 #
 # GUI: Favour PySide or PyQt

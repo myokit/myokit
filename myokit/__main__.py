@@ -443,7 +443,7 @@ def install():
 
     elif plat == 'Darwin':
         print(
-            'Icons for OS/X are not available (yet). See '
+            'Icons for MacOS are not available (yet). See '
             'https://github.com/MichaelClerx/myokit/issues/38')
 
     else:
@@ -970,15 +970,19 @@ def add_reset_parser(subparsers):
 # Run
 #
 
-def run(source, debug, debugfile):
+def run(source, debug_sg, debug_wg, debug_sc, debug_sm, debug_sp):
     """
     Runs an mmt file script.
     """
     import sys
     import myokit
 
-    # Debug?
-    myokit.DEBUG = myokit.DEBUG or debug or debugfile
+    # Debug modes
+    myokit.DEBUG_SG = myokit.DEBUG_SG or debug_sg
+    myokit.DEBUG_WG = myokit.DEBUG_WG or debug_wg
+    myokit.DEBUG_SC = myokit.DEBUG_SC or debug_sc
+    myokit.DEBUG_SM = myokit.DEBUG_SM or debug_sm
+    myokit.DEBUG_SP = myokit.DEBUG_SP or debug_sp
 
     # Read mmt file
     try:
@@ -1013,37 +1017,19 @@ def run(source, debug, debugfile):
     else:
         print('Using embedded script')
 
-    # Run, capture output and write to file
-    if debugfile:
-        debugfile = debugfile[0]
-        with open(debugfile, 'w') as f:
-            stdout = sys.stdout
-            try:
-                sys.stdout = f
-                line_numbers = myokit.DEBUG_LINE_NUMBERS
-                myokit.DEBUG_LINE_NUMBERS = False
-                myokit.run(model, protocol, script)
-            except SystemExit:
-                pass
-            finally:
-                sys.stdout = stdout
-                myokit.DEBUG_LINE_NUMBERS = line_numbers
-            print('Output written to ' + str(debugfile))
+    # Normal run
+    # Show script
+    printline()
+    lines = script.splitlines()
+    template = '{:>3d} {:s}'
+    i = 0
+    for line in lines:
+        i += 1
+        print(template.format(i, line))
+    printline()
 
-    else:
-
-        # Show script
-        printline()
-        lines = script.splitlines()
-        template = '{:>3d} {:s}'
-        i = 0
-        for line in lines:
-            i += 1
-            print(template.format(i, line))
-        printline()
-
-        # Run!
-        myokit.run(model, protocol, script)
+    # Run!
+    myokit.run(model, protocol, script)
 
 
 def add_run_parser(subparsers):
@@ -1063,16 +1049,34 @@ def add_run_parser(subparsers):
         help='The source file to parse.',
     )
     parser.add_argument(
-        '--debug',
+        '--debug-sg',
         action='store_true',
         help='Show the generated code instead of executing it.',
+        #metavar='debug_sg',
     )
     parser.add_argument(
-        '--debugfile',
-        nargs=1,
-        metavar='debugfile',
-        help='Write the generated code to a file instead of executing it.',
-        default=None,
+        '--debug-wg',
+        action='store_true',
+        help='Write the generated code to file(s) instead of executing it.',
+        #metavar='debug_wg',
+    )
+    parser.add_argument(
+        '--debug-sc',
+        action='store_true',
+        help='Show compiler output.',
+        #metavar='debug_sc',
+    )
+    parser.add_argument(
+        '--debug-sm',
+        action='store_true',
+        help='Show debug messages when executing compiled code.',
+        #metavar='debug_sm',
+    )
+    parser.add_argument(
+        '--debug-sp',
+        action='store_true',
+        help='Show profiling information when executing compiled code.',
+        #metavar='debug_sp',
     )
     parser.set_defaults(func=run)
 

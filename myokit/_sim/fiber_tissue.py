@@ -354,18 +354,11 @@ class FiberTissueSimulation(myokit.CModule):
         }
         fname = os.path.join(myokit.DIR_CFUNC, SOURCE_FILE)
 
-        # Debug
-        if myokit.DEBUG:
-            print(
-                self._code(fname, args, line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
-            return
-
         # Define libraries
         libs = []
         flags = []
         plat = platform.system()
-        if plat != 'Darwin':    # pragma: no osx cover
+        if plat != 'Darwin':    # pragma: no macos cover
             libs.append('OpenCL')
         else:                   # pragma: no cover
             flags.append('-framework')
@@ -378,7 +371,8 @@ class FiberTissueSimulation(myokit.CModule):
         incd = list(myokit.OPENCL_INC)
         incd.append(myokit.DIR_CFUNC)
         self._sim = self._compile(
-            mname, fname, args, libs, libd, incd, larg=flags)
+            mname, fname, args, libs, libd, incd, larg=flags,
+            continue_in_debug_mode=True)
 
     def fiber_state(self, x=None):
         """
@@ -794,30 +788,15 @@ class FiberTissueSimulation(myokit.CModule):
         args['inter_log'] = inter_logf
         args['paced_cells'] = self._paced_cells
         args['fiber_tissue'] = True
-        if myokit.DEBUG:
-            print('-' * 79)
-            print(
-                self._code(kernel_file, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
-        else:
-            kernelf = self._export(kernel_file, args)
+        kernelf = self._export(kernel_file, args, continue_in_debug_mode=True)
+
         args['model'] = self._modelt
         args['vmvar'] = self._vmt
         args['bound_variables'] = self._bound_variablest
         args['inter_log'] = inter_logt
         args['paced_cells'] = []
         args['fiber_tissue'] = False
-        if myokit.DEBUG:
-            print('-' * 79)
-            print(
-                self._code(kernel_file, args,
-                           line_numbers=myokit.DEBUG_LINE_NUMBERS)
-            )
-            import sys
-            sys.exit(1)
-        else:
-            kernelt = self._export(kernel_file, args)
+        kernelt = self._export(kernel_file, args)
 
         # Logging period (0 = disabled)
         log_interval = 1e-9 if log_interval is None else float(log_interval)

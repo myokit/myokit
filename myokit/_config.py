@@ -58,11 +58,6 @@ def _create(path):
     config.set('time', '# Format should be acceptable for time.strftime')
     config.set('time', 'time_format', myokit.TIME_FORMAT)
 
-    # Add line numbers to debug output of simulations
-    config.add_section('debug')
-    config.set('debug', '# Add line numbers to debug output of simulations')
-    config.set('debug', 'line_numbers', myokit.DEBUG_LINE_NUMBERS)
-
     # GUI Backend
     config.add_section('gui')
     config.set('gui', '# Backend to use for graphical user interface.')
@@ -86,12 +81,14 @@ def _create(path):
             'C:\\Program Files (x86)\\sundials\\lib',
         ]))
     else:
-        # Linux and OS/X
-        # Standard linux and OS/X install: /usr/local/lib
-        # Macports OS/X install: /opt/local/lib ??
+        # Linux and MacOS
+        # Standard linux and MacOS install: /usr/local/lib
+        # Macports MacOS install: /opt/local/lib ??
         config.set('sundials', 'lib', ';'.join([
             '/usr/local/lib',
+            '/usr/local/lib64',
             '/opt/local/lib',
+            '/opt/local/lib64',
         ]))
 
     config.set('sundials', '# Location of sundials header files (.h).')
@@ -104,24 +101,13 @@ def _create(path):
             'C:\\Program Files (x86)\\sundials\\include',
         ]))
     else:
-        # Linux and OS/X
-        # Standard linux and OS/X install: /usr/local/include
-        # Macports OS/X install: /opt/local/include
+        # Linux and MacOS
+        # Standard linux and MacOS install: /usr/local/include
+        # Macports MacOS install: /opt/local/include
         config.set('sundials', 'inc', ';'.join([
             '/usr/local/include',
             '/opt/local/include',
         ]))
-
-    # Set sundials version, try to auto-detect
-    if platform.system() == 'Windows':  # pragma: no linux cover
-        _dynamically_add_embedded_sundials_win()
-    sundials = myokit.Sundials.version_int()
-    if sundials is None:    # pragma: no cover
-        log = logging.getLogger(__name__)
-        log.warning('Unable to auto-detect Sundials version.')
-        config.set('sundials', '#version', 30100)
-    else:
-        config.set('sundials', 'version', sundials)
 
     # Locations of OpenCL libraries
     config.add_section('opencl')
@@ -229,14 +215,6 @@ def _load():
         if x:
             myokit.TIME_FORMAT = str(x)
 
-    # Add line numbers to debug output of simulations
-    if config.has_option('debug', 'line_numbers'):
-        try:
-            myokit.DEBUG_LINE_NUMBERS = config.getboolean(
-                'debug', 'line_numbers')
-        except ValueError:  # pragma: no cover
-            pass
-
     # GUI Backend
     if config.has_option('gui', 'backend'):
         x = config.get('gui', 'backend').strip().lower()
@@ -268,31 +246,10 @@ def _load():
         myokit.SUNDIALS_LIB.extend(_path_list(config.get('sundials', 'lib')))
     if config.has_option('sundials', 'inc'):
         myokit.SUNDIALS_INC.extend(_path_list(config.get('sundials', 'inc')))
-    if config.has_option('sundials', 'version'):
-        try:
-            myokit.SUNDIALS_VERSION = int(config.get('sundials', 'version'))
-        except ValueError:  # pragma: no cover
-            pass
 
     # Dynamically add embedded sundials paths for windows
     if platform.system() == 'Windows':  # pragma: no linux cover
         _dynamically_add_embedded_sundials_win()
-
-    # If needed, attempt auto-detection of Sundials version
-    if myokit.SUNDIALS_VERSION == 0:    # pragma: no cover
-        sundials = myokit.Sundials.version_int()
-        log = logging.getLogger(__name__)
-        if sundials is None:
-            log.warning(
-                'Sundials version not set in myokit.ini and version'
-                ' auto-detection failed.'
-            )
-        else:
-            myokit.SUNDIALS_VERSION = sundials
-            log.warning(
-                'Sundials version not set in myokit.ini. Continuing with'
-                ' detected version (' + str(sundials) + '). For a tiny'
-                ' performance boost, please set this version in ' + path)
 
     # OpenCL libraries and header files
     if config.has_option('opencl', 'lib'):

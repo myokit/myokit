@@ -8,13 +8,14 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
-import numpy as np
 import os
 import pickle
 import platform
 import re
-import unittest
 import sys
+import unittest
+
+import numpy as np
 
 import myokit
 

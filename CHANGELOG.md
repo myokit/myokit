@@ -6,12 +6,22 @@ This page lists the main changes made to Myokit in each release.
 - Added
   - [#799](https://github.com/MichaelClerx/myokit/pull/799) Added pL, MOhm, and GOhm as standard units.
   - [#811](https://github.com/MichaelClerx/myokit/pull/811) DatalogViewer now accepts `.zip` for binary data logs.
+  - [#817](https://github.com/MichaelClerx/myokit/pull/816) Added support for Python 3.10.
+  - [#821](https://github.com/MichaelClerx/myokit/pull/821) Sundials-based simulations now auto-detect the version number. The version indicated in myokit.ini is no longer used.
+  - [#823](https://github.com/MichaelClerx/myokit/pull/823) Sundials 6.0.0 is now supported.
+  - [#826](https://github.com/MichaelClerx/myokit/pull/826) Added a method `myokit.tools.Benchmarker.print` that prints elapsed time alongside a profiling message.
 - Changed
   - Examples will be located in a separate repository, at https://github.com/MichaelClerx/myokit-examples
+  - [#815](https://github.com/MichaelClerx/myokit/pull/815) Myokit will now warn when run on Python 2.7, as testing for 2.7 is being phased out.
+  - [#816](https://github.com/MichaelClerx/myokit/pull/816) The method `myokit.tools.Benchmarker.format` can now be called without any arguments.
+  - [#817](https://github.com/MichaelClerx/myokit/pull/816) The internal templating engine now uses `ast` instead of the deprecated (and removed in 3.10) `parser` module.
+  - [#825](https://github.com/MichaelClerx/myokit/pull/825) The context manager `myokit.tools.capture` now takes an extra argument ``enabled`` which can be used to disabled output capturing.
+  - [#825](https://github.com/MichaelClerx/myokit/pull/825), [#826](https://github.com/MichaelClerx/myokit/pull/826) The debugging arguments to ``myokit run`` have been split into five parts, see ``myokit run --help`` for details.
 - Deprecated
 - Removed
   - [#796](https://github.com/MichaelClerx/myokit/pull/796) The Graph Data Extractor tool is now a separate project, hosted at https://github.com/MichaelClerx/gde.
   - [#804](https://github.com/MichaelClerx/myokit/pull/804) The command line utility `system` no longer reports on the `cma` module.
+  - [#821](https://github.com/MichaelClerx/myokit/pull/821) Removed the method `myokit.Sundials.version_int`.
 - Fixed
   - [#805](https://github.com/MichaelClerx/myokit/pull/805) Added missing command line utilities to the documentation, and re-organised the command-line tool docs.
 
@@ -75,7 +85,7 @@ This page lists the main changes made to Myokit in each release.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Model.show_line` was removed. This method was deprecated since 2018-05-30.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Protocol.guess_duration` was removed. This method was deprecated since 2016-02-06.
 - Fixed 
-  - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on OS/X (with special thanks to Martin Aguilar and David Augustin).
+  - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on MacOS (with special thanks to Martin Aguilar and David Augustin).
   - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.tools.format_path()`.
   - [#687](https://github.com/MichaelClerx/myokit/pull/687) `Simulation1d` now logs pacing as a global variable, and can log diffusion currents.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
@@ -175,7 +185,7 @@ This page lists the main changes made to Myokit in each release.
 - Rewrote SBML import to use etree instead of DOM.
 - Removed `parse_mathml_dom` function.
 - Removed mxml `dom_child` and `dom_next` methods.
-- Now setting OpenCL framework as linker flag on osx.
+- Now setting OpenCL framework as linker flag on MacOS.
 
 ## [1.30.4] - 2020-03-27
 - Fixed a bug with running simulations in Spyder on Windows.
@@ -294,7 +304,7 @@ This page lists the main changes made to Myokit in each release.
 - Added format protocol option to IDE.
 
 ## [1.28.2] - 2018-12-19
-- Improved support for native OpenCL on OS/X.
+- Improved support for native OpenCL on MacOS.
 - Native maths in OpenCL simulations is now configurable and disabled by default.
 
 ## [1.28.1] - 2018-12-19
@@ -349,7 +359,7 @@ This page lists the main changes made to Myokit in each release.
 - Added sundials version detection on first run.
 - Moved myokit config files from `~/.myokit` to `~/.config/myokit`.
 - Renamed `NumpyExpressionwriter` to `NumPyExpressionWriter`.
-- Fixed test issues on os/x.
+- Fixed test issues on MacOS.
 
 ## [1.27.3] - 2018-08-06
 - Updated the way sundials library locations are stored on windows systems.

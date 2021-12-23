@@ -25,9 +25,6 @@
 #include <CL/cl.h>
 #endif
 
-// Show debug output
-//#define MYOKIT_DEBUG
-
 // Maximum number of platforms/devices to check for.
 #define MCL_MAX_PLATFORMS 255
 #define MCL_MAX_DEVICES 255
@@ -316,7 +313,7 @@ int mcl_select_device(
         dname = "";
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Attempting to find platform and device.\n");
     if (platform == Py_None) {
         printf("No platform specified.\n");
@@ -513,7 +510,7 @@ int mcl_platform_supports_extension(cl_platform_id platform_id, const char* exte
     char buffer[65536];
 
     // Extensions
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Querying extensions\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, sizeof(buffer), buffer, NULL);
@@ -543,7 +540,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     // Value to insert into the dict (decref immediatly after)
     PyObject* val;
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Creating platform info dict\n");
     #endif
 
@@ -555,7 +552,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     }
 
     // Add profile
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying profile\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_PROFILE, bufsize, buffer, NULL);
@@ -565,7 +562,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     Py_CLEAR(val);
 
     // Version
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying version\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, bufsize, buffer, NULL);
@@ -575,7 +572,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     Py_CLEAR(val);
 
     // Name
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying name\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, bufsize, buffer, NULL);
@@ -585,7 +582,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     Py_CLEAR(val);
 
     // Vendor
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying vendor\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, bufsize, buffer, NULL);
@@ -595,7 +592,7 @@ PyObject* mcl_info_platform_dict(cl_platform_id platform_id, size_t bufsize, cha
     Py_CLEAR(val);
 
     // Extensions
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("  Querying extensions\n");
     #endif
     flag = clGetPlatformInfo(platform_id, CL_PLATFORM_EXTENSIONS, bufsize, buffer, NULL);
@@ -646,7 +643,7 @@ PyObject* mcl_info_device_dict(cl_device_id device_id, size_t bufsize, char* buf
     // Iteration
     size_t i;
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Creating device info dict\n");
     #endif
 
@@ -820,7 +817,7 @@ mcl_info()
     n_platforms = 0;
     flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
     if(mcl_flag(flag)) return NULL;
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Found %d platforms\n", n_platforms);
     #endif
 
@@ -908,7 +905,7 @@ mcl_info_current(
         return NULL;
     }
 
-    #ifdef MYOKIT_DEBUG
+    #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Found platform %d\n", platform_id);
     printf("Found device %d\n", device_id);
     #endif

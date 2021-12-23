@@ -9,6 +9,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
 import os
+import re
 import sys
 import threading
 import time
@@ -23,11 +24,11 @@ except NameError:   # pragma: no cover
 import myokit
 
 
-class BenchMarkerTest(unittest.TestCase):
+class BenchmarkerTest(unittest.TestCase):
     """Tests the ``Benchmarker``."""
 
-    def test_benchmarker(self):
-        # Test the benchmarker.
+    def test_time(self):
+        # Test benchmarker.time()
 
         b = myokit.tools.Benchmarker()
         x = [0] * 1000
@@ -47,6 +48,10 @@ class BenchMarkerTest(unittest.TestCase):
         t4 = b.time()
         self.assertTrue(t4 < t3)
 
+    def test_format(self):
+        # Test benchmarker.format()
+
+        b = myokit.tools.Benchmarker()
         self.assertEqual(b.format(1), '1 second')
         self.assertEqual(b.format(61), '1 minute, 1 second')
         self.assertEqual(b.format(60), '1 minute, 0 seconds')
@@ -58,10 +63,51 @@ class BenchMarkerTest(unittest.TestCase):
         self.assertEqual(
             b.format(3600 * 24 * 7),
             '1 week, 0 days, 0 hours, 0 minutes, 0 seconds')
+        self.assertEqual(b.format()[-8:], ' seconds')
+
+    def test_print(self):
+        # Test benchmarker.print
+
+        messages = [
+            'Hello',
+            'Yes yes',
+            'Line 3',
+        ]
+        with myokit.tools.capture() as c:
+            b = myokit.tools.Benchmarker()
+            self.assertEqual(c.out(), '')
+            self.assertEqual(c.err(), '')
+            for m in messages:
+                b.print(m)
+        self.assertEqual(c.err(), '')
+        lines = c.out().splitlines()
+        self.assertEqual(len(lines), 3)
+
+        r = re.compile(r'\[[ 0-9]+ us \([ 0-9]+ us\)\] ([ a-zA-Z0-9]+)')
+        for line, msg in zip(lines, messages):
+            m = r.match(line)
+            self.assertIsNotNone(m)
+            self.assertEqual(m.group(1), msg)
 
 
 class CaptureTest(unittest.TestCase):
     """Test the ``capture`` context manager."""
+
+    def test_capture_disabled(self):
+        """Tests creating a capture manager that doesn't capture."""
+
+        with myokit.tools.capture(enabled=True) as p:
+            with myokit.tools.capture(enabled=False) as q:
+                print('2', end='')
+                print('b', end='', file=sys.stderr)
+                print('f', end='', file=sys.stderr)
+            print('7', end='')
+            print('g', end='', file=sys.stderr)
+
+        self.assertEqual(p.out(), '27')
+        self.assertEqual(p.err(), 'bfg')
+        self.assertEqual(q.out(), '')
+        self.assertEqual(q.err(), '')
 
     def test_capture_nested(self):
         """Tests capturing in a nested pattern."""
