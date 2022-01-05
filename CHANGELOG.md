@@ -24,6 +24,7 @@ This page lists the main changes made to Myokit in each release.
   - [#821](https://github.com/MichaelClerx/myokit/pull/821) Removed the method `myokit.Sundials.version_int`.
 - Fixed
   - [#805](https://github.com/MichaelClerx/myokit/pull/805) Added missing command line utilities to the documentation, and re-organised the command-line tool docs.
+  - [#830](https://github.com/MichaelClerx/myokit/pull/830) Fixed bug of SBML parser when parsing reactions.
 
 ## [1.33.0] - 2021-08-04
 - Added
