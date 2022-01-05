@@ -1386,7 +1386,7 @@ class _MyokitConverter(object):
                 var.promote(state_value=state_value)
                 var.set_rhs(myokit.Number(0))
 
-            if var.rhs().eval() or not var.rhs().is_literal():
+            if (not var.rhs().is_literal()) or var.rhs().eval():
                 # Subtract rate contributions
                 # (Reaction removes species from compartment)
                 expr = myokit.Minus(var.rhs(), expr)
@@ -1476,7 +1476,7 @@ class _MyokitConverter(object):
                 var.promote(state_value=state_value)
                 var.set_rhs(myokit.Number(0))
 
-            if var.rhs().eval() or not var.rhs().is_literal():
+            if (not var.rhs().is_literal()) or var.rhs().eval():
                 # Add rate contributions
                 expr = myokit.Plus(var.rhs(), expr)
 
