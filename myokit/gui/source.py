@@ -531,8 +531,8 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Get top and bottom of first block
         block = self.firstVisibleBlock()
         geom = self.blockBoundingGeometry(block)
-        btop = geom.translated(self.contentOffset()).top()
-        bbot = btop + geom.height()
+        btop = int(geom.translated(self.contentOffset()).top())
+        bbot = int(btop + geom.height())
         # Iterate over blocks
         count = block.blockNumber()
         while block.isValid() and btop <= ebot:
@@ -542,7 +542,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                     0, btop, width, height, Qt.AlignRight, str(count))
             block = block.next()
             btop = bbot
-            bbot += self.blockBoundingRect(block).height()
+            bbot += int(self.blockBoundingRect(block).height())
 
     def paintEvent(self, e):
         """
@@ -551,8 +551,11 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Paint the editor
         super(Editor, self).paintEvent(e)
         # Paint a line between the editor and the line number area
-        x = self.contentOffset().x() + self.document().documentMargin() \
+        x = int(
+            self.contentOffset().x()
+            + self.document().documentMargin()
             + self._line_offset
+        )
         p = QtGui.QPainter(self.viewport())
         p.setPen(QtGui.QPen(QtGui.QColor('#ddd')))
         rect = e.rect()

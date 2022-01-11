@@ -994,16 +994,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if pbar is not None:
                 pbar.close()
                 pbar.deleteLater()
+            # Re-enable
+            self.setEnabled(True)
             # Work-around for cursor bug on linux
             pos = QtGui.QCursor.pos()
             QtGui.QCursor.setPos(0, 0)
             QtGui.QCursor.setPos(pos)
-            # Re-enable
-            self.setEnabled(True)
-            # Set focus on editor
-            self._editor_tabs.currentWidget().setFocus()
             # Fix cursor
             QtWidgets.QApplication.restoreOverrideCursor()
+            # Set focus on editor
+            self._editor_tabs.currentWidget().setFocus()
 
     def action_save(self):
         """
