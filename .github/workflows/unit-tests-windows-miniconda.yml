@@ -15,21 +15,32 @@ jobs:
     runs-on: windows-latest
     if: github.event.pull_request.draft == false
 
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.5, 3.6, 3.7, 3.8, 3.9, '3.10']
     steps:
-      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Conda info
+        shell: bash -l {0}
+        run: conda info
 
       - name: Activate conda
         run: |
-          C:\Miniconda\condabin\activate
+          C:\Miniconda3\condabin\activate
 
       - name: Install Myokit
         run: |
-          C:\Miniconda\python.exe --version
-          C:\Miniconda\python.exe -m pip install --upgrade pip setuptools wheel
-          C:\Miniconda\python.exe -m pip install .[optional]
+          C:\Miniconda3\python.exe --version
+          C:\Miniconda3\python.exe -m pip install --upgrade pip setuptools wheel
+          C:\Miniconda3\python.exe -m pip install .[optional]
 
       - name: Run unit tests
         run: |
-          C:\Miniconda\python.exe -m myokit system
-          C:\Miniconda\python.exe -m myokit test unit
+          C:\Miniconda3\python.exe -m myokit system
+          C:\Miniconda3\python.exe -m myokit test unit
 
