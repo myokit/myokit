@@ -646,7 +646,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             self._script_tools.toggle(self._script_search, True)
             self._script_search.activate()
 
-
     def action_format_protocol(self):
         """
         Reformat the protocol.
