@@ -31,16 +31,16 @@ jobs:
 
       - name: Activate conda
         run: |
-          C:\Miniconda3\condabin\activate
+          C:\Miniconda\condabin\activate
 
       - name: Install Myokit
         run: |
-          C:\Miniconda3\python.exe --version
-          C:\Miniconda3\python.exe -m pip install --upgrade pip setuptools wheel
-          C:\Miniconda3\python.exe -m pip install .[optional]
+          C:\Miniconda\python.exe --version
+          C:\Miniconda\python.exe -m pip install --upgrade pip setuptools wheel
+          C:\Miniconda\python.exe -m pip install .[optional]
 
       - name: Run unit tests
         run: |
-          C:\Miniconda3\python.exe -m myokit system
-          C:\Miniconda3\python.exe -m myokit test unit
+          C:\Miniconda\python.exe -m myokit system
+          C:\Miniconda\python.exe -m myokit test unit
 
