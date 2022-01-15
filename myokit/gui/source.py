@@ -544,9 +544,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         cursor.endEditBlock()
 
     def resizeEvent(self, event):
-        """
-        Qt event: Editor is resized.
-        """
+        """ Qt event: Editor is resized. """
         super(Editor, self).resizeEvent(event)
         # Update line number area
         rect = self.contentsRect()
@@ -568,9 +566,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         self.centerCursor()
 
     def set_text(self, text):
-        """
-        Replaces the text in this editor.
-        """
+        """ Replaces the text in this editor. """
         if text:
             self.setPlainText(str(text))
         else:
@@ -591,9 +587,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         self._last_column = None
 
     def toggle_comment(self):
-        """
-        Comments or uncomments the selected lines
-        """
+        """ Comments or uncomments the selected lines """
         # Comment or uncomment selected lines
         cursor = self.textCursor()
         start, end = cursor.selectionStart(), cursor.selectionEnd()
@@ -636,9 +630,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         cursor.endEditBlock()
 
     def trim_trailing_whitespace(self):
-        """
-        Trims all trailing whitespace from this document.
-        """
+        """ Trims all trailing whitespace from this document. """
         block = self.document().begin()
         cursor = self.textCursor()
         cursor.beginEditBlock()     # Undo grouping
@@ -671,15 +663,11 @@ class LineNumberArea(QtWidgets.QWidget):
         self._editor.updateRequest.connect(self.update_contents)
 
     def paintEvent(self, event):
-        """
-        Qt event: Paint this area.
-        """
+        """ Qt event: Paint this area. """
         self._editor._line_number_area_paint(self, event)
 
     def sizeHint(self):
-        """
-        Qt event: Suggest a size for this area.
-        """
+        """ Qt event: Suggest a size for this area. """
         return QtCore.QSize(self._editor._line_number_area_width(), 0)
 
     def update_contents(self, rect, scroll):
@@ -746,12 +734,12 @@ class FindReplaceWidget(QtWidgets.QWidget):
         button_layout.addWidget(self._replace_all_button, 0, 1)
         button_layout.addWidget(self._replace_button, 0, 2)
         button_layout.addWidget(self._find_button, 0, 3)
+
         layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
         layout.addLayout(text_layout)
         layout.addLayout(check_layout)
         layout.addLayout(button_layout)
         layout.addStretch(1)
-
         self.setLayout(layout)
 
         # Accept keyboard focus on search and replace fields

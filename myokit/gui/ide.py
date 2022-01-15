@@ -632,6 +632,21 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except Exception:
             self.show_exception()
 
+    def action_find(self):
+        """ Show or reactivate the find/replace bar. """
+
+        current = self._editor_tabs.currentWidget()
+        if current == self._model_tab:
+            self._model_tools.toggle(self._model_search, True)
+            self._model_search.activate()
+        if current == self._protocol_tab:
+            self._protocol_tools.toggle(self._protocol_search, True)
+            self._protocol_search.activate()
+        if current == self._script_tab:
+            self._script_tools.toggle(self._script_search, True)
+            self._script_search.activate()
+
+
     def action_format_protocol(self):
         """
         Reformat the protocol.
@@ -1109,20 +1124,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         except Exception:
             self.show_exception()
 
-    def action_toggle_find(self):
-        """ Show or reactivate the find/replace bar. """
-
-        current = self._editor_tabs.currentWidget()
-        if current == self._model_tab:
-            self._model_tools.toggle(self._model_search, True)
-            self._model_search.activate()
-        if current == self._protocol_tab:
-            self._protocol_tools.toggle(self._protocol_search, True)
-            self._protocol_search.activate()
-        if current == self._script_tab:
-            self._script_tools.toggle(self._script_search, True)
-            self._script_search.activate()
-
     def action_toggle_navigator(self):
         """ Show or hide the model navigator. """
         self._model_tools.toggle(self._model_navigator)
@@ -1478,7 +1479,6 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         if widget == self._model_navigator:
             self._tool_view_navigator.setChecked(visible)
 
-
     def change_undo_model(self, enabled):
         """ Qt slot: Undo state of model editor changed. """
         if self._editor_tabs.currentWidget() == self._model_tab:
@@ -1635,7 +1635,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         self._tool_find.setShortcut('Ctrl+F')
         self._tool_find.setStatusTip('Find and/or replace some text.')
         self._tool_find.setIcon(myokit.gui.icon('edit-find'))
-        self._tool_find.triggered.connect(self.action_toggle_find)
+        self._tool_find.triggered.connect(self.action_find)
         self._menu_edit.addAction(self._tool_find)
         # Edit > ----
         self._menu_edit.addSeparator()
@@ -2289,9 +2289,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
 
     def navigator_item_changed(self, line):
         """ Called whenever the navigator item is changed. """
-        if self._editor_tabs.currentWidget() != self._model_tab:
-            return None
-        if line >= 0:
+        if line >= 0 and self._editor_tabs.currentWidget() == self._model_tab:
             self._model_editor.set_cursor(line)
 
     def new_file(self):
