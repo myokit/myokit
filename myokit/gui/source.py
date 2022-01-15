@@ -40,10 +40,6 @@ class Editor(QtWidgets.QPlainTextEdit):
     action occurred with a description that can be used in an application's
     status bar.
     """
-    # Signal: Find action happened, update with text
-    # Attributes: (description)
-    find_action = QtCore.Signal(str)
-
     def __init__(self, parent=None):
         super(Editor, self).__init__(parent)
         # Apply default settings
@@ -54,9 +50,6 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Add current line highlighting and bracket matching
         self.cursorPositionChanged.connect(self.cursor_changed)
         self.cursor_changed()
-        # Find/replace dialog
-        self._find = FindDialog(self)
-        self._find.find_action.connect(self._find_action)
         # Line position
         self._line_offset = self.fontMetrics().width(' ' * 79)
         # Number of blocks in page up/down
@@ -64,14 +57,6 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Last position in line, used for smart up/down buttons
         self._last_column = None
         self.textChanged.connect(self._text_has_changed)
-
-    def activate_find_dialog(self):
-        """
-        Activates the find/replace dialog for this editor: Shows the dialog if
-        hidden, sets the focus to the query field and copies any current
-        selection into the query field.
-        """
-        self._find.activate()
 
     def cursor_changed(self):
         """
@@ -86,6 +71,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
         extra_selections.append(selection)
+
         # Bracket matching
         cursor = self.textCursor()
         if not cursor.hasSelection():
@@ -103,6 +89,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                 text = cursor.selectedText()
                 if text in BRACKETS:
                     bracket = cursor
+
             if bracket:
                 # Find matching partner
                 doc = self.document()
@@ -148,6 +135,7 @@ class Editor(QtWidgets.QPlainTextEdit):
                     selection.cursor = match
                     selection.format.setBackground(COLOR_BG_BRACKET)
                     extra_selections.append(selection)
+
         if extra_selections:
             self.setExtraSelections(extra_selections)
 
@@ -164,9 +152,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         return (line, char)
 
     def _default_settings(self):
-        """
-        Applies this editor's default settings.
-        """
+        """ Applies this editor's default settings. """
         # Set font
         self.setFont(FONT)
         # Set frame
@@ -176,23 +162,9 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Set tab width (if ever seen) to 4 spaces
         self.setTabStopWidth(self.fontMetrics().width(' ' * 4))
 
-    def _find_action(self, text):
-        """
-        Passes on the find action signal.
-        """
-        self.find_action.emit(text)
-
     def get_text(self):
-        """
-        Returns the text in this editor.
-        """
+        """ Returns the text in this editor. """
         return self.toPlainText()
-
-    def hide_find_dialog(self):
-        """
-        Hides the find/replace dialog for this editor.
-        """
-        self._find.hide()
 
     def jump_to(self, line, char):
         """
@@ -205,9 +177,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         self.centerCursor()
 
     def keyPressEvent(self, event):
-        """
-        Qt event: A key was pressed.
-        """
+        """ Qt event: A key was pressed. """
         # Get key and modifiers
         key = event.key()
         mod = event.modifiers()
@@ -574,9 +544,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         cursor.endEditBlock()
 
     def resizeEvent(self, event):
-        """
-        Qt event: Editor is resized.
-        """
+        """ Qt event: Editor is resized. """
         super(Editor, self).resizeEvent(event)
         # Update line number area
         rect = self.contentsRect()
@@ -586,30 +554,6 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Set number of "blocks" per page
         font = self.fontMetrics()
         self._blocks_per_page = int(rect.height() / font.height())
-
-    def save_config(self, config, section):
-        """
-        Saves this editor's configuration using the given :class:`ConfigParser`
-        ``config``. Stores all settings in the section ``section``.
-        """
-        config.add_section(section)
-        # Find options: case sensitive / whole word
-        config.set(section, 'case_sensitive', self._find.case_sensitive())
-        config.set(section, 'whole_word', self._find.whole_word())
-
-    def load_config(self, config, section):
-        """
-        Loads this editor's configuration using the given :class:`ConfigParser`
-        ``config``. Loads all settings from the section ``section``.
-        """
-        if config.has_section(section):
-            # Find options: case sensitive / whole word
-            if config.has_option(section, 'case_sensitive'):
-                self._find.set_case_sensitive(config.getboolean(
-                    section, 'case_sensitive'))
-            if config.has_option(section, 'whole_word'):
-                self._find.set_whole_word(
-                    config.getboolean(section, 'whole_word'))
 
     def set_cursor(self, pos):
         """
@@ -622,9 +566,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         self.centerCursor()
 
     def set_text(self, text):
-        """
-        Replaces the text in this editor.
-        """
+        """ Replaces the text in this editor. """
         if text:
             self.setPlainText(str(text))
         else:
@@ -637,12 +579,6 @@ class Editor(QtWidgets.QPlainTextEdit):
             doc.clearUndoRedoStacks()
             doc.setModified(False)
 
-    def show_find_dialog(self):
-        """
-        Displays a find/replace dialog for this editor.
-        """
-        self._find.show()
-
     def _text_has_changed(self):
         """
         Called whenever the text has changed, resets the smart up/down
@@ -651,9 +587,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         self._last_column = None
 
     def toggle_comment(self):
-        """
-        Comments or uncomments the selected lines
-        """
+        """ Comments or uncomments the selected lines """
         # Comment or uncomment selected lines
         cursor = self.textCursor()
         start, end = cursor.selectionStart(), cursor.selectionEnd()
@@ -696,9 +630,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         cursor.endEditBlock()
 
     def trim_trailing_whitespace(self):
-        """
-        Trims all trailing whitespace from this document.
-        """
+        """ Trims all trailing whitespace from this document. """
         block = self.document().begin()
         cursor = self.textCursor()
         cursor.beginEditBlock()     # Undo grouping
@@ -731,15 +663,11 @@ class LineNumberArea(QtWidgets.QWidget):
         self._editor.updateRequest.connect(self.update_contents)
 
     def paintEvent(self, event):
-        """
-        Qt event: Paint this area.
-        """
+        """ Qt event: Paint this area. """
         self._editor._line_number_area_paint(self, event)
 
     def sizeHint(self):
-        """
-        Qt event: Suggest a size for this area.
-        """
+        """ Qt event: Suggest a size for this area. """
         return QtCore.QSize(self._editor._line_number_area_width(), 0)
 
     def update_contents(self, rect, scroll):
@@ -764,24 +692,22 @@ class LineNumberArea(QtWidgets.QWidget):
             2 + self._editor._line_number_area_width(), 0, 0, 0)
 
 
-class FindDialog(QtWidgets.QDialog):
+class FindReplaceWidget(QtWidgets.QWidget):
     """
-    Find/replace dialog for :class:`Editor`.
+    Find/replace widget for :class:`Editor`.
     """
     # Signal: Find action happened, update with text
     # Attributes: (description)
     find_action = QtCore.Signal(str)
 
-    def __init__(self, editor):
-        # New style doesn't work:
-        QtWidgets.QDialog.__init__(self, editor, Qt.Window)
-        self.setWindowTitle('Find and replace')
+    def __init__(self, parent, editor):
+        super(FindReplaceWidget, self).__init__(parent)
         self._editor = editor
+
         # Fix background color of line edits
         self.setStyleSheet('QLineEdit{background: white;}')
+
         # Create widgets
-        self._close_button = QtWidgets.QPushButton('Close')
-        self._close_button.clicked.connect(self.action_close)
         self._replace_all_button = QtWidgets.QPushButton('Replace all')
         self._replace_all_button.clicked.connect(self.action_replace_all)
         self._replace_button = QtWidgets.QPushButton('Replace')
@@ -794,6 +720,7 @@ class FindDialog(QtWidgets.QDialog):
         self._replace_field = QtWidgets.QLineEdit()
         self._case_check = QtWidgets.QCheckBox('Case sensitive')
         self._whole_check = QtWidgets.QCheckBox('Match whole word only')
+
         # Create layout
         text_layout = QtWidgets.QGridLayout()
         text_layout.addWidget(self._search_label, 0, 0)
@@ -804,28 +731,23 @@ class FindDialog(QtWidgets.QDialog):
         check_layout.addWidget(self._case_check)
         check_layout.addWidget(self._whole_check)
         button_layout = QtWidgets.QGridLayout()
-        button_layout.addWidget(self._close_button, 0, 0)
         button_layout.addWidget(self._replace_all_button, 0, 1)
         button_layout.addWidget(self._replace_button, 0, 2)
         button_layout.addWidget(self._find_button, 0, 3)
+
         layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
         layout.addLayout(text_layout)
         layout.addLayout(check_layout)
         layout.addLayout(button_layout)
+        layout.addStretch(1)
         self.setLayout(layout)
+
+        # Accept keyboard focus on search and replace fields
         self._search_field.setEnabled(True)
         self._replace_field.setEnabled(True)
 
-    def action_close(self):
-        """
-        Qt slot: Close this window.
-        """
-        self.close()
-
     def action_find(self):
-        """
-        Qt slot: Find (next) item.
-        """
+        """ Qt slot: Find (next) item. """
         query = self._search_field.text()
         if query == '':
             self.find_action.emit('No query set')
@@ -842,6 +764,7 @@ class FindDialog(QtWidgets.QDialog):
         if found is False:
             # Not found? Try from top of document
             previous_cursor = self._editor.textCursor()
+            previous_scroll = self._editor.verticalScrollBar().value()
             cursor = self._editor.textCursor()
             cursor.setPosition(0)
             self._editor.setTextCursor(cursor)
@@ -851,6 +774,7 @@ class FindDialog(QtWidgets.QDialog):
                 found = self._editor.find(query)
             if found is False:
                 self._editor.setTextCursor(previous_cursor)
+                self._editor.verticalScrollBar().setValue(previous_scroll)
                 self.find_action.emit('Query not found.')
                 return
         cursor = self._editor.textCursor()
@@ -860,9 +784,7 @@ class FindDialog(QtWidgets.QDialog):
             'Match found on line ' + str(line) + ' char ' + str(char) + '.')
 
     def action_replace(self):
-        """
-        Qt slot: Replace found item with replacement.
-        """
+        """ Qt slot: Replace found item with replacement. """
         query = self._search_field.text()
         replacement = self._replace_field.text()
         if query == '':
@@ -877,9 +799,7 @@ class FindDialog(QtWidgets.QDialog):
         self.action_find()
 
     def action_replace_all(self):
-        """
-        Qt slot: Replace all found items with replacement
-        """
+        """ Qt slot: Replace all found items with replacement """
         query = self._search_field.text()
         replacement = self._replace_field.text()
         if query == '':
@@ -925,54 +845,44 @@ class FindDialog(QtWidgets.QDialog):
         self.find_action.emit('Replaced ' + str(n) + ' occurrences.')
 
     def activate(self):
-        """
-        Activates this dialog.
-        """
-        # Check for selection
+        """ Updates the contents of the search field and gives it focus. """
         cursor = self._editor.textCursor()
         if cursor.hasSelection():
             self._search_field.setText(cursor.selectedText())
-        # Show dialog
-        self.show()
-        self.raise_()
-        self.activateWindow()
-        # Set focus
         self._search_field.selectAll()
         self._search_field.setFocus()
 
-    def case_sensitive(self):
-        """
-        Returns ``True`` if this dialog is set for case-sensitive searching.
-        """
-        return self._case_check.isChecked()
-
     def keyPressEvent(self, event):
-        """
-        Qt event: A key-press reaches the dialog.
-        """
+        """ Qt event: A key-press reaches the widget. """
         key = event.key()
         if key == Qt.Key_Enter or key == Qt.Key_Return:
             self.action_find()
         else:
-            super(FindDialog, self).keyPressEvent(event)
+            super(FindReplaceWidget, self).keyPressEvent(event)
 
-    def set_case_sensitive(self, case_sensitive):
+    def load_config(self, config, section):
         """
-        Sets/unsets the case-sensitive option.
+        Loads this search's configuration using the given :class:`ConfigParser`
+        ``config``. Loads all settings from the section ``section``.
         """
-        return self._case_check.setChecked(bool(case_sensitive))
+        if config.has_section(section):
+            # Find options: case sensitive / whole word
+            if config.has_option(section, 'case_sensitive'):
+                self._case_check.setChecked(
+                    config.getboolean(section, 'case_sensitive'))
+            if config.has_option(section, 'whole_word'):
+                self._whole_check.setChecked(
+                    config.getboolean(section, 'whole_word'))
 
-    def set_whole_word(self, whole_word):
+    def save_config(self, config, section):
         """
-        Sets/unsets the whole-word option.
+        Saves this search's configuration using the given :class:`ConfigParser`
+        ``config``. Stores all settings in the section ``section``.
         """
-        return self._whole_check.setChecked(bool(whole_word))
-
-    def whole_word(self):
-        """
-        Returns ``True`` if this dialog is set for whole-word searching.
-        """
-        return self._whole_check.isChecked()
+        config.add_section(section)
+        # Find options: case sensitive / whole word
+        config.set(section, 'case_sensitive', self._case_check.isChecked())
+        config.set(section, 'whole_word', self._whole_check.isChecked())
 
 
 class ModelHighlighter(QtGui.QSyntaxHighlighter):

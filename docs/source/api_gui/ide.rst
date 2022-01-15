@@ -17,4 +17,8 @@ The gui is built using Qt, implemented in Python via either PyQt4 or PySide.
 
 .. autoclass:: Console
 
+.. autoclass:: ModelNavigator
+
+.. autoclass:: TabbedToolBar
+
 .. autofunction:: icon

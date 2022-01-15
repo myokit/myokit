@@ -45,7 +45,9 @@ myokit.gui.ide
 =================
 - :class:`myokit.gui.ide.Console`
 - :meth:`myokit.gui.ide.icon`
+- :class:`myokit.gui.ide.ModelNavigator`
 - :class:`myokit.gui.ide.MyokitIDE`
+- :class:`myokit.gui.ide.TabbedToolBar`
 
 ===================
 myokit.gui.progress
@@ -57,7 +59,7 @@ myokit.gui.progress
 myokit.gui.source
 =================
 - :class:`myokit.gui.source.Editor`
-- :class:`myokit.gui.source.FindDialog`
+- :class:`myokit.gui.source.FindReplaceWidget`
 - :class:`myokit.gui.source.LineNumberArea`
 - :class:`myokit.gui.source.ModelHighlighter`
 - :class:`myokit.gui.source.ProtocolHighlighter`
