@@ -26,9 +26,22 @@ BRACKETS = {
 BRACKETS_CLOSE = (')', ']')
 FONT = myokit.gui.qtMonospaceFont()
 FONT.setPointSize(11)
-COLOR_CURRENT_LINE = QtGui.QColor(230, 230, 240)
-COLOR_BG_LINE_NUMBER = QtGui.QColor(230, 230, 230)
-COLOR_BG_BRACKET = QtGui.QColor(210, 210, 210)
+
+# Styles and foreground colors for editor text, must be visible on light and
+# dark backgrounds. The main color is not explicitly set, but theme dependent.
+COLOR_BRACKET = QtGui.QColor(240, 100, 0)
+STYLE_LITERAL = QtGui.QTextCharFormat()
+STYLE_LITERAL.setForeground(QtGui.QColor(255, 90, 220))
+STYLE_KEYWORD = QtGui.QTextCharFormat()
+STYLE_KEYWORD.setForeground(QtGui.QColor(40, 150, 40))
+STYLE_KEYWORD.setFontWeight(QtGui.QFont.Bold)
+STYLE_BUILT_IN = QtGui.QTextCharFormat()
+STYLE_BUILT_IN.setForeground(QtGui.QColor(0, 160, 150))
+STYLE_BUILT_IN.setFontWeight(QtGui.QFont.Bold)
+STYLE_COMMENT = QtGui.QTextCharFormat()
+STYLE_COMMENT.setForeground(QtGui.QColor(80, 90, 255))
+STYLE_META = QtGui.QTextCharFormat()
+STYLE_META.setForeground(QtGui.QColor(0, 160, 150))
 
 
 # Classes & methods
@@ -42,30 +55,37 @@ class Editor(QtWidgets.QPlainTextEdit):
     """
     def __init__(self, parent=None):
         super(Editor, self).__init__(parent)
+
+        # Current style
+        self._palette = QtGui.QGuiApplication.palette()
+
         # Apply default settings
         self._default_settings()
+
         # Add line number area
         self._line_number_area = LineNumberArea(self)
         self._line_number_area.update_width(0)
+
         # Add current line highlighting and bracket matching
         self.cursorPositionChanged.connect(self.cursor_changed)
         self.cursor_changed()
+
         # Line position
         self._line_offset = self.fontMetrics().width(' ' * 79)
+
         # Number of blocks in page up/down
         self._blocks_per_page = 1
+
         # Last position in line, used for smart up/down buttons
         self._last_column = None
         self.textChanged.connect(self._text_has_changed)
 
     def cursor_changed(self):
-        """
-        Slot: Called when the cursor position is changed
-        """
+        """ Slot: Called when the cursor position is changed """
         # Highlight current line
         extra_selections = []
         selection = QtWidgets.QTextEdit.ExtraSelection()
-        selection.format.setBackground(COLOR_CURRENT_LINE)
+        selection.format.setBackground(self._palette.button())
         selection.format.setProperty(
             QtGui.QTextFormat.FullWidthSelection, True)
         selection.cursor = self.textCursor()
@@ -129,11 +149,13 @@ class Editor(QtWidgets.QPlainTextEdit):
                     # Apply formatting
                     selection = QtWidgets.QTextEdit.ExtraSelection()
                     selection.cursor = bracket
-                    selection.format.setBackground(COLOR_BG_BRACKET)
+                    selection.format.setBackground(self._palette.mid())
+                    selection.format.setForeground(COLOR_BRACKET)
                     extra_selections.append(selection)
                     selection = QtWidgets.QTextEdit.ExtraSelection()
                     selection.cursor = match
-                    selection.format.setBackground(COLOR_BG_BRACKET)
+                    selection.format.setBackground(self._palette.mid())
+                    selection.format.setForeground(COLOR_BRACKET)
                     extra_selections.append(selection)
 
         if extra_selections:
@@ -167,9 +189,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         return self.toPlainText()
 
     def jump_to(self, line, char):
-        """
-        Jumps to the given line and row (with indices starting at 0).
-        """
+        """ Jumps to the given line and row (with indices starting at 0). """
         block = self.document().findBlockByNumber(line)
         cursor = self.textCursor()
         cursor.setPosition(block.position() + char)
@@ -478,48 +498,49 @@ class Editor(QtWidgets.QPlainTextEdit):
                 super(Editor, self).keyPressEvent(event)
 
     def _line_number_area_width(self):
-        """
-        Returns the required width for the number area
-        """
-        return 4 + self.fontMetrics().width(str(max(1, self.blockCount())))
+        """ Returns the required width for the number area. """
+        return 8 + self.fontMetrics().width(str(max(1, self.blockCount())))
 
     def _line_number_area_paint(self, area, event):
-        """
-        Repaints the line number area.
-        """
-        # Repaint area
+        """ Repaints the line number area. """
+        # Area to repaint
         rect = event.rect()
         etop = rect.top()
         ebot = rect.bottom()
-        # Repaint metrics
+
+        # Font metrics
         metrics = self.fontMetrics()
         height = metrics.height()
         width = area.width()
-        # Create painter, get font metrics
+
+        # Create painter, set font color
         painter = QtGui.QPainter(area)
-        painter.fillRect(rect, COLOR_BG_LINE_NUMBER)
-        # Get top and bottom of first block
+        painter.fillRect(rect, self._palette.button())
+        painter.setPen(self._palette.buttonText().color())
+
+        # Get top and bottom of first visible block
         block = self.firstVisibleBlock()
         geom = self.blockBoundingGeometry(block)
         btop = int(geom.translated(self.contentOffset()).top())
         bbot = int(btop + geom.height())
-        # Iterate over blocks
+
+        # Iterate over visible blocks
         count = block.blockNumber()
         while block.isValid() and btop <= ebot:
             count += 1
             if block.isVisible() and bbot >= etop:
                 painter.drawText(
-                    0, btop, width, height, Qt.AlignRight, str(count))
+                    0, btop, width - 4, height, Qt.AlignRight, str(count))
             block = block.next()
             btop = bbot
             bbot += int(self.blockBoundingRect(block).height())
 
     def paintEvent(self, e):
-        """
-        Paints this editor.
-        """
+        """ Paints this editor. """
+
         # Paint the editor
         super(Editor, self).paintEvent(e)
+
         # Paint a line between the editor and the line number area
         x = int(
             self.contentOffset().x()
@@ -703,9 +724,6 @@ class FindReplaceWidget(QtWidgets.QWidget):
     def __init__(self, parent, editor):
         super(FindReplaceWidget, self).__init__(parent)
         self._editor = editor
-
-        # Fix background color of line edits
-        self.setStyleSheet('QLineEdit{background: white;}')
 
         # Create widgets
         self._replace_all_button = QtWidgets.QPushButton('Replace all')
@@ -893,39 +911,36 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
 
     def __init__(self, document):
         super(ModelHighlighter, self).__init__(document)
-        # Highlighting rules
-        self._rules = []
-        # Numbers
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
-        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
-        self._rules.append((pattern, style))
-        # Keywords
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(0, 96, 0))
-        style.setFontWeight(QtGui.QFont.Bold)
-        for keyword in self.KEYWORDS:
-            pattern = QtCore.QRegExp(r'\b' + keyword + r'\b')
-            self._rules.append((pattern, style))
-        # Meta-data coloring (overrules previous formatting)
-        self._meta_style = QtGui.QTextCharFormat()
-        self._meta_style.setForeground(QtGui.QColor(128, 128, 192))
-        pattern = QtCore.QRegExp(r':.*')
-        self._rules.append((pattern, self._meta_style))
-        # Strings (overrule previous formatting, except when commented)
+
+        # Expressions used to find strings & comments
         self._string_start = QtCore.QRegExp(r'"""')
         self._string_stop = QtCore.QRegExp(r'"""')
         self._comment_start = QtCore.QRegExp(r'#[^\n]*')
+
+        # Highlighting rules
+        self._rules = []
+
+        # Numbers
+        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
+        self._rules.append((pattern, STYLE_LITERAL))
+
+        # Keywords
+        for keyword in self.KEYWORDS:
+            pattern = QtCore.QRegExp(r'\b' + keyword + r'\b')
+            self._rules.append((pattern, STYLE_KEYWORD))
+
+        # Meta-data coloring (overrules previous formatting)
+
+        pattern = QtCore.QRegExp(r':.*')
+        self._rules.append((pattern, STYLE_META))
+
         # Comments (overrule all other formatting)
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(20, 20, 255))
+        # Note: For some reason this can _not_ use self._comment_start
         pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, style))
+        self._rules.append((pattern, STYLE_COMMENT))
 
     def highlightBlock(self, text):
-        """
-        Qt: Called whenever a block should be highlighted.
-        """
+        """ Qt: Called whenever a block should be highlighted. """
         # Rule based formatting
         for (pattern, style) in self._rules:
             e = QtCore.QRegExp(pattern)
@@ -938,6 +953,7 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
                 self.setFormat(i, n, style)
                 i = pattern.indexIn(text, i + n)
         self.setCurrentBlockState(0)
+
         # Multi-line formats
         # Block states:
         #  0 Normal
@@ -953,19 +969,20 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
                 start = next = -1
         else:
             start = next = 0
+
         # Find any occurrences of string start / stop
         while next >= 0:
             stop = self._string_stop.indexIn(text, next)
             if stop < 0:
                 # Continuing multi-line string
                 self.setCurrentBlockState(1)
-                self.setFormat(start, len(text) - start, self._meta_style)
+                self.setFormat(start, len(text) - start, STYLE_META)
                 next = -1
             else:
                 # Ending single-line or multi-line string
                 # Format until stop token
                 next = stop = stop + self._string_stop.matchedLength()
-                self.setFormat(start, stop - start, self._meta_style)
+                self.setFormat(start, stop - start, STYLE_META)
                 # Find next string in block, if any
                 next = start = self._string_start.indexIn(text, next)
                 if next >= 0:
@@ -978,28 +995,24 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
     """
     def __init__(self, document):
         super(ProtocolHighlighter, self).__init__(document)
+
         # Highlighting rules
         self._rules = []
+
         # Numbers
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
         pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
-        self._rules.append((pattern, style))
+        self._rules.append((pattern, STYLE_LITERAL))
+
         # Keyword "next"
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
         pattern = QtCore.QRegExp(r'\bnext\b')
-        self._rules.append((pattern, style))
+        self._rules.append((pattern, STYLE_KEYWORD))
+
         # Comments
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(20, 20, 255))
         pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, style))
+        self._rules.append((pattern, STYLE_COMMENT))
 
     def highlightBlock(self, text):
-        """
-        Qt: Called whenever a block should be highlighted.
-        """
+        """ Qt: Called whenever a block should be highlighted. """
         # Rule based formatting
         for (pattern, style) in self._rules:
             e = QtCore.QRegExp(pattern)
@@ -1021,60 +1034,44 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         # Highlighting rules
         self._rules = []
 
-        # Numbers
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
-        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
-        self._rules.append((pattern, style))
-
-        # True/False/None
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(255, 0, 255))
-        pattern = QtCore.QRegExp(r'\bTrue\b')
-        self._rules.append((pattern, style))
-        pattern = QtCore.QRegExp(r'\bFalse\b')
-        self._rules.append((pattern, style))
-        pattern = QtCore.QRegExp(r'\bNone\b')
-        self._rules.append((pattern, style))
-
         # Built-in essential functions
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(0, 128, 128))
         for func in _PYFUNC:
             pattern = QtCore.QRegExp(r'\b' + str(func) + r'\b')
-            self._rules.append((pattern, style))
+            self._rules.append((pattern, STYLE_BUILT_IN))
 
         # Keywords
         import keyword
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(0, 96, 0))
-        style.setFontWeight(QtGui.QFont.Bold)
         for kw in keyword.kwlist:
             pattern = QtCore.QRegExp(r'\b' + kw + r'\b')
-            self._rules.append((pattern, style))
+            self._rules.append((pattern, STYLE_KEYWORD))
+
+        # Literals: numbers, True, False, None
+        # Override some keywords
+        pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
+        self._rules.append((pattern, STYLE_LITERAL))
+        pattern = QtCore.QRegExp(r'\bTrue\b')
+        self._rules.append((pattern, STYLE_LITERAL))
+        pattern = QtCore.QRegExp(r'\bFalse\b')
+        self._rules.append((pattern, STYLE_LITERAL))
+        pattern = QtCore.QRegExp(r'\bNone\b')
+        self._rules.append((pattern, STYLE_LITERAL))
 
         # Strings
-        self._string_style = QtGui.QTextCharFormat()
-        self._string_style.setForeground(QtGui.QColor(255, 0, 255))
         pattern = QtCore.QRegExp(r'"([^"\\]|\\")*"')
-        self._rules.append((pattern, self._string_style))
+        self._rules.append((pattern, STYLE_LITERAL))
         pattern = QtCore.QRegExp(r"'([^'\\]|\\')*'")
-        self._rules.append((pattern, self._string_style))
+        self._rules.append((pattern, STYLE_LITERAL))
 
         # Multi-line strings
         self._string1 = QtCore.QRegExp(r"'''")
         self._string2 = QtCore.QRegExp(r'"""')
 
         # Comments
-        style = QtGui.QTextCharFormat()
-        style.setForeground(QtGui.QColor(20, 20, 255))
         pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, style))
+        self._rules.append((pattern, STYLE_COMMENT))
 
     def highlightBlock(self, text):
-        """
-        Qt: Called whenever a block should be highlighted.
-        """
+        """ Qt: Called whenever a block should be highlighted. """
         # Rule based formatting
         for (pattern, style) in self._rules:
             e = QtCore.QRegExp(pattern)
@@ -1133,13 +1130,13 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
             if stop < 0:
                 # Continuing multi-line string
                 self.setCurrentBlockState(current)
-                self.setFormat(start, len(text) - start, self._string_style)
+                self.setFormat(start, len(text) - start, STYLE_LITERAL)
                 next = -1
             else:
                 # Ending single-line or multi-line string
                 # Format until stop token
                 stop += 3
-                self.setFormat(start, stop - start, self._string_style)
+                self.setFormat(start, stop - start, STYLE_LITERAL)
                 # Find next string in block, if any
                 next = stop + 3
                 current, start, next = find_start(text, next)
