@@ -464,25 +464,3 @@ class NoOpenCLError(myokit.MyokitError):
     support can be detected.
     """
 
-
-class PreferredOpenCLPlatformNotFoundError(myokit.MyokitError):
-    """
-    Raised when the platform preferred by the user cannot be found.
-    """
-    def __init__(self, platform_name):  # pragma: no cover
-        super(PreferredOpenCLPlatformNotFoundError, self).__init__(
-            'The preferred platform "' + platform_name + '" cannot be found.')
-
-
-class PreferredOpenCLDeviceNotFoundError(myokit.MyokitError):
-    """
-    Raised when the device preferred by the user cannot be found.
-    """
-    def __init__(self, device_name, platform_name=None
-                 ):  # pragma: no cover
-        msg = 'The preferred device "' + device_name + '" cannot be found'
-        if platform_name is None:
-            msg += '.'
-        else:
-            msg += ' on platform "' + platform_name + '".'
-        super(PreferredOpenCLDeviceNotFoundError, self).__init__(msg)
