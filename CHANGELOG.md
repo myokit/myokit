@@ -4,6 +4,13 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+- Changed
+- Deprecated
+- Removed
+- Fixed
+
+## [1.33.1] - 2022-01-24
+- Added
   - [#799](https://github.com/MichaelClerx/myokit/pull/799) Added pL, MOhm, and GOhm as standard units.
   - [#811](https://github.com/MichaelClerx/myokit/pull/811) DatalogViewer now accepts `.zip` for binary data logs.
   - [#817](https://github.com/MichaelClerx/myokit/pull/816) Added support for Python 3.10.
@@ -19,14 +26,13 @@ This page lists the main changes made to Myokit in each release.
   - [#825](https://github.com/MichaelClerx/myokit/pull/825), [#826](https://github.com/MichaelClerx/myokit/pull/826) The debugging arguments to ``myokit run`` have been split into five parts, see ``myokit run --help`` for details.
   - [#834](https://github.com/MichaelClerx/myokit/pull/834) The find/replace dialog in the IDE has been replaced with a toolbar.
   - [#836](https://github.com/MichaelClerx/myokit/pull/836) Colours in the IDE have been adapted to be clearer in "dark mode".
-- Deprecated
 - Removed
   - [#796](https://github.com/MichaelClerx/myokit/pull/796) The Graph Data Extractor tool is now a separate project, hosted at https://github.com/MichaelClerx/gde.
   - [#804](https://github.com/MichaelClerx/myokit/pull/804) The command line utility `system` no longer reports on the `cma` module.
   - [#821](https://github.com/MichaelClerx/myokit/pull/821) Removed the method `myokit.Sundials.version_int`.
 - Fixed
   - [#805](https://github.com/MichaelClerx/myokit/pull/805) Added missing command line utilities to the documentation, and re-organised the command-line tool docs.
-  - [#831](https://github.com/MichaelClerx/myokit/pull/831) Fixed bug in SBML parser that caused it to ignore terms in differential equations for products of reactions.
+  - [#831](https://github.com/MichaelClerx/myokit/pull/831) @DavAug Fixed bug in SBML parser that caused it to ignore terms in differential equations for products of reactions.
 
 ## [1.33.0] - 2021-08-04
 - Added
