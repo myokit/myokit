@@ -193,19 +193,18 @@ class CellMLExpressionWriterTest(unittest.TestCase):
         # Tests writing names and numbers
 
         # Name
-        a = myokit.Name(self.avar)
-        ca = '<ci>a</ci>'
-        self.assertWrite(a, ca)
+        self.assertWrite(myokit.Name(self.avar), '<ci>a</ci>')
 
         # Number with unit
-        b = myokit.Number('12', 'pF')
-        cb = ('<cn cellml:units="picofarad">12.0</cn>')
-        self.assertWrite(b, cb)
+        self.assertWrite(
+            myokit.Number(-12, 'pF'),
+            '<cn cellml:units="picofarad">-12.0</cn>')
 
         # Number without unit
-        c = myokit.Number(1)
-        cc = ('<cn cellml:units="dimensionless">1.0</cn>')
-        self.assertWrite(c, cc)
+        self.assertWrite(
+            myokit.Number(1), '<cn cellml:units="dimensionless">1.0</cn>')
+        self.assertWrite(
+            myokit.Number(0), '<cn cellml:units="dimensionless">0.0</cn>')
 
         # Number with e notation (note that Python will turn e.g. 1e3 into
         # 1000, so must pick tests carefully)
@@ -223,14 +222,19 @@ class CellMLExpressionWriterTest(unittest.TestCase):
 
         cn = write_cn(myokit.Number(1e-6))
         a, b = 'type="e-notation"', 'cellml:units="dimensionless"'
-        c1 = '<cn ' + a + ' ' + b + '>1.0<sep />-6</cn>'
-        c2 = '<cn ' + b + ' ' + a + '>1.0<sep />-6</cn>'
+        c1 = '<cn ' + a + ' ' + b + '>1<sep/>-6</cn>'
+        c2 = '<cn ' + b + ' ' + a + '>1<sep/>-6</cn>'
         self.assertIn(cn, (c1, c2))
 
         cn = write_cn(myokit.Number(2.1e24))
-        c1 = '<cn ' + a + ' ' + b + '>2.1<sep />24</cn>'
-        c2 = '<cn ' + b + ' ' + a + '>2.1<sep />24</cn>'
+        c1 = '<cn ' + a + ' ' + b + '>2.1<sep/>24</cn>'
+        c2 = '<cn ' + b + ' ' + a + '>2.1<sep/>24</cn>'
         self.assertIn(cn, (c1, c2))
+
+        # myokit.float.str(1.23456789) = 1.23456788999999989e+00
+        self.assertWrite(
+            myokit.Number(1.23456789),
+            '<cn cellml:units="dimensionless">1.23456788999999989</cn>')
 
     def test_arithmetic(self):
         # Test basic arithmetic
