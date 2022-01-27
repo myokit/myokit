@@ -5,10 +5,11 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
-  - [#842](https://github.com/MichaelClerx/myokit/pull/842) Myokit is no longer tested on Python 3.5.
+  - [#843](https://github.com/MichaelClerx/myokit/pull/843) Myokit is no longer tested on Python 3.5.
 - Deprecated
 - Removed
 - Fixed
+  - [#841](https://github.com/MichaelClerx/myokit/pull/841) The MathMLExpressionWriter now uses `type="e-notation"` where necessary, instead of writing e.g. `1e-6`.
 
 ## [1.33.1] - 2022-01-24
 - Added

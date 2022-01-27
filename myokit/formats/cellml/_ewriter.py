@@ -54,8 +54,7 @@ class CellMLExpressionWriter(MathMLExpressionWriter):
         self._funits = f
 
     def _ex_number(self, e, t):
-        x = etree.SubElement(t, 'cn')
-        x.text = self._fnum(e)
+        x = super(CellMLExpressionWriter, self)._ex_number(e, t)
         unit = e.unit()
         if self._funits is not None and unit is not None:
             units = self._funits(e.unit())

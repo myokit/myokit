@@ -247,19 +247,17 @@ class PresentationMathMLTest(unittest.TestCase):
         # Test name and number writing
 
         # Name
-        a = myokit.Name(self.avar)
-        ca = '<mi>c.a</mi>'
-        self.assertWrite(a, ca)
+        self.assertWrite(myokit.Name(self.avar), '<mi>c.a</mi>')
 
         # Number with unit
-        b = myokit.Number('12', 'pF')
-        cb = '<mn>12.0</mn>'
-        self.assertWrite(b, cb)
+        self.assertWrite(myokit.Number(12, 'pF'), '<mn>12.0</mn>')
 
         # Number without unit
-        c = myokit.Number(1)
-        cc = '<mn>1.0</mn>'
-        self.assertWrite(c, cc)
+        self.assertWrite(myokit.Number(1), '<mn>1.0</mn>')
+
+        # E-notation is allowed in presentation MathML
+        self.assertWrite(myokit.Number(1e-6), '<mn>1e-06</mn>')
+        self.assertWrite(myokit.Number(1e24), '<mn>1e+24</mn>')
 
     def test_trig_basic(self):
         # Test writing basic trig functions
