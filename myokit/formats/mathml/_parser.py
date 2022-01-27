@@ -703,6 +703,7 @@ class MathMLParser(object):
         Parses a ``<cn>`` element and returns a number object created by the
         number factory.
         """
+        # https://www.w3.org/TR/MathML2/chapter4.html#contm.typeattrib
         kind = element.attrib.get('type', 'real')
 
         # Get value
@@ -721,6 +722,8 @@ class MathMLParser(object):
                     element)
 
             # Get value
+            # Note: We are being tolerant here and allowing e-notation (which
+            # is not consistent with the spec!)
             if element.text is None:
                 raise MathMLError('Empty <cn> element', element)
             try:

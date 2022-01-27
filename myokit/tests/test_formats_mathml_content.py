@@ -1118,6 +1118,17 @@ class ContentMathMLWriterTest(unittest.TestCase):
         # Unit isn't exported by default!
         self.assertWrite(myokit.Number('12', 'pF'), '<cn>12.0</cn>')
 
+        # Number with e notation (note that Python will turn e.g. 1e3 into
+        # 1000, so must pick tests carefully)
+        self.assertWrite(myokit.Number(1e3), '<cn>1000.0</cn>')
+        self.assertWrite(myokit.Number(1e-3), '<cn>0.001</cn>')
+        self.assertWrite(
+            myokit.Number(1e-6),
+            '<cn type="e-notation">1.0<sep />-6</cn>')
+        self.assertWrite(
+            myokit.Number(2.3e24),
+            '<cn type="e-notation">2.3<sep />24</cn>')
+
     def test_trig_basic(self):
         # Test writing basic trig functions
 
