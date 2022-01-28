@@ -134,6 +134,36 @@ class TestCellMLWriter(unittest.TestCase):
         self.assertIs(c.parent(), e)
         self.assertIs(b.parent(), c)
 
+    def test_initial_value_representation(self):
+        # Test the way initial values are represented in generated CellML code
+
+        def find(xml):
+            i = xml.index(b'initial_value')
+            i += 15
+            j = xml.index(b'"', i)
+            return xml[i:j].decode()
+
+        m = cellml.Model('m', '1.0')
+        c = m.add_component('c')
+        p = c.add_variable('p', 'mole')
+
+        p.set_initial_value(1.234)
+        x = find(cellml.write_string(m))
+        self.assertEqual(x, '1.234')
+
+        p.set_initial_value(1e-6)
+        x = find(cellml.write_string(m))
+        self.assertEqual(x, '1e-06')
+
+        p.set_initial_value(1e9)
+        x = find(cellml.write_string(m))
+        self.assertEqual(x, '1.00000000000000000e+09')
+
+        # String e+00
+        p.set_initial_value(1.23424352342423)
+        x = find(cellml.write_string(m))
+        self.assertEqual(x, '1.23424352342422994')
+
     def test_maths(self):
         # Test maths is written
 
