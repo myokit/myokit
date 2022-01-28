@@ -155,9 +155,9 @@ class TestCellMLWriter(unittest.TestCase):
         x = find(cellml.write_string(m))
         self.assertEqual(x, '1e-06')
 
-        p.set_initial_value(1e12)
+        p.set_initial_value(1e9)
         x = find(cellml.write_string(m))
-        self.assertEqual(x, '1.00000000000000000e+12')
+        self.assertEqual(x, '1.00000000000000000e+09')
 
         # String e+00
         p.set_initial_value(1.23424352342423)
