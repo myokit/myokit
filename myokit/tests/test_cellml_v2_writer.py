@@ -128,7 +128,7 @@ class TestCellMLWriter(unittest.TestCase):
             i = xml.index(b'initial_value')
             i += 15
             j = xml.index(b'"', i)
-            return xml[i:j]
+            return xml[i:j].decode()
 
         m = cellml.Model('m', '2.0')
         c = m.add_component('c')
@@ -136,20 +136,20 @@ class TestCellMLWriter(unittest.TestCase):
 
         p.set_initial_value(1.234)
         x = find(cellml.write_string(m))
-        self.assertEqual(x, b'1.234')
+        self.assertEqual(x, '1.234')
 
         p.set_initial_value(1e-6)
         x = find(cellml.write_string(m))
-        self.assertEqual(x, b'1e-06')
+        self.assertEqual(x, '1e-06')
 
         p.set_initial_value(1e12)
         x = find(cellml.write_string(m))
-        self.assertEqual(x, b'1.00000000000000000e+12')
+        self.assertEqual(x, '1.00000000000000000e+12')
 
         # String e+00
         p.set_initial_value(1.23424352342423)
         x = find(cellml.write_string(m))
-        self.assertEqual(x, b'1.23424352342422994')
+        self.assertEqual(x, '1.23424352342422994')
 
     def test_maths(self):
         # Test maths is written
