@@ -130,7 +130,7 @@ class TestCellMLWriter(unittest.TestCase):
             j = xml.index(b'"', i)
             return xml[i:j]
 
-        m = cellml.Model('m', '1.0')
+        m = cellml.Model('m', '2.0')
         c = m.add_component('c')
         p = c.add_variable('p', 'mole')
 

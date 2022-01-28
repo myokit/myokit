@@ -6,6 +6,7 @@ This page lists the main changes made to Myokit in each release.
 - Added
 - Changed
   - [#843](https://github.com/MichaelClerx/myokit/pull/843) Myokit is no longer tested on Python 3.5.
+  - [#844](https://github.com/MichaelClerx/myokit/pull/844) Tweaked the CellML export's `initial_value` attribute to strip `e+00` if present.
 - Deprecated
 - Removed
 - Fixed
