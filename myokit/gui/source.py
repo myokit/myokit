@@ -33,19 +33,20 @@ STYLE_HEADER = QtGui.QTextCharFormat()
 # Comments
 STYLE_COMMENT = QtGui.QTextCharFormat()
 
-# Literals: Numbers in model/protocol, Also booleans and strings in script
-STYLE_LITERAL = QtGui.QTextCharFormat()
-STYLE_INLINE_UNIT = QtGui.QTextCharFormat()
-# Matching brackets are highlighted
-COLOR_BRACKET = QtGui.QColor(240, 100, 0)
-
-# Models annotation (including meta, labels, and units)
+# Model annotations (including meta, labels, and units)
 STYLE_ANNOT_KEY = QtGui.QTextCharFormat()
 STYLE_ANNOT_VAL = QtGui.QTextCharFormat()
 
 # Language keywords
 STYLE_KEYWORD_1 = QtGui.QTextCharFormat()
 STYLE_KEYWORD_2 = QtGui.QTextCharFormat()
+
+# Literals: Numbers in model/protocol, Also booleans and strings in script
+STYLE_LITERAL = QtGui.QTextCharFormat()
+STYLE_INLINE_UNIT = QtGui.QTextCharFormat()
+# Matching brackets are highlighted
+COLOR_BRACKET = QtGui.QColor(240, 100, 0)
+
 
 def check_for_dark_mode(palette):
     """
@@ -56,27 +57,27 @@ def check_for_dark_mode(palette):
     c = (c.blueF() + c.greenF() + c.redF()) / 3
     dark = c < 0.5
 
-    if dark:
-        STYLE_HEADER.setForeground(QtGui.QColor(220, 140, 200))
-        STYLE_COMMENT.setForeground(QtGui.QColor(160, 160, 160))
-        STYLE_LITERAL.setForeground(QtGui.QColor(230, 220, 50))
-        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(230, 220, 140))
-
-        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(90, 245, 160))
-        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(45, 184, 210))
-
-        STYLE_KEYWORD_1.setForeground(QtGui.QColor(48, 197, 225))
-        STYLE_KEYWORD_2.setFontWeight(QtGui.QFont.Bold)
-    else:
-        STYLE_HEADER.setForeground(QtGui.QColor(0, 40, 200))
-        STYLE_COMMENT.setForeground(QtGui.QColor(130, 130, 130))
-        STYLE_LITERAL.setForeground(QtGui.QColor(255, 0, 255))
-        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(200, 50, 200))
-        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(80, 140, 190))
-        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(50, 90, 170))
-        STYLE_KEYWORD_1.setForeground(QtGui.QColor(0, 96, 0))
+    # Don't mess with these directly: Use the SVG in myokit-docs
+    if not dark:
+        STYLE_HEADER.setForeground(QtGui.QColor(35, 117, 216))
+        STYLE_COMMENT.setForeground(QtGui.QColor(102, 102, 102))
+        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(102, 102, 102))
+        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(76, 114, 238))
+        STYLE_KEYWORD_1.setForeground(QtGui.QColor(0, 170, 0))
         STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
         STYLE_KEYWORD_2.setFontWeight(QtGui.QFont.Bold)
+        STYLE_LITERAL.setForeground(QtGui.QColor(255, 20, 215))
+        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(174, 48, 196))
+    else:
+        STYLE_HEADER.setForeground(QtGui.QColor(98, 178, 255))
+        STYLE_COMMENT.setForeground(QtGui.QColor(153, 153, 153))
+        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(179, 179, 179))
+        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(171, 177, 205))
+        STYLE_KEYWORD_1.setForeground(QtGui.QColor(10, 195, 87))
+        STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
+        STYLE_KEYWORD_2.setFontWeight(QtGui.QFont.Bold)
+        STYLE_LITERAL.setForeground(QtGui.QColor(255, 223, 12))
+        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(168, 152, 33))
 
 
 # Classes & methods
@@ -985,10 +986,9 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
         self._rule_meta_val = QtCore.QRegExp(r':(\s*)(.+)')
         self._rule_var_unit = QtCore.QRegExp(r'^(\s*)(in)(\s*)(' + unit + ')')
 
-        # Comments (overrule all other formatting)
+        # Comments
         # Note: For some reason this can _not_ use self._comment_start
-        pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, STYLE_COMMENT))
+        self._comments = QtCore.QRegExp(r'#[^\n]*')
 
     def highlightBlock(self, text):
         """ Qt: Called whenever a block should be highlighted. """
@@ -1044,6 +1044,13 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
             n2 = len(self._rule_meta_val.cap(2))
             self.setFormat(i, 1, STYLE_ANNOT_KEY)
             self.setFormat(1 + i + n1, n2, STYLE_ANNOT_VAL)
+
+        # Comments (overrule all other formatting except multi-line strings)
+        i = self._comments.indexIn(text)
+        while i >= 0:
+            n = len(self._comments.cap(0))
+            self.setFormat(i, n, STYLE_COMMENT)
+            i = self._comments.indexIn(text, i + n)
 
         # Multi-line strings
         # Block states:
