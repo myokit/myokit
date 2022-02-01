@@ -59,15 +59,15 @@ def check_for_dark_mode(palette):
 
     # Don't mess with these directly: Use the SVG in myokit-docs
     if not dark:
-        STYLE_HEADER.setForeground(QtGui.QColor(35, 117, 216))
-        STYLE_COMMENT.setForeground(QtGui.QColor(102, 102, 102))
-        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(102, 102, 102))
-        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(76, 114, 238))
-        STYLE_KEYWORD_1.setForeground(QtGui.QColor(0, 170, 0))
+        STYLE_HEADER.setForeground(QtGui.QColor(0, 58, 255))
+        STYLE_COMMENT.setForeground(QtGui.QColor(103, 161, 107))
+        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(18, 50, 255))
+        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(57, 115, 214))
+        STYLE_KEYWORD_1.setForeground(QtGui.QColor(0, 128, 0))
         STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
-        STYLE_KEYWORD_2.setFontWeight(QtGui.QFont.Bold)
+        STYLE_KEYWORD_2.setForeground(QtGui.QColor(0, 128, 128))
         STYLE_LITERAL.setForeground(QtGui.QColor(255, 20, 215))
-        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(174, 48, 196))
+        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(128, 0, 128))
     else:
         STYLE_HEADER.setForeground(QtGui.QColor(98, 178, 255))
         STYLE_COMMENT.setForeground(QtGui.QColor(153, 153, 153))
@@ -75,7 +75,7 @@ def check_for_dark_mode(palette):
         STYLE_ANNOT_VAL.setForeground(QtGui.QColor(171, 177, 205))
         STYLE_KEYWORD_1.setForeground(QtGui.QColor(10, 195, 87))
         STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
-        STYLE_KEYWORD_2.setFontWeight(QtGui.QFont.Bold)
+        STYLE_KEYWORD_2.setForeground(QtGui.QColor(10, 195, 87))
         STYLE_LITERAL.setForeground(QtGui.QColor(255, 223, 12))
         STYLE_INLINE_UNIT.setForeground(QtGui.QColor(168, 152, 33))
 
