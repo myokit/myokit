@@ -48,10 +48,10 @@ STYLE_INLINE_UNIT = QtGui.QTextCharFormat()
 COLOR_BRACKET = QtGui.QColor(240, 100, 0)
 
 
-def check_for_dark_mode(palette):
+def _check_for_dark_mode(palette):
     """
-    Checks the default editor background color, and adjusts the colorscheme if
-    it looks like dark-mode is enabled.
+    Checks the default editor background color, and adjusts the colour scheme
+    if it looks like dark-mode is enabled.
     """
     c = palette.base().color()
     c = (c.blueF() + c.greenF() + c.redF()) / 3
@@ -94,7 +94,7 @@ class Editor(QtWidgets.QPlainTextEdit):
 
         # Current style
         self._palette = QtGui.QGuiApplication.palette()
-        check_for_dark_mode(self._palette)
+        _check_for_dark_mode(self._palette)
 
         # Apply default settings
         self._default_settings()
