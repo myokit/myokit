@@ -59,9 +59,9 @@ def check_for_dark_mode(palette):
 
     # Don't mess with these directly: Use the SVG in myokit-docs
     if not dark:
-        STYLE_HEADER.setForeground(QtGui.QColor(0, 58, 255))
+        STYLE_HEADER.setForeground(QtGui.QColor(0, 31, 231))
         STYLE_COMMENT.setForeground(QtGui.QColor(103, 161, 107))
-        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(18, 50, 255))
+        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(0, 31, 231))
         STYLE_ANNOT_VAL.setForeground(QtGui.QColor(57, 115, 214))
         STYLE_KEYWORD_1.setForeground(QtGui.QColor(0, 128, 0))
         STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)

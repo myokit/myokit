@@ -984,7 +984,7 @@ class MyokitIDE(myokit.gui.MyokitApplication):
         pbar = None
         try:
             # Prepare interface
-            self.setEnabled(False)
+            #self.setEnabled(False)
             self._console.write('Running embedded script.')
             QtWidgets.QApplication.setOverrideCursor(
                 QtGui.QCursor(Qt.WaitCursor))
@@ -1037,16 +1037,16 @@ class MyokitIDE(myokit.gui.MyokitApplication):
             if pbar is not None:
                 pbar.close()
                 pbar.deleteLater()
-            # Re-enable
-            self.setEnabled(True)
             # Work-around for cursor bug on linux
-            pos = QtGui.QCursor.pos()
-            QtGui.QCursor.setPos(0, 0)
-            QtGui.QCursor.setPos(pos)
-            # Fix cursor
-            QtWidgets.QApplication.restoreOverrideCursor()
+            #pos = QtGui.QCursor.pos()
+            #QtGui.QCursor.setPos(0, 0)
+            #QtGui.QCursor.setPos(pos)
+            # Re-enable
+            #self.setEnabled(True)
             # Set focus on editor
             self._editor_tabs.currentWidget().editor.setFocus()
+            # Restore cursor
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def action_save(self):
         """
