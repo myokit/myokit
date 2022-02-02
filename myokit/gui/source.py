@@ -1202,7 +1202,6 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
             self.setFormat(i + m, n - m, STYLE_HEADER)
             i = self._rule_head.indexIn(text, i + n)
 
-
         # Block states:
         #  0 Normal
         #  1 Multi-line string 1
