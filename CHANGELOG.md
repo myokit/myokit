@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#845](https://github.com/MichaelClerx/myokit/pull/845) Improved syntax highlighting and automatic detection of "dark mode" themes.
 - Deprecated
 - Removed
 - Fixed
