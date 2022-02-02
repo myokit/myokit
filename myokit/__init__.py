@@ -59,11 +59,11 @@ if sys.hexversion < 0x03000000:  # pragma: no cover
         ' Please upgrade as soon as possible! Detected Python version: '
         + sys.version)
     del(logging, log)
-elif sys.hexversion < 0x03050000:  # pragma: no cover
+elif sys.hexversion < 0x03060000:  # pragma: no cover
     import logging  # noqa
     log = logging.getLogger(__name__)
     log.warning(
-        'Myokit is not tested on Python 3 versions older than 3.5.0. Detected'
+        'Myokit is not tested on Python 3 versions older than 3.6. Detected'
         ' Python version: ' + sys.version)
     del(logging, log)
 

@@ -5,10 +5,13 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#843](https://github.com/MichaelClerx/myokit/pull/843) Myokit is no longer tested on Python 3.5.
+  - [#844](https://github.com/MichaelClerx/myokit/pull/844) Tweaked the CellML export's `initial_value` attribute to strip `e+00` if present.
   - [#845](https://github.com/MichaelClerx/myokit/pull/845) Improved syntax highlighting and automatic detection of "dark mode" themes.
 - Deprecated
 - Removed
 - Fixed
+  - [#841](https://github.com/MichaelClerx/myokit/pull/841) The MathMLExpressionWriter now uses `type="e-notation"` where necessary, instead of writing e.g. `1e-6`.
 
 ## [1.33.1] - 2022-01-24
 - Added
@@ -54,15 +57,15 @@ This page lists the main changes made to Myokit in each release.
   - [#754](https://github.com/MichaelClerx/myokit/pull/754) Added a method `myokit.OpenCL.current_info(x)` that returns information about the currently selected platform and device; support of OpenCL extensions can then be checked with `OpenCLPlatformInfo.has_extension`.
   - [#754](https://github.com/MichaelClerx/myokit/pull/754) Improved error message when an `OpenCLSimulation` with double precision is run on a device that does not support it.
   - [#763](https://github.com/MichaelClerx/myokit/pull/763) Added a method `OpenCLSimulation.set_conductance_field` to apply heterogeneous conductance on a rectangular grid.
-  - [#769](https://github.com/MichaelClerx/myokit/pull/769) Added a method `myokit.Model.import_component` to import a component from one model to another.
-  - [#769](https://github.com/MichaelClerx/myokit/pull/769) Added an exception type `VariableMappingError` to be raised when there is an error in a variable mapping.
+  - [#769](https://github.com/MichaelClerx/myokit/pull/769) @Rebecca-Rumney Added a method `myokit.Model.import_component` to import a component from one model to another.
+  - [#769](https://github.com/MichaelClerx/myokit/pull/769) @Rebecca-Rumney Added an exception type `VariableMappingError` to be raised when there is an error in a variable mapping.
   - [#776](https://github.com/MichaelClerx/myokit/pull/776) Added a method `OpenCLSimulation.monodomain_conductance` to replace the deprecated method `calculate_conductance`.
   - [#780](https://github.com/MichaelClerx/myokit/pull/780) Alt-up and alt-down can now be used in the text editor to move selected lines up or down.
   - [#782](https://github.com/MichaelClerx/myokit/pull/782) The IDE can now import CellML files on opening, e.g. by typing `myokit ide example.cellml`.
   - [#786](https://github.com/MichaelClerx/myokit/pull/786) Added a method `myokit.Variable.clamp()` to fix any variable to a constant value.
   - [#786](https://github.com/MichaelClerx/myokit/pull/786) Added a method `myokit.Variable.remove_child_variables()` to remove all child (nested) variables from a given variable.
   - [#788](https://github.com/MichaelClerx/myokit/pull/788) The IDE will now suggest filenames for model exports.
-  - [#792](https://github.com/MichaelClerx/myokit/pull/792) SBML import now handles equations that explicitly use time.
+  - [#792](https://github.com/MichaelClerx/myokit/pull/792) @DavAug SBML import now handles equations that explicitly use time.
 - Changed
   - [#581](https://github.com/MichaelClerx/myokit/pull/581) Powers are now rendered without spaces in mmt code, e.g. `x^2` instead of `x ^ 2`.
   - [#595](https://github.com/MichaelClerx/myokit/pull/595) The `Simulation` class now uses CVODES instead of CVODE as backend, which may require changes to your installation.
@@ -95,7 +98,7 @@ This page lists the main changes made to Myokit in each release.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Model.show_line` was removed. This method was deprecated since 2018-05-30.
   - [#737](https://github.com/MichaelClerx/myokit/pull/737) The method `Protocol.guess_duration` was removed. This method was deprecated since 2016-02-06.
 - Fixed 
-  - [#684](https://github.com/MichaelClerx/myokit/pull/684) Fixed OpenCL loading issue on MacOS (with special thanks to Martin Aguilar and David Augustin).
+  - [#684](https://github.com/MichaelClerx/myokit/pull/684) @DavAug Fixed OpenCL loading issue on MacOS (with special thanks to Martin Aguilar).
   - [#686](https://github.com/MichaelClerx/myokit/pull/686) Fixed a (windows only) bug in `myokit.tools.format_path()`.
   - [#687](https://github.com/MichaelClerx/myokit/pull/687) `Simulation1d` now logs pacing as a global variable, and can log diffusion currents.
   - [#689](https://github.com/MichaelClerx/myokit/pull/689) Path lists read from `myokit.ini` are now filtered for empty entries and closing semicolons.
@@ -116,7 +119,7 @@ This page lists the main changes made to Myokit in each release.
   - [#674](https://github.com/MichaelClerx/myokit/pull/674) Added a method to the IDE that lets you jump to the definition of a selected variable.
   - [#680](https://github.com/MichaelClerx/myokit/pull/680) Now testing on Python 3.9 and Miniconda 3.8 (Windows).
 - Removed
-  - [#681](https://github.com/MichaelClerx/myokit/pull/681) Removed the deprecated library `myokit.lib.fit`. For fitting see e.g. [PINTS](https://github.com/pints-team/pints) and this [tutorial on fitting ion channel data with Myokit & PINTS](https://github.com/pints-team/myokit-pints-tutorial).
+  - [#681](https://github.com/MichaelClerx/myokit/pull/681) Removed the deprecated library `myokit.lib.fit`. For fitting see e.g. [PINTS](https://github.com/pints-team/pints) and this [tutorial on fitting ion channel data with Myokit & PINTS](https://github.com/CardiacModelling/fitting-notebooks).
 - Fixed
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug in `Variable.convert_unit()` that caused unexpected (and quite arbitrary) results.
   - [#672](https://github.com/MichaelClerx/myokit/pull/672) Fixed bug where calling `Simulation.run()` with a very short runtime caused a zero state to be returned.
@@ -162,7 +165,7 @@ This page lists the main changes made to Myokit in each release.
   - [#548](https://github.com/MichaelClerx/myokit/pull/548) Model and protocol now support comparison with `==`.
   - [#553](https://github.com/MichaelClerx/myokit/pull/553) The cumulative-current plot now has a maximum-number-of-currents option (all further currents will be bundled into one).
   - [#567](https://github.com/MichaelClerx/myokit/pull/567) Added support for Simulation building on Python 3.8 on Windows.
-  - [#574](https://github.com/MichaelClerx/myokit/pull/574), [#599](https://github.com/MichaelClerx/myokit/pull/599), [#547](https://github.com/MichaelClerx/myokit/pull/547), [#528](https://github.com/MichaelClerx/myokit/pull/528) A completely rewritten SBML API and parser that's capable of handling models that define species and reactions, contributed by @DavAug.
+  - [#574](https://github.com/MichaelClerx/myokit/pull/574), [#599](https://github.com/MichaelClerx/myokit/pull/599), [#547](https://github.com/MichaelClerx/myokit/pull/547), [#528](https://github.com/MichaelClerx/myokit/pull/528) @DavAug A completely rewritten SBML API and parser that's capable of handling models that define species and reactions.
 - Changed
   - [#536](https://github.com/MichaelClerx/myokit/issues/536) `Ohm` is now a quantifiable unit in the `mmt` syntax, i.e. `1 [MOhm]`. This replaces the non-standard `R` unit which has been removed.
   - [#556](https://github.com/MichaelClerx/myokit/pull/556) CellML imports now import models that contain unsupported units (but with warnings).

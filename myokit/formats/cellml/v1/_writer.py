@@ -362,8 +362,10 @@ class CellMLWriter(object):
 
         # Add initial value
         if variable.initial_value() is not None:
-            element.attrib['initial_value'] = myokit.float.str(
-                variable.initial_value()).strip()
+            value = myokit.float.str(variable.initial_value()).strip()
+            if value[-4:] == 'e+00':
+                value = value[:-4]
+            element.attrib['initial_value'] = value
 
         # Add cmeta id
         cid = variable.cmeta_id()
