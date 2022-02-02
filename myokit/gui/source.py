@@ -27,21 +27,57 @@ BRACKETS_CLOSE = (')', ']')
 FONT = myokit.gui.qtMonospaceFont()
 FONT.setPointSize(11)
 
-# Styles and foreground colors for editor text, must be visible on light and
-# dark backgrounds. The main color is not explicitly set, but theme dependent.
-COLOR_BRACKET = QtGui.QColor(240, 100, 0)
-STYLE_LITERAL = QtGui.QTextCharFormat()
-STYLE_LITERAL.setForeground(QtGui.QColor(255, 90, 220))
-STYLE_KEYWORD = QtGui.QTextCharFormat()
-STYLE_KEYWORD.setForeground(QtGui.QColor(40, 150, 40))
-STYLE_KEYWORD.setFontWeight(QtGui.QFont.Bold)
-STYLE_BUILT_IN = QtGui.QTextCharFormat()
-STYLE_BUILT_IN.setForeground(QtGui.QColor(0, 160, 150))
-STYLE_BUILT_IN.setFontWeight(QtGui.QFont.Bold)
+# Component and model headers
+STYLE_HEADER = QtGui.QTextCharFormat()
+
+# Comments
 STYLE_COMMENT = QtGui.QTextCharFormat()
-STYLE_COMMENT.setForeground(QtGui.QColor(80, 90, 255))
-STYLE_META = QtGui.QTextCharFormat()
-STYLE_META.setForeground(QtGui.QColor(0, 160, 150))
+
+# Model annotations (including meta, labels, and units)
+STYLE_ANNOT_KEY = QtGui.QTextCharFormat()
+STYLE_ANNOT_VAL = QtGui.QTextCharFormat()
+
+# Language keywords
+STYLE_KEYWORD_1 = QtGui.QTextCharFormat()
+STYLE_KEYWORD_2 = QtGui.QTextCharFormat()
+
+# Literals: Numbers in model/protocol, Also booleans and strings in script
+STYLE_LITERAL = QtGui.QTextCharFormat()
+STYLE_INLINE_UNIT = QtGui.QTextCharFormat()
+# Matching brackets are highlighted
+COLOR_BRACKET = QtGui.QColor(240, 100, 0)
+
+
+def _check_for_dark_mode(palette):
+    """
+    Checks the default editor background color, and adjusts the colour scheme
+    if it looks like dark-mode is enabled.
+    """
+    c = palette.base().color()
+    c = (c.blueF() + c.greenF() + c.redF()) / 3
+    dark = c < 0.5
+
+    # Don't mess with these directly: Use the SVG in myokit-docs
+    if not dark:
+        STYLE_HEADER.setForeground(QtGui.QColor(0, 31, 231))
+        STYLE_COMMENT.setForeground(QtGui.QColor(103, 161, 107))
+        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(0, 31, 231))
+        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(57, 115, 214))
+        STYLE_KEYWORD_1.setForeground(QtGui.QColor(0, 128, 0))
+        STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
+        STYLE_KEYWORD_2.setForeground(QtGui.QColor(0, 128, 128))
+        STYLE_LITERAL.setForeground(QtGui.QColor(255, 20, 215))
+        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(128, 0, 128))
+    else:
+        STYLE_HEADER.setForeground(QtGui.QColor(98, 178, 255))
+        STYLE_COMMENT.setForeground(QtGui.QColor(153, 153, 153))
+        STYLE_ANNOT_KEY.setForeground(QtGui.QColor(179, 179, 179))
+        STYLE_ANNOT_VAL.setForeground(QtGui.QColor(171, 177, 205))
+        STYLE_KEYWORD_1.setForeground(QtGui.QColor(10, 195, 87))
+        STYLE_KEYWORD_1.setFontWeight(QtGui.QFont.Bold)
+        STYLE_KEYWORD_2.setForeground(QtGui.QColor(10, 195, 87))
+        STYLE_LITERAL.setForeground(QtGui.QColor(255, 223, 12))
+        STYLE_INLINE_UNIT.setForeground(QtGui.QColor(168, 152, 33))
 
 
 # Classes & methods
@@ -58,6 +94,7 @@ class Editor(QtWidgets.QPlainTextEdit):
 
         # Current style
         self._palette = QtGui.QGuiApplication.palette()
+        _check_for_dark_mode(self._palette)
 
         # Apply default settings
         self._default_settings()
@@ -907,7 +944,9 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
     """
     Syntax highlighter for ``mmt`` model definitions.
     """
-    KEYWORDS = ['dot', 'bind', 'label', 'use', 'as', 'in', 'and', 'or', 'not']
+    KEYWORD_1 = ['use', 'as']
+    KEYWORD_2 = ['and', 'or', 'not']
+    ANNOT_KEYS = ['in', 'bind', 'label']
 
     def __init__(self, document):
         super(ModelHighlighter, self).__init__(document)
@@ -917,47 +956,108 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
         self._string_stop = QtCore.QRegExp(r'"""')
         self._comment_start = QtCore.QRegExp(r'#[^\n]*')
 
-        # Highlighting rules
+        # Headers
+        name = r'[a-zA-Z]+[a-zA-Z0-9_]*'
+        self._rule_head = QtCore.QRegExp(r'^(\s*)\[{1,2}' + name + '\]{1,2}')
+
+        # Simple rules
         self._rules = []
 
         # Numbers
         pattern = QtCore.QRegExp(r'\b[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?\b')
         self._rules.append((pattern, STYLE_LITERAL))
+        unit = r'\[[a-zA-Z0-9/^]+\]'
+        self._rules.append((QtCore.QRegExp(unit), STYLE_INLINE_UNIT))
 
         # Keywords
-        for keyword in self.KEYWORDS:
+        for keyword in self.KEYWORD_1:
             pattern = QtCore.QRegExp(r'\b' + keyword + r'\b')
-            self._rules.append((pattern, STYLE_KEYWORD))
+            self._rules.append((pattern, STYLE_KEYWORD_1))
+        for keyword in self.KEYWORD_2:
+            pattern = QtCore.QRegExp(r'\b' + keyword + r'\b')
+            self._rules.append((pattern, STYLE_KEYWORD_2))
 
-        # Meta-data coloring (overrules previous formatting)
+        # Meta-data coloring
+        self._rules_labels = [
+            QtCore.QRegExp(r'(\s*)(bind)\s+(' + name + ')'),
+            QtCore.QRegExp(r'(\s*)(label)\s+(' + name + ')'),
+        ]
+        self._rule_meta_key = QtCore.QRegExp(name + r':')
+        self._rule_meta_val = QtCore.QRegExp(r':(\s*)(.+)')
+        self._rule_var_unit = QtCore.QRegExp(r'^(\s*)(in)(\s*)(' + unit + ')')
 
-        pattern = QtCore.QRegExp(r':.*')
-        self._rules.append((pattern, STYLE_META))
-
-        # Comments (overrule all other formatting)
+        # Comments
         # Note: For some reason this can _not_ use self._comment_start
-        pattern = QtCore.QRegExp(r'#[^\n]*')
-        self._rules.append((pattern, STYLE_COMMENT))
+        self._comments = QtCore.QRegExp(r'#[^\n]*')
 
     def highlightBlock(self, text):
         """ Qt: Called whenever a block should be highlighted. """
-        # Rule based formatting
+        # Simple rules
         for (pattern, style) in self._rules:
-            e = QtCore.QRegExp(pattern)
-            i = e.indexIn(text)
+            i = pattern.indexIn(text)
             while i >= 0:
                 # Note: Can't use matchedLength() here because it does quirky
                 # things with the subgroup for the numbers regex.
-                #n = e.matchedLength()
                 n = len(pattern.cap(0))
                 self.setFormat(i, n, style)
                 i = pattern.indexIn(text, i + n)
-        self.setCurrentBlockState(0)
 
-        # Multi-line formats
+        # Model and component headers
+        i = self._rule_head.indexIn(text)
+        while i >= 0:
+            m = len(self._rule_head.cap(1))
+            n = len(self._rule_head.cap(0))
+            self.setFormat(i + m, n - m, STYLE_HEADER)
+            i = self._rule_head.indexIn(text, i + n)
+
+        # Annotations
+        # Labels
+        for pattern in self._rules_labels:
+            i = pattern.indexIn(text)
+            while i >= 0:
+                n0 = len(pattern.cap(0))
+                n1 = len(pattern.cap(1))
+                n2 = len(pattern.cap(2))
+                n3 = len(pattern.cap(3))
+                self.setFormat(i + n1, n2, STYLE_ANNOT_KEY)
+                self.setFormat(i + n0 - n3, n3, STYLE_ANNOT_VAL)
+                i = pattern.indexIn(text, i + n0)
+
+        # Units
+        i = self._rule_var_unit.indexIn(text)
+        if i == 0:
+            n1 = len(self._rule_var_unit.cap(1))
+            n2 = len(self._rule_var_unit.cap(2))
+            n3 = len(self._rule_var_unit.cap(3))
+            n4 = len(self._rule_var_unit.cap(4))
+            self.setFormat(n1, n2, STYLE_ANNOT_KEY)
+            self.setFormat(n1 + n2 + n3, n4, STYLE_ANNOT_VAL)
+
+        # Meta properties
+        i = self._rule_meta_key.indexIn(text)
+        if i >= 0:
+            n0 = len(self._rule_meta_key.cap(0))
+            self.setFormat(i, n0, STYLE_ANNOT_KEY)
+        i = self._rule_meta_val.indexIn(text)
+        if i >= 0:
+            n1 = len(self._rule_meta_val.cap(1))
+            n2 = len(self._rule_meta_val.cap(2))
+            self.setFormat(i, 1, STYLE_ANNOT_KEY)
+            self.setFormat(1 + i + n1, n2, STYLE_ANNOT_VAL)
+
+        # Comments (overrule all other formatting except multi-line strings)
+        i = self._comments.indexIn(text)
+        while i >= 0:
+            n = len(self._comments.cap(0))
+            self.setFormat(i, n, STYLE_COMMENT)
+            i = self._comments.indexIn(text, i + n)
+
+        # Multi-line strings
         # Block states:
         #  0 Normal
-        #  1 Multi-line string
+        #  1 Multi-line string (meta)
+        self.setCurrentBlockState(0)
+
         # Check state of previous block
         if self.previousBlockState() != 1:
             # Normal block
@@ -976,13 +1076,13 @@ class ModelHighlighter(QtGui.QSyntaxHighlighter):
             if stop < 0:
                 # Continuing multi-line string
                 self.setCurrentBlockState(1)
-                self.setFormat(start, len(text) - start, STYLE_META)
+                self.setFormat(start, len(text) - start, STYLE_ANNOT_VAL)
                 next = -1
             else:
                 # Ending single-line or multi-line string
                 # Format until stop token
                 next = stop = stop + self._string_stop.matchedLength()
-                self.setFormat(start, stop - start, STYLE_META)
+                self.setFormat(start, stop - start, STYLE_ANNOT_VAL)
                 # Find next string in block, if any
                 next = start = self._string_start.indexIn(text, next)
                 if next >= 0:
@@ -996,6 +1096,9 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
     def __init__(self, document):
         super(ProtocolHighlighter, self).__init__(document)
 
+        # Headers and units
+        self._rule_head = QtCore.QRegExp(r'^(\s*)\[\[[a-zA-Z0-9_]+\]\]')
+
         # Highlighting rules
         self._rules = []
 
@@ -1005,7 +1108,7 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
 
         # Keyword "next"
         pattern = QtCore.QRegExp(r'\bnext\b')
-        self._rules.append((pattern, STYLE_KEYWORD))
+        self._rules.append((pattern, STYLE_KEYWORD_1))
 
         # Comments
         pattern = QtCore.QRegExp(r'#[^\n]*')
@@ -1015,13 +1118,19 @@ class ProtocolHighlighter(QtGui.QSyntaxHighlighter):
         """ Qt: Called whenever a block should be highlighted. """
         # Rule based formatting
         for (pattern, style) in self._rules:
-            e = QtCore.QRegExp(pattern)
-            i = e.indexIn(text)
+            i = pattern.indexIn(text)
             while i >= 0:
                 n = len(pattern.cap(0))
                 self.setFormat(i, n, style)
                 i = pattern.indexIn(text, i + n)
-        self.setCurrentBlockState(0)
+
+        # Protocol header
+        i = self._rule_head.indexIn(text)
+        while i >= 0:
+            m = len(self._rule_head.cap(1))
+            n = len(self._rule_head.cap(0))
+            self.setFormat(i + m, n - m, STYLE_HEADER)
+            i = self._rule_head.indexIn(text, i + n)
 
 
 class ScriptHighlighter(QtGui.QSyntaxHighlighter):
@@ -1031,19 +1140,22 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
     def __init__(self, document):
         super(ScriptHighlighter, self).__init__(document)
 
+        # Headers and units
+        self._rule_head = QtCore.QRegExp(r'^(\s*)\[\[[a-zA-Z0-9_]+\]\]')
+
         # Highlighting rules
         self._rules = []
-
-        # Built-in essential functions
-        for func in _PYFUNC:
-            pattern = QtCore.QRegExp(r'\b' + str(func) + r'\b')
-            self._rules.append((pattern, STYLE_BUILT_IN))
 
         # Keywords
         import keyword
         for kw in keyword.kwlist:
             pattern = QtCore.QRegExp(r'\b' + kw + r'\b')
-            self._rules.append((pattern, STYLE_KEYWORD))
+            self._rules.append((pattern, STYLE_KEYWORD_1))
+
+        # Built-in essential functions
+        for func in _PYFUNC:
+            pattern = QtCore.QRegExp(r'\b' + str(func) + r'\b')
+            self._rules.append((pattern, STYLE_KEYWORD_2))
 
         # Literals: numbers, True, False, None
         # Override some keywords
@@ -1074,21 +1186,29 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
         """ Qt: Called whenever a block should be highlighted. """
         # Rule based formatting
         for (pattern, style) in self._rules:
-            e = QtCore.QRegExp(pattern)
-            i = e.indexIn(text)
+            i = pattern.indexIn(text)
             while i >= 0:
                 # Note: Can't use matchedLength() here because it does quirky
                 # things with the subgroup for the numbers regex.
                 n = len(pattern.cap(0))
                 self.setFormat(i, n, style)
                 i = pattern.indexIn(text, i + n)
-        self.setCurrentBlockState(0)
 
-        # Multi-line formats
+        # Script header
+        i = self._rule_head.indexIn(text)
+        while i >= 0:
+            m = len(self._rule_head.cap(1))
+            n = len(self._rule_head.cap(0))
+            self.setFormat(i + m, n - m, STYLE_HEADER)
+            i = self._rule_head.indexIn(text, i + n)
+
         # Block states:
         #  0 Normal
         #  1 Multi-line string 1
         #  2 Multi-line string 2
+        self.setCurrentBlockState(0)
+
+        # Multi-line formats
         def find_start(text, next):
             s1 = self._string1.indexIn(text, next)
             s2 = self._string2.indexIn(text, next)
@@ -1115,12 +1235,14 @@ class ScriptHighlighter(QtGui.QSyntaxHighlighter):
                     start = next = -1
 
             return current, start, next
+
         # Check state of previous block
         previous = self.previousBlockState()
         if previous == 1 or previous == 2:
             current, start, next = previous, 0, 0
         else:
             current, start, next = find_start(text, 0)
+
         # Find any occurrences of string start / stop
         while next >= 0:
             if current == 1:
