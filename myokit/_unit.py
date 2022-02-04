@@ -544,7 +544,11 @@ class Unit(object):
         Existing entries are overwritten without warning.
         """
         # Overwrite existing entries without warning
-        Unit._preferred_representations[unit] = rep
+        if not isinstance(unit, myokit.Unit):
+            raise ValueError(
+                'Second argument to register_preferred_representation must be'
+                ' a myokit.Unit')
+        Unit._preferred_representations[unit] = str(rep)
 
     def __repr__(self):
         """
@@ -825,7 +829,7 @@ class Quantity(object):
         return self._value
 
     def __hash__(self):
-        return self._str
+        return hash(self._str)
 
     def __mul__(self, other):
         if not isinstance(other, Quantity):

@@ -4437,9 +4437,7 @@ class Variable(VarOwner):
             self._remove_variable_internal(kid)
 
     def rename(self, new_name):
-        """
-        Renames this variable.
-        """
+        """ Renames this variable. """
         assert(self._parent is not None)
         self._parent.move_variable(self, self._parent, new_name)
 

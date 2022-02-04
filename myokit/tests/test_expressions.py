@@ -3892,6 +3892,16 @@ class EquationTest(unittest.TestCase):
         # No exception = pass
         hash(myokit.Equation(myokit.Name('x'), myokit.Number('3')))
 
+        # Hash must be consistent during lifetime.
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('3 * sqrt(2)')
+        a = hash(x.eq())
+        x.rename('y')
+        b = hash(x.eq())
+        self.assertEqual(a, b)
+
     def test_iter(self):
         # Test iteration over an equation.
         lhs = myokit.Name('x')

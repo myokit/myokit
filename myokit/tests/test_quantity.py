@@ -98,9 +98,6 @@ class QuantityTest(unittest.TestCase):
         self.assertRaisesRegex(
             ValueError, 'Two units', myokit.Quantity, '2 [mV]', 'mV')
 
-        # Test hash
-        self.assertEqual(str(x), x.__hash__())
-
     def test_eq(self):
         # Test :meth:`Quantity.__eq__()`.
         from myokit import Quantity as Q
@@ -114,6 +111,16 @@ class QuantityTest(unittest.TestCase):
         self.assertEqual(a, Q('0.01 [V]').convert('mV'))
         self.assertFalse(Q(4) == 4)
         self.assertFalse(4 == Q(4))
+
+    def test_hash(self):
+        # Test has does not change in quantity's lifetime
+
+        u1 = myokit.Quantity(1, myokit.units.m**8)
+        h1 = hash(u1)
+        myokit.Unit.register_preferred_representation('abc', myokit.units.m**8)
+        u2 = myokit.Quantity(1, myokit.units.m**8)
+        h2 = hash(u2)
+        self.assertEqual(h1, h2)
 
     def test_number_conversion(self):
         # Test Quantity conversion from and to number.
