@@ -41,6 +41,10 @@ class Protocol(object):
     the interval ``[a, b)``. In other words, time ``a`` will be the first time
     it is active and time ``b`` will be the first time after ``a`` at which it
     is not.
+
+    Protocols can be compared with ``==``, which will check if the :meth:`code`
+    for both protocols is the same. Protocols can be serialised with
+    ``pickle``.
     """
     def __init__(self):
         super(Protocol, self).__init__()

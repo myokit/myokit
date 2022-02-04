@@ -777,6 +777,11 @@ class Model(ObjectWithMeta, VarProvider):
 
     Meta-data properties can be accessed via the property ``meta``, for example
     ``model.meta['key']= 'value'``.
+
+    For consistency with components, variables, and expressions, models cannot
+    be compared with ``==`` (which will only return ``True`` if both operands
+    are the same object). Checking if models are the same in other senses can
+    be done with :meth:`is_similar`. Models can be serialised with ``pickle``.
     """
     def __init__(self, name=None):
         super(Model, self).__init__()
@@ -1308,23 +1313,6 @@ class Model(ObjectWithMeta, VarProvider):
                 for v in c.variables(deep=deep, sort=sort):
                     yield v
         return stream(self)
-
-    def __eq__(self, other):
-        """
-        Checks if this model equals the ``other`` model.
-
-        This checks equality of code(), but also unique names and unique name
-        prefixes.
-        """
-        if self is other:
-            return True
-        if not isinstance(other, Model):
-            return False
-        if self._reserved_unames != other._reserved_unames:
-            return False
-        if self._reserved_uname_prefixes != other._reserved_uname_prefixes:
-            return False
-        return self.code() == other.code()
 
     def evaluate_derivatives(
             self, state=None, inputs=None, precision=myokit.DOUBLE_PRECISION,
@@ -1980,6 +1968,24 @@ class Model(ObjectWithMeta, VarProvider):
                 yield Equation(
                     myokit.Name(var), myokit.Number(self._current_state[k]))
         return StateDefIterator(self)
+
+    def is_similar(self, other, check_unames=False):
+        """
+        Returns ``True`` if this model has the same code as the ``other``
+        model.
+
+        If ``check_unames`` is set to ``True``, the method also checks if the
+        defined unique names and unique name prefixes are the same.
+        """
+        if self is other:
+            return True
+        if not isinstance(other, Model):
+            return False
+        if self._reserved_unames != other._reserved_unames:
+            return False
+        if self._reserved_uname_prefixes != other._reserved_uname_prefixes:
+            return False
+        return self.code() == other.code()
 
     def is_valid(self):
         """

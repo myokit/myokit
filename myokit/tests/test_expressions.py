@@ -855,6 +855,10 @@ class NameTest(unittest.TestCase):
         # Debug/unofficial options
         self.assertEqual(myokit.Name('a'), myokit.Name('a'))
         self.assertNotEqual(myokit.Name('a'), myokit.Name('A'))
+        # The next ones _should_ be equal: since the components and models are
+        # not what's supposed to go inside a name, it will convert to string
+        # and compare the resulting representations. This is the same as what
+        # would happen if __eq__ was called on an expression wrapping a Name.
         self.assertEqual(myokit.Name(c), myokit.Name(c))
         self.assertEqual(myokit.Name(m), myokit.Name(m.clone()))
 

@@ -1059,7 +1059,15 @@ class Name(LhsExpression):
     def __eq__(self, other):
         if type(other) != Name:
             return False
-        return self._value == other._value
+        if self._proper:
+            # Value is name? Then just check with is
+            return self._value is other._value
+        else:
+            # Debug thing? Then convert to string and see if the
+            # representations match. (This is the same as what would happen if
+            # __eq__ was called on an expression _containing_ a Name, e.g
+            # myokit.PrefixPlus(myokit.Name(1.23)).
+            return self.code() == other.code()
 
     def is_name(self, var=None):
         """See :meth:`Expression.is_name()`."""

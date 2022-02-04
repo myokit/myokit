@@ -10,6 +10,7 @@ This page lists the main changes made to Myokit in each release.
   - [#845](https://github.com/MichaelClerx/myokit/pull/845) Improved syntax highlighting and automatic detection of "dark mode" themes.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) Trying to pickle a `myokit.Expression` now raises a more helpful error message.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) The method `myokit.parse_expression()` now accepts a `Model` as a context.
+  - [#849](https://github.com/MichaelClerx/myokit/pull/849) Model comparison with `==` now only returns ``True`` if both operands are the same object. Comparison based on code can be performed with `Model.is_similar()`.
 - Deprecated
 - Removed
 - Fixed

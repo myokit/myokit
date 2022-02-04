@@ -592,20 +592,20 @@ class VariableTest(unittest.TestCase):
 
         # Remove children on var without children
         m.get('z.a').remove_child_variables()
-        self.assertEqual(m, m_org)
+        self.assertTrue(m.is_similar(m_org, True))
 
         # Remove children on var with used children
         self.assertRaisesRegex(
             myokit.IntegrityError, 'the RHS still depends on <z.e.f>.',
             m.get('z.e').remove_child_variables)
-        self.assertEqual(m, m_org)
+        self.assertTrue(m.is_similar(m_org, True))
 
         # Remove children on nested var with used children
         self.assertRaisesRegex(
             myokit.IntegrityError,
             'depends on <z.e.f.h.[i|j]> and <z.e.f.h.[j|i]>.',
             m.get('z.e.f.h').remove_child_variables)
-        self.assertEqual(m, m_org)
+        self.assertTrue(m.is_similar(m_org, True))
 
         # Remove children on nested var with unused children
         e = m.get('z.e')
