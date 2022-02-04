@@ -24,6 +24,36 @@ class QuantityTest(unittest.TestCase):
     Tests the Quantity class for unit arithmetic.
     """
 
+    def test_as_rhs(self):
+        # Test Quantity use in set_rhs.
+        from myokit import Quantity as Q
+
+        m = myokit.Model()
+        c = m.add_component('a')
+        v = c.add_variable('v')
+        a = Q('10 [mV]')
+        v.set_rhs(a)
+        self.assertEqual(v.rhs().unit(), myokit.units.mV)
+        self.assertEqual(v.eval(), 10)
+
+    def test_cast(self):
+        # Test :meth:`Quanity.cast()`.
+
+        from myokit import Quantity as Q
+
+        a = Q('10 [uA]')
+        b = a.cast('mV')
+        self.assertEqual(a, Q('10 [uA]'))
+        self.assertEqual(b, Q('10 [mV]'))
+
+    def test_convert(self):
+        # Test :meth:`Quantity.convert()`.
+
+        from myokit import Quantity as Q
+
+        a = Q('10 [mV]')
+        self.assertEqual(a.convert('V'), Q('0.01 [V]'))
+
     def test_creation_and_str(self):
         # Test Quanity creation and :meth:`Quantity.__str__()`.
 
@@ -71,6 +101,20 @@ class QuantityTest(unittest.TestCase):
         # Test hash
         self.assertEqual(str(x), x.__hash__())
 
+    def test_eq(self):
+        # Test :meth:`Quantity.__eq__()`.
+        from myokit import Quantity as Q
+
+        a = Q('10 [mV]')
+        self.assertEqual(a, Q('10 [mV]'))
+        self.assertNotEqual(a, Q('11 [mV]'))
+        self.assertNotEqual(a, Q('10 [mA]'))
+        self.assertNotEqual(a, Q('10 [V]'))
+        self.assertNotEqual(a, Q('0.01 [V]'))
+        self.assertEqual(a, Q('0.01 [V]').convert('mV'))
+        self.assertFalse(Q(4) == 4)
+        self.assertFalse(4 == Q(4))
+
     def test_number_conversion(self):
         # Test Quantity conversion from and to number.
 
@@ -91,40 +135,6 @@ class QuantityTest(unittest.TestCase):
         b = myokit.Number(a)
         self.assertEqual(b.eval(), 10)
         self.assertEqual(b.unit(), myokit.units.mV)
-
-    def test_as_rhs(self):
-        # Test Quantity use in set_rhs.
-        from myokit import Quantity as Q
-
-        m = myokit.Model()
-        c = m.add_component('a')
-        v = c.add_variable('v')
-        a = Q('10 [mV]')
-        v.set_rhs(a)
-        self.assertEqual(v.rhs().unit(), myokit.units.mV)
-        self.assertEqual(v.eval(), 10)
-
-    def test_eq(self):
-        # Test :meth:`Quantity.__eq__()`.
-        from myokit import Quantity as Q
-
-        a = Q('10 [mV]')
-        self.assertEqual(a, Q('10 [mV]'))
-        self.assertNotEqual(a, Q('11 [mV]'))
-        self.assertNotEqual(a, Q('10 [mA]'))
-        self.assertNotEqual(a, Q('10 [V]'))
-        self.assertNotEqual(a, Q('0.01 [V]'))
-        self.assertEqual(a, Q('0.01 [V]').convert('mV'))
-        self.assertFalse(Q(4) == 4)
-        self.assertFalse(4 == Q(4))
-
-    def test_convert(self):
-        # Test :meth:`Quantity.convert()`.
-
-        from myokit import Quantity as Q
-
-        a = Q('10 [mV]')
-        self.assertEqual(a.convert('V'), Q('0.01 [V]'))
 
     def test_operators(self):
         # Test overloaded operators for Quantity.
@@ -212,15 +222,6 @@ class QuantityTest(unittest.TestCase):
         with self.assertRaises(myokit.IncompatibleUnitError):
             a ** a
 
-    def test_cast(self):
-        # Test :meth:`Quanity.cast()`.
-
-        from myokit import Quantity as Q
-
-        a = Q('10 [uA]')
-        b = a.cast('mV')
-        self.assertEqual(a, Q('10 [uA]'))
-        self.assertEqual(b, Q('10 [mV]'))
 
 
 if __name__ == '__main__':
