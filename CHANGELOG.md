@@ -8,10 +8,13 @@ This page lists the main changes made to Myokit in each release.
   - [#843](https://github.com/MichaelClerx/myokit/pull/843) Myokit is no longer tested on Python 3.5.
   - [#844](https://github.com/MichaelClerx/myokit/pull/844) Tweaked the CellML export's `initial_value` attribute to strip `e+00` if present.
   - [#845](https://github.com/MichaelClerx/myokit/pull/845) Improved syntax highlighting and automatic detection of "dark mode" themes.
+  - [#849](https://github.com/MichaelClerx/myokit/pull/849) Trying to pickle a `myokit.Expression` now raises a more helpful error message.
+  - [#849](https://github.com/MichaelClerx/myokit/pull/849) The method `myokit.parse_expression()` now accepts a `Model` as a context.
 - Deprecated
 - Removed
 - Fixed
   - [#841](https://github.com/MichaelClerx/myokit/pull/841) The MathMLExpressionWriter now uses `type="e-notation"` where necessary, instead of writing e.g. `1e-6`.
+  - [#849](https://github.com/MichaelClerx/myokit/pull/849) If `Model.get()` and `Component.get()` are now called with a `Component` or `Variable` as argument, this is returned directly _only_ if it is part of the same model. In all other cases the object is converted to a qname before look-up.
 
 ## [1.33.1] - 2022-01-24
 - Added

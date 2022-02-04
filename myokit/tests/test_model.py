@@ -601,6 +601,13 @@ class ModelTest(unittest.TestCase):
         w = m.get(v)
         self.assertIs(w, v)
 
+        # Get by variable from another model
+        m2 = m.clone()
+        w = m2.get(v)
+        self.assertIsNot(w, v)
+        v2 = m2.get(w)
+        self.assertIs(w, v2)
+
         # Get nested
         a = m.get('ina.m.alpha')
         self.assertEqual(a.qname(), 'ina.m.alpha')

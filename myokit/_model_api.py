@@ -606,7 +606,9 @@ class VarOwner(ModelPart, VarProvider):
         """
         # Return model part immediatly
         if isinstance(name, ModelPart):
-            return name
+            if name.model() is self._model:
+                return name
+            name = name.qname()
 
         # Find variable
         names = name.split('.')
@@ -1623,7 +1625,9 @@ class Model(ObjectWithMeta, VarProvider):
         """
         # Return model part immediatly
         if isinstance(name, ModelPart):
-            return name
+            if name.model() is self:
+                return name
+            name = name.qname()
 
         # Split name, get different parts
         names = name.split('.')
