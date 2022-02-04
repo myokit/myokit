@@ -140,6 +140,8 @@ class Expression(object):
         - if the given ``component`` has an alias for the variable, this alias
           is used.
         """
+        # Note: Because variable and component names can change, the output of
+        # code can not be cached (for non-literal expressions).
         b = StringIO()
         self._code(b, component)
         return b.getvalue()
@@ -342,6 +344,8 @@ class Expression(object):
             return False
         else:
             # Compare cached polish expression (which uses ids)
+            # Note that the polish representation uses object ids instead of
+            # qnames
             return self._polish() == other._polish()
 
     def eval(self, subst=None, precision=myokit.DOUBLE_PRECISION):
@@ -1166,11 +1170,6 @@ class Derivative(LhsExpression):
             return PartialDerivative(self, lhs)
         return None
 
-    def __eq__(self, other):
-        if type(other) != Derivative:
-            return False
-        return self._op == other._op
-
     def _eval_unit(self, mode):
         # Get numerator (never None in strict mode)
         unit1 = self._op._eval_unit(mode)
@@ -1287,11 +1286,6 @@ class PartialDerivative(LhsExpression):
         raise NotImplementedError(
             'Partial derivatives of partial derivatives are not supported.')
 
-    def __eq__(self, other):
-        if type(other) != PartialDerivative:
-            return False
-        return (self._var1 == other._var1) and (self._var2 == other._var2)
-
     def _eval_unit(self, mode):
         unit1 = self._var1._eval_unit(mode)
         unit2 = self._var2._eval_unit(mode)
@@ -1385,11 +1379,6 @@ class InitialValue(LhsExpression):
     def _diff(self, lhs, idstates):
         raise NotImplementedError(
             'Partial derivatives of initial conditions are not supported.')
-
-    def __eq__(self, other):
-        if type(other) != InitialValue:
-            return False
-        return self._var == other._var
 
     def _eval_unit(self, mode):
         return self._var._eval_unit(mode)

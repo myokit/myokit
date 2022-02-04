@@ -168,6 +168,19 @@ class ExpressionTest(unittest.TestCase):
             i.lhs().diff(V0, independent_states=False),
             myokit.PartialDerivative(i.lhs(), V0))
 
+    def test_equal(self):
+        # Test equality checking on general equations
+
+        m1 = myokit.load_model('example')
+        m2 = m1.clone()
+        for v in m1.variables(deep=True):
+            e1 = v.rhs()
+            e2 = m2.get(v).rhs()
+            if e1.is_literal():
+                self.assertEqual(e1, e1)
+            else:
+                self.assertNotEqual(e1, e2)
+
     def test_eval(self):
         # Test :meth:`Expression.eval()`.
 
@@ -536,6 +549,18 @@ class NumberTest(unittest.TestCase):
         self.assertTrue(d.is_number(0))
         self.assertEqual(d.unit(), myokit.units.pF / myokit.units.mV)
 
+    def test_equal(self):
+        # Test equality checking on numbers
+        a = myokit.Number(1)
+        b = myokit.Number(1)
+        c = myokit.Number(2)
+        self.assertEqual(a, b)
+        self.assertEqual(b, a)
+        self.assertNotEqual(a, c)
+        self.assertNotEqual(c, a)
+        self.assertNotEqual(b, c)
+        self.assertNotEqual(c, b)
+
     def test_eval(self):
         # Test evaluation (with single precision).
 
@@ -807,6 +832,32 @@ class NameTest(unittest.TestCase):
         self.assertIsInstance(z, myokit.PartialDerivative)
         self.assertEqual(z.code(), 'diff(str:x, str:y)')
 
+    def test_equal(self):
+        # Test equality checking on names
+
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs(3)
+        y = c.add_variable('y')
+        y.set_rhs(2)
+        y.set_unit(myokit.units.Newton)
+
+        self.assertEqual(myokit.Name(x), myokit.Name(x))
+        self.assertEqual(myokit.Name(y), myokit.Name(y))
+        self.assertNotEqual(myokit.Name(x), myokit.Name(y))
+        self.assertNotEqual(myokit.Name(y), myokit.Name(x))
+        self.assertNotEqual(myokit.Name(x), myokit.Name(m.clone().get('c.x')))
+        self.assertNotEqual(myokit.Name(x), myokit.Name('x'))
+        self.assertNotEqual(myokit.Name(x), myokit.Name('c.x'))
+
+        # Debug/unofficial options
+        self.assertEqual(myokit.Name('a'), myokit.Name('a'))
+        self.assertNotEqual(myokit.Name('a'), myokit.Name('A'))
+        self.assertEqual(myokit.Name(c), myokit.Name(c))
+        self.assertEqual(myokit.Name(m), myokit.Name(m.clone()))
+
     def test_eval_unit(self):
         # Test Name eval_unit.
 
@@ -979,6 +1030,27 @@ class DerivativeTest(unittest.TestCase):
         z = x.diff(y)
         self.assertIsInstance(z, myokit.PartialDerivative)
         self.assertEqual(z.code(), 'diff(dot(str:x), str:y)')
+
+    def test_equal(self):
+        # Test equality checking on derivatives
+
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs(3)
+        y = c.add_variable('y')
+        y.set_rhs(2)
+        y.set_unit(myokit.units.Newton)
+
+        D, N = myokit.Derivative, myokit.Name
+        self.assertEqual(D(N(x)), D(N(x)))
+        self.assertEqual(D(N(y)), D(N(y)))
+        self.assertNotEqual(D(N(x)), D(N(y)))
+        self.assertNotEqual(D(N(y)), D(N(x)))
+        self.assertNotEqual(D(N(x)), D(N(m.clone().get('c.x'))))
+        self.assertNotEqual(D(N(x)), D(N('x')))
+        self.assertNotEqual(D(N(x)), D(N('c.x')))
 
     def test_eval_unit(self):
         # Test Derivative.eval_unit()
