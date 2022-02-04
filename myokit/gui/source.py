@@ -44,8 +44,12 @@ STYLE_KEYWORD_2 = QtGui.QTextCharFormat()
 # Literals: Numbers in model/protocol, Also booleans and strings in script
 STYLE_LITERAL = QtGui.QTextCharFormat()
 STYLE_INLINE_UNIT = QtGui.QTextCharFormat()
+
 # Matching brackets are highlighted
 COLOR_BRACKET = QtGui.QColor(240, 100, 0)
+
+# Selected line is highlighted
+COLOR_SELECTED_LINE = QtGui.QColor(238, 238, 238)
 
 
 def _check_for_dark_mode(palette):
@@ -78,6 +82,9 @@ def _check_for_dark_mode(palette):
         STYLE_KEYWORD_2.setForeground(QtGui.QColor(10, 195, 87))
         STYLE_LITERAL.setForeground(QtGui.QColor(255, 223, 12))
         STYLE_INLINE_UNIT.setForeground(QtGui.QColor(168, 152, 33))
+
+        global COLOR_SELECTED_LINE
+        COLOR_SELECTED_LINE = QtGui.QColor(70, 70, 70)
 
 
 # Classes & methods
@@ -122,7 +129,7 @@ class Editor(QtWidgets.QPlainTextEdit):
         # Highlight current line
         extra_selections = []
         selection = QtWidgets.QTextEdit.ExtraSelection()
-        selection.format.setBackground(self._palette.button())
+        selection.format.setBackground(COLOR_SELECTED_LINE)
         selection.format.setProperty(
             QtGui.QTextFormat.FullWidthSelection, True)
         selection.cursor = self.textCursor()
