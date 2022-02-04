@@ -361,6 +361,15 @@ class VarProvider(object):
                 yield x.eq()
         return viter(self.variables(const, inter, state, bound, deep))
 
+    def _resolve(self, name):
+        """
+        Resolves a local variable name to a variable. Raises an
+        :class:`UnresolvedReferenceError` if the name doesn't correspond to any
+        variable accessible from this :class:`VarProvider's <VarProvider>`
+        scope.
+        """
+        raise NotImplementedError
+
     def variables(
             self, const=None, inter=None, state=None, bound=None, deep=False,
             sort=False):
@@ -699,11 +708,7 @@ class VarOwner(ModelPart, VarProvider):
         del(self._variables[variable.name()])
 
     def _resolve(self, name):
-        """
-        Resolves a local variable name to a variable. Raises an
-        :class:`UnresolvedReferenceError` if the name doesn't correspond to any
-        variable accessible from this :class:`VarOwner's <VarOwner>` scope.
-        """
+        """ See :meth:`VarProvider._resolve(). """
         def sa(name):
             # Suggest alternative
             m = self.model()
@@ -2729,7 +2734,7 @@ class Model(ObjectWithMeta, VarProvider):
         Adding new names does _not_ clear the previously reserved names.
         """
         for name in unames:
-            self._reserved_unames.add(name)
+            self._reserved_unames.add(str(name))
 
     def reserve_unique_name_prefix(self, prefix, prepend):
         """
@@ -2760,6 +2765,10 @@ class Model(ObjectWithMeta, VarProvider):
         Will reset the model's validation status to not validated.
         """
         self._valid = None
+
+    def _resolve(self, name):
+        """ See :meth:`VarProvider._resolve(). """
+        return self.get(name)
 
     def resolve_interdependent_components(self):
         """

@@ -8,9 +8,12 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import pickle
 import unittest
-import myokit
+
 import numpy as np
+
+import myokit
 
 # Unit testing in Python 2 and 3
 try:
@@ -289,6 +292,19 @@ class ExpressionTest(unittest.TestCase):
         self.assertFalse(pe('1 + 2 + 3').is_conditional())
         self.assertTrue(pe('if(1, 0, 2)').is_conditional())
         self.assertTrue(pe('1 + if(1, 0, 2)').is_conditional())
+
+    def test_pickling_error(self):
+        # Tests pickling of expressions raises an exception
+
+        # Test that the right exception is raised
+        m = myokit.load_model('example')
+        e = m.get('ina.INa').rhs()
+        self.assertRaises(NotImplementedError, pickle.dumps, e)
+
+        # Test that the trick in the exception actually works
+        s = e.code()
+        f = myokit.parse_expression(s, context=m)
+        self.assertEqual(e, f)
 
     def test_pyfunc(self):
         # Test the pyfunc() method.

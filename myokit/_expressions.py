@@ -131,11 +131,14 @@ class Expression(object):
         """
         Returns this expression formatted in ``mmt`` syntax.
 
-        When :class:`LhsExpressions <LhsExpression>` are encountered, their
-        full qname is rendered, except in two cases: (1) if the variable's
-        component matches the argument ``component`` or (2) if the variable is
-        nested. Aliases are used in place of qnames if found in the given
-        component.
+        When :class:`Name` objects are encountered, the fullly qualified name
+        of the :class:`myokit.Variable` that they refer to is rendered, with
+        the following exceptions:
+
+        - if the variable's component matches the argument ``component`` or the
+          variable is nested, then the local variable name is used
+        - if the given ``component`` has an alias for the variable, this alias
+          is used.
         """
         b = StringIO()
         self._code(b, component)
@@ -332,10 +335,14 @@ class Expression(object):
         return unit1 / unit2
 
     def __eq__(self, other):
-        if type(self) != type(other):
+        # Equality checking method, used by all expressions.
+        if self is other:
+            return True
+        elif type(self) != type(other):
             return False
-        # Get polish is fast because it uses caching
-        return self._polish() == other._polish()
+        else:
+            # Compare cached polish expression (which uses ids)
+            return self._polish() == other._polish()
 
     def eval(self, subst=None, precision=myokit.DOUBLE_PRECISION):
         """
@@ -485,9 +492,7 @@ class Expression(object):
         return result
 
     def _eval_unit(self, mode):
-        """
-        Internal version of eval_unit()
-        """
+        """ Internal version of eval_unit(). """
         raise NotImplementedError
 
     def __float__(self):
@@ -596,6 +601,10 @@ class Expression(object):
         Returns a reverse-polish notation version of this expression's code,
         using Variable id's instead of Variable name's to create immutable,
         unambiguous expressions.
+
+        Note that id's are immutable _during the Variable's lifetime_. Since a
+        Name object stores a reference to the Variable, this means the
+        variable id is immutable in the expression's lifetime.
         """
         if self._cached_polish is None:
             b = StringIO()
@@ -659,6 +668,14 @@ class Expression(object):
 
         # Return string
         return w.ex(self)
+
+    def __reduce__(self):
+        """ Called when attempting to pickle an expression. """
+        raise NotImplementedError(
+            'Individual Myokit expressions can not be pickled. Please try e.g.'
+            ' pickling a full model, or use e.g. `pickled = Expression.code()`'
+            ' as a serialisation that can be "unpickled" with'
+            ' `myokit.parse_expression(pickled, context=a_model)`.')
 
     def references(self):
         """
@@ -979,6 +996,7 @@ class Name(LhsExpression):
 
     def _code(self, b, c):
         if self._proper:
+            # Handle proper variable references
             if self._value.is_nested():
                 b.write(self._value.name())
             else:
@@ -993,7 +1011,8 @@ class Name(LhsExpression):
             # Allow strings for debugging
             b.write('str:' + str(self._value))
         else:
-            # And sneaky abuse of the expression system
+            # Allow "misusing" the expression system by storing other types as
+            # values.
             b.write(str(self._value))
 
     def _diff(self, lhs, idstates):
@@ -1224,7 +1243,7 @@ class PartialDerivative(LhsExpression):
         if not isinstance(var1, (Name, Derivative)):
             raise IntegrityError(
                 'The first argument to a partial derivative must be a'
-                ' variable name or a dot() operator.', self._token)
+                ' variable name or a dot() expression.', self._token)
         if not isinstance(var2, (Name, InitialValue)):
             raise IntegrityError(
                 'The second argument to a partial derivative must be a'

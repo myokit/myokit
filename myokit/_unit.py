@@ -560,8 +560,8 @@ class Unit(object):
         return Unit(list(self._x), self._m + math.log10(other))
 
     def __rtruediv__(self, other):
-        # Evaluates ``other / self``, where other is not a unit when future
-        # division is active.
+        # Evaluates ``other / self``, where other is not a unit, in Python 3
+        # or when future division is active.
 
         return Unit([-a for a in self._x], math.log10(other) - self._m)
 
