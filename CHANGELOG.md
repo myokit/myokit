@@ -14,7 +14,7 @@ This page lists the main changes made to Myokit in each release.
 - Removed
 - Fixed
   - [#841](https://github.com/MichaelClerx/myokit/pull/841) The MathMLExpressionWriter now uses `type="e-notation"` where necessary, instead of writing e.g. `1e-6`.
-  - [#849](https://github.com/MichaelClerx/myokit/pull/849) If `Model.get()` and `Component.get()` are now called with a `Component` or `Variable` as argument, this is returned directly _only_ if it is part of the same model. In all other cases the object is converted to a qname before look-up.
+  - [#849](https://github.com/MichaelClerx/myokit/pull/849) If `Model.get()` and `Component.get()` now raise a `ValueError` if a component or variable from a different model is passed in.
 
 ## [1.33.1] - 2022-01-24
 - Added

@@ -603,10 +603,7 @@ class ModelTest(unittest.TestCase):
 
         # Get by variable from another model
         m2 = m.clone()
-        w = m2.get(v)
-        self.assertIsNot(w, v)
-        v2 = m2.get(w)
-        self.assertIs(w, v2)
+        self.assertRaisesRegex(ValueError, 'different model', m2.get, v)
 
         # Get nested
         a = m.get('ina.m.alpha')

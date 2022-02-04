@@ -608,7 +608,8 @@ class VarOwner(ModelPart, VarProvider):
         if isinstance(name, ModelPart):
             if name.model() is self._model:
                 return name
-            name = name.qname()
+            raise ValueError(
+                'Given argument ' + repr(name) + ' is from a different model.')
 
         # Find variable
         names = name.split('.')
@@ -1627,7 +1628,8 @@ class Model(ObjectWithMeta, VarProvider):
         if isinstance(name, ModelPart):
             if name.model() is self:
                 return name
-            name = name.qname()
+            raise ValueError(
+                'Given argument ' + repr(name) + ' is from a different model.')
 
         # Split name, get different parts
         names = name.split('.')
