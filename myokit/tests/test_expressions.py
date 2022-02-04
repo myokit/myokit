@@ -175,7 +175,7 @@ class ExpressionTest(unittest.TestCase):
         m2 = m1.clone()
         for v in m1.variables(deep=True):
             e1 = v.rhs()
-            e2 = m2.get(v).rhs()
+            e2 = m2.get(v.qname()).rhs()
             if e1.is_literal():
                 self.assertEqual(e1, e1)
             else:
