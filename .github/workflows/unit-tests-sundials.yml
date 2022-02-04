@@ -24,9 +24,6 @@ jobs:
 
       - name: Configure Python
         uses: actions/setup-python@v1
-        with:
-          #python-version: ${{ matrix.python-version }}
-          architecture: x64
 
       - name: Check out Sundials ${{ matrix.sundials-version }}
         uses: actions/checkout@v2
