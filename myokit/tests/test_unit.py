@@ -318,6 +318,11 @@ class MyokitUnitTest(unittest.TestCase):
             myokit.Unit.register_preferred_representation(
                 'abc', myokit.units.m**8)
             self.assertEqual(str(u), '[abc]')
+
+            self.assertRaisesRegex(
+                ValueError, 'must be a myokit.Unit',
+                myokit.Unit.register_preferred_representation, 'x', 123)
+
         finally:
             # Bypassing the public API, this is bad test design!
             if u in myokit.Unit._preferred_representations:
