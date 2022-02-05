@@ -4771,17 +4771,18 @@ class Variable(VarOwner):
 
 class Equation(object):
     """
-    Defines an equation: a statement that a left-hand side is equal to a
-    right-hand side.
+    Defines an equation: a statement that a left-hand side (LHS) is equal to a
+    right-hand side (RHS) expression.
 
     The sides of an equation are stored in the properties ``lhs`` and ``rhs``.
+    Equations are immutable: once created, their LHS and RHS cannot be changed.
 
     Note: This is not a :class:`myokit.Expression`, for that, see
     :class:`myokit.Equal`.
     """
     def __init__(self, lhs, rhs):
-        self.lhs = lhs
-        self.rhs = rhs
+        self._lhs = lhs
+        self._rhs = rhs
 
     def __eq__(self, other):
         if not isinstance(other, Equation):
@@ -4796,27 +4797,39 @@ class Equation(object):
         See :meth:`myokit.Expression.clone()` for details of the arguments.
         """
         return Equation(
-            self.lhs.clone(subst, expand, retain),
-            self.rhs.clone(subst, expand, retain),
+            self._lhs.clone(subst, expand, retain),
+            self._rhs.clone(subst, expand, retain),
         )
 
     def code(self):
+        """ Returns an ``.mmt`` representation of this equation. """
         b = StringIO()
-        self.lhs._code(b, None)
+        self._lhs._code(b, None)
         b.write(' = ')
-        self.rhs._code(b, None)
+        self._rhs._code(b, None)
         return b.getvalue()
 
     def __hash__(self):
-        # Note: Hash should never change during object's lifetime!
-        return hash(self.code())
+        # Note: Hash should never change during object's lifetime. This is
+        # guaranteed if we use the hashes of its operands.
+        return hash(self._lhs) + hash(self._rhs)
 
     def __iter__(self):
         # Having this allows "lhs, rhs = eq"
-        return iter((self.lhs, self.rhs))
+        return iter((self._lhs, self._rhs))
+
+    @property
+    def lhs(self):
+        """ This equations left-hand side expression. """
+        return self._lhs
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    @property
+    def rhs(self):
+        """ This equations right-hand side expression. """
+        return self._rhs
 
     def __str__(self):
         return self.code()
@@ -4826,9 +4839,7 @@ class Equation(object):
 
 
 class EquationList(list, VarProvider):
-    """
-    Represents an ordered list of :class:`Equation` objects
-    """
+    """ An ordered list of :class:`Equation` objects """
     def _create_variable_stream(self, deep, sort):
         # Always sorted
         def stream(lst):

@@ -676,10 +676,11 @@ class Expression(object):
     def __reduce__(self):
         """ Called when attempting to pickle an expression. """
         raise NotImplementedError(
-            'Individual Myokit expressions can not be pickled. Please try e.g.'
-            ' pickling a full model, or use e.g. `pickled = Expression.code()`'
-            ' as a serialisation that can be "unpickled" with'
-            ' `myokit.parse_expression(pickled, context=a_model)`.')
+            'Individual myokit Expressions can not be pickled. Please try e.g.'
+            ' pickling a full model, or pickling the output of'
+            ' `Expression.code()` and following unpickling with a call to'
+            ' `myokit.parse_expression(unpickled_code, context=a_model)` to'
+            ' recreate the Expression.')
 
     def references(self):
         """

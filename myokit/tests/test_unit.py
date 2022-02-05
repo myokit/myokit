@@ -314,8 +314,14 @@ class MyokitUnitTest(unittest.TestCase):
 
         u = myokit.units.m**8
         self.assertEqual(str(u), '[m^8]')
-        myokit.Unit.register_preferred_representation('abc', myokit.units.m**8)
-        self.assertEqual(str(u), '[abc]')
+        try:
+            myokit.Unit.register_preferred_representation(
+                'abc', myokit.units.m**8)
+            self.assertEqual(str(u), '[abc]')
+        finally:
+            # Bypassing the public API, this is bad test design!
+            if 'abc' in myokit.Unit._preferred_representations:
+                del(myokit.Unit._preferred_representations['abc'])
 
     def test_str(self):
         # Test :meth:`Unit.str()`

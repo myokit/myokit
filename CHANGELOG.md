@@ -16,6 +16,8 @@ This page lists the main changes made to Myokit in each release.
 - Fixed
   - [#841](https://github.com/MichaelClerx/myokit/pull/841) The MathMLExpressionWriter now uses `type="e-notation"` where necessary, instead of writing e.g. `1e-6`.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) If `Model.get()` and `Component.get()` now raise a `ValueError` if a component or variable from a different model is passed in.
+  - [#849](https://github.com/MichaelClerx/myokit/pull/849) `Equation` objects are now immutable, and their `hash` is consistent during the object's lifetime.
+  - [#849](https://github.com/MichaelClerx/myokit/pull/849) The `hash` of a `Quantity` object is now consistent during its lifetime, regardless of unit representations.
 
 ## [1.33.1] - 2022-01-24
 - Added

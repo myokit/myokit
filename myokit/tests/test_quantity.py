@@ -115,12 +115,18 @@ class QuantityTest(unittest.TestCase):
     def test_hash(self):
         # Test has does not change in quantity's lifetime
 
-        u1 = myokit.Quantity(1, myokit.units.m**8)
-        h1 = hash(u1)
-        myokit.Unit.register_preferred_representation('abc', myokit.units.m**8)
-        u2 = myokit.Quantity(1, myokit.units.m**8)
-        h2 = hash(u2)
-        self.assertEqual(h1, h2)
+        try:
+            u1 = myokit.Quantity(1, myokit.units.m**8)
+            h1 = hash(u1)
+            myokit.Unit.register_preferred_representation(
+                'abc', myokit.units.m**8)
+            u2 = myokit.Quantity(1, myokit.units.m**8)
+            h2 = hash(u2)
+            self.assertEqual(h1, h2)
+        finally:
+            # Bypassing the public API, this is bad test design!
+            if 'abc' in myokit.Unit._preferred_representations:
+                del(myokit.Unit._preferred_representations['abc'])
 
     def test_number_conversion(self):
         # Test Quantity conversion from and to number.
@@ -228,7 +234,6 @@ class QuantityTest(unittest.TestCase):
         self.assertAlmostEqual(b.value(), 10)
         with self.assertRaises(myokit.IncompatibleUnitError):
             a ** a
-
 
 
 if __name__ == '__main__':

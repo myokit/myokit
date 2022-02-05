@@ -829,7 +829,7 @@ class Quantity(object):
         return self._value
 
     def __hash__(self):
-        return hash(self._str)
+        return hash(self._value) + hash(self._unit)
 
     def __mul__(self, other):
         if not isinstance(other, Quantity):
