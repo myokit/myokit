@@ -8,9 +8,12 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 
+import pickle
 import unittest
-import myokit
+
 import numpy as np
+
+import myokit
 
 # Unit testing in Python 2 and 3
 try:
@@ -165,6 +168,19 @@ class ExpressionTest(unittest.TestCase):
             i.lhs().diff(V0, independent_states=False),
             myokit.PartialDerivative(i.lhs(), V0))
 
+    def test_equal(self):
+        # Test equality checking on general equations
+
+        m1 = myokit.load_model('example')
+        m2 = m1.clone()
+        for v in m1.variables(deep=True):
+            e1 = v.rhs()
+            e2 = m2.get(v.qname()).rhs()
+            if e1.is_literal():
+                self.assertEqual(e1, e1)
+            else:
+                self.assertNotEqual(e1, e2)
+
     def test_eval(self):
         # Test :meth:`Expression.eval()`.
 
@@ -289,6 +305,19 @@ class ExpressionTest(unittest.TestCase):
         self.assertFalse(pe('1 + 2 + 3').is_conditional())
         self.assertTrue(pe('if(1, 0, 2)').is_conditional())
         self.assertTrue(pe('1 + if(1, 0, 2)').is_conditional())
+
+    def test_pickling_error(self):
+        # Tests pickling of expressions raises an exception
+
+        # Test that the right exception is raised
+        m = myokit.load_model('example')
+        e = m.get('ina.INa').rhs()
+        self.assertRaises(NotImplementedError, pickle.dumps, e)
+
+        # Test that the trick in the exception actually works
+        s = e.code()
+        f = myokit.parse_expression(s, context=m)
+        self.assertEqual(e, f)
 
     def test_pyfunc(self):
         # Test the pyfunc() method.
@@ -519,6 +548,18 @@ class NumberTest(unittest.TestCase):
         d = C.rhs().diff(E.lhs())
         self.assertTrue(d.is_number(0))
         self.assertEqual(d.unit(), myokit.units.pF / myokit.units.mV)
+
+    def test_equal(self):
+        # Test equality checking on numbers
+        a = myokit.Number(1)
+        b = myokit.Number(1)
+        c = myokit.Number(2)
+        self.assertEqual(a, b)
+        self.assertEqual(b, a)
+        self.assertNotEqual(a, c)
+        self.assertNotEqual(c, a)
+        self.assertNotEqual(b, c)
+        self.assertNotEqual(c, b)
 
     def test_eval(self):
         # Test evaluation (with single precision).
@@ -791,6 +832,36 @@ class NameTest(unittest.TestCase):
         self.assertIsInstance(z, myokit.PartialDerivative)
         self.assertEqual(z.code(), 'diff(str:x, str:y)')
 
+    def test_equal(self):
+        # Test equality checking on names
+
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs(3)
+        y = c.add_variable('y')
+        y.set_rhs(2)
+        y.set_unit(myokit.units.Newton)
+
+        self.assertEqual(myokit.Name(x), myokit.Name(x))
+        self.assertEqual(myokit.Name(y), myokit.Name(y))
+        self.assertNotEqual(myokit.Name(x), myokit.Name(y))
+        self.assertNotEqual(myokit.Name(y), myokit.Name(x))
+        self.assertNotEqual(myokit.Name(x), myokit.Name(m.clone().get('c.x')))
+        self.assertNotEqual(myokit.Name(x), myokit.Name('x'))
+        self.assertNotEqual(myokit.Name(x), myokit.Name('c.x'))
+
+        # Debug/unofficial options
+        self.assertEqual(myokit.Name('a'), myokit.Name('a'))
+        self.assertNotEqual(myokit.Name('a'), myokit.Name('A'))
+        # The next ones _should_ be equal: since the components and models are
+        # not what's supposed to go inside a name, it will convert to string
+        # and compare the resulting representations. This is the same as what
+        # would happen if __eq__ was called on an expression wrapping a Name.
+        self.assertEqual(myokit.Name(c), myokit.Name(c))
+        self.assertEqual(myokit.Name(m), myokit.Name(m.clone()))
+
     def test_eval_unit(self):
         # Test Name eval_unit.
 
@@ -963,6 +1034,27 @@ class DerivativeTest(unittest.TestCase):
         z = x.diff(y)
         self.assertIsInstance(z, myokit.PartialDerivative)
         self.assertEqual(z.code(), 'diff(dot(str:x), str:y)')
+
+    def test_equal(self):
+        # Test equality checking on derivatives
+
+        # Mini model
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs(3)
+        y = c.add_variable('y')
+        y.set_rhs(2)
+        y.set_unit(myokit.units.Newton)
+
+        D, N = myokit.Derivative, myokit.Name
+        self.assertEqual(D(N(x)), D(N(x)))
+        self.assertEqual(D(N(y)), D(N(y)))
+        self.assertNotEqual(D(N(x)), D(N(y)))
+        self.assertNotEqual(D(N(y)), D(N(x)))
+        self.assertNotEqual(D(N(x)), D(N(m.clone().get('c.x'))))
+        self.assertNotEqual(D(N(x)), D(N('x')))
+        self.assertNotEqual(D(N(x)), D(N('c.x')))
 
     def test_eval_unit(self):
         # Test Derivative.eval_unit()
@@ -3799,6 +3891,16 @@ class EquationTest(unittest.TestCase):
         # Test that equations can be hashed.
         # No exception = pass
         hash(myokit.Equation(myokit.Name('x'), myokit.Number('3')))
+
+        # Hash must be consistent during lifetime.
+        m = myokit.Model()
+        c = m.add_component('c')
+        x = c.add_variable('x')
+        x.set_rhs('3 * sqrt(2)')
+        a = hash(x.eq())
+        x.rename('y')
+        b = hash(x.eq())
+        self.assertEqual(a, b)
 
     def test_iter(self):
         # Test iteration over an equation.

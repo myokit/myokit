@@ -131,12 +131,17 @@ class Expression(object):
         """
         Returns this expression formatted in ``mmt`` syntax.
 
-        When :class:`LhsExpressions <LhsExpression>` are encountered, their
-        full qname is rendered, except in two cases: (1) if the variable's
-        component matches the argument ``component`` or (2) if the variable is
-        nested. Aliases are used in place of qnames if found in the given
-        component.
+        When :class:`Name` objects are encountered, the fullly qualified name
+        of the :class:`myokit.Variable` that they refer to is rendered, with
+        the following exceptions:
+
+        - if the variable's component matches the argument ``component`` or the
+          variable is nested, then the local variable name is used
+        - if the given ``component`` has an alias for the variable, this alias
+          is used.
         """
+        # Note: Because variable and component names can change, the output of
+        # code can not be cached (for non-literal expressions).
         b = StringIO()
         self._code(b, component)
         return b.getvalue()
@@ -332,10 +337,16 @@ class Expression(object):
         return unit1 / unit2
 
     def __eq__(self, other):
-        if type(self) != type(other):
+        # Equality checking method, used by all expressions.
+        if self is other:
+            return True
+        elif type(self) != type(other):
             return False
-        # Get polish is fast because it uses caching
-        return self._polish() == other._polish()
+        else:
+            # Compare cached polish expression (which uses ids)
+            # Note that the polish representation uses object ids instead of
+            # qnames
+            return self._polish() == other._polish()
 
     def eval(self, subst=None, precision=myokit.DOUBLE_PRECISION):
         """
@@ -485,9 +496,7 @@ class Expression(object):
         return result
 
     def _eval_unit(self, mode):
-        """
-        Internal version of eval_unit()
-        """
+        """ Internal version of eval_unit(). """
         raise NotImplementedError
 
     def __float__(self):
@@ -596,6 +605,10 @@ class Expression(object):
         Returns a reverse-polish notation version of this expression's code,
         using Variable id's instead of Variable name's to create immutable,
         unambiguous expressions.
+
+        Note that id's are immutable _during the Variable's lifetime_. Since a
+        Name object stores a reference to the Variable, this means the
+        variable id is immutable in the expression's lifetime.
         """
         if self._cached_polish is None:
             b = StringIO()
@@ -659,6 +672,15 @@ class Expression(object):
 
         # Return string
         return w.ex(self)
+
+    def __reduce__(self):
+        """ Called when attempting to pickle an expression. """
+        raise NotImplementedError(
+            'Individual myokit Expressions can not be pickled. Please try e.g.'
+            ' pickling a full model, or pickling the output of'
+            ' `Expression.code()` and following unpickling with a call to'
+            ' `myokit.parse_expression(unpickled_code, context=a_model)` to'
+            ' recreate the Expression.')
 
     def references(self):
         """
@@ -979,6 +1001,7 @@ class Name(LhsExpression):
 
     def _code(self, b, c):
         if self._proper:
+            # Handle proper variable references
             if self._value.is_nested():
                 b.write(self._value.name())
             else:
@@ -993,7 +1016,8 @@ class Name(LhsExpression):
             # Allow strings for debugging
             b.write('str:' + str(self._value))
         else:
-            # And sneaky abuse of the expression system
+            # Allow "misusing" the expression system by storing other types as
+            # values.
             b.write(str(self._value))
 
     def _diff(self, lhs, idstates):
@@ -1036,7 +1060,15 @@ class Name(LhsExpression):
     def __eq__(self, other):
         if type(other) != Name:
             return False
-        return self._value == other._value
+        if self._proper:
+            # Value is name? Then just check with is
+            return self._value is other._value
+        else:
+            # Debug thing? Then convert to string and see if the
+            # representations match. (This is the same as what would happen if
+            # __eq__ was called on an expression _containing_ a Name, e.g
+            # myokit.PrefixPlus(myokit.Name(1.23)).
+            return self.code() == other.code()
 
     def is_name(self, var=None):
         """See :meth:`Expression.is_name()`."""
@@ -1147,11 +1179,6 @@ class Derivative(LhsExpression):
             return PartialDerivative(self, lhs)
         return None
 
-    def __eq__(self, other):
-        if type(other) != Derivative:
-            return False
-        return self._op == other._op
-
     def _eval_unit(self, mode):
         # Get numerator (never None in strict mode)
         unit1 = self._op._eval_unit(mode)
@@ -1224,7 +1251,7 @@ class PartialDerivative(LhsExpression):
         if not isinstance(var1, (Name, Derivative)):
             raise IntegrityError(
                 'The first argument to a partial derivative must be a'
-                ' variable name or a dot() operator.', self._token)
+                ' variable name or a dot() expression.', self._token)
         if not isinstance(var2, (Name, InitialValue)):
             raise IntegrityError(
                 'The second argument to a partial derivative must be a'
@@ -1267,11 +1294,6 @@ class PartialDerivative(LhsExpression):
     def _diff(self, lhs, idstates):
         raise NotImplementedError(
             'Partial derivatives of partial derivatives are not supported.')
-
-    def __eq__(self, other):
-        if type(other) != PartialDerivative:
-            return False
-        return (self._var1 == other._var1) and (self._var2 == other._var2)
 
     def _eval_unit(self, mode):
         unit1 = self._var1._eval_unit(mode)
@@ -1366,11 +1388,6 @@ class InitialValue(LhsExpression):
     def _diff(self, lhs, idstates):
         raise NotImplementedError(
             'Partial derivatives of initial conditions are not supported.')
-
-    def __eq__(self, other):
-        if type(other) != InitialValue:
-            return False
-        return self._var == other._var
 
     def _eval_unit(self, mode):
         return self._var._eval_unit(mode)

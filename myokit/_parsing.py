@@ -1853,7 +1853,10 @@ def parse_expression_string(string, context=None):
     info = None
     if context is not None:
         info = ParseInfo()
-        info.model = context.model()
+        if isinstance(context, myokit.Model):
+            info.model = context
+        else:
+            info.model = context.model()
 
     # Tokenise and parse string to proto expression
     s = Tokenizer(string)

@@ -309,6 +309,25 @@ class MyokitUnitTest(unittest.TestCase):
         self.assertRaises(TypeError, myokit.Unit.register, 4, myokit.Unit())
         self.assertRaises(TypeError, myokit.Unit.register, 'hi', 4)
 
+    def test_register_preferred_representation(self):
+        # Test new representations can be registered
+
+        u = myokit.units.m**8
+        self.assertEqual(str(u), '[m^8]')
+        try:
+            myokit.Unit.register_preferred_representation(
+                'abc', myokit.units.m**8)
+            self.assertEqual(str(u), '[abc]')
+
+            self.assertRaisesRegex(
+                ValueError, 'must be a myokit.Unit',
+                myokit.Unit.register_preferred_representation, 'x', 123)
+
+        finally:
+            # Bypassing the public API, this is bad test design!
+            if u in myokit.Unit._preferred_representations:
+                del(myokit.Unit._preferred_representations[u])
+
     def test_str(self):
         # Test :meth:`Unit.str()`
 

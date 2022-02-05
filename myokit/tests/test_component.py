@@ -265,6 +265,10 @@ class VarOwnerTest(unittest.TestCase):
         self.assertIs(c.get(x), x)
         self.assertIs(x.get(c), c)
 
+        # Test asking for object from another model
+        c2 = m.clone().get('c')
+        self.assertRaisesRegex(ValueError, 'different model', c2.get, x)
+
         # Test not founds
         self.assertRaises(KeyError, m.get, 'y')
         self.assertRaises(KeyError, m.get, 'c.y')
