@@ -125,8 +125,8 @@ class QuantityTest(unittest.TestCase):
             self.assertEqual(h1, h2)
         finally:
             # Bypassing the public API, this is bad test design!
-            if 'abc' in myokit.Unit._preferred_representations:
-                del(myokit.Unit._preferred_representations['abc'])
+            if u1 in myokit.Unit._preferred_representations:
+                del(myokit.Unit._preferred_representations[u1])
 
     def test_number_conversion(self):
         # Test Quantity conversion from and to number.
