@@ -116,17 +116,17 @@ class QuantityTest(unittest.TestCase):
         # Test has does not change in quantity's lifetime
 
         try:
-            u1 = myokit.Quantity(1, myokit.units.m**8)
-            h1 = hash(u1)
-            myokit.Unit.register_preferred_representation(
-                'abc', myokit.units.m**8)
-            u2 = myokit.Quantity(1, myokit.units.m**8)
-            h2 = hash(u2)
+            u = myokit.units.m**8
+            q1 = myokit.Quantity(1, u)
+            h1 = hash(q1)
+            myokit.Unit.register_preferred_representation('abc', u)
+            q2 = myokit.Quantity(1, u)
+            h2 = hash(q2)
             self.assertEqual(h1, h2)
         finally:
             # Bypassing the public API, this is bad test design!
-            if u1 in myokit.Unit._preferred_representations:
-                del(myokit.Unit._preferred_representations[u1])
+            if u in myokit.Unit._preferred_representations:
+                del(myokit.Unit._preferred_representations[u])
 
     def test_number_conversion(self):
         # Test Quantity conversion from and to number.
