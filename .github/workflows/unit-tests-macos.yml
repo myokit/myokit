@@ -12,12 +12,13 @@ jobs:
 
   build-and-test:
     name: unit-macos
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
     strategy:
       matrix:
         # Selected python versions only
         python-version: ['3.7', '3.10']
+        os: ['macos-11', 'macos-12']
 
     steps:
       - uses: actions/checkout@v2
