@@ -140,7 +140,7 @@ class CModule(object):
                     '-Wdeclaration-after-statement',
                 ])
 
-            # Add runtime_library_dirs (to prevent LD_LIBRARY_PATH) errors on
+            # Add runtime_library_dirs to prevent LD_LIBRARY_PATH errors on
             # unconventional linux sundials installations, but not on windows
             # as this can lead to a weird error in setuptools
             runtime = libd
