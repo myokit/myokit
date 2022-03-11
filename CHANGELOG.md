@@ -5,14 +5,13 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
-  - [#852](https://github.com/MichaelClerx/myokit/pull/852) Myokit is no longer tested on Python 3.6 for Windows (please use 3.7 and up).
   - [#843](https://github.com/MichaelClerx/myokit/pull/843) Myokit is no longer tested on Python 3.5.
   - [#844](https://github.com/MichaelClerx/myokit/pull/844) Tweaked the CellML export's `initial_value` attribute to strip `e+00` if present.
   - [#845](https://github.com/MichaelClerx/myokit/pull/845) Improved syntax highlighting and automatic detection of "dark mode" themes.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) Trying to pickle a `myokit.Expression` now raises a more helpful error message.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) The method `myokit.parse_expression()` now accepts a `Model` as a context.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) Model comparison with `==` now only returns ``True`` if both operands are the same object. Comparison based on code can be performed with `Model.is_similar()`.
-  - [
+  - [#852](https://github.com/MichaelClerx/myokit/pull/852) Myokit is no longer tested on Python 3.6 for Windows (please use 3.7 and up).
 - Deprecated
 - Removed
 - Fixed
@@ -20,6 +19,7 @@ This page lists the main changes made to Myokit in each release.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) If `Model.get()` and `Component.get()` now raise a `ValueError` if a component or variable from a different model is passed in.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) `Equation` objects are now immutable, and their `hash` is consistent during the object's lifetime.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) The `hash` of a `Quantity` object is now consistent during its lifetime, regardless of unit representations.
+  - [#857](https://github.com/MichaelClerx/myokit/pull/857) Fixed a memory leak in Simulation.run().
 
 ## [1.33.1] - 2022-01-24
 - Added
