@@ -130,15 +130,16 @@ class CModule(object):
             if myokit.DEBUG_SC:
                 if carg is None:
                     carg = []
-                carg.extend([
-                    '-Wall',
-                    '-Wextra',
-                    '-Wstrict-prototypes',
-                    '-Wold-style-definition',
-                    '-Wmissing-prototypes',
-                    '-Wmissing-declarations',
-                    '-Wdeclaration-after-statement',
-                ])
+                carg.append('-Wall')
+                if platform.system() == 'Linux':
+                    carg.extend([
+                        '-Wextra',
+                        '-Wstrict-prototypes',
+                        '-Wold-style-definition',
+                        '-Wmissing-prototypes',
+                        '-Wmissing-declarations',
+                        '-Wdeclaration-after-statement',
+                    ])
 
             # Add runtime_library_dirs to prevent LD_LIBRARY_PATH errors on
             # unconventional linux sundials installations, but not on windows
