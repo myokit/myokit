@@ -328,9 +328,12 @@ int mcl_select_device(
     #endif
 
     // Get array of platform ids
+    // This can raisee an error CL_PLATFORM_NOT_FOUND_KHR (code -1001) if no
+    // platforms are found and the cl_khr_icd extension is enabled:
+    // https://www.khronos.org/registry/OpenCL/sdk/2.0/docs/man/xhtml/clGetPlatformIDs.html
     n_platforms = 0;
     flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
-    if(mcl_flag(flag)) return 1;
+    if ((flag != -1001) && mcl_flag(flag)) return 1;
     if (n_platforms == 0) {
         PyErr_SetString(PyExc_Exception, "No OpenCL platforms found.");
         return 1;
@@ -813,10 +816,17 @@ mcl_info()
     PyObject* devices;       // Temporary tuple of devices
     PyObject* device;        // Temporary device dict
 
+    #ifdef MYOKIT_DEBUG_MESSAGES
+    printf("Querying OpenCL driver\n");
+    #endif
+
     // Get platforms
+    // This can raisee an error CL_PLATFORM_NOT_FOUND_KHR (code -1001) if no
+    // platforms are found and the cl_khr_icd extension is enabled:
+    // https://www.khronos.org/registry/OpenCL/sdk/2.0/docs/man/xhtml/clGetPlatformIDs.html
     n_platforms = 0;
     flag = clGetPlatformIDs(MCL_MAX_PLATFORMS, platform_ids, &n_platforms);
-    if(mcl_flag(flag)) return NULL;
+    if ((flag != -1001) && mcl_flag(flag)) return NULL;
     #ifdef MYOKIT_DEBUG_MESSAGES
     printf("Found %d platforms\n", n_platforms);
     #endif
@@ -840,7 +850,7 @@ mcl_info()
         flag = clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_ALL, MCL_MAX_DEVICES, device_ids, &n_devices);
         if (flag == CL_DEVICE_NOT_FOUND) {
             n_devices = 0;
-        } else if(mcl_flag(flag)) {
+        } else if (mcl_flag(flag)) {
             Py_DECREF(platforms);
             return NULL;
         }

@@ -20,6 +20,7 @@ This page lists the main changes made to Myokit in each release.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) `Equation` objects are now immutable, and their `hash` is consistent during the object's lifetime.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) The `hash` of a `Quantity` object is now consistent during its lifetime, regardless of unit representations.
   - [#857](https://github.com/MichaelClerx/myokit/pull/857) Fixed a memory leak in Simulation.run().
+  - [#858](https://github.com/MichaelClerx/myokit/pull/858) `OpenCL.info` no longer raises `CL_PLATFORM_NOT_FOUND_KHR` if drivers but no devices are found.
 
 ## [1.33.1] - 2022-01-24
 - Added
