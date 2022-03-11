@@ -95,10 +95,13 @@ class OpenCL(myokit.CModule):
         at least one platform and device were detected.
         """
         try:
-            OpenCL.current_info()
+            info = OpenCL.info()
         except Exception:   # pragma: no cover
             return False
-        return True
+        for p in info.platforms:
+            for d in p.devices:
+                return True
+        return False    # pragma: no cover
 
     @staticmethod
     def current_info(formatted=False):
@@ -123,14 +126,14 @@ class OpenCL(myokit.CModule):
         If ``formatted=True`` is set, a formatted version of the information is
         returned instead.
         """
-        if not OpenCL.supported():
+        if not OpenCL.supported():  # pragma: no cover
             if formatted:
                 return 'No OpenCL support detected.'
             return OpenCLInfo()
 
         info = OpenCLInfo(OpenCL._get_instance().info())
         if formatted:
-            if len(info.platforms) == 0:
+            if len(info.platforms) == 0:  # pragma: no cover
                 return 'OpenCL drivers detected, but no devices found.'
             return info.format()
         return info
