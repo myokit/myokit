@@ -356,7 +356,7 @@ ESys_Populate(ESys sys, PyObject* protocol)
 
     if (protocol != Py_None) {
 
-        // Get PyList from protocol
+        // Get PyList from protocol (will need to decref!)
         // Cast to (char*) happens because CallMethod accepts a mutable char*
         // This should have been const char* and has been fixed in python 3
         PyObject* list = PyObject_CallMethod(protocol, (char*)"events", NULL);
@@ -454,6 +454,10 @@ ESys_Populate(ESys sys, PyObject* protocol)
                 e++;
             }
         }
+
+        /* Finished with list */
+        Py_DECREF(list);
+        list = NULL;
     }
 
     // Add the events to the system
