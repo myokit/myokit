@@ -46,7 +46,6 @@ setup(
 
     # URLs
     url='http://myokit.org',
-    download_url='https://pypi.org/project/myokit/',
     project_urls={
         'Bug Tracker': 'https://github.com/MichaelClerx/myokit/issues',
         'Documentation': 'http://docs.myokit.org',
