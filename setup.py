@@ -25,24 +25,49 @@ with open('README.md') as f:
 
 # Go!
 setup(
+    # See https://python-packaging.readthedocs.io/en/latest/index.html
+    # for details of what goes in here.
+
     # Module name (lowercase)
     name='myokit',
 
     # Version
     version=version,
 
+    # Description
     description='A simple interface to cardiac cellular electrophysiology',
-
     long_description=readme,
     long_description_content_type='text/markdown',
 
+    # Author and license
     license='BSD 3-clause license',
-
     author='Michael Clerx',
-
     author_email='michael@myokit.org',
 
+    # URLs
     url='http://myokit.org',
+    download_url='https://pypi.org/project/myokit/',
+    project_urls={
+        'Bug Tracker': 'https://github.com/MichaelClerx/myokit/issues',
+        'Documentation': 'http://docs.myokit.org',
+        'Source Code': 'https://github.com/MichaelClerx/myokit',
+    },
+
+    # Classifiers for pypi
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
+        'Topic :: Scientific/Engineering :: Chemistry',
+        'Topic :: Scientific/Engineering :: Mathematics',
+        'Topic :: Scientific/Engineering :: Medical Science Apps.',
+        'Topic :: Scientific/Engineering :: Physics',
+    ],
 
     # Packages to include
     packages=find_packages(include=('myokit', 'myokit.*')),
@@ -84,19 +109,10 @@ setup(
         'pyside': ['pyside2'],
     },
 
-    # Classifiers for pypi
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: BSD License',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Bio-Informatics',
-        'Topic :: Scientific/Engineering :: Chemistry',
-        'Topic :: Scientific/Engineering :: Mathematics',
-        'Topic :: Scientific/Engineering :: Medical Science Apps.',
-        'Topic :: Scientific/Engineering :: Physics',
-    ],
+    # Unit tests
+    test_suite='myokit.tests',
+
+    # See: https://setuptools.pypa.io/en/latest/userguide/miscellaneous.html
+    #      #setting-the-zip-safe-flag
+    zip_safe=False,
 )

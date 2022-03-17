@@ -14,7 +14,7 @@ import numpy as np
 
 import myokit.formats.wcp as wcp
 
-from shared import DIR_FORMATS
+from myokit.tests import DIR_FORMATS
 
 
 class WcpTest(unittest.TestCase):

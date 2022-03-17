@@ -14,7 +14,7 @@ import unittest
 
 import myokit
 
-from shared import TemporaryDirectory
+from myokit.tests import TemporaryDirectory
 
 
 # Empty config

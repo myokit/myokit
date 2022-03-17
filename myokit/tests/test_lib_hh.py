@@ -15,7 +15,7 @@ import numpy as np
 import myokit
 import myokit.lib.hh as hh
 
-from shared import DIR_DATA
+from myokit.tests import DIR_DATA
 
 # Unit testing in Python 2 and 3
 try:

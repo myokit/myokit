@@ -16,7 +16,7 @@ import myokit.formats.sbml as sbml
 
 from myokit.formats.sbml._api import _MyokitConverter as X
 
-from shared import WarningCollector
+from myokit.tests import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:

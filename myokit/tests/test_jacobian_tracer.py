@@ -13,7 +13,7 @@ import unittest
 
 import myokit
 
-from shared import DIR_DATA
+from myokit.tests import DIR_DATA
 
 # Unit testing in Python 2 and 3
 try:

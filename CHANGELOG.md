@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#860](https://github.com/MichaelClerx/myokit/pull/860) Made `myokit.tests` into a module. Made tests runnable via `setup.py`. Added more meta data to `setup.py`.
 - Deprecated
 - Removed
 - Fixed

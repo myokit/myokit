@@ -18,7 +18,7 @@ import myokit.formats
 import myokit.formats.sbml
 
 # from shared import DIR_FORMATS, WarningCollector
-from shared import DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_FORMATS, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:

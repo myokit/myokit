@@ -15,7 +15,7 @@ import unittest
 import myokit
 import myokit.units
 
-from shared import DIR_DATA, TemporaryDirectory
+from myokit.tests import DIR_DATA, TemporaryDirectory
 
 # Unit testing in Python 2 and 3
 try:
@@ -36,9 +36,8 @@ class TokenizerTest(unittest.TestCase):
     """
 
     def test_tokenizer(self):
-        """
-        Test basic Tokenizer functionality.
-        """
+        # Test basic Tokenizer functionality.
+
         import myokit._parsing as p
         from myokit._parsing import Tokenizer
         s = Tokenizer('5')
@@ -225,7 +224,7 @@ class PhasedParseTest(unittest.TestCase):
     Tests several phases of parsing.
     """
     def test_segment_parsing(self):
-        """ Test :meth:`parse_model()`. """
+        # Test :meth:`parse_model()`.
         from myokit._parsing import parse
 
         # Empty code --> error
@@ -280,9 +279,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, r'Expecting \[\[script]]', parse, code)
 
     def test_parse_model(self):
-        """
-        Test the parse_model method.
-        """
+        # Test the parse_model method.
         from myokit._parsing import parse_model
 
         # Test simple
@@ -306,7 +303,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, r'Expecting \[\[model]]', parse_model, code)
 
     def test_parse_model_from_stream_error(self):
-        """ Quick error testing for :meth:`parse_model_from_stream`. """
+        # Quick error testing for :meth:`parse_model_from_stream`.
         from myokit._parsing import parse_model_from_stream
         from myokit._parsing import Tokenizer
 
@@ -359,7 +356,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Unused initial value', p, code)
 
     def test_parse_user_function(self):
-        """ Test :meth:`parse_user_function()`. """
+        # Test :meth:`parse_user_function()`.
         from myokit._parsing import parse_model as p
 
         # Test basics
@@ -394,7 +391,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'already defined', p, code)
 
     def test_block_comments(self):
-        """ Test block comments in model. """
+        # Test block comments in model.
         from myokit._parsing import parse_model_from_stream
         from myokit._parsing import Tokenizer
 
@@ -430,9 +427,7 @@ class PhasedParseTest(unittest.TestCase):
         self.assertEqual(m1.code(), m2.code(), m3.code())
 
     def test_parse_component(self):
-        """
-        Test parse_component(), uses parse_variable
-        """
+        # Test parse_component(), uses parse_variable
         from myokit._parsing import parse_model as p
 
         # Test basics
@@ -482,7 +477,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Duplicate meta-data key', p, code)
 
     def test_parse_alias(self):
-        """ Test :meth:`parse_alias()`. """
+        # Test :meth:`parse_alias()`.
         from myokit._parsing import parse_model as p
 
         # Test basics
@@ -540,9 +535,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Variable not found', p, code)
 
     def test_parse_variable(self):
-        """
-        Test parse_variable(), uses parse_expression()
-        """
+        # Test parse_variable(), uses parse_expression()
         from myokit._parsing import parse_model as p
 
         # Test basics
@@ -719,7 +712,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Duplicate variable unit', p, code)
 
     def test_parse_unit(self):
-        """ Test :meth:`parse_unit` and :meth:`parse_unit_string`. """
+        # Test :meth:`parse_unit` and :meth:`parse_unit_string`.
         from myokit._parsing import parse_unit_string as p
 
         # Test dimensionless
@@ -761,7 +754,7 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'Invalid unit multiplier', p, 'm (x)')
 
     def test_parse_protocol(self):
-        """ Test :meth:`parse_protocol()`. """
+        # Test :meth:`parse_protocol()`.
         from myokit._parsing import parse_protocol
 
         # Test simple
@@ -906,7 +899,7 @@ class PhasedParseTest(unittest.TestCase):
         parse_protocol(code)
 
     def test_parse_script(self):
-        """ Test :meth:`parse_script()`. """
+        # Test :meth:`parse_script()`.
         from myokit._parsing import parse_script
 
         # Test simple
@@ -955,9 +948,7 @@ class PhasedParseTest(unittest.TestCase):
             parse_script_from_stream, stream, raw)
 
     def test_split(self):
-        """
-        Test split(), uses parse()
-        """
+        # Test split(), uses parse()
         from myokit._parsing import split
 
         # Test horrible scenario
@@ -996,7 +987,7 @@ class PhasedParseTest(unittest.TestCase):
         self.assertEqual(p, '\n'.join(code[8:-1]))
 
     def test_unexpected_token(self):
-        """ Test :meth:`unexpected_token`. """
+        # Test :meth:`unexpected_token`.
         import myokit._parsing as p
 
         # code, text, line, char
@@ -1024,9 +1015,7 @@ class PhasedParseTest(unittest.TestCase):
             p.unexpected_token, token, [p.PLUS, p.MINUS, p.STAR])
 
     def test_parse_expression(self):
-        """
-        Test parse_expression()
-        """
+        # Test parse_expression()
         from myokit import parse_expression as p
         from myokit import Number
         e = p('5')
@@ -1080,9 +1069,7 @@ class PhasedParseTest(unittest.TestCase):
         self.assertRaises(myokit.ParseError, p, '5 beans')
 
     def test_parse_expression_string(self):
-        """
-        Test :meth:`parse_expression_string()`.
-        """
+        # Test :meth:`parse_expression_string()`.
         from myokit._parsing import parse_expression_string
         e = parse_expression_string('5 --- 2')
         self.assertIsInstance(e, myokit.Minus)
@@ -1094,9 +1081,7 @@ class PhasedParseTest(unittest.TestCase):
             parse_expression_string, '5 + 2 3 * 7')
 
     def test_parse_state(self):
-        """
-        Test parse_state()
-        """
+        # Test parse_state()
         # Further tests in test_loadsave
 
         # Test basic
@@ -1133,9 +1118,8 @@ class PhasedParseTest(unittest.TestCase):
             myokit.ParseError, 'must be fully qualified', parse_state, code)
 
     def test_format_parse_error(self):
-        """
-        Test format_parse_error.
-        """
+        # Test format_parse_error.
+
         # Test basic formatting, with and without source
         bad = '    5 + / 2'
         try:
@@ -1311,9 +1295,7 @@ class ModelParseTest(unittest.TestCase):
         self.assertEqual(m.code(), m2.code())
 
     def test_unresolved_reference_error(self):
-        """
-        Test unresolved reference errors.
-        """
+        # Test unresolved reference errors.
         code = """
             [[model]]
 
@@ -1338,9 +1320,8 @@ class ModelParseTest(unittest.TestCase):
             str(e)
 
     def test_cyclical_reference_error(self):
-        """
-        Test cyclical reference errors.
-        """
+        # Test cyclical reference errors.
+
         code = """
             [[model]]
 
@@ -1366,9 +1347,8 @@ class ModelParseTest(unittest.TestCase):
             self.assertEqual(e.cause.token(), (NAME, 'y', 9, 12))
 
     def test_piecewise(self):
-        """
-        Test a model with a piecewise statement
-        """
+        # Test a model with a piecewise statement
+
         m = myokit.load_model(
             os.path.join(DIR_DATA, 'conditional.mmt'))
         # Test evaluation
@@ -1393,9 +1373,8 @@ class ModelParseTest(unittest.TestCase):
         m.clone()
 
     def test_initial_values(self):
-        """
-        Test if expressions for initial values are handled correctly.
-        """
+        # Test if expressions for initial values are handled correctly.
+
         code = """
             [[model]]
             c.p = 1.0
@@ -1498,10 +1477,8 @@ class ModelParseTest(unittest.TestCase):
         self.assertRaises(myokit.DuplicateName, c.add_alias, 'p', r)
 
     def test_clone_code_parse(self):
-        """
-        Test the cloning, code and parse() by exporting models and
-        reading them in again.
-        """
+        # Test the cloning, code and parse() by exporting models and
+        # reading them in again.
         models = [
             'conditional.mmt',
         ]
@@ -1516,17 +1493,13 @@ class ModelParseTest(unittest.TestCase):
             self.assertEqual(c1, c3)
 
     def test_advanced_units(self):
-        """
-        Test the new unit syntax where literals have units.
-        """
+        # Test the new unit syntax where literals have units.
         model = 'beeler-1977-units.mmt'
         m = myokit.load_model(os.path.join(DIR_DATA, model))
         m.validate()
 
     def test_unresolved_references(self):
-        """
-        Test parsing models with unresolved references.
-        """
+        # Test parsing models with unresolved references.
         m = """
             [[model]]
 
@@ -1573,9 +1546,8 @@ class ModelParseTest(unittest.TestCase):
         self.assertRaises(myokit.ParseError, myokit.parse_model, m)
 
     def test_invalid_dot_in_rhs(self):
-        """
-        Test parsing a model with an invalid dot() in a variable's RHS.
-        """
+        # Test parsing a model with an invalid dot() in a variable's RHS.
+
         # This model has dot(1 - x), which is not allowed!
         code = """
             [[model]]
@@ -1592,9 +1564,7 @@ class ModelParseTest(unittest.TestCase):
             myokit.ParseError, 'only be used on variables', myokit.parse, code)
 
     def test_strip_expression_units(self):
-        """
-        Test :meth:`strip_expression_units`.
-        """
+        # Test :meth:`strip_expression_units`.
         from myokit._parsing import parse_model, strip_expression_units
 
         m1 = myokit.load_model('example')
@@ -1618,9 +1588,8 @@ class ModelParseTest(unittest.TestCase):
             m1.evaluate_derivatives(), m2.evaluate_derivatives())
 
     def test_function_parsing(self):
-        """
-        Test parsing of functions.
-        """
+        # Test parsing of functions.
+
         # Test simple function
         m = """
             [[model]]

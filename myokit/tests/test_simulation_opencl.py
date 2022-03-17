@@ -17,7 +17,7 @@ import numpy as np
 
 import myokit
 
-from shared import (
+from myokit.tests import (
     CancellingReporter,
     DIR_DATA,
     OpenCL_FOUND,

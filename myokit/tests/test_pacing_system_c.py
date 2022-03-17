@@ -13,8 +13,8 @@ import numpy as np
 
 import myokit
 
-from ansic_event_based_pacing import AnsicEventBasedPacing
-from ansic_fixed_form_pacing import AnsicFixedFormPacing
+from myokit.tests.ansic_event_based_pacing import AnsicEventBasedPacing
+from myokit.tests.ansic_fixed_form_pacing import AnsicFixedFormPacing
 
 # Unit testing in Python 2 and 3
 try:
