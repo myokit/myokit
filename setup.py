@@ -46,6 +46,7 @@ setup(
 
     # URLs
     url='http://myokit.org',
+    download_url='https://pypi.org/project/myokit/',
     project_urls={
         'Bug Tracker': 'https://github.com/MichaelClerx/myokit/issues',
         'Documentation': 'http://docs.myokit.org',
@@ -110,4 +111,8 @@ setup(
 
     # Unit tests
     test_suite='myokit.tests',
+
+    # See: https://setuptools.pypa.io/en/latest/userguide/miscellaneous.html
+    #      #setting-the-zip-safe-flag
+    zip_safe=False,
 )
