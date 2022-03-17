@@ -2,13 +2,9 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
-- Added
+## [1.33.3] - 2022-03-17
 - Changed
   - [#860](https://github.com/MichaelClerx/myokit/pull/860) Made `myokit.tests` into a module. Made tests runnable via `setup.py`. Added more meta data to `setup.py`.
-- Deprecated
-- Removed
-- Fixed
 
 ## [1.33.2] - 2022-03-17
 - Changed
