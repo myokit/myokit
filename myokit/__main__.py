@@ -1513,11 +1513,15 @@ def test_doc_coverage_get_objects():
     import inspect
     import os
 
-    def find_modules(root, modules=[]):
+    def find_modules(root, modules=[], ignore=[]):
         """ Find all modules in the given directory. """
 
         # Get root as module
         module_root = root.replace('/', '.')
+
+        # Check if this path is on the ignore list
+        if root in ignore:
+            return modules
 
         # Check if this is a module
         if os.path.isfile(os.path.join(root, '__init__.py')):
@@ -1531,7 +1535,7 @@ def test_doc_coverage_get_objects():
                 continue
             path = os.path.join(root, name)
             if os.path.isdir(path):
-                find_modules(path, modules)
+                find_modules(path, modules, ignore)
             else:
                 base, ext = os.path.splitext(name)
                 if ext == '.py':
@@ -1542,7 +1546,7 @@ def test_doc_coverage_get_objects():
 
     # Get modules
     import myokit
-    modules = find_modules('myokit')
+    modules = find_modules('myokit', ignore=['myokit/tests'])
 
     # Import all modules
     for module in modules:
