@@ -2,8 +2,7 @@
                 
 This page lists the main changes made to Myokit in each release.
 
-## Unreleased
-- Added
+## [1.33.1] - 2022-03-17
 - Changed
   - [#843](https://github.com/MichaelClerx/myokit/pull/843) Myokit is no longer tested on Python 3.5.
   - [#844](https://github.com/MichaelClerx/myokit/pull/844) Tweaked the CellML export's `initial_value` attribute to strip `e+00` if present.
@@ -12,8 +11,6 @@ This page lists the main changes made to Myokit in each release.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) The method `myokit.parse_expression()` now accepts a `Model` as a context.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) Model comparison with `==` now only returns ``True`` if both operands are the same object. Comparison based on code can be performed with `Model.is_similar()`.
   - [#852](https://github.com/MichaelClerx/myokit/pull/852) Myokit is no longer tested on Python 3.6 for Windows (please use 3.7 and up).
-- Deprecated
-- Removed
 - Fixed
   - [#841](https://github.com/MichaelClerx/myokit/pull/841) The MathMLExpressionWriter now uses `type="e-notation"` where necessary, instead of writing e.g. `1e-6`.
   - [#849](https://github.com/MichaelClerx/myokit/pull/849) If `Model.get()` and `Component.get()` now raise a `ValueError` if a component or variable from a different model is passed in.
