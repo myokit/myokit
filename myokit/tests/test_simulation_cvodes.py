@@ -19,7 +19,7 @@ import numpy as np
 
 import myokit
 
-from shared import (
+from myokit.tests import (
     CancellingReporter,
     DIR_DATA,
     test_case_pk_model,

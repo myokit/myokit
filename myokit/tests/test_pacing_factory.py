@@ -19,9 +19,7 @@ class PacingFactoryTest(unittest.TestCase):
     """
 
     def test_blocktrain(self):
-        """
-        Test creation of a block train protocol.
-        """
+        # Test creation of a block train protocol.
 
         period, duration, offset, level, limit = 1000, 1, 0, 1, 0
         p = myokit.pacing.blocktrain(period, duration, offset, level, limit)
@@ -46,9 +44,8 @@ class PacingFactoryTest(unittest.TestCase):
         self.assertEqual(e.multiplier(), limit)
 
     def test_bpm2bcl(self):
-        """
-        Test conversion from beats-per-minute to cycle length.
-        """
+        # Test conversion from beats-per-minute to cycle length.
+
         # Milliseconds
         self.assertEqual(myokit.pacing.bpm2bcl(60), 1000)
         self.assertEqual(myokit.pacing.bpm2bcl(30), 2000)
@@ -60,9 +57,8 @@ class PacingFactoryTest(unittest.TestCase):
         self.assertEqual(myokit.pacing.bpm2bcl(120, 1), 0.5)
 
     def test_constant(self):
-        """
-        Test the creation of a constant protocol.
-        """
+        # Test the creation of a constant protocol.
+
         level = 0.5
         p = myokit.pacing.constant(level)
         s = myokit.PacingSystem(p)
@@ -75,9 +71,8 @@ class PacingFactoryTest(unittest.TestCase):
             self.assertEqual(s.pace(), level)
 
     def test_steptrain(self):
-        """
-        Test the creation of a step protocol.
-        """
+        # Test the creation of a step protocol.
+
         vs = [-100, -80, 40, -20]
         vhold = -80
         tpre = 200
@@ -116,9 +111,8 @@ class PacingFactoryTest(unittest.TestCase):
             t += tpost
 
     def test_steptrain_linear(self):
-        """
-        Test the creation of a step protocol with linear steps.
-        """
+        # Test the creation of a step protocol with linear steps.
+
         # Incrementing steps
         vs = [-40, -20, 0, 20]
         vmin = -40
@@ -204,9 +198,8 @@ class PacingFactoryTest(unittest.TestCase):
             t += tpost
 
     def test_steptrain_bad_values(self):
-        """
-        Test the creation of a step protocol with illegal times.
-        """
+        # Test the creation of a step protocol with illegal times.
+
         vs = [-100, -80, 40, -20]
         vhold = -80
         tpre = 200
@@ -222,9 +215,9 @@ class PacingFactoryTest(unittest.TestCase):
             ValueError, myokit.pacing.steptrain, vs, vhold, tpre, tstep, -1)
 
     def test_steptrain_linear_bad_values(self):
-        """
-        Test the creation of a step protocol with linear steps and bad values.
-        """
+        # Test the creation of a step protocol with linear steps and bad
+        # values.
+
         # Incrementing steps
         vmin = -40
         vmax = 40

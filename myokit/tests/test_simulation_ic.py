@@ -14,7 +14,7 @@ import numpy as np
 
 import myokit
 
-from shared import DIR_DATA, CancellingReporter, WarningCollector
+from myokit.tests import DIR_DATA, CancellingReporter, WarningCollector
 
 # Unit testing in Python 2 and 3
 try:
@@ -28,7 +28,7 @@ class ICSimulationTest(unittest.TestCase):
     Tests the :class:`ICSimulation`.
     """
     def test_basic(self):
-        """ Test basic usage. """
+        # Test basic usage.
         # Load model
         m, p, _ = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         n = m.count_states()
@@ -76,7 +76,7 @@ class ICSimulationTest(unittest.TestCase):
         s.run(1, log_interval=-1)
 
     def test_progress_reporter(self):
-        """ Test running with a progress reporter. """
+        # Test running with a progress reporter.
         m, p, x = myokit.load(os.path.join(DIR_DATA, 'lr-1991.mmt'))
 
         # Test using a progress reporter
@@ -97,7 +97,7 @@ class ICSimulationTest(unittest.TestCase):
             progress=CancellingReporter(0))
 
     def test_invalid_model(self):
-        """ Test running with an invalid model. """
+        # Test running with an invalid model.
         m = myokit.Model()
         with WarningCollector() as c:
             self.assertRaises(

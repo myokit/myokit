@@ -15,7 +15,7 @@ import unittest
 import myokit
 import myokit.lib.plots as plots
 
-from shared import DIR_DATA
+from myokit.tests import DIR_DATA
 
 
 class LibPlotTest(unittest.TestCase):

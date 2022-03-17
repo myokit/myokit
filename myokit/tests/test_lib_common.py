@@ -14,7 +14,7 @@ import numpy as np
 
 import myokit
 
-from shared import DIR_DATA, WarningCollector
+from myokit.tests import DIR_DATA, WarningCollector
 
 
 class CommonTest(unittest.TestCase):

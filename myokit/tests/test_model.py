@@ -16,7 +16,7 @@ import unittest
 
 import myokit
 
-from shared import TemporaryDirectory, WarningCollector
+from myokit.tests import TemporaryDirectory, WarningCollector
 
 
 # Unit testing in Python 2 and 3

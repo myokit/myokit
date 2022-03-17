@@ -14,7 +14,7 @@ import numpy as np
 
 import myokit
 
-from shared import OpenCL_DOUBLE_PRECISION, DIR_DATA
+from myokit.tests import OpenCL_DOUBLE_PRECISION, DIR_DATA
 
 # Unit testing in Python 2 and 3
 try:

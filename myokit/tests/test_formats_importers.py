@@ -14,7 +14,7 @@ import unittest
 import myokit
 import myokit.formats as formats
 
-from shared import DIR_FORMATS
+from myokit.tests import DIR_FORMATS
 
 # Unit testing in Python 2 and 3
 try:

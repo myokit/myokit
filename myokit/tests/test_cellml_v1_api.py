@@ -13,7 +13,7 @@ import unittest
 import myokit
 import myokit.formats.cellml.v1 as cellml
 
-from shared import WarningCollector
+from myokit.tests import WarningCollector
 
 # Unit testing in Python 2 and 3
 try:

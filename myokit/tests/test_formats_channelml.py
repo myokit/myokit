@@ -15,7 +15,7 @@ import myokit
 import myokit.formats
 import myokit.formats.channelml
 
-from shared import DIR_FORMATS, WarningCollector
+from myokit.tests import DIR_FORMATS, WarningCollector
 
 # ChannelML dir
 DIR = os.path.join(DIR_FORMATS, 'channelml')

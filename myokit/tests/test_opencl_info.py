@@ -12,7 +12,7 @@ import unittest
 
 import myokit
 
-from shared import TemporaryDirectory, OpenCL_FOUND
+from myokit.tests import TemporaryDirectory, OpenCL_FOUND
 
 # Strings in Python2 and Python3
 try:

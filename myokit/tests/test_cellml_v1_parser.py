@@ -15,7 +15,7 @@ import myokit
 import myokit.formats.cellml as cellml
 import myokit.formats.cellml.v1 as v1
 
-from shared import TemporaryDirectory, DIR_FORMATS, WarningCollector
+from myokit.tests import TemporaryDirectory, DIR_FORMATS, WarningCollector
 
 # CellML directory
 DIR = os.path.join(DIR_FORMATS, 'cellml')

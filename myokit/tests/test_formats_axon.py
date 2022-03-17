@@ -15,7 +15,7 @@ import numpy as np
 import myokit
 import myokit.formats.axon as axon
 
-from shared import TemporaryDirectory, DIR_FORMATS
+from myokit.tests import TemporaryDirectory, DIR_FORMATS
 
 # Unit testing in Python 2 and 3
 try:

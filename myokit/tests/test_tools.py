@@ -94,7 +94,7 @@ class CaptureTest(unittest.TestCase):
     """Test the ``capture`` context manager."""
 
     def test_capture_disabled(self):
-        """Tests creating a capture manager that doesn't capture."""
+        # Tests creating a capture manager that doesn't capture.
 
         with myokit.tools.capture(enabled=True) as p:
             with myokit.tools.capture(enabled=False) as q:
@@ -110,7 +110,7 @@ class CaptureTest(unittest.TestCase):
         self.assertEqual(q.err(), '')
 
     def test_capture_nested(self):
-        """Tests capturing in a nested pattern."""
+        # Tests capturing in a nested pattern.
         r = myokit.tools.capture(False)
         q = myokit.tools.capture(True)
         self.assertEqual(r.out(), '')
@@ -154,7 +154,7 @@ class CaptureTest(unittest.TestCase):
         self.assertEqual(s.text(), '4d')
 
     def test_capture_repeated_use(self):
-        """Tests capturing in a nested pattern with repeated enters/exits."""
+        # Tests capturing in a nested pattern with repeated enters/exits.
         x = myokit.tools.capture()
         y = myokit.tools.capture(True)
         self.assertEqual(x.out(), '')
@@ -200,7 +200,7 @@ class CaptureTest(unittest.TestCase):
         self.assertEqual(y.err(), 'bar\n')
 
     def test_capture_with_threads(self):
-        """Tests capturing with threading."""
+        # Tests capturing with threading.
 
         # Sleep times for each thread. Duration doesn't matter much, as will be
         # executed sequentially. But choose so that interlacing would occur if
