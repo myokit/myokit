@@ -5,6 +5,7 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
 - Changed
+  - [#865](https://github.com/MichaelClerx/myokit/pull/865) Added more platform information to `myokit system`.
 - Deprecated
 - Removed
 - Fixed
