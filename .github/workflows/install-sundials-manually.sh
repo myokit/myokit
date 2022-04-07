@@ -13,3 +13,4 @@ cmake \
   ../
 make
 sudo make install
+sudo /sbin/ldconfig -v
