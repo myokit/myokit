@@ -4,6 +4,7 @@ This page lists the main changes made to Myokit in each release.
 
 ## Unreleased
 - Added
+  - [#866](https://github.com/MichaelClerx/myokit/pull/866) The method `myokit.lib.plots.cumulative_current` now takes two arguments `line_args` and `fill_args` that can be used to customize the plotting style.
 - Changed
   - [#865](https://github.com/MichaelClerx/myokit/pull/865) Added more platform information to `myokit system`.
 - Deprecated

@@ -265,7 +265,7 @@ def current_arrows(log, voltage, currents, axes=None):
 
 def cumulative_current(
         log, currents, axes=None, labels=None, colors=None, integrate=False,
-        normalise=False, max_currents=None):
+        normalise=False, max_currents=None, line_args={}, fill_args={}):
     """
     Plots a number of currents, one on top of the other, with the positive and
     negative parts of the current plotted separately.
@@ -297,6 +297,11 @@ def cumulative_current(
     ``max_currents``
         Set this to any integer n to display only the first n currents, and
         group the rest together in a remainder current.
+    ``line_args``
+        An optional dict with keyword arguments to pass in when drawing lines.
+    ``fill_args``
+        An optional dict with keyword arguments to pass in when drawing shaded
+        areas.
 
     The best results are obtained if relatively constant currents are specified
     early. Another rule of thumb is to specify the currents roughly in the
@@ -348,6 +353,12 @@ def cumulative_current(
         cmap = matplotlib.cm.get_cmap(name='tab20')
         colors = [cmap(i) for i in range(nc)]
 
+    # Line drawing keyword arguments
+    if 'color' not in line_args:
+        line_args['color'] = 'k'
+    if 'lw' not in line_args:
+        line_args['lw'] = 1
+
     # Plot
     op = on = 0
     for k in range(nc):
@@ -378,10 +389,10 @@ def cumulative_current(
             p, n = op + pos[k], on + neg[k]
 
         # Plot!
-        axes.fill_between(t, p, op, facecolor=color)
-        axes.fill_between(t, n, on, facecolor=color)
-        axes.plot(t, p, color=color, label=label)
-        axes.plot(t, p, color='k', lw=1)
-        axes.plot(t, n, color='k', lw=1)
+        axes.plot(t, p, color=color, label=label, zorder=-1, lw=0)
+        axes.fill_between(t, p, op, facecolor=color, **fill_args)
+        axes.fill_between(t, n, on, facecolor=color, **fill_args)
+        axes.plot(t, p, **line_args)
+        axes.plot(t, n, **line_args)
         on = n
         op = p
