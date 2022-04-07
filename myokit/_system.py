@@ -46,6 +46,7 @@ def system(live_printing=False):
     out.append(
         'OS: ' + platform.system()
         + ' (' + sys.platform + ', ' + os.name + ')')
+    out.append('    ' + platform.platform())
     out.append('')
 
     # Python requirements
