@@ -339,7 +339,7 @@ class DataLogViewer(myokit.gui.MyokitApplication):
 
     def load_mat_file(self, filename):
         """
-        Loads a mat file.
+        Loads a Matlab file.
 
         This method requires ``SciPy`` to be installed.
         """
