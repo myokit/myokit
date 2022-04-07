@@ -389,7 +389,7 @@ def cumulative_current(
             p, n = op + pos[k], on + neg[k]
 
         # Plot!
-        axes.plot(t, p, color=color, label=label, zorder=-1, lw=0)
+        axes.plot(t, p, color=color, label=label, zorder=-1, lw=3)
         axes.fill_between(t, p, op, facecolor=color, **fill_args)
         axes.fill_between(t, n, on, facecolor=color, **fill_args)
         axes.plot(t, p, **line_args)
