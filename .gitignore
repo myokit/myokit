@@ -15,4 +15,7 @@ __pycache__
 venv
 
 # DS Store
-.DS_Store 
+.DS_Store
+
+# Ignore vs code config
+.vscode
