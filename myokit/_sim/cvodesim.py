@@ -115,7 +115,7 @@ class Simulation(myokit.CModule):
 
         # Unique simulation id
         Simulation._index += 1
-        module_name = 'myokit_sim_' + str(Simulation._index)
+        module_name = 'myokit_leg_sim_' + str(Simulation._index)
         module_name += '_' + str(myokit.pid_hash())
 
         # Arguments
