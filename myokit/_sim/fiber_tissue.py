@@ -143,18 +143,18 @@ class FiberTissueSimulation(myokit.CModule):
 
         # Require independent components
         if fiber_model.has_interdependent_components():
-            cycles = fiber_model.component_cycles()
-            cycles = '\n  '.join([
-                ' > '.join([x.var().qname() for x in c]) for c in cycles])
-            raise Exception(
+            cycles = '\n'.join([
+                '  ' + ' > '.join([x.name() for x in c])
+                for c in fiber_model.component_cycles()])
+            raise ValueError(
                 'This simulation requires models without interdependent'
                 ' components. Please restructure the fiber model and re-run.'
                 ' Cycles:\n' + cycles)
         if tissue_model.has_interdependent_components():
-            cycles = tissue_model.component_cycles()
-            cycles = '\n  '.join([
-                ' > '.join([x.var().qname() for x in c]) for c in cycles])
-            raise Exception(
+            cycles = '\n'.join([
+                '  ' + ' > '.join([x.name() for x in c])
+                for c in tissue_model.component_cycles()])
+            raise ValueError(
                 'This simulation requires models without interdependent'
                 ' components. Please restructure the tissue model and re-run.'
                 ' Cycles:\n' + cycles)
@@ -184,9 +184,9 @@ class FiberTissueSimulation(myokit.CModule):
         self._ncellsf = [int(x) for x in ncells_fiber]
         self._ncellst = [int(x) for x in ncells_tissue]
         if self._ncellsf[0] < 1 or self._ncellsf[1] < 1:
-            raise ValueError('The fiber must be at least (1,1).')
+            raise ValueError('The fiber size must be at least (1, 1).')
         if self._ncellst[0] < 1 or self._ncellst[1] < 1:
-            raise ValueError('The tissue size must be at least (1,1).')
+            raise ValueError('The tissue size must be at least (1, 1).')
         if self._ncellsf[1] > self._ncellst[1]:
             raise ValueError(
                 'The fiber y-dimension cannot exceed that of the tissue.')
@@ -242,31 +242,31 @@ class FiberTissueSimulation(myokit.CModule):
         # Get membrane potential variables
         self._vmf = self._modelf.label('membrane_potential')
         if self._vmf is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires the membrane potential variable to'
                 ' be labelled as "membrane_potential" in the fiber model.')
         if not self._vmf.is_state():
-            raise Exception(
+            raise ValueError(
                 'The variable labelled as membrane potential in the fiber'
                 ' model must be a state variale.')
         self._vmt = self._modelt.label('membrane_potential')
         if self._vmt is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires the membrane potential variable to'
                 ' be labelled as "membrane_potential" in the tissue model.')
         if not self._vmt.is_state():
-            raise Exception(
+            raise ValueError(
                 'The variable labelled as membrane potential in the tissue'
                 ' model must be a state variale.')
 
         # Check for binding to diffusion_current
         if self._modelf.binding('diffusion_current') is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires a variable in the fiber model to be'
                 ' bound to "diffusion_current" to pass current from one cell'
                 ' to the next.')
         if self._modelt.binding('diffusion_current') is None:
-            raise Exception(
+            raise ValueError(
                 'This simulation requires a variable in the tissue model to be'
                 ' bound to "diffusion_current" to pass current from one cell'
                 ' to the next.')
@@ -274,16 +274,14 @@ class FiberTissueSimulation(myokit.CModule):
         # Check if membrane potentials have same unit
         uvf = self._vmf.unit()
         if uvf is None:
-            raise Exception(
-                'The fiber model must specify a unit for the membrane'
-                ' potential.')
+            raise ValueError('The fiber model must specify a unit for the'
+                             ' membrane potential.')
         uvt = self._vmt.unit()
         if uvt is None:
-            raise Exception(
-                'The tissue model must specify a unit for the membrane'
-                ' potential.')
+            raise ValueError('The tissue model must specify a unit for the'
+                             ' membrane potential.')
         if uvf != uvt:
-            raise Exception(
+            raise ValueError(
                 'The membrane potential must have the same unit in the fiber'
                 ' and the tissue model: ' + str(uvf) + ' vs ' + str(uvt) + '.')
 
@@ -291,15 +289,13 @@ class FiberTissueSimulation(myokit.CModule):
         ucf = self._modelf.binding('diffusion_current').unit()
         uct = self._modelt.binding('diffusion_current').unit()
         if ucf is None:
-            raise Exception(
-                'The fiber model must specify a unit for the diffusion'
-                ' current.')
+            raise ValueError('The fiber model must specify a unit for the'
+                             ' diffusion current.')
         if uct is None:
-            raise Exception(
-                'The tissue model must specify a unit for the diffusion'
-                ' current.')
+            raise ValueError('The tissue model must specify a unit for the'
+                             ' diffusion current.')
         if ucf != uct:
-            raise Exception(
+            raise ValueError(
                 'The diffusion current must have the same unit in the fiber'
                 ' and the tissue model: ' + str(ucf) + ' vs ' + str(uct) + '.')
 
@@ -372,6 +368,15 @@ class FiberTissueSimulation(myokit.CModule):
             mname, fname, args, libs, libd, incd, larg=flags,
             continue_in_debug_mode=True)
 
+    def fiber_shape(self):
+        """
+        Returns the shape of this simulation's grid of fiber cells as a tuple
+        ``(ny, nx)``.
+        """
+        # TODO: See https://github.com/MichaelClerx/myokit/issues/764
+        return (self._ncellsf[1], self._ncellsf[0])
+
+
     def fiber_state(self, x=None):
         """
         Returns the current simulation state in the fiber as a list of
@@ -385,10 +390,10 @@ class FiberTissueSimulation(myokit.CModule):
         else:
             x = int(x)
             if x < 0 or x > self._ncellsf[0]:
-                raise KeyError('Given x-index out of range.')
+                raise IndexError('Given x-index out of range.')
             y = int(y)
             if y < 0 or y > self._ncellsf[1]:
-                raise KeyError('Given y-index out of range.')
+                raise IndexError('Given y-index out of range.')
             x += y * self._ncellsf[0]
             return self._statef[x * self._nstatef:(x + 1) * self._nstatef]
 
@@ -932,10 +937,10 @@ class FiberTissueSimulation(myokit.CModule):
         # Set specific cell state
         x = int(x)
         if x < 0 or x > self._ncellsf[0]:
-            raise KeyError('Given x-index out of range.')
+            raise IndexError('Given x-index out of range.')
         y = int(y)
         if y < 0 or y > self._ncellsf[1]:
-            raise KeyError('Given y-index out of range.')
+            raise IndexError('Given y-index out of range.')
         offset = (x + y * self._ncellsf[0]) * self._nstatef
         update[offset:offset + self._nstatef] = state
         return update
@@ -957,10 +962,10 @@ class FiberTissueSimulation(myokit.CModule):
         # Set specific cell state
         x = int(x)
         if x < 0 or x > self._ncellst[0]:
-            raise KeyError('Given x-index out of range.')
+            raise IndexError('Given x-index out of range.')
         y = int(y)
         if y < 0 or y > self._ncellst[1]:
-            raise KeyError('Given y-index out of range.')
+            raise IndexError('Given y-index out of range.')
         offset = (x + y * self._ncellst[0]) * self._nstatet
         update[offset: offset + self._nstatet] = state
         return update
@@ -1067,6 +1072,14 @@ class FiberTissueSimulation(myokit.CModule):
         """
         self._time = float(time)
 
+    def tissue_shape(self):
+        """
+        Returns the shape of this simulation's grid of tissue cells as a tuple
+        ``(ny, nx)``.
+        """
+        # TODO: See https://github.com/MichaelClerx/myokit/issues/764
+        return (self._ncellst[1], self._ncellst[0])
+
     def tissue_state(self, x=None):
         """
         Returns the current simulation state in the tissue as a list of
@@ -1080,10 +1093,10 @@ class FiberTissueSimulation(myokit.CModule):
         else:
             x = int(x)
             if x < 0 or x > self._ncellst[0]:
-                raise KeyError('Given x-index out of range.')
+                raise IndexError('Given x-index out of range.')
             y = int(y)
             if y < 0 or y > self._ncellst[1]:
-                raise KeyError('Given y-index out of range.')
+                raise IndexError('Given y-index out of range.')
             x += y * self._ncellst[0]
             return self._statet[x * self._nstatet:(x + 1) * self._nstatet]
 

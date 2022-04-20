@@ -32,86 +32,25 @@ class FiberTissueSimulationTest(unittest.TestCase):
     """
     Tests the fiber-tissue simulation.
     """
-    def test_basic(self):
-        # Load models
-        mf = os.path.join(DIR_DATA, 'dn-1985-normalised.mmt')
-        mt = os.path.join(DIR_DATA, 'lr-1991.mmt')
-        mf = myokit.load_model(mf)
-        mt = myokit.load_model(mt)
 
-        # Run times
-        run = .1
+    @classmethod
+    def setUpClass(cls):
+        # Create objects for shared used in testing
 
-        # Create pacing protocol
-        p = myokit.pacing.blocktrain(1000, 2.0, offset=.01)
-
-        # Fiber/Tissue sizes
-        nfx = 8
-        nfy = 4
-        ntx = 8
-        nty = 6
-
-        # Create simulation
-        with WarningCollector() as w:
-            s = myokit.FiberTissueSimulation(
-                mf,
-                mt,
-                p,
-                ncells_fiber=(nfx, nfy),
-                ncells_tissue=(ntx, nty),
-                nx_paced=10,
-                g_fiber=(235, 100),
-                g_tissue=(9, 5),
-                g_fiber_tissue=9
-            )
-            self.assertIn('deprecated', w.text())
-
-        s.set_step_size(0.0012)
-        # Set up logging
-        logf = [
-            'engine.time',
-            'membrane.V',
-            'isi.isiCa',
-        ]
-        logt = [
-            'membrane.V',
-            'ica.Ca_i',
-            'ica.ICa',
-        ]
-        # Run simulation
-        with myokit.tools.capture():
-            logf, logt = s.run(run, logf=logf, logt=logt, log_interval=0.01)
-
-        self.assertEqual(len(logf), 1 + 2 * nfx * nfy)
-        self.assertIn('engine.time', logf)
-        self.assertIn('0.0.membrane.V', logf)
-        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.membrane.V', logf)
-        self.assertIn('0.0.isi.isiCa', logf)
-        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.isi.isiCa', logf)
-
-        self.assertEqual(len(logt), 3 * ntx * nty)
-        self.assertIn('0.0.membrane.V', logt)
-        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.membrane.V', logt)
-        self.assertIn('0.0.ica.Ca_i', logt)
-        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.Ca_i', logt)
-        self.assertIn('0.0.ica.ICa', logt)
-        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.ICa', logt)
+        cls.mf = myokit.load_model(
+            os.path.join(DIR_DATA, 'dn-1985-normalised.mmt'))
+        cls.mt = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
+        cls.p = myokit.pacing.blocktrain(1000, 2.0, offset=.01)
 
     def test_against_cvode(self):
         # Compare the fiber-tissue simulation output with CVODE output
 
-        # Load model
-        m = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
-
-        # Create pacing protocol
-        p = myokit.pacing.blocktrain(1000, 2.0, offset=0)
-
         # Create simulation
         with WarningCollector():
             s1 = myokit.FiberTissueSimulation(
-                m,
-                m,
-                p,
+                self.mt,
+                self.mt,
+                self.p,
                 ncells_fiber=(1, 1),
                 ncells_tissue=(1, 1),
                 nx_paced=1,
@@ -135,7 +74,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         d1 = d1.npview()
 
         # Run CVODE simulation
-        s2 = myokit.Simulation(m, p)
+        s2 = myokit.Simulation(self.mt, self.p)
         s2.set_tolerance(1e-8, 1e-8)
         d2 = s2.run(tmax, logvars, log_interval=dlog).npview()
 
@@ -170,8 +109,8 @@ class FiberTissueSimulationTest(unittest.TestCase):
             plt.figure()
             plt.suptitle('Pacing signals')
             plt.subplot(2, 1, 1)
-            plt.plot(d1.time(), d1['engine.pace'], label='FiberTissue')
-            plt.plot(d2.time(), d2['engine.pace'], label='CVODE')
+            plt.plot(d1.time(), d1['engine.pace'], '--', label='FiberTissue')
+            plt.plot(d2.time(), d2['engine.pace'], '--', label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r1)
@@ -181,7 +120,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
             plt.suptitle('Membrane potential')
             plt.subplot(2, 1, 1)
             plt.plot(d1.time(), d1['membrane.V', 0, 0], label='FiberTissue')
-            plt.plot(d2.time(), d2['membrane.V'], label='CVODE')
+            plt.plot(d2.time(), d2['membrane.V'], '--', label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -191,7 +130,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
             plt.suptitle('Calcium current')
             plt.subplot(2, 1, 1)
             plt.plot(d1.time(), d1['ica.ICa', 0, 0], label='FiberTissue')
-            plt.plot(d2.time(), d2['ica.ICa'], label='CVODE')
+            plt.plot(d2.time(), d2['ica.ICa'], '--', label='CVODE')
             plt.legend()
             plt.subplot(2, 1, 2)
             plt.plot(d1.time(), r2)
@@ -203,6 +142,169 @@ class FiberTissueSimulationTest(unittest.TestCase):
         self.assertLess(e1, 1e-14)
         self.assertLess(e2, 0.05)
         self.assertLess(e3, 0.01)
+
+    def test_basic(self):
+        # Test basic functionality
+
+        # Run times
+        run = .1
+
+        # Fiber/Tissue sizes
+        nfx = 8
+        nfy = 4
+        ntx = 8
+        nty = 6
+
+        # Create simulation
+        s = myokit.FiberTissueSimulation(
+            self.mf,
+            self.mt,
+            self.p,
+            ncells_fiber=(nfx, nfy),
+            ncells_tissue=(ntx, nty),
+            nx_paced=10,
+            g_fiber=(235, 100),
+            g_tissue=(9, 5),
+            g_fiber_tissue=9
+        )
+
+        s.set_step_size(0.0012)
+        # Set up logging
+        logf = [
+            'engine.time',
+            'membrane.V',
+            'isi.isiCa',
+        ]
+        logt = [
+            'membrane.V',
+            'ica.Ca_i',
+            'ica.ICa',
+        ]
+        # Run simulation
+        with myokit.tools.capture():
+            logf, logt = s.run(run, logf=logf, logt=logt, log_interval=0.01)
+
+        self.assertEqual(len(logf), 1 + 2 * nfx * nfy)
+        self.assertIn('engine.time', logf)
+        self.assertIn('0.0.membrane.V', logf)
+        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.membrane.V', logf)
+        self.assertIn('0.0.isi.isiCa', logf)
+        self.assertIn(str(nfx - 1) + '.' + str(nfy - 1) + '.isi.isiCa', logf)
+
+        self.assertEqual(len(logt), 3 * ntx * nty)
+        self.assertIn('0.0.membrane.V', logt)
+        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.membrane.V', logt)
+        self.assertIn('0.0.ica.Ca_i', logt)
+        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.Ca_i', logt)
+        self.assertIn('0.0.ica.ICa', logt)
+        self.assertIn(str(ntx - 1) + '.' + str(nty - 1) + '.ica.ICa', logt)
+
+    def test_creation(self):
+        # Tests fiber tisue simulation creation
+        mf, mt, p = self.mf, self.mt, self.p
+        FT = myokit.FiberTissueSimulation
+
+        # Models must be valid
+        m2 = mf.clone()
+        m2.label('membrane_potential').set_rhs(None)
+        self.assertFalse(m2.is_valid())
+        self.assertRaises(myokit.MissingRhsError, FT, m2, mt)
+
+        m2 = mt.clone()
+        m2.label('membrane_potential').set_rhs(None)
+        self.assertFalse(m2.is_valid())
+        self.assertRaises(myokit.MissingRhsError, FT, mf, m2)
+
+        # Models must have interdependent components
+        m2 = mf.clone()
+        x = m2.get('ik').add_variable('xx')
+        x.set_rhs('membrane.i_ion')
+        self.assertTrue(m2.has_interdependent_components())
+        self.assertRaisesRegex(ValueError, 'interdependent', FT, m2, mt)
+
+        m2 = mt.clone()
+        x = m2.get('ina').add_variable('xx')
+        x.set_rhs('membrane.i_ion')
+        self.assertTrue(m2.has_interdependent_components())
+        self.assertRaisesRegex(ValueError, 'interdependent', FT, mf, m2)
+
+        # Dimensionalities must be 2d tuples
+        s = FT(mf, mt, p, (5, 6), (7, 8))
+        self.assertEqual(s.fiber_shape(), (6, 5))
+        self.assertEqual(s.tissue_shape(), (8, 7))
+        self.assertRaisesRegex(
+            ValueError, r'fiber size must be a tuple \(nx, ny\)',
+            FT, mf, mt, ncells_fiber=None)
+        self.assertRaisesRegex(
+            ValueError, r'fiber size must be a tuple \(nx, ny\)',
+            FT, mf, mt, ncells_fiber=12)
+        self.assertRaisesRegex(
+            ValueError, r'fiber size must be a tuple \(nx, ny\)',
+            FT, mf, mt, ncells_fiber=(12, ))
+        self.assertRaisesRegex(
+            ValueError, r'fiber size must be a tuple \(nx, ny\)',
+            FT, mf, mt, ncells_fiber=(12, 12, 12))
+
+        self.assertRaisesRegex(
+            ValueError, r'tissue size must be a tuple \(nx, ny\)',
+            FT, mf, mt, ncells_tissue=None)
+        self.assertRaisesRegex(
+            ValueError, r'tissue size must be a tuple \(nx, ny\)',
+            FT, mf, mt, ncells_tissue=4)
+        self.assertRaisesRegex(
+            ValueError, r'tissue size must be a tuple \(nx, ny\)',
+            FT, mf, mt, ncells_tissue=(3, ))
+        self.assertRaisesRegex(
+            ValueError, r'tissue size must be a tuple \(nx, ny\)',
+            FT, mf, mt, ncells_tissue=(6, 6, 6))
+
+        # Number of cells must be at least 1
+        self.assertRaisesRegex(
+            ValueError, 'fiber size must be at least \(1, 1\)',
+            FT, mf, mt, ncells_fiber=(0, 10))
+        self.assertRaisesRegex(
+            ValueError, 'fiber size must be at least \(1, 1\)',
+            FT, mf, mt, ncells_fiber=(10, 0))
+        self.assertRaisesRegex(
+            ValueError, 'fiber size must be at least \(1, 1\)',
+            FT, mf, mt, ncells_fiber=(-1, -1))
+        self.assertRaisesRegex(
+            ValueError, 'tissue size must be at least \(1, 1\)',
+            FT, mf, mt, ncells_tissue=(0, 10))
+        self.assertRaisesRegex(
+            ValueError, 'tissue size must be at least \(1, 1\)',
+            FT, mf, mt, ncells_tissue=(10, 0))
+        self.assertRaisesRegex(
+            ValueError, 'tissue size must be at least \(1, 1\)',
+            FT, mf, mt, ncells_tissue=(-1, -1))
+        self.assertRaisesRegex(
+            ValueError, 'exceed that of the tissue',
+            FT, mf, mt, p, (5, 6), (5, 5))
+
+        '''
+
+
+
+
+        # Precision must be single or double
+        self.assertRaisesRegex(
+            ValueError, 'Only single and double',
+            FT, mf, mt,
+            precision=myokit.SINGLE_PRECISION + myokit.DOUBLE_PRECISION)
+
+        # Membrane potential must be given with label
+        m2 = self.m.clone()
+        m2.label('membrane_potential').set_label(None)
+        self.assertRaisesRegex(
+            ValueError, 'requires the membrane potential',
+            FT, m2)
+
+        # Membrane potential must be a state
+        m2.get('ina.INa').set_label('membrane_potential')
+        self.assertRaisesRegex(
+            ValueError, 'must be a state variable',
+            FT, m2)
+    '''
 
 
 if __name__ == '__main__':

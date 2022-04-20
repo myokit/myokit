@@ -1694,7 +1694,7 @@ class SimulationOpenCL(myokit.CModule):
 
     def shape(self):
         """
-        Returns the shape of this Simulation's grid of cells as a tuple
+        Returns the shape of this simulation's grid of cells as a tuple
         ``(ny, nx)`` for 2d simulations, or a single value ``nx`` for 1d
         simulations.
         """
