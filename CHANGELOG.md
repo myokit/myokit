@@ -8,6 +8,7 @@ This page lists the main changes made to Myokit in each release.
   - [#865](https://github.com/MichaelClerx/myokit/pull/865) Added more platform information to `myokit system`.
   - [#866](https://github.com/MichaelClerx/myokit/pull/866) Slightly tweaked the plotting in `myokit.lib.plots.cumulative_current`, and added two arguments `line_args` and `fill_args` that can be used to customize the plotting style.
 - Deprecated
+  - [#869](https://github.com/MichaelClerx/myokit/pull/869) The class `myokit.FiberTissueSimulation` is no longer considered deprecated.
 - Removed
 - Fixed
   - [#867](https://github.com/MichaelClerx/myokit/pull/867) @DavAug Fixed a memory leak in `myokit.Simulation`.
