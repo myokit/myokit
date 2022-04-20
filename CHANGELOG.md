@@ -10,6 +10,7 @@ This page lists the main changes made to Myokit in each release.
 - Deprecated
 - Removed
 - Fixed
+  - [#867](https://github.com/MichaelClerx/myokit/pull/867) @DavAug Fixed a memory leak in `myokit.Simulation`.
 
 ## [1.33.3] - 2022-03-17
 - Changed
