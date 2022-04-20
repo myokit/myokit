@@ -442,6 +442,7 @@ sim_clean()
 
         /* CVode arrays */
         if (y != NULL) { N_VDestroy_Serial(y); y = NULL; }
+        if (ylast != NULL) { N_VDestroy_Serial(ylast); ylast = NULL; }
         if (sy != NULL) { N_VDestroyVectorArray(sy, model->ns_independents); sy = NULL; }
         if (model != NULL && model->is_ode && !dynamic_logging) {
             if (z != NULL) { N_VDestroy_Serial(z); z = NULL; }
