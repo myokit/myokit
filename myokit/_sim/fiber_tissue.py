@@ -203,12 +203,18 @@ class FiberTissueSimulation(myokit.CModule):
                 self._paced_cells.append(x + y * self._ncellsf[0])
 
         # Check conductivities
-        if len(g_fiber) != 2:
-            raise ValueError(
-                'The fiber conductivity must be a tuple (gx,gy).')
-        if len(g_tissue) != 2:
-            raise ValueError(
-                'The tissue conductivity must be a tuple (gx,gy).')
+        msg = 'The fiber conductivity must be a tuple (gx, gy).'
+        try:
+            if len(g_fiber) != 2:
+                raise ValueError(msg)
+        except TypeError:
+            raise ValueError(msg)
+        msg = 'The tissue conductivity must be a tuple (gx, gy).'
+        try:
+            if len(g_tissue) != 2:
+                raise ValueError(msg)
+        except TypeError:
+            raise ValueError(msg)
         self._gf = [float(x) for x in g_fiber]
         self._gt = [float(x) for x in g_tissue]
         self._gft = float(g_fiber_tissue)

@@ -281,16 +281,47 @@ class FiberTissueSimulationTest(unittest.TestCase):
             ValueError, 'exceed that of the tissue',
             FT, mf, mt, p, (5, 6), (5, 5))
 
-        '''
+        # Number of paced cells must be >= 0
+        FT(mf, mt, p, nx_paced=0)
+        self.assertRaisesRegex(
+            ValueError, 'width of the stimulus pulse must be non-negative',
+            FT, mf, mt, p, nx_paced=-1)
 
+        # Check conductivities are tuples
+        self.assertRaisesRegex(
+            ValueError, 'fiber conductivity must be a tuple \(gx, gy\)',
+            FT, mf, mt, p, g_fiber=1)
+        self.assertRaisesRegex(
+            ValueError, 'fiber conductivity must be a tuple \(gx, gy\)',
+            FT, mf, mt, p, g_fiber=(1, ))
+        self.assertRaisesRegex(
+            ValueError, 'fiber conductivity must be a tuple \(gx, gy\)',
+            FT, mf, mt, p, g_fiber=(1, 1, 1))
+        self.assertRaisesRegex(
+            ValueError, 'tissue conductivity must be a tuple \(gx, gy\)',
+            FT, mf, mt, p, g_tissue=1)
+        self.assertRaisesRegex(
+            ValueError, 'tissue conductivity must be a tuple \(gx, gy\)',
+            FT, mf, mt, p, g_tissue=(1, ))
+        self.assertRaisesRegex(
+            ValueError, 'tissue conductivity must be a tuple \(gx, gy\)',
+            FT, mf, mt, p, g_tissue=(1, 1, 1))
 
-
+        # Check step size is > 0
+        self.assertRaisesRegex(
+            ValueError, 'step size must be greater', FT, mf, mt, p, dt=0)
+        self.assertRaisesRegex(
+            ValueError, 'step size must be greater', FT, mf, mt, p, dt=-1)
 
         # Precision must be single or double
         self.assertRaisesRegex(
             ValueError, 'Only single and double',
             FT, mf, mt,
             precision=myokit.SINGLE_PRECISION + myokit.DOUBLE_PRECISION)
+
+        '''
+
+
 
         # Membrane potential must be given with label
         m2 = self.m.clone()
