@@ -14,7 +14,7 @@ import resource
 import myokit
 
 
-def test(c, *args, repeats=1000, duration=20, name=None):
+def test(c, *args, warmup=10, repeats=1000, duration=20, name=None):
     """
     Tests a method created by calling ``c(*args)``.
     """
@@ -24,8 +24,9 @@ def test(c, *args, repeats=1000, duration=20, name=None):
     print(f'Testing {name} ... ', end='')
 
     s = c(*args)
-    s.run(duration, log=myokit.LOG_NONE)
-    s.reset()
+    for i in range(warmup):
+        s.run(duration, log=myokit.LOG_NONE)
+        s.reset()
 
     increases = 0
     us = [0] * repeats
@@ -59,6 +60,7 @@ def test(c, *args, repeats=1000, duration=20, name=None):
 
 # Load model and protocol
 m = myokit.load_model('example')
+#p = myokit.load_protocol('example')
 p = myokit.pacing.blocktrain(500, 0.5, offset=0.1)
 
 # Shortcut to Fiber Tissue, for one-line commenting when debugging
@@ -76,8 +78,8 @@ sens2 = (m.states(), sens2)
 # Test all simulation methods
 c = 0
 c += test(myokit.Simulation, m, p)
-c += test(myokit.Simulation, m, p, sens, name='Simulation w. sens. 1')
-c += test(myokit.Simulation, m, p, sens2, duration=1, name='Simulation w. sens. 2') # noqa
+c += test(myokit.Simulation, m, p, sens, name='Sensitivities 1')
+c += test(myokit.Simulation, m, p, sens2, duration=1, name='Sensitivities 2')
 c += test(myokit.LegacySimulation, m, p, name='Legacy simulation')
 c += test(myokit.Simulation1d, m, p, duration=1)
 #c += test(myokit.SimulationOpenCL, m, p, 5, duration=1, repeats=10)
