@@ -117,6 +117,11 @@ class FiberTissueSimulation(myokit.CModule):
     time. A model's suitability can be tested using :meth:`
     has_interdependent_components
     <myokit.Model.has_interdependent_components>`.
+
+    Please note: this class should be considered slightly experimental. The
+    error handling (when NaNs occur) is not well-tested, and future versions of
+    Myokit may merge this class into :class:`SimulationOpenCL` or make other
+    big changes to the API.
     """
     _index = 0  # Unique id for the created simulation module
 
@@ -948,9 +953,8 @@ class FiberTissueSimulation(myokit.CModule):
             self._statet = state_outt
 
         # Check for NaN's, print error output
-        if (    # pramga: no cover
-                report_nan and (logf.has_nan() or logt.has_nan())):
-            # pragma: no cover
+        if (report_nan and
+                (logf.has_nan() or logt.has_nan())):  # pramga: no cover
             txt = ['Numerical error found in simulation logs.']
             try:
                 # NaN encountered, show how it happened
@@ -996,9 +1000,8 @@ class FiberTissueSimulation(myokit.CModule):
         if n == self._nstatef * ntotalf:
             return list(state)
         elif n != self._nstatef:
-            raise ValueError(
-                'Given state must have the same size as a'
-                ' single cell state or a full simulation state')
+            raise ValueError('Given state must have the same size as a single'
+                             ' fiber cell state or a full simulation state')
         if x is None:
             return list(state) * ntotalf
         elif y is None:
@@ -1025,9 +1028,8 @@ class FiberTissueSimulation(myokit.CModule):
         if n == self._nstatet * ntotalt:
             return list(state)
         elif n != self._nstatet:
-            raise ValueError(
-                'Given state must have the same size as a single'
-                ' cell state or a full simulation state')
+            raise ValueError('Given state must have the same size as a single'
+                             ' tissue cell state or a full simulation state')
         if x is None:
             return list(state) * ntotalt
         elif y is None:

@@ -588,6 +588,8 @@ class FiberTissueSimulationTest(unittest.TestCase):
                                    self.s1.set_fiber_state, sm, 0, ny)
             self.assertRaisesRegex(ValueError, 'both x and y',
                                    self.s1.set_fiber_state, sm, 0)
+            self.assertRaisesRegex(ValueError, 'single fiber cell state or',
+                                   self.s1.set_fiber_state, sm * 2)
 
             # Check error messages for fiber_state()
             self.assertRaisesRegex(IndexError, 'x-index out of range',
@@ -615,7 +617,7 @@ class FiberTissueSimulationTest(unittest.TestCase):
         finally:
             self.s1.reset()
 
-    def test_set_tissue_state(self):
+    def test_tissue_state(self):
         # Test the set_tissue_state and set_default_tissue_state methods
 
         # Check simulation state equals model state
@@ -680,6 +682,8 @@ class FiberTissueSimulationTest(unittest.TestCase):
                                    self.s1.set_tissue_state, sm, 0, ny)
             self.assertRaisesRegex(ValueError, 'both x and y',
                                    self.s1.set_tissue_state, sm, 0)
+            self.assertRaisesRegex(ValueError, 'single tissue cell state or',
+                                   self.s1.set_tissue_state, sm * 2)
 
             # Check error messages for tissue_state()
             self.assertRaisesRegex(IndexError, 'x-index out of range',
@@ -713,6 +717,11 @@ class FiberTissueSimulationTest(unittest.TestCase):
             self.assertEqual(self.s1.step_size(), 0.0012)
             self.s1.set_step_size(0.0011)
             self.assertEqual(self.s1.step_size(), 0.0011)
+
+            self.assertRaisesRegex(ValueError, 'greater than zero',
+                                   self.s1.set_step_size, -1)
+            self.assertRaisesRegex(ValueError, 'greater than zero',
+                                   self.s1.set_step_size, 0)
         finally:
             self.s1.set_step_size(0.0012)
 
