@@ -71,7 +71,7 @@ def _create(path):
     config.add_section('sundials')
     config.set(
         'sundials', '# Location of sundials shared libary files'
-        ' (.so or .dll).')
+        ' (.so, .dll, or .dylib).')
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
@@ -91,7 +91,8 @@ def _create(path):
             '/opt/local/lib64',
         ]))
 
-    config.set('sundials', '# Location of sundials header files (.h).')
+    config.set('sundials',
+               '# Location of sundials header files (.h).')
     config.set('sundials', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover
@@ -111,8 +112,8 @@ def _create(path):
 
     # Locations of OpenCL libraries
     config.add_section('opencl')
-    config.set(
-        'opencl', '# Location of opencl shared libary files (.so or .dll).')
+    config.set('opencl',
+               '# Location of opencl shared libary files (.so, .dll, .dylib).')
     config.set('opencl', '# Multiple paths can be set using ; as separator.')
 
     if system == 'Windows':     # pragma: no linux cover

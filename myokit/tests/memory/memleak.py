@@ -70,10 +70,14 @@ sens = (
     ('ina.gNa', 'init(ina.m)')
 )
 
+sens2 = [v for v in m.variables(const=True) if v.is_literal()]
+sens2 = (m.states(), sens2)
+
 # Test all simulation methods
 c = 0
 c += test(myokit.Simulation, m, p)
-c += test(myokit.Simulation, m, p, sens, name='Simulation w. sensitivities')
+c += test(myokit.Simulation, m, p, sens, name='Simulation w. sens. 1')
+c += test(myokit.Simulation, m, p, sens2, duration=1, name='Simulation w. sens. 2') # noqa
 c += test(myokit.LegacySimulation, m, p, name='Legacy simulation')
 c += test(myokit.Simulation1d, m, p, duration=1)
 #c += test(myokit.SimulationOpenCL, m, p, 5, duration=1, repeats=10)
