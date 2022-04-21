@@ -5,6 +5,8 @@ This page lists the main changes made to Myokit in each release.
 ## Unreleased
 - Added
   - [#869](https://github.com/MichaelClerx/myokit/pull/869) Added methods `myokit.FiberTissueSimulation.fiber_shape` and `.tissue_shape` (but see [https://github.com/MichaelClerx/myokit/issues/764] for an important open issue).
+  - [#869](https://github.com/MichaelClerx/myokit/pull/869) Added a method `myokit.FiberTissueSimulation.step_size()`.
+
 - Changed
   - [#865](https://github.com/MichaelClerx/myokit/pull/865) Added more platform information to `myokit system`.
   - [#866](https://github.com/MichaelClerx/myokit/pull/866) Slightly tweaked the plotting in `myokit.lib.plots.cumulative_current`, and added two arguments `line_args` and `fill_args` that can be used to customize the plotting style.
