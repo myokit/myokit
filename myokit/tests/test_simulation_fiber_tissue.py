@@ -14,7 +14,7 @@ import numpy as np
 
 import myokit
 
-from myokit.tests import OpenCL_FOUND, DIR_DATA, WarningCollector
+from myokit.tests import OpenCL_FOUND, DIR_DATA, CancellingReporter
 
 # Unit testing in Python 2 and 3
 try:
@@ -37,17 +37,26 @@ class FiberTissueSimulationTest(unittest.TestCase):
     def setUpClass(cls):
         # Create objects for shared used in testing
 
+        # Fiber model, tissue model, protocol
         cls.mf = myokit.load_model(
             os.path.join(DIR_DATA, 'dn-1985-normalised.mmt'))
         cls.mt = myokit.load_model(os.path.join(DIR_DATA, 'lr-1991.mmt'))
         cls.p = myokit.pacing.blocktrain(1000, 2.0, offset=.01)
 
-    def test_against_cvode(self):
-        # Compare the fiber-tissue simulation output with CVODE output
+        # Fiber/Tissue sizes (small sim)
+        cls.nfx = 8
+        cls.nfy = 4
+        cls.ntx = 8
+        cls.nty = 6
 
-        # Create simulation
-        with WarningCollector():
-            s1 = myokit.FiberTissueSimulation(
+        # Shared simulations
+        cls._s0 = cls._s1 = None
+
+    @property
+    def s0(self):
+        # Shared 2x1 simulation
+        if self._s0 is None:
+            self._s0 = myokit.FiberTissueSimulation(
                 self.mt,
                 self.mt,
                 self.p,
@@ -58,8 +67,30 @@ class FiberTissueSimulationTest(unittest.TestCase):
                 g_tissue=(0, 0),
                 g_fiber_tissue=0,
                 precision=myokit.DOUBLE_PRECISION,
+                dt=0.01,
             )
-        s1.set_step_size(0.01)
+        return self._s0
+
+    @property
+    def s1(self):
+        # Shared small simulation
+        if self._s1 is None:
+            self._s1 = myokit.FiberTissueSimulation(
+                self.mf,
+                self.mt,
+                self.p,
+                ncells_fiber=(self.nfx, self.nfy),
+                ncells_tissue=(self.ntx, self.nty),
+                nx_paced=10,
+                g_fiber=(235, 100),
+                g_tissue=(9, 5),
+                g_fiber_tissue=9,
+                dt=0.0012,
+            )
+        return self._s1
+
+    def test_against_cvode(self):
+        # Compare the fiber-tissue simulation output with CVODE output
 
         # Set up logging
         logvars = ['engine.time', 'engine.pace', 'membrane.V', 'ica.ICa']
@@ -68,8 +99,11 @@ class FiberTissueSimulationTest(unittest.TestCase):
         # Run simulation
         tmax = 100
         dlog = 0.1
-        with myokit.tools.capture():
-            d1, logt = s1.run(tmax, logf=logvars, logt=logt, log_interval=dlog)
+        try:
+            d1, logt = self.s0.run(
+                tmax, logf=logvars, logt=logt, log_interval=dlog)
+        finally:
+            self.s0.reset()
         del(logt)
         d1 = d1.npview()
 
@@ -145,30 +179,12 @@ class FiberTissueSimulationTest(unittest.TestCase):
 
     def test_basic(self):
         # Test basic functionality
+        s = self.s1
+        nfx, nfy, ntx, nty = self.nfx, self.nfy, self.ntx, self.nty
 
         # Run times
         run = .1
 
-        # Fiber/Tissue sizes
-        nfx = 8
-        nfy = 4
-        ntx = 8
-        nty = 6
-
-        # Create simulation
-        s = myokit.FiberTissueSimulation(
-            self.mf,
-            self.mt,
-            self.p,
-            ncells_fiber=(nfx, nfy),
-            ncells_tissue=(ntx, nty),
-            nx_paced=10,
-            g_fiber=(235, 100),
-            g_tissue=(9, 5),
-            g_fiber_tissue=9
-        )
-
-        s.set_step_size(0.0012)
         # Set up logging
         logf = [
             'engine.time',
@@ -181,8 +197,10 @@ class FiberTissueSimulationTest(unittest.TestCase):
             'ica.ICa',
         ]
         # Run simulation
-        with myokit.tools.capture():
+        try:
             logf, logt = s.run(run, logf=logf, logt=logt, log_interval=0.01)
+        finally:
+            s.reset()
 
         self.assertEqual(len(logf), 1 + 2 * nfx * nfy)
         self.assertIn('engine.time', logf)
@@ -209,9 +227,6 @@ class FiberTissueSimulationTest(unittest.TestCase):
         m2.label('membrane_potential').set_rhs(None)
         self.assertFalse(m2.is_valid())
         self.assertRaises(myokit.MissingRhsError, FT, m2, mt)
-
-        m2 = mt.clone()
-        m2.label('membrane_potential').set_rhs(None)
         self.assertFalse(m2.is_valid())
         self.assertRaises(myokit.MissingRhsError, FT, mf, m2)
 
@@ -221,10 +236,6 @@ class FiberTissueSimulationTest(unittest.TestCase):
         x.set_rhs('membrane.i_ion')
         self.assertTrue(m2.has_interdependent_components())
         self.assertRaisesRegex(ValueError, 'interdependent', FT, m2, mt)
-
-        m2 = mt.clone()
-        x = m2.get('ina').add_variable('xx')
-        x.set_rhs('membrane.i_ion')
         self.assertTrue(m2.has_interdependent_components())
         self.assertRaisesRegex(ValueError, 'interdependent', FT, mf, m2)
 
@@ -260,22 +271,22 @@ class FiberTissueSimulationTest(unittest.TestCase):
 
         # Number of cells must be at least 1
         self.assertRaisesRegex(
-            ValueError, 'fiber size must be at least \(1, 1\)',
+            ValueError, r'fiber size must be at least \(1, 1\)',
             FT, mf, mt, ncells_fiber=(0, 10))
         self.assertRaisesRegex(
-            ValueError, 'fiber size must be at least \(1, 1\)',
+            ValueError, r'fiber size must be at least \(1, 1\)',
             FT, mf, mt, ncells_fiber=(10, 0))
         self.assertRaisesRegex(
-            ValueError, 'fiber size must be at least \(1, 1\)',
+            ValueError, r'fiber size must be at least \(1, 1\)',
             FT, mf, mt, ncells_fiber=(-1, -1))
         self.assertRaisesRegex(
-            ValueError, 'tissue size must be at least \(1, 1\)',
+            ValueError, r'tissue size must be at least \(1, 1\)',
             FT, mf, mt, ncells_tissue=(0, 10))
         self.assertRaisesRegex(
-            ValueError, 'tissue size must be at least \(1, 1\)',
+            ValueError, r'tissue size must be at least \(1, 1\)',
             FT, mf, mt, ncells_tissue=(10, 0))
         self.assertRaisesRegex(
-            ValueError, 'tissue size must be at least \(1, 1\)',
+            ValueError, r'tissue size must be at least \(1, 1\)',
             FT, mf, mt, ncells_tissue=(-1, -1))
         self.assertRaisesRegex(
             ValueError, 'exceed that of the tissue',
@@ -289,22 +300,22 @@ class FiberTissueSimulationTest(unittest.TestCase):
 
         # Check conductivities are tuples
         self.assertRaisesRegex(
-            ValueError, 'fiber conductivity must be a tuple \(gx, gy\)',
+            ValueError, r'fiber conductivity must be a tuple \(gx, gy\)',
             FT, mf, mt, p, g_fiber=1)
         self.assertRaisesRegex(
-            ValueError, 'fiber conductivity must be a tuple \(gx, gy\)',
+            ValueError, r'fiber conductivity must be a tuple \(gx, gy\)',
             FT, mf, mt, p, g_fiber=(1, ))
         self.assertRaisesRegex(
-            ValueError, 'fiber conductivity must be a tuple \(gx, gy\)',
+            ValueError, r'fiber conductivity must be a tuple \(gx, gy\)',
             FT, mf, mt, p, g_fiber=(1, 1, 1))
         self.assertRaisesRegex(
-            ValueError, 'tissue conductivity must be a tuple \(gx, gy\)',
+            ValueError, r'tissue conductivity must be a tuple \(gx, gy\)',
             FT, mf, mt, p, g_tissue=1)
         self.assertRaisesRegex(
-            ValueError, 'tissue conductivity must be a tuple \(gx, gy\)',
+            ValueError, r'tissue conductivity must be a tuple \(gx, gy\)',
             FT, mf, mt, p, g_tissue=(1, ))
         self.assertRaisesRegex(
-            ValueError, 'tissue conductivity must be a tuple \(gx, gy\)',
+            ValueError, r'tissue conductivity must be a tuple \(gx, gy\)',
             FT, mf, mt, p, g_tissue=(1, 1, 1))
 
         # Check step size is > 0
@@ -319,23 +330,391 @@ class FiberTissueSimulationTest(unittest.TestCase):
             FT, mf, mt,
             precision=myokit.SINGLE_PRECISION + myokit.DOUBLE_PRECISION)
 
-        '''
-
-
-
-        # Membrane potential must be given with label
-        m2 = self.m.clone()
+        # Membrane potentials must be given with labels
+        m2 = mf.clone()
         m2.label('membrane_potential').set_label(None)
         self.assertRaisesRegex(
-            ValueError, 'requires the membrane potential',
-            FT, m2)
+            ValueError, '"membrane_potential" in the fiber model',
+            FT, m2, mt)
+        self.assertRaisesRegex(
+            ValueError, '"membrane_potential" in the tissue model',
+            FT, mf, m2)
 
         # Membrane potential must be a state
-        m2.get('ina.INa').set_label('membrane_potential')
+        m2.get('ik.iK').set_label('membrane_potential')
         self.assertRaisesRegex(
-            ValueError, 'must be a state variable',
-            FT, m2)
-    '''
+            ValueError, 'fiber model must be a state variable',
+            FT, m2, mt)
+        self.assertRaisesRegex(
+            ValueError, 'tissue model must be a state variable',
+            FT, mf, m2)
+
+        # Membrane potential vars must have same unit
+        m2 = mf.clone()
+        m2.label('membrane_potential').set_unit(None)
+        self.assertRaisesRegex(
+            ValueError, 'fiber model must specify a unit for the membrane',
+            FT, m2, mt)
+        self.assertRaisesRegex(
+            ValueError, 'tissue model must specify a unit for the membrane',
+            FT, mf, m2)
+        m2.label('membrane_potential').set_unit(myokit.units.pF)
+        self.assertRaisesRegex(
+            ValueError, 'membrane potential must have the same unit',
+            FT, mf, m2)
+
+        # Diffusion currents must be given with labels
+        m2 = mf.clone()
+        m2.binding('diffusion_current').set_binding(None)
+        self.assertRaisesRegex(
+            ValueError, 'fiber model to be bound to "diffusion_current"',
+            FT, m2, mt)
+        self.assertRaisesRegex(
+            ValueError, 'tissue model to be bound to "diffusion_current"',
+            FT, mf, m2)
+
+        # Diffusion vars must have same unit
+        m2 = mf.clone()
+        m2.binding('diffusion_current').set_unit(None)
+        self.assertRaisesRegex(
+            ValueError, 'fiber model must specify a unit for the diffusion',
+            FT, m2, mt)
+        self.assertRaisesRegex(
+            ValueError, 'tissue model must specify a unit for the diffusion',
+            FT, mf, m2)
+        m2.binding('diffusion_current').set_unit(myokit.units.pF)
+        self.assertRaisesRegex(
+            ValueError, 'diffusion current must have the same unit',
+            FT, mf, m2)
+
+    def test_pre_reset(self):
+        # Tests getting/setting of states and time, and use of pre() and run()
+        try:
+            # Check setting of time
+            self.assertEqual(self.s1.time(), 0)
+            self.s1.set_time(10)
+            self.assertEqual(self.s1.time(), 10)
+            self.s1.reset()     # Check that reset() resets time
+            self.assertEqual(self.s1.time(), 0)
+
+            # Check initial state equals default state
+            sf, st = self.s1.fiber_state(), self.s1.tissue_state()
+            self.assertEqual(sf, self.s1.default_fiber_state())
+            self.assertEqual(st, self.s1.default_tissue_state())
+        finally:
+            self.s1.reset()
+
+        # At this point, we have either quit or sf and st are set.
+        # Use these to restore the original sim state at the end of the test.
+        sf0, st0 = sf, st
+
+        try:
+            # Check running updates time and states, but not default states
+            self.s1.run(5, logf=myokit.LOG_NONE, logt=myokit.LOG_NONE)
+            self.assertEqual(self.s1.time(), 5)
+            self.assertNotEqual(
+                self.s1.fiber_state(), self.s1.default_fiber_state())
+            self.assertNotEqual(
+                self.s1.tissue_state(), self.s1.default_tissue_state())
+            self.assertEqual(sf, self.s1.default_fiber_state())
+            self.assertEqual(st, self.s1.default_tissue_state())
+
+            # Setting time to 0 is different from reset()
+            self.s1.set_time(0)
+            self.assertEqual(self.s1.time(), 0)
+            self.assertNotEqual(
+                self.s1.fiber_state(), self.s1.default_fiber_state())
+            self.assertNotEqual(
+                self.s1.tissue_state(), self.s1.default_tissue_state())
+
+            # Check reset() fixes everything
+            self.s1.reset()
+            self.assertEqual(sf, self.s1.fiber_state())
+            self.assertEqual(st, self.s1.tissue_state())
+            self.assertEqual(self.s1.time(), 0)
+
+            # Check that pre() updates both states, but not time
+            self.s1.pre(5)
+            self.assertEqual(self.s1.time(), 0)
+            self.assertNotEqual(sf, self.s1.fiber_state())
+            self.assertNotEqual(st, self.s1.tissue_state())
+            sf, st = self.s1.fiber_state(), self.s1.tissue_state()
+            self.assertEqual(sf, self.s1.default_fiber_state())
+            self.assertEqual(st, self.s1.default_tissue_state())
+            self.assertEqual(self.s1.time(), 0)
+
+            # Check that reset restores new default state
+            self.s1.run(5, logf=myokit.LOG_NONE, logt=myokit.LOG_NONE)
+            self.assertEqual(self.s1.time(), 5)
+            self.assertNotEqual(
+                self.s1.fiber_state(), self.s1.default_fiber_state())
+            self.assertNotEqual(
+                self.s1.tissue_state(), self.s1.default_tissue_state())
+            self.assertEqual(sf, self.s1.default_fiber_state())
+            self.assertEqual(st, self.s1.default_tissue_state())
+            self.s1.reset()
+            self.assertEqual(self.s1.time(), 0)
+            self.assertEqual(sf, self.s1.fiber_state())
+            self.assertEqual(st, self.s1.tissue_state())
+
+        finally:
+            self.s1.set_default_fiber_state(sf0)
+            self.s1.set_default_tissue_state(st0)
+            self.s1.reset()
+
+    def test_protocol(self):
+        # Test setting a protocol
+
+        try:
+            # Run, check Vm is raised
+            df, dt = self.s0.run(
+                5, logf=['membrane.V'], logt=myokit.LOG_NONE, log_interval=1)
+            self.assertGreater(df['membrane.V', 0, 0][-1], 0)
+            self.s0.reset()
+
+            # Unset protocol, check Vm stays low
+            self.s0.set_protocol(None)
+            df, dt = self.s0.run(
+                5, logf=['membrane.V'], logt=myokit.LOG_NONE, log_interval=1)
+            self.assertLess(df['membrane.V', 0, 0][-1], 0)
+            self.s0.reset()
+
+            # Reset protocol, check Vm goes high
+            self.s0.set_protocol(self.p)
+            df, dt = self.s0.run(
+                5, logf=['membrane.V'], logt=myokit.LOG_NONE, log_interval=1)
+            self.assertGreater(df['membrane.V', 0, 0][-1], 0)
+        finally:
+            self.s0.reset()
+
+    def test_run_errors(self):
+        # Test invalid calls to run()
+
+        try:
+            # Run with negative sim time
+            self.assertRaisesRegex(ValueError, 'can\'t be negative',
+                                   self.s1.run, -1)
+
+            # Run with negative or zero log interval: Just gets set to really
+            # small value
+            self.s1.run(1, log_interval=0)
+            self.s1.run(1, log_interval=-1)
+        finally:
+            self.s1.reset()
+
+    def test_run_progress(self):
+        # Tests running with a progress reporter.
+        pass
+
+        # Run with a progress reporter
+        with myokit.tools.capture() as c:
+            self.s1.run(3, progress=myokit.ProgressPrinter())
+        self.assertTrue(c.text() != '')
+
+        # Cancel using a progress reporter
+        self.assertRaises(
+            myokit.SimulationCancelledError,
+            self.s1.run, 20, progress=CancellingReporter(0))
+
+        # Run with invalid progress reporter
+        try:
+            self.assertRaisesRegex(ValueError, 'subclass of myokit.ProgressR',
+                                   self.s1.run, 1, progress=12)
+        finally:
+            self.s1.reset()
+
+    def test_fiber_state(self):
+        # Test the fiber_state related methods.
+
+        # Check simulation state equals model state
+        m = self.mf.count_states()
+        nx, ny = self.nfx, self.nfy
+
+        sm = self.mf.state()
+        for i in range(nx):
+            for j in range(ny):
+                self.assertEqual(sm, self.s1.fiber_state(i, j))
+
+        try:
+            # Test setting a full-sized state
+            sx = list(range(nx * ny * m))
+            self.s1.set_fiber_state(sx)
+            self.assertEqual(sx, self.s1.fiber_state())
+
+            # Test setting a single, global state
+            sx = [0.0] * m
+            self.assertNotEqual(sm, sx)
+            self.s1.set_fiber_state(sx)
+            for i in range(nx):
+                for j in range(ny):
+                    self.assertEqual(sx, self.s1.fiber_state(i, j))
+            self.assertEqual(sx * (nx * ny), self.s1.fiber_state())
+            self.s1.set_fiber_state(sm)
+            self.assertEqual(sm * (nx * ny), self.s1.fiber_state())
+
+            # Test setting the state of a single cell
+            x, y = 1, 2
+            self.s1.set_fiber_state(sx, x, y)
+            for i in range(nx):
+                for j in range(ny):
+                    if i == x and j == y:
+                        self.assertEqual(self.s1.fiber_state(i, j), sx)
+                    else:
+                        self.assertEqual(self.s1.fiber_state(i, j), sm)
+
+            # Test indexing in state vector is x first, then y
+            self.s1.set_fiber_state(sx)
+            self.s1.set_fiber_state(sm, x=1, y=2)
+            s = self.s1.fiber_state()[::m]
+            self.assertEqual(s[2 * nx + 1], sm[0])
+            for i in range(nx * ny):
+                if i != 2 * nx + 1:
+                    self.assertEqual(s[i], 0)
+
+            # Test getting specific states
+            self.assertEqual(self.s1.fiber_state(0, 0), sx)
+            self.assertEqual(self.s1.fiber_state(1, 2), sm)
+            self.assertEqual(self.s1.default_fiber_state(0, 0),
+                             self.s1.default_fiber_state(1, 1))
+
+            # Check error messages for set_fiber_state() (shared)
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.set_fiber_state, sm, -1, 0)
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.set_fiber_state, sm, nx, 0)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.set_fiber_state, sm, 0, -1)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.set_fiber_state, sm, 0, ny)
+            self.assertRaisesRegex(ValueError, 'both x and y',
+                                   self.s1.set_fiber_state, sm, 0)
+
+            # Check error messages for fiber_state()
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.fiber_state, -1, 0)
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.fiber_state, nx, 0)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.fiber_state, 0, -1)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.fiber_state, 0, ny)
+            self.assertRaisesRegex(ValueError, 'both an x and y',
+                                   self.s1.fiber_state, 0)
+
+            # Check error messages for default_fiber_state()
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.default_fiber_state, -1, 0)
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.default_fiber_state, nx, 0)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.default_fiber_state, 0, -1)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.default_fiber_state, 0, ny)
+            self.assertRaisesRegex(ValueError, 'both an x and y',
+                                   self.s1.default_fiber_state, 0)
+        finally:
+            self.s1.reset()
+
+    def test_set_tissue_state(self):
+        # Test the set_tissue_state and set_default_tissue_state methods
+
+        # Check simulation state equals model state
+        m = self.mt.count_states()
+        nx, ny = self.ntx, self.nty
+
+        sm = self.mt.state()
+        for i in range(nx):
+            for j in range(ny):
+                self.assertEqual(sm, self.s1.tissue_state(i, j))
+
+        try:
+            # Test setting a full-sized state
+            sx = list(range(nx * ny * m))
+            self.s1.set_tissue_state(sx)
+            self.assertEqual(sx, self.s1.tissue_state())
+
+            # Test setting a single, global state
+            sx = [0.0] * m
+            self.assertNotEqual(sm, sx)
+            self.s1.set_tissue_state(sx)
+            for i in range(nx):
+                for j in range(ny):
+                    self.assertEqual(sx, self.s1.tissue_state(i, j))
+            self.assertEqual(sx * (nx * ny), self.s1.tissue_state())
+            self.s1.set_tissue_state(sm)
+            self.assertEqual(sm * (nx * ny), self.s1.tissue_state())
+
+            # Test setting the state of a single cell
+            x, y = 1, 2
+            self.s1.set_tissue_state(sx, x, y)
+            for i in range(nx):
+                for j in range(ny):
+                    if i == x and j == y:
+                        self.assertEqual(self.s1.tissue_state(i, j), sx)
+                    else:
+                        self.assertEqual(self.s1.tissue_state(i, j), sm)
+
+            # Test indexing in state vector is x first, then y
+            self.s1.set_tissue_state(sx)
+            self.s1.set_tissue_state(sm, x=1, y=2)
+            s = self.s1.tissue_state()[::m]
+            self.assertEqual(s[2 * nx + 1], sm[0])
+            for i in range(nx * ny):
+                if i != 2 * nx + 1:
+                    self.assertEqual(s[i], 0)
+
+            # Test getting specific states
+            self.assertEqual(self.s1.tissue_state(0, 0), sx)
+            self.assertEqual(self.s1.tissue_state(1, 2), sm)
+            self.assertEqual(self.s1.default_tissue_state(0, 0),
+                             self.s1.default_tissue_state(1, 1))
+
+            # Check error messages for set_tissue_state() (shared)
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.set_tissue_state, sm, -1, 0)
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.set_tissue_state, sm, nx, 0)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.set_tissue_state, sm, 0, -1)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.set_tissue_state, sm, 0, ny)
+            self.assertRaisesRegex(ValueError, 'both x and y',
+                                   self.s1.set_tissue_state, sm, 0)
+
+            # Check error messages for tissue_state()
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.tissue_state, -1, 0)
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.tissue_state, nx, 0)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.tissue_state, 0, -1)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.tissue_state, 0, ny)
+            self.assertRaisesRegex(ValueError, 'both an x and y',
+                                   self.s1.tissue_state, 0)
+
+            # Check error messages for default_tissue_state()
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.default_tissue_state, -1, 0)
+            self.assertRaisesRegex(IndexError, 'x-index out of range',
+                                   self.s1.default_tissue_state, nx, 0)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.default_tissue_state, 0, -1)
+            self.assertRaisesRegex(IndexError, 'y-index out of range',
+                                   self.s1.default_tissue_state, 0, ny)
+            self.assertRaisesRegex(ValueError, 'both an x and y',
+                                   self.s1.default_tissue_state, 0)
+        finally:
+            self.s1.reset()
+
+    def test_step_size(self):
+        # Tests setting/getting step size
+        try:
+            self.assertEqual(self.s1.step_size(), 0.0012)
+            self.s1.set_step_size(0.0011)
+            self.assertEqual(self.s1.step_size(), 0.0011)
+        finally:
+            self.s1.set_step_size(0.0012)
 
 
 if __name__ == '__main__':

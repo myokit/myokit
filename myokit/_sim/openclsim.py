@@ -363,7 +363,7 @@ class SimulationOpenCL(myokit.CModule):
         """
         Returns the current default simulation state as a list of
         ``len(state) * n_total_cells`` floating point values, where
-        ``n_total_cells`` is the total number or cells.
+        ``n_total_cells`` is the total number of cells.
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index a
         single cell's state is returned. For example ``state(4)`` can be
@@ -1717,7 +1717,7 @@ class SimulationOpenCL(myokit.CModule):
         """
         Returns the current simulation state as a list of
         ``len(state) * n_total_cells`` floating point values, where
-        ``n_total_cells`` is the total number or cells.
+        ``n_total_cells`` is the total number of cells.
 
         If the optional arguments ``x`` and ``y`` specify a valid cell index a
         single cell's state is returned. For example ``state(4)`` can be
